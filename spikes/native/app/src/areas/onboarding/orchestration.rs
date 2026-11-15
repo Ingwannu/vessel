@@ -7,7 +7,9 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
-use vessel_app_view::desktop::cli::{Availability, Snapshot, Status as CliStatus};
+use vessel_app_view::desktop::cli::{
+    Availability, Operation as CliOperation, Snapshot, State as CliState, Status as CliStatus,
+};
 use vessel_app_view::devices::{Ticket, Tickets};
 use vessel_app_view::onboarding::orchestration::{
     Choice, Integration, Operation, Orchestration, Outcome, Settlement,
@@ -95,14 +97,9 @@ pub(super) fn apply(
     }
     let mut offered = BTreeMap::new();
     if let Facts::Ready(snapshot) = shell.areas.onboarding.integrations.facts
-        && snapshot.availability == Availability::Bundled
+        && let Some(current) = cli_choice(snapshot)
     {
-        let current = match snapshot.status {
-            CliStatus::Installed => Some(Choice::On),
-            CliStatus::Absent => Some(Choice::Off),
-            CliStatus::Foreign => None,
-        };
-        let _old = offered.insert(Integration::Cli, current);
+        let _old = offered.insert(Integration::Cli, Some(current));
     }
     #[cfg(not(target_arch = "wasm32"))]
     if let Facts::Failed(error) = &shell.areas.onboarding.integrations.facts {
@@ -137,7 +134,6 @@ fn execute(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
-    use vessel_app_view::desktop::cli::Operation as CliOperation;
     match operation.integration {
         Integration::Cli => {
             let work = crate::areas::desktop::cli::set_installed(
@@ -216,6 +212,22 @@ fn failed(shell: &Shell) -> bool {
     }
 }
 
+fn cli_choice(snapshot: Snapshot) -> Option<Choice> {
+    if snapshot.availability != Availability::Bundled {
+        return None;
+    }
+    let state = CliState::from(snapshot);
+    if state.allows(CliOperation::Install) {
+        Some(Choice::Off)
+    } else if state.allows(CliOperation::Remove) {
+        Some(Choice::On)
+    } else {
+        // A foreign destination authorizes neither install nor removal. It is
+        // unsupported here, not an unknown value that Continue may overwrite.
+        None
+    }
+}
+
 pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
@@ -225,10 +237,7 @@ pub(crate) fn render(
     let words = shell.words.desktop();
     let cli = matches!(
         shell.areas.onboarding.integrations.facts,
-        Facts::Ready(Snapshot {
-            availability: Availability::Bundled,
-            ..
-        })
+        Facts::Ready(snapshot) if cli_choice(snapshot).is_some()
     );
     let on = shell
         .areas
@@ -320,4 +329,34 @@ pub(crate) fn render(
                 ),
         )
         .into_any_element()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vessel_app_view::desktop::cli::PathStatus;
+
+    #[test]
+    fn unsupported_cli_entries_never_become_deferred_operations() {
+        for (availability, status, expected) in [
+            (Availability::Missing, CliStatus::Absent, None),
+            (Availability::Missing, CliStatus::Installed, None),
+            (Availability::Bundled, CliStatus::Foreign, None),
+            (Availability::Bundled, CliStatus::Absent, Some(Choice::Off)),
+            (
+                Availability::Bundled,
+                CliStatus::Installed,
+                Some(Choice::On),
+            ),
+        ] {
+            assert_eq!(
+                cli_choice(Snapshot {
+                    availability,
+                    status,
+                    path: PathStatus::Manual
+                }),
+                expected
+            );
+        }
+    }
 }

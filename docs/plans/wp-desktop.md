@@ -105,7 +105,9 @@ remain required. No checked-suggestion UI/acknowledgement is implemented yet.
 Orchestration changes apply only on Continue and advance after exact owner
 acknowledgements. CLI uses the desktop-shell installation API, never a copied
 PATH/service policy. MCP/skills remain unavailable until their numbered/reviewed
-owner APIs exist. Unsupported effects are not claimed installed. Shared footer
+owner APIs exist. Unsupported effects are not claimed installed. A foreign CLI destination offers
+neither Install nor Remove: onboarding uses the owner State::allows admission and
+omits that unsupported choice instead of trapping Continue on a refused overwrite. Shared footer
 controls use Outline Skip, Secondary Back and Primary Continue/Finish with kit
 pointer/touch metrics. Setup retains its 880×640 desktop bounds/viewport cap and
 compact behavior; it is not silently replaced by a percentage-only dialog size.
