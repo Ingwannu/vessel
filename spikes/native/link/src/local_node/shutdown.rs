@@ -11,7 +11,6 @@
 use super::{ManagerError, Snapshot, actor};
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_app_view::local_node::Status;
-use vessel_local_node::QuitPolicy;
 
 pub(super) const CAPACITY: usize = 1;
 
@@ -35,11 +34,7 @@ pub(super) fn run(
 
 async fn preserve(commands: mpsc::Sender<actor::Command>, mut state: watch::Receiver<Snapshot>) {
     let (reply, wait) = oneshot::channel::<Result<(), ManagerError>>();
-    let request = actor::Command::Finalize {
-        policy: QuitPolicy::KeepRunning,
-        confirmation: None,
-        reply,
-    };
+    let request = actor::Command::PreserveExit(reply);
     if commands.send(request).await.is_ok() {
         match wait.await {
             Ok(Ok(())) => {}

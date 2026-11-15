@@ -1,5 +1,9 @@
 //! Serialized lifecycle commands keep failed-stop ownership alive for a retry.
 
+mod history;
+
+use history::History;
+
 use super::{
     Action, Configuration, Confirmation, Connection, ControlLease, ManagerError, Snapshot,
 };
@@ -36,6 +40,7 @@ pub(super) enum Command {
         action: Action,
         reply: oneshot::Sender<Result<Snapshot, ManagerError>>,
     },
+    PreserveExit(oneshot::Sender<Result<(), ManagerError>>),
     Finalize {
         policy: QuitPolicy,
         confirmation: Option<Confirmation>,
@@ -50,12 +55,14 @@ pub(super) async fn run(
 ) {
     let mut node = None;
     let mut log_source = None;
+    let mut history = History::default();
     if config.preferences.management == Management::Enabled && config.launch.is_some() {
-        let result = start(&config, &mut node, &mut log_source).await;
+        let result = start(&config, &mut node, &mut log_source, &mut history).await;
         publish(&published, node.as_ref(), result.err());
     }
     let mut observe = true;
     loop {
+        history.prune();
         let command = if let Some(current) = &mut node {
             if observe
                 && matches!(
@@ -99,9 +106,23 @@ pub(super) async fn run(
             }
             Command::Action { action, reply } => {
                 observe = true;
-                let result =
-                    perform_action(action, &config, &mut node, &mut log_source, &published).await;
+                let result = perform_action(
+                    action,
+                    &config,
+                    &mut node,
+                    &mut log_source,
+                    &published,
+                    &mut history,
+                )
+                .await;
                 let _closed = reply.send(result);
+            }
+            Command::PreserveExit(reply) => {
+                // No later UI request can create a new owner after this handoff.
+                commands.close();
+                preserve_exit(&mut node, &published, &mut history).await;
+                let _receiver_gone = reply.send(Ok(()));
+                break;
             }
             Command::Finalize {
                 policy,
@@ -117,13 +138,41 @@ pub(super) async fn run(
     // startup or a crash-like UI teardown, ordinary Owned RAII still cleans up.
 }
 
+async fn preserve_exit(
+    node: &mut Option<Managed>,
+    published: &watch::Sender<Snapshot>,
+    history: &mut History,
+) {
+    if finalize(node, QuitPolicy::KeepRunning, None, published)
+        .await
+        .is_err()
+    {
+        // A failed surrender must not become implicit owned Drop cleanup merely
+        // because the platform's short shutdown callback has expired.
+        std::future::pending::<()>().await;
+    }
+    if let Some(current) = node
+        && matches!(current.node.status(), LocalStatus::Kept(_))
+    {
+        if current.node.wait_exit().await.is_err() {
+            std::future::pending::<()>().await;
+        }
+        publish(published, node.as_ref(), None);
+    }
+    history.wait().await;
+}
+
 async fn perform_action(
     action: Action,
     config: &Configuration,
     node: &mut Option<Managed>,
     log_source: &mut Option<vessel_local_node::LogReader>,
     published: &watch::Sender<Snapshot>,
+    history: &mut History,
 ) -> Result<Snapshot, ManagerError> {
+    if matches!(action, Action::Start) && !history.has_capacity() {
+        return Err(ManagerError::Unavailable);
+    }
     if let Action::Stop(lease) | Action::Restart(lease) = &action
         && !valid_control(published, lease)
     {
@@ -142,7 +191,7 @@ async fn perform_action(
         ..prior
     });
     let result = match action {
-        Action::Start => start(config, node, log_source).await,
+        Action::Start => start(config, node, log_source, history).await,
         Action::Stop(_lease) => control(node, log_source, StopPolicy::Protect, false).await,
         Action::Restart(_lease) => control(node, log_source, StopPolicy::Protect, true).await,
         Action::InterruptConfirmed(_confirmation) => {
@@ -192,6 +241,7 @@ async fn start(
     config: &Configuration,
     node: &mut Option<Managed>,
     log_source: &mut Option<vessel_local_node::LogReader>,
+    history: &mut History,
 ) -> Result<(), Arc<LocalNodeError>> {
     if matches!(
         node.as_ref().map(|managed| managed.node.status()),
@@ -201,13 +251,27 @@ async fn start(
     }
     if let Some(launch) = &config.launch {
         *log_source = None;
-        *node = Some(Managed::new(
+        let replacement = Managed::new(
             LocalNode::start_observed(launch.clone(), |logs| {
                 *log_source = Some(logs);
             })
             .await
             .map_err(Arc::new)?,
-        ));
+        );
+        if let Some(mut previous) = node.replace(replacement)
+            && matches!(previous.node.status(), LocalStatus::Kept(_))
+        {
+            // Reconnect never converts released authority back into ownership.
+            // Preserve the original direct-child observation independently of
+            // the new Attached transport and withdraw its old source first.
+            drop(previous.source.take());
+            history.retain(async move {
+                if previous.node.wait_exit().await.is_err() {
+                    tracing::warn!("released child exit remains unconfirmed");
+                    std::future::pending::<()>().await;
+                }
+            });
+        }
     }
     Ok(())
 }
@@ -292,130 +356,4 @@ fn valid_control(published: &watch::Sender<Snapshot>, lease: &ControlLease) -> b
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use vessel_app_view::local_node::Preferences;
-    use vessel_proto::NodeId;
-
-    fn snapshot(status: Status) -> Snapshot {
-        Snapshot {
-            status,
-            failure: None,
-            connection: None,
-            permit: Arc::new(()),
-        }
-    }
-
-    #[test]
-    fn interruption_permission_expires_even_when_a_replacement_keeps_the_node_id() {
-        let node = NodeId::random();
-        let original = snapshot(Status::Owned(node));
-        let permit = original.confirmation().unwrap();
-        let (published, _receiver) = watch::channel(original);
-        assert!(valid_confirmation(&published, &permit));
-        let _old = published.send_replace(snapshot(Status::Owned(node)));
-        assert!(!valid_confirmation(&published, &permit));
-        assert!(snapshot(Status::Attached(node)).confirmation().is_none());
-    }
-
-    #[tokio::test]
-    async fn a_document_checked_control_cannot_retarget_a_replacement_or_another_node() {
-        let node_id = NodeId::random();
-        let original = snapshot(Status::Owned(node_id));
-        let lease = original.control().unwrap();
-        let (published, _receiver) = watch::channel(original.clone());
-        let mut forged_display = original;
-        forged_display.status = Status::Owned(NodeId::random());
-        assert!(!valid_control(
-            &published,
-            &forged_display.control().unwrap()
-        ));
-        let _old = published.send_replace(snapshot(Status::Owned(node_id)));
-        let config = Configuration {
-            launch: None,
-            home: vessel_local_node::NodeHome::new(
-                std::env::temp_dir().join("unused-stale-control-fixture"),
-            )
-            .unwrap(),
-            preferences: Preferences::default(),
-        };
-        let mut node = None;
-        let mut logs = None;
-        for action in [Action::Stop(lease.clone()), Action::Restart(lease.clone())] {
-            assert!(matches!(
-                perform_action(action, &config, &mut node, &mut logs, &published).await,
-                Err(ManagerError::StaleControl)
-            ));
-            assert!(node.is_none());
-            assert_eq!(published.borrow().status, Status::Owned(node_id));
-        }
-    }
-
-    #[tokio::test]
-    async fn stale_stop_and_restart_confirmation_never_enter_the_control_path() {
-        let node_id = NodeId::random();
-        let original = snapshot(Status::Owned(node_id));
-        let confirmation = original.confirmation().unwrap();
-        let (published, _receiver) = watch::channel(snapshot(Status::Owned(node_id)));
-        let config = Configuration {
-            launch: None,
-            home: vessel_local_node::NodeHome::new(
-                std::env::temp_dir().join("unused-stale-local-confirmation-fixture"),
-            )
-            .unwrap(),
-            preferences: Preferences::default(),
-        };
-        let mut node = None;
-        let mut logs = None;
-        for action in [
-            Action::InterruptConfirmed(confirmation.clone()),
-            Action::RestartInterruptConfirmed(confirmation.clone()),
-        ] {
-            assert!(matches!(
-                perform_action(action, &config, &mut node, &mut logs, &published).await,
-                Err(ManagerError::StaleConfirmation)
-            ));
-            assert_eq!(published.borrow().status, Status::Owned(node_id));
-        }
-    }
-
-    #[tokio::test]
-    async fn a_missing_companion_never_leaves_an_admitted_start_spinning() {
-        let config = Configuration {
-            launch: None,
-            home: vessel_local_node::NodeHome::new(
-                std::env::temp_dir().join("unused-local-node-actor-fixture"),
-            )
-            .unwrap(),
-            preferences: Preferences::default(),
-        };
-        let (published, current) = watch::channel(snapshot(Status::NotInstalled));
-        let (commands, inbox) = mpsc::channel(2);
-        let task = tokio::spawn(run(config, inbox, published));
-        let (started, start_result) = oneshot::channel();
-        commands
-            .send(Command::Action {
-                action: Action::Start,
-                reply: started,
-            })
-            .await
-            .unwrap();
-        let acknowledged = start_result.await.unwrap().unwrap();
-        assert_eq!(acknowledged.status, Status::NotInstalled);
-        // A same-queue finalization acknowledgement is a deterministic barrier,
-        // rather than a sleep that might miss the transient Working snapshot.
-        let (reply, done) = oneshot::channel();
-        commands
-            .send(Command::Finalize {
-                policy: QuitPolicy::KeepRunning,
-                confirmation: None,
-                reply,
-            })
-            .await
-            .unwrap();
-        done.await.unwrap().unwrap();
-        assert_eq!(current.borrow().status, Status::NotInstalled);
-        drop(commands);
-        task.await.unwrap();
-    }
-}
+mod tests;

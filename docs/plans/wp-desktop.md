@@ -418,3 +418,25 @@ This prepares C5's one-node retained-write guard without retargeting its checked
 node across the async UI/actor boundary. Stale/replacement/forged-display tests
 are prepared; no current checked handoff of these new app-side changes is claimed.
 The shared root library and its frozen54 gate are unchanged.
+
+### Released-child history during explicit reconnect
+
+[Decision Log]
+- Selection: modify the existing controller actor; standard Tokio JoinSet only.
+- Purpose: after Keep and a later state-save veto, explicit Reconnect authenticates
+  Attached reuse without losing the earlier direct-child reaping obligation.
+- Rejected alternatives: infer the original child exit from the Attached socket,
+  manufacture owned authority from its NodeId, or let current display status end
+  the reactor while a historical released child is still being reaped.
+- Cost: retain at most eight observation tasks in the existing actor. Start refuses
+  when this bound is full, before launch/authentication; completed observations
+  are pruned. No signal handle, connection source or second registry is retained.
+
+An irreversible PreserveExit command closes actor admission before surrendering
+its current owned child. Its acknowledgement follows the current released child
+and every historical direct-child observation, independently of current Attached
+status. Failed/aborted observations hold the runtime rather than claim reaping or
+fall through into owned Drop cleanup. The actual OS may still terminate the
+launcher; this is no hard-exit persistence guarantee. Synthetic fixtures prepare
+historical-observer, bounded-admission and Attached-successor barriers; changed
+source compilation and real node/OS integration remain owed.

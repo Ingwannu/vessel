@@ -55,14 +55,7 @@ impl Fixture {
                 std::future::pending::<()>().await;
             }));
             drop(runtime.spawn(async move {
-                if let Some(actor::Command::Finalize {
-                    policy,
-                    confirmation,
-                    reply,
-                }) = inbox.recv().await
-                {
-                    assert_eq!(policy, QuitPolicy::KeepRunning);
-                    assert!(confirmation.is_none());
+                if let Some(actor::Command::PreserveExit(reply)) = inbox.recv().await {
                     request_notice.send(reply).unwrap();
                 }
             }));
@@ -128,5 +121,26 @@ fn irreversible_exit_survives_ui_drop_while_release_ack_is_still_pending() {
     fixture
         .published
         .send_modify(|snapshot| snapshot.status = Status::Stopped);
+    fixture.join();
+}
+
+#[test]
+fn attached_successor_does_not_skip_an_original_released_child_acknowledgement() {
+    let mut fixture = Fixture::new();
+    fixture.published.send_modify(|snapshot| {
+        snapshot.status = Status::Attached(vessel_proto::NodeId::random());
+    });
+    fixture
+        .policy
+        .as_ref()
+        .unwrap()
+        .try_send(Policy::Preserve)
+        .unwrap();
+    let original_children_reaped = fixture.requests.recv_timeout(TEST_DEADLINE).unwrap();
+    fixture.drop_ui();
+    fixture.ping();
+    assert!(fixture.finished.try_recv().is_err());
+    assert!(fixture.dropped.try_recv().is_err());
+    original_children_reaped.send(Ok(())).unwrap();
     fixture.join();
 }
