@@ -15,7 +15,7 @@ use vessel_proto::{
 const FRAME_LIMIT: usize = 65_536;
 
 #[derive(Clone)]
-pub(super) enum Behaviour {
+pub(crate) enum Behaviour {
     Success,
     Page(vessel_proto::history::AgentHistoryPage),
     Session(Box<SessionInfo>),
@@ -23,7 +23,7 @@ pub(super) enum Behaviour {
     Disconnect,
 }
 
-pub(super) struct Peer {
+pub(crate) struct Peer {
     pub client: NodeClient,
     pub calls: Arc<Mutex<Vec<Call>>>,
     task: tokio::task::JoinHandle<()>,
@@ -73,11 +73,11 @@ fn result(call: Call) -> Outcome {
     }
 }
 
-pub(super) async fn connect(behaviours: Vec<Behaviour>) -> Peer {
+pub(crate) async fn connect(behaviours: Vec<Behaviour>) -> Peer {
     connect_at(behaviours, vessel_proto::PROTOCOL_VERSION).await
 }
 
-pub(super) async fn connect_at(
+pub(crate) async fn connect_at(
     behaviours: Vec<Behaviour>,
     protocol: vessel_proto::ProtocolVersion,
 ) -> Peer {

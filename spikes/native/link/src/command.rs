@@ -25,6 +25,8 @@ use vessel_proto::{
 pub enum Command {
     /// Scoped native history discovery and import.
     History(crate::history::Ask),
+    /// Scoped current relationships, provider timelines and explicit detach.
+    Subagents(crate::subagents::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

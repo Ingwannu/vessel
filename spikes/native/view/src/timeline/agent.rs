@@ -12,6 +12,7 @@ use super::plan::{PlanActivity, all_pending, plan_activities};
 impl Timeline {
     pub(super) fn agent(&mut self, record: &EventRecord, event: &AgentEvent) {
         match event {
+            AgentEvent::ProviderChild(_) => {}
             AgentEvent::Ready {
                 harness_session,
                 abilities,
@@ -149,7 +150,8 @@ impl Timeline {
                 }
             }
             // Folded by `agent`, never handed here.
-            AgentEvent::Ready { .. }
+            AgentEvent::ProviderChild(_)
+            | AgentEvent::Ready { .. }
             | AgentEvent::TurnStarted { .. }
             | AgentEvent::UserMessageChunk { .. }
             | AgentEvent::MessageChunk { .. }

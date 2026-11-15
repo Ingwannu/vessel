@@ -60,6 +60,7 @@ pub mod agents;
 mod demo;
 pub mod devices;
 pub mod history;
+pub mod subagents;
 pub mod node_settings;
 pub mod search;
 pub mod sync;

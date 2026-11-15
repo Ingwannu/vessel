@@ -25,6 +25,7 @@ pub(crate) mod session;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
+pub(crate) mod subagents;
 pub(crate) mod terminal;
 pub(crate) mod toasts;
 pub(crate) mod workspace;
@@ -37,6 +38,7 @@ use crate::shell::Shell;
 /// Every area's state.
 pub(crate) struct Areas {
     pub(crate) import: import::ImportArea,
+    pub(crate) subagents: subagents::SubagentArea,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
@@ -64,6 +66,7 @@ impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
             import: import::ImportArea::new(window, cx),
+            subagents: subagents::SubagentArea::new(cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
@@ -110,6 +113,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> Redraw {
         self.records(session, records, cx);
+        self.subagents_records(session, records);
         // Track P: a session's reported `/` commands kept for its agent,
         // and a composer's files waiting on their prompt's records.
         self.offers_commands_seen();
@@ -119,5 +123,13 @@ impl Shell {
         } else {
             Redraw::Shell
         }
+    }
+}
+
+impl Shell {
+    /// Fan out the existing session-open hook without growing the bounded session module.
+    pub(crate) fn session_opened(&mut self, open: &session::Open, cx: &mut Context<'_, Self>) {
+        self.conversation_opened(open, cx);
+        self.subagents_opened(open);
     }
 }

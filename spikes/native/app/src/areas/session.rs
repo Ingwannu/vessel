@@ -132,7 +132,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open, cx);
+        self.session_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
@@ -459,7 +459,7 @@ pub(crate) fn render(
             window,
             cx,
         ))
-        .child(body)
+        .child(super::subagents::with_header(shell, body, tokens, cx))
         .children(resume_note(shell, open, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:

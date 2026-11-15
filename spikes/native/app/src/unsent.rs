@@ -59,6 +59,10 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::Subagents(ask) => Event::Subagents(ask.refused(match unsent.why {
+            Rejected::Full => vessel_app_view::subagents::TrackProblem::Busy,
+            Rejected::Closed => vessel_app_view::subagents::TrackProblem::Offline,
+        })),
         Command::History(ask) => {
             Event::History(ask.refused(vessel_app_view::history::Problem::Unsent))
         }

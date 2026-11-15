@@ -13,6 +13,7 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::History(reply) => self.history_answer(reply, cx),
+            Event::Subagents(reply) => self.subagents_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -41,6 +42,7 @@ impl Shell {
                 }
                 self.settle_draft();
                 self.retitle();
+                self.subagents_fleet_changed();
                 self.workspace_fleet();
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {

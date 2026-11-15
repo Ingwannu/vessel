@@ -277,6 +277,7 @@ impl Conversation {
             }
             AgentEvent::Ready { .. }
             | AgentEvent::Plan { .. }
+            | AgentEvent::ProviderChild(_)
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::QuestionAsked(_)
             | AgentEvent::QuestionResolved { .. } => {}

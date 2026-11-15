@@ -198,7 +198,7 @@ fn source_metadata_is_bounded_inside_the_same_total_budget() {
 }
 
 #[test]
-fn an_earlier_tool_changed_after_the_selected_answer_refuses_the_snapshot() {
+fn an_earlier_entry_changed_after_the_selected_answer_refuses_the_snapshot() {
     let source = source();
     let mut earlier = entry(0, message("before".into()));
     let answer = entry(4, message("selected answer".into()));

@@ -18,6 +18,7 @@ impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
             Command::History(ask) => self.history(ask),
+            Command::Subagents(ask) => self.subagents(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,

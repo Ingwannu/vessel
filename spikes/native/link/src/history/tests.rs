@@ -1,7 +1,7 @@
 //! Existing calls are exercised through the in-memory RPC transport.
 
 #[path = "peer.rs"]
-mod peer;
+pub(crate) mod peer;
 use super::*;
 use std::path::PathBuf;
 use vessel_app_view::{

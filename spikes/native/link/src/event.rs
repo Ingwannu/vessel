@@ -22,6 +22,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// A keyed native history result.
     History(crate::history::Reply),
+    /// Scoped subagent result with original pinned identities.
+    Subagents(crate::subagents::Reply),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
