@@ -46,3 +46,12 @@ before `.id()` creates Stateful<Div>. Corrected to one named source12
 constant and the same observer before stateful wrapping; no test assertion,
 geometry, glyph, callback or reference value changed. The red log is retained
 at the track's external-link-20261115T104331Z run. Corrected narrow is pending.
+
+
+The corrected53c20227 Kit Clippy compiled the actual Kit and returned101 on
+four documentation identifiers needing code marks and three measured-test
+coordinate operators forbidden by the workspace's arithmetic lint. The follow-up
+keeps every measured assertion and click coordinate, expressing their same
+values through the existing checked-coordinate/mul_add convention. No allow,
+expect, weakened assertion, geometry or callback change was introduced. The
+separate red run remains external-link-fix-20261115T105358Z; tests did not run.

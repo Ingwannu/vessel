@@ -109,9 +109,15 @@ fn expanded_target_changes_input_bounds_but_keeps_visual_row_pitch(cx: &mut Test
         assert_eq!(label.size.height, px(32.0)); // Meta16 plus8 on both sides.
         assert_eq!(icon.size.height, px(28.0)); // Arrow12 plus8 on both sides.
         assert_eq!(icon.size.width, px(28.0));
-        assert_eq!(icon.origin.y - label.origin.y, px(16.0));
+        assert_eq!(
+            px(f32::from(label.origin.y).mul_add(-1.0, f32::from(icon.origin.y))),
+            px(16.0),
+        );
         cx.simulate_click(
-            point(label.left() + px(1.0), label.top() + px(1.0)),
+            point(
+                px(f32::from(label.left()).mul_add(1.0, 1.0)),
+                px(f32::from(label.top()).mul_add(1.0, 1.0)),
+            ),
             Modifiers::none(),
         );
         cx.run_until_parked();

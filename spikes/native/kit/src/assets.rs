@@ -63,7 +63,7 @@ pub enum Glyph {
     Search,
     /// Send.
     ArrowUp,
-    /// Outward link arrow, consumed at12 by ExternalLink.
+    /// Outward link arrow, consumed at12 by `ExternalLink`.
     ArrowUpRight,
     /// Stop.
     Stop,
