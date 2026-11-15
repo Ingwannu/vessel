@@ -11,7 +11,7 @@
 //! - Why and cost: one renderer/interaction policy; callers still attach no
 //!   handler to Disabled, as required by the existing button contract.
 use super::TypeExt as _;
-use crate::{control_sizing::ControlSizing, fonts::Type, theme::Tokens};
+use crate::{control_sizing::ControlSizing, theme::Tokens};
 use gpui::prelude::*;
 use gpui::{Div, Hsla, SharedString, Stateful, div, px};
 
@@ -43,12 +43,13 @@ pub enum ButtonState {
 
 mod content;
 mod control;
-use content::icon_element;
-#[cfg(test)]
-use content::icon_ink;
+mod design;
 pub use content::{ButtonContent, ButtonIcon};
+#[cfg(test)]
+use content::{icon_element, icon_ink};
 use control::Activity;
 pub use control::{Button, ButtonConfig, ButtonSize};
+pub use design::{ButtonDesign, CircleConfig, CircleTone};
 
 const BUTTON_GROUP: &str = "kit-button";
 const BUTTON_ICON: gpui::Pixels = px(crate::theme::icon::SM);
@@ -167,7 +168,7 @@ pub fn button_with_kind_at(
     render(
         id,
         ButtonContent::Label(label.into()),
-        ButtonConfig::new(kind, state, sizing),
+        ButtonConfig::new(kind, state, sizing).into(),
         Presentation::PublishedFilled,
         tokens,
     )
@@ -187,7 +188,7 @@ pub fn button_with_content(
     render(
         id,
         content,
-        ButtonConfig::new(kind, state, sizing),
+        ButtonConfig::new(kind, state, sizing).into(),
         Presentation::Standard,
         tokens,
     )
@@ -199,6 +200,16 @@ pub fn button_control(
     id: impl Into<gpui::ElementId>,
     content: ButtonContent,
     config: ButtonConfig,
+    tokens: &Tokens,
+) -> Button {
+    button_with_design(id, content, config.into(), tokens)
+}
+/// A complete regular or source-circle configuration through the same body.
+/// The compatibility `button_control` signature stays unchanged.
+pub fn button_with_design(
+    id: impl Into<gpui::ElementId>,
+    content: ButtonContent,
+    config: ButtonDesign,
     tokens: &Tokens,
 ) -> Button {
     Button::new(
@@ -215,13 +226,13 @@ enum Presentation {
     PublishedFilled,
     PublishedOutline(Hsla),
 }
-fn frame(config: ButtonConfig, presentation: Presentation, tokens: &Tokens) -> Div {
+fn frame(config: ButtonDesign, presentation: Presentation, tokens: &Tokens) -> Div {
     let phase = match config.availability() {
         ButtonState::Enabled => ButtonPhase::Idle,
         ButtonState::Disabled => ButtonPhase::Disabled,
     };
-    let paint = button_paint(config.kind, phase, tokens);
-    let geometry = config.size.geometry(config.sizing);
+    let paint = config.paint(phase, tokens);
+    let geometry = config.geometry();
     let body = div()
         .flex()
         .flex_row()
@@ -234,14 +245,10 @@ fn frame(config: ButtonConfig, presentation: Presentation, tokens: &Tokens) -> D
         .border_1()
         .border_color(paint.border)
         .opacity(paint.opacity)
-        .type_(match config.size {
-            ButtonSize::Small => Type::Meta,
-            ButtonSize::Medium => Type::Label,
-        });
+        .type_(config.type_step());
     match presentation {
         Presentation::Standard | Presentation::PublishedFilled => body
-            .min_w_0()
-            .max_w_full()
+            .when(!config.is_circle(), |body| body.min_w_0().max_w_full())
             .bg(paint.fill)
             .text_color(paint.text)
             .font_weight(gpui::FontWeight::MEDIUM),
@@ -250,26 +257,27 @@ fn frame(config: ButtonConfig, presentation: Presentation, tokens: &Tokens) -> D
 }
 fn body(
     content: ButtonContent,
-    config: ButtonConfig,
+    config: ButtonDesign,
     presentation: Presentation,
     tokens: &Tokens,
 ) -> Div {
     let content = content.parts();
-    let state = config.availability();
-    let geometry = config.size.geometry(config.sizing);
+    let geometry = config.geometry();
     let mut body = frame(config, presentation, tokens);
-    if content.label.is_none() {
+    if config.is_circle() {
+        body = body.size(geometry.height).px(px(0.0)).flex_none();
+    } else if content.label.is_none() {
         body = body.w(geometry.height).px(px(0.0)).flex_none();
     }
-    body = match config.activity {
+    body = match config.activity() {
         Activity::Loading => body.child(crate::loading::activity_indicator(
             "button-loading",
             crate::loading::Size::Small,
-            button_paint(config.kind, ButtonPhase::Idle, tokens).text,
+            config.paint(ButtonPhase::Idle, tokens).text,
         )),
         Activity::Idle => match content.leading {
             Some(icon) => {
-                let element = icon_element(icon, config.kind, state, config.size, tokens);
+                let element = config.icon(icon, tokens);
                 body.child(match presentation {
                     Presentation::Standard | Presentation::PublishedFilled => element,
                     Presentation::PublishedOutline(tone) => element.text_color(tone),
@@ -290,25 +298,22 @@ fn body(
 fn render(
     id: impl Into<gpui::ElementId>,
     content: ButtonContent,
-    config: ButtonConfig,
+    config: ButtonDesign,
     presentation: Presentation,
     tokens: &Tokens,
 ) -> Stateful<Div> {
     let state = config.availability();
-    let kind = config.kind;
-    let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
+    let hover = config.hover_ink(tokens);
+    let pressed = config.pressed_opacity(tokens);
     body(content, config, presentation, tokens)
         .id(id)
         .group(BUTTON_GROUP)
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()
-                // Paseo has no filled-button hover. Ghost alone changes ink.
-                .when(kind == ButtonKind::Ghost, |button| {
-                    let hover = button_paint(kind, ButtonPhase::Hovered, tokens);
-                    button.hover(move |style| style.text_color(hover.text))
-                })
-                .active(move |style| style.opacity(pressed.opacity))
+                // Circle's source has no hover or pressed override.
+                .when_some(hover, |button, ink| button.hover(move |style| style.text_color(ink)))
+                .when_some(pressed, |button, opacity| button.active(move |style| style.opacity(opacity)))
         })
 }
 fn outline_config(enabled: bool) -> ButtonConfig {
@@ -340,7 +345,7 @@ pub(super) fn outline_label(
     outline_pressable(
         body(
             ButtonContent::Label(label),
-            outline_config(enabled),
+            outline_config(enabled).into(),
             Presentation::PublishedOutline(tokens.neutral.foreground),
             tokens,
         ),
@@ -360,7 +365,7 @@ pub(super) fn outline_glyph_body(
             icon: ButtonIcon::new(glyph),
             label,
         },
-        outline_config(enabled),
+        outline_config(enabled).into(),
         Presentation::PublishedOutline(tone),
         tokens,
     )
@@ -400,3 +405,6 @@ mod tests;
 mod input_tests;
 #[cfg(test)]
 mod layout_tests;
+
+#[cfg(test)]
+mod circle_tests;
