@@ -31,6 +31,9 @@ pub(crate) fn chain(error: &(dyn std::error::Error + 'static)) -> String {
 /// A node failed to start, or its server failed.
 #[derive(Debug, thiserror::Error)]
 pub enum NodeError {
+    /// The private managed instance could not be created; no readiness is issued.
+    #[error("private desktop bootstrap failed")]
+    DesktopBootstrap(#[source] crate::DesktopBootstrapError),
     /// The data directory, node id or token could not be prepared.
     #[error("the data directory is unusable")]
     DataDir(#[source] StoreError),

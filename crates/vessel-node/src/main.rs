@@ -165,6 +165,11 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     };
     let env = HarnessEnv::from_vars(user_home, |name| std::env::var_os(name));
     let mut config = Config::new(dir, env).with_local_limits(|name| std::env::var_os(name));
+    #[cfg(windows)]
+    if let Err(error) = args.launch.configure(&mut config) {
+        tracing::error!(%error, "private desktop bootstrap refused");
+        return ExitCode::FAILURE;
+    }
     // Terminals (protocol 11): the shell and the credentials, from this
     // binary's own environment.
     config.terminals = vessel_node::TerminalsConfig::detect(
@@ -233,7 +238,13 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if let Err(error) = args.launch.announce(args.detached, node.info().id) {
+    #[cfg(windows)]
+    let mut node = node;
+    #[cfg(windows)]
+    let announced = args.launch.announce_windows(args.detached, &mut node).await;
+    #[cfg(unix)]
+    let announced = args.launch.announce(args.detached, node.info().id);
+    if let Err(error) = announced {
         tracing::error!(%error, "cannot announce local node readiness");
         let _stopped = node.stop().await;
         return ExitCode::FAILURE;

@@ -293,7 +293,7 @@ pub(crate) async fn serve(
 }
 
 /// One local connection: the token or agent preamble, then the protocol.
-async fn connection<S>(stream: S, gateway: LocalGateway)
+pub(crate) async fn connection<S>(stream: S, gateway: LocalGateway)
 where
     S: AsyncRead + AsyncWrite + Send + 'static,
 {

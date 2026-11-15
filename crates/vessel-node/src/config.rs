@@ -25,6 +25,9 @@ pub const DEFAULT_PARK_AFTER: Duration = Duration::from_secs(60 * 60);
 /// override fields as needed.
 #[derive(Debug, Clone)]
 pub struct Config {
+    /// Explicit managed-child pipe seed; never discovered from process environment.
+    #[cfg(windows)]
+    pub desktop_bootstrap: Option<vessel_proto::local_launch::BootstrapPipe>,
     /// Language-server selection and bounded lifecycle. Library defaults find no real tools.
     pub lsp: vessel_lsp::Config,
     /// Destination roots allowed to Read callers; local agents also have their own cwd.
@@ -155,6 +158,8 @@ impl Config {
     #[must_use]
     pub fn new(data_dir: DataDir, harness_env: HarnessEnv) -> Self {
         Self {
+            #[cfg(windows)]
+            desktop_bootstrap: None,
             lsp: vessel_lsp::Config {
                 registry: vessel_lsp::registry::Registry {
                     home: Some(harness_env.user_home().to_owned()),

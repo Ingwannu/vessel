@@ -68,6 +68,7 @@ mod automation;
 mod catalogue;
 pub mod cleanup;
 mod config;
+mod desktop_bootstrap;
 mod devices;
 mod diagnostics;
 mod envelope;
@@ -111,6 +112,7 @@ mod waits;
 mod workspace;
 
 pub use config::{Config, DEFAULT_PARK_AFTER, VesselMcp};
+pub use desktop_bootstrap::DesktopBootstrapError;
 
 /// This binary's version and target triple, as `vesseld version` prints
 /// them: what the remote installer checks (ADR 0008).

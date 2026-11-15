@@ -83,6 +83,25 @@ These local-only records add no RPC method, schema or TypeScript wire type.
 The prepared value tests and feature regression are not execution evidence until
 their exact source runs.
 
+## Node-side private server assembly
+
+On Windows, only the explicit managed binary mode consumes the bounded stdin
+seed and places it in `Config.desktop_bootstrap`; the library discovers no
+process environment. Node startup binds the first and only server instance
+before issuing readiness. Creation errors use a typed, path-free error. The
+tracked bootstrap task connects once, reads exactly the fixed challenge width,
+and hands its result to the binary for inherited stdout output. It then moves
+the same server handle into existing local token admission and RPC serving.
+There is no accept loop, alternate challenge endpoint or instance recreation.
+Node cancellation also stops the pending challenge, and a dropped result
+receiver closes the instance before authentication.
+
+The public node handle's existing observation/shutdown methods move unchanged
+to `node/handle.rs` to keep assembly within its existing file budget; the size
+record only decreases. This extraction does not add another shutdown owner.
+The node-side code is preparation until the launcher split and qualified tests
+join it; it is not a working Windows Owned handoff by itself.
+
 ## Canonical Attached compatibility limit
 
 The coordinator scoped the credential-before-proof requirement to Owned

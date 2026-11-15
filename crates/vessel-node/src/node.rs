@@ -1,22 +1,21 @@
 //! Starting a node and stopping it.
 
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::settings::Settings;
 use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
-use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
 use vessel_proto::ports::PortOwner;
-use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
+use vessel_proto::{NodeId, RelayToken};
+use vessel_relay::TlsConfig;
 use vessel_relay::address::ClientAddress;
-use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
@@ -53,6 +52,9 @@ use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
+#[cfg(windows)]
+mod desktop;
+mod handle;
 mod setup;
 
 use self::setup::{SessionSetup, SetupDirs, model_client};
@@ -61,6 +63,8 @@ use self::setup::{SessionSetup, SetupDirs, model_client};
 /// running until the process exits.
 #[derive(Debug)]
 pub struct Node {
+    #[cfg(windows)]
+    desktop_ready: Option<crate::desktop_bootstrap::Proof>,
     address: Option<SocketAddr>,
     local: Endpoint,
     lifecycle: Lifecycle,
@@ -100,6 +104,8 @@ impl Node {
     /// The data directory or event log is unusable, another node holds the
     /// data directory, or the local socket or the address cannot be bound.
     pub async fn start(config: Config) -> Result<Self, NodeError> {
+        #[cfg(windows)]
+        let bootstrap = crate::desktop_bootstrap::bind(config.desktop_bootstrap)?;
         let started = tokio::time::Instant::now();
         let setup::Startup {
             id,
@@ -183,6 +189,8 @@ impl Node {
             connections,
             agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
         };
+        #[cfg(windows)]
+        let desktop_ready = crate::desktop_bootstrap::start(bootstrap, gateway.clone(), id);
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
@@ -192,6 +200,8 @@ impl Node {
         ));
         setup::listening(id, address, &local_endpoint);
         Ok(Self {
+            #[cfg(windows)]
+            desktop_ready,
             address,
             local: local_endpoint,
             lifecycle,
@@ -201,52 +211,6 @@ impl Node {
             stop,
             task,
         })
-    }
-
-    /// The TCP address the node listens on (with the real port when the
-    /// config asked for port 0); `None` when it listens on its local socket
-    /// only.
-    #[must_use]
-    pub const fn address(&self) -> Option<SocketAddr> {
-        self.address
-    }
-
-    /// The node's local socket (Unix) or named pipe (Windows), which
-    /// `vesseld attach` connects to.
-    #[must_use]
-    pub fn local_endpoint(&self) -> &Path {
-        self.local.path()
-    }
-
-    /// Each configured relay and where the node's link to it stands
-    /// (connecting, registered, refused), to read or wait on.
-    #[must_use]
-    pub fn relay_links(&self) -> Vec<(RouteUrl, watch::Receiver<LinkState>)> {
-        self.relays.states()
-    }
-
-    /// The node's current description.
-    #[must_use]
-    pub fn info(&self) -> NodeInfo {
-        self.lifecycle.info()
-    }
-
-    /// Resolves once the node was asked to stop, by [`Node::stop`] or by a
-    /// client (`node.stop`, protocol 3). The caller then calls
-    /// [`Node::stop`] to wait for the shutdown to finish.
-    pub fn stop_requested(&self) -> impl Future<Output = ()> + Send + 'static {
-        self.stop.clone().cancelled_owned()
-    }
-
-    /// Stop accepting, end every session as `Interrupted`, commit their
-    /// logs, close connections and the store, and release the data
-    /// directory; returns when all of that is done.
-    ///
-    /// # Errors
-    /// The HTTP server had failed.
-    pub async fn stop(self) -> Result<(), NodeError> {
-        self.stop.cancel();
-        self.task.await.map_err(NodeError::Task)?
     }
 }
 

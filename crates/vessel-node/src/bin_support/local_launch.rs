@@ -28,6 +28,51 @@ pub(super) struct Mode {
 }
 
 impl Mode {
+    #[cfg(windows)]
+    pub(super) fn configure(
+        &self,
+        config: &mut vessel_node::Config,
+    ) -> Result<(), vessel_node::DesktopBootstrapError> {
+        use std::io::Read as _;
+        use vessel_proto::local_launch::{BootstrapPipe, PIPE_RECORD_BYTES};
+
+        if !self.desktop_managed() {
+            return Ok(());
+        }
+        // Before Node starts: a dedicated inherited pipe, never interactive
+        // stdin. The launcher writes once and closes it; its startup deadline
+        // retains exact-child cleanup if that contract is broken.
+        let limit =
+            u64::try_from(PIPE_RECORD_BYTES.saturating_add(1)).map_err(std::io::Error::other)?;
+        let mut record = Vec::with_capacity(PIPE_RECORD_BYTES);
+        let _read = std::io::stdin()
+            .lock()
+            .take(limit)
+            .read_to_end(&mut record)?;
+        config.desktop_bootstrap = Some(BootstrapPipe::decode(std::str::from_utf8(&record)?)?);
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    pub(super) async fn announce_windows(
+        &self,
+        detached: bool,
+        node: &mut vessel_node::Node,
+    ) -> Result<(), vessel_node::DesktopBootstrapError> {
+        use std::io::Write as _;
+        if !self.desktop_managed() {
+            return Ok(self.announce(detached, node.info().id)?);
+        }
+        let ready = node
+            .desktop_bootstrap_ready()
+            .await?
+            .ok_or(vessel_node::DesktopBootstrapError::Unsupported)?;
+        let mut output = std::io::stdout().lock();
+        output.write_all(ready.encode().as_bytes())?;
+        output.flush()?;
+        Ok(())
+    }
+
     pub(super) fn desktop_managed(&self) -> bool {
         self.desktop_managed == Desktop::Enabled
     }
