@@ -43,13 +43,9 @@ fn provider_wav_is_shared_24k_codec_and_voice_never_inherits_dictation_prompt() 
         );
     }
     let wav = body.windows(4).position(|bytes| bytes == b"RIFF").unwrap();
-    let rate = body
-        .get(wav.saturating_add(24)..wav.saturating_add(28))
-        .unwrap();
+    let rate = &body[wav + 24..wav + 28];
     assert_eq!(u32::from_le_bytes(rate.try_into().unwrap()), 24_000);
-    let data = body
-        .get(wav.saturating_add(40)..wav.saturating_add(44))
-        .unwrap();
+    let data = &body[wav + 40..wav + 44];
     assert_eq!(u32::from_le_bytes(data.try_into().unwrap()), 478);
 }
 

@@ -185,3 +185,9 @@ The prior TTS TLS/client/body-limit mechanisms are now one private voice::http l
 Node test snapshot398f2945 had20 passed/1 failed: the credential fixture expected leading CRLF to fail, although the existing key trim policy removes leading/trailing whitespace. Changed fixture to embedded CRLF, which HeaderValue refuses before work. Its failed unwrap printed only SpeechEndpoint{..}, no fixture key/URL. New refactor/form/fixture/prompt delta tests and strict checks are owed.
 
 W22 clarified Some replaces only the complete supplemental Vessel layer, preserving vendor base; None means the captured native/original launch context. Voice restore may be Some(savedBase+disabled policy), matching voice-session.ts491–555. Private prompt::Base now requires explicit KnownAbsent or Known(&Prompt); unavailable is not composable. Lifecycle must positively supply that base before activation; no getter currently exists. Every driver remains Unsupported and product voice admission remains unassigned/fail-closed.
+
+STT integration narrow at054446302 compiled the shared HTTP and codec paths
+but returned three strict-lint defects: Form's intentionally hidden content
+header needed non-exhaustive Debug, and two WAV fixture reads used forbidden
+get().unwrap(). Fixed without lint allowances or payload diagnostics. Runtime
+loopback tests and the new merged-head strict result remain owed.

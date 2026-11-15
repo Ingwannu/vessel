@@ -38,7 +38,7 @@ impl fmt::Debug for Form {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("VoiceForm")
             .field("bytes", &self.body.len())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
