@@ -9,7 +9,9 @@ geometry, wheel and Tab-focus probes. The four focused kit tests pass,
 including wheel-away with retained focus and Shift+Tab return. The first
 checks exposed a builder order error and a test borrow error; both were
 corrected. Narrow clippy then found three missing test closure semicolons,
-corrected in this checkpoint. Narrow lint confirmation is still pending. The
+corrected in this checkpoint. Narrow clippy passes after those corrections. The control-first source
+precheck found no API blocker, allowing the consumer to be installed; this
+is not a final package or sidebar visual pass. The
 sidebar consumes it only in a subsequent change, after control source review.
 Under the package gate policy, each commit receives narrow checks; the whole
 native gate and capture submission cover the completed layout package once.
@@ -91,3 +93,20 @@ These differences do not justify extra scrolling regions or an unbounded body.
   follow separately, using the full remote native gate for changed code.
   No layout pass, real input-method proof or full row accessibility is implied
   by a geometry/focus probe.
+
+## Consumer checkpoint
+
+The sidebar now keeps one persistent shared scroll state. Its three measured
+sections contain Projects, the list heading and the existing machine/status
+group renderer. Navigation, Add machine and the settings foot have fixed
+natural heights. A minimal focus target wraps the actual last session or
+"N more" row; the existing New conversation row and Settings button provide
+the other two focus checkpoints. No invisible end row is added. No activation
+semantics or complete row keyboard accessibility is claimed.
+
+The test-only isolated shell constructor is shared within the app crate so
+these real sidebar tests reuse its no-I/O setup. The tests exercise actual
+project/session renderers in both grouping modes, expanding eleven projects,
+wheel travel and Tab reach to the final row and fixed Settings button. This
+consumer checkpoint has not yet been compiled; new captures and the one
+package gate remain owed.
