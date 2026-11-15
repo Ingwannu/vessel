@@ -53,6 +53,10 @@ pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
+// Staged ADR 0096 values. The relay-settings wiring removes this test-only
+// boundary and registers the pending field through the existing accessor.
+#[cfg(test)]
+mod relay_settings;
 pub mod settings;
 pub mod side_questions;
 mod terminal;

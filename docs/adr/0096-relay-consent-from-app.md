@@ -1,6 +1,6 @@
 # ADR 0096: Explicit relay consent from the app
 
-Status: proposed; contract review before implementation.
+Status: V3 contract pass at9021e3b8; implementation, protocol assignment and runtime verification pending.
 
 ## Purpose and existing assets
 
