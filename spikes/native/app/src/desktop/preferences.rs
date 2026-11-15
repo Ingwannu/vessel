@@ -16,6 +16,7 @@ mod tests;
 pub(crate) struct ReceiptCapture {
     cycle: Rc<()>,
     latest: Option<Result<Receipt, vessel_app_link::Rejected>>,
+    reported_failure: Option<vessel_app_link::desktop::preferences::Revision>,
 }
 
 /// Reuses Settings' validator/live application; never publishes a second command.
@@ -36,7 +37,9 @@ pub(crate) fn prefer_with_receipt(
     }
 }
 
-/// Exact acknowledgments use the same revision-safe apply path as watch delivery.
+/// The caller admits its current UI attempt first. Exact failures are still
+/// reported when watch delivery coalesced them behind a newer success, without
+/// applying the older snapshot or showing the same failure twice.
 pub(crate) fn acknowledge(
     shell: &mut Shell,
     snapshot: &Snapshot,
@@ -44,6 +47,8 @@ pub(crate) fn acknowledge(
     cx: &mut Context<'_, Shell>,
 ) {
     apply(shell, snapshot, window, cx);
+    report_failure(shell, snapshot);
+    cx.notify();
 }
 
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
@@ -151,11 +156,25 @@ fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut C
     if shell.prefs != *next {
         apply_preferences(shell, (*next).clone(), window, cx);
     }
-    if let Outcome::Failed(error) = snapshot.outcome() {
-        tracing::warn!(%error,"preferences change was refused");
-        shell.notice = Some(shell.words.desktop_shell().preferences_failed().to_owned());
-    }
+    report_failure(shell, snapshot);
     cx.notify();
+}
+
+fn report_failure(shell: &mut Shell, snapshot: &Snapshot) {
+    let Outcome::Failed(error) = snapshot.outcome() else {
+        return;
+    };
+    let mut capture = shell.areas.desktop.receipts.borrow_mut();
+    if capture
+        .reported_failure
+        .is_some_and(|reported| reported >= snapshot.revision())
+    {
+        return;
+    }
+    capture.reported_failure = Some(snapshot.revision());
+    drop(capture);
+    tracing::warn!(%error,"preferences change was refused");
+    shell.notice = Some(shell.words.desktop_shell().preferences_failed().to_owned());
 }
 
 fn apply_preferences(

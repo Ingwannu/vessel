@@ -15,6 +15,67 @@ fn key() -> LayoutKey {
     }
 }
 
+struct Temp(std::path::PathBuf);
+impl Drop for Temp {
+    fn drop(&mut self) {
+        let _cleanup = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+#[gpui::test]
+fn exact_failed_receipt_reports_once_after_a_newer_success_without_rolling_it_back(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::prefs::{Grouping, Kept, Theme};
+    crate::shell::language_tests::init(cx);
+    let root = Temp(std::env::temp_dir().join(format!(
+        "vessel-pref-app-receipt-{}",
+        vessel_proto::SessionId::random()
+    )));
+    let path = root.0.join("prefs.json");
+    std::fs::create_dir_all(&path).unwrap();
+    let initial = Prefs {
+        kept: Kept::File {
+            path: path.display().to_string(),
+        },
+        ..Prefs::default()
+    };
+    let coordinator = Coordinator::start(initial.clone()).unwrap();
+    let (first, _first_updates) = coordinator.client();
+    let (second, _second_updates) = coordinator.client();
+    let mut refused = initial.clone();
+    refused.settings.appearance.theme = Theme::Light;
+    let receipt = first.publish_with_receipt(&refused).unwrap();
+    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    std::fs::remove_dir(&path).unwrap();
+    let mut accepted = initial;
+    accepted.settings.sidebar.group = Grouping::Status;
+    second.publish(&accepted).unwrap();
+    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    let newer = coordinator.snapshot();
+    let older = futures_lite::future::block_on(receipt.completed()).unwrap();
+    assert!(older.revision() < newer.revision());
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.areas.desktop.preferences = Some(first);
+        apply(shell, &newer, window, cx);
+        assert!(shell.notice.is_none());
+        acknowledge(shell, &older, window, cx);
+        assert_eq!(shell.prefs, *newer.preferences());
+        assert_eq!(
+            shell.notice.as_deref(),
+            Some(shell.words.desktop_shell().preferences_failed())
+        );
+        shell.notice = None;
+        acknowledge(shell, &older, window, cx);
+        assert!(
+            shell.notice.is_none(),
+            "the same failure is not shown again"
+        );
+        assert_eq!(shell.prefs, *newer.preferences());
+    });
+}
+
 #[gpui::test]
 fn canonical_apply_preserves_another_windows_layout_in_the_next_local_save(
     cx: &mut TestAppContext,

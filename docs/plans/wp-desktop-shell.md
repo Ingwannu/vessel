@@ -218,6 +218,12 @@ This admission latch covers settings and nonsettings without another writer or
 changing Shell::prefer's unit-return API. A deterministic filled-pending-queue
 test checks refusal after the physical writer drains and successful recovery only
 from the reconciled canonical projection; its new-head execution is pending.
+Exact receipt admission is separate from canonical application: after its owner
+checks the current UI attempt, acknowledge reports an unseen failure even when a
+newer successful snapshot already won. It never reapplies the old preferences.
+Per-window failure revisions prevent a repeated receipt/watch delivery from
+redisplaying the same warning. An actual Shell regression exercises failed write,
+newer unrelated success and duplicate receipt; its new-head run is pending.
 
 Each workspace layout merges by LayoutKey; its validated pane tree stays atomic
 so allocator/reference invariants cannot be corrupted. W12 owns the UI-book cache
