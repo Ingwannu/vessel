@@ -523,3 +523,12 @@ extraction. C1 does not duplicate that change; its local extraction was reverted
 before adoption. Once the shared line lands it, C1 adds only its project arm. No size/lint
 allowance is raised. These changes still require current-head checks. The queued
 older native tests remain their original source evidence, not projection proof.
+
+
+The staged pure projection exposes `read_context(NodeId)` only to identify the
+metadata source selected for its node lookup. The private app cache adapter must
+validate that exact source's canonical weak guard before lookup; a guard from a
+different alias cannot validate another entry's data. This helper never chooses
+a client or action route. The pane's captured action context remains separate.
+An additional pure regression covers higher-revision source selection and
+conflicting equal revisions; it remains uncompiled until module registration.

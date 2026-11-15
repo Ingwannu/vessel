@@ -304,3 +304,29 @@ fn git_facts_use_the_explicit_project_and_managed_backing_consistency() {
         }))
     );
 }
+
+#[test]
+fn node_lookup_exposes_its_exact_metadata_source_and_refuses_equal_revision_conflict() {
+    let mut epochs = ConnectionEpochs::default();
+    let node = NodeId::random();
+    let first = context(&mut epochs, "first", node);
+    let second = context(&mut epochs, "second", node);
+    let original = data(node);
+    let mut newer = original.clone();
+    newer.registry.revision = RegistryRevision::from(1);
+    let mut cache = RegistryProjection::default();
+    let key = cache.begin(first.clone()).unwrap();
+    assert!(cache.finish(&key, Ok(original)).unwrap());
+    let key = cache.begin(second.clone()).unwrap();
+    assert!(cache.finish(&key, Ok(newer.clone())).unwrap());
+    assert_eq!(cache.read_context(node), Ok(&second));
+    let mut conflict = newer;
+    conflict.registry.workspaces[0].title = Some("different".parse().unwrap());
+    let key = cache.begin(first.clone()).unwrap();
+    assert!(cache.finish(&key, Ok(conflict)).unwrap());
+    assert_eq!(cache.read_context(node), Err(LookupProblem::Unavailable));
+    assert_eq!(
+        cache.session_workspace(node, SessionId::random()),
+        Err(LookupProblem::Unavailable)
+    );
+}

@@ -143,6 +143,16 @@ impl RegistryProjection {
             }))
     }
 
+    /// The exact source of the metadata selected for a node lookup.
+    /// The app validates that source's canonical weak guard before using lookup facts.
+    /// This never selects a client or an action route.
+    ///
+    /// # Errors
+    /// Missing or conflicting complete snapshots have no usable source.
+    pub fn read_context(&self, node: NodeId) -> Result<&ConnectionContext, LookupProblem> {
+        self.node_entry(node).map(|entry| &entry.context)
+    }
+
     // This selects metadata only. It never chooses a client/alias for an action.
     // Conflicting equal-revision snapshots are unavailable rather than first-wins.
     fn node_entry(&self, node: NodeId) -> Result<&Entry, LookupProblem> {
