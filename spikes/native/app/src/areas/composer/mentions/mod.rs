@@ -213,11 +213,16 @@ impl Shell {
             root: scope.root,
         });
         let now = Duration::from_secs_f32(self.areas.composer.now());
-        let request = self
-            .file_menu(target)
-            .borrow_mut()
-            .model
-            .observe(scope, &text, caret, now);
+        let owner = self.file_menu(target);
+        let mut menu = owner.borrow_mut();
+        menu.model
+            .inherit_ticket_clock(self.areas.composer.mention_query_clock.get());
+        let request = menu.model.observe(scope, &text, caret, now);
+        self.areas
+            .composer
+            .mention_query_clock
+            .set(menu.model.ticket_clock());
+        drop(menu);
         let Ok(Some(request)) = request else {
             return;
         };
@@ -226,6 +231,9 @@ impl Shell {
             let _closed = this.update(cx, |shell, cx| {
                 // Re-observe before dispatch: the caret may have moved without
                 // an edit while the timer was waiting.
+                if shell.composer_field(target).is_none() {
+                    return;
+                }
                 shell.observe_file_menu(target, cx);
                 let ready = shell
                     .file_menu(target)
@@ -252,6 +260,9 @@ impl Shell {
         }
     }
     pub(crate) fn composer_mention_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        if self.composer_field(answer.request.scope.draft).is_none() {
+            return;
+        }
         let now = Duration::from_secs_f32(self.areas.composer.now());
         let changed = self
             .file_menu(answer.request.scope.draft)
@@ -369,6 +380,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_destination() != Some(target) {
+            return;
+        }
         let choice = {
             let owner = self.file_menu(target);
             let state = owner.borrow();
@@ -381,6 +395,11 @@ impl Shell {
         let Some((request, path)) = choice else {
             return;
         };
+        if self.composer_context_scope(target).is_none_or(|scope| {
+            scope.machine != request.scope.machine || scope.root != request.scope.root
+        }) {
+            return;
+        }
         let Some(field) = self.composer_field(target) else {
             return;
         };

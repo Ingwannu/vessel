@@ -154,6 +154,17 @@ impl Phase {
 }
 
 impl Menu {
+    /// Preserve the owner's checked allocation clock when presentation is evicted.
+    /// Existing request identities and cached rows are not rewritten.
+    pub fn inherit_ticket_clock(&mut self, clock: Ticket) {
+        self.clock = self.clock.max(clock.0);
+    }
+    /// The owner retains only this counter across bounded presentation eviction.
+    #[must_use]
+    pub const fn ticket_clock(&self) -> Ticket {
+        Ticket(self.clock)
+    }
+
     /// Observe the exact current token before scheduling a debounce.
     ///
     /// # Errors
