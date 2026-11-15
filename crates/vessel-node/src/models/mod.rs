@@ -28,6 +28,8 @@
 
 pub(crate) mod config;
 mod listen;
+#[cfg(test)]
+mod metadata;
 pub(crate) mod proxy;
 #[cfg(test)]
 mod tests;

@@ -232,6 +232,12 @@ refused, not silently repaired or sent to another provider. Stored
 duplicates cannot change the first resolvable tuple and never authorize a
 second request. Selection is not settings validation: saving still needs
 the later all-candidate checks, including the actual encoded API budget.
+The session fallback supplies a route, not harness-specific thinking
+options: absent a metadata preference or automatic hint, its provider
+default stands. Paseo can carry the current selection's thinking id
+(`structured-generation-providers.ts` 95–135). Vessel keeps metadata effort
+explicit at this direct model-route seam; guessing from agent-specific
+option keys in the node would cross the harness ownership boundary.
 
 Before wiring, the node selector module and its borrowed catalog iterator
 are compiled only for tests. The wiring commit after the shared accessor

@@ -445,3 +445,12 @@ models, future effort, no route and redacted Debug. Contract first; the
 selector code and its narrow checks are next. No setting field or model
 request is registered. Styles are source/gate PASS at row 74; their own
 TOML text deliberately keeps Rust trim rather than JavaScript's rule.
+
+Staged selector implementation checkpoint: one borrowed catalog selection
+preserves hint order, actual model identity and manual isolation. Its
+private result exposes checked references, and Debug omits provider
+configuration. The selector and iterator remain cfg(test), with no file,
+credential, socket or request access. Narrow node all-targets Clippy and
+eight real-parser rule cases pass. This is not the all-candidate settings
+validator or the encoded API preflight. Its whole gate remains owed, and
+A10 requires production wiring and another whole gate before node merge.
