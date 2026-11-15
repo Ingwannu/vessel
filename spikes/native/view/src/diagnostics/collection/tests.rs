@@ -365,8 +365,11 @@ fn exact_admission_epochs_fence_same_node_answers_retirement_and_fleet_reconnect
     run.retired(&next.tag());
     assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
     let mut snapshot = crate::Machine::unreachable("epoch-host".into(), "private test reason");
-    snapshot.reach = crate::Reach::Online;
     snapshot.node = Some(id);
+    snapshot.connection_epoch = Some(old.epoch());
+    run.reconcile(&[snapshot.clone()]);
+    assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
+    snapshot.reach = crate::Reach::Online;
     snapshot.connection_epoch = Some(next.epoch());
     run.reconcile(&[snapshot]);
     run.answer_connection(ticket, &old, Err(Problem::Failed));

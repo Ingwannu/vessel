@@ -37,17 +37,17 @@ diagnostic-flow-daemon = 데몬 진단
 diagnostic-flow-process = 프로세스 진단
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-logs = 데몬 로그
-# Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-daemon-note = 기본 머신 정보와 프로토콜 24의 데몬 보고서는 각각 수집합니다.
-# Diagnostic sheet status or recovery; keep buttons short.
+# Independent basic and daemon source collection, not a refresh of credentials.
+diagnostic-flow-daemon-note = 기본 머신 정보와 데몬 보고서는 각각 수집합니다.
+# Only the daemon self-process numeric metadata; unsupported sources remain explicit.
 diagnostic-flow-process-note = 데몬 자체의 숫자형 프로세스 메타데이터만 수집합니다. 지원하지 않는 항목은 별도로 표시합니다.
-# Diagnostic sheet status or recovery; keep buttons short.
+# The bounded failed-call summary excludes raw daemon logs.
 diagnostic-flow-logs-note = 원본 데몬 로그는 수집하지 않습니다. 보고서에는 실패한 노드 호출의 제한된 요약만 포함합니다.
-# Diagnostic sheet status or recovery; keep buttons short.
+# Projection allowlist for the shareable report, not a general redaction guarantee.
 diagnostic-flow-privacy = 보고서는 허용된 머신 메타데이터만 사용합니다. 머신 이름, 접속 경로, 키, 파일 경로, 원본 오류는 제외합니다.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-report = 보고서 생성
-# Diagnostic sheet status or recovery; keep buttons short.
+# Heading and per-host summary for host diagnostics, not a partial-status badge.
 diagnostic-flow-partial = 머신 진단
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-no-hosts = 저장된 머신이 없습니다. 클라이언트 보고서는 복사할 수 있습니다.

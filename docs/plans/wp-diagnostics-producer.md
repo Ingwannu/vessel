@@ -34,7 +34,9 @@ full-report, build, capture, new gate or review success is claimed yet.
   denied, busy, timed-out, invalid-identity and partial reports remain distinct.
   Retiring a physical connection cancels both selected reads and immediately
   removes old copyable data. Existing ticket and current-payload copy checks
-  still apply. No root/node/wire implementation is modified by this package.
+  still apply. Original weak DeliveryGuard receipts are revalidated after UI
+  queueing and immediately before copying, without retaining a client or transport.
+  Duplicate answers cannot grow the bounded receipts beyond one per host. No root/node/wire implementation is modified by this package.
 
 ## Data flow and data policy
 
@@ -88,3 +90,11 @@ Cargo metadata. One final native gate and targeted end-to-end captures close
 this follow-up after the shared adapter and all checks are ready. The new
 producer runtime evidence must use matching protocol-24-capable binaries;
 older shared root binaries cannot prove a successful diagnostic call.
+
+## Wording checkpoint
+
+L reviewed the framing meaning/data shape on `c69df8e3` only. The requested
+follow-up removes the wire version from user-facing copy and replaces generic
+contexts with each explanation's actual purpose. It adds no variables or
+privacy/security approval. Whole-sentence EN/KO assertions track these final
+sentences. Compilation and UI verification remain pending.

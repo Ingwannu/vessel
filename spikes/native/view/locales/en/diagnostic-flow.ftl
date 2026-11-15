@@ -37,17 +37,17 @@ diagnostic-flow-daemon = Daemon diagnostics
 diagnostic-flow-process = Process diagnostics
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-logs = Daemon logs
-# Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-daemon-note = Basic host information and the protocol 24 daemon report are collected independently.
-# Diagnostic sheet status or recovery; keep buttons short.
+# Independent basic and daemon source collection, not a refresh of credentials.
+diagnostic-flow-daemon-note = Basic host information and the daemon report are collected independently.
+# Only the daemon self-process numeric metadata; unsupported sources remain explicit.
 diagnostic-flow-process-note = Only the daemon’s own numeric process metadata is collected. Unsupported sources stay explicit.
-# Diagnostic sheet status or recovery; keep buttons short.
+# The bounded failed-call summary excludes raw daemon logs.
 diagnostic-flow-logs-note = Raw daemon logs are not collected. The report includes only a bounded summary of failed node calls.
-# Diagnostic sheet status or recovery; keep buttons short.
+# Projection allowlist for the shareable report, not a general redaction guarantee.
 diagnostic-flow-privacy = Reports use allowlisted host metadata. Host names, routes, keys, paths and raw errors are excluded.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-report = Run report
-# Diagnostic sheet status or recovery; keep buttons short.
+# Heading and per-host summary for host diagnostics, not a partial-status badge.
 diagnostic-flow-partial = Host diagnostics
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-no-hosts = No hosts are saved. You can still copy the client report.

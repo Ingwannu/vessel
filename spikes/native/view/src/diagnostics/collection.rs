@@ -330,6 +330,7 @@ impl Collection {
                     {
                         Some(FleetChange::Offline(row.machine.clone()))
                     }
+                    Some(_machine) if row.context.is_some() => None,
                     Some(machine) => match &machine.reach {
                         Reach::Online => machine
                             .node

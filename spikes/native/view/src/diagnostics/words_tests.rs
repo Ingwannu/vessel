@@ -41,11 +41,11 @@ fn supported_collection_framing_matches_its_data_scope_in_both_languages() {
         .diagnostic_flow();
     assert_eq!(
         en.daemon_note(),
-        "Basic host information and the protocol 24 daemon report are collected independently."
+        "Basic host information and the daemon report are collected independently."
     );
     assert_eq!(
         ko.daemon_note(),
-        "기본 머신 정보와 프로토콜 24의 데몬 보고서는 각각 수집합니다."
+        "기본 머신 정보와 데몬 보고서는 각각 수집합니다."
     );
     assert_eq!(
         en.process_note(),
