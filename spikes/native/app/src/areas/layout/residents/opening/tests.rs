@@ -10,7 +10,7 @@ use vessel_app_view::layout::{WorkspaceLocation, WorkspaceLookup};
 use vessel_app_view::residents::{OperationKind, PanelFocus};
 use vessel_proto::{NodeId, WorkspaceId};
 
-struct Registry(WorkspaceId);
+pub(super) struct Registry(pub(super) WorkspaceId);
 impl WorkspaceLookup for Registry {
     fn session_workspace(
         &self,
@@ -27,12 +27,12 @@ impl WorkspaceLookup for Registry {
         Err(LookupProblem::Unavailable)
     }
 }
-fn connection(epochs: &mut ConnectionEpochs, node: NodeId) -> ConnectionContext {
+pub(super) fn connection(epochs: &mut ConnectionEpochs, node: NodeId) -> ConnectionContext {
     epochs
         .admit(MachineKey::from_book("fixture"), node)
         .unwrap()
 }
-fn build(
+pub(super) fn build(
     context: &SessionContext,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,

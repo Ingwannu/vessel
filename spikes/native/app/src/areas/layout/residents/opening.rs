@@ -128,6 +128,11 @@ impl SessionResidents {
                 mode,
             )
             .map_err(SessionOpeningProblem::Layout)?;
+        // A root reveal beneath a retained sheet cannot claim visible input.
+        // The sheet owner must dismiss it through its existing dirty guard.
+        if !next.sheets().is_empty() {
+            return Err(SessionOpeningProblem::Resident(ResidentProblem::Held));
+        }
         let pane = next
             .containing(tab)
             .ok_or(SessionOpeningProblem::Layout(LayoutError::MissingPane))?;
@@ -211,6 +216,15 @@ impl Shell {
             .as_mut()
             .ok_or(SessionOpeningProblem::Layout(LayoutError::InvalidState))?
             .insert(opening.workspace.clone(), layout);
+        if self
+            .areas
+            .layout
+            .maximized
+            .as_ref()
+            .is_some_and(|(key, pane)| key == &opening.workspace && *pane != admission.context.pane)
+        {
+            self.areas.layout.maximized = None;
+        }
         self.layout_result(Ok(()), cx);
         Ok(admission)
     }
@@ -218,3 +232,6 @@ impl Shell {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod presentation_tests;

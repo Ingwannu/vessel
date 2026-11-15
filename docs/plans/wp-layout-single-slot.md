@@ -144,7 +144,11 @@ resources, and refuses changed placement instead of retargeting a deferred inten
 claims resources before invoking the supplied scoped factory, retires the old
 attempt through concrete owner callbacks and returns `SessionAdmission` containing
 original connection, full presentation context and fresh binding. The book is
-published only after admission succeeds. No hydration, follow or operation is
+published only after admission succeeds. A retained sheet refuses root input
+admission through Hold until its owner dismisses it using the dirty guard. A
+successful explicit root reveal exits another pane's maximized projection so the
+returned visible/focused claim is actually in the projected tree. Refusal changes
+neither projection nor resources. No hydration, follow or operation is
 started by this minter.
 
 The initial single-slot policy is conservative: another retained resident refuses
