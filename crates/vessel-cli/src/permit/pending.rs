@@ -99,5 +99,24 @@ impl Row {
     }
 }
 
+// Presentation belongs to W17's shared renderer. This mapping owns only the
+// permit columns and the exact identity selected by quiet/structured output.
+impl crate::parity::output::Row for Row {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["AGENT", "REQ_ID", "TOOL", "DESCRIPTION"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![
+            self.agent_short_id.clone(),
+            self.short_request(),
+            self.name.clone(),
+            self.description.clone(),
+        ]
+    }
+}
+
 #[cfg(test)]
 mod tests;

@@ -174,3 +174,12 @@ evidence; the coordinator counted one named web load timeout, so this is not an
 all-steps-green claim or validation of A8's own code. Actual formatter wiring must
 use OutputOptions/Presentation/Headers/Row/list/render_list/single and admit only
 real consuming permit handlers in presentation::check before connection effects.
+
+
+Pending Row now implements the reviewed shared output::Row trait. It supplies
+only AGENT/REQ_ID/TOOL/DESCRIPTION cells (7/8-character table captions), while
+quiet output uses the full exact request id and JSON/YAML keep full typed ids.
+The source InboxKey remains serde-skipped. No formatter or escaping logic is
+copied. The consumer regression runs the actual shared render_list to verify
+prefix/full-id fidelity, one escaping pass and provenance omission. Product
+registration/admission still waits for complete real response handlers.
