@@ -459,3 +459,15 @@ before establishing App strict acceptance. Replaced them with assert_eq and a
 typed host-identity lookup. The failure log is retained. The replacement narrow
 check includes base 8c and the new search callback fence; no lint suppression or
 test weakening was introduced.
+
+The lead announced `6ebdf8e8` green and it is now merged. Raw run
+`spike-20261115T153236Z-6ebdf8e8` confirms fonts, fmt, quality, workspace Clippy,
+build and tests all rc 0, with 1473 passed, 0 failed and 2 ignored. Shared
+dispatch is byte-identical to isolated extraction `2b905dfe2`; the A6 tree adds
+exactly its one Labels registration arm. This completes the shared mechanical
+extraction handoff, not A6's whole gate or visual acceptance.
+
+The separately registered four-crate strict run on `392f2fcc0` remains queued;
+it predates this base merge. No duplicate replacement was submitted. Current
+union tests must include the new search-opening regression. Registry wiring
+still waits for announced base 9, and both external adapter drafts stay unapplied.
