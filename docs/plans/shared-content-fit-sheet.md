@@ -49,3 +49,10 @@ position; unchanged geometry leaves an active gesture untouched. Invalid layout
 retains prior state. New tests drive these actual methods and preserve every
 old authored-configuration test unchanged. No renderer/input adapter yet; all
 new Rust is uncompiled and no checked producer is claimed.
+
+Input source checkpoint: listener_when delegates to the same native gesture
+listener and requires the caller's admission predicate before press, pan,
+scroll/capture, release and its callback. Legacy listener delegates with no
+new token or policy. A host must supply its existing opening admission and
+invalidate it on replacement/actual close; the adapter creates no lease.
+This source is uncompiled and native retained-input tests remain owed.
