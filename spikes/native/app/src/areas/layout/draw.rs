@@ -404,7 +404,7 @@ pub(super) fn launcher(
                 shell.go(crate::routes::Route::Draft, window, cx);
             })),
         )
-        .children(super::key(shell).ok().map(|workspace| {
+        .children(key(shell).ok().map(|workspace| {
             button(
                 "layout-launch-scripts",
                 shell.words.scripts().title().to_owned(),
@@ -415,8 +415,8 @@ pub(super) fn launcher(
                 let _opened = shell.layout_open_target(
                     &workspace,
                     Target::Scripts,
-                    vessel_app_view::layout::OpenIntent::Reveal,
-                    vessel_app_view::layout::Placement::Focused,
+                    OpenIntent::Reveal,
+                    Placement::Focused,
                     window,
                     cx,
                 );

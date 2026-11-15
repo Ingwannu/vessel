@@ -22,7 +22,7 @@ use vessel_proto::{ProjectId, WorktreeId};
 
 use super::approval;
 use super::remove::{self, Removing, branch_name};
-use super::widgets::{Tone, badge, banner, divided, empty, fact, row, rows, section, title};
+use super::widgets::{banner, divided, empty, fact, row, rows, section, title};
 use crate::shell::Shell;
 
 /// An open project's lists and what is being done to them.
