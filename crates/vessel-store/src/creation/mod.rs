@@ -3,7 +3,7 @@
 
 mod projection;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 use sha2::{Digest as _, Sha256};
 use vessel_proto::creation::{Advance, Key, Kind, Receipt, Revision};

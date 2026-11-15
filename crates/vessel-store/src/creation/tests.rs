@@ -27,7 +27,7 @@ fn candidate(key: &str, fingerprint: u8, workspace: WorkspaceId, session: Sessio
     Admission { identity, receipt }
 }
 
-async fn open() -> (tempfile::TempDir, DataDir, Store) {
+pub(crate) async fn open() -> (tempfile::TempDir, DataDir, Store) {
     let temp = tempfile::tempdir().unwrap();
     let dir = DataDir::new(temp.path());
     dir.prepare().unwrap();
@@ -38,7 +38,7 @@ async fn open() -> (tempfile::TempDir, DataDir, Store) {
     (temp, dir, store)
 }
 
-fn any_candidate(key: &str) -> Admission {
+pub(crate) fn any_candidate(key: &str) -> Admission {
     candidate(key, 7, WorkspaceId::random(), SessionId::random())
 }
 

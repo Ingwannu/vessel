@@ -6,7 +6,20 @@ use vessel_proto::creation::{Advance, CreationError, Receipt, Revision};
 use crate::creation::{Admission, Identity, Write as CreationWrite};
 use crate::{Store, StoreError, writer::Write};
 
+#[cfg(test)]
+mod tests;
+
 impl Store {
+    /// Coalesced notifications after committed receipt writes. Subscribe before
+    /// reading the initial snapshot, then re-read authoritative SQL after each
+    /// wake-up. Intermediate revisions may coalesce; no payload is retained here.
+    #[must_use]
+    pub fn creation_changes(&self) -> tokio::sync::watch::Receiver<()> {
+        let mut changes = self.creation.clone();
+        drop(changes.borrow_and_update());
+        changes
+    }
+
     /// Atomically admit an intent or return the existing matching operation.
     /// # Errors
     /// A key/intent or reserved-id conflict, capacity refusal, or storage failure.

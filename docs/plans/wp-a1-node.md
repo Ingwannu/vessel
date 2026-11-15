@@ -49,3 +49,11 @@ must carry ADR0082's explicit blocked-automation gate before provisioning.
 Next: narrow proto/store checks; receipt source review; service orchestration
 with typed registry/runtime fake; pending-method registration; native
 integration, package gates and reviews.
+
+Receipt observation uses the existing writer's post-commit effects, mirroring
+its coalesced inbox wake-up pattern. Subscribe before the initial SQL read;
+each wake-up re-reads the authoritative receipt. Notifications contain no
+prompt/argv and retain only one unit value, so intermediate revisions may
+coalesce. The writer sends them before acknowledgements; a cancelled caller
+cannot suppress notification. A rolled-back savepoint produces no wake-up.
+No new RPC or runtime provisioning is registered by this storage addition.

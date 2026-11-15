@@ -28,9 +28,13 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        Write::Creation { change, done } => write_answer(transaction, done, |connection| {
-            crate::creation::apply(connection, *change)
-        }),
+        Write::Creation { change, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::creation::apply(connection, *change)
+            });
+            effects.creation |= applied.is_ok();
+            Answer::Done(done, applied)
+        }
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),

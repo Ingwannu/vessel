@@ -163,6 +163,8 @@ pub(crate) struct Setup {
     pub(crate) pruned: watch::Sender<u64>,
     /// Coalesced wake-up after a committed attention event, never raw output.
     pub(crate) inbox: watch::Sender<()>,
+    /// Coalesced receipt wake-up, published only after the SQL batch commits.
+    pub(crate) creation: watch::Sender<()>,
     /// Whether some session's index is behind its log (protocol 12): true
     /// while the writer catches up, false once it waits on its queue with
     /// nothing behind.
@@ -206,6 +208,8 @@ struct Effects {
     touched: HashSet<SessionId>,
     /// A committed batch introduced attention.
     attention: bool,
+    /// A successful receipt mutation was included in this batch.
+    creation: bool,
     /// A session ended, so retention may prune ended sessions.
     ended: bool,
     /// Sessions removed (deleted or pruned), whose attachment folders go
@@ -337,6 +341,9 @@ fn commit(
         }
         if effects.attention {
             setup.inbox.send_replace(());
+        }
+        if effects.creation {
+            setup.creation.send_replace(());
         }
         if effects.pruned > 0 {
             // A count of events, so wrapping is harmless: readers only look
