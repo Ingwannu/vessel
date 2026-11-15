@@ -5,6 +5,7 @@
 //! asks [`matched`].
 
 mod capture;
+pub mod desktop;
 mod edit;
 mod held;
 mod keys;
