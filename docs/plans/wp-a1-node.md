@@ -51,6 +51,12 @@ run wp-create-node-safety-20261115T125224Z-4ee19cff after the test-lint fixes.
 No runtime driver,
 public protocol assignment or receipt/launch source acceptance is claimed.
 
+The first post-gate50c strict run stopped in the shared writer dispatcher at
+105 lines after the combined additions. The owned terminal-profile and receipt
+arms now delegate to their own existing savepoint/notification/typed-answer
+logic. No budget is raised, and other writer branches and commit ordering are
+unchanged. The failed run is retained; the corrected source still owes its check.
+
 Approved shared identitye45a5d89 is merged. Announced gate50c head9c150c6e
 is now merged with the reviewed registry and project admission/fixed-id
 primitive. Its old unreviewed prototype remains excluded. New adapter/intake

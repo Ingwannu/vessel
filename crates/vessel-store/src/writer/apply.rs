@@ -29,14 +29,9 @@ pub(super) fn apply(
 ) -> Answer {
     match write {
         Write::TerminalProfiles { settings, done } => {
-            write_answer(transaction, done, |connection| {
-                crate::terminal_profiles::apply(connection, &settings)
-            })
+            terminal_profiles(transaction, &settings, done)
         }
-        Write::Creation { change, done } => Answer::Creation(
-            done,
-            apply_creation(transaction, *change, effects).map(Box::new),
-        ),
+        Write::Creation { change, done } => creation(transaction, *change, done, effects),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),
@@ -134,16 +129,27 @@ pub(super) fn apply(
     }
 }
 
-fn apply_creation(
+fn terminal_profiles(
+    transaction: &mut Transaction<'_>,
+    settings: &vessel_proto::terminal_profiles::SetTerminalProfiles,
+    done: Done,
+) -> Answer {
+    write_answer(transaction, done, |connection| {
+        crate::terminal_profiles::apply(connection, settings)
+    })
+}
+
+fn creation(
     transaction: &mut Transaction<'_>,
     change: crate::creation::Write,
+    done: Done<vessel_proto::creation::Receipt>,
     effects: &mut Effects,
-) -> Result<vessel_proto::creation::Receipt, StoreError> {
+) -> Answer {
     let applied = isolated(transaction, |connection| {
         crate::creation::apply(connection, change)
     });
     effects.creation |= applied.is_ok();
-    applied
+    Answer::Creation(done, applied.map(Box::new))
 }
 
 // State-only writes keep the same savepoint and acknowledgement boundary,
