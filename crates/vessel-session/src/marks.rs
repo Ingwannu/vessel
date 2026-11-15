@@ -42,6 +42,8 @@ use crate::handle::{SessionHandle, Shared};
 pub(crate) struct Marks {
     /// The store's, as of the last mark the node applied.
     kept: KeptMarks,
+    /// The separately durable current-parent boundary.
+    detached: Option<vessel_proto::subagents::DetachReceipt>,
     /// The last record asking for attention, as published.
     attention: Option<EventSeq>,
 }
@@ -50,9 +52,13 @@ impl Marks {
     /// A session started again (protocol 10): `attention` is the last
     /// record of its stored log that asked for attention; the store's
     /// marks follow once its row is reopened ([`SessionHandle::set_marks`]).
-    pub(crate) fn after(attention: Option<EventSeq>) -> Self {
+    pub(crate) fn after(
+        attention: Option<EventSeq>,
+        detached: Option<vessel_proto::subagents::DetachReceipt>,
+    ) -> Self {
         Self {
             kept: KeptMarks::default(),
+            detached,
             attention,
         }
     }
@@ -69,6 +75,7 @@ impl Marks {
     /// a session is archived only once its records have ended.
     pub(crate) fn apply(&self, info: &mut SessionInfo) {
         info.marks = self.kept.marks(self.attention);
+        info.detach_receipt = self.detached;
         if self.kept.is_archived() && !info.status.is_live() {
             // An ended session has its end (the final status sets it); its
             // creation is a floor, as the store's.
@@ -93,6 +100,12 @@ impl SessionHandle {
     /// kept. Works on an ended session too, until the runtime forgets it.
     pub fn set_marks(&self, kept: KeptMarks) {
         self.0.marks().kept = kept;
+    }
+
+    /// Publish only the receipt the store has committed, serialized by the node
+    /// with marks and resume. This never changes creation provenance or the actor.
+    pub fn set_detach_receipt(&self, receipt: Option<vessel_proto::subagents::DetachReceipt>) {
+        self.0.marks().detached = receipt;
     }
 
     /// The end of the session's log as published: the `seq` the next

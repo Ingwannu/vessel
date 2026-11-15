@@ -64,15 +64,21 @@ pub(crate) struct Areas {
 }
 
 impl Areas {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
-        let mut areas = Self::with_drafts(vessel_app_link::drafts::load(), window, cx);
+    pub(crate) fn new(
+        general: settings::PreparedGeneral,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
+        let mut areas = Self::with_drafts(general, vessel_app_link::drafts::load(), window, cx);
         composer::restore_local(&mut areas);
         areas
     }
 
     /// Accept decoded drafts explicitly so UI tests do not read user state.
     pub(crate) fn with_drafts(
+        general: settings::PreparedGeneral,
         drafts: vessel_app_view::composer::drafts::Drafts,
+
         window: &mut Window,
         cx: &mut Context<'_, Shell>,
     ) -> Self {
@@ -82,7 +88,7 @@ impl Areas {
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
-            settings: settings::SettingsState::new(window, cx),
+            settings: settings::SettingsState::new(general, window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
             layout: layout::LayoutArea::new(cx),
