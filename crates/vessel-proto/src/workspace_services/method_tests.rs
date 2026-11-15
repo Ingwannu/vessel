@@ -85,7 +85,7 @@ fn hidden_commands() -> crate::workspace::ProjectCommands {
 
 #[test]
 fn every_new_approval_reply_and_nested_envelope_hides_unassigned_digest() {
-    let workspace = crate::WorkspaceId::random();
+    let workspace = WorkspaceId::random();
     let commands = hidden_commands();
     let outcome = WorkspaceScriptOutcome::NeedsApproval {
         workspace,

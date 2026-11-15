@@ -431,3 +431,16 @@ generated-wire freshness remain pending for the latest additions. No private
 settings disk model, runtime handler or actual backend/public activation is
 implemented by this package. Values and fixture tests cannot qualify the
 separate Preview/allocator/helper/runtime producers.
+
+The first strict package check found an omitted exhaustive added-agent reply
+classification and one unnecessary qualification in a test. Service replies
+carry terminal/session identifiers and command definitions, not a session's
+agent specification, so their explicit compatibility arms join the existing
+no-added-agent branch. Existing compatibility arms and test expectations stay
+unchanged. The original compile/lint failure remains recorded; no tests ran.
+
+The values tree now also contains the announced registry metadata protocol
+head. Its assigned constants and schema remain unchanged, while the service
+feature stays unassigned. The canonical physical-incarnation and connected
+peer/scheme producers are still absent; neither this merge nor an etag grants
+runtime authority.
