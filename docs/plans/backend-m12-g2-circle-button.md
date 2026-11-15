@@ -46,3 +46,20 @@ qualifications in the new tests. The corrected producer explicitly appends the
 canonical LG20 token and removes those test-only qualifications. No geometry,
 paint, guard, old test or expected value changes. The old outcome stays red;
 corrected narrow/source and final first use are still owed.
+
+
+## Exact corrected producer result
+
+The corrected isolated producer2b080afd passed the requested remote Kit suite:
+Clippy0 (schedules-20261115T104948Z-2b080afd), Kit137/0/0
+(schedules-20261115T111545Z-2b080afd). Both native-fonts/native-cargo
+steps returned0 without a skip; changed Kit was compiled. Both specs use
+--locked, short lane, priority0. Source5f714 remains the historical red
+Clippy result, not relabelled corrected proof; the earlier VM143 interruption
+is retained separately. The old regular/outline test files are byte-identical
+to reviewed825, and canonical palette differs only by the two fixed reds.
+
+This is author-reported narrow evidence awaiting V1's one bounded source review.
+No whole F1, actual voice consumer/native UI, OS, switching lifetime, final
+glyph, accessibility or authority pass is claimed. Consume only the isolated
+producer after review; preserve newer exports/palette/inventory on integration.
