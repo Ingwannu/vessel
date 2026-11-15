@@ -675,3 +675,12 @@ implementation obligations, not existing APIs or runtime proof. V3 reviews this
 joint contract before code. Actual restart/fault, saturation, supersession,
 parent/grant revocation, queued-turn, old-peer/forwarded and renderer regressions
 remain required before either package claims durable finish-notification parity.
+
+The proposed private notice producer also requires a trusted non-wire input-echo
+carrier before its origin can be propagated through queue advancement. Foreign
+provider/history Event input stays scrubbed; the exact accepted input owner's
+Started/Steered echo may carry the locally admitted association. The concrete
+closed/private carrier, no public selector, failure behavior and tests are in the
+notice provenance plan and await the shared input-owner/V3 contract check. Until
+that and the existing authority/transaction/reader joins qualify, private
+admission remains Unsupported; the new output fields alone enable no producer.

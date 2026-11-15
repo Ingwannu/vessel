@@ -136,3 +136,52 @@ ACP history fixture includes malicious direct and _meta associations and require
 ordinary words with no local association. New typed-leaf/CLI/queue fixtures are
 authored; exact execution and generated-title/inbox/push/export/web/native reader
 qualification remain separate obligations before positive private production.
+
+## Proposed trusted input-echo carrier (before shared input edits)
+
+The first field implementation deliberately enables no producer. A remaining
+causal boundary must be explicit before attaching the field: queue advancement
+currently passes content and ClientMessageId through AgentInput and the driver
+emits an ordinary AgentOutput::Event. Unconditionally scrubbing foreign events
+would also erase a field copied through that path. Recovering it from the next
+turn, content, a native id prefix or an unrelated current turn would be unsafe.
+
+[Decision Log]
+- Purpose: preserve a locally admitted queue entry's exact presentation origin
+  through its own accepted input echo, without trusting provider/history JSON.
+- Existing constraint: AgentOutput::Event intentionally includes foreign native
+  updates and replay, which must remain unable to assert a local association.
+- Alternatives: a side map guessed from the next event/content; trusting every
+  incoming tag; or dropping the link after queue delivery. Each loses causality
+  or lets foreign words disappear from the transcript.
+- Proposed choice: one non-serialized AgentOutput::InputEcho(InputEcho) carrier.
+  InputEcho has private fields, closed Started/Steered constructors inside the
+  driver crate and an into_event consumer. It cannot be decoded from JSON or
+  hold Ready/control/tool/question/receipt/plugin events. It is presentation
+  evidence from the accepted input owner, never queue or permission authority.
+- The actor passes the already-admitted queue entry's origin through a dedicated
+  internal AgentInput method. Legacy/public prompt APIs delegate with None; public
+  node Submit/Prompt/Create/QueueChange requests gain no origin selector. Their
+  ClientMessageId does not become an internal notice key.
+- Native/ACP prompt and steer implementations construct InputEcho only from that
+  exact typed input argument after actual acceptance. Foreign wire decoders and
+  history replay keep using Event and cannot construct InputEcho from metadata.
+  No provider RPC/content schema change or version inference is needed.
+- StructuredActor scrubs Event as today; InputEcho is consumed as its exact
+  canonical Started/Steered event without that foreign scrub. The queue's normal
+  start/send-now path must carry the original typed origin, while a committed
+  user content edit already clears it. Canonical local retained reads preserve
+  the link; UserMessageChunk remains foreign/untagged unless a separately
+  qualified local retained producer exists.
+- Failure before acceptance produces no input echo; possible-send uncertainty
+  stays uncertain and cannot produce a fabricated turn or authorize retry.
+
+This is a proposal awaiting the shared input-owner and V3 source-contract check,
+not implemented or a reason to enable private admission. Planned ownership is
+W23's common input carrier/actor propagation, preserving W22's plan decision,
+native-command transport and actual provider lifecycle ownership. Tests must
+exercise accepted queued input through real private fake drivers, malicious
+foreign tags, failed/uncertain acceptance, direct/steered input and legacy None
+APIs. The existing single outgoing compatibility traversal remains the only wire
+mask; the same TIMELINE_PARITY=None still controls the output fields. No new
+number, method, receipt namespace or authority registry is proposed.
