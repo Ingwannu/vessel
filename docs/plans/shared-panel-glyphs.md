@@ -48,3 +48,27 @@ panel vectors from older original drawings, points at the full notice and
 names both10-grid window chrome and24-grid UI roles. This changes no old SVG,
 loader or prefix entry; it prevents the new licensed vectors being described
 as original artwork.
+
+## Exact isolated narrow result
+
+Source b41d3d84324d3b38ac0c3673ca007d2dda152176 passed Kit all-target strict
+Clippy and all214 Kit lib tests,0 failed/0 ignored, on the build machine.
+Runs: shell2-narrow-20261115T175542Z-b41d3d84 and
+shell2-narrow-20261115T175924Z-b41d3d84. Both font/Cargo steps returned0;
+actual Kit Checking/Compiling and all three new role/raster tests plus the
+frozen original-prefix case are explicit in the logs. The named scheduling
+permission covered these two sequential checks; no concurrent Cargo ran.
+
+The review packet pins all six changed files, exact source diff, canonical
+vector/source comparisons, unchanged95 prefix and raw run/log hashes. The two
+source SVG overview originals were inspected in both themes. This result is
+not native consumer first-use, OS, full application, F4 or workspace-toolbar
+approval. No caller/toolbar/button or future Import is included. This result
+commit changes documentation only; its native diff from b41 is empty.
+
+Local boundary-script provenance is corrected: that script internally invoked
+Cargo metadata, so its earlier local result is not fresh VM-only boundary
+evidence. No local compilation or pass is claimed; future quality/boundary
+execution remains VM-only. The isolated manifests, lock and dependency edges
+are byte-identical to package base9. Direct pinned rustfmt, size, tokens and
+text/import/doc checks in the preflight invoked no Cargo.
