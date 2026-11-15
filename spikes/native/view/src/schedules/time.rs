@@ -124,7 +124,7 @@ impl RefreshTier {
     }
 }
 impl Age {
-    /// Same tier as Paseo describeAge, without a separate timer per row.
+    /// Same tier as Paseo `describeAge`, without a separate timer per row.
     #[must_use]
     pub const fn refresh_tier(self) -> Option<RefreshTier> {
         match self {

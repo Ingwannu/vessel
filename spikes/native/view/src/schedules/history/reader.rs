@@ -3,7 +3,7 @@
 //! [Decision Log]
 //! - Purpose: a schedule's history and session links must not attach to another
 //!   machine under the same book key after a reconnect or a late reply.
-//! - Existing assets: ConnectionContext, nonreusing Tickets, RunList's wire cap,
+//! - Existing assets: `ConnectionContext`, nonreusing Tickets, `RunList`'s wire cap,
 //!   and the existing outcome/session classifiers. No write or polling engine.
 //! - Choice: a private selection and exact request; only that pending request
 //!   admits a complete newest-first list. Reconnect retires rows and links.

@@ -1,6 +1,6 @@
 //! Schedule text is validated at edit edges, never reparsed by drawing or save.
 //! Empty optional fields mean clear; invalid limits cannot silently become
-//! Unlimited (Paseo's parseInt behavior would discard that mistake).
+//! Unlimited (Paseo's `parseInt` behavior would discard that mistake).
 use crate::localization::{Number, Translator};
 use vessel_proto::automation::{
     AutomationText, InvalidAutomationText, MaxRuns, OutOfRange, PromptText, ScheduleDefinition,

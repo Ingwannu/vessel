@@ -65,7 +65,7 @@ impl Request {
 /// Preview failures retain typed reasons; diagnostic Display is never UI copy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Problem {
-    /// Typed node reason from an InvalidRequest schedule-preview detail.
+    /// Typed node reason from an `InvalidRequest` schedule-preview detail.
     Rule(SchedulePreviewError),
     /// Admission/transport/protocol/refusal from the closed shared mapper.
     Call(Failure),

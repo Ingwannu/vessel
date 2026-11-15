@@ -1,6 +1,6 @@
 //! A form is either a new-chat definition or a cadence-only recurring prompt.
 //! Preserve the opened revision and every nonedited field; never reconstruct an
-//! existing SessionSpec from a few visible selectors.
+//! existing `SessionSpec` from a few visible selectors.
 use super::{
     EditError, cadence,
     fields::{FieldError, Fields},

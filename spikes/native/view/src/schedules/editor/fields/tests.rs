@@ -1,4 +1,4 @@
-//! Renderer-independent cases retain whole integer semantics, never parseInt.
+//! Renderer-independent cases retain whole integer semantics, never `parseInt`.
 use super::*;
 use crate::localization::{ENGLISH, Locale};
 use serde::Deserialize;

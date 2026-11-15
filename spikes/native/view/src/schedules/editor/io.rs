@@ -74,7 +74,7 @@ pub enum Value {
     Options(HarnessOptions),
     /// Node-only projection including a canonical interval anchor.
     Preview(SchedulePreview),
-    /// Saved definition with authoritative next_due/state/revision.
+    /// Saved definition with authoritative `next_due`/state/revision.
     Saved(Box<ScheduleInfo>),
 }
 impl Value {

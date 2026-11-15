@@ -1,5 +1,5 @@
 //! Feature-level proof: an old schedule intent never moves to a replacement
-//! admission, even if its alias or authenticated NodeId is reused.
+//! admission, even if its alias or authenticated `NodeId` is reused.
 use super::*;
 use crate::testing::{Home, peer, phase, state, within};
 use vessel_app_view::connection::{ConnectionContext, Refusal};

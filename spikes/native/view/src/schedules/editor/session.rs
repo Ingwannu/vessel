@@ -3,11 +3,11 @@
 //!
 //! [Decision Log]
 //! - Purpose: host switches/reopen cannot install old choices or repeat saves.
-//! - Existing assets: Draft, typed io Mailbox, canonical ConnectionContext.
-//! - Choice: Closed/ChoosingHost/Active; Active owns four operation slots under
+//! - Existing assets: Draft, typed io Mailbox, canonical `ConnectionContext`.
+//! - Choice: Closed/`ChoosingHost`/Active; Active owns four operation slots under
 //!   the existing actor's shared four-permit limit. No resolver/counter is added.
 //! - Why/cost: pure transition guards precede every UI dispatch. A field still
-//!   needs W4's source FieldId to carry its original visit through its callback.
+//!   needs W4's source `FieldId` to carry its original visit through its callback.
 use super::{definition::Draft, io};
 use crate::connection::ConnectionContext;
 use crate::schedules::authority::Authority;
