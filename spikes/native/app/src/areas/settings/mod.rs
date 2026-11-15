@@ -151,9 +151,6 @@ pub(crate) struct Anchors {
     machine: Anchor,
     send: Anchor,
     delivery: Anchor,
-    interface: Anchor,
-    code: Anchor,
-    width: Anchor,
     display: Anchor,
     syntax: Anchor,
 }
@@ -164,9 +161,6 @@ impl Anchors {
             List::Machine => &self.machine,
             List::Send => &self.send,
             List::Delivery => &self.delivery,
-            List::Interface => &self.interface,
-            List::Code => &self.code,
-            List::Width => &self.width,
             List::Display => &self.display,
             List::Syntax => &self.syntax,
         }
@@ -243,12 +237,9 @@ impl Shell {
             // Paseo's host picker opens at its trigger's left edge.
             List::Machine => drawn,
             List::Syntax => drawn.map(|bounds| select::end_aligned(bounds, select::SHORT_WIDTH)),
-            List::Send
-            | List::Delivery
-            | List::Interface
-            | List::Code
-            | List::Width
-            | List::Display => drawn.map(|bounds| select::end_aligned(bounds, select::WIDTH)),
+            List::Send | List::Delivery | List::Display => {
+                drawn.map(|bounds| select::end_aligned(bounds, select::WIDTH))
+            }
         };
         state.list.set_anchor(at);
         state.list.open(None, window, cx);
@@ -428,14 +419,7 @@ fn section_page(
 /// they change is drawn.
 pub(crate) const fn applied(list: List) -> bool {
     match list {
-        List::Machine
-        | List::Send
-        | List::Delivery
-        | List::Interface
-        | List::Code
-        | List::Width
-        | List::Display
-        | List::Syntax => true,
+        List::Machine | List::Send | List::Delivery | List::Display | List::Syntax => true,
     }
 }
 
@@ -460,12 +444,7 @@ fn list(
     let (header, width) = match open {
         List::Machine => (nav::picker_header(shell, phone), nav::PICKER_WIDTH),
         List::Syntax => (select::header(), select::SHORT_WIDTH),
-        List::Send
-        | List::Delivery
-        | List::Interface
-        | List::Code
-        | List::Width
-        | List::Display => (select::header(), select::WIDTH),
+        List::Send | List::Delivery | List::Display => (select::header(), select::WIDTH),
     };
     combobox(
         "settings-list",

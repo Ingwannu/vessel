@@ -4,8 +4,7 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::{ComboRow, Leading, Tokens};
 use vessel_app_view::prefs::{
-    CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, PreferenceChange, SendKey,
-    TurnDelivery, send_key_label,
+    ConversationDisplay, PreferenceChange, SendKey, TurnDelivery, send_key_label,
 };
 use vessel_app_view::{Machine, Reach};
 
@@ -20,12 +19,6 @@ pub(crate) enum List {
     Send,
     /// What Send does while a turn runs.
     Delivery,
-    /// The interface's text size.
-    Interface,
-    /// Code's text size.
-    Code,
-    /// The conversation's width.
-    Width,
     /// How a conversation shows tool calls.
     Display,
     /// Syntax colours, independent of app palette.
@@ -85,9 +78,6 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
         List::Delivery => words
             .delivery(shell.prefs.settings.composer.delivery)
             .to_owned(),
-        List::Interface => words.points(appearance.interface_size.get()),
-        List::Code => words.points(appearance.code_size.get()),
-        List::Width => words.width(appearance.content_width).to_owned(),
         List::Display => shell
             .words
             .chat()
@@ -151,23 +141,6 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
                 )
             })
             .collect(),
-        List::Interface => InterfaceSize::all()
-            .into_iter()
-            .map(|size| row(words.points(size.get()), size == appearance.interface_size))
-            .collect(),
-        List::Code => CodeSize::all()
-            .into_iter()
-            .map(|size| row(words.points(size.get()), size == appearance.code_size))
-            .collect(),
-        List::Width => ContentWidth::ALL
-            .into_iter()
-            .map(|width| {
-                row(
-                    words.width(width).to_owned(),
-                    width == appearance.content_width,
-                )
-            })
-            .collect(),
         List::Display => ConversationDisplay::ALL
             .into_iter()
             .map(|display| {
@@ -194,18 +167,6 @@ pub(crate) fn change(list: List, index: usize) -> Option<PreferenceChange> {
             .get(index)
             .copied()
             .map(PreferenceChange::Delivery),
-        List::Interface => InterfaceSize::all()
-            .get(index)
-            .copied()
-            .map(PreferenceChange::InterfaceSize),
-        List::Code => CodeSize::all()
-            .get(index)
-            .copied()
-            .map(PreferenceChange::CodeSize),
-        List::Width => ContentWidth::ALL
-            .get(index)
-            .copied()
-            .map(PreferenceChange::ContentWidth),
         List::Display => ConversationDisplay::ALL
             .get(index)
             .copied()

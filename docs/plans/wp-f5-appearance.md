@@ -439,3 +439,9 @@ all bubble geometry, actions and find callbacks are byte-identical. The
 existing rich-text control independently projects that same axis. The owner
 will consume the checked tiny seam alongside its separate Markdown callbacks;
 this source commit is not a checked consumer/API handoff yet.
+
+Retired the three area-local size/width dropdown identities and their unused
+anchors/arms after replacing them with the source numeric fields. The shared
+Settings selector remains for live choices, including syntax; no hidden second
+font/width UI is retained. Public legacy preference presets/readers remain for
+compatibility, and only the dropdown composition is removed.

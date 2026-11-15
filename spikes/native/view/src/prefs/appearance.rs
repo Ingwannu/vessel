@@ -261,7 +261,7 @@ impl ContentWidth {
         !matches!(self, Self::Comfortable)
     }
 
-    /// Every width, narrowest first.
+    /// Legacy presets, narrowest first; numeric overrides use ContentPixels.
     pub const ALL: [Self; 3] = [Self::Comfortable, Self::Wide, Self::Full];
 
     /// Its width in points; `None` for the window's.
