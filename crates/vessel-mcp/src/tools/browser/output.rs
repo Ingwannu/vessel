@@ -32,13 +32,9 @@ pub(super) fn render(
             let encoded: String = image.into();
             (meta, Some(ContentBlock::image(encoded, "image/png")))
         }
-        BrowserResult::Tab { tab } => (json!({"tab":tab_metadata(&tab)?}), None),
+        BrowserResult::Tab { tab } => (json!({"tab":tab_metadata(&tab)}), None),
         BrowserResult::Tabs { tabs } => {
-            let tabs = tabs
-                .as_slice()
-                .iter()
-                .map(tab_metadata)
-                .collect::<Result<Vec<_>, _>>()?;
+            let tabs = tabs.as_slice().iter().map(tab_metadata).collect::<Vec<_>>();
             (json!({"tabs":tabs}), None)
         }
         other @ (BrowserResult::Applied { .. }
@@ -68,13 +64,16 @@ pub(super) fn render(
     reply.structured_content = Some(structured);
     Ok(reply)
 }
-fn tab_metadata(tab: &BrowserTab) -> Result<Value, serde_json::Error> {
-    let mut value = serde_json::to_value(tab)?;
-    if let Some(fields) = value.as_object_mut() {
-        let _icon = fields.remove("icon");
-    }
-    Ok(value)
+fn tab_metadata(tab: &BrowserTab) -> Value {
+    // Project before serialization: encoding then removing an icon would still
+    // allocate/copy its base64 despite never showing it to the agent.
+    json!({
+        "browserId": &tab.browser_id, "workspaceId": tab.workspace,
+        "url": &tab.url, "title": &tab.title, "load": tab.load,
+        "history": tab.history, "viewport": tab.viewport, "profile": tab.profile
+    })
 }
+
 fn target(result: &BrowserResult) -> Option<&BrowserId> {
     match result {
         BrowserResult::Tabs { .. } => None,
