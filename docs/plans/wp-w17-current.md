@@ -1,24 +1,24 @@
 # W17 current invocation map
 
-Product checkpoint: 85454788d4412e17700c20a8e781133e5b6f2663, after node82ae7c91.
-This is a source/ownership map, **not a passing parity checklist**. All117 paths are
+Product checkpoint: `85454788d4412e17700c20a8e781133e5b6f2663`, after node head `82ae7c91`.
+This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
 listed; flags/defaults, reference output/exits and exact Paseo registration references
 remain in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
-Runtime success states use0, failures1, help/version0; ordinary returned wait states
-are data with0. Explicit unsupported output refuses before connection. Raw handlers
+Runtime success states use 0, failures 1, help/version 0; ordinary returned wait states
+are data with 0. Explicit unsupported output refuses before connection. Raw handlers
 keep their documented stream contracts. The latest exit-code process proof is owed.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an
 unassigned method, not a callable feature. Other owner rows retain baseline mappings
 for orientation and make no readiness assertion about another package. Table/JSON/
-YAML1.2 JSON-flow/quiet/header selection is shared by consuming data handlers;
+YAML 1.2 JSON-flow/quiet/header selection is shared by consuming data handlers;
 monochrome, bounded inputs, finite waits and documented native fields are differences.
 
-Executed evidence: exact0656 CLI units134/0/0; original shared output source5305
-strict0 and6 targeted/root/process tests passed and is integrated on82ae. Public
+Executed evidence: exact source `0656af27` CLI units 134/0/0; original shared output source `5305e47a`
+strict 0 and 6 targeted/root/process tests passed and is integrated on `82ae7c91`. Public
 inventory dd33 strict failed one test declaration-position lint before tests; fixed
-at85454788. Its single changed-source strict run134749 is queued. Full package,
+at `85454788`. Its single changed-source strict run 134749 is queued. Full package,
 actual public-host authorization/DTO/client tests, latest CLI processes and A12 remain owed.
 
 | Paseo path | Vessel source entry | State | Existing call / owner boundary | Limitation |
@@ -142,8 +142,8 @@ actual public-host authorization/DTO/client tests, latest CLI processes and A12 
 | `hub permissions revoke <permission>` | none (excluded) | Excluded | none | Paseo Hub excluded by package scope. |
 
 The additional host_registry.list_shared method is a separately typed bounded Read
-inventory for direct local agents, outside the117 CLI paths. V3 row202 approved its
+inventory for direct local agents, outside the 117 CLI paths. V3 row202 approved its
 security design before code; implementation/admission/serialized-field tests are not
-executed yet. Full private records and source/revision never appear in its response.
+executed yet. Its explicit DTO excludes full private records, source and revision.
 All six host/capture rows remain behind CLI_PARITY_PROTOCOL=None. The frame/mode/anchor
 follow-up proposal has no DTO/call registered and is independent of Silent capture.
