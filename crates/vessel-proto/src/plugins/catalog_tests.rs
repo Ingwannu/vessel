@@ -163,7 +163,10 @@ fn direct_generic_and_nested_installation_decoders_seal_all_diagnostics() {
     let item_json = serde_json::to_string(&item).expect("item JSON");
     for invalid in [
         item_json.replace("required_client", "PRIVATE-CATALOG-CANARY"),
-        item_json.replace("23", r#""PRIVATE-CATALOG-CANARY""#),
+        item_json.replace(
+            "\"required_client\":23",
+            "\"required_client\":\"PRIVATE-CATALOG-CANARY\"",
+        ),
     ] {
         safe(&serde_json::from_str::<ClientInstallation>(&invalid).expect_err("refuse"));
         let envelope = format!(r#"{{"node":"{node}","installations":[{invalid}]}}"#);
