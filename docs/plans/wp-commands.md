@@ -716,3 +716,16 @@ Its App/Kit/View all-target tests remain in progress. The only later product
 changes are the shared whitespace visibility and help/PR-query consumers;
 those receive a View-only strict/test follow-up rather than repeating unrelated
 App/Kit source checks. No final gate, captures or package review is inferred.
+
+App/Kit/View run132327-a52 stopped after App112pass/1fail/2ignore: the new
+nested Backspace regression exposed a real event-order bug. GPUI window.rs6198
+dispatches bound Input actions before raw key listeners, so the search parent's
+capture_key_down never gets TextField Backspace. Removed that ineffective raw
+listener. After its existing IME/CharacterInput/overlay/recorder guards, the ONE
+interceptor now invokes the existing palette_back only for the palette's admitted
+bare empty-scope Backspace, then consumes it. Other local keys still yield to
+the existing command-frame action handlers. The ownership query stays read-only;
+no new listener/keymap/controller or kit control/API is added. The actual GPUI
+fixture installs that production listener and covers empty/BOM/NEL/nonblank
+queries. Kit and View tests were not reached after the App failure; no later
+test pass is claimed from that run.

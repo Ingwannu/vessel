@@ -30,8 +30,7 @@ use vessel_app_kit::command::{
 use vessel_app_kit::focus::ReturnFocus;
 use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens};
 use vessel_app_view::palette::{
@@ -463,7 +462,6 @@ pub(crate) fn render(
     let search = div()
         .flex()
         .flex_col()
-        .capture_key_down(cx.listener(navigation::key))
         .children(navigation::scope(shell, tokens, cx))
         .child(messages::scope(shell, tokens, window, cx))
         .child(shell.areas.palette.search.bare(tokens, cx))

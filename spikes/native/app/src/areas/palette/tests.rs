@@ -464,7 +464,15 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
 #[gpui::test]
 fn nested_backspace_uses_reference_blank_query_semantics(cx: &mut TestAppContext) {
     let (view, cx) = harness(cx);
-    for (query, should_leave) in [("\u{feff}", true), ("\u{85}", false)] {
+    update(&view, cx, |shell, window, cx| {
+        crate::areas::shortcuts::listen(shell, window, cx);
+    });
+    for (query, should_leave) in [
+        ("", true),
+        ("\u{feff}", true),
+        ("\u{85}", false),
+        ("needle", false),
+    ] {
         update(&view, cx, |shell, window, cx| {
             shell.palette_page(
                 vessel_app_view::palette::pages::ChoiceLocation::group(

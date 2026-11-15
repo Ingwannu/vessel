@@ -6,9 +6,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{
-    ButtonKind, ButtonState, TextField, Tokens, Type, TypeExt as _, button_with_kind,
-};
+use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 
 pub(super) fn scope(
     shell: &Shell,
@@ -42,34 +40,9 @@ pub(super) fn scope(
     )
 }
 
-pub(super) fn key(
-    shell: &mut Shell,
-    event: &gpui::KeyDownEvent,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) {
-    let modifiers = event.keystroke.modifiers;
-    if event.prefer_character_input
-        || TextField::focused_composing(window, cx)
-        || modifiers.control
-        || modifiers.alt
-        || modifiers.shift
-        || modifiers.platform
-    {
-        return;
-    }
-    if event.keystroke.key == "backspace"
-        && vessel_app_view::matcher::Query::new(&shell.areas.palette.query).is_empty()
-        && shell.areas.palette.page.is_some()
-    {
-        shell.palette_back(window, cx);
-        cx.stop_propagation();
-    }
-}
-
 impl Shell {
     /// The open center's existing kit controls run before global rebinding,
-    /// matching the top-overlay priority in Paseo. This only yields the event;
+    /// matching the top-overlay priority in Paseo. This query is read-only;
     /// the existing frame/search remains its sole navigation controller.
     pub(crate) fn command_center_owns_key(&self, event: &gpui::KeystrokeEvent) -> bool {
         let modifiers = event.keystroke.modifiers;
@@ -81,5 +54,21 @@ impl Shell {
             ) || (event.keystroke.key == "backspace"
                 && vessel_app_view::matcher::Query::new(&self.areas.palette.query).is_empty()
                 && self.areas.palette.page.is_some()))
+    }
+
+    /// The sole interceptor has already admitted IME/capture/overlay input.
+    /// GPUI resolves TextField Backspace actions before raw key listeners, so
+    /// invoke the existing page operation before that action can delete text.
+    pub(in crate::areas) fn command_center_backspace(
+        &mut self,
+        event: &gpui::KeystrokeEvent,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        if event.keystroke.key != "backspace" || !self.command_center_owns_key(event) {
+            return false;
+        }
+        self.palette_back(window, cx);
+        true
     }
 }

@@ -226,6 +226,9 @@ impl Shell {
         if self.command_center_owns_key(event) {
             self.areas.shortcuts.engine.reset();
             self.areas.shortcuts.held.release();
+            if self.command_center_backspace(event, window, cx) {
+                cx.stop_propagation();
+            }
             return;
         }
         let listener = &mut self.areas.shortcuts;
