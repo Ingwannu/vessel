@@ -212,3 +212,45 @@ labels and the separately retained accepted cadence/error tables.
   rustfmt, source-size/token scans and Git remain available.
 - No own fleet, virtual display, app or capture binary is running. No UI captures
   for current F1 exist; no service-account/OS/physical input proof is claimed.
+
+
+## Current resume — after checked picker and Search baton, 2026-11-15
+
+- Earlier active-resume section is historical. Main merged announced c3429952
+  as d24c74099 (1450/0/2 is inherited, NOT F1 combined evidence). Current source
+  includes b39 FormGlyph option wiring;14e1 catalog browse/selection separation;
+ 98a666 selected Search13c integration;35ef Code form control;8c173 raw-cron
+  opt-in;59f7 combobox header length correction;5a15 L Shape compatibility.
+- The isolated914..99ad57b8 picker is V1 SOURCE/requested Kit PASS: strict0 +
+ 186/0/0. Source/manifest/raw run packet is /tmp/work/m12-g2/
+  picker-admission-99ad57b8-packet; V1 audit /tmp/work/m12-review/
+  g2-picker-admission-99ad/audit.json. Final7c4f60f6 docs-only includes actual
+  handed-off/retired result. Lead/W2/W5 received ONE selected producer range.
+- picker-control label was DROPPED rc0 (logs under /tmp/work/m12-g2/
+  retire-picker-control-20261115.*), no reuse/new jobs. No App/consumer UI/native
+  Linux focused-field F5/OS/IME proof is implied by the isolated186 result.
+- def6 and66735 Kit-only source jobs both cancelled while queued (143, no
+  compilation/tests); raw logs retained.66735 was superseded using WORKER
+  standing approval after static105-line combobox header correction plus newer
+  Code/Search source. Replacement stays ONE ordinary short schedules suite.
+- G3 checked Search source2e3/2b999/13c only is adopted preserving canonical
+  field/export union. G3 has released field writer. G2 Code now exists as
+  FormText::Body/Code +with_source_text on the SAME identified line engine;
+  existing constructors/search/multiline/composer defaultBody unchanged. All
+  new Code/consumer tests remain authored/unexecuted until next exact check.
+- L exact123e60a00 producer is green; supplied Shape compatibility delta applies
+  unchanged to our byte-exact base8 generator and all five manifest hashes
+  match. Compatibility itself is source-only until OUR combined compile/gate.
+  No General/F6/Contract downgrade or schedules.ftl word migration was taken.
+- Model browsing now retains one selected catalog and uses the existing one
+  options slot independently. Drill/cancel cannot replace full selected spec;
+  choose_model requires original current request +offered Model option. Pure
+  preservation/stale/initial-view tests are authored, not executed yet.
+- F1 still owes provider error/loading/retry source presentation, final combined
+  narrow/whole/export/actualENKO390wide both themes/pending/stale UI evidence.
+  Historical F5 remains HOLD. No current F1 capture/build is available.
+- W11/W3 provision, W21 runtime archive, W12 admitted opening/delivery remain
+  unavailable as previously stated; isolation is hidden/in-scope pending, not
+  a parity exception. No cwd inference or old alias opener is allowed.
+- Only remote gate tool may run Cargo/rustc. Do not run boundary script locally
+  (it calls metadata); prior accidental metadata disclosure remains preserved.
