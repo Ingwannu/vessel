@@ -1254,3 +1254,16 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+
+### Identified form textarea
+
+TextField::form_multiline_with_source takes the same checked FieldId callbacks
+as a line, plus FormMinimum::Default (existing GOAT68/80) or Expanded
+(Paseo schedule prompt96). One TextareaState/factory/listen, not another input
+engine. Legacy Plain signatures/Enter/readonly/defaults stay unchanged.
+SendOn remains exported at field::SendOn after moving with the constructor
+family; field.rs now fits the ordinary size budget. Caller still checks original
+form visit, current source id, connection and authority; FieldId alone is none
+of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
+only at this checkpoint; narrow/source review and consumer proof remain owed.
