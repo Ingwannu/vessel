@@ -87,6 +87,14 @@ mod tests {
             workspace: WorkspaceId::random(),
         };
         assert!(!target.matches(&connection, &other_workspace));
+        let legacy = LayoutKey::Session {
+            machine: crate::layout::HostAlias::parse("fixture").unwrap(),
+            session: vessel_proto::SessionId::random(),
+        };
+        assert_eq!(
+            WorkspaceTarget::new(connection.clone(), &legacy),
+            Err(Failure::Unsupported)
+        );
         let other_node = LayoutKey::Workspace {
             node: NodeId::random(),
             workspace,

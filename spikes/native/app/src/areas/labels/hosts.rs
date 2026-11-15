@@ -36,7 +36,7 @@ impl Labels {
             .iter()
             .find(|host| &host.route == route)
             .ok_or(vessel_app_view::labels::Failure::Offline)?;
-        if self.route.as_ref() != Some(route) {
+        if self.route.as_ref() != Some(route) || self.manager.selected() != Some(&host.key) {
             self.manager.back()?;
             self.manager.select(host.key)?;
             self.route = Some(route.clone());
