@@ -156,3 +156,11 @@ fallback, then replace this exception. S2 does not build another Settings frame.
 The native default264 and frame inset12 are deliberate retained differences,
 per the lead's ruling: the prior native shell and its framed chrome keep their
 layout. Min200/max600/normal content400 remain the reference limits.
+
+The root adapter also temporarily retains Settings' existing PHONE form. Its
+current frame already draws the compact list/back stack at 600–767; docking a
+second copy there before E2's effective-form consumer would duplicate navigation.
+Workspace sidebar form uses600 immediately, while chrome and other areas keep
+PHONE768. E2 will remove the Settings form guard and the auto-hide exception
+atomically with its shared-budget frame consumer. No second width constant or
+Settings renderer is introduced.

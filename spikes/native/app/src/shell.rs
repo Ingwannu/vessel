@@ -204,7 +204,10 @@ impl Shell {
     /// over the page; wider, the layout's `SidebarPanel` preference, kept
     /// with the settings so it stays as left.
     pub(crate) fn toggle_sidebar(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if vessel_app_kit::breakpoint::phone(window) {
+        if matches!(
+            areas::sidebar::arrangement(self, window),
+            vessel_app_view::panels::SidebarLayout::Sheet
+        ) {
             self.sidebar_sheet = match self.sidebar_sheet {
                 Some(_) => None,
                 None => Some(self.place()),
@@ -223,8 +226,8 @@ impl Shell {
         );
     }
 
-    /// Whether the wide window draws the sidebar (the layout's preference;
-    /// a phone's width draws it as a sheet instead).
+    /// Whether the desktop preference requests the sidebar; the typed
+    /// layout separately decides whether the current row can show it.
     pub(crate) fn sidebar_shown(&self) -> bool {
         self.prefs.settings.layout.sidebar == Panel::Shown
     }
@@ -298,11 +301,16 @@ impl Render for Shell {
         }
         self.settle_settings(window);
         let tokens = tokens(cx);
-        // ADR 0036: below the phone's width the sidebar is a sheet from the
-        // title bar; it closes when the person goes anywhere from it, and
-        // when the window grows past the width.
+        // S2: sidebar form is independent of the global phone chrome. The
+        // sheet closes on navigation or once its own form becomes docked.
         let phone = vessel_app_kit::breakpoint::phone(window);
-        if !phone
+        let sidebar = areas::sidebar::arrangement(self, window);
+        let sheet_form = matches!(sidebar, vessel_app_view::panels::SidebarLayout::Sheet);
+        let docked = matches!(
+            sidebar,
+            vessel_app_view::panels::SidebarLayout::Docked { .. }
+        );
+        if !sheet_form
             || self
                 .sidebar_sheet
                 .is_some_and(|opened| opened != self.place())
@@ -341,7 +349,7 @@ impl Render for Shell {
                     .relative()
                     .flex()
                     .flex_row()
-                    .when(!phone && self.sidebar_shown(), |row| {
+                    .when(docked, |row| {
                         row.child(routes::sidebar(self, &tokens, window, cx))
                     })
                     .child(
@@ -359,7 +367,7 @@ impl Render for Shell {
                             // beside the sidebar, at the left (worker B's
                             // two-line edge, the owner's word 36).
                             .when(!phone, |frame| frame.pt(px(S1)))
-                            .pl(px(if phone || !self.sidebar_shown() { S2 } else { S1 }))
+                            .pl(px(if docked { S1 } else { S2 }))
                             .child(
                                 div()
                                     .relative()
