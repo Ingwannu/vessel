@@ -142,6 +142,28 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
     cx.run_until_parked();
     shell.update_in(cx, |shell, window, cx| {
         assert!(shell.shortcut_badges_visible(window, cx));
+        shell.open_settings(Some(Section::Shortcuts), window, cx);
+    });
+    cx.run_until_parked();
+    let selector = match Platform::native() {
+        Platform::Mac => "shortcut-menu-command-center-toggle-cmd-k-mac",
+        Platform::Other => "shortcut-menu-command-center-toggle-ctrl-k-non-mac",
+    };
+    let menu = cx.debug_bounds(selector).expect("actual shortcut menu");
+    cx.simulate_click(menu.center(), gpui::Modifiers::default());
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(
+            window
+                .context_stack()
+                .iter()
+                .any(|entry| { entry.contains(vessel_app_kit::popup::KEY_CONTEXT) })
+        );
+        assert!(!shell.shortcut_badges_visible(window, cx));
+    });
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
         let action = binding_id(Action::JumpSession, default_context(Platform::native())).unwrap();
         let edits = ShortcutEdits::try_from(vec![ShortcutEdit {
             action,

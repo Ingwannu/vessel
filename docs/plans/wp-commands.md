@@ -429,7 +429,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Workspace creation | W3 new_workspace_current | Source1f95, checked packet pending; no global Draft fallback |
 | Workspace rows, navigation, project create | W11 registry plus S2 visible projection | Canonical values present, no checked native activation packet |
 | Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; targets and both-sidebar adapter pending |
-| Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Metadata producer in sharedline; checked tiny context/exit delta pending |
+| Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Checked30a context/exit source adopted in sharedline; native owner source and dispatcher wired, union checks pending |
 | Root Import | W2 open_import | Source0eb3 all3clippy0, owner tests/review pending; not adopted |
 | Root History | W21 Route::Sessions | Screen owner packet pending; no Archive substitute |
 | Root Schedules | G2 Route::Schedules | Source-only, physical admission repair pending; no Settings substitute |
@@ -586,3 +586,10 @@ navigates Down before Enter. The modifier test now creates the actual composer
 focus path required by GPUI key dispatch and polls its spawned timer before
 advancing virtual time. These fixes preserve production menu, focus and150ms
 policies. Kit tests were not reached after the App failure; no kit pass is claimed.
+
+Badge visibility now queries the same actual Window context stack and exact kit
+VesselOverlay identifier used by the interceptor. A focused popup suppresses
+both badge queries and new modifier holds; no inferred menu flag or focus cache
+is introduced. The real modifier regression additionally opens the production
+Settings row menu and checks its rendered marker plus hidden badges. This closes
+the separate modifier-only path, which cannot rely on a later key-down guard.

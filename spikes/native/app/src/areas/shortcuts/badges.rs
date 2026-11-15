@@ -27,6 +27,10 @@ fn eligible(shell: &Shell, window: &mut Window, cx: &mut App) -> bool {
     super::available(window)
         && window.is_visible()
         && window.is_window_active()
+        && !window
+            .context_stack()
+            .iter()
+            .any(|entry| entry.contains(vessel_app_kit::popup::KEY_CONTEXT))
         && !shell.areas.palette.is_open()
         && !shell.areas.shortcuts.help.is_open()
         && !shell.areas.shortcuts.page.recording()
