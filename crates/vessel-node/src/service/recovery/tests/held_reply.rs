@@ -7,7 +7,7 @@ use crate::recovery::{Claim, Recovery};
 use tokio::net::TcpStream;
 use vessel_proto::SessionInfo;
 
-const PROMPT: &str = "recovery held reply";
+const PROMPT: &str = "plain";
 const CANDIDATES: usize = Recovery::MAX_ATTEMPTS.saturating_add(1);
 struct Scenario {
     fixture: Fixture,

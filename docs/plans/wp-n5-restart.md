@@ -269,3 +269,10 @@ It supplies no causal reproduction. The fixture now chooses an ordinary
 prompt that traverses that barrier; product admission remains unchanged for
 the next forcing run. The three repeated test deadlines now reference the
 existing CASE_DEADLINE with no duration or assertion change.
+
+
+The second forcing execution also stopped before Kill: the general fake turn
+asks permission before reaching its response barrier. The fixture now uses
+the existing `plain` turn, which has neither the report shortcut nor a
+permission request. Both earlier fixture failures stay separate from any
+causal reproduction. Product admission and the safety deadlines are unchanged.
