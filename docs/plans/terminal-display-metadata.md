@@ -39,6 +39,10 @@ Pre-fix3666 executed44/2 with strict0. d105 executed46/2 and test-only lint
 failure. Corrected b4be source executed48/0 and strict0 in the separate display
 serializer branch, including five serializer-only tests. This isolated minimum
 producer deliberately omits that serializer, its readonly cell constructors
-and its vendor width-table accessor. Its own exact narrow/enclosing qualification
-and source review remain owed. Frozen2d5 whole is unchanged; no full consumer
+and its vendor width-table accessor. Exact96271b3e now executed its own
+43 tests with zero failures, and all-target Clippy with warnings denied passed.
+The commands visibly compiled/checked vessel-terminal-screen; these are the
+isolated producer results, not the serializer branch's48-test result. The
+changed-source enclosing whole and source review remain owed.
+Frozen2d5 whole is unchanged; no full consumer
 or universal Unicode/control-stream parity follows from finite fixtures.
