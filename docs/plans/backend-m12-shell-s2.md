@@ -39,10 +39,20 @@ An independent `shell-fixtures.py check` then exited 0. The laptop database
 contained 24 sessions, eight long titles, two pinned sessions and two archived
 sessions. All eight shell sessions were created through the CLI.
 
-The CLI, node and fake executables came from a successful source build of
-the root workspace used by the earlier capture run. Its root source is
-unchanged between `56a7cbd3` and `d30804b2`; no root compilation was repeated.
-The private evidence manifest records the four executable hashes and both
+The first run used the CLI, node and fakes from a successful source build
+of the root workspace used by the earlier capture run. Its root source is
+unchanged between `56a7cbd3` and `d30804b2`. A second run built all four
+executables in this continuation's own Cargo target directory, using
+`cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins` through
+the build-slot wrapper. The build succeeded in 2m41s. This second fresh
+fleet also completed with exit 0, passed the independent shell check and
+produced the same four session counts. In particular, the wire fixture's
+`home role missing` assertion did not fail: its home/member/standalone,
+join/leave/sync and read-only checks all completed. No fixture or CLI change
+was needed. The reported failure with another earlier binary is not
+reproduced here; its underlying cause has not been established.
+
+Each private evidence manifest records the four executable hashes and both
 fixture script hashes. A separate 20-case guard probe accepted both book
 forms and checked remote-address, each protected-port, addressless/SSH and
 non-fake-adapter refusal, including unsafe later direct/relay alternatives.
@@ -60,4 +70,4 @@ the sibling `guard-probe.json`. No screenshots were taken: this verifies
 fleet creation, not screen appearance. The native integration branch's
 whole gate on the implementation commit remains its owner's evidence;
 this continuation changes documentation only and runs the native fast
-format, size, boundary and token checks without repeating compilation.
+format, size, boundary and token checks without repeating that whole gate.
