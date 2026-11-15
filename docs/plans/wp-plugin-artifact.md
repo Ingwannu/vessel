@@ -113,6 +113,10 @@ TreeDigest explicitly means supplied facts, not a complete/stable filesystem
 receipt or source authority. No filesystem reader, UID/ACL dependency, blocking
 worker, admission lane, observation timeout or installation is implemented by
 this checkpoint. Their proposed contract and real-OS evidence remain pending.
-No new protocol/storage type or public API is added. Current pure-model execution
-and selected implementation review are still owed; the contract row does not
-silently accept this later code.
+No new protocol/storage type or public API is added. V3 reviewed the selected
+pure model at c4a3c792. Run wp-plugins-artifact-test-20261115T180604Z-c4a3c792
+executed all22 staged plugin tests with no failures, including the three new
+pure cases; all prerequisite steps passed. Its paired strict check refused one
+test-only manual match, corrected to equivalent let-else without changing the
+canary assertion. Changed strict remains owed. None of this executes the future
+filesystem observation or turns supplied records into acquisition authority.
