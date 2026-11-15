@@ -2,7 +2,7 @@
 use super::*;
 use std::io::Write as _;
 
-fn format(rate: SampleRate) -> Vec<u8> {
+pub(in crate::dictation) fn format(rate: SampleRate) -> Vec<u8> {
     let width = u16::try_from(SAMPLE_BYTES).unwrap();
     let mut value = Vec::new();
     value.extend_from_slice(&PCM_ENCODING.to_le_bytes());
@@ -19,7 +19,7 @@ fn format(rate: SampleRate) -> Vec<u8> {
     value.extend_from_slice(&u16::try_from(i16::BITS).unwrap().to_le_bytes());
     value
 }
-fn wave(parts: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
+pub(in crate::dictation) fn wave(parts: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
     let mut output = b"RIFF\0\0\0\0WAVE".to_vec();
     for (name, data) in parts {
         output.extend_from_slice(name.as_slice());
@@ -42,7 +42,7 @@ fn wave(parts: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
     output[4..8].copy_from_slice(&length.to_le_bytes());
     output
 }
-fn file(bytes: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
+pub(in crate::dictation) fn file(bytes: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("recording.unrelated");
     std::fs::write(&path, bytes).unwrap();

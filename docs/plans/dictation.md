@@ -11,7 +11,9 @@ on the feature branch. Product wiring now connects the real bounded registry,
 provider, canonical ConnectionLife accessor and shared codec, with five pending
 method-table rows. The protocol constant remains None. The generated guard checks
 Operate and the domain context refuses agents. Those are implementation drafts,
-not a product test or merge pass. The CLI still has only its staged file decoder.
+not a product test or merge pass. The CLI now connects its validated file reader
+to a serial acknowledged sender and concurrent next consumer, with bounded
+finish/cleanup waits and final-only stdout. Those new cases are unexecuted.
 
 Settings now validate the whole merged candidate, resolve explicitly selected
 keys even on a no-op, and use the existing single-lock atomic writer/apply order.
@@ -22,7 +24,7 @@ causes have new unexecuted regressions. A real-provider loopback service case
 checks a short capture tail, partial and final.
 
 Next: narrow strict checks and focused tests on this committed wiring, fix
-actual failures, then implement the file command/driver. Regenerate declarations
+actual failures in the backend and file command/driver. Regenerate declarations
 for the final registered surface and run one whole product/package gate. The
 previous generated snapshot passed four tests but was stale; it excludes later
 ErrorDetail/registration additions and is only an interim generated artifact.
@@ -796,3 +798,26 @@ accepted Final reaches stdout. Existing UUID generation mints an independent
 stream handle. ADR0067 records wait/cleanup budgets, no resend and the private
 command-error boundary required by main's source-chain renderer. No dependency
 is introduced. This contract/code checkpoint has no CLI execution evidence yet.
+
+
+### File command implementation checkpoint
+
+Existing assets reused: NodeClient's typed unary calls, the asynchronous file
+preflight/reader and the CLI output helper. A test-only closed client variant
+uses the same Call/Reply types; there is no new transport or protocol table.
+Tokio's existing dependency enables test-util only for deterministic wait-clock
+regressions. No new dependency, recognizer, decoder or product timer is added.
+
+The command validates before node resolution, serially verifies contiguous acks
+while draining next, keeps an early Final private until finish acceptance, and
+never reconnects or resends. A retained primary failure survives failed or timed
+out cancellation. Its opaque command error prevents main's recursive source
+renderer from quoting a remote speech message; concrete causes remain private.
+
+New tests cover real file chunks/tail, partial drain, early/future updates,
+missing ack, active cancellation, truncation after an acknowledged chunk,
+finish-acceptance and returned-final budgets, cleanup timeout and marker privacy.
+The file command's seven earlier parser cases remain unchanged except exposing
+three fixture builders within this module. Execution is still owed; direct
+rustfmt and the size check are source checks only. Final package validation also
+waits for the common settings writer's cancellation-safe tracked persist owner.

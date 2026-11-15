@@ -208,6 +208,27 @@ vessel search parser --before 1763031235000000000   # the next page, from the la
   searched; a reply is found once it has ended.
 - Agents have the same as the `search_sessions` tool.
 
+### Transcribe a recording
+
+```bash
+vessel --node my-node dictate recording.wav > transcript.txt
+```
+
+The file must be a regular little-endian RIFF/WAVE file with mono signed
+PCM16 audio at a supported rate (8–48 kHz). The command validates the container
+before connecting, sends one-second chunks and a shorter final tail, and writes
+only the final transcript plus a newline to stdout. It reads the file in bounded
+pieces; it does not capture a microphone, convert other audio formats or retry
+failed audio uploads. Ctrl-C attempts to cancel the recording; an unconfirmed
+cancellation is reported as a failure.
+
+A node administrator selects the dictation endpoint and a named secret through
+node settings; the file command never accepts or prints the provider key. The
+connection requires Operate scope. Local transcription engines are not included
+in this build. While the dictation protocol is unassigned, the command refuses
+the operation instead of sending it. See [ADR 0067](docs/adr/0067-dictation.md)
+for settings, privacy and stream limits.
+
 ### A side question beside the running turn
 
 ```bash

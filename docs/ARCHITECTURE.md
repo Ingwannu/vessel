@@ -1639,10 +1639,13 @@ gate without claiming a recording slot. The lease has no connection lifetime
 guard; fixed diagnostics keep store causes internal. These tests do not yet
 establish registry admission, settings integration or a callable speech service.
 
-The CLI's staged dictation file edge validates and seeks through a bounded
+The CLI's dictation file edge validates and seeks through a bounded
 little-endian PCM16 mono WAV container before connecting, then owns one bounded
-read at a time. It does not resample or transcribe; those remain node concerns.
-The command wiring removes this decoder's outer test gate.
+read at a time. Its typed sender and result consumer share one connection; it
+prints only a Final after finish acceptance and never resends audio. One pinned
+Ctrl-C observer and bounded finish/cancel waits terminate the command. Concrete
+foreign causes stay private behind fixed diagnostics because the CLI renders
+public source chains. Resampling and recognition remain node concerns.
 
 The node `speech_audio` module is shared by dictation and spoken
 conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,

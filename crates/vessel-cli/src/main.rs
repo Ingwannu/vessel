@@ -15,7 +15,6 @@ mod commands;
 mod connect;
 mod conversation;
 mod devices;
-#[cfg(test)]
 mod dictation;
 mod error;
 mod file_terminals;
@@ -112,6 +111,7 @@ async fn cli() -> ExitCode {
         | Command::Agents { .. }
         | Command::Fleet { .. }
         | Command::Models
+        | Command::Dictate { .. }
         | Command::Sessions
         | Command::Run(_)
         | Command::Attach { .. }

@@ -250,4 +250,4 @@ fn half(bytes: &[u8], offset: usize) -> Result<u16, FileError> {
 }
 
 #[cfg(test)]
-mod tests;
+pub(in crate::dictation) mod tests;

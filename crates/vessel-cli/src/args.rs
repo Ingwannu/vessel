@@ -122,6 +122,11 @@ pub(crate) enum Command {
     /// List the node's model routes (`model = "<route>"` in a profile;
     /// milestone 5): their providers, APIs and models, never a URL or key.
     Models,
+    /// Transcribe a PCM16 mono WAV file through the node's selected provider.
+    Dictate {
+        /// A regular RIFF/WAVE PCM16 mono file; no microphone or stdin capture.
+        file: PathBuf,
+    },
     /// List sessions, newest first.
     Sessions,
     /// Start a session and attach to it.

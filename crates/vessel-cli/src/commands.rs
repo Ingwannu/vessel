@@ -52,6 +52,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             ))
             .await
         }
+        Command::Dictate { file } => crate::dictation::run(target, &file).await,
         Command::Models => {
             let client = connect(target).await?.client;
             let text = render::models(&client.models().await?);

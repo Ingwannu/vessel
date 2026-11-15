@@ -53,6 +53,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+# Advance only the file client wait clocks; no product timer changes.
+tokio = { workspace = true, features = ["test-util"] }
 # The load test (`tests/load`, `docs/PERFORMANCE.md`) is a browser tab of
 # `vessel ui`: its websocket and the mutual proof's HMAC. All four are
 # already in the workspace (vessel-web's own dependencies).
