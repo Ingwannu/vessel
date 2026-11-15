@@ -85,6 +85,8 @@ mod settings;
 mod side_questions;
 
 #[cfg(test)]
+mod command_diagnostics_tests;
+#[cfg(test)]
 mod connection_life_tests;
 #[cfg(test)]
 mod dispatch_tests;

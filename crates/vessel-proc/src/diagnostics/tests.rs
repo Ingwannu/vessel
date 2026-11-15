@@ -4,6 +4,7 @@ use crate::{InvalidGroup, SpawnError, Stream, spawn};
 use std::error::Error as _;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
+use std::sync::Arc;
 use std::time::Duration;
 use vessel_testkit::Fake;
 
@@ -26,6 +27,83 @@ fn diagnostic_chain(error: &impl std::error::Error) -> String {
         source = cause.source();
     }
     text
+}
+
+#[derive(Debug)]
+struct TypedCause {
+    marker: Arc<()>,
+    detail: &'static str,
+}
+impl std::fmt::Display for TypedCause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.detail)
+    }
+}
+impl std::error::Error for TypedCause {}
+
+#[test]
+fn private_io_projection_owns_the_actual_typed_cause_without_a_public_escape() {
+    let marker = Arc::new(());
+    let original = io::Error::new(
+        io::ErrorKind::PermissionDenied,
+        TypedCause {
+            marker: Arc::clone(&marker),
+            detail: SENTINEL,
+        },
+    );
+    let hidden = private().diagnostic_io_error(original);
+    assert_eq!(hidden.kind(), io::ErrorKind::PermissionDenied);
+    let owned = hidden
+        .get_ref()
+        .unwrap()
+        .downcast_ref::<PrivateIoCause>()
+        .unwrap();
+    let original = owned
+        ._original
+        .get_ref()
+        .unwrap()
+        .downcast_ref::<TypedCause>()
+        .unwrap();
+    assert!(
+        Arc::ptr_eq(&original.marker, &marker),
+        "the actual cause must stay owned"
+    );
+    assert_eq!(Arc::strong_count(&marker), 2);
+    assert!(!diagnostic_chain(&hidden).contains(SENTINEL));
+    // These standard public io::Error escape hatches reveal only the safe
+    // private wrapper as dyn Error, never the underlying io::Error or its cause.
+    assert!(
+        hidden
+            .get_ref()
+            .unwrap()
+            .downcast_ref::<io::Error>()
+            .is_none()
+    );
+    let inner = hidden.into_inner().unwrap();
+    assert!(!format!("{inner:?} {inner}").contains(SENTINEL));
+    assert!(inner.source().is_none());
+    assert_eq!(Arc::strong_count(&marker), 2);
+    drop(inner);
+    assert_eq!(Arc::strong_count(&marker), 1);
+}
+
+#[test]
+fn private_io_projection_keeps_original_os_evidence_and_standard_error_unchanged() {
+    const OS_EVIDENCE: i32 = 17;
+    let original = io::Error::from_raw_os_error(OS_EVIDENCE);
+    let kind = original.kind();
+    let hidden = private().diagnostic_io_error(original);
+    let owned = hidden
+        .get_ref()
+        .unwrap()
+        .downcast_ref::<PrivateIoCause>()
+        .unwrap();
+    assert_eq!(owned._original.raw_os_error(), Some(OS_EVIDENCE));
+    assert_eq!(hidden.kind(), kind);
+    assert!(hidden.source().is_none());
+    let plain =
+        CommandSpec::new("unused").diagnostic_io_error(io::Error::from_raw_os_error(OS_EVIDENCE));
+    assert_eq!(plain.raw_os_error(), Some(OS_EVIDENCE));
 }
 
 #[test]

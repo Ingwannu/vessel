@@ -18,7 +18,8 @@ public span context while filtering private backend records.
 
 The actual execution fields remain intact. Diagnostic labels must never be
 used to execute a command. Private error projection keeps a safe variant and
-I/O kind while dropping backend text/chains that may contain command content;
+I/O kind while privately owning the original I/O cause and sealing public
+backend text/chains that may contain command content;
 default errors retain their original source. PTY projection covers every error
 variant, including setup/attach/thread failures. Child program output and the
 OS-visible command are execution data, outside this diagnostic policy.
@@ -89,3 +90,17 @@ values. This fixture ceiling still admits ERROR: Standard must expose the error
 canary and only the private scope may suppress it. The checked production95
 bodies are unchanged; this is a test-harness privacy correction before Windows
 execution, not Windows runtime evidence.
+
+
+V3 row265 returned one A6 finding: the first I/O projection kept only ErrorKind
+and destroyed the original io::Error. The correction reuses concrete retained
+cause ownership: io::Error owns a private wrapper which owns the actual original
+io::Error. Public Display/Debug are fixed input-free strings, and Error::source
+terminates. No raw accessor, shared global store or text sanitizer is added.
+Standard returns its original error unchanged. Private tests verify the actual
+typed cause's unique Arc identity/lifetime and original OS evidence; public
+get_ref/into_inner formatting also remains sealed. A Node test follows the
+actual proc-to-agent-to-session and PTY-to-session ServiceError paths through
+the existing wire projection and JSON serialization. Newly authored correction
+execution is still owed; prior95 strict/quality and5a cap evidence remain prior
+source, not proof of this changed implementation.

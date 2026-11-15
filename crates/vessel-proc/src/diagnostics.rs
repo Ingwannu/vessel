@@ -44,15 +44,35 @@ impl CommandSpec {
         }
     }
 
-    /// Preserve classification without a private backend message or source chain.
+    /// Retain the original cause privately, without exposing its text or chain.
     #[must_use]
     pub fn diagnostic_io_error(&self, error: io::Error) -> io::Error {
         match self.diagnostics {
             CommandDiagnostics::Standard => error,
-            CommandDiagnostics::Redacted => io::Error::from(error.kind()),
+            CommandDiagnostics::Redacted => {
+                io::Error::new(error.kind(), PrivateIoCause { _original: error })
+            }
         }
     }
 }
+
+// The existing io::Error owns this concrete cause. Public formatting and source
+// traversal terminate here, but the actual original error/evidence remains owned
+// until the returned error is dropped. No raw accessor or text sanitizer exists.
+struct PrivateIoCause {
+    _original: io::Error,
+}
+impl fmt::Debug for PrivateIoCause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("PrivateIoCause(<redacted>)")
+    }
+}
+impl fmt::Display for PrivateIoCause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("private command I/O detail omitted")
+    }
+}
+impl std::error::Error for PrivateIoCause {}
 
 #[cfg(test)]
 mod tests;
