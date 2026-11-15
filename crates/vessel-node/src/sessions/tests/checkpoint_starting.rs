@@ -74,6 +74,9 @@ async fn checkpoint_session_admission_releases_after_registration_or_failed_stor
         fixture.sessions.find(info.id).await.unwrap(),
         Found::Live { .. }
     ));
+    let mut ends = fixture.sessions.ends();
+    fixture.runtime.get(info.id).unwrap().kill();
+    assert_eq!(ends.recv().await.unwrap(), info.id);
     let root = workspaces.admit_start(fixture.data.path()).await.unwrap();
     fixture.store.close().await;
     let result = fixture
@@ -87,7 +90,7 @@ async fn checkpoint_session_admission_releases_after_registration_or_failed_stor
         .await;
     assert!(matches!(result, Err(ServiceError::Store(_))), "{result:?}");
     // The failed creation has ended and been removed before its guard lets go.
-    assert_eq!(fixture.runtime.list().len(), 1);
+    assert!(fixture.runtime.list().is_empty());
     drop(workspaces.admit_start(fixture.data.path()).await.unwrap());
     stop.cancel();
     fixture.runtime.shutdown().await;

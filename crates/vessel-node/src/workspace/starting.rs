@@ -1,4 +1,4 @@
-//! A retained start keeps admission until registration makes it visible to restore.
+//! Retained physical admission fences startup and owned lifecycle mutations.
 use super::{WorkspaceError, Workspaces};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -44,6 +44,19 @@ impl StartGuard {
             })
             .await?;
         Ok(())
+    }
+    /// A successful removal must leave no entry at its original name.
+    pub(crate) async fn removed(&self, workspaces: &Workspaces) -> Result<(), WorkspaceError> {
+        let folder = self.folder.clone();
+        workspaces
+            .root_metadata(move || match std::fs::symlink_metadata(folder) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+                Err(error) => Err(error),
+                Ok(_) => Err(std::io::Error::other(
+                    "removed worktree still has a filesystem entry",
+                )),
+            })
+            .await
     }
     #[cfg(not(target_os = "linux"))]
     pub(crate) fn revalidate(&self) -> std::future::Ready<Result<(), WorkspaceError>> {

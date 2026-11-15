@@ -317,3 +317,22 @@ are superseded once by immutable 448e2550 in fresh output folders: the eight-cra
 all-target clippy (with proto TypeScript feature) and the workspace/session/node
 library+integration suite, both in the remote ordinary lane. Neither is a PASS
 until terminal logs are collected; no duplicate or local compile was started.
+
+### Setup, teardown and worktree removal admission
+
+Existing retained setup tasks now take the canonical physical admission before
+commands, retain it through actual command completion and root verification,
+and release it after that postcondition. Existing removal/retire takes one
+physical admission inside its retained task and borrows it for teardown rather
+than reacquiring. The claim spans inspection, snapshot-if-needed, teardown,
+Git removal and verification that no filesystem entry remains. A pre-existing
+missing folder still follows the prior metadata-only removal path. Refused
+admission settles the logical running claim instead of stranding it. These are
+source connections; they are not a reviewed lifecycle producer yet. Physical
+live-occupant validation and the new archive workflow adapters remain owed.
+
+The fixture holds the real root gate across actual setup/removal calls, proves
+setup cannot run and removal cannot delete during that hold, then repeats both
+after release. Its remote run is still owed. The session failed-store fixture
+now waits for its first, successful process's handover before closing the store,
+so that assertion does not depend on unrelated pending persistence output.

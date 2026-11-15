@@ -42,3 +42,71 @@ async fn checkpoint_cancelled_start_probes_retain_capacity_until_real_metadata_i
     fixture.tasks.wait().await;
     fixture.store.close().await;
 }
+
+#[tokio::test]
+async fn checkpoint_root_lease_refuses_actual_setup_and_teardown_removal() {
+    use crate::workspace::exclusion::{ADMISSION_TIMEOUT, RootRefusal};
+    use vessel_workspace::physical::Directory;
+    let fixture = Fixture::new().await;
+    let project = fixture.project("project", Some(SETUP)).await;
+    let created = fixture
+        .create(project.id, Creator::Owner, SetupChoice::Skip)
+        .await;
+    let CreateWorktreeOutcome::Created { worktree } = created else {
+        panic!("no worktree")
+    };
+    let ProjectCommands::Listed { digest, .. } =
+        fixture.workspaces.commands(project.id, None).await.unwrap()
+    else {
+        panic!("no commands")
+    };
+    let _approved = fixture
+        .workspaces
+        .approve(project.id, digest, true)
+        .await
+        .unwrap();
+    let physical = Directory::open(&worktree.path).unwrap();
+    let deadline = tokio::time::Instant::now()
+        .checked_add(ADMISSION_TIMEOUT)
+        .unwrap();
+    let lease = fixture
+        .workspaces
+        .exclusion
+        .claim(physical.identity(), deadline)
+        .await
+        .unwrap();
+    let _running = fixture.workspaces.run_setup(worktree.id).await.unwrap();
+    let (setup, log) = fixture.setup_end(worktree.id).await;
+    assert!(matches!(
+        setup,
+        SetupState::Failed {
+            failure: vessel_proto::workspace::SetupFailure::Spawn,
+            ..
+        }
+    ));
+    assert!(!log.contains("prepared-by-setup"));
+    assert!(matches!(
+        fixture
+            .workspaces
+            .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
+            .await,
+        Err(WorkspaceError::RootAdmission(RootRefusal::Busy))
+    ));
+    assert!(worktree.path.exists());
+    drop(lease);
+    let _running = fixture.workspaces.run_setup(worktree.id).await.unwrap();
+    let (setup, log) = fixture.setup_end(worktree.id).await;
+    assert!(matches!(setup, SetupState::Succeeded { .. }));
+    assert!(log.contains("prepared-by-setup"));
+    let removed = fixture
+        .workspaces
+        .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
+        .await
+        .unwrap();
+    assert!(matches!(removed, RemoveWorktreeOutcome::Removed { .. }));
+    assert!(!worktree.path.exists());
+    fixture.stop.cancel();
+    let _closed = fixture.tasks.close();
+    fixture.tasks.wait().await;
+    fixture.store.close().await;
+}

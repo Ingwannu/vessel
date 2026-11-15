@@ -1695,3 +1695,10 @@ drop releases it and explicit resume waits for actor acknowledgement. The actor
 refuses prompts, moves, rewind and wake while paused and suppresses automatic
 queue advancement/idle parking. The node controller still must combine this
 with physical admission and durable recovery; the pending wire gate stays None.
+
+Workspace setup takes physical admission in its retained task through command
+completion and root verification. Worktree removal/retire takes one admission
+through teardown, Git removal and final path absence; teardown borrows that
+hold instead of reacquiring. Metadata-only removal of an already missing folder
+preserves its earlier behavior. Full physical live-occupant checks and the
+workspace archive adapters still remain separate integration obligations.

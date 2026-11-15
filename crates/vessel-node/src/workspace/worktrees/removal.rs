@@ -41,7 +41,7 @@ use vessel_proto::{SessionId, WorktreeId};
 
 use crate::workspace::projects::Occupant;
 use crate::workspace::setup::Kind;
-use crate::workspace::{WorkspaceError, Workspaces};
+use crate::workspace::{StartGuard, WorkspaceError, Workspaces};
 
 /// Which worktrees made for sessions a tidying looks at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +57,16 @@ pub(crate) enum TidyScope {
 enum Removal {
     Done(Option<Snapshot>),
     Kept(Vec<KeptReason>),
+}
+
+/// One physical claim covers teardown, Git removal and its postcondition.
+struct Removing<'a> {
+    git: &'a vessel_workspace::Git,
+    root: &'a Path,
+    if_lost: IfLost,
+    cancel: CancellationToken,
+    written: &'a vessel_workspace::commands::Written,
+    admission: &'a StartGuard,
 }
 
 impl Workspaces {
@@ -207,7 +217,7 @@ impl Workspaces {
         self.tasks
             .spawn(async move {
                 let removal = workspaces
-                    .remove_claimed(&git, &info, &root, if_lost, claim, &written)
+                    .remove_admitted(&git, &info, &root, if_lost, claim, &written)
                     .await;
                 workspaces.settle(worktree, removal).await
             })
@@ -238,8 +248,8 @@ impl Workspaces {
         removal
     }
 
-    async fn remove_claimed(
-        &self,
+    async fn remove_admitted(
+        self: &Arc<Self>,
         git: &vessel_workspace::Git,
         info: &WorktreeInfo,
         root: &Path,
@@ -247,13 +257,54 @@ impl Workspaces {
         claim: CancellationToken,
         written: &vessel_workspace::commands::Written,
     ) -> Result<Removal, WorkspaceError> {
-        let path = &info.path;
-        let created = info.created_branch.as_ref();
-        if !tokio::fs::try_exists(path).await.unwrap_or(false) {
-            // The folder went another way; git's record of it goes at its
-            // next prune. Nothing is left to lose here.
+        let path = info.path.clone();
+        let exists = self
+            .root_metadata(move || match std::fs::symlink_metadata(path) {
+                Ok(_) => Ok(true),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+                Err(error) => Err(error),
+            })
+            .await?;
+        if !exists {
             return Ok(Removal::Done(None));
         }
+        let admission = self.admit_start(&info.path).await?;
+        admission.revalidate().await?;
+        let removal = self
+            .remove_claimed(
+                info,
+                Removing {
+                    git,
+                    root,
+                    if_lost,
+                    cancel: claim,
+                    written,
+                    admission: &admission,
+                },
+            )
+            .await?;
+        match &removal {
+            Removal::Done(_) => admission.removed(self).await?,
+            Removal::Kept(_) => admission.revalidate().await?,
+        }
+        Ok(removal)
+    }
+
+    async fn remove_claimed(
+        &self,
+        info: &WorktreeInfo,
+        removing: Removing<'_>,
+    ) -> Result<Removal, WorkspaceError> {
+        let Removing {
+            git,
+            root,
+            if_lost,
+            cancel: claim,
+            written,
+            admission,
+        } = removing;
+        let path = &info.path;
+        let created = info.created_branch.as_ref();
         // git inspects the worktree with its repository's configuration:
         // not when its `.git` names another (`gitfile::registered`). A
         // forced removal runs git in the project only.
@@ -298,7 +349,7 @@ impl Workspaces {
         } = self.describe(info.project, file)
             && !teardown.is_empty()
             && let Some(failure) = self
-                .run_commands(info, &teardown, Kind::Teardown, claim, written)
+                .run_commands(info, &teardown, Kind::Teardown, claim, written, admission)
                 .await
         {
             tracing::info!(

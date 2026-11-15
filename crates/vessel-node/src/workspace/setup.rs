@@ -33,7 +33,7 @@ use vessel_proto::workspace::{
 };
 use vessel_workspace::commands::{self, MAX_LOG, Run, SETUP_LIMIT, TEARDOWN_LIMIT};
 
-use super::{MAX_WAIT_SECS, WorkspaceError, Workspaces};
+use super::{MAX_WAIT_SECS, StartGuard, WorkspaceError, Workspaces};
 
 /// The most `worktree.output` answers at once.
 const PAGE: u64 = 64 * 1024;
@@ -105,7 +105,7 @@ impl Workspaces {
         let running = info.clone();
         drop(self.tasks.spawn(async move {
             let failure = workspaces
-                .run_commands(&running, &commands, Kind::Setup, cancel, &written)
+                .run_setup_admitted(&running, &commands, cancel, &written)
                 .await;
             let finished_at = Utc::now();
             let setup = match failure {
@@ -134,6 +134,24 @@ impl Workspaces {
         Ok(info)
     }
 
+    async fn run_setup_admitted(
+        self: &Arc<Self>,
+        info: &WorktreeInfo,
+        commands: &[ProjectCommand],
+        cancel: CancellationToken,
+        written: &commands::Written,
+    ) -> Option<SetupFailure> {
+        let admission = match self.admit_start(&info.path).await {
+            Ok(admission) => admission,
+            Err(error) => {
+                tracing::warn!(%error, worktree = %info.id, "setup physical admission refused");
+                return Some(SetupFailure::Spawn);
+            }
+        };
+        self.run_commands(info, commands, Kind::Setup, cancel, written, &admission)
+            .await
+    }
+
     /// Run `commands` in the worktree to their end; the failure, if any.
     /// A log that cannot be written is a failure to start.
     pub(super) async fn run_commands(
@@ -143,7 +161,16 @@ impl Workspaces {
         kind: Kind,
         cancel: CancellationToken,
         written: &commands::Written,
+        admission: &StartGuard,
     ) -> Option<SetupFailure> {
+        if admission.folder() != info.path {
+            tracing::warn!(worktree = %info.id, "worktree command borrowed another root's admission");
+            return Some(SetupFailure::Spawn);
+        }
+        if let Err(error) = admission.revalidate().await {
+            tracing::warn!(%error, "worktree command root changed before execution");
+            return Some(SetupFailure::Spawn);
+        }
         let log = self.log_path(info.id);
         let run = Run {
             dir: &info.path,
@@ -157,7 +184,12 @@ impl Workspaces {
             },
             cancel,
         };
-        match commands::run(commands, &run, written).await {
+        let result = commands::run(commands, &run, written).await;
+        if let Err(error) = admission.revalidate().await {
+            tracing::warn!(%error, "worktree command root changed during execution");
+            return Some(SetupFailure::Spawn);
+        }
+        match result {
             Ok(failure) => failure,
             Err(error) => {
                 tracing::warn!(%error, "a worktree's log cannot be written");

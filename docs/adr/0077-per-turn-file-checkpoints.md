@@ -675,3 +675,14 @@ and released only after the filesystem/durable postcondition, before actor
 resume permits a queued prompt to acquire that root. A recovery-required owner
 must retain both holds until verified reconciliation; RPC cancellation alone
 must never drop ownership of in-flight filesystem work.
+
+Lifecycle ownership refinement: setup acquires physical admission inside its
+retained task, not around the initiating RPC. Removal/retire acquires once after
+the existing logical worktree claim, retains it through teardown and actual Git
+removal, and checks the final filesystem absence before release. Teardown
+borrows that same admission; it must not acquire the root a second time. Setup
+and teardown validate the admitted root before and after command completion.
+Busy admission unwinds the logical claim. An already missing folder permits
+metadata-only retirement and performs no physical mutation. These connections
+do not replace physical live-occupant checks or durable workspace lifecycle
+claims; those remain required before checkpoint controller activation.
