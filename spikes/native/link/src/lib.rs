@@ -47,6 +47,7 @@ mod session;
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
 pub mod agents;
+pub mod creation;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
@@ -201,6 +202,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Correlated draft creation, retaining registration after prompt failure.
+    Create(creation::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -362,6 +365,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A correlated creation transition.
+    Creation(creation::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -630,6 +635,7 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
+            Command::Create(ask) => self.create(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,

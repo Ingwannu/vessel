@@ -100,6 +100,15 @@ pub enum Completion {
 }
 
 impl Flow {
+    /// Which payload a consumer may mutate; completed callbacks cannot recur.
+    #[must_use]
+    pub const fn ticket(&self) -> Option<Ticket> {
+        match self {
+            Self::Creating { ticket, .. } | Self::Failed { ticket, .. } => Some(*ticket),
+            Self::Editing | Self::Complete { .. } => None,
+        }
+    }
+
     /// Only a known refusal may be resubmitted without observing a receipt.
     #[must_use]
     pub const fn may_submit(&self) -> bool {

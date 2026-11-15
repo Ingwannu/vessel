@@ -79,6 +79,17 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+Draft creation has a correlated local state machine in `view::creation`.
+Its ticket also identifies the attachment owner's prepared payload. The
+`link::creation` boundary keeps resource registration separate from the first
+message, so a delivery failure cannot imply that no session exists. Route
+ownership is relinquished when the person leaves; a late completion may
+update the registry but cannot take another route. New creation labels live
+in the English/Korean `creation.ftl` catalogs; screens compose the kit's alert.
+This local boundary adds no node RPC. Durable workspace receipts and terminal
+profiles are the additive contract of ADR 0091 and depend on ADR 0082's sole
+workspace registry.
+
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with

@@ -34,28 +34,25 @@
 //! Official provider artwork comes through `app::agent_mark` (ADR 0048);
 //! unknown agents and marks whose brand minimum does not fit use Generic.
 //! When a machine has more than one agent the pill names the agent after
-//! the model. Differences from Paseo: no profiles (Vessel's
-//! profiles are the node's, not in this build); no attachments button
-//! yet. The choices are kept only once the agent's options are known: a
-//! start sent while they load keeps the earlier ones.
+//! the model. Choices are kept once the options are known; a start while
+//! loading retains the preceding choices. Creation rules live in `create`.
 
 mod book;
+mod create;
 mod density;
 mod effort_card;
 mod features;
 mod pickers;
 mod probe;
+mod status;
 
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
 };
 use vessel_app_kit::{ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, send_button};
-use vessel_app_link::Command;
 use vessel_app_view::offers::Offered;
-use vessel_app_view::{
-    Controls, Machine, Picks, agent_name, choices_for, controls_with_effort, with_picks,
-};
+use vessel_app_view::{Controls, Machine, Picks, agent_name, controls_with_effort, with_picks};
 use vessel_proto::{HarnessRef, OptionChoice};
 
 use crate::areas::composer::{attach_button, draft_card};
@@ -83,6 +80,10 @@ pub(crate) struct Lists {
 
 /// The draft: the composer, and what is chosen.
 pub(crate) struct Draft {
+    /// Correlated progress retained while another route is shown.
+    pub(crate) creation: vessel_app_view::creation::Flow,
+    /// A committed resource must survive a refused first prompt.
+    pub(crate) registered: Option<vessel_app_view::Card>,
     pub(crate) composer: TextField,
     pub(crate) machine: Option<String>,
     pub(crate) agent: Option<HarnessRef>,
@@ -128,6 +129,8 @@ impl Draft {
         let nanos = chrono::Utc::now().timestamp_subsec_nanos();
         let suggestion = usize::try_from(nanos % 4).unwrap_or(0);
         Self {
+            creation: vessel_app_view::creation::Flow::default(),
+            registered: None,
             composer: TextField::composer(
                 "",
                 |shell: &mut Shell, text, window, cx| shell.send_draft(text, window, cx),
@@ -160,14 +163,7 @@ impl Draft {
     }
 }
 
-/// The agent's kind, when it is one of the four (an agent added on the
-/// node has none the effort table could know).
-pub(crate) const fn kind_of(agent: &HarnessRef) -> Option<vessel_proto::HarnessKind> {
-    match agent {
-        HarnessRef::Known(kind) => Some(*kind),
-        HarnessRef::Added(_) => None,
-    }
-}
+pub(crate) use probe::kind_of;
 
 /// Focus the composer, fill in the choices, and ask the agent again what
 /// it offers (the node answers from its recent probe; what is shown stays
@@ -328,89 +324,6 @@ impl Shell {
     pub(crate) fn choose_folder(&mut self, folder: String) {
         self.areas.draft.folder = folder;
     }
-
-    /// Send the draft: create the session with its first prompt and the
-    /// choices that change something, remember them, and open the
-    /// conversation with the prompt shown.
-    pub(crate) fn send_draft(
-        &mut self,
-        text: String,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if (text.trim().is_empty() && !self.draft_has_files()) || self.areas.draft.sending.is_some()
-        {
-            return;
-        }
-        self.settle_draft();
-        let (Some(machine), Some(harness)) = (
-            self.areas.draft.machine.clone(),
-            self.areas.draft.agent.clone(),
-        ) else {
-            self.areas.draft.error = Some(self.t.choose_first.to_owned());
-            cx.notify();
-            return;
-        };
-        // A project chosen in the tray that cannot be started in yet
-        // (track F's `workspace::place`).
-        if let Some(why) = self.place_blocked() {
-            self.areas.draft.error = Some(why);
-            cx.notify();
-            return;
-        }
-        let options = self
-            .offer_options(&machine, &harness)
-            .map(|offered| choices_for(offered, &self.effective_picks()));
-        if let Some(options) = &options {
-            self.prefs.keep_choices(&machine, &harness, options);
-        }
-        let options = options.unwrap_or_default();
-        let folder = self.areas.draft.folder.trim().to_owned();
-        self.prefs.machine = Some(machine.clone());
-        self.prefs.agent = Some(harness.clone());
-        if folder.is_empty() {
-            let _forgotten = self.prefs.folders.remove(&machine);
-        } else {
-            let _earlier = self.prefs.folders.insert(machine.clone(), folder.clone());
-        }
-        self.command(Command::SavePrefs(self.prefs.clone()));
-        // In a project, track F's start (a new worktree made first, its
-        // steps on the session's screen); else in the folder.
-        if !self.start_in_place(&machine, &harness, &options, &text) {
-            self.command(self.with_draft_files(Command::Start {
-                machine: machine.clone(),
-                harness: harness.clone(),
-                folder: (!folder.is_empty()).then_some(folder),
-                prompt: text.clone(),
-                options,
-            }));
-        }
-        let draft = &mut self.areas.draft;
-        draft.error = None;
-        draft.sending = Some(text.clone());
-        // The next draft begins from what this one started with.
-        draft.picks = Picks::default();
-        draft.chosen = false;
-        draft.composer.clear(window, cx);
-        self.begin_pending(machine, agent_name(&harness), text, cx);
-        self.brand.sent();
-        self.route = Route::Session;
-        cx.notify();
-    }
-
-    /// The session started: the draft is spent.
-    pub(crate) fn draft_started(&mut self) {
-        self.areas.draft.sending = None;
-    }
-
-    /// The start failed: back to the draft, its text restored.
-    pub(crate) fn start_failed(&mut self) {
-        if self.areas.draft.sending.is_some() {
-            self.route_to(Route::Draft);
-            let text = self.areas.draft.sending.take();
-            *self.areas.draft.restore.borrow_mut() = text;
-        }
-    }
 }
 
 /// Whether the window is at Paseo's compact width (touch-sized controls,
@@ -486,6 +399,9 @@ pub(crate) fn render(
         .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
+    }
+    if let Some(status) = status::render(shell, tokens) {
+        column = column.child(status);
     }
     if let (Some(Shown::Failed(why)), Some(agent)) = (&shown, &draft.agent) {
         let words = t.lang.options();
