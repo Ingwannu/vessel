@@ -94,14 +94,33 @@ impl ToolbarButton {
         self
     }
 
-    /// Decorate this same hitbox with the existing screen-owned tooltip. Its
-    /// current timing/placement are the kit's, not a new toolbar overlay.
+    /// Pinned pane toolbar profile: desktop-only, bottom/eight/300ms, using the
+    /// existing screen-owned controller rather than a second toolbar overlay.
     pub fn tooltip(mut self, tips: &Tooltips, place: &Place) -> Self {
-        self.element = tips.on(
+        self.element = tips.on_configured(
             self.element,
             place,
             self.label.clone(),
-            self.config.sizing() == crate::ControlSizing::Touch,
+            crate::tooltip::Configuration::toolbar(),
+            self.config.sizing(),
+        );
+        self
+    }
+
+    /// Keep the same source timing/offset while selecting an explicit side,
+    /// such as the usage card refresh's top freshness tooltip.
+    pub fn tooltip_at(
+        mut self,
+        tips: &Tooltips,
+        place: &Place,
+        side: crate::tooltip::Side,
+    ) -> Self {
+        self.element = tips.on_configured(
+            self.element,
+            place,
+            self.label.clone(),
+            crate::tooltip::Configuration::toolbar().side(side),
+            self.config.sizing(),
         );
         self
     }
