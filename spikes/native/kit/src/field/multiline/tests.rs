@@ -4,7 +4,7 @@ use crate::{
     Scheme, SchemeChoice, Tokens,
     field::{Editability, FieldId},
 };
-use gpui::{IntoElement as _, ParentElement as _, Render, TestAppContext, div};
+use gpui::{IntoElement, ParentElement as _, Render, TestAppContext, div};
 struct Probe {
     field: TextField,
     changed: Option<(FieldId, String)>,
