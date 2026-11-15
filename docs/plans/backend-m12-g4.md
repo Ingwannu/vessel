@@ -463,3 +463,29 @@ The quality audit also identifies existing Devices/Sync target and queue
 shape duplication; it is not expanded here. Consolidating it is a separate
 behavior-preserving change, rather than a new shared framework in this
 interaction slice.
+
+## Self-review followup: one loading signal
+
+The first authenticated captures exposed an older duplicate: the list's
+neutral spinner badge said Loading, then a line underneath said Loading
+devices (both languages). Keep one short badge and remove the repeated
+line and its unused translation field. The section already names the
+thing being read. Paseo's comparable host-page read progress uses its
+activity indicator; the coordinator's accepted neutral badge and spinner
+remain, with no second account of the same fact. No kit geometry changed.
+
+The first source commit's remote native gate passed all six steps, with
+1043 passed, zero failed and one ignored test. Its local normal build also
+passed. That evidence belongs to the first commit; the loading correction
+gets a new exact-commit gate and normal build before final captures.
+
+Runtime fixture limit found during this slice: the published fleet script
+reaches its final shell seeding check, where the old guard expects `url`
+in a book now paired through the CLI. That check fails; it is not counted
+as a full fleet pass. The two nodes were stopped, then their actual paired
+direct routes were checked as loopback, outside the protected preview
+ports, before restarting only those same disposable nodes. The Devices
+settings-fixture checks pass. The failure is routed to the shell owner;
+no fixture source or guard is weakened here. The app uses the same scratch
+home as the CLI, so the paired book's home-relative credential files are
+resolved correctly. Pairing remains a pipe, never a stored link.

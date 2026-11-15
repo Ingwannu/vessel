@@ -51,8 +51,6 @@ pub struct DevicesWords {
     pub new_link: &'static str,
     /// Busy invitation label.
     pub creating: &'static str,
-    /// Loading list.
-    pub loading: &'static str,
     /// Retrying a failed read.
     pub retry: &'static str,
     /// Refreshing a ready list.
@@ -107,7 +105,6 @@ const EN: DevicesWords = DevicesWords {
     phone: "phone",
     new_link: "New link",
     creating: "Creating link",
-    loading: "Loading devices",
     retry: "Try again",
     refresh: "Refresh",
     empty: "No devices yet. One paired with a link below shows up here.",
@@ -142,7 +139,6 @@ const KO: DevicesWords = DevicesWords {
     phone: "휴대폰",
     new_link: "새 링크",
     creating: "링크 만드는 중",
-    loading: "기기 불러오는 중",
     retry: "다시 시도",
     refresh: "새로고침",
     empty: "아직 기기가 없습니다. 아래 링크로 페어링하면 여기에 나타납니다.",

@@ -126,21 +126,12 @@ pub(super) fn message(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> D
 
 fn loading(shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.t.lang.devices();
-    div()
-        .p(px(spacing::S4))
-        .child(busy(
-            "devices-listing",
-            words.loading_badge,
-            shell.areas.settings.devices.page.listing.variant(),
-            tokens,
-        ))
-        .child(
-            div()
-                .mt(px(spacing::S1))
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.loading),
-        )
+    div().p(px(spacing::S4)).child(busy(
+        "devices-listing",
+        words.loading_badge,
+        shell.areas.settings.devices.page.listing.variant(),
+        tokens,
+    ))
 }
 
 fn device_row(
