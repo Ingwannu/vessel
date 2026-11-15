@@ -112,6 +112,12 @@ pub(super) async fn connect_as(behavior: Behavior, node: NodeId) -> Peer {
                                 current.status = vessel_proto::SessionStatus::Interrupted;
                             }
                             Outcome::Ok(Reply::MarkSession(current))
+                        } else if let Call::ReadEvents(request) = call {
+                            Outcome::Ok(Reply::ReadEvents(vessel_proto::EventPage {
+                                records: Vec::new(),
+                                next: request.from,
+                                at_end: true,
+                            }))
                         } else {
                             Outcome::Err(WireError::new(
                                 ErrorCode::Unsupported,

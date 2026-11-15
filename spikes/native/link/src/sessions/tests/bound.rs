@@ -137,3 +137,28 @@ async fn terminal_receipt_cannot_be_reused_for_another_authenticated_session() {
     assert!(answer.result.is_err());
     assert!(peer.calls.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn bound_terminal_read_returns_the_original_receipt_and_keeps_passive_projection() {
+    let mut peer = peer::connect(peer::Behavior::Accept).await;
+    let (mut state, mut events) = state(peer.client.clone());
+    let target = binding(peer.client.node().id);
+    let opening = crate::TerminalOpening::new("renamed".parse().unwrap(), target.address.session);
+    let before = state.session_projection.capture();
+    state.session_access(Access::ReadTerminal {
+        binding: target.clone(),
+        opening: opening.clone(),
+        until: vessel_app_view::timeline::Until::Record(vessel_proto::EventSeq::ZERO),
+    });
+    let Event::Acted(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.terminal, Some(opening));
+    assert_eq!(answer.session, target.address.session);
+    assert!(matches!(answer.result, Ok(Acted::Log(records)) if records.is_empty()));
+    assert!(matches!(peer.calls.recv().await,
+        Some(Call::ReadEvents(request)) if request.session == target.address.session
+    ));
+    assert!(state.session_projection.accepts(before));
+    assert!(peer.calls.try_recv().is_err());
+}
