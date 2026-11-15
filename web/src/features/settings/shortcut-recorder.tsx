@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { type Chord, chordOf } from "../../data/shortcuts/keys";
 import { currentPlatform } from "../../data/shortcuts/platform";
 import { Button } from "../../ui/kit";
+import { pageOwnsFocus } from "../../ui/page-focus";
 import { recording } from "../shortcuts/handlers";
 
 export function ShortcutRecorder({
@@ -27,6 +28,9 @@ export function ShortcutRecorder({
     recording.set(true);
     const platform = currentPlatform();
     const onKey = (event: KeyboardEvent) => {
+      // A modal owns its keys even before its initial focus frame. Keep
+      // the pending recording, but let Base UI handle Tab/Escape and IME.
+      if (!pageOwnsFocus(document)) return;
       if (event.key === "Tab") {
         onCancel();
         return;

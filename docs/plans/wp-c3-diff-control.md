@@ -1,0 +1,253 @@
+# C3 readonly mapped editor producer
+
+Current status: exact4133964f69ff87edcc6e6af37d3cb47f35ea3019 has V1 bounded
+SOURCE and requested Kit strict Clippy/diff19 NARROW clearance. The requested
+ordinary syntax selection163829 has now passed1/0/0; V1 final adoption receipt
+is pending on that same review row.
+The19 passing tests comprise11 GPUI window tests and8 ordinary unit tests;
+they are not19 real-window tests or a full Kit/package gate. No consumer/UI/OS
+acceptance is claimed. Earlier unchecked/red sections below retain their
+historical source assignments. Base is the announced e1b73c9e line.
+The source bytes are copied with current timestamps from
+G1's owned C3 control files only; no View/Link/app or root runtime is included.
+No new dependency, lock edit or ratchet exemption is introduced.
+
+[Decision Log]
+- Purpose: diff selection/copy/wrap stays on the existing source editor engine.
+- Existing assets: gpui-base EditorState/CodeEditor, LineSyntax, shared fonts/
+  semantic status/terminal selection tokens and VirtualList owner scrolling.
+- Constraint: automatic buffer numbers cannot represent old/new source lines;
+  styled row lists duplicate selection and copy. InputEditorStyle's complete
+  external literal must remain compatible.
+- Choice: patch7 optional immutable line-presentation provider on the existing
+  highlight resolver, defaultNone and transparent wrapper, captured once per
+  visible buffer row. No second engine, input edit model or syntax mapper.
+- Effects/costs: mapped readonly parent clipping retains complete layout and
+  selection/copy; explicit offclip position/IME bounds are absent. A cold longest
+  source line is measured once per width-cache key for horizontal metrics;
+  very long minified lines have proportional first-measurement cost. Ordinary
+  None paths and gutter/space measurements stay unchanged.
+
+## References and limits
+
+Paseo utils/diff-layout.ts/test supplies source pairing; diff-document palette.ts
+supplies statusSuccess/statusDanger15%/10%, muted numbers and terminal-blue
+selection. paint.web.ts uses independent old/new editors; native actual-font
+measurement replaces the approximate0.62 digit multiplier. This first control
+retains the engine six-point gutter gap. Sparse-hunk syntax context is incomplete;
+final source/reference geometry, cross-file selection and
+consumer body/cache/scroll policy remain C3 work, not claims of this producer.
+
+The lead and V1 source-prechecked the optional resolver/viewport/coordinate
+patches; that is not installed-source Clippy/runtime approval. Private vendor
+fixtures were removed at the lead's ruling because dependency dev-tests cannot
+run from this workspace. Public kit window fixtures cover old complete literal,
+transparent nested/clear resolver, gutter text origin, mapped tint/wrapped height,
+readonly selection/clipboard, actual owner/cached scroll, bounded provider rows,
+offclip/empty/direct IME queries, boundary rows, ordinaryNone coordinates, owner
+keyboard reveal and actual wheel packets. These current fixtures have NOT run.
+
+Exact label right alignment and selection/touch paint require post-line Linux
+captures; folded-array order remains source-only, and the profile disables folding.
+Patch7 README has concrete steps via optional mapped_diff_audit. The lead's
+Linux mouse capture cannot prove another platform's touch path or OS/IME behavior.
+The example is supplementary control evidence, not a fake-node Git screen.
+
+## Verification plan
+
+Use the prescribed remote VM only. After the outstanding C3 App/Kit source batch
+returns, run one changed-source Kit all-target strict Clippy and Kit code_editor
+window-test selection on this isolated producer. Preserve exact source/log digests
+and actual changed-crate compilation. Do not label older App fa1/0af checks as
+this producer's pass. The coordinator/lead alone integrates the reviewed minimal
+control range; never the moving G1 package branch. No whole C3 gate/review or UI
+pass is inferred from a bounded control handoff.
+
+The package's prior fa1 Clippy reached Kit and found a partial doc span,
+redundant Render qualification and two fixture API spellings. The exact same
+three corrected source blobs are installed here. This does not relabel fa1 as
+a pass or execute any window test; the isolated producer still needs its gate.
+
+## Source-copy consumer gap (not covered by engine-preservation tests)
+
+Paseo diff-document/hit-testing.test.ts119–170 expects unified copy to retain
+headers, but split new-side copy to omit headers/null old-only cells; old-side
+copy retains its own header and source. Header select-all prefers new, with an
+old-side fallback for deletion-only hunks. hit-testing.ts selectedCellRanges
+skips null cells; model.ts lineSources emits the hunk header in one cell.
+
+The current C3 BufferColumns repeats a header in both columns and uses empty
+engine rows for missing cells. Ordinary native Copy therefore includes that
+header/empty padding. The queued27194 fixtures assert selection/clipboard equals
+the admitted buffer, not exact Paseo split-source extraction. They remain valid
+engine-preservation checks but cannot be reported as source-copy parity.
+
+This is unresolved C3 consumer work, not a silently accepted difference or a
+reason to change patch7's engine selection/copy model. A possible Kit-only
+projection of the same selected byte range through immutable row metadata has
+been sent to the lead/V1 before any implementation. No competing selection
+engine, vendor API widening, failing/blessed reference fixture or fabricated UI
+proof is introduced by this note.
+
+Lead ruling after tracing paint.web.ts270: that one header cell spans the full
+viewport (columnWidth = viewportWidth / cells.length). The proposed native
+split has two independently clipped half-width engines; merely blanking its
+new-side header would clip the remaining header to half width. The split body
+is not mounted, so this source-model gap is not reachable in the current
+summary-only registry. Keep the duplicated model unchanged in this packet.
+
+Follow-up is one renderer-mount packet with a plan first to lead+V1: a full-width
+header over the two immutable engines (display-only virtual rows, synchronized
+scroll/row height, no second selection engine), shared action-capture copy
+projection and the four actual hit-testing source-copy fixtures. No such
+renderer/virtual-row/copy seam is implemented or approved by this ruling.
+The current bounded control packet may proceed with this explicit exclusion;
+this does not make full C3/split/copy parity passed.
+
+## Historical27194 producer selection
+
+This handoff branch retains exact27194 Rust source. The later header foreground
+TextDecorationCollection correction (fb8a98cf2, d7fee2bff in the app) is preserved
+on the separate development branch but deliberately excluded: its own tests
+have not compiled or run. It must not silently enter a27194 evidence packet.
+All14 Kit/vendor production and test blobs selected here equal those in the
+queued b011 consumer all-target check. The27194 public test run and b011 Clippy
+are still queued; there is no pass or integration-ready handoff yet.
+
+## Actual b011 compilation return
+
+The b011 four-crate consumer Clippy returned cargo101: two new View fixtures
+omitted the existing status(Vec<StatusEntry>) argument; the identical Kit test
+blobs had three elided Context lifetimes and passed an IntoElement Editor to
+the window draw helper, which requires Element. The Kit correction names
+Context lifetimes and converts Editor to AnyElement at that test boundary.
+No production mapping, geometry, assertion or lint policy changes. The running
+27194 test retains its old source and is not cancelled or assumed passed.
+The next meaningful checked union must carry these public API corrections.
+
+## Coherent correction union after the actual b011 return
+
+The next producer now includes the previously prepared fb8 header foreground
+correction through the SAME existing TextDecorationCollection (not a new vendor
+or syntax API), together with explicit public fixture lifetimes/Element conversion.
+Its Rust blobs equal the corrected app's control blobs. The old27194 queue and
+b011 Clippy remain on their original source, excluding this colour correction.
+No old pass or current test execution is inferred. The same native selected
+byte-range/copy contract remains unchanged; split parity is still excluded.
+
+Header ranges are computed once in UTF-8 byte coordinates from admitted immutable
+rows. Only nonempty Header rows receive foregroundMuted, after palette.ts
+codeTextColor. A shared colour cache prevents repeated notifications on unchanged
+redraws or clones; an actual semantic theme change replaces that one collection.
+The regression uses public input state/collection observation, Hangul byte ranges,
+unchanged buffer text and clone/theme updates. It is newly included, unexecuted
+source until the next immutable producer selection runs.
+
+
+Execution update: original27194 public test completed native-fonts0/native-cargo101
+on the known Editor-to-Element helper error and three lifetime warnings; zero
+window tests executed. The corrected public selection is now queued on exact
+08b1f5bbc (wp-git-consumer-tests-20261115T145527Z-08b1f5bb). The matching current
+app source's four-crate all-target Clippy is queued on bdeed2a1. All16 owned
+Kit/vendor source/test blobs match. Earlier b011/27194 returns stay red; there is
+no current producer pass or V1 submission. Local preflight is standalone
+rustfmt5 files, pure size656/14, token ratchet no new and import/doc checks;
+boundary invokes Cargo metadata and belongs on the VM, not local preflight.
+
+
+## First actual window run:13 passed,3 failed
+
+Exact08b1 public tests executed16 cases:13/3/0. Successful cases include UTF-8
+header ranges and real theme notification behavior, old resolver literals/clear,
+actual gutter origin, wrapped tint/readonly copy, cached2500 parent scroll and
+ordinaryNone coordinate preservation. The three failures remain recorded:
+empty-mask row projection assertion and two document keyboard/wheel fixtures
+panicking in ListState::viewport_bounds due to recursive list borrowing.
+
+The fixture and audit list fill their root window, so capture that actual
+viewport width BEFORE their row callback; calling list.width inside that callback
+tries to borrow the already borrowed list. This fixes the consumers, not the
+vendor. Narrow-pane production code must use its actual pane width rather than
+assuming a window-wide list. The first empty-mask fixture used cx.draw, whose
+helper refreshes the original visible owner; that is an unproven contamination
+hypothesis, not a declared hook cause. Replace it with an actual clipped parent
+which remains outside on every redraw, keep zero-projection/IME assertions, and
+add positive visible-control plus actual outside-coordinate assertions. No
+vendor or assertion relaxation is made; only a rerun can establish the result.
+
+The exact08b1 all-target Clippy also returned test/example-only lints: explicit
+example Context lifetimes/unit pattern/semicolons, checked source offsets/counts
+and pixel arithmetic. Offsets/counts use saturation; the three finite test-only
+pixel operations use smallest-item expects with reasons, matching existing kit
+pixel geometry policy, not file-wide allows or a production lint waiver. Current
+corrections need their own exact source test/lint selections. No pass/handoff.
+
+## Actual0813 result and scoped successor
+
+The exact public selection executed16 tests,15 passed/1 failed. Keyboard end/
+selection owner reveal, real outside-parent zero projection/direct IME queries
+and cached2500 parent scrolling now pass. Sole failure: the actual vertical
+wheel test leaves its outer list at0. The loop did not name its drift iteration;
+do not claim precise x-drift attribution from that log. The exact Kit Clippy
+returns101 solely for the now-unused size import, removed by this successor.
+
+[Decision Log]
+- Reuse: same native wheel handler and existing one outer owner; no scroller/API.
+- Source trace: incidental x can change an inner offset and consume a vertically
+  dominant packet even when that editor has no vertical overflow.
+- Choice: the lead/V1 source-prechecked hunk suppresses x only for mapped+readonly
+  +no vertical overflow+vertical-dominant. All ordinaryNone/horizontal-dominant/
+  vertical-overflow paths retain their old delta, with hover/menu cleanup.
+- Evidence: original failing assertions retained, improved case/offset diagnostic;
+  new actual horizontal-dominant and ordinaryNone/overflow fixtures. They are
+  uncompiled/unexecuted at this correction until its own immutable selection.
+
+Original0813 remains RED and is not relabeled. Both remote runs were terminal
+before this production correction was installed. No whole gate, split-header/
+filtered-copy parity, fake-node C3 mount, authority, UI or OS pass is claimed.
+
+## Selection ink is a separate Kit policy correction
+
+[Decision Log]
+- Existing asset: the normal projected CodeEditor style and same Base selection
+  paths. Do not change selection, hit testing or copy to change its ink.
+- Reference: palette.ts chooses terminal.blue; paint.web.ts paintSelection uses
+  globalAlpha0.45. The earlier opaque profile could cover source glyphs.
+- Choice: a private diff-style projection sets that one ink to blue at0.45;
+  ordinary source style remains unchanged. Test that production style in both
+  themes against the whole expected color. No engine or palette API is added.
+- Limits: exact successor compilation/tests and real selection-path visibility
+  captures remain owed. This policy test is not a path-z-order or OS UI proof.
+
+The lead requested this correction in its own commit, separate from wheel
+routing. Both enter one changed-source narrow batch; no unchanged whole gate.
+
+## Exact413 changed-source results, review pending
+
+Kit all-target strict Clippy0, native-fonts0/native-cargo0/no skips, actual Base
+and Kit Checking, run wp-git-kit-narrow-20261115T161114Z-4133964f. The exact public
+diff selection wp-git-consumer-tests-20261115T161114Z-4133964f compiles Base/Kit
+and executes19 passed/0 failed/0 ignored. Includes original keyboard/mapped/
+empty/cached2500/readonly-copy cases, the same wheel assertion, horizontal-owner
+routing, ordinaryNone/vertical-overflow route and both-theme alpha policy.
+
+Before-fix25951c813 preserves0813 production bytes and adds failure context
+only. Its native test0/1 identifies Scroll,x=-0.5, inner(-0.5px,0px), input
+1915x50000 and outer(0,0). This pins the cause, rather than guessing from the
+original unnamed15/1 loop. The old red result stays red. Complete source/ref/log
+SHA manifests are in the track's external control-producer-413 packet.
+
+The ordinary existing code_editor::syntax::tests case was not included in the19
+filter. Its separate exact413 selection163829 passed1/0/0,198 filtered, with
+actual Base/gpui-component/Kit compilation, both stages0/no skips. The test is
+colours_runs_across_lines_and_reuses_what_an_edit_did_not_reach. No already
+executed fixture was rerun and no whole gate was added; this does not cover all
+legacy editor regressions. The isolated source still has no C3 View/Link/app or
+node runtime. App15a full4crate Clippy is separately RED on own fixture/import/
+semicolon/collapsible-if issues, so this is not App integration acceptance.
+
+V1 has cleared the exact bounded source and requested Clippy/diff19 selection;
+the same-row final adoption receipt is pending after the ordinary result. No
+new run is requested by that review. Real header alignment/selection path
+visibility/touch/OS and actual C3 fake-fleet first-use captures remain owed; the
+audit example is unbuilt/unrun and the split full-width-header/copy gap remains.
