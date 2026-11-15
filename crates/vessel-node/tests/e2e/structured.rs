@@ -187,10 +187,12 @@ impl Shared {
 /// Whether `record` starts a turn with exactly `text`.
 fn started_with(record: &EventRecord, text: &str) -> bool {
     matches!(
-        agent_of(record),
-        Some(AgentEvent::TurnStarted { content })
-            if content == &[ContentBlock::Text { text: text.to_owned() }]
-    )
+            agent_of(record),
+            Some(AgentEvent::TurnStarted { content ,
+    client_message_id: None,
+    })
+                if content == &[ContentBlock::Text { text: text.to_owned() }]
+        )
 }
 
 /// After a restart: the session is interrupted with its log and harness

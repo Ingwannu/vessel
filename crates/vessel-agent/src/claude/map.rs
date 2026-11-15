@@ -216,6 +216,10 @@ fn tool_call(id: &str, name: &str, input: &Value) -> ToolCall {
             .into_iter()
             .collect(),
         raw_input: RawJson::from_text(input.to_string()).ok(),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }
 }
 
@@ -254,6 +258,10 @@ fn settled(id: &str, content: &ToolResultContent, failed: bool) -> ToolCallUpdat
         // The CLI's structured result (`tool_use_result`) differs per tool
         // and is not read yet; the text above is what a person sees.
         raw_output: None,
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }
 }
 

@@ -69,6 +69,9 @@ pub enum Delivered {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct QueuedPrompt {
+    /// The caller's identity follows a queued message into its canonical echo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_message_id: Option<crate::timeline::ClientMessageId>,
     /// The entry's id.
     pub id: QueueEntryId,
     /// What will be sent.

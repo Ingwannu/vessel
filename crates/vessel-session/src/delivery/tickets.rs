@@ -165,6 +165,8 @@ mod tests {
                 queued_at: chrono::DateTime::UNIX_EPOCH,
                 revision: 0,
                 by: vessel_proto::Creator::Owner,
+
+                client_message_id: None,
             }],
             held: None,
         };

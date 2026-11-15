@@ -59,6 +59,8 @@ mod support {
                     id: PermissionId::random(),
                     tool_call: ToolCallId::new("fixture-tool"),
                     options: Vec::new(),
+
+                    presentation: None,
                 }),
             },
         )

@@ -222,6 +222,8 @@ fn user_input_question(asked: &UserInputRequest) -> Result<Question, &'static st
                         value: option.label.clone(),
                         title: cut(option.label.clone(), Question::MAX_LABEL),
                         description: Some(cut(option.description.clone(), Question::MAX_LABEL)),
+
+                        preview: None,
                     })
                     .collect(),
                 multiple: false,
@@ -244,6 +246,8 @@ fn user_input_question(asked: &UserInputRequest) -> Result<Question, &'static st
             description: Some(cut(question.question.clone(), Question::MAX_LABEL)),
             required: true,
             kind,
+
+            presentation: None,
         });
     }
     let message = asked
@@ -257,6 +261,9 @@ fn user_input_question(asked: &UserInputRequest) -> Result<Question, &'static st
         message: cut(message, Question::MAX_MESSAGE),
         tool_call: Some(ToolCallId::new(asked.item_id.as_str())),
         fields,
+
+        lifetime: Default::default(),
+        delivery_state: Default::default(),
     })
 }
 

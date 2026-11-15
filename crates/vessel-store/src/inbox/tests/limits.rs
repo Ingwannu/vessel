@@ -21,6 +21,8 @@ fn form() -> Question {
                                 "A realistic option label with enough detail to describe the choice"
                                     .to_owned(),
                             description: None,
+
+                            preview: None,
                         })
                         .collect(),
                     multiple: false,

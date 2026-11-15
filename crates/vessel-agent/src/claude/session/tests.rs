@@ -237,7 +237,8 @@ async fn a_session_is_ready_with_its_conversation_and_a_turn_streams_its_reply()
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
-                content: text("hello")
+                content: text("hello"),
+                client_message_id: None,
             }
         );
         assert_eq!(
@@ -339,7 +340,8 @@ async fn a_side_questions_context_reaches_the_agent_first_and_is_never_kept() {
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
-                content: text("echo what now?")
+                content: text("echo what now?"),
+                client_message_id: None,
             },
             "the timeline shows the question alone"
         );
@@ -361,7 +363,8 @@ async fn a_side_questions_context_reaches_the_agent_first_and_is_never_kept() {
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
-                content: text("echo after")
+                content: text("echo after"),
+                client_message_id: None,
             },
             "no turn started for the refused question"
         );

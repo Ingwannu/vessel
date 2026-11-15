@@ -75,8 +75,8 @@ pub(super) fn admit_receipt(
             session.to_string(),
             message.as_str(),
             fingerprint.bytes().as_slice(),
-            AdmissionKind::Receipt.reserved_bytes().get(),
-            codec::encode(&ReceiptState::Pending)?
+            super::sql_bytes(AdmissionKind::Receipt.reserved_bytes())?,
+            pending
         ],
     )?;
     Ok(ReceiptAdmission::New(ReceiptToken {

@@ -26,6 +26,7 @@ use serde::{Deserialize, Serialize};
 use super::agent::FiniteNumber;
 use super::text::FieldName;
 use crate::id::{QuestionId, ToolCallId};
+use crate::timeline::{QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime};
 
 mod check;
 
@@ -35,6 +36,12 @@ pub use check::InvalidAnswer;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Question {
+    /// Async question lifetime is independent of its completed provider tool.
+    #[serde(default, skip_serializing_if = "QuestionLifetime::is_turn")]
+    pub lifetime: QuestionLifetime,
+    /// Only Pending is actionable; an uncertain accepted answer cannot be resent.
+    #[serde(default, skip_serializing_if = "QuestionDeliveryState::is_pending")]
+    pub delivery_state: QuestionDeliveryState,
     /// Node-assigned id clients answer with.
     pub id: QuestionId,
     /// What the agent asks (cut at [`Question::MAX_MESSAGE`] bytes).
@@ -50,6 +57,9 @@ pub struct Question {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct QuestionField {
+    /// Generic custom/empty/dismiss semantics, without provider-name parsing in clients.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: Option<QuestionFieldPresentation>,
     /// Its key, echoed back in the answer.
     pub name: FieldName,
     /// Its label.
@@ -167,6 +177,9 @@ pub enum TextFormat {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ChoiceOption {
+    /// Optional option preview is displayed without submitting its contents.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview: Option<String>,
     /// What is sent back when it is chosen.
     pub value: String,
     /// Its label.

@@ -57,6 +57,8 @@ export function toolTone(status: ToolCallStatus): StateTone {
       return "ok";
     case "failed":
       return "danger";
+    case "canceled":
+      return "neutral";
   }
 }
 

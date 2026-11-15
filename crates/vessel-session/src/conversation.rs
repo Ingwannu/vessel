@@ -214,6 +214,8 @@ mod tests {
             id: PermissionId::random(),
             tool_call: ToolCallId::new("call"),
             options: Vec::new(),
+
+            presentation: None,
         }
     }
 

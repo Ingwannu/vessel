@@ -134,3 +134,21 @@ canceled before execution under the updated build-line ruling; rc143 is a
 cancellation, not passing or failing test evidence. Narrow checks now move to
 the remote runner. The follow-up adds safe caller UUID allocation, typed
 admission bytes, a stable task-id value and known-detail-preserving updates.
+
+## Optional field integration (runtime still pending)
+
+Existing tool calls/updates now carry canonical body/failure/provenance and a
+Canceled status; approvals carry presentation/action semantics; task entries
+carry stable id and active_form; questions carry lifetime/delivery state, field
+presentation and choice previews; queued prompts and canonical prompt echoes
+carry client_message_id. Legacy production constructors still emit defaults.
+New metadata is masked by feature-aware output adapters, including event pages,
+forwarded replies, conversation/queue snapshots and inbox/live entry recovery.
+The masking composes with the pre-existing attachment downgrade for old peers.
+
+Codex tool/control code was split without behavior changes before adding empty
+fields: two previously oversized actor/responder files are now below the file
+budget. Existing fixture expectations remain unchanged. Inbox tool updates keep
+known canonical bodies when updates supply None/Unknown; oversize bodies keep
+the existing explicit InSession degradation. New activation, provider mappings,
+retained-state migration, acknowledgements and question lifecycle remain owed.

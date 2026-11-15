@@ -141,6 +141,10 @@ pub(super) fn tool_call(item: &ThreadItem) -> Option<ToolCall> {
         content: Vec::new(),
         locations: locations(item),
         raw_input: raw_input.as_ref().and_then(raw),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     })
 }
 
@@ -201,6 +205,10 @@ pub(super) fn tool_call_done(item: &ThreadItem) -> Option<ToolCallUpdate> {
         locations: None,
         raw_input: None,
         raw_output: None,
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     })
 }
 
@@ -244,6 +252,9 @@ pub(super) fn plan(steps: &[TurnPlanStep]) -> AgentEvent {
                     TurnPlanStepStatus::InProgress => PlanStatus::InProgress,
                     TurnPlanStepStatus::Pending | TurnPlanStepStatus::Other => PlanStatus::Pending,
                 },
+
+                id: None,
+                active_form: None,
             })
             .collect(),
     }

@@ -101,6 +101,10 @@ impl Session {
                         locations: Some(call.locations),
                         raw_input: call.raw_input,
                         raw_output: None,
+
+                        detail: None,
+                        failure: None,
+                        agent_message: None,
                     };
                     self.emit(AgentEvent::ToolCallUpdate(update)).await;
                 }

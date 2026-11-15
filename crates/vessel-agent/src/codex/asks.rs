@@ -194,6 +194,8 @@ impl Approvals {
             id,
             tool_call,
             options,
+
+            presentation: None,
         };
         (asked, displaced)
     }
@@ -290,6 +292,10 @@ pub(super) fn tool_call(
         content: Vec::new(),
         locations: Vec::new(),
         raw_input: input.and_then(|input| RawJson::from_text(input.to_string()).ok()),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }
 }
 

@@ -34,6 +34,8 @@ fn assert_exact_form(question: &Question) {
                         value: format!("choice-{option}"),
                         title: format!("Choice {option}: {}", "long description ".repeat(50)),
                         description: None,
+
+                        preview: None,
                     })
                     .collect(),
                 multiple: false,
@@ -49,7 +51,9 @@ fn assert_exact_form(question: &Question) {
             id: question.id,
             message: "Choose every field, including the final option.".to_owned(),
             tool_call: None,
-            fields
+            fields,
+            lifetime: Default::default(),
+            delivery_state: Default::default(),
         }
     );
 }

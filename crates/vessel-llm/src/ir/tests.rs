@@ -9,6 +9,10 @@ fn call(id: &str) -> Part {
         id: id.to_owned(),
         name: "Write".to_owned(),
         input: ToolInput::Json("{}".to_owned()),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     })
 }
 

@@ -235,7 +235,8 @@ async fn a_thread_starts_and_a_turn_streams_its_reply() {
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
-                content: text("plain hello")
+                content: text("plain hello"),
+                client_message_id: None,
             }
         );
         assert_eq!(said(&events), "fake reply: plain hello");
@@ -670,7 +671,8 @@ async fn a_running_turn_is_steered_then_cancelled() {
         input.cancel_turn().await.unwrap();
         let events = turn(&mut outputs).await;
         assert!(events.contains(&AgentEvent::Steered {
-            content: text("more")
+            content: text("more"),
+            client_message_id: None,
         }));
         assert_eq!(said(&events), "steered: more");
         assert!(matches!(
@@ -932,7 +934,8 @@ async fn a_side_questions_context_is_refused_not_dropped() {
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
-                content: text("plain hello")
+                content: text("plain hello"),
+                client_message_id: None,
             },
             "no turn started for the refused question"
         );

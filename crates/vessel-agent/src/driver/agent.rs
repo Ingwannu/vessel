@@ -69,6 +69,8 @@ impl Driver {
             id,
             tool_call,
             options,
+
+            presentation: None,
         }))
         .await;
         if self.cancelling {

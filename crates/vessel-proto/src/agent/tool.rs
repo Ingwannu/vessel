@@ -4,6 +4,7 @@
 use super::ContentBlock;
 use crate::id::ToolCallId;
 use crate::raw::RawJson;
+use crate::timeline::{AgentMessageProvenance, ToolCallDetail, ToolFailure};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -48,6 +49,8 @@ pub enum ToolCallStatus {
     Completed,
     /// Finished with an error, or was rejected.
     Failed,
+    /// Canceled before successful completion; distinct from a tool failure.
+    Canceled,
 }
 
 /// A file location a tool call touches.
@@ -98,6 +101,15 @@ pub struct ToolCall {
     /// Content produced so far.
     #[serde(default)]
     pub content: Vec<ToolCallContent>,
+    /// Canonical provider-decoded body; absence retains the legacy raw display.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<ToolCallDetail>,
+    /// Provider failure explanation, independent of generic output.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure: Option<ToolFailure>,
+    /// Semantic source attribution, never caller authority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_message: Option<AgentMessageProvenance>,
     /// Files involved.
     #[serde(default)]
     pub locations: Vec<ToolLocation>,
@@ -125,6 +137,15 @@ pub struct ToolCallUpdate {
     /// Replacement content.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content: Option<Vec<ToolCallContent>>,
+    /// Replacement canonical body; None and Unknown cannot erase a known body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<ToolCallDetail>,
+    /// A reported failure, when this update includes one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure: Option<ToolFailure>,
+    /// Semantic source attribution supplied with this update.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_message: Option<AgentMessageProvenance>,
     /// Replacement locations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<ToolLocation>>,

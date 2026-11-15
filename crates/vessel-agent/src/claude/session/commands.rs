@@ -109,7 +109,11 @@ impl Session {
             cancelled: false,
             failure: None,
         };
-        self.emit(AgentEvent::TurnStarted { content }).await;
+        self.emit(AgentEvent::TurnStarted {
+            content,
+            client_message_id: None,
+        })
+        .await;
         answer(reply, Ok(()));
     }
 

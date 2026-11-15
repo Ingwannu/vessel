@@ -138,7 +138,7 @@ fn saturation_keeps_all_replay_keys_and_releases_only_with_session_removal() {
     let session = session(&db);
     let first = prompt(session, "first", "run");
     assert!(matches!(admit(&mut db, &first), ReceiptAdmission::New(_)));
-    let accepted = self::prompt(session, "accepted", "queued");
+    let accepted = prompt(session, "accepted", "queued");
     let ReceiptAdmission::New(accepted_token) = admit(&mut db, &accepted) else {
         panic!("fresh admission")
     };

@@ -286,6 +286,18 @@ impl SessionEvent {
         protocol: ProtocolVersion,
         assigned: Option<ProtocolVersion>,
     ) -> Option<Self> {
+        if let Self::Agent { event } = self
+            && let Some(event) =
+                crate::timeline::compat::event(event, protocol, crate::timeline::TIMELINE_PARITY)
+        {
+            return Some(Self::Agent { event });
+        }
+        if let Self::QueueChanged { queue } = self
+            && let Some(queue) =
+                crate::timeline::compat::queue(queue, protocol, crate::timeline::TIMELINE_PARITY)
+        {
+            return Some(Self::QueueChanged { queue });
+        }
         if let Self::Renamed { title, origin } = self {
             let adapted = origin.for_protocol(protocol, assigned);
             return (adapted != *origin).then(|| Self::Renamed {
@@ -306,7 +318,7 @@ impl AgentEvent {
             Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
                 ProtocolVersion::new(10)
             }
-            Self::TurnStarted { content } if content.iter().any(is_attachment) => {
+            Self::TurnStarted { content, .. } if content.iter().any(is_attachment) => {
                 ProtocolVersion::new(10)
             }
             Self::UserMessageChunk { content } if is_attachment(content) => {
@@ -332,12 +344,19 @@ impl AgentEvent {
     /// it can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if let Some(adapted) =
+            crate::timeline::compat::event(self, protocol, crate::timeline::TIMELINE_PARITY)
+        {
+            // Optional fields and a newer content block can need independent masks.
+            let legacy = adapted.for_protocol(protocol);
+            return Some(legacy.unwrap_or(adapted));
+        }
         if self.since() <= protocol {
             return None;
         }
         let log = |line: String| Some(Self::HarnessLog { line });
         match self {
-            Self::Steered { content } => log(match first_line(content) {
+            Self::Steered { content, .. } => log(match first_line(content) {
                 Some(line) => format!("vessel: steered: {line}"),
                 None => "vessel: steered".to_owned(),
             }),
@@ -351,8 +370,10 @@ impl AgentEvent {
                 QuestionOutcome::Cancelled => "vessel: question cancelled",
             }
             .to_owned()),
-            Self::TurnStarted { content } => Some(Self::TurnStarted {
+            Self::TurnStarted { content, .. } => Some(Self::TurnStarted {
                 content: content.iter().map(link_for_attachment).collect(),
+
+                client_message_id: None,
             }),
             Self::UserMessageChunk { content } => Some(Self::UserMessageChunk {
                 content: link_for_attachment(content),

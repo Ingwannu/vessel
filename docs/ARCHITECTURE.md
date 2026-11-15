@@ -1542,8 +1542,10 @@ alone would otherwise expose the owner's unrelated process operations.
 `vessel-proto::timeline` owns canonical tool detail bodies, non-tool items,
 provenance, permission/question presentation and identified-prompt receipt
 values. The admission submodule owns finite retained-state budget constants.
-These are standalone contracts: existing events, calls and driver emissions are
-unchanged until the shared optional event/method gate is integrated. No new
+Existing tool/approval/question/task and prompt-echo values now carry optional
+canonical fields. Outgoing event/page, conversation, queue and inbox adapters
+mask them while the feature is unassigned or the peer is older. Driver emissions
+and new calls remain inactive until their runtime wiring is complete. No new
 crate or dependency edge is added. Provider decoding remains in vessel-agent;
 client renderers consume typed values and never infer provider semantics from
 opaque arguments.

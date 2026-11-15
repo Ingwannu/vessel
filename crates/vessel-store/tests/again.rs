@@ -54,6 +54,8 @@ mod support {
                 queued_at: at(1),
                 revision: 0,
                 by: Creator::Owner,
+
+                client_message_id: None,
             }],
             held: Some(QueueHold::Ended),
         }

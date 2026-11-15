@@ -20,6 +20,10 @@ pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
         content: call.content.into_iter().map(tool_content).collect(),
         locations: call.locations.into_iter().map(location).collect(),
         raw_input: call.raw_input.as_ref().and_then(raw_json),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }
 }
 
@@ -39,6 +43,10 @@ pub(crate) fn tool_call_update(update: acp::ToolCallUpdate) -> ToolCallUpdate {
             .map(|locations| locations.into_iter().map(location).collect()),
         raw_input: fields.raw_input.as_ref().and_then(raw_json),
         raw_output: fields.raw_output.as_ref().and_then(raw_json),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }
 }
 
@@ -79,6 +87,10 @@ pub(crate) fn permission_tool_call(update: acp::ToolCallUpdate, known: bool) -> 
             .map(location)
             .collect(),
         raw_input: fields.raw_input.as_ref().and_then(raw_json),
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }))
 }
 
@@ -90,6 +102,8 @@ pub(crate) fn permission_options(options: Vec<acp::PermissionOption>) -> Vec<Per
             id: PermissionOptionId::new(option.option_id.0),
             name: option.name,
             kind: permission_kind(option.kind),
+
+            action: None,
         })
         .collect()
 }

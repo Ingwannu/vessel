@@ -24,6 +24,8 @@ fn requested(id: PermissionId) -> SessionEvent {
         id,
         tool_call: ToolCallId::new("call-1"),
         options: Vec::new(),
+
+        presentation: None,
     }))
 }
 
@@ -45,6 +47,8 @@ fn ended(reason: StopReason) -> SessionEvent {
 fn started() -> SessionEvent {
     agent(AgentEvent::TurnStarted {
         content: Vec::new(),
+
+        client_message_id: None,
     })
 }
 

@@ -228,6 +228,8 @@ mod tests {
             queued_at: DateTime::UNIX_EPOCH,
             revision: 2,
             by,
+
+            client_message_id: None,
         }
     }
 

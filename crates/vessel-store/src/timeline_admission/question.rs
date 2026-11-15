@@ -134,7 +134,7 @@ pub(super) fn admit_question(
         params![
             session.to_string(),
             record.source.as_str(),
-            AdmissionKind::Question.reserved_bytes().get(),
+            super::sql_bytes(AdmissionKind::Question.reserved_bytes())?,
             encoded
         ],
     )?;
@@ -247,7 +247,7 @@ pub(super) fn recover_claims(connection: &Connection) -> Result<(), StoreError> 
     })?;
     for row in rows {
         let (session, state) = row?;
-        let session = crate::codec::session_id_from_sql(&session)?;
+        let session = codec::session_id_from_sql(&session)?;
         let mut record: Record = codec::decode(session, Column::Admission, &state)?;
         if let QuestionState::Answering { answer, target } = record.state {
             record.state = QuestionState::OutcomeUnknown { answer, target };

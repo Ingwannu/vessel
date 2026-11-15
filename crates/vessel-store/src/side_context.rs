@@ -33,6 +33,9 @@ impl LatestPlan {
                     content,
                     priority: entry.priority,
                     status: entry.status,
+
+                    id: None,
+                    active_form: None,
                 }
             })
             .collect();
@@ -124,6 +127,9 @@ mod tests {
             content: "한".repeat(1_201),
             priority: PlanPriority::High,
             status: PlanStatus::InProgress,
+
+            id: None,
+            active_form: None,
         };
         let plan = LatestPlan::bounded(&vec![entry; 21]);
         assert!(plan.truncated);

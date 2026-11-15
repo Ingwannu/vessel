@@ -15,7 +15,8 @@ use vessel_proto::timeline::admission::{
     MAX_NODE_ADMISSIONS, MAX_SESSION_ADMISSION_BYTES, MAX_SESSION_ADMISSIONS,
 };
 
-use crate::StoreError;
+use crate::{ByteCount, StoreError, codec};
+use vessel_proto::timeline::admission::AdmissionBytes;
 
 use fingerprint::ReceiptFingerprint;
 use receipt::{ReceiptAdmission, admit_receipt, finish_receipt};
@@ -140,9 +141,9 @@ fn verify(connection: &Connection) -> Result<(), StoreError> {
         "SELECT count(*) FROM timeline_admissions WHERE
          (kind='receipt' AND (reserved_bytes<>?1 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?3)) OR
          (kind='question' AND (reserved_bytes<>?2 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?4))",
-        params![AdmissionKind::Receipt.reserved_bytes().get(), AdmissionKind::Question.reserved_bytes().get(),
-            vessel_proto::timeline::admission::MAX_RECEIPT_STATE_BYTES,
-            vessel_proto::timeline::admission::MAX_QUESTION_STATE_BYTES],
+        params![sql_bytes(AdmissionKind::Receipt.reserved_bytes())?, sql_bytes(AdmissionKind::Question.reserved_bytes())?,
+            sql_bytes(AdmissionBytes::new(vessel_proto::timeline::admission::MAX_RECEIPT_STATE_BYTES))?,
+            sql_bytes(AdmissionBytes::new(vessel_proto::timeline::admission::MAX_QUESTION_STATE_BYTES))?],
         |row| row.get(0),
     )?;
     if bad != 0 {
@@ -174,4 +175,8 @@ fn verify(connection: &Connection) -> Result<(), StoreError> {
         return Err(StoreError::AdmissionIntegrity);
     }
     Ok(())
+}
+
+fn sql_bytes(bytes: AdmissionBytes) -> Result<i64, StoreError> {
+    codec::bytes_to_sql(ByteCount::new(bytes.get()))
 }

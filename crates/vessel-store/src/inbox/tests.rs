@@ -53,6 +53,10 @@ fn tool() -> ToolCall {
         content: Vec::new(),
         locations: Vec::new(),
         raw_input: None,
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     }
 }
 fn permission() -> PermissionRequest {
@@ -63,7 +67,11 @@ fn permission() -> PermissionRequest {
             id: PermissionOptionId::new("allow"),
             name: "Allow once".to_owned(),
             kind: PermissionOptionKind::AllowOnce,
+
+            action: None,
         }],
+
+        presentation: None,
     }
 }
 
@@ -129,6 +137,8 @@ fn reads_do_not_answer_and_late_marks_do_not_consume_new_attention() {
         4,
         AgentEvent::TurnStarted {
             content: Vec::new(),
+
+            client_message_id: None,
         },
     );
     assert!(

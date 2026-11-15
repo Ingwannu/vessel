@@ -161,7 +161,11 @@ mod tests {
                 id: vessel_proto::PermissionOptionId::new("allow"),
                 name: "Allow once".to_owned(),
                 kind: vessel_proto::PermissionOptionKind::AllowOnce,
+
+                action: None,
             }],
+
+            presentation: None,
         };
         let entry = entry(InboxItem::Permission {
             request,

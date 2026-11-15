@@ -48,6 +48,9 @@ async fn latest_plan_survives_a_tool_heavy_tail_retention_and_restart() {
         content: "Verify the retained plan".to_owned(),
         priority: PlanPriority::High,
         status: PlanStatus::InProgress,
+
+        id: None,
+        active_form: None,
     }];
     store
         .append(
@@ -137,6 +140,9 @@ async fn a_rewind_clears_the_plan_and_a_later_plan_replaces_it_in_the_same_appen
         content: "obsolete plan".to_owned(),
         priority: PlanPriority::High,
         status: PlanStatus::InProgress,
+
+        id: None,
+        active_form: None,
     }];
     store
         .append(

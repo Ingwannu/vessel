@@ -93,6 +93,8 @@ impl Queue {
             queued_at: Utc::now(),
             revision: 0,
             by,
+
+            client_message_id: None,
         };
         let id = entry.id;
         self.insert(self.0.entries.len(), entry)?;

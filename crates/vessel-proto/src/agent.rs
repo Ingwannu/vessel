@@ -14,6 +14,7 @@ use crate::id::{
     AgentMessageId, HarnessSessionId, PermissionId, PermissionOptionId, QuestionId, ToolCallId,
 };
 use crate::raw::RawJson;
+use crate::timeline::{PermissionAction, PermissionPresentation, TimelineTaskId};
 
 mod tool;
 pub use tool::{ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation};
@@ -57,6 +58,9 @@ pub enum AgentEvent {
     },
     /// A user turn began (echoes the prompt as the harness received it).
     TurnStarted {
+        /// Caller identity for optimistic reconciliation, absent on legacy prompts.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_message_id: Option<crate::timeline::ClientMessageId>,
         /// The prompt.
         content: Vec<ContentBlock>,
     },
@@ -125,6 +129,9 @@ pub enum AgentEvent {
     /// A message added to the running turn (protocol 10): a prompt
     /// delivered `steer`, which the agent took into its turn.
     Steered {
+        /// Caller identity for optimistic reconciliation, absent on legacy prompts.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_message_id: Option<crate::timeline::ClientMessageId>,
         /// The message.
         content: Vec<ContentBlock>,
     },
@@ -203,6 +210,12 @@ pub enum PlanStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PlanEntry {
+    /// Stable provider task identity survives text and order changes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<TimelineTaskId>,
+    /// Running-form label reported by the provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_form: Option<String>,
     /// What the step is.
     pub content: String,
     /// Importance.
@@ -230,6 +243,9 @@ pub enum PermissionOptionKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PermissionOption {
+    /// Provider semantics for this existing option id; never an invented action.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<PermissionAction>,
     /// Harness-assigned option id, echoed back when chosen.
     pub id: PermissionOptionId,
     /// Label to show.
@@ -242,6 +258,9 @@ pub struct PermissionOption {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PermissionRequest {
+    /// Typed approval semantics and plan Markdown, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: Option<PermissionPresentation>,
     /// Node-assigned id clients answer with.
     pub id: PermissionId,
     /// The tool call needing approval.

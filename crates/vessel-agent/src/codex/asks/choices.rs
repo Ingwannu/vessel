@@ -8,6 +8,8 @@ pub(super) fn option(id: &str, name: &str, kind: PermissionOptionKind) -> Permis
         id: PermissionOptionId::new(id),
         name: name.to_owned(),
         kind,
+
+        action: None,
     }
 }
 

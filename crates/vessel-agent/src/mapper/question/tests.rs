@@ -172,6 +172,8 @@ fn every_kind_keeps_its_constraints_and_defaults() {
                     value: value.to_owned(),
                     title: value.to_owned(),
                     description: None,
+
+                    preview: None,
                 })
                 .to_vec(),
             multiple: true,

@@ -103,12 +103,18 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
         content: Vec::new(),
         locations: Vec::new(),
         raw_input: None,
+
+        detail: None,
+        failure: None,
+        agent_message: None,
     };
     assert_eq!(turn.take(&agent(AgentEvent::ToolCall(call))), None);
     let asks = agent(AgentEvent::PermissionRequested(PermissionRequest {
         id: PermissionId::random(),
         tool_call: ToolCallId::new("call-1"),
         options: Vec::new(),
+
+        presentation: None,
     }));
     let notice = turn.take(&asks).unwrap();
     assert!(!notice.last);
@@ -125,6 +131,9 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
         message: "Which branch?".to_owned(),
         tool_call: None,
         fields: Vec::new(),
+
+        lifetime: Default::default(),
+        delivery_state: Default::default(),
     }));
     let told = (0..20).filter_map(|_| turn.take(&question)).count();
     assert_eq!(

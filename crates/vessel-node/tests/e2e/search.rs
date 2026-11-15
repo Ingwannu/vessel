@@ -35,7 +35,11 @@ async fn search(client: &NodeClient, query: &str, session: Option<SessionId>) ->
 fn prompt_seq(seen: &[EventRecord], text: &str) -> vessel_proto::EventSeq {
     let holds = |record: &&EventRecord| {
         if let SessionEvent::Agent {
-            event: AgentEvent::TurnStarted { content },
+            event:
+                AgentEvent::TurnStarted {
+                    content,
+                    client_message_id: None,
+                },
         } = &record.event
         {
             format!("{content:?}").contains(text)

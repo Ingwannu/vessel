@@ -213,6 +213,10 @@ mod tests {
                     content: Vec::new(),
                     locations: Vec::new(),
                     raw_input: Some(RawJson::from_text(r#"{"cmd":"cargo test"}"#).unwrap()),
+
+                    detail: None,
+                    failure: None,
+                    agent_message: None,
                 }),
             },
         };

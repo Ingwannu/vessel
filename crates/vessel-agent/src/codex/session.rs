@@ -302,7 +302,11 @@ impl Session {
             Pending::Steer { content, reply } => {
                 let outcome = match answer {
                     Ok(_) => {
-                        self.emit(AgentEvent::Steered { content }).await;
+                        self.emit(AgentEvent::Steered {
+                            content,
+                            client_message_id: None,
+                        })
+                        .await;
                         Ok(SteerOutcome::Injected)
                     }
                     Err(error) => Err(InputError::SteerRefused {

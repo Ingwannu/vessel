@@ -29,7 +29,11 @@ fn says(record: &EventRecord, words: &[&str]) -> bool {
         })
     };
     if let SessionEvent::Agent {
-        event: AgentEvent::TurnStarted { content },
+        event:
+            AgentEvent::TurnStarted {
+                content,
+                client_message_id: None,
+            },
     } = &record.event
     {
         return has(content);

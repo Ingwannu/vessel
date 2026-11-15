@@ -65,7 +65,11 @@ async fn serialized_provider_limit_rejects_without_a_turn_or_sticky_context() {
         let requests: Vec<_> = seen
             .iter()
             .filter_map(|record| {
-                if let Some(AgentEvent::TurnStarted { content }) = agent_of(record) {
+                if let Some(AgentEvent::TurnStarted {
+                    content,
+                    client_message_id: None,
+                }) = agent_of(record)
+                {
                     Some(content)
                 } else {
                     None
@@ -110,7 +114,9 @@ async fn generated_context_replayed_by_load_does_not_become_user_history() {
         let _answer = client.resume_session(side.id).await.unwrap();
         let records = read_all(&client, side.id).await;
         assert!(!records.iter().any(|record| matches!(agent_of(record), Some(AgentEvent::UserMessageChunk { .. }))));
-        let questions: Vec<_> = records.iter().filter_map(|record| if let Some(AgentEvent::TurnStarted { content }) = agent_of(record) { Some(content.clone()) } else { None }).collect();
+        let questions: Vec<_> = records.iter().filter_map(|record| if let Some(AgentEvent::TurnStarted { content ,
+client_message_id: None,
+}) = agent_of(record) { Some(content.clone()) } else { None }).collect();
         assert_eq!(questions, vec![
             vec![ContentBlock::Text { text: "original question".to_owned() }],
             vec![ContentBlock::Text { text: "question after parking".to_owned() }],

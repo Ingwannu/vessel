@@ -156,7 +156,11 @@ impl Driver {
             Ok(Ok(Answer {
                 outcome: Outcome::Injected,
             })) => {
-                self.emit(AgentEvent::Steered { content }).await;
+                self.emit(AgentEvent::Steered {
+                    content,
+                    client_message_id: None,
+                })
+                .await;
                 Ok(SteerOutcome::Injected)
             }
             Ok(Ok(Answer {

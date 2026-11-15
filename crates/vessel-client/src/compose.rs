@@ -156,6 +156,8 @@ mod tests {
             description: None,
             required: false,
             kind,
+
+            presentation: None,
         }
     }
 
@@ -166,6 +168,8 @@ mod tests {
                     value: value.to_owned(),
                     title: value.to_uppercase(),
                     description: None,
+
+                    preview: None,
                 })
                 .to_vec(),
             multiple,
@@ -212,6 +216,9 @@ mod tests {
                 field("ways", choice(true)),
                 field("later", FieldKind::Unknown),
             ],
+
+            lifetime: Default::default(),
+            delivery_state: Default::default(),
         }
     }
 

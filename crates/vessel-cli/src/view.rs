@@ -145,7 +145,7 @@ impl Conversation {
             AgentEvent::Ready {
                 harness_session, ..
             } => self.line(format!("[ready: harness session {harness_session}]")),
-            AgentEvent::TurnStarted { content } => self.line(format!("> {}", text(content))),
+            AgentEvent::TurnStarted { content, .. } => self.line(format!("> {}", text(content))),
             AgentEvent::UserMessageChunk { content } => {
                 self.stream(Streaming::UserReplay, "> ", content)
             }
@@ -210,7 +210,7 @@ impl Conversation {
             }
             AgentEvent::TurnFailed { message } => self.line(format!("[turn failed: {message}]")),
             AgentEvent::HarnessLog { line } => self.line(format!("[harness] {line}")),
-            AgentEvent::Steered { content } => self.line(format!(">> {}", text(content))),
+            AgentEvent::Steered { content, .. } => self.line(format!(">> {}", text(content))),
             AgentEvent::QuestionAsked(question) => self.line(render::question(question)),
             AgentEvent::QuestionResolved { id, outcome } => self.line(format!(
                 "[question {id} {}]",
@@ -296,6 +296,7 @@ const fn tool_status(status: ToolCallStatus) -> &'static str {
         ToolCallStatus::InProgress => "running",
         ToolCallStatus::Completed => "done",
         ToolCallStatus::Failed => "failed",
+        ToolCallStatus::Canceled => "canceled",
     }
 }
 
@@ -341,13 +342,19 @@ mod tests {
                     id: PermissionOptionId::new("allow"),
                     name: "Allow".to_owned(),
                     kind: PermissionOptionKind::AllowOnce,
+
+                    action: None,
                 },
                 PermissionOption {
                     id: PermissionOptionId::new("deny"),
                     name: "Deny".to_owned(),
                     kind: PermissionOptionKind::RejectOnce,
+
+                    action: None,
                 },
             ],
+
+            presentation: None,
         }
     }
 

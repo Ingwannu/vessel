@@ -25,11 +25,13 @@ fn feedback_prompts(records: &[EventRecord]) -> usize {
         .iter()
         .filter(|record| {
             matches!(
-                &record.event,
-                SessionEvent::Agent {
-                    event: AgentEvent::TurnStarted { content },
-                } if format!("{content:?}").contains("Vessel: pull request feedback")
-            )
+                            &record.event,
+                            SessionEvent::Agent {
+                                event: AgentEvent::TurnStarted { content ,
+            client_message_id: None,
+            },
+                            } if format!("{content:?}").contains("Vessel: pull request feedback")
+                        )
         })
         .count()
 }

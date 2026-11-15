@@ -163,7 +163,10 @@ async fn an_image_and_a_file_reach_the_agent_and_read_back() {
             .iter()
             .rev()
             .find_map(|record| match agent_of(record) {
-                Some(AgentEvent::TurnStarted { content }) => Some((record, content)),
+                Some(AgentEvent::TurnStarted {
+                    content,
+                    client_message_id: None,
+                }) => Some((record, content)),
                 _ => None,
             })
             .unwrap();

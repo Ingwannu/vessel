@@ -137,6 +137,9 @@ pub(crate) fn question(
         message: cut(request.message, Question::MAX_MESSAGE),
         tool_call,
         fields,
+
+        lifetime: Default::default(),
+        delivery_state: Default::default(),
     })
 }
 
@@ -205,6 +208,8 @@ fn field(
         description: description.map(label),
         required,
         kind,
+
+        presentation: None,
     }
 }
 
@@ -296,6 +301,8 @@ fn choice_option(option: acp::EnumOption) -> ChoiceOption {
         value: option.value,
         title: label(option.title),
         description: option.description.map(label),
+
+        preview: None,
     }
 }
 
@@ -304,6 +311,8 @@ fn untitled_option(value: String) -> ChoiceOption {
         title: label(value.clone()),
         value,
         description: None,
+
+        preview: None,
     }
 }
 

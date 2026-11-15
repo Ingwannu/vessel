@@ -21,11 +21,15 @@ fn question() -> Question {
                             value: "a".to_owned(),
                             title: "Rewrite".to_owned(),
                             description: Some("Start over".to_owned()),
+
+                            preview: None,
                         },
                         ChoiceOption {
                             value: "b".to_owned(),
                             title: "Patch".to_owned(),
                             description: None,
+
+                            preview: None,
                         },
                     ],
                     multiple: false,
@@ -33,6 +37,8 @@ fn question() -> Question {
                     max_items: None,
                     default: Vec::new(),
                 },
+
+                presentation: None,
             },
             QuestionField {
                 name: name("question_1_custom"),
@@ -46,6 +52,8 @@ fn question() -> Question {
                     pattern: None,
                     default: None,
                 },
+
+                presentation: None,
             },
             QuestionField {
                 name: name("count"),
@@ -57,6 +65,8 @@ fn question() -> Question {
                     maximum: Some(9),
                     default: None,
                 },
+
+                presentation: None,
             },
             QuestionField {
                 name: name("tags"),
@@ -68,14 +78,21 @@ fn question() -> Question {
                         value: "x".to_owned(),
                         title: "X".to_owned(),
                         description: None,
+
+                        preview: None,
                     }],
                     multiple: true,
                     min_items: Some(1),
                     max_items: None,
                     default: Vec::new(),
                 },
+
+                presentation: None,
             },
         ],
+
+        lifetime: Default::default(),
+        delivery_state: Default::default(),
     }
 }
 

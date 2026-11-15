@@ -137,6 +137,9 @@ fn plan_entry(entry: acp::PlanEntry) -> PlanEntry {
             acp::PlanEntryStatus::Completed => PlanStatus::Completed,
             acp::PlanEntryStatus::Pending | _ => PlanStatus::Pending,
         },
+
+        id: None,
+        active_form: None,
     }
 }
 

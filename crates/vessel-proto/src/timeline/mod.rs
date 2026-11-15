@@ -2,6 +2,7 @@
 //! Provider decoding belongs to vessel-agent; these values never execute tools.
 
 pub mod admission;
+pub(crate) mod compat;
 mod detail;
 mod identity;
 mod item;

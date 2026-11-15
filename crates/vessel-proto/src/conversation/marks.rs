@@ -300,6 +300,8 @@ mod tests {
         let started = SessionEvent::Agent {
             event: AgentEvent::TurnStarted {
                 content: Vec::new(),
+
+                client_message_id: None,
             },
         };
         assert!(!started.asks_for_attention());

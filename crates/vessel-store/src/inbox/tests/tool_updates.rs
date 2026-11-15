@@ -46,6 +46,10 @@ fn an_unretainable_update_invalidates_the_prior_tool_snapshot() {
             locations: None,
             raw_input: None,
             raw_output: None,
+
+            detail: None,
+            failure: None,
+            agent_message: None,
         }),
     );
     let page = super::super::list(&db, ListInbox::default()).unwrap();

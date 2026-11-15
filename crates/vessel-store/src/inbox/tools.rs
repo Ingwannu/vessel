@@ -50,6 +50,9 @@ fn put_detail(
 ) -> Result<(), StoreError> {
     if encode(&tool)?.len() > 32_768 {
         tool.raw_input = None;
+        tool.detail = None;
+        tool.failure = None;
+        tool.agent_message = None;
         tool.content.clear();
         tool.locations.clear();
         tool.title = tool.title.chars().take(4096).collect();
@@ -103,6 +106,18 @@ pub(super) fn update(
     let (Some(mut tool), prior) = get(connection, session, &update.id)? else {
         return Ok(());
     };
+    if let Some(detail) = &update.detail {
+        tool.detail = Some(match tool.detail.take() {
+            Some(previous) => previous.updated(Some(detail.clone())),
+            None => detail.clone(),
+        });
+    }
+    if let Some(failure) = &update.failure {
+        tool.failure = Some(failure.clone());
+    }
+    if let Some(source) = &update.agent_message {
+        tool.agent_message = Some(source.clone());
+    }
     if let Some(title) = &update.title {
         tool.title.clone_from(title);
     }

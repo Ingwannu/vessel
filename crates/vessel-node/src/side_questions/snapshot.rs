@@ -137,9 +137,11 @@ fn plan(body: &mut Budget, context: &SideContext) {
 
 fn message(event: &AgentEvent) -> Option<(&'static str, &[ContentBlock])> {
     match event {
-        AgentEvent::TurnStarted { content } | AgentEvent::Steered { content } => {
-            Some(("user", content))
+        AgentEvent::TurnStarted {
+            content,
+            client_message_id: None,
         }
+        | AgentEvent::Steered { content, .. } => Some(("user", content)),
         AgentEvent::MessageChunk { content } => Some(("assistant", std::slice::from_ref(content))),
         AgentEvent::UserMessageChunk { content } => Some(("user", std::slice::from_ref(content))),
         AgentEvent::Ready { .. }

@@ -26,9 +26,11 @@ pub(super) enum Said<'a> {
 pub(super) fn said(event: &SessionEvent) -> Said<'_> {
     match event {
         SessionEvent::Agent { event } => match event {
-            AgentEvent::TurnStarted { content } | AgentEvent::Steered { content } => {
-                Said::Prompt(content)
+            AgentEvent::TurnStarted {
+                content,
+                client_message_id: None,
             }
+            | AgentEvent::Steered { content, .. } => Said::Prompt(content),
             AgentEvent::UserMessageChunk { content } => Said::Chunk(MessageRole::Prompt, content),
             AgentEvent::MessageChunk { content } => Said::Chunk(MessageRole::Reply, content),
             // A line on stderr can land between two chunks of one reply.
@@ -88,6 +90,8 @@ mod tests {
         let prompt = SessionEvent::Agent {
             event: AgentEvent::TurnStarted {
                 content: vec![text("hello")],
+
+                client_message_id: None,
             },
         };
         assert!(matches!(said(&prompt), Said::Prompt(blocks) if blocks.len() == 1));

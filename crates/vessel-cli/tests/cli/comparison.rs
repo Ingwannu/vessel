@@ -74,7 +74,9 @@ async fn comparison_binary_uploads_once_and_prints_every_independent_outcome() {
             let session = target.resources.session.unwrap();
             let history = owner.read(session, EventSeq::ZERO, 1000).await.unwrap();
             let turns: Vec<_> = history.records.iter().filter_map(|record| if let SessionEvent::Agent {
-                event: AgentEvent::TurnStarted { content } } = &record.event { Some(content) } else { None }).collect();
+                event: AgentEvent::TurnStarted { content ,
+client_message_id: None,
+} } = &record.event { Some(content) } else { None }).collect();
             assert_eq!(turns.len(), 1);
             let ContentBlock::Attachment { attachment } = &turns[0][1] else { panic!("file"); };
             if Some(session) != report.source_upload.session { assert_ne!(attachment.id, report.source_upload.finished[0].id); }

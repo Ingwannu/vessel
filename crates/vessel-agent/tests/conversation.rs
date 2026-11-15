@@ -202,7 +202,11 @@ async fn a_steer_joins_the_running_turn_or_comes_back() {
             AgentOutput::Event(AgentEvent::MessageChunk { content: ContentBlock::Text { text } })
                 if text == "steered: also this"
         )));
-        let Some(AgentOutput::Event(AgentEvent::Steered { content })) = seen.last() else {
+        let Some(AgentOutput::Event(AgentEvent::Steered {
+            content,
+            client_message_id: None,
+        })) = seen.last()
+        else {
             panic!("{seen:?}");
         };
         assert_eq!(*content, text("also this"));

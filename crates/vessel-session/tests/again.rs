@@ -74,6 +74,8 @@ mod helpers {
                 queued_at: Utc::now(),
                 revision: 0,
                 by: Creator::Owner,
+
+                client_message_id: None,
             }],
             held: None,
         }

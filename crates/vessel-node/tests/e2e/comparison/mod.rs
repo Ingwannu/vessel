@@ -79,7 +79,11 @@ async fn turns(client: &NodeClient, session: SessionId) -> Vec<Vec<vessel_proto:
         .into_iter()
         .filter_map(|record| {
             if let vessel_proto::SessionEvent::Agent {
-                event: vessel_proto::AgentEvent::TurnStarted { content },
+                event:
+                    vessel_proto::AgentEvent::TurnStarted {
+                        content,
+                        client_message_id: None,
+                    },
             } = record.event
             {
                 Some(content)

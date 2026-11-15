@@ -27,7 +27,12 @@ fn form() -> Question {
                 pattern: None,
                 default: None,
             },
+
+            presentation: None,
         }],
+
+        lifetime: Default::default(),
+        delivery_state: Default::default(),
     }
 }
 
