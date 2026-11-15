@@ -152,3 +152,23 @@ full-gate steps did not run, including freshness/current SDK tests/web checks.
 The failed whole-gate record remains failed. The source stays on the same
 announced82ae7c91 base through correction and the eventual retry; no newer
 head or new feature is merged into this frozen node package.
+
+
+### Exact central alias-classification correction
+
+Run wp-files-node-20261115T151153Z-954c0bf0 completed format, size, boundaries,
+whole workspace strict Clippy, TS-feature strict Clippy and forge strict Clippy
+with rc0. The TS step generated proto declarations (3 tests passed) and its
+declarations-current check passed, but the separate primitive-alias inventory
+assertion failed on LimitPercent. LimitPercent remains a declared alias of
+FiniteNumber; it is not itself a primitive string/number alias. This was a
+classification-table error, not missing generated TypeScript. The artifact's
+tracked wire patch was empty. Later full-gate steps did not run.
+
+At the coordinator/integrator's explicit direction, only central commit
+9dfdf0a11f262a7979635d1e8a43ca38dd682869 was cherry-picked with provenance:
+it removes that one unused classification entry and changes no generated wire
+bytes or test assertions. The failed run is retained. One changed-source whole
+retry follows on the same frozen package base, with no feature additions or
+integrator-chain merge. A later announced node head must merge this exact
+correction cleanly; a conflict requires coordinator review rather than guessing.
