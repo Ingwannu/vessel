@@ -439,6 +439,10 @@ impl Shell {
             cx,
         );
         field.focus(window, cx);
+        let current = field.text(cx);
+        if matches!(target, DraftKey::Workspace { .. }) {
+            self.composer_keep_workspace_text(target, &current, cx);
+        }
         self.file_menu(target).borrow_mut().model.dismiss();
         cx.notify();
     }
