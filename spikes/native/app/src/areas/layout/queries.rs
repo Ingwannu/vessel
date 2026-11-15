@@ -1,7 +1,7 @@
 //! Read-only owner queries never manufacture an absent layout or resource.
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_view::layout::{Layout, LayoutKey, LayoutMode, PaneId, TabId};
+use vessel_app_view::layout::{Layout, LayoutKey, LayoutMode, PaneId, TabId, Target};
 
 /// Drawing and polling share one effective projection. A removed maximized pane
 /// falls back to the full tree instead of hiding every surviving panel.
@@ -31,6 +31,25 @@ pub(super) fn projected_pane(
 }
 
 impl Shell {
+    /// A retained tab id can be retargeted. Resource callbacks check their
+    /// captured target too; existence/visibility alone cannot bless old actions.
+    /// This reads an existing entry and grants no connection or resource scope.
+    pub(crate) fn layout_tab_matches(
+        &self,
+        workspace: &LayoutKey,
+        tab: TabId,
+        target: &Target,
+    ) -> bool {
+        super::initialized(self);
+        self.areas
+            .layout
+            .book
+            .borrow()
+            .as_ref()
+            .and_then(|book| book.get(workspace))
+            .and_then(|layout| layout.tab(tab))
+            .is_some_and(|current| current.target() == target)
+    }
     /// Existence is independent of navigation and does not authorize resource I/O.
     pub(crate) fn layout_tab_exists(&self, workspace: &LayoutKey, tab: TabId) -> bool {
         super::initialized(self);
