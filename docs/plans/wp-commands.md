@@ -744,3 +744,10 @@ local Back operation; global matching still stands down. The same regression
 runs at800 and390. Extracted the unchanged matching phase into a private method
 to keep admission/local-control ordering readable and within function budgets;
 both methods share the one engine/cache/dispatcher and listener.
+
+View-only strict all-target Clippy exact83d3c5033d45fa465e6e7db00d37245488f84510
+is GREEN, wp-commands-narrow-20261115T140914Z-83d3c503 (native-fonts0/cargo0).
+That View source is byte-identical to the current View tree and covers the
+shared whitespace visibility/help/PR-query changes. Later App Backspace/order
+changes still require their own strict result plus the queued6d739b111
+App/Kit/View regression run; no test or App Clippy pass is inferred from this.
