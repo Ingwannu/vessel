@@ -5,7 +5,8 @@ use crate::{ProjectId, workspace::ContentHash};
 use serde::{Deserialize, Serialize};
 use std::{fmt, sync::Arc};
 
-/// Same byte budget as the existing vessel.toml reader; no larger editor-only file.
+/// Canonical vessel.toml byte budget for both the typed editor and file parser.
+/// The parser preserves its public MAX_BYTES name by re-exporting this value.
 pub const MAX_CONFIG_BYTES: usize = 64 * 1024;
 
 /// File text is private because a malformed request must not bypass its byte cap.

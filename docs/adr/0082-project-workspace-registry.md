@@ -197,3 +197,12 @@ ready or shipped provisioning API claim. This dependency contains the live
 registry read/mutation handlers, durable metadata/reservations/membership and
 start-admission seams. Creation receipts, actual backing provisioning and actor
 launch remain separate work. No default workspace is synthesized.
+
+## One project-file byte budget (V3 row213 correction)
+
+The proto MAX_CONFIG_BYTES is the canonical lower-layer64KiB budget for both
+ConfigText and the authoritative vessel.toml reader/parser. The parser retains
+its public project_file::MAX_BYTES name as a re-export, with the workspace owner's
+agreement (message24bb3bd8). Existing parser/editor checks, errors and tests derive
+from that one definition. No limit or MAX_COMMANDS ownership changes. This avoids
+future editor/parser divergence without introducing a new dependency edge.
