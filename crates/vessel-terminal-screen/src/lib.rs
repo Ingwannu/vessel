@@ -26,7 +26,7 @@ pub use model::{BytesTaken, FEED_BUDGET, Feed, Screen, Snapshot};
 pub use modes::{InputModes, KittyFlags, MAX_KEYBOARD_STACK, ModeState};
 pub use presentation::{
     MAX_CONTROL_TOKEN_BYTES, Multiplexer, Presentation, PresentationEvent, PresentationFeed,
-    PresentationOffset,
+    PresentationOffset, UnansweredReplies,
 };
 pub use queries::{MAX_REPLY_BYTES, Replies, ReplyDuty};
 pub use range::{

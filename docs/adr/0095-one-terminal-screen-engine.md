@@ -163,8 +163,8 @@ A canceled prefix can share its final ESC with the beginning of an answered
 query. Removing that ESC would change the preceding non-query OSC or canceled
 CSI at an older raw client. In this rare overlap, preserve the entire span
 unchanged, do not send the candidate reply from the node, and return a typed
-`AmbiguousOverlap` presentation event. The raw client/renderer answers it as
-before. This is an explicit exception to node query authority, not a second
+`AmbiguousOverlap` presentation event. Legacy raw clients may answer it as before; multiple raw clients or replay
+can duplicate ambiguous responses. A frame-only renderer does not answer it. This is an explicit exception to node query authority, not a second
 parser, guessed mode, stdin suppression or CAN normalization. The regression
 `OSC title ESC [6n` must retain every byte and have no node reply.
 
@@ -209,3 +209,17 @@ release node-owned view slots. Retained/Evicted/Reset/Released and inactive
 buffer state are typed; no anchor selects a transport or authorizes a read.
 No per-row identity allocation or unbounded remap log is required. These APIs
 are a follow-up contract until their exact implementation/verification lands.
+
+## Ambiguous candidates and the explicit guarantee limit
+
+AmbiguousOverlap preserves typed bounded UnansweredReplies candidates apart
+from normal node Replies. They are neither responder authority nor a replay
+instruction. Normal suppressed queries have the node's single-answer guarantee.
+The unchanged ambiguous legacy span is best-effort: two old raw clients or
+history replay can cause duplicate answers, and no stdin filtering is allowed.
+Frame-only overlap receives no answer in this slice. Its candidates are kept
+for diagnostics/future policy but must not be settled or written without a
+separate route. Exactly-once is not claimed for that exception. This limitation
+is necessary while preserving the approved unchanged legacy span; tickets
+alone cannot constrain old clients that never send a settlement acknowledgement.
+NodeAuthority remains off until the reviewed responder contract and whole pass.

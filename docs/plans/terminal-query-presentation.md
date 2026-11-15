@@ -4,8 +4,8 @@ The prerequisite engine remains a separate frozen package. This branch owns
 the following D1 work; none is consumer-ready or activated yet.
 
 [Decision Log]
-- Purpose: one query answer across node-owned views, current CLI rendering,
-  older raw CLI clients and history replay.
+- Purpose: one node answer for normal suppressed queries across views and
+  replay, with explicit best-effort handling of rare ambiguous legacy spans.
 - Existing assets: one vt100/VTE decoder, typed shared cells and immutable
   snapshots. Legacy CLI attach forwards terminal output and raw stdin.
 - Alternatives: guessed Kitty defaults, a separate query scanner, suppressing
@@ -187,3 +187,27 @@ current terminal row count. Smaller bounded reads retain the same explicit
 first-row coordinate. The live path borrows Screen directly, avoiding a full
 grid Snapshot clone just to select a small viewport. Wire minimum-size/cell
 preflight and exact encoded-byte refusal stay with the node DTO owner.
+
+## Final candidate preservation and responder limit
+
+UnansweredReplies preserves the ordered candidates from the same parser pass,
+separate from normal Replies. One completed overlap emits one candidate set;
+chunking does not duplicate it, later feeds do not replay it, and the node's
+ordinary writer receives none of it. The raw span remains unchanged. A normal
+Kitty query is also explicitly tested with all split points: negotiation
+remains in presentation and only the query is omitted/replied by the node.
+
+The responder guarantee is normal-only. Multiple old raw clients/history
+replay may duplicate ambiguous responses; a frame-only observer receives no
+answer for that exception. Candidates must not be settled/written or replayed
+as an instruction until a separate future route exists. No speculative
+delegation RPC is added here. NodeAuthority stays off until the reviewed node
+responder contract and the full whole gate pass.
+
+The exact9dfdf0a1 alias-table leaf alone is staged as34c08f6e5 for the follow-up
+whole; no other batch changes were adopted. Prerequisite0d7 remains unchanged
+on its separate branch. A fully green enclosing whole on this corrected base
+can settle its open consumer condition as well as this extension's gate.
+The independent native workspace must point its VTE patch table at the same
+vendored copy when adopting this dependency; no native dependency/compile or
+renderer retirement is part of this pure producer yet.

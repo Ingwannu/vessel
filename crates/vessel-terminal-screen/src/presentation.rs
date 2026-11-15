@@ -30,7 +30,17 @@ impl PresentationOffset {
         self.0
     }
 }
-/// A deliberately unstripped span, so exactly the legacy renderer answers its query.
+/// Withheld protocol candidates, never normal node replies or replay instructions.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct UnansweredReplies(Vec<u8>);
+impl UnansweredReplies {
+    /// Preserve for diagnostics/future delegation; this grants no responder authority.
+    #[must_use]
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+/// An unchanged legacy span; multiple raw clients may answer it as before.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PresentationEvent {
     /// A shared ESC ends an earlier prefix and starts a query; the node did not answer.
@@ -39,6 +49,8 @@ pub enum PresentationEvent {
         start: PresentationOffset,
         /// Exclusive end of the unchanged span.
         end: PresentationOffset,
+        /// Bounded ordered candidates, withheld from the node writer even for frame-only views.
+        candidates: UnansweredReplies,
     },
 }
 /// Progress and admitted output survive a later refusal; never re-feed the prefix.
@@ -51,7 +63,7 @@ pub struct PresentationFeed {
     pub presentation: Presentation,
     /// Ordered node replies, independent of the presentation log.
     pub replies: Replies,
-    /// Typed exceptions carry offsets only, never terminal text in logs.
+    /// Typed exceptions carry offsets and whitelisted candidates, never query text.
     pub events: Vec<PresentationEvent>,
     /// A refusal stops interpretation at the reported prefix; the owner must fence it.
     pub outcome: Result<(), ScreenError>,
@@ -84,6 +96,7 @@ pub struct Multiplexer {
     deferred: Vec<u8>,
     controls: Vec<usize>,
     overlap: Overlap,
+    candidates: UnansweredReplies,
     string_end: Option<EscapeEffect>,
     failure: Option<ScreenError>,
 }
@@ -99,6 +112,7 @@ impl Multiplexer {
             deferred: Vec::new(),
             controls: Vec::new(),
             overlap: Overlap::None,
+            candidates: UnansweredReplies::default(),
             string_end: None,
             failure: None,
         })
@@ -211,6 +225,8 @@ impl Multiplexer {
         };
         if decoded.step.prefix == vt100::PrefixEnd::Ended {
             self.end_prefix(token, &replies, result)?;
+        } else if matches!(token, Token::Answered) && !self.deferred.is_empty() {
+            self.defer(&replies)?;
         }
         if decoded.executed == Some(byte) {
             self.controls.push(self.pending.len());
@@ -253,13 +269,22 @@ impl Multiplexer {
             }
             Token::Preserve | Token::Answered => {
                 if matches!(token, Token::Answered) {
-                    self.overlap = Overlap::QueryUnanswered;
+                    self.defer(replies)?;
                 }
                 append(&mut self.deferred, &self.pending, MAX_CONTROL_TOKEN_BYTES)?;
                 self.pending.clear();
                 self.controls.clear();
             }
         }
+        Ok(())
+    }
+    fn defer(&mut self, replies: &Replies) -> Result<(), ScreenError> {
+        append(
+            &mut self.candidates.0,
+            replies.as_bytes(),
+            crate::MAX_REPLY_BYTES,
+        )?;
+        self.overlap = Overlap::QueryUnanswered;
         Ok(())
     }
     fn finish(&mut self, token: Token, result: &mut PresentationFeed) -> Result<(), ScreenError> {
@@ -308,6 +333,7 @@ impl Multiplexer {
             result.events.push(PresentationEvent::AmbiguousOverlap {
                 start,
                 end: PresentationOffset(result.presentation.0.len()),
+                candidates: std::mem::take(&mut self.candidates),
             });
         }
         self.pending.clear();

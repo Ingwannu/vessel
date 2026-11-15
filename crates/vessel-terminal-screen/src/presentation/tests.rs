@@ -112,9 +112,14 @@ fn ambiguous_title_and_cancelled_csi_spans_remain_unchanged_and_unanswered() {
             );
             assert_eq!(a.events.len() + b.events.len(), 1);
             let event = a.events.first().or(b.events.first()).unwrap();
-            let PresentationEvent::AmbiguousOverlap { start, end } = event;
+            let PresentationEvent::AmbiguousOverlap {
+                start,
+                end,
+                candidates,
+            } = event;
             assert_eq!(start.get(), 0);
             assert_eq!(end.get(), source.len());
+            assert_eq!(candidates.as_bytes(), b"\x1b[1;1R");
         }
     }
 }
@@ -171,4 +176,53 @@ fn decoded_parameter_presence_distinguishes_bare_and_explicit_zero_without_a_sca
             vec![Explicit(0), Omitted]
         ]
     );
+}
+
+#[test]
+fn one_overlap_candidate_set_survives_chunking_and_is_never_an_automatic_node_reply() {
+    let source = b"\x1b]2;title\x1b]10;?\x1b[6n";
+    for split in 0..=source.len() {
+        let mut authority = mux();
+        let a = authority.feed(&source[..split]);
+        let b = authority.feed(&source[split..]);
+        assert_eq!(a.outcome, Ok(()));
+        assert_eq!(b.outcome, Ok(()));
+        assert!(a.replies.as_bytes().is_empty() && b.replies.as_bytes().is_empty());
+        assert_eq!(
+            [a.presentation.as_bytes(), b.presentation.as_bytes()].concat(),
+            source
+        );
+        assert_eq!(a.events.len() + b.events.len(), 1);
+        let PresentationEvent::AmbiguousOverlap { candidates, .. } =
+            a.events.first().or(b.events.first()).unwrap();
+        assert_eq!(
+            candidates.as_bytes(),
+            b"\x1b]10;rgb:e6e6/e6e6/e6e6\x1b\\\x1b[1;1R"
+        );
+        let later = authority.feed(b"text");
+        assert!(later.events.is_empty() && later.replies.as_bytes().is_empty());
+        assert_eq!(later.presentation.as_bytes(), b"text");
+    }
+}
+#[test]
+fn kitty_queries_are_suppressed_while_mode_negotiation_stays_in_presentation() {
+    let source = b"\x1b[>7u\x1b[?1;2004;9001h\x1b[?u";
+    let expected = b"\x1b[>7u\x1b[?1;2004;9001h";
+    for split in 0..=source.len() {
+        let mut authority = mux();
+        let a = authority.feed(&source[..split]);
+        let b = authority.feed(&source[split..]);
+        assert_eq!(a.outcome, Ok(()));
+        assert_eq!(b.outcome, Ok(()));
+        assert_eq!(
+            [a.presentation.as_bytes(), b.presentation.as_bytes()].concat(),
+            expected
+        );
+        assert_eq!(
+            [a.replies.as_bytes(), b.replies.as_bytes()].concat(),
+            b"\x1b[?7u"
+        );
+        assert!(a.events.is_empty() && b.events.is_empty());
+        assert_eq!(authority.screen().input_modes().kitty.get(), 7);
+    }
 }
