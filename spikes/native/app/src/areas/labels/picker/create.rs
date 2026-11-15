@@ -51,8 +51,10 @@ pub(super) fn overlay(
     if let Some(failure) = picker.error.or_else(|| draft.error()) {
         body = body.child(super::super::draw::failure_text(failure, shell));
     }
-    if !availability(state, picker).connected() {
-        body = body.child(shell.words.labels().offline());
+    if picker.access == EditAccess::ReadOnly {
+        body = body.child(shell.words.labels().read_only());
+    } else if let Err(failure) = availability(state, picker).writable() {
+        body = body.child(super::super::draw::failure_text(failure, shell));
     }
     let footer = vec![
         button_with_kind(

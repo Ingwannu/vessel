@@ -106,11 +106,16 @@ pub(super) fn overlay(
 }
 
 fn note(shell: &Shell, picker: &super::WorkspacePicker) -> Option<&'static str> {
-    let failure = picker
-        .error
-        .or_else(|| picker.model.error())
-        .or_else(|| availability(&shell.areas.labels, picker).writable().err());
-    failure.map(|failure| super::super::draw::failure_text(failure, shell))
+    if let Some(failure) = picker.error.or_else(|| picker.model.error()) {
+        return Some(super::super::draw::failure_text(failure, shell));
+    }
+    if picker.access == vessel_app_view::labels::EditAccess::ReadOnly {
+        return Some(shell.words.labels().read_only());
+    }
+    availability(&shell.areas.labels, picker)
+        .writable()
+        .err()
+        .map(|failure| super::super::draw::failure_text(failure, shell))
 }
 
 impl Shell {

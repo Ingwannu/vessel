@@ -78,3 +78,6 @@ labels-color-blue = 파랑
 
 # Exact selected connection retired; never replay the old request on another admission.
 labels-changed = 선택한 연결이 변경되었습니다. 다시 시도하세요.
+
+# Canonical workspace caller marks the registry target inactive or read-only; connecting cannot unlock it.
+labels-read-only = 이 작업공간에서는 라벨을 변경할 수 없습니다.

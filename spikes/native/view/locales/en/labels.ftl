@@ -81,3 +81,6 @@ labels-color-blue = Blue
 
 # Exact selected connection retired; never replay the old request on another admission.
 labels-changed = The selected connection changed. Try again.
+
+# Canonical workspace caller marks the registry target inactive or read-only; connecting cannot unlock it.
+labels-read-only = Labels cannot be changed in this workspace.
