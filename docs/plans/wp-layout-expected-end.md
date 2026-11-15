@@ -55,7 +55,10 @@ that independent retirement. A sealed ticket is not an exception to those rules.
 
 Normal means a typed normal stream outcome under the original valid delivery
 lease, not an arbitrary error, transport close or inferred state from a copied
-snapshot. Records arriving after sealing reject even if they were buffered
+snapshot. A SessionEnded record or status notice alone is not permission to
+discard the stream's remaining records. The same ordered pump must install its
+preceding record batches before its terminal normal-end envelope; a metadata
+observer cannot synthesize that envelope from an ended status. Records arriving after sealing reject even if they were buffered
 earlier. The preserved completion uses canonical ticket settlement, never the
 record receive path or context refresh. The normal-end notice distinguishes
 partial ingress sealing from full FollowRetirement so a generic owner callback
