@@ -144,6 +144,15 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   before checking the count. Early validation avoids that unnecessary work.
   Paseo uses `Date.parse`; Vessel uses
   RFC 3339 with an explicit offset so machine locale cannot alter selection.
+- The `--since` unit also differs: CLI `utils/timeline.ts:16-26` fetches
+  projected history, then compares each item's timestamp; under the server's
+  `agent/timeline-projection.ts:156,234,286`, that is the last merged tool,
+  reasoning or assistant fragment's time. Paseo keeps or drops the whole
+  projected item. Vessel compares raw records, the same unit as `--from`,
+  `--tail` and retention, so output can start inside a message or tool
+  lifecycle without its earlier fragments. No CLI projection is added:
+  history and live use the same predicate, while Paseo's live path already
+  compares each event (`logs.ts:385-386`).
 - Follow prints the tail of what exists (default 10 when `--tail` is
   omitted, `:334-335`) and then streams. One-shot with no `--tail` prints
   the whole selection. Follow joins assistant and reasoning fragments
@@ -320,6 +329,9 @@ No row of the crate table changes.
   TS freshness tests. Both prebuilds and all applicable checks passed; no
   waiver or rerun was needed. Forge checks were skipped because this base
   has no forge-fixture feature. The wire and page are unchanged.
+- Review correction: the timestamp floor's raw-record unit, midpoint effect
+  and history/live consistency are now explicit in the ADR, plan and help.
+  This changes documentation only; the complete code gate remains valid.
 - Slice 5b passed its complete gate: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
@@ -337,7 +349,7 @@ No row of the crate table changes.
   EOF, interruption and stream notices finish an open text line; terminal
   bytes stay untouched. Follow passed narrow clippy, eleven log units and
   three fake-node CLI cases, including history-to-live output exactly once
-  and EOF. Follow still owes its separate complete gate.
+  and EOF. Follow's separate complete gate is queued.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
@@ -345,7 +357,7 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Next: run the separate complete gate for follow slice 5c while
+- Next: finish the separate complete gate for follow slice 5c while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
