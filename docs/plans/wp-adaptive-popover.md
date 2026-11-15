@@ -98,6 +98,10 @@ similarly asserts the render count did not change. Both presentations test stale
 field-focus, arbitrary body action, outside/header dismissal and fresh B input.
 These corrected regressions and InputFence are not yet executed; earlier source
 typechecks do not prove this capture boundary.
+The exact039 priority suite passed formatting and structural checks, then Clippy
+stopped only on test target-index arithmetic and unreachable!. The corrected
+regression uses an exhaustive Target enum, without either operation or a lint
+allowance. No test execution occurred in that failed suite.
 
 The control producer is isolated with only the typed dialog/snap prerequisite and
 this control. It began on dd13; package base8/91407173 is now merged in0313d40a9

@@ -54,18 +54,30 @@ fn assert_unmodified(probe: &Probe, before: usize) {
     );
 }
 
+enum Target {
+    Field,
+    Body,
+    Outside,
+    Glyph,
+}
+
 #[gpui::test]
 fn retained_pointer_cannot_focus_old_fields_run_body_or_close_new_surface(cx: &mut TestAppContext) {
     for narrow in [false, true] {
-        for target in 0..if narrow { 4 } else { 3 } {
+        for target in [Target::Field, Target::Body, Target::Outside]
+            .into_iter()
+            .chain(narrow.then_some(Target::Glyph))
+        {
             let (probe, cx) = mount(cx, narrow, false);
             let at = match target {
-                0 | 1 => probe.read_with(cx, |probe, _| {
-                    probe.body.borrow().get(target + 1).unwrap().center()
-                }),
-                2 => point(px(2.0), px(2.0)),
-                3 => cx.debug_bounds("dialog-close").unwrap().center(),
-                _ => unreachable!(),
+                Target::Field => {
+                    probe.read_with(cx, |probe, _| probe.body.borrow().get(1).unwrap().center())
+                }
+                Target::Body => {
+                    probe.read_with(cx, |probe, _| probe.body.borrow().get(2).unwrap().center())
+                }
+                Target::Outside => point(px(2.0), px(2.0)),
+                Target::Glyph => cx.debug_bounds("dialog-close").unwrap().center(),
             };
             cx.update(|window, cx| {
                 let before = probe.read(cx).renders.get();
