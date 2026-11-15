@@ -435,3 +435,22 @@ No row of the crate table changes.
   citations and retain the raw-chunk test; the selection render context changes
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
+
+## Shared preflight for validation before work
+
+Existing assets: the RPC client already checks the call's optional protocol
+requirement before allocating a request id or writing. Expose that same check
+through `Connection::check_call` and the SDK delegate so a CLI can refuse before
+creating a worktree or other preparatory side effects. `start` uses the wrapper,
+so there is still one condition and one error mapping. The wrapper allocates
+no request id, enqueues nothing and grants no node authority; send-time checking
+remains mandatory. A raw-memory peer test checks exact refusal and that the next
+valid request is its first frame with id zero. No wire type, number, threshold,
+message or dependency changes. This small seam lands independently of pending
+background work so other callers can reuse it. Its narrow and whole checks
+remain owed.
+
+Before adding the preflight delegate, the SDK's existing `protocol()` accessor
+moves unchanged into `client::protocol`. This behavior-preserving extraction
+keeps endpoint calls within their shrinking size budget; it changes no public
+signature, value or assertion. The preflight wrapper follows as its own commit.
