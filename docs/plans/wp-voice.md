@@ -468,3 +468,10 @@ the new classified named aliases. These DTOs do not enter the existing
 NodeSettings wire graph yet; generated declarations are unchanged for now.
 Runtime/strict results for this slice remain owed; the previous189e2cc0 strict
 pass predates it.
+
+Voice settings first VM Proto+ts run437739b2c executed337 tests successfully
+and failed3 alias/TS assertions. All9 new non-TS settings policy tests passed;
+the new named aliases were inserted out of global order, invalidating the
+existing binary-search classifier. Restore sorted positions of only those3
+rows, leaving the classifier and prior aliases unchanged. These initial
+failures remain recorded; a corrected-head result is still owed.
