@@ -590,3 +590,22 @@ and thinking updates share exact option-ID/value acknowledgement verification; a
 returned list that omits the requested selection is an invalid receipt, never
 success. Added stale/wrong-setting acknowledgement fixtures. Update's full result
 projection and provider notices remain pending; no latest execution claim.
+
+
+### Atomic steer fallback and remote interruption
+
+The existing session actor returns CannotSteer while a running driver lacks
+steering (delivery.rs303); a client read then interrupt would race, and generic
+Unsupported is not a typed no-mutation receipt. Coordinator assigned the atomic
+SteerOrInterrupt policy and typed outcome to W23's prompt-receipt transport. W17
+and W12b consume the reviewed contract; no local fallback, speculative retry or
+new delivery enum is added here. Existing Unsupported remains an honest temporary
+difference until that actor contract lands.
+
+Exact shared output5305 targeted regression passed6/0/0. Its strict run101545
+was cancelled143 while queued at10:35:42, with no cargo step. T/coordinator
+confirmed an operator-approved VM resize/restart and no live old runners. Original
+logs remain output-seam-clippy2; one same-source replacement is submitted in a
+new output-seam-clippy3 folder. Cancellation is neither source failure nor PASS.
+All future Cargo/rustc and compilation/checks are VM-only; no new local Cargo job
+is permitted, including metadata (the one earlier metadata exception completed).
