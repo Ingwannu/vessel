@@ -1784,3 +1784,10 @@ and the source's finite/positive rule; Rust execution remains owed. The two
 feedback fixtures now use above-bound1000001 rather than malformed text to
 exercise a real remaining error. No wire/schema/node bound or word ownership
 changed, and no JavaScript runtime/dependency was added to the form.
+
+
+The same selector audit found the authored actual-footer regression also
+queried a button id as if it were a debug selector. The actual Save button now
+exposes that debug selector after its guarded shared Button handler is attached;
+no style, hit geometry, domain guard or production input behavior is changed.
+The test will exercise the real footer rather than an invented coordinate.

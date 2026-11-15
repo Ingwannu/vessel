@@ -8,8 +8,8 @@ use kit::{
     form_field::{self, Content},
     theme::spacing,
     ui::{
-        Div, IntoElement as _, ParentElement as _, SharedString, StatefulInteractiveElement as _,
-        Styled as _, div, px,
+        Div, InteractiveElement as _, IntoElement as _, ParentElement as _, SharedString,
+        StatefulInteractiveElement as _, Styled as _, div, px,
     },
 };
 use std::sync::Arc;
@@ -174,7 +174,9 @@ fn footer(
         if let Some(visit) = visit {
             save(shell, visit, window, cx);
         }
-    }));
+    }))
+    .into_element()
+    .debug_selector(|| "schedule-form-save".to_owned());
     div()
         .flex()
         .flex_1()
