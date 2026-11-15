@@ -6,11 +6,11 @@ pub(super) fn record(params: &serde_json::Value) -> std::io::Result<()> {
         return Ok(());
     };
     let mut options = std::fs::OpenOptions::new();
-    options.create(true).write(true).truncate(true);
+    let _ = options.create(true).write(true).truncate(true);
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt as _;
-        options.mode(0o600);
+        let _ = options.mode(0o600);
     }
     let mut file = options.open(path)?;
     serde_json::to_writer(&mut file, params)?;

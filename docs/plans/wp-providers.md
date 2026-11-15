@@ -594,3 +594,16 @@ assertion changes. Original red134s log remains provider-core-strict-fixed.
 The next immutable merged-head strict selection also includes vessel-rpc, and
 the newly added encoded-budget regressions must run before the final whole.
 No rerun of unchanged c2c3 and no whole submission is made on a known-red head.
+
+## Latest strict correction (2026-11-15 14:28 UTC)
+
+Exact db553 all-target eight-crate strict failed: the frontend extraction left
+an unused SecureGateway import, the encoded-byte constant used disallowed raw
+integer division, and fake/test helpers discarded builder/results or cloned an
+Arc implicitly. Remove the unused import, use checked integer division with a
+fail-closed zero branch, and explicitly discard those existing results/use
+Arc::clone. The byte limit remains exactly half the same even frame bound;
+process policy, assertions and transport payloads are unchanged. Original
+strict logs remain provider-core-strict-node46. The already queued db553 runtime
+selection stays unchanged; this correction needs a new strict selection before
+any replacement whole gate. No strict/runtime/whole PASS is inferred here.

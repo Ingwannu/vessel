@@ -10,9 +10,9 @@ async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_th
     let root = tempfile::tempdir().unwrap();
     let directory = DataDir::new(root.path());
     let probes = Arc::new(AtomicUsize::new(0));
-    let observed = probes.clone();
+    let observed = Arc::clone(&probes);
     let started = Configuration::open(directory.clone(), vec![], move |_, _| {
-        observed.fetch_add(1, Ordering::SeqCst);
+        let _ = observed.fetch_add(1, Ordering::SeqCst);
         async { Observation::Unavailable(UnavailableReason::NotInstalled) }
     })
     .await
@@ -36,27 +36,27 @@ async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_th
                 reason: UnavailableReason::NotChecked
             }
         ));
-        registrations
+        let _ = registrations
             .cached(id.clone(), scope.clone())
             .await
             .unwrap();
-        manager
+        let _ = manager
             .snapshot(scope.clone(), DiagnosticRead::Cached)
             .await
             .unwrap();
     }
     assert_eq!(probes.load(Ordering::SeqCst), 0);
-    manager
+    let _ = manager
         .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Discover)
         .await
         .unwrap();
     assert_eq!(probes.load(Ordering::SeqCst), 1);
-    manager
+    let _ = manager
         .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Cached)
         .await
         .unwrap();
     assert_eq!(probes.load(Ordering::SeqCst), 1);
-    manager
+    let _ = manager
         .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Refresh)
         .await
         .unwrap();
@@ -124,7 +124,7 @@ async fn prepared_product_owners_stop_under_the_node_task_tracker_with_retained_
     let registrations = manager.registrations();
     let id: ProviderId = "claude".parse().unwrap();
     assert!(matches!(
-        registrations
+        let _ = registrations
             .cached(id.clone(), CatalogueScope::Global)
             .await
             .unwrap()

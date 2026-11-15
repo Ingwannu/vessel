@@ -7,7 +7,11 @@ use std::io::{self, Write};
 
 /// Leave half the canonical frame for envelope/response metadata. This is a
 /// projection bound, not a second transport limit or a truncation threshold.
-pub(super) const MAX_PROVIDER_REPLY_BYTES: usize = vessel_rpc::MAX_FRAME.get() / 2;
+pub(super) const MAX_PROVIDER_REPLY_BYTES: usize = match vessel_rpc::MAX_FRAME.get().checked_div(2)
+{
+    Some(bytes) => bytes,
+    None => 0,
+};
 
 pub(super) fn fits(value: &impl Serialize) -> bool {
     fits_with_limit(value, MAX_PROVIDER_REPLY_BYTES)

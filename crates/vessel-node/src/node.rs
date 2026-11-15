@@ -34,7 +34,6 @@ use crate::lifecycle::Lifecycle;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::relays::{self, Relays};
-use crate::secure::SecureGateway;
 use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
 use crate::sessions::Sessions;
