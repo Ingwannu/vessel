@@ -105,7 +105,7 @@ fn legacy_websocket_and_ssh_keep_their_exact_existing_bindings() {
 fn legacy_expansion_checks_the_same_route_budget_before_new_allocation() {
     let mut entry = paired();
     let NodeAddress::Secure(target) = &mut entry.address else {
-        unreachable!()
+        panic!("paired fixture must retain its secure transport")
     };
     target.direct = (0..MAX_BOOK_ROUTES_PER_HOST)
         .map(|n| format!("ws://route-{n}.invalid:7077").parse().unwrap())
@@ -114,7 +114,7 @@ fn legacy_expansion_checks_the_same_route_budget_before_new_allocation() {
     let exact = Connections::try_from(&entry).unwrap();
     assert_eq!(exact.iter().count(), MAX_BOOK_ROUTES_PER_HOST);
     let NodeAddress::Secure(target) = &mut entry.address else {
-        unreachable!()
+        panic!("paired fixture must retain its secure transport")
     };
     target
         .relays
@@ -137,13 +137,13 @@ fn empty_duplicate_and_missing_credential_are_refused_intact() {
     );
     entry.credential = Some(CredentialSource::File(PathBuf::from("private")));
     let NodeAddress::Secure(target) = &mut entry.address else {
-        unreachable!()
+        panic!("paired fixture must retain its secure transport")
     };
     target.direct.clear();
     target.relays.clear();
     assert_eq!(Connections::try_from(&entry), Err(ConnectionProblem::Empty));
     let NodeAddress::Secure(target) = &mut entry.address else {
-        unreachable!()
+        panic!("paired fixture must retain its secure transport")
     };
     let route: vessel_proto::RouteUrl = "ws://duplicate.invalid:7077".parse().unwrap();
     target.direct = vec![route.clone(), route];

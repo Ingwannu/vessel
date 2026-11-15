@@ -390,3 +390,21 @@ successful local effects only to the matching explicit source/generation;
 failed ordinary edits preserve selection and admissions. Partial credential
 or commit-uncertain outcomes remain distinct and need their actual receipt.
 These are implementation obligations, not a new API or tested runtime.
+
+
+## Executed client strict check and correction
+
+Exact ec82c6ae was actually checked in
+settings2-narrow-20261115T145838Z-ec82c6ae. Cargo returned101 after
+94seconds; no route/private-file test executed. The receipt contains the
+actual client Checking line. The initial caller143 was a separate
+unknown delivery/attachment interruption; the registered remote run was
+recovered without resubmission and is not an infrastructure exemption.
+
+The changed-source correction removes unnecessary qualification/borrow,
+uses let-else and explicit fixture panic instead of the denied unreachable
+macro, and repairs two documentation backticks. Validation and assertion
+expectations are unchanged. The bounded-reader integer conversion now
+keeps its TryFromIntError as a typed source; it never carries file bytes.
+No suppression or relaxed limit is introduced. New strict and the eight
+route/nine private-file executions are still owed.

@@ -16,7 +16,7 @@ impl TryFrom<&BookEntry> for Connections {
 
     /// Prepare deterministic route identities without changing the old entry.
     ///
-    /// This does not verify its configured NodeId, authenticate a connection,
+    /// This does not verify its configured `NodeId`, authenticate a connection,
     /// save format2 or grant a transport permission to inherit another's trust.
     fn try_from(entry: &BookEntry) -> Result<Self, Self::Error> {
         match &entry.address {

@@ -41,9 +41,8 @@ fn malformed_utf8_and_every_error_source_never_retain_the_bytes() {
     let canary = "synthetic-private-material";
     let mut bytes = canary.as_bytes().to_vec();
     bytes.push(0xff);
-    let error = match read_limited(&mut Cursor::new(bytes), Purpose::Credential.limit()) {
-        Err(error) => error,
-        Ok(_) => panic!("invalid UTF-8 must fail"),
+    let Err(error) = read_limited(&mut Cursor::new(bytes), Purpose::Credential.limit()) else {
+        panic!("invalid UTF-8 must fail")
     };
     assert!(!format!("{error:?}").contains(canary));
     let mut source: Option<&dyn std::error::Error> = Some(&error);
@@ -59,7 +58,7 @@ fn a_read_requests_at_most_the_one_byte_probe() {
     struct Endless {
         read: usize,
     }
-    impl io::Read for Endless {
+    impl Read for Endless {
         fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
             bytes.fill(b'x');
             self.read = self.read.checked_add(bytes.len()).unwrap();
@@ -147,7 +146,7 @@ fn fifo_is_refused_before_waiting_for_a_writer() {
     let temp = tempfile::tempdir().unwrap();
     rustix::fs::mkfifoat(
         rustix::fs::CWD,
-        &temp.path().join("input"),
+        temp.path().join("input"),
         rustix::fs::Mode::RUSR | rustix::fs::Mode::WUSR,
     )
     .unwrap();

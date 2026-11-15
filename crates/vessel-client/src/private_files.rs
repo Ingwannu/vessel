@@ -4,7 +4,7 @@
 //! - Purpose: bound bytes before UTF-8/TOML allocation and reject redirected
 //!   or special book/credential targets before a blocking read.
 //! - Existing asset: the workspace's safe rustix openat pattern. std's
-//!   read_to_string alone cannot supply NOFOLLOW/NONBLOCK.
+//!   `read_to_string` alone cannot supply NOFOLLOW/NONBLOCK.
 //! - Choice: one directory handle and one finite reader; errors carry only
 //!   safe OS/UTF-8 causes, never the original bytes.
 //! - Status: private Unix test staging only. No production book/credential
@@ -85,6 +85,8 @@ enum Error {
     TooLarge { limit: ByteLimit },
     #[error("the private file byte limit does not fit this platform")]
     PlatformLimit,
+    #[error("the private file byte limit does not fit this platform")]
+    Capacity(#[source] std::num::TryFromIntError),
     #[error("private file allocation failed")]
     Allocation(#[source] TryReserveError),
     #[error("private file I/O failed")]
@@ -97,7 +99,7 @@ enum Error {
 /// buffer. Two maximum input/output pairs therefore keep ADR0097's exact
 /// encoded-byte budget; this is not a claim about total allocator overhead.
 fn read_limited(reader: &mut impl Read, limit: ByteLimit) -> Result<Text, Error> {
-    let capacity = usize::try_from(limit.0).map_err(|_| Error::PlatformLimit)?;
+    let capacity = usize::try_from(limit.0).map_err(Error::Capacity)?;
     let mut bytes = Vec::new();
     bytes
         .try_reserve_exact(capacity)
