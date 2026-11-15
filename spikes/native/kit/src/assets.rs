@@ -223,7 +223,7 @@ pub enum Glyph {
     MenuCompact,
     /// Realtime voice microphone, source 2.5 stroke on the shared 24-unit grid.
     Mic,
-    /// Realtime voice mute state; distinct from timeline MicVocal.
+    /// Realtime voice mute state; distinct from timeline `MicVocal`.
     MicOff,
     /// Filled stop square; the existing outline Stop remains unchanged.
     SquareFilled,

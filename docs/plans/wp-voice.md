@@ -281,3 +281,12 @@ handler. Switching disables both actions and replaces only Stop with the shared
 spinner, matching realtime-voice-overlay.tsx. Actual renderer consumes G2's
 reviewed exact Circle profile when available; the pending source checkpoint is
 not imported as ready.
+
+STT/TTS source suite on merged d5487770f passed26/0/0 (remote runtime test
+step0.18s after prebuilds), including the shared24k WAV/multipart policy,
+low-confidence rejection, bounded/invalid provider replies and redaction.
+It used loopback fakes only, with no provider credentials or model inference.
+Native strict c31ffbf4 returned three small defects: one glyph doc identifier,
+one immediate fake future unnecessarily async, and one fake startup unwrap in
+a Result. Fixed without allowances; current public capture API and overlay
+changes still need their first combined strict/runtime verification.

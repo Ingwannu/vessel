@@ -200,7 +200,7 @@ impl Capture {
         #[cfg(not(target_arch = "wasm32"))]
         let received = tokio::select! { biased; () = self.fence.closed() => None, frame = self.frames.recv() => frame };
         #[cfg(target_arch = "wasm32")]
-        let received = None;
+        let received = std::future::ready(None).await;
         if self.fence.is_closed() {
             self.frames.close();
             while self.frames.try_recv().is_ok() {}

@@ -81,10 +81,12 @@ impl CaptureDevice for Frames {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
     }
-    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
-        self.0
-            .capture(&[0.0; 160])
-            .map_err(|_private| DeviceFailure::Processing)
+    fn receive(&mut self) -> impl std::future::Future<Output = Result<Captured, DeviceFailure>> {
+        std::future::ready(
+            self.0
+                .capture(&[0.0; 160])
+                .map_err(|_private| DeviceFailure::Processing),
+        )
     }
     fn failure(&self) -> Option<DeviceFailure> {
         None
@@ -124,8 +126,9 @@ struct Silent {
 }
 impl CaptureDevice for Silent {
     fn start(&self) -> Result<(), DeviceFailure> {
-        self.started.send(()).unwrap();
-        Ok(())
+        self.started
+            .send(())
+            .map_err(|_private| DeviceFailure::Thread)
     }
     async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
         std::future::pending().await
