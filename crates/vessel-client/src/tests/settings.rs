@@ -5,6 +5,7 @@ use vessel_proto::settings::{GetNodeSettings, NodeSettingKey, ReloadNodeSettings
 use vessel_proto::{Method, ProtocolVersion, Request as _, ServerFrame, Welcome};
 
 use super::*;
+use crate::CallError;
 
 const PREFLIGHT_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(5);
 

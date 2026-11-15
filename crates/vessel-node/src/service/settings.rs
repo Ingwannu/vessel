@@ -26,7 +26,10 @@ impl NodeService {
         _: &Connection,
         request: SetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        self.settings.change(request).await.map_err(failure)
+        self.settings
+            .change(request)
+            .await
+            .map_err(|error| failure(&error))
     }
 
     /// Remove only validated saved overrides; permission comes from the guard.
@@ -35,7 +38,10 @@ impl NodeService {
         _: &Connection,
         request: UnsetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        self.settings.unset(&request.keys).await.map_err(failure)
+        self.settings
+            .unset(&request.keys)
+            .await
+            .map_err(|error| failure(&error))
     }
 
     /// Read and validate everything before publishing any runtime setting.
@@ -44,12 +50,15 @@ impl NodeService {
         _: &Connection,
         _: ReloadNodeSettings,
     ) -> Result<ReloadedNodeSettings, WireError> {
-        self.settings.reload().await.map_err(failure)
+        self.settings
+            .reload()
+            .await
+            .map_err(|error| failure(&error))
     }
 }
 
-fn failure(error: SettingsError) -> WireError {
-    let code = match &error {
+fn failure(error: &SettingsError) -> WireError {
+    let code = match error {
         SettingsError::Unknown
         | SettingsError::UnknownDriver(_)
         | SettingsError::Key(_)

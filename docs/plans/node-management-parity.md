@@ -92,6 +92,12 @@ slice order. The docs commit adds both and no command.
 
 ### Configuration work since this base
 
+- A later strict check compiled the client tests and found their missing
+  CallError import, and refused the wire-mapping helper's unnecessary owned
+  error argument. Add the import and borrow the error at that boundary;
+  original diagnostics, assertions and wire codes stay unchanged. Execution,
+  TS and common-writer adoption remain owed.
+
 - The next strict check reached the bounded reload reader and found an unused
   byte-count result. Bind that count explicitly; the shared JSON edge still
   checks the actual complete buffer before parsing. A new test's mechanical
