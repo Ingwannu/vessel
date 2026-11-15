@@ -1335,3 +1335,16 @@ the queued66735 control suite and final combined F1 first-use remain distinct.
   stale/unoffered refusal, explicit commit and initial provider selection. No
   current View/App compilation or runtime/UI pass is claimed; L's generated
   resolve fix still precedes the next meaningful F1 narrow suite.
+
+
+### Checked SearchField baton and next field writer
+
+G3 released the shared field writer after V1's same-row SOURCE/requested narrow
+PASS on13c46693: strict Kit all-target Clippy0 + focused2/0/0,184filtered (not a
+full Kit suite). Selected source2e3f05bf/2b9994ac/13c46693 only is adopted here:
+the two SearchField child blobs exactly13c, two field module/export lines, and
+root export union preserving FormMinimum. No App c271/whole A9/ancestry delta
+is adopted. Existing field engines/children remain unchanged at this checkpoint.
+G2 now owns the coordinator-assigned next Body/Code form-text extension, with
+G3's SearchField default/body/bare behavior preserved. No F1/consumer UI/OS/IME
+proof is borrowed from G3's bounded check.

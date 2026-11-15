@@ -1574,3 +1574,9 @@ stable while another provider is read; only an exact currently offered model
 receipt commits provider and model. This preserves the full opened spec on
 provider drill-down/cancel. The shared combobox owns chrome, icon sizes and
 return focus; F1 still owes its combined gate and actual first-use evidence.
+
+
+`field::SearchField` is G3's checked shared one-line search wrapper on TextField's
+existing bare/input engine. It owns Search/X marks and clear/edit/focus handling;
+plain field, multiline, composer and FormMinimum defaults are unchanged. Its
+selected13c control proof is source + focused Kit tests, not F1 consumer UI.
