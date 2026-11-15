@@ -8,7 +8,7 @@ const HORIZON: Duration = Duration::from_millis(150);
 /// A stalled frame cannot accumulate an unbounded reveal step.
 const MAX_ELAPSED: Duration = Duration::from_millis(250);
 /// Integer nanoseconds approximate the source's 1000/60ms frame interval.
-const FRAME_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / 60);
+const FRAME_INTERVAL: Duration = Duration::from_nanos(16_666_667);
 
 /// Rendering phase, independent of text storage and provider completion claims.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,10 +113,10 @@ fn trailing_complete_end(text: &str) -> usize {
         .rev()
         .take_while(|character| ('\u{1f1e6}'..='\u{1f1ff}').contains(character))
         .count();
-    if !indicators.is_multiple_of(2) {
-        byte
-    } else {
+    if indicators.is_multiple_of(2) {
         text.len()
+    } else {
+        byte
     }
 }
 
@@ -141,7 +141,10 @@ impl RevealClock {
         if elapsed < FRAME_INTERVAL {
             return None;
         }
-        let remainder = elapsed.as_nanos() % FRAME_INTERVAL.as_nanos();
+        let remainder = elapsed
+            .as_nanos()
+            .checked_rem(FRAME_INTERVAL.as_nanos())
+            .unwrap_or_default();
         let remainder = Duration::from_nanos(u64::try_from(remainder).unwrap_or_default());
         self.last = Some(now.saturating_sub(remainder));
         Some(elapsed)

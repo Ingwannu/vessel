@@ -26,7 +26,7 @@ fn proportional_steps_clamp_stalls_and_make_progress_without_overshooting() {
     assert_eq!(step(1, Duration::from_nanos(1)), 1);
     assert_eq!(step(42, Duration::MAX), 42);
     let large = step(usize::MAX, Duration::from_millis(149));
-    assert!(large > usize::MAX / 2 && large < usize::MAX);
+    assert!(large > usize::MAX.checked_div(2).unwrap() && large < usize::MAX);
     let mut left = 500;
     for _ in 0..120 {
         left -= step(left, Duration::from_millis(16));
@@ -36,7 +36,7 @@ fn proportional_steps_clamp_stalls_and_make_progress_without_overshooting() {
 
 #[test]
 fn utf16_release_never_cuts_combining_emoji_jamo_or_indic_clusters() {
-    for text in ["e\u{301}x", "🚀x", "❤️x", "가x", "कःx"] {
+    for text in ["e\u{301}x", "🚀x", "❤️x", "\u{1100}\u{1161}x", "कःx"] {
         let mut reveal = TextReveal::begin("");
         reveal.retarget(text);
         reveal.released = 1;
@@ -51,7 +51,8 @@ fn utf16_release_never_cuts_combining_emoji_jamo_or_indic_clusters() {
     }
     reveal.released = 9;
     assert_eq!(
-        &text[..reveal.visible_end(text, TextPhase::Streaming)],
+        text.get(..reveal.visible_end(text, TextPhase::Streaming))
+            .unwrap(),
         "x👨‍👩‍👧"
     );
     let text = "👍🏽x";
@@ -66,7 +67,8 @@ fn incomplete_arrival_fragments_wait_only_while_the_turn_is_streaming() {
     {
         let reveal = TextReveal::begin(text);
         assert_eq!(
-            &text[..reveal.visible_end(text, TextPhase::Streaming)],
+            text.get(..reveal.visible_end(text, TextPhase::Streaming))
+                .unwrap(),
             expected
         );
         assert_eq!(reveal.visible_end(text, TextPhase::Complete), text.len());

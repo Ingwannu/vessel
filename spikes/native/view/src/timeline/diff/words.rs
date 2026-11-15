@@ -41,7 +41,8 @@ pub fn word_highlights(lines: &[DiffLine<'_>]) -> WordHighlights {
         if old.side != Side::Removed || new.side != Side::Added {
             continue;
         }
-        if let Some((removed, added)) = changed_pair(old.text, new.text, &mut budget) {
+        if let Some(WordChanges { removed, added }) = changed_pair(old.text, new.text, &mut budget)
+        {
             if let Some(target) = highlights.get_mut(index) {
                 *target = removed;
             }
@@ -84,11 +85,12 @@ fn at(grid: &[usize], width: usize, row: usize, column: usize) -> Option<usize> 
     grid.get(index(width, row, column)?).copied()
 }
 
-fn changed_pair(
-    old: &str,
-    new: &str,
-    budget: &mut usize,
-) -> Option<(Vec<Range<usize>>, Vec<Range<usize>>)> {
+struct WordChanges {
+    removed: Vec<Range<usize>>,
+    added: Vec<Range<usize>>,
+}
+
+fn changed_pair(old: &str, new: &str, budget: &mut usize) -> Option<WordChanges> {
     let old = words(old)?;
     let new = words(new)?;
     let width = new.len().checked_add(1)?;
@@ -126,7 +128,10 @@ fn changed_pair(
             j = next_j;
         }
     }
-    Some((ranges(&old, &old_kept), ranges(&new, &new_kept)))
+    Some(WordChanges {
+        removed: ranges(&old, &old_kept),
+        added: ranges(&new, &new_kept),
+    })
 }
 
 fn ranges(words: &[&str], kept: &[bool]) -> Vec<Range<usize>> {
