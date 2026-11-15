@@ -1,6 +1,7 @@
 //! Agent list, inspection and lifecycle shortcuts reuse the typed node client.
 //! Provider creation and rich permissions keep their owning packages' contracts.
 
+mod inspect;
 mod mutate;
 mod prompt;
 mod row;
@@ -37,11 +38,7 @@ pub(super) async fn run(
             cwd,
             label,
         } => prompt::import(target, presentation, id, provider, cwd, label).await,
-        AgentCommand::Inspect { id } => {
-            let client = connect(target).await?.client;
-            let info = id.resolve(&client).await?;
-            output::single(presentation, &info.id.to_string(), &info).await
-        }
+        AgentCommand::Inspect { id } => inspect::run(target, presentation, id).await,
         AgentCommand::Wait(args) => {
             let client = connect(target).await?.client;
             let info = args.id.resolve(&client).await?;

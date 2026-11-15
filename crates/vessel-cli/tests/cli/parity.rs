@@ -1,7 +1,7 @@
 //! Command parity is checked through the actual executable and a fake ACP agent.
 use crate::support::{Fixture, within};
 use serde::Deserialize;
-use vessel_proto::{ContentBlock, Delivery, SessionId, SessionInfo, SessionMode, SessionSpec};
+use vessel_proto::{ContentBlock, Delivery, SessionId, SessionMode, SessionSpec};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,6 +12,13 @@ struct Waited {
 #[derive(Debug, Deserialize)]
 struct Listed {
     id: SessionId,
+}
+#[derive(Deserialize)]
+struct Inspected {
+    #[serde(rename = "Id")]
+    id: SessionId,
+    #[serde(rename = "Cwd")]
+    cwd: String,
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -183,8 +190,9 @@ async fn list_defaults_to_cwd_and_structured_refusals_have_no_creation_side_effe
             .vessel(&["inspect", &here.id.to_string(), "--json"], b"")
             .await;
         assert!(inspected.ok, "{}", inspected.stderr);
-        let info: SessionInfo = serde_json::from_str(&inspected.stdout).unwrap();
+        let info: Inspected = serde_json::from_str(&inspected.stdout).unwrap();
         assert_eq!(info.id, here.id);
+        assert_eq!(info.cwd, cwd);
         fixture.stop().await;
     })
     .await;

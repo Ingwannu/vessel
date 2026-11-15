@@ -39,6 +39,7 @@ impl State {
 #[derive(Debug, Default)]
 pub(super) struct Observed {
     pub(super) turn: Option<EventSeq>,
+    pub(super) modified_at: Option<chrono::DateTime<chrono::Utc>>,
     permissions: BTreeSet<PermissionId>,
     questions: BTreeSet<QuestionId>,
     failure: Option<String>,
@@ -56,7 +57,11 @@ impl Observed {
             State::Idle
         }
     }
+    pub(super) fn permission_ids(&self) -> impl Iterator<Item = PermissionId> + '_ {
+        self.permissions.iter().copied()
+    }
     fn event(&mut self, record: &EventRecord) {
+        self.modified_at = Some(record.at);
         if let SessionEvent::OptionsChanged { options } = &record.event {
             self.options.clone_from(options);
         }

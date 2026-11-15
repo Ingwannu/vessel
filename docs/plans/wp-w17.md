@@ -218,7 +218,7 @@ locked dependency version was updated.
 - Agent list uses current-directory scope by default, excludes archived, supports global/all,
   validated label filters and advertised thinking choices. The provider field currently uses
   Vessel's HarnessRef rather than W22's canonical ProviderId; model IDs and relative created labels follow the reference.
-  Inspect currently returns typed SessionInfo, not Paseo's capitalized Inspect projection.
+  Inspect projects the capitalized reference fields from typed session/log facts; unavailable source facts remain null.
 - Stop reconstructs the logged turn and cancels that exact turn; it does not call process kill.
   Live archive without --force refuses until an atomic archive-if-idle contract is available;
   the current mark call unconditionally stops a live session and is unsafe for that promise.
@@ -437,3 +437,18 @@ service configuration is touched. No permission/ownership setting was changed. P
 base3 6c782cb6 was merged as instructed (8467e96c); the exact approved e2e race fix c5da5305
 was merged first, with no local edits to that test. The pure screen engine and the listed
 external contracts still await their owners' reviewed consumer heads.
+
+Inspect now serializes the reference capitalized field names and renders key/value rows.
+It reuses the same bounded history snapshot for model/mode/thinking, last log timestamp and
+pending permission IDs, including ended agents. LastUsage/Capabilities remain null because
+Vessel's current snapshot does not supply those equivalent facts; unknown tools are named
+unknown. Worktree is the actual Vessel WorktreeId, not an invented workspace ID or a Paseo
+label alias. ParentAgentId remains null until W2's actual attachment contract is available;
+Creator provenance is deliberately never used to infer current parentage.
+
+Host registry scoped run e638bc46 passed 5/0/0 (wp-cli-narrow-20261115T081853Z-e638bc46,
+/tmp/work/wp-cli/host-registry-tests). The second TS attempt overlapped the required base3
+merge and compiled mixed old/new ScriptEntry APIs; current source matches base3's entry
+API. That attempt is invalid generation evidence, and generation is rerun on stable source.
+W22 confirmed output-schema belongs to atomic create+initial prompt/per-turn transport,
+not durable SessionSpec configuration; W17 retains CLI semantic validation/retry ownership.

@@ -78,6 +78,16 @@ impl ShortId {
 }
 
 fn provider(info: &SessionInfo, options: &[SessionOption]) -> String {
+    let model = model(info, options);
+    model.map_or_else(
+        || info.spec.harness.to_string(),
+        |model| format!("{}/{model}", info.spec.harness),
+    )
+}
+pub(super) fn model(
+    info: &SessionInfo,
+    options: &[SessionOption],
+) -> Option<vessel_proto::ModelId> {
     let model = selected(options, vessel_proto::OptionCategory::Model)
         .map(vessel_proto::OptionValueId::as_str)
         .or_else(|| info.model.as_ref().map(|model| model.model.as_str()))
@@ -89,10 +99,7 @@ fn provider(info: &SessionInfo, options: &[SessionOption]) -> String {
         })
         .map(str::trim)
         .filter(|model| !model.is_empty() && !model.eq_ignore_ascii_case("default"));
-    model.map_or_else(
-        || info.spec.harness.to_string(),
-        |model| format!("{}/{model}", info.spec.harness),
-    )
+    model.map(vessel_proto::ModelId::new)
 }
 fn relative(created: chrono::DateTime<chrono::Utc>, now: chrono::DateTime<chrono::Utc>) -> String {
     let elapsed = now.signed_duration_since(created);
