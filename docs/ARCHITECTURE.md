@@ -96,6 +96,14 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | `ts-rs` | only `vessel-proto`, `vessel-web` | The page's TypeScript is generated from the wire and the bridge's frames. |
 | `tokio` | never `vessel-proto` | The wire contract has no runtime: the native app's `view` uses it and compiles to WebAssembly. |
 
+Cursor's optional local usage source asks `vessel-store` for one fixed read-only
+ItemTable credential query. The harness receives a deferred callback supplied by
+the node; it has no SQLite dependency. The reader opens an existing database in
+immutable read-only mode, refuses active WAL instead of ignoring newer contents,
+and never creates, migrates or modifies the agent's database. Only explicit source
+refresh invokes it; descriptor/cache reads do not. This preserves SQLite's one
+owner while the source adapter retains vendor/schema/credential-use ownership.
+
 ### Names only some files may use
 
 | Name | Crate | May appear | Why |

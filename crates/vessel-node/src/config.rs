@@ -120,6 +120,8 @@ pub struct Config {
     pub(crate) push_preparation: Option<std::sync::Arc<crate::push::Preparation>>,
     /// Explicit quota backend; the library default accesses no saved sign-in.
     pub limits: vessel_harness::LimitProbe,
+    /// Additional-source capabilities; a separate versioned source grant is always required.
+    pub usage_sources: vessel_harness::AccountUsageProbe,
     /// Nonsecret inherited route facts captured only by the binaries.
     pub limit_environment: vessel_harness::LimitEnvironment,
 }
@@ -195,6 +197,7 @@ impl Config {
             #[cfg(test)]
             push_preparation: None,
             limits: vessel_harness::LimitProbe::Disabled,
+            usage_sources: vessel_harness::AccountUsageProbe::Disabled,
             limit_environment: vessel_harness::LimitEnvironment::new(),
         }
     }
@@ -207,9 +210,19 @@ impl Config {
     /// configuration, rather than as field assignments in `vesseld`'s
     /// `run`, which holds no rule of its own about limits.
     #[must_use]
-    pub fn with_local_limits(mut self, var: impl Fn(&str) -> Option<OsString>) -> Self {
+    pub fn with_local_limits(
+        mut self,
+        var: impl Fn(&str) -> Option<OsString> + Send + Sync + 'static,
+    ) -> Self {
         self.limits = vessel_harness::LimitProbe::Local;
-        self.limit_environment = vessel_harness::LimitEnvironment::from_vars(var);
+        self.limit_environment = vessel_harness::LimitEnvironment::from_vars(&var);
+        self.usage_sources = vessel_harness::AccountUsageProbe::Local(
+            vessel_harness::AccountSourceAccess::new(self.harness_env.user_home().to_owned(), var)
+                .with_cursor_reader(|path| {
+                    vessel_store::read_cursor_usage_sign_in(path)
+                        .map_err(|_private| vessel_proto::limits::LimitFailure::UnsafeLoginStore)
+                }),
+        );
         self
     }
 }

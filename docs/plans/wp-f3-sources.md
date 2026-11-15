@@ -151,3 +151,27 @@ Kimi rows mark a partial observation; an oversized or non-array limits collectio
 refuses the complete response instead of bypassing bounds via a fallback decoder.
 These parsers alone do not implement discovery, local sign-in reads, real fetch,
 consent or launch association. Those remain required and unverified.
+
+### Additional-source local and HTTP adapters
+
+[Decision Log]
+- Reuse: the existing limits admission, native-root TLS client, no-proxy/no-redirect
+  transport, bounded private credential reader and vendor cooldown remain shared.
+  Additional vendors use fixed endpoint/method/header enums, never client URLs.
+- Local reads: a binary supplies deferred environment/SQLite capabilities. Merely
+  constructing Config or the access capability does not read a token. Disabled
+  and fakes-Local perform no local/provider access; Recorded confines every file
+  to its temporary root. Tokens and bodies use zeroizing private values.
+- Association: a private token+region equality proof controls retained success; it
+  is never the public account id, a diagnostic or persisted data. Expired/rejected
+  credentials are not refreshed or written. Parsed text reflecting a credential
+  is refused before values leave the format boundary.
+- Cancellation: a blocking read holds its own cloned admission until actual
+  completion, even if its awaiting future is cancelled. Cached service reads
+  must never call this adapter; source consent/runtime wiring remains a distinct
+  step and unsupported until complete.
+- Deliberate safety differences: GitHub CLI credentials require github.com host
+  evidence; foreign MiniMax bases refuse rather than sending credentials there.
+  Cursor SQLite is owned by vessel-store and reads immutably; an active WAL is
+  refused, with the separately disclosed headless fallback remaining available.
+  No actual login/provider/production data was used for tests.

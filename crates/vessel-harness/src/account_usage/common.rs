@@ -11,7 +11,7 @@ use vessel_proto::{
 };
 /// A vendor may encode a number as JSON numeric text; null is handled by Option.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct Number(pub(super) FiniteNumber);
+pub(crate) struct Number(pub(crate) FiniteNumber);
 impl<'de> Deserialize<'de> for Number {
     fn deserialize<D: serde::Deserializer<'de>>(decoder: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]

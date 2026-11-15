@@ -1,7 +1,11 @@
 //! Opt-in saved-sign-in quota lookups. All provider schemas, paths and
 //! fixed network destinations stay here. The node owns policy, admission
 //! and cache lifetime; this module never discovers or changes a login.
+mod account_sources;
 mod claude;
+pub use account_sources::{
+    AccountSourceAccess, AccountUsageIdentity, AccountUsageObservation, AccountUsageProbe,
+};
 mod codex;
 mod context;
 mod credential;

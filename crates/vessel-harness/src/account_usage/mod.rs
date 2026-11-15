@@ -1,6 +1,7 @@
 //! Typed additional vendor response boundaries; no credential or network I/O here.
 //! Existing Claude/Codex parsers remain the single owners of their schemas.
 mod common;
+pub(crate) use common::Number;
 mod copilot;
 mod cursor;
 mod grok;
