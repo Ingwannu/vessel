@@ -6,15 +6,37 @@ use vessel_app_view::composer_shell::links::{Link, Origin, Workspace, classify};
 use vessel_app_view::workspace::file_location::FileLocation;
 use vessel_proto::workspace::RelPath;
 
-use super::FileKey;
+use super::{FileKey, Mode};
 use crate::shell::Shell;
+use vessel_app_view::workspace::file_scope::FileScope;
 
 impl Shell {
-    pub(super) fn markdown_link(&mut self, key: &FileKey, href: &str, cx: &mut Context<'_, Self>) {
-        // A retained callback cannot navigate a newly selected workspace, even
-        // when it has a file with the same path. The live lease cutover adds
-        // G4's generation admission to this existing captured owner guard.
-        if self.areas.workspace.code.file_key().as_ref() != Some(key) {
+    fn markdown_link_is_current(&self, key: &FileKey, scope: &FileScope) -> bool {
+        let panel = &self.areas.workspace.code;
+        self.route == crate::routes::Route::Session
+            && panel.open
+            && panel.tab == super::super::Tab::Files
+            && panel.file_key().as_ref() == Some(key)
+            && self.active_file_scope().as_ref() == Some(scope)
+            && panel.files.viewer.as_ref().is_some_and(|viewer| {
+                viewer.scope == *scope
+                    && viewer
+                        .markdown
+                        .as_ref()
+                        .is_some_and(|preview| preview.mode == Mode::Preview)
+            })
+    }
+    pub(super) fn markdown_link(
+        &mut self,
+        key: &FileKey,
+        scope: &FileScope,
+        href: &str,
+        cx: &mut Context<'_, Self>,
+    ) {
+        // Buffer identity deliberately excludes connection epochs. A click
+        // also carries its original admission: reconnecting the same file
+        // cannot silently turn an old rendered link into new-connection I/O.
+        if !self.markdown_link_is_current(key, scope) {
             return;
         }
         match classify(href, Origin::Href, Workspace::Known) {
@@ -87,5 +109,80 @@ mod tests {
         ] {
             assert!(relative_path(&document, target).is_none(), "{target}");
         }
+    }
+
+    #[gpui::test]
+    fn old_preview_click_cannot_use_rebound_same_node_or_another_session(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        use crate::areas::workspace::code::io_tests;
+        use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
+        crate::shell::language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update(cx, |shell, cx| {
+            let root = io_tests::root();
+            io_tests::target(shell, root);
+            shell.route = crate::routes::Route::Session;
+            shell.areas.workspace.code.open = true;
+            shell.areas.workspace.code.tab = super::super::super::Tab::Files;
+            let session = shell.areas.workspace.code.target.as_ref().unwrap().session;
+            shell.areas.session.open = Some(crate::areas::session::Open {
+                machine: "node".into(),
+                session,
+                title: "fixture".into(),
+                agent: "fixture".into(),
+                structured: true,
+                live: true,
+            });
+            shell.open_file_at("docs/start.md".parse().unwrap(), None, cx);
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            let mut epochs = ConnectionEpochs::default();
+            let first = epochs
+                .admit(MachineKey::from_book("node"), key.node)
+                .unwrap();
+            let old = FileScope::new(first.clone(), root);
+            shell
+                .areas
+                .workspace
+                .code
+                .target
+                .as_mut()
+                .unwrap()
+                .admission
+                .as_mut()
+                .unwrap()
+                .context = first.clone();
+            shell.areas.workspace.code.viewer_for(&key).unwrap().scope = old.clone();
+            let mut machine = vessel_app_view::Machine::unreachable("node".into(), "fixture");
+            machine.node = Some(key.node);
+            machine.connection_epoch = Some(first.epoch());
+            shell.fleet.machines.push(machine);
+            assert!(shell.markdown_link_is_current(&key, &old));
+            let second = epochs
+                .admit(MachineKey::from_book("node"), key.node)
+                .unwrap();
+            let new = FileScope::new(second.clone(), root);
+            shell.fleet.machines.last_mut().unwrap().connection_epoch = Some(second.epoch());
+            shell
+                .areas
+                .workspace
+                .code
+                .target
+                .as_mut()
+                .unwrap()
+                .admission
+                .as_mut()
+                .unwrap()
+                .context = second;
+            shell.areas.workspace.code.viewer_for(&key).unwrap().scope = new.clone();
+            assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
+            assert!(!shell.markdown_link_is_current(&key, &old));
+            shell.markdown_link(&key, &old, "../other.md", cx);
+            assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
+            assert!(shell.markdown_link_is_current(&key, &new));
+            shell.areas.session.open.as_mut().unwrap().session = vessel_proto::SessionId::random();
+            assert!(!shell.markdown_link_is_current(&key, &new));
+            assert!(shell.active_file_scope().is_none());
+        });
     }
 }

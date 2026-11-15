@@ -679,3 +679,24 @@ ordinary quit still aggregates every node. A synthetic GPUI owner regression
 reuses one alias/path/root for two actual nodes and pins parked Dirty/Pending/
 Uncertain isolation. It is source-only and does not prove service lifecycle,
 controller admission or forced-exit recovery.
+
+### Markdown activation retains original admission
+
+Buffer identity intentionally survives same-node reconnect, so FileKey alone
+cannot fence an old rendered link. Markdown actions now capture the original
+FileScope as well as root/path. Before opening any relative file or external
+URL, the legacy host must still be mounted in Files/Preview, the current owner
+must match, the exact active session/root receipt must match, and its original
+connection context must still be the current snapshot. A second epoch on the
+same node/file and a switched session both refuse the old activation. The
+node still admits any resulting file effect; this check grants no filesystem
+or OS authority and does not replace W12's future typed pane visibility.
+
+Shell::active_file_scope reuses the existing checked-root/session query and
+returns its FileScope facts for consumers; it neither resolves an arbitrary
+workspace nor searches aliases by NodeId. The former Name/root getter stays
+source-compatible. The new GPUI source regression makes same-key reconnect
+explicit and checks that an old callback opens no replacement file. Current
+strict19/workspace4 predate this correction, so combined execution is owed.
+Upload/intake/lightbox remains the composer owner's source-only connection;
+its bounded image normalizer leaf is separately awaiting its exact Kit check.

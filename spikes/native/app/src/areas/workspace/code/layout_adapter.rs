@@ -22,6 +22,19 @@ impl Shell {
         Some((machine, root))
     }
 
+    /// Capture the active session's already resolved original file admission.
+    /// This supplies request facts only: G4 rechecks every actual effect, and
+    /// this is not a runtime owning-workspace or file-pane resolver.
+    pub(crate) fn active_file_scope(
+        &self,
+    ) -> Option<vessel_app_view::workspace::file_scope::FileScope> {
+        let (machine, root) = self.file_workspace_scope()?;
+        let context = self.file_connection(machine.as_str())?;
+        Some(vessel_app_view::workspace::file_scope::FileScope::new(
+            context, root,
+        ))
+    }
+
     /// Reuse an already resolved session root only for its exact node and
     /// session. A composer may resolve session.get itself when absent.
     pub(crate) fn code_workspace_scope(

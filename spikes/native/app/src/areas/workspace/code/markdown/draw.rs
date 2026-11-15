@@ -106,18 +106,21 @@ pub(in crate::areas::workspace::code) fn body(
 }
 
 fn document_element(
-    key: FileKey,
+    shell: &Shell,
+    viewer: &Viewer,
     ticket: FileTicket,
     document: &MarkdownDocument,
-    unavailable: &'static str,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    let key = FileKey::new(&viewer.scope, viewer.path.clone());
+    let scope = viewer.scope.clone();
+    let unavailable = shell.words().labels().file_image_unavailable;
     let weak = cx.entity().downgrade();
     let actions = Actions::new(move |href, _, app| {
         let _gone = weak.update(app, |shell, cx| {
-            shell.markdown_link(&key, href.as_str(), cx);
+            shell.markdown_link(&key, &scope, href.as_str(), cx);
         });
     })
     .with_images(move |_| {
@@ -182,14 +185,8 @@ fn stage_element(
         Stage::Incomplete => div()
             .child(labels.file_preview_incomplete)
             .into_any_element(),
-        Stage::Ready { ticket, document } => document_element(
-            key,
-            *ticket,
-            document,
-            labels.file_image_unavailable,
-            tokens,
-            window,
-            cx,
-        ),
+        Stage::Ready { ticket, document } => {
+            document_element(shell, viewer, *ticket, document, tokens, window, cx)
+        }
     }
 }
