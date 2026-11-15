@@ -257,3 +257,9 @@ expectations must be replaced by integrated positive fixtures, alongside
 the pending-only Rust/CLI tests. Shared native changes are confined to the
 existing wire-gap fixture helper and its README explanation, with no screen
 or app-control source changes.
+
+CLI decode failures retain the original typed parser cause but expose only
+line/column in output and Debug. The command boundary stops cause-chain
+rendering for that one input error because serde diagnostics can quote
+untrusted values or field names; a synthetic-marker regression covers the
+actual CLI formatter. Other command errors keep their existing rendering.

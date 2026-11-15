@@ -46,6 +46,8 @@ use std::process::ExitCode;
 use clap::Parser as _;
 
 use crate::args::{Cli, Command};
+use crate::error::CliError;
+use crate::launch_profiles::LaunchCliError;
 
 /// The stack of the thread the CLI runs on.
 const STACK: usize = 8 * 1024 * 1024;
@@ -160,8 +162,14 @@ async fn cli() -> ExitCode {
     }
 }
 
-/// The error and its causes on one line.
-fn chain(error: &dyn std::error::Error) -> String {
+/// Public diagnostic on one line; input decoder cause text stays private.
+fn chain(error: &CliError) -> String {
+    use std::error::Error as _;
+    // Serde diagnostics can quote an untrusted input value or field name.
+    // Retain their typed cause, while the command boundary prints location only.
+    if matches!(error, CliError::LaunchProfile(LaunchCliError::Decode(_))) {
+        return error.to_string();
+    }
     let mut text = error.to_string();
     let mut source = error.source();
     while let Some(cause) = source {
