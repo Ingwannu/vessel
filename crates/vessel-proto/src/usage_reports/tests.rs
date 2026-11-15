@@ -64,14 +64,14 @@ fn observed() -> SuccessfulUsageReport {
     }
 }
 fn entry(id: &str, state: SourceReportState) -> SourceReportEntry {
-    SourceReportEntry {
-        id: id.parse().unwrap(),
-        source_label: name("Example source"),
-        builtin: None,
-        saved_login: None,
-        account_label: Some(name("Same human label")),
+    SourceReportEntry::new(
+        id.parse().unwrap(),
+        name("Example source"),
+        None,
+        None,
+        Some(name("Same human label")),
         state,
-    }
+    )
 }
 #[test]
 fn duplicate_ids_are_refused_but_equal_display_labels_are_not_identities() {
@@ -300,4 +300,22 @@ fn unknown_selector_fields_cannot_smuggle_report_ids_into_a_session_query() {
         serde_json::json!(crate::SessionId::random()),
     );
     assert!(serde_json::from_value::<InspectUsageReport>(inspect).is_err());
+}
+
+#[test]
+fn explicit_source_and_account_ids_cannot_disagree_with_the_opaque_handle() {
+    let original = entry("example:account", SourceReportState::NotRequested);
+    assert_eq!(original.source().as_str(), "example");
+    assert_eq!(original.account().as_str(), "account");
+    let wire = serde_json::to_value(&original).unwrap();
+    assert_eq!(
+        serde_json::from_value::<SourceReportEntry>(wire.clone()).unwrap(),
+        original
+    );
+    let mut wrong_source = wire.clone();
+    wrong_source["source"] = serde_json::json!("other");
+    let mut wrong_account = wire;
+    wrong_account["account"] = serde_json::json!("other");
+    assert!(serde_json::from_value::<SourceReportEntry>(wrong_source).is_err());
+    assert!(serde_json::from_value::<SourceReportEntry>(wrong_account).is_err());
 }

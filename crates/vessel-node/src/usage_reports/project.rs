@@ -49,14 +49,14 @@ pub(crate) fn entry(
             logins: ReportLoginFailures::default(),
         },
     };
-    Ok(SourceReportEntry {
+    Ok(SourceReportEntry::new(
         id,
-        source_label: name(source.label())?,
-        builtin: Some(source.builtin()),
-        saved_login: limits.source,
-        account_label: label.map(name).transpose()?,
+        name(source.label())?,
+        Some(source.builtin()),
+        limits.source,
+        label.map(name).transpose()?,
         state,
-    }
+    )
     .for_visibility(limits.cost_visibility))
 }
 fn success(snapshot: LimitSnapshot) -> Result<SuccessfulUsageReport, ProjectionError> {

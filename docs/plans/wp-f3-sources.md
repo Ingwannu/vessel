@@ -109,3 +109,27 @@ own local Session selector. Registry capacity refuses growth without eviction;
 response count/byte bounds refuse the complete observation, never silently drop
 accounts. Generic source discovery, provider account grouping, F6 and the seven
 additional provider fetchers remain required; the pending constant stays None.
+
+### Review correction: identities and captured reads
+
+[Decision Log]
+- Purpose: keep source/account grouping typed on the Rust and generated TS wire,
+  and prevent a profile A → B → A edit from placing B's values under A's id.
+- Existing constraint: Rust report-id getters were absent from serialized fields;
+  delegating to a selector-based limits service resolved the profile a second time.
+- Alternatives: client string splitting violates opacity; an after-check alone
+  cannot detect the intervening B resolution; a global configuration generation
+  would couple unrelated profile editors to this report path.
+- Choice: one entry constructor derives explicit validated source/account fields
+  from its opaque id; decoding rejects forged disagreement. The report pipeline
+  passes its captured canonical account and resolved proof directly to the one
+  limits actor. It rechecks scope/provider proof and policy after awaiting.
+- Effect: no second credential reader or limits parser; monetary/detail redaction
+  and authorization remain at the service boundary. A barrier fixture holds the
+  metadata at B during the actual actor read, restores A before the final check,
+  and requires A's current or retained success and original timestamp. These tests
+  use only fileless caches and synthetic metadata, with no vendor or credential.
+
+The V3 checkpoint on 604717fd returned both issues; that immutable checkpoint
+remains failed. Its TS tests passed four cases but freshness failed. This correction
+requires its own narrow checks and generated-wire freshness proof before reuse.

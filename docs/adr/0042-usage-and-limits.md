@@ -403,3 +403,17 @@ bounded report family, source adapters and lifecycle tests. Streaming individual
 updates requires the reviewed method-table/observation contract; it must not be
 improvised as a second protocol table. Any initially unsupported source or
 transport path stays explicit in the package tracker and cannot count as parity.
+
+### Captured identity read (F3 review correction)
+
+An after-check cannot exclude selector ABA: outer A, inner resolution B, final A.
+The generic saved-report path therefore sends the captured canonical account and
+resolved LimitBinding directly to the existing limits actor, never through a
+service that resolves the profile again. It still verifies current session/provider
+association, account equality and policy generation before publication. No global
+profile generation is needed to distinguish the actual read's provenance.
+
+SourceReportEntry serializes distinct validated source/account fields as well as
+its opaque handle. One constructor derives all three atomically; deserialization
+rejects disagreement. Consumers group by those typed fields and inspect by the
+opaque handle. Labels and client-side handle parsing cannot define identity.

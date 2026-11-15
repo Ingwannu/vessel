@@ -9,6 +9,7 @@ use vessel_proto::{
 };
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Binding {
+    pub(crate) account: vessel_proto::limits::LimitAccount,
     pub(crate) scope: LimitsScope,
     pub(crate) proof: Result<LimitBinding, LimitFailure>,
 }
@@ -86,6 +87,10 @@ mod tests {
     use vessel_proto::limits::LimitAccount;
     fn binding(name: &str) -> Binding {
         Binding {
+            account: LimitAccount {
+                harness: "codex".parse().unwrap(),
+                profile: Some(name.parse().unwrap()),
+            },
             scope: LimitsScope::Account {
                 account: LimitAccount {
                     harness: "codex".parse().unwrap(),

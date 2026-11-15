@@ -1,4 +1,5 @@
 //! Generic report selectors reuse saved-login policy and immutable session proofs.
+mod pipeline;
 use super::{Connection, NodeService};
 use crate::{
     limits::policy::Observation,
@@ -6,7 +7,7 @@ use crate::{
 };
 use vessel_proto::{
     ErrorCode, HarnessRef, Method, WireError,
-    limits::{ExternalLookup, GetUsageLimits, LimitAccount, LimitRefresh, LimitsScope},
+    limits::{ExternalLookup, LimitAccount, LimitRefresh, LimitsScope},
     usage::CostVisibility,
     usage_reports::{
         InspectUsageReport, ListUsageReports, MAX_USAGE_REPORTS, ReportEntries,
@@ -88,7 +89,7 @@ impl NodeService {
         let report = self
             .saved_report(connection, binding.scope, request.refresh, &policy)
             .await?;
-        if !policy.still_current() || report.id != request.id {
+        if !policy.still_current() || report.id() != &request.id {
             return Err(changed());
         }
         let found = UsageReportLookup::Found {
@@ -126,47 +127,18 @@ impl NodeService {
         refresh: LimitRefresh,
         policy: &Observation,
     ) -> Result<SourceReportEntry, WireError> {
-        let (binding, harness) = self.report_binding(scope).await?;
-        let source = usage_reports::source(&harness).ok_or_else(|| {
-            WireError::new(
-                ErrorCode::Unsupported,
-                "this saved login has no usage report source",
-            )
-        })?;
-        let id = self
-            .usage_reports
-            .identify(
-                source.id().map_err(|_invalid_source| changed())?,
-                binding.clone(),
-                policy,
-            )
-            .await?;
-        let limits = self
-            .get_usage_limits(
+        pipeline::saved_report(
+            &Access {
+                service: self,
                 connection,
-                GetUsageLimits {
-                    scope: binding.scope.clone(),
-                    refresh,
-                },
-            )
-            .await?;
-        let (after, _) = self.report_binding(binding.scope.clone()).await?;
-        if after != binding || !policy.still_current() {
-            return Err(changed());
-        }
-        let label = limits
-            .account
-            .profile
-            .as_ref()
-            .map(vessel_proto::ProfileName::as_str);
-        let label = label.map(str::to_owned);
-        usage_reports::entry(id, label.as_deref(), limits).map_err(|_projection| {
-            WireError::new(
-                ErrorCode::Internal,
-                "the complete saved account report could not be represented safely",
-            )
-        })
+            },
+            scope,
+            refresh,
+            policy,
+        )
+        .await
     }
+
     async fn report_binding(&self, scope: LimitsScope) -> Result<(Binding, HarnessRef), WireError> {
         match scope {
             LimitsScope::Account { account } => {
@@ -189,6 +161,7 @@ impl NodeService {
                 let proof = self.launcher.account_binding(&self.profiles, &profile);
                 Ok((
                     Binding {
+                        account: account.clone(),
                         scope: LimitsScope::Account { account },
                         proof,
                     },
@@ -202,9 +175,17 @@ impl NodeService {
                     .await
                     .map_err(|error| super::wire(&error))?;
                 let proof = self.session_limit_binding(session).await;
-                let harness = info.spec.harness;
+                let account = proof.as_ref().map_or(
+                    LimitAccount {
+                        harness: info.spec.harness,
+                        profile: info.profile,
+                    },
+                    |proof| proof.account().clone(),
+                );
+                let harness = account.harness.clone();
                 Ok((
                     Binding {
+                        account,
                         scope: LimitsScope::Session { session },
                         proof,
                     },
@@ -249,4 +230,23 @@ fn too_large() -> WireError {
         ErrorCode::Unavailable,
         "the complete usage report exceeds its supported size; no accounts were omitted",
     )
+}
+
+struct Access<'a> {
+    service: &'a NodeService,
+    connection: &'a Connection,
+}
+impl pipeline::Bindings for Access<'_> {
+    async fn capture(&self, scope: LimitsScope) -> Result<(Binding, HarnessRef), WireError> {
+        self.service.report_binding(scope).await
+    }
+    fn registry(&self) -> &crate::usage_reports::Registry {
+        &self.service.usage_reports
+    }
+    fn limits(&self) -> &crate::limits::Limits {
+        &self.service.limits
+    }
+    fn visibility(&self) -> CostVisibility {
+        visibility(self.connection)
+    }
 }

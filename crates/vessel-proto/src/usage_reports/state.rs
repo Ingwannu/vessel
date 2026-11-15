@@ -1,5 +1,8 @@
 //! Current attempts own errors; only successes own values and observation times.
-use super::{AvailableUsageReport, BuiltinUsageSource, ReportLoginFailures, UsageReportId};
+use super::{
+    AvailableUsageReport, BuiltinUsageSource, ReportLoginFailures, UsageAccountKey, UsageReportId,
+    UsageSourceId,
+};
 use crate::{
     HarnessRef,
     limits::{LimitFailure, LimitName},
@@ -143,11 +146,15 @@ pub enum SourceReportState {
 }
 
 /// One stable source/account identity, independent of changing labels and logins.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SourceReportEntry {
     /// Opaque identity resolved through source discovery, not string matching.
-    pub id: UsageReportId,
+    pub(super) id: UsageReportId,
+    /// Explicit source identity; clients never split the opaque report handle.
+    source: UsageSourceId,
+    /// Explicit account identity scoped to that source, independent of its display label.
+    account: UsageAccountKey,
     /// Whole source label.
     pub source_label: LimitName,
     /// Official bundled source mark; absent uses the shared plugin/gauge fallback.
@@ -161,6 +168,43 @@ pub struct SourceReportEntry {
 }
 
 impl SourceReportEntry {
+    /// Construct matching report/source/account identities atomically.
+    #[must_use]
+    pub fn new(
+        id: UsageReportId,
+        source_label: LimitName,
+        builtin: Option<BuiltinUsageSource>,
+        saved_login: Option<crate::limits::LimitLoginStore>,
+        account_label: Option<LimitName>,
+        state: SourceReportState,
+    ) -> Self {
+        Self {
+            source: id.source().clone(),
+            account: id.account().clone(),
+            id,
+            source_label,
+            builtin,
+            saved_login,
+            account_label,
+            state,
+        }
+    }
+    /// Opaque handle for exact inspection; never parsed by a consumer for grouping.
+    #[must_use]
+    pub const fn id(&self) -> &UsageReportId {
+        &self.id
+    }
+    /// Stable source identity for pins and grouping.
+    #[must_use]
+    pub const fn source(&self) -> &UsageSourceId {
+        &self.source
+    }
+    /// Stable source-owned account identity, never its presentation label.
+    #[must_use]
+    pub const fn account(&self) -> &UsageAccountKey {
+        &self.account
+    }
+
     /// Every direct, retained and pending success receives the same scope projection.
     #[must_use]
     pub fn for_visibility(mut self, visibility: crate::usage::CostVisibility) -> Self {
@@ -182,5 +226,36 @@ impl SourceReportEntry {
             observed.report.balances.redact_amounts();
             observed.report.details.read_only();
         }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EntryFields {
+    id: UsageReportId,
+    source: UsageSourceId,
+    account: UsageAccountKey,
+    source_label: LimitName,
+    builtin: Option<BuiltinUsageSource>,
+    saved_login: Option<crate::limits::LimitLoginStore>,
+    account_label: Option<LimitName>,
+    state: SourceReportState,
+}
+impl<'de> Deserialize<'de> for SourceReportEntry {
+    fn deserialize<D: serde::Deserializer<'de>>(decoder: D) -> Result<Self, D::Error> {
+        let entry = EntryFields::deserialize(decoder)?;
+        if entry.id.source() != &entry.source || entry.id.account() != &entry.account {
+            return Err(serde::de::Error::custom(
+                "usage report/source/account identities do not match",
+            ));
+        }
+        Ok(Self::new(
+            entry.id,
+            entry.source_label,
+            entry.builtin,
+            entry.saved_login,
+            entry.account_label,
+            entry.state,
+        ))
     }
 }
