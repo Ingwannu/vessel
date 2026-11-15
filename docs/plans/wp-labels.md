@@ -88,8 +88,17 @@ or store code in this package without a routed contract.
 
 ## Validation and resume point
 
-Done: reference and existing-asset analysis, module/contract plan.
-Next: compile skeleton, model transition tests, then fill real calls when the
-node and app base are announced. Full native gate and inspected capture
-matrix occur once at package completion. No whole gate, node RPC test,
-service-account/customer flow or UI capture is claimed at this point.
+Done: ADR 0086 proposed; typed workspace label names/keys/colors, generation
+and sequence, snapshot/change payloads, request/response values. No method
+registration or store migration is part of the value contract.
+
+Narrow validation: `cargo test -p vessel-proto workspace_labels` passed
+2 tests, 0 failed. This proves name/color decoding only, not RPC or durable
+storage. Observer journal and mutation planner drafts remain staged under
+cfg(test) and are not part of the value commit.
+
+Next: proto clippy, then reviewed ADR 0082 registry adoption and single-writer
+persistence. Node journal/planner tests, protocol wiring/old-peer/forwarded
+coverage and generated TypeScript remain owed. The native skeleton lives on
+the separate app branch and must merge the announced app base first. No full
+gate, UI capture or production flow has been verified.
