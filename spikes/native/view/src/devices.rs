@@ -14,6 +14,11 @@
 mod details;
 mod inspection;
 pub use inspection::{DeviceMetadata, SelectionError};
+mod identity;
+pub use identity::{
+    ConnectionContext, ConnectionEpoch, ConnectionEpochs, DeviceIdentity, IdentityChange,
+    StaleContext,
+};
 mod row;
 pub use row::{Access, DeviceBadge};
 mod invitation;

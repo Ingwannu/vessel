@@ -105,3 +105,20 @@ receive narrow checks, with one final A13 package gate. Security changes
 retain per-commit review. No implementation or integrated-flow pass exists
 yet; the prior normal Devices and Alert producer passes stay separately
 bounded in `backend-m12-g4.md`.
+
+### First implementation checkpoint
+
+The pure `devices::identity` module now carries alias, authenticated NodeId
+and a non-clonable epoch source. Six tests cover changed node, same-node
+reconnect, observed A-to-B-to-A, unchanged facts, alias rename, retirement
+and counter exhaustion. This is explicitly staged: no actor or page consumes
+it yet, so no runtime protection is claimed. The existing assets are extended;
+no external API, dependency or second registry is introduced.
+
+Narrow local short-lane checks: `cargo test -p vessel-app-view
+ devices::identity::tests` passed six tests; changed View compiled. Then
+`cargo clippy -p vessel-app-view --all-targets -- -D warnings` passed.
+Logs: `identity-view-test-01.log` and `identity-view-clippy-01.log` in the
+track's resumed evidence folder. No whole gate or captures were repeated.
+V1 accepted the preceding contract at `d751095d` as contract/source only;
+barrier tests and integrated enforcement remain pending.
