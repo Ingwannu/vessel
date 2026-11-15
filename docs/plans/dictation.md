@@ -1019,3 +1019,13 @@ unavailable fallback; adding that arm changes no diagnostic collector policy
 or message. The first merged strict check exposed the missing arm as E0004
 before tests. Its retained failure is not a runtime result. The next changed-source
 strict check must cover both this completion and the buffered-start correction.
+
+### Workspace metadata head adoption
+
+The next designated head assigns the workspace registry's six metadata methods
+and carries page feedback corrections. Its protocol constant, method semantics,
+existing test cases and documents are retained. Dictation remains pending with
+no number. The architecture conflict retains the head's page feedback paragraph
+unchanged, followed by the owned dictation product-path paragraph. Existing
+immutable focused runs remain scoped to their earlier snapshots; current narrow
+checks and the final package gate must cover this combined tree.
