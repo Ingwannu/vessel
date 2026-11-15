@@ -13,7 +13,7 @@ mod shutdown;
 mod signals;
 mod transport;
 pub use signals::QuitSignal;
-pub use transport::TransportLease;
+pub(crate) use transport::TransportLease;
 pub mod registration;
 
 use std::path::PathBuf;

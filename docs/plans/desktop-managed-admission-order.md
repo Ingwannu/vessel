@@ -74,3 +74,18 @@ loss; source sender dropped while its last value remains Active; canonical owner
 drop with old work still alive; bounded-send backpressure retirement; and stale
 observer cleanup versus a successor. Unchanged Book=None cases remain required.
 These are planned tests, not current execution or product-promotion evidence.
+
+### Refusal classification and writer constraints
+
+Lead direction: explicit source withdrawal/replacement is Changed like actor
+Validity::Retired. Source sender loss or original physical closure is Closed;
+validate/matches/guard must not collapse Closed into Changed. The private source
+receiver now preserves these causes (a later owner drop does not rewrite an
+already observed Closed). Canonical selection must retain the existing separate
+identity-versus-closed preflight/report semantics; Book=None tests remain intact.
+
+No public source surface is added: TransportLease and its observation methods
+are pub(crate) only. The issuer stays the existing controller. Actual registry
+barriers use W2's one testing/actor.rs fixture, not another test actor. Selected,
+delivery exports and connections remain forbidden until lead grants the THIRD
+writer slot after both real predecessors land. V1 direction is contract-only.

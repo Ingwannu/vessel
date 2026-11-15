@@ -5,17 +5,19 @@
 
 use std::sync::Arc;
 use tokio::sync::watch;
+use vessel_app_view::connection::Refusal;
 use vessel_client::NodeClient;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
     Active,
-    Retired,
+    Withdrawn,
+    Closed,
 }
 
 /// Opaque correlation of one immutable controller transport, never a PID/epoch.
 #[derive(Debug, Clone)]
-pub struct TransportLease {
+pub(crate) struct TransportLease {
     identity: Arc<()>,
     state: watch::Receiver<State>,
 }
@@ -26,12 +28,25 @@ impl TransportLease {
     }
 
     pub(crate) fn active(&self) -> bool {
-        *self.state.borrow() == State::Active && self.state.has_changed().is_ok()
+        self.refusal().is_none()
     }
 
-    pub(crate) async fn retired(&self) {
+    /// Distinguish explicit withdrawal from physical/sender closure without I/O.
+    pub(crate) fn refusal(&self) -> Option<Refusal> {
+        match *self.state.borrow() {
+            State::Withdrawn => Some(Refusal::Changed),
+            State::Closed => Some(Refusal::Closed),
+            State::Active if self.state.has_changed().is_err() => Some(Refusal::Closed),
+            State::Active => None,
+        }
+    }
+
+    pub(crate) async fn retired(&self) -> Refusal {
         let mut state = self.state.clone();
-        let _retired = state.wait_for(|value| *value == State::Retired).await;
+        match state.wait_for(|value| *value != State::Active).await {
+            Ok(value) if *value == State::Withdrawn => Refusal::Changed,
+            Ok(_) | Err(_) => Refusal::Closed,
+        }
     }
 }
 
@@ -48,7 +63,14 @@ impl Source {
             let state = state.clone();
             async move {
                 client.closed().await;
-                let _previous = state.send_replace(State::Retired);
+                let _changed = state.send_if_modified(|value| {
+                    if *value == State::Active {
+                        *value = State::Closed;
+                        true
+                    } else {
+                        false
+                    }
+                });
             }
         });
         Self {
@@ -66,7 +88,14 @@ impl Source {
     }
 
     pub(super) fn retire(&self) {
-        let _previous = self.state.send_replace(State::Retired);
+        let _changed = self.state.send_if_modified(|value| {
+            if *value == State::Active {
+                *value = State::Withdrawn;
+                true
+            } else {
+                false
+            }
+        });
     }
 }
 
@@ -99,6 +128,7 @@ mod tests {
             .await
             .unwrap();
         assert!(!first.active());
+        assert_eq!(first.refusal(), Some(Refusal::Changed));
         assert!(successor.lease().active());
     }
 
@@ -112,5 +142,20 @@ mod tests {
             .await
             .unwrap();
         assert!(!lease.active());
+        assert_eq!(lease.refusal(), Some(Refusal::Closed));
+        drop(source);
+        assert_eq!(lease.refusal(), Some(Refusal::Closed));
+    }
+
+    #[tokio::test]
+    async fn lost_sender_cannot_leave_its_last_active_value_authorized() {
+        let (sender, state) = watch::channel(State::Active);
+        let lease = TransportLease {
+            identity: Arc::new(()),
+            state,
+        };
+        drop(sender);
+        assert_eq!(lease.refusal(), Some(Refusal::Closed));
+        assert_eq!(lease.retired().await, Refusal::Closed);
     }
 }
