@@ -80,9 +80,9 @@ mod tests {
         let context = layout.action_context(&key);
         assert!(layout.accepts_action_context(&key, &context));
         assert!(!layout.accepts_action_context(&workspace(), &context));
-        open(&mut layout, Target::NewTab, OpenIntent::Background);
+        let _background = open(&mut layout, Target::NewTab, OpenIntent::Background);
         assert!(layout.accepts_action_context(&key, &context));
-        layout
+        let _retargeted = layout
             .retarget(RetargetRequest {
                 tab,
                 target: Target::Draft(DraftId::random()),
@@ -96,14 +96,14 @@ mod tests {
     fn focus_and_compact_sheet_changes_refuse_a_pending_palette_action() {
         let key = workspace();
         let mut layout = Layout::default();
-        open(&mut layout, Target::NewTab, OpenIntent::New);
+        let _tab = open(&mut layout, Target::NewTab, OpenIntent::New);
         let context = layout.action_context(&key);
-        layout
+        let _side = layout
             .split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)
             .unwrap();
         assert!(!layout.accepts_action_context(&key, &context));
         let context = layout.action_context(&key);
-        layout
+        let _sheet = layout
             .open(
                 Target::File {
                     root: vessel_proto::workspace::WorkspaceRoot::Project {
