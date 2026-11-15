@@ -204,3 +204,16 @@ the opened handle and anchor owner, following the existing store pattern;
 no current-process identity lookup or chmod of existing paths is implied.
 The eighth prepared test checks actual temporary modes and refusal without
 changing them. This remains uncompiled test staging, not production safety.
+
+## Shared local appearance value move
+
+Coordinator approval moves the existing pure Label/EmptyLabel, Color and
+BadgePreference to proto::book_values. The view keeps its old re-exports
+and all seven existing host/label tests byte-identical; locality-dependent
+resolution remains in the view. Root producer tests cover the full source
+trim character set, Unicode/serde/fallback and existing color/badge order.
+The old label implementation is moved unchanged except for its NodeId
+import, without a new dependency, RPC/version/TS or persistence operation.
+The ADR0097 4096-byte UTF-8 cap remains a future file-edge visible refusal,
+never a hidden label truncation. Compile/tests and V3 quick source review
+are owed before the integrator/B0 can land this shared producer.

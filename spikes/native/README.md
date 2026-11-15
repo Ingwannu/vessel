@@ -1195,3 +1195,8 @@ fields. Rename consumes the shared typed `Editability` at dispatch/answer;
 its `rename_element` profile wraps the same bare editor. The kit-internal
 `field::settings_frame` shares only the inset-focus bridge with Appearance
 profiles, leaving chrome to each profile and all events in the one engine.
+
+Shared host label/color/badge choice values now live in the lower
+vessel-proto::book_values module; view::hosts re-exports preserve existing
+callers/tests. Native locality resolution and kit paint tokens stay in
+their own layers. This move introduces no persisted appearance operation.

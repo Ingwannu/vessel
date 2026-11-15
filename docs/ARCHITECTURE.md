@@ -1606,3 +1606,11 @@ crate dependency is added. The current implementation is isolated under
 private Unix tests: legacy book/credential callers, mutation locks,
 worker/retention admission and Windows behavior remain unchanged. This
 staging is not a published file-safety or multi-route API.
+
+The coordinator-approved local client-book value boundary is
+vessel-proto::book_values: Label/EmptyLabel, Color and BadgePreference.
+It is a source-compatible move of pure values, with native view::hosts
+re-exports and unchanged consumer tests. Native locality-dependent badge
+resolution stays in the view. No RPC, method/version, TypeScript type,
+file format, cap/truncation or I/O behavior is added by the move; the file
+edge owns the explicit ADR0097 UTF-8 storage refusal.

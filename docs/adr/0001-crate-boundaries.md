@@ -337,3 +337,9 @@ wrong ownership edge. Their Vessel dependency graph remains unchanged.
 Architecture and the client module header name the boundary. The first
 code is private test staging: it does not change production readers,
 writers, locking, admission or Windows behavior, and is not a safety pass.
+
+The same approved boundary also moves the existing pure host appearance
+values to proto's documented local book_values module. Old view paths
+re-export them; neither client nor view depends on the other layer.
+These local values add no wire, RPC, TypeScript or protocol-version entry.
+Locality-dependent badge resolution remains view policy.
