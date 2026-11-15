@@ -47,3 +47,24 @@ Option 3 (protocol version 2):
   `TerminalBytes`.
 - Breaking wire changes bump `PROTOCOL_VERSION` and are logged in
   `docs/PROTOCOL.md`.
+
+## Amendment (2026-11-15): protocol numbers are assigned in merge order
+
+[Decision Log]
+- Purpose: one rule for which feature gets which protocol number when
+  several packages wait for one.
+- Before: packages proposed numbers, and the coordinator could reserve one
+  for a package (24 for the providers' `PROVIDERS`).
+- Constraint: a version number is a promise that every feature up to it is
+  served. A number cannot be skipped. If diagnostics took 25 while 24 waited
+  for the providers, every node built in between would advertise 25 and so
+  claim the providers' protocol without serving it.
+- Alternatives: hold a ready package until the reserved one merges (blocks
+  ready work on unready work); let a package keep a reserved number and skip
+  it meanwhile (the false claim above).
+- Choice: numbers are assigned at merge, in merge order. The next feature
+  merged takes `PROTOCOL_VERSION + 1`. A reservation only marks intent and
+  moves when another feature merges first. The integrator changes the
+  feature's one constant and `PROTOCOL_VERSION` in the merge batch.
+- Consequence: diagnostics (N1) took 24 on 2026-11-15; the providers (W22)
+  take the next free number when they merge, and W5's two follow.

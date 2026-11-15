@@ -637,6 +637,15 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "session.detach",
+    "workspace.registry",
+    "workspace.list",
+    "workspace.get",
+    "workspace.rename",
+    "workspace.pin",
+    "workspace.release_automation",
+    "git.compare",
+    "git.compare_file",
 ];
 
 #[test]
