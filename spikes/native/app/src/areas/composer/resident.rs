@@ -79,7 +79,7 @@ impl std::fmt::Debug for SessionAttachments {
             .field("pending", &self.submission.waiting().is_some())
             .field("operation", &self.submission.operation().is_some())
             .field("readiness", &self.readiness())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 /// A concrete moved value, including leases; it is neither serde nor metadata.
