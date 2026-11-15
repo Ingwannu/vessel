@@ -295,6 +295,26 @@ No row of the crate table changes.
   field must be optional; the value's default does not erase an omitted
   override. Exact-id operations will continue to bypass discovery filtering.
 
+## Label discovery service staging
+
+- Decision: extend the existing merged `Sessions::list`, then retain sessions
+  whose current labels cover every requested pair. A separate SQL filter
+  would miss live metadata and duplicate the list's visibility and ordering.
+  The existing `SessionLabels::covers` owns the validated AND rule; no new
+  dependency or external solution is needed.
+- The node module is `cfg(test)` until the call-wiring commit after the shared
+  required-protocol accessor and dispatch plumbing are integrated. Its method
+  is visible only to the parent session module and its tests, with no public
+  API for an absent product caller. This is staged source, not a product claim.
+- The tests reuse the existing fake runtime/store fixture as a child module;
+  existing head cases and fixture visibility are unchanged. They compare live
+  and stored current labels, retain newest-first order, keep empty filters
+  inclusive, preserve exact-id access and exclude not-yet-visible handles.
+  Creation labels deliberately differ from the stored current map.
+- No request shape, call registration, wire event, field or protocol constant
+  is changed. The wiring slice must remove staging, add its real caller, and
+  test SDK refusal before sending plus raw-node admission before dispatch.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
@@ -381,6 +401,9 @@ No row of the crate table changes.
 - Background value slice 3a passed narrow TypeScript-enabled clippy and three
   listing/default/serde tests. Its complete gate is still owed. It adds no
   request field, store column or actual discovery filtering yet.
+- Label discovery service 2c is staged, not compiled: its private test-only
+  entry point reuses the existing list and AND predicate; real fixture tests
+  cover current stored metadata, live visibility, order and exact lookup.
 - Next: finish follow slice 5c's queued complete gate, then run the complete
   gate for the background values while
   label call wiring awaits the shared accessor. No new wire call or dependency

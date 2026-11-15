@@ -484,4 +484,7 @@ mod read;
 mod side_questions;
 
 #[cfg(test)]
+mod label_filter;
+
+#[cfg(test)]
 mod tests;
