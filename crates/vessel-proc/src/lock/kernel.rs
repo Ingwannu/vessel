@@ -1,5 +1,5 @@
 //! Linux exposes flock writers by file identity without acquiring the lock.
-//! One decoder remains shared with later descriptor verification.
+//! One decoder is shared with the candidate descriptor verification.
 
 use super::{KernelLock, KernelWriter, LockFileIdentity, NodeProcess};
 use std::io::{self, Read};
