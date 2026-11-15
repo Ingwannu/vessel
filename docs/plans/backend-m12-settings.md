@@ -1017,3 +1017,43 @@ Same V4 row239 review closure is requested; no approval is inferred here.
   portable tree, then V4 same-source/base-only qualification. Existing
   captures remain attributed to385 and its prior base; no new capture,
   whole E1/F5 completion or sibling-overlap resolution is inferred.
+
+
+### Actual base9 portable receiving checks
+
+The exact executable source bc394c26c1a4c6a034cefa67c7bfd9590fc59300 ran as
+settings2-20261115T172956Z-bc394c26 on the build VM. It acquired its slot at
+18:27:31 after3406 seconds queued and finished at18:34:33 with rc0. All four
+planned steps actually executed without skips: fonts24s, quality5s,
+strict150s and native tests236s, each rc0. Quality checked678 native files /
+13 shrinking exceptions,4 crate boundaries /7 owned external crates /2 name
+rules, and reported no new tokens. No allowance was increased.
+
+Raw native totals across ten test groups are1516 passed /0 failed /2 ignored.
+Clippy actually checked and tests actually compiled all four App/Kit/Link/View
+crates. Seven explicit passing cases include the three Unicode/readonly/
+retry selection tests, the retained SendOn regression, both base9 FormMinimum
+(default68/80 and Expanded96) regressions, and the actual Shell/dialog/
+detached-Link failed-answer -> edit -> absent error -> exact retry regression.
+This receiving execution is distinct from the old1421/source385 receipt.
+
+Original logs/spec/steps are retained at
+/tmp/work/m12-settings4/portable/remote-checks. All four original log hashes
+match their steps.tsv prefixes; the checked machine-readable summary is
+/tmp/work/m12-settings4/portable/check-receipt.json. The reproducible immutable
+source audit checks45 comparisons at verify-source.py / immutable-source-audit.json.
+Original-to-portable full commit mapping is commit-map.json; no pick was empty.
+
+This following leaf only records actual results and corrects the two stale
+Overview module-comment lines that claimed selection was still waiting.
+After that comment correction, the entire Overview file equals passed385.
+No executable statement, assertion, formatter expectation or input behavior
+changes after the checked bc394 source. Same-row V4 base-only confirmation
+and lead adoption remain separate. No unchanged whole gate was rerun.
+
+Scope: requested named quality/strict/tests plus fonts, not a new full native
+fmt/build/export gate. There is no new binary export or capture claim. The
+old fourteen correction and fifty-six original images retain their385/0a
+source/binary scopes; sibling overlap stays open. Latest combined line,
+physicalIME, OS/GPU/a11y and fullE1/F5 completion remain unverified. No real
+service/config/credential or permission changes were made in this port.
