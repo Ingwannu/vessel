@@ -110,3 +110,13 @@ remain stderr-only. Logging failures never authorize process control, and a
 closed app pipe does not prevent retained file writes. NodeHome reads only the
 last128KiB/100lines through the Store-derived path without opening a database.
 Captured stderr still handles failures before file logging initializes.
+
+### Replacement startup diagnostics
+
+`restart_observed` reuses the startup observer after protected stop and actual
+old-child exit. A failed replacement must not leave the UI reading only the old
+process's stderr. The actor retains the newest observer independently of the
+successful lease, and log requests prefer it. The existing real managed-node
+restart fixture now also requires the replacement observer; the failed-restart
+log path itself still needs runtime/capture verification. No PID or extra spawn
+contract is introduced, and ordinary restart delegates to the same method.
