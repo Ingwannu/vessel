@@ -8,7 +8,7 @@ use crate::session::{SessionInput, SessionMode};
 
 use super::Call;
 
-mod labels;
+mod templates;
 
 impl Call {
     /// The assigned requirement for admission: [`Call::since`]. A feature
@@ -70,6 +70,10 @@ impl Call {
                 // cannot decode it.
                 fields.max(added(Some(&spec.harness)))
             }
+            Self::ListSessions(request) => match request.selection() {
+                Some(_) => Some(crate::lifecycle_version::SINCE?.get()),
+                None => None,
+            },
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
             // `scopes` came in 5; a scope newer than that needs its own
@@ -115,7 +119,6 @@ impl Call {
             | Self::ResetSideQuestion(_)
             | Self::NodeInfo(_)
             | Self::ListHarnesses(_)
-            | Self::ListSessions(_)
             | Self::GetSession(_)
             | Self::KillSession(_)
             | Self::Subscribe(_)
@@ -279,8 +282,8 @@ impl Call {
             | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
-        labels::on(self).map_or(Some(required), |labels| {
-            labels::required(required, labels, crate::lifecycle_version::SINCE)
+        templates::on(self).map_or(Some(required), |spec| {
+            templates::required(required, spec, crate::lifecycle_version::SINCE)
         })
     }
 }
