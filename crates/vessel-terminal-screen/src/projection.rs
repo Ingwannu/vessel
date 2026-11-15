@@ -28,19 +28,64 @@ pub(crate) fn capture(screen: &vt100::Screen, range: CaptureRange) -> Result<Cap
     if let Some(range) = range.resolve(total) {
         for index in range {
             let index = usize::try_from(index).map_err(|_overflow| ScreenError::CaptureTooLarge)?;
-            let line = screen.buffer_line(index).ok_or(ScreenError::Unavailable)?;
-            let line = line.trim_end_matches(js_whitespace).to_owned();
+            let remaining = MAX_CAPTURE_BYTES
+                .checked_sub(bytes)
+                .and_then(|left| left.checked_sub(1))
+                .ok_or(ScreenError::CaptureTooLarge)?;
+            let line = bounded_line(screen, index, remaining)?;
             bytes = bytes
                 .checked_add(line.len())
                 .and_then(|n| n.checked_add(1))
                 .ok_or(ScreenError::CaptureTooLarge)?;
-            if bytes > MAX_CAPTURE_BYTES {
-                return Err(ScreenError::CaptureTooLarge);
-            }
             lines.push(line);
         }
     }
     Ok(Capture { lines, total })
+}
+
+// Admit each append before allocating: even an unusually wide row cannot
+// allocate an oversized temporary string before the response budget is checked.
+fn bounded_line(
+    screen: &vt100::Screen,
+    index: usize,
+    remaining: usize,
+) -> Result<String, ScreenError> {
+    let cols = screen
+        .buffer_row_width(index)
+        .ok_or(ScreenError::Unavailable)?;
+    let mut line = String::new();
+    let mut blanks = 0_usize;
+    let mut continuation = false;
+    for column in 0..cols {
+        if continuation {
+            continuation = false;
+            continue;
+        }
+        let cell = screen
+            .buffer_cell(index, column)
+            .ok_or(ScreenError::Unavailable)?;
+        continuation = cell.is_wide();
+        if cell.has_contents() {
+            let needed = line
+                .len()
+                .checked_add(blanks)
+                .and_then(|n| n.checked_add(cell.contents().len()))
+                .ok_or(ScreenError::CaptureTooLarge)?;
+            if needed > remaining {
+                return Err(ScreenError::CaptureTooLarge);
+            }
+            line.extend(std::iter::repeat_n(' ', blanks));
+            line.push_str(cell.contents());
+            blanks = 0;
+        } else {
+            blanks = blanks.saturating_add(if continuation { 2 } else { 1 });
+        }
+    }
+    // The suffix length comes from a borrowed valid UTF-8 prefix, so truncate
+    // cannot split a code point. It avoids allocating another full line.
+    let kept = line.trim_end_matches(js_whitespace).len();
+    line.truncate(kept);
+    Ok(line)
 }
 
 // JS trimEnd (Paseo's capture contract) differs from Rust's Unicode White_Space:

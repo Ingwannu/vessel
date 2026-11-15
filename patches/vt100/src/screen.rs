@@ -157,6 +157,18 @@ impl Screen {
         self.grid().scrollback_len().saturating_add(usize::from(self.size().0.get()))
     }
 
+    /// Physical width of a retained row, including hidden right columns.
+    #[must_use]
+    pub fn buffer_row_width(&self, index: usize) -> Option<u16> {
+        self.grid().buffer_row(index).map(crate::row::Row::cols)
+    }
+
+    /// Borrow one cell of the physical retained buffer without changing viewport state.
+    #[must_use]
+    pub fn buffer_cell(&self, index: usize, column: u16) -> Option<&crate::Cell> {
+        self.grid().buffer_row(index)?.get(column)
+    }
+
     /// Translate a complete physical row, including right columns hidden by resize.
     #[must_use]
     pub fn buffer_line(&self, index: usize) -> Option<String> {

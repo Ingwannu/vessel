@@ -14,3 +14,16 @@ API/hash. D1 retires its native parser only after switching to this engine.
 Current source is unfinished and unverified: the initial facade/buffer access
 and capacity setter exist, hidden-column/reflow changes and golden execution
 are still owed. No consumer-ready head or parity pass is claimed.
+
+The next correction candidate retains alternate-buffer right columns directly
+in vt100's grid and reflows only the primary buffer, preserving the cursor's
+logical run and using the original engine cells/modes. No ANSI is replayed.
+The facade inherits lead-cell attributes for continuations and bounds each
+capture append before allocating a row. New golden evidence includes actual
+cat output across seven resize checkpoints, plus thirteen synthetic protocol
+checkpoints for saved cursor, held cursor run, wide padding and colored wraps.
+The original eight real-output checkpoints are unchanged. All are still
+unverified until the next exact remote run. The first af29 check failed only
+in the test digest formatter (sha2 0.11 array has no LowerHex); byte-wise hex
+formatting preserves the independent expected values. That compiler error is
+retained rather than called the expected parity regression.

@@ -88,7 +88,13 @@ fn golden_cells(screen: &Screen) -> String {
             });
         }
     }
-    format!("{:x}", Sha256::digest(serde_json::to_vec(&cells).unwrap()))
+    use std::fmt::Write as _;
+    let digest = Sha256::digest(serde_json::to_vec(&cells).unwrap());
+    let mut hash = String::new();
+    for byte in digest.iter() {
+        write!(&mut hash, "{byte:02x}").unwrap();
+    }
+    hash
 }
 fn feed(screen: &mut Screen, mut bytes: &[u8]) {
     while !bytes.is_empty() {
@@ -99,7 +105,21 @@ fn feed(screen: &mut Screen, mut bytes: &[u8]) {
 }
 #[test]
 fn real_ls_git_vim_all_eight_checkpoints_match_paseo_server() {
-    let corpus: Corpus = serde_json::from_str(include_str!("tests/real-corpus.json")).unwrap();
+    check_corpus(include_str!("tests/real-corpus.json"), 8);
+}
+
+#[test]
+fn actual_cat_primary_resize_matches_paseo_server() {
+    check_corpus(include_str!("tests/resize-corpus.json"), 7);
+}
+
+#[test]
+fn saved_cursor_held_runs_wide_padding_and_colors_match_paseo_server() {
+    check_corpus(include_str!("tests/resize-contracts.json"), 13);
+}
+
+fn check_corpus(input: &str, count: usize) {
+    let corpus: Corpus = serde_json::from_str(input).unwrap();
     let mut checked = 0;
     for program in corpus.programs {
         let mut screen = Screen::new(
@@ -158,7 +178,7 @@ fn real_ls_git_vim_all_eight_checkpoints_match_paseo_server() {
             }
         }
     }
-    assert_eq!(checked, 8);
+    assert_eq!(checked, count);
 }
 #[test]
 fn capture_ranges_trim_like_javascript_and_final_snapshot_survives_owner() {

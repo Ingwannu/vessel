@@ -86,6 +86,13 @@ impl Grid {
             return;
         }
 
+        // Vessel patch 3: only the primary buffer reflows; the alternate
+        // buffer retains hidden right columns exactly as headless xterm does.
+        if self.scrollback.is_some() && size.cols() != self.size.cols() && !self.rows.is_empty() {
+            self.reflow_primary(size, on_row);
+            return;
+        }
+
         // xterm always resets the scroll region and scrollback offset when the
         // screen is resized.
         self.scroll_top = 0;
@@ -139,7 +146,7 @@ impl Grid {
             row.wrap(false);
         }
         for row in &mut self.rows {
-            row.resize(size.cols(), crate::Cell::new());
+            row.grow(size.cols(), crate::Cell::new());
         }
 
         // Maintain the cursor position relative to the bottom-left corner of
@@ -168,6 +175,42 @@ impl Grid {
         debug_assert!(self.pos.col < self.size.cols());
         debug_assert!(self.saved_pos.row < self.size.rows());
         debug_assert!(self.saved_pos.col < self.size.cols());
+    }
+
+    fn reflow_primary<F>(&mut self, size: Size, mut on_row: F)
+    where F: FnMut(&crate::row::Row) {
+        let history = self.scrollback_len();
+        let cursor = history.saturating_add(usize::from(self.pos.row));
+        let saved = history.saturating_add(usize::from(self.saved_pos.row));
+        let mut all: Vec<_> = self.scrollback.as_mut().map(|state| state.rows.drain(..).collect()).unwrap_or_default();
+        all.append(&mut self.rows);
+        let (mut all, mapping) = crate::row::reflow_rows(all, cursor, self.size.cols(), size.cols());
+        let cursor = mapping.get(cursor).copied().unwrap_or_default();
+        let saved = mapping.get(saved).copied().unwrap_or_default();
+        while all.len() > cursor.saturating_add(1) && all.last().is_some_and(|row| (0..row.cols()).all(|col| row.get(col).is_none_or(|cell| !cell.has_contents() && !cell.is_wide_continuation()))) {
+            drop(all.pop());
+        }
+        let count = usize::from(size.rows());
+        let start = all.len().saturating_sub(count).min(cursor);
+        self.rows = all.split_off(start);
+        self.rows.truncate(count);
+        for row in &mut self.rows { row.resize(size.cols(), crate::Cell::new()); }
+        self.rows.resize_with(count, || crate::row::Row::new(size.cols()));
+        if let Some(state) = &mut self.scrollback {
+            state.rows = all.into();
+            while state.rows.len() > state.capacity {
+                if let Some(row) = state.rows.pop_front() { on_row(&row); }
+            }
+            state.offset = 0;
+            state.unbounded_len = state.rows.len();
+        }
+        self.pos.row = u16::try_from(cursor.saturating_sub(start)).unwrap_or(u16::MAX).min(size.rows().saturating_sub(1));
+        self.saved_pos.row = u16::try_from(saved.saturating_sub(start)).unwrap_or(u16::MAX).min(size.rows().saturating_sub(1));
+        self.pos.col = self.pos.col.min(size.cols().saturating_sub(1));
+        self.saved_pos.col = self.saved_pos.col.min(size.cols().saturating_sub(1));
+        self.scroll_top = 0;
+        self.scroll_bottom = size.rows().saturating_sub(1);
+        self.size = size;
     }
 
     pub fn pos(&self) -> Pos {
