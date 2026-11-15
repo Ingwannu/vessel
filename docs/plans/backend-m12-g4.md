@@ -489,3 +489,99 @@ settings-fixture checks pass. The failure is routed to the shell owner;
 no fixture source or guard is weakened here. The app uses the same scratch
 home as the CLI, so the paired book's home-relative credential files are
 resolved correctly. Pairing remains a pipe, never a stored link.
+
+## Device list and revoke: resumed verification, 2026-11-15
+
+Source commits: `eadc3324` adds press-to-open public device details and
+selection tests; `fe29f8f4` removes the duplicate loading sentence. The
+coordinator's fleet guard fix `d30804b2` is taken as `a86e0cc9`, at the
+clean boundary after the second source gate. It changes only the shared
+shell-fixture script: paired direct/relay entries and legacy URLs are
+checked without weakening the loopback and protected-port guard. The
+actual paired fleet now passes that guard and the settings-fixture check.
+The original full fleet start remains a recorded failure; it is not
+retroactively called a successful end-to-end start.
+
+Final A13 native run: `devices-20261115T032509Z-a86e0cc9`, evidence under
+`/tmp/work/m12-g4/resumed-20261115/native-gate-03`. Fonts, fmt, quality,
+all-target Clippy, build and test each returned zero, with no skipped step.
+The ten test sections independently sum to 1043 passed, zero failed and
+one ignored. `pairing_browser_words_capture` is ignored because it needs
+its own private display/config/fake offer; this slice does not claim that
+test or physical-browser pairing. Earlier exact-source gates are retained
+separately. No whole native gate ran on the saturated local machine.
+
+The local normal capture build (`local-app-build-02.log`, return zero)
+recompiled the changed view, link and app crates at `fe29f8f4`; the later
+Python-only guard fix changes no native Rust, manifest or embedded font.
+There is no capture feature or alternative installable app. The own-target
+CLI/node/testkit build also passed; root source did not change, and no
+root-workspace gate or web-page verification is claimed.
+
+Capture folder: `/tmp/work/m12-g4/resumed-20261115/captures`. All 178 final
+original PNGs were opened personally, and their SHA-256 and dimensions
+match `capture-manifest.json` (digest
+`5255fa971be42128f2f11e38ef79436714871854f7ff0447f2ec2d2367237a15`).
+The normal matrix covers English/Korean, dark/light, 1280x800, 390x844,
+800x600 and 1024x700: loading, many/long rows, two details states, long-name
+confirmation, pending and completed revoke. Each of its sixteen revokes
+was confirmed in the real disposable node's store, then only the inert
+fixture was restored. Eighteen more originals cover real GPUI scales
+1.25, 1.5 and 2 for details/confirm/pending in English dark and Korean light;
+the six additional real revokes were likewise checked. Existing kit glyphs
+remain legible and the long titles, metadata and controls wrap without
+overlap. Pending Escape leaves the confirmation open and its disabled
+controls preserve the rows behind it. The source comparisons and necessary
+differences listed above apply to these frames as well.
+
+Refused and offline states each have the full sixteen-combination matrix:
+the first uses an actual CLI-paired Read-only device; the second stops only
+the verified disposable laptop node. Empty has the same matrix but is a
+visual fixture: after admitting the disposable admin connection, the
+fixture temporarily marks its disposable rows revoked directly in SQLite,
+then restores every original tombstone in a finally block. It checks empty
+list rendering/filtering, not the authorization behavior of API revocation.
+No product feature, owner-token book or authorization bypass was added to
+the app. Real API revocation is evidenced separately above. Exploratory
+and failed automation frames are outside the final folder and not passes.
+
+Idle CPU, five seconds per sample on software Vulkan/Xvfb: English dark
+1280 list 1.80%, details 2.00%; Korean light 390 list/details 2.20% each,
+as a percentage of one core. This measures the whole app, not only this
+area; real-GPU animation, physical-phone input and other operating systems
+remain unverified.
+
+Privacy/permissions: no app invitation was created and no retained frame
+has a live link or QR. CLI pairing went through an anonymous pipe only.
+The metadata model can hold only public DeviceInfo dates/grants; no
+credential field enters it. Existing RPC errors remain typed codes. A
+private audit checked 165 retained logs for pairing URLs and the exact
+disposable credential bytes in memory: zero hits, with no value printed.
+All ten private books/credential/token files were UID/GID 1000, mode 0600,
+under 0700 parents. The app, authenticated Xvfb and both owned node children
+were stopped and reaped; the authority cookie, socket and pause marker
+were removed, all fixture tombstones restored, and the scoped process
+scan was empty (`final-cleanup.json`). No service account, service, live
+configuration or file permission was changed.
+
+Reproduction fingerprint: `native-source.sha256` enumerates `git ls-files
+spikes/native`, selecting `.rs` and Cargo.toml/Cargo.lock/rust-toolchain.toml,
+in Git's path order, hashing current file bytes. Its 666 entries have file
+digest `3a0304a5783b93c6e5b001cc237bd284d52916af1fab80915734c233c5afee75`.
+This following documentation-only evidence commit changes none of those
+bytes, so it runs only the noncompiling fast checks, not another gate.
+
+## Resume point after the device-list slice
+
+Done: list, press-accessible exact metadata, one loading signal, confirmed
+revoke, source gate and personally inspected final capture package.
+Submitted status is review requested, not V1 approval or a merge.
+Unverified/deferred: invitation/QR refresh and full pairing interaction,
+device.self permission-sensitive controls on the integrated newer node,
+Sync navigation/actions, physical phone/browser and real-GPU motion.
+Caller identity/authority stay unknown on the published base; no self-by-name
+inference. Sync stays hidden. The next clean-boundary assignment is the
+coordinator's minimal typed shared Alert presentation for the schedules
+partial-host-error banner; its first-use UI captures belong to its consumer.
+The separately archived Diagnostics draft remains uncompiled and outside
+the resumed slice.
