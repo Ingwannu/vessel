@@ -87,7 +87,28 @@ pub(super) fn invalidate_candidates(connection: &Connection) -> Result<(), Error
     Ok(())
 }
 
-pub(super) fn put_plan(connection: &Connection, plan: &Plan) -> Result<(), Error> {
+pub(super) fn put_plan(
+    connection: &Connection,
+    plan: &Plan,
+    at: DateTime<Utc>,
+) -> Result<(), Error> {
+    let lifetime =
+        chrono::TimeDelta::from_std(vessel_proto::checkpoint::CHECKPOINT_PREVIEW_LIFETIME)?;
+    let maximum = at
+        .checked_add_signed(lifetime)
+        .ok_or(CheckpointError::StalePreview)?;
+    if plan.expires <= at || plan.expires > maximum {
+        return Err(CheckpointError::StalePreview.into());
+    }
+    let active: i64 = connection.query_row(
+        "SELECT count(*) FROM checkpoint_plans WHERE device=?1 AND expires_at>?2",
+        params![plan.device.to_string(), at.timestamp_millis()],
+        |row| row.get(0),
+    )?;
+    let active = usize::try_from(active).map_err(|_negative| CheckpointError::Busy)?;
+    if active >= vessel_proto::checkpoint::CHECKPOINT_PREVIEWS_PER_DEVICE {
+        return Err(CheckpointError::Busy.into());
+    }
     let ready: bool = connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM checkpoint_captures WHERE id=?1 AND session=?2 AND worktree=?3 AND generation=?4 AND boundary=?5 AND state='ready')",
         params![plan.key.capture.to_string(),plan.key.session.to_string(),plan.key.worktree.to_string(),encode(&plan.key.generation)?,encode(&plan.key.boundary)?],

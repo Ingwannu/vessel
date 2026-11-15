@@ -29,6 +29,8 @@ pub(super) struct Operation {
 }
 #[derive(Debug, thiserror::Error)]
 pub(super) enum CheckpointStoreError {
+    #[error("checkpoint preview lifetime could not be represented")]
+    Duration(#[from] chrono::OutOfRangeError),
     #[error("checkpoint record contains an invalid operation identity")]
     Id(#[source] <RestoreId as std::str::FromStr>::Err),
     #[error("checkpoint storage operation failed")]

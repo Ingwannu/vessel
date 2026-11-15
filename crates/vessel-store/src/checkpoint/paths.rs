@@ -168,7 +168,8 @@ pub(super) fn verify_terminal(
     let changed = plan.desired.changes(&operation.before).len();
     let valid = match result {
         RestoreOutcome::Restored { changed: count } => {
-            count.get() == changed
+            changed != 0
+                && count.get() == changed
                 && entries.len() == changed
                 && entries.iter().all(|entry| entry.phase == Phase::Applied)
         }
@@ -176,7 +177,7 @@ pub(super) fn verify_terminal(
         RestoreOutcome::RolledBack { .. } => {
             entries.len() == changed && entries.iter().all(|entry| entry.phase == Phase::Restored)
         }
-        RestoreOutcome::RecoveryRequired { .. } => true,
+        RestoreOutcome::RecoveryRequired { restore } => *restore == operation.id,
         RestoreOutcome::InProgress { .. } => false,
     };
     if !valid {

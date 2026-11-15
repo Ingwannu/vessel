@@ -3,6 +3,7 @@
 //! The schema appends directly after this base. The integrator re-points the
 //! one schema constant at merge. The existing migration runner is unchanged.
 
+mod changes;
 mod journal;
 #[cfg(test)]
 mod journal_tests;

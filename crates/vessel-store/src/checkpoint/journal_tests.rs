@@ -67,7 +67,12 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
                 },
             )
             .unwrap(),
-        expires: DateTime::<Utc>::MAX_UTC,
+        expires: DateTime::<Utc>::UNIX_EPOCH
+            .checked_add_signed(
+                chrono::TimeDelta::from_std(vessel_proto::checkpoint::CHECKPOINT_PREVIEW_LIFETIME)
+                    .unwrap(),
+            )
+            .unwrap(),
     }
 }
 #[test]
@@ -108,7 +113,7 @@ fn expired_and_restarted_candidates_cannot_be_persisted_as_ready_images() {
 fn duplicate_restore_returns_the_committed_outcome_and_rejects_another_plan() {
     let (mut connection, key) = fixture();
     let plan = ready_plan(&connection, key);
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let restore = RestoreId::random();
     let transaction = connection.transaction().unwrap();
     let operation = journal::admit(&transaction, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
@@ -142,7 +147,7 @@ fn duplicate_restore_returns_the_committed_outcome_and_rejects_another_plan() {
 fn transaction_failure_does_not_consume_preview_or_create_a_restore() {
     let (mut connection, key) = fixture();
     let plan = ready_plan(&connection, key);
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let restore = RestoreId::random();
     {
         let transaction = connection.transaction().unwrap();
@@ -160,7 +165,7 @@ fn transaction_failure_does_not_consume_preview_or_create_a_restore() {
 fn altered_owner_or_effective_target_never_reuses_a_preview_authorization() {
     let (connection, key) = fixture();
     let plan = ready_plan(&connection, key);
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let mut wrong = plan.clone();
     wrong.device = DeviceId::random();
     assert!(matches!(
@@ -196,7 +201,7 @@ fn altered_owner_or_effective_target_never_reuses_a_preview_authorization() {
 fn a_late_callback_cannot_replace_a_terminal_result_or_a_different_session() {
     let (connection, key) = fixture();
     let plan = ready_plan(&connection, key);
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let restore = RestoreId::random();
     let operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
     journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
@@ -217,7 +222,7 @@ fn a_late_callback_cannot_replace_a_terminal_result_or_a_different_session() {
 fn restart_marks_pending_restores_recovery_without_discarding_before_images() {
     let (connection, key) = fixture();
     let plan = ready_plan(&connection, key);
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let restore = RestoreId::random();
     let operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
     assert_eq!(super::recovery::pending(&connection).unwrap(), 1);
@@ -259,7 +264,7 @@ fn quota_counts_obsolete_candidates_until_physical_cleanup() {
 fn restore_admission_reloads_capture_identity_instead_of_trusting_the_caller() {
     let (connection, key) = fixture();
     let plan = ready_plan(&connection, key);
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let mut forged = plan.clone();
     forged.key.session = SessionId::random();
     assert!(matches!(
@@ -357,7 +362,7 @@ fn terminal_outcomes_require_the_complete_approved_path_journal() {
             ],
         )
         .unwrap();
-    journal::put_plan(&connection, &plan).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let restore = RestoreId::random();
     let operation = {
         let transaction = connection.transaction().unwrap();
@@ -476,4 +481,175 @@ fn candidate_persistence_is_not_ready_and_activation_cannot_revive_expired_or_re
         publication::activate(&connection, next, CheckpointId::random()),
         Err(Error::Refused(CheckpointError::StaleCapture))
     ));
+}
+
+#[test]
+fn preview_pages_share_one_target_expiry_and_device_authorization() {
+    use super::changes;
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{
+            CHECKPOINT_PAGE_ENTRIES, ChangeCursor, Entry, FileBytes, FileState, PathCount,
+        },
+    };
+    let (connection, key) = fixture();
+    let mut plan = ready_plan(&connection, key);
+    let metadata = vessel_proto::checkpoint::FileMetadata {
+        owner: vessel_proto::checkpoint::OwnerId::new(1000),
+        group: vessel_proto::checkpoint::GroupId::new(1000),
+        mode: vessel_proto::checkpoint::OrdinaryMode::new(0o600).unwrap(),
+    };
+    let count = CHECKPOINT_PAGE_ENTRIES.saturating_mul(2).saturating_add(1);
+    let selected = FileImage::new(
+        (0..count)
+            .map(|index| Entry {
+                path: serde_json::from_str(
+                    &serde_json::to_string(&format!("file-{index:04}")).unwrap(),
+                )
+                .unwrap(),
+                state: FileState::Present {
+                    digest: BlobHash::from_bytes([0; 32]),
+                    bytes: FileBytes::new(0).unwrap(),
+                    metadata,
+                },
+            })
+            .collect(),
+    )
+    .unwrap();
+    plan.desired = selected.effective(&plan.current, metadata).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    let mut cursor = None;
+    let mut paths = Vec::new();
+    loop {
+        let page = changes::page(
+            &connection,
+            plan.id,
+            plan.device,
+            cursor,
+            DateTime::UNIX_EPOCH,
+        )
+        .unwrap();
+        assert_eq!(page.plan, plan.id);
+        assert_eq!(page.expires, plan.expires);
+        assert!(page.changes.len() <= CHECKPOINT_PAGE_ENTRIES);
+        paths.extend(page.changes.into_iter().map(|change| change.path));
+        cursor = page.next;
+        if cursor.is_none() {
+            break;
+        }
+    }
+    assert_eq!(
+        paths,
+        plan.desired
+            .image()
+            .entries()
+            .iter()
+            .map(|entry| entry.path.clone())
+            .collect::<Vec<_>>()
+    );
+    assert!(matches!(
+        changes::page(
+            &connection,
+            plan.id,
+            DeviceId::random(),
+            None,
+            DateTime::UNIX_EPOCH
+        ),
+        Err(Error::Refused(CheckpointError::Forbidden))
+    ));
+    assert!(matches!(
+        changes::page(
+            &connection,
+            plan.id,
+            plan.device,
+            Some(ChangeCursor(PathCount::new(1).unwrap())),
+            DateTime::UNIX_EPOCH
+        ),
+        Err(Error::Refused(CheckpointError::InvalidCursor))
+    ));
+    assert!(matches!(
+        changes::page(&connection, plan.id, plan.device, None, plan.expires),
+        Err(Error::Refused(CheckpointError::StalePreview))
+    ));
+    let _operation = journal::admit(
+        &connection,
+        &plan,
+        RestoreId::random(),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    assert!(matches!(
+        changes::page(
+            &connection,
+            plan.id,
+            plan.device,
+            None,
+            DateTime::UNIX_EPOCH
+        ),
+        Err(Error::Refused(CheckpointError::StalePreview))
+    ));
+}
+
+#[test]
+fn preview_admission_enforces_lifetime_and_per_device_pin_limit() {
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    let mut next = plan.clone();
+    for _ in 0..vessel_proto::checkpoint::CHECKPOINT_PREVIEWS_PER_DEVICE {
+        next.id = RestorePlanId::random();
+        journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH).unwrap();
+    }
+    next.id = RestorePlanId::random();
+    assert!(matches!(
+        journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH),
+        Err(Error::Refused(CheckpointError::Busy))
+    ));
+    next.device = DeviceId::random();
+    next.expires = DateTime::<Utc>::MAX_UTC;
+    assert!(matches!(
+        journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH),
+        Err(Error::Refused(CheckpointError::StalePreview))
+    ));
+    next.expires = DateTime::UNIX_EPOCH;
+    assert!(matches!(
+        journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH),
+        Err(Error::Refused(CheckpointError::StalePreview))
+    ));
+    next.expires = plan.expires;
+    journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH).unwrap();
+}
+
+#[test]
+fn empty_effective_target_is_unchanged_and_recovery_cannot_name_another_operation() {
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    let operation = journal::admit(
+        &connection,
+        &plan,
+        RestoreId::random(),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    assert!(matches!(
+        journal::outcome(
+            &connection,
+            &operation,
+            &RestoreOutcome::Restored {
+                changed: vessel_proto::checkpoint::PathCount::new(0).unwrap()
+            }
+        ),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    assert!(matches!(
+        journal::outcome(
+            &connection,
+            &operation,
+            &RestoreOutcome::RecoveryRequired {
+                restore: RestoreId::random()
+            }
+        ),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
 }

@@ -41,13 +41,18 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   the integrator adjusts its one schema constant in merge order. Restore
   admission reloads the capture's full key/session and frozen effective target.
   Durable per-path intent and compare-and-advance phases constrain terminal
-  outcomes; restart pins interrupted operations for recovery. Existing writer
+  outcomes; device-bound change pages share the frozen target/expiry, enforce
+  bounded offsets and refuse expired or consumed previews; admission enforces
+  the five-minute lifetime and four active previews per device; restart pins interrupted operations for recovery. Existing writer
   transaction wiring, retention and physical quota reconciliation remain owed.
 - workspace/checkpoint: test-only strict enumeration, rooted nofollow reads,
   private immutable raw blobs, bounded streaming and canonical fingerprints.
   Files are fully staged before per-path mutation; rename exchange retains
   original inodes, no-replace creates avoid clobbering, and guarded rollback
-  retains conflicting external edits. The node must durably journal each step
+  retains conflicting external edits. Apply and undo also compare inode identity,
+  refusing an equal-content external replacement. Unsupported metadata on roots
+  and intermediate directories refuses before file mutation. The node must
+  durably journal each step
   and verify the entire covered scope before claiming success. Linux is staged;
   other platforms remain unavailable. Full enumeration/ignore/root revalidation
   at operation boundaries and crash-restart assembly remain owed.
@@ -67,7 +72,7 @@ review, permission/platform/crash recovery or native capture pass is claimed.
 
 Next: compile the new mechanisms, regenerate TypeScript, run real migration
 rollback tests, finish writer/coordinator assembly and durable Ready reconciliation,
-then bounded authenticated preview pagination/quota/retention and real session/
+then authenticated list/preview assembly, physical quota/retention and real session/
 workspace exclusion. Replace ignored obligations only after implementation.
 After node completion: one whole node gate and V3 review; after consuming the
 reviewed node contract, native view/link/words/screen, complete confirmation,
