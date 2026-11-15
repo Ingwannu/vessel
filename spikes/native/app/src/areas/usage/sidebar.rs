@@ -12,7 +12,7 @@ use vessel_app_kit::{
 };
 use vessel_app_link::{Command, usage::Ask};
 use vessel_app_view::{
-    devices::MachineKey,
+    connection::ConnectionContext,
     sidebar::navigation::{Builtin, Visibility},
     usage::{
         Inventory, InventorySurface, MIN_SUMMARY_METER_WIDTH, Phase, SUMMARY_METER_GAP,
@@ -30,7 +30,7 @@ pub(super) fn visible(shell: &Shell) -> bool {
         .visibility(Builtin::Usage)
         == Visibility::Shown
 }
-pub(super) fn selected(shell: &Shell) -> Option<MachineKey> {
+pub(super) fn selected(shell: &Shell) -> Option<ConnectionContext> {
     let hosts = super::modal::hosts(shell);
     let active = shell
         .areas
@@ -56,7 +56,7 @@ pub(super) fn selected(shell: &Shell) -> Option<MachineKey> {
         .machines
         .iter()
         .find(|machine| machine.node == Some(node))
-        .map(|machine| MachineKey::from_book(&machine.name))
+        .and_then(vessel_app_view::Machine::connection_context)
 }
 impl Shell {
     pub(super) fn settle_summary_usage(&mut self) {
@@ -87,7 +87,7 @@ impl Shell {
             }
         }
     }
-    pub(super) fn refresh_usage_summary(&mut self, machine: &MachineKey) {
+    pub(super) fn refresh_usage_summary(&mut self, machine: &ConnectionContext) {
         let state = &mut self.areas.usage;
         if state.summary.selection() != Some(machine) {
             return;

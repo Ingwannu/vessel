@@ -5,6 +5,7 @@ use vessel_app_kit::ui::Window;
 use vessel_app_link::{Command, usage::Ask};
 use vessel_app_view::{
     Reach,
+    connection::ConnectionContext,
     devices::{MachineKey, Target},
     settings::Section,
     usage::{InventoryRefresh, InventorySurface, LedgerSelection, Range, RequestFailure},
@@ -12,6 +13,13 @@ use vessel_app_view::{
 use vessel_proto::limits::{ExternalLookup, LimitAccount};
 
 impl Shell {
+    pub(super) fn usage_connection_current(&self, expected: &ConnectionContext) -> bool {
+        self.fleet.machines.iter().any(|machine| {
+            machine.name == expected.machine().as_str()
+                && matches!(machine.reach, Reach::Online)
+                && machine.connection_context().as_ref() == Some(expected)
+        })
+    }
     pub(crate) fn settle_usage(&mut self, window: &Window) {
         self.settle_session_usage();
         self.settle_summary_usage();
@@ -36,12 +44,22 @@ impl Shell {
                 }
             }
         };
+        let connection = match &target {
+            Target::Online(machine) => self
+                .fleet
+                .machines
+                .iter()
+                .find(|candidate| candidate.name == machine.as_str())
+                .and_then(vessel_app_view::Machine::connection_context),
+            _ => None,
+        };
         let state = &mut self.areas.usage;
-        if state.target != target {
+        if state.target != target || state.connection != connection {
             state.close();
             state.target = target;
+            state.connection = connection;
         }
-        let Target::Online(machine) = &state.target else {
+        let Some(machine) = &state.connection else {
             return;
         };
         let machine = machine.clone();
@@ -70,7 +88,7 @@ impl Shell {
     }
     pub(crate) fn usage_refresh(&mut self) {
         let state = &mut self.areas.usage;
-        let Target::Online(machine) = &state.target else {
+        let Some(machine) = &state.connection else {
             return;
         };
         if let Some(request) = state.ledger.request(LedgerSelection {
@@ -82,7 +100,7 @@ impl Shell {
     }
     pub(super) fn usage_accounts(&mut self, refresh: InventoryRefresh) {
         let state = &mut self.areas.usage;
-        let Target::Online(machine) = &state.target else {
+        let Some(machine) = &state.connection else {
             return;
         };
         state.refresh_account = refresh;
@@ -95,24 +113,35 @@ impl Shell {
             }));
         }
     }
-    pub(super) fn usage_refresh_all(&mut self, machine: MachineKey) {
-        if !matches!(&self.areas.usage.target,Target::Online(current) if current==&machine) {
+    pub(super) fn usage_refresh_all(&mut self, machine: ConnectionContext) {
+        if !self.usage_connection_current(&machine)
+            || self.areas.usage.connection.as_ref() != Some(&machine)
+        {
             return;
         }
         self.usage_accounts(InventoryRefresh::All);
     }
-    pub(crate) fn usage_refresh_account(&mut self, machine: MachineKey, account: LimitAccount) {
-        if !matches!(&self.areas.usage.target,Target::Online(current) if current==&machine) {
+    pub(crate) fn usage_refresh_account(
+        &mut self,
+        machine: ConnectionContext,
+        account: LimitAccount,
+    ) {
+        if !self.usage_connection_current(&machine)
+            || self.areas.usage.connection.as_ref() != Some(&machine)
+        {
             return;
         }
         self.usage_accounts(InventoryRefresh::Account(account));
     }
-    pub(crate) fn usage_set_policy(&mut self, expected: MachineKey, policy: ExternalLookup) {
+    pub(crate) fn usage_set_policy(&mut self, expected: ConnectionContext, policy: ExternalLookup) {
+        if !self.usage_connection_current(&expected) {
+            return;
+        }
         let state = &mut self.areas.usage;
         if state.policy_pending.is_some() {
             return;
         }
-        let Target::Online(machine) = &state.target else {
+        let Some(machine) = &state.connection else {
             return;
         };
         if machine != &expected {

@@ -147,3 +147,12 @@ and subsequent cache-only reads, independently from UI rendering.
   Original success time stays separate from current attempt/cooldown/retained state.
   Additional-source Session and F6 are still explicitly unsupported upstream;
   native UI, fixture captures, assigned-wire checks and final gates remain owed.
+
+### Shared connection preflight (base 6)
+[Decision Log]
+- Purpose: queued reads, source consent and refresh must stay on the connection selected by the displayed report, even if its saved alias is rebound or the same node reconnects.
+- Existing constraint: a machine book key alone cannot distinguish those admissions. The shared G4 producer now supplies `ConnectionContext` and `SelectedConnection`.
+- Alternatives: another local counter or repeated alias lookup would duplicate identity ownership and could retarget intent.
+- Choice: all usage reader scopes and mutation callbacks carry the full shared context; the link captures the exact selected client and uses its before-first-poll, retirement and post-await fences for every call. Contextless legacy/demo snapshots cannot authorize requests. UI action checks also compare the current Fleet context.
+- Impact: a reconnect invalidates readings and pending actions, including same-node reconnects. No automatic replay. Older peers fall back to saved-login inventory only when the local protocol guard reports the new method unavailable; a remote refusal never changes destinations.
+- Regression: a selected usage policy future is created, its admission retired before first polling, then a new epoch for the same node is allocated. The future refuses and the framed peer records zero mutation frames. Remote compile/test evidence remains owed for this change.

@@ -1,8 +1,11 @@
 //! Correlated usage operations carry source facts and sanitized errors only.
-use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::usage::{
     Inventory, InventoryRefresh, InventorySurface, LedgerSelection, ReadRequest, RequestFailure,
     SessionSelection,
+};
+use vessel_app_view::{
+    connection::ConnectionContext,
+    devices::{MachineKey, Ticket},
 };
 use vessel_proto::{
     limits::{ExternalLookup, LimitRefresh, UsageLimits},
@@ -17,7 +20,7 @@ pub enum Ask {
         /// Independent consumer lifetime.
         surface: InventorySurface,
         /// Machine and read lifetime.
-        request: ReadRequest<MachineKey>,
+        request: ReadRequest<ConnectionContext>,
         /// Exact configured binding explicitly selected for a vendor refresh.
         refresh: InventoryRefresh,
     },
@@ -26,7 +29,7 @@ pub enum Ask {
     /// Persisted credential-use policy; never automatically retried.
     Lookup {
         /// Parsed machine key.
-        machine: MachineKey,
+        machine: ConnectionContext,
         /// Mutation correlation.
         ticket: Ticket,
         /// Explicit administrator choice.
@@ -35,7 +38,7 @@ pub enum Ask {
     /// Accept/revoke one explicitly displayed source disclosure; never starts a fetch.
     SourceLookup {
         /// Captured destination.
-        machine: MachineKey,
+        machine: ConnectionContext,
         /// Non-reused mutation correlation.
         ticket: Ticket,
         /// Typed registered source, permission and exact displayed revision.
@@ -65,7 +68,7 @@ pub enum Answer {
         /// Independent consumer lifetime.
         surface: InventorySurface,
         /// Original machine and lifetime.
-        request: ReadRequest<MachineKey>,
+        request: ReadRequest<ConnectionContext>,
         /// Cache-only account outcomes, or an inventory read failure.
         result: Result<Inventory, RequestFailure>,
     },
@@ -79,7 +82,7 @@ pub enum Answer {
     /// Acknowledged policy, or an uncertain/refused mutation that must be read back.
     Lookup {
         /// Original machine.
-        machine: MachineKey,
+        machine: ConnectionContext,
         /// Mutation correlation.
         ticket: Ticket,
         /// What the node acknowledged; no raw error text.
@@ -88,7 +91,7 @@ pub enum Answer {
     /// The source owner acknowledged its persisted grant, or requires a cache readback.
     SourceLookup {
         /// Captured destination.
-        machine: MachineKey,
+        machine: ConnectionContext,
         /// Original mutation identity.
         ticket: Ticket,
         /// No raw node/credential/provider text crosses the event boundary.
@@ -139,7 +142,7 @@ impl Ask {
         }
     }
     #[cfg(not(target_arch = "wasm32"))]
-    fn machine(&self) -> &MachineKey {
+    fn connection(&self) -> &ConnectionContext {
         match self {
             Self::Accounts { request, .. } => &request.selection,
             Self::Ledger(request) => &request.selection.machine,

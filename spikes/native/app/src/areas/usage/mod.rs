@@ -20,9 +20,12 @@ pub(crate) use modal::dialogs;
 pub(crate) use session::{limit_notice, session_card};
 
 use chrono::FixedOffset;
-use vessel_app_view::devices::{MachineKey, Target, Ticket, Tickets};
 use vessel_app_view::usage::{
     Inventory, InventoryRefresh, LedgerSelection, Range, Reader, RequestFailure, SessionSelection,
+};
+use vessel_app_view::{
+    connection::ConnectionContext,
+    devices::{Target, Ticket, Tickets},
 };
 use vessel_proto::{
     limits::{ExternalLookup, UsageLimits},
@@ -35,13 +38,13 @@ pub(crate) use draw::render;
 #[derive(Debug)]
 pub(super) struct PolicyPending {
     pub(super) ticket: Ticket,
-    pub(super) machine: MachineKey,
+    pub(super) machine: ConnectionContext,
     pub(super) policy: ExternalLookup,
 }
 #[derive(Debug)]
 pub(super) struct SourcePending {
     pub(super) ticket: Ticket,
-    pub(super) machine: MachineKey,
+    pub(super) machine: ConnectionContext,
     pub(super) request: vessel_proto::usage_reports::SetUsageSourceLookup,
 }
 
@@ -53,14 +56,15 @@ pub(crate) struct State {
     pub(super) host_list: vessel_app_kit::ComboboxState,
     pub(super) host_anchor: vessel_app_kit::select::Anchor,
     pub(super) target: Target,
+    pub(super) connection: Option<ConnectionContext>,
     pub(super) range: Range,
     pub(super) session: Reader<SessionSelection, UsageLimits>,
     pub(super) session_owner: Option<vessel_proto::SessionId>,
     pub(super) session_epoch: Option<vessel_proto::EventSeq>,
     pub(super) ledger: Reader<LedgerSelection, UsageReport>,
-    pub(super) summary: Reader<MachineKey, Inventory>,
+    pub(super) summary: Reader<ConnectionContext, Inventory>,
     pub(super) summary_place: vessel_app_kit::select::Anchor,
-    pub(super) inventory: Reader<MachineKey, Inventory>,
+    pub(super) inventory: Reader<ConnectionContext, Inventory>,
     pub(super) refresh_account: InventoryRefresh,
     pub(super) policy_pending: Option<PolicyPending>,
     pub(super) source_pending: Option<SourcePending>,
@@ -80,6 +84,7 @@ impl State {
             host_list: vessel_app_kit::ComboboxState::new(window, cx),
             host_anchor: vessel_app_kit::select::Anchor::default(),
             target: Target::Hidden,
+            connection: None,
             range: Range::default(),
             session: Reader::default(),
             session_owner: None,

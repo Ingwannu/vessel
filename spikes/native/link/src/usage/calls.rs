@@ -1,12 +1,14 @@
 //! Fixed admission covers both node awaits and delivery into the bounded UI queue.
 use super::{Answer, Ask};
+use crate::connections::{RequestFailure as ConnectionFailure, SelectedConnection};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::{Semaphore, mpsc};
+use vessel_app_view::connection::Refusal;
 use vessel_app_view::usage::{
     AccountReport, Inventory, InventoryRefresh, RequestFailure, account_binding,
     configured_accounts,
 };
-use vessel_client::{CallError, NodeClient};
+use vessel_client::CallError;
 use vessel_proto::{
     ErrorCode, ListProfiles,
     limits::{GetUsageLimits, LimitRefresh, LimitsScope, SetUsageLookup},
@@ -29,9 +31,9 @@ impl Default for Hub {
 }
 impl crate::State {
     pub(crate) async fn usage(&self, ask: Ask) {
-        let client = match self.client(ask.machine().as_str()) {
-            Ok(client) => client.clone(),
-            Err(_offline) => {
+        let client = match self.selected_connection(ask.connection()) {
+            Ok(client) => client,
+            Err(_changed) => {
                 self.emit(crate::Event::Usage(ask.refused(RequestFailure::Offline)))
                     .await;
                 return;
@@ -66,7 +68,7 @@ fn deadline(ask: &Ask) -> Duration {
     }
 }
 
-async fn execute(client: &NodeClient, ask: Ask) -> Answer {
+async fn execute(client: &SelectedConnection, ask: Ask) -> Answer {
     match ask {
         Ask::Accounts {
             surface,
@@ -135,7 +137,7 @@ async fn execute(client: &NodeClient, ask: Ask) -> Answer {
 }
 
 async fn saved_inventory(
-    client: &NodeClient,
+    client: &SelectedConnection,
     refresh: &InventoryRefresh,
 ) -> Result<Inventory, RequestFailure> {
     let profiles = client
@@ -182,20 +184,19 @@ async fn saved_inventory(
     })
 }
 async fn inventory(
-    client: &NodeClient,
+    client: &SelectedConnection,
     refresh: &InventoryRefresh,
 ) -> Result<Inventory, RequestFailure> {
-    if vessel_proto::Method::ListUsageReports
-        .since()
-        .is_some_and(|needed| client.protocol() >= needed)
-    {
-        source_inventory(client, refresh).await
-    } else {
-        saved_inventory(client, refresh).await
+    if vessel_proto::Method::ListUsageReports.since().is_none() {
+        return saved_inventory(client, refresh).await;
+    }
+    match source_inventory(client, refresh).await {
+        Err(RequestFailure::Unsupported) => saved_inventory(client, refresh).await,
+        answer => answer,
     }
 }
 async fn source_inventory(
-    client: &NodeClient,
+    client: &SelectedConnection,
     refresh: &InventoryRefresh,
 ) -> Result<Inventory, RequestFailure> {
     use vessel_proto::usage_reports::{
@@ -240,7 +241,13 @@ async fn source_inventory(
     })
 }
 
-fn problem(error: CallError) -> RequestFailure {
+fn problem(error: ConnectionFailure) -> RequestFailure {
+    match error {
+        ConnectionFailure::Refused(Refusal::Changed | Refusal::Closed) => RequestFailure::Offline,
+        ConnectionFailure::Call(error) => call_problem(error),
+    }
+}
+fn call_problem(error: CallError) -> RequestFailure {
     match error {
         CallError::Disconnected => RequestFailure::Offline,
         CallError::Remote(error) => RequestFailure::Refused(error.code),

@@ -3,7 +3,8 @@ use super::SourcePending;
 use crate::shell::Shell;
 use vessel_app_link::{Command, usage::Ask};
 use vessel_app_view::{
-    devices::{MachineKey, Target, Ticket},
+    connection::ConnectionContext,
+    devices::Ticket,
     usage::{InventoryRefresh, RequestFailure},
 };
 use vessel_proto::{
@@ -15,13 +16,16 @@ use vessel_proto::{
 impl Shell {
     pub(super) fn usage_source_policy(
         &mut self,
-        machine: MachineKey,
+        machine: ConnectionContext,
         request: SetUsageSourceLookup,
     ) {
+        if !self.usage_connection_current(&machine) {
+            return;
+        }
         let state = &mut self.areas.usage;
         if state.policy_pending.is_some()
             || state.source_pending.is_some()
-            || !matches!(&state.target,Target::Online(current) if current==&machine)
+            || state.connection.as_ref() != Some(&machine)
         {
             return;
         }
@@ -68,20 +72,23 @@ impl Shell {
     }
     pub(super) fn usage_refresh_report(
         &mut self,
-        machine: MachineKey,
+        machine: ConnectionContext,
         id: vessel_proto::usage_reports::UsageReportId,
     ) {
-        if !matches!(&self.areas.usage.target,Target::Online(current) if current==&machine) {
+        if !self.usage_connection_current(&machine)
+            || self.areas.usage.connection.as_ref() != Some(&machine)
+        {
             return;
         }
         self.usage_accounts(InventoryRefresh::Report(id));
     }
     pub(super) fn usage_source_answer(
         &mut self,
-        machine: MachineKey,
+        machine: ConnectionContext,
         ticket: Ticket,
         result: Result<UsageSourceDescriptor, RequestFailure>,
     ) {
+        let current = self.usage_connection_current(&machine);
         let state = &mut self.areas.usage;
         let Some(pending) = &state.source_pending else {
             return;
@@ -112,8 +119,7 @@ impl Shell {
             }
             Err(reason) => Some(reason),
         };
-        state.policy_error = if matches!(&state.target,Target::Online(current) if current==&machine)
-        {
+        state.policy_error = if current && state.connection.as_ref() == Some(&machine) {
             failure
         } else {
             None

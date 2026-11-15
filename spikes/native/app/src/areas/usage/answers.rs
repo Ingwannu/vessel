@@ -6,7 +6,8 @@ use vessel_app_link::{
     usage::{Answer, Ask},
 };
 use vessel_app_view::{
-    devices::{MachineKey, Target, Ticket},
+    connection::ConnectionContext,
+    devices::{MachineKey, Ticket},
     usage::{Inventory, InventorySurface, ReadRequest, RequestFailure},
 };
 use vessel_proto::limits::{ExternalLookup, LimitRefresh};
@@ -63,17 +64,25 @@ impl Shell {
     }
     fn usage_connected(&mut self, machine: &MachineKey) {
         let state = &mut self.areas.usage;
-        if state.inventory.selection() == Some(machine) {
+        if state
+            .inventory
+            .selection()
+            .is_some_and(|context| context.machine() == machine)
+        {
             state.inventory.close();
             state.ledger.close();
         }
-        if state.summary.selection() == Some(machine) {
+        if state
+            .summary
+            .selection()
+            .is_some_and(|context| context.machine() == machine)
+        {
             state.summary.close();
         }
         if state
             .session
             .selection()
-            .is_some_and(|selected| &selected.machine == machine)
+            .is_some_and(|selected| selected.machine.machine() == machine)
         {
             state.session.close();
         }
@@ -81,7 +90,7 @@ impl Shell {
     fn usage_accounts_answer(
         &mut self,
         surface: InventorySurface,
-        request: ReadRequest<MachineKey>,
+        request: ReadRequest<ConnectionContext>,
         result: Result<Inventory, RequestFailure>,
     ) {
         let machine = request.selection;
@@ -117,10 +126,11 @@ impl Shell {
     }
     fn usage_policy_answer(
         &mut self,
-        machine: MachineKey,
+        machine: ConnectionContext,
         ticket: Ticket,
         result: Result<ExternalLookup, RequestFailure>,
     ) {
+        let current = self.usage_connection_current(&machine);
         let state = &mut self.areas.usage;
         let Some(pending) = &state.policy_pending else {
             return;
@@ -133,8 +143,7 @@ impl Shell {
             Ok(_) => Some(RequestFailure::InvalidReply),
             Err(reason) => Some(reason),
         };
-        state.policy_error = if matches!(&state.target,Target::Online(current) if current==&machine)
-        {
+        state.policy_error = if current && state.connection.as_ref() == Some(&machine) {
             problem
         } else {
             None

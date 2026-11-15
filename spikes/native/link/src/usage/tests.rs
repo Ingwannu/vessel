@@ -4,8 +4,13 @@ use vessel_app_view::usage::{Account, Phase, Reader, configured_accounts};
 
 #[test]
 fn queue_refusals_preserve_the_exact_inventory_lifetime() {
-    let mut state: Reader<MachineKey, Vec<Account>> = Reader::default();
-    let machine = MachineKey::from_book("test-machine");
+    let mut state: Reader<ConnectionContext, Vec<Account>> = Reader::default();
+    let machine = vessel_app_view::connection::ConnectionEpochs::default()
+        .admit(
+            MachineKey::from_book("test-machine"),
+            vessel_proto::NodeId::random(),
+        )
+        .unwrap();
     let request = state.request(machine.clone()).unwrap();
     let expected = request.ticket;
     let Answer::Accounts {

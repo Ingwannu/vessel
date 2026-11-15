@@ -1,5 +1,5 @@
 //! Settings supports rolling machine periods; session lifetime is a different scope.
-use crate::{devices::MachineKey, localization::Translator};
+use crate::{connection::ConnectionContext, localization::Translator};
 
 /// Machine totals may never accidentally request a session-only interval.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -27,7 +27,7 @@ impl Range {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LedgerSelection {
     /// Already parsed node-book key.
-    pub machine: MachineKey,
+    pub machine: ConnectionContext,
     /// Rolling period; no session-lifetime interval can cross this boundary.
     pub range: Range,
 }

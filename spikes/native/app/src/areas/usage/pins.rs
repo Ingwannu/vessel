@@ -2,7 +2,7 @@
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::{
-    devices::MachineKey,
+    connection::ConnectionContext,
     prefs::PreferenceChange,
     sidebar::navigation::{Builtin, Key, Section, Visibility},
     usage::{Pin, default_pins},
@@ -11,7 +11,7 @@ use vessel_proto::{limits::LimitKey, usage_reports::UsageSourceId};
 impl Shell {
     pub(super) fn usage_toggle_pin(
         &mut self,
-        machine: MachineKey,
+        machine: ConnectionContext,
         pin: Pin<UsageSourceId, LimitKey>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,

@@ -106,7 +106,7 @@ async fn cached_inventory_rejects_a_reply_for_another_account() {
 #[test]
 fn raw_node_error_text_never_crosses_the_usage_event_boundary() {
     let raw = "untrusted provider body must stay out of UI and logs";
-    let safe = problem(CallError::Remote(vessel_proto::WireError::new(
+    let safe = call_problem(CallError::Remote(vessel_proto::WireError::new(
         ErrorCode::Forbidden,
         raw,
     )));
@@ -151,4 +151,40 @@ async fn refresh_all_targets_the_bounded_inventory_and_cached_reads_never_refres
             LimitRefresh::Cached
         ]
     );
+}
+
+#[tokio::test]
+async fn retired_usage_selection_never_polls_or_retargets_a_mutation() {
+    crate::testing::within(async {
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let seen = Arc::clone(&calls);
+        let mut peer = peer::connect(move |call| {
+            seen.lock().unwrap().push(call);
+            Outcome::Ok(Reply::SetUsageLookup(
+                vessel_proto::limits::ExternalLookup::Off,
+            ))
+        })
+        .await;
+        let pending = peer.client.call(SetUsageLookup {
+            policy: vessel_proto::limits::ExternalLookup::Off,
+        });
+        let connected = peer.state.clients.remove("fixture").unwrap();
+        connected.retire();
+        // Even reconnecting to the same authenticated node produces a distinct context.
+        let new_context = peer
+            .state
+            .admissions
+            .admit(
+                connected.context.machine().clone(),
+                connected.context.node(),
+            )
+            .unwrap();
+        assert_ne!(connected.context, new_context);
+        assert!(matches!(
+            pending.await,
+            Err(ConnectionFailure::Refused(Refusal::Changed))
+        ));
+        assert!(calls.lock().unwrap().is_empty());
+    })
+    .await;
 }

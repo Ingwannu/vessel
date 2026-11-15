@@ -10,11 +10,8 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, outline_button, theme::spacing};
 use vessel_app_link::{Command, usage::Ask};
-use vessel_app_view::{
-    devices::MachineKey,
-    usage::{
-        LimitStatus, Phase, SessionSelection, limit_failure, limit_view, quota_facts, timestamp,
-    },
+use vessel_app_view::usage::{
+    LimitStatus, Phase, SessionSelection, limit_failure, limit_view, quota_facts, timestamp,
 };
 use vessel_proto::{EventRecord, SessionId, limits::LimitRefresh};
 
@@ -44,10 +41,18 @@ impl Shell {
                         && matches!(machine.reach, vessel_app_view::Reach::Online)
                 })
             })
-            .map(|open| SessionSelection {
-                machine: MachineKey::from_book(&open.machine),
-                session: open.session,
-                binding: self.areas.usage.session_epoch,
+            .and_then(|open| {
+                let machine = self
+                    .fleet
+                    .machines
+                    .iter()
+                    .find(|machine| machine.name == open.machine)?
+                    .connection_context()?;
+                Some(SessionSelection {
+                    machine,
+                    session: open.session,
+                    binding: self.areas.usage.session_epoch,
+                })
             });
         if selected.as_ref().is_some_and(|selected| {
             self.areas
@@ -102,6 +107,9 @@ impl Shell {
         }
     }
     fn usage_refresh_session(&mut self, expected: SessionSelection) {
+        if !self.usage_connection_current(&expected.machine) {
+            return;
+        }
         let reader = &mut self.areas.usage.session;
         if reader.selection() != Some(&expected) {
             return;

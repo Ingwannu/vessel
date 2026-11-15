@@ -11,7 +11,9 @@ use vessel_proto::{
 };
 const FRAME_BYTES: usize = 65_536;
 pub(super) struct Peer {
-    pub client: NodeClient,
+    pub client: crate::connections::SelectedConnection,
+    pub state: crate::State,
+    _home: crate::testing::Home,
     task: JoinHandle<()>,
 }
 impl Drop for Peer {
@@ -94,5 +96,29 @@ pub(super) async fn connect(mut reply: impl FnMut(Call) -> Outcome + Send + 'sta
     )
     .await
     .unwrap();
-    Peer { client, task }
+    let home = crate::testing::Home::new();
+    let (mut state, _events) = crate::testing::state(&home);
+    let context = state
+        .admissions
+        .admit(
+            vessel_app_view::connection::MachineKey::from_book("fixture"),
+            client.node().id,
+        )
+        .unwrap();
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    let connected =
+        crate::connections::Connected::new(client, Vec::new(), binding, context.clone());
+    let _previous = state.clients.insert("fixture".into(), connected);
+    let client = state.selected_connection(&context).unwrap();
+    Peer {
+        client,
+        task,
+        state,
+        _home: home,
+    }
 }
