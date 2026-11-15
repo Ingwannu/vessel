@@ -11,6 +11,7 @@ mod identity;
 pub(crate) mod requests;
 #[cfg(test)]
 mod tests;
+mod transport;
 mod wire;
 
 pub(crate) use client::{CdpError, Client};

@@ -404,3 +404,18 @@ callers and cancellation after activation/before ACK) is required. No private
 constructor/test fixture or single-tab protocol ACK may qualify this boundary.
 Keyboard implementation and node/renderer enabling remain blocked on this real
 input routing proof. The current page module remains cfg(test) and NoEngine.
+
+
+## Private debugger pipe staging after V3 contract PASS
+
+V3 row188 accepted only the child-pipe contract. The staged transport now has
+two statically dispatched I/O adapters under one typed driver. Anonymous pipes
+use NUL framing, the existing message limit, bounded read quanta and owned
+partial-read storage. Cancelled reads preserve already-read fragments; EOF in a
+partial frame is a protocol failure. Write/outer/pending/event/shutdown limits
+remain the existing CDP constants. Bad UTF-8 retains a content-free Utf8Error;
+raw bytes never become diagnostic text. No fallback switches transports.
+Duplex peer tests cover fragmentation/read cancellation, multiple frames, NUL
+writes, malformed UTF-8, oversize/unterminated input and the actual typed driver's
+version/reply/closure path. They are not a real runtime, OS child/descriptor or
+sandbox/profile qualification. No public pipe constructor or engine is enabled.

@@ -1,5 +1,8 @@
 //! One bounded multiplexed CDP connection; no actor/target command waits on another's result.
 
+#[cfg(test)]
+mod pipe_tests;
+
 use std::collections::BTreeMap;
 use std::sync::{
     Arc,
@@ -7,12 +10,10 @@ use std::sync::{
 };
 use std::time::Duration;
 
-use futures_util::{SinkExt as _, StreamExt as _};
-use tokio::net::TcpStream;
+use super::transport::{self, Transport};
 use tokio::sync::{Mutex, mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio_tungstenite::tungstenite::{Message, protocol::WebSocketConfig};
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::browser::{BrowserEffect, COMMAND_TIMEOUT};
 
@@ -25,10 +26,9 @@ const COMMAND_CAPACITY: usize = 64;
 const PENDING_CAPACITY: usize = 16;
 const EVENT_CAPACITY: usize = 32;
 const MAX_OUTGOING_BYTES: usize = 256 * 1024;
-const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
+pub(super) const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(6);
-type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 /// Errors remain typed; Debug never prints a frame, endpoint or page exception.
 #[derive(thiserror::Error)]
@@ -36,6 +36,12 @@ pub(crate) enum CdpError {
     /// Connection establishment failed.
     #[error("CDP websocket operation failed")]
     Socket(#[source] tokio_tungstenite::tungstenite::Error),
+    /// Child pipe failures never select a network fallback.
+    #[error("CDP child pipe operation failed")]
+    Pipe(#[source] std::io::Error),
+    /// Malformed stdout retains only the content-free UTF-8 cause.
+    #[error("CDP child pipe contains invalid UTF-8")]
+    Utf8(#[source] std::str::Utf8Error),
     /// A foreign response could not be interpreted.
     #[error("CDP message could not be decoded")]
     Decode(#[source] wire::DecodeError),
@@ -148,6 +154,10 @@ impl Client {
             source,
         })?
         .map_err(CdpError::Socket)?;
+        Ok(Self::start(transport::WebSocket(socket)))
+    }
+
+    fn start<T: Transport>(socket: T) -> (Self, Events) {
         let (commands, receive) = mpsc::channel(COMMAND_CAPACITY);
         let (events, event_receive) = mpsc::channel(EVENT_CAPACITY);
         let cancel = CancellationToken::new();
@@ -158,7 +168,7 @@ impl Client {
             cancel,
             driver: Mutex::new(Some(driver)),
         });
-        Ok((Self { shared }, Events(event_receive)))
+        (Self { shared }, Events(event_receive))
     }
 
     /// Send one sealed typed request to the owned target's flattened session.
@@ -254,8 +264,8 @@ impl Client {
     }
 }
 
-async fn run(
-    mut socket: Socket,
+async fn run<T: Transport>(
+    mut socket: T,
     mut commands: mpsc::Receiver<Command>,
     events: mpsc::Sender<Event>,
     cancel: CancellationToken,
@@ -271,24 +281,15 @@ async fn run(
                 if pending.len()>=PENDING_CAPACITY {let _gone=command.answer.send(Err(CdpError::Busy));continue;}
                 let _old=pending.insert(command.id,Pending{session:command.session,answer:command.answer});
                 command.delivered.store(true,Ordering::Release);
-                match tokio::time::timeout(WRITE_TIMEOUT,socket.send(Message::Text(command.text.into()))).await {
-                    Ok(Ok(()))=>{},Ok(Err(error))=>break Err(CdpError::Socket(error)),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
+                match tokio::time::timeout(WRITE_TIMEOUT,socket.send(command.text)).await {
+                    Ok(Ok(()))=>{},Ok(Err(error))=>break Err(error),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
                 }
             },
             message=socket.next()=> {
                 let text=match message {
-                    Some(Ok(Message::Text(text)))=>text,
-                    Some(Ok(Message::Ping(_)))=>{
-                        match tokio::time::timeout(WRITE_TIMEOUT,socket.flush()).await {
-                            Ok(Ok(()))=>continue,
-                            Ok(Err(error))=>break Err(CdpError::Socket(error)),
-                            Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::NotDelivered,source}),
-                        }
-                    },
-                    Some(Ok(Message::Pong(_)))=>continue,
-                    Some(Ok(Message::Close(_)))|None=>break Ok(()),
-                    Some(Ok(Message::Binary(_)|Message::Frame(_)))=>break Err(CdpError::Protocol),
-                    Some(Err(error))=>break Err(CdpError::Socket(error)),
+                    Ok(Some(text))=>text,
+                    Ok(None)=>break Ok(()),
+                    Err(error)=>break Err(error),
                 };
                 match wire::incoming(&text) {
                     Ok(Incoming::Response{id,session,result})=>if let Some(waiting)=pending.remove(&id) {
