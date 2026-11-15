@@ -11,7 +11,7 @@ use vessel_workspace::paths::PathError;
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum WorkspaceError {
     /// Registration keeps running after its caller leaves; a failed task is explicit.
-    #[error("project registration task stopped")]
+    #[error("project operation task stopped")]
     ProjectTask(#[source] tokio::task::JoinError),
     /// The node found no usable git.
     #[error("this machine has no usable git (2.25 or newer)")]
