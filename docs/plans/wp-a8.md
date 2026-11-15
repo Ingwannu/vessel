@@ -526,3 +526,11 @@ wins over an older live snapshot; its leftover local field must not keep a clean
 resident permanently held. A real owned form plus Asked/Cancelled records tests
 this boundary without mutating the snapshot or manufacturing a resolution.
 Uncertain admitted effects remain a separate Hold until authoritative settlement.
+
+
+The isolated shared FieldId producer dcbdbb018 now has V1 bounded source adoption
+and exact requested Kit Clippy PASS; its four source blobs match prior Kit128
+keyboard evidence. Lead and G2 received the immutable producer/evidence packet.
+G2 is the next reserved field writer for multiline source callbacks and its
+FormMinimum; W4 makes no concurrent field.rs edit. This shared prerequisite pass
+is separate from the A8 package's latest still-pending all-target native checks.
