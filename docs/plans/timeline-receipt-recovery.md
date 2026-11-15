@@ -173,3 +173,14 @@ preflight result explicitly, retained delivery ranking accepts the complete
 optional-state domain, and tool lookup captures the actual optional id before
 the callback. These preserve the refusal and uncertainty rules. Current checks
 are still required; the stopped run is not Rust execution evidence.
+
+
+The announced gate-54 node head is merged next. Its adopted notice key/budget
+values are reconciled with the existing identical owner rather than duplicated.
+The four timeline method rows remain at the end after the new file/skills rows,
+and the pinned forwardable list follows that same method order. Browser and
+composer modules both remain exported; the execution UUID stays separate from
+FinishIntentId. The exact incoming generated proto bytes are retained as a base
+snapshot, pending regeneration from this full union; they are explicitly stale
+for this package's additional fields. This merge is not TS freshness or current
+runtime evidence. Schema remains listing21 plus this one unassigned append22.

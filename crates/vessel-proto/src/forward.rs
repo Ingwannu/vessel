@@ -1,11 +1,9 @@
-//! Calls across a fleet (protocol 6, ADR 0013 "across nodes through the
-//! home"): the envelope a call travels in from its caller's node, through
-//! the home, to the node that runs it, and what members learn of the fleet.
+//! Fleet envelopes (protocol 6, ADR 0013): caller to home to target,
+//! carrying the caller's origin and what members learn of the fleet.
 //!
 //! [Decision Log]
-//! - Purpose: an agent (or a person's CLI) reaches only its own node, yet
-//!   may need to act on a session on another node of its fleet, with no
-//!   more authority there than it has at home.
+//! - Purpose: reach another fleet node from one's own node, with no more
+//!   authority there than the caller has at home.
 //! - Constraint: only the home holds credentials on every node; a member
 //!   holds one on the home only. A target must be able to tell who a call
 //!   speaks for, and the guard is generated from the method table.
@@ -260,9 +258,8 @@ impl Method {
     ///   wrapped in another (at most two hops, no loops), and the bundle,
     ///   grant and membership calls belong to the hop between a member and
     ///   its home.
-    /// - Not forwardable, streams: a subscription's events would need a
-    ///   stream across hops (`session.read` with `wait` serves instead, and
-    ///   `terminal.read` with `wait` for a terminal).
+    /// - Not forwardable, streams: use bounded `session.read` or
+    ///   `terminal.read` waits instead of relaying subscription streams.
     /// - Forwardable, protocol 11's terminals, scripts and ports
     ///   (`terminal.*` but its subscription, `script.*`, `port.list`): an
     ///   agent opens a shell beside a session it started on another node,
@@ -372,6 +369,11 @@ impl Method {
             | Self::GitRenameBranch
             | Self::GitStash
             | Self::ListDir
+            | Self::InspectDirectory
+            | Self::ReadFileBytes
+            | Self::DuplicateFileEntry
+            | Self::ObserveFile
+            | Self::SuggestEntries
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir
@@ -459,6 +461,11 @@ impl Method {
             | Self::StopNode
             // The node's settings (protocol 12): its own administration,
             // read and changed by its owner and its own devices.
+            | Self::GetSkillsStatus
+            | Self::ReconcileSkills
+            | Self::UninstallSkills
+            | Self::SaveSkillsSelection
+            | Self::ImportSkillsSelection
             | Self::GetNodeSettings
             | Self::SetNodeSettings
             | Self::InviteDevice
