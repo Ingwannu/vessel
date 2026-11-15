@@ -24,7 +24,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 18 | A1 | W3 | agent-controls policy/labels and composer agent controls | A-lifecycle.md | skeleton (staged; checks/runtime integration pending) |
 | 19 | A1 | W3 | CLI paseo run (+ options, workspace policy, output schema) | A-lifecycle.md | unknown |
 | 20 | A1 | W3 | CLI agent ls/stop/delete/archive/reload/detach/update/import/open/wait/send/inspect/logs/attach/mode | A-lifecycle.md | unknown |
-| 21 | A2 | W21 | Archive / unarchive / close_items (cascade to children, detach rules) | A-lifecycle.md | skeleton (atomic archive pending API + conditional current-parent child API; full cascade/workspace and resident hooks not ready) |
+| 21 | A2 | W21 | Archive / unarchive / close_items (cascade to children, detach rules) | A-lifecycle.md | skeleton (pending atomic IfIdle and current-parent child APIs; stored/resume tests written; full cascade/resident wiring and final gates owed) |
 | 22 | A2 | W21 | App archive UX (optimistic caches, archived callout, tab close policy) | A-lifecycle.md | skeleton |
 | 23 | A2 | W21 | Auto-archive on merge | A-lifecycle.md | unknown |
 | 24 | A2 | W21 | Delete agent | A-lifecycle.md | skeleton |
@@ -48,7 +48,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 42 | A2 | W21 | Agent deep links (build/parse, route, desktop, CLI open) | A-lifecycle.md | skeleton |
 | 43 | A1 | W3 | Agent directory fetch/subscribe (fetch_agents, agent_update) | A-lifecycle.md | unknown |
 | 44 | A1 | W3 | Agent history fetch and search | A-lifecycle.md | unknown |
-| 45 | A2 | W21 | Sessions screen | A-lifecycle.md | skeleton |
+| 45 | A2 | W21 | Sessions screen | A-lifecycle.md | skeleton (chronological UI, host/search/page models and unavailable state; current union checks and captures owed) |
 | 46 | A1 | W3 | Sidebar agent list entries and state buckets (app) | A-lifecycle.md | unknown |
 | 47 | A9 | G3 | Provider model: AgentProvider, AgentClient, AgentSession (the contract every provider implements) | B-providers.md | unknown |
 | 48 | A9 | G3 | `AgentClient` (one per provider id, long lived, `S/agent/agent-sdk-types.ts:764-830`) | B-providers.md | unknown |
@@ -298,16 +298,16 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 292 | A1 | W3 | 14 Archive cancellation of setup. | p1-projects-workspaces.md | unknown |
 | 293 | A2 | W21 | 15 Optimistic workspace archive, rollback and route cleanup. | p1-projects-workspaces.md | unknown |
 | 294 | A2 | W21 | 15 Bulk-workspace archive helpers and partial errors (production UI caller not found). | p1-projects-workspaces.md | unknown |
-| 295 | A2 | W21 | 15 Workspace ownership archive versus worktree-scope archive. | p1-projects-workspaces.md | unknown |
-| 296 | A2 | W21 | 15 Teardown and last-reference owned directory deletion. | p1-projects-workspaces.md | unknown |
-| 297 | A2 | W21 | 15 Unowned/failed-removal directory preservation and empty-project persistence. | p1-projects-workspaces.md | unknown |
+| 295 | A2 | W21 | 15 Workspace ownership archive versus worktree-scope archive. | p1-projects-workspaces.md | skeleton (canonical WorkspaceId claim/drain workflow + fake only; registry adapter not wired) |
+| 296 | A2 | W21 | 15 Teardown and last-reference owned directory deletion. | p1-projects-workspaces.md | skeleton (last-reference/drain contract; strict terminal completion source only, spawned descendant proof and root adapter still unavailable) |
+| 297 | A2 | W21 | 15 Unowned/failed-removal directory preservation and empty-project persistence. | p1-projects-workspaces.md | skeleton (staged preservation/partial-failure tests; no physical backing deletion or empty-project integration) |
 | 298 | A2 | W21 | 16 Host automatic-archive-after-merge toggle. | p1-projects-workspaces.md | unknown |
 | 299 | A2 | W21 | 16 Open-to-merged same-URL latch, fresh snapshot and per-cwd dedupe. | p1-projects-workspaces.md | unknown |
 | 300 | A2 | W21 | 16 Dirty/ahead/ownership checks, consumed merged URL and optional-hook boundary versus manual archive. | p1-projects-workspaces.md | unknown |
-| 301 | A2 | W21 | 17 Inspect archived workspace recovery. | p1-projects-workspaces.md | unknown |
-| 302 | A2 | W21 | 17 Unarchive existing directory. | p1-projects-workspaces.md | unknown |
-| 303 | A2 | W21 | 17 Restore deleted worktree and original subdirectory. | p1-projects-workspaces.md | unknown |
-| 304 | A2 | W21 | 17 Missing-source/unavailable/unsupported/inspection-error states and retry. | p1-projects-workspaces.md | unknown |
+| 301 | A2 | W21 | 17 Inspect archived workspace recovery. | p1-projects-workspaces.md | skeleton (typed inspection DTO/model and fake workflow; real registry/generation adapter unavailable) |
+| 302 | A2 | W21 | 17 Unarchive existing directory. | p1-projects-workspaces.md | skeleton (exclusive restore claim + fake unarchive; canonical generation and real adapter unavailable) |
+| 303 | A2 | W21 | 17 Restore deleted worktree and original subdirectory. | p1-projects-workspaces.md | skeleton (recreate/revalidate workflow + fake; physical root/provisioning adapter unavailable) |
+| 304 | A2 | W21 | 17 Missing-source/unavailable/unsupported/inspection-error states and retry. | p1-projects-workspaces.md | skeleton (typed unavailable/unknown/error outcomes; native recovery page/RPC wiring still missing) |
 | 305 | A6 | W10b | 18 Workspace label picker/search/check/uncheck. | p1-projects-workspaces.md | skeleton |
 | 306 | A6 | W10b | 18 Create-and-assign label with host catalog color. | p1-projects-workspaces.md | skeleton |
 | 307 | A6 | W10b | 18 Case-insensitive name normalization and assignment persistence. | p1-projects-workspaces.md | skeleton |
