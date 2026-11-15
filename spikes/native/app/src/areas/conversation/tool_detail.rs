@@ -7,8 +7,8 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window,
-    div, px,
+    AnyElement, App, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{Type, TypeExt as _};
 use vessel_app_view::timeline::{
@@ -33,7 +33,7 @@ pub(super) fn borrowed_body(
     id: &ElementId,
     detail: BorrowedDetail<'_>,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> Div {
     tool_body::render(&BodyPaint::from(paint), id, detail, window, cx)
 }

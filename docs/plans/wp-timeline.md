@@ -1119,3 +1119,11 @@ spacing::S1 and the old tool.rs px-step ratchet decreases5 to4; no budget is rai
 The source-only portable packet must include this exact common kernel and its
 existing output/diff/word/locale prerequisites, with no header, resident, request
 controller, node-field or RPC activation.
+
+The borrowed facade's cx parameter is generalized to App (existing Shell contexts
+still coerce directly); this matches the session-neutral kernel. A headless
+ProposedBody render fixture now calls the actual public borrowed API with a Shell
+detail DTO describing proposed material and content Ready. It creates neither a
+ToolView nor any log Entry/session identity and performs an actual draw. This
+new fixture is source only, not executed evidence yet. The ordinary timeline
+wrappers retain their previous callback context and call the same function.

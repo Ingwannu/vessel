@@ -17,3 +17,80 @@ fn borrowed_request_sections_preserve_structural_parent_identity() {
         super::child_id(&request, "section-0")
     );
 }
+
+use crate::areas::conversation::{Seat, entries::Paint, look::Look, origin::Above, tool_detail};
+use gpui::{Context, Render, TestAppContext, Window};
+use std::cell::Cell;
+use std::rc::Rc;
+use vessel_app_kit::ui::{IntoElement as _, ParentElement as _, Styled as _, div};
+use vessel_app_kit::{Scheme, Tokens};
+use vessel_app_view::Lang;
+use vessel_app_view::fork::Headers;
+use vessel_app_view::localization::{ENGLISH, Translator};
+use vessel_proto::timeline::{ShellDetail, ToolCallDetail};
+
+struct ProposedBody {
+    detail: ToolCallDetail,
+    headers: Headers,
+    painted: Rc<Cell<usize>>,
+}
+impl Render for ProposedBody {
+    fn render(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> impl gpui::IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        let paint = Paint {
+            catalog: Translator::get(ENGLISH).unwrap(),
+            words: Lang::En.conversation(),
+            tokens: &tokens,
+            look: Look::of(&tokens),
+            find: None,
+            seat: Seat::SESSION,
+            entries: &[],
+            agent: None,
+            rewinds: None,
+            forks: None,
+            fork_headers: &self.headers,
+            above: Above::Nothing,
+        };
+        let body = tool_detail::borrowed_body(
+            &paint,
+            &vessel_app_kit::ui::ElementId::NamedInteger("proposed-body".into(), 1),
+            super::BorrowedDetail {
+                detail: &self.detail,
+                state: super::DetailContentState::Ready,
+                failure: None,
+            },
+            window,
+            cx,
+        );
+        self.painted.set(self.painted.get().saturating_add(1));
+        div().w_full().h_full().child(body).into_any_element()
+    }
+}
+
+#[gpui::test]
+fn proposed_material_draws_through_the_borrowed_api_without_tool_or_log_objects(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let painted = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&painted);
+    let (_, cx) = cx.add_window_view(move |_, _| ProposedBody {
+        detail: ToolCallDetail::Shell(ShellDetail {
+            command: "echo proposed".to_owned(),
+            cwd: None,
+            output: None,
+            exit_code: None,
+        }),
+        headers: Headers::default(),
+        painted,
+    });
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
+    cx.run_until_parked();
+    assert!(observed.get() > 0);
+}
