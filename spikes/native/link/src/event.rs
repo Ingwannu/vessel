@@ -36,6 +36,8 @@ pub enum Event {
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
     Devices(devices::Answer),
+    /// A known physical admission closed; never a semantic read refusal.
+    DeviceRetired(vessel_app_view::connection::ConnectionTag),
     /// Safe, correlated sharing status.
     Sync(sync::Answer),
     /// A machine's settings in force, after a read or a change.

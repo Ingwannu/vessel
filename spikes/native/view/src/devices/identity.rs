@@ -10,76 +10,10 @@
 //! - Choice: parsed alias, authenticated `NodeId` and a non-reused admission
 //!   epoch, with a typed replacement decision for clearing owned state.
 //! - Why: equality checks all three facts without a toolkit or credential.
-//! - Cost: this staged model is not runtime enforcement until `Page` and the
-//!   existing link actor consume it in the target-binding package.
+//! - Cost: the actor owns one epoch source and `Page` owns only its selection;
+//!   neither identity nor a successful read implies caller authority.
 
-use super::{MachineKey, Problem};
-use vessel_proto::NodeId;
-
-/// One admitted connection in the lifetime of the app's link actor.
-/// Display is for stateful control identities, never a user-facing value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ConnectionEpoch(u64);
-
-impl std::fmt::Display for ConnectionEpoch {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
-    }
-}
-
-/// Public connection facts only. A caller cannot attach scopes, credentials
-/// or file paths to this identity, or substitute a display name for `NodeId`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConnectionContext {
-    machine: MachineKey,
-    node: NodeId,
-    epoch: ConnectionEpoch,
-}
-
-impl ConnectionContext {
-    /// The already-parsed book alias used only for connection lookup.
-    #[must_use]
-    pub const fn machine(&self) -> &MachineKey {
-        &self.machine
-    }
-
-    /// The node that authenticated on this admitted connection.
-    #[must_use]
-    pub const fn node(&self) -> NodeId {
-        self.node
-    }
-
-    /// The admission, distinct even when the same node reconnects.
-    #[must_use]
-    pub const fn epoch(&self) -> ConnectionEpoch {
-        self.epoch
-    }
-}
-
-/// One actor-owned source, retained across reloads. It is deliberately not
-/// Clone: copying its counter could reuse a retired admission's identity.
-#[derive(Debug, Default)]
-pub struct ConnectionEpochs(u64);
-
-impl ConnectionEpochs {
-    /// Reserve identity after authentication, without guessing it from a name.
-    ///
-    /// # Errors
-    /// Exhaustion refuses admission instead of wrapping into an old context.
-    pub fn admit(
-        &mut self,
-        machine: MachineKey,
-        node: NodeId,
-    ) -> Result<ConnectionContext, Problem> {
-        // Never wrap: an old callback may still hold any earlier epoch.
-        self.0 = self.0.checked_add(1).ok_or(Problem::Exhausted)?;
-        Ok(ConnectionContext {
-            machine,
-            node,
-            epoch: ConnectionEpoch(self.0),
-        })
-    }
-}
+use crate::connection::ConnectionContext;
 
 /// Whether data owned by the previous context must be dropped before drawing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

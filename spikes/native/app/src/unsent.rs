@@ -59,6 +59,7 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::RetireConnection(_tag) => return None,
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {
@@ -76,9 +77,14 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             ticket,
             result: Err(vessel_app_link::sync::rejected(unsent.why)),
         }),
-        Command::Devices { ticket, ask, .. } => {
-            Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
-        }
+        Command::Devices {
+            context,
+            ticket,
+            ask,
+        } => Event::Devices(devices::Answer {
+            context,
+            outcome: ask.refused(ticket, devices::rejected(unsent.why)),
+        }),
         Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,

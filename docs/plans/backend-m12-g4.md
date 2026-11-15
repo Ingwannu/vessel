@@ -731,4 +731,17 @@ standalone gates. A14 now makes a feature package the gate/review unit:
 narrow checks per commit, one whole gate and affected captures at package
 end, while security retains per-commit review. No unchanged merge-only whole
 gate is added. The next security contract is
-`backend-m12-device-targets.md`; implementation has not started.
+`backend-m12-device-targets.md`; its pure identity checkpoint `1f4a091a`
+received V1 source-only acceptance. Actor/Page integration is now under
+narrow verification; no integrated or visual pass is claimed yet.
+
+
+### Blocking shared connection seam (base4)
+
+The exact-alias/admitted-epoch producer and Devices compatibility wiring are
+under narrow verification, not a feature/UI pass. The one actor/API and
+consumer obligations are documented in `backend-m12-connection-preflight.md`.
+The final E2 package still owes device.self permission presentation, pairing
+parity, integrated captures and its whole gate; no historic normal Devices
+result is reused as authority/alias proof. Shared dialog ReturnFocus is
+separately source/narrow reviewed at11fba709, not this actor's approval.

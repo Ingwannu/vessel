@@ -1,5 +1,7 @@
 //! Stable aliases and repeated node ids cannot revive old user intent.
 use super::*;
+use crate::connection::{ConnectionEpochs, MachineKey};
+use vessel_proto::NodeId;
 
 fn node(last: u8) -> NodeId {
     let text = format!("00000000-0000-4000-8000-{last:012}");
@@ -105,15 +107,4 @@ fn a_renamed_book_entry_does_not_reuse_the_old_control_identity() {
     assert_ne!(original.machine(), renamed.machine());
     assert_eq!(selected.check(&original), Err(StaleContext));
     assert_eq!(selected.check(&renamed), Ok(()));
-}
-
-#[test]
-fn an_exhausted_actor_refuses_further_admissions_without_reusing_zero() {
-    let mut epochs = ConnectionEpochs(u64::MAX);
-    for _ in 0..2 {
-        assert_eq!(
-            epochs.admit(MachineKey::from_book("fixture"), node(1)),
-            Err(Problem::Exhausted)
-        );
-    }
 }
