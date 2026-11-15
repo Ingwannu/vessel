@@ -24,7 +24,7 @@ use vessel_app_view::settings::{Section, Surface};
 
 use super::{
     agents, appearance, chat, choices, connections, devices, diagnostics, general, host_agents,
-    overview, sync,
+    models, overview, sync,
 };
 use crate::shell::Shell;
 
@@ -75,6 +75,7 @@ fn page(section: Section) -> Option<Draw> {
             Some(|shell, tokens, phone, _, cx| host_agents::render(shell, tokens, phone, cx))
         }
         Section::Providers => Some(agents::render),
+        Section::Models => Some(models::render),
         Section::Sync => {
             Some(|shell, tokens, phone, window, cx| sync::render(shell, tokens, phone, window, cx))
         }
@@ -95,8 +96,7 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Workspaces
         | Section::Usage
         | Section::Terminals
-        | Section::Plugins
-        | Section::Models => None,
+        | Section::Plugins => None,
     }
 }
 

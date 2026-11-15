@@ -727,7 +727,11 @@ layout against node data rather than hand-built screen rows.
 The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
 an added agent with a long name and argument, a definition whose program
 is missing, Codex signed out, a failed status check, agent-supplied sign-in
-steps, a missing Codex adapter on `build-server`, and a long model route.
+steps and a missing Codex adapter on `build-server`. Models fixtures add
+24 routes on `laptop`, a true empty route list on `build-server`, long Korean
+and unbroken model identifiers, two provider APIs, and separate account
+profiles using one route. CLI assertions fail startup if these shapes are
+missing. Model/profile listing does not contact those provider endpoints.
 Each node has its own fake program directory. Its `npm`, `npx` and `uvx`
 never download or execute packages. To hold an app-started install for a
 capture, create a FIFO at `<fleet>/<machine>-home/install-gate` before
@@ -1058,3 +1062,19 @@ foreground shares the existing750ms linear rotation path and App motion flag.
 Legacy slider::spinner retains its vector/API/800ms through the same rotation
 helper. Combined ActivityIndicator asset stays registered for compatibility.
 See docs/plans/backend-m12-g2-loading-019-producer.md for source/gate/UI scope.
+
+
+### Models settings data flow
+
+The existing machine-group Models entry registers `areas/settings/models`.
+Its pure `view::models` page owns machine/ticket correlation, search and
+initial/cached states; the app only draws and sends `Command::Models`.
+`link::models` reads existing model/profile/agent lists on one connection,
+with four dispatched reads and one 15-second snapshot deadline. Older
+methods stay distinct from empty lists. The shared actor may still delay
+initial dispatch while awaiting its own session reads; that inherited wait
+is outside this worker deadline. Answers and unsent commands settle their
+original ticket. Models are read-only and “Used by profiles” means explicit
+profile references, not a guessed compatibility matrix. English/Korean
+words use the generated Fluent `models` scope. See
+`docs/plans/backend-m12-models.md` for references and verification limits.

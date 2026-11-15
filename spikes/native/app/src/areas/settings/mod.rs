@@ -39,6 +39,7 @@ mod diagnostics;
 mod general;
 mod host_agents;
 mod language;
+mod models;
 mod motion;
 mod nav;
 mod overview;
@@ -90,6 +91,7 @@ pub(crate) struct SettingsState {
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
     pub(crate) agents: agents::AgentSettings,
+    models: models::State,
 
     pub(crate) devices: devices::Devices,
     diagnostics: diagnostics::State,
@@ -116,6 +118,7 @@ impl SettingsState {
             anchors: Anchors::default(),
             refused: None,
             agents: agents::AgentSettings::new(window, cx),
+            models: models::State::new(window, cx),
 
             devices: devices::Devices::new(window, cx),
             diagnostics: diagnostics::State::new(cx),
@@ -174,6 +177,7 @@ impl Shell {
     /// came in since (devices, sync, the machine's agents, the book that
     /// Overview and Connections show).
     pub(crate) fn settle_settings(&mut self, window: &Window) {
+        self.settle_models(window);
         self.settle_devices(window);
         self.settle_sync(window);
         self.settle_host_agents(window);

@@ -12,7 +12,8 @@
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{
-    Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
+    Act, Offer, Prefs, agents, attachments, devices, machines, models, node_settings, search,
+    workspace,
 };
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::Delivery;
@@ -23,6 +24,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Configured model facts for the original machine and page ticket.
+    Models(models::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

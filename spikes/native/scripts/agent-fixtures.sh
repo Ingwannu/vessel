@@ -45,28 +45,67 @@ SH
   chmod 755 "$bin/npm"
 }
 
-agent_fixture_config() { # data-directory
-  local data=$1
+# One named fixture count, shared by generated configuration and its wire check.
+AGENT_FIXTURE_MODEL_COUNT=24
+AGENT_FIXTURE_UNBROKEN_MODEL='unbrokenmodelidentifierwithnoslashorhyphenforcheckingthatreadablesettingsvaluesfitinsmallwindowsandarestillcopiedasonewholeidentifier'
+AGENT_FIXTURE_LONG_MODEL='fixture/a-model-identifier-with-a-long-namespace-and-version-that-remains-readable-in-a-small-window/한글-모델'
+
+agent_fixture_config() { # data-directory machine
+  local data=$1 machine=$2
   mkdir -p "$data"
   cat > "$data/models.toml" <<'TOML'
 [providers.fixture]
 api = "openai-chat-completions"
 base_url = "http://127.0.0.1:9/v1"
 
+[providers.alternate]
+api = "anthropic-messages"
+base_url = "http://127.0.0.1:9/v1"
+TOML
+  if [ "$machine" = laptop ]; then
+    cat >> "$data/models.toml" <<'TOML'
+
 [models.example-coder-with-a-long-route-name]
 provider = "fixture"
 model = "example/very-long-model-name-for-checking-settings-layout-in-small-windows"
 small_model = "example/small"
 TOML
+    local number
+    for number in $(seq 1 "$((AGENT_FIXTURE_MODEL_COUNT - 1))"); do
+      local model
+      if [ "$number" -eq 1 ]; then model="$AGENT_FIXTURE_LONG_MODEL";
+      elif [ "$number" -eq 2 ]; then model="$AGENT_FIXTURE_UNBROKEN_MODEL";
+      else model="fixture/model-$number"; fi
+      printf '\n[models.fixture-model-%02d]\nprovider = "alternate"\nmodel = "%s"\n' \
+        "$number" "$model" >> "$data/models.toml"
+    done
+  fi
   cat > "$data/profiles.toml" <<'TOML'
 [profiles.claude-example]
 harness = "claude"
+
+[profiles.codex-example]
+harness = "codex"
+TOML
+  if [ "$machine" = laptop ]; then
+    # Append the route inside a profile table, not an inferred compatibility
+    # claim. Two accounts use the same agent and must remain distinct.
+    cat > "$data/profiles.toml" <<'TOML'
+[profiles.claude-example]
+harness = "claude"
 model = "example-coder-with-a-long-route-name"
+label = "Work account"
 
 [profiles.codex-example]
 harness = "codex"
 model = "example-coder-with-a-long-route-name"
+
+[profiles.codex-personal]
+harness = "codex"
+model = "example-coder-with-a-long-route-name"
+label = "같은 에이전트의 별도 프로필 — 긴 이름과 한글을 확인하는 개인 계정"
 TOML
+  fi
   chmod 600 "$data/models.toml" "$data/profiles.toml"
 }
 
@@ -96,6 +135,15 @@ agent_fixture_seed() { # fleet-root binaries; cli() supplied by fleet.sh
   grep -q 'not installed' "$fleet_root/ghost-check.txt" || { echo 'fleet: missing added program is missing' >&2; return 1; }
   grep -q 'codex-acp' "$fleet_root/adapter-check.txt" || { echo 'fleet: missing adapter case is missing' >&2; return 1; }
   grep -q 'example-coder-with-a-long-route-name' "$fleet_root/models-check.txt" || { echo 'fleet: model route is missing' >&2; return 1; }
+  [ "$(wc -l < "$fleet_root/models-check.txt")" -eq "$AGENT_FIXTURE_MODEL_COUNT" ] || { echo 'fleet: many model routes are missing' >&2; return 1; }
+  grep -qF "$AGENT_FIXTURE_LONG_MODEL" "$fleet_root/models-check.txt" || { echo 'fleet: long Korean model identifier is missing' >&2; return 1; }
+  grep -qF "$AGENT_FIXTURE_UNBROKEN_MODEL" "$fleet_root/models-check.txt" || { echo 'fleet: unbroken model identifier is missing' >&2; return 1; }
+  grep -q 'anthropic-messages' "$fleet_root/models-check.txt" || { echo 'fleet: alternate provider API is missing' >&2; return 1; }
+  cli --node laptop profiles > "$fleet_root/profiles-check.txt"
+  grep -q 'codex-personal' "$fleet_root/profiles-check.txt" || { echo 'fleet: separate model-use account is missing' >&2; return 1; }
+  grep -q '같은 에이전트의 별도 프로필' "$fleet_root/profiles-check.txt" || { echo 'fleet: Korean profile label is missing' >&2; return 1; }
+  cli --node build-server models > "$fleet_root/empty-models-check.txt"
+  grep -Fxq "no model routes (the node's models.toml defines them)" "$fleet_root/empty-models-check.txt" || { echo 'fleet: empty model list is missing' >&2; return 1; }
 }
 
 # Exercise the optional gate in a separate scratch home, so checking the

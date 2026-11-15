@@ -91,6 +91,9 @@ impl Link {
                 request,
                 answer: Err(crate::agents::AgentsError::NoTransport),
             }),
+            Command::Models(ask) => self.emit(Event::Models(
+                ask.refused(crate::models::Error::NoTransport),
+            )),
 
             Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
                 ticket,

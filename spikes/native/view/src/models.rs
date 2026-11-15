@@ -2,7 +2,12 @@
 //! machine's model routes and its profiles, each as a few facts.
 
 pub mod page;
+mod screen;
+mod usage;
 mod users;
+mod words;
+pub use screen::{Content, Issue, Presentation, Problem, Refresh, presentation, search};
+pub use usage::{Usage, usage};
 pub use users::{User, users};
 
 use vessel_proto::agents::AgentInfo;

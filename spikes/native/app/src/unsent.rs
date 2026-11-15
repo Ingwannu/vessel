@@ -59,6 +59,10 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::Models(ask) => Event::Models(ask.refused(match unsent.why {
+            Rejected::Full => vessel_app_link::models::ModelsError::Busy,
+            Rejected::Closed => vessel_app_link::models::ModelsError::Offline,
+        })),
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {
@@ -263,5 +267,46 @@ mod tests {
         assert_eq!((for_session, text.as_str()), (session, "fix the test"));
         let reload = link.submit(Command::Reload).expect_err("given back");
         assert!(matches!(settle(reload, WORDS), Settle::Say));
+    }
+    /// Rejected reads must settle their exact active ticket, so retry becomes
+    /// possible without accepting a stale answer from another machine.
+    #[test]
+    fn models_queue_refusals_settle_the_original_pending_read() {
+        use vessel_app_link::models::{Ask, ModelsError};
+        use vessel_app_view::agent_status::pages::MachineKey;
+        use vessel_app_view::models::page::State;
+        for stopped in [false, true] {
+            let machine = MachineKey::from_book("fixture");
+            let mut page = State::<ModelsError>::default();
+            page.select(Some(machine.clone()));
+            let ticket = page.begin().expect("fresh request");
+            let (link, inbox) = Link::detached(1).expect("runtime");
+            if stopped {
+                drop(inbox);
+            } else {
+                link.submit(Command::Reload).expect("fill queue");
+            }
+            let unsent = link
+                .submit(Command::Models(Ask {
+                    machine: machine.clone(),
+                    ticket,
+                }))
+                .expect_err("refused read");
+            let Settle::Answer(event) = settle(unsent, WORDS) else {
+                panic!("missing answer")
+            };
+            let Event::Models(answer) = *event else {
+                panic!("wrong answer")
+            };
+            assert_eq!(answer.machine, machine);
+            assert_eq!(answer.ticket, ticket);
+            assert!(matches!(
+                (&answer.result, stopped),
+                (Err(ModelsError::Offline), true) | (Err(ModelsError::Busy), false)
+            ));
+            assert!(page.received(&answer.machine, answer.ticket, answer.result));
+            assert!(page.page().pending().is_none());
+            assert!(page.begin().is_ok(), "refusal leaves retry available");
+        }
     }
 }

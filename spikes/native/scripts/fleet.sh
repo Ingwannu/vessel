@@ -65,7 +65,7 @@ for name in laptop build-server; do
   home="$root/$name-home"
   mkdir -p "$home"
   agent_fixture_bin "$root" "$target" "$name"
-  agent_fixture_config "$data"
+  agent_fixture_config "$data" "$name"
   node_path="$root/$name-bin:/usr/bin:/bin"
   env -i PATH="$node_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
     "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" \

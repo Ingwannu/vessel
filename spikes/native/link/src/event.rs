@@ -12,7 +12,8 @@
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{
-    ActAnswer, agents, attachments, devices, machines, node_settings, search, sync, workspace,
+    ActAnswer, agents, attachments, devices, machines, models, node_settings, search, sync,
+    workspace,
 };
 use vessel_app_view::{Card, Fleet};
 use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOption};
@@ -20,6 +21,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Configured model facts for the original machine and page ticket.
+    Models(models::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
