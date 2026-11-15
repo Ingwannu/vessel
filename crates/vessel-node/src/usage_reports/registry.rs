@@ -48,7 +48,7 @@ impl Registry {
         let key = uuid::Uuid::new_v4()
             .to_string()
             .parse()
-            .map_err(|_| changed())?;
+            .map_err(|_invalid_identity| changed())?;
         let id = UsageReportId::new(source, key);
         known.push(Known {
             id: id.clone(),

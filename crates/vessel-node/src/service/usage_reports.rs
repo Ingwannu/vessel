@@ -96,7 +96,7 @@ impl NodeService {
             cost_visibility: visibility(connection),
         }
         .for_visibility(visibility(connection));
-        found.validate_budget().map_err(|_| too_large())?;
+        let _encoded = found.validate_budget().map_err(|_budget| too_large())?;
         Ok(found)
     }
     fn report_permission(
@@ -136,7 +136,7 @@ impl NodeService {
         let id = self
             .usage_reports
             .identify(
-                source.parse().map_err(|_| changed())?,
+                source.parse().map_err(|_invalid_source| changed())?,
                 binding.clone(),
                 policy,
             )
@@ -154,9 +154,13 @@ impl NodeService {
         if after != binding || !policy.still_current() {
             return Err(changed());
         }
-        let label = limits.account.profile.as_ref().map(|name| name.as_str());
+        let label = limits
+            .account
+            .profile
+            .as_ref()
+            .map(vessel_proto::ProfileName::as_str);
         let label = label.map(str::to_owned);
-        usage_reports::entry(id, label.as_deref(), limits).map_err(|_| {
+        usage_reports::entry(id, label.as_deref(), limits).map_err(|_projection| {
             WireError::new(
                 ErrorCode::Internal,
                 "the complete saved account report could not be represented safely",
@@ -222,7 +226,7 @@ fn complete(
     policy: ExternalLookup,
     visibility: CostVisibility,
 ) -> Result<UsageReports, WireError> {
-    let reports = ReportEntries::try_from(reports).map_err(|_| too_large())?;
+    let reports = ReportEntries::try_from(reports).map_err(|_collection| too_large())?;
     let result = UsageReports {
         at: chrono::Utc::now(),
         policy,
@@ -231,7 +235,7 @@ fn complete(
         source_failures: ReportSourceFailures::default(),
     }
     .for_visibility(visibility);
-    result.validate_budget().map_err(|_| too_large())?;
+    let _encoded = result.validate_budget().map_err(|_budget| too_large())?;
     Ok(result)
 }
 fn changed() -> WireError {

@@ -12,9 +12,15 @@ use vessel_proto::{
         UsageSummary, UsageWindow,
     },
 };
-#[derive(Debug, Clone, Copy, thiserror::Error)]
-#[error("the saved account report cannot be represented safely")]
-pub(crate) struct ProjectionError;
+#[derive(Debug, Clone, thiserror::Error)]
+pub(crate) enum ProjectionError {
+    #[error("saved account metadata exceeds the validated label or identity shape")]
+    Text(#[source] vessel_proto::limits::InvalidLimitText),
+    #[error("saved account entries exceed their count or identity constraints")]
+    Collection(#[source] vessel_proto::usage_reports::InvalidUsageCollection),
+    #[error("this saved login has no report source")]
+    Unsupported,
+}
 /// These labels explicitly describe saved configuration, not discovered vendor accounts.
 pub(crate) fn source(
     harness: &HarnessRef,
@@ -39,14 +45,15 @@ pub(crate) fn source(
     }
 }
 fn name(text: &str) -> Result<LimitName, ProjectionError> {
-    text.parse().map_err(|_| ProjectionError)
+    text.parse().map_err(ProjectionError::Text)
 }
 pub(crate) fn entry(
     id: UsageReportId,
     label: Option<&str>,
     limits: UsageLimits,
 ) -> Result<SourceReportEntry, ProjectionError> {
-    let (_, source_label, builtin) = source(&limits.account.harness).ok_or(ProjectionError)?;
+    let (_, source_label, builtin) =
+        source(&limits.account.harness).ok_or(ProjectionError::Unsupported)?;
     let state = match limits.state {
         AccountLimitState::Off | AccountLimitState::NotRequested => SourceReportState::NotRequested,
         AccountLimitState::Refreshing { retained } => SourceReportState::Refreshing {
@@ -86,11 +93,11 @@ fn success(snapshot: LimitSnapshot) -> Result<SuccessfulUsageReport, ProjectionE
         .map(window)
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
-        .map_err(|_| ProjectionError)?;
+        .map_err(ProjectionError::Collection)?;
     let mut details = Vec::new();
     if let Some(extra) = snapshot.extra_usage {
         details.push(UsageDetail {
-            id: "extra_usage".parse().map_err(|_| ProjectionError)?,
+            id: "extra_usage".parse().map_err(ProjectionError::Text)?,
             label: name("Additional paid use")?,
             value: name(match extra {
                 ExtraUsage::Enabled => "Enabled",
@@ -108,7 +115,7 @@ fn success(snapshot: LimitSnapshot) -> Result<SuccessfulUsageReport, ProjectionE
             details.push(boolean("unlimited", "Unlimited credits", value)?);
         }
         vec![UsageBalance {
-            id: "credits".parse().map_err(|_| ProjectionError)?,
+            id: "credits".parse().map_err(ProjectionError::Text)?,
             label: name("Reported credits")?,
             used: None,
             remaining: credits.balance,
@@ -140,8 +147,8 @@ fn success(snapshot: LimitSnapshot) -> Result<SuccessfulUsageReport, ProjectionE
             },
             plan: snapshot.plan,
             windows,
-            balances: balances.try_into().map_err(|_| ProjectionError)?,
-            details: details.try_into().map_err(|_| ProjectionError)?,
+            balances: balances.try_into().map_err(ProjectionError::Collection)?,
+            details: details.try_into().map_err(ProjectionError::Collection)?,
         },
     })
 }
@@ -179,7 +186,7 @@ fn window_label(window: &LimitWindow) -> Result<LimitName, ProjectionError> {
 
 fn boolean(id: &str, label: &str, value: bool) -> Result<UsageDetail, ProjectionError> {
     Ok(UsageDetail {
-        id: id.parse().map_err(|_| ProjectionError)?,
+        id: id.parse().map_err(ProjectionError::Text)?,
         label: name(label)?,
         value: name(if value { "Yes" } else { "No" })?,
         access: UsageDetailAccess::Read,

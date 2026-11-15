@@ -27,8 +27,8 @@ impl Limits {
         let (reply, response) = oneshot::channel();
         self.commands
             .try_send(Command::Observe { reply })
-            .map_err(|_| busy())?;
-        response.await.map_err(|_| stopped())
+            .map_err(|_backpressure| busy())?;
+        response.await.map_err(|_closed| stopped())
     }
 }
 #[cfg(test)]
