@@ -336,6 +336,7 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    shell.creation_editor(cx);
     let restored = shell.areas.draft.restore.borrow_mut().take();
     if let Some(text) = restored {
         // A failed start's text, back in the composer (once).
@@ -350,7 +351,7 @@ pub(crate) fn render(
 
     let typed = !draft.composer.text(cx).trim().is_empty() || shell.draft_has_files();
     let can_send = typed && draft.agent.is_some() && draft.creation.flow.may_submit();
-    let attach = attach_button(true, touch, tokens, cx);
+    let attach = attach_button(draft.creation.flow.may_submit(), touch, tokens, cx);
     let card = draft_card(shell, tokens, touch, window, cx).child(
         // Paseo's button row bleeds 6 past the card's padding.
         div()
@@ -397,7 +398,7 @@ pub(crate) fn render(
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
     }
-    if let Some(status) = status::render(shell, tokens) {
+    if let Some(status) = status::render(shell, tokens, cx) {
         column = column.child(status);
     }
     if let (Some(Shown::Failed(why)), Some(agent)) = (&shown, &draft.agent) {

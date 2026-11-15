@@ -118,3 +118,14 @@ multiple seeded drafts using W12's DraftId, registry-backed empty workspace
 and terminal flows, receipt reconciliation, terminal profile selection,
 whole gates/captures/reviews. The node receipt/profile work is separate in
 ADR0091. No full parity claim or user-flow capture exists yet.
+
+Shared base6036eeb8 is merged. Creation captures `Machine.node` and refuses
+before worktree/session effects if the connected welcome identity differs;
+late completion also requires the same name/node mapping before handoff.
+This guards A1's boundary; W6 is separately pinning capability/upload calls
+and adding `prepare_draft_files_on`, so a later queued upload cannot retarget
+a reused book name. The current Ticket-only adapter remains transitional.
+`Editability` locks the actual draft editor while creating/unknown, retaining
+copy/selection. Known initial-input failure offers an explicit same-session
+retry. In-memory peer regressions assert identity mismatch sends no request
+and a retry reads the registered session rather than issuing create again.

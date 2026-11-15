@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use vessel_app_view::creation::{Failure, Stage, Ticket};
 use vessel_app_view::machine_book::Name;
-use vessel_proto::{SessionId, SessionInfo, SessionSpec};
+use vessel_proto::{NodeId, SessionId, SessionInfo, SessionSpec};
 
 /// A first-message retry can never accidentally register another resource.
 #[derive(Debug, Clone)]
@@ -49,6 +49,8 @@ pub struct Ask {
     pub ticket: Ticket,
     /// Existing node-book entry, parsed once by the app.
     pub machine: Name,
+    /// Pin the welcome identity, so reusing a book name cannot retarget effects.
+    pub expected_node: NodeId,
     /// Existing node creation contract; placement remains node-authoritative.
     pub target: Target,
     /// First-message owner, independent of resource registration.
@@ -64,6 +66,8 @@ pub enum Answer {
         ticket: Ticket,
         /// Node-book identity, retained even after navigation.
         machine: Name,
+        /// Welcome identity of the client that actually registered the resource.
+        node: NodeId,
         /// Exact session returned by the existing create call.
         session: Box<SessionInfo>,
     },

@@ -10,6 +10,7 @@ use vessel_app_view::{Card, Picks};
 pub(crate) struct CreationState {
     pub(crate) flow: Flow,
     pub(crate) registered: Option<Card>,
+    pub(crate) node: Option<vessel_proto::NodeId>,
     next: Option<Ticket>,
 }
 impl Default for CreationState {
@@ -17,6 +18,7 @@ impl Default for CreationState {
         Self {
             flow: Flow::default(),
             registered: None,
+            node: None,
             next: Some(Ticket::new(0)),
         }
     }
@@ -35,9 +37,11 @@ impl Shell {
             Answer::Registered {
                 ticket,
                 machine,
+                node,
                 session,
             } => {
                 if self.areas.draft.creation.flow.ticket() == Some(ticket) {
+                    self.areas.draft.creation.node = Some(node);
                     self.areas.draft.creation.registered =
                         Some(Card::from_session(machine.as_str(), &session));
                 }
@@ -63,6 +67,26 @@ impl Shell {
         cx.notify();
     }
     fn creation_complete(&mut self, ticket: Ticket, cx: &mut Context<'_, Self>) {
+        if self.areas.draft.creation.flow.ticket() != Some(ticket) {
+            return;
+        }
+        if let Some(card) = &self.areas.draft.creation.registered {
+            let same_node = self.fleet.machines.iter().any(|machine| {
+                machine.name == card.machine && machine.node == self.areas.draft.creation.node
+            });
+            if !same_node {
+                self.creation_answer(
+                    Answer::Failed {
+                        ticket,
+                        stage: vessel_app_view::creation::Stage::InitialInput,
+                        failure: Failure::Refused(vessel_proto::ErrorCode::Conflict),
+                    },
+                    cx,
+                );
+                self.reload();
+                return;
+            }
+        }
         let completion = self.areas.draft.creation.flow.complete(ticket);
         if completion == Completion::Ignored {
             return;
@@ -92,6 +116,15 @@ impl Shell {
         if foreground {
             self.route_to(Route::Draft);
         }
+    }
+    /// Lock the actual editor, including input methods and paste, while held.
+    pub(super) fn creation_editor(&self, cx: &mut Context<'_, Self>) {
+        let editability = if self.areas.draft.creation.flow.may_submit() {
+            vessel_app_kit::Editability::Editable
+        } else {
+            vessel_app_kit::Editability::ReadOnly
+        };
+        self.areas.draft.composer.set_editability(editability, cx);
     }
     /// Navigation relinquishes this submission's route ownership permanently.
     pub(crate) fn creation_departing(&mut self) {

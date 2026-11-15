@@ -128,6 +128,16 @@ impl Walk<'_> {
 /// Walk `start` to its end, then send how it ended.
 pub(super) async fn walk(client: &NodeClient, reply: &Reply, mut start: StartAsk) {
     let key = start.key;
+    if client.node().id != start.creation.expected_node {
+        reply
+            .send(Answer::StartEnded {
+                key,
+                ended: StartEnded::Prepared,
+            })
+            .await;
+        crate::creation::perform(client, start.creation, &reply.events).await;
+        return;
+    }
     let mut walk = Walk {
         client,
         reply,

@@ -31,6 +31,17 @@ impl Shell {
             cx.notify();
             return;
         };
+        let Some(expected_node) = self
+            .fleet
+            .machines
+            .iter()
+            .find(|entry| entry.name == machine.as_str())
+            .and_then(|entry| entry.node)
+        else {
+            self.areas.draft.error = Some(self.words.creation().offline().to_owned());
+            cx.notify();
+            return;
+        };
         let Some((ticket, target)) = self.draft_creation_target(&machine, &harness) else {
             cx.notify();
             return;
@@ -45,16 +56,23 @@ impl Shell {
         } else {
             Stage::Resource
         };
-        if self.areas.draft.creation.flow.begin(ticket, stage) != Transition::Applied {
+        let transition = if matches!(target, Target::Registered(_)) {
+            self.areas.draft.creation.flow.retry_input(ticket)
+        } else {
+            self.areas.draft.creation.flow.begin(ticket, stage)
+        };
+        if transition != Transition::Applied {
             self.rejected_draft_files(ticket, cx);
             return;
         }
         let ask = Ask {
             ticket,
             machine: machine.clone(),
+            expected_node,
             target,
             input,
         };
+        self.areas.draft.creation.node = Some(expected_node);
         self.areas.draft.error = None;
         self.areas.draft.sending = Some(text.clone());
         self.areas.draft.composer.clear(window, cx);
