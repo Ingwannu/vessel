@@ -47,6 +47,7 @@ pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod image_input;
 pub mod loading;
 pub mod menu;
 pub mod motion;
