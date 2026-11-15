@@ -232,7 +232,7 @@ impl SessionRuntime {
             self.agent_command_owned(spec, profile, proxy, std::sync::Arc::clone(&ownership)),
         )
         .await
-        .map_err(|_| vessel_agent::ProbeError::TimedOut {
+        .map_err(|_elapsed| vessel_agent::ProbeError::TimedOut {
             limit,
             log: Vec::new(),
         })??;

@@ -1,6 +1,6 @@
 //! Scoped subscriber records the real handler fields without changing global tracing.
 
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::sync::{Arc, Mutex, PoisonError};
 use tracing::field::{Field, Visit};
 use tracing::span::{Attributes, Id, Record};
@@ -21,7 +21,8 @@ impl Capture {
 struct Fields<'a>(&'a mut String);
 impl Visit for Fields<'_> {
     fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
-        self.0.push_str(&format!("{}={value:?}\n", field.name()));
+        let written = writeln!(self.0, "{}={value:?}", field.name());
+        assert!(written.is_ok(), "writing the test's String cannot fail");
     }
 }
 
