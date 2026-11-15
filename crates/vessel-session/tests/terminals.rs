@@ -150,7 +150,8 @@ mod support {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. }) => panic!("a terminal logs no {other:?}"),
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Checkpoint { .. }) => panic!("a terminal logs no {other:?}"),
         };
         for record in &follow.cached {
             take(&record.event);

@@ -1202,3 +1202,11 @@ rotation/completed/garbage SQL: rank/40 boundary, marker/worker/recovery pins,
 consumed-plan FK retention, Expired state and garbage merge passed. This verifies
 SQL compatibility only; it is not Rust execution, actual namespace cleanup,
 permissions, runtime parity or a replacement for the queued remote suites.
+
+Run wp-checkpoints-node-narrow-20261115T160637Z-7e77b2cd finished rc1 at
+16:24 UTC (cargo101). The only reported error was a missing Checkpoint arm in
+an existing terminal test helper's exhaustive SessionEvent match. The helper now
+classifies checkpoint metadata with the other records a terminal must never
+emit; it does not silently accept or synthesize those records. The other
+terminal output-size projection already counts checkpoint metadata as zero.
+No selected runtime tests or normal runtime proof follow from this compile fix.
