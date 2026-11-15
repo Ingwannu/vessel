@@ -1624,3 +1624,14 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+## Canonical timeline values (ADR 0084, staged)
+
+`vessel-proto::timeline` owns canonical tool detail bodies, non-tool items,
+provenance, permission/question presentation and identified-prompt receipt
+values. The admission submodule owns finite retained-state budget constants.
+These are standalone contracts: existing events, calls and driver emissions are
+unchanged until the shared optional event/method gate is integrated. No new
+crate or dependency edge is added. Provider decoding remains in vessel-agent;
+client renderers consume typed values and never infer provider semantics from
+opaque arguments.
