@@ -7,7 +7,13 @@ use gpui::{
     deferred, div, point, px, size,
 };
 use std::cell::Cell;
+#[derive(Clone, Copy)]
+enum Contents {
+    Handle,
+    Scrolling,
+}
 struct Probe {
+    contents: Contents,
     fit: State,
     natural: Pixels,
     generation: Rc<Cell<usize>>,
@@ -28,20 +34,36 @@ impl Render for Probe {
         };
         let seen = Rc::clone(&self.measured);
         let clicks = Rc::clone(&self.clicks);
+        let body = match self.contents {
+            Contents::Handle => div()
+                .size_full()
+                .on_mouse_down(MouseButton::Left, move |_, _, _| {
+                    clicks.set(clicks.get().saturating_add(1));
+                })
+                .into_any_element(),
+            Contents::Scrolling => div()
+                .id("fit-test-scroll")
+                .flex_1()
+                .min_h_0()
+                .overflow_y_scroll()
+                .track_scroll(self.fit.scroll())
+                .child(div().h(px(1200.0)).flex_none())
+                .relative()
+                .child(self.fit.input(Origin::Content, &handlers))
+                .into_any_element(),
+        };
         let panel = div()
             .h(self.natural)
             .flex_shrink(1.0)
             .min_h_0()
             .on_children_prepainted(move |bounds, _, _| seen.set(bounds.first().copied()))
-            .child(
-                div()
-                    .size_full()
-                    .on_mouse_down(MouseButton::Left, move |_, _, _| {
-                        clicks.set(clicks.get().saturating_add(1));
-                    }),
-            )
+            .flex()
+            .flex_col()
+            .child(body)
             .relative()
-            .child(self.fit.input(Origin::Handle, &handlers));
+            .when(matches!(self.contents, Contents::Handle), |panel| {
+                panel.child(self.fit.input(Origin::Handle, &handlers))
+            });
         div()
             .size_full()
             .p(px(20.0))
@@ -54,8 +76,16 @@ impl Render for Probe {
     }
 }
 fn setup(cx: &mut TestAppContext, height: f32) -> (Entity<Probe>, &mut VisualTestContext) {
+    setup_with(cx, height, Contents::Handle)
+}
+fn setup_with(
+    cx: &mut TestAppContext,
+    height: f32,
+    contents: Contents,
+) -> (Entity<Probe>, &mut VisualTestContext) {
     cx.update(|cx| cx.set_reduce_motion(true));
     let (view, cx) = cx.add_window_view(move |_, _| Probe {
+        contents,
         fit: State::new(),
         natural: px(height),
         generation: Rc::new(Cell::new(0)),
@@ -181,4 +211,59 @@ fn fitted_retained_frame_requires_the_host_admission_before_pointer_scroll_or_cl
         seen.origin.y.as_f32().mul_add(-1.0, 300.0).abs() < 0.001,
         "refused unit close retains the same fitted open position"
     );
+}
+
+#[gpui::test]
+fn fitted_native_body_scrolls_before_pulling_the_same_sheet_down(cx: &mut TestAppContext) {
+    let (view, cx) = setup_with(cx, 300.0, Contents::Scrolling);
+    for (start, end, expected_scroll) in [(500.0, 400.0, 100.0), (400.0, 450.0, 50.0)] {
+        cx.update(|window, cx| {
+            down(window, cx, point(px(100.0), px(start)));
+            motion(window, cx, point(px(100.0), px(end)));
+            up(window, cx, point(px(100.0), px(end)));
+        });
+        cx.run_until_parked();
+        view.read_with(cx, |this, _| {
+            assert!(
+                this.fit
+                    .scroll
+                    .offset()
+                    .y
+                    .as_f32()
+                    .mul_add(1.0, expected_scroll)
+                    .abs()
+                    < 0.001
+            );
+            assert!(
+                this.measured
+                    .get()
+                    .unwrap()
+                    .origin
+                    .y
+                    .as_f32()
+                    .mul_add(-1.0, 300.0)
+                    .abs()
+                    < 0.001
+            );
+            assert_eq!(
+                this.closed.get(),
+                0,
+                "scrolling rows cannot dismiss the sheet"
+            );
+        });
+    }
+    cx.update(|window, cx| {
+        down(window, cx, point(px(100.0), px(305.0)));
+        motion(window, cx, point(px(100.0), px(590.0)));
+        up(window, cx, point(px(100.0), px(590.0)));
+    });
+    cx.run_until_parked();
+    view.read_with(cx, |this, _| {
+        assert_eq!(this.fit.scroll.offset().y, px(0.0));
+        assert_eq!(
+            this.closed.get(),
+            1,
+            "after content reaches top, the pan may close"
+        );
+    });
 }

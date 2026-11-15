@@ -80,3 +80,11 @@ A to leave B motion/scroll/dismissal untouched, then require fresh B pan-down
 and refused-close retention. Pure tests also drive the shared content scroll
 handoff. All remain UNEXECUTED until the serialized remote narrow run; this
 checkpoint is not an approved producer or full menu-sheet/UI claim.
+
+A further actual GPUI fixture uses a1200-point body in the300-point fitted
+panel, tracking the same native ScrollHandle: upward content input scrolls100,
+a50-point downward pull leaves50 scrolled and the panel fixed, then only the
+remaining pull after offset zero may request close. This complements the pure
+engine cases; it too is installed, not executed. Child actions/focus must still
+use the host's lease: the geometry adapter does not authorize arbitrary child
+callbacks or claim complete menu keyboard accessibility.
