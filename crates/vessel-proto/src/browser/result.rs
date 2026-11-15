@@ -54,7 +54,7 @@ pub enum BrowserResult {
     Logs {
         /// Only the caller's authorized target.
         browser_id: BrowserId,
-        /// Typed console content, redacted from Debug through PageText.
+        /// Typed console content, redacted from Debug through `PageText`.
         console: super::ConsoleEntries,
         /// Network metadata obtained from the same browser context.
         network: super::NetworkEntries,

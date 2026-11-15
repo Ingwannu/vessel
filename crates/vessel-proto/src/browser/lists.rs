@@ -126,7 +126,8 @@ mod tests {
     fn excess_item_is_refused_before_its_payload_is_decoded() {
         // The first excess item is deliberately not a console entry. The cap,
         // rather than that item's schema, must be the first rejected boundary.
-        let mut items = vec![r#"{"level":"log","text":""}"#; MAX_BROWSER_LOGS as usize];
+        let limit = usize::try_from(MAX_BROWSER_LOGS).unwrap();
+        let mut items = vec![r#"{"level":"log","text":""}"#; limit];
         items.push(r#"{"untrusted_payload":"do not decode"}"#);
         let input = format!("[{}]", items.join(","));
         let error = serde_json::from_str::<ConsoleEntries>(&input).unwrap_err();
