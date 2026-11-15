@@ -45,6 +45,11 @@ The shared validator also accepts the explicit candidate root, with zero missing
 keys in both languages; this is a source-candidate check, not a compiled API
 or current-binary claim. App compilation, its new GPUI regression, the whole
 native gate and current screens are owed. Status: **source ready, gate owed**.
+The first remote all-target native Clippy run on `75cf3b4a` failed on the
+new GPUI test's private find access (and its unused import). The regression
+moves into find's existing language-test module, where that access belongs;
+no production visibility is widened and no assertion is removed. This is a
+separate correction to the source-ready commit, with the failing run retained.
 
 The model preserves numbered-build prefixes and plain developer build names;
 whole Fluent branches select either presentation. Numeric progress stays a
