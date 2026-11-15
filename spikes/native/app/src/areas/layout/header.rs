@@ -61,6 +61,9 @@ pub(super) fn controls(
         let Ok(workspace) = super::key(shell) else {
             continue;
         };
+        let Some(context) = shell.layout_action_context() else {
+            continue;
+        };
         let touch = mode(window) == LayoutMode::Compact;
         let side = if touch {
             vessel_app_kit::breakpoint::TOUCH_TARGET
@@ -83,7 +86,7 @@ pub(super) fn controls(
             tokens.neutral.foreground_muted,
         ))
         .on_click(cx.listener(move |shell, _event, window, cx| {
-            if super::key(shell).as_ref() != Ok(&workspace) {
+            if !shell.layout_action_context_is_current(&context) {
                 return;
             }
             match control {
@@ -105,8 +108,14 @@ pub(super) fn controls(
                 Control::Focus => {
                     let result = with_layout(shell, |layout| layout.focus(pane_id));
                     if result.is_ok() {
-                        let _handled =
-                            shell.run_layout_action(LayoutAction::ToggleFocus, window, cx);
+                        if let Some(context) = shell.layout_action_context() {
+                            let _handled = shell.run_layout_action_at(
+                                &context,
+                                LayoutAction::ToggleFocus,
+                                window,
+                                cx,
+                            );
+                        }
                     } else {
                         shell.layout_result(result, cx);
                     }

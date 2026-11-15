@@ -275,3 +275,6 @@ fn a_refused_group_signal_counts_as_gone_only_after_the_reap() {
         })
         .unwrap();
 }
+
+#[path = "spawn/lifetime.rs"]
+mod lifetime;

@@ -49,6 +49,7 @@ fn setup() -> AgentSetup {
         mcp_servers: ResolvedMcpServers::new(),
         handshake_timeout: Duration::from_secs(5),
         questions: false,
+        system_prompt: None,
         private_dir: None,
     }
 }
@@ -352,6 +353,7 @@ fn mcp_servers_go_in_a_private_file_the_session_holds() {
     let dir = private_dir(root.path());
     let with = AgentSetup {
         mcp_servers: servers(),
+        system_prompt: None,
         private_dir: Some(dir.clone()),
         ..setup()
     };
@@ -392,6 +394,7 @@ fn a_private_directory_open_to_others_is_refused_and_left_empty() {
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
     let tampered = AgentSetup {
         mcp_servers: servers(),
+        system_prompt: None,
         private_dir: Some(dir.clone()),
         ..setup()
     };

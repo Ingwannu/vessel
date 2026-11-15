@@ -1,6 +1,8 @@
 //! Client-local pane contract. Features own resources and buffers; this module
 //! owns identity and placement and cannot call a node or tear down a resource.
 
+mod action_context;
+pub use action_context::LayoutActionContext;
 mod aliases;
 mod catalog;
 pub use aliases::{forget_alias, rename_alias};

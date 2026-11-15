@@ -16,7 +16,9 @@ had SHA-256
 Removed from the copy: its `Cargo.lock` (unused for a dependency).
 
 Changed: `build.rs`, and three call sites of Direct Manipulation in
-`src/window.rs` and `src/events.rs` (the second change, below).
+`src/window.rs` and `src/events.rs` (the second change, below); added
+`src/environment.rs` and its module and export lines in
+`src/gpui_windows.rs` (the sixth).
 
 ### 1. `build.rs`: shaders compiled for the target, not the host
 
@@ -93,7 +95,41 @@ Changed: `build.rs`, and three call sites of Direct Manipulation in
   fails now loses touchpad gestures quietly (an error in the log)
   instead of not starting.
 
-To see both changes: unpack the published `.crate` and `diff -ru` it
+### 6. Telling running programs the environment changed
+
+- Purpose: after the app adds its command-line tool's directory to the
+  user's `PATH` (`HKEY_CURRENT_USER\Environment`, ADR 0094's packaging,
+  track W19b), a terminal the person opens next must find `vessel`.
+  Windows starts programs with Explorer's copy of the environment, and
+  Explorer rereads it only when told: Windows' own settings broadcast
+  `WM_SETTINGCHANGE` with `"Environment"` after an edit.
+- Constraint: the broadcast is a Win32 call
+  (`SendMessageTimeoutW(HWND_BROADCAST, …)`), so `unsafe`; the app's
+  workspace forbids `unsafe_code`, and this crate already holds the
+  app's Win32 calls behind safe functions.
+- Alternatives:
+  1. A small crate of the app's own that allows `unsafe`: a new
+     workspace member with its own lint exception, for one call.
+  2. Running `setx` or PowerShell to do the write and the broadcast: a
+     console process, a quoting surface, and `setx` cuts values at 1024
+     characters.
+  3. **This change**: `broadcast_environment_changed()` in a file of its
+     own, exported from the crate root with
+     `ENVIRONMENT_BROADCAST_TIMEOUT` (5 s) and a typed
+     `EnvironmentBroadcastError` (`TimedOut`, `Failed(windows::core::Error)`).
+     `SMTO_ABORTIFHUNG` skips a hung window, so the call cannot wait on
+     it forever; nothing in it panics.
+- Why 3: one safe function beside the crate's other Win32 calls, no new
+  crate or lint exception, and no change to upstream's own files beyond
+  two lines in the crate root.
+- Cost: a third change to carry at every GPUI pin (the new file copies
+  over; re-add the two lines). The call waits for the windows' answers,
+  so the caller runs it off the UI thread.
+- Checked: compiled for `x86_64-pc-windows-msvc` with `cargo xwin check`;
+  its behaviour on Windows (a new terminal finding the new `PATH`) is
+  still to be shown on a Windows machine.
+
+To see the changes: unpack the published `.crate` and `diff -ru` it
 against `gpui-pre-windows/` (only `Cargo.lock` is missing on this side).
 
 ## `gpui-pre-linux` 0.3.10
