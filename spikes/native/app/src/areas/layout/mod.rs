@@ -28,6 +28,8 @@ pub(crate) use draw::frame;
 
 /// Presentation retained across navigation; buffers stay with feature owners.
 pub(crate) struct LayoutArea {
+    #[cfg(test)]
+    retirements: registry::retirement::Owners,
     book: RefCell<Option<BTreeMap<LayoutKey, Layout>>>,
     menu: MenuState,
     tips: vessel_app_kit::Tooltips,
@@ -44,6 +46,8 @@ pub(crate) struct LayoutArea {
 impl LayoutArea {
     pub(crate) fn new(cx: &mut App) -> Self {
         Self {
+            #[cfg(test)]
+            retirements: registry::retirement::Owners::new(),
             book: RefCell::new(None),
             menu: MenuState::new(cx),
             tips: vessel_app_kit::Tooltips::new(),
@@ -106,7 +110,12 @@ fn with_layout_at<T>(
     initialized(shell);
     let mut book = shell.areas.layout.book.borrow_mut();
     let book = book.as_mut().ok_or(LayoutError::InvalidState)?;
-    change(book.entry(key.clone()).or_default())
+    // Copy metadata only: neither failed batches nor a failed first open may
+    // publish a partial target or manufacture an empty workspace entry.
+    let mut next = book.get(key).cloned().unwrap_or_default();
+    let value = change(&mut next)?;
+    let _previous = book.insert(key.clone(), next);
+    Ok(value)
 }
 
 impl Shell {
