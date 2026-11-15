@@ -12,6 +12,12 @@ pub use text::{Fingerprint, Key, Revision};
 
 /// Refuse further admission rather than silently expiring an idempotency key.
 pub const MAX_RECEIPTS: usize = 10_000;
+/// Largest serialized safe receipt, checked on every persisted revision.
+pub const MAX_RECEIPT_BYTES: usize = 4 * 1024;
+/// Worst-case receipt growth plus fixed indexes and at most two resource claims.
+pub const RESERVED_BYTES_PER_RECEIPT: usize = 8 * 1024;
+/// Retained logical bytes, excluding SQLite/WAL/filesystem overhead.
+pub const MAX_RETAINED_BYTES: usize = 64 * 1024 * 1024;
 
 /// Input or lifecycle errors never echo rejected keys or command/prompt text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]

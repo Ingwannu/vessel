@@ -93,6 +93,59 @@ empty/NUL-containing programs, duplicate/reserved ids and excessive data
 before writing configuration or spawning a process. These are stated safety
 differences, not silently modified launch semantics.
 
+## Retained capacity, atomic admission and key lifetime
+
+The single receipt ledger uses the named limits in `vessel_proto::creation`:
+`MAX_RECEIPTS` bounds retained operation count, `MAX_RETAINED_BYTES` bounds
+reserved logical bytes, `MAX_RECEIPT_BYTES` bounds any serialized receipt at
+every revision, and `RESERVED_BYTES_PER_RECEIPT` reserves a receipt's worst-case
+future growth plus its key/operation indexes and resource claims. A receipt
+can claim at most its new workspace and one resource. Caller keys are hashed;
+the fixed digest and UUID identities cannot grow with caller text.
+
+These are retained logical-data budgets, not a claim about SQLite page, WAL,
+filesystem or backup overhead. Their values are defined once beside the types.
+No unbounded diagnostic, prompt, command, environment or descriptor snapshot
+is permitted in a receipt. Future fields must fit the existing reservation or
+introduce a reviewed capacity/migration change before they can be persisted.
+
+Admission first looks up the existing key and compares its normalized intent.
+Only a genuinely new key checks capacity. One existing-writer savepoint then
+reserves the operation's entire worst-case byte allowance, count slot and all
+resource claims atomically, before any filesystem/provision/process/prompt
+effect. Concurrent requests for the last slot cannot both succeed. Failed
+admission rolls back all claims and capacity changes. A full ledger produces
+typed `Full`/Unavailable before effects; it never evicts another receipt.
+The accepted slot already covers every later phase/failure/recovery update,
+so those updates need no additional admission and remain possible at capacity.
+Every write checks the serialized receipt cap before replacing the prior row.
+
+Keys, fingerprints, operation ids and claims are retained indefinitely on this
+node. There is no age eviction, automatic release, cleanup-on-resource-delete
+or release RPC in this version. Removing a session/workspace does not make its
+key reusable: a completed receipt whose resource is gone returns an explicit
+missing-resource refusal, and an unknown receipt remains unknown. Same-key
+lookup/reconciliation continues at capacity. The cost of this exact retry
+guarantee with finite storage is refusal of new keys when full. A future
+compaction could keep a permanent refusal tombstone, but cannot treat a retired
+key as absent; it needs its own reviewed contract. Resetting a node's whole
+data/identity is an explicit administrative destruction outside this guarantee.
+
+Receipt capacity belongs only to this ledger. ADR 0082 independently admits
+workspace identity/backing/start leases on the same Store; it must not reserve
+another copy of a receipt or count its byte budget again. Registry admission
+failure after receipt admission becomes a retained known failure before
+provision effects; it does not silently free the caller key. Its backing/start
+claims and this receipt's operation/result markers keep their distinct jobs.
+
+Tests required before receipt source is accepted: count and byte saturation,
+concurrent last-slot admission, existing-key lookup/conflict at capacity,
+worst-case later-phase growth while full, refused oversized mutation retaining
+the previous row, restart at capacity, no effect after failed admission,
+resource deletion preserving claims and old-key retry/unknown refusal. Shared
+registry capacity/start-lease behavior is tested through ADR 0082's API, not a
+second workspace admission implementation.
+
 ## Security boundary and platforms
 
 Only authenticated person callers with Operate may create; Read observes
