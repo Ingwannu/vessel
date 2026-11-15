@@ -119,18 +119,36 @@ pub(crate) async fn inspect(
     }
 }
 pub(crate) async fn deleted(presentation: Presentation, id: ScheduleId) -> Result<(), CliError> {
-    #[derive(Serialize)]
-    struct Deleted {
-        id: ScheduleId,
-        deleted: output::Success,
-    }
-    output::single(
+    output::record(
         presentation,
-        &id.to_string(),
         &Deleted {
             id,
-            deleted: output::Success,
+            status: DeletionStatus::Deleted,
         },
     )
     .await
+}
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum DeletionStatus {
+    Deleted,
+}
+#[derive(Serialize)]
+struct Deleted {
+    id: ScheduleId,
+    status: DeletionStatus,
+}
+impl Row for Deleted {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["ID", "STATUS"]
+    }
+    fn cells(&self) -> Vec<String> {
+        let status = match self.status {
+            DeletionStatus::Deleted => "deleted",
+        };
+        vec![self.id.to_string(), status.to_owned()]
+    }
 }

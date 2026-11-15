@@ -84,10 +84,10 @@ pub(crate) async fn single<T: Serialize>(
 /// A single typed row keeps object-shaped structured output and real table rendering.
 pub(crate) async fn record<T: Row>(presentation: Presentation, row: &T) -> Result<(), CliError> {
     match presentation {
-        Presentation::Table(_) | Presentation::Quiet => {
-            list(presentation, std::slice::from_ref(row)).await
+        Presentation::Table(_) => list(presentation, std::slice::from_ref(row)).await,
+        Presentation::Quiet | Presentation::Json | Presentation::Yaml => {
+            single(presentation, &row.id(), row).await
         }
-        Presentation::Json | Presentation::Yaml => single(presentation, &row.id(), row).await,
     }
 }
 fn json<T: Serialize + ?Sized>(value: &T) -> Result<Vec<u8>, CliError> {

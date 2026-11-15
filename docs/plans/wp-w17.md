@@ -950,3 +950,29 @@ an anchor in a different buffer; RIS/history clear invalidate its epoch. Reflow
 remapping is the pure engine's rule. Actor epoch/anchor identity never substitutes
 for authenticated NodeId+TerminalId routing, pairing or connection authority. The
 frozen e792 core exposes neither modes nor markers; those remain C2's follow-up.
+
+### Remaining existing-call receipt tables (2026-11-15 13:20 UTC)
+
+[Decision Log]
+- Purpose: consume explicit human table/header requests for real acknowledgements,
+  without changing the node operations or confusing idle waits with completed runs.
+- Existing assets: Row, output::record, typed wait/mutation receipts and ScheduleRow.
+  Reuse them; no dependency or protocol method is added.
+- Alternatives: repeated output branches or returning native object JSON for table
+  selection. Neither preserves the declared reference table contract.
+- Choice: wait uses AGENT ID/STATUS/MESSAGE; stop/delete use INTERRUPTED/DELETED count
+  columns; archive uses AGENT ID/STATUS/ARCHIVED AT; mode-set uses AGENT ID/MODE.
+  Object JSON fields stay unchanged. Quiet single records retain empty-ID suppression,
+  so an idle stop with no interrupted agents emits zero bytes rather than a blank line.
+- Reason/consequences: schedule and heartbeat delete now return acknowledged id plus
+  typed status=deleted, matching both reference delete schemas; the former deleted:true
+  field was a native difference. Heartbeat create/update reuse ScheduleRow instead of
+  independently serializing native snapshots. Existing permission, mode-ACK and ownership
+  checks remain the authority for every result; no success is manufactured from input.
+
+The real CLI parity regression now additionally checks idle stop quiet is empty and
+headerless stop reports count0; automation's actual deletion JSON expectation is updated
+from the old boolean to a closed status enum. These source changes follow the already
+queued dd33 strict head and have not executed yet. Latest-head unit/process/gate proof
+remains owed. Update/provider notices and detailed schedule-log projections still have
+explicitly documented native differences and are not covered by this table correction.

@@ -19,7 +19,12 @@ struct ScheduleRow {
 #[derive(Deserialize)]
 struct Deleted {
     id: vessel_proto::ScheduleId,
-    deleted: bool,
+    status: DeletionStatus,
+}
+#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum DeletionStatus {
+    Deleted,
 }
 
 fn ok(ran: &Ran) -> &str {
@@ -108,7 +113,7 @@ async fn a_schedule_is_made_run_changed_and_removed_by_its_name() {
             .await;
         let deleted: Deleted = serde_json::from_str(ok(&deleted)).unwrap();
         assert_eq!(deleted.id, made.id);
-        assert!(deleted.deleted);
+        assert_eq!(deleted.status, DeletionStatus::Deleted);
         let gone = fixture.vessel(&["schedule", "show", "nightly"], b"").await;
         assert!(!gone.ok && gone.stderr.contains("no schedule matches"));
 

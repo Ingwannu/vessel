@@ -208,6 +208,27 @@ pub(super) async fn send_finished(
 async fn emit<T: Row>(presentation: Presentation, result: &T) -> Result<(), CliError> {
     output::record(presentation, result).await
 }
+pub(super) async fn wait_finished(
+    presentation: Presentation,
+    result: &WaitResult,
+) -> Result<(), CliError> {
+    output::record(presentation, result).await
+}
+impl Row for WaitResult {
+    fn id(&self) -> String {
+        self.agent_id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["AGENT ID", "STATUS", "MESSAGE"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![
+            self.agent_id.to_string(),
+            self.status.label().to_owned(),
+            self.message.clone(),
+        ]
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

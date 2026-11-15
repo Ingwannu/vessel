@@ -47,16 +47,11 @@ pub(super) async fn stop(
             agent_ids.push(id);
         }
     }
-    let ids = agent_ids
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join("\n");
     let result = Stopped {
         stopped_count: Count(agent_ids.len()),
         agent_ids,
     };
-    output::single(presentation, &ids, &result).await
+    output::record(presentation, &result).await
 }
 
 pub(super) async fn delete(
@@ -66,11 +61,6 @@ pub(super) async fn delete(
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let infos = select(&client, &selection).await?;
-    let ids = infos
-        .iter()
-        .map(|info| info.id.to_string())
-        .collect::<Vec<_>>()
-        .join("\n");
     let mut deleted = Vec::new();
     for info in infos {
         // mark archive waits for process termination; unlike kill's ack,
@@ -85,7 +75,7 @@ pub(super) async fn delete(
         deleted_count: Count(deleted.len()),
         agent_ids: deleted,
     };
-    output::single(presentation, &ids, &result).await
+    output::record(presentation, &result).await
 }
 
 pub(super) async fn archive(
@@ -123,7 +113,7 @@ pub(super) async fn archive(
                 "archive acknowledgement omitted its archived timestamp",
             ))?,
     };
-    output::single(presentation, &info.id.to_string(), &result).await
+    output::record(presentation, &result).await
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -175,7 +165,7 @@ pub(super) async fn mode(
                 agent_id: super::row::ShortId::new(info.id),
                 mode,
             };
-            output::single(presentation, result.agent_id.as_str(), &result).await
+            output::record(presentation, &result).await
         }
     }
 }
@@ -266,12 +256,42 @@ struct Stopped {
     stopped_count: Count,
     agent_ids: Vec<vessel_proto::SessionId>,
 }
+impl output::Row for Stopped {
+    fn id(&self) -> String {
+        self.agent_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+    fn headers() -> &'static [&'static str] {
+        &["INTERRUPTED"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![self.stopped_count.0.to_string()]
+    }
+}
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Deleted {
     deleted_count: Count,
     agent_ids: Vec<vessel_proto::SessionId>,
+}
+impl output::Row for Deleted {
+    fn id(&self) -> String {
+        self.agent_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+    fn headers() -> &'static [&'static str] {
+        &["DELETED"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![self.deleted_count.0.to_string()]
+    }
 }
 #[derive(serde::Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -284,6 +304,24 @@ struct ArchiveReceipt {
     agent_id: vessel_proto::SessionId,
     status: ArchivedStatus,
     archived_at: chrono::DateTime<chrono::Utc>,
+}
+impl output::Row for ArchiveReceipt {
+    fn id(&self) -> String {
+        self.agent_id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["AGENT ID", "STATUS", "ARCHIVED AT"]
+    }
+    fn cells(&self) -> Vec<String> {
+        let status = match self.status {
+            ArchivedStatus::Archived => "archived",
+        };
+        vec![
+            self.agent_id.to_string(),
+            status.to_owned(),
+            self.archived_at.to_rfc3339(),
+        ]
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -313,6 +351,17 @@ impl output::Row for ModeRow {
 struct ModeSet {
     agent_id: super::row::ShortId,
     mode: OptionValueId,
+}
+impl output::Row for ModeSet {
+    fn id(&self) -> String {
+        self.agent_id.as_str().to_owned()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["AGENT ID", "MODE"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![self.agent_id.as_str().to_owned(), self.mode.to_string()]
+    }
 }
 
 #[cfg(test)]

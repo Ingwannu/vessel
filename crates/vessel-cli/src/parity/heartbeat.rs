@@ -1,5 +1,5 @@
 //! A heartbeat is an existing session-targeted schedule, never a second scheduler.
-use super::output;
+use super::schedule_output;
 use crate::{
     args::{
         Target,
@@ -58,7 +58,7 @@ pub(super) async fn run(
                 ends_at,
             };
             let schedule = client.create_schedule(definition, false).await?;
-            output::single(presentation, &schedule.id.to_string(), &schedule).await
+            schedule_output::one(presentation, &schedule).await
         }
         HeartbeatCommand::Update { id, cron, timezone } => {
             let old = owned(&client, &id, caller).await?;
@@ -70,20 +70,12 @@ pub(super) async fn run(
             let changed = client
                 .update_schedule(old.id, old.revision, definition)
                 .await?;
-            output::single(presentation, &old.id.to_string(), &changed).await
+            schedule_output::one(presentation, &changed).await
         }
         HeartbeatCommand::Delete { id } => {
             let old = owned(&client, &id, caller).await?;
             client.delete_schedule(old.id).await?;
-            output::single(
-                presentation,
-                &old.id.to_string(),
-                &HeartbeatDeleted {
-                    id: old.id,
-                    deleted: output::Success,
-                },
-            )
-            .await
+            schedule_output::deleted(presentation, old.id).await
         }
     }
 }
@@ -108,9 +100,4 @@ async fn owned(
             "the selected schedule is not this caller's heartbeat",
         )),
     }
-}
-#[derive(serde::Serialize)]
-struct HeartbeatDeleted {
-    id: vessel_proto::ScheduleId,
-    deleted: output::Success,
 }

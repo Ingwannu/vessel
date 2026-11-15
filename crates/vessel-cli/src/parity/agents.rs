@@ -45,7 +45,7 @@ pub(super) async fn run(
             let info = args.id.resolve(&client).await?;
             structured(&info)?;
             let result = observe::wait(&client, info.id, args.timeout).await?;
-            output::single(presentation, &info.id.to_string(), &result).await
+            receipt::wait_finished(presentation, &result).await
         }
         AgentCommand::Stop(selection) => mutate::stop(target, presentation, selection).await,
         AgentCommand::Delete(selection) => mutate::delete(target, presentation, selection).await,
