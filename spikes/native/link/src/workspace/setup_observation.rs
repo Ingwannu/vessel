@@ -92,19 +92,19 @@ impl Backend for Unavailable {
     fn support(&self, _address: &Address) -> Support {
         Support::Unavailable
     }
-    async fn read(
+    fn read(
         &self,
         _address: &Address,
         _request: ReadSetupProgress,
-    ) -> Result<SetupProgressReply, Problem> {
-        Err(Problem::Unsent)
+    ) -> impl Future<Output = Result<SetupProgressReply, Problem>> + Send {
+        std::future::ready(Err(Problem::Unsent))
     }
-    async fn cancel(
+    fn cancel(
         &self,
         _address: &Address,
         _request: CancelSetup,
-    ) -> Result<CancelSetupOutcome, Problem> {
-        Err(Problem::Unsent)
+    ) -> impl Future<Output = Result<CancelSetupOutcome, Problem>> + Send {
+        std::future::ready(Err(Problem::Unsent))
     }
 }
 /// Preserve a typed intention without selecting or polling any transport.

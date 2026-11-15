@@ -12,23 +12,23 @@ impl Backend for Fake {
     fn support(&self, _address: &Address) -> Support {
         self.support
     }
-    async fn read(
+    fn read(
         &self,
         address: &Address,
         request: ReadSetupProgress,
-    ) -> Result<SetupProgressReply, Problem> {
+    ) -> impl Future<Output = Result<SetupProgressReply, Problem>> + Send {
         assert_eq!(address.worktree, request.worktree);
         self.calls.lock().unwrap().push(address.clone());
-        Ok(SetupProgressReply { progress: None })
+        std::future::ready(Ok(SetupProgressReply { progress: None }))
     }
-    async fn cancel(
+    fn cancel(
         &self,
         address: &Address,
         request: CancelSetup,
-    ) -> Result<CancelSetupOutcome, Problem> {
+    ) -> impl Future<Output = Result<CancelSetupOutcome, Problem>> + Send {
         assert_eq!(address.worktree, request.worktree);
         self.calls.lock().unwrap().push(address.clone());
-        Ok(CancelSetupOutcome::Requested)
+        std::future::ready(Ok(CancelSetupOutcome::Requested))
     }
 }
 fn address() -> Address {
