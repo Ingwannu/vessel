@@ -165,7 +165,7 @@ pub(super) async fn feature_state(
     let limits = crate::limits::Limits::configured(config, stop.clone(), tasks).await;
     let labels = crate::workspace_labels::Labels::open(store.clone())
         .await
-        .map_err(NodeError::Store)?;
+        .map_err(NodeError::WorkspaceLabels)?;
     Ok(FeatureState {
         push,
         limits,

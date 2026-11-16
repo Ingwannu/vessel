@@ -3,10 +3,12 @@
 mod adapter;
 mod commit;
 mod plans;
+mod row;
 mod sql;
 
 pub(crate) use adapter::{Applied, assign, delete, inspect, update};
 pub use commit::WorkspaceLabelCommit;
+pub use row::LabelRow;
 pub(crate) use commit::Write;
 
 use crate::StoreError;

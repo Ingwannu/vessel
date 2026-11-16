@@ -1,6 +1,5 @@
-//! Direct guarded-handler tests while the public capability remains pending.
+//! Guarded-handler tests, direct and over the real server at protocol 26.
 //! The isolated node has no harness lookup, user configuration or real agents.
-//! These tests do not advertise a protocol number or claim wire availability.
 
 use super::*;
 use crate::{Config, Node, guard::Guarded};
@@ -14,13 +13,13 @@ use vessel_proto::{
     Call, ClientInfo, DeviceId, ErrorCode, NodeId, Origin, OriginBy, Outcome, ProjectId, Reply,
     Request as _, Scope, SessionId, WorkspaceId,
     registry::{
-        RegistryRevision, WorkspaceAutomation, WorkspaceBacking, WorkspaceDescriptor,
-        WorkspaceLifecycle, WorkspacePin, WorkspaceVisibility,
+        GetRegistry, RegistryRevision, WorkspaceAutomation, WorkspaceBacking,
+        WorkspaceDescriptor, WorkspaceLifecycle, WorkspacePin, WorkspaceVisibility,
     },
-    workspace_labels::{Assignment, Label, LabelColor},
+    workspace_labels::{Assignment, CatalogMode, Label, LabelColor, LabelName},
 };
 use vessel_rpc::{ClientConfig, Server, memory};
-use vessel_store::{DataDir, RegistryRecord};
+use vessel_store::{DataDir, LabelRow, RegistryRecord, Store, StoreConfig, StoreError};
 
 struct Fixture {
     node: Node,
@@ -244,4 +243,141 @@ async fn workspace_labels_delegated_and_exhausted_observation_does_not_hold_a_wa
     drop(held);
     drop(delegated);
     fixture.close().await;
+}
+
+/// Protocol 26 over the real server and SDK: each label call reaches the
+/// guarded handler and its typed answer comes back, and the registry
+/// snapshot carries the label projection at this protocol.
+#[tokio::test]
+async fn workspace_labels_answer_over_the_wire_at_their_assigned_protocol() {
+    let fixture = Fixture::open().await;
+    let workspace = WorkspaceId::random();
+    fixture
+        .guarded
+        .0
+        .sessions
+        .store()
+        .put_registry_workspace(record(workspace), None)
+        .await
+        .unwrap();
+    let client = &fixture.client;
+    let ready: LabelName = "Ready".parse().unwrap();
+    let initial = client.call(ListWorkspaceLabels::default()).await.unwrap();
+    assert!(matches!(&initial.data, CatalogMode::Snapshot { labels } if labels.is_empty()));
+    let assigned = client
+        .call(AssignWorkspaceLabel {
+            workspace,
+            label: Label {
+                name: ready.clone(),
+                color: LabelColor::Violet,
+            },
+            assignment: Assignment::Assigned,
+        })
+        .await
+        .unwrap();
+    assert_eq!(assigned.labels, [ready.clone()]);
+    let registry = client
+        .call(GetRegistry { changed_from: None })
+        .await
+        .unwrap();
+    assert_eq!(registry.labels.len(), 1);
+    assert_eq!(registry.labels[0].workspace, workspace);
+    assert_eq!(registry.labels[0].labels, [ready.clone()]);
+    let updated = client
+        .call(UpdateWorkspaceLabel {
+            name: ready.clone(),
+            new_name: None,
+            color: Some(LabelColor::Sky),
+        })
+        .await
+        .unwrap();
+    assert_eq!(updated.label.color, LabelColor::Sky);
+    assert_eq!(updated.affected.get(), 1);
+    let inspected = client
+        .call(InspectWorkspaceLabelDelete {
+            name: ready.clone(),
+        })
+        .await
+        .unwrap();
+    assert_eq!(inspected.affected.get(), 1);
+    let deleted = client
+        .call(DeleteWorkspaceLabel { name: ready })
+        .await
+        .unwrap();
+    assert_eq!(deleted.affected.get(), 1);
+    let after = client
+        .call(ListWorkspaceLabels {
+            cursor: Some(initial.head),
+            read: CatalogRead::Now,
+        })
+        .await
+        .unwrap();
+    assert_ne!(after.head, initial.head);
+    fixture.close().await;
+}
+
+/// Paseo parity (ADR 0086, coordinator ruling on review note b): a corrupt
+/// label row stops the node from starting, and the error names the label
+/// store and the row's place without repeating anything the row holds.
+#[tokio::test]
+async fn a_corrupt_label_row_refuses_node_start_naming_the_store_and_row_only() {
+    let temporary = tempfile::tempdir().unwrap();
+    let directory = DataDir::new(temporary.path().join("data"));
+    directory.prepare().unwrap();
+    let store = Store::open(&directory, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let workspace = WorkspaceId::random();
+    store
+        .put_registry_workspace(record(workspace), None)
+        .await
+        .unwrap();
+    let _assigned = store
+        .assign_workspace_label(AssignWorkspaceLabel {
+            workspace,
+            label: Label {
+                name: "Ready".parse().unwrap(),
+                color: LabelColor::Violet,
+            },
+            assignment: Assignment::Assigned,
+        })
+        .await
+        .unwrap();
+    store.close().await;
+    let canary = "fake-private-row-content";
+    let _changed = rusqlite::Connection::open(directory.database_path())
+        .unwrap()
+        .execute(
+            "UPDATE workspace_label_catalog SET color=?1",
+            [format!("\"{canary}\"")],
+        )
+        .unwrap();
+    let mut config = Config::new(
+        DataDir::new(temporary.path().join("data")),
+        HarnessEnv::new(temporary.path().join("user")),
+    );
+    config.bind = None;
+    config.harness_lookup = Lookup::new(Vec::<PathBuf>::new());
+    let Err(error) = Node::start(config).await else {
+        panic!("a corrupt label row must refuse node start");
+    };
+    assert!(matches!(
+        &error,
+        crate::NodeError::WorkspaceLabels(StoreError::WorkspaceLabelColor {
+            row: LabelRow::Catalog(row)
+        }) if row.get() == 1
+    ));
+    let mut chain = error.to_string();
+    let mut source = std::error::Error::source(&error);
+    while let Some(cause) = source {
+        chain.push_str(": ");
+        chain.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    assert!(chain.contains("workspace label store"), "{chain}");
+    assert!(chain.contains("workspace_label_catalog row 1"), "{chain}");
+    for content in [canary, "Ready", "ready", "violet"] {
+        assert!(!chain.contains(content), "{chain}");
+    }
 }

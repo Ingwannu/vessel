@@ -40,6 +40,9 @@ pub enum NodeError {
     /// Another node already uses this data directory.
     #[error("another node already uses this data directory")]
     AlreadyRunning(#[source] StoreError),
+    /// A stored label row is corrupt (ADR 0086); the cause names only its place.
+    #[error("the workspace label store in vessel.db could not be read")]
+    WorkspaceLabels(#[source] StoreError),
     /// A client address header is set without a trusted proxy
     /// (`--client-address-header` needs `--trusted-proxy`).
     #[error(transparent)]
@@ -401,7 +404,7 @@ impl ServiceError {
     /// safe causes as text. A corrupt label color's decoder may echo stored
     /// data, so that feature keeps its source internally and uses a safe notice.
     pub(crate) fn to_wire(&self) -> WireError {
-        if matches!(self, Self::Store(StoreError::WorkspaceLabelColor(_))) {
+        if matches!(self, Self::Store(StoreError::WorkspaceLabelColor { .. })) {
             return WireError::new(
                 ErrorCode::Internal,
                 "stored workspace labels could not be read",

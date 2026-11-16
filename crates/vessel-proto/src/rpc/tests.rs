@@ -472,6 +472,32 @@ fn protocol_twenty_five_methods_know_their_version_scope_and_shape() {
     assert_eq!(twenty_five, PROTOCOL_TWENTY_FIVE);
 }
 
+/// Protocol 26's methods (ADR 0086): the workspace label catalog and its
+/// ordered assignments, each unary.
+const PROTOCOL_TWENTY_SIX: &[(&str, Scope)] = &[
+    ("workspace.label.list", Scope::Read),
+    ("workspace.label.assign", Scope::Operate),
+    ("workspace.label.update", Scope::Operate),
+    ("workspace.label.inspect_delete", Scope::Read),
+    ("workspace.label.delete", Scope::Operate),
+];
+
+#[test]
+fn protocol_twenty_six_methods_know_their_version_scope_and_shape() {
+    let twenty_six: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(26)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_six, PROTOCOL_TWENTY_SIX);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
