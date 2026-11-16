@@ -74,8 +74,21 @@ reported fact. Previous A2 runtime execution is prior-source evidence;
 this isolated cut requires its own checks and review before adoption. No full
 workspace cleanup, descendant proof or production restore is claimed.
 
-The isolated producer now merges announced node `27502436` (schema 21). Its
+The current submitted producer merges announced node `ed4cd137` (schema 21).
+The earlier `14b78f916` checkpoint used `27502436`; its strict result is prior
+source evidence, not the submitted merged-source check. Its
 first strict check on older `ec824ddb` found four ignored TaskTracker close
 return values in integration tests; the correction names those results without
 changing runtime facts or assertions. That older run is not a passing check.
 Current strict/runtime review evidence remains owed before adoption.
+
+
+The A7 fixture correction keeps both watch units inside canonical
+`vessel_testkit::within` and gives every report/status wait a named shorter
+phase deadline. The four real-actor cases keep the existing 60-second outer
+helper. A test-local validation task captures assertion panic so the retained
+fixture can request shutdown and actually await the runner tracker before
+propagating failure. Timeout aborts only that validation task, awaits its join,
+and still requires actual runner tracker drain; dropping a task is never proof.
+No product deadline or cleanup facts change. The pre-correction six passing
+cases are retained as earlier-source evidence; correction checks remain owed.
