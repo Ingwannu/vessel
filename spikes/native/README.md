@@ -1340,6 +1340,12 @@ same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
 retain and check their action context/ticket; the slot grants no host authority.
 See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
 
+`DialogSize::with_compact(CompactLayout)` replaces only the compact profile on
+Normal, Wide or Configured, retaining its desktop geometry and body spacing.
+Callers supply validated snap points without copying shared desktop constants;
+legacy fitting90 and snap60/90 remain unchanged. See
+`docs/plans/wp-dialog-compact.md` for source values and pending validation.
+
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.

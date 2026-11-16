@@ -23,8 +23,7 @@
 //! - Choice: the dialog is drawn by the screen that keeps it open, over
 //!   everything, with a focus handle of the screen's, so Escape reaches it
 //!   and nothing behind it takes a click. On a narrow window it takes the
-//!   width less 16 pixels each side (ADR 0036: every screen from 360
-//!   wide).
+//!   full viewport width.
 //! - Cost: default fitting sheets close from the scrim or close button;
 //!   configured sheets reuse the snap engine. Focus is not trapped inside the
 //!   dialog the way the page's is
@@ -46,6 +45,8 @@ use gpui::{
     SharedString, Window, anchored, deferred, div, point, px, relative, svg,
 };
 
+#[cfg(test)]
+mod compact_tests;
 #[cfg(test)]
 mod configuration_tests;
 mod header_content;
