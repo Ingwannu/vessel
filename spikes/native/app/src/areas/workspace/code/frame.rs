@@ -332,6 +332,9 @@ pub(super) fn note(text: impl Into<vessel_app_kit::ui::SharedString>, tokens: &T
 
 impl Shell {
     fn code_tab(&mut self, tab: Tab, cx: &mut Context<'_, Self>) {
+        if self.areas.workspace.code.tab != tab {
+            self.areas.workspace.code.changes.sources.invalidate();
+        }
         self.areas.workspace.code.tab = tab;
         self.code_read_tab();
         cx.notify();
