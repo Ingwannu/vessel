@@ -91,6 +91,9 @@ impl Link {
             Command::Schedules(request) => self.emit(Event::Schedules(
                 request.refused(crate::schedules::ScheduleError::NoTransport),
             )),
+            Command::CodeSource(request) => self.emit(Event::CodeSource(Box::new(
+                request.refused(vessel_app_view::workspace::problem::Problem::Older),
+            ))),
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
                 vessel_app_view::history::Problem::Unsupported,

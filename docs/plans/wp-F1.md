@@ -2063,3 +2063,18 @@ engine-owned commit payload, replace commit distinct from marked notify and
 unmark-only; distinguish equal repeats/programmatic clear/stale openings.
 Required real cases come from terminal-commit-seam-needed.md. No new listener,
 IME cache or concurrent events.rs edit; no implementation started here.
+
+### Announced package14.3 and retained receiving compile failure
+
+Exact071 receiving all-target strict stopped at Kit E0425: the base14.1 merge
+had kept incoming loading.rs but dropped the owned model_browser_indicator
+profile still called by picker/empty.rs. Tests and App binary cases did not run;
+all raw failure records remain. No earlier Kit success is claimed for this head.
+
+At the next clean point merged announced67637eb6 (base14.3) by A8. The two
+conflicts retain BOTH Schedules and CodeSource dispatch/refusal arms. Incoming
+resident/session/request joins and field-origin refinements stay intact; no
+staged navigation/provision capability is promoted. The missing loading profile
+will be restored as a separate owned integration repair using the same masks,
+alpha/motion renderer and canonical FOURTEEN/EIGHTEEN constants. Its required
+narrow suite will run on the repaired combined source, not this known-red move.
