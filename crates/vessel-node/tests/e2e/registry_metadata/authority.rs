@@ -52,7 +52,7 @@ async fn registry_metadata_paired_scopes_do_not_imply_each_other() {
         descriptor.automation = WorkspaceAutomation::Blocked {
             source: seed::source(),
         };
-        seed::seed(&fixture, &[descriptor.clone()]).await;
+        seed::seed(&fixture, std::slice::from_ref(&descriptor)).await;
         let node = fixture.start_with(advertise_placeholder_route).await;
         let owner = fixture.connect(&node).await;
         let reader = paired(&owner, &node, vec![Scope::Read]).await;
@@ -106,7 +106,7 @@ async fn registry_metadata_real_agent_is_refused_for_existing_and_absent_identit
     within(async {
         let fixture = Fixture::new();
         let descriptor = seed::descriptor(ProjectId::random());
-        seed::seed(&fixture, &[descriptor.clone()]).await;
+        seed::seed(&fixture, std::slice::from_ref(&descriptor)).await;
         let node = fixture
             .start_with(|config| config.vessel_mcp = Some(vessel_mcp(&fixture)))
             .await;
