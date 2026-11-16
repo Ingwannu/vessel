@@ -10,6 +10,7 @@ struct Probe {
     shell: Entity<Shell>,
     workspace: LayoutKey,
     tab: TabId,
+    file: FileKey,
 }
 impl Probe {
     fn new(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
@@ -41,14 +42,15 @@ impl Probe {
                 cx,
             );
             shell.editor_frame_for(&file, window, cx);
-            address = Some((workspace, tab));
+            address = Some((workspace, tab, file));
             shell
         });
-        let (workspace, tab) = address.unwrap();
+        let (workspace, tab, file) = address.unwrap();
         Self {
             shell,
             workspace,
             tab,
+            file,
         }
     }
 }
@@ -56,9 +58,7 @@ impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.shell.update(cx, |shell, cx| {
             let tokens = Tokens::of(vessel_app_kit::Scheme::Dark);
-            let file = &shell.areas.workspace.code.file_tabs.bindings
-                [&(self.workspace.clone(), self.tab)]
-                .file;
+            let file = &self.file;
             let target = Target::File {
                 root: file.root,
                 path: file.path.clone(),

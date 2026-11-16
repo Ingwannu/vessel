@@ -27,29 +27,34 @@ fn editing(shell: &Shell) -> &super::super::editing::Editing {
 
 struct Probe {
     shell: Entity<Shell>,
+    file: super::super::buffers::FileKey,
 }
 
 impl Probe {
     fn new(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+        let mut file = None;
+        let shell = cx.new(|cx| {
+            let mut shell = Shell::without_io(window, cx);
+            let root = io_tests::root();
+            io_tests::target(&mut shell, root);
+            shell.open_file_at("test.rs".parse().unwrap(), None, cx);
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+            let ask = super::super::editing::whole_read(root, key.path.clone());
+            shell.editor_read_answered(
+                "node",
+                ticket,
+                &ask,
+                Ok(io_tests::text("alpha beta alpha")),
+                cx,
+            );
+            shell.editor_frame(window, cx);
+            file = Some(key);
+            shell
+        });
         Self {
-            shell: cx.new(|cx| {
-                let mut shell = Shell::without_io(window, cx);
-                let root = io_tests::root();
-                io_tests::target(&mut shell, root);
-                shell.open_file_at("test.rs".parse().unwrap(), None, cx);
-                let key = shell.areas.workspace.code.file_key().unwrap();
-                let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
-                let ask = super::super::editing::whole_read(root, key.path);
-                shell.editor_read_answered(
-                    "node",
-                    ticket,
-                    &ask,
-                    Ok(io_tests::text("alpha beta alpha")),
-                    cx,
-                );
-                shell.editor_frame(window, cx);
-                shell
-            }),
+            shell,
+            file: file.unwrap(),
         }
     }
 }
@@ -61,15 +66,12 @@ impl Render for Probe {
                 .areas
                 .workspace
                 .code
-                .files
-                .viewer
-                .as_ref()
+                .viewer_at(&self.file)
                 .unwrap()
                 .edit
                 .as_ref()
                 .unwrap();
-            let key = shell.areas.workspace.code.file_key().unwrap();
-            editing_view::body(shell, editing, &key, &Tokens::of(Scheme::Dark), cx)
+            editing_view::body(shell, editing, &self.file, &Tokens::of(Scheme::Dark), cx)
         });
         div().size_full().child(body)
     }

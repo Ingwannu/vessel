@@ -1157,3 +1157,14 @@ and returns a correlated unsupported response with dispatched=false; it has no
 file transport. This extends the common platform boundary without adding a
 second resolver or changing native call behavior. The current union, including
 its browser boundary, has not executed its required checks yet.
+
+## Resumed runtime results and fixture ownership
+
+Actual tests13 on9b1bb8e2 reached App:162 passed,2 failed,2 ignored. The
+equal-text engine-revision regression and stale toolbar intent regression
+passed. The failures were fixture renderers that looked up the active viewer
+after parking it, or indexed a tab binding after deliberately removing it.
+The fixtures now retain their original file identity for drawing; the product
+renderer still refuses an unbound file. All readiness, retained-content and
+Back-control assertions remain unchanged. This is a fixture correction, not
+a claimed complete runtime pass. New checks use announced base13 2ebeedf9.
