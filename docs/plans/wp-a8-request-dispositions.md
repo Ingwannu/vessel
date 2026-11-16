@@ -66,3 +66,25 @@ production scoped composer or a provider. No physical keypress/caret/IME, painte
 rows, clipboard, lease/delivery, RPC, native capture or full A8 result is claimed.
 The existing four request fixtures keep every assertion; only three helper
 visibilities change so the new cases reuse their schema/callback definitions.
+
+## Quota checkpoint
+
+Implementation500192098 is committed and coherent, but unverified. No VM run
+or reviewer disposition exists for this extension. Source-only rustfmt, size,
+tokens, diff and import/function/test-placement preflight passed. App all-target
+strict and the eight new GPUI disposition cases plus existing four request cases
+are still owed. The earlier core source/gates do not certify this patch.
+
+W12 has recorded the blocked dependency and will receive only a resumed checked
+packet. Do not merge or use this source as never-dispatched/guard/rich-Pending
+proof. The real transport producer and W12's actual failure wrapper stay held.
+The controller owns no ticket mint or consume API; the trusted wrapper must
+consume its exact canonical Request ticket before invoking failed(). Preserve
+all inherited staging gates and do not import the whole private A8 UI graph.
+
+Next session: first inspect all existing worker VM runs and recover completed
+results. The separate CLI owned suite on source2c5666640 is already registered
+as run wp-side-node-narrow-20261116T030014Z-2c566664; do not duplicate it. After
+that worker job is terminal, select this exact producer for its narrow strict
+and bounded GPUI cases, then request bounded V1 review and deliver to W12 only
+with actual results. No new VM job is submitted at this quota checkpoint.
