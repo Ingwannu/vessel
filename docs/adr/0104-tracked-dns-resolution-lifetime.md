@@ -197,11 +197,26 @@ No HTTP or dictation activation is part of this contract-only change.
 The coordinator adds W5's `vessel-harness/src/limits/http.rs` `Http::new` and the
 `AccountUsageProbe` Local body as the third consumer. It must use the SAME
 tracked primitive through reqwest's `ClientBuilder::dns_resolver` hook, with
-host-only/port0 results, the stable node-root budget and its own existing
-resource bound/permits-only hold. No private resolver, cache, fork, credential
-or configuration capture is introduced. HTTP cancellation/timeouts are not
-physical DNS completion; the actual probe/lifecycle owner must close and drain
-its scope before releasing its admitted operation or replacing its generation.
+host-only/port0 results and the stable node-root budget. No private resolver,
+cache, fork, credential or configuration capture is introduced.
+
+This consumer has ONE persistent OnceCell HTTP client behind LimitContext,
+shared by saved and additional reads. The coordinator therefore selects ONE
+node-owned ResolutionScope for that CLIENT lifetime. Its physical DNS quota
+reuses the existing source bound, sharing the root budget; it is not a new
+counter outside the primitive. The per-read two-slot HTTP admission stays
+separate and is NOT a physical DNS drain witness. Do not pin the first
+initializer's request permit for the client lifetime, or claim that a shared
+resolver retains each original read's permit. Resolve(Name) has no request
+identity; no task-local or mutable association may manufacture one.
+
+The node closes and drains this SAME client scope after its source jobs,
+before replacing the client or stopping the node. HTTP cancellation/timeouts
+are not physical completion. This differs intentionally from dictation's
+per-stream client/original recording hold: neither lifetime can be inferred
+from the other. Client-scope quota and actual joins remain charged through
+native completion, regardless of cancelled reads. Exact receiving source and
+retirement barriers still require V3 review before wiring/activation.
 W5 records its known gap and keeps new account methods at SINCE=None until
 this consumer wiring and receiving proof exist. Bounded backend preparation
 may have a qualified pass with this explicit activation hold; neither that
@@ -214,11 +229,11 @@ real Resolve trait and supplies it to ClientBuilder::dns_resolver. This trait
 object is the external library's actual open extension point, not a resolver
 interface or erased callback engine of our own. The node constructs the
 canonical adapter and harness client while the primitive's lifecycle owner
-retains the same scope, budget and permits-only hold through physical drain.
+retains the same client scope, budget and its physical work leases through drain.
 The primitive stays in vessel-relay for node consumers; Harness neither imports
 it nor creates a pool. Without the injected resolver, new usage methods remain
 SINCE=None/fail closed: never silently fall back to default Gai. Exact receiving
-source, original admission-hold binding and drain ordering still need their own
+source, client-lifetime binding and drain ordering still need their own
 review/checks. No private resolver, parallel quota or activation follows from
 this graph ruling; legacy behavior is not silently expanded.
 

@@ -23,6 +23,14 @@ owner retaining scope/budget/original hold through drain. No injected resolver
 means new methods stay None/fail closed, never default Gai. Receiving source and
 lifetime checks are still owed; this adds no private resolver/callback engine.
 
+The coordinator further chooses client-scoped usage DNS ownership: ONE Node
+scope for the persistent LimitContext OnceCell Http, shared by saved/additional
+reads. Canonical physical quota uses the existing bound/root budget. Per-read
+HTTP admission is separate, not DNS proof; never pin the first initializer's
+permit or invent mutable/task-local read identity. Close/drain after source
+jobs before client replacement/node stop. This contract still needs V3 review;
+W5 code and activation stay held, and no new W5 whole is requested.
+
 The crucial capacity lease lives inside the actual Tokio blocking closure
 which calls standard ToSocketAddrs, not merely the async lookup waiter. The
 same tracked generic scope moves the original permits-only opaque consumer
