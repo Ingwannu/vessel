@@ -90,3 +90,15 @@ not a full Kit suite, consumer UI, actual OS IME/accessibility, hover-pixel or
 whole A9 result. Only selected2e3f05bf +2b9994ac +13c46693 belong to the control;
 never consume intervening A9 changes or the complete branch as its producer.
 After checked handoff, G2 becomes the sole next field writer for Code form text.
+
+
+## Additive identified-search leaf
+
+The retained label-manager consumer requires the existing engine's FieldId,
+because an old queued editor event may arrive after close/reopen. Add only
+SearchField::with_source, id, focus and set_text, delegating to that same
+TextField. Plain new/clear/render stay unchanged. Actual-engine tests cover both
+themes' Search/X geometry, silent restoration, focus and source-tagged clear,
+and a forced old-engine event delivered after replacement with an unchanged
+current query. No consumer transition, new renderer or other field module is
+included. This leaf remains uncompiled/unreviewed until its remote checks finish.
