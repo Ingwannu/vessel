@@ -53,6 +53,11 @@ use vessel_store::CredentialHash;
 use crate::error::ServiceError;
 use crate::principal::Principal;
 
+mod reservation;
+pub(crate) use reservation::AgentReservation;
+#[cfg(test)]
+pub(crate) use reservation::CreationCountCorrelation;
+
 /// Live sessions an agent may own (that it created itself) at once.
 pub(crate) const MAX_OWNED: usize = 8;
 
@@ -73,6 +78,10 @@ pub(crate) struct Agents {
 
 #[derive(Debug)]
 struct Entry {
+    /// Local rollback ownership, independent of the public session identity.
+    reservation: Arc<()>,
+    #[cfg(test)]
+    creation_launch: reservation::CountLaunchState,
     /// Accepted credentials: one, or two while a profile move runs.
     credentials: Vec<CredentialHash>,
     /// What the session's agent may do.
@@ -131,6 +140,24 @@ impl Agents {
         principal: &Principal,
         with_credential: bool,
     ) -> Result<Option<AgentSecret>, ServiceError> {
+        self.reserve_creation(id, principal, with_credential)
+            .map(AgentReservation::retain_legacy)
+    }
+
+    /// The same locked grant/count admission, retained across receipt commit.
+    pub(crate) fn reserve_creation(
+        &self,
+        id: SessionId,
+        principal: &Principal,
+        with_credential: bool,
+    ) -> Result<AgentReservation<'_>, ServiceError> {
+        let mut sessions = self.lock();
+        // Receipt continuation reuses an id; it must never replace a restored
+        // entry, its credential or its counted owner. Check before minting and
+        // keep the same lock through count admission and insertion.
+        if sessions.contains_key(&id) {
+            return Err(ServiceError::AgentReserved(id));
+        }
         let (secret, credentials) = if with_credential {
             let secret = mint()?;
             let hash = CredentialHash::of_agent(&secret);
@@ -138,7 +165,6 @@ impl Agents {
         } else {
             (None, Vec::new())
         };
-        let mut sessions = self.lock();
         let (scopes, depth, parent) = match principal {
             Principal::Owner => (AGENT_SCOPES.to_vec(), 0, None),
             Principal::Agent {
@@ -177,9 +203,13 @@ impl Agents {
                 (within_agent_scopes(scopes), 0, None)
             }
         };
-        let previous = sessions.insert(
+        let reservation = Arc::new(());
+        let _previous = sessions.insert(
             id,
             Entry {
+                reservation: Arc::clone(&reservation),
+                #[cfg(test)]
+                creation_launch: reservation::CountLaunchState::Reserved,
                 credentials,
                 scopes,
                 depth,
@@ -188,10 +218,7 @@ impl Agents {
                 session: None,
             },
         );
-        if previous.is_some() {
-            tracing::error!(session = %id, "an agent place was reserved twice");
-        }
-        Ok(secret)
+        Ok(AgentReservation::new(self, id, reservation, secret))
     }
 
     /// How many agents deep a live session is (0 for a user's), for the
