@@ -8,6 +8,33 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Completed action/result discrimination
+
+Reference protocol browser-automation/rpc-schemas.ts:304–350,387–439,452–462
+returns operation-specific refs/points/keys/selection/wheel facts and wait kind.
+Reuse ElementRef, validated CSS coordinates/deltas and redacted input types.
+Applied now requires a closed ActionOutcome instead of a tab-only success;
+its single typed tool mapping and the MCP adapter reject a different action,
+element/value/chord/delta or wait condition before projecting any success.
+Projection consumes completed outcome fields; request fields only validate
+correlation and never fill missing backend facts. Flat optional point/ref fields
+are omitted when absent, rather than fabricated as zero/null.
+
+The actual Page wait controller now returns the shared WaitMatch enum, avoiding
+a second internal kind model. New selector/projection/round-trip fixtures are
+unexecuted. These pending value changes need regenerated TS and current-union
+checks; exact41 TS generation and older3d wait tests do not validate this later
+DTO. BROWSER_PROTOCOL remains None; no previously assigned browser wire format
+is replaced, and no tool-name table or call/setting number is introduced.
+
+Upload has no completed-files/result producer yet and cannot pass the generic
+Applied branch. Its output path refuses until the separately proposed row292
+source/staging/retention contract is reviewed and implemented. All eight other
+input actions still require their real executable/actionability producers; the
+new typed facts alone cannot create a successful browser action. Log/dialog/
+context/list-active/paint/full-page/evaluate-function and actual input work remain
+owed, with the engine hidden.
+
 ## Wait fixture correction
 
 The exact8a29290a strict run reached the new fixtures and rejected the held

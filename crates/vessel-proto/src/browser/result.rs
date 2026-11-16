@@ -24,6 +24,8 @@ pub enum BrowserResult {
     Applied {
         /// The node verified ownership before sending input.
         browser_id: BrowserId,
+        /// Operation-specific completed facts; never copied from an unexecuted request.
+        outcome: super::ActionOutcome,
     },
     /// A bounded accessibility snapshot with current refs.
     Snapshot {
@@ -65,6 +67,8 @@ pub enum BrowserResult {
     Matched {
         /// The target whose text/location satisfied the predicate.
         browser_id: BrowserId,
+        /// The text/location predicate which actually matched.
+        matched: super::WaitMatch,
     },
     /// Closing invalidated the target and its watches/refs.
     Closed {

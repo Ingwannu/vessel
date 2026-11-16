@@ -5,12 +5,13 @@
 use rmcp::model::{CallToolResult, ContentBlock};
 use serde_json::{Value, json};
 use vessel_proto::browser::{BrowserCommand, BrowserId, BrowserResult, BrowserTab, BrowserTool};
+mod actions;
 
 pub(super) fn render(
     command: &BrowserCommand,
     result: BrowserResult,
 ) -> Result<CallToolResult, serde_json::Error> {
-    if !accepts(command.tool(), &result)
+    if !accepts(command, &result)
         || command
             .target()
             .is_some_and(|expected| target(&result) != Some(expected))
@@ -70,10 +71,17 @@ pub(super) fn render(
             }),
             None,
         ),
-        other @ (BrowserResult::Applied { .. }
-        | BrowserResult::Logs { .. }
-        | BrowserResult::Matched { .. }
-        | BrowserResult::Closed { .. }) => (serde_json::to_value(other)?, None),
+        BrowserResult::Applied {
+            browser_id,
+            outcome,
+        } => (actions::metadata(browser_id, outcome), None),
+        BrowserResult::Matched {
+            browser_id,
+            matched,
+        } => (json!({"browserId":browser_id,"matched":matched}), None),
+        other @ (BrowserResult::Logs { .. } | BrowserResult::Closed { .. }) => {
+            (serde_json::to_value(other)?, None)
+        }
     };
     let Some(fields) = metadata.as_object_mut() else {
         return Ok(CallToolResult::error(vec![ContentBlock::text(
@@ -146,33 +154,33 @@ fn target(result: &BrowserResult) -> Option<&BrowserId> {
     match result {
         BrowserResult::Tabs { .. } => None,
         BrowserResult::Tab { tab } => Some(&tab.browser_id),
-        BrowserResult::Applied { browser_id }
+        BrowserResult::Applied { browser_id, .. }
         | BrowserResult::Snapshot { browser_id, .. }
         | BrowserResult::Screenshot { browser_id, .. }
         | BrowserResult::Evaluation { browser_id, .. }
         | BrowserResult::Logs { browser_id, .. }
-        | BrowserResult::Matched { browser_id }
+        | BrowserResult::Matched { browser_id, .. }
         | BrowserResult::Closed { browser_id } => Some(browser_id),
     }
 }
-fn accepts(tool: BrowserTool, result: &BrowserResult) -> bool {
+fn accepts(command: &BrowserCommand, result: &BrowserResult) -> bool {
     use BrowserTool as T;
+    let tool = command.tool();
     match tool {
         T::ListTabs => matches!(result, BrowserResult::Tabs { .. }),
         T::NewTab | T::Navigate | T::Back | T::Forward | T::Reload | T::Resize => {
             matches!(result, BrowserResult::Tab { .. })
         }
         T::Snapshot => matches!(result, BrowserResult::Snapshot { .. }),
-        T::Click
-        | T::Fill
-        | T::Type
-        | T::Keypress
-        | T::Upload
-        | T::Select
-        | T::Hover
-        | T::Drag
-        | T::Scroll => matches!(result, BrowserResult::Applied { .. }),
-        T::Wait => matches!(result, BrowserResult::Matched { .. }),
+        T::Click | T::Fill | T::Type | T::Keypress | T::Select | T::Hover | T::Drag | T::Scroll => {
+            matches!(result, BrowserResult::Applied { outcome, .. } if outcome.tool() == tool && actions::selectors_match(command, outcome))
+        }
+        // No staged-file/result producer exists yet. A generic Applied success
+        // must not stand in for actual selected files or expose private paths.
+        T::Upload => false,
+        T::Wait => {
+            matches!((command, result), (BrowserCommand::Wait(args), BrowserResult::Matched { matched, .. }) if matches!((&args.condition, matched), (vessel_proto::browser::WaitFor::Text(_), vessel_proto::browser::WaitMatch::Text) | (vessel_proto::browser::WaitFor::Url(_), vessel_proto::browser::WaitMatch::Url)))
+        }
         T::Screenshot => matches!(result, BrowserResult::Screenshot { .. }),
         T::Logs => matches!(result, BrowserResult::Logs { .. }),
         T::Evaluate => matches!(result, BrowserResult::Evaluation { .. }),
@@ -248,6 +256,9 @@ mod tests {
             &BrowserCommand::ListTabs(NoBrowserArgs {}),
             BrowserResult::Applied {
                 browser_id: id('1'),
+                outcome: vessel_proto::browser::ActionOutcome::Fill {
+                    element: "@e1".parse().unwrap(),
+                },
             },
         )
         .unwrap();
@@ -260,5 +271,7 @@ mod snapshot_tests;
 #[cfg(test)]
 mod tab_tests;
 
+#[cfg(test)]
+mod action_tests;
 #[cfg(test)]
 mod evaluation_tests;

@@ -26,23 +26,23 @@ caller-selected cwd or control endpoint.
 | List tabs | Scoped tab records include address/title, active/loading and history eligibility | Typed inventory exists; no real inventory/focus observation. MCP currently projects richer internal load/history enums rather than the reference flags. |
 | New tab | Flat id/workspace/address facts from the created tab | Staged projection now flattens the completed Tab id/workspace/address; actual creation and changed-source checks remain owed. |
 | Snapshot | Address/title/workspace, ARIA-YAML marker, text, truncation and named measured stats | Staged traversal now returns same-document address/title under the loader fence, and MCP explicitly projects aria-yaml/text/truncation/named stats. Actual engine execution, owner workspace context and changed-source checks remain owed; no later-document lookup is joined. |
-| Click | Selected current ref and optional actual point | Applied has only id; typed action completion/projection remains owed. |
-| Fill | Current element ref on successful fill | Applied is insufficient for the final result projection; no executor yet. |
-| Wait | Which condition matched | Matched currently has id only. Actual predicate execution and matched-kind result remain owed. |
-| Type | Optional ref and optional actual point | Applied has only id; active-element/ref execution and result remain owed. |
-| Keypress | Key identity, optional ref/point | Applied has only id. A complete tool chord and observed target completion differ from the finite human raw-key subset. |
+| Click | Selected current ref and optional actual point | Applied now requires typed Click outcome and observed ref/point projection; real actionability/dispatch producer and changed-source checks remain owed. |
+| Fill | Current element ref on successful fill | Typed Fill outcome/ref projection exists; real executor and changed-source checks remain owed. |
+| Wait | Which condition matched | Shared WaitMatch and the bounded staged predicate controller now retain the matched kind; real DOM execution and changed-source checks remain owed. |
+| Type | Optional ref and optional actual point | Typed Type outcome/optional ref/point projection exists; actual focus/text execution and changed-source checks remain owed. |
+| Keypress | Key identity, optional ref/point | Typed Keypress outcome/key/ref/point projection exists; the complete trusted chord executor remains distinct from the finite human raw-key subset. |
 | Navigate | Actual resulting address | Staged projection now flattens the completed Tab address; real navigation and changed-source checks remain owed. |
 | Back | Completed traversal id | History/controller model exists, no qualified actor/result flow. |
 | Forward | Completed traversal id | Same boundary as Back; no invented empty-history success. |
 | Reload | Completed reload id | Controller model exists, no qualified actor/result flow. |
 | Screenshot | PNG metadata plus one image block | Staged projection omits duplicate image bytes as intended. Actual first paint/capture, full-page handling, codec/paint and source fencing remain owed. |
-| Upload | Current file input ref and successful file selection names | Applied has only id. Confined staged regular files and selection results remain owed. The current nonempty path-list DTO has no item/aggregate path budget; settle named decoding and staged-copy count/byte owners before real wiring, rather than treating lexical values or the transport cap as staging admission. Internal private staging paths must never be exposed. |
-| Select | Current select ref and selected value | Applied has only id; actual selection, events and result remain owed. |
-| Hover | Current ref and optional actual point | Applied has only id; hit testing/actionability and result remain owed. |
-| Drag | Both current refs and optional actual source/drop points | Applied has only id; full trusted drag sequence and result remain owed. |
+| Upload | Current file input ref and successful file selection names | No completed-files outcome exists and the MCP output path refuses Upload rather than accepting generic Applied. Confined staged regular files and selection results remain owed. The current nonempty path-list DTO has no item/aggregate path budget; settle named decoding and staged-copy count/byte owners before real wiring, rather than treating lexical values or the transport cap as staging admission. Internal private staging paths must never be exposed. |
+| Select | Current select ref and selected value | Typed Select outcome/ref/value projection exists; actual selection/events and changed-source checks remain owed. |
+| Hover | Current ref and optional actual point | Typed Hover outcome/ref/point projection exists; actual hit testing/actionability and changed-source checks remain owed. |
+| Drag | Both current refs and optional actual source/drop points | Typed Drag outcome/both refs and actual endpoints projection exists; full trusted sequence and changed-source checks remain owed. |
 | Logs | Console entries and resource timing/network entries, each requested tail | Current DTO is a deliberately incomplete typed foundation; see log debt below. No real producer/ring exists. |
 | Evaluate | Actual serialized result plus truncation | Evaluation has capped JSON but internal field names/shape differ. Staged explicit MCP projection now preserves observed resultJson as an opaque string plus truncated; real engine result/exception behavior and changed-source checks remain owed. Never echo the function as a result. |
-| Scroll | Applied deltas, optional ref and actual point | Applied has only id; element/actionability and result projection remain owed. |
+| Scroll | Applied deltas, optional ref and actual point | Typed Scroll outcome/input deltas/ref/point projection exists; real element/actionability/trusted dispatch and changed-source checks remain owed. |
 | Resize | Actual resulting width/height | Staged projection now extracts completed effective dimensions for fixed/responsive modes, not requested ones. Actual resize and changed-source checks remain owed. |
 | Close tab | Completed close id | Controller now retains the target until ACK. Actual actor destruction/watch/slot settlement remains owed. |
 

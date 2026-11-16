@@ -2,17 +2,11 @@
 use super::{Page, PageError, requests};
 use serde::Deserialize;
 use std::time::Duration;
-use vessel_proto::browser::{WaitBudget, WaitFor};
+use vessel_proto::browser::{WaitBudget, WaitFor, WaitMatch};
 
 /// Reference service.ts:69 checks every25ms; this is not a test synchronization sleep.
 const POLL_INTERVAL: Duration = Duration::from_millis(25);
 
-/// The completed predicate kind comes from the actual successful probe.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum MatchedCondition {
-    Text,
-    Url,
-}
 #[derive(Deserialize)]
 struct Observed {
     value: bool,
@@ -23,7 +17,7 @@ impl Page {
         &mut self,
         condition: WaitFor,
         budget: WaitBudget,
-    ) -> Result<MatchedCondition, PageError> {
+    ) -> Result<WaitMatch, PageError> {
         self.active()?;
         let timeout = Duration::from_millis(u64::from(budget.host_timeout().get()));
         tokio::time::timeout(timeout, self.wait_condition(&condition))
@@ -31,12 +25,12 @@ impl Page {
             .map_err(PageError::WaitTimeout)?
     }
 
-    async fn wait_condition(&mut self, condition: &WaitFor) -> Result<MatchedCondition, PageError> {
+    async fn wait_condition(&mut self, condition: &WaitFor) -> Result<WaitMatch, PageError> {
         loop {
             if self.condition_matches(condition).await? {
                 return Ok(match condition {
-                    WaitFor::Text(_) => MatchedCondition::Text,
-                    WaitFor::Url(_) => MatchedCondition::Url,
+                    WaitFor::Text(_) => WaitMatch::Text,
+                    WaitFor::Url(_) => WaitMatch::Url,
                 });
             }
             tokio::time::sleep(POLL_INTERVAL).await;

@@ -5,7 +5,7 @@ use futures_util::{SinkExt as _, StreamExt as _};
 use std::time::Duration;
 use tokio::{net::TcpListener, sync::oneshot};
 use tokio_tungstenite::tungstenite::Message;
-use vessel_proto::browser::{WaitBudget, WaitFor, WaitTimeout};
+use vessel_proto::browser::{WaitBudget, WaitFor, WaitMatch, WaitTimeout};
 
 const FIXTURE_DEADLINE: Duration = Duration::from_secs(20);
 #[derive(Clone, Copy)]
@@ -66,12 +66,12 @@ async fn wait_polls_until_observed_text_or_url_match_and_preserves_kind() {
         let text = WaitFor::Text(RequiredInput::try_from("own needle".to_owned()).unwrap());
         assert_eq!(
             fixture.page.wait(text, WaitBudget::Default).await.unwrap(),
-            wait::MatchedCondition::Text
+            WaitMatch::Text
         );
         let url = WaitFor::Url(RequiredInput::try_from("own substring".to_owned()).unwrap());
         assert_eq!(
             fixture.page.wait(url, WaitBudget::Default).await.unwrap(),
-            wait::MatchedCondition::Url
+            WaitMatch::Url
         );
         finish(fixture).await;
     })

@@ -4,6 +4,7 @@
 //! The protocol constant remains unassigned until the common method-table
 //! integration. Page execution and network policy do not belong in this crate.
 
+mod action_result;
 #[cfg(test)]
 mod admission_tests;
 mod arguments;
@@ -25,6 +26,7 @@ mod upload;
 mod url;
 mod watch;
 
+pub use action_result::{ActionOutcome, WaitMatch};
 pub use arguments::{
     ClickArgs, ClickCount, CssDelta, DragArgs, ElementArgs, EvaluateArgs, KeyModifier,
     KeypressArgs, LogsArgs, MouseButton, NavigateArgs, NewTabArgs, NoBrowserArgs, ResizeArgs,
