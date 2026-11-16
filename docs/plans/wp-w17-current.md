@@ -162,9 +162,9 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `provider ls` | provider ls | Pending | none activated | W22 canonical provider identity/snapshot/model-thinking/diagnostic contract awaited; readiness/manifest is insufficient. |
 | `provider models <provider>` | provider models | Pending | none activated | W22 canonical provider identity/snapshot/model-thinking/diagnostic contract awaited; readiness/manifest is insufficient. |
 | `provider diagnostic <provider>` | provider diagnostic | Pending | none activated | W22 canonical provider identity/snapshot/model-thinking/diagnostic contract awaited; readiness/manifest is insufficient. |
-| `usage ls` | usage ls | Pending | none activated | W5 report/source identities and authoritative inspect awaited; legacy token/quota scopes are not report IDs. |
-| `usage inspect <report-id>` | usage inspect | Pending | none activated | W5 report/source identities and authoritative inspect awaited; legacy token/quota scopes are not report IDs. |
-| `usage` | usage | Pending | none activated | W5 report/source identities and authoritative inspect awaited; legacy token/quota scopes are not report IDs. |
+| `usage ls` | usage ls | Pending | none activated | W5 reviewed/assigned/merged report contract and ADR0104 tracked-DNS activation hold awaited; legacy token/quota scopes are not report IDs. |
+| `usage inspect <report-id>` | usage inspect | Pending | none activated | W5 reviewed/assigned/merged report contract and ADR0104 tracked-DNS activation hold awaited; legacy token/quota scopes are not report IDs. |
+| `usage` | usage | Pending | none activated | W5 reviewed/assigned/merged report contract and ADR0104 tracked-DNS activation hold awaited; legacy token/quota scopes are not report IDs. |
 | `plugin init <directory>` | none | Other owner | W16 plugins | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `plugin ls [id]` | none | Other owner | W16 plugins | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `plugin status [id]` | none | Other owner | W16 plugins | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |

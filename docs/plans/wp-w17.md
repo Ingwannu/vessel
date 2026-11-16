@@ -1932,3 +1932,14 @@ Source follow-up to7ba3: the positive-control helper now returns unit after its
 own worktree-delta and exact session-placement assertions. Its caller has no
 unused baseline binding; each explicit case still captures its fresh pre-call
 sessions/worktrees. This is a fixture-only source correction, not a runtime pass.
+
+
+### Usage producer activation hold
+
+W5's91c735ce2 is a documentation supplement to backend preparation, not an active
+consumer handoff. ADR0104 requires the shared tracked DNS resolver before the
+new account/report methods can activate; all three account methods and both
+feature constants remain None. The CLI keeps generic consumers inactive and
+its typed refusals. It must not add a private resolver, invent report IDs from
+legacy token/quota scopes, or treat producer strict/whole counts as assigned
+wire readiness. The managed same-source fixture/CLI export is also still owed.
