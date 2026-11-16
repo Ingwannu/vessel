@@ -31,8 +31,21 @@ fn page(context: &ConnectionContext) -> Page {
     let mut page = Page::default();
     page.target(Target::Online(context.machine().clone()));
     let _change = page.bind(Some(context.clone()));
+    grant(&mut page, context);
     page.listing = Listing::Ready(vec![device()]);
     page
+}
+fn grant(page: &mut Page, context: &ConnectionContext) {
+    let authority = page.tickets.next_ticket().unwrap();
+    assert!(page.checking_authority(context, authority));
+    assert!(page.authority_answer(
+        context,
+        authority,
+        Ok(vessel_proto::DeviceSelf {
+            device: None,
+            scopes: vec![Scope::Admin],
+        })
+    ));
 }
 fn invitation() -> Pairing {
     let expires = DateTime::UNIX_EPOCH
@@ -78,6 +91,7 @@ fn replacement_clears_every_owned_surface_before_a_frame_without_resetting_ticke
     assert!(page.inspected_device().is_none());
     assert!(page.revoke_intent().is_none());
     assert_ne!(page.tickets.next_ticket().unwrap(), old);
+    grant(&mut page, &second);
     page.listing = Listing::Ready(vec![device()]);
     assert_eq!(
         page.inspect_bound(&first, device().id),
@@ -127,6 +141,7 @@ fn observed_aba_and_same_node_reconnect_refuse_old_replies_even_with_current_tic
     for context in [&b, &next, &reconnect] {
         let _change = page.bind(Some(context.clone()));
     }
+    grant(&mut page, &reconnect);
     let read = page.tickets.next_ticket().unwrap();
     let invite = page.tickets.next_ticket().unwrap();
     let revoke = page.tickets.next_ticket().unwrap();
@@ -184,4 +199,27 @@ fn even_a_retained_old_confirmation_cannot_be_attached_to_another_admission() {
     let request = page.tickets.next_ticket().unwrap();
     assert_eq!(page.confirm_revoke(&replacement, intent, request), None);
     assert_eq!(page.revoking.context(), Some(&first));
+}
+
+#[test]
+fn refreshing_authority_drops_a_revealed_link_rows_details_and_confirmation() {
+    let mut epochs = ConnectionEpochs::default();
+    let context = admit(&mut epochs, node(1));
+    let mut page = page(&context);
+    page.inspect_bound(&context, device().id).unwrap();
+    page.choose_bound(&context, device().id).unwrap();
+    let reveal = page.tickets.next_ticket().unwrap();
+    let mut credential = invitation();
+    credential.show(DateTime::UNIX_EPOCH, reveal);
+    assert!(credential.visible_link(DateTime::UNIX_EPOCH).is_some());
+    page.inviting = Inviting::Ready(credential);
+    let query = page.tickets.next_ticket().unwrap();
+    assert!(page.checking_authority(&context, query));
+    assert!(matches!(page.authority, crate::devices::Authority::Loading(t) if t == query));
+    assert!(matches!(page.inviting, Inviting::Empty));
+    assert!(matches!(page.listing, Listing::Empty));
+    assert!(matches!(page.revoking, Revoking::Empty));
+    assert!(page.inspected_device().is_none());
+    assert!(page.revoke_intent().is_none());
+    assert_ne!(page.tickets.next_ticket().unwrap(), query);
 }

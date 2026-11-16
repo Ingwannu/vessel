@@ -50,3 +50,33 @@ Native conflict resolution preserves the new PreparedGeneral constructor input w
 The receiving tree advances to official2ebeedf9 root bytes while the separate main attachment candidate stays frozen for its package review. Disjoint history/lifecycle/create registrations are retained together. The old inline draft sender is not resurrected: W3 owns the correlated submit module and original-admission placement walk. Its native-only calls/imports follow the official wasm isolation. Production Areas::new loads drafts only on native; with_drafts still accepts an explicit document so tests never read user storage and wasm starts in memory. The session body uses the official lazy callback and keeps the existing lifecycle error/overlay in that child. The session size record shrinks570to518, never grows to the incoming673. Foreign Settings history is taken from the official file rather than borrowing private parent claims.
 
 The B2-owned field resolution comes only from dc69c8ea: one canonical E2 presentation renderer delegates Composer layout to the existing B2 renderer; FieldId/hooks/FormMinimum/plain captured callback/Rc press state and one event listener remain. No vendor, Root, ADR0100 or moving owner branch is imported. This new receiving source is uncompiled; CommandKind still waits for official base adoption. The next one common check remains W6-owned.
+
+## Official base14.1 receiving merge
+
+The receiving root is now exactly the announced b54abbdc line, including the
+checked canonical command-kind metadata. No private runtime/RPC carrier is
+restored. That closes the named root-value dependency, not receiving validation.
+
+[Decision Log]
+- Purpose: preserve both official field/accessibility/shortcut/test-transport
+  evolution and this packet's single captured editor/input pipeline.
+- Existing assets: the official composition and FormText/FormTextarea helpers,
+  one shortcut dispatcher, the SDK error reexport and the framed Scenario owner.
+- Choice: use only B2's two resolved1d0e field blobs plus their why doc; the
+  multiline initializer keeps both the official form defaults and existing
+  composer/submit Rc fields. No additional renderer or event listener is added.
+- Constraint: A2's Sessions route has no editor. The incoming shortcut context
+  and moved core helper explicitly return no composer/machine for that route.
+- Transport boundary: the same transparent attachment error names the existing
+  `vessel_client::CallError` reexport; direct `vessel-rpc` framing remains optional
+  testing-only, matching the official feature. The shared scenario factory adds
+  only B1 mentions and A2 navigation hubs, keeping its fallible/default boundary.
+- Impact: incoming source, language refreshes and vendor revision/accessibility
+  documentation remain, alongside the already-owned optional markdown seams.
+  No global shortcut owner fallback or resident activation is invented.
+
+B1 row290 source corrections and mechanical strict-lint fixes are staged here.
+The frozen Main correction's strict result does not qualify this different
+receiving packet. One common quality/strict and meaningful owner execution is
+still owed; W6 remains the only submission owner. All root/crates/Cargo/web/script
+bytes match the official line. No common job has been submitted yet.

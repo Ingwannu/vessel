@@ -104,10 +104,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             context,
             ticket,
             ask,
-        } => Event::Devices(devices::Answer {
-            context,
-            outcome: ask.refused(ticket, devices::rejected(unsent.why)),
-        }),
+        } => Event::Devices(ask.rejected(context, ticket, devices::rejected(unsent.why))),
         Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,

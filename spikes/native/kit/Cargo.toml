@@ -29,3 +29,8 @@ tracing = "0.1"
 gpui = { workspace = true, features = ["test-support"] }
 # The isolated mark comparison window; no node or app runtime is started.
 gpui-platform.workspace = true
+
+# Decode only the framework's test accessibility snapshot, with typed nodes.
+# Both versions are already owned by this workspace; no production edge.
+serde.workspace = true
+serde_json.workspace = true

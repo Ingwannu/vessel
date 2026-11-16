@@ -22,7 +22,7 @@ pub enum LinkError {
     /// Preserve the node or transport cause of a failed preview read.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
-    AttachmentCall(#[from] vessel_rpc::CallError),
+    AttachmentCall(#[from] vessel_client::CallError),
     /// A malformed or interrupted image read, without server content.
     #[error("the attachment read failed: {0:?}")]
     AttachmentRead(crate::attachments::ReadProblem),

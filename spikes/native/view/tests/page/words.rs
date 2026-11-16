@@ -246,17 +246,17 @@ fn a_time_today_and_a_date_with_the_time_otherwise() {
 fn a_diff_as_the_card_shows_it() {
     use vessel_app_view::timeline::{Side, diff_lines};
     let (lines, cut) = diff_lines(Some("a\n\nb"), "a\nc");
-    let shown: Vec<(Side, usize, &str)> = lines
+    let shown: Vec<(Side, Option<usize>, &str)> = lines
         .iter()
         .map(|line| (line.side, line.number, line.text))
         .collect();
     assert_eq!(
         shown,
         [
-            (Side::Removed, 1, "a"),
-            (Side::Removed, 3, "b"),
-            (Side::Added, 1, "a"),
-            (Side::Added, 2, "c"),
+            (Side::Context, Some(1), "a"),
+            (Side::Removed, Some(2), ""),
+            (Side::Removed, Some(3), "b"),
+            (Side::Added, Some(2), "c"),
         ]
     );
     assert!(!cut);

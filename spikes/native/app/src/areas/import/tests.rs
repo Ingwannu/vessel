@@ -61,6 +61,9 @@ fn loaded(shell: &mut Shell, scope: &Scope) {
     area.model.toggle(&HarnessSessionId::new("native"));
     area.reproject();
 }
+#[path = "pickers/tests.rs"]
+mod popup;
+
 #[path = "tests/callbacks.rs"]
 mod callbacks;
 

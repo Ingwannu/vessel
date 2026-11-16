@@ -627,8 +627,7 @@ pub fn combobox<V: 'static>(
         }))
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
-        .occlude()
-        .cursor_default()
+        .map(popup::layer)
         .flex()
         .flex_col()
         .bg(surfaces.surface0)
@@ -853,6 +852,7 @@ mod tests {
                 .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds)
                 .id("picker-probe")
                 .track_focus(&self.state.focus)
+                .key_context(popup::KEY_CONTEXT)
                 .capture_key_down(key_handler(&self.rows, &self.state, &handlers, cx))
                 .w(px(360.0))
                 .type_(Type::Body)

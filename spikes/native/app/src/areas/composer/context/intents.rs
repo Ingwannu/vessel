@@ -1,5 +1,5 @@
 //! Callbacks retain an opaque context incarnation, including its source revision.
-use super::*;
+use super::{ContextAttachment, ContextIntent, DraftKey, Shell};
 use vessel_app_kit::attachment::ScopedPillClick;
 
 pub(super) fn callbacks(

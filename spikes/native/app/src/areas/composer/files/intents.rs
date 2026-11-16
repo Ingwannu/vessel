@@ -1,5 +1,5 @@
 //! Render-time resource leases prevent retained callbacks selecting a replacement.
-use super::*;
+use super::{AttachmentKind, Context, DraftKey, Item, ItemState, Shell, Window, picture};
 use vessel_app_kit::attachment::ScopedPillClick;
 use vessel_app_view::composer::tray::{Again, ItemIntent};
 

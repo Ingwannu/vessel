@@ -1,5 +1,11 @@
 # Shared small toolbar icon chrome
 
+Source-only successor: the frame and fill policy now live in the closed shared
+[`icon_chrome` profiles](shared-icon-chrome.md). The Toolbar wrapper still owns
+its disabled handler guard and existing tooltip decoration. The earlier bounded
+results below do not prove this extraction or the new Footer profile; its own
+receiving VM checks and review remain owed.
+
 Status: bounded source and affected narrow tests passed; header consumption and
 surface parity remain unverified. This is the shared control, not another ordinary
 Button renderer or a change to ButtonContent/Small/Medium sizing.
