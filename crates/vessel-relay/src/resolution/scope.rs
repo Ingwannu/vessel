@@ -91,7 +91,7 @@ impl<Hold: Send + Sync + 'static> ResolutionScope<Hold> {
         loop {
             let changed = self.0.changed.notified();
             tokio::pin!(changed);
-            changed.as_mut().enable();
+            let _registered = changed.as_mut().enable();
             {
                 let state = self.0.state();
                 if state.active == 0 {
@@ -120,7 +120,7 @@ impl<Hold> fmt::Debug for ResolutionScope<Hold> {
 pub struct ResolutionHandle<Hold>(Weak<Inner<Hold>>);
 impl<Hold> Clone for ResolutionHandle<Hold> {
     fn clone(&self) -> Self {
-        Self(self.0.clone())
+        Self(Weak::clone(&self.0))
     }
 }
 impl<Hold> fmt::Debug for ResolutionHandle<Hold> {
@@ -252,7 +252,7 @@ impl<Hold> Inner<Hold> {
         }
         let global = Arc::clone(&self.budget)
             .try_acquire_owned()
-            .map_err(|_full| Failure::new(FailureKind::Full))?;
+            .map_err(Failure::capacity)?;
         state.active = state
             .active
             .checked_add(1)

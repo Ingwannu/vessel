@@ -81,7 +81,14 @@ impl Failure {
         }
     }
 
-    /// Closed classification, without a diagnostic string.
+    pub(super) fn capacity(error: tokio::sync::TryAcquireError) -> Self {
+        Self {
+            kind: FailureKind::Full,
+            cause: Some(Arc::new(Cause::Capacity(error))),
+        }
+    }
+
+    /// Typed classification, without a diagnostic string.
     #[must_use]
     pub const fn kind(&self) -> FailureKind {
         self.kind
@@ -101,6 +108,7 @@ enum Cause {
     Worker(tokio::task::JoinError),
     Runtime(tokio::runtime::TryCurrentError),
     Receiver(tokio::sync::oneshot::error::RecvError),
+    Capacity(tokio::sync::TryAcquireError),
 }
 
 impl fmt::Debug for Cause {
@@ -117,6 +125,7 @@ impl fmt::Debug for Cause {
                 .debug_tuple("CompletionReceiverCause")
                 .field(error)
                 .finish(),
+            Self::Capacity(error) => f.debug_tuple("CapacityCause").field(error).finish(),
         }
     }
 }
@@ -127,6 +136,7 @@ impl fmt::Display for Cause {
             Self::Worker(_) => "worker completion cause",
             Self::Runtime(_) => "resolution runtime unavailable",
             Self::Receiver(_) => "resolution completion unavailable",
+            Self::Capacity(_) => "resolution admission capacity unavailable",
         })
     }
 }
