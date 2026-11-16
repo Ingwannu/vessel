@@ -195,10 +195,16 @@ impl Shell {
         }
         let creating =
             matches!(picker.page, PickerPage::Submitting {ticket, ..} if ticket == event.ticket);
+        // The committed names go to the rows' projection; the picker needs
+        // only how it ended.
+        let settled = result
+            .as_ref()
+            .map(|_committed| ())
+            .map_err(|failure| *failure);
         let accepted = if creating {
-            picker.page.completed(event.ticket, *result)
+            picker.page.completed(event.ticket, settled)
         } else {
-            picker.model.finish(name, event.ticket, *result)
+            picker.model.finish(name, event.ticket, settled)
         };
         if accepted && creating && result.is_ok() {
             picker.return_to_list.set(true);

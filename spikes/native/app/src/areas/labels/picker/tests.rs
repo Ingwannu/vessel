@@ -88,7 +88,7 @@ fn labels_workspace_picker_stays_open_and_waits_for_registry_assignment_projecti
                 answer: Answer::Assigned {
                     workspace,
                     name: label().name,
-                    result: Ok(()),
+                    result: Ok(Vec::new()),
                 },
             },
             cx,
@@ -227,7 +227,7 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
                 answer: Answer::Assigned {
                     workspace,
                     name: label.name,
-                    result: Ok(()),
+                    result: Ok(Vec::new()),
                 },
             },
             cx,
