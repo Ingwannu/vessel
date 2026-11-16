@@ -113,7 +113,8 @@ impl Reply {
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
             Self::GetConversation(conversation) => conversation
-                .composer_for_protocol(protocol).map(Self::GetConversation),
+                .composer_for_protocol(protocol)
+                .map(Self::GetConversation),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),

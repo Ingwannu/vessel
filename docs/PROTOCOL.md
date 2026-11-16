@@ -1979,6 +1979,11 @@ server dispatch refused it through required_protocol.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
 
+
+## Unassigned command-kind metadata values (ADR0085)
+
+AgentCommand.kind optionally carries command, skill or unknown. Absence remains root-only; unknown future kinds do not enable inline completion. COMPOSER_COMMANDS is None in this values carrier. Every peer-visible conversation/event path strips kind until assignment, including forwarded replies and legacy event projections. No method, RPC row or protocol number is introduced, and actual discovery/classification remains separate.
+
 ## Pending composer command catalogs (ADR 0085)
 
 `agent.draft_commands` is an Operate-scoped unary method gated by `composer_commands::COMPOSER_COMMANDS` (unassigned). It accepts registered workspace identity, a validated relative directory, provider/profile and selected model/options, and returns an ordered command catalog without a prompt. Agents are refused. Optional command kind is hidden on older/unassigned peer projections; absent/unknown kind cannot enable inline completion. The client must show Unsupported while the protocol remains unassigned and must not fall back to an unkeyed provider launch.

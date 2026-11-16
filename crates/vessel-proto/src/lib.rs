@@ -79,6 +79,7 @@ mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
 pub mod usage;
+pub mod voice;
 pub mod workspace;
 
 pub use agent::{
