@@ -356,3 +356,19 @@ Release-capable child integration, durable process identity and the actual
 service/Preview consumers remain separate work. This carrier cannot prove
 OS death, persistent ownership or socket/workspace authority. Windows and
 native execution are outside this checkpoint's evidence.
+
+## Current values-package integration boundary
+
+The staged service values and SDK are now based on the announced node gate-61
+head. Incoming method rows, projections and protocol/schema facts take
+precedence; the eight service rows follow the incoming usage rows. The
+forwarding-policy extraction keeps the head's complete decisions in its child
+module and adds only the eight explicit service refusals. No service runtime
+or private settings writer is activated.
+
+The previous immutable revision passed four-crate strict Clippy, 30 selected
+proto/client tests and three web admission tests. Its five TS generation tests
+passed, but freshness failed on the uncommitted generated service declarations.
+That old snapshot is retained as evidence and will not overwrite the incoming
+wire. The merged composition requires its own official regeneration, followed
+by committed generated output, freshness and the enclosing package gate.

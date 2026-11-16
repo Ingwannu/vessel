@@ -62,6 +62,7 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "skills.uninstall",
             "skills.save_selection",
             "skills.import_selection",
+            "usage.source_lookup",
         ]
     );
     assert_eq!(
@@ -680,6 +681,9 @@ const FORWARDABLE: &[&str] = &[
     "file.duplicate",
     "file.observe",
     "file.suggest",
+    "usage.reports",
+    "usage.inspect",
+    "usage.source_lookup",
 ];
 
 #[test]

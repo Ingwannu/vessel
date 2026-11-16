@@ -11,13 +11,81 @@ const MAX: usize = 1_048_576;
 pub(super) enum Endpoint {
     ClaudeUsage,
     CodexUsage,
+    Copilot,
+    Cursor,
+    Grok,
+    Kimi,
+    MiniMaxGlobal,
+    MiniMaxChina,
+    OpenCodeGo,
+    Zai,
 }
 impl Endpoint {
     const fn url(self) -> &'static str {
         match self {
             Self::ClaudeUsage => "https://api.anthropic.com/api/oauth/usage",
             Self::CodexUsage => "https://chatgpt.com/backend-api/wham/usage",
+            Self::Copilot => "https://api.github.com/copilot_internal/user",
+            Self::Cursor => {
+                "https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage"
+            }
+            Self::Grok => "https://cli-chat-proxy.grok.com/v1/billing?format=credits",
+            Self::Kimi => "https://api.kimi.com/coding/v1/usages",
+            Self::MiniMaxGlobal => "https://api.minimax.io/v1/token_plan/remains",
+            Self::MiniMaxChina => "https://api.minimaxi.com/v1/token_plan/remains",
+            Self::OpenCodeGo => "https://opencode.ai/zen/go/v1/usage",
+            Self::Zai => "https://api.z.ai/api/biz/subscription/list",
         }
+    }
+    fn request(
+        self,
+        client: &reqwest::Client,
+        account: Option<&HeaderValue>,
+    ) -> reqwest::RequestBuilder {
+        let request = match self {
+            Endpoint::Cursor => client
+                .post(self.url())
+                .header("content-type", "application/json")
+                .header("Connect-Protocol-Version", "1")
+                .body("{}"),
+            Endpoint::ClaudeUsage
+            | Endpoint::CodexUsage
+            | Endpoint::Copilot
+            | Endpoint::Grok
+            | Endpoint::Kimi
+            | Endpoint::MiniMaxGlobal
+            | Endpoint::MiniMaxChina
+            | Endpoint::OpenCodeGo
+            | Endpoint::Zai => client.get(self.url()),
+        };
+        let mut request = request.header("accept", "application/json");
+        match self {
+            Endpoint::ClaudeUsage => {
+                request = request.header("anthropic-beta", "oauth-2025-04-20");
+            }
+            Endpoint::CodexUsage => {
+                if let Some(account) = account {
+                    request = request.header("ChatGPT-Account-Id", account.clone());
+                }
+            }
+            Endpoint::Copilot => {
+                request = request
+                    .header("Editor-Version", "vscode/1.96.2")
+                    .header("Editor-Plugin-Version", "copilot-chat/0.26.7")
+                    .header("User-Agent", "GitHubCopilotChat/0.26.7")
+                    .header("X-Github-Api-Version", "2025-04-01");
+            }
+            Endpoint::Grok => {
+                request = request.header("X-XAI-Token-Auth", "xai-grok-cli");
+            }
+            Endpoint::Cursor
+            | Endpoint::Kimi
+            | Endpoint::MiniMaxGlobal
+            | Endpoint::MiniMaxChina
+            | Endpoint::OpenCodeGo
+            | Endpoint::Zai => {}
+        }
+        request
     }
 }
 #[derive(Debug, thiserror::Error)]
@@ -43,6 +111,11 @@ impl fmt::Debug for Body {
         f.debug_struct("VendorBody")
             .field("bytes", &self.0.len())
             .finish()
+    }
+}
+impl Body {
+    pub(super) fn into_bytes(self) -> Zeroizing<Vec<u8>> {
+        self.0
     }
 }
 #[derive(Debug)]
@@ -83,21 +156,9 @@ impl Http {
         authorization: &HeaderValue,
         account: Option<&HeaderValue>,
     ) -> Result<Body, HttpError> {
-        let mut request = self
-            .client
-            .get(endpoint.url())
-            .header("accept", "application/json")
+        let request = endpoint
+            .request(&self.client, account)
             .header("authorization", authorization.clone());
-        match endpoint {
-            Endpoint::ClaudeUsage => {
-                request = request.header("anthropic-beta", "oauth-2025-04-20");
-            }
-            Endpoint::CodexUsage => {
-                if let Some(account) = account {
-                    request = request.header("ChatGPT-Account-Id", account.clone());
-                }
-            }
-        }
         let mut response = request.send().await.map_err(HttpError::Transport)?;
         match response.status() {
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => return Err(HttpError::Rejected),

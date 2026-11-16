@@ -110,6 +110,9 @@ impl Reply {
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
                 nested(forwarded, protocol)
             }
+            // This newer report family can name added agents in login errors;
+            // never hand its shape to a peer predating added-agent identities.
+            Self::ListUsageReports(_) | Self::InspectUsageReport(_) | Self::SetUsageSourceLookup(_) => Some(unreadable()),
             // Lists (filtered by `for_protocol`), and replies that name no
             // agent or only one of the four.
             Self::ListSessions(_)

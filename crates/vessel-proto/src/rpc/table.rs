@@ -426,6 +426,13 @@ macro_rules! method_table {
             /// Host orchestration skills (staged ADR 0065, Admin only).
             ImportSkillsSelection / import_skills_selection / "skills.import_selection" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::ImportSkillsSelection => $crate::skills::SkillsImported;
 
+            /// Complete source/account reports, pending integrator assignment.
+            ListUsageReports / list_usage_reports / "usage.reports" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::ListUsageReports => $crate::usage_reports::UsageReports;
+            /// Resolve exactly one opaque report id without widening its scope.
+            InspectUsageReport / inspect_usage_report / "usage.inspect" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::InspectUsageReport => $crate::usage_reports::UsageReportLookup;
+            /// Accept or revoke exactly the displayed source disclosure; never fetches.
+            SetUsageSourceLookup / set_usage_source_lookup / "usage.source_lookup" [Admin, (pending $crate::usage_reports::USAGE_SOURCE_CONSENT_PROTOCOL), unary]: $crate::usage_reports::SetUsageSourceLookup => $crate::usage_reports::UsageSourceDescriptor;
+
             /// Workspace service observations only; unavailable until the qualified runtime wiring.
             ListWorkspaceScripts / workspace_scripts / "workspace.script.list" [Read, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::WorkspaceScriptQuery => $crate::workspace_services::WorkspaceScriptQueryResult;
             /// A person's exact workspace script start; no default runtime implementation.

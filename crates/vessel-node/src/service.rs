@@ -79,6 +79,7 @@ mod schedule_preview;
 mod scheduled;
 mod schedules;
 mod usage;
+mod usage_reports;
 // Protocol 12 (track A2): the conversation, further.
 mod forking;
 mod history;
@@ -87,6 +88,8 @@ mod search;
 mod settings;
 mod side_questions;
 
+#[cfg(test)]
+mod command_diagnostics_tests;
 #[cfg(test)]
 mod connection_life_tests;
 #[cfg(test)]
@@ -158,6 +161,7 @@ pub(crate) struct NodeService {
     listings: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
+    usage_reports: crate::usage_reports::Registry,
     limits: crate::limits::Limits,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
@@ -239,6 +243,7 @@ impl NodeService {
             store.clone(),
         );
         Self {
+            usage_reports: crate::usage_reports::Registry::default(),
             file_panels: file_panels::FilePanelSlots::default(),
             lsp,
             lsp_roots,

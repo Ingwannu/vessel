@@ -157,6 +157,7 @@ impl Workspaces {
     ) -> Result<(), WorkspaceError> {
         let _capacity = self.project_operation_capacity()?;
         let _serial = self.project_registrations.lock().await;
+        self.require_no_registry_reference(project).await?;
         let cancel = {
             let mut state = self.state();
             let entry = state

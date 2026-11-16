@@ -706,3 +706,26 @@ The corrected stack is submitted for review; no reviewer or integration
 approval is inferred. The ADR remains proposed. Live credentials/vendors,
 platform Keychain, non-Linux runtime behavior, native screens and automatic
 wait/resume/account switching remain unverified or unfinished as stated above.
+
+## F3 bounded backend preparation and activation hold
+
+The later generic account-report preparation has an independently verified product
+whole at `87a1f2c6dd5a310713d892748aa21566cb3760bc`: eighteen steps0,
+Rust2759/0/12, web465, E2E80, forge4 and generated freshness5/diff0. Test-only
+failure-ownership corrections at `e1ff8671c7c5aba13a5b5ade9786a245b2d851f6`
+have current all-target harness/node strict0 with usage-fixture and actual426/0/0
+(harness82, node344), including all23 changed-file cases. Other tracked files3566
+have identical product-baseline blobs; the mixed test container's product prefix
+is byte-identical. These scoped records do not accept the complete native/web/CLI
+feature or real vendor/platform operation. Earlier failures remain retained.
+
+Activation is explicitly held for ADR 0104. Usage HTTP is the shared tracked DNS
+primitive's third consumer, after relay and dictation. The default reqwest resolver
+in `vessel-harness/src/limits/http.rs::Http::new` and the additional Local source
+body cannot yet prove physical native DNS settlement on async cancellation.
+New account methods/feature constants remain `None` until the shared primitive
+is consumed through `dns_resolver`; no private resolver or fork is introduced.
+Recorded fixtures, credential completion and request cancellation are not native
+DNS proof. G4 owns the shared consumer list; receiving integration/whole and any
+later activation assignment remain separate. No new worker whole is authorized
+merely for recording this hold.

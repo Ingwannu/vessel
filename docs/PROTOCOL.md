@@ -1980,6 +1980,10 @@ The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
 
 
+## Unassigned command-kind metadata values (ADR0085)
+
+AgentCommand.kind optionally carries command, skill or unknown. Absence remains root-only; unknown future kinds do not enable inline completion. COMPOSER_COMMANDS is None in this values carrier. Every peer-visible conversation/event path strips kind until assignment, including forwarded replies and legacy event projections. No method, RPC row or protocol number is introduced, and actual discovery/classification remains separate.
+
 ### Staged workspace service contract (ADR 0066)
 
 The workspace script/service and dedicated service-settings rows are staged

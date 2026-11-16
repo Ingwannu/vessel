@@ -18,11 +18,17 @@ path = "src/main.rs"
 # with this feature, vesseld's product arguments/environment stay real.
 [features]
 forge-fixture = ["vessel-forge/fake"]
+usage-fixture = ["vessel-harness/fakes"]
 
 [[bin]]
 name = "vessel-forge-fixture"
 path = "src/bin/forge_fixture.rs"
 required-features = ["forge-fixture"]
+
+[[bin]]
+name = "vessel-usage-fixture"
+path = "src/bin/usage_fixture.rs"
+required-features = ["usage-fixture"]
 
 [dependencies]
 # A member's calls to its fleet's home (`fleet.*` over the secure channel,
@@ -111,6 +117,10 @@ uuid.workspace = true
 web-push-native.workspace = true
 
 [dev-dependencies]
+# Construct the concrete PTY Thread cause for the existing session/wire error edge.
+vessel-pty.workspace = true
+# portable-pty uses log; exercise that actual bridge, not only tracing events.
+log.workspace = true
 # `test-util`: the probes' cache is checked on a paused clock. Without it
 # here, `cargo test -p vessel-node` alone did not build: the feature came
 # only from other crates of a whole-workspace build.

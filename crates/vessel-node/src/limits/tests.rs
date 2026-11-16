@@ -39,6 +39,7 @@ fn rpc_cancellation_does_not_admit_replacement_blocking_reads() {
                     account: account(),
                     binding: Ok(binding.clone()),
                     refresh: LimitRefresh::Refresh,
+                    observed: None,
                     reply,
                 })
                 .await
@@ -60,6 +61,7 @@ fn rpc_cancellation_does_not_admit_replacement_blocking_reads() {
                     account: another.clone(),
                     binding: Ok(binding.clone()),
                     refresh: LimitRefresh::Refresh,
+                    observed: None,
                     reply,
                 })
                 .await
@@ -110,7 +112,14 @@ async fn a_cancelled_policy_reply_does_not_abandon_its_saved_decision() {
         let dir = DataDir::new(root.path());
         let tasks = TaskTracker::new();
         let stop = CancellationToken::new();
-        let active = Limits::start(dir.clone(), LimitProbe::Disabled, stop.clone(), &tasks).await;
+        let active = Limits::start(
+            dir.clone(),
+            LimitProbe::Disabled,
+            stop.clone(),
+            &tasks,
+            LimitContext::new(),
+        )
+        .await;
         let (reply, response) = oneshot::channel();
         active
             .commands
@@ -173,5 +182,12 @@ fn actor(
         context: LimitContext::new(),
     };
     drop(tasks.spawn(owner.run(receiver, stop)));
-    (Limits { commands }, generation, binding)
+    (
+        Limits {
+            commands,
+            sources: crate::usage_reports::Sources::default(),
+        },
+        generation,
+        binding,
+    )
 }
