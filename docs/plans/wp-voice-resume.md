@@ -79,3 +79,13 @@ matches the steps log. The exact spec and source were independently read.
 This closes the listed new-union compile debt only. No root test/whole/runtime,
 774 retry/waiver, ORT compile or model execution is inferred. The root gate
 attach process has exited normally; no owned fleet/display/app/server exists.
+
+
+## Dictation owner stopped with no consumer handoff
+
+Latest owner update: WIP a17fe9b4 contains only docs over frozen execution
+source b61e91cc. Workspace/all-target strict0 and RPC lib58/0/0 are scoped
+proofs; whole `dictation-20261116T030821Z-b61e91cc` is still queued and
+V3row288 incomplete. Firstfield/Copy is still NOT consumer-ready. Do not import
+mutable main or replay its existing run. Await checked review/integrator
+adoption after an authorized resume.
