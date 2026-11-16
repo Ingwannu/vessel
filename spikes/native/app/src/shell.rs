@@ -401,13 +401,8 @@ impl Render for Shell {
                     // it with.
                     .children(sheet),
             )
-            .children(areas::toasts::render(self, &tokens, window, cx))
-            .children(areas::palette::render(self, &tokens, window, cx))
-            .children(areas::onboarding::dialog(self, &tokens, window, cx))
-            .children(areas::local_node::dialog(self, &tokens, window, cx))
-            .children(areas::desktop::render(self, &tokens, window, cx))
-            .children(areas::shortcuts::help_dialog::render(self, &tokens, window, cx))
-            .children(areas::import::render(self, &tokens, window, cx))
+            ;
+        let content = overlays::append(content, self, &tokens, window, cx)
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
@@ -416,4 +411,5 @@ impl Render for Shell {
 mod events;
 #[cfg(test)]
 pub(crate) mod language_tests;
+mod overlays;
 mod page;
