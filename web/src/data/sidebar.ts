@@ -134,7 +134,11 @@ export function listed(
     });
 }
 
-function row(node: NodeKey, session: SessionInfo): SidebarSession {
+/** `session`'s row on `node`. */
+export function sessionRow(
+  node: NodeKey,
+  session: SessionInfo,
+): SidebarSession {
   return {
     node,
     unread: isUnread(session),
@@ -164,7 +168,9 @@ export function sidebarMachines(
       word: named.word,
       connected: status?.state === "connected",
       live: all.filter(isLive).length,
-      sessions: shown.slice(0, limit).map((session) => row(node.key, session)),
+      sessions: shown
+        .slice(0, limit)
+        .map((session) => sessionRow(node.key, session)),
       more: Math.max(0, shown.length - limit),
     };
   });
@@ -205,7 +211,7 @@ export function sidebarStatuses(
     const rows = shown
       .filter((item) => sessionMark(item.session) === mark)
       .map((item) => ({
-        ...row(item.node, item.session),
+        ...sessionRow(item.node, item.session),
         machine: item.machine,
       }));
     return {

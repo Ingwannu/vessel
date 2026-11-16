@@ -27,6 +27,8 @@ import type {
   ToolCallId,
   TransferId,
   UploadId,
+  WorkspaceId,
+  WorkspaceLabelGeneration,
   WorktreeId,
 } from "../wire/proto";
 
@@ -55,6 +57,8 @@ interface Handles {
   ToolCallId: ToolCallId;
   TransferId: TransferId;
   UploadId: UploadId;
+  WorkspaceId: WorkspaceId;
+  WorkspaceLabelGeneration: WorkspaceLabelGeneration;
   WorktreeId: WorktreeId;
 }
 
