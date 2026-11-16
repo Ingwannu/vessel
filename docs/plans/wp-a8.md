@@ -1,8 +1,18 @@
 # A8: permissions, questions and CLI permit
 
-Status: first question frame built; response correlation under narrow validation. Owner W4, PLAN section 7. This replaces the earlier A5a
-assignment; its unverified skeleton is parked on `backend/m12-wp-side`
-at `fc7f3139` and is not part of this branch.
+Status: A8 is incomplete. Main native source00081a39b on package base13 has
+four-crate all-target strict proof; its older730 source has1492/0/2 runtime
+proof. These are different sources. The selected staged Requests kernel has
+V1 bounded adoption approval and4 GPUI cases; W12 owns its real bundle/lease
+consumer. Read-only CLI `permit ls` is now wired in the separate node tree
+at e6311b8a3, with fresh checks queued. Rich provider actions, question metadata,
+durable response receipts, actual guarded resource cutover, checked shared body/
+Clone Seat adoption, final whole gates, captures and V4 remain pending.
+
+Owner W4, PLAN section7. Earlier A5a side-question code is parked on
+`backend/m12-wp-side` at fc7f3139 and is excluded from A8. The chronological
+notes below retain earlier evidence and failures; they do not supersede this
+current disposition or turn a prior-source pass into combined-source proof.
 
 ## Reference read and contract
 
