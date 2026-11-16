@@ -8,6 +8,23 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Upload decoding boundary after row292 contract source pass
+
+V3 accepted the exact upload contract source, with implementation/gates owed.
+First implement only the shared wire/MCP edge: MAX_UPLOAD_FILES32 is owned in
+proto browser/upload; path bytes reuse RelPath::MAX_BYTES. Reuse the existing
+lists decoder/Reject seed through a sibling-private function rather than copying
+its excess-payload algorithm. UploadFiles adds its nonempty/count invariant;
+MCP checks the raw array count before member conversion and exposes the same
+cap in schema. Schema character maxLength is only a coarse envelope: the typed
+path decoder enforces UTF-8 bytes. No second byte-limit constant is added.
+
+New direct/serde Unicode path boundaries, exact count/excess malformed sentinel
+and MCP count-first fixtures remain unexecuted. None constructs a root anchor,
+staging ledger, manifest, source handle or browser selection. In particular,
+request validation alone does not implement the contract's GLOBAL retained
+count/byte ledger; no upload executor or positive output is enabled.
+
 ## Completed action/result discrimination
 
 Reference protocol browser-automation/rpc-schemas.ts:304–350,387–439,452–462

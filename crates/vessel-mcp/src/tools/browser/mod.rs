@@ -256,6 +256,7 @@ fn upload(args: &JsonObject) -> Result<UploadArgs, ArgumentError> {
         .get("filePaths")
         .and_then(Value::as_array)
         .ok_or(ArgumentError::Field("filePaths"))?;
+    UploadFiles::check_count(values.len()).map_err(ArgumentError::Upload)?;
     let files = values
         .iter()
         .map(|value| {

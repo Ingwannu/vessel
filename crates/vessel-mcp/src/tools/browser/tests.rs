@@ -135,3 +135,20 @@ fn schemas_use_the_catalogue_and_express_the_wait_exclusion_without_offering_too
         json!(MAX_VIEWPORT_SIDE)
     );
 }
+
+#[test]
+fn upload_json_edge_applies_the_shared_count_before_member_conversion() {
+    let limit = usize::try_from(vessel_proto::browser::MAX_UPLOAD_FILES).unwrap();
+    let mut paths = vec![json!("untrusted-path"); limit];
+    paths.push(json!({"not_a_path":"synthetic sentinel"}));
+    let error = decode(BrowserTool::Upload, &args(json!({"filePaths":paths}))).unwrap_err();
+    assert!(matches!(
+        error,
+        ArgumentError::Upload(InvalidUpload::FileCount)
+    ));
+    let upload = schema::schema(BrowserTool::Upload);
+    assert_eq!(
+        upload.input_schema["properties"]["filePaths"]["maxItems"],
+        vessel_proto::browser::MAX_UPLOAD_FILES
+    );
+}

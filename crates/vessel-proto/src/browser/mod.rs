@@ -69,7 +69,7 @@ pub use state::{
     BrowserViewport, SnapshotMetric, SnapshotStats, TextByteCount,
 };
 pub use tools::{BROWSER_TOOLS, BrowserCommand, BrowserTool};
-pub use upload::{InvalidUpload, UploadArgs, UploadFiles, UploadPath};
+pub use upload::{InvalidUpload, MAX_UPLOAD_FILES, UploadArgs, UploadFiles, UploadPath};
 pub use url::{BrowserUrl, InvalidBrowserUrl};
 
 use crate::ProtocolVersion;

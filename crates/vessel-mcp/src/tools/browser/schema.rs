@@ -2,7 +2,8 @@
 use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
 use vessel_proto::browser::{
-    BrowserTool, MAX_BROWSER_INPUT_BYTES, MAX_LOG_ENTRIES, MAX_VIEWPORT_SIDE, MAX_WAIT_MS,
+    BrowserTool, MAX_BROWSER_INPUT_BYTES, MAX_LOG_ENTRIES, MAX_UPLOAD_FILES, MAX_VIEWPORT_SIDE,
+    MAX_WAIT_MS,
 };
 
 pub(super) fn schema(tool: BrowserTool) -> Tool {
@@ -78,7 +79,7 @@ fn fields(tool: BrowserTool, p: &mut JsonObject, required: &mut Vec<&'static str
         }
         T::Upload => {
             reference(p, required);
-            let _replaced = p.insert("filePaths".into(),json!({"type":"array","minItems":1,"items":{"type":"string","minLength":1},"description":"Untrusted workspace file paths; the node must confine and stage every regular file before attachment."}));
+            let _replaced = p.insert("filePaths".into(),json!({"type":"array","minItems":1,"maxItems":MAX_UPLOAD_FILES,"items":{"type":"string","minLength":1,"maxLength":vessel_proto::workspace::RelPath::MAX_BYTES},"description":format!("Untrusted workspace paths, each at most {} UTF-8 bytes. A successful upload requires separately admitted private staged regular files.",vessel_proto::workspace::RelPath::MAX_BYTES)}));
             required.push("filePaths");
         }
         T::Drag => {

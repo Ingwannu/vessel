@@ -80,7 +80,9 @@ limited_list!(
     "A network tail with no arbitrary extra response bodies or headers."
 );
 
-fn decode<'de, D, T, const MAX: u32>(deserializer: D) -> Result<Vec<T>, D::Error>
+// Upload intent shares the same before-excess-payload decoder; its caller adds
+// the nonempty invariant rather than copying this sequence/seed implementation.
+pub(super) fn decode<'de, D, T, const MAX: u32>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de>,
