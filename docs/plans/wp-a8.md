@@ -1,6 +1,7 @@
 # A8: permissions, questions and CLI permit
 
-Status: A8 is incomplete. Main native source00081a39b on package base13 has
+Status: A8 is incomplete. Main now includes package base13.1; its combined
+source still needs fresh checks. Earlier source00081a39b on package base13 has
 four-crate all-target strict proof; its older730 source has1492/0/2 runtime
 proof. These are different sources. The selected staged Requests kernel has
 V1 bounded adoption approval and4 GPUI cases; W12 owns its real bundle/lease
@@ -892,3 +893,14 @@ resource authority proof. The separate Clone Seat producer is still unreviewed.
 Its future root_get catalogue must replace permission Paint's baseline global
 fork_headers reference; missing captured root means no borrowed detail, without
 falling back to a selected or local catalogue. That API is not in minimalf264 yet.
+
+
+## App base13.1 intake
+
+Merge announced ad14f5f6 (baseline native1617/0/2) into the app tree before
+its next remote check. This carries W19 staged window enumeration and G2's
+segmented control, retaining their test-only/no-consumer conditions. No node
+head or unannounced base14 candidate is imported. Root CLI's immutable2c run
+continues in its separate tree. The earlier00081 A8 strict result is now
+prior-source proof; the combined13.1 union still needs its own narrow check.
+No incoming baseline total replaces A8 runtime, whole or authority acceptance.
