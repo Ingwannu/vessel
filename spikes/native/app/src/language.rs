@@ -47,6 +47,7 @@ type RefreshWords = fn(&mut Shell, &mut Window, &mut Context<'_, Shell>);
 // A retained translated placeholder has one refresh method. Register it here
 // so changing language never needs to navigate to or reset a cached form.
 const PLACEHOLDERS: &[RefreshWords] = &[
+    crate::areas::import::refresh_words,
     crate::areas::draft::refresh_words,
     |shell, window, cx| crate::areas::pair::refresh_words(shell, window, cx),
     |shell, window, cx| {
@@ -76,6 +77,8 @@ impl Shell {
         }
         self.words = words;
         self.t = Lang::from_tag(words.locale().tag()).text();
+        self.refresh_general_words();
+        self.refresh_preference_refusal();
         crate::areas::settings::apply_composer(self, window, cx);
         for refresh in PLACEHOLDERS {
             refresh(self, window, cx);

@@ -2,6 +2,7 @@
 //! checked), the words on its trigger, and the change a row makes.
 
 use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::ui::SharedString;
 use vessel_app_kit::{ComboRow, Leading, Tokens};
 use vessel_app_view::prefs::{
     CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, PreferenceChange, SendKey,
@@ -77,7 +78,9 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
         List::Machine => chosen_machine(shell)
             .map_or_else(|| words.machine.to_owned(), |machine| machine.name.clone()),
         List::Send => send_key_label(shell.prefs.settings.composer.send, primary()),
-        List::Delivery => words
+        List::Delivery => shell
+            .words
+            .general()
             .delivery(shell.prefs.settings.composer.delivery)
             .to_owned(),
         List::Interface => words.points(appearance.interface_size.get()),
@@ -89,6 +92,17 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
             .display_choice(appearance.conversation)
             .to_owned(),
     }
+}
+
+/// The General delivery trigger borrows its cached message, including pseudo
+/// labels too long for GPUI's inline-string representation.
+pub(super) fn delivery_label(shell: &Shell) -> SharedString {
+    SharedString::new_static(
+        shell
+            .words
+            .general()
+            .delivery(shell.prefs.settings.composer.delivery),
+    )
 }
 
 /// `list`'s rows.
@@ -134,11 +148,11 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
             .collect(),
         List::Delivery => DELIVERIES
             .into_iter()
-            .map(|delivery| {
-                row(
-                    words.delivery(delivery).to_owned(),
-                    delivery == settings.composer.delivery,
-                )
+            .map(|delivery| ComboRow {
+                checked: delivery == settings.composer.delivery,
+                ..ComboRow::new(SharedString::new_static(
+                    shell.words.general().delivery(delivery),
+                ))
             })
             .collect(),
         List::Interface => InterfaceSize::all()

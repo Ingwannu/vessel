@@ -18,6 +18,7 @@ pub(crate) mod desktop;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod import;
 pub(crate) mod layout;
 #[cfg_attr(target_arch = "wasm32", path = "local_node_off.rs")]
 pub(crate) mod local_node;
@@ -43,6 +44,7 @@ pub(crate) struct Areas {
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) local_node: local_node::LocalNodeArea,
     pub(crate) onboarding: onboarding::Onboarding,
+    pub(crate) import: import::ImportArea,
     pub(crate) about: about::AboutState,
     pub(crate) desktop: desktop::DesktopArea,
     pub(crate) draft: draft::Draft,
@@ -72,18 +74,23 @@ pub(crate) struct Areas {
 }
 
 impl Areas {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+    pub(crate) fn new(
+        general: settings::PreparedGeneral,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
         let mut areas = Self {
             #[cfg(not(target_arch = "wasm32"))]
             local_node: local_node::LocalNodeArea::new(cx),
             onboarding: onboarding::Onboarding::new(cx),
+            import: import::ImportArea::new(window, cx),
             about: about::AboutState::new(cx),
             desktop: desktop::DesktopArea::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
-            settings: settings::SettingsState::new(window, cx),
+            settings: settings::SettingsState::new(general, window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
             layout: layout::LayoutArea::new(cx),

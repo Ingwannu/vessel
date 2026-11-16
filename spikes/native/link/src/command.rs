@@ -14,7 +14,6 @@
 use super::{
     Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::Delivery;
 use vessel_proto::{
     AgentCommand, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
@@ -28,6 +27,8 @@ pub enum Command {
     LocalNode(crate::local_node::registration::Ask),
     /// Bind setup controls to the authenticated node of a fixed visit.
     Onboarding(crate::onboarding::Ask),
+    /// Scoped own-history discovery and import.
+    History(crate::history::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

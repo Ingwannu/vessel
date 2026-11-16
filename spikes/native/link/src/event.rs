@@ -25,6 +25,8 @@ pub enum Event {
     LocalNode(crate::local_node::registration::Answer),
     /// Setup identity lookup or binding acknowledgement.
     Onboarding(crate::onboarding::Answer),
+    /// An original-admission guarded history result or correlated refusal.
+    History(crate::history::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

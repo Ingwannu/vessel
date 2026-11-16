@@ -5,6 +5,7 @@ use std::process::Stdio;
 
 use tokio::process::{ChildStderr, ChildStdin, ChildStdout};
 
+use crate::checked::{CheckedWaitError, FirstSweep, OwnedGroupExit};
 use crate::error::{SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 use crate::group::ProcessGroup;
@@ -98,6 +99,7 @@ fn spawn_with(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnEr
         #[cfg(unix)]
         group,
         state: State::Running,
+        first_sweep: FirstSweep::default(),
         reaper,
         lifetime,
         started: std::time::Instant::now(),
@@ -149,6 +151,7 @@ pub struct Child {
     #[cfg(unix)]
     group: ProcessGroup,
     state: State,
+    first_sweep: FirstSweep,
     reaper: tokio::runtime::Handle,
     lifetime: Lifetime,
     started: std::time::Instant,
@@ -230,7 +233,14 @@ impl Child {
         #[cfg(unix)]
         {
             let group = self.group;
-            group.signal_with_leader(signal, |grace| self.reaped_within(grace))
+            let result = group.signal_with_leader(signal, |grace| self.reaped_within(grace));
+            if matches!(self.state, State::Reaped(_)) {
+                // The refusal path already performed the first post-reap sweep.
+                // Cache it now; wait_checked must not signal a potentially reused
+                // numeric group id later merely to manufacture a receipt.
+                let _first = self.first_sweep.record(|| result.clone());
+            }
+            result
         }
         #[cfg(windows)]
         {
@@ -309,16 +319,32 @@ impl Child {
         Ok(code)
     }
 
+    /// Reap the owned leader and report the original group/job cleanup outcome.
+    /// Legacy wait callers keep their existing leader-status behavior. A prior
+    /// wait or signal-triggered reap reuses its first recorded outcome without
+    /// signalling a delayed numeric group id. Cancellation preserves ownership.
+    ///
+    /// The receipt means leader reaped plus an accepted cleanup request (or an
+    /// already absent group/job), not every descendant's observed OS death.
+    ///
+    /// # Errors
+    /// Preserves the concrete wait failure or first sweep failure; never turns
+    /// missing cleanup evidence into success or retries a possibly reused group.
+    pub async fn wait_checked(&mut self) -> Result<OwnedGroupExit, CheckedWaitError> {
+        let code = self.wait().await.map_err(CheckedWaitError::Wait)?;
+        self.first_sweep.receipt(code, self.lifetime())
+    }
+
     /// Kill leftovers of the group after the leader exited, so a harness's
     /// own children (MCP servers, shells) never outlive it.
     fn sweep(&mut self) {
         #[cfg(unix)]
-        let swept = self.group.signal(Signal::Kill);
+        let swept = self.first_sweep.record(|| self.group.signal(Signal::Kill));
         #[cfg(windows)]
-        let swept = match self.inner.as_mut() {
+        let swept = self.first_sweep.record(|| match self.inner.as_mut() {
             Some(inner) => inner.start_kill().map_err(SignalError::from),
             None => Ok(()),
-        };
+        });
         if let Err(error) = swept {
             tracing::warn!(pid = self.pid, %error, "cannot sweep process group");
         }
@@ -349,6 +375,10 @@ impl Drop for Child {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "child/checked_tests.rs"]
+mod checked_tests;
 
 /// What differs between Unix process groups and Windows job objects.
 ///

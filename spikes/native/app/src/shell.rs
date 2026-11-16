@@ -69,7 +69,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Self {
-        let areas = Areas::new(window, cx);
+        let general = areas::settings::PreparedGeneral::new(words, &prefs.kept);
+        let areas = Areas::new(general, window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
                 cx.spawn(async move |this, cx| receive(this, events, cx).await)
@@ -394,6 +395,7 @@ impl Render for Shell {
             .children(areas::onboarding::dialog(self, &tokens, window, cx))
             .children(areas::local_node::dialog(self, &tokens, window, cx))
             .children(areas::desktop::render(self, &tokens, window, cx))
+            .children(areas::import::render(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

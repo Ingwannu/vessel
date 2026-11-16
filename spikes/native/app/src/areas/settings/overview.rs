@@ -18,8 +18,8 @@
 //!   rows (the app keeps no machine appearance), "Restart daemon" and
 //!   "Update daemon" (no such call; the node-control track brings them).
 //! - The name action uses the kit's shared `host_rename_button` unchanged.
-//!   The editor remains here. Its text is focused but not selected on open;
-//!   select-all waits on the kit field module's split.
+//!   The editor remains here. Opening selects its initial value through the
+//!   same engine; pending writes use the kit's shared Editability contract.
 //! - Difference: the badges are the kit's (the pills on `surface3`, where
 //!   Paseo's are bare outlines).
 
@@ -33,7 +33,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    ButtonState, TextField, Tokens, Type, TypeExt as _, dot, host_rename_button,
+    ButtonState, Editability, TextField, Tokens, Type, TypeExt as _, dot, host_rename_button,
     outline_button_with_glyph, settings,
 };
 use vessel_app_link::Command;
@@ -69,7 +69,15 @@ impl State {
                 |shell: &mut Shell, text, _window, cx| shell.overview_rename(&text, cx),
                 // Paseo clears the error as the name is typed again.
                 |shell: &mut Shell, _text, cx| {
-                    shell.areas.settings.overview.problem = None;
+                    let state = &mut shell.areas.settings.overview;
+                    let Some(open) = state.rename.as_mut().filter(|open| open.pending.is_none())
+                    else {
+                        return;
+                    };
+                    // Both validation and a failed book answer belong to the
+                    // previous draft. A pending write still owns its refusal.
+                    state.problem = None;
+                    open.refused = None;
                     cx.notify();
                 },
                 window,
@@ -85,11 +93,15 @@ impl State {
 impl Shell {
     /// The book answered an edit: close a dialog whose edit succeeded, or
     /// keep its refusal. Whether the page said it.
-    pub(crate) fn overview_answer(&mut self, answer: &Answer) -> bool {
+    pub(crate) fn overview_answer(&mut self, answer: &Answer, cx: &mut Context<'_, Self>) -> bool {
         let Answer::Edited { edit, result } = answer else {
             return false;
         };
         let state = &mut self.areas.settings.overview;
+        let renamed = state
+            .rename
+            .as_ref()
+            .is_some_and(|open| open.pending.as_ref() == Some(edit));
         let mut said = false;
         for dialog in [&mut state.rename, &mut state.remove] {
             if let Some(open) = dialog.as_mut()
@@ -100,6 +112,10 @@ impl Shell {
                     *dialog = None;
                 }
             }
+        }
+        if renamed {
+            // A refusal leaves the draft for another edit; success closes it.
+            state.field.set_editability(Editability::Editable, cx);
         }
         said
     }
@@ -112,6 +128,7 @@ impl Shell {
     ) {
         let words = self.t.lang.overview();
         let state = &mut self.areas.settings.overview;
+        state.field.set_editability(Editability::Editable, cx);
         state.field.set_text(name.as_str(), window, cx);
         state
             .field
@@ -119,6 +136,7 @@ impl Shell {
         state.problem = None;
         state.rename = Some(Editing::open(name));
         state.field.focus(window, cx);
+        state.field.select_all(window, cx);
         cx.notify();
     }
 
@@ -147,6 +165,8 @@ impl Shell {
             }
             Ask::Send(edit) => {
                 open.sent(edit.clone());
+                // Refuse edits immediately, before another input event arrives.
+                state.field.set_editability(Editability::ReadOnly, cx);
                 Some(edit)
             }
         };

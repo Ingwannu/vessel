@@ -66,6 +66,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Onboarding(ask) => {
             Event::Onboarding(ask.refused(vessel_app_view::onboarding::scope::Problem::Unsent))
         }
+        Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
+            ask,
+            vessel_app_view::history::Problem::Unsent,
+        )),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.

@@ -136,6 +136,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::WriteUpload
         | Method::FinishUpload
         | Method::ReadAttachment
+        | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::ListProjects
         | Method::GetProject
         | Method::AddProject
@@ -170,6 +171,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::GitStash
         | Method::ListDir
         | Method::ReadFile
+        // ADR0083: unary workspace calls remain subject to node scope and
+        // pending protocol admission; no stream or browser authority is added.
+        | Method::InspectDirectory
+        | Method::ReadFileBytes
+        | Method::DuplicateFileEntry
+        | Method::ObserveFile
+        | Method::SuggestEntries
         | Method::WriteFile
         | Method::CreateDir
         | Method::RenamePath
@@ -227,6 +235,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListInbox
         | Method::GetInboxEntry
         | Method::MarkInbox
+        | Method::Diagnostics
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush
@@ -243,7 +252,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::ForkSession
         | Method::RewindSession
         // Protocol 17: an agent's own history (ADR 0053).
-        | Method::GetAgentHistory => true,
+        | Method::GetAgentHistory
+        | Method::DetachSession
+        // Staged git comparison reads (ADR 0087), like the other git reads.
+        | Method::GitCompare
+        | Method::GitCompareFile => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe
@@ -252,7 +265,12 @@ const fn forwardable(method: Method) -> bool {
         | Method::Deliver
         | Method::GrantHome
         | Method::GetCallback
-        | Method::ListPeers => false,
+        | Method::ListPeers
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection => false,
     }
 }
 
@@ -315,8 +333,28 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                "skills.status",
+                "skills.reconcile",
+                "skills.uninstall",
+                "skills.save_selection",
+                "skills.import_selection",
             ]
         );
+    }
+
+    #[test]
+    fn file_panel_unaries_keep_pending_admission_when_forwarded() {
+        for method in [
+            Method::InspectDirectory,
+            Method::ReadFileBytes,
+            Method::DuplicateFileEntry,
+            Method::ObserveFile,
+            Method::SuggestEntries,
+        ] {
+            assert!(forwardable(method));
+            assert_eq!(method.since(), None);
+            assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
+        }
     }
 
     #[test]

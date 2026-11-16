@@ -19,6 +19,7 @@ impl State {
         match command {
             Command::LocalNode(ask) => self.register_local(ask).await,
             Command::Onboarding(ask) => self.onboarding(ask).await,
+            Command::History(ask) => self.history(ask).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {

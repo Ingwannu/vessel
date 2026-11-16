@@ -20,12 +20,11 @@
 
 use vessel_app_kit::select;
 use vessel_app_kit::ui::{
-    AnyElement, ClipboardItem, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _, SharedString,
     StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_view::prefs::Kept;
-use vessel_app_view::settings::Section;
 
 use super::applied;
 use super::choices::{self, List};
@@ -38,7 +37,7 @@ pub(crate) fn render(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let words = shell.t.lang.settings();
+    let words = shell.words.general();
     let composer = &shell.prefs.settings.composer;
     let general = settings::card(tokens)
         .child(super::language::row(shell, tokens, compact, cx))
@@ -57,7 +56,7 @@ pub(crate) fn render(
     let sending = settings::card(tokens)
         .when(send_shown, |card| {
             card.child(settings::row_at(
-                words.send_shortcut,
+                SharedString::new_static(words.send_shortcut()),
                 None,
                 None,
                 Some(select_for(List::Send, shell, compact, tokens, cx)),
@@ -68,8 +67,10 @@ pub(crate) fn render(
         })
         .when(applied(List::Delivery), |card| {
             card.child(settings::row_at(
-                words.default_send,
-                Some(words.delivery_note(composer.delivery).into()),
+                SharedString::new_static(words.default_send()),
+                Some(SharedString::new_static(
+                    words.delivery_note(composer.delivery),
+                )),
                 None,
                 Some(select_for(List::Delivery, shell, compact, tokens, cx)),
                 !send_shown,
@@ -80,38 +81,30 @@ pub(crate) fn render(
     let kept = &shell.prefs.kept;
     // The file's path under the note, its copy at the right (as About's log
     // file); this launch only, said with why.
-    let (hint, control) = match kept {
+    let control = match kept {
         Kept::File { path } => {
             let copied = path.clone();
             let copy = outline_button(
                 "settings-copy-prefs-path",
-                shell.words.update().copy_path(),
+                SharedString::new_static(shell.words.update().copy_path()),
                 true,
                 tokens,
             )
             .on_click(cx.listener(move |shell, _event, _window, cx| {
-                cx.write_to_clipboard(ClipboardItem::new_string(copied.clone()));
-                shell.notice = Some(shell.t.lang.settings().path_copied.to_owned());
-                cx.notify();
+                shell.copy_preferences_path(&copied, cx);
             }));
-            (
-                format!("{}\n{path}", words.kept_note),
-                copy.into_any_element(),
-            )
+            copy.into_any_element()
         }
-        Kept::ThisLaunch { .. } => (
-            words.kept_why(kept).unwrap_or_default(),
-            div()
-                .flex_shrink_0()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.this_launch)
-                .into_any_element(),
-        ),
+        Kept::ThisLaunch { .. } => div()
+            .flex_shrink_0()
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(SharedString::new_static(words.this_launch()))
+            .into_any_element(),
     };
     let kept_card = settings::card(tokens).child(settings::row_at(
-        words.preferences,
-        Some(hint.into()),
+        SharedString::new_static(words.preferences()),
+        Some(shell.areas.settings.general.hint.clone()),
         None,
         Some(control),
         true,
@@ -123,14 +116,22 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .child(settings::section(
-            words.section(Section::General, shell.words),
+            SharedString::new_static(words.title()),
             general,
             tokens,
         ))
         .when(shown, |page| {
-            page.child(settings::section(words.sending, sending, tokens))
+            page.child(settings::section(
+                SharedString::new_static(words.sending()),
+                sending,
+                tokens,
+            ))
         })
-        .child(settings::section(words.kept, kept_card, tokens));
+        .child(settings::section(
+            SharedString::new_static(words.kept()),
+            kept_card,
+            tokens,
+        ));
     #[cfg(not(target_arch = "wasm32"))]
     let page = page.child(crate::areas::local_node::section(
         shell, tokens, compact, cx,
@@ -147,9 +148,14 @@ pub(crate) fn select_for(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let state = &shell.areas.settings;
+    let label = if list == List::Delivery {
+        choices::delivery_label(shell)
+    } else {
+        choices::label(list, shell).into()
+    };
     select::trigger(
         gpui::ElementId::Name(format!("settings-select-{list:?}").into()),
-        choices::label(list, shell),
+        label,
         state.anchors.of(list),
         state.showing() == Some(list),
         true,

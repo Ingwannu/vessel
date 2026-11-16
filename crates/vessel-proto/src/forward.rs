@@ -284,6 +284,7 @@ impl Method {
             | Self::PromptSideQuestion
             | Self::ResetSideQuestion
             | Self::CreateSession
+            | Self::DetachSession
             | Self::SendInput
             | Self::KillSession
             | Self::ReadEvents
@@ -322,6 +323,12 @@ impl Method {
             | Self::WriteUpload
             | Self::FinishUpload
             | Self::ReadAttachment
+            | Self::GetRegistry
+            | Self::ListWorkspaces
+            | Self::GetWorkspace
+            | Self::RenameWorkspace
+            | Self::PinWorkspace
+            | Self::ReleaseWorkspaceAutomation
             | Self::ListProjects
             | Self::GetProject
             | Self::AddProject
@@ -338,6 +345,8 @@ impl Method {
             | Self::ListSnapshots
             | Self::DropSnapshot
             | Self::GitStatus
+            | Self::GitCompare
+            | Self::GitCompareFile
             | Self::GitChanges
             | Self::GitDiff
             | Self::GitShow
@@ -355,6 +364,11 @@ impl Method {
             | Self::GitRenameBranch
             | Self::GitStash
             | Self::ListDir
+            | Self::InspectDirectory
+            | Self::ReadFileBytes
+            | Self::DuplicateFileEntry
+            | Self::ObserveFile
+            | Self::SuggestEntries
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir
@@ -429,7 +443,8 @@ impl Method {
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::GetPushKey
+            Self::Diagnostics
+            | Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
             | Self::ReportPushPresence
@@ -441,6 +456,11 @@ impl Method {
             | Self::StopNode
             // The node's settings (protocol 12): its own administration,
             // read and changed by its owner and its own devices.
+            | Self::GetSkillsStatus
+            | Self::ReconcileSkills
+            | Self::UninstallSkills
+            | Self::SaveSkillsSelection
+            | Self::ImportSkillsSelection
             | Self::GetNodeSettings
             | Self::SetNodeSettings
             | Self::InviteDevice
