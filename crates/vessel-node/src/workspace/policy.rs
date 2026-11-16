@@ -102,6 +102,11 @@ const fn refused(method: Method) -> bool {
         // git tools in its folder.
         Method::ReadProjectConfig | Method::WriteProjectConfig | Method::CreateProjectDirectory | Method::RegisterProjectDirectory | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::AddProject
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection
         | Method::CloneProject
         | Method::InitProject
         | Method::RemoveProject
@@ -130,6 +135,11 @@ const fn refused(method: Method) -> bool {
         | Method::GitRenameBranch
         | Method::GitStash
         | Method::ListDir
+        | Method::InspectDirectory
+        | Method::ReadFileBytes
+        | Method::DuplicateFileEntry
+        | Method::ObserveFile
+        | Method::SuggestEntries
         | Method::ReadFile
         | Method::WriteFile
         | Method::CreateDir

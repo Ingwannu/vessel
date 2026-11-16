@@ -3,9 +3,9 @@
 //!
 //! The browser's first frame must be [`ClientFrame::Hello`] with the
 //! proof of its bootstrap/session key after the server challenge, within
-//! a short deadline; anything else closes the
-//! socket with [`CLOSE_UNAUTHORIZED`]. After the [`ServerFrame::Welcome`]
-//! the browser:
+//! a short deadline. Invalid proof or a misplaced frame closes with
+//! [`CLOSE_UNAUTHORIZED`]; elapsed waiting uses retryable close 1013.
+//! After [`ServerFrame::Welcome`] the browser:
 //!
 //! - calls methods on nodes ([`ClientFrame::Call`]), each answered once by
 //!   a [`ServerFrame::Reply`] with the same id;
@@ -50,7 +50,7 @@ use vessel_proto::{
     SessionId, TerminalId, WireError,
 };
 
-/// Closes a websocket that sent no valid token in time.
+/// Closes a websocket that presented invalid proof or an unexpected first frame.
 pub const CLOSE_UNAUTHORIZED: u16 = 4401;
 
 /// A frame from the browser.
