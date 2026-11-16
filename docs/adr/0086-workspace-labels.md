@@ -139,6 +139,36 @@ must wire this acknowledgement before `Store::close`.
   Tests assign over the real server and SDK at 28, refuse older peers before
   a frame, and pin the start error's text against a canary row.
 
+## Page consumer (2026-11-16)
+
+[Decision Log]
+- Purpose: give the page Paseo's label surfaces, now that runtime
+  registration (ADR 0106) gives workspaces to label: chips on workspace rows,
+  the row menu's Labels picker, the manager, and the sidebar filter with
+  Unlabelled (coordinator ruling (a): workspace labels only; session key/value
+  label filtering stays with the lifecycle owner).
+- Reference: Paseo `workspace-labels/` (replica, merge, picker and manager
+  models, chip, swatch, picker, manager modal) and
+  `components/sidebar/sidebar-labels.ts`.
+- Choice:
+  - `web/src/data/workspace-labels/` holds each connected machine's registry
+    snapshot (`changed_from` long poll) and catalog (`read: observe` with the
+    cursor; a gap refetches a snapshot). It runs only while a surface holds it.
+  - The picker and manager rules are plain models with tests: one press in
+    flight per label; Save only for a real change; inspect, ask, then delete.
+  - The sidebar gains a "Workspace" grouping. Membership follows the snapshot,
+    and a session newer than it follows the node's derivation rule.
+  - The filter is kept by the bridge with the view (`SidebarView.labels`,
+    bounded; `""` is Unlabelled) and runs on the page only.
+- Differences:
+  - Creating a label opens a dialog, not a page inside the menu (the kit's
+    menus have no text field).
+  - Sessions in no workspace are listed in a trailing "Other sessions" group
+    while no label is picked.
+- Effect: no wire, node or schema change. The bridge preferences gain one
+  grouping value and one bounded field with a serde default, so an older
+  preferences file still reads.
+
 ## Differences and version behavior
 
 - SQLite transactions replace the reference's compound JSON commit journal.
