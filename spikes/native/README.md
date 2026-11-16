@@ -1391,7 +1391,7 @@ isolated producer does not include C3 View/Link/app or any root-runtime changes.
 
 Keyboard mechanics and the typed owner callback seam are described in
 [the receiving plan](../../docs/plans/wp-commands-keyboard-producer.md).
-Its source-only status does not imply a completed command center or feature
+This bounded mechanics cut does not imply a completed command center or feature
 controller; receiving compilation and tests are recorded separately.
 `TextField::select_all` uses the existing engine for line and multiline
 fields. Rename consumes the shared typed `Editability` at dispatch/answer;

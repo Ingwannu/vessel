@@ -65,7 +65,7 @@ the native workspace's pinned toolchain. App is a binary target: selecting
 library tests alone does not execute its GPUI regressions. Source-only size and
 token checks are separate from compiled evidence.
 
-Receiving checks are pending. No standalone compilation, package review,
+Receiving narrow checks now have executed evidence below. No package review,
 physical keyboard/OS, hidden-retained-opener visibility, terminal IME or live
 feature authority approval is claimed by this document.
 
@@ -89,3 +89,25 @@ result. The fixture now binds its cleanup token as the existing layout fixture
 does; product source and all fixture assertions are unchanged. The previous
 immutable test run is retained as exact prior-source evidence, with its actual
 result recorded separately rather than inferred from strict compilation.
+
+
+## Executed receiving evidence
+
+Exact3868a6646 passed strict all-target App/View/Kit/Link Clippy with warnings
+denied, run wp-commands-narrow-20261116T005318Z-3868a664. The same head's actual
+App binary desktop-owner/recorder regression passed1/0/0 under run
+wp-commands-20261116T005318Z-3868a664.
+
+The full default App/Kit/View test selection passed1550/0/2 on exactc71ca2cf,
+run wp-commands-20261116T004341Z-c71ca2cf: App145/0/2, Kit244/0/0, View library
+1028/0/0, integrations/examples133/0/0. The only Rust change afterward was the
+fixture registration-token binding; product Rust and every assertion stayed
+identical, and that fixture was executed again on3868. Both source pins and
+logs are retained. No failed earlier run is relabeled as executed or green.
+
+The portable commit is based directly on announced base13 and includes only
+this native mechanics cut and its documentation. Its Rust files match the
+strict-checked3868 source byte for byte; the added evidence text changes no
+compiled input. Root runtime, protocol and lock files have no delta. Consumers
+still need their own actual owner-adapter union and source-review disposition.
+This is not the whole F4 gate, capture set or final V4 package verdict.
