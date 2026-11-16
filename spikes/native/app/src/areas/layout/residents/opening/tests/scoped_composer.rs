@@ -125,7 +125,7 @@ fn submit_and_check(probe: &Entity<Probe>, window: &mut gpui::VisualTestContext)
     probe.read_with(window, |probe, cx| {
         assert_eq!(
             &*probe.observed.borrow(),
-            &[probe.admission.context.clone()]
+            std::slice::from_ref(&probe.admission.context)
         );
         let shell = probe.shell.read(cx);
         assert_ne!(shell.areas.session.composer.id(), probe.field.id());
