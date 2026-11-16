@@ -25,6 +25,7 @@ mod desktop_logging;
 mod local_launch;
 
 mod daemon_args;
+mod daemon_logging;
 use daemon_args::{Args, Bind, Command, RelayArgs, Run};
 
 #[tokio::main]

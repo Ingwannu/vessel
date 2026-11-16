@@ -74,6 +74,10 @@ impl io::Write for Record<'_> {
 }
 
 pub(super) fn init(attaching: bool, desktop: bool, root: Option<&Path>) {
+    if !desktop {
+        crate::daemon_logging::init(attaching);
+        return;
+    }
     let managed = (if desktop {
         root.map(Path::to_path_buf).or_else(DataDir::default_root)
     } else {
@@ -94,12 +98,7 @@ pub(super) fn init(attaching: bool, desktop: bool, root: Option<&Path>) {
             }
         }
     });
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_unset| if attaching { "warn" } else { "info" }.into()),
-        )
-        .with_writer(Writer { managed })
-        .with_ansi(!desktop && io::IsTerminal::is_terminal(&io::stderr()))
-        .init();
+    // Keep the binary owner's independent portable_pty diagnostic upper bound
+    // even when the managed node tees into its retained private Store log.
+    crate::daemon_logging::init_with_writer(attaching, Writer { managed }, false);
 }

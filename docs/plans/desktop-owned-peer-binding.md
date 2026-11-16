@@ -210,3 +210,17 @@ These in-process node probes do not prove the parent/child inherited-stdout
 correlation or the complete Owned controller. Those causal tests remain part of
 the later launcher join. Until executed they are source only; wine results must
 remain explicitly approximate, and actual Windows execution remains unverified.
+
+
+## Announced helper-base join
+
+The bc9cacc6 helper base's command diagnostic privacy applies to both ordinary
+and releasable Proc spawning. The existing cleanup guard, release capability
+and first-sweep behavior are preserved; the shared private spawn-command helper
+wraps failures with the caller's existing diagnostic policy. The desktop's
+Runtime refusal has no command payload and retains its typed cause. Managed
+logging delegates to the binary owner's same independent portable_pty WARN upper
+bound while adding its existing Store tee; unmanaged modes keep the binary
+owner's stderr path. No broader user filter can reopen private backend logging.
+This merge requires its own combined source/runtime qualification; earlier
+pre-helper checks do not prove it.
