@@ -156,7 +156,11 @@ async fn a_member_device_cannot_speak_for_another_members_node() {
             1,
             "{peers:?}"
         );
-        let listed = home.owner.call_on(victim.id(), ListSessions).await.unwrap();
+        let listed = home
+            .owner
+            .call_on(victim.id(), ListSessions::default())
+            .await
+            .unwrap();
         assert!(
             listed.iter().any(|session| session.id == theirs.id),
             "{listed:?}"
@@ -282,11 +286,21 @@ async fn revoking_the_homes_device_on_a_member_holds_until_it_joins_again() {
             DEFAULT_GRANT.to_vec(),
         )
         .await;
-        assert!(home.owner.call_on(member.id(), ListSessions).await.is_ok());
+        assert!(
+            home.owner
+                .call_on(member.id(), ListSessions::default())
+                .await
+                .is_ok()
+        );
         let granted = home_devices(&member.owner).await;
         assert_eq!(granted.len(), 1, "{granted:?}");
         member.owner.revoke_device(granted[0]).await.unwrap();
-        assert!(home.owner.call_on(member.id(), ListSessions).await.is_err());
+        assert!(
+            home.owner
+                .call_on(member.id(), ListSessions::default())
+                .await
+                .is_err()
+        );
 
         // A restart: the pull loop connects and reports again, and grants
         // nothing.
@@ -304,7 +318,12 @@ async fn revoking_the_homes_device_on_a_member_holds_until_it_joins_again() {
         reported_after(&home, "desktop", restarted_at).await;
         let owner = fixture.connect(&node).await;
         assert!(home_devices(&owner).await.is_empty());
-        assert!(home.owner.call_on(id, ListSessions).await.is_err());
+        assert!(
+            home.owner
+                .call_on(id, ListSessions::default())
+                .await
+                .is_err()
+        );
 
         // Leaving and joining again grants again.
         assert!(fleet::leave(&FleetFiles::new(&fixture.data_dir())).unwrap());
@@ -326,7 +345,12 @@ async fn revoking_the_homes_device_on_a_member_holds_until_it_joins_again() {
         .unwrap();
         let mut back = false;
         for _ in 0..800 {
-            if home.owner.call_on(id, ListSessions).await.is_ok() {
+            if home
+                .owner
+                .call_on(id, ListSessions::default())
+                .await
+                .is_ok()
+            {
                 back = true;
                 break;
             }
@@ -379,7 +403,12 @@ async fn a_member_keeps_no_device_for_a_home_it_has_no_record_of() {
             tokio::time::sleep(Duration::from_millis(25)).await;
         }
         assert!(swept, "{:?}", home_devices(&first.owner).await);
-        assert!(home.owner.call_on(first.id(), ListSessions).await.is_ok());
+        assert!(
+            home.owner
+                .call_on(first.id(), ListSessions::default())
+                .await
+                .is_ok()
+        );
 
         // A second node named like the first: the home pairs with it, then
         // refuses the grant; the device it made there is revoked at once.
@@ -410,7 +439,10 @@ async fn a_member_keeps_no_device_for_a_home_it_has_no_record_of() {
         reported_after(&home, "other desktop", since).await;
         let owner = fixture.connect(&second).await;
         assert!(home_devices(&owner).await.is_empty());
-        let refused = home.owner.call_on(second.info().id, ListSessions).await;
+        let refused = home
+            .owner
+            .call_on(second.info().id, ListSessions::default())
+            .await;
         assert!(refused.is_err(), "{refused:?}");
         // The member says why, and how to fix it (`vessel fleet status`).
         let status = fleet::status(&FleetFiles::new(&fixture.data_dir())).unwrap();
@@ -438,7 +470,12 @@ async fn member_node(relay: &Relay, fixture: &Fixture, name: &str) -> vessel_nod
 /// Wait until the home reaches node `id` (a call there succeeds).
 pub(crate) async fn reaches(home: &Member, id: vessel_proto::NodeId) -> bool {
     for _ in 0..800 {
-        if home.owner.call_on(id, ListSessions).await.is_ok() {
+        if home
+            .owner
+            .call_on(id, ListSessions::default())
+            .await
+            .is_ok()
+        {
             return true;
         }
         tokio::time::sleep(Duration::from_millis(25)).await;
@@ -554,7 +591,12 @@ async fn a_reinstalled_node_grants_again_once_the_home_forgets_it() {
             .await
             .unwrap();
         reported_after(&home, "reinstalled", since).await;
-        assert!(home.owner.call_on(id, ListSessions).await.is_err());
+        assert!(
+            home.owner
+                .call_on(id, ListSessions::default())
+                .await
+                .is_err()
+        );
 
         let forgot = home.owner.call(ForgetNode { node: id }).await.unwrap();
         assert_eq!(forgot.devices.len(), 1, "{forgot:?}");
@@ -568,7 +610,12 @@ async fn a_reinstalled_node_grants_again_once_the_home_forgets_it() {
         let since = Utc::now();
         let node = member_node(&relay, &fixture, "desktop").await;
         reported_after(&home, "reinstalled", since).await;
-        assert!(home.owner.call_on(id, ListSessions).await.is_err());
+        assert!(
+            home.owner
+                .call_on(id, ListSessions::default())
+                .await
+                .is_err()
+        );
         // Invited again and joined from there: granted.
         join_again(&home, &fixture, "reinstalled again").await;
         assert!(
@@ -635,7 +682,12 @@ async fn a_slow_grant_holds_up_no_other() {
             started.elapsed()
         );
         assert!(!slow.is_finished(), "the slow grant ended early");
-        assert!(home.owner.call_on(late.id(), ListSessions).await.is_ok());
+        assert!(
+            home.owner
+                .call_on(late.id(), ListSessions::default())
+                .await
+                .is_ok()
+        );
         slow.abort();
         relay.stop().await;
     })

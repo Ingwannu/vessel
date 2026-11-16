@@ -10,7 +10,7 @@ spikes/native/app/src/areas/board/card.rs 527
 spikes/native/app/src/areas/draft/effort_card.rs 806
 spikes/native/app/src/areas/draft/mod.rs 581
 spikes/native/app/src/areas/draft/pickers.rs 1190
-spikes/native/app/src/areas/session.rs 641
+spikes/native/app/src/areas/session.rs 589
 spikes/native/app/src/areas/workspace/detail.rs 718
 spikes/native/app/src/areas/workspace/projects.rs 613
 spikes/native/kit/src/picker.rs 805

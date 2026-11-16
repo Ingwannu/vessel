@@ -14,6 +14,7 @@ impl Shell {
         match event {
             Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
             Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
+            Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
                 if !self.devices_retired(&context) {

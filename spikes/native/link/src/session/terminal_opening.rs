@@ -2,8 +2,9 @@
 //! A shared allocation is identity without a wrapping counter or a wire field.
 
 use std::sync::Arc;
-use vessel_client::book::NodeName;
 use vessel_proto::SessionId;
+
+use super::NodeName;
 
 /// One presentation of one terminal. Reopening the same session is new work.
 #[derive(Debug, Clone)]
