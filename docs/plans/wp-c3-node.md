@@ -726,3 +726,12 @@ or an atomic filesystem RootLease. W9 restoration still has no exposed checked
 hook here and retains its own original worktree/project/physical owner contract.
 Next node work is the remaining C3 observer/mutation/generation joins, on the
 same cache and physical owners; no second pool/router/provider stack.
+
+## 2026-11-16 01:18 UTC announced node join
+
+Merged announcedbc9cacc67dba6cc8d3fb4f71fa10c31e5de4565a as c57a914a095f3e975e809d65608fb9164d1b6a45. The integrator's gate57 is wholly
+green; own new union is NOT checked by that gate. It keeps original history/
+comparison None admission, physical file constructors/tracked cleanup and all
+new command-kind/membership/diagnostic/voice values. No conflict or rebase.
+Prior exact22ab strict/workspace/TS evidence stays prior-source; no duplicate
+run submitted. Next meaningful runtime batch must check this new union.
