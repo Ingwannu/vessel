@@ -18,6 +18,7 @@ impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
             Command::Diagnostics(ask) => self.diagnostic(ask).await,
+            Command::History(ask) => self.history(ask).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {

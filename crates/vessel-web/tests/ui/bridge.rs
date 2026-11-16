@@ -87,7 +87,9 @@ async fn a_call_reaches_the_node_and_failures_come_back_by_id() {
             other => panic!("{other:?}"),
         }
         // No such node.
-        let id = tab.call("nowhere", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("nowhere", &Call::ListSessions(ListSessions::default()))
+            .await;
         match failure(reply(&mut tab, id).await) {
             Failure::Unreachable { message } => {
                 assert!(message.contains("no node named nowhere"), "{message}");
@@ -120,7 +122,9 @@ async fn a_call_reaches_the_node_and_failures_come_back_by_id() {
             })
             .await;
         assert!(unreadable.contains("not a frame"), "{unreadable}");
-        let id = tab.call("box", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("box", &Call::ListSessions(ListSessions::default()))
+            .await;
         assert!(matches!(reply(&mut tab, id).await, CallOutcome::Ok(_)));
     }))
     .await;
@@ -135,8 +139,12 @@ async fn every_tab_shares_one_connection_per_node() {
         let ui = Ui::start(source).await;
         let mut one = ui.tab().await;
         let mut two = ui.tab().await;
-        let first = one.call("box", &Call::ListSessions(ListSessions)).await;
-        let second = two.call("box", &Call::ListSessions(ListSessions)).await;
+        let first = one
+            .call("box", &Call::ListSessions(ListSessions::default()))
+            .await;
+        let second = two
+            .call("box", &Call::ListSessions(ListSessions::default()))
+            .await;
         assert!(matches!(reply(&mut one, first).await, CallOutcome::Ok(_)));
         assert!(matches!(reply(&mut two, second).await, CallOutcome::Ok(_)));
         assert_eq!(dials.load(Ordering::SeqCst), 1);
@@ -524,7 +532,9 @@ async fn unknown_names_cannot_fill_the_registry_and_removed_nodes_are_pruned() {
                 .await;
             assert!(matches!(failed, OpOutcome::Err { .. }));
         }
-        let id = tab.call("box", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("box", &Call::ListSessions(ListSessions::default()))
+            .await;
         assert!(matches!(reply(&mut tab, id).await, CallOutcome::Ok(_)));
         control.remove_all();
         let id = tab.op(Op::Nodes).await;
@@ -546,7 +556,9 @@ async fn unknown_names_cannot_fill_the_registry_and_removed_nodes_are_pruned() {
                 _ => {}
             }
         }
-        let id = tab.call("box", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("box", &Call::ListSessions(ListSessions::default()))
+            .await;
         assert!(matches!(reply(&mut tab, id).await, CallOutcome::Err(_)));
         // A new tab receives no retained entry in its initial state push.
         let mut other = ui.tab().await;
