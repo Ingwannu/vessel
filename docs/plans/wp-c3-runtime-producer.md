@@ -58,3 +58,42 @@ The generated proto.ts whitespace is retained byte-for-byte from its verified
 generator artifact; do not hand-normalize it. Freshness against this new base
 still needs the prescribed generation/gate. No release, push, credentials or
 live repository operation occurs in preparing the candidate.
+
+## Ownership and data flow
+
+| Boundary | Responsibility | Lifetime |
+| --- | --- | --- |
+| Proto / Client / RPC / web bridge | Typed request, reply and forwarding; unassigned feature admission | GIT_PANEL None; no successful public method claim |
+| service/git_comparison | Route the three typed requests through Workspaces and map one typed error boundary | Delivery only, not the read's cleanup owner |
+| workspace/roots | Capture project/worktree/default/pinned facts from one registry snapshot and open the recorded root | Rechecked around awaited opens; not RootLease/CAS |
+| workspace/comparison + operation | Normalize comparison identity, admit the pinned base, prepare the lower read | Original request snapshot retained by the operation |
+| workspace/comparison/cache + jobs | Share active reads, bound completed payloads, cancel stale commands and await cleanup | Node TaskTracker owns active work after a receiver is lost |
+| vessel-workspace git/diff | Compare real repositories and manage the private temporary index | Explicit awaited cleanup before operation completion |
+| workspace/git_history + git/panel_history | Read complete workspace metadata and bounded base context | Same node-owned job budget; separate from cached comparisons |
+| workspace/git_writes | Bound writers and serialize one recorded project, then revalidate its original root facts | Existing per-project lease; no external-writer exclusion |
+| service/file_panels + workspace/files/mutations | Keep C5's one physical task/permit and before/after comparison invalidation | Guard remains inside actual retained disk work through errors or lost delivery |
+
+This reuses Tokio tasks, oneshot/watch delivery and existing semaphore admission
+rather than another transport, pool or root registry. Git remains the existing
+subprocess boundary; the cache's short synchronous lock holds only coordination
+state, never an awaited disk or subprocess operation. Completed payload eviction
+does not discard an active task or its private-index cleanup.
+
+## Exact checks registered; source-audit successor pending
+
+The ce9667ac candidate has three ordinary/priority0 immutable runs registered:
+strict six-crate all-target, six-crate library tests and TS generation freshness.
+Their run ids and hashes are retained in the external review packet. No result
+is inferred while a run is queued. The66 named cases are an execution checklist,
+not a substitute for their individual test output.
+
+A subsequent self-audit found a specific remaining registry race in this source:
+prepare_comparison opens a captured snapshot, but a cache hit can bypass the
+post-open registry check performed only by Operation::run on a new build. A
+registry change during the awaited open could therefore return old cached data.
+The prepared successor reuses resolve_unchanged before the cache probe and adds
+a real blocking-pool regression for summary/body hits and changed path/default.
+It is currently external/uninstalled/uncompiled; this candidate is NOT ready
+for V3 runtime submission even if the existing checks finish green. Preserve
+those outcomes on their exact source and group the correction with any actual
+returned findings before one meaningful successor check. No separate whole.
