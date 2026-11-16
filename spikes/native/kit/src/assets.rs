@@ -420,3 +420,6 @@ mod panel_role_tests;
 
 #[cfg(test)]
 mod import_role_tests;
+
+#[cfg(test)]
+mod viewport_role_tests;

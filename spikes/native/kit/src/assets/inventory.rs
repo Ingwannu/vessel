@@ -215,4 +215,11 @@ glyph_inventory! {
     X => "kit/x.svg",
     /// Command-center session import; its source role uses a 2.2-point stroke.
     Import => "kit/import.svg",
+    /// A zoomable viewport's zoom in (Paseo's `ZoomIn`): a lens with a plus.
+    ZoomIn => "kit/zoom-in.svg",
+    /// A zoomable viewport's zoom out (Paseo's `ZoomOut`): the lens with a minus.
+    ZoomOut => "kit/zoom-out.svg",
+    /// A zoomable viewport's reset to fit (Paseo's `Scan`): four open corners,
+    /// distinct from the window's Maximize and the panel's corner arrows.
+    Scan => "kit/scan.svg",
 }
