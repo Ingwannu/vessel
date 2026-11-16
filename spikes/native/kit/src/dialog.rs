@@ -345,9 +345,8 @@ fn header<V: 'static>(
     let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
     let hover = surfaces.surface2;
-    let back = back.map(|back| {
-        header_back::button(back, surfaces.foreground_muted, surfaces.foreground)
-    });
+    let back =
+        back.map(|back| header_back::button(back, surfaces.foreground_muted, surfaces.foreground));
     let row = div()
         .debug_selector(|| "dialog-header".to_owned())
         .flex()
