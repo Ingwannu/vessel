@@ -393,7 +393,8 @@ the app's workspace (`spikes/native`) uses it; the release workspace's
 small programs keep the published crate.
 
 Changed: `src/elements/div.rs` (change 5), `src/window.rs` and
-`src/platform.rs` (change 8), each marked `MODIFIED by Vessel` at the top
+`src/platform.rs` (change 8), `src/platform/test/window.rs` and
+`src/app/test_context.rs` (change 11), each marked `MODIFIED by Vessel` at the top
 and `Vessel patch` at each change.
 
 ### 5. A drag starts at the distance an element names
@@ -481,3 +482,30 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   menu reach the platform only in a real session and are not checked yet:
   an IME's candidate window and the window menu at a zoom other than 1 are
   still to be looked at in the app on Linux.
+
+
+### 11. Explicit real accessibility activation in test windows
+
+- Purpose: a secure field must be observed as an actual PasswordInput node with
+  no value. A configuration constant is not evidence that the frame emitted it.
+- Upstream's constraint: TestWindow inherits a no-op a11y_init; the real window's
+  activation callback is discarded, so its accessibility flag/tree never activates.
+- Alternatives: fabricated test nodes, a second accessibility renderer, or only
+  checking policy data. These cannot prove the existing frame's real output.
+- Why: retain the real A11yCallbacks and invoke activation explicitly outside the
+  test-window lock through TestAppContext::simulate_accessibility_activation.
+  The existing callback/flag/frame/debug_a11y_tree_json path does all real work.
+  A false return means no accessible adapter was installed and is never a pass.
+- Cost: two test-support files to carry at each GPUI pin; unactivated tests keep
+  their original behavior. No production backend, renderer or default activation
+  changes. Kit's typed SDK-snapshot test decoder adds only direct dev edges to
+  the existing workspace serde/serde_json versions, no production dependency or
+  package/version change. No raw snapshot is printed.
+- Checked: local direct rustfmt/source-size/diff only. Authored actual ordinary
+  editor role/value observation after activation and inactive-before control;
+  exact remote strict/tests owed. Vendor's own test suite: not executed. No OS
+  accessibility bridge, secret producer, native pixels or consumer approval.
+
+This isolated base13 does not contain the lead's later change9/10 README entries;
+line integration places this additive section after10 and unions Changed paths,
+without replacing either prior entry or borrowing their runtime evidence.
