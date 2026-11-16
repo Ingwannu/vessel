@@ -6,6 +6,7 @@ mod catalog;
 mod create;
 mod manager;
 mod picker;
+mod registry;
 mod replica;
 mod search;
 mod values;
@@ -16,6 +17,7 @@ pub use catalog::{Catalog, Host, HostState, project};
 pub use create::{CreateDraft, PickerPage};
 pub use manager::{Draft, Manager, ManagerState};
 pub use picker::{Picker, PickerRow};
+pub use registry::Assignments;
 pub use replica::Replica;
 pub use values::{
     Assignment, Color, Count, EditAccess, Failure, Label, Name, NameError, Ticket, Tickets,

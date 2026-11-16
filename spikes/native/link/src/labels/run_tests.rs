@@ -217,8 +217,20 @@ async fn serve(mut stream: DuplexStream, received: Received) -> TestResult {
     Ok(())
 }
 
-#[tokio::test]
-async fn each_command_reaches_the_node_as_its_call_and_comes_back_typed() -> TestResult {
+/// The link's state admitted to the in-memory node, asking one command at
+/// a time.
+struct Fixture {
+    state: crate::State,
+    events: tokio::sync::mpsc::Receiver<crate::Event>,
+    context: vessel_app_view::connection::ConnectionContext,
+    received: Received,
+    tickets: Tickets,
+    peer: tokio::task::JoinHandle<TestResult>,
+    _client: NodeClient,
+    _home: crate::testing::Home,
+}
+
+async fn fixture() -> Fixture {
     let (client_pipe, peer_pipe) = tokio::io::duplex(PIPE_BYTES);
     let received = Received::default();
     let peer = tokio::spawn(serve(peer_pipe, std::sync::Arc::clone(&received)));
@@ -231,106 +243,139 @@ async fn each_command_reaches_the_node_as_its_call_and_comes_back_typed() -> Tes
         },
         &vessel_rpc::ClientConfig::default(),
     )
-    .await?;
+    .await
+    .unwrap();
     let home = crate::testing::Home::new();
-    let (mut state, mut events) = crate::testing::state(&home);
+    let (mut state, events) = crate::testing::state(&home);
     let binding = vessel_client::book::BookEntry {
-        address: "ws://127.0.0.1:1/rpc".parse()?,
+        address: "ws://127.0.0.1:1/rpc".parse().unwrap(),
         id: Some(client.node().id),
         token: None,
         credential: None,
     };
-    let connected = state.admit_connection("fake", &binding, client.clone(), Vec::new())?;
+    let connected = state
+        .admit_connection("fake", &binding, client.clone(), Vec::new())
+        .unwrap();
     let context = connected.context.clone();
     let _previous = state.clients.insert("fake".to_owned(), connected);
-    let workspace = WorkspaceId::random();
-    let asks = vec![
-        Command::List {
-            cursor: None,
-            read: CatalogRead::Now,
-        },
-        Command::Assign {
-            workspace,
-            label: label("Blocked", Color::Violet),
-            assignment: Assignment::Assigned,
-        },
-        Command::Update {
-            original: name("Ready"),
-            replacement: label("Ready", Color::Emerald),
-        },
-        Command::Update {
-            original: name("Ready"),
-            replacement: label("Taken", Color::Sky),
-        },
-        Command::InspectDelete(name("Ready")),
-        Command::Delete(name("Ready")),
-    ];
-    let mut tickets = Tickets::default();
-    let mut answers = Vec::new();
-    for ask in asks {
-        let ticket = tickets.issue()?;
-        state
+    Fixture {
+        state,
+        events,
+        context,
+        received,
+        tickets: Tickets::default(),
+        peer,
+        _client: client,
+        _home: home,
+    }
+}
+
+impl Fixture {
+    /// `ask` through the link; its answer, on the same admission and ticket.
+    async fn ask(&mut self, ask: Command) -> Answer {
+        let ticket = self.tickets.issue().unwrap();
+        self.state
             .labels(Request {
-                context: context.clone(),
+                context: self.context.clone(),
                 ticket,
                 ask,
             })
             .await;
-        let event = tokio::time::timeout(DEADLINE, events.recv())
-            .await?
-            .ok_or("the link closed")?;
+        let event = tokio::time::timeout(DEADLINE, self.events.recv())
+            .await
+            .unwrap()
+            .unwrap();
         let crate::Event::Labels(Event {
-            context: answered,
-            ticket: answered_ticket,
+            context,
+            ticket: answered,
             answer,
         }) = event
         else {
-            return Err("not a labels answer".into());
+            panic!("not a labels answer");
         };
-        assert_eq!(answered, context);
-        assert_eq!(answered_ticket, ticket);
-        answers.push(answer);
+        assert_eq!(context, self.context);
+        assert_eq!(answered, ticket);
+        answer
     }
-    let calls = received.lock().map_err(|_poisoned| "lock")?.clone();
+
+    /// The calls the node received, in order.
+    fn calls(&self) -> Vec<Call> {
+        self.received.lock().unwrap().clone()
+    }
+}
+
+#[tokio::test]
+async fn reads_reach_the_node_as_their_calls_and_come_back_typed() {
+    let mut node = fixture().await;
+    let listed = node
+        .ask(Command::List {
+            cursor: None,
+            read: CatalogRead::Now,
+        })
+        .await;
     assert!(matches!(
-        &calls[0],
-        Call::ListWorkspaceLabels(list) if list.cursor.is_none() && list.read == CatalogRead::Now
-    ));
-    assert!(matches!(
-        &calls[1],
-        Call::AssignWorkspaceLabel(assign)
-            if assign.workspace == workspace && assign.assignment == Assignment::Assigned
-    ));
-    assert!(matches!(
-        &calls[2],
-        Call::UpdateWorkspaceLabel(edit)
-            if edit.new_name.is_none() && edit.color == Some(Color::Emerald)
-    ));
-    assert!(matches!(&calls[4], Call::InspectWorkspaceLabelDelete(_)));
-    assert!(matches!(&calls[5], Call::DeleteWorkspaceLabel(_)));
-    assert!(matches!(
-        &answers[0],
+        &listed,
         Answer::Listed(Ok(CatalogList { data: CatalogMode::Snapshot { labels }, .. }))
             if labels == &vec![label("Ready", Color::Sky)]
     ));
+    let inspected = node.ask(Command::InspectDelete(name("Ready"))).await;
+    assert!(matches!(inspected, Answer::Inspected(Ok(count)) if count == Count::new(4)));
+    let calls = node.calls();
     assert!(matches!(
-        &answers[1],
+        calls.first(),
+        Some(Call::ListWorkspaceLabels(list)) if list.cursor.is_none() && list.read == CatalogRead::Now
+    ));
+    assert!(matches!(calls.get(1), Some(Call::InspectWorkspaceLabelDelete(_))));
+    node.peer.abort();
+}
+
+#[tokio::test]
+async fn writes_reach_the_node_as_their_calls_and_come_back_typed() {
+    let mut node = fixture().await;
+    let workspace = WorkspaceId::random();
+    let assigned = node
+        .ask(Command::Assign {
+            workspace,
+            label: label("Blocked", Color::Violet),
+            assignment: Assignment::Assigned,
+        })
+        .await;
+    assert!(matches!(
+        &assigned,
         Answer::Assigned { workspace: actual, name: asked, result: Ok(labels) }
             if *actual == workspace && *asked == name("Blocked")
                 && labels == &vec![name("Ready"), name("Blocked")]
     ));
+    let recoloured = node
+        .ask(Command::Update {
+            original: name("Ready"),
+            replacement: label("Ready", Color::Emerald),
+        })
+        .await;
     assert!(matches!(
-        &answers[2],
+        &recoloured,
         Answer::Updated(Ok(updated)) if *updated == label("Ready", Color::Emerald)
     ));
+    let taken = node
+        .ask(Command::Update {
+            original: name("Ready"),
+            replacement: label("Taken", Color::Sky),
+        })
+        .await;
+    assert!(matches!(taken, Answer::Updated(Err(Failure::NameTaken))));
+    let deleted = node.ask(Command::Delete(name("Ready"))).await;
+    assert!(matches!(deleted, Answer::Deleted(Ok(count)) if count == Count::new(4)));
+    let calls = node.calls();
     assert!(matches!(
-        &answers[3],
-        Answer::Updated(Err(Failure::NameTaken))
+        calls.first(),
+        Some(Call::AssignWorkspaceLabel(assign))
+            if assign.workspace == workspace && assign.assignment == Assignment::Assigned
     ));
-    assert!(matches!(&answers[4], Answer::Inspected(Ok(count)) if *count == Count::new(4)));
-    assert!(matches!(&answers[5], Answer::Deleted(Ok(count)) if *count == Count::new(4)));
-    drop(client);
-    drop(state);
-    peer.abort();
-    Ok(())
+    assert!(matches!(
+        calls.get(1),
+        Some(Call::UpdateWorkspaceLabel(edit))
+            if edit.new_name.is_none() && edit.color == Some(Color::Emerald)
+    ));
+    assert!(matches!(calls.get(3), Some(Call::DeleteWorkspaceLabel(_))));
+    node.peer.abort();
 }
