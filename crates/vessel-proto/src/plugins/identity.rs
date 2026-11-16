@@ -36,9 +36,14 @@ pub enum InvalidPluginValue {
     Content,
     /// File extensions are literal suffixes, never executable glob expressions.
     #[error(
-        "plugin file extensions require ASCII letters/digits or hyphens, at most {MAX_EXTENSION_BYTES} bytes, without a leading dot"
+        "plugin file extensions are trimmed literals without dots, separators, wildcards or controls, at most {MAX_EXTENSION_BYTES} bytes"
     )]
     Extension,
+    /// A filename selector is a matcher, not a filename to create on this OS.
+    #[error(
+        "plugin filename selectors are nonempty trimmed literals without separators, wildcards or controls, at most {MAX_FILE_PATTERN_BYTES} bytes"
+    )]
+    FileNamePattern,
 }
 
 // Paseo bounds theme names in its JS schema; the identifier/RPC/caption bounds
@@ -49,6 +54,7 @@ const MAX_CAPTION_CHARS: usize = 120;
 const MAX_THEME_NAME_UNITS: usize = 60;
 const MAX_CONTENT_BYTES: usize = 16 * 1024;
 const MAX_EXTENSION_BYTES: usize = 32;
+const MAX_FILE_PATTERN_BYTES: usize = 256;
 
 macro_rules! text_type {
     ($(#[$doc:meta])* $name:ident, $validate:ident, $error:ident) => {
@@ -84,7 +90,7 @@ macro_rules! text_type {
 text_type!(/// An installation id; configuration may assign a different id to the same directory.
     PluginId, identifier, Identifier);
 text_type!(/// A contribution's local identity, independent of its translated title.
-    ContributionId, identifier, Identifier);
+    ContributionId, contribution_identifier, Identifier);
 text_type!(/// A registered plugin method name; it never denotes a node RPC directly.
     RpcName, rpc_name, RpcName);
 text_type!(/// A one-line accessible label for a contribution or control.
@@ -93,8 +99,10 @@ text_type!(/// Paseo-compatible trimmed theme name, measured as JavaScript measu
     ThemeName, theme_name, ThemeName);
 text_type!(/// Bounded multiline display content; core never evaluates it as code.
     ContentText, content, Content);
-text_type!(/// Literal extension matcher without a dot or glob; matching ignores ASCII case.
+text_type!(/// Literal extension matcher without a dot or glob; matching uses Unicode lowercase.
     FileExtension, extension, Extension);
+text_type!(/// A literal filename matcher; unlike a stored attachment, it can name Unix dotfiles.
+    FileNamePattern, file_pattern, FileNamePattern);
 
 fn identifier(raw: &str) -> Option<&str> {
     (raw.len() <= MAX_ID_BYTES
@@ -103,6 +111,10 @@ fn identifier(raw: &str) -> Option<&str> {
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'))
     .then_some(raw)
+}
+
+fn contribution_identifier(raw: &str) -> Option<&str> {
+    identifier(crate::workspace::trim_project_text(raw))
 }
 
 fn rpc_name(raw: &str) -> Option<&str> {
@@ -115,7 +127,7 @@ fn rpc_name(raw: &str) -> Option<&str> {
 }
 
 fn caption(raw: &str) -> Option<&str> {
-    let text = raw.trim();
+    let text = crate::workspace::trim_project_text(raw);
     (!text.is_empty()
         && !raw.chars().any(char::is_control)
         && text.chars().count() <= MAX_CAPTION_CHARS)
@@ -139,10 +151,20 @@ fn content(raw: &str) -> Option<&str> {
 }
 
 fn extension(raw: &str) -> Option<&str> {
-    (!raw.is_empty()
-        && raw.len() <= MAX_EXTENSION_BYTES
-        && raw.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))
-    .then_some(raw)
+    (literal_selector(raw, MAX_EXTENSION_BYTES) && !raw.contains('.')).then_some(raw)
+}
+
+fn file_pattern(raw: &str) -> Option<&str> {
+    literal_selector(raw, MAX_FILE_PATTERN_BYTES).then_some(raw)
+}
+
+fn literal_selector(raw: &str, max_bytes: usize) -> bool {
+    !raw.is_empty()
+        && raw.len() <= max_bytes
+        && crate::workspace::trim_project_text(raw) == raw
+        && !raw
+            .chars()
+            .any(|c| c.is_control() || matches!(c, '/' | '\\' | '*' | '?'))
 }
 
 #[cfg(test)]
@@ -215,6 +237,11 @@ mod tests {
             assert!(text.parse::<FileExtension>().is_err());
         }
         assert!("RS".parse::<FileExtension>().is_ok());
+        assert!("c++".parse::<FileExtension>().is_ok());
+        assert!("한글".parse::<FileExtension>().is_ok());
+        assert!(".gitignore".parse::<FileNamePattern>().is_ok());
+        assert!("CON".parse::<FileNamePattern>().is_ok());
+        assert!("*.md".parse::<FileNamePattern>().is_err());
         assert!(
             "x".repeat(MAX_EXTENSION_BYTES.saturating_add(1))
                 .parse::<FileExtension>()
@@ -242,5 +269,35 @@ mod tests {
             "한".repeat(MAX_THEME_NAME_UNITS.saturating_add(1))
         );
         assert!(over.parse::<ThemeName>().is_err());
+    }
+
+    #[test]
+    fn file_selectors_reject_javascript_edge_whitespace_without_normalization() {
+        for raw in [
+            "\u{feff}",
+            "\u{feff}rs",
+            "rs\u{feff}",
+            "\u{feff}rs\u{feff}",
+            "\u{feff}.gitignore",
+            ".gitignore\u{feff}",
+        ] {
+            assert!(raw.parse::<FileExtension>().is_err());
+            assert!(raw.parse::<FileNamePattern>().is_err());
+            let json = serde_json::to_string(raw).expect("encode");
+            assert!(serde_json::from_str::<FileExtension>(&json).is_err());
+            assert!(serde_json::from_str::<FileNamePattern>(&json).is_err());
+        }
+        assert_eq!(
+            "한글+c".parse::<FileExtension>().expect("unicode").as_str(),
+            "한글+c"
+        );
+        assert_eq!(
+            ".gitignore"
+                .parse::<FileNamePattern>()
+                .expect("dotfile")
+                .as_str(),
+            ".gitignore"
+        );
+        assert!("CON".parse::<FileNamePattern>().is_ok());
     }
 }
