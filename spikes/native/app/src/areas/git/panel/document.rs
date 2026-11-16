@@ -14,12 +14,12 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::localization::Translator;
-use vessel_app_view::text::workspace::WorkspaceWords;
 use vessel_app_view::workspace::changes::FileNote;
 use vessel_app_view::workspace::diff_rows::{DiffBody, add_page};
 use vessel_app_view::workspace::git::panel::{
     BufferColumns, BufferError, BufferKind, DiffDocument, FilePages, FileTicket, Layout,
 };
+use vessel_app_view::workspace::words::WorkspaceWords;
 
 #[derive(Debug)]
 enum DocumentProblem {
@@ -74,7 +74,7 @@ impl Document {
                 Ok((text, truncated)) => Content::Text {
                     editor: DiffDocumentEditor::new(
                         text,
-                        crate::areas::workspace::code::syntax_for(pages.ticket().path()),
+                        crate::areas::workspace::syntax_for(pages.ticket().path()),
                         DiffWrapping::Scroll,
                         move |shell: &mut Shell, bounds, window, cx| {
                             shell.git_panel_reveal(&reveal, bounds, window, cx)

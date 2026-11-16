@@ -1240,3 +1240,20 @@ Exact9c strict/Git/Kit-owner runs remain queued and are not cancelled or
 resubmitted. They do not contain these new retirement assertions. Wait for their
 actual results and group any source returns into one meaningful successor batch.
 No body/source/consumer/capture approval is claimed for either snapshot.
+
+## Actual9c App compile return; public-path correction is separate
+
+Exact9c four-crate strict reached App and returned101 on two E0603 visibility
+errors only: the WorkspaceWords trait is already exposed through the public
+view::workspace::words alias, and the agreed syntax_for factory must also be
+re-exported by the enclosing workspace area. Use those existing boundaries;
+do not make either private module public or introduce another lexer/word table.
+These import/re-export fixes are separate from e55db600c's BEHAVIOUR CHANGE:
+original-context retirement now also clears the new document engine buffers,
+with added selection/clipboard/retirement assertions. Do not describe that
+commit as a lint-only refactor or attribute it to9c runtime.
+
+Coordinator explicitly confirms queued-only supersession for the known-red
+App9c test; preserve its terminal143 evidence, then one ordinary corrected-source
+replacement after preflight. The independent Kit-only9c owner test remains in
+place. No body runtime/Clippy/consumer approval exists until actual successors.
