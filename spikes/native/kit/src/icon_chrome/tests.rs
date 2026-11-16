@@ -102,9 +102,10 @@ fn viewport_profile_is_the_small_frame_on_surface2_with_muted_ink_and_hidden_pre
                     ButtonState::Enabled => 0.0,
                     ButtonState::Disabled => 0.5,
                 };
-                for (presence, opacity) in
-                    [(Presence::Shown, config.opacity()), (Presence::Hidden, hidden)]
-                {
+                for (presence, opacity) in [
+                    (Presence::Shown, config.opacity()),
+                    (Presence::Hidden, hidden),
+                ] {
                     let mut outer = render(
                         "zoom-in",
                         "Zoom in",
