@@ -3,6 +3,11 @@ use super::*;
 use gpui::TestAppContext;
 use vessel_app_kit::fonts::{FontStack, Typeface, active};
 
+// These two fixtures share the process-wide code-font snapshot. Holding it
+// across the read-only fixture keeps a concurrent font-change test from
+// correctly invalidating rows during its cursor-only assertion.
+static FONT_FIXTURE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 struct RestoreFonts {
     context: TestAppContext,
     interface: FontStack,
@@ -18,6 +23,7 @@ impl Drop for RestoreFonts {
 
 #[gpui::test]
 fn cursor_phase_reuses_rows_and_preserves_cursor_and_output(cx: &mut TestAppContext) {
+    let _font_fixture = FONT_FIXTURE.lock().unwrap();
     crate::shell::language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update(cx, |shell, cx| {
@@ -56,6 +62,7 @@ fn cursor_phase_reuses_rows_and_preserves_cursor_and_output(cx: &mut TestAppCont
 
 #[gpui::test]
 fn quiet_code_stack_change_invalidates_rows_with_unchanged_metrics(cx: &mut TestAppContext) {
+    let _font_fixture = FONT_FIXTURE.lock().unwrap();
     crate::shell::language_tests::init(cx);
     let _restore = RestoreFonts {
         context: cx.clone(),
