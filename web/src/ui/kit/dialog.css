@@ -8,10 +8,12 @@
    scrim over 80ms, the dialog over 120ms from opacity 0 and a scale of
    .95. */
 
+/* Above a sheet (51; kit/sheet.css): a dialog opened from the session
+   panel in a narrow window, as Reload from disk? is, comes over it. */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 52;
   background: var(--overlay);
   transition: opacity 80ms var(--ease);
 }
@@ -24,7 +26,7 @@
 .dialog-viewport {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 52;
   display: flex;
   align-items: center;
   justify-content: center;

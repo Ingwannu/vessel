@@ -745,9 +745,11 @@ Every state of every control is on `/kit`.
 | `.btn.primary` | the ink as a fill (`#1F1F1F`, white text, weight 500) with the inset edge | one primary per view (New, Create, Send, Pair) |
 | `.btn.danger` | `--danger` text on no fill, a 12% tint on hover; solid `--danger` only on the confirm step | Kill, Revoke |
 | `.btn.ghost` | no fill, secondary text; the sidebar's growing pill on hover | icon buttons, quiet actions |
+| `.btn.edged` (variant `outline`) | no fill, a `--border-strong` edge; hover and press fill it | the choices inside a callout with its own fill (Paseo's outline: the file conflict alert's Overwrite and Reload, ADR 0105) |
 | `.btn.sm`, `.btn.xs` | 28px and 24px tall, 12px type | row actions, small controls |
 
-Buttons are filled, not outlined, 32px tall with an 8px radius. Hover
+Buttons are filled, not outlined (bar `outline`, inside a filled
+callout), 32px tall with an 8px radius. Hover
 deepens the fill; nothing scales or moves. `shape`: `rect` (8px), `soft`
 (10px, a composer's quiet triggers), `round` (a pill, or a circle for an
 icon: a composer's Send, Stop and "+"). An `IconButton` may be `primary`

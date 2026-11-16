@@ -35,7 +35,7 @@ export function Sheet({
       }}
     >
       <Base.Portal>
-        <Base.Backdrop className="dialog-backdrop" />
+        <Base.Backdrop className="dialog-backdrop sheet-backdrop" />
         <Base.Popup
           className={side === "right" ? "sheet right" : "sheet"}
           aria-label={label}
