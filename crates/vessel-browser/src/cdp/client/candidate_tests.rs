@@ -86,8 +86,15 @@ async fn stop(client: &Client, child: &mut Child) -> OwnedGroupExit {
 #[ignore = "requires the exact exported artifact, approved CFT and non-root runtime account"]
 async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
     tokio::time::timeout(pipe_tests::FIXTURE_TIMEOUT, async {
-        let fixture = fixture().await;
-        let spawned = fixture.plan.spawn_for_diagnostic().unwrap();
+        let Fixture {
+            scope,
+            plan,
+            root,
+            temporary,
+            _proxy,
+        } = fixture().await;
+        let proxy = super::candidate_page::FixtureProxy::start(_proxy);
+        let spawned = plan.spawn_for_diagnostic().unwrap();
         let run = spawned.child.lifetime();
         let (client, _events) = Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
         let mut stderr = spawned.stderr;
@@ -96,13 +103,6 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             tokio::io::copy(&mut stderr, &mut sink).await
         });
         let version = client.execute(None, requests::Version {}).await;
-        let Fixture {
-            scope,
-            plan,
-            root,
-            temporary,
-            _proxy,
-        } = fixture;
         let (plan, mut child, identity) = scope
             .run(move || {
                 let child = spawned.child;
@@ -111,12 +111,18 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             })
             .await
             .unwrap();
+        let page = if identity.is_ok() && version.is_ok() {
+            Some(super::candidate_page::exercise(&client).await)
+        } else {
+            None
+        };
         let receipt = stop(&client, &mut child).await;
         let _discarded_bytes = tokio::time::timeout(SHUTDOWN_TIMEOUT, stderr)
             .await
             .unwrap()
             .unwrap()
             .unwrap();
+        proxy.finish().await;
         let (plan, held) = scope
             .run(move || {
                 let held = matches!(Profile::prepare(&root, &temporary), Err(ProfileError::Busy));
@@ -131,6 +137,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         assert_eq!(receipt.code(), Some(0));
         assert!(!run.is_live());
         assert!(held);
+        page.unwrap().unwrap().verify();
         // No Profile::release or product capacity reuse is certified here.
         drop(plan);
     })

@@ -8,6 +8,26 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Next real controller fixture (prepared, unexecuted)
+
+The existing ignored fixed-artifact test now additionally starts a synthetic
+allowlisted HTTP fixture on its already-owned proxy listener. After actual child
+identity/version verification, the real Page controller opens that fixed origin,
+waits for a final document marker using its isolated condition probe, decodes a
+same-traversal snapshot, captures PNG transport/geometry and acknowledges target
+closure. Browser/driver/proxy/preparation cleanup and retained profile-lock checks
+remain; semantic assertions run after cleanup. Reuse existing fixture/command/
+shutdown bounds, dependencies and named viewport units; no second launcher,
+raw-CDP escape hatch or new engine grant is introduced.
+
+The synthetic handler is NOT the public resolve/classify/pin proxy or a Preview
+lease. It never forwards a request and serves only fixed independent fixture
+HTML. Normal VM suites continue to ignore actual CFT execution. A new exact
+changed-source narrow check and fixed test-artifact export/runtime execution are
+owed; the old41 Version-only pass does not execute these additions. Even a later
+successful PNG would prove transport/header geometry, not first paint policy,
+complete codec/GPU/native rendering, credentials or network isolation. NoEngine.
+
 ## Actual exported Rust/CFT child-pipe component
 
 The fixed exact41ecc652 lib-test artifact, SHA67af57b8f9c0520bcae5248960d271c6acc06efd5557edb6417ae17ed7fa535a,

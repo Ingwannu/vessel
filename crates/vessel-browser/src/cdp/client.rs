@@ -1,6 +1,8 @@
 //! One bounded multiplexed CDP connection; no actor/target command waits on another's result.
 
 #[cfg(all(test, target_os = "linux"))]
+mod candidate_page;
+#[cfg(all(test, target_os = "linux"))]
 mod candidate_tests;
 #[cfg(test)]
 mod pipe_tests;
