@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-16: read-only retained-run test observation ("gpui-base", change 12).
 mod document;
 pub mod editor_host;
 mod editor_seam;
@@ -22,6 +23,9 @@ mod text_view;
 mod utils;
 
 use gpui::{App, ElementId, IntoElement, RenderOnce, SharedString, Window};
+// Vessel patch (change 12): no accessor exists in normal product builds.
+#[cfg(feature = "test-support")]
+pub use inline::retained_text_runs;
 pub use inline_element::*;
 pub use markdown_ext::*;
 pub use node::{CodeBlock, TableData};

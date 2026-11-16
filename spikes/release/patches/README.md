@@ -210,7 +210,8 @@ Upstream: gpui-kit's input base (`longbridge/gpui-kit`), Apache-2.0
 `Cargo.lock` (unused for a dependency). Only the app's workspace
 (`spikes/native`) uses it.
 
-Changed: `src/input/base/blink_cursor.rs`, marked `MODIFIED by Vessel`
+Changed: `src/input/base/blink_cursor.rs`, `src/text/inline.rs` and
+`src/text/mod.rs` (change 12), marked `MODIFIED by Vessel`
 at the top and `Vessel patch` at the change.
 
 ### 4. A steady caret while motion is held
@@ -380,6 +381,23 @@ at the top and `Vessel patch` at the change.
   Private folded-array order remains source-only; the profile disables folding.
   No capture exists yet, and this example is not a substitute for an exact
   changed-source gate. Builds must use the prescribed remote VM path.
+
+### 12. Read-only observation of actual retained text runs
+
+- Purpose: causal Kit tests must assert actual drawn glyph ink, font and clear
+  restoration using the same TextView that ships, without another GPU stack.
+- Constraint: the engine's retained TextRun cache is private. Reading only an
+  accepted-range flag cannot prove paint; a second renderer would test itself.
+- Choice/why: one accessor behind the existing gpui-base `test-support` feature
+  copies runs from the same live retained inline whose exact fixture text
+  matches. It neither shapes again nor returns a mutable handle. Normal product
+  builds contain no accessor. Tests use unique text and draw the view first.
+- Changed: src/text/inline.rs and src/text/mod.rs; both baseline and candidate
+  scratch engines receive this identical observation-only patch.
+- Checked: source-only rustfmt/diff preflight. Upstream vendor dev-tests were
+  not executed; the approved product-GPUI Kit baseline/candidate recipe and
+  receiving strict/runtime checks remain pending. No causal failure/pass or
+  engine behavior change is inferred from the accessor's presence.
 
 ## `gpui-pre` 0.3.10
 

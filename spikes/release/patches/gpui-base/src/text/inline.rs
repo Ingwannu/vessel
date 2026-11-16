@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-16: read-only retained-run test observation ("gpui-base", change 12).
 #[cfg(target_family = "wasm")]
 use async_channel::bounded;
 use gpui::Corners;
@@ -393,6 +394,23 @@ thread_local! {
     static RETAINED_LAYOUTS: RefCell<HashMap<usize, RetainedLayout>> = RefCell::new(HashMap::new());
     /// [`DROPPED_STATES`] when this thread's table was last swept.
     static SWEPT_AT_DROPS: Cell<usize> = const { Cell::new(0) };
+}
+
+/// Copy the actual retained runs of a live inline with exactly `text`.
+///
+/// Test-support observation only: this reads the same cache normal TextView
+/// drawing populated, without shaping again, changing state, or exposing a
+/// mutable handle. Call after drawing a uniquely identified fixture text.
+// Vessel patch (change 12): causal ink/font tests use the product text engine.
+#[cfg(feature = "test-support")]
+pub fn retained_text_runs(text: &str) -> Option<Vec<TextRun>> {
+    RETAINED_LAYOUTS.with(|layouts| {
+        layouts
+            .borrow()
+            .values()
+            .find(|layout| layout.text.as_ref() == text && layout.state.upgrade().is_some())
+            .map(|layout| layout.runs.clone())
+    })
 }
 
 /// Dead entries (states that were dropped without a final paint, e.g. a
