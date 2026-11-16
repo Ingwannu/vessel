@@ -231,6 +231,7 @@ const PIN_GLYPH: f32 = 12.0;
 /// Paseo window-bar.tsx `labelRow`: the label taking the room, the value,
 /// then, while rows pin to the sidebar, the pin glyph (foreground when
 /// pinned, muted otherwise). The whole row is the pin's click target.
+/// Text is Paseo's `fontSize.sm` (12, the Meta step), the label medium.
 pub(super) fn label_row(
     label: impl Into<SharedString>,
     value: impl Into<SharedString>,
@@ -243,12 +244,13 @@ pub(super) fn label_row(
         .flex()
         .items_center()
         .gap(px(spacing::S2))
-        .type_(Type::Body)
+        .type_(Type::Meta)
         .child(
             div()
                 .flex_1()
                 .min_w_0()
                 .truncate()
+                .font_weight(gpui::FontWeight::MEDIUM)
                 .text_color(tokens.neutral.foreground)
                 .child(label.into()),
         )

@@ -3,9 +3,8 @@
 use super::card;
 use crate::shell::Shell;
 use vessel_app_kit::{
-    Tokens, Type, TypeExt as _,
-    theme::spacing,
-    ui::{Div, ParentElement as _, Styled as _, div, px},
+    Tokens,
+    ui::{Div, ParentElement as _},
     usage_meter::{self, Appearance, Share},
 };
 use vessel_app_view::usage::{balance_amount, balance_percent, reset_label};
@@ -20,27 +19,14 @@ pub(super) fn render(
     visibility: CostVisibility,
     tokens: &Tokens,
 ) -> Div {
-    let mut body = card::bar().child(
-        div()
-            .w_full()
-            .min_w_0()
-            .flex()
-            .items_center()
-            .justify_between()
-            .gap(px(spacing::S2))
-            .type_(Type::Body)
-            .child(
-                div()
-                    .min_w_0()
-                    .truncate()
-                    .child(balance.label.as_str().to_owned()),
-            )
-            .child(
-                div()
-                    .flex_none()
-                    .child(balance_amount(balance, visibility, shell.words)),
-            ),
-    );
+    // balance-bar.tsx labelRow: the same 12 px medium label and value as a
+    // window row, without the pin (balances are never pinned).
+    let mut body = card::bar().child(card::label_row(
+        balance.label.as_str().to_owned(),
+        balance_amount(balance, visibility, shell.words),
+        None,
+        tokens,
+    ));
     if let Some(percent) = balance_percent(balance, visibility) {
         let tone = match balance.tone {
             None | Some(UsageTone::Default) => usage_meter::Tone::Default,

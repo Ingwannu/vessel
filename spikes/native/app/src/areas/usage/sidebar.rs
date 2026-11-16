@@ -150,60 +150,96 @@ pub(crate) fn sidebar_summary(
         .relative()
         .flex()
         .items_center()
-        .gap(px(spacing::S2))
         .overflow_hidden()
         .cursor_pointer()
         .child(measure_probe(shell, cx))
         .on_click(cx.listener(|shell, _, window, cx| shell.open_usage(window, cx)));
     let mut previous = None;
     for pinned in pinned {
-        if previous != Some(pinned.group) {
-            row = row.child(vessel_app_kit::agent_mark::agent_mark(
-                crate::agent_mark::artwork(vessel_app_view::usage::source_mark(
-                    inventory,
-                    pinned.source,
-                )),
-                Size::Sixteen,
-                Space::Compact,
-                tokens,
-            ));
+        let first_window = previous != Some(pinned.group);
+        if first_window {
+            row = row.child(
+                div()
+                    .flex_none()
+                    .when(previous.is_some(), |icon| icon.ml(px(SOURCE_GAP)))
+                    .child(vessel_app_kit::agent_mark::agent_mark(
+                        crate::agent_mark::artwork(vessel_app_view::usage::source_mark(
+                            inventory,
+                            pinned.source,
+                        )),
+                        SUMMARY_MARK,
+                        Space::Compact,
+                        tokens,
+                    )),
+            );
             previous = Some(pinned.group);
         }
-        let label = match layout {
-            SummaryLayout::Percents => pinned.percent.text(),
-            SummaryLayout::Meters | SummaryLayout::Labels => format!(
-                "{} {}",
-                pinned.percent.text(),
-                pinned
-                    .window
-                    .short_label
-                    .as_deref()
-                    .unwrap_or(&pinned.window.label)
-            ),
-        };
-        row = row.child(
-            div()
-                .flex()
-                .items_center()
-                .gap(px(SUMMARY_METER_GAP))
-                .flex_none()
-                .when(layout == SummaryLayout::Meters, |row| {
-                    row.child(div().w(px(MIN_SUMMARY_METER_WIDTH)).child(usage_meter::bar(
+        let lead = if first_window { ICON_GAP } else { WINDOW_GAP };
+        if layout == SummaryLayout::Meters {
+            row = row.child(
+                div()
+                    .flex_1()
+                    .min_w(px(MIN_SUMMARY_METER_WIDTH))
+                    .ml(px(lead))
+                    .mr(px(SUMMARY_METER_GAP))
+                    .child(usage_meter::bar(
                         Share::percent(pinned.percent.whole()),
                         Appearance::Quiet,
                         tokens,
-                    )))
-                })
+                    )),
+            );
+        }
+        let suffix = window_suffix(&pinned, layout);
+        row = row.child(
+            div()
+                .flex_none()
+                .flex()
+                .when(layout != SummaryLayout::Meters, |text| text.ml(px(lead)))
+                .type_(Type::Meta)
                 .child(
                     div()
-                        .type_(Type::Meta)
+                        .text_color(tokens.neutral.foreground)
+                        .child(pinned.percent.text()),
+                )
+                .children(suffix.map(|suffix| {
+                    div()
                         .text_color(tokens.neutral.foreground_muted)
-                        .child(label),
-                ),
+                        .child(suffix)
+                })),
         );
     }
     Some(row.into_any_element())
 }
+
+/// Paseo sidebar-item.tsx: a 14 px source icon (`UsageSourceIcon size={14}`),
+/// 12 px before each later source (`sourceGap`), 6 px from an icon to its
+/// first window (`iconGap`) and 8 px between windows (`windowGap`). The
+/// measure below adds the same numbers, so the chosen layout is the one drawn.
+const SUMMARY_MARK: Size = Size::Fourteen;
+const SOURCE_GAP: f32 = spacing::S3;
+const ICON_GAP: f32 = spacing::S1_5;
+const WINDOW_GAP: f32 = spacing::S2;
+
+/// " 5h" after the percent, muted (Paseo `windowLabel`); none in Percents.
+fn window_suffix(
+    pinned: &vessel_app_view::usage::PinnedWindow<'_, UsageSourceId, LimitKey>,
+    layout: SummaryLayout,
+) -> Option<String> {
+    match layout {
+        SummaryLayout::Percents => None,
+        SummaryLayout::Meters | SummaryLayout::Labels => Some(format!(
+            " {}",
+            pinned
+                .window
+                .short_label
+                .as_deref()
+                .unwrap_or(&pinned.window.label)
+        )),
+    }
+}
+
+/// Natural width of the line without meters, as Paseo measures its labels
+/// and percents lines off screen.
 #[expect(
     clippy::float_arithmetic,
     reason = "Shaped summary text and gaps are layout geometry, never token or monetary arithmetic"
@@ -216,22 +252,20 @@ fn measure(
     let mut width = 0.0;
     let mut previous = None;
     for pin in pinned {
-        if previous != Some(pin.group) {
-            width += Size::Sixteen.points() + spacing::S2;
+        let first_window = previous != Some(pin.group);
+        if first_window {
+            if previous.is_some() {
+                width += SOURCE_GAP;
+            }
+            width += SUMMARY_MARK.points();
             previous = Some(pin.group);
         }
-        let label = match layout {
-            SummaryLayout::Percents => pin.percent.text(),
-            SummaryLayout::Meters | SummaryLayout::Labels => format!(
-                "{} {}",
-                pin.percent.text(),
-                pin.window
-                    .short_label
-                    .as_deref()
-                    .unwrap_or(&pin.window.label)
-            ),
-        };
-        width += vessel_app_kit::fonts::measure(window, &label, Type::Meta) + spacing::S2;
+        width += if first_window { ICON_GAP } else { WINDOW_GAP };
+        let mut text = pin.percent.text();
+        if let Some(suffix) = window_suffix(pin, layout) {
+            text.push_str(&suffix);
+        }
+        width += vessel_app_kit::fonts::measure(window, &text, Type::Meta);
     }
     width
 }
