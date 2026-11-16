@@ -1959,3 +1959,9 @@ process-spawn diagnostic test. If encountered, retain the failure and its exact
 source; do not modify that test or generalize the exception to another failure.
 The independent reservation tests stay immutable on their exact d5-based bf4d
 source while running; their result cannot qualify this separate CLI union.
+
+Current main exact0680 strict033453 returned Cargo101 after125s: one
+unused-qualifications error in native_metadata.rs::worktrees, whose ProjectId
+was already imported for the new positive control. Use that import consistently;
+no product/test assertion or fixture behavior changes. No runtime case executed
+in this strict run; corrected-source validation remains distinct and owed.

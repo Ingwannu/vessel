@@ -30,8 +30,9 @@ Committed work since the prior executed136c source:
 wp-cli-narrow-20261116T033453Z-0680b033 is the current only owned Cargo run.
 It checks exact0680 source: locked Clippy for CLI/proto/rpc/client/store/session/
 terminal-screen/node/web/PTY/testkit, alltargets, proto+web TS features, -Dwarnings.
-It is a normal short run, priority0. At this checkpoint it is running, with no
-retained final result yet. Attach/status must be read before further submission.
+It is a normal short run, priority0. It finished Cargo101 after125s on one unused-qualifications error in the
+native metadata fixture: ProjectId was already imported. The one-line source
+correction uses that import; corrected exact-source verification remains owed. Attach/status must be read before further submission.
 The local task STATE records private evidence locations; do not copy them here.
 
 If it passes within the quota window, finish only the current CLI regression

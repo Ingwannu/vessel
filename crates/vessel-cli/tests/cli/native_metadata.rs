@@ -197,7 +197,7 @@ async fn commit(path: &std::path::Path) {
 #[cfg(unix)]
 async fn worktrees(
     client: &vessel_client::NodeClient,
-    project: vessel_proto::ProjectId,
+    project: ProjectId,
 ) -> Vec<vessel_proto::WorktreeId> {
     let response = client
         .call(vessel_proto::workspace::ListWorktrees {
