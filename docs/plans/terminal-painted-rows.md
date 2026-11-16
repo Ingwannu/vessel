@@ -60,3 +60,20 @@ Cursor tests additionally require actual overlay paint progress on both blink
 directions; equal static-row counters alone could conceal an absent draw.
 Strict-check style/Debug/borrow-only constructor issues are corrected without
 waivers. Actual corrected checks and release measurements remain owed.
+
+Corrected8f15853b passed selected App18/0/1 ignored and Kit5/0/0 (four new
+retained-paint fixtures plus one existing diff-colour test). Strict all-target
+Kit/App Clippy also passed. Test log prefixes0f32e6810e6bb31d/d0be867d3b65eb33
+identify the actual executions, not the earlier failing suite. The corrected
+baseline66bd executed0/1 with row preparation/paint increasing on cursor update,
+so that is semantic red; the original Strike typo remains a separate compiler
+failure. The two App font fixtures now serialize access to their shared global
+font snapshot without changing assertions or deadlines.
+
+The controlled measurement sourcef640 has identical terminal renderer/control,
+App grid adapter and GPUI cached-view implementation bytes to the checked
+base13 source; its own four control tests and fixed ordinary release export are
+submitted separately. The previous before/after pair demonstrated no speedup.
+One native whole on the current base13 consumer and new same-profile release
+measurement/inspected captures remain owed. No D1 frame/input/IME or whole F5
+settings approval follows from these renderer checks.
