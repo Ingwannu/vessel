@@ -13,8 +13,8 @@ use vessel_proto::{
     Call, ClientInfo, DeviceId, ErrorCode, NodeId, Origin, OriginBy, Outcome, ProjectId, Reply,
     Request as _, Scope, SessionId, WorkspaceId,
     registry::{
-        GetRegistry, RegistryRevision, WorkspaceAutomation, WorkspaceBacking,
-        WorkspaceDescriptor, WorkspaceLifecycle, WorkspacePin, WorkspaceVisibility,
+        GetRegistry, RegistryRevision, WorkspaceAutomation, WorkspaceBacking, WorkspaceDescriptor,
+        WorkspaceLifecycle, WorkspacePin, WorkspaceVisibility,
     },
     workspace_labels::{Assignment, CatalogMode, Label, LabelColor, LabelName},
 };
@@ -275,14 +275,14 @@ async fn workspace_labels_answer_over_the_wire_at_their_assigned_protocol() {
         })
         .await
         .unwrap();
-    assert_eq!(assigned.labels, [ready.clone()]);
+    assert_eq!(assigned.labels, std::slice::from_ref(&ready));
     let registry = client
         .call(GetRegistry { changed_from: None })
         .await
         .unwrap();
     assert_eq!(registry.labels.len(), 1);
     assert_eq!(registry.labels[0].workspace, workspace);
-    assert_eq!(registry.labels[0].labels, [ready.clone()]);
+    assert_eq!(registry.labels[0].labels, std::slice::from_ref(&ready));
     let updated = client
         .call(UpdateWorkspaceLabel {
             name: ready.clone(),
@@ -292,16 +292,26 @@ async fn workspace_labels_answer_over_the_wire_at_their_assigned_protocol() {
         .await
         .unwrap();
     assert_eq!(updated.label.color, LabelColor::Sky);
-    assert_eq!(updated.affected.get(), 1);
-    let inspected = client
-        .call(InspectWorkspaceLabelDelete {
-            name: ready.clone(),
+    // A recolor changes no workspace's assignment spelling.
+    assert_eq!(updated.affected.get(), 0);
+    let done: LabelName = "Done".parse().unwrap();
+    let renamed = client
+        .call(UpdateWorkspaceLabel {
+            name: ready,
+            new_name: Some(done.clone()),
+            color: None,
         })
+        .await
+        .unwrap();
+    assert_eq!(renamed.label.name, done);
+    assert_eq!(renamed.affected.get(), 1);
+    let inspected = client
+        .call(InspectWorkspaceLabelDelete { name: done.clone() })
         .await
         .unwrap();
     assert_eq!(inspected.affected.get(), 1);
     let deleted = client
-        .call(DeleteWorkspaceLabel { name: ready })
+        .call(DeleteWorkspaceLabel { name: done })
         .await
         .unwrap();
     assert_eq!(deleted.affected.get(), 1);

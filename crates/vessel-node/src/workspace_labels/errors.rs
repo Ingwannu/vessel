@@ -3,10 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::error::ServiceError;
-    use vessel_proto::{
-        ErrorCode, ErrorDetail,
-        workspace_labels::WorkspaceLabelFailure,
-    };
+    use vessel_proto::{ErrorCode, ErrorDetail, workspace_labels::WorkspaceLabelFailure};
     use vessel_store::StoreError;
 
     #[test]
@@ -28,7 +25,8 @@ mod tests {
     fn corrupt_row_color_diagnostics_cannot_echo_stored_data_to_a_client() {
         let row = vessel_store::LabelRow::Catalog(std::num::NonZeroUsize::MIN);
         let service = ServiceError::from(StoreError::WorkspaceLabelColor { row });
-        assert!(std::error::Error::source(&service).is_some());
+        // No decoder error is kept anywhere in the chain: it can repeat the value.
+        assert!(std::error::Error::source(&service).is_none());
         let wire = service.to_wire();
         assert_eq!(wire.code, ErrorCode::Internal);
         // A client sees the fixed notice only, not even the row's place.
