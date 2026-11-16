@@ -388,15 +388,19 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
                 div()
                     .flex()
                     .flex_row()
+                    .flex_wrap()
+                    .min_w_0()
                     .gap(px(6.0))
                     .child(
                         div()
+                            .max_w_full()
                             .type_(Type::Label)
                             .text_color(tokens.neutral.foreground)
                             .child(name.as_str().to_owned()),
                     )
                     .child(
                         div()
+                            .max_w_full()
                             .type_(Type::Meta)
                             .text_color(tokens.neutral.foreground_muted)
                             .child(format!("{}{place}{declared}", words.script_kind(kind))),
