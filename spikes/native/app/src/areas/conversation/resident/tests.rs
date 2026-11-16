@@ -438,3 +438,54 @@ fn retained_origin_protection_participates_in_the_parent_snapshot_vote(cx: &mut 
         );
     });
 }
+
+#[gpui::test]
+fn full_a7_compact_sheet_dispatch_keeps_the_original_resident_and_refuses_hidden_context(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let Admitted { a, claim_a, .. } = admitted(shell, window, cx);
+        shell
+            .areas
+            .session_residents
+            .resources_mut(&a)
+            .unwrap()
+            .conversation = thought_area(cx, "A reasoning");
+        shell.areas.conversation = thought_area(cx, "unrelated reasoning");
+        let captured = crate::areas::conversation::Seat::admitted_main(a.clone());
+        assert!(shell.entry_sheet(&captured, 0, window, cx));
+        assert!(captured.get(shell).unwrap().tool_sheet.shown.is_some());
+        assert!(shell.areas.conversation.tool_sheet.shown.is_none());
+        shell
+            .areas
+            .session_residents
+            .present(
+                a.resident,
+                &claim_a,
+                PaneId::MAIN,
+                Visibility::RetainedHidden,
+            )
+            .unwrap();
+        assert!(!shell.entry_sheet(&captured, 0, window, cx));
+        assert!(!shell.run_sheet(&captured, 0, window, cx));
+        assert!(shell.areas.conversation.tool_sheet.shown.is_none());
+        let hidden = shell
+            .areas
+            .session_residents
+            .context(a.resident, &claim_a)
+            .unwrap();
+        assert!(
+            shell
+                .areas
+                .session_residents
+                .resources(&hidden)
+                .unwrap()
+                .conversation
+                .tool_sheet
+                .shown
+                .is_some()
+        );
+    });
+}
