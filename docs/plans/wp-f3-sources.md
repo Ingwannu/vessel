@@ -458,3 +458,13 @@ full package acceptance. Its workspace strict run stopped on three unnecessary
 qualifications and one needless raw-string marker in the new store tests; TS
 did not run. The mechanical correction preserves every input and assertion.
 The separate `4e1d935d5` client/RPC suite passed 143 tests with no failures.
+
+
+Resume verification at `64dd07349` (announced node `ed4cd137` merged): workspace
+all-target Clippy passed with warnings denied. The normal TS generator ran five
+tests successfully but reported one stale proto.ts; all six managed artifact
+hashes and the full source commit were verified. Apply the exact generated patch
+without formatting or constructing declarations by hand. Freshness remains owed
+until the next exact-head TS step sees no difference. A fresh independent scoped
+review found no concrete surviving bypass or regression in the two sealed decoder
+boundaries; the larger V3 vendor/fixture audit and final root gate remain open.
