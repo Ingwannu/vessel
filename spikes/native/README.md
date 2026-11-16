@@ -287,6 +287,13 @@ control another track could need (a menu, a dialog, a sheet, tabs, a
 tooltip, a virtual list) is the lead's to write: ask through the
 coordinator first, so two tracks do not write two.
 
+`kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
+profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
+the sidebar package owns the Footer wrapper. The lower frame grants no input or
+effect admission. Its extraction and Footer profile are source-only until their
+own VM checks and review, as recorded in
+[`shared-icon-chrome.md`](../../docs/plans/shared-icon-chrome.md).
+
 A settings screen (About now, the settings track's sections later) is
 built from `kit::settings`: Paseo's section with its small title, the
 card, a row with its title and hint at the left and its control at the
