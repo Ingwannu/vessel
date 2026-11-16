@@ -6,6 +6,7 @@ use std::time::Duration;
 use tokio::sync::Notify;
 
 const DEADLINE: Duration = Duration::from_secs(5);
+const SAFETY_NET: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Copy)]
 pub(super) enum Mode {
@@ -62,14 +63,29 @@ pub(super) async fn subscribe(
 }
 
 async fn bounded<T>(work: impl Future<Output = T>) -> T {
-    tokio::time::timeout(DEADLINE, work).await.unwrap()
+    vessel_testkit::within(SAFETY_NET, work)
+        .await
+        .expect("log-end test safety net")
+}
+async fn phase<T>(name: &'static str, work: impl Future<Output = T>) -> T {
+    tokio::time::timeout(DEADLINE, work)
+        .await
+        .unwrap_or_else(|_elapsed| panic!("log-end framed phase timed out: {name}"))
 }
 async fn open_probe(mode: Mode, from: EventSeq) -> (crate::SessionStream, Probe) {
     let probe = Probe::new(mode);
     let mut node = FakeNode::new(0);
     node.end_probe = Some(probe.clone());
-    let client = connect(Arc::new(node)).await;
-    (client.follow(session_id(), from).await.unwrap(), probe)
+    let client = phase("authenticate typed-end peer", connect(Arc::new(node))).await;
+    (
+        phase(
+            "open original typed-end subscription",
+            client.follow(session_id(), from),
+        )
+        .await
+        .unwrap(),
+        probe,
+    )
 }
 
 #[tokio::test]
@@ -77,13 +93,28 @@ async fn only_the_ordered_typed_end_reports_session_ended() {
     bounded(async {
         let (mut stream, probe) = open_probe(Mode::Normal, EventSeq::ZERO).await;
         assert_eq!(stream.end_reason(), None);
-        assert_eq!(stream.next().await.unwrap().unwrap().seq, EventSeq::ZERO);
+        assert_eq!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .unwrap()
+                .unwrap()
+                .seq,
+            EventSeq::ZERO
+        );
         assert_eq!(stream.end_reason(), None);
-        assert!(stream.next().await.is_none());
+        assert!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .is_none()
+        );
         assert_eq!(stream.end_reason(), Some(LogEnd::SessionEnded));
-        assert!(stream.next().await.is_none());
+        assert!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .is_none()
+        );
         assert_eq!(stream.end_reason(), Some(LogEnd::SessionEnded));
-        probe.done.notified().await;
+        phase("actual framed producer completion", probe.done.notified()).await;
     })
     .await;
 }
@@ -92,13 +123,25 @@ async fn only_the_ordered_typed_end_reports_session_ended() {
 async fn fatal_error_keeps_its_original_error_and_never_becomes_normal_end() {
     bounded(async {
         let (mut stream, probe) = open_probe(Mode::Fatal, EventSeq::ZERO).await;
-        assert!(stream.next().await.unwrap().is_ok());
+        assert!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .unwrap()
+                .is_ok()
+        );
         assert_eq!(stream.end_reason(), None);
-        assert_eq!(stream.next().await, Some(Err(StreamError::Unsubscribed)));
+        assert_eq!(
+            phase("next actual framed log observation", stream.next()).await,
+            Some(Err(StreamError::Unsubscribed))
+        );
         assert_eq!(stream.end_reason(), Some(LogEnd::FatalError));
-        assert!(stream.next().await.is_none());
+        assert!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .is_none()
+        );
         assert_eq!(stream.end_reason(), Some(LogEnd::FatalError));
-        probe.done.notified().await;
+        phase("actual framed producer completion", probe.done.notified()).await;
     })
     .await;
 }
@@ -109,13 +152,28 @@ async fn final_sequence_without_a_normal_end_reports_only_exhaustion() {
         let last = EventSeq::new(u64::MAX);
         let (mut stream, probe) = open_probe(Mode::Exhausted, last).await;
         assert_eq!(stream.end_reason(), None);
-        assert_eq!(stream.next().await.unwrap().unwrap().seq, last);
+        assert_eq!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .unwrap()
+                .unwrap()
+                .seq,
+            last
+        );
         assert_eq!(stream.end_reason(), Some(LogEnd::SequenceExhausted));
-        assert!(stream.next().await.is_none());
-        assert!(stream.next().await.is_none());
+        assert!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .is_none()
+        );
+        assert!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .is_none()
+        );
         assert_eq!(stream.end_reason(), Some(LogEnd::SequenceExhausted));
         probe.release.notify_one();
-        probe.done.notified().await;
+        phase("actual framed producer completion", probe.done.notified()).await;
     })
     .await;
 }
@@ -123,19 +181,31 @@ async fn final_sequence_without_a_normal_end_reports_only_exhaustion() {
 #[tokio::test]
 async fn a_missing_range_preserves_receiving_and_its_held_record() {
     bounded(async {
-        let client = connect(Arc::new(FakeNode::new(3))).await;
-        let mut stream = client.follow(session_id(), EventSeq::ZERO).await.unwrap();
+        let client = phase("authenticate gap peer", connect(Arc::new(FakeNode::new(3)))).await;
+        let mut stream = phase(
+            "original gap subscription",
+            client.follow(session_id(), EventSeq::ZERO),
+        )
+        .await
+        .unwrap();
         assert_eq!(
-            stream.next().await,
+            phase("next actual framed log observation", stream.next()).await,
             Some(Err(StreamError::Missing {
                 expected: EventSeq::ZERO,
                 resumed_at: EventSeq::new(3),
             }))
         );
         assert_eq!(stream.end_reason(), None);
-        assert_eq!(stream.next().await.unwrap().unwrap().seq, EventSeq::new(3));
+        assert_eq!(
+            phase("next actual framed log observation", stream.next())
+                .await
+                .unwrap()
+                .unwrap()
+                .seq,
+            EventSeq::new(3)
+        );
         assert_eq!(stream.end_reason(), None);
-        while let Some(record) = stream.next().await {
+        while let Some(record) = phase("next actual framed log observation", stream.next()).await {
             assert!(record.is_ok());
         }
         assert_eq!(stream.end_reason(), Some(LogEnd::SessionEnded));

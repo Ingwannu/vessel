@@ -65,3 +65,10 @@ cargo test -p vessel-client
 
 Source preparation alone is not a passing result. V3 review and the integrator's
 announced landing remain required before any native consumer adoption.
+
+The final receiving union keeps the four framed semantic cases but wraps their
+outer safety net with canonical `vessel_testkit::within`, so fake preparation is
+outside the clock. Each connection/subscription/record/producer wait has a named
+five-second phase. This is test-only A7 compliance; typed causes, wire, and
+runtime behaviour are unchanged. Pre-correction passing execution stays
+predecessor evidence; current receiving-union verification remains required.
