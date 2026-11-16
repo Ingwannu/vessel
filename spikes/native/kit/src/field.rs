@@ -88,6 +88,8 @@ pub struct TextField {
     /// submits).
     send: Rc<Cell<SendOn>>,
     form_minimum: FormMinimum,
+    form_text: FormText,
+    form_textarea: FormTextareaPresentation,
 }
 
 mod multiline;
@@ -104,6 +106,10 @@ mod editability;
 pub use editability::Editability;
 mod search;
 pub use search::SearchField;
+mod form_text;
+pub use form_text::FormText;
+mod form_textarea;
+pub use form_textarea::FormTextareaPresentation;
 
 impl TextField {
     /// Which press sends a composer's text (a form field ignores it).
@@ -137,6 +143,8 @@ impl TextField {
             kind: Kind::Line(state),
             focused,
             form_minimum: FormMinimum::Default,
+            form_text: FormText::Body,
+            form_textarea: FormTextareaPresentation::Compact,
             send: Rc::new(Cell::new(SendOn::Enter)),
         }
     }

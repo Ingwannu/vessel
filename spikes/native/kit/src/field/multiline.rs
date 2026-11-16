@@ -135,6 +135,8 @@ impl TextField {
             kind: Kind::Lines(state, style),
             focused,
             form_minimum: FormMinimum::Default,
+            form_text: super::FormText::Body,
+            form_textarea: super::FormTextareaPresentation::Compact,
             send,
         }
     }
