@@ -84,3 +84,13 @@ returned pending corrected source/runtime/platform qualification. V4 whole nativ
 requested captures and real OS lifecycle remain owed. W19's own326 tests qualify
 its tiny passive/unknown followups in its tree, not this receiving/C5/controller
 union. No live processes, fake fleet or virtual display were started locally.
+
+## Announcement received during quota closeout
+
+Lead/W22 announced app14.4 935569d5 green1801/0/2 after the quota warning.
+It contains the canonical client_book_read/global shortcut leaf c7eb3b1f.
+Do NOT start a merge during closeout; at the next resume/natural point merge
+that announced app base (or its later announced successor), then consume the
+getter in the one workspace presentation gate. Current app source remains on
+14.3 with the uncompiled overlay-host extraction. No getter/Startup implementation
+or requested capture was smuggled into this checkpoint.
