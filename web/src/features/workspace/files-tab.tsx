@@ -7,6 +7,7 @@ import "./files.css";
 
 import { useState } from "react";
 
+import { rootKey } from "../../data/workspace/root";
 import { IconButton, TextField, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
@@ -51,7 +52,9 @@ export function FilesTab({
   if (opened !== null) {
     return (
       <FileView
-        key={opened.path}
+        // One view per root and file: its reads, edit and disk watch
+        // belong to that file only.
+        key={`${rootKey(root)} ${opened.path}`}
         node={node}
         root={root}
         session={session}

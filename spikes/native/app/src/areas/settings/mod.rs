@@ -64,7 +64,7 @@ use vessel_app_kit::{ComboHandlers, ComboboxState, SendOn, Tokens, Type, TypeExt
 use vessel_app_view::prefs::{SendKey, send_key_label};
 use vessel_app_view::settings::Section;
 
-pub(crate) use choices::{List, primary};
+pub(crate) use choices::{List, chosen_machine, primary};
 pub(crate) use nav::{section_glyph, sidebar};
 
 use crate::routes::Route;
@@ -184,6 +184,7 @@ impl Shell {
     /// came in since (devices, sync, the machine's agents, the book that
     /// Overview and Connections show).
     pub(crate) fn settle_settings(&mut self, window: &Window) {
+        self.settle_usage(window);
         self.settle_devices(window);
         self.settle_sync(window);
         self.settle_host_agents(window);

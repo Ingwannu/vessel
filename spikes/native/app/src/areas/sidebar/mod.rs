@@ -203,6 +203,9 @@ pub(crate) fn render(
                 .flatten()
                 .map(|status| div().flex_none().px(px(INSET)).child(status)),
         )
+        .children(crate::areas::usage::sidebar_summary(
+            shell, tokens, window, cx,
+        ))
         .child(foot::foot(shell, tokens, cx).flex_none())
         .children(shell.areas.sidebar.tips.render(tokens))
         .children(display::menu(shell, tokens, window, cx))

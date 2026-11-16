@@ -19,6 +19,7 @@ const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::Usage(ask) => self.usage(ask).await,
             Command::SessionAccess(access) => self.session_access(access),
             Command::Sessions(ask) => self.session_navigation(ask),
             Command::SessionLifecycle(request) => self.session_lifecycle(&request),

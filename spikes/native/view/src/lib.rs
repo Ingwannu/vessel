@@ -68,6 +68,7 @@ mod text;
 pub mod timeline;
 pub mod toasts;
 pub mod updates;
+pub mod usage;
 pub mod workspace;
 
 pub use agent_mark::AgentMark;

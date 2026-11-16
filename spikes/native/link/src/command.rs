@@ -22,6 +22,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Usage reads and explicit account-limit actions.
+    Usage(crate::usage::Ask),
     /// Passive read/follow bound to an authenticated deep-link destination.
     SessionAccess(crate::sessions::Access),
     /// Resolve a session for a deep link or Copy link without starting it.

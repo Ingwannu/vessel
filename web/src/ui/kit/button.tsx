@@ -3,7 +3,7 @@
 //
 // [Decision Log]
 // - Purpose: one place for the button's look and its states, so a screen
-//   cannot invent a sixth variant or forget the disabled style.
+//   cannot invent its own variant or forget the disabled style.
 // - Constraint: Base UI composes its triggers onto the element a caller
 //   renders (`render={<Button />}`), merging its props (`onClick`,
 //   `aria-*`, `data-popup-open`, `ref`) into ours. So every prop that is
@@ -15,6 +15,10 @@
 // - Values: agent-orchestrator's: 32, 28 and 24px tall, radius 8, a
 //   filled secondary at rest, the primary in the ink with an inset edge
 //   and no outer shadow, ghosts with its growing hover pill.
+// - `outline` (ADR 0105): Paseo's outline button (`button.tsx`, no fill,
+//   a strong border), for the choices inside a callout that has its own
+//   fill, where a filled secondary would sit as a block on a block (the
+//   file conflict alert's Overwrite and Reload).
 
 import "./button.css";
 
@@ -25,7 +29,7 @@ import { Spinner } from "./spinner";
 
 /** How loud the action is. One `primary` per view. */
 export type ButtonVariant =
-  "secondary" | "primary" | "ghost" | "danger" | "danger-solid";
+  "secondary" | "primary" | "ghost" | "outline" | "danger" | "danger-solid";
 
 /** 32px (a form's), 28px (a row's or a toolbar's), 24px (dense rows). */
 export type ButtonSize = "md" | "sm" | "xs";
@@ -48,6 +52,9 @@ function variantClass(variant: ButtonVariant): string {
       return " primary";
     case "ghost":
       return " ghost";
+    case "outline":
+      // Not `outline`: the session's outline rail owns that class.
+      return " edged";
     case "danger":
       return " danger";
     case "danger-solid":

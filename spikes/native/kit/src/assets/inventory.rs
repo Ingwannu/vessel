@@ -222,4 +222,24 @@ glyph_inventory! {
     /// A zoomable viewport's reset to fit (Paseo's `Scan`): four open corners,
     /// distinct from the window's Maximize and the panel's corner arrows.
     Scan => "kit/scan.svg",
+    /// New in the command centre (Paseo root `PlusIcon`, Lucide `Plus` at 2.4).
+    CommandPlus => "kit/command-plus.svg",
+    /// Add a project in the command centre (Paseo `AddProjectIcon`, Lucide `FolderPlus` at 2.2).
+    CommandAddProject => "kit/command-folder-plus.svg",
+    /// Settings in the command centre (Paseo `SettingsIcon`, Lucide `Settings` at 2.2).
+    CommandSettings => "kit/command-settings.svg",
+    /// Sessions history in the command centre (Paseo `HistoryIcon`, Lucide `History` at 2.2).
+    CommandHistory => "kit/command-history.svg",
+    /// Schedules in the command centre (Paseo `SchedulesIcon`, Lucide `CalendarClock` at 2.2).
+    CommandSchedules => "kit/command-calendar-clock.svg",
+    /// Keyboard shortcuts in the command centre (Paseo `KeyboardIcon`, Lucide `Keyboard` at 2.2).
+    CommandKeyboard => "kit/command-keyboard.svg",
+    /// Home in the command centre (Paseo `HomeIcon`, Lucide `House` at 2.2).
+    CommandHome => "kit/command-house.svg",
+    /// A project in the command centre (Paseo `FolderIcon`, Lucide `Folder` at 2.2).
+    CommandFolder => "kit/command-folder.svg",
+    /// An unset grouping value in the command centre (Paseo `CircleDashedIcon`, Lucide `CircleDashed` at 2.2).
+    CommandCircleDashed => "kit/command-circle-dashed.svg",
+    /// The left sidebar toggle in the command centre (Paseo `PanelLeftIcon`, Lucide `PanelLeft` at 2.2).
+    CommandPanelLeft => "kit/command-panel-left.svg",
 }
