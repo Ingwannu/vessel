@@ -61,14 +61,6 @@ pub(crate) struct Tail {
     ticking: Cell<bool>,
 }
 
-#[cfg(test)]
-impl Tail {
-    /// The resident snapshot cannot discard this owner's live work/UI state.
-    pub(super) fn snapshot_busy(&self) -> bool {
-        self.pending.is_some() || self.ticking.get()
-    }
-}
-
 impl ConversationArea {
     /// The rows wanted now: the pending message, then the working footer
     /// while `running` (a turn runs) or a message waits.

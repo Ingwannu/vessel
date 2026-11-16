@@ -87,14 +87,6 @@ impl std::fmt::Debug for Forking {
     }
 }
 
-#[cfg(test)]
-impl Forking {
-    /// The resident snapshot cannot discard this owner's live work/UI state.
-    pub(super) fn snapshot_busy(&self) -> bool {
-        self.pending.is_some() || self.opening.is_some() || self.removing
-    }
-}
-
 impl Forking {
     pub(super) fn new(cx: &mut App) -> Self {
         Self {

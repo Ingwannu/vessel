@@ -143,3 +143,18 @@ matching checked node/fake binaries; old shared roots prove only legacy behavior
 No real provider, production mutation, service restart or push is authorized by
 this package. Those final checks and user-visible multi-session behavior remain
 unverified.
+
+
+## Resumed verification, base13
+
+The minimal body source192769c4 on base11 executed1515/0/2 across all View,
+Kit and App targets (run wp-timeline-state-tests-20261115T190455Z-192769c4),
+including retained equal-byte format and empty-patch regressions. Its strict run
+returned two lint diagnostics, now corrected in the same shared kernel without
+changing behavior/assertions. This is not a current-base13 source pass.
+
+Main fa5c's App/Kit run stopped before tests: merging the accepted resident
+producer duplicated four earlier snapshot_busy helpers. The duplicate predicates
+were verified pairwise identical and the earlier copies removed, keeping one
+canonical definition before the test module. No protection predicate or staging
+attribute was weakened. Current base13 narrow/runtime checks remain owed.
