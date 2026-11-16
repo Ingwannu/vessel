@@ -297,6 +297,7 @@ impl Render for Shell {
         self.settle_settings(window);
         self.settle_sessions(window, cx);
         self.settle_session_lifecycle(window, cx);
+        self.settle_labels(cx);
         self.terminal_present(window, cx);
         let tokens = tokens(cx);
         // Sidebar form is independent of global phone chrome. Navigation
@@ -402,6 +403,8 @@ impl Render for Shell {
             .children(areas::palette::render(self, &tokens, window, cx))
             .children(areas::shortcuts::help_dialog::render(self, &tokens, window, cx))
             .children(areas::import::render(self, &tokens, window, cx))
+            .children(areas::labels::overlay(self, &tokens, window, cx))
+            // Last: it ends with the frame log, which times the whole draw.
             .child(areas::composer::overlay(self, &tokens, window, cx, started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

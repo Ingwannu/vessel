@@ -32,6 +32,8 @@ pub enum Command {
     Create(super::creation::Ask),
     /// Scoped own-history discovery and import.
     History(crate::history::Ask),
+    /// Host-local workspace catalog operation; identity survives alias changes.
+    Labels(super::labels::Request),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

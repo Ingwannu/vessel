@@ -17,6 +17,7 @@ impl Shell {
             Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
             Event::Creation(answer) => self.creation_answer(answer, cx),
             Event::History(reply) => self.history_answer(reply, cx),
+            Event::Labels(answer) => self.labels_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
                 self.history_retired(&context, cx);
@@ -56,6 +57,7 @@ impl Shell {
                 self.retitle();
                 self.workspace_fleet();
                 self.sessions_fleet_changed();
+                self.labels_fleet(cx);
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);

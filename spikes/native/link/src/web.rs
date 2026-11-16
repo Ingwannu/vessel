@@ -124,6 +124,9 @@ impl Link {
                 ask,
                 vessel_app_view::history::Problem::Unsupported,
             ))),
+            Command::Labels(request) => self.emit(Event::Labels(
+                request.refused(vessel_app_view::labels::Failure::Unsupported),
+            )),
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {
