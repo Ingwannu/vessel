@@ -1,5 +1,5 @@
-//! The C3 registry skeleton: exact-scope repository facts and file summary.
-//! Body editors are mounted here once the mapped document control is checked.
+//! C3 registry projection: exact-scope facts, lazy sections and unified bodies.
+//! The same outer list owns scrolling; split headers/copy remain a later join.
 use crate::areas::layout::registry::PanelContext;
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
@@ -49,10 +49,10 @@ pub(crate) fn render_panel(
         || loading(Some(shell.words.git_panel().checking()), tokens),
         |entry| {
             if let Some(why) = &entry.problem {
-                return failure(shell, why, tokens, window, cx);
+                return failure(&shell.words, why, tokens, window, cx);
             }
             match &entry.binding {
-                PanelBinding::Failed(why) => failure(shell, why, tokens, window, cx),
+                PanelBinding::Failed(why) => failure(&shell.words, why, tokens, window, cx),
                 PanelBinding::Idle | PanelBinding::Locating(_) => {
                     loading(Some(shell.words.git_panel().checking()), tokens)
                 }
@@ -88,7 +88,7 @@ pub(in crate::areas::git) fn owner_notice(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let why = shell.areas.git.panels.owner_problem()?;
-    Some(failure(shell, &why, tokens, window, cx))
+    Some(failure(&shell.words, &why, tokens, window, cx))
 }
 
 fn summary(
@@ -109,7 +109,7 @@ fn summary(
         Body::Connecting => message(shell.words.git_panel().problem_connection(), tokens),
         Body::CheckingRepository => loading(Some(shell.words.git_panel().checking()), tokens),
         Body::RepositoryFailed(why) | Body::DiffFailed(why) => {
-            failure(shell, why, tokens, window, cx)
+            failure(&shell.words, why, tokens, window, cx)
         }
         Body::NotRepository => message(shell.words.git_panel().not_repository(), tokens),
         Body::ReadingDiff => loading(None, tokens),
@@ -129,10 +129,13 @@ fn summary(
         Body::Empty(action) => empty(shell, address, entry, action, tokens, cx),
         Body::Files(data) => {
             let address = address.clone();
+            // Read the actual list viewport before its row callback borrows it.
+            // The first (unmeasured) frame uses no wrapped document geometry.
+            let width = entry.files.width();
             let files = entry.files.element(cx.processor(
                 move |shell: &mut Shell, index: usize, window, cx| {
                     let tokens = vessel_app_kit::tokens(cx);
-                    file_row(shell, &address, index, &tokens, window)
+                    super::file::row(shell, &address, index, width, &tokens, window, cx)
                 },
             ));
             div()
@@ -218,7 +221,7 @@ fn empty(
         .into_any_element()
 }
 
-fn file_row(
+pub(super) fn file_row(
     shell: &mut Shell,
     address: &PanelAddress,
     index: usize,
@@ -285,29 +288,44 @@ fn loading(label: Option<&str>, tokens: &Tokens) -> AnyElement {
         .into_any_element()
 }
 
-fn failure(
-    shell: &Shell,
+pub(super) fn failure(
+    words: &vessel_app_view::localization::Translator,
     why: &vessel_app_view::workspace::git::panel::ReadFailure,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let issue = ReadIssue::for_failure(why);
+    failure_detail(
+        words,
+        issue.words(words),
+        issue.variant(),
+        why.detail(words),
+        tokens,
+        window,
+        cx,
+    )
+}
+
+pub(super) fn failure_detail(
+    words: &vessel_app_view::localization::Translator,
+    description: &str,
+    variant: vessel_app_view::alert::Variant,
+    detail: Option<String>,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let notice = vessel_app_kit::alert::alert(
         vessel_app_kit::alert::Content {
-            title: Some(shell.words.git_panel().failed_title().into()),
-            description: Some(
-                div()
-                    .child(issue.words(shell.words).to_owned())
-                    .into_any_element(),
-            ),
+            title: Some(words.git_panel().failed_title().into()),
+            description: Some(div().child(description.to_owned()).into_any_element()),
             action: None,
         },
-        crate::badge::alert_variant(issue.variant()),
+        crate::badge::alert_variant(variant),
         vessel_app_kit::alert::Size::Small,
         tokens,
     );
-    let detail = why.detail(shell.words);
     div()
         .flex()
         .flex_col()

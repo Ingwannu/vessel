@@ -7,13 +7,16 @@
 //!   selected-session or first-alias fallback.
 //! - Each answer must still match its original owner, target and admission.
 //!   Lifetime keys belong to `GitArea`, never a disposable pane entry.
-//! - This registration is the package skeleton; document/editor mounting is
-//!   added on the same state rather than a second panel or transport.
+//! - Lazy unified bodies extend this same entry/read store. Document resources
+//!   are bounded globally; no second panel, ticket book or transport is added.
+mod bodies;
 mod comparison;
+mod document;
 mod draw;
+mod file;
 mod lifecycle;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use vessel_app_kit::VirtualList;
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::workspace::git::panel::{
@@ -25,6 +28,7 @@ use vessel_app_view::workspace::git::panel::{
 pub(super) struct Panels {
     entries: HashMap<PanelAddress, Entry>,
     registration: super::retirement::Registration,
+    body_order: VecDeque<bodies::BodyAddress>,
 }
 struct Entry {
     target: PanelTarget,
@@ -40,6 +44,7 @@ struct Entry {
     files: VirtualList,
     tips: vessel_app_kit::Tooltips,
     path_places: HashMap<vessel_proto::workspace::RelPath, vessel_app_kit::tooltip::Place>,
+    documents: HashMap<vessel_proto::workspace::RelPath, document::Document>,
 }
 impl Entry {
     fn new(target: PanelTarget, context: Option<ConnectionContext>) -> Self {
@@ -61,6 +66,7 @@ impl Entry {
             files: VirtualList::new(false),
             tips: vessel_app_kit::Tooltips::new(),
             path_places: HashMap::new(),
+            documents: HashMap::new(),
         }
     }
     // A manual refresh rediscovers authority, but must not reset the person's
@@ -75,6 +81,19 @@ impl Entry {
                 .clone();
         }
     }
+
+    fn matches_admission(
+        &self,
+        instance: vessel_app_view::workspace::git::RequestKey,
+        target: &PanelTarget,
+        context: &ConnectionContext,
+        current: Option<&ConnectionContext>,
+    ) -> bool {
+        self.instance == Some(instance)
+            && &self.target == target
+            && self.context.as_ref() == Some(context)
+            && current == Some(context)
+    }
 }
 
 impl Panels {
@@ -88,6 +107,7 @@ impl Panels {
         // Pre-start/test data cannot be promoted into an initialized owner.
         // These entries own no sent task or mutation receipt.
         self.entries.clear();
+        self.body_order.clear();
         self.registration = match result {
             Ok(()) => super::retirement::Registration::Ready,
             Err(why) => super::retirement::Registration::Refused(why),

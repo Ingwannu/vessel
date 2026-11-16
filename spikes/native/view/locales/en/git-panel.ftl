@@ -141,3 +141,10 @@ git-panel-unverified-view = The repository shown here cannot be verified. Reopen
 
 # Complete recovery when a file continuation has changed metadata or invalid hunk order; never silently append it.
 git-panel-problem-page = The received changes do not match. Refresh and try again.
+
+# File preview has no accepted body yet; do not claim an active node request.
+git-panel-body-waiting = File changes have not loaded yet.
+# The node cut a source line or a hunk. Keep this warning beside the preserved preview.
+git-panel-truncated = Some changes were truncated by the machine.
+# Local readonly-buffer admission failed; raw typed cause is shown separately.
+git-panel-invalid-document = These changes could not be displayed. Refresh and try again.

@@ -1179,3 +1179,47 @@ The existing real-window keyboard/reveal test now checks false before focus and
 true after focusing that same engine. This additive query changes no paint,
 input, selection, copy or ordinary editor path. Exact changed-source runtime
 and Clippy remain pending; the older413 control result is not relabeled.
+
+## Initial unified body consumer, source authored after base13 checks
+
+[Decision Log]
+- Reuse PanelReads/FilePages accepted summary and file receipts, DiffRows and
+  DiffDocument/BufferColumns, the checked readonly DiffDocumentEditor, the
+  existing source-editor ViewSyntax and the sole outer VirtualList. W13 and K
+  authorized the tiny syntax_for factory/re-export; the seven-kind mapper stays
+  intact until K's checked replacement. No new dependency/engine/lexer, layout
+  manager, credentials, route or RPC is added.
+- FileActivation is captured from a Ready summary and original binding/context
+  while the section is drawn, then actual prepaint intersection schedules a
+  deferred admission. Activation rechecks actual target/visibility, original
+  entry instance/context, located root and accepted generation. A duplicate
+  callback or stale Retry/Continue does not allocate or send. No current context
+  is stamped onto old data. Original unscoped legacy writes remain unavailable.
+- The same global feature cache retains at most32 file payloads/documents, each
+  under FilePages'8MiB/100000line/32768hunk caps, and locally admits at most4
+  pending body reads. These are retained payload/object bounds (at most256MiB
+  raw field bytes), NOT total resident/transport/temporary-allocation bounds.
+  A nearby-render access updates LRU. Eviction drops BOTH payload and editor;
+  a pending entry or editor owning keyboard selection is not evicted. Retired
+  Link tasks keep their existing tracked permit/deadline, not this cache slot.
+- The consumer reuses exactly the source editor's lexer, with the existing
+  original/modified diff highlighter. One immutable buffer/metadata projection
+  is created per accepted FileTicket. The real outer owner performs reveal and
+  row invalidation; no nested fixed-height document or paint-time notify.
+- Keep every wire file fact in FilePages. Binary/submodule/mode-only/unknown/
+  too-large states use the existing language table; cut rows/lines get an
+  explicit complete EN/KO notice. Malformed source/buffer errors retain their
+  typed causes and use the shared alert plus diagnostic renderer. Retry and
+  continuation use captured tickets, never a path alone.
+- Known incomplete parts remain: current header is still the provisional path
+  row (status/rename/mode/count/action chrome and sticky headers need the actual
+  FileHeader reference); display options and mode controls are not yet mounted.
+  A continuation replaces an immutable editor and may lose its old selection;
+  this is not a claim of Paseo selection retention. Split remains STOPPED for
+  its full-width header/copy semantics. No filtered split-copy parity, tree,
+  inline Changes Explorer or C5 drawn-origin write adoption is implied.
+- Initial tests are authored, not yet executed: request dedup/original epoch,
+  pending capacity, global payload release/late reply, actual390 mounted unified
+  keyboard selection/copy/readonly input, View eviction key regression and
+  whole EN/KO notices. Control selection-focus query has its real-window test.
+  One meaningful changed-source remote batch follows; older passes stay scoped.

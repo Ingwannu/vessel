@@ -53,6 +53,7 @@ use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use elsewhere::FindRefused;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
+pub(crate) use line_syntax::syntax_for;
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;

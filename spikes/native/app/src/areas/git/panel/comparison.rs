@@ -24,10 +24,7 @@ impl ComparisonChange {
         entry: &super::Entry,
         current: Option<&vessel_app_view::connection::ConnectionContext>,
     ) -> bool {
-        entry.instance == Some(self.instance)
-            && entry.target == self.target
-            && current == Some(&self.context)
-            && entry.context.as_ref() == Some(&self.context)
+        entry.matches_admission(self.instance, &self.target, &self.context, current)
             && matches!(
                 entry.target,
                 PanelTarget::WorkingDiff | PanelTarget::Changes
@@ -89,6 +86,7 @@ impl Shell {
         let ticket = reads.begin_summary(key);
         entry.files.reset(0);
         entry.path_places.clear();
+        entry.documents.clear();
         entry.tips = vessel_app_kit::Tooltips::new();
         entry.problem = None;
         self.command(vessel_app_link::Command::GitPanel(Ask::Summary {

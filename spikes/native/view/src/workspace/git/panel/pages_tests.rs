@@ -51,6 +51,29 @@ fn start(reads: &mut PanelReads, keys: &mut RequestKeys, first: FileDiff) -> Fil
 }
 
 #[test]
+fn releasing_a_body_cannot_install_its_late_page_and_reloading_uses_a_new_key() {
+    let mut reads = reads();
+    let mut keys = RequestKeys::default();
+    let target = load(&mut reads, &mut keys);
+    let old = reads
+        .begin_captured_file(&target, keys.issue().unwrap())
+        .unwrap();
+    assert!(reads.forget_file(&path()));
+    assert!(!reads.finish_file(&old, Ok(page(None))));
+    assert!(reads.file(&path()).is_none());
+    let fresh = reads
+        .begin_captured_file(&target, keys.issue().unwrap())
+        .unwrap();
+    assert_ne!(old, fresh);
+    assert!(reads.finish_file(&fresh, Ok(page(None))));
+    assert!(!reads.finish_file(&old, Err(ReadFailure::TimedOut)));
+    assert_eq!(
+        reads.file(&path()).unwrap().ready().unwrap().ticket(),
+        &fresh
+    );
+}
+
+#[test]
 fn pages_keep_all_file_fields_and_the_web_fixtures_stable_hunk_keys() {
     let mut reads = reads();
     let mut keys = RequestKeys::default();
@@ -299,6 +322,42 @@ fn page_validation_explains_the_mismatch_and_retry_in_both_languages() {
             "받은 변경 사항이 서로 맞지 않습니다. 새로고침하고 다시 시도하세요."
         );
     }
+}
+
+#[test]
+fn body_loading_truncation_and_buffer_failure_keep_complete_translated_sentences() {
+    use crate::localization::{ENGLISH, LanguagePreference, Translator, resolve_language};
+    let en = Translator::get(ENGLISH).unwrap();
+    let ko = Translator::get(resolve_language(
+        LanguagePreference::System,
+        Some("ko"),
+        None,
+    ))
+    .unwrap();
+    assert_eq!(
+        en.git_panel().body_waiting(),
+        "File changes have not loaded yet."
+    );
+    assert_eq!(
+        ko.git_panel().body_waiting(),
+        "파일 변경 사항을 아직 불러오지 않았습니다."
+    );
+    assert_eq!(
+        en.git_panel().truncated(),
+        "Some changes were truncated by the machine."
+    );
+    assert_eq!(
+        ko.git_panel().truncated(),
+        "머신이 일부 변경 사항을 잘라 보냈습니다."
+    );
+    assert_eq!(
+        en.git_panel().invalid_document(),
+        "These changes could not be displayed. Refresh and try again."
+    );
+    assert_eq!(
+        ko.git_panel().invalid_document(),
+        "변경 사항을 표시하지 못했습니다. 새로고침하고 다시 시도하세요."
+    );
 }
 
 #[test]

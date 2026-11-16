@@ -149,10 +149,13 @@ impl Shell {
                 false
             }
             Outcome::File(ticket, result) => {
-                let _accepted = entry
+                let accepted = entry
                     .reads
                     .as_mut()
                     .is_some_and(|reads| reads.finish_file(&ticket, result));
+                if accepted {
+                    entry.files.changed(0..entry.files.rows());
+                }
                 false
             }
         };

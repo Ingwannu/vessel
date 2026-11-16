@@ -333,6 +333,14 @@ impl PanelReads {
         self.files.get(path)
     }
 
+    /// Release a cache entry together with its engine at the owner's bounded
+    /// retention boundary. An old answer cannot recreate a missing entry.
+    /// This grants no authority and never reuses its lifetime request key.
+    #[must_use]
+    pub fn forget_file(&mut self, path: &RelPath) -> bool {
+        self.files.remove(path).is_some()
+    }
+
     /// Exact accepted summary receipt, unavailable during status/summary refresh
     /// or failure. It correlates data-dependent callbacks, not write authority.
     #[must_use]

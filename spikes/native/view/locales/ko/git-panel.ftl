@@ -140,3 +140,10 @@ git-panel-unverified-view = 여기에 표시된 저장소를 확인할 수 없�
 
 # Complete recovery when a file continuation has changed metadata or invalid hunk order; never silently append it.
 git-panel-problem-page = 받은 변경 사항이 서로 맞지 않습니다. 새로고침하고 다시 시도하세요.
+
+# File preview has no accepted body yet; do not claim an active node request.
+git-panel-body-waiting = 파일 변경 사항을 아직 불러오지 않았습니다.
+# The node cut a source line or a hunk. Keep this warning beside the preserved preview.
+git-panel-truncated = 머신이 일부 변경 사항을 잘라 보냈습니다.
+# Local readonly-buffer admission failed; raw typed cause is shown separately.
+git-panel-invalid-document = 변경 사항을 표시하지 못했습니다. 새로고침하고 다시 시도하세요.

@@ -6,6 +6,13 @@ use vessel_app_kit::code_editor::{LineSyntax, Runs, SyntaxKind};
 use vessel_app_kit::ui::SharedString;
 use vessel_app_view::workspace::syntax::{Language, LineState, TokenKind, tokenize};
 
+/// The diff uses the exact source-editor lexer and seven-kind mapping.
+pub(crate) fn syntax_for(path: &vessel_proto::workspace::RelPath) -> impl LineSyntax {
+    ViewSyntax(vessel_app_view::workspace::syntax::language_of(
+        path.as_str(),
+    ))
+}
+
 /// A file's language, for the editor.
 pub(super) struct ViewSyntax(pub(super) &'static Language);
 

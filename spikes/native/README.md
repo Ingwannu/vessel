@@ -1359,7 +1359,8 @@ pane and connection owners remain the only registries. Git registers its own
 retirement callback once at startup; unavailable registration closes pane and
 legacy reads with a translated recovery, without dropping pending mutation
 payloads. The common promotion is conditional on this actual owner; current
-consumer checks are still pending, not a standalone mechanism approval.
+pre-body exactda9 checks passed selected Git tests220/0/0 plus four-crate strict
+Clippy. The newer body consumer is unverified; no standalone mechanism approval.
 
 `view::workspace::git::panel::FilePages` preserves each accepted complete file
 and its receipt. Continuations bind the accepted summary and prior body keys,
@@ -1367,8 +1368,12 @@ carry the actual hunk offset through Link, and validate metadata and progress
 before appending. Per-file text/hunk/line caps are not a global editor/cache
 budget. Empty-mode callbacks also retain the accepted summary receipt. Exactad9
 View/Link git tests200/0/0 cover pages, but not the later callback/owner union.
-This is still a skeleton: document mounting, actual shown Changes context and
-normal writes remain incomplete. See `docs/plans/wp-c3.md` for exact limits.
+The initial unified body now has source using these same receipts, the source
+lexer and one outer VirtualList, with32 global retained file/engine slots and4
+locally pending body reads. Pending and selection-focused engines are not evicted;
+retired payloads and editors are released together. Exact body runtime/strict
+checks remain pending. Header/options, actual shown Changes context and normal
+writes remain incomplete. See `docs/plans/wp-c3.md` for exact limits and gaps.
 
 
 The additive `code_editor::DiffDocumentEditor` prototype retains the same
@@ -1377,8 +1382,9 @@ uses no per-file vertical source inset or empty bottom rows, and reports changed
 focused caret bounds to the owner's VirtualList. It uses patch7
 parent-viewport correction. The scoped413 control checks include owner scrolling,
 readonly coordinate/copy/wrap behavior and both-theme diff selection policy;
-the historical0813 wheel failure stays historical. No production Git pane
-consumes this document profile yet. Actual label alignment, selection/touch
+the historical0813 wheel failure stays historical. The new unverified unified
+pane consumer uses this profile and its additive selection-owner query. Actual
+label alignment, selection/touch
 captures, private folded-array source limits, cross-file selection and the
 complete Paseo document surface remain outside that bounded control result.
 

@@ -526,3 +526,16 @@ retirement callback/startup and old unsent settlement. Standalone rustfmt,
 native size/token and non-generated whitespace checks pass. This is merge
 source verification only; the new union has no compile/runtime/capture pass.
 The tree is authoritative where older notes still describe the prebase API.
+
+## Base13 result and first body consumer source
+
+Exactda9 all4 native strict0 and selectedgit tests220/0/0 are recovered; exact
+Node22ab strict0/workspace88/0/0/TS6/0/0 with wire diff0 are recovered. These are
+pre-body App source and the merged Node source, not full-package gates/reviews.
+New control-onlye685 adds readonly selection_focused via the same engine query;
+its first consumer now has source and unexecuted tests in the main App tree.
+The initial unified body joins existing read receipts, viewport demand, bounded
+cache, source lexer and document control. See the immediately preceding plan
+section for intentional current gaps and exact budget scope. Next: one App/Kit
+changed-source strict batch plus selected Git and readonly-owner tests. No old
+run resubmission, provider/forge/node/OS use, captures or new authority claim.
