@@ -1,9 +1,6 @@
 diff --git a/spikes/native/kit/src/field.rs b/spikes/native/kit/src/field.rs
 --- a/spikes/native/kit/src/field.rs
 +++ b/spikes/native/kit/src/field.rs
-@@ -22,4 +22,5 @@
+@@ -22,1 +22,2 @@
  pub mod composer_hooks;
 +pub mod context_menu;
- mod frame;
- mod presentation;
- mod rename;
