@@ -136,3 +136,35 @@ place. Its result, when available, remains that exact prior commit's generation
 evidence; all proto/client/RPC/web source is unchanged by the82a correction.
 The external packet keeps checks-superseded.json separate from immutable
 packet.json and checks-running.json; do not rewrite the original evidence.
+
+## Quota checkpoint: additional path-integrity self HOLD
+
+This producer is NOT ready for V3 or receiving adoption even if its currently
+queued ordinary runs pass. A later source audit found that the reused legacy
+summary::untracked decoder converts native bytes with from_utf8_lossy, then
+passes them through optional patch::rel; the tracked raw parser is lenient too.
+C3 All/private-index preparation also consumes that untracked list. Distinct
+native paths can therefore acquire the same valid displayed RelPath, or an
+unrepresentable path can disappear. This must not be described as a complete
+typed comparison result.
+
+A temporary isolated Git repository with one non-UTF8 filename ff2e747874 and
+one literal UTF8 replacement-character filename efbfbd2e747874 produced two
+distinct ls-files -z records. A source/proxy audit of lossy UTF8 conversion maps
+both to the same text. The temporary repository was removed. This is real Git
+output plus source/Python proxy evidence, NOT execution of Vessel or a Rust
+regression. No real checkout/node/credentials/network was used.
+
+Next, within this same bounded runtime scope: preserve the native text identity
+or return a typed decoding/unsupported-path error with its original source,
+instead of lossy conversion or silent dropping. Reuse/extend the existing
+workspace-owned parser and error boundary; no second parser/executor/router.
+Add actual real-Git UTF8-collision/unrepresentable-path regressions, preserving
+cleanup and valid-path legacy cases. Then meaningful corrected-source ordinary
+strict/runtime selection and V3. Do not assign numbers or add a worker whole.
+
+The quota warning stops new source/runs now. Existing immutable runs remain
+queued and must be recovered, never duplicated: runtime strict030827Z-82aec7d1,
+runtime tests030831Z-82aec7d1 and wire TS025610Z-ce9667ac. Full run ids are in
+wp-c3-runtime-cases.md/retained external packet; these pending runs do not
+execute a future path fix. No integration/review/adoption was requested.
