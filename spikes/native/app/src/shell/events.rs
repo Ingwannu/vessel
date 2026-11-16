@@ -18,6 +18,7 @@ impl Shell {
             Event::SessionMarked(answer) => self.session_mark_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
+                self.history_retired(&context, cx);
                 if !self.devices_retired(&context) {
                     return;
                 }
@@ -37,6 +38,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.history_fleet(&earlier);
                 self.devices_fleet();
                 self.offers_fleet(&earlier);
                 if !self.loaded {
@@ -107,3 +109,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod import_retire_tests;

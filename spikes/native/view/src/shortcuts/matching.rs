@@ -1,71 +1,37 @@
-//! Matching a key press to an action (the page's
-//! `data/shortcuts/match.ts`): a pure function of the press, the chord
-//! pressed before it, the overrides and the time, so the one listener is
-//! a thin layer over it.
-//!
-//! [Decision Log] Sequences wait 1.5 seconds, overrides win (milestone 11)
-//! - Purpose: `G S` must run whether the second key comes quickly or
-//!   slowly, and a person's own key must beat a default it collides with.
-//! - Choice: a first chord that begins a sequence waits up to 1.5 seconds
-//!   for its second; a completed sequence comes before a single chord;
-//!   Alt and a digit is always "session N"; actions the person changed
-//!   are tried before the others.
+//! Compatibility chord entry point for retained callers and regression fixtures.
+//! All matching delegates to the same context-aware Engine used by the app;
+//! there is no separate legacy resolution order or second binding registry.
 
-use std::collections::BTreeMap;
-
-use super::keys::{Chord, Platform, same_chord};
-use super::registry::{Action, bindings_of, jump_of, modified};
+use super::engine::{Engine, KeyRepeat, Resolution};
+use super::{Action, Chord, Platform, default_context, effective_bindings};
 use crate::prefs::{ActionId, Bindings};
+use std::collections::BTreeMap;
+use std::time::Duration;
 
-/// How long a sequence's first chord waits for its second, in
-/// milliseconds.
-pub const SEQUENCE_MS: u64 = 1500;
+/// The reference deadline, shared with the active engine.
+pub use super::engine::CHORD_TIMEOUT_MS as SEQUENCE_MS;
 
-/// A sequence's first chord, and when it was pressed (milliseconds on the
-/// caller's clock).
+/// An opaque engine snapshot preserves the exact candidate set between steps.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Pending {
-    /// The chord.
-    pub chord: Chord,
-    /// When.
-    pub at: u64,
-}
+pub struct Pending(Engine);
 
-/// What a press does.
+/// What a normalized chord did through the common engine.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Matched {
-    /// Run an action; `index` is the session for "session N".
+    /// A feature action, with its optional validated index unwrapped for legacy callers.
     Run {
-        /// The action.
+        /// Original typed action.
         action: Action,
-        /// Session 1 to 9, for [`Action::JumpSession`].
+        /// One-based workspace/tab index.
         index: Option<u8>,
     },
-    /// The press begins a sequence: keep it and wait for the next.
+    /// Keep this snapshot until another action key arrives.
     Wait(Pending),
-    /// Nothing is bound to it.
+    /// Leave the key with the focused control.
     None,
 }
 
-/// Every binding with its action, the person's changed actions first.
-fn every(overrides: &BTreeMap<ActionId, Bindings>) -> Vec<(Action, super::keys::Binding)> {
-    let changed = Action::ALL
-        .into_iter()
-        .filter(|action| modified(*action, overrides));
-    let others = Action::ALL
-        .into_iter()
-        .filter(|action| !modified(*action, overrides));
-    changed
-        .chain(others)
-        .flat_map(|action| {
-            bindings_of(action, overrides)
-                .into_iter()
-                .map(move |binding| (action, binding))
-        })
-        .collect()
-}
-
-/// What `chord`, pressed at `now` after `pending`, does.
+/// Resolve a normalized fixture chord without bypassing the real engine.
 #[must_use]
 pub fn matched(
     chord: &Chord,
@@ -74,45 +40,28 @@ pub fn matched(
     now: u64,
     platform: Platform,
 ) -> Matched {
-    let bound = every(overrides);
-    if let Some(pending) = pending.filter(|pending| now.saturating_sub(pending.at) <= SEQUENCE_MS) {
-        let completes = bound.iter().find(|(_, binding)| {
-            binding.then.as_ref().is_some_and(|then| {
-                same_chord(&binding.first, &pending.chord, platform)
-                    && same_chord(then, chord, platform)
-            })
-        });
-        if let Some((action, _)) = completes {
-            return Matched::Run {
-                action: *action,
-                index: None,
-            };
-        }
-    }
-    if let Some(index) = jump_of(chord) {
-        return Matched::Run {
-            action: Action::JumpSession,
-            index: Some(index),
-        };
-    }
-    let single = bound
-        .iter()
-        .find(|(_, binding)| binding.then.is_none() && same_chord(&binding.first, chord, platform));
-    if let Some((action, _)) = single {
-        return Matched::Run {
-            action: *action,
-            index: None,
-        };
-    }
-    let starts = bound
-        .iter()
-        .any(|(_, binding)| binding.then.is_some() && same_chord(&binding.first, chord, platform));
-    if starts {
-        Matched::Wait(Pending {
-            chord: chord.clone(),
-            at: now,
-        })
-    } else {
-        Matched::None
+    let context = default_context(platform);
+    let Ok(bindings) = effective_bindings(overrides, context) else {
+        return Matched::None;
+    };
+    let mut engine = pending.map(|pending| pending.0.clone()).unwrap_or_default();
+    match engine.resolve(
+        chord,
+        KeyRepeat::Initial,
+        Duration::from_millis(now),
+        context,
+        &bindings,
+    ) {
+        Resolution::Pass => Matched::None,
+        Resolution::Waiting => Matched::Wait(Pending(engine)),
+        Resolution::Run {
+            action,
+            index,
+            prevent_default: _,
+            stop_propagation: _,
+        } => Matched::Run {
+            action,
+            index: index.map(super::engine::ShortcutIndex::get),
+        },
     }
 }
