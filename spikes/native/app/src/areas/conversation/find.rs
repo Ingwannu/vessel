@@ -130,6 +130,40 @@ impl FindBar {
     }
 }
 
+// The portable resident boundary is deliberately limited to controllers that
+// exist on this base. Full A3 adds metadata/jump votes at its consumer union.
+#[cfg(test)]
+impl super::ConversationArea {
+    /// An open editor or pending reveal must not silently become snapshot-ready.
+    pub(crate) fn navigation_held(&self) -> bool {
+        self.find.is_some()
+            || self.reveal.is_some()
+            || self.outline_pointer.navigation_held()
+            || self.origin.area().is_some_and(Self::navigation_held)
+    }
+
+    /// Retire this exact resource's work, retaining input and its real identity.
+    pub(crate) fn navigation_retired(&mut self) {
+        if let Some(bar) = &mut self.find {
+            bar.finder = None;
+            bar.generation = bar.generation.wrapping_add(1);
+            bar.matches.clear();
+            bar.index = 0;
+            bar.said = None;
+            bar.refreshing = false;
+            bar.again = false;
+            bar.keep = None;
+            bar.at = None;
+        }
+        let _was_visible = self.outline_pointer.leave();
+        // `reveal` also carries inbox/other owners' requests on this base.
+        // Only the core's corresponding retirement may cancel that request.
+        if let Some(origin) = self.origin.area_mut() {
+            origin.navigation_retired();
+        }
+    }
+}
+
 impl std::fmt::Debug for FindBar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FindBar")

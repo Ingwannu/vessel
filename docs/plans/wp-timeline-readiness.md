@@ -30,7 +30,7 @@ Copy/find retain full canonical assistant text; pacing changes its shown prefix.
 | New notice/compaction/plugin rows | `view/src/timeline/{items,compaction}.rs`, conversation `notices.rs` | Typed projection/renderer preparation. No activated rich AgentEvent intake. Plugin fallback names plugin/kind and never interprets opaque data. |
 | Mounted text reveal | `view/src/timeline/text_reveal.rs`, conversation `pacing.rs` | Product assistant/open-reasoning prefix, first-sight hydration, grapheme safety, reduced-motion/find bypass and weak bounded frame wake. Source-scoping regression executed at4b591a90; later changes remain separately bounded. |
 | Spoken prompt display | `prompt_presentation.rs`, `searchable.rs`, conversation `{bubbles,timeline}.rs` | Product source uses one borrowed display slice for user bubble, local search, copy and rewind text. View strict/tests executed at6d8c0cd8; canonical body is untouched. |
-| Submission ledger | `view/src/timeline/pending.rs` | Pure cap32 typed preparation only. Legacy Tail is still the sole product optimistic path. |
+| Submission ledger | `view/src/timeline/pending_messages.rs` | Pure cap32 typed preparation only. Legacy Tail is still the sole product optimistic path. |
 | Resident ownership | conversation `resident{.rs,/}` | Literal cfg(test) preparation over W12's sole registry, actual Area snapshot move and Clone context Seat. Product Copy Seat/Place/globals still require coordinated conversion. |
 
 Paths in the table are relative to `spikes/native/` unless a full prefix appears.
@@ -197,3 +197,11 @@ their activation relative to the published line. The full package cannot be
 handed to the lead until W4's actual caller and legacy delegation join atomically
 in a checked receiving union. No rich wire/event/receipt field is activated by
 this merge or by ToolDetailSource compatibility methods, which still return None.
+
+Base14.2 adds the canonical pending-permission iterator on the existing waiting
+index. The unrelated unactivated identified-message ledger is moved to
+pending_messages.rs, retaining its public exported types and tests. There is no
+second permission projection or optimistic manager. The incoming SessionResources
+constructor owns the shared staged request resource; A7 fixture construction uses
+that constructor and retains its reasoning/display setup. All new shared request
+modules keep their incoming literal cfg(test) guard.
