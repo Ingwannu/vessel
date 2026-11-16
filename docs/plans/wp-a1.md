@@ -449,3 +449,12 @@ from618 to584; no record is raised. Incoming generated wire whitespace remains
 byte-preserved. Current receiving native checks are owed; prior base13 strict,
 wasm and draft cases keep their original source scope. No new workspace authority,
 registered runtime create API, live minter/follow or root lookup is inferred.
+
+
+The first base14.2 receiving strict reached App and found one new tool-body
+fixture missing the existing Paint.files owner. The standalone probe now retains
+an isolated Shell::without_io and constructs SentFiles from that same Shell
+inside its update. The real borrowed Paint-to-body facade and every rendering/
+identity assertion stay intact; no fake file owner, product API or alternative
+renderer is introduced. This is test wiring across the incoming fixture and
+existing attachments seam. The failed compiler record is retained.
