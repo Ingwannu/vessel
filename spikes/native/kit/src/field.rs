@@ -430,3 +430,6 @@ mod composing_tests {
 
 #[cfg(test)]
 mod form_tests;
+
+#[cfg(test)]
+mod accessibility_tests;
