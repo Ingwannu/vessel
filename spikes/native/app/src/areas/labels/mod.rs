@@ -216,6 +216,9 @@ impl Shell {
     }
 }
 
+/// The picker or the manager, whichever is open. The shell draws it just
+/// before the composer's overlay, which ends with the frame log that times
+/// the whole draw.
 pub(crate) fn overlay(
     shell: &Shell,
     tokens: &Tokens,

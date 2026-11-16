@@ -288,16 +288,24 @@ impl Shell {
 /// The most events folded in one update of the view.
 const BATCH: usize = 512;
 
+impl Shell {
+    /// Each frame, before drawing: the areas whose state follows what
+    /// changed since the last one (kept out of `render` for its length).
+    fn settle_areas(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.settle_settings(window);
+        self.settle_sessions(window, cx);
+        self.settle_session_lifecycle(window, cx);
+        self.settle_labels(cx);
+    }
+}
+
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let started = crate::region::begin(self, cx);
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        self.settle_settings(window);
-        self.settle_sessions(window, cx);
-        self.settle_session_lifecycle(window, cx);
-        self.settle_labels(cx);
+        self.settle_areas(window, cx);
         self.terminal_present(window, cx);
         let tokens = tokens(cx);
         // Sidebar form is independent of global phone chrome. Navigation
@@ -405,7 +413,6 @@ impl Render for Shell {
             .children(areas::shortcuts::help_dialog::render(self, &tokens, window, cx))
             .children(areas::import::render(self, &tokens, window, cx))
             .children(areas::labels::overlay(self, &tokens, window, cx))
-            // Last: it ends with the frame log, which times the whole draw.
             .child(areas::composer::overlay(self, &tokens, window, cx, started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
