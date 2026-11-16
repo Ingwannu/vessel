@@ -1937,8 +1937,9 @@ tracing-subscriber edges exercise the actual bridge without a second logger.
 
 ## Voice settings values carrier
 
-vessel-proto::voice contains only the canonical VoiceSettings/SetVoice metadata
-and bounded independent recognition/synthesis options. It reuses dictation's
+The isolated carrier adds canonical VoiceSettings/SetVoice metadata and bounded
+independent recognition/synthesis options to vessel-proto::voice. The broader
+voice package separately stages its leased request/response contract. It reuses dictation's
 existing omission/reset visitor, validated metadata and secret references;
 readers receive key presence only. The pending None constant grants no runtime
 or protocol capability. This carrier adds no node settings field, persistence,

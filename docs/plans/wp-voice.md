@@ -619,3 +619,18 @@ existing terminal/blob path retains its prior behavior, and audio size checks
 still precede decoding. New capture/playback regressions cover malformed bytes,
 padding and length with static Display/Debug assertions. They await VM runtime;
 no wire shape, limit, provider or service availability changes.
+
+
+### Joined settings-carrier and diagnostic qualification
+
+Announced node head bc9cacc67 includes the scoped53cf values carrier; its
+receiving whole gate passed. The voice tree merged that head and independently
+checked the five canonical settings source/test blobs remain byte-identical.
+Exact joined f13eb228 passed the Proto TS-enabled lib suite467/0/0, including
+the new static invalid-audio diagnostic regression; Node/Proto/Web/CLI
+all-target strict checks passed on the same head. Its named TS check passed
+four Proto and two Web cases with zero generated changes, and all artifact
+hashes/source pin and three current wire files were verified. This qualifies
+these joined types/diagnostics, not a voice actor, model, provider or device.
+The app consumes only the selected values carrier under A8, with product
+registration still withheld.
