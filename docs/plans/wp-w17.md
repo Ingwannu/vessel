@@ -1887,3 +1887,25 @@ allows shortening only redundant own signature qualifications. Admission tests
 remain the final module. Node.rs measures648, so lower the new651 record to648.
 Direct format/size/diff pass; no merged-head Cargo or RuntimeServices V3 pass is
 claimed. The separate registry prerequisite stays frozen for its ordinary strict.
+
+### Explicit parity labels cannot filter erased metadata
+
+[Decision Log]
+- Purpose: do not return a successful empty list when the peer cannot disclose
+  the requested label metadata.
+- Existing assets: the canonical ListSessions::selected request and lifecycle
+  metadata admission already exist; older protocol projection deliberately clears
+  both effective/spec labels while the feature is pending or older.
+- Alternative rejected: sessions() followed only by local covers() treats hidden
+  labels as an authoritative mismatch. A null fallback for explicit selection
+  would again discard caller intent.
+- Choice: explicit nonempty parity label selection uses canonical All+typed labels
+  through client.call; None/older refuses through the existing SDK gate. Retain
+  local cwd/archive checks and defensive covers. Unfiltered parity discovery keeps
+  its legacyAll behavior. Native sessions shown/background metadata policy is a
+  separate declared Vessel addition; Paseo's workspace-background flag remains
+  withheld until its real workspace visibility producer exists.
+- Impact: no new RPC, version, owner/source inference, label mutation or parser.
+  The actual fake-node regression requires the normal listing to contain a real
+  session, and pending explicit labels to emit Unsupported with empty stdout; it
+  does not count that unexecuted source as runtime proof.

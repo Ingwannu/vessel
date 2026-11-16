@@ -139,8 +139,19 @@ async fn list(
         Some(std::env::current_dir()?)
     };
     let client = connect(target).await?.client;
+    let sessions = if filters.is_empty() {
+        client.sessions().await?
+    } else {
+        // Legacy projection can erase labels. Explicit filtering must pass the
+        // producer's metadata gate instead of claiming an empty local result.
+        client
+            .call(vessel_proto::ListSessions::selected(
+                vessel_proto::SessionSelection::all().with_labels(filters.clone()),
+            ))
+            .await?
+    };
     let mut rows = Vec::new();
-    for info in client.sessions().await? {
+    for info in sessions {
         if !matches_scope(&info, cwd.as_deref(), args.all, &filters) {
             continue;
         }

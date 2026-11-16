@@ -381,6 +381,34 @@ struct Failure {
     code: vessel_proto::ErrorCode,
     message: String,
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn explicit_parity_label_filters_never_claim_success_from_stripped_metadata() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let id: SessionId = fixture.run_detached().await.parse().unwrap();
+        let default = fixture.vessel(&["ls", "--json"], b"").await;
+        assert!(default.ok, "{}", default.stderr);
+        let listed: Vec<Listed> = serde_json::from_str(&default.stdout).unwrap();
+        assert!(listed.iter().any(|row| row.id == id));
+        let filtered = fixture
+            .vessel(&["ls", "--label", "purpose=absent", "--json"], b"")
+            .await;
+        if vessel_proto::lifecycle_version::SINCE.is_none() {
+            assert!(!filtered.ok);
+            assert!(filtered.stdout.is_empty());
+            let error: FailureEnvelope = serde_json::from_str(&filtered.stderr).unwrap();
+            assert_eq!(error.error.code, vessel_proto::ErrorCode::Unsupported);
+        } else {
+            assert!(filtered.ok, "{}", filtered.stderr);
+            let listed: Vec<Listed> = serde_json::from_str(&filtered.stdout).unwrap();
+            assert!(listed.is_empty());
+        }
+        fixture.stop().await;
+    })
+    .await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pending_contracts_refuse_before_network_and_leave_structured_stdout_empty() {
     within(async {
