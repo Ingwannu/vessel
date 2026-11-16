@@ -164,7 +164,7 @@ impl Settings {
         let policy = opening.recovery_policy();
         let store = vessel_store::Store::open_with_restart_policy(
             &DataDir::new(directory.path()),
-            Default::default(),
+            vessel_store::StoreConfig::default(),
             policy.enabled,
         )
         .await

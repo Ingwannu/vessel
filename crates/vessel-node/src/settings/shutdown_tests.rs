@@ -24,7 +24,7 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             )
             .await,
         );
-        settings.change(recovery(RecoveryChoice::On)).await.unwrap();
+        let _saved = settings.change(recovery(RecoveryChoice::On)).await.unwrap();
         let store = settings.state.recovery.store();
         let (entered, release) = settings.pause_cleanup();
         let first = Arc::clone(&settings);
@@ -84,7 +84,7 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
             let settings = writer_tests::settings(root.path()).await;
-            settings.change(recovery(RecoveryChoice::On)).await.unwrap();
+            let _saved = settings.change(recovery(RecoveryChoice::On)).await.unwrap();
             let stop = CancellationToken::new();
             let info = vessel_proto::NodeInfo {
                 id: vessel_proto::NodeId::random(),
@@ -198,7 +198,7 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
         );
         assert!(settings.state.runtime.list().is_empty());
         write_release.send(()).unwrap();
-        writer.await.unwrap().unwrap();
+        let _saved = writer.await.unwrap().unwrap();
         stopping.await.unwrap().unwrap();
         assert!(
             !root.path().join("home/fake-tool.log").exists(),

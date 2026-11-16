@@ -20,7 +20,7 @@ type Socket =
 
 #[tokio::test]
 async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire() {
-    within(async {
+    Box::pin(within(async {
         let directory = tempfile::tempdir().unwrap();
         let data = DataDir::new(directory.path().join("data"));
         data.prepare().unwrap();
@@ -51,7 +51,7 @@ async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire()
             .expect("ordinary settings reads remain assigned");
         for version in first.get()..=vessel_proto::PROTOCOL_VERSION.get() {
             let version = ProtocolVersion::new(version);
-            let mut socket = raw_owner(&data, &node, version).await;
+            let mut socket = Box::pin(raw_owner(&data, &node, version)).await;
             for (id, call) in ordinary_calls() {
                 let required = call
                     .since()
@@ -72,7 +72,7 @@ async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire()
             );
         }
         step("node stops", node.stop()).await.unwrap();
-    })
+    }))
     .await;
 }
 
@@ -135,10 +135,10 @@ async fn raw_owner(data: &DataDir, node: &crate::Node, version: ProtocolVersion)
         .unwrap();
     bearer.set_sensitive(true);
     let _old = request.headers_mut().insert("authorization", bearer);
-    let (mut socket, _) = step(
+    let (mut socket, _) = Box::pin(step(
         "old owner connects",
         tokio_tungstenite::connect_async(request),
-    )
+    ))
     .await
     .unwrap();
     let hello = ClientFrame::Hello(Hello {

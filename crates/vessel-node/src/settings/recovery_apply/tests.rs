@@ -66,7 +66,7 @@ async fn real_on_apply_failure_stays_paused_and_same_value_does_not_succeed() {
     let f = Fixture::new().await;
     f.apply.store.close().await;
     f.apply.saved(on());
-    for _ in [(), ()] {
+    for () in [(), ()] {
         assert!(matches!(
             f.apply.settle_saved(&on()).await,
             Err(RecoveryApplyError::Apply(StoreError::Closed))

@@ -243,7 +243,7 @@ impl NodeService {
         Self {
             file_panels: file_panels::FilePanelSlots::default(),
             #[cfg(test)]
-            place_gate: Default::default(),
+            place_gate: crate::settings::writer_tests::GateSlot::default(),
             lsp,
             lsp_roots,
             lifecycle,

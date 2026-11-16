@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- The next strict check reached the new test bodies and reported test-only
+  unused results, concrete-default spelling and oversized future values. Bind
+  setup results and box the existing fixture futures without changing their
+  assertions, clocks or execution order. Actual regression execution remains
+  owed; no failed compile is counted as a runtime result.
+
+
 - The second changed-source strict run found only compile/lint defects: unused
   imports and qualifications, a fixture's private-owner access, shared fixture
   dead code and the startup function budget. The corrections keep assertions,
