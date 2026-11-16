@@ -237,6 +237,17 @@ source, client-lifetime binding and drain ordering still need their own
 review/checks. No private resolver, parallel quota or activation follows from
 this graph ruling; legacy behavior is not silently expanded.
 
+Receiving wiring (2026-11-16, the third consumer's packet): the node setup
+creates the node-root `ResolutionBudget` (its first consumer; NodeLink and
+dictation must share this one value when wired). `vessel-node::http_resolution`
+is the thin reqwest adapter (validated host, port 0, the primitive's safe
+failure, no quota/cache/fallback). `vessel-node::limits::dns` creates the one
+client scope with the permits-only `UsageClient` hold and quota
+`LimitContext::READ_SLOTS`, injects the adapter through
+`LimitContext::resolving`, and retires it: both source owners run on one local
+tracker, and a task on the node tracker waits for them, then drains the scope.
+`LimitContext::new()` carries no resolver and builds no client.
+
 ### Shared and receiving proofs
 
 Before code, V3 reviews this shared contract and ADR0096's reference. Afterwards

@@ -1915,6 +1915,12 @@ seams. `vessel-usage-fixture` is a separate required-feature scratch-only node,
 never an option in installed vesseld. See `docs/plans/wp-f3-sources.md` for recorded
 fixtures, managed export constraints and exact verification debt.
 
+Provider lookups go through the tracked native DNS primitive (ADR 0104): the node
+injects `vessel-node::http_resolution`'s reqwest adapter into the one persistent
+`LimitContext` client, and `limits::dns` drains that client's scope only after
+both source owners end, before node stop completes. Without injection Harness
+builds no client (Unsupported), never reqwest's default resolver.
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and

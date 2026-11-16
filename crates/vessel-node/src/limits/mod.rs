@@ -11,6 +11,7 @@
 //!   soon. Reworking unrelated node settings is outside this feature.
 //! - Cost: a bounded RAM cache is lost at restart; saved sign-ins and
 //!   snapshots never enter the database or policy file.
+mod dns;
 mod notice;
 pub(crate) mod policy;
 mod read;
@@ -60,22 +61,27 @@ enum Command {
 }
 impl Limits {
     /// The node's limits service from its configuration: the node
-    /// assembly's one step for limits (protocol 23).
+    /// assembly's one step for limits (protocol 23). Both source owners run
+    /// on their own tracker so the client's name-resolution scope drains
+    /// only after they end; `tasks` tracks that retirement (ADR 0104).
     pub(crate) async fn configured(
         config: &crate::Config,
         stop: CancellationToken,
         tasks: &TaskTracker,
+        resolution: &vessel_relay::resolution::ResolutionBudget,
     ) -> Self {
-        let context = LimitContext::new();
+        let (context, scope) = dns::context(resolution);
+        let owners = TaskTracker::new();
         let mut limits = Self::start(
             config.data_dir.clone(),
             config.limits.clone(),
             stop.clone(),
-            tasks,
+            &owners,
             context.clone(),
         )
         .await;
-        limits.sources = crate::usage_reports::Sources::start(config, stop, tasks, context).await;
+        limits.sources = crate::usage_reports::Sources::start(config, stop, &owners, context).await;
+        drop(tasks.spawn(dns::retire(owners, scope)));
         limits
     }
 
