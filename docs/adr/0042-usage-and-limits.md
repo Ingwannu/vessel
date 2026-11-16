@@ -617,3 +617,12 @@ through `ClientBuilder::dns_resolver`; Harness still depends on no relay crate.
   in the finite lookup quota: a full or closed scope reads as Unreachable).
   The three account rows and both feature constants stay `None` until the
   integrator assigns them at merge.
+
+### Account methods assigned (2026-11-16)
+
+`ACCOUNT_REPORTS_PROTOCOL` and `USAGE_SOURCE_CONSENT_PROTOCOL` share protocol 26,
+assigned in merge order on the node line together with the tracked-resolver
+wiring above. The coordinator ruled that the node activation lands before its
+native, page and CLI consumers; they fall back to `usage.limits` (23) on older
+or unassigned peers and follow as their own packets. The consent rules above
+are unchanged by the assignment.
