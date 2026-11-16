@@ -8,7 +8,7 @@ use vessel_proto::{
 };
 mod global_revocation;
 mod harness;
-use harness::{Fixture, SERVICE_TEST_BUDGET};
+use harness::{Fixture, FixtureOwner, SERVICE_TEST_BUDGET};
 fn cursor(reports: &UsageReports) -> &SourceReportEntry {
     reports
         .reports
@@ -75,10 +75,10 @@ async fn passive_reads_and_consent(fixture: &Fixture) {
 
 #[tokio::test]
 async fn real_service_enforces_consent_refresh_and_redaction_without_read_discovery() {
-    vessel_testkit::within(
-        SERVICE_TEST_BUDGET,
-        Box::pin(async {
-            let fixture = Fixture::start().await;
+    let resources = FixtureOwner::new();
+    resources
+        .run(SERVICE_TEST_BUDGET, async {
+            let fixture = Fixture::start(&resources).await;
             passive_reads_and_consent(&fixture)
                 .phase("usage phase: passive_reads_and_consent")
                 .await;
@@ -146,11 +146,9 @@ async fn real_service_enforces_consent_refresh_and_redaction_without_read_discov
                     .all(|entry| entry.source().as_str() != "cursor")
             );
             assert_eq!(fixture.reads(), reads);
-            fixture.finish().await;
-        }),
-    )
-    .await
-    .unwrap();
+        })
+        .await;
+    resources.assert_settled();
 }
 
 async fn assert_opaque_inspect_refusals(

@@ -110,11 +110,11 @@ async fn acquired(semaphore: &Semaphore) {
         .forget();
 }
 
-async fn revoked_without_setter_continuation(held: Held) {
+async fn revoked_without_setter_continuation(held: Held, resources: &FixtureOwner) {
     let control = Arc::new(Control::new());
     let _release = Release(Arc::clone(&control));
     let capability = Arc::clone(&control);
-    let fixture = Box::pin(Fixture::with_access(move |home, reads| {
+    let fixture = Box::pin(Fixture::with_access(resources, move |home, reads| {
         capability.access(home, reads)
     }))
     .await;
@@ -203,7 +203,6 @@ async fn revoked_without_setter_continuation(held: Held) {
     recover_after_revocation(&fixture, &control, &original_id, expected)
         .phase("usage phase: recover_after_revocation")
         .await;
-    fixture.finish().await;
 }
 
 async fn recover_after_revocation(
@@ -311,19 +310,23 @@ async fn cancel_setter_after_durable_off(fixture: &Fixture) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn committed_global_off_cancels_held_credentials_after_the_setter_is_dropped() {
-    vessel_testkit::within(
-        REVOCATION_TEST_BUDGET,
-        Box::pin(revoked_without_setter_continuation(Held::Credential)),
-    )
-    .await
-    .unwrap();
+    let resources = FixtureOwner::new();
+    resources
+        .run(
+            REVOCATION_TEST_BUDGET,
+            revoked_without_setter_continuation(Held::Credential, &resources),
+        )
+        .await;
+    resources.assert_settled();
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn committed_global_off_drops_active_http_after_the_setter_is_dropped() {
-    vessel_testkit::within(
-        REVOCATION_TEST_BUDGET,
-        Box::pin(revoked_without_setter_continuation(Held::Http)),
-    )
-    .await
-    .unwrap();
+    let resources = FixtureOwner::new();
+    resources
+        .run(
+            REVOCATION_TEST_BUDGET,
+            revoked_without_setter_continuation(Held::Http, &resources),
+        )
+        .await;
+    resources.assert_settled();
 }

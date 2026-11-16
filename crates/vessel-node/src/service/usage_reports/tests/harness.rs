@@ -14,6 +14,15 @@ use vessel_harness::{
 };
 use vessel_proto::{ClientInfo, DeviceId, Scope, usage_reports::BuiltinUsageSource};
 use vessel_rpc::{Framed, Server, ServerConfig};
+mod owner;
+pub(super) use owner::FixtureOwner;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SetupPhase {
+    NodeStarted,
+    FramedHandshake,
+}
+
 const FRAME_BYTES: usize = 65_536;
 pub(super) const SERVICE_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(30);
 // Real node setup includes its blocking database/directory initialization. Give
@@ -21,41 +30,42 @@ pub(super) const SERVICE_TEST_BUDGET: std::time::Duration = std::time::Duration:
 // protocol/barrier/reply phases keep the shorter shared ten-second deadline.
 const NODE_START_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
 pub(super) struct Fixture {
-    pub(super) root: tempfile::TempDir,
-    node: Option<crate::Node>,
+    pub(super) root: Arc<tempfile::TempDir>,
+    service: Arc<crate::guard::Guarded>,
     pub(super) owner: Connection,
     pub(super) reader: Connection,
     pub(super) reads: Arc<AtomicUsize>,
     _client: vessel_client::NodeClient,
-    server: Option<tokio::task::JoinHandle<()>>,
-    stop: CancellationToken,
-    _cancel: tokio_util::sync::DropGuard,
-}
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        self.stop.cancel();
-        if let Some(server) = &self.server {
-            server.abort();
-        }
-        if let Some(node) = &self.node {
-            node.secure.lifecycle.stop(vessel_proto::StopWhen::Now);
-        }
-    }
 }
 impl Fixture {
-    pub(super) async fn start() -> Self {
-        Self::with_access(|home, seen| {
-            AccountSourceAccess::new(home, move |name| {
-                let _previous = seen.fetch_add(1, Ordering::SeqCst);
-                (name == "CURSOR_ACCESS_TOKEN").then(|| "synthetic-service-source".into())
-            })
-        })
+    pub(super) async fn start(owner: &FixtureOwner) -> Self {
+        Self::observed(owner, |_| {}).await
+    }
+    pub(super) async fn observed(owner: &FixtureOwner, observe: impl Fn(SetupPhase)) -> Self {
+        Self::configured(
+            owner,
+            |home, seen| {
+                AccountSourceAccess::new(home, move |name| {
+                    let _previous = seen.fetch_add(1, Ordering::SeqCst);
+                    (name == "CURSOR_ACCESS_TOKEN").then(|| "synthetic-service-source".into())
+                })
+            },
+            observe,
+        )
         .await
     }
     pub(super) async fn with_access(
+        owner: &FixtureOwner,
         access: impl FnOnce(std::path::PathBuf, Arc<AtomicUsize>) -> AccountSourceAccess,
     ) -> Self {
-        let root = tempfile::tempdir().unwrap();
+        Self::configured(owner, access, |_| {}).await
+    }
+    async fn configured(
+        owner: &FixtureOwner,
+        access: impl FnOnce(std::path::PathBuf, Arc<AtomicUsize>) -> AccountSourceAccess,
+        observe: impl Fn(SetupPhase),
+    ) -> Self {
+        let root = Arc::clone(&owner.root);
         let home = root.path().join("home");
         std::fs::create_dir(&home).unwrap();
         let body = root.path().join("report.json");
@@ -81,10 +91,13 @@ impl Fixture {
             .await
             .unwrap();
         let stop = CancellationToken::new();
-        let cancel = stop.clone().drop_guard();
+        let service = Arc::clone(&node.secure.service);
+        let info = node.secure.lifecycle.watch_info();
+        owner.retain_node(node);
+        observe(SetupPhase::NodeStarted);
         let server = Server::new(
-            Arc::clone(&node.secure.service),
-            node.secure.lifecycle.watch_info(),
+            Arc::clone(&service),
+            info,
             ServerConfig::default(),
             stop.clone(),
         );
@@ -107,6 +120,8 @@ impl Fixture {
                 )
                 .await;
         });
+        owner.retain_server(server, stop);
+        observe(SetupPhase::FramedHandshake);
         let (reader, writer) = tokio::io::split(local);
         let client = vessel_client::NodeClient::over(
             Framed::new(reader, writer, NonZeroUsize::new(FRAME_BYTES).unwrap()),
@@ -126,37 +141,18 @@ impl Fixture {
         });
         Self {
             root,
-            node: Some(node),
+            service,
             owner,
             reader,
             reads,
             _client: client,
-            server: Some(server),
-            stop,
-            _cancel: cancel,
         }
     }
     pub(super) fn service(&self) -> &crate::guard::Guarded {
-        &self.node.as_ref().unwrap().secure.service
+        &self.service
     }
     pub(super) fn handler(&self) -> Arc<crate::guard::Guarded> {
-        Arc::clone(&self.node.as_ref().unwrap().secure.service)
-    }
-    pub(super) async fn finish(mut self) {
-        self.stop.cancel();
-        self.node
-            .take()
-            .unwrap()
-            .stop()
-            .phase("usage phase: self.node.take.unwrap.stop")
-            .await
-            .unwrap();
-        self.server
-            .take()
-            .unwrap()
-            .phase("framed server drain")
-            .await
-            .unwrap();
+        Arc::clone(&self.service)
     }
     pub(super) fn reads(&self) -> usize {
         self.reads.load(Ordering::SeqCst)
