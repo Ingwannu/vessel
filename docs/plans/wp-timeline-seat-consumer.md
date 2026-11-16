@@ -34,3 +34,8 @@ pointer-based rewind/fork eligibility remains explicitly legacy and returns no
 action for admitted carriers; it does not authorize a new scoped operation. W2
 and W12 still own actual source hydration and guarded action integration. W4's
 private A8 Paint/header adaptation remains with W4, outside this owner cut.
+
+The shared Paint preparation now returns Option. A missing root rejects the
+borrowed detail or row instead of substituting even a local catalogue. Rows and
+the compact overlay propagate that refusal, so this API does not hide a failed
+scoped resolution behind metadata from another surface.

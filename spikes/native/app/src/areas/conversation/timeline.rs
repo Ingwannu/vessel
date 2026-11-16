@@ -84,8 +84,10 @@ pub(crate) fn rows(
     area.bench
         .frame(area.timeline.entries().len(), &area.list, window);
     if area.timeline.entries().is_empty() {
-        let paint = paint(shell, area, seat, tokens, window);
-        return entries::empty(&paint).into_any_element();
+        return paint(shell, area, seat, tokens, window).map_or_else(
+            || div().into_any_element(),
+            |paint| entries::empty(&paint).into_any_element(),
+        );
     }
     // A fork's origin's rows come first (`origin`).
     let head = area.head();
@@ -118,11 +120,9 @@ pub(super) fn paint<'a>(
     seat: Seat,
     tokens: &'a Tokens,
     window: &Window,
-) -> Paint<'a> {
-    let headers = seat
-        .root_get(shell)
-        .map_or(&area.forking.headers, |root| &root.forking.headers);
-    Paint {
+) -> Option<Paint<'a>> {
+    let headers = &seat.root_get(shell)?.forking.headers;
+    Some(Paint {
         catalog: shell.words,
         words: shell.t.lang.conversation(),
         tokens,
@@ -139,7 +139,7 @@ pub(super) fn paint<'a>(
             .then_some((&area.timeline, &area.forking)),
         fork_headers: headers,
         above: area.above(),
-    }
+    })
 }
 
 /// Whether a rewind may be asked of `area`'s session now: the session
@@ -164,7 +164,9 @@ fn row_element(
     let Some(area) = seat.get(shell) else {
         return div().into_any_element();
     };
-    let paint = paint(shell, area, seat, tokens, window);
+    let Some(paint) = paint(shell, area, seat, tokens, window) else {
+        return div().into_any_element();
+    };
     if let Some(tail) = area.tail_row(row) {
         return lane(tail_element(&paint, area, tail));
     }
