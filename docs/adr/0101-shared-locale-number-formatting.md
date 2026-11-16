@@ -196,8 +196,8 @@ two). Exact display is required even where categories agree.
 
 The deferred survey locales are `ar`, `es`, `fr`, `ja`, `pt-BR`, `ru`, and
 `zh-CN` alongside shipped `en`/`ko` (`gaps.md`, localization section).
-Russian and Arabic cardinal rules inspect last digits; French and Portuguese
-also have integer-million divisibility conditions in current CLDR rules.
+Russian and Arabic cardinal rules inspect last digits; Spanish, French and
+Portuguese also have integer-million divisibility conditions in current CLDR rules.
 They require exact operands. This describes the survey, not a decision to
 ship additional languages or copy their translation assets. The maintained
 [CLDR rule chart](https://unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html)
@@ -251,6 +251,12 @@ integration and captures remain separate from the formatter's pure tests.
 No backend has been measured or adopted for this extension yet. Existing
 generator source/View approval does not approve this formatter. Append the
 measured comparison and resulting choice here before product adoption.
+
+The cached ICU 2.4.0 decimal/plural data identifies CLDR 49.0.0 and Unicode
+18.0.0; the retained Intl oracle below uses CLDR 48.0/Unicode 17.0. Do not
+attribute a data-version difference to rounding or assume byte parity merely
+because both engines use CLDR. Compare the EN/KO corpus and report any
+policy/data differences explicitly before choosing the backend.
 
 ### Reference and rejected-carrier characterization
 

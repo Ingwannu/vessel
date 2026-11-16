@@ -67,6 +67,30 @@ category-only function; a separate exact comparison capability or maintained
 AST lowering would be necessary where messages need it. Adding an ad hoc
 number parser, lossy numeric fallback or a per-area formatter is not allowed.
 
+A no-vendor alternative preserving the existing authored syntax is to lower
+numeric expressions using `fluent_syntax`'s maintained AST and serializer.
+It must separate numeric payloads from final display at explicit private
+function boundaries, rather than globally guessing whether arbitrary text
+is a number. It also must preserve nested NUMBER rounding/options and term
+arguments. Numeric selectors would carry their ordered literal/category
+variants to an exact matcher; that matcher uses the maintained plural engine
+and returns a private selection identifier. Transforming only the category
+or always preferring a literal would change Fluent's existing ordered match
+semantics. The same lowering policy would have to serve core build resources
+and W16's validated plugin resources. Extra initialization parsing must be
+measured, and plain getters must remain pre-resolved field borrows.
+
+| Design | Upstream patch | Translation/API cost | Evidence still owed |
+| --- | --- | --- | --- |
+| Typed custom-number hooks | Five files, +56/-3 | Existing authored NUMBER/select syntax retained; private numeric adapter required | Both memoizers, all options/literal precedence, upgrade and artifact costs |
+| Explicit PLURAL | None | New exact-count inference/function policy; native literal overrides need an additional design | Complete expressivity, shared plugin contract, actual implementation/cost |
+| AST lowering | None | Existing authored syntax retained; shared compiler lowering and private typed payload protocol required | Nested/term/literal equivalence, prepared-cache/startup and artifact costs |
+
+The patched resolver source confirms that matches are tried in variant order.
+An exact candidate must preserve that order, including a category preceding
+an exact numeric literal. No candidate may treat a formatted digit string as
+the operand used by its plural engine.
+
 This comparison is not an implemented alternative or a recommendation yet.
 The numeric kernel, actual hook tests, exact alternative, dependency graph,
 release/wasm bytes and compile-time deltas remain to be evaluated before the
