@@ -56,3 +56,26 @@ Cargo/rustc/metadata/boundary script. No real provider/key/microphone or service
 account/permission changes. At this checkpoint there is no own fake fleet,
 virtual display or app/server process; own gate attach wrappers finish after
 receipt. A final receipt/cleanup appendix below supersedes pending states only.
+
+
+## Secure canonical line announced during the quota stop
+
+G2/lead announce checked package base14.4=`935569d5` (native1801/0/2),
+including canonical SecretField receiving compilation. This supersedes only
+the earlier "waiting lead receiving" state: W19 may consume that announced
+line through the normal App A8 merge on the next permitted session. No merge,
+secure-field consumer or new build is started solely from this notice during
+the quota stop. The bounded privacy/authority/OSAT/IME/zeroization limits remain;
+no Host Voice/store flow is approved by the shared control's proof. Never take
+the audit main, isolated producer or fullF1.
+
+## Final node narrow receipt
+
+Run `wp-voice-node-narrow-20261116T033853Z-d51abd7a` completed0:
+exactd51abd7a93ba7819aebcf3a696b45b42e0a25c0d, locked/offline
+Node/Proto/Web/CLI all-target strict with ProtoTS, cargo176s. Full cargo SHA256
+`8cf92cde277456d3a60166e94c47ce5aa8ce64cf39b88da350587d6501108901`
+matches the steps log. The exact spec and source were independently read.
+This closes the listed new-union compile debt only. No root test/whole/runtime,
+774 retry/waiver, ORT compile or model execution is inferred. The root gate
+attach process has exited normally; no owned fleet/display/app/server exists.
