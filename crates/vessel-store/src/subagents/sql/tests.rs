@@ -115,11 +115,13 @@ fn detached_candidates_survive_more_than_one_page_of_attached_children() {
         },
         DateTime::UNIX_EPOCH,
     );
-    db.execute(
-        "UPDATE sessions SET detach_receipt=?2 WHERE id=?1",
-        params![detached.key.session.to_string(), encode(&foreign).unwrap()],
-    )
-    .unwrap();
+    let changed = db
+        .execute(
+            "UPDATE sessions SET detach_receipt=?2 WHERE id=?1",
+            params![detached.key.session.to_string(), encode(&foreign).unwrap()],
+        )
+        .unwrap();
+    assert_eq!(changed, 1);
     assert!(queries::candidates(&db, PAGE).is_err());
     assert!(queries::current(&db, detached).is_err());
 }

@@ -76,12 +76,13 @@ fn source_and_final_lease_queries_use_their_statement_snapshot_and_current_recei
     );
     // A later writer may consume the attention and revoke its current lease.
     let changed = writer.unchecked_transaction().unwrap();
-    changed
+    let consumed = changed
         .execute(
             "UPDATE inbox SET seen=1 WHERE session=?1",
             [source.key.session.to_string()],
         )
         .unwrap();
+    assert_eq!(consumed, 1);
     devices::revoke(&changed, lease.device, queries::now()).unwrap();
     changed.commit().unwrap();
     assert!(queries::current(&transaction, source).unwrap());
@@ -91,12 +92,13 @@ fn source_and_final_lease_queries_use_their_statement_snapshot_and_current_recei
     assert!(!queries::current(&reader, source).unwrap());
     assert!(!queries::admitted(&reader, &lease, source).unwrap());
     // Marking the source unread again cannot resurrect the revoked lease.
-    writer
+    let unread = writer
         .execute(
             "UPDATE inbox SET seen=0 WHERE session=?1",
             [source.key.session.to_string()],
         )
         .unwrap();
+    assert_eq!(unread, 1);
     assert!(queries::current(&reader, source).unwrap());
     assert!(
         !queries::admitted(&reader, &lease, source).unwrap(),

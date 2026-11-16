@@ -48,3 +48,14 @@ and preserve filtering before LIMIT. A5 receiving caller checks remain owed.
 
 No push transport, browser, actual device, credentials, live service or permissions
 are used. The private SQL error text is structural and contains no stored values.
+
+
+## First narrow correction
+
+The first exactad1 all-target strict run stopped on11 test-helper diagnostics:
+unwraps inside Result-returning SQL query probes and ignored SQL affected-row
+counts. Product scalar/registration had no reported diagnostic. The probes now
+propagate the existing StoreError/ToSql errors and assert each intended single
+row mutation, without changing SQL, eligibility, assertions or bounds. The red
+run is retained; per coordinator rule all correction checks use the ordinary
+short lane. No Store test execution or full PASS is inferred from that run.
