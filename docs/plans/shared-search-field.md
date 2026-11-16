@@ -102,3 +102,15 @@ themes' Search/X geometry, silent restoration, focus and source-tagged clear,
 and a forced old-engine event delivered after replacement with an unchanged
 current query. No consumer transition, new renderer or other field module is
 included. This leaf remains uncompiled/unreviewed until its remote checks finish.
+
+
+Identified leaf277f06 strict passed (run
+wp-labels-search-source-20261116T013136Z-277f06d1), but actual focused runtime
+wp-labels-search-source-20261116T014353Z-277f06d1 returned3 passed/1 failed.
+The old-editor rejection and both pre-existing tests passed. The new test's
+last Enter assertion wrongly assumed no Change. Existing single-line Enter
+propagates; the test window forwards its newline to the input handler, whose
+normalization preserves empty text while emitting Change. Assert the full
+source-tagged history including that empty event, unchanged text and no rejected
+source. Product constructors, renderer and event behavior remain unchanged.
+Keep this red result; corrected strict/runtime and V1 adoption remain owed.

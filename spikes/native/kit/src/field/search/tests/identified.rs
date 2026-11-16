@@ -122,7 +122,24 @@ fn identified_search_keeps_search_clear_chrome_and_real_focus(cx: &mut TestAppCo
         assert_eq!(narrow.size.height, px(34.0));
         cx.simulate_keystrokes("enter");
         cx.run_until_parked();
-        view.read_with(cx, |this, _| assert_eq!(this.observed.len(), 3));
+        view.read_with(cx, |this, cx| {
+            let field = this.field.as_ref().unwrap();
+            // The existing one-line engine propagates Enter. The test window
+            // forwards its newline through the input handler, which normalizes
+            // it to empty text and emits an ordinary Change. Preserve that path.
+            assert_eq!(field.text(cx), "");
+            assert_eq!(
+                this.observed,
+                [
+                    (field.id(), "한".to_owned()),
+                    (field.id(), "한글".to_owned()),
+                    (field.id(), String::new()),
+                    (field.id(), String::new()),
+                ]
+            );
+            assert_eq!(this.accepted, ["한", "한글", "", ""]);
+            assert!(this.rejected.is_empty());
+        });
     }
 }
 
