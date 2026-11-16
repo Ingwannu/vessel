@@ -76,3 +76,10 @@ reservation after these three. W22 has a prepared eleven-row consumer snapshot
 Read Main docs/plans/wp-f4-sidebar-resume.md on backend/m12-wp-sidebar and query
 the already-queued placement025223/3958 before any new build. Latest14.4 is
 recorded but no new merge occurs during quota closeout. All source is committed.
+
+Terminal closeout update: placement025223 on exact3958ad38 finished03:51 UTC,
+fonts0/cargo0, three tests passed,271 filtered. There is no remaining S2 Cargo
+job. V1 f0838d9b recorded INTAKE ONLY and review/adoption HOLD for resume;
+prior1b strict is not exact395 strict. Earlier queued-job wording above is the
+historical checkpoint. This result validates none of this leaf's source.
+No new run, merge, control or consumer registration was started at closeout.
