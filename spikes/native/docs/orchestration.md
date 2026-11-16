@@ -39,5 +39,9 @@ The first private-packet strict compiled product code and returned four test
 style errors only: the task helper needed an explicit cfg(test), and two
 get().unwrap() fixture lookups needed explicit missing-owner assertions. These
 are corrected without changing a timeout, assertion, guard or effect path;
-the original failed log is retained. Exact corrected strict and actual Link
-execution remain owed.
+the original failed log is retained. Exact corrected strict remains queued. Run
+wp-mcp-app-20261116T013958Z-ae309b60 executed Link 9 and View 7 tests
+with zero failures, including the actual frame barrier and four original-lease
+envelope cases. Those results cover the base-13 predecessor; the straight
+base-13.1 packet preserves the same product/test blobs and still needs its
+receiving App, strict and wasm checks. It activates no Skills RPC.
