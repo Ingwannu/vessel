@@ -6,13 +6,16 @@
 /// <https://tc39.es/ecma262/multipage/text-processing.html#sec-trimstring>.
 #[must_use]
 pub fn trim_ecmascript(text: &str) -> &str {
-    text.trim_matches(|character| {
-        matches!(character,
-            '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}' |
-            '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' |
-            '\u{205f}' | '\u{3000}' | '\u{feff}'
-        )
-    })
+    text.trim_matches(ecmascript_space)
+}
+
+/// The same set also delimits root command names before their typed parser.
+pub(crate) fn ecmascript_space(character: char) -> bool {
+    matches!(character,
+        '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}' |
+        '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' |
+        '\u{205f}' | '\u{3000}' | '\u{feff}'
+    )
 }
 
 #[cfg(test)]
