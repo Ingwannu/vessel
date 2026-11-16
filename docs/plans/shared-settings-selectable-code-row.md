@@ -53,3 +53,9 @@ any kit dialog could be selected.
 Test (`dialog::selection_tests`): with the selection layer under a dialog, a
 drag over text in the card selects it, and the dialog does not close. The
 existing dismissal tests (scrim, Escape, close glyph) stay unchanged.
+
+Results (2026-11-16, build VM; nothing compiled locally): strict
+selectable-row-20261116T084823Z-295b1b58 (fonts, fmt, quality, whole native clippy 0);
+tests selectable-row-narrow-20261116T083525Z-f7ea9e45 (`-p vessel-app-kit --lib --
+settings:: plain_text dialog::`) 26/0. In the pairing offer's export the drag selects a
+machine id at 1280 and an endpoint on the 390 sheet.
