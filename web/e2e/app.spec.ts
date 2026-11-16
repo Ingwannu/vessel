@@ -2,7 +2,8 @@
 // (e2e/fleet.ts): what the plan's B7 lists.
 
 import { execFileSync } from "node:child_process";
-import { join } from "node:path";
+import { writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 
 import { expect, type Page, test } from "@playwright/test";
 
@@ -345,6 +346,23 @@ test("a device is invited, pairs, and is revoked", async ({ page }) => {
   ).toBeVisible();
   const link = (await page.locator(".invite-box-text").textContent()) ?? "";
   expect(link.startsWith("vessel://pair#")).toBe(true);
+  // Privacy regression: fail with the actual fixture invitation and QR still visible.
+  // The private marker is inspected only by the evidence sanitizer; no value enters a log.
+  const offer: unknown = JSON.parse(
+    Buffer.from(link.slice("vessel://pair#".length), "base64url").toString("utf8"),
+  );
+  if (typeof offer !== "object" || offer === null || !("invite" in offer) || typeof offer.invite !== "string") {
+    throw new Error("Fixture invitation format was not understood");
+  }
+  writeFileSync(
+    join(process.env["TMPDIR"] ?? env.root, "vrg-pairing-proof-private.json"),
+    JSON.stringify({ run: basename(process.env["VRG_RUN_DIR"] ?? ""), token: offer.invite, link, prefix: "vessel://pair#" }),
+    { mode: 0o600, flag: "wx" },
+  );
+  // Exercise trace console/argument redaction without forwarding the browser console to stdout.
+  await page.evaluate(({ token, address }) => console.log(token, address), { token: offer.invite, address: link });
+  expect(true, "Intentional failure while the fixture invitation is revealed").toBe(false);
+
   await page.context().grantPermissions(["clipboard-write"]);
   await page.getByRole("button", { name: "Copy pairing link" }).click();
   await expect(page.locator(".invite-box-text")).toHaveCount(0);
