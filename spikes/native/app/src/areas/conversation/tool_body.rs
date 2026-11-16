@@ -1,6 +1,6 @@
 //! One borrowed canonical body for timelines and proposed permission details.
 //! Identity, execution, approval, disclosure and I/O remain with the caller.
-use vessel_app_kit::output::{AnnotatedLines, Line, Lines, Tone, annotated_lines_box};
+use vessel_app_kit::output::{AnnotatedLines, Line, Lines, Tone, syntax_lines_box};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, App, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
@@ -13,6 +13,9 @@ use vessel_app_view::timeline::{
     unified_lines, word_highlights,
 };
 use vessel_proto::timeline::{DetailOffset, ToolCallDetail};
+
+mod syntax;
+use syntax::{Continuity, decorate};
 
 /// Borrowed drawing inputs only; no Entry, Seat, session or I/O capability.
 pub(super) struct BodyPaint<'a> {
@@ -155,11 +158,13 @@ fn section_body(
             plain_output(paint, id, &text, window, cx)
         }
         ToolSection::Code {
-            text, first_line, ..
-        } => code(paint, id, text, *first_line, window, cx),
-        ToolSection::Patch { text, .. } => patch(paint, id, text, window, cx),
-        ToolSection::Edit { old, new, .. } => {
-            computed_diff(paint, id, *old, new, window, cx).into_any_element()
+            text,
+            first_line,
+            path,
+        } => code(paint, id, text, *first_line, path, window, cx),
+        ToolSection::Patch { text, path } => patch(paint, id, text, path, window, cx),
+        ToolSection::Edit { old, new, path } => {
+            computed_diff_at(paint, id, *old, new, Some(path), window, cx).into_any_element()
         }
         ToolSection::Text(text) => plain_output(paint, id, text, window, cx),
         ToolSection::Prose(text) => prose(paint, id, text, window, cx),
@@ -232,27 +237,34 @@ fn code(
     id: ElementId,
     text: &str,
     first: Option<DetailOffset>,
+    path: &std::path::Path,
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
-    let version = version_of(&(text, first));
-    let lines = lines_box(
+    let version = version_of(&(text, first, path));
+    let lines = syntax_lines_box(
         id,
         version,
-        || Lines {
-            lines: text
-                .lines()
-                .take(MAX_LINES)
-                .enumerate()
-                .map(|(index, line)| Line {
-                    text: line.to_owned().into(),
-                    tone: Tone::Plain,
-                    number: first
-                        .and_then(|offset| usize::try_from(offset.get()).ok())
-                        .and_then(|offset| offset.checked_add(index)),
-                })
-                .collect(),
-            copy: Some(text.to_owned().into()),
+        || {
+            decorate(
+                AnnotatedLines::from(Lines {
+                    lines: text
+                        .lines()
+                        .take(MAX_LINES)
+                        .enumerate()
+                        .map(|(index, line)| Line {
+                            text: line.to_owned().into(),
+                            tone: Tone::Plain,
+                            number: first
+                                .and_then(|offset| usize::try_from(offset.get()).ok())
+                                .and_then(|offset| offset.checked_add(index)),
+                        })
+                        .collect(),
+                    copy: Some(text.to_owned().into()),
+                }),
+                Some(path),
+                Continuity::File,
+            )
         },
         Start::Top,
         paint.tokens,
@@ -266,6 +278,7 @@ fn patch(
     paint: &BodyPaint<'_>,
     id: ElementId,
     text: &str,
+    path: &std::path::Path,
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
@@ -273,9 +286,9 @@ fn patch(
     let observed_id = id.clone();
     #[cfg(test)]
     tests::requested(&observed_id);
-    let lines = lines_box(
+    let lines = syntax_lines_box(
         id,
-        version_of(text),
+        version_of(&(text, path)),
         || {
             let projection = Lines {
                 lines: unified_lines(text)
@@ -295,7 +308,7 @@ fn patch(
             };
             #[cfg(test)]
             tests::admitted(&observed_id, &projection);
-            projection
+            decorate(projection.into(), Some(path), Continuity::Diff)
         },
         Start::Top,
         paint.tokens,
@@ -356,14 +369,27 @@ pub(super) fn computed_diff(
     window: &mut Window,
     cx: &mut App,
 ) -> Div {
+    computed_diff_at(paint, id, old, new, None, window, cx)
+}
+
+fn computed_diff_at(
+    paint: &BodyPaint<'_>,
+    id: ElementId,
+    old: Option<&str>,
+    new: &str,
+    path: Option<&std::path::Path>,
+    window: &mut Window,
+    cx: &mut App,
+) -> Div {
     // Both texts' versions (`kit::version_of`, their hashes): a change to
     // either splits the diff again (their lengths alone kept a first diff
     // on screen after a second of the same lengths).
-    let version = version_of(&(old, new));
+    let version = version_of(&(old, new, path));
     let (lines, cut) = diff_output(
         id,
         version,
         || diff_lines(old, new),
+        path,
         paint.tokens,
         window,
         cx,
@@ -389,6 +415,7 @@ fn diff_output<'a>(
     id: ElementId,
     version: u64,
     make: impl FnOnce() -> (Vec<DiffLine<'a>>, bool),
+    path: Option<&std::path::Path>,
     tokens: &vessel_app_kit::Tokens,
     window: &mut Window,
     cx: &mut App,
@@ -401,7 +428,7 @@ fn diff_output<'a>(
         std::rc::Rc::new(std::cell::Cell::new(false))
     });
     let cut = std::rc::Rc::clone(metadata.read(cx));
-    let lines = annotated_lines_box(
+    let lines = syntax_lines_box(
         id,
         version,
         || {
@@ -433,7 +460,7 @@ fn diff_output<'a>(
             };
             #[cfg(test)]
             tests::admitted(&observed_id, &projection.lines);
-            projection
+            decorate(projection, path, Continuity::Diff)
         },
         Start::Top,
         tokens,

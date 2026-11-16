@@ -78,3 +78,28 @@ impl From<Lines> for AnnotatedLines {
         }
     }
 }
+
+/// Semantic syntax over the same virtualized lines and exact copy payload.
+/// Kinds, not resolved colors, survive warm draws and theme changes.
+#[derive(Debug, Clone)]
+pub struct SyntaxLines {
+    /// Existing text, numbering, tones and optional changed ranges.
+    pub output: AnnotatedLines,
+    /// Non-overlapping UTF-8 byte runs per displayed line.
+    pub syntax: Vec<crate::code_editor::Runs>,
+}
+
+impl From<AnnotatedLines> for SyntaxLines {
+    fn from(output: AnnotatedLines) -> Self {
+        Self {
+            output,
+            syntax: Vec::new(),
+        }
+    }
+}
+
+impl From<Lines> for SyntaxLines {
+    fn from(lines: Lines) -> Self {
+        Self::from(AnnotatedLines::from(lines))
+    }
+}

@@ -27,6 +27,7 @@ impl Render for Probe {
                 self.builds.set(self.builds.get().saturating_add(1));
                 diff_lines(Some("before"), &self.text)
             },
+            None,
             &tokens,
             window,
             cx,

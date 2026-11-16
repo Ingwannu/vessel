@@ -47,9 +47,9 @@ use std::rc::Rc;
 
 use gpui::prelude::FluentBuilder as _;
 use gpui::{
-    AnyElement, App, Axis, ElementId, HighlightStyle, Hsla, InteractiveElement as _,
-    IntoElement as _, ListHorizontalSizingBehavior, ParentElement as _, ScrollStrategy,
-    SharedString, Styled, StyledText, UniformListScrollHandle, Window, div, px, uniform_list,
+    AnyElement, App, Axis, ElementId, Hsla, InteractiveElement as _, IntoElement as _,
+    ListHorizontalSizingBehavior, ParentElement as _, ScrollStrategy, SharedString, Styled,
+    StyledText, UniformListScrollHandle, Window, div, px, uniform_list,
 };
 use gpui_component::scroll::ScrollableMask;
 
@@ -86,13 +86,15 @@ const BAR: f32 = 2.0;
 const WASH: f32 = 0.08;
 
 mod model;
-pub use model::{AnnotatedLines, Line, Lines, Start, Tone};
+pub use model::{AnnotatedLines, Line, Lines, Start, SyntaxLines, Tone};
+mod syntax;
 
 /// What the box keeps between frames.
 struct Kept {
     version: u64,
     lines: Rc<[Line]>,
     emphasis: Rc<[Vec<Range<usize>>]>,
+    syntax: Rc<[crate::code_editor::Runs]>,
     copy: Option<SharedString>,
     /// The widest line, which sets the box's scrolled width.
     widest: usize,
@@ -103,7 +105,36 @@ struct Kept {
 }
 
 impl Kept {
-    fn take(&mut self, version: u64, mut made: AnnotatedLines) {
+    fn new(version: u64) -> Self {
+        Self {
+            version,
+            lines: Rc::new([]),
+            emphasis: Rc::new([]),
+            syntax: Rc::new([]),
+            copy: None,
+            widest: 0,
+            numbered: false,
+            handle: UniformListScrollHandle::new(),
+            placed: false,
+        }
+    }
+
+    fn take(&mut self, version: u64, made: impl Into<SyntaxLines>) {
+        let SyntaxLines {
+            output: mut made,
+            mut syntax,
+        } = made.into();
+        self.syntax = made
+            .lines
+            .lines
+            .iter()
+            .enumerate()
+            .map(|(index, line)| {
+                let runs = syntax.get_mut(index).map_or_else(Vec::new, std::mem::take);
+                crate::text_ranges::typed(&line.text, runs)
+            })
+            .collect::<Vec<_>>()
+            .into();
         self.version = version;
         self.widest = widest(&made.lines.lines);
         self.numbered = made.lines.lines.iter().any(|line| line.number.is_some());
@@ -132,6 +163,7 @@ struct Paint {
     look: Look,
     added: Hsla,
     removed: Hsla,
+    syntax: crate::code_editor::CodeStyles,
 }
 
 /// A box of lines. `id` keys its state and must stay the same for the
@@ -160,52 +192,60 @@ pub fn annotated_lines_box(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    syntax_lines_box(id, version, || make().into(), start, tokens, window, cx)
+}
+
+/// The existing output engine with semantic ink. Formatting inputs must be part
+/// of version; current colors resolve on every draw without rebuilding lines.
+pub fn syntax_lines_box(
+    id: impl Into<ElementId>,
+    version: u64,
+    make: impl FnOnce() -> SyntaxLines,
+    start: Start,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
     let id: ElementId = id.into();
     let paint = Paint {
         look: Look::of(tokens),
         added: tokens.st_ready,
         removed: tokens.neutral.destructive,
+        syntax: crate::code_editor::CodeStyles::of(tokens.scheme),
     };
     let mut make = Some(make);
     let state = window.use_keyed_state(id.clone(), cx, |_, _| {
-        let mut kept = Kept {
-            version,
-            lines: Rc::new([]),
-            emphasis: Rc::new([]),
-            copy: None,
-            widest: 0,
-            numbered: false,
-            handle: UniformListScrollHandle::new(),
-            placed: false,
-        };
+        let mut kept = Kept::new(version);
         if let Some(make) = make.take() {
             kept.take(version, make());
         }
         kept
     });
-    let (lines, emphasis, copy, widest, numbered, handle, place) = state.update(cx, |kept, _| {
-        if kept.version != version
-            && let Some(make) = make.take()
-        {
-            kept.take(version, make());
-        }
-        // Following: opened at the end, and kept there while it grows
-        // unless the person scrolled up.
-        let place = match start {
-            Start::Top => false,
-            Start::End => !kept.placed || kept.handle.is_scrolled_to_end() != Some(false),
-        };
-        kept.placed = true;
-        (
-            Rc::clone(&kept.lines),
-            Rc::clone(&kept.emphasis),
-            kept.copy.clone(),
-            kept.widest,
-            kept.numbered,
-            kept.handle.clone(),
-            place,
-        )
-    });
+    let (lines, emphasis, syntax, copy, widest, numbered, handle, place) =
+        state.update(cx, |kept, _| {
+            if kept.version != version
+                && let Some(make) = make.take()
+            {
+                kept.take(version, make());
+            }
+            // Following: opened at the end, and kept there while it grows
+            // unless the person scrolled up.
+            let place = match start {
+                Start::Top => false,
+                Start::End => !kept.placed || kept.handle.is_scrolled_to_end() != Some(false),
+            };
+            kept.placed = true;
+            (
+                Rc::clone(&kept.lines),
+                Rc::clone(&kept.emphasis),
+                Rc::clone(&kept.syntax),
+                kept.copy.clone(),
+                kept.widest,
+                kept.numbered,
+                kept.handle.clone(),
+                place,
+            )
+        });
     let count = lines.len();
     if place {
         handle.scroll_to_item(count.saturating_sub(1), ScrollStrategy::Bottom);
@@ -220,8 +260,9 @@ pub fn annotated_lines_box(
                     Some(row(
                         line,
                         emphasis.get(index).map_or(&[], Vec::as_slice),
+                        syntax.get(index).map_or(&[], Vec::as_slice),
                         numbered,
-                        paint,
+                        &paint,
                     ))
                 })
                 .collect::<Vec<_>>()
@@ -310,6 +351,7 @@ pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
         look: Look::of(tokens),
         added: tokens.st_ready,
         removed: tokens.neutral.destructive,
+        syntax: crate::code_editor::CodeStyles::of(tokens.scheme),
     };
     div()
         .w_full()
@@ -317,21 +359,28 @@ pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
         .text_size(px(crate::fonts::code(SIZE)))
         .line_height(px(crate::fonts::code(LINE)))
         .text_color(paint.look.text.opacity(0.8))
-        .child(row_of(line, &[], true, wrap, paint))
+        .child(row_of(line, &[], &[], true, wrap, &paint))
         .into_any_element()
 }
 
 /// One line: a diff's bar and number, then the text, unwrapped.
-fn row(line: &Line, emphasis: &[Range<usize>], numbered: bool, paint: Paint) -> AnyElement {
-    row_of(line, emphasis, numbered, false, paint)
+fn row(
+    line: &Line,
+    emphasis: &[Range<usize>],
+    syntax: &[(Range<usize>, Option<crate::code_editor::SyntaxKind>)],
+    numbered: bool,
+    paint: &Paint,
+) -> AnyElement {
+    row_of(line, emphasis, syntax, numbered, false, paint)
 }
 
 fn row_of(
     line: &Line,
     emphasis: &[Range<usize>],
+    syntax: &[(Range<usize>, Option<crate::code_editor::SyntaxKind>)],
     numbered: bool,
     wrap: bool,
-    paint: Paint,
+    paint: &Paint,
 ) -> AnyElement {
     let ink = match line.tone {
         Tone::Plain => None,
@@ -365,14 +414,12 @@ fn row_of(
     } else {
         row = row.pl(px(PAD));
     }
-    let mut text = StyledText::new(line.text.clone());
-    if let Some(ink) = ink {
-        let style = HighlightStyle {
-            background_color: Some(ink.opacity(WASH)),
-            ..HighlightStyle::default()
-        };
-        text = text.with_highlights(emphasis.iter().cloned().map(|range| (range, style)));
-    }
+    let text = StyledText::new(line.text.clone()).with_highlights(self::syntax::highlights(
+        emphasis,
+        syntax,
+        ink.map(|ink| ink.opacity(WASH)),
+        &paint.syntax,
+    ));
     row.child(
         div()
             .when(wrap, |text| text.flex_1().min_w_0())
@@ -403,6 +450,7 @@ mod tests {
             version: 0,
             lines: Rc::new([]),
             emphasis: Rc::new([]),
+            syntax: Rc::new([]),
             copy: None,
             widest: 0,
             numbered: false,
@@ -426,9 +474,47 @@ mod tests {
         );
         assert_eq!(kept.lines.first().unwrap().text.as_ref(), "보드");
         assert_eq!(kept.copy.as_deref(), Some("보드\nplain"));
-        kept.take(2, Lines::text("바뀜").into());
+        kept.take(2, Lines::text("바뀜"));
         assert!(kept.emphasis.first().unwrap().is_empty());
         assert_eq!(kept.copy.as_deref(), Some("바뀜"));
+    }
+
+    #[test]
+    fn semantic_cache_validation_preserves_numbers_tones_copy_and_clears_old_ink() {
+        let mut kept = Kept {
+            version: 0,
+            lines: Rc::new([]),
+            emphasis: Rc::new([]),
+            syntax: Rc::new([]),
+            copy: None,
+            widest: 0,
+            numbered: false,
+            handle: UniformListScrollHandle::new(),
+            placed: false,
+        };
+        let mut output = Lines::text("보드");
+        output.lines[0].number = Some(8);
+        output.lines[0].tone = Tone::Added;
+        kept.take(
+            1,
+            super::SyntaxLines {
+                output: output.into(),
+                syntax: vec![vec![
+                    (1..3, Some(crate::code_editor::SyntaxKind::Keyword)),
+                    (0..3, Some(crate::code_editor::SyntaxKind::String)),
+                ]],
+            },
+        );
+        assert_eq!(
+            kept.syntax[0],
+            vec![(0..3, Some(crate::code_editor::SyntaxKind::String))]
+        );
+        assert_eq!(kept.lines[0].number, Some(8));
+        assert_eq!(kept.lines[0].tone, Tone::Added);
+        assert_eq!(kept.copy.as_deref(), Some("보드"));
+        kept.take(2, Lines::text("보드"));
+        assert!(kept.syntax[0].is_empty());
+        assert_eq!(kept.copy.as_deref(), Some("보드"));
     }
 
     // Two texts of one length, one after the other (two errors): each is
