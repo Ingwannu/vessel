@@ -110,3 +110,39 @@ Original cargo.log/steps.tsv are retained at
 /tmp/work/m12-settings4/e1-client-root-strict (93s, SHAca83f161ee39212c).
 No functional test ran in that strict check; routes8/private11 remain owed.
 Register one new strict request on this changed source before runtime tests.
+
+
+## Exact preparation runtime checkpoint (2026-11-16)
+
+Corrected source b9fe8f99ad0f9ebb9f44c170d8b82f48e8f5a231 completed
+strict client all-target Clippy: run185826, actual Checking client,
+13s/rc0, original log SHA21ca8e64418e96d3. Original9aa doc-markdown101
+remains failed evidence, not an infrastructure exception or a pass.
+
+After resumption the same b9fe source executed the two exact T-audited
+cargo-only selections serially, with no replay of already completed work:
+settings2-narrow-20261116T002254Z-b9fe8f99 ran book::routes,8/0/0 (31s,
+actual client/testkit/dependencies compiled); settings2-narrow-20261116T002552Z-b9fe8f99
+ran private_files,11/0/0 (3s, same already-built libtest executable).
+The actual FIFO refusal and deliberate blocked-probe timeout/reap both
+explicitly passed. All original cap/canary/path/mode/no-chmod cases passed.
+The entered marker prevents a misspelled exact child filter from passing
+without running. Each child is waited/reaped before assertions; no detached
+thread or dropped Child is treated as completion.
+
+Original specs/steps/logs remain under e1-client-root-strict2,
+e1-root-routes-tests and e1-root-private-tests within the owned evidence
+folder. All three full log hashes match recorded step prefixes. Combined
+receipt: /tmp/work/m12-settings4/e1-root-checkpoint-receipts.json.
+T's current helper classification is separately retained in
+/tmp/work/gk-build-tools/client-pure-audit-fifo-724-ac6.json. It is not
+runtime proof; the above executed cases supply that bounded proof.
+
+This closes only the requested preparation checks. V3's final evidence
+qualification and receiving integration remain separate. Product private
+readers are still test-only; no format2 parser/writer, lock/admission,
+secure association/upsert, Windows path or native UI is enabled here.
+Tests use isolated synthetic files and self-test children, not real user
+credentials or a live service. Production permissions were unchanged.
+Next natural point: merge announced node ed4cd137 before new root work;
+retain this checkpoint's exact pre-merge source attribution.
