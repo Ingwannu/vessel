@@ -64,6 +64,8 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Accepted label writes belong to the serial publication actor.
+    WorkspaceLabels(Box<crate::workspace_labels::Write>),
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create {
@@ -183,6 +185,27 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    LabelAssigned(
+        Done<crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelAssigned>>,
+        Result<
+            crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelAssigned>,
+            StoreError,
+        >,
+    ),
+    LabelUpdated(
+        Done<crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelUpdated>>,
+        Result<
+            crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelUpdated>,
+            StoreError,
+        >,
+    ),
+    LabelDeleted(
+        Done<crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelDeleted>>,
+        Result<
+            crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelDeleted>,
+            StoreError,
+        >,
+    ),
     Done(Done, Result<(), StoreError>),
     Session(
         Done<SessionCommit<()>>,
@@ -202,6 +225,9 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::LabelAssigned(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::LabelUpdated(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::LabelDeleted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Session(done, result) => done.send(after(failed, result)).is_ok(),

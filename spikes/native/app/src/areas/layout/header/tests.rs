@@ -39,6 +39,8 @@ fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
             agent: "fake".to_owned(),
             structured: true,
             live: true,
+            archived_at: None,
+            binding: None,
         });
         with_layout(&shell, |layout| {
             let _tab = layout.open(
@@ -198,6 +200,8 @@ fn retained_header_callback_refuses_changed_original_selection_without_split(
             agent: "fake".to_owned(),
             structured: true,
             live: true,
+            archived_at: None,
+            binding: None,
         });
         let context = shell.layout_action_context().unwrap();
         let old = PaneAction {

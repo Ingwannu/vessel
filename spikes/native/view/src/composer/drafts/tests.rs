@@ -88,3 +88,48 @@ fn the_document_round_trips_through_json() {
     let back: Drafts = serde_json::from_str(&text).unwrap();
     assert_eq!(back, drafts);
 }
+
+#[test]
+fn workspace_draft_keys_isolate_tabs_workspaces_and_nodes_and_round_trip() {
+    let node = vessel_proto::NodeId::random();
+    let workspace = vessel_proto::WorkspaceId::random();
+    let draft = crate::layout::DraftId::random();
+    let key = DraftKey::Workspace {
+        node,
+        workspace,
+        draft,
+    };
+    assert_eq!(
+        serde_json::from_str::<DraftKey>(&serde_json::to_string(&key).unwrap()).unwrap(),
+        key
+    );
+    assert_ne!(key, DraftKey::New);
+    assert_ne!(
+        key,
+        DraftKey::Workspace {
+            node: vessel_proto::NodeId::random(),
+            workspace,
+            draft
+        }
+    );
+    assert_ne!(
+        key,
+        DraftKey::Workspace {
+            node,
+            workspace: vessel_proto::WorkspaceId::random(),
+            draft
+        }
+    );
+    let other = DraftKey::Workspace {
+        node,
+        workspace,
+        draft: crate::layout::DraftId::random(),
+    };
+    assert_ne!(key, other);
+    let mut drafts = Drafts::default();
+    let at = Utc::now();
+    assert_eq!(drafts.keep(key, "first", at), Kept::Kept);
+    assert_eq!(drafts.keep(other, "second", at), Kept::Kept);
+    assert_eq!(drafts.text(key), "first");
+    assert_eq!(drafts.text(other), "second");
+}

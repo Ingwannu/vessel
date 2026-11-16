@@ -16,7 +16,7 @@ use vessel_app_view::{
     connection::{ConnectionEpochs, MachineKey},
     layout::{LookupProblem, WorkspaceLocation, WorkspaceLookup},
     residents::{HoldReason, OperationKind, OwnerReadiness, Visibility},
-    sessions::LifecycleAction,
+    session_lifecycle::LifecycleAction,
 };
 use vessel_proto::{HarnessKind, NodeId, SessionId, SessionMode, SessionSpec, WorkspaceId};
 

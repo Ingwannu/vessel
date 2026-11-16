@@ -63,3 +63,12 @@ impl Shell {
         self.offers_arrived(machine, harness, outcome);
     }
 }
+
+/// The agent's kind, when it is one of the four (an agent added on the
+/// node has none the effort table could know).
+pub(crate) const fn kind_of(agent: &HarnessRef) -> Option<vessel_proto::HarnessKind> {
+    match agent {
+        HarnessRef::Known(kind) => Some(*kind),
+        HarnessRef::Added(_) => None,
+    }
+}

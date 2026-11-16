@@ -71,6 +71,31 @@ impl ToolbarButton {
         Self::with_content(id, label, content, config.disabled(), tokens)
     }
 
+    /// A zoomable viewport's floating action (`icon_chrome::Profile::Viewport`).
+    /// A hidden action is inert as a disabled one is: no handler can attach,
+    /// as Paseo's hidden buttons take no pointer events.
+    pub fn viewport(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        glyph: crate::assets::Glyph,
+        config: ToolbarConfig,
+        presence: crate::icon_chrome::Presence,
+        tokens: &crate::Tokens,
+    ) -> Self {
+        let label = label.into();
+        let element =
+            crate::icon_chrome::viewport_frame(id, label.clone(), glyph, config, presence, tokens);
+        let config = match presence {
+            crate::icon_chrome::Presence::Shown => config,
+            crate::icon_chrome::Presence::Hidden => config.disabled(),
+        };
+        Self {
+            element,
+            config,
+            label,
+        }
+    }
+
     fn with_content(
         id: impl Into<ElementId>,
         label: impl Into<SharedString>,

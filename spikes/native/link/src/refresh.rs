@@ -55,6 +55,7 @@ impl State {
             };
             machines.push(machine);
         }
+        self.session_connections_changed();
         self.emit(Event::Fleet(Fleet {
             machines,
             read_at: Some(Utc::now()),

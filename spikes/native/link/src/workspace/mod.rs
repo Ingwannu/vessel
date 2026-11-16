@@ -38,6 +38,8 @@ mod ask;
 mod calls;
 pub mod code_source;
 #[cfg(not(target_arch = "wasm32"))]
+mod entry;
+#[cfg(not(target_arch = "wasm32"))]
 mod follow;
 pub mod layout;
 mod pulls;

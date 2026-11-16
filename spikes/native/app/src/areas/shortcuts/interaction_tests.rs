@@ -242,6 +242,9 @@ fn layout_close_never_reaches_window_fallback_in_an_active_session(cx: &mut Test
             agent: "fake".to_owned(),
             structured: false,
             live: true,
+
+            archived_at: None,
+            binding: None,
         });
         // The root resource has no lifecycle owner yet. That refusal is still
         // handled: the same Mod+W must never close the application window.

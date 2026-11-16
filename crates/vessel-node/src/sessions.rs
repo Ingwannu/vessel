@@ -442,6 +442,7 @@ pub(crate) mod again;
 mod conversation;
 mod discovery;
 mod marks;
+mod metadata;
 mod read;
 mod side_questions;
 

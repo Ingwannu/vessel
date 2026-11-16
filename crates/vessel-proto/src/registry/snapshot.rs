@@ -36,6 +36,9 @@ pub struct WorkspaceMembership {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct RegistrySnapshot {
+    /// Optional ordered assignments, omitted when empty or unavailable to this peer.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub labels: Vec<crate::workspace_labels::WorkspaceLabelAssignments>,
     /// Cryptographic node identity survives a node-book alias rename.
     pub node: NodeId,
     /// Global monotonic version for ordering complete snapshots.
@@ -47,6 +50,20 @@ pub struct RegistrySnapshot {
 }
 
 impl RegistrySnapshot {
+    /// Omit label assignments until their own contract is assigned and readable.
+    /// This applies at every envelope hop as well as the direct handler.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
+        if self.labels.is_empty()
+            || crate::workspace_labels::WORKSPACE_LABELS.is_some_and(|since| protocol >= since)
+        {
+            return None;
+        }
+        let mut snapshot = self.clone();
+        snapshot.labels.clear();
+        Some(snapshot)
+    }
+
     /// Resolve a resource by stable identity; same cwd never merges workspaces.
     #[must_use]
     pub fn owner(&self, resource: WorkspaceResource) -> Option<WorkspaceId> {

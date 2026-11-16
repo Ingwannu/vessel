@@ -23,6 +23,8 @@ fn prepare(shell: &mut Shell, context: &ConnectionContext) -> (SessionId, Projec
         agent: "fake".to_owned(),
         structured: true,
         live: true,
+        archived_at: None,
+        binding: None,
     });
     let mut machine =
         vessel_app_view::Machine::unreachable(context.machine().as_str().to_owned(), "fixture");

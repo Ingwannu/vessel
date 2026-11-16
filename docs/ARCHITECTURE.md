@@ -922,6 +922,15 @@ In the crate table's order.
     `unsupported`) and gives the restarted agent a second token, the old
     one kept until the move ends (`begin_move`/`end_move`, as agent
     credentials).
+  Generated session titles (ADR 0062) reuse these same credential and
+  semaphore owners. External fresh creation arms one tracked first-input
+  task on the original handle; a bounded cached/live cursor freezes its
+  provisional source and remembers cancellation events. Current metadata
+  settings and one immutable route snapshot prepare a bounded tool-free
+  request. Styles borrow the checked Git runner; a separate HTTP pool
+  borrows initialized TLS. Usage reaches the existing best-effort model
+  record queue, and only the actor compares and applies the proposal.
+  Unassigned protocol admission disables patches and automatic calls.
 - `vessel-client`: the websocket connection with the bearer token (`wss://`
   refused for token connections: ADR 0005's amendment), one typed method
   per call, the gap-free `SessionStream`. `Connector` (`WsConnector`; the
@@ -1750,6 +1759,24 @@ exclusive persisted claim before backing recovery. Filesystem provisioning remai
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
 Those have no method row; protocol 25 covers the six metadata methods only.
+
+### Workspace label catalog (ADR 0086, pending)
+
+`vessel-proto::workspace_labels` owns the validated name/color grammar, ordered
+assignment projection and pending unary calls. `vessel-store::workspace_labels`
+uses the existing writer savepoint/read pool and canonical registry admission.
+Catalog identity cascades rename/delete into assignments; colors are never copied
+into descriptors. The registry snapshot joins ordered names in its held read
+transaction and omits them for unavailable peers at direct and nested hops.
+
+The node's bounded label actor serializes commit -> journal publication -> reply,
+so cancelling an accepted request cannot lose its durable publication. Assignment
+changes use the existing post-commit registry wake; recolor/no-op do not. A bounded
+Observe read reuses connection/origin shares, downgrading delivered/exhausted calls
+to Now. Shutdown drains accepted label work after callers and before the Store.
+There is no second database, registry, event renderer or package dependency.
+Version assignment and reviewed end-to-end consumers remain required; pending
+source wiring alone is not public capability or parity acceptance.
 
 ### Settings writer lifetime
 

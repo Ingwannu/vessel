@@ -54,11 +54,12 @@ impl Shell {
             fleet: Fleet::default(),
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
-            areas: Areas::new(
+            areas: Areas::with_drafts(
                 areas::settings::PreparedGeneral::new(
                     Translator::get(ENGLISH).unwrap(),
                     &Prefs::default().kept,
                 ),
+                vessel_app_view::composer::drafts::Drafts::default(),
                 window,
                 cx,
             ),

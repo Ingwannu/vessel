@@ -15,12 +15,12 @@ fn scratch(name: &str, bytes: &[u8]) -> PathBuf {
     path
 }
 
-fn remote(code: ErrorCode) -> CallError {
-    CallError::Remote(WireError {
+fn remote(code: ErrorCode) -> RequestFailure {
+    RequestFailure::Call(CallError::Remote(WireError {
         code,
         message: "refused".to_owned(),
         detail: None,
-    })
+    }))
 }
 
 fn begun() -> Begun {
@@ -83,12 +83,12 @@ fn a_failure_says_how_it_may_be_tried_again() {
         "the file itself is wrong"
     );
     assert_eq!(
-        node(&CallError::Disconnected, Some(at)).1,
+        node(&RequestFailure::Call(CallError::Disconnected), Some(at)).1,
         Again::Resume(at),
         "goes on from what the node has"
     );
     assert_eq!(
-        node(&CallError::Disconnected, None).1,
+        node(&RequestFailure::Call(CallError::Disconnected), None).1,
         Again::Restart,
         "nothing begun yet"
     );
@@ -96,4 +96,23 @@ fn a_failure_says_how_it_may_be_tried_again() {
         node(&remote(ErrorCode::Unavailable), Some(at)).0,
         Problem::Node(_)
     ));
+}
+
+#[test]
+fn retired_admission_is_never_retryable_and_peer_text_is_redacted() {
+    let failure = RequestFailure::Refused(vessel_app_view::connection::Refusal::Changed);
+    assert_eq!(node(&failure, Some(begun())).1, Again::Never);
+    let secret = "synthetic-private-peer-diagnostic";
+    let failure = RequestFailure::Call(CallError::Remote(WireError {
+        code: ErrorCode::Internal,
+        message: secret.to_owned(),
+        detail: None,
+    }));
+    let (problem, _again) = node(&failure, Some(begun()));
+    assert!(!format!("{problem:?}").contains(secret));
+    assert!(
+        !super::super::selected::problem(&failure)
+            .to_string()
+            .contains(secret)
+    );
 }

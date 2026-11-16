@@ -15,6 +15,8 @@ pub(crate) enum Route {
     Draft,
     /// The board's lanes.
     Board,
+    /// Chronological session history, including archived sessions.
+    Sessions,
     /// Ended and archived sessions.
     Archive,
     /// One session's conversation.
@@ -29,13 +31,14 @@ pub(crate) enum Route {
 impl Route {
     /// The routes the sidebar lists at its top, in order (a session is
     /// reached from its row, pairing from the foot).
-    pub(crate) const NAV: [Self; 3] = [Self::Draft, Self::Board, Self::Archive];
+    pub(crate) const NAV: [Self; 4] = [Self::Draft, Self::Board, Self::Sessions, Self::Archive];
 
     /// Its name in the sidebar.
     pub(crate) const fn label(self, t: &vessel_app_view::Text) -> &'static str {
         match self {
             Self::Draft => t.new_session,
             Self::Board => t.board,
+            Self::Sessions => t.lang.sidebar().sessions,
             Self::Archive => t.archive,
             Self::Session => t.app,
             Self::Pair => t.add_machine,
@@ -56,6 +59,7 @@ pub(crate) fn render(
         Route::Draft => areas::draft::render(shell, tokens, window, cx).into_any_element(),
         // The archive is a dialog over the board.
         Route::Board | Route::Archive => areas::board::render(shell, tokens, window, cx),
+        Route::Sessions => areas::sessions::render(shell, tokens, window, cx),
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, window, cx).into_any_element(),
         Route::Settings => areas::settings::render(shell, tokens, window, cx).into_any_element(),
@@ -84,7 +88,12 @@ pub(crate) fn sidebar_inner(
 ) -> AnyElement {
     match shell.route {
         Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
-        Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
+        Route::Draft
+        | Route::Board
+        | Route::Sessions
+        | Route::Archive
+        | Route::Session
+        | Route::Pair => {
             areas::sidebar::render(shell, tokens, false, window, cx).into_any_element()
         }
     }
@@ -102,6 +111,7 @@ pub(crate) fn arrive(
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
         Route::Archive => areas::archive::arrive(shell, window, cx),
+        Route::Sessions => areas::sessions::arrive(shell, window, cx),
         Route::Board | Route::Session | Route::Settings => {}
     }
 }

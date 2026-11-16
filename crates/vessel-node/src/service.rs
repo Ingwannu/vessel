@@ -59,6 +59,7 @@ mod files;
 mod git;
 mod projects;
 mod registry;
+mod workspace_labels;
 mod worktrees;
 // Protocol 11's calls: pull requests (`forge`, ADR 0029).
 mod forge;
@@ -99,6 +100,7 @@ mod dispatch_tests;
 #[derive(Debug)]
 pub(crate) struct NodeService {
     file_panels: file_panels::FilePanelSlots,
+    pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -173,6 +175,7 @@ pub(crate) struct NodeService {
 
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
+    pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) diagnostics: crate::diagnostics::Setup,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
@@ -205,6 +208,7 @@ pub(crate) struct Parts {
 impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
+            workspace_labels,
             diagnostics,
             lsp,
             lsp_roots,
@@ -245,6 +249,7 @@ impl NodeService {
         Self {
             usage_reports: crate::usage_reports::Registry::default(),
             file_panels: file_panels::FilePanelSlots::default(),
+            workspace_labels,
             lsp,
             lsp_roots,
             lifecycle,

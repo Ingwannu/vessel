@@ -28,7 +28,7 @@ impl Settings {
             return Err(SettingsError::Stopping);
         }
         if next == *saved {
-            return Ok(self.in_force(*saved));
+            return Ok(self.in_force(&saved));
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
@@ -55,6 +55,8 @@ impl Settings {
     ) -> Result<NodeSettings, SettingsError> {
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
+        // Metadata is non-Copy: keep the proposal for apply after the write joins.
+        let to_write = next.clone();
         #[cfg(test)]
         let gate = self.gate.take();
         let aside = tokio::task::spawn_blocking(move || {
@@ -65,7 +67,7 @@ impl Settings {
             let aside = later
                 .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
                 .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
+            data_dir.write_settings(&to_write).map(|()| aside)
         })
         .await
         .map_err(SettingsError::Lost)?
@@ -75,7 +77,7 @@ impl Settings {
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(*saved);
+        let in_force = self.in_force(&saved);
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
         Ok(in_force)

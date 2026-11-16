@@ -15,6 +15,10 @@ mod migrations;
 mod mutation_time;
 mod workspace_registry;
 
+/// The label append (schema 23) follows the mutation clock (22); integration rebinds here.
+/// Keep package placement outside the full migration list's shrinking budget.
+const WORKSPACE_LABELS_SCHEMA: usize = mutation_time::MUTATION_TIME_SCHEMA.saturating_add(1);
+
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;
 pub(super) use diagnostics::{DiagnosticSchemaError, version as diagnostic_version};

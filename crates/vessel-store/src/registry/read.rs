@@ -45,8 +45,10 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
         }
     }
     let memberships = super::workspace_memberships(&transaction, None::<WorkspaceId>)?;
+    let labels = crate::workspace_labels::registry_labels(&transaction, &workspaces)?;
     transaction.commit()?;
     Ok(StoredRegistry {
+        labels,
         revision: RegistryRevision::from(
             u64::try_from(revision).map_err(StoreError::RegistryRevisionRange)?,
         ),

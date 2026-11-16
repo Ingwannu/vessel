@@ -398,8 +398,15 @@ fn route_text(route: Option<&ModelRouteName>) -> String {
 
 impl ServiceError {
     /// The error as the client sees it: a code to branch on and the full
-    /// chain of causes as text (none of which contains secrets).
+    /// safe causes as text. A corrupt label color's decoder may echo stored
+    /// data, so that feature keeps its source internally and uses a safe notice.
     pub(crate) fn to_wire(&self) -> WireError {
+        if matches!(self, Self::Store(StoreError::WorkspaceLabelColor(_))) {
+            return WireError::new(
+                ErrorCode::Internal,
+                "stored workspace labels could not be read",
+            );
+        }
         let code = match self {
             Self::NotFound(_) | Self::UnknownAgent(_) | Self::NoRecord { .. } => {
                 ErrorCode::NotFound
@@ -481,6 +488,9 @@ impl ServiceError {
             error.detail = Some(ErrorDetail::DeviceInvite {
                 reason: DeviceInviteError::NoRoutes,
             });
+        }
+        if let Self::Store(StoreError::WorkspaceLabelRefused(reason)) = self {
+            error.detail = Some(ErrorDetail::WorkspaceLabel { reason: *reason });
         }
         error
     }

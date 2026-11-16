@@ -173,6 +173,10 @@ fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
 // The fixture removes later columns explicitly; the schema owner locates
 // the inbox predecessor instead of guessing how many appends followed it.
 fn migrate_again_without_inbox(db: &mut Connection) {
+    // Remove A6's later append before replaying this inbox predecessor. Keep
+    // production migrations strict so an incomplete fixture cannot hide it.
+    db.execute_batch("DROP TABLE workspace_label_assignments; DROP TABLE workspace_label_catalog;")
+        .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN updated_at;")
         .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN listing;")

@@ -44,10 +44,12 @@ fn make_state(
         book_path: crate::machines::BookPath::File(home.book()),
         workspace: crate::workspace::Hub::default(),
         agents: crate::agents::Hub::default(),
+        mentions: crate::mentions::Hub::default(),
         admissions: vessel_app_view::connection::ConnectionEpochs::default(),
         device_calls: crate::devices::Hub::default(),
         history_calls: crate::history::Hub::default(),
         sync_calls: crate::sync::Hub::default(),
+        session_navigation: crate::sessions::Hub::default(),
         offers: std::sync::Arc::default(),
     }
 }

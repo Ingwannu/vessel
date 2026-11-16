@@ -5,6 +5,9 @@
 
 pub mod anthropic;
 pub mod chat;
+mod request;
 pub mod responses;
+
+pub use request::Options;
 
 pub(crate) mod usage;

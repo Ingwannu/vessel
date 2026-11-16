@@ -147,3 +147,121 @@ async fn shutdown_joins_cancelled_writers_and_refuses_late_mutations() {
         "settings shutdown exceeded {WRITE_TEST_BUDGET:?}"
     );
 }
+
+fn metadata_policy() -> MetadataSettings {
+    MetadataSettings::new(vec![vessel_proto::settings::MetadataProvider {
+        route: "fast".parse().unwrap(),
+        model: None,
+        effort: None,
+    }])
+    .unwrap()
+}
+
+#[tokio::test]
+async fn cancelled_metadata_write_keeps_the_later_file_and_the_next_patch_policy() {
+    let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
+        let root = tempfile::tempdir().unwrap();
+        let dir = DataDir::new(root.path());
+        let original = serde_json::to_vec(&serde_json::json!({
+            "metadata": {"future":true,"providers":[{"route":"old","future":true}]}
+        }))
+        .unwrap();
+        std::fs::write(dir.settings_path(), &original).unwrap();
+        let settings = settings(root.path());
+        let desired = metadata_policy();
+        let proposal = SetNodeSettings {
+            park_after: Some(ParkAfter::Never),
+            metadata: Some(desired.clone()),
+            ..SetNodeSettings::default()
+        };
+        let (entered, release) = settings.gate.install();
+        let first = Arc::clone(&settings);
+        let caller = tokio::spawn(async move { first.change(proposal).await });
+        entered.await.unwrap();
+        caller.abort();
+        assert!(caller.await.unwrap_err().is_cancelled());
+        let mut policy = Box::pin(settings.metadata());
+        assert!(matches!(futures_util::poll!(&mut policy), Poll::Pending));
+        let mut next = Box::pin(settings.change(patch(ParkAfter::DEFAULT)));
+        assert!(matches!(futures_util::poll!(&mut next), Poll::Pending));
+        assert_eq!(settings.runtime.park_after(), ParkAfter::DEFAULT.duration());
+        release.send(()).unwrap();
+        assert_eq!(policy.await, desired);
+        let applied = next.await.unwrap();
+        settings.shutdown().await;
+        assert_eq!(applied.metadata, Some(desired.clone()));
+        assert_eq!(settings.runtime.park_after(), applied.park_after.duration());
+        assert_eq!(
+            dir.read_settings().unwrap().unwrap().metadata,
+            Some(desired.clone())
+        );
+        let copies: Vec<_> = std::fs::read_dir(root.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with("settings.json.later-")
+            })
+            .collect();
+        assert_eq!(copies.len(), 1);
+        assert_eq!(std::fs::read(&copies[0]).unwrap(), original);
+        let reopened = self::settings(root.path());
+        assert_eq!(reopened.metadata().await, desired);
+        reopened.shutdown().await;
+    })
+    .await;
+    assert!(
+        result.is_ok(),
+        "metadata writer exceeded {WRITE_TEST_BUDGET:?}"
+    );
+}
+
+#[tokio::test]
+async fn metadata_shutdown_joins_apply_and_refuses_a_late_policy_change() {
+    let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
+        let root = tempfile::tempdir().unwrap();
+        let settings = settings(root.path());
+        let desired = metadata_policy();
+        let proposal = SetNodeSettings {
+            park_after: Some(ParkAfter::Never),
+            metadata: Some(desired.clone()),
+            ..SetNodeSettings::default()
+        };
+        let (entered, release) = settings.gate.install();
+        let first = Arc::clone(&settings);
+        let caller = tokio::spawn(async move { first.change(proposal).await });
+        entered.await.unwrap();
+        caller.abort();
+        assert!(caller.await.unwrap_err().is_cancelled());
+        let mut shutdown = Box::pin(settings.shutdown());
+        assert!(matches!(futures_util::poll!(&mut shutdown), Poll::Pending));
+        let mut policy = Box::pin(settings.metadata());
+        assert!(matches!(futures_util::poll!(&mut policy), Poll::Pending));
+        release.send(()).unwrap();
+        shutdown.await;
+        assert_eq!(policy.await, desired);
+        assert_eq!(settings.current().await.metadata, Some(desired.clone()));
+        assert_eq!(settings.runtime.park_after(), None);
+        assert_eq!(
+            settings.data_dir.read_settings().unwrap().unwrap().metadata,
+            Some(desired.clone())
+        );
+        assert!(matches!(
+            settings
+                .change(SetNodeSettings {
+                    metadata: Some(MetadataSettings::default()),
+                    ..SetNodeSettings::default()
+                })
+                .await,
+            Err(SettingsError::Stopping)
+        ));
+        assert_eq!(settings.current().await.metadata, Some(desired));
+    })
+    .await;
+    assert!(
+        result.is_ok(),
+        "metadata shutdown exceeded {WRITE_TEST_BUDGET:?}"
+    );
+}

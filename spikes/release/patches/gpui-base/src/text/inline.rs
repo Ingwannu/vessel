@@ -1,3 +1,5 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional inferred links retain source selection and find mapping.
+// (spikes/release/patches/README.md, "gpui-base", change 15).
 #[cfg(target_family = "wasm")]
 use async_channel::bounded;
 use gpui::Corners;
@@ -137,6 +139,16 @@ pub(super) fn combine_highlights(
     a: impl IntoIterator<Item = (Range<usize>, InlineHighlight)>,
     b: impl IntoIterator<Item = (Range<usize>, InlineHighlight)>,
 ) -> Vec<(Range<usize>, InlineHighlight)> {
+    combine_ranges(a, b, |acc, layer| acc.highlight(layer))
+}
+
+/// One unchanged sweep for display highlights and inferred-link source marks.
+/// Keeping source marks disjoint prevents copying an overlapping text range twice.
+pub(super) fn combine_ranges<T: Default>(
+    a: impl IntoIterator<Item = (Range<usize>, T)>,
+    b: impl IntoIterator<Item = (Range<usize>, T)>,
+    refine: impl Fn(T, &T) -> T,
+) -> Vec<(Range<usize>, T)> {
     let mut endpoints = Vec::new();
     let mut highlights = Vec::new();
     for (range, highlight) in a.into_iter().chain(b) {
@@ -154,9 +166,9 @@ pub(super) fn combine_highlights(
     let mut ix = 0;
     for (position, id, is_start) in endpoints {
         if position > ix && !active.is_empty() {
-            let style = active.iter().fold(InlineHighlight::default(), |acc, id| {
-                acc.highlight(&highlights[*id])
-            });
+            let style = active
+                .iter()
+                .fold(T::default(), |acc, id| refine(acc, &highlights[*id]));
             combined.push((ix..position, style));
         }
         ix = position;
@@ -1448,7 +1460,7 @@ impl Element for Inline {
                             },
                             up: event.clone(),
                         });
-                        handle_link_click(&link_click_handler, link.url, click, window, cx);
+                        handle_link_click(&link_click_handler, link.target(), click, window, cx);
                     }
                 }
             });

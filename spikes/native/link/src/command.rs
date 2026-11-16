@@ -24,6 +24,14 @@ use vessel_proto::{
 pub enum Command {
     /// Usage reads and explicit account-limit actions.
     Usage(crate::usage::Ask),
+    /// Passive read/follow bound to an authenticated deep-link destination.
+    SessionAccess(crate::sessions::Access),
+    /// Resolve a session for a deep link or Copy link without starting it.
+    Sessions(crate::sessions::Ask),
+    /// A correlated lifecycle mutation through existing session RPCs.
+    SessionLifecycle(vessel_app_view::sessions::PendingLifecycle),
+    /// Correlated creation distinguishes registration from first-message delivery.
+    Create(super::creation::Ask),
     /// Scoped own-history discovery and import.
     History(crate::history::Ask),
     /// A request for one machine’s Agents settings.

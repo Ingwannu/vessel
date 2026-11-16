@@ -20,6 +20,8 @@ use crate::support::{Fixture, within};
 
 #[cfg(test)]
 mod aside;
+#[cfg(test)]
+mod metadata;
 
 fn idle(minutes: u16) -> ParkAfter {
     ParkAfter::Idle {
@@ -49,6 +51,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -63,6 +66,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Unknown),
                         drivers: None,
+                        ..SetNodeSettings::default()
                     })
                     .await
             ),
@@ -91,6 +95,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
             .call(SetNodeSettings {
                 park_after: Some(idle(5)),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -121,6 +126,7 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Never),
                         drivers: None,
+                        ..SetNodeSettings::default()
                     })
                     .await
             ),
@@ -141,6 +147,7 @@ fn drivers(drivers: SetAgentDrivers) -> SetNodeSettings {
     SetNodeSettings {
         park_after: None,
         drivers: Some(drivers),
+        ..SetNodeSettings::default()
     }
 }
 

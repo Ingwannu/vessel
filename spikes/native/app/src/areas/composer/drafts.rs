@@ -26,13 +26,12 @@ const SETTLE: Duration = Duration::from_secs(1);
 
 /// The drafts kept on the device, the new chat's put back, and both
 /// composers' edits followed (called once, when the areas are made).
-pub(crate) fn keep_drafts(areas: &mut Areas, window: &mut Window, cx: &mut Context<'_, Shell>) {
-    // A browser keeps no drafts between runs (link's `drafts` reads files,
-    // the desktop's): it starts with none.
-    #[cfg(not(target_arch = "wasm32"))]
-    let drafts = vessel_app_link::drafts::load();
-    #[cfg(target_arch = "wasm32")]
-    let drafts = vessel_app_view::composer::drafts::Drafts::default();
+pub(crate) fn keep_drafts(
+    areas: &mut Areas,
+    drafts: vessel_app_view::composer::drafts::Drafts,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
     let new_chat = drafts.text(DraftKey::New);
     if !new_chat.is_empty() {
         areas.draft.composer.set_text(new_chat, window, cx);
@@ -92,6 +91,25 @@ impl Shell {
             text.as_str()
         };
         self.keep_draft(DraftKey::Session { session }, draft, cx);
+    }
+
+    /// The scoped editor owner supplies its captured key and current text.
+    /// Persist through the existing bounded document; late callbacks cannot
+    /// replace a removed editor or a sibling's different current contents.
+    pub(crate) fn composer_keep_workspace_text(
+        &mut self,
+        target: DraftKey,
+        text: &str,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !matches!(target, DraftKey::Workspace { .. })
+            || self
+                .composer_field(target)
+                .is_none_or(|field| field.text(cx) != text)
+        {
+            return;
+        }
+        self.keep_draft(target, text, cx);
     }
 
     fn keep_draft(&mut self, key: DraftKey, text: &str, cx: &mut Context<'_, Self>) {

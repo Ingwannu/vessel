@@ -1,3 +1,5 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional inferred links retain source selection and find mapping.
+// (spikes/release/patches/README.md, "gpui-base", change 15).
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -389,7 +391,7 @@ impl Element for InlineObject {
                     },
                     up: event.clone(),
                 });
-                super::text_view::handle_link_click(&handler, link.url.clone(), click, window, cx);
+                super::text_view::handle_link_click(&handler, link.target(), click, window, cx);
             });
         }
         if selectable {

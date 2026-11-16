@@ -163,3 +163,56 @@ fn unicode_highlights_address_original_bytes_while_ranking_uses_utf16_offsets() 
     );
     assert_eq!(Query::new("i").marks("İ"), vec![0..2]);
 }
+
+#[test]
+fn typo_mode_is_opt_in_and_obeys_reference_token_budgets() {
+    for (query, text) in [
+        ("brnach", "switch the branch"),
+        ("confug", "revamp configuration editor"),
+        ("bulling", "add stripe billing"),
+        ("mian", "switch to main"),
+        ("configurtaion", "configuration"),
+        ("strípe", "stripe"),
+    ] {
+        assert!(
+            Query::new(query).score(&[text], None).is_none(),
+            "default changed: {query}"
+        );
+        assert!(
+            Query::typo_tolerant(query).score(&[text], None).is_some(),
+            "{query}"
+        );
+    }
+    for (query, text) in [
+        ("ip", "pi"),
+        ("mial", "main"),
+        ("rain", "main"),
+        ("maid", "main"),
+        ("stpie", "add stripe billing"),
+        ("zzzzzz", "add stripe billing"),
+        ("terminal", "term inal"),
+    ] {
+        assert!(
+            Query::typo_tolerant(query).score(&[text], None).is_none(),
+            "overmatched: {query}"
+        );
+    }
+}
+
+#[test]
+fn typo_marks_cover_the_word_and_exact_tiers_keep_priority() {
+    let query = Query::typo_tolerant("bulling");
+    assert_eq!(query.marks("🦀 add stripe billing"), vec![16..23]);
+    let fuzzy = query.score(&["billing"], None).unwrap();
+    let exact = query.score(&["b-u-l-l-i-n-g"], None).unwrap();
+    assert!(exact < fuzzy);
+    assert_eq!(
+        Query::typo_tolerant("confug").marks("configuration"),
+        vec![0..13]
+    );
+    assert!(
+        Query::typo_tolerant("stripe bulling")
+            .score(&["Stripe", "billing"], None)
+            .is_some()
+    );
+}

@@ -141,3 +141,23 @@ What the contract left open, decided while building it:
   live, and the store records the row only for a live session in the
   same transaction (`StoreError::SessionEnded`); a refused row takes its
   file back.
+
+## Native preview extension (proposed)
+
+- Purpose and intent: display bounded historical images and open a fitted,
+  zoomable preview from either a composer tray or a conversation message.
+- Existing implementation and constraints: the node already owns and
+  scopes attachment reads. The native view cache controls demand and the
+  link fetches chunks without blocking the command loop.
+- Alternatives considered: eagerly download a session, introduce another
+  preview transport, or extend the existing attachment/read path.
+- Selected approach: reuse the existing calls and GPUI decoder; keep
+  fit/pan/zoom rules in the toolkit-free view crate. Link directly names
+  the already linked `vessel-rpc::CallError` to preserve a failed read's
+  source. This internal dependency adds no package or external license.
+- Reason: eager loading grows with session history and a separate
+  transport would duplicate the node's authorization. A typed RPC cause
+  avoids parsing a string or erasing the diagnostic at the client edge.
+- Advantages, disadvantages and effects: one bounded read pipeline and
+  one overlay, with cache misses read again after eviction. The native
+  dependency table records link's error-type edge. No protocol change.

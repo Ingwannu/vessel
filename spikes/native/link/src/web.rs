@@ -85,6 +85,19 @@ impl Link {
         }
     }
 
+    /// The demo's records for a prompt, with files or without: a browser
+    /// sends none, so both commands answer the same way.
+    fn demo_prompt(
+        &self,
+        session: vessel_proto::SessionId,
+        text: &str,
+        now: chrono::DateTime<Utc>,
+    ) {
+        let records = self.demo.borrow_mut().prompt(&session, text, now);
+        self.emit(Event::Records { session, records });
+        self.emit(Event::Sent { session });
+    }
+
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
@@ -93,6 +106,22 @@ impl Link {
             }
             Command::Usage(ask) => self.emit(Event::Usage(
                 ask.refused(vessel_app_view::usage::RequestFailure::Unsupported),
+            )),
+            Command::SessionAccess(access) => self.emit(access.refused(ActFailed {
+                code: Some(vessel_proto::ErrorCode::Unsupported),
+                message: "Authenticated session navigation requires a native connection".to_owned(),
+            })),
+            Command::SessionLifecycle(request) => self.emit(Event::SessionLifecycle(
+                crate::sessions::lifecycle::Answer {
+                    ticket: request.ticket,
+                    result: Err(crate::sessions::lifecycle::Failure::Unsent),
+                },
+            )),
+            Command::Sessions(ask) => self.emit(Event::Sessions(
+                ask.refused(crate::sessions::Failure::Offline),
+            )),
+            Command::Create(ask) => self.emit(Event::Creation(
+                ask.refused(vessel_app_view::creation::Failure::Unsupported),
             )),
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
@@ -135,27 +164,44 @@ impl Link {
                 let records = self.demo.borrow().records(&session);
                 self.emit(Event::Records { session, records });
             }
-            Command::Prompt { session, text, .. }
-            | Command::Files(crate::attachments::Files::Prompt(crate::attachments::WithFiles {
-                session,
-                text,
-                ..
-            })) => {
-                let records = self.demo.borrow_mut().prompt(&session, &text, now);
-                self.emit(Event::Records { session, records });
-                self.emit(Event::Sent { session });
+            Command::Prompt { session, text, .. } => self.demo_prompt(session, &text, now),
+            Command::Files(crate::attachments::Files::Prompt(with)) => {
+                self.demo_prompt(with.session, &with.text, now);
             }
             // A browser has no files to send yet (track P's row c).
-            Command::Files(crate::attachments::Files::Send(attach)) => self.emit(Event::Upload {
-                session: attach.session,
-                key: attach.key,
-                step: crate::attachments::Step::Failed {
-                    problem: vessel_app_view::composer::tray::Problem::Node(
-                        "The browser's demo takes no files".to_owned(),
-                    ),
-                    again: vessel_app_view::composer::tray::Again::Never,
-                },
-            }),
+            Command::Files(crate::attachments::Files::Send(attach)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Upload {
+                    message: attach.message,
+                    session: attach.session,
+                    key: attach.key,
+                    step: crate::attachments::Step::Failed {
+                        problem: vessel_app_view::composer::tray::Problem::Node(
+                            "The browser's demo takes no files".to_owned(),
+                        ),
+                        again: vessel_app_view::composer::tray::Again::Never,
+                    },
+                }));
+            }
+            // Nor any sent file to read back.
+            Command::Files(crate::attachments::Files::Capabilities(ask)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Capabilities {
+                    ask,
+                    result: Err(crate::attachments::CapabilityFailure::Offline),
+                }))
+            }
+            Command::Files(crate::attachments::Files::Wake(wake)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Woke {
+                    message: wake.message,
+                    session: wake.session,
+                    outcome: crate::attachments::WakeOutcome::Refused,
+                }));
+            }
+            Command::Files(crate::attachments::Files::Read(sent)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Read {
+                    sent,
+                    bytes: None,
+                }));
+            }
             Command::Files(crate::attachments::Files::Create(_)) => self.emit(Event::Failed(
                 "The browser's demo takes no files".to_owned(),
             )),
@@ -233,6 +279,22 @@ impl Link {
             }),
             // The demo fleet keeps no search index: every machine finds
             // nothing.
+            Command::Files(crate::attachments::Files::Suggest(crate::mentions::Ask::Root(ask))) => {
+                self.emit(Event::Files(crate::attachments::Answer::Root(
+                    crate::mentions::RootAnswer {
+                        ask,
+                        result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
+                    },
+                )))
+            }
+            Command::Files(crate::attachments::Files::Suggest(
+                crate::mentions::Ask::Suggestions(request),
+            )) => self.emit(Event::Files(crate::attachments::Answer::Suggestions(
+                crate::mentions::Answer {
+                    request,
+                    result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
+                },
+            ))),
             Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
                 machine: ask.machine,
                 ticket: ask.ticket,

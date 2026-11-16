@@ -17,7 +17,6 @@ use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
-use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
@@ -128,12 +127,7 @@ impl Node {
         } = core(&config, id, &store, &keypair, relay, setup, started).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
-        let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
-            config.rpc.clone(),
-            closing.clone(),
-        ));
+        let rpc = setup::rpc_server(&config, &service, &lifecycle, &closing);
         let token = Arc::new(token);
         let connections = TaskTracker::new();
 
@@ -155,6 +149,7 @@ impl Node {
             unadmitted_per_address: Arc::default(),
         };
         let teardown = Teardown {
+            workspace_labels: secure.service.0.workspace_labels.clone(),
             runtime,
             settings,
             tasks,
@@ -441,11 +436,9 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let push = crate::push::Push::started(config, store.clone(), &tasks, stop.clone())
-        .await
-        .map_err(NodeError::Store)?;
-    let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
+    let features = setup::feature_state(config, store, &tasks, &stop).await?;
     let service = Arc::new(Guarded(NodeService::new(Parts {
+        workspace_labels: features.labels,
         lsp,
         lsp_roots: config.lsp_roots.clone(),
         diagnostics: crate::diagnostics::Setup {
@@ -478,9 +471,9 @@ async fn core(
         ports,
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
-        push,
+        push: features.push,
         settings: Arc::clone(&settings),
-        limits,
+        limits: features.limits,
     })));
     automation::schedules::start(
         commands,

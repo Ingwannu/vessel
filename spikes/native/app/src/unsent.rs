@@ -27,7 +27,7 @@
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
 use vessel_app_link::agents::AgentsError;
-use vessel_app_link::attachments::{Files, Step, WithFiles};
+use vessel_app_link::attachments::{Answer, Files, Step};
 use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
 use vessel_app_view::composer::tray::{self, Again};
 use vessel_app_view::idle_release;
@@ -65,6 +65,23 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             Rejected::Full => vessel_app_view::usage::RequestFailure::Busy,
             Rejected::Closed => vessel_app_view::usage::RequestFailure::Offline,
         })),
+        Command::SessionAccess(access) => access.refused(ActFailed {
+            code: None,
+            message: words.to_owned(),
+        }),
+        Command::SessionLifecycle(request) => {
+            Event::SessionLifecycle(vessel_app_link::sessions::lifecycle::Answer {
+                ticket: request.ticket,
+                result: Err(vessel_app_link::sessions::lifecycle::Failure::Unsent),
+            })
+        }
+        Command::Sessions(ask) => {
+            Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
+        }
+        Command::Create(ask) => Event::Creation(ask.refused(match unsent.why {
+            Rejected::Full => vessel_app_view::creation::Failure::QueueFull,
+            Rejected::Closed => vessel_app_view::creation::Failure::Offline,
+        })),
         Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
             ask,
             vessel_app_view::history::Problem::Unsent,
@@ -99,7 +116,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,
         })),
-        Command::Start { .. } | Command::Files(Files::Create(_)) => Event::Failed(said()),
+        Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
             harness,
@@ -138,19 +155,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
-        Command::Prompt { session, text, .. }
-        | Command::Files(Files::Prompt(WithFiles { session, text, .. })) => {
-            return Settle::Prompt { session, text };
-        }
-        // A file the link never took: failed, to be tried again.
-        Command::Files(Files::Send(attach)) => Event::Upload {
-            session: attach.session,
-            key: attach.key,
-            step: Step::Failed {
-                problem: tray::Problem::Node(said()),
-                again: Again::Restart,
-            },
-        },
+        Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
+        Command::Files(command) => return settle_files(command, words),
         Command::Open { .. }
         | Command::Stop { .. }
         | Command::Answer { .. }
@@ -176,6 +182,54 @@ pub(crate) async fn receive(
             return;
         }
     }
+}
+
+/// Preserve the attachment's original correlated refusal without a second sender.
+fn settle_files(command: Files, words: &str) -> Settle {
+    let said = || words.to_owned();
+    let answer = match command {
+        Files::Create(_) => return Settle::Answer(Box::new(Event::Failed(said()))),
+        Files::Suggest(vessel_app_link::mentions::Ask::Root(ask)) => {
+            Answer::Root(vessel_app_link::mentions::RootAnswer {
+                ask,
+                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
+            })
+        }
+        Files::Suggest(vessel_app_link::mentions::Ask::Suggestions(request)) => {
+            Answer::Suggestions(vessel_app_link::mentions::Answer {
+                request,
+                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
+            })
+        }
+        Files::Prompt(prompt) => {
+            return Settle::Prompt {
+                session: prompt.session,
+                text: prompt.text.clone(),
+            };
+        }
+        // A file the link never took: failed, to be tried again.
+        Files::Send(attach) => Answer::Upload {
+            message: attach.message,
+            session: attach.session,
+            key: attach.key,
+            step: Step::Failed {
+                problem: tray::Problem::Node(said()),
+                again: Again::Restart,
+            },
+        },
+        // A sent image the link never read: no picture this time.
+        Files::Capabilities(ask) => Answer::Capabilities {
+            ask,
+            result: Err(vessel_app_link::attachments::CapabilityFailure::Offline),
+        },
+        Files::Wake(wake) => Answer::Woke {
+            message: wake.message,
+            session: wake.session,
+            outcome: vessel_app_link::attachments::WakeOutcome::Refused,
+        },
+        Files::Read(sent) => Answer::Read { sent, bytes: None },
+    };
+    Settle::Answer(Box::new(Event::Files(answer)))
 }
 
 #[cfg(test)]

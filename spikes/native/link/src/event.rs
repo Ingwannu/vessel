@@ -22,6 +22,12 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// Correlated usage facts or safe failures.
     Usage(crate::usage::Answer),
+    /// Session address lookup, correlated to its requesting control.
+    Sessions(crate::sessions::Answer),
+    /// The matching lifecycle mutation result.
+    SessionLifecycle(crate::sessions::lifecycle::Answer),
+    /// A correlated creation transition.
+    Creation(super::creation::Answer),
     /// An original-admission guarded history result or correlated refusal.
     History(crate::history::Answer),
     /// An Agents response, including background install progress.
@@ -57,15 +63,8 @@ pub enum Event {
     },
     /// A session started from the app, to open.
     Started(Card),
-    /// A step of a composer's file on its way to its session.
-    Upload {
-        /// The session.
-        session: SessionId,
-        /// The file's place in the composer's tray.
-        key: vessel_app_view::composer::tray::ItemKey,
-        /// What happened.
-        step: attachments::Step,
-    },
+    /// A composer's file on its way, or a sent image read back.
+    Files(attachments::Answer),
     /// A prompt was delivered.
     Sent {
         /// The session.
