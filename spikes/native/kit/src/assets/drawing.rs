@@ -21,6 +21,22 @@ macro_rules! line_glyph {
     };
 }
 
+/// A Lucide line glyph drawn at a source's own stroke width: Paseo's command
+/// centre passes `strokeWidth` 2.2 (2.4 for its Plus) to its root icons
+/// (`command-center/root-registration.tsx` 65-107), heavier than the
+/// provider's 1.5. Canonical Lucide 1.50.0 children, as `line_glyph!`.
+macro_rules! stroked_glyph {
+    ($width:literal, $body:literal) => {
+        concat!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width=""#,
+            $width,
+            r#"" stroke-linecap="round" stroke-linejoin="round">"#,
+            $body,
+            "</svg>"
+        )
+    };
+}
+
 impl Glyph {
     /// Its drawing, as the asset source serves it.
     #[expect(clippy::too_many_lines, reason = "one arm per glyph, each its drawing")]
@@ -336,6 +352,46 @@ impl Glyph {
             ),
             Self::Scan => line_glyph!(
                 r#"<path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />"#
+            ),
+            // Paseo root-registration.tsx 65-107: explicit command-centre strokes.
+            Self::CommandPlus => {
+                stroked_glyph!("2.4", r#"<path d="M5 12h14"/><path d="M12 5v14"/>"#)
+            }
+            Self::CommandAddProject => stroked_glyph!(
+                "2.2",
+                r#"<path d="M12 10v6"/><path d="M9 13h6"/><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>"#
+            ),
+            Self::CommandSettings => stroked_glyph!(
+                "2.2",
+                r#"<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>"#
+            ),
+            Self::CommandHistory => stroked_glyph!(
+                "2.2",
+                r#"<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>"#
+            ),
+            Self::CommandSchedules => stroked_glyph!(
+                "2.2",
+                r#"<path d="M16 14v2.2l1.6 1"/><path d="M16 2v3"/><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"/><path d="M3 9h5.859"/><path d="M8 2v3"/><circle cx="16" cy="16" r="6"/>"#
+            ),
+            Self::CommandKeyboard => stroked_glyph!(
+                "2.2",
+                r#"<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>"#
+            ),
+            Self::CommandHome => stroked_glyph!(
+                "2.2",
+                r#"<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>"#
+            ),
+            Self::CommandFolder => stroked_glyph!(
+                "2.2",
+                r#"<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>"#
+            ),
+            Self::CommandCircleDashed => stroked_glyph!(
+                "2.2",
+                r#"<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>"#
+            ),
+            Self::CommandPanelLeft => stroked_glyph!(
+                "2.2",
+                r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>"#
             ),
         }
     }

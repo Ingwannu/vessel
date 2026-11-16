@@ -5,11 +5,10 @@
 use std::ops::Range;
 
 use gpui::prelude::*;
-use gpui::{Div, ElementId, SharedString, Stateful, div, px};
+use gpui::{Div, ElementId, Hsla, SharedString, Stateful, Svg, div, px, svg};
 
 use crate::assets::Glyph;
 use crate::fonts::{self, Type};
-use crate::picker::glyph;
 use crate::popup;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
@@ -137,7 +136,7 @@ pub fn command_row_parts(
             .flex()
             .items_center()
             .justify_center()
-            .child(glyph(which, 16.0, neutral.foreground_muted))
+            .child(command_glyph(which, neutral.foreground_muted))
     });
     let main = div()
         .flex_1()
@@ -157,7 +156,7 @@ pub fn command_row_parts(
                 .children(subtitle),
         );
     let end = if row.checked {
-        Some(glyph(Glyph::Check, 16.0, neutral.foreground).into_any_element())
+        Some(command_glyph(Glyph::Check, neutral.foreground).into_any_element())
     } else if row.keys.is_empty() {
         None
     } else {
@@ -199,4 +198,16 @@ pub fn key_badges(keys: &[SharedString], tokens: &Tokens) -> Div {
                 .text_color(neutral.foreground_muted)
                 .child(key.clone())
         }))
+}
+
+/// A row's glyph, 16 across, at Paseo's command-centre stroke: every icon in
+/// its list is drawn at 2.2 (its Plus at 2.4), so a line glyph is drawn from
+/// its command-weight asset (`Glyph::command_weight_path`), the leading icon
+/// and the chosen row's check alike.
+fn command_glyph(which: Glyph, color: Hsla) -> Svg {
+    svg()
+        .path(which.command_weight_path())
+        .size(px(16.0))
+        .flex_shrink_0()
+        .text_color(color)
 }
