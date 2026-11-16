@@ -293,3 +293,5 @@ mod preparation;
 mod registration;
 
 mod version_admission;
+
+mod prepared_view;

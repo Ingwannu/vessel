@@ -74,3 +74,15 @@ tracker; it adds no policy registry, quota, persistent identity or reaper.
 - Cleanup scope: the existing terminate/wait/kill request sequence is preserved.
   This refactor does not prove descendant death or settle the separate process
   cleanup audit. Exact joined runtime verification remains required.
+
+## Canonical close observation in retained preparation
+
+The public preparation adapter now composes the checked `LaunchAdmission`
+observer with the caller's original `PreparationGate`. It captures the actual
+runtime handle internally, carries the same resource owner through each physical
+phase, and keeps default relaunch/probe paths on the same implementation. The
+observer remains one existing-token predicate; host policy/deadline/generation
+checks are separate and run inside the original caller arbiter. No foreign
+shutdown handle, second quota, arbitrary launch entry or serialization is added.
+The reference and tradeoffs are in the prepared-session-relaunch plan. Joined
+source/runtime checks remain distinct from the prerequisite's scoped pass.

@@ -29,7 +29,9 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, PoisonError};
+#[cfg(test)]
+use std::sync::Arc;
+use std::sync::{Mutex, PoisonError};
 use std::time::SystemTime;
 
 use vessel_agent::Driver;
@@ -39,9 +41,8 @@ use vessel_proto::{HarnessKind, HarnessRef, SessionMode, SessionSpec};
 
 use super::SessionRuntime;
 use super::preparation::PreparationError;
-use super::preparation_gate::{
-    PreparationAdmission, PreparationCancellation, PreparationEffect, PreparationGate,
-};
+use super::preparation_gate::{PreparationAdmission, PreparationCancellation, PreparationEffect};
+use super::prepared::RetainedPreparation;
 use crate::SessionError;
 
 pub(super) mod version;
@@ -123,8 +124,7 @@ impl SessionRuntime {
         &self,
         spec: &SessionSpec,
         profile: &Profile,
-        ownership: Arc<T>,
-        admission: Arc<PreparationGate<F>>,
+        preparation: RetainedPreparation<T, F>,
     ) -> Result<Chosen, SessionError>
     where
         T: Send + Sync + 'static,
@@ -143,7 +143,7 @@ impl SessionRuntime {
             Gate::Refused(line) => return Ok(Chosen::acp_because(line)),
             Gate::Direct(direct) => direct,
         };
-        let line = self.version_line(profile, ownership, admission).await?;
+        let line = self.version_line(profile, preparation).await?;
         Ok(fit(spec_kind(spec), direct, line.as_deref()))
     }
 
@@ -152,8 +152,7 @@ impl SessionRuntime {
     async fn version_line<T, F>(
         &self,
         profile: &Profile,
-        ownership: Arc<T>,
-        gate: Arc<PreparationGate<F>>,
+        preparation: RetainedPreparation<T, F>,
     ) -> Result<Option<String>, SessionError>
     where
         T: Send + Sync + 'static,
@@ -166,7 +165,7 @@ impl SessionRuntime {
         let env = self.config.harness_env.clone();
         let owned = profile.clone();
         let prepared = self
-            .prepare_blocking(Arc::clone(&ownership), Arc::clone(&gate), move || {
+            .prepare_blocking(preparation.clone(), move || {
                 let command = vessel_harness::version_check(&lookup, &env, &owned)
                     .map_err(SessionError::Launch)?;
                 Ok(command.map(|command| {
@@ -190,7 +189,7 @@ impl SessionRuntime {
         if let Some(kept) = self.drivers.kept(&program, modified) {
             return Ok(kept.line);
         }
-        let line = self.version_owned(command, ownership, gate).await?;
+        let line = self.version_owned(command, preparation).await?;
         self.drivers.remember(program, modified, line.clone());
         Ok(line)
     }
@@ -198,8 +197,7 @@ impl SessionRuntime {
     async fn version_owned<T, F>(
         &self,
         command: vessel_proc::CommandSpec,
-        ownership: Arc<T>,
-        gate: Arc<PreparationGate<F>>,
+        preparation: RetainedPreparation<T, F>,
     ) -> Result<Option<String>, SessionError>
     where
         T: Send + Sync + 'static,
@@ -210,9 +208,8 @@ impl SessionRuntime {
     {
         // These original owners and tracker exist before the logical commit.
         let tracked = self.tasks_token();
-        let held = (ownership, Arc::clone(&gate));
-        self.admit_preparation(&gate, PreparationEffect::Version)
-            .await?;
+        let held = preparation;
+        Self::admit_preparation(&held, PreparationEffect::Version).await?;
         // Kernel spawn follows the host's logical commit in this same poll.
         // The existing token and original context were retained before admission.
         let started = tokio::time::Instant::now();

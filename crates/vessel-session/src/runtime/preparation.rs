@@ -11,6 +11,7 @@ use super::preparation_gate::{
     PreparationAdmission, PreparationCancellation, PreparationEffect, PreparationGate,
     PreparationRefusal,
 };
+use super::prepared::RetainedPreparation;
 use super::{AgentCommand, SessionRuntime};
 use crate::SessionError;
 
@@ -37,11 +38,21 @@ impl SessionRuntime {
         Arc::new(super::preparation_gate::runtime_gate(self.shutdown.clone()))
     }
 
+    pub(super) fn default_preparation<T>(
+        &self,
+        owner: Arc<T>,
+    ) -> RetainedPreparation<T, super::preparation_gate::RuntimeAdmission> {
+        RetainedPreparation {
+            owner,
+            gate: self.preparation_gate(),
+            admission: self.launch_admission(),
+        }
+    }
+
     /// Waits only for a temporary host pause. The immutable gate retains the
     /// original owner/generation; a wakeup never recaptures newer authority.
-    pub(super) async fn admit_preparation<F>(
-        &self,
-        gate: &PreparationGate<F>,
+    pub(super) async fn admit_preparation<T, F>(
+        preparation: &RetainedPreparation<T, F>,
         effect: PreparationEffect,
     ) -> Result<(), PreparationRefusal>
     where
@@ -50,9 +61,10 @@ impl SessionRuntime {
             + Sync
             + 'static,
     {
+        let gate = &preparation.gate;
         loop {
             let cancellation = PreparationCancellation {
-                node: &self.shutdown,
+                admission: &preparation.admission,
                 caller: &gate.cancelled,
             };
             cancellation.check()?;
@@ -61,7 +73,7 @@ impl SessionRuntime {
                 PreparationAdmission::Refused(reason) => return Err(reason),
                 PreparationAdmission::Wait(mut changed) => {
                     tokio::select! {
-                        () = self.shutdown.cancelled() => return Err(PreparationRefusal::Cancelled),
+                        () = preparation.admission.cancelled() => return Err(PreparationRefusal::Cancelled),
                         () = gate.cancelled.cancelled() => return Err(PreparationRefusal::Cancelled),
                         result = changed.changed() => result.map_err(|_closed| PreparationRefusal::Changed)?,
                     }
@@ -73,8 +85,7 @@ impl SessionRuntime {
     /// The actual closure, not its waiter, retains admission and hard drain.
     pub(super) async fn prepare_blocking<T, R, F, W>(
         &self,
-        ownership: Arc<T>,
-        gate: Arc<PreparationGate<F>>,
+        preparation: RetainedPreparation<T, F>,
         work: W,
     ) -> Result<R, PreparationError>
     where
@@ -87,14 +98,13 @@ impl SessionRuntime {
         W: FnOnce() -> Result<R, SessionError> + Send + 'static,
     {
         let tracked = self.tasks_token();
-        self.admit_preparation(&gate, PreparationEffect::Lookup)
+        Self::admit_preparation(&preparation, PreparationEffect::Lookup)
             .await
             .map_err(PreparationError::Refused)?;
         // No await from logical admission to dispatch of this retained owner.
         tokio::task::spawn_blocking(move || {
             let _tracked = tracked;
-            let _ownership = ownership;
-            let _gate = gate;
+            let _preparation = preparation;
             work()
         })
         .await
@@ -109,8 +119,7 @@ impl SessionRuntime {
         spec: SessionSpec,
         profile: Profile,
         proxy: Option<ModelProxy>,
-        ownership: Arc<T>,
-        gate: Arc<PreparationGate<F>>,
+        preparation: RetainedPreparation<T, F>,
     ) -> Result<AgentCommand, SessionError>
     where
         T: Send + Sync + 'static,
@@ -121,7 +130,7 @@ impl SessionRuntime {
     {
         let _preparing = self.tasks_token();
         let chosen = self
-            .choose_driver(&spec, &profile, Arc::clone(&ownership), Arc::clone(&gate))
+            .choose_driver(&spec, &profile, preparation.clone())
             .await?;
         let driver = chosen.driver();
         let notices = chosen.notices;
@@ -129,7 +138,7 @@ impl SessionRuntime {
         let env = self.config.harness_env.clone();
         #[cfg(test)]
         let gate = self.lookup_gate.take();
-        self.prepare_blocking(ownership, gate, move || {
+        self.prepare_blocking(preparation, move || {
             let command = launch_for(driver, &lookup, &env, &spec, &profile, proxy.as_ref())?;
             #[cfg(test)]
             if let Some(gate) = gate {

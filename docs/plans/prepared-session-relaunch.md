@@ -34,3 +34,42 @@ that join; it is not a second custom-gate path or a ready Node integration.
 No tests/strict/gate result is asserted for this source leaf. Actual shared
 lookup/claim/registration/drain and kept-helper fixtures, plus the final
 consumer host predicate and enclosing package gate, must qualify the join.
+
+## A preparation-scoped host view
+
+[Decision Log]
+- Purpose: the node's existing recovery/listing owner supplies its original
+  synchronous admission arbiter without replacing the runtime's canonical
+  node/runtime close observation.
+- Reuse: `SessionRuntime::with_preparation` returns a limited `PreparedRuntime`
+  over the existing command, claim and task-tracker paths. It captures this
+  runtime's actual `launch_admission()` internally; callers cannot supply a
+  foreign handle. There is no `Deref`, raw command API or second quota.
+- Ownership: the same original owner, host gate and canonical close handle
+  travel through physical work in private `RetainedPreparation`. Default routes
+  use the same view with their existing runtime gate. A temporary view returns
+  `PreparedAgain` borrowing the original runtime and holding its original claim
+  until live registration. Its final start rechecks the same close observation.
+- Host policy: the borrowed cancellation check delegates to that canonical
+  handle and the original caller token. The host calls it under its existing
+  arbiter beside its deadline/generation checks. Subscribe before checking;
+  temporary `Wait` uses that existing watch and rechecks the same owner. Pending
+  Off can roll back without permanent cancellation or authority recapture.
+- Limits: this is preparation admission, not caller/device/grant/session launch
+  authority. The node retains its original Attempt and Store obligations, pins
+  actual preparation through observer cancellation, signals its existing token,
+  then awaits actual settlement and applies its fresh final session checks.
+- Physical boundary: version admission is followed by synchronous process spawn
+  in the same poll, with original owners already retained. The spawned child
+  transfers to the existing tracked observer; root uncertainty retains ownership
+  and withholds completion. Canonical close observation alone does not prove
+  this process behavior, atomic check/spawn or descendant death.
+
+The canonical observer/factory comes from the checked node58 head. The new view
+and held-work controls need their own exact joined strict/runtime evidence.
+The positive temporary-view case checks original conversation exclusion through
+registration; separate node-only and combined-drain controls prevent runtime
+shutdown from masking a broken node-source observation. Fake fixtures use the
+existing lookup hold and fixed version execution marker. None of this activates
+recovery policy hooks, voice reload, provider identity/sign-in proof or a wire
+method.

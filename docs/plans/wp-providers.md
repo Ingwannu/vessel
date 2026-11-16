@@ -908,3 +908,21 @@ permission. The same parent Child and original caller/tracker remain held by the
 existing pending operation. No raw cause is formatted, no retry or alternate
 process owner is introduced, and the pending behavior is unchanged. Corrected
 combined strict and runtime evidence remain owed.
+
+
+Node58 receiving checkpoint: the announced checked head contains the exact scoped
+canonical launch observer, factory and spawn checks. The merge preserves all
+original factory fields and the early-stop clone, keeps the already-removed
+node.rs size exception removed, and retains provider/draft pending rows and both
+architecture appendices. The source join moves only the existing test lookup
+hold along with launch_for into the same retained physical closure. Canonical
+node/runtime fields and actual pre/post-spawn cleanup are preserved.
+
+The named public preparation view and four receiving controls are now source,
+following the agreed external proposal. Root export, borrowed close check,
+inline Wait, original-runtime result lifetime and original conversation claim
+all use the canonical implementation. This is not a checked or caller-ready
+handoff yet: the queued97fb strict predates this joined source, and exact joined
+strict, actual held-work/marker/root-settlement tests and node policy receiving
+proof remain owed. Protocol assignment, native policy staging and the distinct
+provider process-phase retention audit remain separate unfinished work.

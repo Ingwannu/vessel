@@ -96,7 +96,16 @@ async fn kept_lookup_then_stop_refuses_without_starting_a_version_process() {
                 let runtime = Arc::clone(&runtime);
                 tokio::spawn(async move {
                     runtime
-                        .agent_command_owned(spec, profile, None, Arc::new(permit), gate)
+                        .agent_command_owned(
+                            spec,
+                            profile,
+                            None,
+                            super::super::prepared::RetainedPreparation {
+                                owner: Arc::new(permit),
+                                gate,
+                                admission: runtime.launch_admission(),
+                            },
+                        )
                         .await
                         .map(|_command| ())
                 })
@@ -167,7 +176,16 @@ async fn fresh_fence_change_after_lookup_is_terminal_instead_of_an_acp_fallback(
                     let runtime = Arc::clone(&runtime);
                     tokio::spawn(async move {
                         runtime
-                            .agent_command_owned(spec, profile, None, Arc::new(()), gate)
+                            .agent_command_owned(
+                                spec,
+                                profile,
+                                None,
+                                super::super::prepared::RetainedPreparation {
+                                    owner: Arc::new(()),
+                                    gate,
+                                    admission: runtime.launch_admission(),
+                                },
+                            )
                             .await
                             .map(|_command| ())
                     })
@@ -237,7 +255,16 @@ async fn pending_host_pause_can_restore_without_permanent_cancellation() {
                 let runtime = Arc::clone(&runtime);
                 tokio::spawn(async move {
                     runtime
-                        .agent_command_owned(spec, profile, None, Arc::new(permit), gate)
+                        .agent_command_owned(
+                            spec,
+                            profile,
+                            None,
+                            super::super::prepared::RetainedPreparation {
+                                owner: Arc::new(permit),
+                                gate,
+                                admission: runtime.launch_admission(),
+                            },
+                        )
                         .await
                         .map(|command| command.driver)
                 })
@@ -296,7 +323,16 @@ async fn admitted_version_keeps_original_capacity_and_root_drain_after_caller_dr
                 let runtime = Arc::clone(&runtime);
                 tokio::spawn(async move {
                     runtime
-                        .agent_command_owned(spec, profile, None, Arc::new(permit), gate)
+                        .agent_command_owned(
+                            spec,
+                            profile,
+                            None,
+                            super::super::prepared::RetainedPreparation {
+                                owner: Arc::new(permit),
+                                gate,
+                                admission: runtime.launch_admission(),
+                            },
+                        )
                         .await
                         .map(|_command| ())
                 })
@@ -337,7 +373,16 @@ async fn node_stop_after_held_lookup_blocks_version_and_drains_original_capacity
                 tokio::spawn(async move {
                     let gate = runtime.preparation_gate();
                     runtime
-                        .agent_command_owned(spec, profile, None, Arc::new(permit), gate)
+                        .agent_command_owned(
+                            spec,
+                            profile,
+                            None,
+                            super::super::prepared::RetainedPreparation {
+                                owner: Arc::new(permit),
+                                gate,
+                                admission: runtime.launch_admission(),
+                            },
+                        )
                         .await
                         .map(|_command| ())
                 })
@@ -390,8 +435,16 @@ async fn a_paused_gate_wakes_on_the_same_caller_cancel_without_policy_notificati
                     }
                 },
             ));
-            let mut preparing =
-                Box::pin(runtime.agent_command_owned(spec, profile, None, Arc::new(()), gate));
+            let mut preparing = Box::pin(runtime.agent_command_owned(
+                spec,
+                profile,
+                None,
+                super::super::prepared::RetainedPreparation {
+                    owner: Arc::new(()),
+                    gate,
+                    admission: runtime.launch_admission(),
+                },
+            ));
             pending(preparing.as_mut()).await;
             cancel.cancel();
             let result = tokio::time::timeout(STEP, preparing).await.unwrap();
@@ -411,3 +464,5 @@ async fn a_paused_gate_wakes_on_the_same_caller_cancel_without_policy_notificati
     .await
     .unwrap();
 }
+
+mod view;

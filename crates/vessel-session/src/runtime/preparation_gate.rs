@@ -6,6 +6,8 @@ use std::fmt;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
+use super::LaunchAdmission;
+
 /// Physical preparation effects admitted separately, before their dispatch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreparationEffect {
@@ -45,7 +47,7 @@ pub enum PreparationAdmission {
 /// The host calls `check` inside its arbiter, beside its deadline/owner checks.
 #[derive(Clone, Copy)]
 pub struct PreparationCancellation<'a> {
-    pub(super) node: &'a CancellationToken,
+    pub(super) admission: &'a LaunchAdmission,
     pub(super) caller: &'a CancellationToken,
 }
 
@@ -55,7 +57,7 @@ impl PreparationCancellation<'_> {
     /// # Errors
     /// Returns Cancelled when either original source has stopped.
     pub fn check(self) -> Result<(), PreparationRefusal> {
-        if self.node.is_cancelled() || self.caller.is_cancelled() {
+        if self.admission.check().is_err() || self.caller.is_cancelled() {
             Err(PreparationRefusal::Cancelled)
         } else {
             Ok(())

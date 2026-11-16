@@ -14,6 +14,8 @@ mod claims;
 mod drivers;
 mod launch;
 mod parts;
+mod prepared;
+pub use prepared::PreparedRuntime;
 mod preparation;
 mod preparation_gate;
 pub use preparation_gate::{

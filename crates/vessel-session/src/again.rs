@@ -142,6 +142,7 @@ pub struct PreparedAgain<'a> {
     notices: Vec<String>,
     actor: ActorStart,
     gate: Gate,
+    admission: crate::LaunchAdmission,
 }
 impl std::fmt::Debug for PreparedAgain<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -163,9 +164,7 @@ impl PreparedAgain<'_> {
     /// Runtime shutdown, a duplicate session, or the ordinary spawn failure.
     pub fn start(self) -> Result<Reopening, SessionError> {
         let _in_flight = self.runtime.tasks_token();
-        if self.runtime.is_shutting_down() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.admission.check()?;
         let created =
             self.runtime
                 .run_structured(self.launch, self.begin, self.notices, self.actor)?;
@@ -248,11 +247,29 @@ impl SessionRuntime {
         ended: Ended,
         launch: Relaunch,
     ) -> Result<PreparedAgain<'_>, SessionError> {
+        self.default_preparation_view()
+            .prepare_again(ended, launch)
+            .await
+    }
+
+    pub(crate) async fn prepare_again_with<'r, F>(
+        &'r self,
+        ended: Ended,
+        launch: Relaunch,
+        preparation: &crate::PreparedRuntime<'r, F>,
+    ) -> Result<PreparedAgain<'r>, SessionError>
+    where
+        F: for<'a> Fn(
+                crate::PreparationEffect,
+                crate::PreparationCancellation<'a>,
+            ) -> crate::PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
         // Counts as a running task, as a creation does.
         let _in_flight = self.tasks_token();
-        if self.is_shutting_down() {
-            return Err(SessionError::ShuttingDown);
-        }
+        preparation.admission().check()?;
         let Ended {
             mut info,
             choices,
@@ -298,8 +315,7 @@ impl SessionRuntime {
                 spec,
                 profile,
                 model_proxy,
-                Arc::clone(&claim),
-                self.preparation_gate(),
+                preparation.retain(Arc::clone(&claim)),
             )
             .await?;
         notices.extend(chosen);
@@ -354,6 +370,7 @@ impl SessionRuntime {
             notices,
             actor,
             gate: Gate(gate),
+            admission: preparation.admission(),
         })
     }
 }

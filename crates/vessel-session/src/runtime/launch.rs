@@ -386,8 +386,7 @@ impl SessionRuntime {
                 spec.clone(),
                 profile,
                 proxy,
-                Arc::clone(&claim),
-                self.preparation_gate(),
+                self.default_preparation(Arc::clone(&claim)),
             )
             .await?;
         #[cfg(test)]

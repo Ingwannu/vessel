@@ -13,7 +13,9 @@ use vessel_proto::{
 };
 
 use super::parts::{ActorStart, Begin};
+use super::prepared::RetainedPreparation;
 use super::{Created, SessionRuntime};
+use super::{PreparationAdmission, PreparationCancellation, PreparationEffect};
 use crate::error::SessionError;
 use crate::handle::Input;
 use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove, Restart};
@@ -21,7 +23,7 @@ use crate::parking::{Parking, Route};
 use crate::structured::{MoveState, StructuredActor};
 
 #[derive(Debug, Clone, Copy)]
-enum ProbePurpose {
+pub(super) enum ProbePurpose {
     Options,
     Catalog,
 }
@@ -132,8 +134,7 @@ impl SessionRuntime {
             spec,
             profile,
             proxy,
-            std::sync::Arc::new(()),
-            self.preparation_gate(),
+            self.default_preparation(std::sync::Arc::new(())),
         )
         .await
     }
@@ -159,15 +160,9 @@ impl SessionRuntime {
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
     ) -> Result<vessel_agent::Probed, SessionError> {
-        self.probe_selected(
-            harness,
-            profile,
-            proxy,
-            cwd,
-            (ProbeChoices::default(), ProbePurpose::Options),
-            std::sync::Arc::new(()),
-        )
-        .await
+        self.default_preparation_view()
+            .probe(harness, profile, proxy, cwd)
+            .await
     }
 
     /// Probe exactly a draft's model and option choices without sending a prompt.
@@ -203,27 +198,28 @@ impl SessionRuntime {
         choices: ProbeChoices,
         ownership: T,
     ) -> Result<vessel_agent::Probed, SessionError> {
-        self.probe_selected(
-            harness,
-            profile,
-            proxy,
-            cwd,
-            (choices, ProbePurpose::Catalog),
-            std::sync::Arc::new(ownership),
-        )
-        .await
+        self.default_preparation_view()
+            .probe_with_choices_owned(harness, profile, proxy, cwd, choices, ownership)
+            .await
     }
 
-    async fn probe_selected<T: Send + Sync + 'static>(
+    pub(super) async fn probe_selected<T, F>(
         &self,
         harness: HarnessRef,
         profile: Option<Profile>,
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
         (choices, purpose): (ProbeChoices, ProbePurpose),
-        ownership: std::sync::Arc<T>,
-    ) -> Result<vessel_agent::Probed, SessionError> {
-        self.launch_admission().check()?;
+        preparation: RetainedPreparation<T, F>,
+    ) -> Result<vessel_agent::Probed, SessionError>
+    where
+        T: Send + Sync + 'static,
+        F: for<'a> Fn(PreparationEffect, PreparationCancellation<'a>) -> PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
+        preparation.admission.check()?;
         let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
         let spec = draft_spec(harness.clone(), &profile, cwd, &choices);
         let limit = self.config.agent_handshake_timeout;
@@ -235,20 +231,14 @@ impl SessionRuntime {
             ..
         } = tokio::time::timeout(
             limit,
-            self.agent_command_owned(
-                spec,
-                profile,
-                proxy,
-                std::sync::Arc::clone(&ownership),
-                self.preparation_gate(),
-            ),
+            self.agent_command_owned(spec, profile, proxy, preparation.clone()),
         )
         .await
         .map_err(|_elapsed| vessel_agent::ProbeError::TimedOut {
             limit,
             log: Vec::new(),
         })??;
-        self.launch_admission().check()?;
+        preparation.admission.check()?;
         let remaining = limit.saturating_sub(started.elapsed());
         if remaining.is_zero() {
             return Err(vessel_agent::ProbeError::TimedOut {
@@ -266,7 +256,7 @@ impl SessionRuntime {
                 vessel_agent::probe_catalog_with(driver, &command, setup).await?
             }
         };
-        drop(ownership);
+        drop(preparation);
         if let Some(commands) = probed.commands.as_mut() {
             vessel_harness::classify_commands(&harness, commands);
         }
