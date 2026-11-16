@@ -29,7 +29,7 @@ Pinned Paseo 0.15.4 source is commit
 - Choice: `icon_chrome::Profile` is closed over `ToolbarSmall { config, icon }`
   and `SidebarFooter { glyph, sizing }`. `icon_chrome::render` returns the same
   element on which the owning wrapper installs its existing guarded callback
-  and Tooltips. The Toolbar wrapper now calls this renderer.
+  and Tooltips. The Toolbar wrapper delegates to that same lower frame.
 - Why: Toolbar keeps its existing config as the single geometry/state fact.
   Footer adds its own fixed source pair, glyph-only hover ink and a non-occluding
   inner pressed layer while leaving the outer hit area square.
@@ -59,3 +59,20 @@ The first exact receiving strict run,
 and failed one documentation lint: `ActivityIndicator` needed backticks. The
 correction changes that comment only; no tests ran and no renderer, handler or
 assertion is changed. A successful corrected check is still owed.
+
+## Receiving composition with Tooltip and loading
+
+The standalone extraction completed exact Kit strict run
+`wp-layout-core-union-20261116T012034Z-c2eba6ae` and same-head Kit all-target
+runtime `wp-layout-core-union-20261116T012159Z-c2eba6ae`: fonts/cargo0 and245/0/0.
+Both new Footer cases and all existing Toolbar cases passed explicitly. This
+does not execute the later loading composition or prove native pressed pixels.
+
+The next receiving source includes the reviewed Tooltip/loading followups. Both
+SVG and existing ActivityIndicator construction still enter the same private
+`ToolbarButton::with_content`, which now delegates to `icon_chrome::toolbar_frame`.
+No loading, disabled guard or tooltip method body changes. Only the old frame
+body moves; config keeps its new loading helper and widens the extracted frame's
+accessors inside the Kit crate. The public Footer profile calls the same renderer
+path, without taking over the sidebar wrapper or adding arbitrary style knobs.
+This changed receiving source still owes its own strict/runtime checks.
