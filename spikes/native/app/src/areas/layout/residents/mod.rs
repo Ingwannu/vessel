@@ -4,16 +4,22 @@
 //! selected-session composer callback is not a production resource constructor.
 mod access;
 mod opening;
+mod requests;
 pub(crate) use opening::{SessionAdmission, SessionOpening, SessionOpeningProblem};
 #[cfg(test)]
 mod tests;
 
-use crate::areas::{conversation::ConversationArea, session::SessionView};
+use crate::areas::{
+    conversation::{ConversationArea, requests::Requests},
+    session::SessionView,
+    session_lifecycle::LifecycleResources,
+};
 use std::collections::BTreeMap;
 use std::collections::btree_map::Entry as MapEntry;
 use vessel_app_view::layout::PaneId;
 use vessel_app_view::residents::{
-    PanelClaim, ResidentProblem, ResidentToken, Residents, SessionAddress, SessionContext,
+    FollowRetirement, OwnerReadiness, PanelClaim, ResidentProblem, ResidentToken, Residents,
+    ResourceOwner, SessionAddress, SessionContext,
 };
 use vessel_proto::SessionId;
 
@@ -21,6 +27,33 @@ use vessel_proto::SessionId;
 pub(crate) struct SessionResources {
     pub(crate) session: SessionView,
     pub(crate) conversation: ConversationArea,
+    pub(crate) requests: Requests,
+    pub(crate) lifecycle: LifecycleResources,
+}
+impl SessionResources {
+    /// Move actual fields once; owner kernels add no renderer, registry or input.
+    pub(crate) fn new(session: SessionView, conversation: ConversationArea) -> Self {
+        Self {
+            session,
+            conversation,
+            requests: Requests::default(),
+            lifecycle: LifecycleResources::staged(),
+        }
+    }
+    fn installed_readiness(&self) -> [(ResourceOwner, OwnerReadiness); 2] {
+        [
+            (
+                ResourceOwner::Requests,
+                self.requests.readiness(&self.conversation),
+            ),
+            (ResourceOwner::Lifecycle, self.lifecycle.readiness()),
+        ]
+    }
+    fn follow_retired(&mut self, notice: &FollowRetirement) {
+        self.requests.retired(notice);
+        self.lifecycle.retired(notice);
+        self.conversation.navigation_retired();
+    }
 }
 struct Entry {
     token: ResidentToken,
@@ -102,3 +135,6 @@ impl SessionResidents {
         Ok(&mut self.entry_mut(context.resident)?.resources)
     }
 }
+
+#[cfg(test)]
+mod requests_owner_tests;
