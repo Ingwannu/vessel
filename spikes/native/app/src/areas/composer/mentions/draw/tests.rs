@@ -39,6 +39,6 @@ fn retained_draw_callback_cannot_choose_a_replacement_reply(cx: &mut TestAppCont
         clicked_while_loading(shell, 0, window, cx);
         assert_eq!(shell.areas.session.composer.text(cx), "@srcm");
         callback(target, choice(shell, target))(shell, 0, window, cx);
-        assert_eq!(shell.areas.session.composer.text(cx), "src/other.rs");
+        assert_eq!(shell.areas.session.composer.text(cx), "\"src/other.rs\"");
     });
 }
