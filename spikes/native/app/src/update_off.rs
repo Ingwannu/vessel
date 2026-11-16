@@ -120,6 +120,12 @@ impl Shell {
         self.updates.runtime.is_some()
     }
 
+    /// A page keeps no release notes of a build it updated to: About shows
+    /// no "what is new" row.
+    pub(crate) const fn running_notes(&self) -> Option<&str> {
+        None
+    }
+
     /// Nothing checks by itself.
     pub(crate) const fn updates_automatic(&self) -> bool {
         false

@@ -44,8 +44,8 @@ use vessel_harness::{Profile, SessionFilesError, rebase};
 use vessel_proto::{
     BlobChunk, BundleFile, BundlePath, CloseTransfer, ErrorCode, ExportMemory, ExportSession,
     HarnessKind, ImportMemory, ImportSession, MemoryImported, NodeId, ReadTransfer, Request,
-    SessionImported, SessionMode, SessionOrigin, SessionSpec, TransferDetail, TransferId,
-    TransferManifest, WireError,
+    SessionImported, SessionOrigin, SessionSpec, TransferDetail, TransferId, TransferManifest,
+    WireError,
 };
 
 use super::export::{Exporter, home, named};
@@ -55,6 +55,8 @@ use crate::fleet::FetchError;
 use crate::principal::Principal;
 use crate::profiles::NodeProfiles;
 use crate::service::NodeService;
+
+mod session_spec;
 
 /// Where an import pulls from: the four calls of protocol 6 a source
 /// answers. See the module's Decision Log.
@@ -79,7 +81,7 @@ pub(crate) struct Local<'a> {
 impl Source for Local<'_> {
     async fn export_session(&self, request: ExportSession) -> Result<TransferManifest, WireError> {
         self.exporter
-            .session(self.holder, request)
+            .session(self.holder, request, None)
             .await
             .map_err(|error| error.to_wire())
     }
@@ -285,26 +287,15 @@ impl Importer<'_> {
                 OnConflict::Refuse,
             )
             .await?;
-        let model = match &info.spec.mode {
-            SessionMode::Structured { model, .. } => model.clone(),
-            SessionMode::Terminal { .. } => None,
-        };
         let named_profile = (!profile.is_default()).then(|| profile.name().clone());
-        let mut spec = SessionSpec::new(
+        let spec = session_spec::resumed(
+            &info,
             harness,
-            SessionMode::Structured {
-                model,
-                resume: Some(harness_session.clone()),
-                // Applied after the load, in order; one this node's agent
-                // does not offer fails the start, as a model it does not
-                // offer does, rather than run in the agent's default mode.
-                options,
-            },
-        )
-        .with_cwd(to_cwd.clone());
-        spec.profile.clone_from(&named_profile);
-        spec.title.clone_from(&info.title);
-        spec.labels.clone_from(&info.labels);
+            harness_session.clone(),
+            options,
+            to_cwd.clone(),
+            named_profile.as_ref(),
+        );
         tracing::info!(%transfer, written = placed.written, same = placed.same, "session imported");
         Ok(SessionPlaced {
             imported: SessionImported {

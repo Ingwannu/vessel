@@ -367,7 +367,12 @@ fn automatic_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) ->
 /// before the first line is written there).
 fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.words.update();
+    // A browser writes no log file (`vessel-app-log` is the desktop's): the
+    // row says there is none and its open button is off.
+    #[cfg(not(target_arch = "wasm32"))]
     let dir: Option<PathBuf> = vessel_app_log::dir();
+    #[cfg(target_arch = "wasm32")]
+    let dir: Option<PathBuf> = None;
     let has_dir = dir.is_some();
     let hint: vessel_app_kit::ui::SharedString = dir.as_ref().map_or_else(
         || words.log_unavailable().into(),
