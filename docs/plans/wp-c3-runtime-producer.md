@@ -115,3 +115,24 @@ in storage. Before the production correction the hit skips Operation::run and
 returns the old result; that baseline behavior is source-traced, not claimed
 as an executed failing test. The existing ce9667ac remote jobs stay attached
 to their old immutable source and are not execution of this successor.
+
+## Queued-only supersession after the source correction
+
+Under the standing WORKER queued-obsolete-source rule, the two ce9667ac
+strict/library runs were cancelled ONLY while queued; both reached terminal
+cancelled143 before replacements were submitted. No Rust executed and no
+running slot was interrupted. Their original specs/logs and cancellation
+artifacts are retained; neither is a source failure or a passing check.
+
+The corrected source is82aec7d14ca687f82a057e1e9fcc91efb9eb1f42. One ordinary
+priority0 strict replacement is wp-git-runtime-strict-20261116T030827Z-82aec7d1;
+one ordinary priority0 library replacement is
+wp-git-runtime-tests-20261116T030831Z-82aec7d1. Both six-crate selections remain
+unverified until their actual terminal outcomes. Require the66 original
+cases AND the added cache-hit registry race case before V3 submission.
+
+The unchanged-wire TS run wp-git-runtime-ts-20261116T025610Z-ce9667ac stays in
+place. Its result, when available, remains that exact prior commit's generation
+evidence; all proto/client/RPC/web source is unchanged by the82a correction.
+The external packet keeps checks-superseded.json separate from immutable
+packet.json and checks-running.json; do not rewrite the original evidence.
