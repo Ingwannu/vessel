@@ -46,3 +46,12 @@ in fold.rs after moving append methods: the public tool_call query still names
 that type. Its existing import is restored; no query signature, dependency or
 behavior changes. The source classifier and membership tests have not executed
 on the correction yet. The original run remains compiler-failure evidence.
+
+
+Current verification: the ebbee781 source executed the full View all-target test
+command, 1144/0/0 (run wp-timeline-models-20261116T023358Z-ebbee781).
+Its strict check returned two equivalent-match-arm lints; the corrected source
+joins those patterns without changing values or source classification. The next
+receiving check includes announced base14.3 and remains pending. This does not
+approve the full A7 renderer, native navigation, metadata search/display parity
+or transport authority.
