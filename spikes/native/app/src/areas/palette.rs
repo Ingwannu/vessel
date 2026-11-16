@@ -11,17 +11,19 @@
 //! Settings › Machines is drawn.
 
 mod entry;
+mod keyboard;
 mod rows;
 
 pub(crate) use entry::{sidebar_row, title_trigger};
 
 use rows::{child_at, glyph_of, ids, keys_of, subtitle};
 
-use gpui::{FocusHandle, ScrollHandle};
+use gpui::ScrollHandle;
 use vessel_app_kit::command::{
     CommandAnimation, CommandFrame, CommandHandlers, CommandKey, CommandRowParts, CommandState,
     CommandText, command_empty, command_frame_animated, command_heading, command_row_parts,
 };
+use vessel_app_kit::focus::ReturnFocus;
 use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
@@ -61,7 +63,7 @@ pub(crate) struct PaletteArea {
     /// The list's scroll, to keep the active row in sight.
     scroll: ScrollHandle,
     /// What held the keys before it opened.
-    prior: Option<FocusHandle>,
+    prior: ReturnFocus,
 }
 
 impl PaletteArea {
@@ -85,7 +87,7 @@ impl PaletteArea {
             cursor: PaletteCursor::default(),
             messages_search: crate::areas::conversation::search::Searching::default(),
             scroll: ScrollHandle::new(),
-            prior: None,
+            prior: ReturnFocus::default(),
         }
     }
 }
@@ -94,10 +96,12 @@ impl Shell {
     /// Open the palette with an empty search holding the keys; when it is
     /// open already, give its search the keys again.
     pub(crate) fn open_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.close_shortcuts_help(window, cx);
+        crate::areas::shortcuts::modal_opened(self);
         let placeholder = self.t.lang.palette().placeholder;
         let palette = &mut self.areas.palette;
         if !palette.motion.is_open() {
-            palette.prior = window.focused(cx);
+            palette.prior.remember(window, cx);
             palette.motion.present();
             palette
                 .scroll
@@ -112,7 +116,7 @@ impl Shell {
     }
 
     /// Close the palette; the keys go back where they were.
-    fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(crate) fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let palette = &mut self.areas.palette;
         if !palette.motion.is_open() {
             return;
@@ -121,11 +125,8 @@ impl Shell {
         palette.query.clear();
         palette.search.clear(window, cx);
         palette.cursor.reset();
-        if let Some(prior) = palette.prior.take() {
-            prior.focus(window, cx);
-        } else {
-            window.blur(cx);
-        }
+        let owner = palette.search.focus_handle(cx);
+        palette.prior.restore_if_owned(&owner, window, cx);
         cx.notify();
     }
 

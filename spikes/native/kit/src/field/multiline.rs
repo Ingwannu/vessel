@@ -8,8 +8,8 @@
 //! - Why/cost: no second subscription/textarea or visit counter; moving the
 //!   constructors and `SendOn` together keeps registration headroom in the root.
 use super::{
-    Callbacks, FormMinimum, Handlers, Kind, Known, MultilineStyle, TextField, TextareaState,
-    listen, register,
+    Callbacks, FormMinimum, Handlers, Kind, MultilineStyle, TextField, TextareaState, composition,
+    listen,
 };
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
@@ -55,7 +55,7 @@ impl TextField {
     /// sending).
     pub fn composer<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -63,7 +63,7 @@ impl TextField {
             MultilineStyle::Composer,
             placeholder,
             Callbacks::Plain {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 on_change: None,
             },
             window,
@@ -76,7 +76,7 @@ impl TextField {
     /// textarea supplies the 68 / 80-point minimum and 256-point cap.
     pub fn form_multiline<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -84,7 +84,7 @@ impl TextField {
             MultilineStyle::Form,
             placeholder,
             Callbacks::Plain {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 on_change: Some(|_, _, cx| cx.notify()),
             },
             window,
@@ -130,11 +130,13 @@ impl TextField {
             window,
             cx,
         );
-        register(Known::Lines(state.downgrade()));
+        composition::lines(&state);
         Self {
             kind: Kind::Lines(state, style),
             focused,
             form_minimum: FormMinimum::Default,
+            form_text: super::FormText::Body,
+            form_textarea: super::FormTextareaPresentation::Compact,
             send,
         }
     }
