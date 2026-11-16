@@ -2,13 +2,14 @@
 use super::*;
 use crate::cdp::requests::Evaluated;
 
-fn observed(value: serde_json::Value) -> Evaluated {
+fn observed(value: &serde_json::Value) -> Evaluated {
     serde_json::from_value(serde_json::json!({"result":{"value":value}})).unwrap()
 }
 #[test]
 fn valid_result_remains_opaque_and_keeps_its_truncation_fact() {
     let secret = r#"{"private":"own signed-in fixture"}"#;
-    let result = observed(serde_json::json!({"kind":"value","text":secret,"completeness":"whole"}));
+    let result =
+        observed(&serde_json::json!({"kind":"value","text":secret,"completeness":"whole"}));
     let content = finish(&result).unwrap();
     assert_eq!(content.text.as_str(), secret);
     assert_eq!(content.completeness, TextCompleteness::Whole);
@@ -30,10 +31,10 @@ fn malformed_unknown_and_oversized_results_never_become_successful_echoes() {
         serde_json::json!({"kind":"unknown"}),
         serde_json::json!({"kind":"value","text":"x".repeat(MAX_PAGE_TEXT_BYTES + 1),"completeness":"whole"}),
     ] {
-        assert!(finish(&observed(value)).is_err());
+        assert!(finish(&observed(&value)).is_err());
     }
     for kind in ["exception", "not_function"] {
-        let error = finish(&observed(serde_json::json!({"kind":kind}))).unwrap_err();
+        let error = finish(&observed(&serde_json::json!({"kind":kind}))).unwrap_err();
         assert!(!format!("{error:?}").contains("private"));
     }
 }

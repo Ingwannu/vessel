@@ -8,6 +8,16 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Function fixture ownership correction
+
+Exactdb3fc1bfd strict analysis returned one test-helper ownership lint: the
+JSON fixture argument was passed by value while the construction macro borrowed
+it. Borrow that fixture explicitly. No execution/script/result/loader behavior,
+assertion, timeout or bound changes. The queued db3 functional suite retains its
+original source and remains meaningful prior-style evidence; a corrected strict
+check is required for this changed head. The original failed strict result is
+retained.
+
 ## Ordinary-page function evaluation (staged)
 
 [Decision Log]
