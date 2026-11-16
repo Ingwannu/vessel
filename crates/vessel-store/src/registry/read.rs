@@ -44,7 +44,10 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
             workspaces.push(decode(&text)?);
         }
     }
-    let memberships = super::workspace_memberships(&transaction, None::<WorkspaceId>)?;
+    let mut memberships = super::workspace_memberships(&transaction, None::<WorkspaceId>)?;
+    // Placed sessions belong without a row per session (ADR 0106).
+    let derived = super::placement::derived_memberships(&transaction, &workspaces, &memberships)?;
+    memberships.extend(derived);
     let labels = crate::workspace_labels::registry_labels(&transaction, &workspaces)?;
     transaction.commit()?;
     Ok(StoredRegistry {

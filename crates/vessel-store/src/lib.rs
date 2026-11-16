@@ -110,15 +110,18 @@ pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
 pub use workspace_labels::WorkspaceLabelCommit;
 
-/// Explicit workspace registry records shared by create/lifecycle services.
+/// Explicit workspace registry records shared by create/lifecycle services, and
+/// the project root a start registers (ADR 0106).
 pub use registry::{
-    RegistryRecord, RegistryReservation, ReservationStage, StoredRegistry, WorkspaceProvision,
+    Placement, RegistryRecord, RegistryReservation, ReservationStage, StoredRegistry,
+    WorkspaceProvision,
 };
 
 /// Lifetime logical registry reservation bounds; `SQLite` physical growth is separately managed.
 pub use registry::{
-    MAX_DESCRIPTOR_BYTES, MAX_INTENT_BYTES, MAX_RECOVERY_BYTES, MAX_RESOURCES, MAX_RETAINED_BYTES,
-    MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE, RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
+    MAX_ARCHIVED_WORKSPACES, MAX_DESCRIPTOR_BYTES, MAX_INTENT_BYTES, MAX_RECOVERY_BYTES,
+    MAX_RESOURCES, MAX_RETAINED_BYTES, MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE,
+    RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
 };
 /// Pre-spawn resource admission shared by creation, scripts and lifecycle drains.
 pub use registry::{
