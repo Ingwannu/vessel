@@ -7,7 +7,7 @@ use crate::principal::Principal;
 use std::sync::Arc;
 use tokio::sync::watch;
 use vessel_proto::timeline::{FinishGrantCeiling, ParentExecutionStamp};
-use vessel_proto::{Scope, SessionId};
+use vessel_proto::Scope;
 
 /// A runtime-only capture; no serde constructor can manufacture its owner/watch.
 #[derive(Debug)]
