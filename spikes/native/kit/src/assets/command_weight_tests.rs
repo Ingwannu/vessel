@@ -125,10 +125,7 @@ fn the_vessel_only_rows_are_derived() {
             drawn.iter().all(|width| *width == 2.2_f32.to_bits()),
             "{glyph:?}"
         );
-        assert!(
-            path.starts_with(COMMAND_WEIGHT),
-            "{glyph:?}"
-        );
+        assert!(path.starts_with(COMMAND_WEIGHT), "{glyph:?}");
     }
 }
 
