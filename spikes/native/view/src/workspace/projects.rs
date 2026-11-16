@@ -115,7 +115,8 @@ impl ProjectsView {
                 .iter_mut()
                 .find(|known| known.id == project.id)
             {
-                Some(known) => *known = project,
+                Some(known) if project.revision >= known.revision => *known = project,
+                Some(_) => {}
                 None => list.projects.push(project),
             }
         }
@@ -262,6 +263,24 @@ mod tests {
         assert_eq!(view.project(&ready.id), Some(&ready));
         view.listed_after(Ok(list(vec![stale])));
         assert_eq!(view.project(&ready.id), Some(&ready));
+        assert_eq!(view.cloning().count(), 0);
+    }
+
+    #[test]
+    fn delayed_registration_reply_keeps_newer_followed_project_revision() {
+        let mut followed = project(P1, "/fixture");
+        followed.revision = 6;
+        let mut view = ProjectsView::Ready(list(vec![followed.clone()]));
+        let mut registration = followed.clone();
+        registration.revision = 3;
+        registration.state = ProjectState::Cloning {
+            stage: CloneStage::Receiving,
+            percent: Some(50),
+        };
+        view.took(registration.clone());
+        assert_eq!(view.project(&followed.id), Some(&followed));
+        view.listed_after(Ok(list(vec![registration])));
+        assert_eq!(view.project(&followed.id), Some(&followed));
         assert_eq!(view.cloning().count(), 0);
     }
 

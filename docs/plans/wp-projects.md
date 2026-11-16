@@ -823,3 +823,10 @@ new suites and changed-source strict checks are owed at this checkpoint; a live
 cross-App cache freshness claim additionally requires the shared owner's real
 fixture. No fake guard constructor, public fixture, shared attribute change or
 S2/pane/onboarding readiness is asserted by source registration.
+
+A delayed registration/clone acknowledgement now follows the same monotonic
+ProjectInfo revision rule already used by project lists and clone observations.
+It cannot replace revision 6 Ready with revision 3 Cloning merely because the
+registration RPC completed later. The focused regression keeps both late reply
+and late list paths; this is ordering within one explicit admission, not a guard
+substitute or a claim that an old peer's cache is current.
