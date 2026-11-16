@@ -31,7 +31,7 @@ reuse another principal's view. Each operation first repeats the ordinary target
 Read admission; a view id or pure marker never substitutes for that check. Calls
 are nonforwardable because view ownership is local to a real RPC connection.
 
-Proposed limits:16 views per connection,64 per actor across both buffers,256 per
+Proposed limits:16 views per connection,32 per actor across both buffers,256 per
 node,30 seconds maximum read wait and5 minutes idle lifetime. Engine marker capacity
 is also enforced; no temporary extra slot is needed for atomic replace. Open reply
 loss cannot leak indefinitely: disconnect/expiry closes the slot and releases its
@@ -227,3 +227,42 @@ transitions, lost reply and duplicate operation identity, and applied view mutat
 whose frame exceeds byte/cell admission. Ordinary output alone must not prevent
 one bounded owned gesture from making progress. Producer qualification and V3
 interface review remain required before any wire/API implementation.
+
+## Per-view history eligibility and preference-owner handoff
+
+A local/native view preference never calls the sole actor Screen::set_scrollback:
+that would destroy other views' and CLI capture's shared retained history. Keep
+the actor's authoritative retention policy separate from each view's eligible
+history floor and requested/effective limit. The per-view floor is engine-marker
+metadata, not a copied buffer or another terminal interpreter.
+
+For one opening, apply the coordinator's minSaved trim before its finalSaved
+limit at one ordered owner cut. Reducing0 then increasing8 cannot reveal text
+that this same view already excluded, even if the actor still retains it for
+other readers. Increasing the limit permits future history without moving that
+floor backwards. Preserve the eligible floor and view identity across preference
+owner replacement: old-owner drainedB is the successor's initial value; laterC
+is normal new-owner delivery. Fence stale owner generations/effects. Reopening a
+distinct view is not a claim that this preference deleted the actor's global
+history; that lifetime policy must stay explicit.
+
+A floor plus pin can require two markers per buffer per view. The proposal lowers
+actor view admission from64 to32 and accounts/reserves this worst-case capacity
+against the pure64 slots per buffer. A first scroll must not unexpectedly fail
+because all floor-only views exhausted its future pin capacity. Marker replacement
+uses the pure atomic operation; no temporary extra slot or unbounded remap journal.
+Reset/inactive-buffer floor handling remains explicit and uses engine epochs.
+
+Requested, effective-cap and actually available history are distinct. With an
+authoritative actor retaining at most10k lines, a UI request above10k cannot be
+acknowledged as completed retention. Proposed negotiation clamps to the actual
+actor cap with explicit requested/effective/available metadata, or refuses when
+that capability is unavailable; it never infers a larger cap from a saved setting.
+The final typed cap-response policy requires C2/V3 interface agreement before
+implementation. CLI capture and other view floors remain unaffected.
+
+Additional evidence must cover0-to8 monotonic trim, B/C owner handoff ordering,
+stale-owner delivery, simultaneous views with different limits, primary/alternate
+floors, both marker-slot bounds, and above-node-cap requests without false retained
+history claims. No retention wire type, node call or pure engine mutation is added
+by this contract note. Current capture remains Silent/NodeAuthority OFF.
