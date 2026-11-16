@@ -41,3 +41,25 @@ ordinary-value control. It must pass V1 and land on the line before this secure
 producer counts actual accessibility proof. A control-only native build/export
 and authenticated isolated display supply masked Linux pixels/clipboard proof;
 no new label, extra whole run, real key or secret-store action is authorized.
+
+## Real adapter/frame proof source
+
+After V1 final033a1ceb and lead-confirmed source adoption60a08b99, this isolated
+producer merges ONLY the checked change11 range2eb..31ed..87ad +docs51ef.
+This is selected producer consumption, not adoption of an unannounced package
+base or a claim that the receiving line gate passed. Field module registrations
+unioned automatically; secure factory/events, Code/MD and all other children
+remain intact. The main F1 consumer is a different, separately checked tree.
+
+The new actual-frame case renders SecretField beside an ordinary editor with a
+nonsecret reference value, activates the REAL callback, types only a synthetic
+canary into the masked field and observes a real frame. It requires exactly one
+PasswordInput with the localized label and no value; the ENTIRE debug snapshot
+must omit the canary. The ordinary TextInput must expose its reference value,
+so a disabled tree or decoder that drops all values cannot pass. No snapshot
+or candidate is printed. Both themes and existing compact/pointer layouts are
+covered by authored assertions; execution is still owed on this changed head.
+
+The old de055 lint-red and d2a complete repair remain separate. Exact corrected
+Kit strict/full lib, native masked PNG/clipboard and V1 final proof are still
+owed. No OS AT/IME, Host Voice, secret store, authority or F1 approval follows.
