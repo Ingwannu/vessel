@@ -5,6 +5,7 @@ use std::time::Duration;
 use vessel_proc::{CommandDiagnostics, CommandSpec, spawn};
 use vessel_testkit::Fake;
 
+#[cfg(test)]
 #[path = "private_spawn_log/capture.rs"]
 mod capture;
 const SENTINEL: &str = "PRIVATE-CREATION-PROMPT-CANARY";

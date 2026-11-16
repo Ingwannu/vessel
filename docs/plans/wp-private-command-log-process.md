@@ -19,3 +19,12 @@ This is the coordinator-authorized head-test correction for the named gate59
 intermittent. Ordinary current Proc all-target strict and this actual integration
 case are required before V3/normal receiving. It is no Windows execution or
 creation-controller proof; the broader diagnostics scope remains unchanged.
+
+
+The first strict run found two helper unwrap lints after the move: its original
+cfg(test) ancestor no longer surrounded that module in an integration crate.
+The helper module now explicitly retains that same literal cfg(test) boundary.
+The helper bytes and actual test body/assertions remain unchanged; no lint
+suppression, product behavior or failed-assertion handling is changed. The raw
+strict failure is retained. The corrected source still owes exact strict and
+actual isolated-binary execution.
