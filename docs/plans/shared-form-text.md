@@ -20,3 +20,15 @@ Isolated on announced2ebeedf9, only eight Kit paths and this plan; no F1 App,
 select/picker, form-field frame, Link, node or area delta. No execution/source
 approval is claimed here. Exact narrow checks and V1 remain owed; no native
 font/OS/IME/consumer/full F1 proof is inferred from authored tests.
+
+## Exact completed narrow receipt
+
+Exactc81ab50a5a0115a2f05037b67457b9210faf3cc0:
+schedules-20261116T004606Z-c81ab50a locked Kit all-target Clippy0 and
+schedules-20261116T005345Z-c81ab50a locked full Kitlib246/0/0. Both are ordinary
+SHORT priority0, fonts/cargo0/no skip, immutable exact checkout and actual Kit
+Checking/Compiling. Three new Body/Code/MD literal and actual source-identity/
+typing/submission cases explicitly executed ok. Author verified all collected
+file hashes and four step digest prefixes. Same-row V1 execution closure is
+requested; no App/F1/secret privacy/native font pixels/OS IME/consumer proof is
+inferred. The older multi-crate F1 reds are separate evidence, not overwritten.

@@ -214,6 +214,7 @@ impl Shell {
     pub(crate) fn settings_section(&mut self, section: Section, cx: &mut Context<'_, Self>) {
         let listed = sections::listed(section, self);
         self.areas.settings.arrive(section, listed, true);
+        crate::areas::shortcuts::navigation_changed(self);
         self.agent_load(false, cx);
         cx.notify();
     }

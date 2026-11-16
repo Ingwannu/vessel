@@ -1,6 +1,6 @@
 # ADR 0102: one secure single-line field
 
-Status: reserved design, implementation and V1 adoption owed.
+Status: implemented; receiving-base checks, native evidence and V1 adoption owed.
 Owner: G2; coordinator ed1d1f71. First consumer: Host Voice API-key entry (W19).
 
 [Decision Log]

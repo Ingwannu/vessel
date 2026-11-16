@@ -27,7 +27,17 @@ fn page() -> Page {
             "00000000-0000-4000-8000-000000000099".parse().unwrap(),
         )
         .unwrap();
-    let _change = page.bind(Some(context));
+    let _change = page.bind(Some(context.clone()));
+    let authority = page.tickets.next_ticket().unwrap();
+    assert!(page.checking_authority(&context, authority));
+    assert!(page.authority_answer(
+        &context,
+        authority,
+        Ok(vessel_proto::DeviceSelf {
+            device: None,
+            scopes: vec![Scope::Admin],
+        })
+    ));
     page.listing = Listing::Ready(vec![device()]);
     page
 }
