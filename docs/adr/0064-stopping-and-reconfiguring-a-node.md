@@ -1097,7 +1097,7 @@ instance/replacement check (`packages/server/src/server/daemon-instance.ts:
 149,197-218`); the explicit early-node/final-runtime observer is a Rust lifetime
 choice, not a claim of using its PID/replacement mechanism.
 
-## Proposed queued settings ownership and recovery settlement
+## Queued settings ownership and recovery settlement
 
 [Decision Log]
 - Purpose and intent: accepted settings work must remain node-owned before lock
@@ -1129,7 +1129,7 @@ choice, not a claim of using its PID/replacement mechanism.
   proposal approves no activation by itself. The named bound, concrete seam,
   diagnostics and required tests are in shared-settings-operation-owner.md.
 
-## Proposed private saved settings envelope
+## Private saved settings envelope
 
 [Decision Log]
 - Purpose and intent: separate the saved disk model from the generic settings
@@ -1139,7 +1139,7 @@ choice, not a claim of using its PID/replacement mechanism.
   owner-only and set-aside rules; Node Settings owns saved state and publication.
   The prerequisite repair retains its mutation guard/tracker through I/O and
   publication despite caller drop. The disk API and saved
-  mutex currently hold SetNodeSettings directly.
+  mutex previously held SetNodeSettings directly.
 - Alternatives considered: a second private file/writer, service consent in the
   generic patch, or an untyped placeholder. These duplicate lifetime policy,
   expose the wrong mutation surface, or invent an unreviewed authority schema.

@@ -246,7 +246,8 @@ A changed save marks the Off barrier, restores admission on file failure,
 publishes before Policy.apply and awaits real SQL settlement. The unchanged
 path settles existing debt without another replacement. Focused settings cases
 cover actual cleanup/apply failures, same-value retry and lifecycle sealing.
-The SQL integration suite and whole producer gate remain separate obligations.
+The fifteen passive SQL integration cases also pass. The generated declarations,
+complete source review and whole producer gate remain separate obligations.
 
 Shared request literals are mechanically completed with defaults for the new
 optional recovery field. Ordinary Get uses its default capability selection.

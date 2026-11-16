@@ -1,6 +1,8 @@
 # Shared live launch admission
 
-Status: proposed implementation; checks and review owed.
+Status: scoped prerequisite reviewed and received in the checked node line.
+Consumer preparation, policy authority and the common Settings producer remain
+separate qualifications.
 
 [Decision Log]
 - Purpose and intent: a preparer held across node stop must not start a new
@@ -24,8 +26,8 @@ settings operations. The explicit Rust early-stop/final-runtime distinction
 and this shared pre-spawn observer are implementation choices for that
 ownership order, not claims that Paseo has the same API.
 
-Resume point: factory relocation is source-only; admission implementation,
-actual held-lookup regressions, remote strict/runtime checks and review follow.
+The factory relocation preceded the admission extension so the move could be
+reviewed independently of the new stop observation.
 
 The implemented API is `vessel_session::LaunchAdmission` with private source
 fields, `check() -> Result<(), SessionError>` and `cancelled().await`.
@@ -39,16 +41,18 @@ before any fake spawn. Normal and unexpected-success paths still settle the
 owned durable stream and runtime. No new task/reader quota or physical-capacity
 receipt is introduced.
 
-Resume point: implementation is source-only. Remote Session/Node strict and
-actual admission tests are the scoped prerequisite check set; no prior common
-Settings/SQL result is used as proof. Recovery and kept-version-work consumers
-remain unqualified. Real agents, other operating systems and service-account
-behavior are not exercised by these isolated fixtures.
+The scoped check set passed: Node/Session all-target strict on the import
+correction, current Session strict after the test-only phase correction, and
+five actual focused Node/Session cases. The latter includes both held lookup
+modes and the real open-admission control. The checked node receiving gate also
+passed. No common Settings/SQL result is used as proof. Recovery and kept-version
+work consumers remain unqualified. Real agents, other operating systems and
+service-account behavior are not exercised by these isolated fixtures.
 
 The first changed-source strict check found the factory move's now-unused
 PathBuf import and an unnecessarily qualified prelude Future bound in the new
 phase fixture. Both are removed without changing behavior or assertions. Its
-red log is retained; corrected-source ordinary checks are still owed.
+red log is retained; the corrected-source ordinary checks passed.
 
 The fixture phase clock is independently named and strictly shorter than the
 unchanged outer case safety net. Otherwise the earlier-started outer clock

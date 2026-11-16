@@ -114,8 +114,8 @@ New fixtures compare current canonical bytes and semantics, prove the opaque
 envelope cannot be wire-serialized, and keep a no-op's original bytes/future
 fields without creating a set-aside copy. The current focused Store settings
 suite and Node settings suite have executed successfully. That scoped evidence
-does not replace the opaque-envelope compile-fail doctest, SQL integration,
-generated declarations or the enclosing gate.
+is accompanied by the passing opaque-envelope compile-fail doctest and passive
+SQL integration suite. Generated declarations and the enclosing gate remain owed.
 
 Pending: remaining changed-source checks and whole review, later combined-base
 checks, and the concrete private schema/canonical incarnation contract. No
