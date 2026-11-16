@@ -15,9 +15,22 @@ number-cost-usd =
        *[positive] US${ $absolute }
     }
 
-# Short complete compact amount; $absolute is prepared digits, $sign preserves
-# signed zero, and $exponent is the language-owned decimal scaling exponent.
+# Short complete compact amount. $category is computed by the maintained
+# plural engine from the rounded coefficient; every CLDR category is declared
+# so another language can specialize a whole amount without a Rust edit.
 number-cost-compact =
+    { $category ->
+        [zero] { number-cost-compact-body }
+        [one] { number-cost-compact-body }
+        [two] { number-cost-compact-body }
+        [few] { number-cost-compact-body }
+        [many] { number-cost-compact-body }
+       *[other] { number-cost-compact-body }
+    }
+
+# Complete default compact amount, reused above. $absolute is prepared digits;
+# $sign preserves signed zero; numeric keys declare this folder's scale data.
+number-cost-compact-body =
     { $exponent ->
         [3] { $sign ->
             [negative] -{ $absolute }천

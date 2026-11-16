@@ -72,6 +72,18 @@ the English numeric body/scale). These resources are not yet parsed by a VM
 check or wired to a callback. Do not count source preparation as reachability
 or compare the unlinked files' byte count with an installed binary.
 
+`pattern_probe.rs` prepares maintained-AST scale extraction and whole Fluent
+pattern rendering; its compact category is an explicit six-variant choice,
+computed from a numeric coefficient by the maintained plural engine. The
+default body is a complete amount reference, allowing a contributed language
+to specialize a category without joining fragments in Rust. `kernel_probe.rs`
+combines arithmetic, placement and those patterns for a single locale, with
+whole-corpus tests, unsigned glyph/category tests and signed-zero presentation
+keys. Both remain unlinked/uncompiled and outside the frozen stage-1 graph.
+They do not yet supply English fallback, app callback reachability, wasm
+entry, current generated-message unsigned arguments, or a consumer cache.
+Those integration requirements and all dependency/adoption gates remain open.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
