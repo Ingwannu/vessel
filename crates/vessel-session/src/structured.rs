@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
-use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionOption, SessionStatus};
+use vessel_proto::{AgentEvent, EventSeq, ProfileName, SessionEvent, SessionOption, SessionStatus};
 
 use crate::attachments::AttachmentLoader;
 use crate::delivery::Desk;
@@ -263,7 +263,7 @@ impl StructuredActor {
             self.move_state.replaying = false;
         }
         match output {
-            AgentOutput::InputEcho(echo) => self.publish_agent_output(echo.into_event()).await,
+            AgentOutput::InputEcho(echo) => self.publish_input_echo(echo).await,
             AgentOutput::PlanProposal(proposal) => self.offer_plan(*proposal).await,
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.
@@ -311,7 +311,7 @@ impl StructuredActor {
                 self.move_state.disconnect = Some(disconnect);
             }
             AgentOutput::Event(event) => {
-                self.publish_agent_output(event).await;
+                let _record = self.publish_agent_output(event).await;
             }
             AgentOutput::Disconnected(disconnect) => {
                 tracing::debug!(%disconnect, "agent connection ended");
@@ -327,7 +327,27 @@ impl StructuredActor {
         }
     }
 
-    async fn publish_agent_output(&mut self, event: AgentEvent) {
+    async fn publish_input_echo(&mut self, echo: vessel_agent::InputEcho) {
+        let event = echo.into_event();
+        let message = if let AgentEvent::TurnStarted {
+            client_message_id, ..
+        }
+        | AgentEvent::Steered {
+            client_message_id, ..
+        } = &event
+        {
+            client_message_id.clone()
+        } else {
+            None
+        };
+        if let Some(seq) = self.publish_agent_output(event).await
+            && let Some(message) = message
+        {
+            self.desk.tickets.echoed(&message, seq);
+        }
+    }
+
+    async fn publish_agent_output(&mut self, event: AgentEvent) -> Option<EventSeq> {
         self.plan_before_event(&event).await;
         if matches!(
             event,
@@ -362,10 +382,14 @@ impl StructuredActor {
         } else {
             None
         };
-        self.desk.observe(&event, self.life.out.next_seq());
+        let seq = self.life.out.next_seq();
+        self.desk.observe(&event, seq);
         self.life
             .publish(&mut self.agent, SessionEvent::Agent { event })
             .await;
+        // This is the sequence assigned at THIS publication boundary, not the
+        // latest record observed after an RPC. Exhaustion never invents an echo.
+        let committed = self.life.out.next_seq() != seq;
         if let Some(title) = title {
             self.life
                 .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)
@@ -378,6 +402,7 @@ impl StructuredActor {
                 .status(&mut self.agent, SessionStatus::Running)
                 .await;
         }
+        committed.then_some(seq)
     }
 
     /// Publish what is still buffered after the exit, for a bounded time.

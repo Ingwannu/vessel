@@ -185,6 +185,9 @@ pub(crate) const fn fork_refusal(refusal: vessel_agent::ForkRefusal) -> &'static
 /// Why a prompt was not delivered (protocol 10's `session.prompt`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum DeliveryError {
+    /// The bounded original receipt-ticket owner refused before dispatch.
+    #[error("the session's retained input tickets are full or already preparing")]
+    ReceiptCapacity,
     /// A prompt needs content.
     #[error("the prompt is empty")]
     Empty,
@@ -337,7 +340,7 @@ impl SessionError {
             | Self::Queue(QueueError::Full | QueueError::Stale { .. })
             // The file is not the one kept: the node's state changed.
             | Self::Attachment(AttachmentError::Changed(_)) => ErrorCode::Conflict,
-            Self::ShuttingDown | Self::Delivery(DeliveryError::TurnDidNotEnd) => {
+            Self::ShuttingDown | Self::Delivery(DeliveryError::TurnDidNotEnd | DeliveryError::ReceiptCapacity) => {
                 ErrorCode::Unavailable
             }
             Self::Move(error) => move_code(error),

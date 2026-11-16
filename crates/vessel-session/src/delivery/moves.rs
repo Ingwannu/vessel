@@ -3,12 +3,18 @@
 //! turn's end and at the session's end, and published when it changed.
 
 use vessel_proto::conversation::QueueChanged;
-use vessel_proto::{Delivered, QueueChange, QueueHold};
+use vessel_proto::{Delivered, Delivery, QueueChange, QueueHold, QueuedPrompt};
 
-use super::{Change, TurnEnd};
-use crate::error::SessionError;
+use super::submission::{SubmissionDispatch, known_or_uncertain};
+use super::{Change, TurnEnd, TurnTicket};
+use crate::error::{DeliveryError, SessionError};
 use crate::queue::{Applied, Queue};
 use crate::structured::StructuredActor;
+
+enum EntryFailure {
+    Restored,
+    Uncertain,
+}
 
 impl StructuredActor {
     /// Carry out a `session.queue` change and answer it.
@@ -60,38 +66,7 @@ impl StructuredActor {
                 entry,
                 place,
                 delivery,
-            } => {
-                let id = entry.id;
-                let ticket = self.desk.tickets.take(id);
-                let sent = self
-                    .send_as(
-                        entry.content.clone(),
-                        delivery,
-                        entry.by.clone(),
-                        entry.client_message_id.clone(),
-                        entry.provenance,
-                    )
-                    .await;
-                match sent {
-                    Ok(delivered) => {
-                        self.desk.queue.settle();
-                        if let Some(ticket) = ticket {
-                            let started = self.desk.started();
-                            self.desk.tickets.give(ticket, delivered, started);
-                        }
-                        Some(delivered)
-                    }
-                    Err(error) => {
-                        // Back where it was; nothing was sent.
-                        if let Err(full) = self.desk.queue.insert(place, entry) {
-                            tracing::warn!(%full, "a prompt not sent could not go back to the queue");
-                        } else if let Some(ticket) = ticket {
-                            self.desk.tickets.keep(id, ticket);
-                        }
-                        return Err(error);
-                    }
-                }
-            }
+            } => Some(self.send_taken(entry, place, delivery).await?),
         };
         self.publish_queue().await;
         Ok(QueueChanged {
@@ -100,14 +75,87 @@ impl StructuredActor {
         })
     }
 
+    async fn send_taken(
+        &mut self,
+        entry: QueuedPrompt,
+        place: usize,
+        delivery: Delivery,
+    ) -> Result<Delivered, SessionError> {
+        if let Some(ticket) = self.desk.tickets.take(entry.id)
+            && let Err(ticket) = self.desk.tickets.prepare(ticket)
+        {
+            self.restore_entry(place, entry, Some(ticket));
+            return Err(DeliveryError::ReceiptCapacity.into());
+        }
+        let sent = self
+            .send_as(
+                entry.content.clone(),
+                delivery,
+                entry.by.clone(),
+                entry.client_message_id.clone(),
+                entry.provenance,
+            )
+            .await;
+        match sent {
+            Ok(delivered) => {
+                self.desk.queue.settle();
+                let started = self.desk.started();
+                self.desk.tickets.finish_prepared(delivered, started);
+                Ok(delivered)
+            }
+            Err(error) => {
+                let _state = self.failed_entry(place, entry, &error);
+                self.publish_queue().await;
+                Err(error)
+            }
+        }
+    }
+
+    fn restore_entry(&mut self, place: usize, entry: QueuedPrompt, ticket: Option<TurnTicket>) {
+        let id = entry.id;
+        if let Err(full) = self.desk.queue.insert(place, entry) {
+            tracing::warn!(%full, "a prompt not sent could not go back to the queue");
+        } else if let Some(ticket) = ticket {
+            self.desk.tickets.keep(id, ticket);
+        }
+    }
+
+    fn failed_entry(
+        &mut self,
+        place: usize,
+        entry: QueuedPrompt,
+        error: &SessionError,
+    ) -> EntryFailure {
+        let ticket = self.desk.tickets.take_prepared();
+        if ticket.as_ref().is_some_and(TurnTicket::is_receipt)
+            && !matches!(known_or_uncertain(error), SubmissionDispatch::Refused(_))
+        {
+            // A possibly-sent canonical entry must not become actionable again
+            // in this actor. Durable pre-dispatch claims remain a separate gate.
+            if let Some(ticket) = ticket {
+                self.desk.tickets.keep_uncertain(ticket);
+            }
+            EntryFailure::Uncertain
+        } else {
+            self.restore_entry(place, entry, ticket);
+            EntryFailure::Restored
+        }
+    }
+
     /// Start the queue's first entry, when it moves and nothing runs.
     async fn advance(&mut self) -> Option<Delivered> {
         if self.desk.running() || !self.ready {
             return None;
         }
         let entry = self.desk.queue.next()?;
-        let id = entry.id;
-        let ticket = self.desk.tickets.take(id);
+        if let Some(ticket) = self.desk.tickets.take(entry.id)
+            && let Err(ticket) = self.desk.tickets.prepare(ticket)
+        {
+            self.restore_entry(0, entry, Some(ticket));
+            let _held = self.desk.queue.hold(QueueHold::Failed);
+            self.publish_queue().await;
+            return None;
+        }
         match self
             .start_admitted(
                 entry.content.clone(),
@@ -118,25 +166,20 @@ impl StructuredActor {
         {
             Ok(()) => {
                 self.desk.queue.settle();
-                if let Some(ticket) = ticket {
-                    let started = self.desk.started();
-                    self.desk.tickets.give(ticket, Delivered::Started, started);
-                }
+                let started = self.desk.started();
+                self.desk
+                    .tickets
+                    .finish_prepared(Delivered::Started, started);
                 self.publish_queue().await;
                 Some(Delivered::Started)
             }
             Err(error) => {
-                // It goes back first, the queue held: the agent may take
-                // less than when it was queued (after a move), or it is
-                // going away.
-                let line = format!(
-                    "vessel: the queue's next prompt was not sent ({error}); the queue is held"
-                );
-                if let Err(full) = self.desk.queue.insert(0, entry) {
-                    tracing::warn!(%full, "a prompt not sent could not go back to the queue");
-                } else if let Some(ticket) = ticket {
-                    self.desk.tickets.keep(id, ticket);
-                }
+                let line = match self.failed_entry(0, entry, &error) {
+                    EntryFailure::Restored => format!(
+                        "vessel: the queue's next prompt was not sent ({error}); the queue is held"
+                    ),
+                    EntryFailure::Uncertain => "vessel: the queued delivery is uncertain; its entry is protected from resend".to_owned(),
+                };
                 let _held = self.desk.queue.hold(QueueHold::Failed);
                 self.publish_queue().await;
                 self.life.notices(&mut self.agent, vec![line]).await;

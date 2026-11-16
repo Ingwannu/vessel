@@ -49,18 +49,37 @@ pub(super) async fn target_barrier(
                 .await
                 .ok()?
                 .ok()?;
-            let SubmissionTarget::Turn { started } = observed else {
+            let SubmissionTarget::Turn { started, echo } = observed else {
                 return None;
             };
+            if !echo_fits(accepted, started, echo) {
+                return None;
+            }
             if matches!(accepted, SubmissionAcceptedKind::Prompt { disposition: PromptDisposition::InterruptedAndStarted { interrupted } } if interrupted == started)
             {
                 return None;
             }
             Some(ReceiptBarrier {
-                through: started.next()?,
+                through: echo.next()?,
                 target: Some(ReceiptTarget::Ready(observed)),
             })
         }
+    }
+}
+
+fn echo_fits(accepted: SubmissionAcceptedKind, started: EventSeq, echo: EventSeq) -> bool {
+    match accepted {
+        SubmissionAcceptedKind::Prompt {
+            disposition:
+                PromptDisposition::Started | PromptDisposition::InterruptedAndStarted { .. },
+        } => echo == started,
+        SubmissionAcceptedKind::Prompt {
+            disposition: PromptDisposition::Steered,
+        } => echo > started,
+        SubmissionAcceptedKind::Prompt {
+            disposition: PromptDisposition::Queued { .. },
+        }
+        | SubmissionAcceptedKind::Command { .. } => false,
     }
 }
 
@@ -94,8 +113,9 @@ impl Sessions {
                 }
             };
             let (target, through) = match target {
-                SubmissionTarget::Turn { started } => {
-                    let Some(through) = started.next() else { return; };
+                SubmissionTarget::Turn { started, echo } => {
+                    if echo < started { return; }
+                    let Some(through) = echo.next() else { return; };
                     (PromptReceiptBinding::Turn { started }, through)
                 }
                 SubmissionTarget::Withdrawn { entry, through } => {
@@ -120,21 +140,38 @@ mod tests {
 
     const BARRIER_TEST_BOUND: std::time::Duration = std::time::Duration::from_secs(3);
 
+    #[test]
+    fn accepted_disposition_must_match_the_actual_echo_relationship() {
+        let started = EventSeq::new(17);
+        let prompt = SubmissionAcceptedKind::Prompt {
+            disposition: PromptDisposition::Started,
+        };
+        let steer = SubmissionAcceptedKind::Prompt {
+            disposition: PromptDisposition::Steered,
+        };
+        assert!(echo_fits(prompt, started, started));
+        assert!(!echo_fits(prompt, started, EventSeq::new(31)));
+        assert!(!echo_fits(steer, started, started));
+        assert!(!echo_fits(steer, started, EventSeq::new(3)));
+        assert!(echo_fits(steer, started, EventSeq::new(31)));
+    }
+
     #[tokio::test]
     async fn direct_barrier_uses_the_ticket_and_closed_tickets_stay_uncertain() {
         vessel_testkit::within(BARRIER_TEST_BOUND, async {
             let (sent, received) = oneshot::channel();
             sent.send(SubmissionTarget::Turn {
                 started: EventSeq::new(17),
+                echo: EventSeq::new(31),
             })
             .unwrap();
             let accepted = SubmissionAcceptedKind::Prompt {
-                disposition: PromptDisposition::Started,
+                disposition: PromptDisposition::Steered,
             };
             let barrier = target_barrier(accepted, received, EventSeq::new(999))
                 .await
                 .unwrap();
-            assert_eq!(barrier.through, EventSeq::new(18));
+            assert_eq!(barrier.through, EventSeq::new(32));
             let (sent, received) = oneshot::channel();
             drop(sent);
             assert!(
@@ -158,6 +195,7 @@ mod tests {
             let (sent, received) = oneshot::channel();
             sent.send(SubmissionTarget::Turn {
                 started: EventSeq::new(17),
+                echo: EventSeq::new(17),
             })
             .unwrap();
             assert!(

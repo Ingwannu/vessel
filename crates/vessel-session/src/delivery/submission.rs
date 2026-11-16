@@ -19,6 +19,8 @@ pub enum SubmissionTarget {
     Turn {
         /// Actor-observed original record, including a turn that already completed.
         started: EventSeq,
+        /// This exact accepted input's canonical echo, distinct for a steer.
+        echo: EventSeq,
     },
     /// An explicit queue mutation removed this entry before it was sent.
     Withdrawn {
@@ -82,15 +84,9 @@ impl SessionHandle {
         native_command: Option<NativeCommandIntent>,
     ) -> Result<(SubmissionDispatch, oneshot::Receiver<SubmissionTarget>), SessionError> {
         let (ticket, target) = oneshot::channel();
+        let ticket = TurnTicket::receipt(message.clone(), ticket);
         let result = self
-            .submit_identified_ticket(
-                content,
-                message,
-                delivery,
-                by,
-                native_command,
-                Some(TurnTicket::Receipt(ticket)),
-            )
+            .submit_identified_ticket(content, message, delivery, by, native_command, Some(ticket))
             .await?;
         Ok((result, target))
     }
@@ -120,7 +116,18 @@ impl SessionHandle {
     }
 }
 impl StructuredActor {
-    pub(crate) async fn submit_identified(&mut self, order: Submit) {
+    pub(crate) async fn submit_identified(&mut self, mut order: Submit) {
+        // Register the ORIGINAL bounded owner before any provider/cancel/queue
+        // await. OOB commands deliberately have no model-turn ticket.
+        if order.native_command.is_none()
+            && let Some(ticket) = order.turn.take()
+            && self.desk.tickets.prepare(ticket).is_err()
+        {
+            let _observer_gone = order.reply.send(Ok(SubmissionDispatch::Refused(
+                SubmissionRefusal::Unavailable,
+            )));
+            return;
+        }
         let result = if let Some(intent) = order.native_command {
             self.submit_native_command(order.content, order.message, order.delivery, intent)
                 .await
@@ -137,10 +144,8 @@ impl StructuredActor {
             self.submit_prompt_policy(order.content, order.message, order.delivery, order.by)
                 .await
         };
-        if let (
-            Some(ticket),
-            SubmissionDispatch::Accepted(SubmissionAcceptedKind::Prompt { disposition }),
-        ) = (order.turn, &result)
+        if let SubmissionDispatch::Accepted(SubmissionAcceptedKind::Prompt { disposition }) =
+            &result
         {
             let delivered = match disposition {
                 PromptDisposition::Started | PromptDisposition::InterruptedAndStarted { .. } => {
@@ -149,7 +154,13 @@ impl StructuredActor {
                 PromptDisposition::Steered => Delivered::Steered,
                 PromptDisposition::Queued { entry } => Delivered::Queued { entry: *entry },
             };
-            self.desk.tickets.give(ticket, delivered, self.desk.started);
+            self.desk
+                .tickets
+                .finish_prepared(delivered, self.desk.started);
+        } else if matches!(result, SubmissionDispatch::OutcomeUnknown) {
+            self.desk.tickets.uncertain();
+        } else {
+            let _no_effect_or_command = self.desk.tickets.take_prepared();
         }
         let _closed = order.reply.send(Ok(result));
     }
@@ -232,12 +243,15 @@ fn disposition(delivered: Delivered) -> PromptDisposition {
         Delivered::Queued { entry } => PromptDisposition::Queued { entry },
     }
 }
-fn known_or_uncertain(error: &SessionError) -> SubmissionDispatch {
+pub(super) fn known_or_uncertain(error: &SessionError) -> SubmissionDispatch {
     let reason = match error {
         SessionError::Input(vessel_agent::InputError::TurnInProgress) => {
             SubmissionRefusal::TurnRunning
         }
         SessionError::Input(vessel_agent::InputError::CannotSteer) => {
+            SubmissionRefusal::Unavailable
+        }
+        SessionError::Delivery(crate::DeliveryError::ReceiptCapacity) => {
             SubmissionRefusal::Unavailable
         }
         SessionError::Input(

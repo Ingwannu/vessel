@@ -2058,3 +2058,11 @@ retain the exact original typed request and actor binding, and test generic
 approval/question presentation. No DTO constructs runtime authority, admission,
 provider offers or delivery; those remain with the existing session/receipt
 owner. See timeline-recovery-values.md for the exact portable boundary and proof.
+
+The unverified receipt ticket checkpoint reuses the actor's existing queued and
+awaiting ticket owners plus one preparing slot registered before dispatch.
+Original turn binding and this input's exact trusted echo sequence are separate;
+Node settlement waits through the latter. Its transient identified-ticket limit
+uses the existing queue maximum and uncertainty retains the original owner.
+This supplies no crash-safe queued dispatch claim or private production authority;
+those Store/actor joins and current-tree gates remain owed (ADR0084).

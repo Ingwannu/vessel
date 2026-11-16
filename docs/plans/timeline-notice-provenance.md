@@ -291,3 +291,43 @@ be proposed and reviewed before implementation, with crash-point/held-writer,
 restart, legacy-queue mutation and lost-ack tests. It must reuse the same store,
 queue and receipt namespace, without a second ledger or public private-key field.
 No current new queue runtime/production readiness is asserted by this analysis.
+
+## Original ticket and exact echo join — unverified checkpoint
+
+The existing ticket owner now registers one original receipt ticket before any
+prompt dispatch, cancellation or queue effect. It keeps a single preparing slot
+and reuses its existing queued/awaiting owners. Unsettled identified tickets are
+limited by the existing PromptQueue maximum; this is a local conservative
+transient floor, not a new wire capacity or permission. Saturation returns the
+existing retained no-effect Unavailable refusal before dispatch. Moving an
+existing queued ticket into preparation does not allocate another receipt.
+
+A receipt ticket holds its bounded identity, original turn, exact trusted echo
+and one reply sender. Either observation order can complete it, and another turn
+cannot replace a pinned original turn. Caller loss does not release a possibly
+sent ticket before its real echo settles. An uncertain dispatch retains its
+original ticket with an explicitly unobserved target until owner end; future
+unrelated turns never fill that target. Only an entry still in the unsent queue
+owner can produce an authoritative Withdrawn result.
+
+Only the closed InputEcho branch notifies echo settlement, using the sequence
+assigned at that exact publication boundary. Node persistence waits through the
+new echo rather than the joined turn's older start. The binding still records
+the original start separately. Started/InterruptedAndStarted require that input's
+start echo; Steered requires an echo later than the original start. No latest
+record lookup or history inference substitutes for these facts.
+
+Queued advance/send-now move the same ticket into preparation before sending.
+A known no-effect refusal can restore it; a possibly-sent identified entry loses
+live resend actionability and retains its uncertain ticket. This live-state
+floor does NOT solve the documented crash/restart queue-claim gap. That durable
+pre-effect claim and the real receipt owner retained across caller loss/deadline
+remain implementation/review obligations before activation.
+
+Synchronous fixtures cover both echo/binding orders, original-turn immutability,
+wrong identity, missing/closed echo, capacity and transfer at capacity, caller
+loss, queued preparation and no false withdrawal. Node fixtures distinguish the
+actual echo watermark from the original turn and reject incoherent relations.
+These new sources have only format/size/diff checks. They have NOT been compiled,
+executed or source-qualified. Earlier carrier checks exclude this ticket join.
+No private notice/queued provider production or full receipt readiness is claimed.
