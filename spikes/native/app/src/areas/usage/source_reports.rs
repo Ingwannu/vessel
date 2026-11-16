@@ -1,5 +1,5 @@
 //! One generic card renderer consumes canonical node report values and independent current status.
-use super::rows::{Density, message, notice};
+use super::rows::{Density, notice};
 use crate::shell::Shell;
 use vessel_app_kit::{
     Tokens,
@@ -28,23 +28,11 @@ pub(super) fn render(
         .w_full()
         .flex()
         .flex_col()
-        .gap(px(spacing::S3))
-        .child(super::source_controls::render(
-            shell, reports, density, tokens, cx,
-        ));
+        .gap(px(spacing::S3));
     if reports.policy == ExternalLookup::Off {
         return body
             .child(super::read_states::off(shell, tokens, cx))
             .into_any_element();
-    }
-    if state.modal.current().is_none() {
-        body = body.children(super::toolbar::refresh_all(
-            shell,
-            "usage-reports-refresh-all",
-            tokens,
-            matches!(density, Density::Compact),
-            cx,
-        ));
     }
     for failure in reports.source_failures.as_slice() {
         let reason = match &failure.failure {
@@ -64,7 +52,7 @@ pub(super) fn render(
         ));
     }
     if reports.reports.is_empty() {
-        body = body.child(message(text.no_source_reports(), tokens));
+        body = body.child(super::read_states::muted_card(text.plan_empty(), tokens));
     }
     for entry in reports.reports.as_slice() {
         if reports
@@ -79,5 +67,9 @@ pub(super) fn render(
             ));
         }
     }
-    body.into_any_element()
+    // Per-source consent is Vessel's (ADR 0042): it follows Paseo's cards.
+    body.child(super::source_controls::render(
+        shell, reports, density, tokens, cx,
+    ))
+    .into_any_element()
 }

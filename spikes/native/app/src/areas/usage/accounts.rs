@@ -1,22 +1,23 @@
 //! Independent account cards disclose policy, retained freshness and safe failures.
 use super::{
+    card::{self, Footer, Head, Status},
     draw,
-    rows::{Density, message, notice},
+    rows::{Density, notice},
 };
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, div, px,
+    SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{Tokens, breakpoint::TOUCH_TARGET, outline_button, settings, theme::spacing};
+use vessel_app_kit::{Tokens, settings, theme::spacing};
 use vessel_app_view::{
     agent_name,
     usage::{
-        AccountReport, LimitStatus, Phase, account_binding, limit_failure, limit_view, quota_facts,
-        timestamp,
+        AccountReport, InventoryRefresh, LimitStatus, Phase, RequestFailure, account_binding,
+        freshness, limit_failure, limit_view, quota_details, timestamp,
     },
 };
-use vessel_proto::limits::ExternalLookup;
+use vessel_proto::limits::{ExternalLookup, LimitFailure};
 
 pub(super) fn render(
     shell: &Shell,
@@ -67,17 +68,13 @@ pub(super) fn render(
             .into_any_element();
     }
     if inventory.accounts().is_empty() {
-        return body.child(message(text.empty(), tokens)).into_any_element();
+        return body
+            .child(super::read_states::muted_card(text.plan_empty(), tokens))
+            .into_any_element();
     }
-    if state.modal.current().is_none() {
-        body = body.children(super::toolbar::refresh_all(
-            shell,
-            "usage-refresh-all",
-            tokens,
-            matches!(density, Density::Compact),
-            cx,
-        ));
-    }
+    // Paseo list.tsx: one card per report, gap 12. Refresh all lives in the
+    // section's title row (draw::plan_usage) or the modal header.
+    body = body.gap(px(spacing::S3));
     for account in inventory.accounts() {
         body = body.child(account_card(shell, account, density, tokens, cx));
     }
@@ -137,6 +134,10 @@ pub(super) fn policy_fields(
         .child(draw::display_controls(shell, tokens, compact, receipt, cx))
 }
 
+/// One saved sign-in in Paseo's card shape (card.rs): its harness mark and
+/// name, the plan badge, Error or Unavailable beside the dot, and an icon
+/// Refresh whose tooltip carries the freshness. Unsupported harnesses get no
+/// Refresh: nothing could be read.
 fn account_card(
     shell: &Shell,
     report: &AccountReport,
@@ -148,120 +149,159 @@ fn account_card(
     let state = &shell.areas.usage;
     let account = &report.account;
     let compact = matches!(density, Density::Compact);
-    let enabled =
-        !matches!(state.inventory.phase(), Phase::Loading { .. }) && state.policy_pending.is_none();
-    let title = format!(
-        "{} · {}",
-        agent_name(account.harness()),
-        account.label().unwrap_or(account.profile().as_str())
+    let view = report.result.as_ref().ok().map(limit_view);
+    let latest = view.as_ref().map(|view| view.status);
+    let unsupported = matches!(report.result, Err(RequestFailure::Unsupported))
+        || latest == Some(LimitStatus::Failed(LimitFailure::Unsupported));
+    let status = if unsupported {
+        Some(Status::Unavailable)
+    } else if report.result.is_err() || matches!(latest, Some(LimitStatus::Failed(_))) {
+        Some(Status::Error)
+    } else {
+        None
+    };
+    let snapshot = view.as_ref().and_then(|view| view.snapshot);
+    let retained = snapshot.is_some() && latest != Some(LimitStatus::Current);
+    let freshness = freshness(
+        snapshot.map(|snapshot| snapshot.at),
+        retained,
+        chrono::Utc::now(),
+        shell.words,
     );
-    let body = account_observation(shell, report, density, tokens, cx);
-    let binding = account_binding(account);
-    let machine = state.inventory.selection().cloned();
-    let refresh = outline_button(
-        vessel_app_kit::ui::SharedString::from(format!(
-            "usage-account-refresh-{}-{}",
-            account.harness(),
-            account.profile()
-        )),
-        text.refresh(),
-        enabled,
-        tokens,
-    )
-    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-    .when(enabled, |button| {
-        button.on_click(cx.listener(move |shell, _, _, cx| {
+    let key = format!("{}-{}", account.harness(), account.profile());
+    let refresh = (!unsupported).then(|| {
+        let binding = account_binding(account);
+        let loading = matches!(state.inventory.phase(), Phase::Loading { .. });
+        let busy = latest == Some(LimitStatus::Refreshing)
+            || (loading && state.refresh_account == InventoryRefresh::Account(binding.clone()));
+        let enabled = !loading && state.policy_pending.is_none();
+        let machine = state.inventory.selection().cloned();
+        let button = super::toolbar::refresh_button(
+            SharedString::from(format!("usage-account-refresh-{key}")),
+            text.refresh(),
+            enabled,
+            busy,
+            compact,
+            tokens,
+        )
+        .on_click(cx.listener(move |shell, _, _, cx| {
             if let Some(machine) = &machine {
                 shell.usage_refresh_account(machine, binding.clone());
             }
             cx.notify();
-        }))
+        }));
+        state
+            .source_tips
+            .on_saved(button, &key, &freshness)
+            .into_any_element()
     });
-    settings::section_with_trailing(
-        title,
-        settings::card(tokens).child(body),
-        Some(refresh.into_any_element()),
+    let head = Head {
+        mark: crate::agent_mark::mark(
+            Some(account.harness()),
+            vessel_app_kit::agent_mark::Size::Fourteen,
+            vessel_app_kit::agent_mark::Space::Row,
+            tokens,
+        )
+        .into_any_element(),
+        name: agent_name(account.harness()).into(),
+        plan: snapshot
+            .and_then(|snapshot| snapshot.plan.as_ref())
+            .map(|plan| plan.as_str().to_owned().into()),
+        status,
+        refresh,
+    };
+    let footer = Footer {
+        account: Some(
+            account
+                .label()
+                .unwrap_or(account.profile().as_str())
+                .to_owned()
+                .into(),
+        ),
+        freshness: compact.then(|| freshness.into()),
+    };
+    card::frame(
+        head,
+        account_body(shell, report, unsupported, tokens, cx),
+        footer,
+        shell.words,
         tokens,
     )
 }
 
-fn account_observation(
+/// Errors, the not-yet-checked line, the windows and the remaining facts.
+fn account_body(
     shell: &Shell,
     report: &AccountReport,
-    density: Density,
+    unsupported: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> Vec<AnyElement> {
     let text = shell.words.usage();
     let state = &shell.areas.usage;
     let account = &report.account;
-    let mut body = div()
-        .min_w_0()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S2))
-        .child(
-            div()
-                .flex()
-                .items_center()
-                .child(crate::agent_mark::mark(
-                    Some(account.harness()),
-                    vessel_app_kit::agent_mark::Size::Fourteen,
-                    vessel_app_kit::agent_mark::Space::Row,
-                    tokens,
-                ))
-                // The disclosure shares the row with the mark; it must shrink
-                // and wrap, or a narrow modal clips it mid-word.
-                .child(message(text.account_disclosure(), tokens).flex_1().min_w_0()),
-        );
-    match &report.result {
+    let mut body = Vec::new();
+    let limits = match &report.result {
+        Err(_) if unsupported => return body,
         Err(reason) => {
-            body = body.child(notice(
-                reason.message(shell.words),
-                vessel_app_kit::alert::Variant::Error,
+            body.push(card::error(reason.message(shell.words).into(), tokens));
+            return body;
+        }
+        Ok(limits) => limits,
+    };
+    let view = limit_view(limits);
+    match view.status {
+        LimitStatus::NotRequested => body.push(card::quiet(text.not_requested().into(), tokens)),
+        LimitStatus::Off => body.push(card::quiet(text.lookup_off().into(), tokens)),
+        LimitStatus::Failed(reason) if !unsupported => {
+            body.push(card::error(
+                limit_failure(reason, shell.words).into(),
                 tokens,
             ));
         }
-        Ok(limits) => {
-            let view = limit_view(limits);
-            let status = match view.status {
-                LimitStatus::Off => Some(text.lookup_off()),
-                LimitStatus::NotRequested => Some(text.not_requested()),
-                LimitStatus::Refreshing => Some(text.loading()),
-                LimitStatus::Current => None,
-                LimitStatus::Failed(reason) => Some(limit_failure(reason, shell.words)),
-            };
-            if let Some(status) = status {
-                body = body.child(message(status, tokens));
-            }
-            if let Some(snapshot) = view.snapshot {
-                if view.status != LimitStatus::Current {
-                    body = body.child(message(text.retained(), tokens));
-                }
-                if snapshot.incomplete {
-                    body = body.child(notice(
-                        text.partial(),
-                        vessel_app_kit::alert::Variant::Warning,
-                        tokens,
-                    ));
-                }
-                let facts = quota_facts(limits, snapshot, shell.words);
-                body = body.child(draw::facts(facts, density, tokens)).children(
-                    snapshot.windows.iter().map(|window| {
-                        super::windows::draw(shell, window, Some(account), tokens, cx)
-                    }),
-                );
-                let at = timestamp(snapshot.at, state.offset, shell.words);
-                let freshness = text.refreshed_at(&at).unwrap_or(at);
-                body = body.child(message(freshness, tokens));
-            }
-            if let Some(retry_at) = view.retry_at {
-                body = body.child(message(
-                    timestamp(retry_at, state.offset, shell.words),
-                    tokens,
-                ));
-            }
+        LimitStatus::Failed(_) | LimitStatus::Refreshing | LimitStatus::Current => {}
+    }
+    if let Some(snapshot) = view.snapshot {
+        if snapshot.incomplete {
+            body.push(card::quiet(text.partial().into(), tokens));
         }
+        if !snapshot.windows.is_empty() {
+            body.push(
+                div()
+                    .w_full()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(px(spacing::S1))
+                    .children(snapshot.windows.iter().map(|window| {
+                        super::windows::draw(shell, window, Some(account), tokens, cx)
+                    }))
+                    .into_any_element(),
+            );
+        }
+        let details = quota_details(limits, snapshot, shell.words);
+        if !details.is_empty() {
+            body.push(
+                div()
+                    .w_full()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(px(spacing::S1))
+                    .children(
+                        details
+                            .into_iter()
+                            .map(|fact| card::detail(fact.label.into(), fact.value.into(), tokens)),
+                    )
+                    .into_any_element(),
+            );
+        }
+    }
+    if let Some(retry_at) = view.retry_at {
+        body.push(card::quiet(
+            timestamp(retry_at, state.offset, shell.words).into(),
+            tokens,
+        ));
     }
     body
 }

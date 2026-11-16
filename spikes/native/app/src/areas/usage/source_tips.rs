@@ -13,6 +13,8 @@ struct Observed {
     tips: Tooltips,
     places: BTreeMap<UsageReportId, Place>,
     actions: BTreeMap<&'static str, Place>,
+    /// Saved sign-in cards, keyed by their stable control id (harness/profile).
+    saved: BTreeMap<String, Place>,
 }
 impl SourceTips {
     pub(super) fn prepare(&self, ticket: Option<Ticket>, reports: &UsageReports) {
@@ -39,6 +41,22 @@ impl SourceTips {
     ) -> ToolbarButton {
         let mut state = self.0.borrow_mut();
         let place = Rc::clone(state.places.entry(entry.id().clone()).or_default());
+        refresh.tooltip_text(
+            &state.tips,
+            &place,
+            freshness.to_owned(),
+            vessel_app_kit::tooltip::Side::Top,
+        )
+    }
+    /// The saved sign-in card's Refresh tooltip says when its values were read.
+    pub(super) fn on_saved(
+        &self,
+        refresh: ToolbarButton,
+        key: &str,
+        freshness: &str,
+    ) -> ToolbarButton {
+        let mut state = self.0.borrow_mut();
+        let place = Rc::clone(state.saved.entry(key.to_owned()).or_default());
         refresh.tooltip_text(
             &state.tips,
             &place,

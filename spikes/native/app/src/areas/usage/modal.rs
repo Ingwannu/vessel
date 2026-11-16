@@ -156,7 +156,12 @@ pub(crate) fn dialogs(
         .flex()
         .items_center()
         .gap(px(vessel_app_kit::theme::spacing::S2));
-    let mut body = div().min_w_0().w_full().flex().flex_col();
+    let mut body = div()
+        .min_w_0()
+        .w_full()
+        .flex()
+        .flex_col()
+        .gap(px(vessel_app_kit::theme::spacing::S3));
     if connected.len() > 1 {
         let label = connected
             .iter()
@@ -172,7 +177,9 @@ pub(crate) fn dialogs(
         );
     }
     body = match state.target {
-        Target::Online(_) => body.child(accounts::render(shell, tokens, density, cx)),
+        Target::Online(_) => body
+            .child(super::draw::caveat(shell, tokens))
+            .child(accounts::render(shell, tokens, density, cx)),
         Target::Hidden | Target::Loading => body.child(message(text.loading(), tokens)),
         Target::NoMachines => body.child(message(text.no_hosts(), tokens)),
         Target::Offline(_) => body.child(message(text.offline(), tokens)),

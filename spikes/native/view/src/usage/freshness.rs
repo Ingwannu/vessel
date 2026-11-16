@@ -14,11 +14,29 @@ pub fn source_freshness(
     now: DateTime<Utc>,
     words: &'static Translator,
 ) -> String {
+    freshness(
+        view.observed.map(|observed| observed.at),
+        view.retained,
+        now,
+        words,
+    )
+}
+
+/// The same label for any last successful read, so a saved sign-in card and a
+/// source card say "Updated 5m ago" alike (Paseo card.tsx `UsageFreshness`).
+/// `retained` marks values kept after a later failed or running attempt.
+#[must_use]
+pub fn freshness(
+    at: Option<DateTime<Utc>>,
+    retained: bool,
+    now: DateTime<Utc>,
+    words: &'static Translator,
+) -> String {
     let text = words.usage();
-    let Some(observed) = view.observed else {
+    let Some(at) = at else {
         return text.never_updated().to_owned();
     };
-    let seconds = now.signed_duration_since(observed.at).num_seconds().max(0);
+    let seconds = now.signed_duration_since(at).num_seconds().max(0);
     let age = if seconds < MINUTE_SECONDS {
         text.fresh_just_now().to_owned()
     } else {
@@ -42,7 +60,7 @@ pub fn source_freshness(
         };
         age.unwrap_or_else(|_| text.none().to_owned())
     };
-    if view.retained {
+    if retained {
         text.last_updated(&age)
     } else {
         text.updated(&age)

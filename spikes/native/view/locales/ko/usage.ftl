@@ -363,3 +363,11 @@ usage-last-updated = 마지막 업데이트: { $age }
 usage-never-updated = 성공한 업데이트가 없습니다
 # 이 보고서의 명시적인 새로 고침이 실패한 뒤 표시하는 전체 설명입니다.
 usage-refresh-failed = 이 보고서를 새로 고침하지 못했습니다.
+# 설정과 사용량 모달에서 계정 사용량 섹션의 제목입니다(Paseo providerUsage.title).
+usage-plan-usage = 플랜 사용량
+# 이 머신의 계정 사용량 조회가 꺼져 있을 때의 흐린 카드 문구입니다. $host는 노드 북에 있는 머신 이름입니다.
+usage-off-on = { $host }의 사용량 확인이 꺼져 있습니다.
+# 꺼짐 카드에서 이 머신의 계정 사용량 조회를 켜는 버튼입니다.
+usage-turn-on = 켜기
+# 머신이 계정 사용량을 하나도 보고하지 않을 때의 흐린 카드 문구입니다.
+usage-plan-empty = 사용량 데이터가 없습니다

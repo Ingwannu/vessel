@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{
-    Tokens,
+    Tokens, TypeExt as _,
     breakpoint::TOUCH_TARGET,
     outline_button,
     segmented::{SegmentSize, segment, segmented},
@@ -34,12 +34,7 @@ pub(crate) fn render(
     } else {
         Density::Wide
     };
-    let body = div()
-        .w_full()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S4))
-        .child(message(text.lead(), tokens));
+    let body = div().w_full().flex().flex_col().gap(px(spacing::S4));
     match &state.target {
         Target::Hidden | Target::Loading => body
             .child(message(text.loading(), tokens))
@@ -50,12 +45,60 @@ pub(crate) fn render(
         Target::Offline(_) => body
             .child(message(text.offline(), tokens))
             .into_any_element(),
+        // Paseo's section first (host-usage-section.tsx: title, controls,
+        // cards); Vessel's reported-usage ledger is an extra and follows it.
         Target::Online(_) => body
+            .child(plan_usage(shell, tokens, density, cx))
+            .child(message(text.lead(), tokens))
             .child(controls(shell, tokens, compact, cx))
             .child(ledger::render(shell, tokens, density))
-            .child(accounts::render(shell, tokens, density, cx))
             .into_any_element(),
     }
+}
+
+/// Paseo's `UsageSection`: the title with `UsageControls` trailing (Refresh
+/// all, then the options cog), the saved-account caveat once, then the cards.
+fn plan_usage(
+    shell: &Shell,
+    tokens: &Tokens,
+    density: Density,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let text = shell.words.usage();
+    let compact = matches!(density, Density::Compact);
+    let trailing = div()
+        .flex_none()
+        .flex()
+        .items_center()
+        .gap(px(spacing::S2))
+        .children(super::toolbar::refresh_all(
+            shell,
+            "usage-refresh-all",
+            tokens,
+            compact,
+            cx,
+        ))
+        .children(super::options::trigger(
+            shell,
+            "usage-options-settings",
+            tokens,
+            compact,
+            cx,
+        ));
+    let content = div()
+        .w_full()
+        .min_w_0()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S3))
+        .child(caveat(shell, tokens))
+        .child(accounts::render(shell, tokens, density, cx));
+    settings::section_with_trailing(
+        text.plan_usage(),
+        content,
+        Some(trailing.into_any_element()),
+        tokens,
+    )
 }
 
 fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Shell>) -> Div {
@@ -96,13 +139,6 @@ fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, 
         .gap(px(spacing::S2))
         .child(periods)
         .child(refresh)
-        .children(super::options::trigger(
-            shell,
-            "usage-options-settings",
-            tokens,
-            compact,
-            cx,
-        ))
         .child(
             outline_button("usage-open-modal", text.open_modal(), true, tokens)
                 .on_click(cx.listener(|shell, _, window, cx| shell.open_usage(window, cx))),
@@ -116,6 +152,16 @@ fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, 
         compact,
         tokens,
     ))
+}
+
+/// The saved-account caveat, once under the section title (or at the top of
+/// the modal), never inside each card: true for every card, Vessel-specific.
+pub(super) fn caveat(shell: &Shell, tokens: &Tokens) -> Div {
+    div()
+        .ml(px(spacing::S1))
+        .type_(vessel_app_kit::Type::Meta)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(shell.words.usage().account_disclosure())
 }
 
 pub(super) fn read_host_status<T>(

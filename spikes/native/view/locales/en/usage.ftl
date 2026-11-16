@@ -363,3 +363,11 @@ usage-last-updated = Last updated { $age }
 usage-never-updated = No successful update
 # Whole explanation after the explicit refresh for this report failed.
 usage-refresh-failed = Could not refresh this report.
+# Title of the account usage section in Settings and the usage modal (Paseo providerUsage.title).
+usage-plan-usage = Plan usage
+# Muted card when the machine's account usage lookup is off; $host is the machine's name in the node book.
+usage-off-on = Usage is off on { $host }.
+# Button in the off card that turns account usage lookup on for this machine.
+usage-turn-on = Turn on
+# Muted card when the machine reports no account usage at all.
+usage-plan-empty = No usage data

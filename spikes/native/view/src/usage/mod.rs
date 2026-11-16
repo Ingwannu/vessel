@@ -39,11 +39,11 @@ mod session;
 pub use session::{SessionSelection, binding_epoch};
 
 mod quota;
-pub use quota::{quota_facts, reset_label, window_label};
+pub use quota::{quota_details, quota_facts, reset_label, window_label};
 
 mod freshness;
 mod source_errors;
-pub use freshness::source_freshness;
+pub use freshness::{freshness, source_freshness};
 mod source_summary;
 mod source_values;
 mod sources;

@@ -2,6 +2,7 @@
 mod accounts;
 mod actions;
 mod answers;
+mod card;
 mod clock;
 mod sidebar;
 pub(crate) use sidebar::sidebar_summary;

@@ -1,11 +1,12 @@
 //! Recovery actions keep their rendered connection/parent and never imply a fetch.
-use super::rows::message;
 use crate::shell::Shell;
 use vessel_app_kit::{
-    Tokens, outline_button,
+    ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _, button_with_kind_at,
+    outline_button, settings,
+    theme::spacing,
     ui::{
         AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-        StatefulInteractiveElement as _, div,
+        SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
     },
 };
 use vessel_app_view::usage::{InventoryRefresh, OptionsContext, Phase};
@@ -62,20 +63,59 @@ pub(super) fn retry(
         .into_any_element(),
     )
 }
+/// Paseo's `UsageMessage` (usage-section.tsx 94-110): a settings card with
+/// one centred muted line, for off, empty and similar states.
+pub(super) fn muted_card(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
+    settings::card(tokens).child(
+        div()
+            .w_full()
+            .p(px(spacing::S4))
+            .flex()
+            .justify_center()
+            .text_center()
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(text.into()),
+    )
+}
+
+/// Paseo's off state (usage-section.tsx 56-62): the muted card naming the
+/// machine, then "Turn on". The three-store disclosure stays beside the
+/// lookup switch in the options popover (ADR 0042), and the saved-account
+/// caveat under the section title.
 pub(super) fn off(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let text = shell.words.usage();
     let receipt = context(shell);
     let enabled = receipt
         .as_ref()
         .is_some_and(|receipt| current(shell, receipt));
+    let host = shell
+        .areas
+        .usage
+        .connection
+        .as_ref()
+        .map_or("", |connection| connection.machine().as_str());
+    let line = text
+        .off_on(host)
+        .unwrap_or_else(|_| text.lookup_off().to_owned());
+    let state = if enabled {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    };
     div()
-        .child(message(text.lookup_off(), tokens))
-        .child(message(text.lookup_disclosure(), tokens))
+        .w_full()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S3))
+        .child(muted_card(line, tokens))
         .child(
-            outline_button(
+            button_with_kind_at(
                 "usage-inventory-enable",
-                text.enable_lookup(),
-                enabled,
+                text.turn_on(),
+                ButtonKind::Secondary,
+                state,
+                ControlSizing::Pointer,
                 tokens,
             )
             .when(enabled, |button| {

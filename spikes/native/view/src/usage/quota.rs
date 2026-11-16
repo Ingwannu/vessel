@@ -97,11 +97,24 @@ pub fn quota_facts(
     snapshot: &LimitSnapshot,
     words: &'static Translator,
 ) -> Vec<ReportFact> {
-    let text = words.usage();
     let mut facts = Vec::new();
     if let Some(plan) = &snapshot.plan {
-        facts.push(fact(text.plan(), plan.as_str()));
+        facts.push(fact(words.usage().plan(), plan.as_str()));
     }
+    facts.extend(quota_details(limits, snapshot, words));
+    facts
+}
+
+/// The facts without the plan, for a card whose header carries the plan as a
+/// badge (Paseo card.tsx): credits, flags and limit state as detail rows.
+#[must_use]
+pub fn quota_details(
+    limits: &UsageLimits,
+    snapshot: &LimitSnapshot,
+    words: &'static Translator,
+) -> Vec<ReportFact> {
+    let text = words.usage();
+    let mut facts = Vec::new();
     if let Some(credits) = &snapshot.credits {
         let balance = match limits.cost_visibility {
             CostVisibility::Withheld => text.withheld().to_owned(),
