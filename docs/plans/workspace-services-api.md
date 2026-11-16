@@ -500,3 +500,9 @@ The original failing assertion remains intact. Added direct/nested request
 cases reject unexpected fields for both empty and nonempty choices. This
 changes only previously unintended input acceptance; no method is activated,
 and the sole settings writer and missing-incarnation refusal still apply.
+
+The later announced node head adds the shared caller-drop fence and moves
+the migration sequence. Those incoming implementations and schema are kept
+unchanged; this values package adds no migration or handler. Regenerate the
+wire against this composition before the enclosing package gate rather than
+applying an older head's generated snapshot over newer declarations.
