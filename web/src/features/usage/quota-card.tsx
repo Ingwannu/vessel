@@ -162,7 +162,7 @@ export function QuotaCardView({
    * printed on the card, as where there is no hover. */
   compact?: boolean;
   /** Window rows pin to the sidebar summary while it is on. */
-  pins?: WindowPins;
+  pins?: WindowPins | undefined;
 }) {
   const freshness = freshnessText(card.fetchedAt, now);
   return (

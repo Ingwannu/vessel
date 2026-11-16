@@ -166,6 +166,7 @@ export function keepSections(
     shortcuts: same(previous.shortcuts, next.shortcuts),
     notifications: same(previous.notifications, next.notifications),
     sidebar: same(previous.sidebar, next.sidebar),
+    usage: same(previous.usage, next.usage),
     defaults: same(previous.defaults, next.defaults),
   };
   const unchanged =
@@ -175,6 +176,7 @@ export function keepSections(
     kept.shortcuts === previous.shortcuts &&
     kept.notifications === previous.notifications &&
     kept.sidebar === previous.sidebar &&
+    kept.usage === previous.usage &&
     kept.defaults === previous.defaults;
   return unchanged ? previous : kept;
 }
