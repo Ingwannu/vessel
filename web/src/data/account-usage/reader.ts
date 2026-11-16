@@ -42,21 +42,24 @@ export type AccountRead =
 
 /** The typed call edge, injected so tests need no bridge. */
 export interface AccountCalls {
-  read(node: NodeKey, refresh: LimitRefresh): Promise<Outcome<UsageReports>>;
-  inspect(
+  read: (
+    node: NodeKey,
+    refresh: LimitRefresh,
+  ) => Promise<Outcome<UsageReports>>;
+  inspect: (
     node: NodeKey,
     id: UsageReportId,
-  ): Promise<Outcome<UsageReportLookup>>;
-  lookup(
+  ) => Promise<Outcome<UsageReportLookup>>;
+  lookup: (
     node: NodeKey,
     policy: ExternalLookup,
-  ): Promise<Outcome<ExternalLookup>>;
-  source(
+  ) => Promise<Outcome<ExternalLookup>>;
+  source: (
     node: NodeKey,
     source: UsageSourceId,
     policy: ExternalLookup,
     disclosure: UsageDisclosureVersion,
-  ): Promise<Outcome<UsageSourceDescriptor>>;
+  ) => Promise<Outcome<UsageSourceDescriptor>>;
 }
 
 /** The list with one report swapped for its refreshed copy, or removed. */
