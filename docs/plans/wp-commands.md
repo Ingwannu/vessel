@@ -996,3 +996,29 @@ context and76 reference definitions; copying only dispatch.rs would not be a
 self-contained API. This extraction is source preparation, with receiving
 compile and actual GPUI evidence still owed. It is not a second keyboard
 implementation or a completed F4 package.
+
+
+## Announced base13 and sidebar caller adoption
+
+The product tree now contains announced base13 and its reviewed corrected
+sidebar policy. Following the coordinator's capture clearance and the lead's
+green base12 announcement, the exact isolated caller and two focus-exit tests
+are adopted without importing a moving sidebar branch. ToggleSidebars delegates
+to the existing sidebar owner; only a handled action exits focus mode through
+W12's existing adapter. The staged dead-code expectation is removed together
+with its real production caller. No geometry, default binding or second key
+listener is added by this adoption. Current-union checks remain owed.
+
+The original isolated test log remains1586/1/2. The coordinator-authorized
+single-case replay on the same d629 source passed1/0/0 under run
+wp-commands-20261115T184803Z-d629c293. Cargo-step load was36.68 on entry and33.47
+at completion. Both original and replay logs are retained; only the named
+wall-clock case is closed by that replay. The deterministic find-work correction
+subsequently arrived through the announced shared line rather than a private
+threshold edit. No full-suite result is rewritten as green.
+
+The keyboard-only extraction's first two receiving jobs both stopped at the
+same missing crate visibility on the shared whitespace predicate, before any
+App/Kit/View test executed. Its fix changes one visibility token and preserves
+the existing ECMAScript predicate, rankings and marks. That extraction is still
+not an independently checked producer or a full F4 package handoff.
