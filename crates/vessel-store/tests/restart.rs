@@ -23,7 +23,7 @@ async fn phase<F: Future>(name: &str, future: F) -> F::Output {
         .unwrap_or_else(|error| panic!("{name}: {error}"))
 }
 
-async fn case<F: std::future::Future<Output = ()>>(future: F) {
+async fn case<F: Future<Output = ()>>(future: F) {
     vessel_testkit::within(STORE_CASE_BUDGET, Box::pin(future))
         .await
         .unwrap();
