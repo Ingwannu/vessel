@@ -602,3 +602,9 @@ original immutable suite has now finished: all terminal cases passed,
 including the blocked-inspection deadline and safe worker diagnostics. This
 settles that narrow test hang only; it does not qualify this merged runtime
 composition, real ownership sources, a browser engine or a service caller.
+
+The next shared values/helper head is merged without opting a caller into
+new diagnostics or treating its transactional membership reader as physical
+ownership. Local staged module bodies are unchanged. The values package's
+active immutable validation keeps its earlier commit until that boundary;
+no queued check is silently retargeted by this dependency merge.
