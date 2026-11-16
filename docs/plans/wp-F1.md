@@ -1992,3 +1992,11 @@ W3 and W21 refreshed status still has no production provision/launch/archive
 adapter, so per-run isolation remains hidden and incomplete, never a parity
 exception. W12's admitted session opener is also still staged; history candidates
 remain unopened under their original context/visit/run/session/ticket.
+
+### Consumer test target correction
+
+App is a binary crate, not a library. Earlier --lib commands did not select its
+binary tests; they never supplied App runtime evidence. The next meaningful
+consumer suite must run Kit/View/Link --lib, then App --bin vessel-app explicitly,
+after all-target strict. This selection change preserves every assertion and
+prevents a passing library-only command from being reported as App verification.
