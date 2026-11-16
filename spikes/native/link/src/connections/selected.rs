@@ -160,6 +160,28 @@ impl SelectedConnection {
     pub(crate) async fn call<R: Unary>(&self, request: R) -> Result<R::Response, RequestFailure> {
         self.guard(self.lease.client.call(request)).await
     }
+    /// Keep SDK identity/deadline failures typed while the existing guard owns
+    /// physical closure and irreversible admission retirement.
+    // Staged until E4's real consumer lands; no unused product API is exposed.
+    #[cfg(test)]
+    pub(crate) async fn diagnostics(
+        &self,
+    ) -> Result<
+        Result<vessel_proto::diagnostics::DiagnosticReport, vessel_client::DiagnosticError>,
+        RequestFailure,
+    > {
+        use vessel_client::DiagnosticError;
+        self.guard(async {
+            match self.lease.client.diagnostics().await {
+                Err(DiagnosticError::Call(error)) => Err(error),
+                result @ (Ok(_)
+                | Err(DiagnosticError::Identity { .. } | DiagnosticError::Timeout(_))) => {
+                    Ok(result)
+                }
+            }
+        })
+        .await
+    }
     // Minted once by real A4 result-envelope producers; never by the UI.
     pub(crate) fn delivery_guard(&self) -> crate::DeliveryGuard {
         crate::DeliveryGuard::from_lease(&self.lease)
@@ -191,3 +213,6 @@ mod privacy_tests {
         assert!(std::error::Error::source(&failure).is_none());
     }
 }
+
+#[cfg(test)]
+mod diagnostics_tests;

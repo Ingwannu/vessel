@@ -71,13 +71,14 @@ impl ConversationArea {
         let Some(bar) = self.find.as_mut() else {
             return;
         };
-        if bar.query.trim().is_empty() {
-            return;
-        }
         if bar.at.is_some() && self.reveal == bar.at {
             self.reveal = None;
         }
-        bar.phase = FindPhase::Failed(failure);
+        bar.phase = if bar.query.trim().is_empty() {
+            FindPhase::Idle
+        } else {
+            FindPhase::Failed(failure)
+        };
         bar.finder = None;
         // A failed/retired projection must retain input, not stale row indices
         // or a queued refresh of those indices. Retry rebuilds them normally.

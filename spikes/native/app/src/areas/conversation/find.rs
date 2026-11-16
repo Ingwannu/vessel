@@ -149,6 +149,7 @@ impl FindBar {
 // It remains staged until the sole resident cutover consumes this resource.
 #[cfg(test)]
 impl super::ConversationArea {
+    /// An open editor or pending reveal must not silently become snapshot-ready.
     pub(crate) fn navigation_held(&self) -> bool {
         self.find.is_some()
             || self.reveal.is_some()
@@ -157,6 +158,7 @@ impl super::ConversationArea {
             || self.origin.area().is_some_and(Self::navigation_held)
     }
 
+    /// Retire this exact resource's work, retaining input and real identity.
     pub(crate) fn navigation_retired(&mut self) {
         self.fail_find(FindFailure::Connection);
         self.retire_prompt_navigation();
