@@ -1000,3 +1000,26 @@ This is an ADR0080 transport section on the node line, before the full voice
 package lands. Retain it when merging the package's broader ADR0080 record.
 Voice upload remains unwired until V3, the VM RPC suite and node integration
 adopt this shared edge; this leaf does not establish end-to-end voice parity.
+
+
+### Offline optional-package resolution, 2026-11-16
+
+The A1 manifest already disables defaults and requests only std, load-dynamic
+and api-28. The first resolve after the three-package cache provisioning
+stopped offline because ndarray metadata was absent. The pinned ort archive
+declares ndarray0.17 optional with defaults off; its std feature uses
+ndarray?/std and does not activate it. Therefore this is resolver metadata
+debt, not evidence of ndarray in the compiled feature closure. No successful
+feature tree exists yet. Original and result locks are byte-identical; the
+follow-up audit's generic drift label actually means the expected three-package
+addition was not produced after update failed. Preserve the original receipt
+and append a corrected disposition rather than replacing failed evidence.
+
+The coordinator permits the build-tool owner to provision the exact pinned
+crates.io optional-package metadata/source through the same checked offline
+cache path, with its registry checksum and lock delta recorded. This does not
+enable ndarray, authorize build-time downloads/native binaries/git sources or
+other version bumps. Any further unapproved metadata closure stops for a
+separate ruling. No lock delta is adopted here. The fixed offline resolve and
+feature-tree review still precede compilation; the eventual build must leave
+its accepted input lock byte-identical. Native/model loading remains separate.
