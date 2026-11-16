@@ -5,6 +5,8 @@ labels-title = Labels
 labels-manage = Manage labels
 # Header for a retained name/color draft, including pending save/inspection.
 labels-edit = Edit label
+# The pencil's accessible name on a label row (Paseo's workspaceLabels.manage.editLabel); $name is the label.
+labels-edit-named = Edit { $name }
 # Destructive confirmation target; $name is the original host label, never the unsaved replacement.
 labels-delete-title = Delete “{ $name }”?
 # Label manager search text; shown inside the adaptive dialog.

@@ -37,6 +37,7 @@ pub(super) fn overlay(
         .gap(px(S3))
         .child(picker.name.element(tokens, false, cx))
         .child(super::super::colors::choices_for(
+            shell,
             draft.color(),
             if editable {
                 EditAccess::Editable
