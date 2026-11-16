@@ -396,11 +396,14 @@ impl Shell {
             self.close_palette(window, cx);
         }
         match target {
+            #[cfg(test)]
             PaletteTarget::Messages => {
                 self.palette_mode(PaletteMode::Messages, window, cx);
                 self.areas.palette.search.clear(window, cx);
                 self.palette_searched(String::new(), cx);
             }
+            #[cfg(not(test))]
+            PaletteTarget::Messages => self.command_unavailable(cx),
             // Retained legacy rows cannot bypass A1's admitted opener even
             // after the speculative creation row disappears from projection.
             PaletteTarget::NewSession(_) => self.command_unavailable(cx),
@@ -457,8 +460,10 @@ pub(crate) fn render(
     let search = div()
         .flex()
         .flex_col()
-        .children(navigation::scope(shell, tokens, cx))
-        .child(messages::scope(shell, tokens, window, cx))
+        .children(navigation::scope(shell, tokens, cx));
+    #[cfg(test)]
+    let search = search.child(messages::scope(shell, tokens, window, cx));
+    let search = search
         .child(shell.areas.palette.search.bare(tokens, cx))
         .into_any_element();
     let palette = &shell.areas.palette;

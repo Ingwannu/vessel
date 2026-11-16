@@ -442,7 +442,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Terminal composition admission | C2 actual terminal IME/preedit owner | No production EntityInputHandler/marked-text query yet; keep existing InputPreference + shared Kit guard, no composing=false proof |
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Shared keyboard producer1d908fa8 has V4 row295 bounded source PASS and waits lead announced receiving green. E3 adapter/receipt consumer remains unadopted; no second writer or duplicate failure toast |
 | Git/PR command effects | G1 captured owner target, row policy and physical admission | F4 registration is staged under cfg(test) only; existing47e toolbar dependency remains separately unpassed. Original-connection/root/ticket write-owner packet is pending |
-| Messages mode | W1 existing Searching controller + W12 session-open admission | Base8b window lifetime adopted; prepared selection is UI-only; checked original-connection opening carrier absent, activation acceptance blocked |
+| Messages mode | W1 existing Searching controller + W12 session-open admission | New root entry, mode selector and transition are cfg(test)-staged; one window controller/rendering bodies preserved. Original-context opening owner remains pending |
 
 These rows distinguish adopted local behavior from unavailable owner effects.
 The full combined package still owes its final frozen gate, inspected captures
@@ -1276,3 +1276,23 @@ protocol25 base12 fleet. No app/display/fake-fleet process or image exists yet.
 The shared book fact is also assembled as a bounded nine-path producer on
 announced14.1, excluding the moving full F4 tree; portable checks remain owed
 before W15/lead consumption.
+
+
+[Decision Log: hold only new Messages product exposure]
+- Purpose: W1 confirms the announced line still has staged residents and an
+  alias-only final Open. Reply guards and prepared destinations do not supply
+  original-context destination admission.
+- Choice: stage only the new root contribution, parent mode selector and
+  PaletteTarget::Messages transition. Product dispatch of a retained Messages
+  target uses the existing unavailable feedback and remains in Commands.
+- Owner boundary: W1 explicitly permits literal cfg(test) attributes on its
+  existing palette_mode and scope functions plus the scope-only segmented
+  import. Their bodies, search/controller state and result renderer are preserved
+  byte-for-byte; enum and one window-retained Searching object remain unchanged.
+- Why: enabling a prepared alias navigation path would broaden an unaccepted
+  owner effect. A second resolver, controller, dead-code allowance or duplicated
+  renderer would hide that gap.
+- Effects: preparation fixtures remain compilable while product entry points
+  await the checked owner carrier. Existing SharedString imports remain product
+  imports because this receiving body uses them in result IDs and messages too.
+  Current receiving strict checks are owed; this is not full A3 acceptance.

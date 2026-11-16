@@ -143,6 +143,7 @@ fn contribution(shell: &Shell, entry: &super::Entry, at: usize) -> Option<Contri
 fn extra(shell: &Shell) -> Vec<Contribution<Command>> {
     let mut entries = Vec::new();
     entries.extend(left_sidebar(shell));
+    #[cfg(test)]
     if let (Ok(id), Ok(group)) = ("search-messages".parse(), "native-Actions".parse()) {
         entries.push(Contribution {
             id,

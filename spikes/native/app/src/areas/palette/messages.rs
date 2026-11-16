@@ -3,6 +3,7 @@
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::command::{CommandKey, command_empty};
+#[cfg(test)]
 use vessel_app_kit::segmented::{SegmentSize, segment, segmented};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
@@ -20,6 +21,7 @@ pub(super) struct Unavailable;
 
 impl Shell {
     /// Changing scope retains text but cancels the previous search and selection.
+    #[cfg(test)]
     pub(super) fn palette_mode(
         &mut self,
         mode: PaletteMode,
@@ -107,6 +109,7 @@ impl Shell {
 }
 
 /// Existing segmented controls make the new search scope discoverable on touch.
+#[cfg(test)]
 pub(super) fn scope(
     shell: &Shell,
     tokens: &Tokens,

@@ -1618,15 +1618,15 @@ alone would otherwise expose the owner's unrelated process operations.
 
 ## Native palette message search
 
-The command palette's explicit Messages scope reuses protocol 12's
-`session.search`, ADR 0037. `view::palette::messages` keeps scope and record
-selection; `view::search` merges each machine's pages; `link::search` is the
-existing node adapter. `app::areas::palette::messages` draws controls and
-activates the conversation area's prepared search destination. An edit or close
-invalidates the previous query before debounce; a selection retains its query
-before clearing and reveals the chosen message with find open. No crate edge or
-backend contract changes. See `docs/plans/wp-a3.md` for reference differences and
-validation.
+The prepared Messages scope reuses protocol12 `session.search`, ADR0037.
+`view::palette::messages` keeps scope and selection, `view::search` merges pages,
+and `link::search` remains the existing node adapter. One window-retained search
+controller and the message row renderer are preserved. New product entry points
+(root contribution, mode selector and transition) are test-staged until the
+original-context session-opening owner is checked and announced. A prepared
+destination or reply delivery guard does not authorize the final alias-only Open
+path. This hold introduces no resolver, second controller or backend contract.
+See `docs/plans/wp-a3.md` and `docs/plans/wp-commands.md` for exact limits.
 
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public
