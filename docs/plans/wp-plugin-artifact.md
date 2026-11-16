@@ -294,3 +294,27 @@ held worker is released and settles. A separate success case runs both actual
 filesystem passes through that same adapter. No fake observation result or
 second filesystem path is kept beside the production function. These are
 planned lifetime checks, not executed evidence or a real NodeHost admission test.
+
+The private adapter is now authored as Observation with a tracked JoinHandle,
+not a second result queue. The existing tracker owns one real blocking closure;
+its permit guard drops before actual join completion. Cancelling/dropping a polled
+wait requests only its child token and does not abort/detach the tracked work's
+ownership. A concrete JoinError remains behind a safe cancellation/panic wrapper;
+its public chain never reopens panic text. Missing runtime and already-cancelled
+parent refuse before tracking or I/O. The absolute deadline is captured before
+spawn, then passed to the same synchronous reader: waiting for a blocking-pool
+thread cannot restart the30s budget.
+
+Six tests are authored for actual full-FS success, a held real worker after
+polled-waiter loss retaining its permit/tracker until settlement, captured-expired
+deadline refusal before I/O, absent runtime, pre-cancelled parent, and an actual
+synthetic panic JoinError with sealed diagnostics. Named test wait budgets bound
+their own async waits. None proves a serialized NodeHost start fence, private
+candidate acquisition ownership or real service shutdown. Source/narrow/containing
+package proof remains owed; the adapter stays under literal plugin staging.
+
+The corrected711d0ab0 synchronous observer has now executed all32 staged plugin
+cases successfully with every prerequisite step passing, paired with all-target
+node strict success. This includes both real full passes, private-root fixtures,
+link coverage/refusals, sparse/depth admission and fresh-content/timestamp cases.
+Those exact-source results do not execute or accept the later owned adapter.

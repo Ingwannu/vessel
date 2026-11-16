@@ -21,7 +21,7 @@ mod walk;
 use walk::Pass;
 
 #[derive(Debug, thiserror::Error)]
-enum Failure {
+pub(super) enum Failure {
     #[error("private plugin tree file observation failed")]
     File(#[from] file::Failure),
     #[error("private plugin tree name or resource budget refused observation")]
@@ -36,7 +36,7 @@ enum Failure {
     Changed,
 }
 
-struct PrivateRoot(PathError);
+pub(super) struct PrivateRoot(PathError);
 impl fmt::Debug for PrivateRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let category = match &self.0 {
@@ -59,7 +59,7 @@ impl fmt::Display for PrivateRoot {
 }
 impl Error for PrivateRoot {}
 
-struct PrivateName(OsString);
+pub(super) struct PrivateName(OsString);
 impl fmt::Debug for PrivateName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("PrivateName")
@@ -86,6 +86,14 @@ impl Scope {
         let deadline = Instant::now()
             .checked_add(file::OBSERVATION_BUDGET)
             .ok_or(file::Failure::Expired)?;
+        Self::new_until(path, cancellation, deadline)
+    }
+
+    fn new_until(
+        path: &Path,
+        cancellation: &CancellationToken,
+        deadline: Instant,
+    ) -> Result<Self, Failure> {
         file::check(cancellation, deadline)?;
         let before = fs::symlink_metadata(path).map_err(file::io_failure)?;
         directory(&before, before.dev())?;
@@ -128,7 +136,7 @@ fn directory(metadata: &fs::Metadata, device: u64) -> Result<(), Failure> {
 }
 
 /// First-pass state is deliberately not a successful artifact identity.
-struct Pending {
+pub(super) struct Pending {
     scope: Scope,
     first: Pass,
 }
@@ -136,17 +144,29 @@ struct Pending {
 /// Only both actual passes can construct this observation. The supplied-record
 /// digest remains a different type, and neither is managed source authority.
 #[derive(Debug, PartialEq, Eq)]
-struct Observed {
+pub(super) struct Observed {
     digest: TreeDigest,
 }
 impl Pending {
-    fn begin(path: &Path, cancellation: &CancellationToken) -> Result<Self, Failure> {
+    pub(super) fn begin(path: &Path, cancellation: &CancellationToken) -> Result<Self, Failure> {
         let scope = Scope::new(path, cancellation)?;
+        Self::from_scope(scope)
+    }
+
+    pub(super) fn begin_until(
+        path: &Path,
+        cancellation: &CancellationToken,
+        deadline: Instant,
+    ) -> Result<Self, Failure> {
+        Self::from_scope(Scope::new_until(path, cancellation, deadline)?)
+    }
+
+    fn from_scope(scope: Scope) -> Result<Self, Failure> {
         let first = Pass::read(&scope)?;
         Ok(Self { scope, first })
     }
 
-    fn finish(self) -> Result<Observed, Failure> {
+    pub(super) fn finish(self) -> Result<Observed, Failure> {
         let second = Pass::read(&self.scope)?;
         if self.first != second {
             return Err(Failure::Changed);

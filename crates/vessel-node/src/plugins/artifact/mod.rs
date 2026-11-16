@@ -4,6 +4,8 @@
 //! Async admission, acquisition and non-Unix ACL qualification remain absent.
 #[cfg(unix)]
 mod file;
+#[cfg(unix)]
+mod operation;
 #[cfg(test)]
 mod tests;
 #[cfg(unix)]
