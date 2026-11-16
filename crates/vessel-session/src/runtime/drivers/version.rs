@@ -114,9 +114,11 @@ impl VersionControl {
     pub(in crate::runtime) fn has_started(&self) -> bool {
         self.started.load(std::sync::atomic::Ordering::Acquire)
     }
-    pub(in crate::runtime) fn publish(&self, stdin: tokio::process::ChildStdin) {
+    pub(in crate::runtime) fn mark_started(&self) {
         self.started
             .store(true, std::sync::atomic::Ordering::Release);
+    }
+    pub(in crate::runtime) fn publish(&self, stdin: tokio::process::ChildStdin) {
         let armed = self
             .armed
             .lock()

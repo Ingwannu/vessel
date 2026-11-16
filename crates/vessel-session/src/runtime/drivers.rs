@@ -220,7 +220,13 @@ impl SessionRuntime {
             return Ok(None);
         };
         #[cfg(test)]
-        let control = Arc::clone(&self.version_control);
+        let control = {
+            let control = Arc::clone(&self.version_control);
+            // The witness belongs to synchronous successful kernel spawn,
+            // not to the later scheduling of the owned observer task.
+            control.mark_started();
+            control
+        };
         let running = self.tasks.spawn(async move {
             let _tracked = tracked;
             let _held = held;

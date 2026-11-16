@@ -880,3 +880,12 @@ constructor stays with the history tests until their union. Current queued
 c170 strict does not cover this later source change. Existing native catalogue
 fake-process regressions must execute on the actual combined source before this
 refactor is described as checked; no process-cleanup guarantee is broadened.
+
+
+The version-start test witness now records successful synchronous process spawn
+before the observer is scheduled; stdin publication remains a separate owned
+observer control. Otherwise a delayed observer could leave the witness false
+briefly after a real spawn. This changes only test observation, never admission,
+resource ownership, process behavior or the existing phase/time bounds. The
+literal child-side audit remains an independent executed-helper witness. Current
+c170 strict predates this source correction; its proof is not borrowed.
