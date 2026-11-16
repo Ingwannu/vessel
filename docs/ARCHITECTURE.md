@@ -1811,6 +1811,19 @@ No public method accepts these keys. A decoded key does not supply execution,
 parentage or grant authority. The current watcher/store/actor are unchanged;
 their real atomic admission fence and persistence remain separate work.
 
+### Connection-scoped workspace memberships
+
+The registry's whole-snapshot hydration and workspace attention mutations share
+`registry::workspace_memberships` in `vessel-store`. Passing a `WorkspaceId`
+selects only that workspace on the caller's existing SQLite connection; the
+complete snapshot passes `None` inside its held read transaction. One typed
+decoder handles both. The helper starts no second transaction and never filters
+pending or historical resources into a misleading live-member list. Mutation
+callers retain `require_active`, current role/attention checks and the write in
+one existing writer transaction; this reader supplies no authorization or exit
+proof. No new protocol, schema, cache or dependency accompanies the seam.
+
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and
