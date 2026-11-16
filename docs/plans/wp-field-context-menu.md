@@ -88,3 +88,7 @@ variant/field documentation diagnostics. Tests did not run. The correction adds
 those descriptions without weakening lints. A later source addition also exposes
 the admitted-close selection release and tests it; neither change inherits a
 passing runtime result. The next scratch check must include both changes.
+
+The corrected receiving leaf merges announced package base 14.3 before its next
+scratch run. The unapplied hookup patch is rebased only around the already-landed
+composition module; no field factory or event code is authored by this leaf.
