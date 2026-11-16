@@ -37,3 +37,12 @@ its feature/dependency graph are inherited from the approved line; this leaf
 adds no facade, export or consumer. Existing selected bodies remain byte equal
 to the receiving base after removing only the adapter and test registration.
 Receiving all-target strict and focused SDK runtime checks are owed initially.
+
+Receiving receipt: V1 row287 FINAL bounded receiving STAGED SOURCE/requested
+Link NARROW PASS on exact `41215ebfc97819815a036ffa3ecc79054034fc89`.
+Run `wp-onboarding-sdk-20261116T024805Z-41215ebf` passed locked all-target Link
+Clippy with no warnings; run `wp-onboarding-sdk-tests-20261116T024805Z-41215ebf`
+compiled the actual Link and passed 4/0/0 (120 filtered). Both font/cargo steps
+returned zero. These fresh checks cover the receiving line, while the method
+remains staged. This receipt changes documentation only; no rebuild or App,
+collector, clipboard/privacy, worker-drain, UI or whole-package pass is implied.
