@@ -889,3 +889,11 @@ briefly after a real spawn. This changes only test observation, never admission,
 resource ownership, process behavior or the existing phase/time bounds. The
 literal child-side audit remains an independent executed-helper witness. Current
 c170 strict predates this source correction; its proof is not borrowed.
+
+
+The actual correlated skills-catalog privacy regression now runs under the
+existing sixty-second testkit safety net. Its request/write/handler/output
+phases use a named twenty-second bound so a stalled phase identifies itself
+before the outer clock expires. All canary, last-valid-catalog and native skill
+invocation assertions are retained. Product handshake/discovery waits are
+unchanged; this is a test diagnostic correction, not new runtime evidence.

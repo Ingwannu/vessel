@@ -18,6 +18,8 @@ use super::*;
 const CANARY: &str = "synthetic-private-native-value";
 const OUTPUTS: usize = 4;
 const HANDSHAKE: Duration = Duration::from_secs(60);
+// A phase must fail before the unchanged case/handshake safety net masks it.
+const CATALOG_PHASE: Duration = Duration::from_secs(20);
 
 fn fixture() -> (
     Session,
@@ -46,11 +48,24 @@ async fn answer(
     written: &mut mpsc::Receiver<Vec<u8>>,
     reply: Result<Value, RpcError>,
 ) {
-    assert!(session.request_catalog().await);
-    let request: Value = serde_json::from_slice(&written.recv().await.unwrap()).unwrap();
+    assert!(
+        tokio::time::timeout(CATALOG_PHASE, session.request_catalog())
+            .await
+            .expect("catalog request send must settle")
+    );
+    let frame = tokio::time::timeout(CATALOG_PHASE, written.recv())
+        .await
+        .expect("correlated catalog request must be written")
+        .unwrap();
+    let request: Value = serde_json::from_slice(&frame).unwrap();
     assert_eq!(request["method"], "skills/list");
     let id = request["id"].as_u64().unwrap();
-    assert!(session.answered(id, reply).await.is_none());
+    assert!(
+        tokio::time::timeout(CATALOG_PHASE, session.answered(id, reply))
+            .await
+            .expect("actual correlated catalog handler must settle")
+            .is_none()
+    );
     assert!(!session.pending.contains_key(&id));
 }
 
@@ -79,50 +94,53 @@ fn concrete_decoder_evidence_is_retained_behind_an_input_free_chain() {
 
 #[tokio::test]
 async fn correlated_handler_logs_safe_evidence_and_keeps_the_last_valid_catalog() {
-    let (mut session, mut written, mut outputs) = fixture();
-    let valid = json!({"data":[{"skills":[{"name":"review", "description":"Review changes", "path":"/skills/review/SKILL.md", "enabled":true}]}]});
-    answer(&mut session, &mut written, Ok(valid)).await;
-    let AgentOutput::Commands(offered) = outputs.recv().await.unwrap() else {
-        panic!("catalog output missing")
-    };
-    assert_eq!(offered.len(), 1);
-    assert_eq!(offered[0].name.as_str(), "review");
-    let capture = capture::Capture::default();
-    for response in malformed() {
-        answer(&mut session, &mut written, Ok(response))
+    vessel_testkit::within(HANDSHAKE, async {
+        let (mut session, mut written, mut outputs) = fixture();
+        let valid = json!({"data":[{"skills":[{"name":"review", "description":"Review changes", "path":"/skills/review/SKILL.md", "enabled":true}]}]});
+        answer(&mut session, &mut written, Ok(valid)).await;
+        let AgentOutput::Commands(offered) = tokio::time::timeout(CATALOG_PHASE, outputs.recv())
+            .await.expect("valid catalog output must arrive").unwrap() else {
+            panic!("catalog output missing")
+        };
+        assert_eq!(offered.len(), 1);
+        assert_eq!(offered[0].name.as_str(), "review");
+        let capture = capture::Capture::default();
+        for response in malformed() {
+            answer(&mut session, &mut written, Ok(response))
+                .with_subscriber(capture.clone())
+                .await;
+            assert_eq!(session.catalog.commands(), offered);
+            assert!(outputs.try_recv().is_err());
+        }
+        let unavailable = RpcError {
+            code: super::super::METHOD_NOT_FOUND,
+            message: CANARY.to_owned(),
+        };
+        answer(&mut session, &mut written, Err(unavailable))
             .with_subscriber(capture.clone())
             .await;
         assert_eq!(session.catalog.commands(), offered);
         assert!(outputs.try_recv().is_err());
-    }
-    let unavailable = RpcError {
-        code: super::super::METHOD_NOT_FOUND,
-        message: CANARY.to_owned(),
-    };
-    answer(&mut session, &mut written, Err(unavailable))
-        .with_subscriber(capture.clone())
-        .await;
-    assert_eq!(session.catalog.commands(), offered);
-    assert!(outputs.try_recv().is_err());
-    let logs = capture.text();
-    assert_eq!(logs.matches("catalog decode Data").count(), 2);
-    assert!(logs.contains("-32601"));
-    assert!(!logs.contains(CANARY));
-    assert_eq!(
-        session
-            .catalog
-            .input(&[ContentBlock::Text {
-                text: "/review changes".to_owned()
-            }])
-            .unwrap(),
-        vec![
-            UserInput::Skill {
-                name: "review".to_owned(),
-                path: "/skills/review/SKILL.md".to_owned()
-            },
-            UserInput::Text {
-                text: "$review changes".to_owned()
-            },
-        ]
-    );
+        let logs = capture.text();
+        assert_eq!(logs.matches("catalog decode Data").count(), 2);
+        assert!(logs.contains("-32601"));
+        assert!(!logs.contains(CANARY));
+        assert_eq!(
+            session
+                .catalog
+                .input(&[ContentBlock::Text {
+                    text: "/review changes".to_owned()
+                }])
+                .unwrap(),
+            vec![
+                UserInput::Skill {
+                    name: "review".to_owned(),
+                    path: "/skills/review/SKILL.md".to_owned()
+                },
+                UserInput::Text {
+                    text: "$review changes".to_owned()
+                },
+            ]
+        );
+    }).await.expect("correlated catalog privacy case must settle");
 }
