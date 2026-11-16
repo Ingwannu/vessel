@@ -55,14 +55,21 @@ submitting anything. All Cargo/rustc/metadata remains build-machine-only.
 
 ## Existing VM run — inspect, never duplicate
 
-The SOLE outstanding own Cargo job at this checkpoint is ordinary
-shell2-narrow-20261116T025223Z-3958ad38 on exact3958ad382480:
-`test --locked -p vessel-app-kit --lib popup::placement`.
-Its retained output is placement-tests-1; it was queued6 at03:37, not passed.
-The source tests include actual GPUI edge-flip/translated hit/local offset.
-Read state/attach and retain the terminal result. No further priority remains
-for this correction: its first058 priority strict failed unused_results, fixed
-in1b, and all subsequent steps are ordinary.
+The last own Cargo job is TERMINAL done/rc0, not queued or running:
+shell2-narrow-20261116T025223Z-3958ad38 on exact
+3958ad382480d75657c7527e26d234b5590fd73f finished at03:51 UTC.
+`test --locked -p vessel-app-kit --lib popup::placement` executed three tests:
+3 passed/0 failed/0 ignored,271 filtered; fonts0/cargo0 with actual Kit and GPUI
+compilation. They cover the literal reference cases, nonzero viewport origin,
+and real child edge-flip/translated hit bounds. This is NOT a full Kit suite.
+No own Cargo job remains. Do not replay the completed run.
+
+The final packet is placement-review/manifest.json; source395 and docs-only
+e8573c73f8eff0c876446e6b63ddfa5a2bcaa584 are retained. V1 f0838d9b recorded
+INTAKE ONLY under the quota stop: review/adoption HOLD for resume. Its source,
+blob and registration audit has not started; whether exact395 strict is needed
+is UNASSESSED. No additional build was requested or authorised. Prior1b strict
+stays prior-head evidence. The old pending manifest is explicitly superseded.
 
 Completed strict: shell2-narrow-20261116T013211Z-1b2552e6,
 placement-clippy-2. Prior failure012216/058 retained in the priority-1 folder.
@@ -74,10 +81,10 @@ No replacement was submitted under the quota stop.
 
 ## Review and waiting contracts
 
-- Placement: not submitted to V1 yet; finish actual queued runtime, pin the
- final range/owned source hashes/logs and send one bounded shared packet. G1
- DiffModeMenu and W19 popover wait for it. It does not itself supply menu
- open_start/check/description or hierarchy/flyouts; those are still pending.
+- Placement: final bounded packet was submitted; V1 f0838d9b retains intake
+ only, with review/adoption HOLD for resume. Author-observed runtime is not an
+ independent V1 pass. G1 DiffModeMenu and W19 popover keep waiting for review.
+ It does not itself supply menu open_start/check/description or hierarchy/flyouts; those are still pending.
 - Footer: coordinator394 + V1 reservation882ffc4d + W12 no-overlap5dcf exist;
  they are ownership ONLY. W5/G2 wait for a checked/reviewed/lead-landed wrapper.
  Keep actual Usage callback, one summary preference and fixed id on consumption.
@@ -89,17 +96,24 @@ No replacement was submitted under the quota stop.
  Cargo for these four exists in this checkpoint; do not expand frozen packets.
 - W22 owns ONE global shortcut admission `(book_read_once && entries) ||
  Settings`, independent of600/mobile/online/selection/authority. Its getter/
- predicate c7eb3b1f has bounded V4 source/narrow, but receiving line is awaited.
+ predicate c7eb3b1f has bounded V4 source/narrow and is now on announced14.4
+ 935569d5 (1801/0/2). This line is intentionally UNMERGED during quota stop.
  S2 adds no parallel gate. W15 owns the separate workspace-chrome presentation
  gate and distinct Startup route; Settings navigation remains separate. Consume
  only checked/announced handoffs, never invent readiness from current session.
 - E2 owns atomic Settings split/list/back consumption and removal of temporary
  Settings PHONE/TooNarrow exceptions. Keep those exceptions until its consumer
  lands; density stays separate from effective frame form. No S2 parallel frame.
+ Latest E2 source927680a9 has six native steps0/1618-0-2 and five General/root
+ tests0. Recovery export031322 is queued after oldRoot23 refusal; captures,
+ final V4 and adoption remain owed. E2 resume964769be8 records the boundary.
+ W15 has no ready chrome/Startup handoff: App9c6005919 is uncompiled overlay
+ extraction, Root5e3d2447c unexecuted; implementation and captures are deferred.
 - W11 still has no checked native registry/cache/lookup/activation/settings
  producer in our last received handoff. Canonical workspace rows and numeric
  targets remain Unknown/Unavailable; no cwd/Creator/session fallback. W21's
- captured session-mark entry is source-only/cfg(test) as last reported; legacy
+ captured session-mark entry4ef953e4e is source-only/cfg(test), with actor,
+ guard/reconnect/timeout tests still unexecuted; legacy
  alias Act safety remains unverified. Never duplicate mutation/registry state.
 - W19 owns the future dedicated dismissal-capacity Refused variant in its sole
  canonical merge after admitted F4 install, coordinated with L translation;
@@ -108,10 +122,11 @@ No replacement was submitted under the quota stop.
 
 ## Next session order
 
-1. Read this file, scratch STATE, worker/base notices; query existing025223 run.
- No resubmission of queued/running/done jobs. Preserve source-vs-runtime scope.
-2. If placement passes, finalize its bounded packet and V1/lead-first handoff.
- If it fails, preserve exact evidence and fix only the concrete owning defect.
+1. Read this file, scratch STATE, worker/base notices and the completed025223
+ receipts. No resubmission of done jobs. Preserve source-vs-runtime scope.
+2. Resume V1's source/blob/registration audit of the existing placement packet.
+ Review/adoption remains HOLD; exact395 strict necessity is unassessed. Do not
+ launch a run merely because the prior strict was on1b; await that audit first.
 3. After quota reset and existing jobs end, merge the THEN-announced App base
  (never a node head) at a natural boundary; no new merge during this stop.
 4. Run one ordinary Main receiving strict, then ONE ordinary Kit/View/Link/App
@@ -127,6 +142,12 @@ No replacement was submitted under the quota stop.
 
 All local work ran as UID/GID1000; no production permissions/configuration,
 public push or service changed. No own fake fleet/app/display was started in
-this continuation. The helper attach monitor is the only retained local job;
-stop it by verified PID after recording terminal state, without killing the
-VM's detached runner. Keep every unverified item explicit on handoff.
+this continuation. At closeout the UID1000 process audit found no process with
+an S2 worktree cwd and no attach process for the two recorded placement runs.
+Both attach monitors completed naturally; no kill or service change was needed.
+All recorded product worktrees are clean. Keep every unverified item explicit.
+
+Final leaf resume commits: Footer f8fa2b173, file-change glyphs bcb8d1341,
+content-fit db98d26b7. Earlier checkpoints c9c862963/e862e6691/87796c544 remain
+in history. All remain WIP/unverified;
+the placement result does not validate any of them.
