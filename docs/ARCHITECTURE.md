@@ -90,7 +90,7 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | Crate | Who may depend on it | Why |
 | --- | --- | --- |
 | `agent-client-protocol` | only `vessel-agent`, `vessel-testkit` | ACP types never leave the client (ADR 0003); the fake agent speaks it. |
-| `rusqlite` | only `vessel-store` | The event log's schema and its migrations have one owner. |
+| `rusqlite` | only `vessel-store` | The event log's schema and migrations have one owner. Its existing `functions` feature keeps canonical parentage filtering inside one SQL snapshot (see `docs/plans/parentage-sql.md`). |
 | `snow` | only `vessel-secure` | The Noise handshake and the record layer (ADR 0009). |
 | `portable-pty` | only `vessel-pty` | Terminals behind one seam, with its Windows answers. |
 | `process-wrap` | only `vessel-proc` | Process groups and kill-on-close jobs in one place. |
