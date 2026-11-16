@@ -58,8 +58,8 @@ fn a_drag_over_dialog_text_selects_it_without_closing(cx: &mut TestAppContext) {
         let _paint = window.draw(cx);
     });
     let value = cx.debug_bounds("dialog-probe-value").unwrap();
-    let start = gpui::point(right_of(value.left(), 2.0), value.center().y);
-    let end = gpui::point(right_of(value.left(), 120.0), value.center().y);
+    let start = point(right_of(value.left(), 2.0), value.center().y);
+    let end = point(right_of(value.left(), 120.0), value.center().y);
     cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
     cx.simulate_mouse_move(end, MouseButton::Left, Modifiers::default());
     cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
