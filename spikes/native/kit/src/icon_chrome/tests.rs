@@ -90,3 +90,48 @@ fn actual_footer_corner_click_reaches_same_square_owner_hitbox(cx: &mut TestAppC
         });
     }
 }
+
+#[test]
+fn viewport_profile_is_the_small_frame_on_surface2_with_muted_ink_and_hidden_presence() {
+    for scheme in [Scheme::Dark, Scheme::Light] {
+        let tokens = Tokens::of(scheme);
+        for (sizing, edge) in [(ControlSizing::Pointer, 20.0), (ControlSizing::Touch, 32.0)] {
+            for availability in [ButtonState::Enabled, ButtonState::Disabled] {
+                let config = ToolbarConfig::new(sizing, availability);
+                for (presence, opacity) in [
+                    (Presence::Shown, config.opacity()),
+                    (Presence::Hidden, 0.0),
+                ] {
+                    let mut outer = render(
+                        "zoom-in",
+                        "Zoom in",
+                        Profile::Viewport {
+                            config,
+                            glyph: Glyph::ZoomIn,
+                            presence,
+                        },
+                        &tokens,
+                    );
+                    let style = outer.style();
+                    assert_eq!(style.size.width, Some(px(edge).into()));
+                    assert_eq!(style.size.height, Some(px(edge).into()));
+                    assert_eq!(style.padding.left, Some(px(0.0).into()));
+                    assert_eq!(style.corner_radii.top_left, Some(px(6.0).into()));
+                    assert_eq!(style.background, Some(tokens.neutral.surface2.into()));
+                    assert_eq!(style.opacity, Some(opacity));
+                }
+            }
+            let config = ToolbarConfig::new(sizing, ButtonState::Enabled);
+            assert_eq!(
+                viewport_fill(config, Phase::Rest, &tokens),
+                tokens.neutral.surface2
+            );
+            for phase in [Phase::Hovered, Phase::Pressed] {
+                assert_eq!(
+                    viewport_fill(config, phase, &tokens),
+                    tokens.neutral.interaction_highlight
+                );
+            }
+        }
+    }
+}

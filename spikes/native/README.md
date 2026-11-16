@@ -311,6 +311,11 @@ the sidebar package owns the Footer wrapper. The lower frame grants no input or
 effect admission. Its extraction and Footer profile are source-only until their
 own VM checks and review, as recorded in
 [`shared-icon-chrome.md`](../../docs/plans/shared-icon-chrome.md).
+Its third profile, `Viewport`, is a zoomable viewport's floating action
+(surface2 plate, muted glyph turning foreground on hover, owner-supplied
+`Presence`); `chrome::controls_corner` is the window-controls corner a
+full-window overlay leaves uncovered
+([`shared-viewport-chrome.md`](../../docs/plans/shared-viewport-chrome.md)).
 
 A settings screen (About now, the settings track's sections later) is
 built from `kit::settings`: Paseo's section with its small title, the

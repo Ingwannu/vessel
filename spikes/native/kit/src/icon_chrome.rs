@@ -3,7 +3,25 @@
 //! Toolbar keeps its existing state/geometry values. Sidebar Footer adds only its
 //! pinned square hit area and inner round pressed layer: rounding the outer area
 //! would lose corner taps. Owners retain callbacks, tooltips and admission.
-use crate::toolbar_button::{ToolbarConfig, ToolbarIcon};
+//!
+//! [Decision Log] Viewport profile (2026-11-16)
+//! - Intent: Paseo's zoomable-viewport toolbar (toolbar.tsx:75-136) is the same
+//!   small chrome (`iconButtonChromeStyle` small, 20/32 frame, 14/18 glyph) with a
+//!   surface2 plate, a muted glyph that turns foreground under the pointer, and
+//!   opacity 0 with no pointer events while its viewport is not hovered,
+//!   focused or touched.
+//! - Constraint: the Toolbar profile's rest fill is transparent and its ink is
+//!   fixed; an area may not restyle the frame (no second button style).
+//! - Alternatives: a lightbox-local button (a second style, rejected by the
+//!   coordinator's return); a fill/ink knob on `ToolbarConfig` (every toolbar
+//!   caller would carry options only one surface uses).
+//! - Choice: one closed `Viewport` profile beside the two others, reusing the
+//!   toolbar geometry, highlight and disabled opacity; `Presence` is the owner's
+//!   shown/hidden fact, supplied like `ControlSizing`.
+//! - Consequences: the owner decides presence (hover, focus, touch) and keeps
+//!   its callbacks; a hidden frame keeps its layout and accessible name, as
+//!   Paseo's opacity 0 does, and `ToolbarButton::viewport` attaches no handler.
+use crate::toolbar_button::{ToolbarConfig, ToolbarIcon, ToolbarInk};
 use crate::{ButtonState, ControlSizing, Tokens, assets::Glyph};
 use gpui::prelude::*;
 use gpui::{Div, ElementId, Hsla, SharedString, Stateful, div, px, svg};
@@ -11,6 +29,19 @@ use gpui::{Div, ElementId, Hsla, SharedString, Stateful, div, px, svg};
 const FOOTER_POINTER_FRAME: gpui::Pixels = px(28.0);
 const FOOTER_COMPACT_FRAME: gpui::Pixels = px(44.0);
 const FOOTER_GROUP: &str = "sidebar-footer-icon-chrome";
+const VIEWPORT_GROUP: &str = "viewport-icon-chrome";
+/// Paseo's `buttonHidden`: the frame stays laid out and named, but unseen.
+const HIDDEN_OPACITY: f32 = 0.0;
+
+/// Whether a viewport's controls are shown: the owner's hover, focus or touch
+/// fact, decided once at the area edge like [`ControlSizing`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Presence {
+    /// Visible and able to take the pointer.
+    Shown,
+    /// Laid out and named but unseen; no hover feedback, no handler.
+    Hidden,
+}
 
 /// Named source profiles keep frame, glyph and feedback policy together.
 #[derive(Debug, Clone, Copy)]
@@ -28,6 +59,16 @@ pub enum Profile {
         glyph: Glyph,
         /// Actual source layout policy, independent of the input hardware.
         sizing: ControlSizing,
+    },
+    /// A zoomable viewport's floating action: the small toolbar frame on a
+    /// surface2 plate, a muted adaptive14/18 glyph turning foreground on hover.
+    Viewport {
+        /// The owner's current availability and actual layout.
+        config: ToolbarConfig,
+        /// The source icon role.
+        glyph: Glyph,
+        /// The owner's shown/hidden fact.
+        presence: Presence,
     },
 }
 
@@ -63,6 +104,11 @@ pub fn render(
             tokens,
         ),
         Profile::SidebarFooter { glyph, sizing } => footer_frame(id, label, glyph, sizing, tokens),
+        Profile::Viewport {
+            config,
+            glyph,
+            presence,
+        } => viewport_frame(id, label, glyph, config, presence, tokens),
     }
 }
 
@@ -89,6 +135,49 @@ pub(crate) fn toolbar_frame(
             element.cursor_pointer()
         })
         .child(content)
+}
+/// Paseo's `highlighted` replaces the plate (`interactionHighlight` over the
+/// viewport), so hover and press read exactly as on every other toolbar.
+pub(crate) fn viewport_fill(config: ToolbarConfig, phase: Phase, tokens: &Tokens) -> Hsla {
+    if config.highlighted() || !matches!(phase, Phase::Rest) {
+        tokens.neutral.interaction_highlight
+    } else {
+        tokens.neutral.surface2
+    }
+}
+pub(crate) fn viewport_frame(
+    id: impl Into<ElementId>,
+    label: impl Into<SharedString>,
+    glyph: Glyph,
+    config: ToolbarConfig,
+    presence: Presence,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let hover_ink = tokens.neutral.foreground;
+    let icon = ToolbarIcon::new(glyph, ToolbarInk::Muted)
+        .adaptive()
+        .render(config.sizing(), tokens);
+    let element = frame(id, label)
+        .group(VIEWPORT_GROUP)
+        .size(config.frame())
+        .p(px(crate::theme::spacing::S0))
+        .rounded(px(crate::theme::radius::MD))
+        .bg(viewport_fill(config, Phase::Rest, tokens));
+    match presence {
+        Presence::Hidden => element.opacity(HIDDEN_OPACITY).child(icon),
+        Presence::Shown => {
+            let hover = viewport_fill(config, Phase::Hovered, tokens);
+            let pressed = viewport_fill(config, Phase::Pressed, tokens);
+            element
+                .opacity(config.opacity())
+                .hover(move |style| style.bg(hover))
+                .active(move |style| style.bg(pressed))
+                .when(config.availability() == ButtonState::Enabled, |element| {
+                    element.cursor_pointer()
+                })
+                .child(icon.group_hover(VIEWPORT_GROUP, move |style| style.text_color(hover_ink)))
+        }
+    }
 }
 fn frame(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Stateful<Div> {
     div()
