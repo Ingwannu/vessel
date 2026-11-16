@@ -1,6 +1,7 @@
 //! Atomic local operations. Rejected drag/open leaves the previous layout intact.
 use super::{
-    ClosePlan, LayoutError, Modified, Pane, PaneHost, PaneId, Position, SplitNode, TabId, Target,
+    AgentRole, ClosePlan, LayoutError, Modified, Pane, PaneHost, PaneId, Position, SplitNode,
+    TabId, Target,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -38,16 +39,6 @@ pub enum Placement {
     Side,
     /// Retained singleton dock outside the split tree.
     Explorer,
-}
-/// Unknown ownership behaves as a root during hydration.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AgentRole {
-    /// Hydrated workspace root.
-    Root,
-    /// Layout treats this as a root, but close must resolve ownership first.
-    Unknown,
-    /// Known workspace child can open in a compact sheet.
-    Child,
 }
 /// Metadata retained independently of the toolkit view lifetime.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
