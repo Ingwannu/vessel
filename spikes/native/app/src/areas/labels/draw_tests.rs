@@ -58,6 +58,20 @@ fn open<'a>(
     (shell, cx)
 }
 
+/// The ten swatches' selectors, in `Color::ALL`'s order.
+const SWATCHES: [&str; 10] = [
+    "label-swatch-Violet",
+    "label-swatch-Sky",
+    "label-swatch-Emerald",
+    "label-swatch-Orange",
+    "label-swatch-Pink",
+    "label-swatch-Indigo",
+    "label-swatch-Teal",
+    "label-swatch-Red",
+    "label-swatch-Amber",
+    "label-swatch-Blue",
+];
+
 /// The distance from `from` to `to` (`mul_add`: no arithmetic operator).
 fn apart(from: gpui::Pixels, to: gpui::Pixels) -> u32 {
     f32::from(from).mul_add(-1.0, f32::from(to)).to_bits()
@@ -76,9 +90,12 @@ fn rows_hold_one_rail_and_the_search_takes_no_focus_on_open(cx: &mut TestAppCont
     // One host: no filter (Paseo's `hosts.length > 1`).
     assert!(cx.debug_bounds("labels-host-filter").is_none());
     let list = cx.debug_bounds("labels-list").unwrap();
-    for name in ["Ready", "Blocked"] {
-        let row = cx.debug_bounds(&format!("label-row-{name}")).unwrap();
-        let pencil = cx.debug_bounds(&format!("label-edit-{name}")).unwrap();
+    for (row, pencil) in [
+        ("label-row-Ready", "label-edit-Ready"),
+        ("label-row-Blocked", "label-edit-Blocked"),
+    ] {
+        let row = cx.debug_bounds(row).unwrap();
+        let pencil = cx.debug_bounds(pencil).unwrap();
         // The dot leads at the list's edge and the pencil ends on its other edge.
         assert_eq!(row.left(), list.left());
         assert_eq!(row.size.width, list.size.width);
@@ -106,8 +123,7 @@ fn the_host_filter_shows_with_several_hosts_and_opens_the_host_list(cx: &mut Tes
     shell.update_in(cx, |shell, window, cx| {
         assert!(shell.areas.labels.host_list.is_open());
         let state = &shell.areas.labels;
-        let dismissal =
-            surface::Dismiss::capture(state.opening.unwrap(), state.manager.state());
+        let dismissal = surface::Dismiss::capture(state.opening.unwrap(), state.manager.state());
         shell.labels_close(dismissal, window, cx);
         assert!(!shell.areas.labels.host_list.is_open());
     });
@@ -130,8 +146,8 @@ fn the_pencil_opens_the_edit_view_with_header_back_swatches_and_footer(cx: &mut 
     assert!(cx.debug_bounds("labels-footer").is_some());
     assert!(cx.debug_bounds("labels-host-filter").is_none());
     // Ten 20-point swatches; choosing one recolours the draft.
-    for color in Color::ALL {
-        let swatch = cx.debug_bounds(&format!("label-swatch-{color:?}")).unwrap();
+    for swatch in SWATCHES {
+        let swatch = cx.debug_bounds(swatch).unwrap();
         assert_eq!(swatch.size.width, px(20.0));
         assert_eq!(swatch.size.height, px(20.0));
     }
