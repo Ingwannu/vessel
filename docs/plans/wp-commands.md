@@ -1327,3 +1327,14 @@ one allocator shared by old and canonical readers. The test adds reading=None,
 workspace_dir=None and intelligence=Idle without changing its assertions or
 creating a connection receipt. W13's canonical follow/body policy stays intact.
 Current receiving checks remain owed; R38 is retained as a compilation failure.
+
+
+R39 then reached two orphaned inherited helpers. The existing W12 Explorer
+entry now delegates its old manual tab assignment/read/notify to the canonical
+C5 code_tab setter, retaining its source invalidation once. The setter's visibility
+is only code-module-local. At that same entry, the preexisting pure tree-memory
+restore reads expanded keys for the currently shown Name/root; it performs no
+I/O or lease allocation. Canonical source_follow/source_answer remain unchanged,
+and the old alias flush/retarget path remains removed. No dead-code allowance,
+new controller or Files command registration is introduced. This receiving fix
+is the final active slice under the quota stop; verification remains pending.
