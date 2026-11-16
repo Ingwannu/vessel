@@ -33,6 +33,7 @@ impl ProjectPlacement {
 }
 
 /// Borrow canonical values instead of retaining a second local descriptor store.
+#[derive(Debug)]
 pub struct WorkspaceRow<'a> {
     context: &'a ConnectionContext,
     data: &'a RegistryData,
@@ -179,11 +180,10 @@ impl RegistryProjection {
             if let Some(previous) = selected {
                 let previous_data = previous.data.as_ref().ok_or(LookupProblem::Unavailable)?;
                 match data.registry.revision.cmp(&previous_data.registry.revision) {
-                    std::cmp::Ordering::Less => continue,
                     std::cmp::Ordering::Equal if data != previous_data => {
                         return Err(LookupProblem::Unavailable);
                     }
-                    std::cmp::Ordering::Equal => continue,
+                    std::cmp::Ordering::Less | std::cmp::Ordering::Equal => continue,
                     std::cmp::Ordering::Greater => {}
                 }
             }
