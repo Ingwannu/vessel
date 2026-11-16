@@ -13,8 +13,9 @@ plain-cache tuple generation replaces the older known-red Shape adapter; all
 five producer paths match the announced line. Field rendering lives in the
 lead's presentation/styles children, with F1's additive Code/MD textarea opt-ins
 on that one renderer. FieldId, SearchField, identified multiline/minimum and
-picker admission remain canonical. Form/select/Empty and ordered preference
-save extensions are still unreviewed F1 source. No final F1 whole gate, export
+picker admission remain canonical. Code/MD has isolated V1 source/exact Kit
+strict0+246/0/0; its F1 receiving proof remains owed. Form/select/Empty and
+ordered preference save extensions are still unreviewed F1 source. No final F1 whole gate, export
 or first-use captures have run. Private evidence retains old red checks and
 narrowly scoped successful producer results.
 
@@ -1967,3 +1968,27 @@ is None outside Session, so this introduces no settings/sidebar policy or pane.
 No lint allowance, test assertion or deadline is relaxed. Corrected execution
 still owed; full raw prior red stays preserved. The isolated Code/MD Kit suite
 runs next as the shared-field dependency, then the corrected F1 consumer suite.
+
+
+### Code/MD checked producer receipt and remaining shared proof
+
+V1 same-row c81 execution condition closed: selected c81+docs60e35 source and
+exact locked Kit strict0/246-0-0 are merged, preserving current field/picker/glyph
+and root export union. This does not validate the main F1 receiving tree. Its
+corrected f295 App/View batch still awaits the next consumer suite; prior2d2/6f
+reds are retained and never relabelled as successful tests.
+
+Secure ADR0102 source is isolated, not in F1. The first de055 strict stopped at
+ordinary lint diagnostics; d2a4 repairs them with redacted equality assertions.
+Actual secure-node proof remains held. Assigned GPUI test-support change11 is a
+separate directbase13 producer31ed5ec0, one ordinary Kit suite submitted; source
+precheck and execution/adoption remain owed. The approved test-only dev edges
+add no resolved package/version or production edge. No secret-store UI is enabled.
+
+F1 compact form still needs the source default65/90 draggable profile rather
+than Normal's legacy fixed90 cap. W19b owns the minimal with_compact extension,
+source2eab2ef8 check/review pending; no dialog renderer fork or area override.
+W3 and W21 refreshed status still has no production provision/launch/archive
+adapter, so per-run isolation remains hidden and incomplete, never a parity
+exception. W12's admitted session opener is also still staged; history candidates
+remain unopened under their original context/visit/run/session/ticket.
