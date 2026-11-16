@@ -456,8 +456,8 @@ fn full_a7_compact_sheet_dispatch_keeps_the_original_resident_and_refuses_hidden
         shell.areas.conversation = thought_area(cx, "unrelated reasoning");
         let captured = crate::areas::conversation::Seat::admitted_main(a.clone());
         assert!(shell.entry_sheet(&captured, 0, window, cx));
-        assert!(captured.get(shell).unwrap().tool_sheet.shown.is_some());
-        assert!(shell.areas.conversation.tool_sheet.shown.is_none());
+        assert!(captured.get(shell).unwrap().tool_sheet.snapshot_busy());
+        assert!(!shell.areas.conversation.tool_sheet.snapshot_busy());
         shell
             .areas
             .session_residents
@@ -470,7 +470,7 @@ fn full_a7_compact_sheet_dispatch_keeps_the_original_resident_and_refuses_hidden
             .unwrap();
         assert!(!shell.entry_sheet(&captured, 0, window, cx));
         assert!(!shell.run_sheet(&captured, 0, window, cx));
-        assert!(shell.areas.conversation.tool_sheet.shown.is_none());
+        assert!(!shell.areas.conversation.tool_sheet.snapshot_busy());
         let hidden = shell
             .areas
             .session_residents
@@ -484,8 +484,7 @@ fn full_a7_compact_sheet_dispatch_keeps_the_original_resident_and_refuses_hidden
                 .unwrap()
                 .conversation
                 .tool_sheet
-                .shown
-                .is_some()
+                .snapshot_busy()
         );
     });
 }
