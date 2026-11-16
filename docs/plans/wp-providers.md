@@ -926,3 +926,23 @@ handoff yet: the queued97fb strict predates this joined source, and exact joined
 strict, actual held-work/marker/root-settlement tests and node policy receiving
 proof remain owed. Protocol assignment, native policy staging and the distinct
 provider process-phase retention audit remain separate unfinished work.
+
+## Quota closeout: exact shared preparation checks (2026-11-16)
+
+The tested source is `e65153efd70a300655be0e5c80a1b15259521955`, with the
+public view introduced by `c7209851c`. Its ordinary nine-crate all-target strict
+Clippy run with proto TS enabled passed. The approved sequential targeted runs
+on that same immutable source passed 23 tests, with no failures or ignored
+cases: privacy 2, retained preparation 2, claim 2, listing 1, drain 3, version 4
+and public view 9. All seven runs include successful fake/daemon prerequisites
+and actual nonzero selected-test receipts.
+
+These are scoped producer checks. The joined source still needs V3 qualification
+and an integrator receiving packet before N5 or W12b treats it as ready. Their
+actual host-policy receiving cases, the distinct provider process-phase audit,
+generated wire equality and the final owning provider whole gate remain owed.
+No provider protocol is assigned and no native capability is activated here.
+The later announced node head is deferred under the quota stop instruction.
+See [the committed resume checkpoint](wp-providers-resume.md) for exact hashes,
+run IDs, review ownership and the next steps. No new slice, merge or whole gate
+was started during this closeout.
