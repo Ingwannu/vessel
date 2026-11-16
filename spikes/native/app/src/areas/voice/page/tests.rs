@@ -5,7 +5,10 @@ use vessel_app_kit::Scheme;
 use vessel_app_view::{
     devices::Tickets,
     localization::Locale,
-    voice::{Applied, settings::Write},
+    voice::{
+        Applied,
+        settings::{Editor, Write},
+    },
 };
 use vessel_proto::{NodeId, dictation::DictationSettings, voice::VoiceSettings};
 
@@ -16,7 +19,7 @@ struct Probe {
     scheme: Scheme,
     sizing: ControlSizing,
     writes: Vec<Write>,
-    editors: Vec<Site>,
+    editors: Vec<Editor>,
 }
 impl Probe {
     fn new(tag: &str, scheme: Scheme, sizing: ControlSizing) -> Self {
@@ -61,8 +64,8 @@ impl Render for Probe {
             },
             edit: move |action, _event: &ClickEvent, _window: &mut Window, cx: &mut App| {
                 let _retired = edit_owner.update(cx, |this, _| {
-                    if let Some(site) = this.page.edit(action) {
-                        this.editors.push(site);
+                    if let Some(editor) = this.page.open_editor(action).unwrap() {
+                        this.editors.push(editor);
                     }
                 });
             },
@@ -147,7 +150,9 @@ fn actual_switch_handler_is_single_pending_and_site_click_waits_for_confirmation
         .unwrap();
     visual.simulate_click(site.center(), Modifiers::none());
     view.read_with(visual, |probe, _| {
-        assert_eq!(probe.editors, [Site::Synthesis]);
+        assert_eq!(probe.editors.len(), 1);
+        assert_eq!(probe.editors[0].site(), Site::Synthesis);
+        assert!(probe.page.editor_values(probe.editors[0]).is_some());
     });
 }
 

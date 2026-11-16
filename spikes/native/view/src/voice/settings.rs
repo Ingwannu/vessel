@@ -4,7 +4,7 @@
 //! actual replies, excludes stale callbacks and requests one switch change.
 //! A missing or failed read never becomes a default configuration.
 
-use crate::devices::Ticket;
+use crate::devices::{Ticket, Tickets};
 use vessel_proto::dictation::{
     DictationChange, DictationProvider, DictationSettings, DictationSwitch, SetDictation,
 };
@@ -93,6 +93,23 @@ pub struct Edit {
     site: Site,
 }
 
+/// One fresh editor opening, independent of the dialog's focus/menu lease.
+/// This is callback correlation, never node or credential authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Editor {
+    node: NodeId,
+    source: Ticket,
+    opening: Ticket,
+    site: Site,
+}
+impl Editor {
+    /// Which one of the three canonical sites this opening edits.
+    #[must_use]
+    pub const fn site(self) -> Site {
+        self.site
+    }
+}
+
 /// Whether the current snapshot can accept another edit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Editing {
@@ -121,6 +138,8 @@ pub struct Page {
     read: Option<Result<Snapshot, Problem>>,
     pending: Pending,
     failure: Option<Problem>,
+    editor: Option<Editor>,
+    editor_tickets: Tickets,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,13 +152,15 @@ enum Pending {
 impl Page {
     /// Start a fresh read. Replacing a page does not reuse its operation ticket.
     #[must_use]
-    pub const fn reading(node: NodeId, ticket: Ticket) -> Self {
+    pub fn reading(node: NodeId, ticket: Ticket) -> Self {
         Self {
             node,
             ticket,
             read: None,
             pending: Pending::Read,
             failure: None,
+            editor: None,
+            editor_tickets: Tickets::default(),
         }
     }
 
@@ -285,8 +306,47 @@ impl Page {
         (self.edit_action(action.site) == Some(action)).then_some(action.site)
     }
 
+    /// Open only the displayed site, giving each form a fresh existing ticket.
+    /// The shared dialog remains the sole owner of focus and modal layers.
+    ///
+    /// # Errors
+    /// Exhausting the ticket source refuses a new form instead of reusing one.
+    pub fn open_editor(&mut self, action: Edit) -> Result<Option<Editor>, crate::devices::Problem> {
+        let Some(site) = self.edit(action) else {
+            return Ok(None);
+        };
+        let editor = Editor {
+            node: self.node,
+            source: self.ticket,
+            opening: self.editor_tickets.next_ticket()?,
+            site,
+        };
+        self.editor = Some(editor);
+        Ok(Some(editor))
+    }
+
+    /// Read only the confirmed metadata for this still-current opening.
+    /// Stored key values and reference names are absent from the snapshot.
+    #[must_use]
+    pub fn editor_values(&self, editor: Editor) -> Option<&Snapshot> {
+        if self.editor != Some(editor) || editor.node != self.node || editor.source != self.ticket {
+            return None;
+        }
+        self.read.as_ref()?.as_ref().ok()
+    }
+
+    /// An old close/cancel callback must not dismiss the next form.
+    pub fn close_editor(&mut self, editor: Editor) -> super::Applied {
+        if self.editor_values(editor).is_none() {
+            return super::Applied::Stale;
+        }
+        self.editor = None;
+        super::Applied::Current
+    }
+
     fn writable(&self) -> bool {
-        self.pending == Pending::Settled
+        self.editor.is_none()
+            && self.pending == Pending::Settled
             && !matches!(
                 self.failure,
                 Some(
@@ -298,5 +358,7 @@ impl Page {
     }
 }
 
+#[cfg(test)]
+mod editor_tests;
 #[cfg(test)]
 mod tests;

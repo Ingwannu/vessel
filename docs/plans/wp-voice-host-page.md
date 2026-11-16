@@ -149,3 +149,17 @@ editor forms, secure key entry, physical devices, native power integration,
 OS keyboard/accessibility, final captures or end-to-end voice qualification.
 The real node field/adapter and downstream prompt/reload/MCP prerequisites
 remain unavailable. Earlier failed strict runs remain failure evidence.
+
+
+## Fresh editor opening checkpoint
+
+[Decision Log]
+- Purpose: each provider-sheet opening gets a fresh form scope as in speech-provider-form and voice-page, so retained close callbacks cannot dismiss a reopened editor or read its metadata.
+- Existing assets: the Page already owns the exact node/read ticket and checked canonical DTO snapshot. Reuse devices::Tickets for bounded fresh identities; the shared dialog continues to own focus, layers and rendering.
+- Choice: Page::open_editor creates one private-field Editor token only after the displayed Edit action passes its existing host/snapshot/readiness check. A second opening and switches are excluded while that editor is held. Only the exact current token can read the presence-only snapshot or close the form.
+- Why: the form must not follow mutable machine selection, recycle an old form identity, or use a dialog close callback as authority for a different opening.
+- Impact: a page replacement, another read ticket, close and reopen fence old tokens. These correlation values add no backend authority, settings store, credential field or model readiness. Existing actual callback tests now open the token rather than merely recording a site name. New same-host/foreign-host/reopen regressions remain unexecuted until the next exact-head VM suite.
+
+This slice supplies only the form lifecycle boundary. Draft fields, save
+validation, partial credential/settings outcomes and actual sheet composition
+are still outstanding; no secure entry or product route is activated.
