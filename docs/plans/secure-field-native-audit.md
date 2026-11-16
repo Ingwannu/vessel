@@ -56,3 +56,28 @@ preserving its exact Kit/GPUI/manifest/lock source. The App main remains solely
 the explicit audit scaffolding. Prior7bfe Kit252 and old29f5 export are retained
 as PRIOR-source evidence; current receiving Kit checks and a NEW same-source
 export/capture are owed. No allowance, new dependency, painter or whole gate.
+
+## Executed current-base audit, submitted to V1
+
+Exact76d67699 exported in schedules-20261116T030431Z-76d67699 with
+fonts/build/export0 and no compiler warnings. Its Kit/GPUI/manifests/locks
+are byte-identical to receiving secure producer b69703e8 on green b54abbdc.
+The audit-only source delta remains main plus this plan. Never merge main.
+Binary SHA256:5c473b8a96f6608b975155ef741ead5007d183b97e5c6b4b4bc6f0e0be833fb0.
+
+One setup attempt failed before input/PNG at window focus; another completed
+all action observations but desktop width was1278 after virtual-screen clipping.
+Both are preserved with those dispositions. The final authenticated-display
+run asserts exact1280x780/390x780 originals in both schemes. All28 phase PNGs
+were personally opened; four nonsecret first-frame witnesses remain. Ordinary
+copy succeeds, masked Copy/Cut keep the sentinel, Paste/submit match synthetic
+input, readOnly has zero edits and retains replacement, erase is Unchanged,
+and Debug is redacted in all four cases. Logs contain no canary. There is no
+real credential or stored secret in the probe.
+
+UID/GID1000, authority0600, private evidence0700/0600, executable0500 were
+checked. The unauthenticated client is refused; PID/executable/start identity
+cleanup proves all owned App/Xvfb processes stopped and cookies removed.
+The final packet pins source, export, binary, driver, every original and log.
+This is author execution/inspection submitted to V1 first, not V1 final privacy
+acceptance. No OS AT/physical IME/Host Voice/secretstore/full F1 claim follows.
