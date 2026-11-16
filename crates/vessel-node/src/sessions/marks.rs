@@ -108,10 +108,27 @@ impl Sessions {
                     let _final = handle.ended().await;
                 }
                 let _order = sessions.marking.lock().await;
-                let committed = sessions.store.mark_committed(id, mark, Utc::now()).await?;
-                let (kept, updated_at) = committed.into_parts();
-                handle.set_committed_marks(kept, updated_at);
-                Ok(handle.info())
+                // Recheck the existing branch under reopen's same lease. An
+                // ended-but-retained handle is loaded; SQL live is not that fact.
+                match sessions.find(id).await? {
+                    Found::Live { handle, .. } => {
+                        let committed = sessions
+                            .store
+                            .mark_loaded_committed(id, mark, Utc::now())
+                            .await?;
+                        let (kept, updated_at) = committed.into_parts();
+                        handle.set_committed_marks(kept, updated_at);
+                        Ok(handle.info())
+                    }
+                    Found::Stored(_) => {
+                        let _kept = sessions.store.mark(id, mark, Utc::now()).await?;
+                        sessions
+                            .store
+                            .session(id)
+                            .await?
+                            .ok_or(ServiceError::NotFound(id))
+                    }
+                }
             })
             .await
             .map_err(ServiceError::Task)?

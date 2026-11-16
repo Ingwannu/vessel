@@ -21,7 +21,7 @@ use crate::codec::{
 };
 use crate::error::{Column, StoreError};
 pub(crate) use migrate::backfill;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::inbox::{
     InboxCount, InboxCounts, InboxCursor, InboxEntry, InboxItem, InboxKey, InboxPage, InboxRead,
     ListInbox, MarkInbox,
@@ -241,6 +241,27 @@ fn insert(
 }
 
 pub(crate) fn mark(connection: &Connection, mark: &MarkInbox) -> Result<(), StoreError> {
+    mark_in_residency(connection, mark, crate::marks::Residency::Stored)
+}
+
+/// The Node's loaded branch preserves activity without changing the entry mark.
+pub(crate) fn mark_loaded(connection: &Connection, mark: &MarkInbox) -> Result<(), StoreError> {
+    mark_in_residency(connection, mark, crate::marks::Residency::Loaded)
+}
+
+fn mark_in_residency(
+    connection: &Connection,
+    mark: &MarkInbox,
+    residency: crate::marks::Residency,
+) -> Result<(), StoreError> {
+    let seen: Option<bool> = connection
+        .prepare_cached("SELECT seen FROM inbox WHERE session=?1 AND seq=?2")?
+        .query_row(
+            params![mark.key.session.to_string(), seq_to_sql(mark.key.seq)?],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let seen = seen.ok_or(StoreError::InboxGone)?;
     let rows = connection.execute(
         "UPDATE inbox SET seen=?3 WHERE session=?1 AND seq=?2",
         params![
@@ -252,7 +273,9 @@ pub(crate) fn mark(connection: &Connection, mark: &MarkInbox) -> Result<(), Stor
     if rows == 0 {
         return Err(StoreError::InboxGone);
     }
-    let _updated = crate::mutation_time::advance(connection, mark.key.session)?;
+    if residency == crate::marks::Residency::Stored && seen != (mark.read == InboxRead::Read) {
+        let _updated = crate::mutation_time::advance(connection, mark.key.session)?;
+    }
     Ok(())
 }
 

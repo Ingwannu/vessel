@@ -1633,3 +1633,15 @@ also checks ordinary loaded Read/Unread through Sessions::mark. Its task/lease,
 inbox outcome and deadline assertions remain. The final shutdown increase is
 explicitly attributed to the Exited append. This is the expected behavior change,
 not a weaker general clock assertion. The test is committed before the fix.
+
+
+The test-first actual Node run failed exactly at loaded inbox clock equality:
+the accepted attention mark advanced by one millisecond. That red execution is
+retained. The correction now carries private residency in the same writer queue;
+no existing head test call needs a signature or expectation change. The Node's
+ordinary loaded mark rechecks Found under the existing lease before selecting
+the Store entry point, and inbox captures its existing runtime_handle there.
+The savepoint compares actual before/after derived unread or exact seen state;
+watermark-only propagation still commits. Four actual SQLite unit cases cover
+loaded/stored transitions, repeats, Pin/Archive, and legacy Unknown. Current
+changed-code Clippy and functional results remain unexecuted.

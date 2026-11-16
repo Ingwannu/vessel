@@ -26,7 +26,34 @@ impl Store {
         &self,
         mark: MarkInbox,
     ) -> Result<SessionCommit<()>, StoreError> {
-        self.write(|done| Write::Inbox { mark, done }).await
+        self.mark_inbox_residency(mark, crate::marks::Residency::Stored)
+            .await
+    }
+
+    /// Commit a loaded entry mark without manufacturing new session activity.
+    /// Store does not verify residency: only the Node's existing `runtime_handle`
+    /// branch, under its marking lease, should make this ordering-only claim.
+    /// # Errors
+    /// Gone entry, invalid session clock, or the existing write failure.
+    pub async fn mark_loaded_inbox_committed(
+        &self,
+        mark: MarkInbox,
+    ) -> Result<SessionCommit<()>, StoreError> {
+        self.mark_inbox_residency(mark, crate::marks::Residency::Loaded)
+            .await
+    }
+
+    async fn mark_inbox_residency(
+        &self,
+        mark: MarkInbox,
+        residency: crate::marks::Residency,
+    ) -> Result<SessionCommit<()>, StoreError> {
+        self.write(|done| Write::Inbox {
+            mark,
+            residency,
+            done,
+        })
+        .await
     }
 
     /// Mark exactly one current entry read or unread.

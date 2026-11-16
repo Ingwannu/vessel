@@ -50,10 +50,37 @@ impl Store {
         mark: Mark,
         at: DateTime<Utc>,
     ) -> Result<SessionCommit<KeptMarks>, StoreError> {
+        self.mark_in_residency(session, mark, at, crate::marks::Residency::Stored)
+            .await
+    }
+
+    /// Preserve loaded Read/Unread activity time while committing their marks.
+    /// Store does not verify residency: only the Node's existing loaded branch,
+    /// under its marking lease, should make this ordering-only claim.
+    /// # Errors
+    /// Unknown session, invalid/exhausted time, or the existing write failures.
+    pub async fn mark_loaded_committed(
+        &self,
+        session: SessionId,
+        mark: Mark,
+        at: DateTime<Utc>,
+    ) -> Result<SessionCommit<KeptMarks>, StoreError> {
+        self.mark_in_residency(session, mark, at, crate::marks::Residency::Loaded)
+            .await
+    }
+
+    async fn mark_in_residency(
+        &self,
+        session: SessionId,
+        mark: Mark,
+        at: DateTime<Utc>,
+        residency: crate::marks::Residency,
+    ) -> Result<SessionCommit<KeptMarks>, StoreError> {
         self.write(|done| Write::Mark {
             session,
             mark,
             at,
+            residency,
             done,
         })
         .await

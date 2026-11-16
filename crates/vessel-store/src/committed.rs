@@ -25,8 +25,8 @@ impl<T> SessionCommit<T> {
         self.value
     }
 
-    /// The exact acknowledged clock. None preserves legacy Unknown when an
-    /// operation such as an empty append performs no mutation.
+    /// The exact acknowledged clock, including a preserved current value for
+    /// an empty append or attention no-op. None means the row remains legacy Unknown.
     #[must_use]
     pub const fn updated_at(&self) -> Option<SessionUpdatedAt> {
         self.updated_at

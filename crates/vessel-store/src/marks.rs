@@ -32,6 +32,16 @@ use crate::error::StoreError;
 /// column on.
 pub(crate) const MARK_COLUMNS: &str = "pinned, archived_at, read_seq, marked_unread";
 
+/// The Node's residency claim under its metadata lease, never a permission.
+/// Stored convenience calls retain their historical path; SQL live is not residency.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Residency {
+    /// No runtime handle under the Node's existing metadata order.
+    Stored,
+    /// Includes an ended handle still retained by the runtime.
+    Loaded,
+}
+
 /// Apply `mark` (made at `at`) to `session`'s row; returns its marks after.
 pub(crate) fn mark(
     connection: &Connection,
@@ -39,6 +49,32 @@ pub(crate) fn mark(
     mark: Mark,
     at: DateTime<Utc>,
 ) -> Result<KeptMarks, StoreError> {
+    mark_in_residency(connection, session, mark, at, Residency::Stored)
+}
+
+/// The loaded branch preserves attention-mark activity without changing its SQL effects.
+pub(crate) fn mark_loaded(
+    connection: &Connection,
+    session: SessionId,
+    mark: Mark,
+    at: DateTime<Utc>,
+) -> Result<KeptMarks, StoreError> {
+    mark_in_residency(connection, session, mark, at, Residency::Loaded)
+}
+
+fn mark_in_residency(
+    connection: &Connection,
+    session: SessionId,
+    mark: Mark,
+    at: DateTime<Utc>,
+    residency: Residency,
+) -> Result<KeptMarks, StoreError> {
+    let attention_mark = matches!(mark, Mark::Read { .. } | Mark::Unread);
+    let before = if residency == Residency::Stored && attention_mark {
+        Some(unread(connection, session)?)
+    } else {
+        None
+    };
     // What the mark sets, and the value bound to `?2` where it takes one.
     let (set, value) = match mark {
         Mark::Pin => ("pinned = 1", None),
@@ -84,8 +120,32 @@ pub(crate) fn mark(
         }
         Mark::Pin | Mark::Unpin | Mark::Unarchive => {}
     }
-    let _updated = crate::mutation_time::advance(connection, session)?;
+    // A watermark still propagates even when attention was already clear.
+    // Loaded attention changes are not new activity in Paseo's ordering.
+    let changed = if let Some(before) = before {
+        before != unread(connection, session)?
+    } else {
+        !attention_mark
+    };
+    if changed {
+        let _updated = crate::mutation_time::advance(connection, session)?;
+    }
     Ok(kept)
+}
+
+fn unread(connection: &Connection, session: SessionId) -> Result<bool, StoreError> {
+    // The attention cell follows MARK_COLUMNS in this small same-writer snapshot.
+    const ATTENTION: usize = 4;
+    let stored: Option<(StoredMarks, Option<i64>)> = connection
+        .prepare_cached(&format!(
+            "SELECT {MARK_COLUMNS}, attention_seq FROM sessions WHERE id=?1"
+        ))?
+        .query_row([session.to_string()], |row| {
+            Ok((StoredMarks::from_row(row, 0)?, row.get(ATTENTION)?))
+        })
+        .optional()?;
+    let (kept, attention) = stored.ok_or(StoreError::UnknownSession(session))?;
+    Ok(kept.kept()?.marks(attention_from_sql(attention)?).unread)
 }
 
 /// Delete an ended session with its log, its marks, its queue and its
@@ -145,3 +205,6 @@ impl StoredMarks {
 pub(crate) fn attention_from_sql(value: Option<i64>) -> Result<Option<EventSeq>, StoreError> {
     value.map(seq_from_sql).transpose()
 }
+
+#[cfg(test)]
+mod tests;

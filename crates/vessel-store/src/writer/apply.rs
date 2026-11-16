@@ -56,9 +56,11 @@ pub(super) fn apply(
             session,
             mark,
             at,
+            residency,
             done,
-        } => marks_answer(transaction, session, done, |connection| {
-            marks::mark(connection, session, mark, at)
+        } => marks_answer(transaction, session, done, |connection| match residency {
+            marks::Residency::Stored => marks::mark(connection, session, mark, at),
+            marks::Residency::Loaded => marks::mark_loaded(connection, session, mark, at),
         }),
         Write::Detach { session, at, done } => {
             let applied = isolated(transaction, |connection| {
@@ -83,11 +85,19 @@ pub(super) fn apply(
         Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
             attachments::insert(connection, &kept, time_to_sql(at)?)
         }),
-        Write::Inbox { mark, done } => {
-            session_answer(transaction, mark.key.session, done, |connection| {
-                crate::inbox::mark(connection, &mark)
-            })
-        }
+        Write::Inbox {
+            mark,
+            residency,
+            done,
+        } => session_answer(
+            transaction,
+            mark.key.session,
+            done,
+            |connection| match residency {
+                marks::Residency::Stored => crate::inbox::mark(connection, &mark),
+                marks::Residency::Loaded => crate::inbox::mark_loaded(connection, &mark),
+            },
+        ),
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),

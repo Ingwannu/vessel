@@ -18,8 +18,14 @@ impl Sessions {
                 // Reopen/detach share this order. Once the write starts, the task
                 // retains its committed clock publication despite RPC cancellation.
                 let _order = order;
-                let committed = sessions.store.mark_inbox_committed(mark.clone()).await?;
-                if let Some(handle) = sessions.runtime_handle(mark.key.session) {
+                // Use the existing residency lookup before the write, while
+                // reopen shares this lease, rather than inferring from SQL live.
+                let handle = sessions.runtime_handle(mark.key.session);
+                let committed = match &handle {
+                    Some(_) => sessions.store.mark_loaded_inbox_committed(mark).await?,
+                    None => sessions.store.mark_inbox_committed(mark).await?,
+                };
+                if let Some(handle) = handle {
                     handle.acknowledge_time(committed.updated_at());
                 }
                 Ok(())
