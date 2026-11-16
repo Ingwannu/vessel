@@ -414,7 +414,7 @@ fn row_of(
     } else {
         row = row.pl(px(PAD));
     }
-    let text = StyledText::new(line.text.clone()).with_highlights(self::syntax::highlights(
+    let text = StyledText::new(line.text.clone()).with_highlights(syntax::highlights(
         emphasis,
         syntax,
         ink.map(|ink| ink.opacity(WASH)),

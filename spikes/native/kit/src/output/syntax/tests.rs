@@ -5,11 +5,16 @@ use crate::{Scheme, Tokens};
 #[test]
 fn syntax_and_changed_ranges_merge_without_overlaps_and_recolor_from_current_scheme() {
     let syntax = vec![(0..6, Some(SyntaxKind::Keyword))];
-    let changed = vec![2..4];
+    let changed = 2..4;
     let dark = CodeStyles::of(Scheme::Dark);
     let light = CodeStyles::of(Scheme::Light);
     let background = Tokens::of(Scheme::Dark).st_ready;
-    let runs = highlights(&changed, &syntax, Some(background), &dark);
+    let runs = highlights(
+        std::slice::from_ref(&changed),
+        &syntax,
+        Some(background),
+        &dark,
+    );
     assert_eq!(
         runs.iter()
             .map(|(range, _)| range.clone())
@@ -23,7 +28,12 @@ fn syntax_and_changed_ranges_merge_without_overlaps_and_recolor_from_current_sch
     );
     assert_eq!(runs[1].1.background_color, Some(background));
     assert!(runs[0].1.background_color.is_none());
-    let recolored = highlights(&changed, &syntax, Some(background), &light);
+    let recolored = highlights(
+        std::slice::from_ref(&changed),
+        &syntax,
+        Some(background),
+        &light,
+    );
     assert_eq!(
         recolored[1].1.color,
         light.highlight(SyntaxKind::Keyword).color
@@ -36,12 +46,17 @@ fn syntax_and_changed_ranges_merge_without_overlaps_and_recolor_from_current_sch
 fn absent_semantic_runs_preserve_background_only_behavior() {
     let styles = CodeStyles::of(Scheme::Dark);
     let background = Tokens::of(Scheme::Dark).st_ready;
-    let ranges = vec![0..3];
-    let runs = highlights(&ranges, &[], Some(background), &styles);
+    let ranges = 0..3;
+    let runs = highlights(
+        std::slice::from_ref(&ranges),
+        &[],
+        Some(background),
+        &styles,
+    );
     assert_eq!(runs.len(), 1);
     assert!(runs[0].1.color.is_none());
     assert_eq!(runs[0].1.background_color, Some(background));
-    assert!(highlights(&ranges, &[], None, &styles).is_empty());
+    assert!(highlights(std::slice::from_ref(&ranges), &[], None, &styles).is_empty());
 }
 
 struct Probe {

@@ -46,3 +46,12 @@ Plain file tokens map to the existing Variable syntax role, matching CodeTokens'
 preview foreground in the same independent palette. They do not fall back to UI
 foreground while keywords alone follow a code palette. This is one existing role
 selection, not another lexer-kind table; a cross-resolver regression pins it.
+
+Actual prior-source072c19b9 execution completed App141/0/2 +Kit256/0/0 =397/0/2
+in run wp-timeline-syntax-tests-20261116T020757Z-072c19b9. All named semantic
+lexer, budget, copy, UTF-8, merged-color and actual warm virtualized cases passed.
+Its strict run returned only three syntax/style diagnostics: an unnecessary
+self qualification and two single-range Vec test initializers. They are corrected
+without changing assertions or behavior. The normal announced14.2 merge is also
+present; actual receiving checks on this newer source are still owed. No A7
+main/host/raster/V1/F5 approval is borrowed from that earlier-source execution.
