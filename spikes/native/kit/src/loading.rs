@@ -101,18 +101,53 @@ fn track(size: Size, colour: Hsla) -> Svg {
 /// expose colour/size, not `ActivityIndicator`'s unused stop/hide flags.
 #[must_use]
 pub fn activity_indicator(id: impl Into<ElementId>, size: Size, colour: Hsla) -> AnyElement {
+    indicator(id, size, colour, Profile::Ordinary)
+}
+/// Model browser's numeric14 layout with the source's paint-only0.7 scale.
+/// Existing masks, alpha and motion are shared; this does not shrink its slot.
+#[must_use]
+pub fn model_browser_indicator(id: impl Into<ElementId>, colour: Hsla) -> AnyElement {
+    indicator(
+        id,
+        Size::Numeric(Points::FOURTEEN),
+        colour,
+        Profile::ModelBrowser,
+    )
+}
+const MODEL_BROWSER_SCALE: f32 = 0.7;
+#[derive(Clone, Copy)]
+enum Profile {
+    Ordinary,
+    ModelBrowser,
+}
+fn indicator(id: impl Into<ElementId>, size: Size, colour: Hsla, profile: Profile) -> AnyElement {
+    let base = track(size, colour).absolute();
+    let arc = vector(Glyph::ActivityArc, size, colour).absolute();
+    let (base, arc) = match profile {
+        Profile::Ordinary => (base, rotate(id, arc, PERIOD)),
+        Profile::ModelBrowser => (
+            base.with_transformation(gpui::Transformation::scale(gpui::size(
+                MODEL_BROWSER_SCALE,
+                MODEL_BROWSER_SCALE,
+            ))),
+            arc.with_animation(id, motion(PERIOD), |arc, delta| {
+                arc.with_transformation(
+                    gpui::Transformation::rotate(gpui::percentage(delta))
+                        .with_scaling(gpui::size(MODEL_BROWSER_SCALE, MODEL_BROWSER_SCALE)),
+                )
+            })
+            .into_any_element(),
+        ),
+    };
     div()
         .relative()
         .size(size.side())
         .flex_none()
-        .child(track(size, colour).absolute())
-        .child(rotate(
-            id,
-            vector(Glyph::ActivityArc, size, colour).absolute(),
-            PERIOD,
-        ))
+        .child(base)
+        .child(arc)
         .into_any_element()
 }
+
 fn motion(period: Duration) -> Animation {
     Animation::new(period).repeat()
 }
@@ -129,6 +164,13 @@ pub(crate) fn rotate(id: impl Into<ElementId>, vector: Svg, period: Duration) ->
 mod tests {
     use super::*;
     use crate::{Scheme, Tokens};
+    #[test]
+    fn model_browser_profile_keeps_fourteen_layout_and_seven_tenths_paint_scale() {
+        assert_eq!(Size::Numeric(Points::FOURTEEN).side(), px(14.0));
+        assert_eq!(MODEL_BROWSER_SCALE.to_bits(), 0.7_f32.to_bits());
+        assert_eq!(TRACK_OPACITY.to_bits(), 0.2_f32.to_bits());
+        assert_eq!(PERIOD, Duration::from_millis(750));
+    }
     #[test]
     fn sizes_and_actual_vector_ink_match_the_source() {
         assert_eq!(Size::Small.side(), px(20.0));

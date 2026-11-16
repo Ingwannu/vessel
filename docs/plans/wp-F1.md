@@ -2078,3 +2078,11 @@ staged navigation/provision capability is promoted. The missing loading profile
 will be restored as a separate owned integration repair using the same masks,
 alpha/motion renderer and canonical FOURTEEN/EIGHTEEN constants. Its required
 narrow suite will run on the repaired combined source, not this known-red move.
+
+The loading repair restores only the already owned ModelBrowser named profile
+and its literal regression. The canonical Points constants (including W12's
+EIGHTEEN), opaque masks, element track alpha,750ms motion and ordinary/legacy
+paths remain. The profile keeps a14-point layout and paint-only0.7 scale through
+the same private indicator renderer. Existing ordinary test bodies are unchanged.
+No area spinner, new asset, size allowance or dependency is introduced. All
+reported compile diagnostics were scanned before a new ordinary receiving suite.
