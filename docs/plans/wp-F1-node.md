@@ -220,3 +220,32 @@ that byte match is not a new combined gate. Batch17 now gates on e0eb0a55 and
 contains the Ended producer, W19 fence, G4 lifetime and W3 schema-sequence move.
 No App node-head merge or Ended permission change was made. Future pending
 method rows append after skills.import_selection; no feature number is guessed.
+
+
+## 2026-11-16 announced line adoption
+
+Nodeed4cd137 merged as8c4a79667. It includes the exact V3-qualified Ended
+producer d26/059f through batch17. No conflict or unchanged producer rerun.
+Combined gate56b is reported17/18 with the named intermittent startSession/new
+route case still open, not an unqualified whole pass. App separately uses the
+announced package base2ebeedf9; no node trial/head is merged directly into App.
+
+[Decision Log: remaining per-run workspace gap]
+- Existing assets: ScheduleTarget::NewSession and the serialized scheduler's
+  recorded Making job, canonical Call::since payload-field rules, W11 workspace
+  identity/registry, W3 creation receipts/driver and W21 archive orchestration.
+- Constraint: a new per-run worktree cannot be implemented as a private CWD-based
+  provisioner or cleanup loop. Stable operation/workspace/resource identity must
+  be recorded before effects and share the canonical receipt workflow.
+- Choice still to implement: optional typed isolation on NewSession, one pending
+  feature constant (None until integrator assignment), existing field requirement
+  rules, older reply projection and a typed newer-client edit refusal protecting
+  stored newer definitions. Requests without the field keep schedule11. Schema
+  step is requested only if the fixed storage design needs it; none is guessed.
+- Runtime boundary: consume only reviewed production provision/launch/archive
+  adapters. After=Keep explicitly skips archive. New isolation stays hidden until
+  that runtime exists; a port/fake is source preparation, never live readiness.
+- Current evidence: W21 confirms no reviewed production WorkspaceId archive
+  handler; generation/physical-root/member-quiescence integration remains owed.
+  Its terminal-cleanup foundation does not unlock backing deletion. W3 refreshed
+  driver disposition is requested; no new handler or parallel registry was made.
