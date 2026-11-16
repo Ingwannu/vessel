@@ -8,6 +8,34 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Actual exported Rust/CFT child-pipe component
+
+The fixed exact41ecc652 lib-test artifact, SHA67af57b8f9c0520bcae5248960d271c6acc06efd5557edb6417ae17ed7fa535a,
+was built/exported by run wp-browser-runtime-artifact-20261116T003750Z-41ecc652.
+Manifest, source/features/toolchain/ABI, build UID/GID1000, executable0500 and
+approved CFT/shell hashes were checked before its one selected runtime fixture.
+
+The first execution failed0/1 before Chrome launch: the shared temporary
+ancestor was group-writable/nonsticky, correctly rejected by Profile's unchanged
+permission rule. The original failure is retained. Only the external fixture's
+TMPDIR placement changed to a fresh0700 directory beneath root-owned sticky
+/tmp; no host permissions, Rust policy, assertions, executable or sandbox flags
+changed. The same artifact then passed1/0/0 in6.22s as UID/GID1000.
+
+That test uses the real Rust NUL-pipe driver and actual supervised Child:
+Chrome149 reported its typed version, the launched child/bundle was verified,
+Close was acknowledged, the driver joined, the owned leader was reaped with an
+accepted original-group cleanup receipt, and the Plan's profile lock remained
+busy while retained. The external fixture observed no remaining exact-profile
+matches and sent no forced signals on the passing run. Private fixture profiles
+remain quarantined; this is not Profile::release or reusable slot proof.
+
+This supplies scoped component execution, not supported-engine readiness.
+It predates gate57's process diagnostic helper and all later controller/DTO
+changes. No real page/PNG, policy proxy, TCP/UDP/ICE/QUIC/WebTransport isolation,
+Preview capability/revocation, all-descendant death, GUI, credentials or Windows
+qualification is inferred. NoEngine remains until those separate obligations.
+
 ## Upload fixture arithmetic correction
 
 Exacta1787e07 browser-filtered proto/MCP tests completed50/0/0, including the
