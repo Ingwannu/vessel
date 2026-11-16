@@ -577,3 +577,17 @@ cleanup only, not a product listener or a real endpoint check.
 - Choice: deserialize a known response/score-token shape, with a typed tolerant alternative that discards malformed score metadata as IgnoredAny. Unknown provider fields are ignored, errors become only static TranscriptError, and no foreign response struct derives Debug. Keep the same mean, -3.0 strict threshold, empty text and accepted/rejected limits.
 - Difference: duplicate recognized top-level response fields are now refused as ambiguous instead of last-value selection. Malformed nested tokens still yield unspecified confidence, including duplicate recognized token fields rejected by the typed token decoder. This follows the existing malformed-score policy and is not a claim that confidence authenticates the speaker.
 - Validation: existing empty/overflow/size/threshold tests plus wrong scalar/null-byte metadata and unknown/duplicate response cases await the next VM runtime suite. No provider/model/API key or runtime is activated.
+
+
+### Checked typed-response and wire receipts
+
+The exact b6f9577c Node/Proto/Web all-target strict check passed. The separate
+VM Node voice runtime suite on that same source passed 66/0/0, including the
+typed response edge and detector diagnostic-chain regression. These are fake
+probabilities and loopback endpoint checks; no model, provider or microphone
+was used. After the announced 27502436 merge, the named TS step on exact
+28bff292 passed its four Proto and two Web tests but correctly failed its final
+generated-diff check. All six artifact hashes and the source commit were
+verified; the exact generated proto.ts bytes are adopted here, without manual
+edits. The new combined head still owes its generated-diff check and CLI
+exhaustiveness qualification. Voice remains pending and unavailable.
