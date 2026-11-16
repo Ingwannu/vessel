@@ -224,9 +224,12 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
         ),
         tool(
             "list_sessions",
-            "Every session on the node, newest first: id, harness, mode, status, profile, and \
-             who created it.",
-            json!({ "node": node }),
+            "Sessions on the node, newest first. Explicit scope/labels require lifecycle \
+             support on every hop. Omission preserves the legacy full list until supported.",
+            json!({ "node": node,
+                "scope":{"type":"string","enum":["shown","all"],
+                    "description":"Shown discovery or inclusive background discovery; independent of archival and access permissions."},
+                "labels":super::discovery::labels_schema() }),
             &[],
         ),
         create_session_tool(node),

@@ -19,6 +19,7 @@
 mod args;
 mod automation;
 mod conversation;
+mod discovery;
 mod driving;
 mod exposure;
 mod forge;
@@ -47,7 +48,7 @@ use rmcp::service::RequestContext;
 use rmcp::{ErrorData, RoleServer, ServerHandler};
 use serde_json::{Value, json};
 use vessel_client::{CallError, NodeClient, Unary};
-use vessel_proto::{FleetNode, KillSession, ListNodes, ListSessions, NodeId, SessionId};
+use vessel_proto::{FleetNode, KillSession, ListNodes, NodeId, SessionId};
 
 use args::{flag, number, required, session, text};
 use sessions::session_tools;
@@ -141,10 +142,7 @@ impl VesselTools {
             | id::ToolId::LspOutgoingCalls
             | id::ToolId::LspDiagnostics => self.lsp(name, args).await,
             id::ToolId::ListNodes => Ok(json!(self.client.call(ListNodes).await?)),
-            id::ToolId::ListSessions => {
-                let node = self.target(args).await?;
-                Ok(json!(self.on(node, ListSessions::default()).await?))
-            }
+            id::ToolId::ListSessions => self.list_sessions(args).await,
             id::ToolId::ListProjects | id::ToolId::ListWorktrees | id::ToolId::CreateWorktree => {
                 self.workspace(name, args).await
             }

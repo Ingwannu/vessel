@@ -177,9 +177,8 @@ registrations do not become agent authorization. Account profiles and model
 routing are not substitutes for launch bundles or provider discovery. The
 lifecycle gate in Call::since is the sole label admission gate; there is no
 second MCP-specific protocol check. The reviewed lifecycle query types are now landed, with their None gate;
-legacy list adapters preserve the implicit null request. Explicit selection
-facade support and label mutations remain incomplete, and no SetLabels type
-is invented. No unreviewed foreign runtime is adopted.
+legacy list adapters preserve the implicit null request. Explicit selection now reaches the landed typed discovery request; label
+mutations remain incomplete and no SetLabels type is invented. No unreviewed foreign runtime is adopted.
 
 ## Settings, cancellation and launch decision
 
@@ -890,3 +889,33 @@ freshness is still required. Nine MCP rows stay pending and all feature
 constants remain unassigned. The older queued d650 strict may be superseded
 only while queued, preserving its terminal receipt before one same-lane
 replacement.
+
+
+## Explicit discovery selectors at the MCP edge
+
+[Decision Log]
+- Reuse the announced lifecycle producer's `ListSessions::selected`,
+  `SessionSelection`, `ListingScope` and canonical label constructors. This
+  needs no new RPC, dependency, feature number, storage or client-side filter.
+- Existing omission keeps the legacy full-list request while lifecycle is
+  unavailable. Once the original connection supports discovery, omission
+  selects shown discovery. Every explicit scope or label map stays present,
+  including an empty predicate; shared call admission refuses unassigned fields.
+  A remote refusal is not retried with a weaker query. Mixed older hops may
+  therefore refuse the implicit shown request too, instead of broadening it.
+- Decode before destination resolution. Null/unknown scopes, null/non-object
+  maps and non-string labels refuse. Raw map entries are bounded by the existing
+  `SessionLabels::MAX` before iteration; canonical key/value constructors own
+  trimming, control/reserved-name and scalar rules. The raw-entry bound can
+  refuse redundant differently-spaced keys beyond that same count, rather than
+  processing an unbounded number of aliases for fewer canonical keys.
+- Schema lengths use the domain owners' constants; the key limit is described
+  after trimming, not incorrectly imposed as raw JSON property length. Errors
+  use fixed argument categories and do not copy rejected input.
+
+Three authored unit cases cover legacy/default/explicit routing, canonical
+labels and malformed/excess selectors. One authored real-memory MCP fixture
+expects shared unassigned refusal for both explicit all and empty labels,
+invalid-params before resolving an absent destination, and the later unchanged
+legacy full list. Changed strict and actual execution are still owed; previous
+32-test MCP and gate57 strict receipts do not prove this new slice.
