@@ -27,6 +27,18 @@ values are now present through announced package base13; no browser identity
 is invented here and those values create no runtime authority. Windows and actual browser qualification remain
 unproved. Earlier source/checkpoint sections below are historical scoped evidence.
 
+## Exact package base13 receiving evidence
+
+Exact47b5ec1c9 passed Kit/View/App all-target strict in run
+wp-browser-native-narrow-20261116T003101Z-47b5ec1c and the same source's two
+areas::browser composition tests in run
+wp-browser-native-frame-tests-20261116T003101Z-47b5ec1c (2/0/0).
+This checks the shared decoder's CPU composition with decoded dimensions and
+CSS/letterbox mapping on base13. Later changes here are ADR/plan documentation
+only. It remains no proof of acquisition, GPU/cache/resource/focus authority,
+rendered UI, HTML support or a qualified browser engine. The node's separate
+old-source Rust/CFT pipe component pass also creates none of those native grants.
+
 ## Resume: package base13 composition
 
 Merged exact announced package base13 2ebeedf9, retaining the browser registry
