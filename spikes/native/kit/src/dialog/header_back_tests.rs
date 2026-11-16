@@ -66,10 +66,11 @@ fn the_back_arrow_leads_the_title_on_the_header_rails(cx: &mut TestAppContext) {
         assert_eq!(back.size.height, px(header_back::SIZE));
         assert_eq!(apart(header.left(), back.left()), 24.0_f32.to_bits());
         assert_eq!(apart(back.right(), title.left()), 8.0_f32.to_bits());
-        assert_eq!(back.center().y, header.center().y);
-        // The close button keeps its place at the end of the row.
+        // The close button keeps its place at the end of the row, and the
+        // arrow sits on its line (the row's rule makes the row 1 taller).
         let close = cx.debug_bounds("dialog-close").unwrap();
         assert_eq!(apart(close.right(), header.right()), 24.0_f32.to_bits());
+        assert_eq!(back.center().y, close.center().y);
     }
 }
 
