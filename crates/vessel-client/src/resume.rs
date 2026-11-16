@@ -200,8 +200,8 @@ enum Dialed<L: Log> {
         transient: bool,
         reason: String,
     },
-    /// Connected, but the log cannot be followed (it is gone).
-    Refused(CallError),
+    /// Connected, but the requested log cannot be safely followed.
+    Refused(StreamError),
 }
 
 impl<C: Connector + 'static, L: Log> ResumingStream<C, L> {
@@ -293,7 +293,7 @@ impl<C: Connector + 'static, L: Log> ResumingStream<C, L> {
                         }
                         Dialed::Refused(error) => {
                             self.state = State::Done;
-                            return Some(Err(StreamError::Call(error)));
+                            return Some(Err(error));
                         }
                     }
                 }
@@ -356,7 +356,7 @@ impl<C: Connector + 'static, L: Log> ResumingStream<C, L> {
 async fn follow<L: Log>(client: NodeClient, id: L::Id, from: EventSeq) -> Dialed<L> {
     match LogStream::<L>::open(client.connection().clone(), id, from).await {
         Ok(stream) => Dialed::Following(client, Box::new(stream)),
-        Err(CallError::Disconnected) => Dialed::Failed {
+        Err(StreamError::Call(CallError::Disconnected)) => Dialed::Failed {
             transient: true,
             reason: "the connection closed while subscribing".to_owned(),
         },

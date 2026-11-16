@@ -77,6 +77,11 @@ impl ConnectError {
 /// Why a [`SessionStream`](crate::SessionStream) yielded an error.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum StreamError {
+    /// Subscription metadata did not establish the exact requested log identity.
+    /// No records from that subscription are exposed. Fatal, without retiring
+    /// an otherwise usable connection or retrying another target.
+    #[error("subscription metadata did not identify the requested log")]
+    UnverifiedIdentity,
     /// Records `expected..resumed_at` are no longer on the node (retention
     /// pruned them). Not fatal: the stream continues at `resumed_at`.
     #[error("records {expected}..{resumed_at} were pruned by the node")]
@@ -142,7 +147,10 @@ impl StreamError {
     pub const fn is_fatal(&self) -> bool {
         match self {
             Self::Missing { .. } | Self::Reconnecting { .. } | Self::Resumed { .. } => false,
-            Self::Call(_) | Self::Unsubscribed | Self::Unreachable { .. } => true,
+            Self::Call(_)
+            | Self::Unsubscribed
+            | Self::Unreachable { .. }
+            | Self::UnverifiedIdentity => true,
         }
     }
 }

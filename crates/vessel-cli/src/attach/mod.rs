@@ -224,7 +224,7 @@ async fn reported(sent: Result<(), CallError>) -> Result<Sent, CliError> {
     }
 }
 
-/// Show a non-fatal stream notice: the first loss, every fifth attempt
+/// Show a stream notice: the first loss, every fifth attempt
 /// after it (so a long outage is visibly still being retried), the
 /// resume, and pruned records.
 async fn notice(error: &StreamError, line_end: &str) -> Result<(), CliError> {
@@ -237,6 +237,7 @@ async fn notice(error: &StreamError, line_end: &str) -> Result<(), CliError> {
         StreamError::Missing { .. }
         | StreamError::Call(_)
         | StreamError::Unsubscribed
+        | StreamError::UnverifiedIdentity
         | StreamError::Unreachable { .. } => true,
     };
     if show {

@@ -9,6 +9,7 @@ mod resume;
 mod secure;
 mod skills;
 mod stream;
+mod stream_metadata;
 mod websocket;
 
 use std::num::NonZeroUsize;
@@ -115,6 +116,8 @@ struct FakeNode {
     kills: AtomicUsize,
     /// Set: the session is gone (`NotFound`), as after a wiped data dir.
     forgotten: AtomicBool,
+    /// At this subscription ordinal and later, describe a different log.
+    mismatch_after: Option<usize>,
     /// The last `node.stop`.
     stopped: Mutex<Option<StopWhen>>,
 }
@@ -128,6 +131,7 @@ impl FakeNode {
             reads: AtomicUsize::new(0),
             kills: AtomicUsize::new(0),
             forgotten: AtomicBool::new(false),
+            mismatch_after: None,
             stopped: Mutex::new(None),
         }
     }
@@ -227,7 +231,8 @@ impl Handler for FakeNode {
         if request.session != session_id() || self.forgotten.load(Ordering::Relaxed) {
             return Err(WireError::new(ErrorCode::NotFound, "no such session"));
         }
-        let first = self.subscribes.fetch_add(1, Ordering::Relaxed) == 0;
+        let ordinal = self.subscribes.fetch_add(1, Ordering::Relaxed);
+        let first = ordinal == 0;
         let mut sink = context
             .outbound
             .open_subscription(request.from)
@@ -250,10 +255,22 @@ impl Handler for FakeNode {
             }
             sink.end(reason).await;
         }));
+        let mut description = info();
+        if self.mismatch_after.is_some_and(|after| ordinal >= after) {
+            description.id = stream_metadata::other_session();
+        }
         Ok(Subscribed {
             subscription,
-            info: info(),
+            info: description,
         })
+    }
+
+    async fn subscribe_terminal(
+        &self,
+        context: &Context,
+        request: vessel_proto::terminals::SubscribeTerminal,
+    ) -> Result<vessel_proto::terminals::TerminalSubscribed, WireError> {
+        self.metadata_terminal_subscription(context, request).await
     }
 
     async fn unsubscribe(&self, context: &Context, request: Unsubscribe) -> Result<Ack, WireError> {
@@ -536,7 +553,6 @@ impl Handler for FakeNode {
         list_terminals: vessel_proto::terminals::ListTerminals => vessel_proto::terminals::TerminalList;
         get_terminal: vessel_proto::terminals::GetTerminal => vessel_proto::terminals::TerminalInfo;
         read_terminal: vessel_proto::terminals::ReadTerminal => EventPage;
-        subscribe_terminal: vessel_proto::terminals::SubscribeTerminal => vessel_proto::terminals::TerminalSubscribed;
         send_terminal: vessel_proto::terminals::SendTerminal => Ack;
         rename_terminal: vessel_proto::terminals::RenameTerminal => vessel_proto::terminals::TerminalInfo;
         kill_terminal: vessel_proto::terminals::KillTerminal => Ack;

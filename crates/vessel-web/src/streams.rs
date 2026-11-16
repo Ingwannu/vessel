@@ -218,7 +218,10 @@ fn stream_state(error: StreamError) -> (StreamState, bool) {
             (StreamState::Reconnecting { message: reason }, false)
         }
         StreamError::Resumed { at } => (StreamState::Resumed { at }, false),
-        StreamError::Call(_) | StreamError::Unsubscribed | StreamError::Unreachable { .. } => (
+        StreamError::Call(_)
+        | StreamError::Unsubscribed
+        | StreamError::UnverifiedIdentity
+        | StreamError::Unreachable { .. } => (
             StreamState::Failed {
                 message: chain(&error),
                 reason: StreamStop::Error,
