@@ -1759,10 +1759,10 @@ create driver wires it; no unwired node service ships in this dependency. Projec
 icons, editor integration and automatic archive remain separate incomplete work.
 Those have no method row; protocol 25 covers the six metadata methods only.
 
-### Workspace label catalog (ADR 0086, pending)
+### Workspace label catalog (ADR 0086, protocol 26)
 
 `vessel-proto::workspace_labels` owns the validated name/color grammar, ordered
-assignment projection and pending unary calls. `vessel-store::workspace_labels`
+assignment projection and the five unary calls of protocol 26. `vessel-store::workspace_labels`
 uses the existing writer savepoint/read pool and canonical registry admission.
 Catalog identity cascades rename/delete into assignments; colors are never copied
 into descriptors. The registry snapshot joins ordered names in its held read
@@ -1774,8 +1774,10 @@ changes use the existing post-commit registry wake; recolor/no-op do not. A boun
 Observe read reuses connection/origin shares, downgrading delivered/exhausted calls
 to Now. Shutdown drains accepted label work after callers and before the Store.
 There is no second database, registry, event renderer or package dependency.
-Version assignment and reviewed end-to-end consumers remain required; pending
-source wiring alone is not public capability or parity acceptance.
+A corrupt stored label row refuses node start (`NodeError::WorkspaceLabels`, as
+Paseo's daemon); the cause names the table and the row's place
+(`vessel_store::LabelRow`), never its name or color. The page, CLI and native
+consumers are separate packages.
 
 ### Settings writer lifetime
 
