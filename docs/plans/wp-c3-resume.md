@@ -713,3 +713,22 @@ remain. Only the existing fixture helper gains pub(super) test visibility.
 Current product source stays byte-identical20d; the shared notification leaf is
 still awaiting its independent queued wheel test/V1 adoption. Next: one grouped
 changed-test-source strict correction, then the actual pressure selection.
+
+## Exact document-owner window selection recovered
+
+wp-git-consumer-tests-20261116T004619Z-9c1c8758 is GREEN:3/0/0,241filtered;
+fonts0/cargo0/no skipped step, actual Base/gpui-component/Kit compilation. The
+three names cover keyboard End/Shift-selection owner reveal, horizontal wheel,
+and native vertical outer-owner wheel. Its keyboard fixture includes the new
+selection_focused false-before/true-after checks. Current Kit bytes equal9c
+exactly; external body-owner-9c-result.json pins both changed Kit source files
+and all artifact hashes/step log prefixes. This is not the App clipboard/body
+mount,32-resource pressure, a standalone Kit strict pass, V1 review, full Kit
+or OS/C3 approval. No repeated test was submitted.
+
+Current pressure Rust is3add5bc109af (product equal20d, stronger test fixture);
+one corrected App strict is registered as
+wp-git-body-narrow-20261116T014519Z-3add5bc1, short/priority0, OUT
+body-engines-3ad-clippy. Retain exact20d's sole test-path Clippy return and all
+older006 functional, isolatedb243 wheel and760 wasm jobs. The complete shared
+notification/header handoffs and actual pressure execution remain pending.
