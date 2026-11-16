@@ -2,16 +2,51 @@ use super::*;
 use futures_util::FutureExt as _;
 use std::{
     fs::OpenOptions,
+    future::Future,
     io::Write as _,
     os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _},
+    panic::AssertUnwindSafe,
     sync::Arc,
     time::Duration,
 };
 use tokio::sync::{Semaphore, oneshot};
 
-const WAIT_BUDGET: Duration = Duration::from_secs(10);
+const CASE_BUDGET: Duration = Duration::from_secs(90);
+const BODY_BUDGET: Duration = Duration::from_secs(60);
+const ENTRY_BUDGET: Duration = Duration::from_secs(10);
+const RESULT_BUDGET: Duration = Duration::from_secs(10);
+const DRAIN_BUDGET: Duration = Duration::from_secs(10);
 const ONE_PERMIT: usize = 1;
 const GATE_MESSAGES: usize = 1;
+
+// The canonical clock starts after testkit fake preparation. Catch a body's
+// assertion/timeout only to drain the SAME tracker, then resume the failure.
+// Dropping the body's channel sender still unblocks its existing held worker.
+async fn run_case<F, Fut>(run: F)
+where
+    F: FnOnce(TaskTracker) -> Fut,
+    Fut: Future<Output = ()>,
+{
+    vessel_testkit::within(CASE_BUDGET, async {
+        let tasks = TaskTracker::new();
+        let outcome = tokio::time::timeout(
+            BODY_BUDGET,
+            AssertUnwindSafe(run(tasks.clone())).catch_unwind(),
+        )
+        .await;
+        let _closed = tasks.close();
+        tokio::time::timeout(DRAIN_BUDGET, tasks.wait())
+            .await
+            .expect("same actual worker must settle on success AND failure");
+        match outcome {
+            Ok(Ok(())) => {}
+            Ok(Err(payload)) => std::panic::resume_unwind(payload),
+            Err(elapsed) => panic!("case body safety clock expired: {elapsed}"),
+        }
+    })
+    .await
+    .expect("complete observation case safety net");
+}
 
 fn private_root() -> tempfile::TempDir {
     let root = tempfile::Builder::new()
@@ -41,115 +76,121 @@ fn deadline() -> Instant {
 
 #[tokio::test]
 async fn successful_job_runs_actual_passes_and_settles_permit_before_reply() {
-    let root = private_root();
-    let parent = CancellationToken::new();
-    let expected = tree::Pending::begin(root.path(), &parent)
-        .expect("first pass")
-        .finish()
-        .expect("actual synchronous observation");
-    let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
-    let tasks = TaskTracker::new();
-    let job = Observation::start(
-        root.path().to_path_buf(),
-        permit(&semaphore),
-        &tasks,
-        &parent,
-    )
-    .expect("tracked actual worker");
-    let observed = tokio::time::timeout(WAIT_BUDGET, job.wait())
-        .await
-        .expect("finite wait")
-        .expect("actual blocking filesystem observation");
-    assert_eq!(observed, expected);
-    assert_eq!(semaphore.available_permits(), ONE_PERMIT);
-    assert!(
-        !parent.is_cancelled(),
-        "disposing a local waiter cannot cancel the node"
-    );
-    assert!(tasks.close());
-    tokio::time::timeout(WAIT_BUDGET, tasks.wait())
-        .await
-        .expect("owned tracker settled");
+    run_case(|tasks| async move {
+        let root = private_root();
+        let parent = CancellationToken::new();
+        let expected = tree::Pending::begin(root.path(), &parent)
+            .expect("first pass")
+            .finish()
+            .expect("actual synchronous observation");
+        let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
+        let job = Observation::start(
+            root.path().to_path_buf(),
+            permit(&semaphore),
+            &tasks,
+            &parent,
+        )
+        .expect("tracked actual worker");
+        let observed = tokio::time::timeout(RESULT_BUDGET, job.wait())
+            .await
+            .expect("finite wait")
+            .expect("actual blocking filesystem observation");
+        assert_eq!(observed, expected);
+        assert_eq!(semaphore.available_permits(), ONE_PERMIT);
+        assert!(
+            !parent.is_cancelled(),
+            "disposing a local waiter cannot cancel the node"
+        );
+        assert!(tasks.close());
+        tokio::time::timeout(DRAIN_BUDGET, tasks.wait())
+            .await
+            .expect("owned tracker settled");
+    })
+    .await;
 }
 
 #[tokio::test]
 async fn losing_polled_waiter_keeps_actual_worker_and_permit_until_settlement() {
-    let root = private_root();
-    let parent = CancellationToken::new();
-    let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
-    let tasks = TaskTracker::new();
-    let (started, seen) = oneshot::channel();
-    let (release, held) = std::sync::mpsc::sync_channel(GATE_MESSAGES);
-    let job = Observation::start_with_gate(
-        root.path().to_path_buf(),
-        permit(&semaphore),
-        &tasks,
-        &parent,
-        deadline(),
-        move || {
-            started.send(()).expect("worker entered");
-            held.recv().expect("held real blocking worker released");
-        },
-    )
-    .expect("actual tracked closure");
-    let child = job.cancellation.clone();
-    tokio::time::timeout(WAIT_BUDGET, seen)
-        .await
-        .expect("worker started")
-        .expect("entry receipt");
-    assert!(
-        job.wait().now_or_never().is_none(),
-        "cancel an actually polled wait"
-    );
-    assert!(child.is_cancelled());
-    assert!(!parent.is_cancelled());
-    assert_eq!(
-        semaphore.available_permits(),
-        0,
-        "caller loss cannot free active I/O admission"
-    );
-    assert_eq!(tasks.len(), ONE_PERMIT);
-    assert!(tasks.close());
-    assert!(
-        tasks.wait().now_or_never().is_none(),
-        "teardown must still wait for owned work"
-    );
-    release.send(()).expect("release the owned worker");
-    tokio::time::timeout(WAIT_BUDGET, tasks.wait())
-        .await
-        .expect("real settlement, not waiter drop");
-    assert_eq!(semaphore.available_permits(), ONE_PERMIT);
-    assert_eq!(tasks.len(), 0);
+    run_case(|tasks| async move {
+        let root = private_root();
+        let parent = CancellationToken::new();
+        let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
+        let (started, seen) = oneshot::channel();
+        let (release, held) = std::sync::mpsc::sync_channel(GATE_MESSAGES);
+        let job = Observation::start_with_gate(
+            root.path().to_path_buf(),
+            permit(&semaphore),
+            &tasks,
+            &parent,
+            deadline(),
+            move || {
+                started.send(()).expect("worker entered");
+                held.recv().expect("held real blocking worker released");
+            },
+        )
+        .expect("actual tracked closure");
+        let child = job.cancellation.clone();
+        tokio::time::timeout(ENTRY_BUDGET, seen)
+            .await
+            .expect("worker started")
+            .expect("entry receipt");
+        assert!(
+            job.wait().now_or_never().is_none(),
+            "cancel an actually polled wait"
+        );
+        assert!(child.is_cancelled());
+        assert!(!parent.is_cancelled());
+        assert_eq!(
+            semaphore.available_permits(),
+            0,
+            "caller loss cannot free active I/O admission"
+        );
+        assert_eq!(tasks.len(), ONE_PERMIT);
+        assert!(tasks.close());
+        assert!(
+            tasks.wait().now_or_never().is_none(),
+            "teardown must still wait for owned work"
+        );
+        release.send(()).expect("release the owned worker");
+        tokio::time::timeout(DRAIN_BUDGET, tasks.wait())
+            .await
+            .expect("real settlement, not waiter drop");
+        assert_eq!(semaphore.available_permits(), ONE_PERMIT);
+        assert_eq!(tasks.len(), 0);
+    })
+    .await;
 }
 
 #[tokio::test]
 async fn captured_expired_deadline_is_not_restarted_at_worker_entry() {
-    let parent = CancellationToken::new();
-    let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
-    let tasks = TaskTracker::new();
-    let job = Observation::start_with_gate(
-        PathBuf::from("PRIVATE-NEVER-OPENED"),
-        permit(&semaphore),
-        &tasks,
-        &parent,
-        Instant::now(),
-        || {},
-    )
-    .expect("tracked worker checks captured deadline");
-    let result = tokio::time::timeout(WAIT_BUDGET, job.wait())
-        .await
-        .expect("bounded deadline refusal");
-    assert!(matches!(
-        result,
-        Err(Failure::Observation(tree::Failure::File(
-            file::Failure::Expired
-        )))
-    ));
-    assert_eq!(semaphore.available_permits(), ONE_PERMIT);
-    assert!(tasks.close());
-    tokio::time::timeout(WAIT_BUDGET, tasks.wait())
-        .await
-        .expect("worker settled");
+    run_case(|tasks| async move {
+        let parent = CancellationToken::new();
+        let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
+        let job = Observation::start_with_gate(
+            PathBuf::from("PRIVATE-NEVER-OPENED"),
+            permit(&semaphore),
+            &tasks,
+            &parent,
+            Instant::now(),
+            || {},
+        )
+        .expect("tracked worker checks captured deadline");
+        let result = tokio::time::timeout(RESULT_BUDGET, job.wait())
+            .await
+            .expect("bounded deadline refusal");
+        assert!(matches!(
+            result,
+            Err(Failure::Observation(tree::Failure::File(
+                file::Failure::Expired
+            )))
+        ));
+        assert_eq!(semaphore.available_permits(), ONE_PERMIT);
+        assert!(tasks.close());
+        tokio::time::timeout(DRAIN_BUDGET, tasks.wait())
+            .await
+            .expect("worker settled");
+    })
+    .await;
 }
 
 #[test]
@@ -171,51 +212,55 @@ fn missing_runtime_refuses_before_spawning_or_reading() {
 
 #[tokio::test]
 async fn already_cancelled_parent_refuses_before_tracking_work() {
-    let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
-    let tasks = TaskTracker::new();
-    let parent = CancellationToken::new();
-    parent.cancel();
-    assert!(matches!(
-        Observation::start(
-            PathBuf::from("PRIVATE-NEVER-OPENED"),
-            permit(&semaphore),
-            &tasks,
-            &parent
-        ),
-        Err(Failure::Observation(tree::Failure::File(
-            file::Failure::Cancelled
-        )))
-    ));
-    assert_eq!(semaphore.available_permits(), ONE_PERMIT);
-    assert!(tasks.is_empty());
+    run_case(|tasks| async move {
+        let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
+        let parent = CancellationToken::new();
+        parent.cancel();
+        assert!(matches!(
+            Observation::start(
+                PathBuf::from("PRIVATE-NEVER-OPENED"),
+                permit(&semaphore),
+                &tasks,
+                &parent
+            ),
+            Err(Failure::Observation(tree::Failure::File(
+                file::Failure::Cancelled
+            )))
+        ));
+        assert_eq!(semaphore.available_permits(), ONE_PERMIT);
+        assert!(tasks.is_empty());
+    })
+    .await;
 }
 
 #[tokio::test]
 async fn worker_panic_retains_concrete_cause_but_seals_public_diagnostics() {
-    let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
-    let tasks = TaskTracker::new();
-    let job = Observation::start_with_gate(
-        PathBuf::from("PRIVATE-NEVER-OPENED"),
-        permit(&semaphore),
-        &tasks,
-        &CancellationToken::new(),
-        deadline(),
-        || panic!("PRIVATE-OPERATION-CANARY"),
-    )
-    .expect("owned synthetic panic");
-    let error = tokio::time::timeout(WAIT_BUDGET, job.wait())
-        .await
-        .expect("bounded panic receipt")
-        .expect_err("actual join failure");
-    let mut source: Option<&(dyn Error + 'static)> = Some(&error);
-    while let Some(error) = source {
-        assert!(!format!("{error:?} {error}").contains("PRIVATE-OPERATION-CANARY"));
-        source = error.source();
-    }
-    assert!(matches!(error, Failure::Worker(cause) if cause.0.is_panic()));
-    assert_eq!(semaphore.available_permits(), ONE_PERMIT);
-    assert!(tasks.close());
-    tokio::time::timeout(WAIT_BUDGET, tasks.wait())
-        .await
-        .expect("panicked worker tracked to completion");
+    run_case(|tasks| async move {
+        let semaphore = Arc::new(Semaphore::new(ONE_PERMIT));
+        let job = Observation::start_with_gate(
+            PathBuf::from("PRIVATE-NEVER-OPENED"),
+            permit(&semaphore),
+            &tasks,
+            &CancellationToken::new(),
+            deadline(),
+            || panic!("PRIVATE-OPERATION-CANARY"),
+        )
+        .expect("owned synthetic panic");
+        let error = tokio::time::timeout(RESULT_BUDGET, job.wait())
+            .await
+            .expect("bounded panic receipt")
+            .expect_err("actual join failure");
+        let mut source: Option<&(dyn Error + 'static)> = Some(&error);
+        while let Some(error) = source {
+            assert!(!format!("{error:?} {error}").contains("PRIVATE-OPERATION-CANARY"));
+            source = error.source();
+        }
+        assert!(matches!(error, Failure::Worker(cause) if cause.0.is_panic()));
+        assert_eq!(semaphore.available_permits(), ONE_PERMIT);
+        assert!(tasks.close());
+        tokio::time::timeout(DRAIN_BUDGET, tasks.wait())
+            .await
+            .expect("panicked worker tracked to completion");
+    })
+    .await;
 }

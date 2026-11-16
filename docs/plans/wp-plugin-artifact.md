@@ -318,3 +318,16 @@ cases successfully with every prerequisite step passing, paired with all-target
 node strict success. This includes both real full passes, private-root fixtures,
 link coverage/refusals, sparse/depth admission and fresh-content/timestamp cases.
 Those exact-source results do not execute or accept the later owned adapter.
+
+Row296 returned the test clocks, not a bounded-operation product flaw. All five
+async cases now enter canonical vessel_testkit::within after fake preparation.
+One named90s case clock encloses a60s body safety clock and the same tracker
+cleanup, with distinct named10s worker-entry/result/drain phases; the product
+observation remains30s. The body is caught only to close/drain that original
+tracker before resuming its exact panic or failing its timeout. Dropping the
+body still disconnects the held worker's original std sender; no second worker,
+reaper or fabricated settlement is added. Every old permit/tracker/cancellation/
+canary assertion remains, and missing-runtime stays a synchronous test. Parent
+module descriptions now name staged filesystem and blocking work accurately.
+Actual changed-test strict and execution remain owed; prior38-case evidence is
+preserved as predecessor execution, not borrowed for the clock correction.

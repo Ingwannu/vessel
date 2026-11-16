@@ -1,10 +1,10 @@
 //! Node-owned plugin package admission and lifecycle policy, not helper mechanics.
 //!
-//! A14 staging: private manifest tests only. No install/configuration/RPC caller
+//! Private staging: manifest/source/artifact fixtures only. No install/configuration/RPC caller
 //! can execute or activate a package through this module yet.
 mod manifest;
 
 mod source;
 
-// Pure bounded digest facts only; no filesystem observation or authority.
+// Staged filesystem observations and tracked work; no installation authority.
 mod artifact;
