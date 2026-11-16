@@ -114,3 +114,19 @@ normalization preserves empty text while emitting Change. Assert the full
 source-tagged history including that empty event, unchanged text and no rejected
 source. Product constructors, renderer and event behavior remain unchanged.
 Keep this red result; corrected strict/runtime and V1 adoption remain owed.
+
+
+## Corrected identified-search verification
+
+On announced base 13.1, exact `790a5f84` passed Kit all-target Clippy at
+`wp-labels-search-source-20261116T015654Z-790a5f84` (native-fonts0, cargo0;
+actual Kit checking). Focused actual-engine runtime at
+`wp-labels-search-source-20261116T020139Z-790a5f84` completed4 passed/0 failed/
+0 ignored,243 filtered, with native-fonts0 and actual Kit compilation/cargo0.
+The test now completes both themes, including the unchanged-text/full-history
+Enter checks; the forced retired-engine callback regression also passes.
+Strict/runtime Cargo step hashes are ae7b3a38f843f9d1 and34c9863d6c6e1ec8.
+This result-only follow-up changes no Rust source. Existing new/clear/element
+and control helper bodies remain byte-identical to base 13.1. V1 disposition
+and lead adoption remain owed; no manager consumer transition, full Kit suite,
+whole-native/capture/OS input/accessibility or A6 product acceptance is implied.
