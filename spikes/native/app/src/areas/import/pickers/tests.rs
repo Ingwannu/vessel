@@ -110,7 +110,7 @@ fn replace(
             );
         }
         Replacement::Retired => {
-            shell.history_test_retirement(original.context.clone(), cx);
+            shell.history_test_retirement(&original.context, cx);
             assert!(
                 !shell.areas.import.picker.is_open(),
                 "retirement before Devices can early-return"
@@ -127,7 +127,7 @@ fn replace(
     shell.history_picker(Picker::Account, window, cx);
     assert!(shell.areas.import.picker.is_open());
     if matches!(how, Replacement::Retired) {
-        shell.history_test_retirement(original.context.clone(), cx);
+        shell.history_test_retirement(&original.context, cx);
         assert!(
             shell.areas.import.picker.is_open(),
             "late old retirement keeps successor"
@@ -171,25 +171,25 @@ fn click(window: &mut Window, cx: &mut gpui::App, at: Point<Pixels>) {
 }
 fn assert_current(
     probe: &Entity<Probe>,
-    cx: &mut VisualTestContext,
+    window: &Window,
+    cx: &gpui::App,
     boundary: &Boundary,
     scope: &Scope,
 ) {
-    cx.update(|window, cx| {
-        assert_eq!(
-            probe.read(cx).renders.get(),
-            boundary.draws.get().unwrap(),
-            "old input tree retained"
-        );
-        probe.read(cx).shell.read_with(cx, |shell, cx| {
-            let area = &shell.areas.import;
-            assert!(area.open && area.picker.is_open());
-            assert_eq!(area.model.scope(), Some(scope));
-            assert!(!area.model.importing());
-            assert_eq!(window.focused(cx), *boundary.focus.borrow());
-        });
+    assert_eq!(
+        probe.read(cx).renders.get(),
+        boundary.draws.get().unwrap(),
+        "old input tree retained"
+    );
+    probe.read(cx).shell.read_with(cx, |shell, cx| {
+        let area = &shell.areas.import;
+        assert!(area.open && area.picker.is_open());
+        assert_eq!(area.model.scope(), Some(scope));
+        assert!(!area.model.importing());
+        assert_eq!(window.focused(cx), *boundary.focus.borrow());
     });
 }
+
 fn positive(
     probe: &Entity<Probe>,
     cx: &mut VisualTestContext,
@@ -260,7 +260,10 @@ fn run(cx: &mut TestAppContext, how: Replacement, input: Input, compact: bool) {
     } else if compact {
         point(px(120.0), px(818.0))
     } else {
-        point(trigger.left() + px(20.0), trigger.bottom() + px(25.0))
+        point(
+            px(f32::from(trigger.left()).mul_add(1.0, 20.0)),
+            px(f32::from(trigger.bottom()).mul_add(1.0, 25.0)),
+        )
     };
     let subscription = cx.update(|_, cx| {
         let epochs = Rc::clone(&epochs);
@@ -300,8 +303,8 @@ fn run(cx: &mut TestAppContext, how: Replacement, input: Input, compact: bool) {
                 Input::Row | Input::Outside => "left",
             },
         );
+        assert_current(&probe, window, cx, &boundary, &current.borrow());
     });
-    assert_current(&probe, cx, &boundary, &current.borrow());
     assert!(
         commands.borrow_mut().try_recv().is_err(),
         "retained input sends no RPC"

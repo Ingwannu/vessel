@@ -10,7 +10,7 @@ impl Shell {
     }
     pub(crate) fn history_test_retirement(
         &mut self,
-        context: ConnectionContext,
+        context: &ConnectionContext,
         cx: &mut Context<'_, Self>,
     ) {
         self.on_event(Event::DeviceRetired(context.tag()), cx);

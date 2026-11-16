@@ -56,3 +56,14 @@ captured context's tag; it neither projects a second node identity nor guesses
 an epoch. Test-only path qualification, unit callback terminators and the literal keystroke lifetime are
 corrected in the same batch. The original diagnostics stay recorded; no test
 scenario, assertion or deadline is weakened. No runtime result is inferred.
+
+
+The next exactd03 pair compiled the real App binary: its existing two import
+cases passed, and the new popup case stopped at the retained-frame assertion.
+That assertion had entered a second GPUI update after dispatch, permitting the
+scheduled redraw before checking A's frame. It now runs immediately in the
+same dispatch update, as the existing R223 boundary regression does. No open,
+scope, focus, no-RPC or positive-B assertion is removed. The paired strict
+reported two test coordinate arithmetic operators and a borrowed fixture
+argument; these are corrected as one test-only class. Neither old result is
+counted as completed popup runtime proof.
