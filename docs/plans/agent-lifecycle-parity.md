@@ -516,8 +516,10 @@ feature constant, and an unassigned constant makes the whole call None.
 Current preparation: integrated discovery is merged; nonempty patches and the
 metadata queue refactor have narrow evidence. Mutation-clock and label-coverage
 contracts below have passed source review. The nullable clock, transactional acknowledgements, optional Info projection and
-live acknowledgement publication are implemented; their current-head strict,
-runtime and generated-wire checks remain pending. The latest shared node head
+live acknowledgement publication are implemented. The corrected changed-crate
+strict check and runtime forcing tests passed on their exact pre-merge revision;
+original generated declarations are committed. The complete gate of the merged
+package and its implementation review remain pending. The latest shared node head
 is merged with its migration sequence preserved. The dispatcher refactor keeps
 the same savepoints and commit boundary. Label coverage is still only a
 contract. No new event or mutation RPC is registered. Historical checkpoint text follows.
@@ -1580,3 +1582,27 @@ The new crate-private clock/acknowledgement boundaries and test-only fixture
 functions now each state their reason locally: same-connection snapshot, exact
 queued-operation result, projection order and retained publication. Only docs
 change; no executable or test body, input, declaration or deadline changes.
+
+
+## Clock package verification before the complete gate
+
+The corrected changed-crate TS-enabled all-target Clippy passed on its exact
+executable revision. The corrected Node/session library run passed 398 tests,
+including all four clock publication/cancellation cases, the delayed/Unknown
+acknowledgements and the held-persistence creation seed. The independent actual
+creation integration passed its one frozen-seed case. Their inputs, original
+assertions and safety budgets are unchanged by the fixture construction fixes.
+
+The earlier proto/store run passed 641 tests and retained three failures in its
+original log. The two inbox rollback failures were this append's missing DROP;
+the corrected lifecycle fixture passed all five cases. The unchanged registry
+watcher timeout had one explicitly permitted exact replay, which passed. It is
+recorded as a named intermittent under load; its cause is not claimed solved.
+
+The five generator/inventory tests passed before the expected stale-wire result;
+all retrieved artifact hashes and original declaration bytes were verified. The
+current package includes those bytes and the announced node head's additions.
+The later merge preserves that head's launch admission and execution invalidator;
+no stop/resume/archive caller joins or stronger process proof are added here.
+The final complete gate must verify this combined head, including all wire/web
+checks. None of the partial checks is represented as that complete result.
