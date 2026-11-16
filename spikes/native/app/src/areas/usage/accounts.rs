@@ -117,7 +117,7 @@ pub(super) fn policy_fields(
                     return;
                 }
                 if let Some(machine) = &machine {
-                    shell.usage_set_policy(&machine, next);
+                    shell.usage_set_policy(machine, next);
                 }
                 cx.notify();
             }))
@@ -172,7 +172,7 @@ fn account_card(
     .when(enabled, |button| {
         button.on_click(cx.listener(move |shell, _, _, cx| {
             if let Some(machine) = &machine {
-                shell.usage_refresh_account(&machine, binding.clone());
+                shell.usage_refresh_account(machine, binding.clone());
             }
             cx.notify();
         }))
