@@ -14,8 +14,9 @@
 //! - Gaps until ADR 0101 lands, then this module switches to it: tokens show
 //!   whole and grouped instead of compact (1.2K / 1.2천), and an amount whose
 //!   magnitude exceeds what `Number::decimal` takes (above u32) is written
-//!   by Rust's rounded text without grouping. Exact ties round half to even
-//!   here, half away from zero in Intl.
+//!   by Rust's rounded text alone: no grouping, and a USD amount also loses
+//!   its currency sign. Exact ties round half to even here, half away from
+//!   zero in Intl.
 use crate::localization::{Number, Translator};
 use vessel_proto::usage_reports::UsageBalanceUnit;
 

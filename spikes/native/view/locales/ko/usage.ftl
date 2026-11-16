@@ -298,21 +298,6 @@ usage-recipient-opencode = OpenCode의 Go 사용량 서비스
 usage-recipient-zai = Z.ai
 
 # Account report or source access; keep this whole phrase and its typed values together.
-usage-unit-usd = USD
-
-# Account report or source access; keep this whole phrase and its typed values together.
-usage-unit-credits = 크레딧
-
-# Account report or source access; keep this whole phrase and its typed values together.
-usage-unit-requests = 요청
-
-# Account report or source access; keep this whole phrase and its typed values together.
-usage-unit-tokens = 토큰
-
-# Account report or source access; keep this whole phrase and its typed values together.
-usage-allowance = 한도
-
-# Account report or source access; keep this whole phrase and its typed values together.
 usage-attempted-at = 마지막 시도: { $time }
 
 # Account report or source access; keep this whole phrase and its typed values together.
