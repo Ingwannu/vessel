@@ -185,6 +185,18 @@ export default defineConfig(
     "context",
     "app",
   ]),
+  // The one shared presentation value must remain a dependency-free leaf,
+  // rather than making data import the kit or the kit import data.
+  ...layer("src/quota-percent.ts", [
+    "wire",
+    "bridge",
+    "data",
+    "features",
+    "routes",
+    "ui",
+    "context",
+    "app",
+  ]),
   ...layer("src/data/**", ["features", "routes", "ui", "context", "app"]),
   ...layer("src/features/**", ["routes", "bridge", "app"]),
   ...layer("src/ui/kit/**", [

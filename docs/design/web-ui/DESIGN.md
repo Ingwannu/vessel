@@ -2022,3 +2022,16 @@ control, GOAT), on purpose:
     protocol 10) where agent-orchestrator archives a session when it
     ends: a Vessel session can be started again, and archiving is the
     person's choice.
+
+
+### Shared quota meter
+
+The read-only quota bar (`ui/kit/quota-meter`) follows Paseo's 6px track,
+3px radius and clipped full-radius fill, with no minimum fill at zero. Track
+and quiet fill use the named `quota-surface-3/4` tokens; normal fill uses the
+existing muted/success/warning/danger roles. Those colors remain paired with
+a numeric label supplied by the parent, so color is not the only value.
+The validated percentage value is a dependency-free leaf shared by the data
+projection and kit. The `/kit` specimen is the only initial consumer until
+its light/dark comparison is accepted; account screens and wire calls remain
+inactive. This addition makes no new accessibility conformance claim.

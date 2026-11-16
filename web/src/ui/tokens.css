@@ -70,6 +70,13 @@
   --danger: light-dark(#9d0006, #fb4934);
   --interrupt: var(--text-tertiary);
 
+  /* The read-only quota bar: Paseo's surface3/4 in its default light/dark
+     themes. Status/muted fills retain this page's existing palette. */
+  --quota-surface-3: light-dark(#e4e4e7, #434645);
+  --quota-surface-4: light-dark(#d4d4d8, #595b5b);
+  --quota-meter-height: 6px;
+  --quota-meter-radius: 3px;
+
   /* The dialog scrim: agent-orchestrator's, the ink at 45%; in dark, the
      page's own black at 85%. */
   --overlay: light-dark(rgb(18 18 18 / 45%), rgb(24 24 24 / 85%));
