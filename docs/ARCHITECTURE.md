@@ -1823,6 +1823,12 @@ callers retain `require_active`, current role/attention checks and the write in
 one existing writer transaction; this reader supplies no authorization or exit
 proof. No new protocol, schema, cache or dependency accompanies the seam.
 
+Execution incarnation/invalidation has one owner in the existing Agents registry.
+Each live entry owns a UUID and latest-change watch; natural retirement invalidates
+then closes it. Transition owners use invalidate_execution before their effects.
+The proto stamp/ceiling are correlation values only. This first producer implements
+no runtime capture, parentage lease, actor queue policy or private notice admission;
+see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
 
 ## Page feedback and modal ownership
 
