@@ -14,7 +14,7 @@ receiving compilation, not live rendering or GPU proof. Prior exact47b5ec1c9
 base13 CPU composition tests2/0 are older source. No app run remains queued.
 
 The node track has a fuller committed resume at docs/plans/wp-browser-resume.md
-in its own tree, WIP commit71e1645fa. Source889c4cf72c25737cf92f5f13c940a1a4fd69de36
+in its own tree, initial WIP71e1645fa plus the final pause-cleanup record. Source889c4cf72c25737cf92f5f13c940a1a4fd69de36
 is on announced nodeee8e3450, whose base gate60 was17/18 counted with named
 TRACKER774, not wholly green. Never merge that node head into this app tree;
 receive node code through the next announced app base.
@@ -51,3 +51,9 @@ Use shared W6 codec and W12/W22 seams; no guessed APIs, second pane manager or
 second decoder. All compilation/tests/build/capture work is VM-only; no local
 cargo/rustc. No new slice/merge/build was started after the quota warning.
 No owned fake fleet/display/Chrome remains active from the last checked fixture.
+
+At03:43 UTC both local read-only followers were stopped after exact owned PID/
+UID/command/run-id/group checks. The VM jobs remain queued and must be recovered
+by their existing run IDs, not resubmitted. No own runtime-nonce process remained
+in the read-only scan; no fleet/display/Chrome or VM run was signalled. This app
+worktree has no pending build and no live browser resource.
