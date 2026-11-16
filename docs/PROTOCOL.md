@@ -68,6 +68,24 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 26 (2026-11-16, milestone 12): file panels (W13, ADRs 0083 and 0105)
+
+Protocol 26 introduces ADR 0083's five file-panel methods: `file.inspect`
+(a directory's entries with size and modification time), `file.read_bytes`
+(one exact byte page of at most 256 KiB, later pages bound to the first
+page's revision), `file.observe` (a finite wait for a saved file's next
+revision or its absence) and `file.suggest` (bounded discovery under an
+authorized root) are Read; `file.duplicate` (an exclusive sibling copy that
+never overwrites) is Operate. Each is unary and fleet-forwardable. An agent
+principal is refused all five, as it is `file.read`. A delegated
+`file.observe` answers at once, without the wait.
+
+The five were reviewed with `FILE_PANELS_PROTOCOL = None` and take one
+number together at their node-line merge, the next free number in merge
+order (drafted as 26 before that merge). A peer below it is refused before
+any request is sent. The minimum protocol remains 2 and the store schema is
+unchanged.
+
 ## Version 25 (2026-11-15, milestone 12): workspace registry metadata (W11, ADR 0082)
 
 Protocol 25 introduces the independent workspace registry's six metadata
