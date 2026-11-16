@@ -6,7 +6,7 @@ Pinned Paseo 0.15.4 source is commit
 `1c00b365c9e0b74c1580eba33d905d693125ae21`. Paths below are relative to
 `packages/app/src`:
 
-- `components/pane-content-toolbar.tsx:81–160` and the existing Toolbar plan
+- `components/ui/pane-content-toolbar.tsx:81–160` and the existing Toolbar plan
   define the small Toolbar profile already in the native line.
 - `components/left-sidebar.tsx:282–330,910–917` defines Footer's square hit area,
   accessibility label, glyph hover ink and existing tooltip decoration.
