@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: opt-in inferred links retain the original text and source map.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: opt-in inferred links retain the original text and source map.
+// (spikes/release/patches/README.md, "gpui-base", change 15).
 //! Host recognition decorates existing runs; it never creates an inline atom.
 
 use std::ops::Range;

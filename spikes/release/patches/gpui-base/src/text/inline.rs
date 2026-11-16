@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: optional inferred links retain source selection and find mapping.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional inferred links retain source selection and find mapping.
+// (spikes/release/patches/README.md, "gpui-base", change 15).
 #[cfg(target_family = "wasm")]
 use async_channel::bounded;
 use gpui::Corners;

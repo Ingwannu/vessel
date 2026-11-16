@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: optional inferred links retain source selection and find mapping.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional inferred links retain source selection and find mapping.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 mod code_selection;
 mod document;
 pub mod editor_host;

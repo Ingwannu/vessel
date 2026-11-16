@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: share optional image activation across existing render paths.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: share optional image activation across existing render paths.
+// (spikes/release/patches/README.md, "gpui-base", change 14).
 //! The host may open an unlinked image without changing its layout or selection atom.
 
 use std::sync::Arc;

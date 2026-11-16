@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: optional image activation retains the existing text renderer.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional image activation retains the existing text renderer.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 use std::{ops::Range, rc::Rc, sync::Arc};
 
 use gpui::prelude::FluentBuilder as _;

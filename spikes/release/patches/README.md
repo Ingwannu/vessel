@@ -211,11 +211,11 @@ Upstream: gpui-kit's input base (`longbridge/gpui-kit`), Apache-2.0
 (`spikes/native`) uses it.
 
 Changed: `src/input/base/blink_cursor.rs` (change 4),
-`src/input/base/state.rs` (changes 7 and 9), and the drawing files listed
-under change 7, marked `MODIFIED by Vessel` at the top and `Vessel patch`
-at each change.
+`src/input/base/state.rs` (changes 7 and 9), the drawing files listed
+under change 7, and the `src/text` files listed under changes 14 and 15,
+marked `MODIFIED by Vessel` at the top and `Vessel patch` at each change.
 
-### Optional image activation in the existing text engine
+### 14. Optional image activation in the existing text engine
 
 - Purpose: Paseo opens an unlinked assistant markdown image in its image viewer.
   The pinned TextView only handled images already wrapped in hyperlinks.
@@ -235,7 +235,7 @@ at each change.
   inline-flow images and linked images with a host handler, plus absence of a
   handler. These tests passed in Kit run `wp-composer-copy-diagnostic-20261115T141044Z-40aaab5d` (195/0 overall); no visual approval is implied.
 
-### Optional inferred text links without source rewriting
+### 15. Optional inferred text links without source rewriting
 
 - Purpose: Paseo `components/markdown/source.ts:12-55` recognizes file tokens in
   prose and complete inline code, then `assistant-file-links/parse.ts:598-646`

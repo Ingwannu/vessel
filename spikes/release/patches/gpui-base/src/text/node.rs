@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: optional image activation shares both existing image render paths.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional image activation shares both existing image render paths.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 use std::{
     borrow::Cow,
     collections::HashMap,

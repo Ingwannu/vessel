@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: carry the optional host image activation into the render context.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: carry the optional host image activation into the render context.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 use futures::Stream as _;
 #[cfg(not(target_family = "wasm"))]
 use std::time::Instant;

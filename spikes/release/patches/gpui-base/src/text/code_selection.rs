@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: code-only copy queries the existing parsed selection.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: code-only copy queries the existing parsed selection.
+// (spikes/release/patches/README.md, "gpui-base", change 15).
 //! No source scan: inline marks and code blocks already know the rendered code.
 
 use super::{SelectionFormat, document::ParsedDocument, node::BlockNode};

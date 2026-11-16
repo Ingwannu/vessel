@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: image activation shares the existing image elements.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: image activation shares the existing image elements.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 use std::{
     cell::RefCell,
     ops::Range,

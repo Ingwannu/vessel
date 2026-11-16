@@ -1,4 +1,5 @@
-// MODIFIED by Vessel: expose the optional existing-renderer image activation seam.
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: expose the optional existing-renderer image activation seam.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 //! Host API for external editors.
 //!
 //! An editor that lives outside gpui-kit keeps its own document model and
