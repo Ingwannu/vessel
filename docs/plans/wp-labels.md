@@ -631,3 +631,19 @@ and failed only the new SearchField comment's missing Markdown backticks.
 Correct that comment only; no product expression, fixture or assertion changes.
 The actual consumer runtime has not run. Keep the red result; corrected strict
 and A6 App tests are still owed before a bounded consumer review request.
+
+
+## Actual manager consumer narrow result
+
+Exact `a8533798f` passed App all-target strict at
+`wp-labels-20261116T044357Z-a8533798` (fonts0, actual Kit/App checking, cargo0).
+Actual App binary tests at `wp-labels-20261116T044452Z-a8533798` compiled the
+consumer and passed15/0/0,196 filtered. The new visible-manager real shared-X
+case, old search close/reopen source rejection, replaced-name editor and existing
+staged picker/dispatch cases explicitly pass. Step hashes are fec78c20a9077dc8
+and abf431d671eb41dc. This result-only follow-up changes no Rust source.
+
+Bounded V1 consumer review is owed. The three changed app files depend on the
+broader A6 source, so their delta is not an independently existing manager on
+the lead line. Pending catalog transport/observation/canonical workspace caller,
+current-session metadata ordering, full native gate/captures and V4 remain owed.
