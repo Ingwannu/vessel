@@ -201,7 +201,10 @@ pub(crate) fn derived_memberships(
         if !live {
             continue;
         }
-        match owners.iter_mut().find(|(project, ..)| *project == descriptor.project) {
+        match owners
+            .iter_mut()
+            .find(|(project, ..)| *project == descriptor.project)
+        {
             Some(owner) if (descriptor.created_at, descriptor.id) < (owner.2, owner.1) => {
                 owner.1 = descriptor.id;
                 owner.2 = descriptor.created_at;
@@ -225,7 +228,10 @@ pub(crate) fn derived_memberships(
     Ok(derived)
 }
 
-fn placed_sessions(connection: &Connection, project: ProjectId) -> Result<Vec<SessionId>, StoreError> {
+fn placed_sessions(
+    connection: &Connection,
+    project: ProjectId,
+) -> Result<Vec<SessionId>, StoreError> {
     let mut statement = connection.prepare_cached(
         "SELECT id FROM sessions WHERE archived_at IS NULL \
          AND json_extract(spec,'$.place.kind')='project' \

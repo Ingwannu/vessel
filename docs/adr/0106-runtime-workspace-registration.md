@@ -1,6 +1,6 @@
 # 0106: Runtime workspace registration
 
-Status: proposed (node carrier for the paused W11, coordinator ruling 2026-11-16).
+Status: accepted (node carrier for the paused W11, coordinator rulings 2026-11-16).
 Extends ADR 0082 (independent workspace registry). TRACKER rows 241 and 780.
 
 ## Purpose and intent
@@ -11,7 +11,8 @@ was always empty, `workspace.label.assign` could only answer `workspace_not_foun
 (ADR 0086), and every C row, label, script and service consumer had nothing to
 show. Paseo registers a workspace when work starts in a directory or worktree,
 and at daemon start from the agents it already has. This ADR copies that onto
-Vessel's registry, projects and worktrees.
+Vessel's registry for project roots; worktrees wait for their own backing
+decision.
 
 ## Reference (Paseo 0.15.4)
 
@@ -55,86 +56,148 @@ Vessel's registry, projects and worktrees.
 
 ## Decision
 
+Coordinator rulings of 2026-11-16 shape this decision: project roots only,
+derived membership, and "option A narrowed" for the fence. The node reviewer's
+early read raised the capacity and fence questions.
+
 [Decision Log]
 - Choice 1, which places register.
-  - A project root and an existing Vessel worktree each map to a workspace
-    whose `path` is that directory and whose backing is `Local`.
-  - Sessions with no project place (a plain cwd) are not registered here.
-    Vessel projects are explicit, and Paseo's automatic project per directory
-    (`findOrCreateProjectForDirectory`) is a separate decision with visible UI
-    effects (every agent directory becoming a project).
+  - Only a project root registers. It maps to a workspace whose `path` is the
+    project root and whose backing is `Local`.
+  - Worktrees are not registered here. `WorkspaceDescriptor::root()` maps
+    `Local` to the project root, so a worktree needs its own backing decision
+    (W3 / W21).
+  - A session in a project subfolder (`SessionPlace::Project { dir }`) belongs
+    to the root's workspace. This is a declared difference: Paseo keys a
+    workspace by the agent's own directory.
+  - Sessions with no project place (a plain cwd) are not registered.
+    - Vessel projects are explicit.
+    - Paseo's automatic project per directory
+      (`findOrCreateProjectForDirectory`) is a separate decision with visible UI
+      effects.
 - Choice 2, when.
-  - A root session created with a place joins the place's workspace through
-    find-or-create, before spawn. It claims a start lease on a preallocated
-    `SessionId`, completes the lease after registration, and fails it on a
-    proven no-spawn error.
-  - A session created by an agent joins its creator session's workspace when
-    that session has one (Paseo's `callerWorkspaceId` inheritance).
-  - A terminal placed beside a session joins that session's workspace. A
-    terminal placed in a project joins that root's workspace through
-    find-or-create.
-  - `worktree.create` registers the worktree's workspace at once.
-  - Project add, clone and init register none (TRACKER 239).
-- Choice 3, find-or-create, not fresh-per-create.
+  - A root workspace is found or created, before spawn, when any of these
+    happens:
+    - `session.create` with a project place;
+    - `terminal.create` placed in a project;
+    - `script.run` in a project place.
+  - A session or script placed beside a session is not registered again, because
+    its root was registered when that session was.
+  - Project add, clone and init register nothing (TRACKER 239).
+  - Registration never refuses the caller's start. A failure is logged and the
+    start goes on, and that includes `RegistryFull` at the live cap. Bookkeeping
+    must never refuse a live create.
+  - No start lease. W11's lease fences a resource that a registry launch
+    started, and nothing here launches through the registry.
+- Choice 3, find-or-create.
   - Vessel's `session.create` carries no workspace id. Paseo's path-only
     requests ("old clients / CLI") resolve by path, and its open-project path
     finds or creates.
-  - Fresh creation of a workspace for an explicitly new one is W3's workspace
-    create schema (TRACKER 277-278). That request will carry the intent, and
-    it then follows `resolveOrCreateWorkspaceIdForCreateAgent`.
-  - The rule is the oldest Active, foreground workspace with the same project
-    and the same path, ties broken by id; otherwise create one. An archived
-    workspace at the path is not restored: restore is an explicit act
-    (W21/W11).
-- Choice 4, the startup bootstrap (every start, idempotent; Paseo runs it when
-  its registry files are missing, and Vessel's tables exist but were never
-  written).
-  1. Every live worktree without an Active workspace at its path gets one.
-  2. Every stored or live session with a place, not archived, whose directory
-     still exists, and with no membership is grouped by placement. Each
-     placement joins its find-or-create workspace, created at the earliest
-     member's creation time. Each session records membership through
-     `set_registry_membership` (no spawn happens, so no lease).
-  3. Retained terminals follow the same terminal rule.
-  - Nothing registered before is changed. A failed write fails node start, as
-    Paseo's bootstrap error stops the daemon.
-- Choice 5, the legacy-removal fence.
-  - The fence keeps refusing what the registry owns: `Managed` backings and
-    reservations in progress.
-  - A `Local` workspace owns no directory, so it no longer blocks legacy
-    project or worktree removal.
-  - Instead, under the project admission that removal already holds, removal
-    archives the `Local` Active workspaces it strands, by CAS to
-    `Archived { at }`. Records and historical memberships stay, as Paseo's
-    project removal archives its workspaces (TRACKER 258) and worktree removal
-    archives the worktree's workspace.
-  - Removal still refuses live sessions and terminals first, so an archived
-    workspace has no running member. A pending start lease refuses the
-    removal (`conflict`) instead of being archived around it.
+  - The rule is the oldest Active, foreground, `Local` workspace of the same
+    project at the same path, with ties broken by id. Otherwise one is created.
+  - The lookup and the insert share one writer savepoint, so two concurrent
+    starts at one root create one workspace. The caller passes the fresh id.
+  - Declared difference: an archived workspace at the path is not restored.
+    Paseo unarchives it when its project is live. Here, restore is an explicit
+    act (W21/W11), and project removal is the only thing that archives.
+- Choice 4, membership derived from stored placement.
+  - No membership row per session or terminal. Under the lifetime caps of ADR
+    0082, rows like that would eventually refuse every create.
+  - `workspace.registry` derives each member: a placed session that is not
+    archived belongs to its project's oldest Active, foreground `Local`
+    workspace (Paseo's `agent.workspaceId`), unless an explicit row already
+    names it.
+  - Derived members are not revisioned. A session start or archive changes
+    them without a registry write, so a long-polling client does not wake for
+    them.
+  - A client that groups live sessions takes the membership rule from the
+    session's own `SessionInfo.workspace` (project, no worktree) and gets the
+    workspace from the registry. This is how Paseo's client groups agents by
+    their workspace id from the agent stream.
+- Choice 5, the startup bootstrap. It runs once per project, every start, and
+  is idempotent.
+  - It covers every project that has placed, non-archived sessions and no
+    registry record in any lifecycle.
+  - Each such project's root gets a workspace created at the earliest such
+    session's time, as `bootstrapWorkspaceRegistries` does.
+  - A project with an archived record is skipped, so removal is not undone at
+    the next start.
+  - A missing root is skipped, as Paseo skips an agent whose directory is gone.
+  - A failure is logged and never fails node start. Paseo stops its daemon
+    instead; the ruling above decides this.
+- Choice 6, the legacy-removal fence ("option A narrowed").
+  - A `Local` workspace that is Active or Archived owns no directory, so it no
+    longer blocks legacy project or worktree removal.
+  - Project removal archives the project's own `Local` Active workspaces, by
+    CAS to `Archived { at }`, in the same store write that forgets the project.
+    Records stay, as Paseo's project removal archives its workspaces (TRACKER
+    258).
+  - Still blocked:
+    - `Managed` backings;
+    - reservations in any stage;
+    - a record that is Archiving or Restoring.
+  - Removal still refuses live sessions and terminals first.
+  - This reverses W11's "every retained lifecycle blocks". W11's pinned test
+    was rewritten deliberately, and the reversal is recorded for W11's resume
+    (TRACKER, the ledger, `docs/plans/workspace-legacy-removal-fence.md`).
+- Choice 7, capacity. ADR 0082's amendment applies:
+  - archived records do not count toward the live caps;
+  - archived `Local` records beyond `MAX_ARCHIVED_WORKSPACES` are pruned oldest
+    first;
+  - a live create is never refused because of them.
 - Rejected alternatives:
-  - Registering with `Managed` backing would make legacy removal refuse
-    forever, because the legacy service owns those worktrees.
-  - A cwd heuristic at read time gives no durable identity, nothing for labels
-    to attach to, and no archive fence.
-  - Deleting workspace records on removal loses label assignments and
+  - A membership row per session or terminal: lifetime row caps make creation
+    refuse for good (node reviewer, coordinator ruling).
+  - Registering worktrees as `Local`: `root()` would point them at the project
+    root.
+  - Registering worktrees as `Managed`: legacy removal would refuse for good,
+    because the legacy service owns those worktrees.
+  - A cwd heuristic at read time: it gives no durable identity, nothing for
+    labels to attach to, and no archive fence.
+  - Deleting workspace records on removal: it loses label assignments and
     history, and Paseo keeps archived records.
-  - A fresh workspace per session would give one row per session, with no
-    client able to choose otherwise until W3's create schema lands.
+  - A fresh workspace per session: one workspace per session, with no client
+    able to choose otherwise until W3's create schema lands.
 - Advantages, costs and effects:
   - The registry, labels and the page's "group by workspace" mode get real
     data.
-  - Legacy removal keeps working, now also archiving its workspaces.
-  - Each create and each terminal start adds one or two registry writes in
-    the existing writer.
-  - Capacity errors (`RegistryFull`) refuse the create before spawn.
+  - Legacy removal keeps working, and now also archives its workspaces.
+  - Each start at a project root adds one writer round trip, which reads; the
+    first start at a root also inserts.
   - No new crate edge, dependency, wire method or schema change. The registry
     tables exist since schema 20.
+
+## Verification
+
+- Store (`registry/tests/placement.rs`):
+  - one workspace per root, and a later start finds it (the node test also
+    runs two starts at once);
+  - archived records are not restored;
+  - removal archives `Local` Active only, with one revision;
+  - archived records never refuse a live create and are pruned oldest first;
+  - derived members;
+  - the one-shot bootstrap list.
+- Store fence (`registry/tests/project_reference.rs`): owned backings and
+  transitions fence, and `Local` Active and Archived do not.
+- Node:
+  - `workspace/tests/registration.rs`: find-or-create; an unknown project; at
+    the live cap the start goes on;
+  - `workspace/tests/registry_fence.rs`: removal archives and keeps the records;
+    transitions still block.
+- e2e (`tests/e2e/registration.rs`):
+  - adding a project registers nothing;
+  - two sessions at a root share one workspace as derived members;
+  - removal archives and the snapshot still reads with its project gone;
+  - node start registers stored sessions' roots at the earliest session's time
+    and skips a missing root.
 
 ## Not decided here
 
 The following stay with their owners:
 - workspace archive and restore RPCs (W21/W11);
-- W3's explicit workspace create, isolation and setup;
+- W3's explicit workspace create, isolation and setup, and worktree workspaces;
 - moving a session between workspaces;
 - an automatic project per directory;
-- per-workspace titles from the first prompt (Paseo `workspace-auto-name.ts`).
+- per-workspace titles from the first prompt (Paseo `workspace-auto-name.ts`);
+- revisioned derived membership, or paging the registry snapshot past about
+  90,000 placed sessions (ADR 0082 amendment).

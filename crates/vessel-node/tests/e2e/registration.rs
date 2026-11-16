@@ -114,10 +114,16 @@ async fn a_session_at_a_project_root_registers_one_workspace_with_it_as_member()
             .unwrap();
         let snapshot = registry(&owner).await;
         let [kept] = snapshot.workspaces.as_slice() else {
-            panic!("the archived workspace is kept, found {:?}", snapshot.workspaces);
+            panic!(
+                "the archived workspace is kept, found {:?}",
+                snapshot.workspaces
+            );
         };
         assert_eq!(kept.id, workspace.id);
-        assert!(matches!(kept.lifecycle, WorkspaceLifecycle::Archived { .. }));
+        assert!(matches!(
+            kept.lifecycle,
+            WorkspaceLifecycle::Archived { .. }
+        ));
         assert_eq!(member(&snapshot, first.id), None);
         node.stop().await.unwrap();
     })

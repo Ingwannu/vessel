@@ -95,10 +95,10 @@ mod prompts;
 #[cfg(unix)]
 mod remote;
 #[cfg(test)]
+mod registration;
+#[cfg(test)]
 #[cfg(unix)]
 mod removal_race;
-#[cfg(test)]
-mod registration;
 #[cfg(test)]
 mod resume;
 #[cfg(test)]

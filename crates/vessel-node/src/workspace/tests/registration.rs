@@ -35,7 +35,11 @@ async fn registration_finds_one_root_workspace_and_a_full_registry_refuses_nothi
     vessel_testkit::within(REGISTRATION_DEADLINE, async {
         let fixture = Fixture::new().await;
         let project = fixture.project("root", None).await;
-        fixture.workspaces.register_root(project.id).await;
+        // Two starts at once: lookup and insert share one writer savepoint.
+        let ((), ()) = tokio::join!(
+            fixture.workspaces.register_root(project.id),
+            fixture.workspaces.register_root(project.id)
+        );
         fixture.workspaces.register_root(project.id).await;
         let stored = fixture.store.workspace_registry().await.unwrap();
         let [workspace] = stored.workspaces.as_slice() else {

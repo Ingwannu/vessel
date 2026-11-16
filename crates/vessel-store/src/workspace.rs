@@ -359,13 +359,13 @@ mod tests {
                 },
             },
         ] {
-            apply(&connection, &write).unwrap();
+            let _change = apply(&connection, &write).unwrap();
         }
         let renamed = ProjectInfo {
             name: "renamed".parse().unwrap(),
             ..app.clone()
         };
-        apply(
+        let _change = apply(
             &connection,
             &WorkspaceWrite::Project(Box::new(renamed.clone())),
         )
@@ -386,7 +386,7 @@ mod tests {
             )]
         );
 
-        apply(
+        let _change = apply(
             &connection,
             &WorkspaceWrite::Approval {
                 project: app.id,
@@ -395,8 +395,8 @@ mod tests {
             },
         )
         .unwrap();
-        apply(&connection, &WorkspaceWrite::ForgetWorktree(tree.id)).unwrap();
-        apply(
+        let _change = apply(&connection, &WorkspaceWrite::ForgetWorktree(tree.id)).unwrap();
+        let _change = apply(
             &connection,
             &WorkspaceWrite::ForgetProject {
                 project: app.id,
@@ -419,10 +419,10 @@ mod tests {
         let mut connection = Connection::open_in_memory().unwrap();
         crate::schema::migrate(&mut connection).unwrap();
         let app = project();
-        apply(&connection, &WorkspaceWrite::Project(Box::new(app.clone()))).unwrap();
+        let _change = apply(&connection, &WorkspaceWrite::Project(Box::new(app.clone()))).unwrap();
         for second in 0..6_i64 {
             let digest: CommandsDigest = format!("{second:064}").parse().unwrap();
-            apply(
+            let _change = apply(
                 &connection,
                 &WorkspaceWrite::Approval {
                     project: app.id,

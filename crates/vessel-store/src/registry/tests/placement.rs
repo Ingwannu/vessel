@@ -2,6 +2,7 @@
 //! legacy removal, outside the live cap, with members derived from placement.
 use super::*;
 use rusqlite::params;
+use vessel_proto::WorktreeId;
 use vessel_proto::registry::WorkspaceMembership;
 
 fn root(project: ProjectId) -> Register {
@@ -39,7 +40,8 @@ fn placed(db: &Connection, project: ProjectId, at: i64, archived: bool) -> Sessi
 /// Legacy removal of `project` at `at` nanoseconds.
 fn archive(db: &mut Connection, project: ProjectId, at: i64) -> RegistryChange {
     let transaction = db.transaction().unwrap();
-    let change = archive_stranded(&transaction, project, DateTime::from_timestamp_nanos(at)).unwrap();
+    let change =
+        archive_stranded(&transaction, project, DateTime::from_timestamp_nanos(at)).unwrap();
     transaction.commit().unwrap();
     change
 }
@@ -72,7 +74,7 @@ fn removal_archives_only_local_active_workspaces_and_bumps_the_revision_once() {
     let mut managed = record(WorkspaceId::random());
     managed.descriptor.project = project;
     managed.descriptor.backing = WorkspaceBacking::Managed {
-        worktree: vessel_proto::WorktreeId::random(),
+        worktree: WorktreeId::random(),
     };
     let other = record(WorkspaceId::random());
     for item in [&local, &managed, &other] {
@@ -109,7 +111,7 @@ fn archived_records_never_refuse_a_live_create_and_are_pruned_oldest_first() {
     for at in 0..MAX_WORKSPACES {
         let project = ProjectId::random();
         let id = registered(&mut db, &root(project));
-        oldest.get_or_insert(id);
+        let _first = oldest.get_or_insert(id);
         let _change = archive(&mut db, project, i64::try_from(at).unwrap());
     }
     // The live cap counts no archived record.
