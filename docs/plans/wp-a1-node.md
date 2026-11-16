@@ -510,3 +510,7 @@ tracked proto.ts diff. All artifact SHA256 entries and commit2169 were verified;
 the patch applied cleanly over announcedbc9's generated declarations. No shared
 incoming fields were replaced and no declaration was handwritten. A receiving
 freshness check remains required, since the generation source precedes bc9.
+
+The count carrier's second strict result found only an unused Option from its
+fake connection insertion. The fixture binds the returned previous value;
+all correlation/credential/count assertions and product behavior are unchanged.

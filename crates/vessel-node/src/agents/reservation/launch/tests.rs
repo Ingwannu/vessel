@@ -66,7 +66,7 @@ fn replaced_or_connected_entries_do_not_match_an_old_correlation() {
     {
         let mut entries = agents.lock();
         let entry = entries.get_mut(&child).unwrap();
-        entry
+        let _previous = entry
             .connections
             .insert(1, tokio_util::sync::CancellationToken::new());
         assert!(!correlation.matches_pending(&agents, entry));
