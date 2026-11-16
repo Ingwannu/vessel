@@ -7,7 +7,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { choose, closeMenu, newSessionPage } from "./kit";
+import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
 
 async function startInShop(page: Page, prompt: string): Promise<void> {
@@ -25,6 +25,27 @@ function sidebar(page: Page) {
   return page.getByRole("navigation", { name: "Sidebar" });
 }
 
+/** Close every open menu: Escape closes one level at a time (a submenu,
+ * then the menu that opened it), and a radio row has already closed its
+ * menu. Each press waits for the focus to be in a menu, as kit.ts's
+ * `closeMenu` explains. */
+async function closeMenus(page: Page): Promise<void> {
+  for (let level = 0; level < 3; level += 1) {
+    if ((await page.getByRole("menu").count()) === 0) {
+      return;
+    }
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.activeElement?.closest('[role="menu"]') != null,
+        ),
+      )
+      .toBe(true);
+    await page.keyboard.press("Escape");
+  }
+  await expect(page.getByRole("menu")).toHaveCount(0);
+}
+
 async function display(page: Page): Promise<void> {
   await sidebar(page).getByRole("button", { name: "Display" }).click();
 }
@@ -32,14 +53,14 @@ async function display(page: Page): Promise<void> {
 async function group(page: Page, by: "Machine" | "Workspace"): Promise<void> {
   await display(page);
   await page.getByRole("menuitemradio", { name: by }).click();
-  await closeMenu(page);
+  await closeMenus(page);
 }
 
 async function filterBy(page: Page, label: string): Promise<void> {
   await display(page);
   await page.getByRole("menuitem", { name: /^Labels/ }).hover();
   await page.getByRole("menuitemcheckbox", { name: label }).click();
-  await closeMenu(page);
+  await closeMenus(page);
 }
 
 test.afterEach(async ({ page }) => {
@@ -48,13 +69,17 @@ test.afterEach(async ({ page }) => {
   if (await clear.isVisible()) {
     await clear.hover();
     const item = page.getByRole("menuitem", { name: "Clear filter" });
-    if (await item.isVisible()) {
+    const shown = await item.waitFor({ state: "visible", timeout: 3000 }).then(
+      () => true,
+      () => false,
+    );
+    if (shown) {
       await item.click();
       await display(page);
     }
   }
   await page.getByRole("menuitemradio", { name: "Machine" }).click();
-  await closeMenu(page);
+  await closeMenus(page);
 });
 
 test("a label made on a workspace row shows as its chip, filters it, and goes when deleted", async ({
