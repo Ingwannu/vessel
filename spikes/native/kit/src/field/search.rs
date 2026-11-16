@@ -95,6 +95,25 @@ impl SearchField {
     pub fn clear(&self, window: &mut Window, cx: &mut App) {
         self.editor.clear(window, cx);
     }
+    /// Paseo's sheet-header search input (adaptive-modal-sheet.tsx 443-461,
+    /// `searchInput` 186-191): the same engine, unboxed, flex 1 with 8 above and
+    /// below at the base size; the dialog header draws the row and its mark.
+    /// No clear control: the owner resets the query per opening.
+    #[must_use]
+    pub fn header_search(&self, tokens: &Tokens, cx: &mut App) -> crate::dialog::HeaderSearch {
+        let focus = self.editor.clone();
+        let field = div()
+            .debug_selector(|| "dialog-header-search-input".to_owned())
+            .flex_1()
+            .min_w_0()
+            .py(px(spacing::S2))
+            .on_mouse_down(MouseButton::Left, move |_, window, cx| {
+                focus.focus(window, cx);
+            })
+            .child(self.editor.bare(tokens, cx))
+            .into_any_element();
+        crate::dialog::HeaderSearch::new(field)
+    }
     /// Draw the complete source rail field; callers add no icon/clear chrome.
     #[must_use]
     pub fn element(

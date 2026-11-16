@@ -344,6 +344,11 @@ control another track could need (a menu, a dialog, a sheet, tabs, a
 tooltip, a virtual list) is the lead's to write: ask through the
 coordinator first, so two tracks do not write two.
 
+A dialog can carry Paseo's sheet-header search row under its title:
+`SearchField::header_search` makes the typed `HeaderSearch` from the same
+one-line engine and `DialogContent::with_header_search` places it
+([`shared-dialog-header-search.md`](../../docs/plans/shared-dialog-header-search.md)).
+
 `kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
 profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
 the sidebar package owns the Footer wrapper. The lower frame grants no input or
