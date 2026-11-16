@@ -82,3 +82,10 @@ the Vessel-only row glyphs draw every vector at 2.2; other drawings and the `Com
 derived asset; the Vessel-only rows are derived; the shared list is unchanged)
 and `areas::palette::rows::stroke_tests::every_other_row_draws_at_the_command_weight`
 (every settings section, theme, machine, board and session row).
+
+Results of the addition (2026-11-16, build VM; nothing compiled locally): whole kit
+suite unfiltered cmd-weight-kitall3-08bd87972 316/0; app palette tests
+cmd-weight-palette-79a49c08a 2/0 (the app is unchanged since); strict
+cmd-weight-strict5-d238b52e7 all 0 (d238b52e7 = 08bd87972 + test formatting). Captures
+from the exact export of 08bd87972 against the shared base14.19 fleet (protocol 28):
+no capture-only cherry-pick was needed.
