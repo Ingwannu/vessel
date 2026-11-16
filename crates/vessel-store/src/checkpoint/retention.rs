@@ -74,3 +74,6 @@ pub(crate) fn startup(connection: &mut Connection) -> Result<(), StoreError> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod orphan_pages_tests;

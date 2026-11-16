@@ -1388,3 +1388,16 @@ full-feature checks never establish that leaf's safety. W17, W11 and W21 must no
 consume it until the exact reviewed producer is announced. This full branch will
 merge the accepted exact commit, preserving one canonical root authority.
 Production restore remains Busy; no UI or terminal quiescence capability is claimed.
+
+### Restart scan progress after settlement (test source; execution pending)
+
+The orphan collector uses a capture-id keyset, not an offset. A restart can leave
+more than one response page, while successful cleanup removes earlier rows from
+subsequent scans. The new retention/orphan_pages_tests fixture seeds more than a
+page, fences those rows once, starts a current worker, settles the first page and
+continues from its saved cursor. It requires every old identity exactly once,
+no current worker, and unchanged metadata charges until their own retirement.
+This is a SQL-only fixture with metadata-only reservations; it supplies no worker,
+filesystem cleanup or process-death proof. It will run in the next meaningful
+checkpoint store suite. The already queued library strict source is unchanged
+outside this cfg(test) addition; it is not a test-compilation result.
