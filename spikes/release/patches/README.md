@@ -501,10 +501,15 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   changes. Kit's typed SDK-snapshot test decoder adds only direct dev edges to
   the existing workspace serde/serde_json versions, no production dependency or
   package/version change. No raw snapshot is printed.
-- Checked: local direct rustfmt/source-size/diff only. Authored actual ordinary
-  editor role/value observation after activation and inactive-before control;
-  exact remote strict/tests owed. Vendor's own test suite: not executed. No OS
-  accessibility bridge, secret producer, native pixels or consumer approval.
+- Checked: exact87aadffd locked Kit all-target Clippy0 and full Kit lib244/0/0
+  in schedules-20261116T013649Z-87aadffd and014515Z-87aadffd, all fonts/cargo
+  steps0/no skip with actual changed Kit Checking/Compiling. The new actual
+  ordinary-editor case executed: inactive/no tree before activation, then real
+  TextInput role/label/reference value and no PasswordInput node after a frame.
+  All30 run-file hashes and four step digest prefixes were verified. Local
+  rustfmt/source-size/token/diff0. Vendor's own test suite: not executed. V1
+  adoption still owed; no OS accessibility bridge, secure-field producer,
+  native pixels or consumer approval is claimed.
 
 This isolated base13 does not contain the lead's later change9/10 README entries;
 line integration places this additive section after10 and unions Changed paths,
