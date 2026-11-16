@@ -445,3 +445,11 @@ hop's protocol. New terminal metadata is therefore held off delegated list and
 direct access before mutation; legacy forwarding stays unchanged. A separate
 pure route test ensures neither new shape inherits legacy hop compatibility.
 Origin capability propagation is not inferred from a current relay version.
+
+The first exact terminal-metadata strict run returned two concrete defects:
+profile Id intentionally has no Display implementation, and the isolated Node
+fixture's deadline future exceeded the stack-size lint. The two-arm CLI
+companion now renders the id through its existing as_str accessor; the test
+pins the same within(DEADLINE, ...) future. The deadline, actual Node resolver
+call, cleanup and no-effect assertions are unchanged. No product lint allowance
+or Id formatting trait is introduced. Corrected combined validation is owed.

@@ -267,7 +267,7 @@ fn refusal_text(reason: &ScriptRefusal) -> String {
 fn terminal_line(terminal: &TerminalInfo) -> String {
     let kind = match &terminal.kind {
         TerminalKind::Shell { program } => format!("shell {}", program.display()),
-        TerminalKind::Profile { profile, .. } => format!("profile {profile}"),
+        TerminalKind::Profile { profile, .. } => format!("profile {}", profile.as_str()),
         TerminalKind::Script { script, .. } => format!("script {script}"),
         TerminalKind::Service { script, .. } => format!("service {script}"),
         TerminalKind::Unknown => "terminal".to_owned(),

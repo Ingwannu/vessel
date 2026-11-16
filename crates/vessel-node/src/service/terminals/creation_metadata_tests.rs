@@ -10,7 +10,7 @@ const DEADLINE: Duration = Duration::from_secs(30);
 
 #[tokio::test]
 async fn unreceipted_workspace_placement_refuses_without_a_registry_or_terminal_effect() {
-    vessel_testkit::within(DEADLINE, async {
+    Box::pin(vessel_testkit::within(DEADLINE, async {
         let temp = tempfile::tempdir().unwrap();
         let mut config = Config::new(
             DataDir::new(temp.path().join("data")),
@@ -31,7 +31,7 @@ async fn unreceipted_workspace_placement_refuses_without_a_registry_or_terminal_
         assert_eq!(store.workspace_registry().await.unwrap(), before);
         assert!(store.registry_workspace(workspace).await.unwrap().is_none());
         node.stop().await.unwrap();
-    })
+    }))
     .await
     .unwrap();
 }
