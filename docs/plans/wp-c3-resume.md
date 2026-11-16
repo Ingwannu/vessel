@@ -732,3 +732,20 @@ wp-git-body-narrow-20261116T014519Z-3add5bc1, short/priority0, OUT
 body-engines-3ad-clippy. Retain exact20d's sole test-path Clippy return and all
 older006 functional, isolatedb243 wheel and760 wasm jobs. The complete shared
 notification/header handoffs and actual pressure execution remain pending.
+
+## Exact3add App strict green; actual pressure still queued
+
+wp-git-body-narrow-20261116T014519Z-3add5bc1 completed0 (fonts0/cargo0, no skips,
+actual App Checking). All prescribed step log prefixes/artifact hashes and all
+current panel source pins match immutable3add. External
+body-engines-3ad-strict-result.json records the packet. No pressure execution
+or V1/C3/UI acceptance follows from Clippy. Exact20d remains its own sole
+unused-qualification return; no test or assertion was suppressed.
+
+The ONE new pressure selection is registered on the now-terminal prior Kit
+owner label to reuse its built engine dependencies:
+wp-git-consumer-tests-20261116T014950Z-3add5bc1, ordinary/priority0, OUT
+body-engines-3ad-test. Exact selection is App all-target
+areas::git::panel::bodies::visibility_tests. This is a DIFFERENT App fixture, not
+a repeat of the3 Kit owner cases. Keep old006 App functional, isolatedb243
+list-wheel and760 wasm runs; no queued/running run was cancelled or duplicated.
