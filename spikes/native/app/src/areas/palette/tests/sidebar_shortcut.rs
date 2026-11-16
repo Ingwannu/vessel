@@ -15,7 +15,7 @@ fn query_sidebar_action_uses_the_existing_keyboard_owner(cx: &mut TestAppContext
             entry.visibility,
             vessel_app_view::palette::registration::Visibility::Query
         );
-        let before = (shell.sidebar_open, shell.sidebar_shown);
+        let before = (shell.sidebar_open(), shell.sidebar_shown());
         let label = vessel_app_view::shortcuts::action_label(
             vessel_app_view::shortcuts::Action::ToggleSidebar,
             shell.words,
@@ -30,7 +30,7 @@ fn query_sidebar_action_uses_the_existing_keyboard_owner(cx: &mut TestAppContext
     ready(cx);
     update(&view, cx, |shell, _, _| {
         assert!(!shell.areas.palette.is_open());
-        assert_ne!((shell.sidebar_open, shell.sidebar_shown), before);
+        assert_ne!((shell.sidebar_open(), shell.sidebar_shown()), before);
     });
 }
 
@@ -38,7 +38,7 @@ fn query_sidebar_action_uses_the_existing_keyboard_owner(cx: &mut TestAppContext
 fn root_help_tracks_actual_viewport_without_losing_pointer_palette(cx: &mut TestAppContext) {
     let (view, cx) = harness(cx);
     for (width, offered) in [(600.0, true), (599.0, false), (390.0, false), (600.0, true)] {
-        cx.simulate_resize(gpui::size(gpui::px(width), gpui::px(844.0)));
+        cx.simulate_resize(gpui::size(px(width), px(844.0)));
         ready(cx);
         update(&view, cx, |shell, _, _| {
             assert!(

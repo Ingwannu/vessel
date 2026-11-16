@@ -227,7 +227,7 @@ fn left_sidebar(shell: &Shell) -> Option<Contribution<Command>> {
         target: Command::callback(
             Some(Glyph::PanelLeft),
             Some(Action::ToggleSidebar),
-            |shell, window, cx| shell.dispatch_sidebar_toggle(window, cx),
+            Shell::dispatch_sidebar_toggle,
         ),
     })
 }

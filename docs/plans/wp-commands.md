@@ -1061,3 +1061,18 @@ a legacy section target; the owner still decides its default presentation.
 A real query/projection regression covers those hidden aliases. Labels, ranks
 and availability still come from their existing typed models. No missing
 feature's route or source is manufactured by these corrections.
+
+
+The first base13 main strict/test selection stopped in the new test fixtures:
+sidebar_open/sidebar_shown are existing owner query methods, not raw fields.
+The fixtures now call those methods; no visibility or sidebar state was added.
+Strict also identified two redundant px qualifications and a redundant method
+closure, now removed. These compile failures are retained as failures; none of
+the new main regressions is claimed executed by those jobs.
+
+Root-action icon limitation remains explicit: the reference root PanelLeft,
+Settings and Keyboard helpers use stroke2.2, while their existing shared native
+roles retain published1.5 vectors. The shared glyph owner recorded this future
+role decision separately from the isolated new Import role. This package does
+not modify shared vectors, add an arbitrary stroke API or claim those icons'
+first-use parity before the owner/V1 decision and actual native verification.

@@ -257,9 +257,9 @@ fn actual_menu_context_pauses_settings_capture_before_recording(cx: &mut TestApp
     view.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
             let capture = shell.areas.shortcuts.page.capture.take();
-            let before = (shell.sidebar_open, shell.sidebar_shown);
+            let before = (shell.sidebar_open(), shell.sidebar_shown());
             assert!(!shell.dispatch_sidebar_toggle(window, cx));
-            assert_eq!((shell.sidebar_open, shell.sidebar_shown), before);
+            assert_eq!((shell.sidebar_open(), shell.sidebar_shown()), before);
             shell.areas.shortcuts.page.capture = capture;
         });
     });
