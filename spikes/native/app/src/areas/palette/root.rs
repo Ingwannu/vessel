@@ -199,7 +199,11 @@ fn left_sidebar(shell: &Shell) -> Option<Contribution<Command>> {
                 .to_owned(),
             subtitle: None,
         },
-        target: Command::shortcut(Some(Glyph::PanelLeft), Action::ToggleSidebar),
+        target: Command::callback(
+            Some(Glyph::PanelLeft),
+            Some(Action::ToggleSidebar),
+            |shell, window, cx| shell.dispatch_sidebar_toggle(window, cx),
+        ),
     })
 }
 const fn rank_of(group: PaletteGroup) -> i16 {

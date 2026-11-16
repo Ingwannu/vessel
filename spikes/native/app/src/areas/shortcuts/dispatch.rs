@@ -120,12 +120,11 @@ impl NativeDispatcher {
 }
 
 impl Shell {
-    /// A command-center action is already typed, so it skips chord matching but
-    /// retains current admission and the same ordered owner callbacks. Compact
-    /// pointer commands remain usable even where global keyboard input is off.
-    pub(crate) fn dispatch_shortcut_command(
+    /// The root's window-local toggle shares ordered keyboard owners. This
+    /// narrow entry cannot redirect a resource-scoped palette row to a newly
+    /// focused workspace. Compact pointer commands remain usable without keys.
+    pub(crate) fn dispatch_sidebar_toggle(
         &mut self,
-        action: Action,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
@@ -139,6 +138,7 @@ impl Shell {
         if context.admission != vessel_app_view::shortcuts::context::Admission::Available {
             return false;
         }
+        let action = Action::ToggleSidebar;
         self.dispatch_shortcut_to_owners(
             ShortcutRequest {
                 action,

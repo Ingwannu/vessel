@@ -1031,9 +1031,10 @@ not an independently checked producer or a full F4 package handoff.
   manufacturing a keyboard event would mix physical input and typed intent.
 - Alternatives: another sidebar toggle callback, synthetic keypress dispatch,
   or a parallel action/default table.
-- Choice: a typed Shortcut command variant closes the palette, asks the same
-  current context/admission helper, and calls the existing ordered dispatcher.
-  Only chord matching is skipped because the action is already known.
+- Choice: the existing source callback closes the palette and calls a narrow
+  window-local sidebar entry. It asks the same current context/admission helper
+  and ordered dispatcher; only chord matching is skipped. No general palette
+  shortcut variant can resolve a resource-scoped row against a later workspace.
 - Why: the core owner remains the only implementation, with the existing W12
   post-handled exit. Actual popup context, recording and composition still deny
   a command. Compact pointer actions are independent of global-key availability.
