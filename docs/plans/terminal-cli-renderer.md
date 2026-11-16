@@ -177,3 +177,35 @@ Its corrected346653a9 source has separate checks pending; no renderer/CLI
 consumer qualification can be inferred from the earlier48-test result or a
 green frozen2d5 whole. Keep the original failures, corpora and these bounded
 display results as separate evidence rather than replacing any expectation.
+
+## Corrected engine union and finite display verification
+
+The staged display backend now uses the corrected engine from f0cd779b,
+including repeated alternate entry/exit, same-cut VT reset negotiation and
+full-grid history padding. The independent shape/blink default contract is
+explicit: the renderer resolves optional program overrides against typed
+CursorDefaults. Earlier staged pending notes above describe historical steps;
+they do not supersede this receipt or qualify an actual attach caller.
+
+Exact0964fd08 executed53 tests, zero failures or ignores, including all48
+current engine tests and five display tests. The independent pinned oracle
+compared20 scenes and544 physical cells with zero differences, adding real
+VT soft-reset and repeated1049/47/1047 transitions without changing the prior
+16 scene inputs. VT app-cursor/bracketed-paste expectations come from actual
+headless state; Kitty/Win32 expectations preserve the actual production tracker
+contract. Both raw tracker traces remain in the artifact. Oracle SHA256:
+009be7e26e309833a28ed6bfc2592b0ca26bb4f50d8c7f462bc3914d2e5a79dc.
+
+The first strict check rejected only the expanded fixture function length.
+Exact17aba596 extracts unchanged scene tuples to one test constant; product,
+inputs and assertions are unchanged. Its all-target Clippy with warnings denied
+passed in termscreen-render-lint-20261116T020742Z-17aba596, actual crate checked,
+raw log SHA prefix0395186bde72bdb3. The earlier53-test log prefix is
+2e1abf406f26f17f. The unchanged test run is retained rather than rerun for this
+fixture-only extraction.
+
+These results qualify only the staged pure byte serializer and the finite
+oracle corpus. There is still no actual CLI stdout/PTY writer, attach/reset
+guard integration, wire consumer, physical terminal, OS input or NodeAuthority
+activation. Consumers must take the separately qualified minimal engine;
+this experiment is not a whole-branch producer handoff.
