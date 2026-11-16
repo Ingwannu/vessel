@@ -795,3 +795,15 @@ is selection on focus gained; the driver now moves through another actual
 field before testing focus selection. Its earlier partial frames are excluded,
 not a product regression or a reason to change callbacks. Saved-file assertions
 and the original engine/GPUI regressions remain intact.
+
+### Survey wording versus the pinned width control
+
+The survey's “slider + numeric” phrase is stale. Direct immutable source
+`1c00b365:packages/app/src/screens/settings/appearance/appearance-section.tsx`
+lines164–228 defines `ContentWidthRow` as a numeric field plus conditional
+reset, commits on blur/submit, retains following when the effective width is
+unchanged, and calls `onChange(null)` on reset. There is no width slider in
+that source. This file is also unchanged at the current Paseo checkout
+`e9f897a6`. F5 follows the actual pinned control, so it does not reuse the
+separate Codex effort slider or invent a second width input. The numeric
+width layout is source parity, not a deliberately missing slider.
