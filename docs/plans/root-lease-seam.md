@@ -101,3 +101,19 @@ Complete revised exact-leaf ordinary strict checks, then its actual tests. Keep
 all returned-source and full-feature records independently. After V3 acceptance
 and normal integrator announcement, W17 consumes the exact commit and the full
 checkpoint branch merges that same leaf, retaining one canonical implementation.
+
+
+## Quota-stop continuation (2026-11-16)
+
+The current source also retains partially initialized fixture owners outside the
+caught setup future: workspace-start panic after opening Store must still close
+that actual writer, drain the tracker and retain its private temp directory until
+cleanup ends. This is test-only lifetime work; the project/root admission code is
+unchanged. Named setup phases and the product/case limits are not increased.
+
+No current runtime pass or consumer-ready producer exists. The prior twelve-unit
+attempt failed before seven fixture bodies, so its green compilation does not
+prove the ordinary-project counterexample. The current correction requires its
+own all-target strict and actual tests before V3 revision. No new build is started
+at the quota warning; resume from the recorded queued-run disposition and exact
+commits. Production restoration stays Busy and downstream adoption stays closed.
