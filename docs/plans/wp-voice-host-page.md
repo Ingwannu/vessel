@@ -179,10 +179,34 @@ rather than infer whether an override was absent in a file. Clearing one is an
 explicit reset. No fabricated environment-override source or installation state
 is shown. Raw invalid input remains in the existing shared field; this draft
 accepts only its validated bounded type. No runtime save or model operation is
-performed. The new draft regression source has not yet run.
+performed. The six draft regressions passed in the exact-head VM run recorded below.
 
 Candidate Change diagnostics also redact their entire payload, including the
 Dictation route whose underlying DTO has a broader Debug implementation. The
 form must not make private model IDs or endpoint metadata visible merely by
-formatting a queued write. The new three-route canary regression is still
-source-only until its next exact-head VM receipt.
+formatting a queued write. The three-route canary regression passed in the exact-head VM receipt below.
+
+
+## Checked form checkpoint on package base14.2
+
+Exact `42c5382d015a6dd72fdb977246451de906a95b6d` includes package base
+`c6d8df49`, the editor boundary and all six non-secret draft regressions.
+App/Link/Kit/View all-target strict Clippy passed locked/offline with warnings
+denied in run `wp-voice-narrow-20261116T025629Z-42c5382d` (cargo24s).
+Its full cargo SHA256 is
+`927b44127fbb341908438be919f15b9e691453f02883ad5c6a337707a5e9e3b1`.
+The same source's locked/offline four-crate test run
+`wp-voice-narrow-20261116T030151Z-42c5382d` passed1879/0/2
+(cargo208s), full cargo SHA256
+`c2a5a31f69efecf0b58b5e3726bacc97cb9b9c34ac3d3b70bd3562b6dd88cf86`.
+Actual spec/step logs bind each receipt to its source and arguments. All six
+draft tests, both editor opening cases and all three page composition cases
+ran by name. The two existing capture tests remain ignored.
+
+This is staged fake/model and headless composition execution. It does not
+qualify an OS modal/assistive technology/physical IME, secure clipboard or
+secret-store flow, real provider, microphone, model loader or final native
+package/capture/review. The page remains unregistered. Secure-field receiving
+source/narrow evidence is not its final privacy/handoff release; no such field
+is adopted here. Actual sheet composition, draft save/partial credential
+controller, real node field/adapter and voice activation are still owed.
