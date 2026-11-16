@@ -79,7 +79,9 @@ relabelled as proof for this assembly.
 The lead announced b54abbdc green (native1755/0/2, wasm0), including G4 final51.
 This owner preparation now incorporates that line through the primary C5
 base merge, preserving the canonical field/IME/shortcut split and new field
-defaults. Root crates and locks match the announced base. G4 selected/delivery
+defaults. Root crates and the root lock match the announced base. The native lock retains
+C5's one existing View dependency edge to already-locked serde-saphyr, with no
+new package version. G4 selected/delivery
 files are unchanged. The receiving owner assembly still needs its own checks;
 the separately reviewed small shown-source producer remains the G1 handoff
 path and does not carry this full file-owner join.
