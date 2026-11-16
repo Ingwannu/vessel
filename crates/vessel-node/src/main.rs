@@ -20,20 +20,14 @@ use vessel_harness::HarnessEnv;
 use vessel_node::{Config, DataDir, Node, VesselMcp};
 
 mod daemon_args;
+mod daemon_logging;
 use daemon_args::{Args, Bind, Command, RelayArgs, Run};
 
 #[tokio::main]
 async fn main() -> ExitCode {
     let args = Args::parse();
     let attaching = matches!(args.command, Some(Command::Attach));
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_unset| if attaching { "warn" } else { "info" }.into()),
-        )
-        .with_writer(std::io::stderr)
-        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
-        .init();
+    daemon_logging::init(attaching);
 
     // A relay keeps nothing on disk: it needs no data directory (nor a home).
     let command = match args.command {
