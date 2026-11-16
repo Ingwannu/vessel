@@ -38,3 +38,18 @@ capability is added. Existing invalidation-only scope remains distinct. Required
 before even a staged receiving claim: exact source review and actual changed
 proto/node strict plus fake-runtime tests. Production use additionally requires
 the concrete capsule and retained settlement supervision contracts and tests.
+
+
+## A7 fixture ownership correction
+
+The original outer 120-second bound remains. Setup, create, find, ready, original
+watch invalidation and ended-handle shutdown have named ten-second phases. One
+bounded test-only task retains the actual fixture from setup through physical
+runtime shutdown, task-tracker drain and Store close. Assertion unwinds are caught
+only to run cleanup before resuming the original failure. Drain observer deadlines
+are separate named phases and do not cancel the retained owner or report physical
+release. Completion signals are emitted only after the actual operation settles.
+A deliberate assertion-failure regression starts a real fake handle and proves
+that cleanup ends it. Original principal/grant/stamp/old-vs-new/retire/ended
+assertions and product timeouts are retained. No inherited fixture is rewritten,
+no product fault seam is added and no positive admission is inferred.
