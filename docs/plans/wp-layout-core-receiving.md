@@ -57,6 +57,24 @@ failed one App-test lint: cloning the expected context to make a one-element
 slice. The correction borrows that same expected context with `from_ref`; no
 production validation, ordering or test expectation changes. Tests did not run.
 
+## Next announced-line receiving checkpoint
+
+The next worktree merges announced package base14.1 `b54abbdc` after the frozen
+base13 receiving run. It preserves the installed owner notification and exact
+full sealed-binding retirement path, the canonical bundle constructor, B2's
+captured Plain callback and composer Enter stop. Incoming field composition and
+Code/MD form presentation changes remain intact, with the lower639-line session
+root cap. This changed native union needs its own receiving checks; prior82/83
+execution is not attributed to it.
+
+The announced line includes the real G4 Scenario/actor fixture, but its Devices
+close path drains only its own eight calls. A resident consumer must supply its
+own bounded operation/subscription settlement and cleanup. The SDK typed
+`LogEnd` cause is not present on this announced client source, so generic EOF
+cannot authorize expected-end sealing. Runtime WorkspaceLookup and the populated
+Attachments/Subagents owner handoffs remain explicitly unavailable here. No
+shared selected/guard export or live follow/owner promotion is performed.
+
 ## Executed receiving union
 
 Exact `31bc64fea1a17c685a90bbe47493e610bef265fe` completed requested locked
