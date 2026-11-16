@@ -1247,3 +1247,14 @@ local operation after the existing overlay/IME checks, just as compact windows
 do. A real-field regression covers an empty book with a nested Theme page.
 This is a full F4 consumer seam; the smaller shared producer's older palette
 has no nested-page Back operation. Neither adds another global listener.
+
+
+Announced14.1 main union exact5ebb31b0 executed App196/0/2, Kit272/0/0,
+View1128/0/0 and integrations/examples142/0/0: total1738/0/2 in run
+wp-commands-20261116T024729Z-5ebb31b0. The three new book admission cases,
+desktop stand-in, sidebar focus exit, code-editor composition and incoming
+revision regression explicitly passed. This precedes the added local-page Back
+case. Its paired strict run wp-commands-narrow-20261116T024729Z-5ebb31b0 failed
+only a new documentation backtick around saved_entries in admission.rs. That
+comment is corrected without a lint allowance; current App checks remain owed.
+No whole gate or first-use capture result is implied by this narrow suite.
