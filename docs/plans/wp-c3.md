@@ -1257,3 +1257,16 @@ Coordinator explicitly confirms queued-only supersession for the known-red
 App9c test; preserve its terminal143 evidence, then one ordinary corrected-source
 replacement after preflight. The independent Kit-only9c owner test remains in
 place. No body runtime/Clippy/consumer approval exists until actual successors.
+
+## Actual146 compile return: Div ordering and fixture inference
+
+Exact146 strict returned101: on_children_prepainted belongs to plain Div, so
+attach it BEFORE id converts the row to Stateful; the original namespace/id is
+retained. The new fixture's parsed path vector also needs its explicit existing
+Vec<RelPath> type. No geometry/input/selection rule or assertion is weakened.
+The standalone source/doc/token/size scans pass on the correction. Under the
+coordinator's confirmed queued-only standing approval, supersede ONLY the still
+queued146 App git test, retaining cancelled143 evidence before one ordinary
+successor. The unaffected Kit-only9c owner test stays untouched. All actual body
+runtime/strict outcomes remain pending, and the static visible-cache pressure
+question is recorded separately; no body consumer-ready or parity claim.

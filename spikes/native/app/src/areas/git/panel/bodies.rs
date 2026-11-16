@@ -5,7 +5,7 @@
 //! - Only an intersecting, actually prepainted section schedules admission.
 //!   The deferred callback still validates its original pane/epoch/summary.
 //! - Retain at most32 file payloads/engines globally, each already capped by
-//!   FilePages, with at most4 locally pending reads. This bounds retained
+//!   `FilePages`, with at most4 locally pending reads. This bounds retained
 //!   payloads, not total process/transport memory. Evict complete LRU entries,
 //!   never a pending entry or the engine owning keyboard selection.
 //! - Reuse the Link's tracked calls. Eviction neither aborts nor replays work;

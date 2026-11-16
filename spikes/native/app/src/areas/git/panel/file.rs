@@ -82,7 +82,6 @@ pub(super) fn row(
     );
     let owner = cx.entity().downgrade();
     div()
-        .id(("git-file-section", index))
         .w_full()
         .child(
             div()
@@ -110,6 +109,7 @@ pub(super) fn row(
                     owner.update(cx, |shell, cx| shell.git_panel_file(&captured, window, cx));
             });
         })
+        .id(("git-file-section", index))
         .into_any_element()
 }
 

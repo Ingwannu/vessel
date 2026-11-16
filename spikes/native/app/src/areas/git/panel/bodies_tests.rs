@@ -26,7 +26,7 @@ fn prepare(
     };
     assert_eq!(*prefs, shell.prefs);
     assert!(inbox.try_recv().is_err());
-    let paths = (0..count)
+    let paths: Vec<RelPath> = (0..count)
         .map(|at| format!("source/{at}.rs").parse().unwrap())
         .collect::<Vec<_>>();
     let git = &mut shell.areas.git;
