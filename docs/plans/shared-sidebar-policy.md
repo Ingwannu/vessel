@@ -129,7 +129,7 @@ corrected-source tests and the one replacement export are still owed.
 ## Corrected source and original capture result
 
 Exact6d00a04f passed strict all-target View/App Clippy and App+View execution
-on build-vm. Runs shell2-narrow-20261115T182800Z-6d00a04f and
+on the build VM. Runs shell2-narrow-20261115T182800Z-6d00a04f and
 shell2-narrow-20261115T183347Z-6d00a04f both have fonts0/cargo0; raw total
 1188/0/2 (App96/0/2, View960/0/0, contracts10+3, page117, docs2).
 The changed View and App actually compile. The exact600 real-root fixture,
@@ -148,7 +148,7 @@ portable source; they prove no new node behavior. The unmodified fleet.sh
 completed pairing, fixtures and seeding with exit0 under UID/GID1000.
 
 Eight valid originals are in
-/tmp/work/m12-shell-s2/policy-capture-corrected-v2/captures.
+the policy-capture-corrected-v2 capture packet.
 Recipe, complete source/binary/PNG SHA and actual window geometry, preference
 assertions, input sequence, ownership/modes and cleanup are beside them in
 RECIPE.md and capture-manifest.json. Each of the eight was personally opened.

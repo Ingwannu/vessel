@@ -573,7 +573,7 @@ V1 bounded SOURCE / requested Kit NARROW passed exact d0954f4b + docs2599:
 private per-open allocation lease, automatic pointer focus fence, recognized-key
 and modal-outside containment. Both direct-cycle and nested-parent P2 closed;
 Kit173/0/0 and strict Kit Clippy0 with actual changed crate compile/check.
-Audit /tmp/work/m12-review/s2-menu-lease-d095/audit.json. The isolated producer
+Audit s2-menu-lease-d095/audit.json in the retained review packet. The isolated producer
 was handed to the lead separately; this F4 union is not that checked source.
 
 Merge keeps the F4 path model/reset, the one extracted enhanced row body and
@@ -876,3 +876,30 @@ approved adoption; lead merged de800 and announced base12 green. This is
 ordinary-sidebar policy evidence only: the inherited600 Hidden composer can
 extend beyond the right edge, and full F4/body responsiveness is not approved.
 The main controls, hierarchy and settings remain a separate unchecked union.
+
+
+## Typed sidebar refusal compatibility
+
+[Decision Log]
+- Purpose: sidebar edit capacity refusal must survive language changes without
+  assigning a raw String to the shared typed Settings refusal field.
+- Existing asset: L's one PreparedRefusal retains the model cause, prepares the
+  complete translated message before paint, re-prepares on language changes and
+  clears on the existing successful preference path.
+- Choice: add one private Reason wrapper for Preference(Refused) or the actual
+  sidebar navigation TooMany. A narrow Shell helper owns installation; both own
+  edit callers pass the real typed failure. Reuse the existing Sidebar FTL getter.
+- Why: another error store, a fabricated machine/shortcut refusal or a new
+  preference variant would lose cause or duplicate persistence/language policy.
+- Impact: no preference, writer, number literal or raw Error Display is added.
+  L/E2 confirmed no competing module edits. Existing whole-message goldens stay;
+  an actual EN-to-KO dispatch regression retains the new cause and composer.
+
+The two sidebar InfoTip test mouse moves supply the vendored GPUI's existing
+Modifiers::none argument. Their input locations/assertions and geometry remain
+unchanged. These source fixes correct the exact completed18d strict failure;
+changed-head strict/runtime tests remain owed, no prior pass is promoted.
+
+Source preflight additionally found four unit assertion tails without semicolons
+in own sidebar tests. Add only the terminators; retain every assertion, fixture
+and input sequence before the next remote check.

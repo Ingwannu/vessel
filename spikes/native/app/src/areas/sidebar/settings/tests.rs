@@ -155,7 +155,7 @@ fn actual_reorder_buttons_obey_boundaries_and_source_row_density(cx: &mut TestAp
                     assert_eq!(
                         super::super::navigation::items(probe.shell.read(cx), Section::Header),
                         before
-                    )
+                    );
                 });
                 show(&probe, cx, Surface::Row(Builtin::Schedules));
                 click_control(&probe, cx, Control::Down, width);
@@ -189,7 +189,7 @@ fn actual_visibility_switch_hides_and_restores_the_shared_search_opener(cx: &mut
                 click_control(&probe, cx, Control::Toggle, width);
                 show(&probe, cx, Surface::Search);
                 probe.read_with(cx, |probe, _| {
-                    assert!(probe.seen.borrow().is_empty(), "hidden Search has no row")
+                    assert!(probe.seen.borrow().is_empty(), "hidden Search has no row");
                 });
                 show(&probe, cx, Surface::Row(Builtin::Search));
                 click_control(&probe, cx, Control::Toggle, width);
@@ -206,7 +206,7 @@ fn actual_visibility_switch_hides_and_restores_the_shared_search_opener(cx: &mut
                     assert!(
                         probe.shell.read(cx).areas.palette.is_open(),
                         "existing real opener runs"
-                    )
+                    );
                 });
             }
         }
@@ -259,7 +259,7 @@ fn actual_title_info_uses_sidebar_density_and_clears_on_each_existing_settings_e
                     if width < 600.0 {
                         cx.simulate_click(info.center(), Modifiers::none());
                     } else {
-                        cx.simulate_mouse_move(info.center(), None);
+                        cx.simulate_mouse_move(info.center(), None, Modifiers::none());
                     }
                     cx.run_until_parked();
                     probe.read_with(cx, |probe, cx| {
@@ -304,7 +304,7 @@ fn actual_title_info_uses_sidebar_density_and_clears_on_each_existing_settings_e
                     });
                     cx.run_until_parked();
                     // Leaving a hover target makes the next actual enter observable.
-                    cx.simulate_mouse_move(point(px(1.0), px(440.0)), None);
+                    cx.simulate_mouse_move(point(px(1.0), px(440.0)), None, Modifiers::none());
                     cx.run_until_parked();
                 }
             }

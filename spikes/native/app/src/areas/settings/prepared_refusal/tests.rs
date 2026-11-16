@@ -106,3 +106,35 @@ fn an_action_limit_refusal_is_cleared_by_the_same_success_path_as_before(
         |shell| assert!(shell.areas.settings.refused.is_none()),
     );
 }
+
+#[gpui::test]
+fn a_sidebar_limit_refusal_reprepares_its_retained_cause_when_language_changes(
+    cx: &mut gpui::TestAppContext,
+) {
+    use super::Reason;
+    use vessel_app_view::sidebar::navigation::TooMany;
+    language_tests::init(cx);
+    language_tests::preserves(
+        cx,
+        |shell, _window, cx| {
+            let before = shell.prefs.clone();
+            shell.sidebar_navigation_refused(TooMany, cx);
+            assert_eq!(shell.prefs, before);
+            let refused = shell.areas.settings.refused.as_ref().unwrap();
+            assert_eq!(refused.reason, Reason::SidebarNavigation(TooMany));
+            assert_eq!(
+                refused.words.as_ref(),
+                "The sidebar settings could not be saved because the item limit was reached."
+            );
+        },
+        |shell| &shell.areas.session.composer,
+        |shell| {
+            let refused = shell.areas.settings.refused.as_ref().unwrap();
+            assert_eq!(refused.reason, Reason::SidebarNavigation(TooMany));
+            assert_eq!(
+                refused.words.as_ref(),
+                "항목 수가 한도에 도달해 사이드바 설정을 저장하지 못했습니다."
+            );
+        },
+    );
+}

@@ -162,7 +162,7 @@ fn sidebar_callout_nondismissible_provider_cannot_bypass_shared_admission(cx: &m
     cx.run_until_parked();
     assert_eq!(dismissed.get(), 0);
     shell.read_with(cx, |shell, _| {
-        assert!(shell.areas.sidebar.callouts.admission.active().is_some())
+        assert!(shell.areas.sidebar.callouts.admission.active().is_some());
     });
 }
 

@@ -275,11 +275,7 @@ impl Shell {
                 window,
                 cx,
             ),
-            Err(_) => {
-                self.areas.settings.refused =
-                    Some(self.words.sidebar().navigation_limit().to_owned());
-                cx.notify();
-            }
+            Err(reason) => self.sidebar_navigation_refused(reason, cx),
         }
     }
     fn sidebar_set_item_visible(
@@ -306,11 +302,7 @@ impl Shell {
                     cx,
                 );
             }
-            Err(_) => {
-                self.areas.settings.refused =
-                    Some(self.words.sidebar().navigation_limit().to_owned());
-                cx.notify();
-            }
+            Err(reason) => self.sidebar_navigation_refused(reason, cx),
         }
     }
 }
