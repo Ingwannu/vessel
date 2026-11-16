@@ -170,7 +170,7 @@ fn pane_view(
             row.child(tab_view(shell, tab, pane, workspace, tokens, cx))
         });
     let drop_key = workspace.clone();
-    let controls = super::header::controls(shell, pane, tokens, window, cx);
+    let controls = super::header::controls(shell, layout, pane, tokens, window, cx);
     let content = match pane.focused().and_then(|id| layout.tab(id)) {
         Some(tab) => registry::render(
             shell,
