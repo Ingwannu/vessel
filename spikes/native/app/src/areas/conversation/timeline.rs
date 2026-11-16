@@ -91,6 +91,7 @@ pub(crate) fn rows(
     }
     // A fork's origin's rows come first (`origin`).
     let head = area.head();
+    let scope = seat.render_scope();
     let origin = seat.origin();
     let row_seat = seat.clone();
     let list = area
@@ -105,12 +106,15 @@ pub(crate) fn rows(
             }),
         )
         .into_any_element();
-    div()
+    let root = div()
         .size_full()
         .relative()
         .child(list)
-        .children(super::tool_sheet::overlay(shell, seat, tokens, window, cx))
-        .into_any_element()
+        .children(super::tool_sheet::overlay(shell, seat, tokens, window, cx));
+    match scope {
+        Some(scope) => root.id(scope.element()).into_any_element(),
+        None => root.into_any_element(),
+    }
 }
 
 /// How the rows of `area` (kept at `seat`) are drawn.
@@ -154,6 +158,22 @@ fn rewinds(shell: &Shell, area: &ConversationArea) -> bool {
 /// Row `row`: its entry, in the lane; a folded run's lead with the run's
 /// summary over it.
 fn row_element(
+    shell: &Shell,
+    seat: Seat,
+    row: usize,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    match seat.render_scope() {
+        Some(scope) => scope.with(window, |window| {
+            row_body(shell, seat, row, tokens, window, cx)
+        }),
+        None => row_body(shell, seat, row, tokens, window, cx),
+    }
+}
+
+fn row_body(
     shell: &Shell,
     seat: Seat,
     row: usize,

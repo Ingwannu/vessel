@@ -57,3 +57,15 @@ text), still using the same Markdown/selection engine. This is a static source
 correction, not an executed failure or source-identity/selection authority proof.
 Full resident/claim/origin scoping remains mandatory for all mounted controls;
 W12's canonical token-display producer is still pending.
+
+The consumer takes ONLY W12's97de canonical Display leaf as a component qualified
+by Core83 for A7 preparation, not the moving Core or product resources. Display
+bytes are captured once into RenderScope with structurally separate claim and
+origin components. Roots expose the same scope to the retained row/body controls;
+compact sheets explicitly retain its sheet child namespace outside the row.
+Only admitted construction remains cfg(test). Legacy surfaces receive no fake
+resident identity, and no private token fields or Debug/hash-only key is used.
+A real Window keyed-state regression exercises the same scope wrapper for two
+owner-minted claims and row/portal paths across reordering and warm draws. It is
+not a clipboard/scroll gesture, paint/raster, input lease or live resource proof;
+all receiving execution remains owed on this new source.

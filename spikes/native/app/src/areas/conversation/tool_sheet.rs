@@ -236,6 +236,21 @@ pub(super) fn overlay(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    match seat.render_scope() {
+        Some(scope) => scope.sheet().with(window, |window| {
+            overlay_body(shell, seat, tokens, window, cx)
+        }),
+        None => overlay_body(shell, seat, tokens, window, cx),
+    }
+}
+
+fn overlay_body(
+    shell: &Shell,
+    seat: Seat,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
     let area = seat.get(shell)?;
     let shown = area.tool_sheet.shown.as_ref()?;
     let generation = shown.generation;

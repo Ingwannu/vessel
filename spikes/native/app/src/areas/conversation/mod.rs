@@ -79,6 +79,7 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+mod render_scope;
 #[cfg(test)]
 mod resident;
 mod rewind;

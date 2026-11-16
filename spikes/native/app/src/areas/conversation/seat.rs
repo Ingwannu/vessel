@@ -4,6 +4,7 @@ use super::ConversationArea;
 #[cfg(test)]
 use super::ResidentSeat;
 use super::area::Shown;
+use super::render_scope::RenderScope;
 use crate::shell::Shell;
 use std::sync::Arc;
 #[cfg(test)]
@@ -16,9 +17,22 @@ pub(crate) enum Seat {
         read: fn(&Shell) -> Option<&ConversationArea>,
         write: fn(&mut Shell) -> Option<&mut ConversationArea>,
     },
-    Origin(Arc<Self>),
+    Origin(Arc<OriginSeat>),
     #[cfg(test)]
-    Admitted(Arc<ResidentSeat>),
+    Admitted(Arc<AdmittedSeat>),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct OriginSeat {
+    parent: Seat,
+    scope: Option<RenderScope>,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct AdmittedSeat {
+    owner: ResidentSeat,
+    scope: RenderScope,
 }
 
 impl Seat {
@@ -40,18 +54,24 @@ impl Seat {
     #[cfg(test)]
     #[must_use]
     pub(crate) fn admitted_main(context: SessionContext) -> Self {
-        Self::Admitted(Arc::new(ResidentSeat::main(context)))
+        Self::Admitted(Arc::new(AdmittedSeat {
+            scope: RenderScope::admitted(&context),
+            owner: ResidentSeat::main(context),
+        }))
     }
 
     /// One level from THIS parent. Repetition derives deeper origins recursively.
     #[must_use]
     pub(crate) fn origin(&self) -> Self {
-        Self::Origin(Arc::new(self.clone()))
+        Self::Origin(Arc::new(OriginSeat {
+            parent: self.clone(),
+            scope: self.render_scope().map(|scope| scope.origin()),
+        }))
     }
 
     pub(super) fn origin_parent(&self) -> Option<&Self> {
         match self {
-            Self::Origin(parent) => Some(parent),
+            Self::Origin(parent) => Some(&parent.parent),
             Self::Legacy { .. } => None,
             #[cfg(test)]
             Self::Admitted(_) => None,
@@ -62,7 +82,7 @@ impl Seat {
     /// Derived origins never borrow a selected successor's title catalogue.
     pub(super) fn root_get<'a>(&self, shell: &'a Shell) -> Option<&'a ConversationArea> {
         match self {
-            Self::Origin(parent) => parent.root_get(shell),
+            Self::Origin(parent) => parent.parent.root_get(shell),
             Self::Legacy { .. } => self.get(shell),
             #[cfg(test)]
             Self::Admitted(_) => self.get(shell),
@@ -72,7 +92,7 @@ impl Seat {
     /// Legacy accounting stays legacy. Scoped failures never consult that path.
     pub(super) fn origin_height(&self, shell: &Shell) -> Option<usize> {
         match self {
-            Self::Origin(parent) => parent.get(shell).map(ConversationArea::head),
+            Self::Origin(parent) => parent.parent.get(shell).map(ConversationArea::head),
             Self::Legacy { .. } => Some(shell.areas.conversation.head()),
             #[cfg(test)]
             Self::Admitted(_) => None,
@@ -83,9 +103,9 @@ impl Seat {
     pub(crate) fn get<'a>(&self, shell: &'a Shell) -> Option<&'a ConversationArea> {
         match self {
             Self::Legacy { read, .. } => read(shell),
-            Self::Origin(parent) => parent.get(shell)?.origin.area(),
+            Self::Origin(parent) => parent.parent.get(shell)?.origin.area(),
             #[cfg(test)]
-            Self::Admitted(seat) => seat.get(shell),
+            Self::Admitted(seat) => seat.owner.get(shell),
         }
     }
 
@@ -93,9 +113,19 @@ impl Seat {
     pub(crate) fn get_mut<'a>(&self, shell: &'a mut Shell) -> Option<&'a mut ConversationArea> {
         match self {
             Self::Legacy { write, .. } => write(shell),
-            Self::Origin(parent) => parent.get_mut(shell)?.origin.area_mut(),
+            Self::Origin(parent) => parent.parent.get_mut(shell)?.origin.area_mut(),
             #[cfg(test)]
-            Self::Admitted(seat) => seat.get_mut(shell),
+            Self::Admitted(seat) => seat.owner.get_mut(shell),
+        }
+    }
+
+    /// A clone of one capture-time presentation scope, shared by rows and sheets.
+    pub(super) fn render_scope(&self) -> Option<RenderScope> {
+        match self {
+            Self::Legacy { .. } => None,
+            Self::Origin(origin) => origin.scope.clone(),
+            #[cfg(test)]
+            Self::Admitted(seat) => Some(seat.scope.clone()),
         }
     }
 
