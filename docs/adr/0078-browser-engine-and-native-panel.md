@@ -864,3 +864,99 @@ Qualification includes absent/unknown/On restart persistence, concurrent unrelat
 updates, failed-write atomicity, later-build backup and private service-account
 files; direct/delegated/agent authority; pending/old-peer and nested-envelope
 refusals before writes; and no session offer/engine claim from a saved On alone.
+
+## Proposed bounded workspace-upload staging contract
+
+[Decision Log]
+- Purpose: complete browser_upload without allowing page-controlled or caller
+  filesystem names to select arbitrary node files, and without retaining an
+  unbounded number of staged files after a command completes.
+- Existing assets: workspace RelPath owns the4096 UTF-8-byte path ceiling;
+  workspace panel_files owns the64MiB transfer ceiling and256KiB chunk ceiling.
+  The store/fleet already use safe directory-relative regular-file operations.
+  W13's read-bytes API hashes each bounded read pass but explicitly retains
+  ADR0027's ancestor-replacement race: it exports no pinned-root/source-handle
+  authority. A hash, canonical path or successful read is not such authority.
+- Alternatives: direct caller paths (the reference), reuse checked-path reads
+  alone, or a new generic filesystem sandbox/dependency. None supplies both the
+  retained source boundary and upload lifetime.
+- Choice: add a narrow anchored source/staging boundary, reuse existing safe
+  directory-relative filesystem facilities, quotas and supervised owners, and
+  keep the upload executor unavailable until this boundary is reviewed/tested.
+  Do not change the general file-reader contract or invent a file RPC to bypass it.
+- Benefits/costs: bounded node storage and no symlink-path escape; stricter
+  file/path/platform admission and visible Busy/Unsupported outcomes. Staging
+  adds I/O and retained storage. This is not a filesystem snapshot guarantee.
+
+Reference desktop browser-automation/service.ts:1383–1473 resolves requested
+paths relative to the request cwd, checks lexical containment, sends the
+resolved absolute paths to DOM.setFileInputFiles, and returns those paths.
+It declares no corresponding count/staging quota. Vessel instead obtains the
+workspace/root from authenticated session or direct-human owner context,
+never from cwd, a page value, a tool-selected root or a supplied digest.
+
+The first implementation's named owners are:
+
+| Resource | Single owner and bound | Why |
+| --- | --- | --- |
+| One upload path | Reuse RelPath::MAX_BYTES4096 measured in UTF-8; no second path-limit constant | Match the workspace path envelope before filesystem work. Absolute compatibility input is still untrusted and must be converted beneath the admitted root before traversal. |
+| File count | proto browser/upload::MAX_UPLOAD_FILES32, shared by request decoding and node-wide retained staging admission | Bound handles/manifest entries and retained files across all profiles, not just one request. The excess item is refused before decoding its payload. |
+| Aggregate path bytes | Derived checked count × existing path ceiling, at most131072; not another independent budget | Individual and count bounds together prevent an unbounded path list. |
+| All retained staged bytes | Reuse panel_files::MAX_FILE_BYTES64MiB as the node-wide staging budget, including partial/quarantined copies | A sequence of small uploads cannot fill node storage. A single source also cannot exceed that ceiling. |
+| Copy buffer | Reuse panel_files::MAX_PAGE_BYTES256KiB | Stream through finite memory instead of loading whole files. |
+| Work and caller time | Existing finite Preparation worker ownership, browser command/input queue and ordinary command deadline | Caller cancellation does not release actual blocking work or staging quota. No new unbounded resolver/writer pool or timeout is introduced. |
+
+The node owns one staging ledger shared by General and every Preview profile.
+Reserve the complete operation's count/known byte sizes before any copy or CDP
+input effect. Refuse saturation as Busy, oversized/invalid input as Invalid,
+and missing authoritative source/platform support as Unsupported. A saved
+BrowserTools On choice grants no root or staging authority. Ledger admission
+includes existing retained/quarantined entries; process restart must reconcile
+its own private manifest/files before admission, or refuse. A new process or
+new profile must not reset accounting while old staged files remain.
+
+Open an admitted root directory as a retained handle at the authorization
+boundary, with its workspace/root/revision context. Walk relative components
+through retained directory handles with no-follow semantics. Refuse symbolic
+links, special files, .git entries and unsupported platform/path forms; do not
+canonicalize an unchecked path into a new authority. Retained directory/file
+handles are capabilities captured during this operation: a rename cannot
+replace them with unrelated path contents. This does not claim that a retained
+subdirectory remains at the same pathname after a rename. Recheck the owner
+context before effect admission; do not turn a later registry revision into
+authority for the old operation. Source construction/copy tests must include
+component replacement barriers and independent outside-file canaries.
+
+Only a regular source handle may be copied. Staging names/paths are node-owned
+opaque identifiers, not source names, and the private destination is newly
+created without following links. Verify owner/type/link/size on actual handles;
+staged files are0600 beneath0700 directories. Reject multiply linked sources
+for this first implementation rather than silently sharing another path's
+object. Copy at most each reserved size, detect growth/shrink before attaching,
+and retain the digest of the actual staged bytes. Stamp/hash checks describe
+those bytes, not an atomic point-in-time source snapshot or root authority.
+No path/bytes become diagnostics, persisted layout or another tool argument.
+
+A successful DOM.setFileInputFiles acknowledgement does not prove Chrome or
+the page has finished reading a selected file. Keep the corresponding staged
+files and quota with the target owner until actual target/profile cleanup,
+not just command acknowledgement, upload HTTP completion or caller drop.
+Replacement selections may conservatively retain old copies until that same
+cleanup. Failure/timeout retains partial files and quota through actual cleanup;
+failed cleanup quarantines them and blocks reuse. Startup reconciliation and
+accounting/deletion errors are typed refusals, never an empty-ledger fallback.
+
+The result returns bounded workspace-relative source names only after real
+selection acknowledgement; private staging paths never leave the node. This
+is a deliberate privacy/platform difference from the reference's resolved
+absolute filePaths. File count/byte limits, strict symlink/hardlink refusal,
+retained private copies and unsupported-platform refusal are deliberate
+security/resource differences. No upload/file navigation authority, protocol
+number, engine readiness or executable release follows from this contract.
+
+Before wiring: controlled source/destination substitution, FIFO/symlink/hardlink
+and outside-canary cases; copy growth/shrink/cancellation and failed deletion;
+node-wide count/byte saturation across profiles; restart with retained or
+malformed manifests; actual service-account permissions; actual browser lazy
+file read after command completion and target cleanup. A fake selected name or
+controlled copy does not qualify actual browser use or Windows containment.
