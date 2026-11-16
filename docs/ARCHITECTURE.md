@@ -1884,6 +1884,17 @@ Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
 
+### Legacy workspace cleanup fence
+
+Existing project/worktree destructive routes consult canonical registry descriptor
+and backing-reservation ownership under retained project metadata admission.
+`Store::registry_project_reference` reads both sources in one transaction; no
+cwd-derived registry is built. Removal retains its bounded hold through the
+actual tracked teardown/Git/Store operation. Every retained lifecycle/stage blocks
+legacy cleanup; dedicated workspace cleanup still requires its independent
+lifecycle/generation/resource/physical-root proofs. This safety prerequisite adds
+no method, protocol or schema. See `docs/plans/workspace-legacy-removal-fence.md`
+for the conservative project scope, serialization tradeoff and owed tests.
 
 ## RPC caller-drop admission (ADR0080 prerequisite)
 
