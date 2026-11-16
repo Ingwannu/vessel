@@ -189,10 +189,9 @@ fn the_pencil_and_the_swatches_are_named_as_paseos(cx: &mut TestAppContext) {
     // The pencil: a button named "Edit {name}" (built by the same catalog
     // call, so Fluent's isolation marks around the name match).
     let named = |name: &str| {
-        let words = vessel_app_view::localization::Translator::get(
-            vessel_app_view::localization::ENGLISH,
-        )
-        .unwrap();
+        let words =
+            vessel_app_view::localization::Translator::get(vessel_app_view::localization::ENGLISH)
+                .unwrap();
         let text = words.labels().edit_named(name).unwrap();
         assert!(text.starts_with("Edit ") && text.contains(name));
         format!(r#""label": "{text}""#)
