@@ -1,59 +1,55 @@
-//! The app's one key listener (DESIGN.md §7.1; the page's
-//! `features/shortcuts/listener.ts`) and the shortcuts the shell answers
-//! (its `features/shell/use-shell-shortcuts.ts`, `use-new-session.ts` and
-//! the palette's): a key press becomes a chord, the chord an action with
-//! the person's overrides (`view::shortcuts`), and the action runs here.
+//! One native key interceptor over view's canonical binding registry. It owns
+//! event admission, chord state and capture; feature callbacks own all effects.
+//! The default predicates protect editing/terminal/center scopes, while native
+//! editing, `CharacterInput` and IME guards remain effective after rebinding.
 //!
-//! The rules are the page's: a chord with Mod, Ctrl, Alt or Meta fires
-//! while typing in a field, one without (`N`, `/`, `G S`) stands down; no
-//! key fires while Settings › Shortcuts records one. The listener hears a
-//! key before anything else does (GPUI's keystroke interceptor), so an
-//! action that acts takes the key from the field and the controls (the
-//! page's `preventDefault`); one that does not leaves it to them. While an
-//! input method composes in any kit field
-//! ([`vessel_app_kit::TextField::focused_composing`]), the listener stands
-//! down, so a key the input method needs (Enter to commit a syllable) is
-//! never taken for a shortcut.
-//!
-//! Every app-wide key is here: Find (track C's find bar,
-//! `Shell::conversation_find`), the composer's focus, the sidebar and the
-//! session's right panel (track F's code panel, `Shell::toggle_code`), and
-//! GOAT's two queue keys (track C's `conversation_steer_next` and
-//! `conversation_edit_latest_queued`). Keys a control keeps for itself
-//! while it has focus (a menu's arrows, a dialog's Escape) stay with it.
+//! Settings, help and hint chips read the same effective registry. Menu/dialog
+//! ownership comes from the kit key-context marker, not inferred open flags.
+//! Local control keys remain with their controls whenever no owner handles a
+//! shortcut, including an unavailable feature or a missing index payload.
 
+use std::collections::BTreeMap;
 use std::time::Instant;
 
 use gpui::{InputPreference, KeystrokeEvent};
 use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{App, Context, Subscription, Window};
-use vessel_app_view::prefs::PreferenceChange;
+use vessel_app_view::prefs::{ActionId, Bindings};
 use vessel_app_view::settings::Section;
-use vessel_app_view::shortcuts::{
-    Action, Held, KeyPress, Matched, Pending, Platform, ShortcutScope, chord_of, code_of,
-    commanding, matched,
+use vessel_app_view::shortcuts::context::{
+    Admission, CommandCenterState, FocusScope, ShortcutContext,
 };
-use vessel_app_view::sidebar::{Step, step_session};
+use vessel_app_view::shortcuts::engine::{
+    Consume, EffectiveBinding, Engine, KeyRepeat, Resolution,
+};
+use vessel_app_view::shortcuts::{
+    Action, Held, KeyPress, Platform, RegistryError, chord_of, code_of, default_context,
+    effective_bindings,
+};
 
+mod badges;
+mod core;
+pub(crate) mod dispatch;
+pub(crate) mod help_dialog;
+#[cfg(test)]
+mod interaction_tests;
+mod layout;
 pub(crate) mod page;
 #[cfg(test)]
 mod tests;
 
-use super::session::Open;
 use crate::routes::Route;
 use crate::shell::Shell;
-
-/// C2's T1 terminal surface is not integrated yet: the session area
-/// draws a placeholder, with no terminal that can hold focus. T1 will
-/// replace this seam with its actual focus query when the surface lands.
-fn terminal_focused(_shell: &Shell) -> bool {
-    false
-}
 
 /// What the listener keeps between presses.
 pub(crate) struct ShortcutListener {
     /// A sequence's first press (`G` of `G S`), until the next.
-    pending: Option<Pending>,
+    engine: Engine,
+    compiled: CompiledBindings,
+    dispatch: dispatch::NativeDispatcher,
+    core_registration: Option<dispatch::Registration>,
+    layout_registration: Option<dispatch::Registration>,
+    help: help_dialog::HelpDialog,
     /// When the app started: a press's time is counted from it.
     since: Instant,
     /// Settings › Shortcuts (its recorder: while a row records, nothing
@@ -61,18 +57,49 @@ pub(crate) struct ShortcutListener {
     pub(crate) page: page::ShortcutsPage,
     /// The interceptor, kept for as long as the window.
     subscription: Option<Subscription>,
+    window_observers: Option<(Subscription, Subscription)>,
     /// The chord held down, to tell the system's repeat from a press.
     held: Held,
+    badge_reveal: vessel_app_view::shortcuts::badges::Reveal,
+    badge_when: Option<vessel_app_view::shortcuts::context::When>,
+    badge_task: Option<gpui::Task<()>>,
+}
+
+#[derive(Default)]
+struct CompiledBindings {
+    overrides: Option<BTreeMap<ActionId, Bindings>>,
+    bindings: Vec<EffectiveBinding<Action>>,
+}
+
+impl CompiledBindings {
+    fn refresh(&mut self, overrides: &BTreeMap<ActionId, Bindings>) -> Result<bool, RegistryError> {
+        if self.overrides.as_ref() == Some(overrides) {
+            return Ok(false);
+        }
+        let bindings = effective_bindings(overrides, default_context(Platform::native()))?;
+        self.bindings = bindings;
+        self.overrides = Some(overrides.clone());
+        Ok(true)
+    }
 }
 
 impl ShortcutListener {
-    pub(crate) fn new(cx: &mut App) -> Self {
+    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
-            pending: None,
+            engine: Engine::default(),
+            compiled: CompiledBindings::default(),
+            dispatch: dispatch::NativeDispatcher::default(),
+            core_registration: None,
+            layout_registration: None,
+            help: help_dialog::HelpDialog::new(window, cx),
             since: Instant::now(),
             page: page::ShortcutsPage::new(cx),
             subscription: None,
+            window_observers: None,
             held: Held::default(),
+            badge_reveal: vessel_app_view::shortcuts::badges::Reveal::default(),
+            badge_when: None,
+            badge_task: None,
         }
     }
 
@@ -81,15 +108,39 @@ impl ShortcutListener {
     pub(crate) fn released(&mut self) {
         self.held.release();
     }
-
-    /// Milliseconds since the app started.
-    fn now(&self) -> u64 {
-        u64::try_from(self.since.elapsed().as_millis()).unwrap_or(u64::MAX)
-    }
 }
 
 /// Start listening: once, as the shell starts.
-pub(crate) fn listen(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+pub(crate) fn listen(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    if let Some(old) = shell.areas.shortcuts.core_registration.take() {
+        shell.remove_shortcut_handler(&old);
+    }
+    match dispatch::register_core(shell) {
+        Ok(registration) => shell.areas.shortcuts.core_registration = Some(registration),
+        Err(error) => tracing::warn!(%error, "shortcut core registration refused"),
+    }
+    if let Some(old) = shell.areas.shortcuts.layout_registration.take() {
+        shell.remove_shortcut_handler(&old);
+    }
+    match layout::register(shell) {
+        Ok(registration) => shell.areas.shortcuts.layout_registration = Some(registration),
+        Err(error) => tracing::warn!(%error, "layout shortcut registration refused"),
+    }
+    let activation = cx.observe_window_activation(window, |shell, window, _cx| {
+        if !window.is_window_active() {
+            shell.areas.shortcuts.engine.reset();
+            shell.areas.shortcuts.held.release();
+            badges::clear(&mut shell.areas.shortcuts);
+        }
+    });
+    let visibility = cx.observe_window_visibility(window, |shell, visibility, _window, _cx| {
+        if !visibility.is_visible() {
+            shell.areas.shortcuts.engine.reset();
+            shell.areas.shortcuts.held.release();
+            badges::clear(&mut shell.areas.shortcuts);
+        }
+    });
+    shell.areas.shortcuts.window_observers = Some((activation, visibility));
     let this = cx.weak_entity();
     let subscription = cx.intercept_keystrokes(move |event, window, cx| {
         drop(this.update(cx, |shell, cx| shell.shortcut(event, window, cx)));
@@ -101,6 +152,9 @@ pub(crate) fn listen(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
 fn press_of(event: &KeystrokeEvent) -> KeyPress {
     let stroke = &event.keystroke;
     let modifiers = stroke.modifiers;
+    // GPUI separates typed text (key_char, e.g. Option-S's ß) from the
+    // platform-normalized base key. Keep text first, then derive only the
+    // fallback identity that GPUI actually supplied; never invent a scan code.
     KeyPress {
         key: stroke
             .key_char
@@ -121,51 +175,119 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        // The toolkit still calls interceptors for AltGr/text-preferred
-        // input. In particular Ctrl+Alt+T must not steal that text.
+        // S2: this guard precedes recorder, matcher and actions. Ctrl+Alt text
+        // and an IME commit must propagate and must cancel any pending chord.
         if matches!(event.input_preference, InputPreference::CharacterInput)
             || TextField::focused_composing(window, cx)
         {
-            self.areas.shortcuts.pending = None;
+            self.areas.shortcuts.engine.reset();
+            badges::clear(&mut self.areas.shortcuts);
             return;
         }
-        let platform = Platform::native();
-        let Some(chord) = chord_of(&press_of(event), platform) else {
+        // Visibility is independent of viewport availability: a hidden wide
+        // window must neither run a command nor append to Settings capture.
+        if !window.is_visible() {
+            self.areas.shortcuts.engine.reset();
+            self.areas.shortcuts.held.release();
+            badges::clear(&mut self.areas.shortcuts);
             return;
-        };
+        }
+        let keyboard_available = available(window);
+        if !keyboard_available {
+            self.areas.shortcuts.engine.reset();
+            badges::clear(&mut self.areas.shortcuts);
+            self.areas.shortcuts.page.leave();
+        }
+        let context = self.shortcut_context(event, window, cx);
+        if context.admission == Admission::Overlay {
+            self.areas.shortcuts.engine.reset();
+            self.areas.shortcuts.held.release();
+            badges::clear(&mut self.areas.shortcuts);
+            return;
+        }
+        if !keyboard_available {
+            return;
+        }
+        let press = press_of(event);
         if self.areas.shortcuts.page.recording() {
-            // A recording ends when its page is left (Paseo's
-            // `useIsFocused`); until then every key is the row's.
+            self.areas.shortcuts.engine.reset();
             if self.route == Route::Settings && self.areas.settings.section == Section::Shortcuts {
-                self.shortcut_recorded(chord, cx);
-                cx.stop_propagation();
+                if let vessel_app_view::shortcuts::input::InputConversion::Input(input) =
+                    vessel_app_view::shortcuts::input::ShortcutInput::from_press(
+                        &press,
+                        Platform::native(),
+                    )
+                    && let Some(chord) = input.recording_chord()
+                {
+                    self.shortcut_recorded(chord, cx);
+                    cx.stop_propagation();
+                }
                 return;
             }
             self.areas.shortcuts.page.capture = None;
         }
-        let listener = &mut self.areas.shortcuts;
-        let repeat = listener.held.press(&chord);
-        let typing = event
-            .context_stack
-            .iter()
-            .any(|context| context.contains("Input"));
-        if typing && !commanding(&chord) {
-            listener.pending = None;
+        if self.command_center_owns_key(event) {
+            self.areas.shortcuts.engine.reset();
+            self.areas.shortcuts.held.release();
             return;
         }
-        let found = matched(
-            &chord,
-            listener.pending.take().as_ref(),
-            &self.prefs.settings.shortcuts,
-            listener.now(),
-            platform,
+        self.resolve_shortcut(&press, context, window, cx);
+    }
+
+    /// Admission and local controls have already kept their input. This is
+    /// still the same engine/cache/dispatcher, with no second event listener.
+    fn resolve_shortcut(
+        &mut self,
+        press: &KeyPress,
+        context: ShortcutContext,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let listener = &mut self.areas.shortcuts;
+        match listener.compiled.refresh(&self.prefs.settings.shortcuts) {
+            Ok(true) => {
+                listener.engine.reset();
+                listener.held.release();
+                badges::clear(listener);
+            }
+            Ok(false) => {}
+            Err(error) => {
+                listener.engine.reset();
+                tracing::warn!(%error, "shortcut registry refused");
+                return;
+            }
+        }
+        let repeat =
+            if chord_of(press, context.platform).is_some_and(|chord| listener.held.press(&chord)) {
+                KeyRepeat::Repeated
+            } else {
+                KeyRepeat::Initial
+            };
+        let found = listener.engine.resolve_keypress(
+            press,
+            repeat,
+            listener.since.elapsed(),
+            context,
+            &listener.compiled.bindings,
         );
         match found {
-            Matched::Wait(pending) => self.areas.shortcuts.pending = Some(pending),
-            Matched::None => {}
-            Matched::Run { action, index } => {
-                if action.enabled(self.shortcut_scope(), platform)
-                    && self.run_shortcut(action, index, repeat, window, cx)
+            Resolution::Pass => {}
+            Resolution::Waiting => cx.stop_propagation(),
+            Resolution::Run {
+                action,
+                index,
+                prevent_default: _,
+                stop_propagation,
+            } => {
+                let request = dispatch::ShortcutRequest {
+                    action,
+                    scope: action.scope(),
+                    index,
+                    context,
+                    repeat,
+                };
+                if self.dispatch_shortcut_to_owners(request, window, cx)
+                    && stop_propagation == Consume::Yes
                 {
                     cx.stop_propagation();
                 }
@@ -173,141 +295,87 @@ impl Shell {
         }
     }
 
-    /// The palette's lifetime wins over retained terminal focus.
-    fn shortcut_scope(&self) -> ShortcutScope {
-        if self.areas.palette.is_open() {
-            ShortcutScope::CommandCenter
-        } else if terminal_focused(self) {
-            ShortcutScope::Terminal
+    fn shortcut_context(
+        &self,
+        event: &KeystrokeEvent,
+        window: &Window,
+        cx: &App,
+    ) -> ShortcutContext {
+        let mut context = default_context(Platform::native());
+        context.command_center = if self.areas.palette.is_open() {
+            CommandCenterState::Open
         } else {
-            ShortcutScope::Elsewhere
-        }
-    }
-
-    /// Do what `action` says; whether it did anything (else the key goes
-    /// on to the field and the controls). The exhaustive dispatch stays
-    /// in one table so adding an action cannot leave a handler implicit.
-    fn run_shortcut(
-        &mut self,
-        action: Action,
-        index: Option<u8>,
-        repeat: bool,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) -> bool {
-        match action {
-            Action::Palette => self.open_palette(window, cx),
-            Action::NewSession => {
-                let machine = self.machine_in_view();
-                self.go(Route::Draft, window, cx);
-                if let Some(machine) = machine {
-                    self.choose_machine(machine, window, cx);
-                }
-            }
-            Action::Settings => self.open_settings(None, window, cx),
-            Action::CycleTheme => {
-                let next = self.prefs.settings.appearance.theme.next();
-                self.prefer(&PreferenceChange::Theme(next), window, cx);
-            }
-            Action::GoBoard => self.go(Route::Board, window, cx),
-            Action::GoMachines => self.open_settings(Some(Section::Overview), window, cx),
-            Action::GoSync => self.open_settings(Some(Section::Sync), window, cx),
-            Action::GoDevices => self.open_settings(Some(Section::Devices), window, cx),
-            Action::NextSession => return self.step_to(Step::Next, window, cx),
-            Action::PreviousSession => return self.step_to(Step::Previous, window, cx),
-            Action::JumpSession => return self.jump_to(index, window, cx),
-            Action::Find => {
-                if self.file_find_at_focus(window, cx) {
-                    return true;
-                }
-                if self.route != Route::Session {
-                    return false;
-                }
-                self.conversation_find(window, cx);
-            }
-            Action::FocusComposer => return self.focus_composer(window, cx),
-            Action::ToggleSidebar => self.toggle_sidebar(window, cx),
-            Action::ToggleInspector => {
-                if self.route != Route::Session {
-                    return false;
-                }
-                self.toggle_code(window, cx);
-            }
-            // GOAT: only in a session, never on a draft, and never for
-            // the system's repeat of a held key (one message per press).
-            Action::SteerQueued => {
-                return !repeat && self.route == Route::Session && self.conversation_steer_next();
-            }
-            Action::EditQueued => {
-                return self.route == Route::Session
-                    && self.areas.session.composer.at_start(window, cx)
-                    && self.conversation_edit_latest_queued(window, cx);
-            }
-        }
-        true
-    }
-
-    /// Give the composer on screen the keys: the session's, or the new
-    /// chat's; nothing on a page without one.
-    fn focus_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
-        let composer = match self.route {
-            Route::Session => &self.areas.session.composer,
-            Route::Draft => &self.areas.draft.composer,
-            Route::Board | Route::Archive | Route::Pair | Route::Settings => return false,
+            CommandCenterState::Closed
         };
-        composer.focus(window, cx);
-        true
-    }
-
-    /// The machine the window shows: the open session's, or the one the
-    /// board is scoped to (the page's `machineInView`).
-    pub(super) fn machine_in_view(&self) -> Option<String> {
-        match self.route {
+        if event
+            .context_stack
+            .iter()
+            .any(|entry| entry.contains(vessel_app_kit::popup::KEY_CONTEXT))
+            || self.areas.shortcuts.help.is_open()
+        {
+            context.admission = Admission::Overlay;
+        }
+        let composer_focused = match self.route {
             Route::Session => self
                 .areas
                 .session
-                .open
-                .as_ref()
-                .map(|open| open.machine.clone()),
-            Route::Board | Route::Archive => self.board_scope().map(str::to_owned),
-            Route::Draft | Route::Pair | Route::Settings => None,
-        }
+                .composer
+                .focus_handle(cx)
+                .is_focused(window),
+            Route::Draft => self
+                .areas
+                .draft
+                .composer
+                .focus_handle(cx)
+                .is_focused(window),
+            Route::Board | Route::Archive | Route::Pair | Route::Settings => false,
+        };
+        context.focus = if self.areas.palette.is_open() {
+            FocusScope::CommandCenter
+        } else if self.terminal_focused(window) {
+            FocusScope::Terminal
+        } else if composer_focused {
+            FocusScope::MessageInput
+        } else if event
+            .context_stack
+            .iter()
+            .any(|entry| entry.contains("Input"))
+        {
+            FocusScope::Editable
+        } else {
+            FocusScope::Other
+        };
+        context
     }
+}
 
-    /// The session on screen, if one is.
-    fn session_in_view(&self) -> Option<(&str, vessel_proto::SessionId)> {
-        (self.route == Route::Session)
-            .then_some(self.areas.session.open.as_ref())
-            .flatten()
-            .map(|open| (open.machine.as_str(), open.session))
-    }
+/// The same availability rule hides chips, disables capture and gates the listener.
+pub(crate) fn available(window: &Window) -> bool {
+    !cfg!(any(target_os = "android", target_os = "ios"))
+        && f32::from(window.viewport_size().width) >= vessel_app_kit::picker::COMPACT
+}
 
-    /// Open the session one `step` from the one on screen, in the
-    /// sidebar's order.
-    fn step_to(&mut self, step: Step, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
-        let order = self.fleet.sidebar_order(self.prefs.settings.sidebar);
-        let open = step_session(&order, self.session_in_view(), step).map(Open::of);
-        open.is_some_and(|open| {
-            self.open_session(open, window, cx);
-            true
-        })
+/// A route/Settings section change cancels the recorder before another key arrives.
+pub(crate) fn navigation_changed(shell: &mut Shell) {
+    shell.areas.shortcuts.engine.reset();
+    if shell.route != Route::Settings || shell.areas.settings.section != Section::Shortcuts {
+        shell.areas.shortcuts.page.leave();
     }
+}
 
-    /// Open the sidebar's session `index` (1 to 9).
-    fn jump_to(
-        &mut self,
-        index: Option<u8>,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) -> bool {
-        let order = self.fleet.sidebar_order(self.prefs.settings.sidebar);
-        let open = index
-            .and_then(|index| usize::from(index).checked_sub(1))
-            .and_then(|at| order.get(at).copied())
-            .map(Open::of);
-        open.is_some_and(|open| {
-            self.open_session(open, window, cx);
-            true
-        })
-    }
+/// Opening a modal cancels a recorder/prefix before the new focused field can
+/// receive a key. This is used by the existing palette and shortcut-help openers.
+pub(crate) fn modal_opened(shell: &mut Shell) {
+    shell.areas.shortcuts.engine.reset();
+    shell.areas.shortcuts.held.release();
+    badges::clear(&mut shell.areas.shortcuts);
+    shell.areas.shortcuts.page.leave();
+}
+
+/// Preference writes cancel an old hold before another modifier/key arrives.
+pub(crate) fn preferences_changed(shell: &mut Shell) {
+    shell.areas.shortcuts.engine.reset();
+    shell.areas.shortcuts.held.release();
+    shell.areas.shortcuts.compiled.overrides = None;
+    badges::clear(&mut shell.areas.shortcuts);
 }

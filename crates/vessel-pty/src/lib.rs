@@ -39,6 +39,7 @@
 //! [`Bytes`]: bytes::Bytes
 
 mod command;
+mod diagnostics;
 mod error;
 mod kill;
 mod process;

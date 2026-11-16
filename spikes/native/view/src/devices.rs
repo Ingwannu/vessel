@@ -12,6 +12,8 @@
 //!   reaches no log, no capture's name and no test's failure message.
 
 mod answers;
+mod authority;
+pub use authority::{Authority, ReportedAuthority};
 mod details;
 mod inspection;
 pub use inspection::{DeviceMetadata, SelectionError};
@@ -20,10 +22,12 @@ pub use crate::connection::{ConnectionContext, ConnectionEpoch, ConnectionEpochs
 pub use identity::{DeviceIdentity, IdentityChange, StaleContext};
 mod row;
 pub use row::{Access, DeviceBadge};
+mod interrupted;
 mod invitation;
 mod page;
 pub mod qr;
 mod target;
+pub use interrupted::Unconfirmed;
 pub mod time;
 
 pub use details::{DeviceState, details, exact};
