@@ -225,10 +225,11 @@ fn a_save_under_way_refuses_a_second_save(cx: &mut TestAppContext) {
         let state = &mut shell.areas.labels;
         let catalog = state.hosts.first().unwrap().catalog.clone();
         let ticket = vessel_app_view::labels::Tickets::default().issue().unwrap();
-        state
+        let replacement = state
             .manager
             .save(HostState::Online, &catalog, ticket)
             .unwrap();
+        assert_eq!(replacement.color, Color::Blue);
         cx.notify();
     });
     cx.run_until_parked();
