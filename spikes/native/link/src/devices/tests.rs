@@ -129,3 +129,19 @@ fn invitation_route_refusal_uses_only_the_matching_code_and_typed_detail() {
         assert!(!format!("{safe:?}").contains("synthetic credential"));
     }
 }
+
+#[test]
+fn a_local_deadline_is_uncertain_for_writes_and_retryable_only_for_reads() {
+    let ticket = vessel_app_view::devices::Tickets::default()
+        .next_ticket()
+        .unwrap();
+    for kind in [Kind::Invite, Kind::Revoke] {
+        assert!(matches!(kind.timed_out(ticket), Outcome::Unconfirmed(actual) if actual == ticket));
+    }
+    assert!(
+        matches!(Kind::Authority.timed_out(ticket), Outcome::Authority(actual, Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable))) if actual == ticket)
+    );
+    assert!(
+        matches!(Kind::List.timed_out(ticket), Outcome::Listed(actual, Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable))) if actual == ticket)
+    );
+}

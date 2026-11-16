@@ -39,6 +39,16 @@ fn selected(device: DeviceInfo, tickets: &mut crate::devices::Tickets) -> crate:
     page.target(Target::Online(context.machine().clone()));
     let _change = page.bind(Some(context.clone()));
     let id = device.id;
+    let authority = page.tickets.next_ticket().unwrap();
+    assert!(page.checking_authority(&context, authority));
+    assert!(page.authority_answer(
+        &context,
+        authority,
+        Ok(vessel_proto::DeviceSelf {
+            device: None,
+            scopes: vec![vessel_proto::Scope::Admin],
+        })
+    ));
     page.listing = Listing::Ready(vec![device]);
     page.choose_bound(&context, id).unwrap();
     *tickets = std::mem::take(&mut page.tickets);

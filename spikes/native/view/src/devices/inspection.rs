@@ -29,6 +29,9 @@ pub enum SelectionError {
     /// The row was drawn for a retired connection.
     #[error("the selected connection changed")]
     ConnectionChanged,
+    /// This admitted caller has no currently confirmed management grant.
+    #[error("management access is not confirmed for this connection")]
+    AccessNotConfirmed,
     /// No successful list is available for this target.
     #[error("the device list is not ready")]
     ListUnavailable,
@@ -68,6 +71,9 @@ impl Page {
     ) -> Result<(), SelectionError> {
         self.check_context(context)
             .map_err(|_changed| SelectionError::ConnectionChanged)?;
+        if !self.authority.may_manage() {
+            return Err(SelectionError::AccessNotConfirmed);
+        }
         self.choose_revoke(id)
     }
 

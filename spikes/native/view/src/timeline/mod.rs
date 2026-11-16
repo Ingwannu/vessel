@@ -59,7 +59,11 @@ mod user_stream;
 mod window;
 
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
-pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
+pub use diff::{
+    DiffLine, MAX_LINES, Side, WordHighlights, diff_lines, json_text, unified_lines,
+    word_highlights,
+};
+mod tool_sections;
 pub use entry::{
     Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, ToolView, block_text,
     first_reply, plan_progress, prompt_parts,
@@ -88,6 +92,7 @@ pub use question_step::{
 pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
+pub use tool_sections::{ToolSection, ToolSectionLabel, tool_sections};
 pub use usage::ModelUsage;
 pub use window::{
     Align, FOLLOW, INSET, MARGIN, Span, at_end, covers, guess, off_by, offsets, scroll_for, span,
