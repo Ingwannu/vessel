@@ -33,3 +33,14 @@ full lib tests are owed, with no new label/priority/extra whole requested. The
 vendored GPUI's own unit suite is not executed by the Kit suite and is not claimed.
 Source headers and every changed block carry Vessel patch/change11 markers.
 Base13 lacks later README9/10; lead integration unions them and inserts11 after10.
+
+## Exact first check and complete correction batch
+
+The first immutable31ed5ec0 locked Kit all-target strict run
+`schedules-20261116T012338Z-31ed5ec0` ended fonts0/cargo101 (helper1).
+It compiled/checked the changed Kit but reported seven test-decoder lints:
+five redundant qualifications, one unused trait import and one unit semicolon.
+No tests ran. The correction changes only those test spellings; the two GPUI
+files, callback semantics, dev-edge/lock proof and assertions remain unchanged.
+The original red evidence is retained; corrected strict/full Kit lib results
+are still owed on their own immutable head.

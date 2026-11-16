@@ -2,7 +2,7 @@
 //! map keys are not control identities and never leave this decoding edge.
 //! No raw snapshot or node value implements Debug or is printed on failure.
 use super::*;
-use gpui::{IntoElement, ParentElement as _, Render, TestAppContext};
+use gpui::{IntoElement, Render, TestAppContext};
 use gpui_base::input::InputAccessibility;
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -36,7 +36,7 @@ impl Snapshot {
             .filter(move |aria| aria.role == role)
     }
 }
-pub(super) fn read(window: &gpui::Window) -> Option<Result<Snapshot, serde_json::Error>> {
+pub(super) fn read(window: &Window) -> Option<Result<Snapshot, serde_json::Error>> {
     window
         .debug_a11y_tree_json()
         .map(|snapshot| serde_json::from_str(&snapshot))
@@ -46,14 +46,10 @@ struct Probe {
     field: TextField,
 }
 impl Render for Probe {
-    fn render(
-        &mut self,
-        _: &mut gpui::Window,
-        cx: &mut gpui::Context<'_, Self>,
-    ) -> impl IntoElement {
-        gpui::div().child(
+    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        div().child(
             self.field
-                .element(&crate::Tokens::of(crate::Scheme::Dark), false, cx),
+                .element(&Tokens::of(crate::Scheme::Dark), false, cx),
         )
     }
 }
@@ -71,7 +67,7 @@ fn default_inactive_then_real_adapter_activation_observes_the_existing_editor(
             state.set_accessibility(
                 InputAccessibility::new(Some(gpui::Role::TextInput))
                     .with_label(Some("ordinary reference".into())),
-            )
+            );
         });
         field.set_text(REFERENCE_VALUE, window, cx);
         Probe { field }
