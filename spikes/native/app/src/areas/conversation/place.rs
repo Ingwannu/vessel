@@ -75,7 +75,7 @@ pub(crate) trait Place: 'static {
             Answer::Permit(id, option) => Act::Permit(id, option),
             Answer::Question(id, answer) => Act::Answer(id, answer),
         };
-        shell.act_at(Self::SEAT, act);
+        shell.act_at(&Self::SEAT, act);
         cx.notify();
     }
 

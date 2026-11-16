@@ -52,3 +52,12 @@ and meaningful existing card/clone callback tests remain owed on the build VM.
 No new test merely mirrors these mechanical replacements. No scoped input,
 request/lease authority, field visit, global/resource cutover, keyboard/IME,
 full A8 or whole native acceptance is inferred.
+
+## Borrow-only dispatch amendment
+
+Plan disclosure and the legacy answer boundary now borrow `&Seat` because
+those operations do not consume the carrier. The callback borrows its captured
+Seat on each invocation. This three-line caller delta requires W10’s matching
+borrowed `act_at` contract; no transport or authority behavior changes here.
+Admitted/origin transport remains refused until the original-context guarded
+consumer exists. This amendment is source-only; combined checks remain owed.
