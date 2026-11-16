@@ -36,3 +36,10 @@ Qualification: unchanged single-peer regressions plus actual two-peer guarded
 Devices replies, same-node physical isolation, selected-peer reconnection,
 wrong-Link refusal and missing/duplicate peer cases. These are fixture proofs;
 actual A3 Search/UI installation and metadata admission remain separate tests.
+
+
+The source suite exercises both reconnection directions: Primary/SameNode and
+Secondary/DifferentNode. The latter also uses the original request/reply/context/
+transcript methods after replacing Secondary, requiring them to keep selecting
+the unchanged Primary. No test infers a valid guard from exported context facts;
+all successful facts come from the actual Devices receive boundary.

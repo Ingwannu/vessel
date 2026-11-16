@@ -190,3 +190,52 @@ fn paired_slots_reject_duplicate_names_missing_peers_and_wrong_link_owners() {
     one.close(&first).unwrap();
     two.close(&second).unwrap();
 }
+
+#[test]
+fn replacing_the_secondary_peer_preserves_the_primary_compatibility_surface() {
+    let (link, mut scene) = pair(PeerNodes::SameNode);
+    let primary = scene.context();
+    let secondary = scene.context_of(PeerSlot::Secondary).unwrap();
+    let mut tickets = Tickets::default();
+    begin(&link, &scene, PeerSlot::Primary, &mut tickets);
+    begin(&link, &scene, PeerSlot::Secondary, &mut tickets);
+    let first = reported(&link, &mut scene, PeerSlot::Primary);
+    let second = reported(&link, &mut scene, PeerSlot::Secondary);
+    let next = scene
+        .reconnect_peer(&link, PeerSlot::Secondary, Reconnect::DifferentNode)
+        .unwrap();
+    assert_ne!(next.node(), secondary.node());
+    assert_eq!(next.machine(), secondary.machine());
+    assert_ne!(next.epoch(), secondary.epoch());
+    assert_eq!(scene.context(), primary);
+    assert_eq!(scene.context_of(PeerSlot::Secondary), Some(next));
+    completed(first);
+    assert!(matches!(second.receive(), Received::Retired { context, .. } if context == secondary));
+    begin(&link, &scene, PeerSlot::Primary, &mut tickets);
+    // The pre-existing methods still select the primary physical peer.
+    assert!(matches!(
+        scene.request(&link).unwrap(),
+        Call::GetDeviceSelf(_)
+    ));
+    scene
+        .reply(
+            &link,
+            Outcome::Ok(Reply::GetDeviceSelf(DeviceSelf {
+                device: None,
+                scopes: vec![Scope::Admin],
+            })),
+        )
+        .unwrap();
+    completed(next_answer(&link, &mut scene));
+    assert_eq!(scene.transcript(&link).unwrap().len(), 2);
+    begin(&link, &scene, PeerSlot::Secondary, &mut tickets);
+    completed(reported(&link, &mut scene, PeerSlot::Secondary));
+    assert_eq!(
+        scene
+            .transcript_of(&link, PeerSlot::Secondary)
+            .unwrap()
+            .len(),
+        1
+    );
+    scene.close(&link).unwrap();
+}
