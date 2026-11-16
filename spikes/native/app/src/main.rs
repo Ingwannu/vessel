@@ -1,168 +1,320 @@
-//! `vessel-app`: Vessel's native app (milestone 12's first builds).
-//!
-//! One window: the sidebar with the machines in the node book and their
-//! sessions, the board's lanes, and a session's conversation with its
-//! composer; a pairing form when the book is empty or a node is to be
-//! added. It reads the same node book, token files and device
-//! credentials as the `vessel` CLI (`VESSEL_CONFIG_DIR` points it at
-//! another book, as it does the CLI).
-//!
-//! Environment, for testing and captures: `VESSEL_APP_THEME=light|dark`
-//! pins the scheme (otherwise the system's); `VESSEL_APP_LANG=ko|en` the
-//! language (otherwise the system's); `VESSEL_APP_SIZE=WxH` the window's
-//! size; `VESSEL_APP_TITLEBAR=system` the system's title bar;
-//! `VESSEL_APP_NO_UPDATE` no updates for one run; `RUST_LOG` the log
-//! filter (stderr and the log file, `vessel_app_log::dir()`).
-
-mod agent_mark;
-mod areas;
-pub mod badge;
-mod brand;
-mod chrome;
-#[cfg(not(target_arch = "wasm32"))]
-mod host_windows;
-mod language;
-#[cfg(not(target_arch = "wasm32"))]
-mod motion;
-mod region;
-mod routes;
-mod shell;
-mod unsent;
-// A browser build does not update itself: `update_off.rs` stands in.
-#[cfg_attr(target_arch = "wasm32", path = "update_off.rs")]
-mod update;
-mod update_words;
-#[cfg(target_arch = "wasm32")]
-mod web;
-
-#[cfg(not(target_arch = "wasm32"))]
-use gpui::{AppContext as _, Bounds, px, size};
-#[cfg(not(target_arch = "wasm32"))]
-use vessel_app_kit::{Scheme, SchemeChoice};
-
-/// The build's label (`VESSEL_BUILD_LABEL` when it was built, `dev`
-/// otherwise): shown in the window's title and the sidebar's foot, and
-/// sent to nodes as this client's version.
-pub(crate) const LABEL: &str = match option_env!("VESSEL_BUILD_LABEL") {
-    Some(label) => label,
-    None => "dev",
+//! Control-only native audit surface, never a product App route or node client.
+//! Synthetic input is compared privately; only closed observations reach disk.
+use gpui::prelude::*;
+use gpui::{
+    Bounds, ClipboardItem, Context, KeyDownEvent, Render, Window, WindowOptions, div, point, px,
+    size,
 };
-
-#[cfg(not(target_arch = "wasm32"))]
-fn main() {
-    // stderr as before, and a file the owner can send (the release
-    // track's `vessel-app-log`: rotated, panics included, the About
-    // screen's folder is `vessel_app_log::dir()`).
-    let _log = vessel_app_log::init(LABEL);
-    let choice = scheme_choice();
-    let (width, height) = window_size();
-    let prefs = vessel_app_link::Prefs::load();
-    let language = language::Language::new();
-    let words = match language.prepare(prefs.settings.language) {
-        Ok(words) => words,
-        Err(error) => {
-            tracing::error!(%error, "the embedded translations could not start");
+use kit::field::{FieldId, SecretEdit, SecretField, SecretFieldContent, SecretPresence, TextField};
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
+use vessel_app_kit::{
+    self as kit, Assets, Editability, Scheme, SchemeChoice, Tokens, Type, TypeExt as _,
+    theme::spacing,
+};
+const CANARY: &str = "synthetic-secure-entry-canary";
+const SENTINEL: &str = "clipboard-sentinel";
+const REFERENCE: &str = "ordinary-clipboard-reference";
+const WINDOW_WIDTH: f32 = 900.0;
+const WINDOW_HEIGHT: f32 = 620.0;
+#[derive(Clone, Copy, Debug, Default)]
+enum Observation {
+    #[default]
+    Unobserved,
+    Passed,
+    Failed,
+}
+impl Observation {
+    fn of(value: bool) -> Self {
+        if value { Self::Passed } else { Self::Failed }
+    }
+    fn word(self) -> &'static str {
+        match self {
+            Self::Unobserved => "unobserved",
+            Self::Passed => "passed",
+            Self::Failed => "failed",
+        }
+    }
+}
+#[derive(Clone, Copy)]
+enum Slot {
+    Absent,
+    Stored,
+}
+#[derive(Clone, Copy)]
+enum EventKind {
+    Change,
+    Submit,
+}
+#[derive(Clone, Copy, Default)]
+enum SubmitPhase {
+    #[default]
+    Ordinary,
+    AfterReadOnly,
+}
+#[derive(Default)]
+struct Metrics {
+    replaced: Observation,
+    submitted: Observation,
+    redacted: Observation,
+    copy: Observation,
+    cut: Observation,
+    erased: Observation,
+    held_edits: u32,
+    readonly_retained: Observation,
+    reference_copy: Observation,
+}
+struct Probe {
+    absent: SecretField,
+    stored: SecretField,
+    reference: TextField,
+    slot: Slot,
+    scheme: Scheme,
+    editability: Editability,
+    phase: SubmitPhase,
+    clipboard_step: Slot,
+    metrics: Metrics,
+    output: PathBuf,
+}
+impl Probe {
+    fn new(
+        scheme: Scheme,
+        output: PathBuf,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Self {
+        let field = |presence, window: &mut Window, cx: &mut Context<'_, Self>| {
+            SecretField::new(
+                SecretFieldContent {
+                    label: "API key audit".into(),
+                    empty: "Enter replacement".into(),
+                    set: "Set".into(),
+                    presence,
+                },
+                Self::submit,
+                Self::changed,
+                window,
+                cx,
+            )
+        };
+        let absent = field(SecretPresence::Absent, window, cx);
+        let stored = field(SecretPresence::Set, window, cx);
+        let reference = TextField::new("", |_, _, _, _| {}, window, cx);
+        reference.set_text(REFERENCE, window, cx);
+        absent.focus(window, cx);
+        Self {
+            absent,
+            stored,
+            reference,
+            slot: Slot::Absent,
+            scheme,
+            editability: Editability::Editable,
+            phase: SubmitPhase::Ordinary,
+            clipboard_step: Slot::Absent,
+            metrics: Metrics::default(),
+            output,
+        }
+    }
+    fn field(&self) -> &SecretField {
+        match self.slot {
+            Slot::Absent => &self.absent,
+            Slot::Stored => &self.stored,
+        }
+    }
+    fn observe(&mut self, source: FieldId, edit: SecretEdit, kind: EventKind) {
+        if source != self.absent.id() && source != self.stored.id() {
             return;
         }
+        self.metrics.redacted = Observation::of(!format!("{edit:?}").contains(CANARY));
+        match edit {
+            SecretEdit::Unchanged => {
+                self.metrics.erased = Observation::Passed;
+                if let EventKind::Submit = kind {
+                    match self.phase {
+                        SubmitPhase::Ordinary => self.metrics.submitted = Observation::Failed,
+                        SubmitPhase::AfterReadOnly => {
+                            self.metrics.readonly_retained = Observation::Failed;
+                            self.phase = SubmitPhase::Ordinary;
+                        }
+                    }
+                }
+            }
+            SecretEdit::Replace(value) => {
+                let redacted = !format!("{value:?}").contains(CANARY);
+                self.metrics.redacted = Observation::of(redacted);
+                let exact = value.into_value() == CANARY;
+                match kind {
+                    EventKind::Submit => match self.phase {
+                        SubmitPhase::Ordinary => self.metrics.submitted = Observation::of(exact),
+                        SubmitPhase::AfterReadOnly => {
+                            self.metrics.readonly_retained = Observation::of(exact);
+                            self.phase = SubmitPhase::Ordinary;
+                        }
+                    },
+                    EventKind::Change => self.metrics.replaced = Observation::of(exact),
+                }
+            }
+        }
+    }
+    fn submit(
+        &mut self,
+        id: FieldId,
+        edit: SecretEdit,
+        _: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.observe(id, edit, EventKind::Submit);
+        cx.notify();
+    }
+    fn changed(&mut self, id: FieldId, edit: SecretEdit, cx: &mut Context<'_, Self>) {
+        if self.editability == Editability::ReadOnly {
+            self.metrics.held_edits = self.metrics.held_edits.saturating_add(1);
+        }
+        self.observe(id, edit, EventKind::Change);
+        cx.notify();
+    }
+    fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<'_, Self>) {
+        match event.keystroke.key.as_str() {
+            "f1" => {
+                self.slot = Slot::Absent;
+                self.absent.focus(window, cx);
+            }
+            "f4" => {
+                self.slot = Slot::Stored;
+                self.stored.focus(window, cx);
+            }
+            "f5" => self.reference.focus(window, cx),
+            "f11" => {
+                self.metrics.reference_copy = Observation::of(
+                    cx.read_from_clipboard()
+                        .and_then(|item| item.text())
+                        .is_some_and(|text| text == REFERENCE),
+                );
+            }
+            "f2" => cx.write_to_clipboard(ClipboardItem::new_string(CANARY.to_owned())),
+            "f3" => cx.write_to_clipboard(ClipboardItem::new_string(SENTINEL.to_owned())),
+            "f6" => {
+                let kept = cx
+                    .read_from_clipboard()
+                    .and_then(|item| item.text())
+                    .is_some_and(|text| text == SENTINEL);
+                match self.clipboard_step {
+                    Slot::Absent => {
+                        self.metrics.copy = Observation::of(kept);
+                        self.clipboard_step = Slot::Stored;
+                    }
+                    Slot::Stored => self.metrics.cut = Observation::of(kept),
+                }
+            }
+            "f7" => self.hold(Editability::ReadOnly, cx),
+            "f8" => self.hold(Editability::Editable, cx),
+            "f9" => self.field().clear(window, cx),
+            "f10" => {
+                if let Err(error) = self.record() {
+                    tracing::error!(%error, "audit status could not be written");
+                }
+            }
+            _ => return,
+        }
+        cx.stop_propagation();
+        cx.notify();
+    }
+    fn hold(&mut self, mode: Editability, cx: &mut Context<'_, Self>) {
+        self.editability = mode;
+        if mode == Editability::ReadOnly {
+            self.phase = SubmitPhase::AfterReadOnly;
+            self.metrics.readonly_retained = Observation::Unobserved;
+        }
+        self.absent.set_editability(mode, cx);
+        self.stored.set_editability(mode, cx);
+    }
+    fn record(&self) -> std::io::Result<()> {
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create(true).truncate(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt as _;
+            options.mode(0o600);
+        }
+        let mut out = options.open(&self.output)?;
+        for (name, value) in [
+            ("replacement", self.metrics.replaced),
+            ("submit", self.metrics.submitted),
+            ("debug_redacted", self.metrics.redacted),
+            ("copy_sentinel", self.metrics.copy),
+            ("cut_sentinel", self.metrics.cut),
+            ("erased_unchanged", self.metrics.erased),
+            ("readonly_retained", self.metrics.readonly_retained),
+            ("ordinary_copy_reference", self.metrics.reference_copy),
+        ] {
+            writeln!(out, "{name}\t{}", value.word())?;
+        }
+        writeln!(out, "held_edits\t{}", self.metrics.held_edits)?;
+        out.sync_all()
+    }
+}
+impl Render for Probe {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(self.scheme);
+        let compact = kit::breakpoint::phone(window);
+        div().id("secure-field-native-audit").size_full().flex().flex_col().gap(px(spacing::S4))
+            .p(px(spacing::S6)).bg(tokens.neutral.surface0).type_(Type::Body).text_color(tokens.neutral.foreground)
+            .on_key_down(cx.listener(Self::key))
+            .child("Secure field audit — synthetic input only")
+            .child("No stored credential loaded")
+            .child(self.absent.element(&tokens, compact, cx))
+            .child("Stored presence (replacement initially empty)")
+            .child(self.stored.element(&tokens, compact, cx))
+            .child("Ordinary copy reference (nonsecret negative control)")
+            .child(self.reference.element(&tokens, compact, cx))
+            .child(div().type_(Type::Meta).whitespace_normal().child("F1 absent · F4 stored · F2 seed clipboard · F3 sentinel · F6 check · F7 hold · F8 edit · F9 clear · F10 record"))
+            .child(format!("replacement: {} · submit: {}", self.metrics.replaced.word(), self.metrics.submitted.word()))
+            .child(format!("copy: {} · cut: {}", self.metrics.copy.word(), self.metrics.cut.word()))
+            .child(format!("redacted: {} · held edits: {}", self.metrics.redacted.word(), self.metrics.held_edits))
+    }
+}
+fn output() -> Option<PathBuf> {
+    let mut args = std::env::args_os().skip(1);
+    if args.next().as_deref() != Some(std::ffi::OsStr::new("--evidence")) {
+        return None;
+    }
+    let path = PathBuf::from(args.next()?);
+    (path.is_absolute() && path.parent().is_some_and(Path::is_dir) && args.next().is_none())
+        .then_some(path)
+}
+fn main() {
+    let Some(output) = output() else {
+        return;
+    };
+    let scheme = if std::env::var("VESSEL_APP_THEME").as_deref() == Ok("light") {
+        Scheme::Light
+    } else {
+        Scheme::Dark
     };
     gpui_platform::application()
-        .with_assets(vessel_app_kit::Assets)
+        .with_assets(Assets)
         .run(move |cx| {
-            if let Err(error) = vessel_app_kit::init(cx, choice) {
-                tracing::error!(%error, "the kit could not start");
+            if let Err(error) = kit::init(cx, SchemeChoice::Fixed(scheme)) {
+                tracing::error!(%error, "audit initialization failed");
                 cx.quit();
                 return;
             }
-            motion::follow(cx);
-            // The kept Animations setting, before the first frame.
-            motion::animations(prefs.settings.appearance.animations.on(), cx);
-            let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
-            let opened = cx.open_window(options, |window, cx| {
-                motion::note_renderer(window, cx);
-                let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
-                host_windows::register(&shell, window, cx);
-                vessel_app_kit::root(shell, window, cx)
-            });
-            match opened {
-                Ok(_window) => cx.activate(true),
-                Err(error) => {
-                    tracing::error!(%error, "the window could not open");
-                    cx.quit();
-                }
+            let options = WindowOptions {
+                titlebar: Some(gpui::TitlebarOptions {
+                    title: Some("Vessel secure field audit".into()),
+                    ..gpui::TitlebarOptions::default()
+                }),
+                window_bounds: Some(gpui::WindowBounds::Windowed(Bounds {
+                    origin: point(px(0.0), px(0.0)),
+                    size: size(px(WINDOW_WIDTH), px(WINDOW_HEIGHT)),
+                })),
+                ..WindowOptions::default()
+            };
+            if let Err(error) = cx.open_window(options, |window, cx| {
+                cx.new(|cx| Probe::new(scheme, output, window, cx))
+            }) {
+                tracing::error!(%error, "audit window could not open");
+                cx.quit();
             }
         });
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn scheme_choice() -> SchemeChoice {
-    match std::env::var("VESSEL_APP_THEME").as_deref() {
-        Ok("light") => SchemeChoice::Fixed(Scheme::Light),
-        Ok("dark") => SchemeChoice::Fixed(Scheme::Dark),
-        Ok(_) | Err(_) => SchemeChoice::System,
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// The window's size: `VESSEL_APP_SIZE=WxH`, else 1280 by 800.
-fn window_size() -> (f32, f32) {
-    std::env::var("VESSEL_APP_SIZE")
-        .ok()
-        .and_then(|text| {
-            let (width, height) = text.split_once('x')?;
-            Some((width.parse().ok()?, height.parse().ok()?))
-        })
-        .unwrap_or((1280.0, 800.0))
-}
-
-/// In a browser: GPUI's web platform, one canvas (`web.rs`).
-#[cfg(target_arch = "wasm32")]
-fn main() {
-    web::main();
-}
-
-/// Visual-only fixture: run the built test executable under a private Xvfb,
-/// with isolated `VESSEL_CONFIG_DIR` and `VESSEL_TEST_PAIR_LINK_FILE`. The renderer
-/// and offer reader are real; the browser transport is not exercised here.
-#[cfg(all(test, target_os = "linux"))]
-#[test]
-#[ignore = "requires a private display, config and fake-fleet offer"]
-fn pairing_browser_words_capture() {
-    assert!(
-        std::env::var_os("VESSEL_CONFIG_DIR").is_some_and(|dir| !dir.is_empty()),
-        "use an isolated capture config"
-    );
-    let offer_file = std::env::var_os("VESSEL_TEST_PAIR_LINK_FILE").unwrap();
-    let pasted = std::fs::read_to_string(offer_file).unwrap();
-    let prefs = vessel_app_link::Prefs::load();
-    let language = language::Language::new();
-    let words = language.prepare(prefs.settings.language).unwrap();
-    let (width, height) = window_size();
-    gpui_platform::application()
-        .with_assets(vessel_app_kit::Assets)
-        .run(move |cx| {
-            vessel_app_kit::init(cx, scheme_choice()).unwrap();
-            cx.on_window_closed(|cx, _closed| cx.quit()).detach();
-            let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
-            let _window = cx
-                .open_window(options, |window, cx| {
-                    let shell = cx.new(|cx| {
-                        let mut shell = shell::Shell::new(prefs, language, words, window, cx);
-                        areas::pair::capture::browser_unsupported(&mut shell, &pasted, window, cx);
-                        shell
-                    });
-                    vessel_app_kit::root(shell, window, cx)
-                })
-                .unwrap();
-            cx.activate(true);
-        });
-}
-
-/// Visual fixture; the installed app contains no terminal-state override.
-#[cfg(all(test, target_os = "linux"))]
-#[test]
-#[ignore = "requires a private display and a disposable fake fleet"]
-fn terminal_states_capture() {
-    areas::terminal::capture::run();
 }
