@@ -29,10 +29,13 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line `2ebeedf9` (base13, native1614/0/2),
-merged at `e1cbf82d`. Earlier immutable runs retain their base9/base10 unions. The base13 body split
-retains both lifecycle render children and the private Open type; the session
-size record shrank660 to608 without an allowance increase.
+latest application base is announced package line `67637eb6` (base14.3),
+merged at `3890c94a8`. This receiving merge is UNCOMPILED and not ready for
+adoption; older immutable run results apply only to their pinned source. The
+incoming canonical keyboard engine replaces the old engine while the approved
+recorder-start hook moves to its actual SequenceCapture call site. The session
+body/resource split retains the private Open type and both lifecycle render
+children; the size ratchet is now 574 without an allowance increase.
 It contains the reviewed shared popover,
 title actions, pane/query seams, attention
 values and picker admission. The link's existing SavePrefs fallback was extracted
