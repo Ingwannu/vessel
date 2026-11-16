@@ -16,7 +16,13 @@ impl Render for Probe {
         let tokens = Tokens::of(Scheme::Dark);
         let body = div()
             .debug_selector(|| "dialog-probe-value".to_owned())
-            .child(crate::plain_text("dialog-probe-value", VALUE, 0, window, cx))
+            .child(crate::plain_text(
+                "dialog-probe-value",
+                VALUE,
+                0,
+                window,
+                cx,
+            ))
             .into_any_element();
         let content = DialogContent {
             title: "Machine".into(),

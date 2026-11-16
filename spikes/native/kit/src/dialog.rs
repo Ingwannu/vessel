@@ -55,9 +55,9 @@ mod header_search;
 mod header_search_tests;
 mod layout;
 mod return_focus;
-mod sheet;
 #[cfg(test)]
 mod selection_tests;
+mod sheet;
 #[cfg(test)]
 mod title_wrap_tests;
 
