@@ -271,3 +271,23 @@ this exact echo watermark separately from its original turn binding. That
 remaining join, both-order/queue/refusal/closure tests, changed-source strict,
 real fake-driver execution and receiving review are owed. Private notice
 admission stays Unsupported and the feature constant stays None.
+
+## Queued dispatch recovery obligation
+
+The staged keyed queue path is not qualified by acceptance of its queue entry.
+The legacy delivery owner currently takes that entry in memory, sends it to the
+provider and publishes queue removal afterward; its failure path restores the
+entry. A crash or possibly-sent error can therefore leave an old durable entry
+that later send-now/advance would deliver again without fresh Submit admission.
+An immutable accepted queued receipt alone does not fence that path.
+
+Before positive keyed/private queue production, the same retained receipt owner
+must commit a bounded dispatch claim before any provider/cancel effect and consult
+that original claim on restored entries, send-now and automatic advancement.
+Uncertain work must not regain an actionable queue entry. Explicit no-send
+withdrawal still requires the owning actor's actual fact; removal or a missing
+acknowledgement is not such proof. The concrete Store/actor persistence join must
+be proposed and reviewed before implementation, with crash-point/held-writer,
+restart, legacy-queue mutation and lost-ack tests. It must reuse the same store,
+queue and receipt namespace, without a second ledger or public private-key field.
+No current new queue runtime/production readiness is asserted by this analysis.
