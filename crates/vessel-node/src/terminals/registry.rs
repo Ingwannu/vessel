@@ -142,6 +142,7 @@ pub(crate) struct Reservation {
     id: TerminalId,
     owner: Owner,
     tasks: tokio_util::task::TaskTracker,
+    shutdown: tokio_util::sync::CancellationToken,
 }
 
 impl Reservation {
@@ -260,6 +261,7 @@ impl Terminals {
             id,
             owner,
             tasks: self.runner.tasks.clone(),
+            shutdown: self.runner.shutdown.clone(),
         })
     }
 

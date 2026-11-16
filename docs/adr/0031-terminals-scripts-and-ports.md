@@ -302,3 +302,11 @@ Implementation is staged on announceded4cd137. Authored tests cover starting and
 existing duplicates, simultaneous attempts, wrong-id and foreign-incarnation
 binding, rejected-handle cleanup, cancelled observation and incumbent survival.
 No test execution, V3 acceptance, merge or consumer-ready hash is claimed here.
+
+A missing actor-end watch must not hang node shutdown. While the node is live,
+its uncertain rejected start stays retained. Once the existing runner shutdown
+token fires, the same CLOSE_WAIT bounds the final end observation. An unobserved
+end produces the private ShutdownUnconfirmed diagnostic and an Unavailable wire
+refusal if its observer remains; it is logged before node-lifetime ownership is
+released. It never becomes successful cleanup or persisted debt reconciliation.
+This bounded shutdown branch preserves the separate future proof requirement.

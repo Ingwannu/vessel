@@ -46,3 +46,11 @@ safety net. Shorter named10s observation and15s actual tracker-drain deadlines
 identify readiness/output, rejected actor/process-waiter and worker-drain failures.
 Fixture drop always signals the real runner stop token before yielding, and a
 dropped cleanup observer never counts as settlement. These remain unexecuted.
+
+The tracked owner also observes the existing runner shutdown token. A lost actor
+watch cannot block the node task tracker forever: after shutdown, the canonical
+close budget ends in an explicit local ShutdownUnconfirmed observation, not a
+cleanup certificate. Two authored pure wait-selection tests cover missing-end
+shutdown and already-ended/shutdown readiness. They use the canonical outer
+within and a shorter named phase deadline. No new task owner, writer, RPC, proof
+producer or unknown-debt retirement API is introduced. All leaf execution is owed.

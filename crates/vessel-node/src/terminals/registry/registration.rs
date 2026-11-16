@@ -3,8 +3,10 @@
 use super::{Entry, Plan, Reservation, State, Terminals, lock};
 use crate::terminals::{CLOSE_WAIT, MAX_ENDED};
 use std::collections::hash_map::Entry as MapEntry;
+use std::future::Future;
 use std::sync::{Arc, Mutex};
 use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 use vessel_proto::{ErrorCode, TerminalId, WireError};
 use vessel_session::terminals::TerminalHandle;
 
@@ -28,7 +30,14 @@ enum Refusal {
 #[must_use = "observe the refused registration; cleanup remains tracked independently"]
 pub(crate) struct RegistrationRejected {
     reason: Refusal,
-    cleanup: JoinHandle<()>,
+    cleanup: JoinHandle<EndObservation>,
+}
+
+/// Local watch observation only; this never certifies I/O or descendant cleanup.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EndObservation {
+    Observed,
+    ShutdownUnconfirmed,
 }
 impl RegistrationRejected {
     fn retained(
@@ -47,9 +56,13 @@ impl RegistrationRejected {
         }
         let tasks = reservation.tasks.clone();
         let cleanup = tasks.spawn(async move {
-            handle.ended().await;
+            let observed = observe_end(handle.ended(), reservation.shutdown.clone()).await;
+            if observed == EndObservation::ShutdownUnconfirmed {
+                tracing::warn!(terminal = %id, ?observed, "rejected terminal end was not observed before node shutdown");
+            }
             drop(plan);
             drop(reservation);
+            observed
         });
         Self { reason, cleanup }
     }
@@ -59,7 +72,13 @@ impl RegistrationRejected {
     pub(crate) async fn into_wire(self) -> WireError {
         let Self { reason, cleanup } = self;
         match tokio::time::timeout(CLOSE_WAIT, cleanup).await {
-            Ok(Ok(())) => WireError::new(ErrorCode::Conflict, reason.to_string()),
+            Ok(Ok(EndObservation::Observed)) => {
+                WireError::new(ErrorCode::Conflict, reason.to_string())
+            }
+            Ok(Ok(EndObservation::ShutdownUnconfirmed)) => WireError::new(
+                ErrorCode::Unavailable,
+                format!("{reason}; node stopped before rejected terminal end was observed"),
+            ),
             Ok(Err(error)) => WireError::new(
                 ErrorCode::Internal,
                 format!("{reason}; rejected terminal cleanup task failed: {error}"),
@@ -69,6 +88,23 @@ impl RegistrationRejected {
                 format!("{reason}; rejected terminal cleanup remains tracked"),
             ),
         }
+    }
+}
+
+/// Live nodes retain uncertain starts. Shutdown cannot hang its task tracker on
+/// a lost actor report; its final unconfirmed observation is explicit, never success.
+async fn observe_end<E: Future<Output = ()>>(
+    ended: E,
+    shutdown: CancellationToken,
+) -> EndObservation {
+    tokio::pin!(ended);
+    tokio::select! {
+        biased;
+        () = &mut ended => EndObservation::Observed,
+        () = shutdown.cancelled() => match tokio::time::timeout(CLOSE_WAIT, ended).await {
+            Ok(()) => EndObservation::Observed,
+            Err(_elapsed) => EndObservation::ShutdownUnconfirmed,
+        },
     }
 }
 
@@ -162,3 +198,6 @@ fn prune_ended(state: &mut State) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
