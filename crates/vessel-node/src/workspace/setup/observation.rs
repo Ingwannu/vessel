@@ -9,24 +9,18 @@ use vessel_proto::workspace::{
 use vessel_proto::{SetupRunId, WorktreeId};
 use vessel_workspace::commands::CommandEvent;
 
-use super::super::{MAX_WAIT_SECS, WorkspaceError, Workspaces};
+use super::super::{MAX_WAIT_SECS, WorkspaceError, Workspaces, WorktreeEntry};
 
 impl Workspaces {
-    // Kept within the workspace owner, including its real-runner integration
-    // tests; this publication hook is not a service or principal API.
-    pub(in crate::workspace) fn observe_setup(
+    pub(super) fn observe_setup(
         &self,
         worktree: WorktreeId,
         generation: SetupRunId,
         event: CommandEvent<'_>,
     ) {
         let mut state = self.state();
-        if let Some(entry) = state.worktrees.get_mut(&worktree)
-            && let Some(observation) = &mut entry.observation
-            && observation.snapshot.cursor.run == generation
-        {
-            observation.event(event);
-            entry.observed.send_modify(|_| {});
+        if let Some(entry) = state.worktrees.get_mut(&worktree) {
+            observe_entry(entry, generation, event);
         }
     }
 
@@ -91,6 +85,16 @@ impl Workspaces {
             observation.snapshot.state,
             entry.running.as_ref(),
         ))
+    }
+}
+
+// One publication path, also exercised by the actual runner boundary test.
+fn observe_entry(entry: &mut WorktreeEntry, generation: SetupRunId, event: CommandEvent<'_>) {
+    if let Some(observation) = &mut entry.observation
+        && observation.snapshot.cursor.run == generation
+    {
+        observation.event(event);
+        entry.observed.send_modify(|_| {});
     }
 }
 
