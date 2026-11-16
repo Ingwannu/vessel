@@ -31,8 +31,12 @@ successful assigned-wire result.
   prove pairing or collection. Real temporary nodes and paired devices prove
   those boundaries, without claiming physical machines or native adoption.
 
-New follow-up cases are authored and await strict compilation, focused tests
-and the one changed-tree package gate. No new execution result is claimed yet.
+The assigned-wire follow-up is now gated at `cceb0aaa` on frozen base
+`1c762ccf` (current protocol 25, diagnostics 24, minimum 2, schema 20).
+Its Rust-half validation passed all 13 steps, 2,561/0/12 Rust tests, five
+TypeScript tests with a fresh diff, and four forge tests. The final source
+includes the real server-side cancellation observer. Supplemental review and
+the newer node-parent merge remain separate; no native adoption is claimed.
 
 ## Scope and existing assets
 
@@ -52,39 +56,40 @@ Existing assets and reuse decision:
 
 - `vessel-proto::diagnostics`: validated immutable report, bounded collections,
   normalized versions and closed source states. Reuse; no second JSON model.
-- Private staged owner projections and bounded admission/journal: reuse the
-  accepted D3 source. They are not a public collector or a working RPC.
+- Owner projections and bounded admission/journal: reuse the accepted D3
+  mechanisms, promoted with their actual collector/call in the accepted node
+  package. Earlier staged-source evidence remains historical.
 - Node lifecycle, Store reader, profiles/readiness, runtime and relay watches:
   compose existing owners; do not enumerate private descriptions into text.
 - Provider diagnostics belongs to A9, which owns its collector/cache and RPC.
   This host report does not consume its unreviewed getter. `agent.status` is
   not a pure cached alternative: even `refresh=false` probes builtin versions.
 - Ordinary node text and CLI cause-chain output include private descriptions;
-  they are not diagnostic renderers. Add a bounded allowlist renderer and a
-  deliberate output boundary when its actual caller is wired.
+  they are not diagnostic renderers. The bounded allowlist renderer and safe
+  output boundary are exercised through the actual selected-node CLI.
 - External software: no new dependency is introduced by this plan. Any safe
-  process-metrics implementation still needs an owned typed source and the
-  repository's dependency decision before adoption.
+  process metrics use the owned fixed self-status decoder in vessel-proc,
+  canonical ProcessId and explicit unsupported-platform behavior.
 
 ## Implementation and acceptance rows
 
 | Node responsibility | Implemented behavior and selected evidence | Remaining boundary |
 |---|---|---|
-| Safe daemon report | Real bounded collector, canonical pending request, typed client and CLI; real-source and authority fixtures passed | Final review and protocol assignment |
-| Identity, platform and uptime | Startup clock captured before I/O; lifecycle/private-text canaries and actual node identities tested | Successful assigned wire request after integration |
+| Safe daemon report | Accepted product collector and protocol-24 request; actual paired/current/older wire and CLI cases pass | Supplemental test review and newer-parent integration |
+| Identity, platform and uptime | Startup clock before I/O; actual selected identities, wrong-response identity refusal and privacy canaries pass | No physical-machine or other-OS runtime proof |
 | Store/schema and session counts | Actual guarded SQLite aggregate reader and runtime projection; source/timeout/cancellation cases tested | Not a store-integrity scan or atomic whole-machine snapshot |
 | Agents and cached readiness | Immutable current-profile selection, safe owner metadata, no refresh; cache projection and no-execution traps tested | Provider diagnostics is a separate A9 package |
 | Listener and relay state | Actual successful bind publication, weak relay ownership and exhaustive owner-side watch projection | No external relay-service reachability claim |
 | Self-process metrics | Canonical ProcessId, bounded fixed Linux self-status source, typed memory and decoder fixtures | Other operating systems explicitly return Unsupported; no other-OS runtime proof |
 | Broader system/tool metrics | CPU/heap allocation, disk capacity, workspace/socket counts, latency and tool probes are absent | Explicit difference from Paseo; no full diagnostic parity claim |
 | Recent failure summary | Bounded code/time journal; actual guard regression observes scope and collector refusals newest first without loss | Not a raw daemon log viewer |
-| Shareable text/JSON | Root and complete export budgets; safe typed errors and CLI debug-output privacy fixtures | Assigned-protocol successful CLI report after integration |
+| Shareable text/JSON | Bounded validated exports; actual two named-node CLI text/JSON and older-peer no-frame refusal pass | Native share/export consumer has its own evidence |
 | Bundled web UI | Existing node-hosted web implementation and package regression gate pass | No new Diagnostics screen here |
 
 The collector and `NodeClient::diagnostics()` are product code. The original
 checkpoint was pending and its wire refused before send/dispatch. Protocol 24
-is now assigned on the consuming head; new supported-wire cases above require
-their own changed-tree execution. Original direct-guard evidence stays scoped.
+is assigned and the new supported-wire cases have their own changed-tree
+execution. Original direct-guard evidence stays scoped.
 
 ## Contract and canonical wiring
 
@@ -173,6 +178,15 @@ a complete package pass. Consume the announced Quality B head under merge
 rules; use narrow checks per commit, one whole root gate and one package
 submission at completion. Security changes retain per-commit review. No
 unchanged whole-gate rerun is needed for this plan.
+
+Current resume point: the node package has its original scoped review PASS;
+the assigned-wire supplement is gated and ready for its final review. Stay on
+the frozen base through handoff. The newer node head has not been consumed;
+its schema, method rows and tuple ListSessions must win at the consuming join.
+No unchanged gate is owed for the result-only documentation commit.
+
+The following checkpoint timeline records earlier states; pending/unassigned
+statements in it describe those specific immutable checkpoints.
 
 Quality B head `29eebb8bcc285fb04bf9cb4c7a38a10d0622f6c1` is consumed by
 a conflict-free merge. It preserves protocol 23, minimum 2 and schema 18.
@@ -328,3 +342,40 @@ Rust half (all applicable strict modes, prebuilds and tests), with the exact
 unchanged web scope kept separate from the integrator's wholly green Gate 52
 (web 464/e2e 80). Do not label a Rust-half run as 18 default steps or claim a new
 web execution. No native adoption or full diagnostic-parity claim follows.
+
+
+### Final assigned-wire validation result
+
+Run `diagnostics-20261115T175131Z-cceb0aaa` used the ordinary lane and frozen
+commit `cceb0aaa25b48e4cb6cc91b2f7c97442eb119c31`. All 13 selected Rust-half
+steps returned zero: web bundle preparation, fmt, size, boundaries, normal/TS/
+forge strict Clippy, TS generation/freshness, workspace bins, both A5 builds,
+workspace tests and forge fixtures. Raw 117 Rust summaries total 2,561/0/12;
+all 22 workspace crates actually compiled in the test log. TS has 3+2=5
+passes, including primitive-alias classification, with zero generated diff.
+Forge has 4/0/0. The source and post-run worktree match all 2,096 selected Git
+blob hashes; ignored environment/config/runtime are outside this attestation.
+
+All eleven added tests have individual success records. In particular the
+real server's first diagnostic future is observed after its initial pending
+poll has admitted and queued the blocked sources. After the client's wire
+Cancel, that future drops as Cancelled rather than Completed; another partial
+wire call and cross-connection Busy refusal prove retained source capacity.
+The blocker is released and node shutdown completes. This does not claim to
+cancel a running OS read. No product instrumentation hook was introduced.
+
+The earlier focused run remains 38/0/0 on its own source, excluding the later
+server observer. The final run uses the short private SSD temporary directory
+(mode 0700), eight compiler jobs and eight test threads. Test load endpoints
+were 34.83/17.70; overall endpoints 36.80/20.22. No timeout, assertion, skip or
+retry waiver was used. The original unrelated long-TMPDIR failure is retained
+as the tool owner's confirmed infrastructure defect; the diagnostic privacy
+fixture and socket guards remain unchanged and pass here.
+
+This is a Rust-half execution, not a new 18-step/default web execution. The
+retained baseline `node-line-20261115T163055Z-1c762ccf` independently has all 18
+steps zero, Rust 2,550/0/12, web 464 units and 80 individual E2E successes.
+All 622 current web files match that baseline's immutable Git bytes. Reusing
+that exact web scope does not claim current-parent or native integration,
+other-OS/live provider/phone/service-account behavior, or full Paseo breadth.
+Supplemental source review and the current node-line join remain pending.
