@@ -52,6 +52,11 @@ patch and needs the lead's patch slot.
   label manager's pencil ("Edit {name}") and swatches (radio, the colour
   name, checked), which are the consumer's.
 
+App wiring: `language::name_kit_controls` sets the names from the catalog's
+`layout-close` ("Close" / "닫기") and `shortcuts-back` ("Back" / "뒤로") when
+the shell is built and at every `apply_language`
+(`shell::language_tests::the_kits_wordless_controls_follow_the_language`).
+
 Tests: `dialog::accessibility_tests` (close and back are Button nodes named
 "Close"/"Back", then in the app's words after `set_control_names`, then the
 owner's label) and `widgets::button::accessibility_tests` (a label button, a

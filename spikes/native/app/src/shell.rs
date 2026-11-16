@@ -71,6 +71,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Self {
+        crate::language::name_kit_controls(words, cx);
         let general = areas::settings::PreparedGeneral::new(words, &prefs.kept);
         let areas = Areas::new(general, window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
