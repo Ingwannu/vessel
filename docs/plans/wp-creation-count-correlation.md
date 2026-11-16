@@ -50,3 +50,7 @@ values with PartialEq, which the existing constant-time API intentionally does
 not implement. The fixture now checks the original private entry marker,
 credential cardinality and matches_agent(original_secret). No hash formatting,
 new equality trait, product behavior or race ordering changes.
+
+The second strict result reached the same count tests and returned one unused
+Option from the fake connection insertion. The fixture now binds that result;
+no state, ordering, count, credential, correlation or refusal assertion changes.
