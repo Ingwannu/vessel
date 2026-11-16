@@ -88,7 +88,7 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
-            Command::SessionAccess(access) => self.emit(access.refused(crate::ActFailed {
+            Command::SessionAccess(access) => self.emit(access.refused(ActFailed {
                 code: Some(vessel_proto::ErrorCode::Unsupported),
                 message: "Authenticated session navigation requires a native connection".to_owned(),
             })),
