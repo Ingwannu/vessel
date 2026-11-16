@@ -12,7 +12,7 @@ use vessel_app_view::shortcuts::{Action, Platform, binding_id, default_context};
 fn desktop_owner_uses_canonical_binding_and_recorder_keeps_the_key(cx: &mut TestAppContext) {
     let (shell, cx) = super::setup(cx);
     shell.update_in(cx, |shell, window, cx| {
-        shell
+        let _registration = shell
             .register_shortcut_handler(KeyboardHandler {
                 id: "desktop-receiving-fixture".parse().unwrap(),
                 actions: vec![Action::NewWindow],

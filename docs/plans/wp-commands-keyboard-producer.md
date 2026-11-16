@@ -83,3 +83,9 @@ forwarded there. The new desktop stand-in fixture also now uses the existing
 Ordinary capture role rather than a nonexistent variant. Neither correction
 changes the callback contract or feature policy. The failed strict log is not
 an App pass and the immutable earlier test job is retained until completion.
+
+The subsequent strict check found only the desktop fixture's ignored registration
+result. The fixture now binds its cleanup token as the existing layout fixture
+does; product source and all fixture assertions are unchanged. The previous
+immutable test run is retained as exact prior-source evidence, with its actual
+result recorded separately rather than inferred from strict compilation.
