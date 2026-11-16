@@ -53,6 +53,6 @@ The first exact796 consumer pair stopped at compilation, before GPUI execution.
 The retired event carries the canonical ConnectionTag (original alias/epoch),
 not a ConnectionContext. The owner now compares that tag with each already
 captured context's tag; it neither projects a second node identity nor guesses
-an epoch. Test-only path qualification and the literal keystroke lifetime are
+an epoch. Test-only path qualification, unit callback terminators and the literal keystroke lifetime are
 corrected in the same batch. The original diagnostics stay recorded; no test
 scenario, assertion or deadline is weakened. No runtime result is inferred.

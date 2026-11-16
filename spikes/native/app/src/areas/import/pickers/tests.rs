@@ -214,7 +214,7 @@ fn positive(
         probe.shell.read_with(cx, |shell, _| {
             assert!(shell.areas.import.open);
             assert!(!shell.areas.import.picker.is_open());
-        })
+        });
     });
 }
 fn run(cx: &mut TestAppContext, how: Replacement, input: Input, compact: bool) {
@@ -281,7 +281,7 @@ fn run(cx: &mut TestAppContext, how: Replacement, input: Input, compact: bool) {
                     *current.borrow_mut() =
                         replace(shell, &original, how, &mut epochs.borrow_mut(), window, cx);
                     *boundary.focus.borrow_mut() = window.focused(cx);
-                })
+                });
             });
             while commands.borrow_mut().try_recv().is_ok() {}
             if matches!(input, Input::Row | Input::Outside) {
@@ -299,7 +299,7 @@ fn run(cx: &mut TestAppContext, how: Replacement, input: Input, compact: bool) {
                 Input::Escape => "escape",
                 Input::Row | Input::Outside => "left",
             },
-        )
+        );
     });
     assert_current(&probe, cx, &boundary, &current.borrow());
     assert!(
