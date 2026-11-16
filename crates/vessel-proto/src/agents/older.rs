@@ -252,6 +252,16 @@ impl Reply {
             | Self::ListScripts(_)
             | Self::RunScript(_)
             | Self::RestartScript(_)
+            // Service observations carry terminal/session ids, not an agent
+            // spec. Their staged methods are refused before any dispatch.
+            | Self::ListWorkspaceScripts(_)
+            | Self::StartWorkspaceScript(_)
+            | Self::StopWorkspaceScript(_)
+            | Self::RestartWorkspaceScript(_)
+            | Self::GetWorkspaceServiceEnv(_)
+            | Self::GetServiceSettings(_)
+            | Self::SetServiceGateway(_)
+            | Self::SetServiceExposure(_)
             | Self::ListPorts(_)
             | Self::ListAgents(_)
             | Self::AddAgent(_)
@@ -299,8 +309,8 @@ impl Reply {
             // A hit names a session; the session itself comes from a list.
             | Self::Diagnostics(_)
             | Self::SearchMessages(_)
-            // Pending file-panel replies cannot reach an older peer: admission
-            // refuses these methods before execution, just like newer families.
+            // File-panel replies (protocol 27) cannot reach an older peer: the
+            // node refuses these calls below 27 before dispatch, like newer families.
             | Self::InspectDirectory(_)
             | Self::ReadFileBytes(_)
             | Self::DuplicateFileEntry(_)

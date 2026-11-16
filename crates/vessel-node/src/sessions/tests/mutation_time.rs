@@ -7,7 +7,7 @@ use vessel_proto::{
     AgentEvent, ContentBlock, SessionEvent, SessionInput,
     inbox::{InboxKey, InboxRead, MarkInbox},
 };
-use vessel_proto::{Creator, EventSeq, Mark, NodeId, SessionId};
+use vessel_proto::{Creator, EventSeq, Mark, NodeId, SessionId, SessionUpdatedAt};
 use vessel_session::{LaunchOptions, SessionHandle};
 
 const MUTATION_PUBLICATION_BUDGET: Duration = Duration::from_secs(30);
@@ -103,8 +103,10 @@ async fn live_detach_publishes_its_ack_and_repeating_it_does_not_erase_time() {
     .unwrap();
 }
 
+/// TRACKER 775: inbox marks on a loaded session keep its clock, as Paseo's
+/// live attention changes do; an admitted mark still survives its caller.
 #[tokio::test]
-async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
+async fn exact_inbox_marks_on_a_loaded_session_keep_its_clock_and_survive_caller_cancellation() {
     vessel_testkit::within(
         MUTATION_PUBLICATION_BUDGET,
         Box::pin(async {
@@ -117,7 +119,7 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
             let handle = fixture.runtime.get(created.id).unwrap();
             let _running = ready(&handle).await.unwrap();
             let key = finished_key(&fixture, &handle).await;
-            let before = handle.info().updated_at;
+            let before = settled_clock(&fixture, &handle).await;
             fixture
                 .sessions
                 .mark_inbox(MarkInbox {
@@ -126,7 +128,7 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 })
                 .await
                 .unwrap();
-            assert!(handle.info().updated_at > before);
+            assert_eq!(handle.info().updated_at, before);
             assert_eq!(
                 fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
                 InboxRead::Read
@@ -139,7 +141,17 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 })
                 .await
                 .unwrap();
-            let before_cancel = handle.info().updated_at;
+            assert_eq!(handle.info().updated_at, before);
+            assert_eq!(
+                fixture
+                    .store
+                    .session(created.id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .updated_at,
+                before
+            );
             cancel_before_admission(&fixture, key).await;
             cancel_after_admission(&fixture, key);
             fixture.runtime.shutdown().await;
@@ -148,16 +160,71 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
                 InboxRead::Read
             );
-            assert!(
+            fixture.stop().await;
+        }),
+    )
+    .await
+    .unwrap();
+}
+
+/// TRACKER 775, Paseo parity: Read and Unread leave a loaded session's clock
+/// (agent-manager.ts 2389-2414); on the stored-record path they tick it when
+/// attention changes and leave it when it is already in the requested state
+/// (session.ts 7697-7712, agent-manager.ts 2420-2433). Inbox marks follow.
+#[tokio::test]
+async fn read_and_unread_keep_a_loaded_clock_and_tick_a_stored_one_on_change() {
+    vessel_testkit::within(
+        MUTATION_PUBLICATION_BUDGET,
+        Box::pin(async {
+            let fixture = Fixture::new().await;
+            let created = fixture
+                .sessions
+                .create(fixture.structured(), LaunchOptions::default(), None)
+                .await
+                .unwrap();
+            let id = created.id;
+            let handle = fixture.runtime.get(id).unwrap();
+            let _running = ready(&handle).await.unwrap();
+            let key = finished_key(&fixture, &handle).await;
+            let before = settled_clock(&fixture, &handle).await;
+            let through = key.seq.next().unwrap();
+            let read = fixture
+                .sessions
+                .mark(id, Mark::Read { through })
+                .await
+                .unwrap();
+            assert!(!read.marks.unread);
+            assert_eq!(read.updated_at, before);
+            let unread = fixture.sessions.mark(id, Mark::Unread).await.unwrap();
+            assert!(unread.marks.unread);
+            assert_eq!(unread.updated_at, before);
+            handle.kill();
+            let _ended = handle.ended().await;
+            fixture.sessions.wait_stored(id).await.unwrap();
+            let stored = fixture.store.session(id).await.unwrap().unwrap();
+            let through = stored.next_seq;
+            let mut last = stored.updated_at;
+            for (mark, unread) in [(Mark::Read { through }, false), (Mark::Unread, true)] {
+                let changed = fixture.sessions.mark(id, mark).await.unwrap();
+                assert_eq!(changed.marks.unread, unread);
+                assert!(changed.updated_at > last, "{mark:?} on a stored session");
+                let repeated = fixture.sessions.mark(id, mark).await.unwrap();
+                assert_eq!(
+                    repeated.updated_at, changed.updated_at,
+                    "a repeated {mark:?}"
+                );
+                last = changed.updated_at;
+            }
+            for read in [InboxRead::Read, InboxRead::Unread] {
                 fixture
-                    .store
-                    .session(created.id)
+                    .sessions
+                    .mark_inbox(MarkInbox { key, read })
                     .await
-                    .unwrap()
-                    .unwrap()
-                    .updated_at
-                    > before_cancel
-            );
+                    .unwrap();
+                let changed = fixture.store.session(id).await.unwrap().unwrap().updated_at;
+                assert!(changed > last, "inbox {read:?} on a stored session");
+                last = changed;
+            }
             fixture.stop().await;
         }),
     )
@@ -200,6 +267,28 @@ async fn finished_key(fixture: &Fixture, handle: &SessionHandle) -> InboxKey {
         session: handle.id(),
         seq,
     }
+}
+
+/// Every record the session published is durable; both copies of the clock
+/// agree (persistence publishes the time before it reports durability), so a
+/// later equality is about the mark, not an append still in flight.
+async fn settled_clock(fixture: &Fixture, handle: &SessionHandle) -> Option<SessionUpdatedAt> {
+    let mut durability = match fixture.sessions.find(handle.id()).await.unwrap() {
+        Found::Live { durability, .. } => durability,
+        Found::Stored(_) => panic!("the fake must remain live after its turn"),
+    };
+    crate::persist::wait_until(handle.id(), &mut durability, handle.log_end())
+        .await
+        .unwrap();
+    let kept = fixture
+        .store
+        .session(handle.id())
+        .await
+        .unwrap()
+        .unwrap()
+        .updated_at;
+    assert_eq!(handle.info().updated_at, kept);
+    kept
 }
 
 async fn cancel_before_admission(fixture: &Fixture, key: InboxKey) {

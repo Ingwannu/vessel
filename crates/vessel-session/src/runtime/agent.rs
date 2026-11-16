@@ -13,12 +13,29 @@ use vessel_proto::{
 };
 
 use super::parts::{ActorStart, Begin};
+use super::prepared::RetainedPreparation;
 use super::{Created, SessionRuntime};
+use super::{PreparationAdmission, PreparationCancellation, PreparationEffect};
 use crate::error::SessionError;
 use crate::handle::Input;
 use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove, Restart};
 use crate::parking::{Parking, Route};
 use crate::structured::{MoveState, StructuredActor};
+
+#[derive(Debug, Clone, Copy)]
+pub(super) enum ProbePurpose {
+    Options,
+    Catalog,
+}
+
+/// Only model and options change a draft probe; it can never resume or send a turn.
+#[derive(Debug, Clone, Default)]
+pub struct ProbeChoices {
+    /// The requested provider model, validated by its handshake.
+    pub model: Option<vessel_proto::ModelId>,
+    /// Mode, effort and feature selections, applied before Ready.
+    pub options: Vec<vessel_proto::OptionChoice>,
+}
 
 /// A structured session's agent command and the directory ACP is given.
 pub(crate) struct AgentCommand {
@@ -113,36 +130,13 @@ impl SessionRuntime {
         profile: Profile,
         proxy: Option<ModelProxy>,
     ) -> Result<AgentCommand, SessionError> {
-        let chosen = self.choose_driver(&spec, &profile).await;
-        let driver = chosen.driver();
-        let notices = chosen.notices;
-        let lookup = self.config.harness_lookup.clone();
-        let env = self.config.harness_env.clone();
-        #[cfg(test)]
-        let gate = self.lookup_gate.take();
-        // Lookup and directory checks block.
-        tokio::task::spawn_blocking(move || {
-            let command = launch_for(driver, &lookup, &env, &spec, &profile, proxy.as_ref())?;
-            #[cfg(test)]
-            if let Some(gate) = gate {
-                gate.pause()?;
-            }
-            // ACP needs an explicit directory; the launch defaults it to
-            // the home directory, and the node's own is the last resort.
-            let cwd = command
-                .cwd
-                .clone()
-                .or_else(|| std::env::current_dir().ok())
-                .ok_or(SessionError::NoWorkingDirectory)?;
-            Ok::<_, SessionError>(AgentCommand {
-                command,
-                cwd,
-                driver,
-                notices,
-            })
-        })
+        self.agent_command_owned(
+            spec,
+            profile,
+            proxy,
+            self.default_preparation(std::sync::Arc::new(())),
+        )
         .await
-        .map_err(SessionError::Internal)?
     }
 
     /// What `harness`'s agent offers before any session of it exists
@@ -166,26 +160,107 @@ impl SessionRuntime {
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
     ) -> Result<vessel_agent::Probed, SessionError> {
-        self.launch_admission().check()?;
-        let mode = SessionMode::Structured {
-            model: None,
-            resume: None,
-            options: Vec::new(),
-        };
+        self.default_preparation_view()
+            .probe(harness, profile, proxy, cwd)
+            .await
+    }
+
+    /// Probe exactly a draft's model and option choices without sending a prompt.
+    /// Directory authorization belongs to the node before it calls this path.
+    ///
+    /// # Errors
+    /// As [`Self::probe`]; unsupported choices fail the prompt-free handshake.
+    pub async fn probe_with_choices(
+        &self,
+        harness: HarnessRef,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+        choices: ProbeChoices,
+    ) -> Result<vessel_agent::Probed, SessionError> {
+        self.probe_with_choices_owned(harness, profile, proxy, cwd, choices, ())
+            .await
+    }
+
+    /// Discover a draft while retaining the caller's existing admission and
+    /// model-route owner through actual blocking preparation, even on timeout
+    /// or caller cancellation. This adds no quota. Runtime shutdown drains it.
+    ///
+    /// # Errors
+    /// As [`Self::probe_with_choices`]. The handshake budget includes preparation;
+    /// a timed-out preparation cannot later launch a process.
+    pub async fn probe_with_choices_owned<T: Send + Sync + 'static>(
+        &self,
+        harness: HarnessRef,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+        choices: ProbeChoices,
+        ownership: T,
+    ) -> Result<vessel_agent::Probed, SessionError> {
+        self.default_preparation_view()
+            .probe_with_choices_owned(harness, profile, proxy, cwd, choices, ownership)
+            .await
+    }
+
+    pub(super) async fn probe_selected<T, F>(
+        &self,
+        harness: HarnessRef,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+        (choices, purpose): (ProbeChoices, ProbePurpose),
+        preparation: RetainedPreparation<T, F>,
+    ) -> Result<vessel_agent::Probed, SessionError>
+    where
+        T: Send + Sync + 'static,
+        F: for<'a> Fn(PreparationEffect, PreparationCancellation<'a>) -> PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
+        preparation.admission.check()?;
         let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
-        let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
-        if !profile.is_default() {
-            spec = spec.with_profile(profile.name().clone());
-        }
+        let spec = draft_spec(harness.clone(), &profile, cwd, &choices);
+        let limit = self.config.agent_handshake_timeout;
+        let started = tokio::time::Instant::now();
         let AgentCommand {
             command,
             cwd,
             driver,
             ..
-        } = self.agent_command(spec, profile, proxy).await?;
-        let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
-        self.launch_admission().check()?;
-        Ok(vessel_agent::probe_with(driver, &command, setup).await?)
+        } = tokio::time::timeout(
+            limit,
+            self.agent_command_owned(spec, profile, proxy, preparation.clone()),
+        )
+        .await
+        .map_err(|_elapsed| vessel_agent::ProbeError::TimedOut {
+            limit,
+            log: Vec::new(),
+        })??;
+        preparation.admission.check()?;
+        let remaining = limit.saturating_sub(started.elapsed());
+        if remaining.is_zero() {
+            return Err(vessel_agent::ProbeError::TimedOut {
+                limit,
+                log: Vec::new(),
+            }
+            .into());
+        }
+        let mut setup = probe_setup(cwd, remaining);
+        setup.model = choices.model;
+        setup.options = choices.options;
+        let mut probed = match purpose {
+            ProbePurpose::Options => vessel_agent::probe_with(driver, &command, setup).await?,
+            ProbePurpose::Catalog => {
+                vessel_agent::probe_catalog_with(driver, &command, setup).await?
+            }
+        };
+        drop(preparation);
+        if let Some(commands) = probed.commands.as_mut() {
+            vessel_harness::classify_commands(&harness, commands);
+        }
+        Ok(probed)
     }
 
     /// A page of `harness`'s own conversations (protocol 17's
@@ -361,7 +436,7 @@ pub(super) fn probe_setup(cwd: PathBuf, handshake_timeout: Duration) -> AgentSet
 /// `spec`'s command under `profile` for `driver`: an ACP launch (MCP
 /// servers go over ACP, not here), or the agent's own protocol's
 /// (`vessel_harness::launch_direct`).
-fn launch_for(
+pub(super) fn launch_for(
     driver: Driver,
     lookup: &vessel_harness::Lookup,
     env: &vessel_harness::HarnessEnv,
@@ -379,4 +454,25 @@ fn launch_for(
         }
     };
     Ok(launch.command)
+}
+
+/// The probe has no resume identity, MCP servers or prompt; all selected
+/// model/option ids still pass through the native handshake unchanged.
+fn draft_spec(
+    harness: HarnessRef,
+    profile: &Profile,
+    cwd: PathBuf,
+    choices: &ProbeChoices,
+) -> SessionSpec {
+    let mode = SessionMode::Structured {
+        model: choices.model.clone(),
+        resume: None,
+        options: choices.options.clone(),
+    };
+    let spec = SessionSpec::new(harness, mode).with_cwd(cwd);
+    if profile.is_default() {
+        spec
+    } else {
+        spec.with_profile(profile.name().clone())
+    }
 }

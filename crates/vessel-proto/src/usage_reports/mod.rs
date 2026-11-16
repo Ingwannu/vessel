@@ -9,9 +9,15 @@ pub use identity::{
 };
 pub use saved::SavedUsageSource;
 
-/// Assignment waits for native/page/CLI report consumers and the plugin source
-/// value adapter; a cached read must never trigger credential or vendor I/O.
-pub const ACCOUNT_REPORTS_PROTOCOL: Option<crate::ProtocolVersion> = None;
+/// Protocol 26 (2026-11-16): `usage.reports` and `usage.inspect` (Read, unary,
+/// fleet-forwardable). Assigned after the provider client resolves names only
+/// through the node's tracked DNS scope (ADR 0104); the coordinator ruled that
+/// this activation lands before its native/page/CLI consumers, which fall back
+/// to `usage.limits` (23) on older or unassigned peers. A cached read never
+/// triggers credential or vendor I/O. Kept separate from
+/// [`USAGE_SOURCE_CONSENT_PROTOCOL`] so either can move on its own later.
+pub const ACCOUNT_REPORTS_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(26));
 
 mod budget;
 pub use budget::{EncodedReportBytes, MAX_USAGE_RESPONSE_BYTES, UsageReportBudgetError};

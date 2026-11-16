@@ -36,6 +36,13 @@ and 0013).
 
 ## Crates
 
+`vessel-relay::resolution` owns the shared standard-native resolution lifetime
+(ADR0104): stable root budget, weak per-generation handles, original consumer
+permit holds inside actual blocking work, retained joins and normal-drain
+receipts. It has no DNS protocol/cache or extra runtime and adds no dependency
+edge. NodeLink and reqwest dictation adapters remain separate consumer work;
+the presence of this primitive does not claim their DNS shutdown is wired.
+
 | Crate | Job | Depends on |
 | --- | --- | --- |
 | `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9; ADR 0062 adds typed title origin with a merge-assigned protocol threshold); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10); agents beyond the four (`agents`: `HarnessRef`, `AgentName`, protocol 11); schedules, runs, saved prompts and hooks (`automation`: `CronExpr` parsed into bit sets, bounded names and prompt text, typed run outcomes, protocol 11). No I/O. | - |
@@ -50,7 +57,7 @@ and 0013).
 | `vessel-session` | Session actors: owns the process, assigns `EventSeq`, keeps a ring cache, broadcasts, hands every record to the node for persistence; each session's place on the board (`board`, the reducer ported from agent-orchestrator, fed by `activity`, protocol 8, and by the pull request the node gives a live session through a watch, protocol 11); the agent's options logged as `options_changed`, titles (`renamed`, from the first prompt or a rename), the choices a session carries on, and probing an agent (protocol 9); terminals beside sessions (`terminals`, protocol 11, ADR 0031): a shell in a PTY or a script's run piped in its own process group, each an actor with a ring bounded by records and bytes, and a service's restarts with backoff; which turn a prompt started or joined, for whoever asked (`delivery/tickets`, protocol 11); parking an idle agent and waking it (`parking`, protocol 14, ADR 0038): the route a handle sends through (`Live`, `Moving`, `Parked`), each actor's own idle timer, and a park or a wake reusing a move's stop and start with the session's current choices and harness session id; rewinding (`forking`, protocol 14, ADR 0052): a move's stop and start with a fork of the conversation at a turn's end, the old conversation started again on any failure, and a fork's start (`ForkStart`: `session/fork`, its `forked` record, its check's replay dropped); one agent per conversation (`runtime/claims`, protocol 17, ADR 0053): a start that resumes a conversation or a move claims it under every profile its files are linked into, refused while another live session holds it there; which protocol drives a session (`runtime/drivers`, protocol 18, ADR 0057): the node's setting, the drivers this build offers and the installed agent's version, chosen at its first launch and kept for its life. | proto, harness, pty, agent, proc |
 | `vessel-store` | Data directory (`node.id`, `token`, `node.key`, `vessel.db`, `profiles.toml`, `settings.json`: the node settings a person changed, protocol 12, `mcp/`, `uploads/`) and its locks, SQLite event log (schema 2: paired devices; schema 3: sessions' current profile and creator; schema 4: where a session came from, `origin` and `via`, protocol 6; schema 5: a session's model route; schema 6: a session's current title and the choices of its last options report, protocol 9; schema 7: the conversation's projections, the marks and attachments; schema 8: retention's order; schema 9: projects, worktrees and approved command sets, protocol 10; schema 10: pull request feedback, protocol 11; schema 11: the set an approval covered; schema 12: schedules and their runs, saved prompts, hooks with their deliveries and keys, protocol 11, a run about to be made written in the commit that takes its due time; schema 13: the search index of every session's messages, protocol 12), the `workspace/` folder of worktrees, setup logs and git's empty hooks folder, the `probe/` directory agents are probed in, `attachments/` (kept and read back without following a link, protocol 10), retention, restart recovery. | proto, proc |
 | `vessel-node` | `vesseld`: config, auth, HTTP/websocket server, `Handler` implementation, persistence and subscription plumbing; devices, scopes and the secure gateway, and `vesseld relay` (milestone 3); harness profiles (`profiles`: `profiles.toml`, `profile.list`/`reload`, what `session.create` launches with, what `session.move_profile` moves to), agent principals (`agents`: a credential per session, grants, limits, ownership) and fleet sync (`fleet`: the home publishing `fleet.toml`'s sources and serving `fleet.*`, members joining, pulling, applying into every profile's home and reporting; this node's secrets) (milestone 4); transfers (`transfers`: `session.export`/`memory.export` snapshots held for whoever opened them, `transfer.read`/`close`, expiry, and `session.import`/`memory.import` pulling through a `Source`: this node, or another through the envelope as the caller) (protocol 6, F4); `envelope` and `fleet/links` (protocol 6, Track X): `fleet.forward`/`relay`/`deliver` with the delegated principal (the delivering device's scopes ∩ the origin's, ownership and agent limits applied to the origin), the mutual grant (`fleet.grant`, `fleet/granted.json` on a member, `fleet/grants/` and the binding record `fleet/bindings.json` on the home, `fleet.forget`, which withdraws the home's outstanding invitations, and `fleet.callback`, the home's relays and a relay ticket for a member with no route of its own, which `relays` links to: `fleet/links/callback.rs`), `fleet.peers`/`nodes`, and `session.read` waiting with its shares (`waits`). Model routing (`models`: `models.toml`, the loopback proxy, model tokens, limits, `ModelCall` records, `model.list`) (milestone 5, ADR 0015). Protocol 9 (ADR 0022): `service/options` (`harness.options`, `session.options`, `session.set_option`, `session.rename`) and `probes` (what each agent offers, probed once for concurrent callers and kept ten minutes). Protocol 10 (ADRs 0023, 0027): `workspace` (who may call: agents refused all but orchestration in `guard`; roots refused; the registry of projects, worktrees and approvals; clones and setups as tasks; tidying a session's worktree; a session's `place` resolved into `cwd` and notices) and `service/{projects,worktrees,git,files}`. Protocol 11 (ADR 0029): `forge` (one watcher task: sessions placed in a project or worktree read for their branch and remote, watches keyed by repository and branch, at most 64, a person's first; conditional looks with backoff; each live session's view handed to its actor; feedback through the queue; `pr.open` and `pr.merge` run in the caller's call) and `service/forge`; Protocol 11 (ADR 0031): `terminals` (where one may be opened and by whom, the limits, the environment without Vessel's credentials, the registry, a script's plan under its approval, the port scanner) and `service/{terminals,scripts}`. Protocol 11 (ADR 0033): `automation` (the scheduler: one task owning every schedule, an index of due times it sleeps on, the room it hands out in due order (four runs at once, eight scheduled sessions in their first turn), what a run came to; `time`: a cron's next wall-clock minute in a zone from `jiff`'s bundled database, daylight-saving gaps and folds, missed due times; who may change what; how a session's records read to a follower; `prompts`: saved prompts' names, bound and revisions under one lock; `notices`: the starter told, its bounds and its words) and `service/{schedules,scheduled,followed,prompts,notices}` (the calls, a run made as its definer through the service's own checks and its session followed and put away, a saved prompt's spec checked as `session.create` would check it, and a told turn followed until its starter has heard). Protocol 12: `service/search` (ADR 0037: a named session must exist, two searches at once) and `service/parking` (ADR 0038: `session.park`/`wake` through the session's handle; a drain for an update not waiting for parked sessions); `settings` and `service/settings` (`node.settings`/`set_settings`: `--park-after` with what a person saved in `settings.json` laid over it, written then applied to the runtime's watch under one lock; protocol 18's drivers, `direct` refused while this build does not offer it); `service/forking` (ADR 0052: a turn's point read from its `turn_ended` record, a fork created through `session.create`'s own path, a rewind handed to the session's actor with the count of file changes it leaves); `service/history` (ADR 0053: `agent.history` through the probe's launch, two at once, `in_vessel` from the sessions).  What a probe's handshake said of an agent reaches the node as `vessel-agent`'s typed outcomes (`readiness`, `probes`: `ProbeError`, `Disconnect`, `Refusal`; protocol 11's `agent.status`, ADR 0032), and the calls that start an agent's work through the session runtime name its inputs (`service/history`: `HistoryFrom`; `service/forking`: `ForkFrom`; the side questions: `PromptContext`); the node decides nothing about ACP itself. | proto, rpc, harness, session, store, secure, relay, fleet, client, lsp, llm, workspace, forge, proc, agent |
-| `vessel-client` | Typed async client and gap-free session streams (and terminals', protocol 11: one stream generic over the log it follows); the node book; pairing and secure connections over direct and relay routes (milestone 3); the local socket with the token or an agent's credential (milestone 4); fetching a file chunk by chunk into a caller's `ChunkSink` (`fetch_chunks`, protocol 6); ADR 0083's pending workspace file SDK with finite deadlines and validated byte-page adaptation into that same sink loop; protocol 10's conversation calls, protocol 11's schedules and saved prompts, and `compose` (a question's answer from text, a queued prompt's new text) for the CLI and the agent tools (milestone 11); `comparison`, one nonclone client worker composing ordinary project/worktree/session/attachment calls with bounded input, immutable common files and passive recovery snapshots (ADR 0046). | proto, rpc, secure, relay |
+| `vessel-client` | Typed async client and gap-free session streams (and terminals', protocol 11: one stream generic over the log it follows); the node book; pairing and secure connections over direct and relay routes (milestone 3); the local socket with the token or an agent's credential (milestone 4); fetching a file chunk by chunk into a caller's `ChunkSink` (`fetch_chunks`, protocol 6); ADR 0083's workspace file SDK (protocol 27, ADR 0105) with finite deadlines and validated byte-page adaptation into that same sink loop; protocol 10's conversation calls, protocol 11's schedules and saved prompts, and `compose` (a question's answer from text, a queued prompt's new text) for the CLI and the agent tools (milestone 11); `comparison`, one nonclone client worker composing ordinary project/worktree/session/attachment calls with bounded input, immutable common files and passive recovery snapshots (ADR 0046). | proto, rpc, secure, relay |
 | `vessel-remote` | Remote nodes over SSH (milestone 2): the `ssh` runner, platform detection, installing `vesseld` by upload, `cleanup`; the SSH connector. | proto, rpc, client |
 | `vessel-secure` | End-to-end secure channel (milestone 3, ADR 0009): Noise NK through `snow`, the node key pair, routing ids and fingerprints, the record layer, `SecureChannel` (a frame transport over any binary-message carrier), the relay's possession proof. | proto |
 | `vessel-relay` | The relay (milestone 3, ADR 0009): `serve` (its own accept loop; registration with token or ticket and possession proof, splicing, limits counted per IPv4 address and per IPv6 `/64`, `/56` and `/48` (`address`, public: the node's direct route counts the same way, and reads a trusted proxy's header with the same `ClientAddress`), a share of sockets kept for those that authenticated, the client-address header believed only from trusted proxies, close codes), registration tickets (`ticket`: HMAC-SHA256 under the token, minted by a fleet's home for a member's key, protocol 6), which addresses a link may dial (`reach`: `Reach::Public` resolves the relay's host at dial time and connects only to public addresses, for relays a member's home named), the node's `NodeLink` (with the token, or tickets it renews), the client's `dial`/`connect`, websocket carriers (`WsCarrier`, `AxumCarrier`) and the node's `respond` (closing with `4401`), TLS for `wss://` (rustls with `ring`). | proto, secure |
@@ -1773,10 +1780,10 @@ backings, reservations and records that are Archiving or Restoring. Archived
 records stay outside the live caps and are pruned oldest first beyond
 `MAX_ARCHIVED_WORKSPACES` (ADR 0082 amendment). Worktrees are not registered yet.
 
-### Workspace label catalog (ADR 0086, pending)
+### Workspace label catalog (ADR 0086, protocol 28)
 
 `vessel-proto::workspace_labels` owns the validated name/color grammar, ordered
-assignment projection and pending unary calls. `vessel-store::workspace_labels`
+assignment projection and the five unary calls of protocol 28. `vessel-store::workspace_labels`
 uses the existing writer savepoint/read pool and canonical registry admission.
 Catalog identity cascades rename/delete into assignments; colors are never copied
 into descriptors. The registry snapshot joins ordered names in its held read
@@ -1788,8 +1795,10 @@ changes use the existing post-commit registry wake; recolor/no-op do not. A boun
 Observe read reuses connection/origin shares, downgrading delivered/exhausted calls
 to Now. Shutdown drains accepted label work after callers and before the Store.
 There is no second database, registry, event renderer or package dependency.
-Version assignment and reviewed end-to-end consumers remain required; pending
-source wiring alone is not public capability or parity acceptance.
+A corrupt stored label row refuses node start (`NodeError::WorkspaceLabels`, as
+Paseo's daemon); the cause names the table and the row's place
+(`vessel_store::LabelRow`), never its name or color. The page, CLI and native
+consumers are separate packages.
 
 ### Settings writer lifetime
 
@@ -1879,10 +1888,10 @@ The proto stamp/ceiling are correlation values only. This first producer impleme
 no runtime capture, parentage lease, actor queue policy or private notice admission;
 see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
 
-## Source/account usage reports (M12 F3, pending protocol, ADR 0042)
+## Source/account usage reports (M12 F3, protocol 26, ADR 0042)
 
 Accounting (`usage`, protocol 21), the immutable-launch saved-login limit contract
-(`limits`, protocol 23), and generic source reports (`usage_reports`, pending) are
+(`limits`, protocol 23), and generic source reports (`usage_reports`, protocol 26) are
 separate units and authority boundaries. External lookup Off never disables an
 agent's own accounting or context observations.
 
@@ -1911,16 +1920,22 @@ agent's own accounting or context observations.
   alias after enqueueing. GPUI draws the shared kit meter and existing settings
   controls. N2 owns web; W17 owns CLI; they consume the same report values.
 
-The three pending unary rows (`usage.reports`, `usage.inspect`,
-`usage.source_lookup`) have no assigned protocol version; the integrator owns
-assignment and consumers cannot send them yet. Read is cache-only, explicit
-Operate refresh may read a consented source, and Admin grants the exact current
+The three unary rows (`usage.reports`, `usage.inspect`,
+`usage.source_lookup`) are protocol 26, assigned at their node-line merge after
+the tracked DNS consumer; older or unassigned peers keep `usage.limits` (23).
+Read is cache-only, explicit Operate refresh may read a consented source, and Admin grants the exact current
 source disclosure; legacy global consent covers only its original three stores.
 No background credential discovery follows cache expiry. Additional-source Session
 association and plugin F6 execution remain Unsupported pending their actual owner
 seams. `vessel-usage-fixture` is a separate required-feature scratch-only node,
 never an option in installed vesseld. See `docs/plans/wp-f3-sources.md` for recorded
 fixtures, managed export constraints and exact verification debt.
+
+Provider lookups go through the tracked native DNS primitive (ADR 0104): the node
+injects `vessel-node::http_resolution`'s reqwest adapter into the one persistent
+`LimitContext` client, and `limits::dns` drains that client's scope only after
+both source owners end, before node stop completes. Without injection Harness
+builds no client (Unsupported), never reqwest's default resolver.
 
 ## Page feedback and modal ownership
 
@@ -2039,7 +2054,10 @@ owner. See timeline-recovery-values.md for the exact portable boundary and proof
 
 The session mutation clock (ADR 0063) is a nullable column in the canonical
 session row. The existing store writer advances it with append, mark and direct
-metadata changes inside their current savepoints. A helper takes that same
+metadata changes inside their current savepoints. Read/Unread session marks and
+inbox entry marks follow Paseo: they leave the clock of a session the runtime
+has, and tick a stored session's only when they change its attention or the
+entry; the node says which with `vessel_store::Residence` (TRACKER 775). A helper takes that same
 connection so future transactional workspace selection can reuse the clock
 without a second read engine. Reads, retention and index maintenance do not
 advance it. It describes committed local mutation order; it is neither actor
@@ -2047,3 +2065,34 @@ log coverage nor an execution authorization fact. Typed write acknowledgements c
 queued writes; runtime kept metadata applies that known clock monotonically.
 The raw actor watch omits it and normal Info reads overlay it. Public protocol
 availability remains pending, and this does not establish label-map coverage.
+
+## Shared runtime preparation view
+
+Runtime executable preparation (`vessel-session::runtime::preparation`) shares
+its existing session drain tracker with actual blocking lookups. Each closure
+retains the caller's existing admission/claim owner through physical settlement;
+caller cancellation does not imply filesystem completion. Draft discovery
+(`probe_with_choices_owned`) uses this path and keeps the caller's owner (for
+example a listing permit) until the lookup settles. The fakes-only harness
+lookup barrier observes this boundary without granting quota or changing lookup
+results (see `docs/plans/prepared-session-relaunch.md`).
+
+`PreparationGate` is a non-wire library host boundary: an existing caller token
+plus a synchronous fresh admission callback, with temporary Wait on the host's
+existing watch channel. `SessionRuntime::with_preparation` returns one
+`PreparedRuntime` view that captures this runtime's own `LaunchAdmission`, so a
+host gate cannot replace the shutdown fence; `start_again`, `prepare_again`,
+`probe` and `probe_with_choices_owned` delegate through it, and the default
+routes use the same view with the runtime's own gate. Each newly admitted
+lookup/version effect retains its original caller guard and runtime tracker.
+Native version execution has one tracked owner through bounded output, any kill
+request and actual root wait; root uncertainty withholds completion, and cleanup
+receipts do not attest all descendants. `PreparedAgain` keeps the original
+conversation claim until live registration. Recovery's final session/device
+grant remains a separate boundary.
+
+This view has no node consumer yet: the node's draft command listing, recovery
+(N5) and the provider registry and catalogue (ADR 0081, PROVIDERS pending) are
+separate packages. `vessel-agent::probe_catalog_with` waits for both Ready and
+a command report; the native Codex driver does not report its catalogue in this
+stage, so a Codex catalogue probe ends `CatalogTimedOut` at its deadline.

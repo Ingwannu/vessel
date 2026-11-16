@@ -1,5 +1,5 @@
 //! Host-local colored workspace labels (ADR 0086), not session metadata.
-//! Calls have pending rows; the integrator alone assigns their protocol version.
+//! The five `workspace.label.*` calls are protocol 28.
 
 #[cfg(test)]
 mod protocol_tests;
@@ -21,6 +21,11 @@ pub use values::{
 
 use crate::ProtocolVersion;
 
-/// Assign only when registry ownership, durable mutation, observation, and
-/// all client/forwarded descriptor gates have reviewed consumers.
-pub const WORKSPACE_LABELS: Option<ProtocolVersion> = None;
+/// Protocol 28 (2026-11-16): `workspace.label.list` and
+/// `.inspect_delete` (Read), `.assign`, `.update` and `.delete` (Operate),
+/// all unary and fleet-forwardable, and the registry snapshot's `labels`
+/// projection. Their effects are complete: the node-local catalog and ordered
+/// assignments in one store savepoint, the commit journal and its bounded
+/// observation. Reviewed with None (ADR 0086); the integrator assigned the
+/// number in merge order at the node line.
+pub const WORKSPACE_LABELS: Option<ProtocolVersion> = Some(ProtocolVersion::new(28));

@@ -102,6 +102,7 @@ pub(crate) enum Write {
         session: SessionId,
         mark: Mark,
         at: DateTime<Utc>,
+        residence: crate::Residence,
         done: Done<SessionCommit<KeptMarks>>,
     },
     /// Atomic first/repeated detach, replied only after commit.
@@ -129,6 +130,7 @@ pub(crate) enum Write {
     /// Mark one exact inbox entry; a read never answers a request.
     Inbox {
         mark: vessel_proto::inbox::MarkInbox,
+        residence: crate::Residence,
         done: Done<SessionCommit<()>>,
     },
     /// Device-scoped subscription changes; lease and scope checked atomically.

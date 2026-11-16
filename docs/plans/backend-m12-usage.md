@@ -729,3 +729,14 @@ Recorded fixtures, credential completion and request cancellation are not native
 DNS proof. G4 owns the shared consumer list; receiving integration/whole and any
 later activation assignment remain separate. No new worker whole is authorized
 merely for recording this hold.
+
+2026-11-16 receiving wiring (takeover of the paused track): the client now takes
+the node's tracked resolver through `dns_resolver`; see ADR 0042 "Account HTTP
+consumes the tracked resolver" and ADR 0104's receiving note. Tests: Harness
+`limits::resolution_tests` (no resolver means no client; both vendor names reach
+the injected hook, one shared client), node `http_resolution::tests` (port 0,
+closed-scope refusal with no default-resolver connection, a real loopback request
+through the tracked lookup) and `limits::dns::tests` (the scope stays open until
+both owners end). The assembly test `shared_admission_tests` runs the real
+`Limits::configured` path including retirement. Activation stays a separate,
+integrator-numbered step.

@@ -21,7 +21,7 @@ use crate::codec::{
 };
 use crate::error::{Column, StoreError};
 pub(crate) use migrate::backfill;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::inbox::{
     InboxCount, InboxCounts, InboxCursor, InboxEntry, InboxItem, InboxKey, InboxPage, InboxRead,
     ListInbox, MarkInbox,
@@ -240,19 +240,32 @@ fn insert(
     Ok(())
 }
 
-pub(crate) fn mark(connection: &Connection, mark: &MarkInbox) -> Result<(), StoreError> {
-    let rows = connection.execute(
-        "UPDATE inbox SET seen=?3 WHERE session=?1 AND seq=?2",
-        params![
-            mark.key.session.to_string(),
-            seq_to_sql(mark.key.seq)?,
-            mark.read == InboxRead::Read
-        ],
-    )?;
-    if rows == 0 {
-        return Err(StoreError::InboxGone);
+/// Mark one entry; the session clock advances only for a stored session's
+/// entry whose state changes ([`crate::Residence`], TRACKER 775). An entry
+/// already in the requested state is left as it is.
+pub(crate) fn mark(
+    connection: &Connection,
+    mark: &MarkInbox,
+    residence: crate::Residence,
+) -> Result<(), StoreError> {
+    let session = mark.key.session.to_string();
+    let seq = seq_to_sql(mark.key.seq)?;
+    let seen = mark.read == InboxRead::Read;
+    let was: bool = connection
+        .prepare_cached("SELECT seen FROM inbox WHERE session=?1 AND seq=?2")?
+        .query_row(params![session, seq], |row| row.get(0))
+        .optional()?
+        .ok_or(StoreError::InboxGone)?;
+    if was == seen {
+        return Ok(());
     }
-    let _updated = crate::mutation_time::advance(connection, mark.key.session)?;
+    let _rows = connection.execute(
+        "UPDATE inbox SET seen=?3 WHERE session=?1 AND seq=?2",
+        params![session, seq, seen],
+    )?;
+    if residence == crate::Residence::Stored {
+        let _updated = crate::mutation_time::advance(connection, mark.key.session)?;
+    }
     Ok(())
 }
 

@@ -49,6 +49,10 @@ impl Reply {
         match self {
             Self::GetRegistry(snapshot) => snapshot.for_protocol(protocol).map(Self::GetRegistry),
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
+            Self::ListWorkspaceScripts(reply) => reply.for_protocol(protocol).map(Self::ListWorkspaceScripts),
+            Self::StartWorkspaceScript(reply) => reply.for_protocol(protocol).map(Self::StartWorkspaceScript),
+            Self::StopWorkspaceScript(reply) => reply.for_protocol(protocol).map(Self::StopWorkspaceScript),
+            Self::RestartWorkspaceScript(reply) => reply.for_protocol(protocol).map(Self::RestartWorkspaceScript),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
             Self::GetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::GetNodeSettings),
@@ -313,6 +317,10 @@ impl Reply {
             | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
+            | Self::GetWorkspaceServiceEnv(_)
+            | Self::GetServiceSettings(_)
+            | Self::SetServiceGateway(_)
+            | Self::SetServiceExposure(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)

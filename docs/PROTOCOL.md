@@ -68,6 +68,74 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 28 (2026-11-16, milestone 12): workspace labels (W10b A6, ADR 0086)
+
+Protocol 28 introduces the host-local workspace label catalog and its ordered
+assignments: `workspace.label.list` and `workspace.label.inspect_delete`
+(Read), and `workspace.label.assign`, `workspace.label.update` and
+`workspace.label.delete` (Operate). Each is unary and fleet-forwardable, and
+each refuses an agent principal, direct or delegated, before any lookup.
+`workspace.registry`'s snapshot gains its `labels` projection (each
+workspace's ordered label names) for peers at 28 or later; older peers and
+nested Forward/Relay/Deliver replies to them omit it. `workspace.label.list`
+with `read: observe` and a current cursor waits at most 30 seconds for the
+next committed change; delegated calls and an exhausted wait share answer at
+once. A cursor from another node process, an expired or a future cursor
+answers with a full snapshot.
+
+A corrupt stored label row refuses node start, as Paseo's daemon does; the
+error names the table and the row's place (the catalog row in key order, or a
+workspace's assignment in its order) and never its name or color. A client
+reading such a catalog gets only `internal` "stored workspace labels could not
+be read". The calls were reviewed with `WORKSPACE_LABELS = None` (ADR 0086)
+and assigned 28 at their node-line merge, the next free number in merge
+order (drafted as 26). The minimum protocol remains 2; the store schema (23, which
+already holds the label tables) is unchanged.
+
+## Version 27 (2026-11-16, milestone 12): file panels (W13, ADRs 0083 and 0105)
+
+Protocol 27 introduces ADR 0083's five file-panel methods: `file.inspect`
+(a directory's entries with size and modification time), `file.read_bytes`
+(one exact byte page of at most 256 KiB, later pages bound to the first
+page's revision), `file.observe` (a finite wait for a saved file's next
+revision or its absence) and `file.suggest` (bounded discovery under an
+authorized root) are Read; `file.duplicate` (an exclusive sibling copy that
+never overwrites) is Operate. Each is unary and fleet-forwardable. An agent
+principal is refused all five, as it is `file.read`. A delegated
+`file.observe` answers at once, without the wait.
+
+The five were reviewed with `FILE_PANELS_PROTOCOL = None` and take one
+number together at their node-line merge, the next free number in merge
+order (drafted as 26 before that merge). A peer below it is refused before
+any request is sent. The minimum protocol remains 2 and the store schema is
+unchanged.
+
+## Version 26 (2026-11-16, milestone 12): account usage reports and source consent (W5/impl U, ADR 0042)
+
+Protocol 26 introduces `usage.reports(ListUsageReports) -> UsageReports` and
+`usage.inspect(InspectUsageReport) -> UsageReportLookup` (Read), and
+`usage.source_lookup(SetUsageSourceLookup) -> UsageSourceDescriptor` (Admin).
+All three are unary and fleet-forwardable with the destination's scope
+intersection. `ACCOUNT_REPORTS_PROTOCOL` and `USAGE_SOURCE_CONSENT_PROTOCOL`
+share this one version; they stay separate constants so either can move later.
+
+A cached read performs no credential, login discovery or vendor I/O. An
+explicit refresh additionally needs Operate and the global lookup (`usage.lookup`,
+23) On, and an additional source its own grant. The original three stores
+inherit the global choice; the seven additional sources start Off, and an
+Unsupported source can never read as Enabled. `usage.source_lookup` takes the
+exact registered source and the current disclosure revision, refuses unknown
+ids and stale revisions for either choice, and never fetches. Source Off and
+global Off invalidate pending publication and snapshots before they
+acknowledge. Read-only callers receive no monetary balances or Operate-only
+details.
+
+The rows were reviewed with both constants `None` and assigned at their
+node-line merge, the next free number in merge order, after the provider
+client began resolving names only through the node's tracked DNS scope
+(ADR 0104). Consumers on older or unassigned peers keep using `usage.limits`
+(23). The minimum protocol remains 2; the store schema is unchanged.
+
 ## Version 25 (2026-11-15, milestone 12): workspace registry metadata (W11, ADR 0082)
 
 Protocol 25 introduces the independent workspace registry's six metadata
@@ -1983,3 +2051,22 @@ closed resource-refusal detail; it never carries raw logs or environment.
 ## Unassigned command-kind metadata values (ADR0085)
 
 AgentCommand.kind optionally carries command, skill or unknown. Absence remains root-only; unknown future kinds do not enable inline completion. COMPOSER_COMMANDS is None in this values carrier. Every peer-visible conversation/event path strips kind until assignment, including forwarded replies and legacy event projections. No method, RPC row or protocol number is introduced, and actual discovery/classification remains separate.
+
+### Staged workspace service contract (ADR 0066)
+
+The workspace script/service and dedicated service-settings rows are staged
+values under `workspace_services::WORKSPACE_SERVICES`, still unassigned.
+They use unary responses and the existing typed client admission; a staged
+Handler answers Unsupported and compile-time checks forbid assigning its
+number before wiring. Every new row is explicitly nonforwardable. Private
+settings Read and writes require direct Admin at the future real boundary;
+agents and delegated principals cannot gain it from a claimed origin/scope.
+No generic node-settings Read/write carries the private services document.
+
+Snapshot, planned port, health, generated environment and proxy URL values
+are observations, not process/socket/incarnation or publication authority.
+Compact configuration summaries and nested NeedsApproval replies retain
+the complete project approval display gate. The detailed DTO/cursor/bounds,
+permission and activation prerequisites are in
+`plans/workspace-services-api.md`. No runtime handler, private consent schema,
+service listener or browser capability is enabled by the staged rows.

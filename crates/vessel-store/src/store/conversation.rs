@@ -26,7 +26,9 @@ impl Store {
     /// made at `at`; returns its marks after. `read` keeps the furthest
     /// `through` and clears `unread`; `archive` keeps the first time.
     /// Nothing checks that an archived session has ended: the node stops
-    /// a session before archiving it.
+    /// a session before archiving it. This is the path of a session served
+    /// from the store ([`crate::Residence::Stored`]); a session the node's
+    /// runtime has uses [`Self::mark_committed`] with `Loaded`.
     ///
     /// # Errors
     /// [`StoreError::UnknownSession`], or the write failed.
@@ -36,7 +38,7 @@ impl Store {
         mark: Mark,
         at: DateTime<Utc>,
     ) -> Result<KeptMarks, StoreError> {
-        self.mark_committed(session, mark, at)
+        self.mark_committed(session, mark, at, crate::Residence::Stored)
             .await
             .map(SessionCommit::into_value)
     }

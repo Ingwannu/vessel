@@ -44,8 +44,9 @@ Read reference sources, relative to the Paseo 0.15.4 source root:
 ## Decision
 
 Add `vessel_proto::workspace_labels` values, typed requests/responses and one
-`WORKSPACE_LABELS: Option<ProtocolVersion> = None`. Five unary rows now register as pending in the shared method table; integrator assigns
-the number only after every direct/nested/forwarded consumer is covered.
+`WORKSPACE_LABELS: Option<ProtocolVersion>`. The five unary rows were reviewed
+as pending (None) in the shared method table; the integrator assigned protocol
+28 at the node-line merge (2026-11-16, see "Activation" below).
 
 Use catalog and ordered assignment tables in the existing SQLite database.
 Assignments reference ADR 0082's registry primary key and the catalog key.
@@ -67,7 +68,7 @@ fact. The real writer must map it to the registry's after-commit watch effect;
 incrementing a durable revision alone would leave existing observers asleep.
 Recolor-only and idempotent mutations do not invalidate workspace assignments.
 
-Pending method rows:
+Method rows (protocol 28):
 
 | Call | Scope | Result |
 | --- | --- | --- |
@@ -115,6 +116,29 @@ make its accepted mutation disappear from that drain. A scripted held-commit
 regression checks the ordering and post-marker refusal; production cleanup
 must wire this acknowledgement before `Store::close`.
 
+## Activation (protocol 28) and a corrupt stored row
+
+[Decision Log]
+- Purpose: make the reviewed calls public, and decide what a corrupt stored
+  row does now that a client can reach the catalog (A6 review note b).
+- Reference: Paseo's `bootstrap.ts` 1070 awaits the label service's
+  `initialize()` without a catch, and `catalog-store.ts` 171-178 parses the
+  whole catalog; one bad entry stops the daemon. A missing file is an empty
+  catalog.
+- Choice (coordinator ruling, 2026-11-16): keep Paseo's behaviour. `Labels::open`
+  reads the catalog at node start, so one corrupt row refuses start with
+  `NodeError::WorkspaceLabels`. Its cause names the table and the row's place
+  (`vessel_store::LabelRow`: the catalog row in key order, or a workspace's
+  assignment in its order, from 1) and never the row's name, key or color:
+  both tables are `WITHOUT ROWID` and keyed by the label name itself, and the
+  color decoder's error, which can repeat the stored value, is dropped.
+- Rejected: skipping or quarantining the row (silent data loss, not the
+  reference); refusing only label calls (a different failure surface from
+  the reference, and a client could then write over state it cannot read).
+- Effect: the wire still shows a client only the fixed `internal` notice.
+  Tests assign over the real server and SDK at 28, refuse older peers before
+  a frame, and pin the start error's text against a canary row.
+
 ## Differences and version behavior
 
 - SQLite transactions replace the reference's compound JSON commit journal.
@@ -123,9 +147,9 @@ must wire this acknowledgement before `Store::close`.
   cross-platform presentation. Host-local display spelling remains intact.
 - No arbitrary label name/count cap is added. The existing transport frame
   budget applies. Typed names reject empty normalized text at decoding.
-- Unassigned calls are refused before dispatch/sending; no local fake success.
-  Old clients see no new descriptor fields/events; new clients against an
-  old node show Unsupported. Forwarded replies obey the same gate.
+- Calls are refused before dispatch/sending to a peer older than 28; no local
+  fake success. Old clients see no new descriptor fields/events; new clients
+  against an old node show Unsupported. Forwarded replies obey the same gate.
 - Session reserved metadata remains ADR 0063/subagent policy, not this catalog.
 
 ## Advantages, costs and effects

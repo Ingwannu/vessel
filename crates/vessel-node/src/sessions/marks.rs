@@ -33,6 +33,10 @@
 //!   yet, and since `read` only moves forward, a mistake there could never
 //!   be taken back. The end is the ring's for a session the runtime has,
 //!   which a follower's records never pass.
+//! - The session clock (ADR 0063, TRACKER 775): as Paseo's loaded agents, a
+//!   Read or Unread on a session the runtime has leaves `updated_at` alone;
+//!   on a stored session it ticks when it changes attention. The store
+//!   applies that rule from the [`Residence`] each path passes.
 //! - `session.delete` takes only a session served from the store: one the
 //!   runtime still has is live (`conflict`: archive it first), or ended with
 //!   its log still being written (`conflict`: a retry works once the store
@@ -43,6 +47,7 @@ use std::sync::Arc;
 use chrono::Utc;
 use vessel_proto::{EventSeq, Mark, SessionId, SessionInfo};
 use vessel_session::{RemoveError, SessionHandle};
+use vessel_store::Residence;
 
 use super::{Found, Sessions};
 use crate::error::ServiceError;
@@ -108,7 +113,10 @@ impl Sessions {
                     let _final = handle.ended().await;
                 }
                 let _order = sessions.marking.lock().await;
-                let committed = sessions.store.mark_committed(id, mark, Utc::now()).await?;
+                let committed = sessions
+                    .store
+                    .mark_committed(id, mark, Utc::now(), Residence::Loaded)
+                    .await?;
                 let (kept, updated_at) = committed.into_parts();
                 handle.set_committed_marks(kept, updated_at);
                 Ok(handle.info())

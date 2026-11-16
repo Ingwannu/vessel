@@ -42,7 +42,7 @@
 //!   that move's profile.
 
 use std::collections::{BTreeSet, HashMap};
-use std::sync::{Mutex, PoisonError};
+use std::sync::{Arc, Mutex, PoisonError};
 
 use vessel_harness::Profile;
 use vessel_proto::{HarnessRef, HarnessSessionId, ProfileName, SessionId, SessionMode};
@@ -70,17 +70,18 @@ pub(crate) struct Claims {
 
 /// A claim on a conversation, given back when dropped.
 #[derive(Debug)]
-pub(crate) struct Claim<'a> {
-    claims: &'a Claims,
+pub(crate) struct Claim {
+    claims: Arc<Claims>,
     conversation: Conversation,
     id: SessionId,
     profiles: Profiles,
 }
 
-impl Claim<'_> {
+impl Claim {
     /// The session started (or moved): it holds the claim's profiles from
-    /// now on.
-    pub(crate) fn keep(self) {
+    /// now on. The starting entry stays until the last shared owner drops,
+    /// so a cancelled preparation cannot release it before physical settlement.
+    pub(crate) fn keep(&self) {
         let _previous = self
             .claims
             .held
@@ -90,7 +91,7 @@ impl Claim<'_> {
     }
 }
 
-impl Drop for Claim<'_> {
+impl Drop for Claim {
     fn drop(&mut self) {
         let mut starting = self
             .claims
@@ -119,7 +120,7 @@ impl SessionRuntime {
         harness: &HarnessRef,
         profiles: Profiles,
         conversation: &HarnessSessionId,
-    ) -> Result<Claim<'_>, SessionError> {
+    ) -> Result<Claim, SessionError> {
         let profiles: Profiles = profiles
             .into_iter()
             .map(|profile| canonical(harness, profile))
@@ -163,7 +164,7 @@ impl SessionRuntime {
             .or_default()
             .push((id, profiles.clone()));
         Ok(Claim {
-            claims: &self.claims,
+            claims: Arc::clone(&self.claims),
             conversation: key,
             id,
             profiles,

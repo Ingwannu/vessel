@@ -3,10 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::error::ServiceError;
-    use vessel_proto::{
-        ErrorCode, ErrorDetail,
-        workspace_labels::{LabelColor, WorkspaceLabelFailure},
-    };
+    use vessel_proto::{ErrorCode, ErrorDetail, workspace_labels::WorkspaceLabelFailure};
     use vessel_store::StoreError;
 
     #[test]
@@ -26,12 +23,13 @@ mod tests {
 
     #[test]
     fn corrupt_row_color_diagnostics_cannot_echo_stored_data_to_a_client() {
-        let canary = "fake-private-row-content";
-        let source = serde_json::from_str::<LabelColor>(&format!("\"{canary}\"")).unwrap_err();
-        let service = ServiceError::from(StoreError::WorkspaceLabelColor(source));
-        assert!(std::error::Error::source(&service).is_some());
+        let row = vessel_store::LabelRow::Catalog(std::num::NonZeroUsize::MIN);
+        let service = ServiceError::from(StoreError::WorkspaceLabelColor { row });
+        // No decoder error is kept anywhere in the chain: it can repeat the value.
+        assert!(std::error::Error::source(&service).is_none());
         let wire = service.to_wire();
         assert_eq!(wire.code, ErrorCode::Internal);
-        assert!(!wire.message.contains(canary));
+        // A client sees the fixed notice only, not even the row's place.
+        assert_eq!(wire.message, "stored workspace labels could not be read");
     }
 }

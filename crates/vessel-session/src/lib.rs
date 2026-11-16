@@ -139,7 +139,7 @@ mod structured;
 mod terminal;
 pub mod terminals;
 
-pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
+pub use again::{Ended, Gate, NotResumable, PreparedAgain, Relaunch, Reopening, resumable};
 pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
 pub use error::{
@@ -150,7 +150,11 @@ pub use handle::{SessionHandle, TitleUpdate};
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use ring::{Follow, FollowError};
-pub use runtime::{Created, ForkStart, LaunchAdmission, LaunchOptions, SessionRuntime};
+pub use runtime::{
+    Created, ForkStart, LaunchAdmission, LaunchOptions, PreparationAdmission,
+    PreparationCancellation, PreparationEffect, PreparationGate, PreparationRefusal,
+    PreparedRuntime, ProbeChoices, SessionRuntime,
+};
 /// Suggested [`RuntimeConfig::agent_handshake_timeout`].
 pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;
 /// What `SessionRuntime::probe` learned (re-exported so the node needs no
