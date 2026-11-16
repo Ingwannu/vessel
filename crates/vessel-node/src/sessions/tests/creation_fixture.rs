@@ -1,5 +1,6 @@
 //! Actual placement and committed Begin inputs for staged common-owner tests.
 //! No raw metadata guard, root constructor, SQL marker or launch is fabricated.
+use super::execution_capture::owner::OwnedFixture;
 use super::*;
 use crate::agents::creation_launch::LaunchInput;
 use crate::agents::{Agents, CapturedParentExecution, Registration};
@@ -28,8 +29,8 @@ pub(crate) async fn phase<F: Future>(name: &'static str, work: F) -> F::Output {
 }
 
 pub(crate) struct CreationFixture {
-    inner: Fixture,
-    _root: TempDir,
+    inner: Arc<Fixture>,
+    owner: std::sync::Mutex<Option<OwnedFixture>>,
     workspaces: Arc<Workspaces>,
     project: ProjectInfo,
     workspace: WorkspaceId,
@@ -41,8 +42,12 @@ impl CreationFixture {
     /// Setup has no fake process; parent creation occurs inside run's retained
     /// failure owner, so an assertion/phase failure cannot drop a live harness.
     pub(crate) async fn new() -> Self {
-        let inner = phase("setup", Fixture::new()).await;
-        let root = tempfile::tempdir().unwrap();
+        let owner = OwnedFixture::new().await;
+        let inner = owner.shared();
+        // The same retained owner keeps this root alive even if the cleanup
+        // observer times out; the inherited fake-bin TempDir owns its parent.
+        let root = inner._bin.path().join("creation-project");
+        std::fs::create_dir(&root).unwrap();
         let dir = DataDir::new(inner.data.path());
         let home = inner.data.path().join("test-home");
         std::fs::create_dir(&home).unwrap();
@@ -65,15 +70,12 @@ impl CreationFixture {
         )
         .await
         .unwrap();
-        let project = phase(
-            "project registration",
-            workspaces.add_project(root.path().to_path_buf(), None),
-        )
-        .await
-        .unwrap();
+        let project = phase("project registration", workspaces.add_project(root, None))
+            .await
+            .unwrap();
         Self {
             inner,
-            _root: root,
+            owner: std::sync::Mutex::new(Some(owner)),
             workspaces,
             project,
             workspace: WorkspaceId::random(),
@@ -277,23 +279,19 @@ impl CreationFixture {
         .unwrap()
     }
 
-    /// Every cleanup phase is attempted even when another phase or the test
-    /// panics. Resume the original failure after actual stop/drain/Store close.
+    /// Observation deadlines never cancel actual cleanup: consume the SAME
+    /// qualified retained owner after either success or assertion/phase panic.
     pub(crate) async fn run(&self, work: impl Future<Output = ()>) {
         let outcome = AssertUnwindSafe(Box::pin(work)).catch_unwind().await;
         self.stop.cancel();
-        let cleanup = [
-            AssertUnwindSafe(phase("runtime drain", self.inner.runtime.shutdown()))
-                .catch_unwind()
-                .await,
-            AssertUnwindSafe(phase("task drain", self.inner.settle()))
-                .catch_unwind()
-                .await,
-            AssertUnwindSafe(phase("Store close", self.store().close()))
-                .catch_unwind()
-                .await,
-        ];
-        for result in std::iter::once(outcome).chain(cleanup) {
+        let owner = self
+            .owner
+            .lock()
+            .unwrap()
+            .take()
+            .expect("fixture runs once");
+        let cleanup = AssertUnwindSafe(owner.finish()).catch_unwind().await;
+        for result in [outcome, cleanup] {
             if let Err(panic) = result {
                 std::panic::resume_unwind(panic);
             }

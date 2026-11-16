@@ -6,7 +6,7 @@ use crate::principal::Principal;
 use futures_util::FutureExt;
 use std::panic::AssertUnwindSafe;
 use std::time::Duration;
-mod owner;
+pub(in crate::sessions::tests) mod owner;
 use owner::{OwnedFixture, Phase, step};
 use vessel_proto::timeline::{ExecutionInvalidation, FinishGrantCeiling};
 use vessel_proto::{DeviceId, NodeId, Origin, OriginBy, Scope};
