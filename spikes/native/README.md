@@ -1442,3 +1442,15 @@ renderer; source opt-ins add unselected pressed surface3 after hover surface2.
 Existing `segmented`/`segment` remain pointer-sized with their original paint.
 The caller owns the value and refuses disabled/current-value actions. Why and
 pinned lines: `docs/plans/shared-segmented-sizing.md`.
+
+`kit::FooterIconButton` is the sidebar footer wrapper over the same
+`icon_chrome::Profile::SidebarFooter`: square28/44, glyph16/20, glyph-only hover
+and inner round pressed layer. The owner supplies callbacks and optional focus;
+GPUI supplies native focus/Enter/Space activation, with no new key listener.
+Its tooltip uses the same controller at top8/300ms and suppresses compact tips.
+Closed `tooltip::KeyCaption`/`DisplayChords` add whole captions with optional
+caller-prepared display chords through that same tooltip surface. Empty keys
+add no child/gap; existing key_badges own the badge chrome and bounded wrapping
+is local to this content mode. No arbitrary-body tooltip, timer, shortcut
+registry, effect authority or Toolbar/ordinary Button change is added. See
+`docs/plans/shared-footer-icon-button.md` for source and verification boundaries.

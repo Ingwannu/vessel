@@ -43,6 +43,7 @@ pub mod external_link;
 pub mod field;
 pub mod focus;
 pub mod fonts;
+pub mod footer_icon_button;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
@@ -97,6 +98,7 @@ pub use field::{
     composer_card,
 };
 pub use fonts::Type;
+pub use footer_icon_button::FooterIconButton;
 pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{

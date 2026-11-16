@@ -22,8 +22,10 @@
 //!   existing callers keep immediate/top/8. One owned timer cancels on leave/press,
 //!   uses original trigger identity and holds no strong screen/controller reference.
 
+mod caption;
 mod config;
 mod pending;
+pub use caption::{DisplayChords, KeyCaption};
 pub use config::{Configuration, Delay, InvalidOffset, Offset, Side};
 
 use std::cell::RefCell;
@@ -60,12 +62,13 @@ struct Tip {
 enum Content {
     Text(SharedString),
     Code(SharedString),
+    Caption(KeyCaption),
 }
 
 impl Content {
     const fn face(&self) -> Type {
         match self {
-            Self::Text(_) => Type::Body,
+            Self::Text(_) | Self::Caption(_) => Type::Body,
             Self::Code(_) => Type::Mono,
         }
     }
@@ -73,6 +76,7 @@ impl Content {
     const fn text(&self) -> &SharedString {
         match self {
             Self::Text(text) | Self::Code(text) => text,
+            Self::Caption(caption) => &caption.label,
         }
     }
 }
@@ -94,7 +98,7 @@ impl Content {
     // without changing the process-wide font settings of parallel tests.
     fn metrics_with(&self, interface: fn(f32) -> f32, code: fn(f32) -> f32) -> Metrics {
         match self {
-            Self::Text(_) => Metrics {
+            Self::Text(_) | Self::Caption(_) => Metrics {
                 face: self.face(),
                 size: interface(14.0),
                 line: interface(LINE),
@@ -258,8 +262,8 @@ impl Tooltips {
             .type_(metrics.face)
             .text_size(px(metrics.size))
             .line_height(px(metrics.line))
-            .text_color(neutral.foreground)
-            .children(lines(tip.content.text(), neutral.foreground));
+            .text_color(neutral.foreground);
+        let card = tip.content.decorate(card, tokens);
         // Word 39: a tooltip arrives quickly (keyed by its words, so the
         // next trigger's plays again) and goes at once.
         let card = popup::appear(

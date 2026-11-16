@@ -43,3 +43,20 @@ owner refusal, tooltip timing/touch suppression, empty keys, bounded chord wrap
 and stationary same-Place pending/shown caption+keys refresh without restarting
 the existing deadline. Existing tooltip ABA/leave/press/drop tests stay intact.
 Final bounded review, lead receiving gate and real consumer images remain owed.
+
+Source checkpoint: FooterIconButton delegates directly to the announced
+SidebarFooter profile and exposes no frame/color styling. The same element
+gets GPUI focusability/tab-stop or the owner's existing FocusHandle. Native
+Enter/Space activation remains GPUI's existing ClickEvent path; there is no
+new keyboard listener or focus state. Pointer/keyboard callbacks retain the
+owner's original effect-admission closure, without a fabricated capability.
+
+Tooltips gains closed KeyCaption/DisplayChords content and on_caption only.
+Existing Text/Code append their previous line children unchanged. Caption
+uses the same surface and existing key_badges, with bounded wrap in this
+content composition; unavailable/unassigned/empty keys omit the entire child.
+Configuration, pending state, weak-trigger ownership/deadline logic, all old
+profile tests, Toolbar and icon_chrome files are unchanged. Native tests for
+caption geometry/wrap, stationary pending/shown props and Footer hit/key/timing
+are installed, not executed. Framework/OS accessibility and real consumer
+first-use pixels are unverified; primitive254 is not this wrapper's result.
