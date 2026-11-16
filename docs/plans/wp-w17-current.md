@@ -1,36 +1,36 @@
 # W17 current invocation map
 
-Product checkpoint: announced gate56b node head
-`ed4cd1377`, protocol25/schema21, merged at80298bb73 after gate54. Its gate is
-counted17/18 with the named open startSession /new intermittent (TRACKER770);
-it is not described here as a wholly green result. The package retains move-only startup seam
-`7489af9ed`, separate registry startup `ece8d0913`, sealed EOF owner `63fba65a5`,
-and the unexecuted real-queue prerequisite fixture `8ddd99ae5`. Conditional C2
-source integration remains `0d7cf46e` product / `c0abda32` docs; full consumer
-qualification is open. The newer source-reviewed frame producer is not adopted.
-This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
-listed; flags/defaults, reference output/exits and exact Paseo registration references
-remain in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
-Runtime success states use 0, failures 1, help/version 0; ordinary returned wait states
-are data with 0. Explicit unsupported output refuses before connection. Raw handlers
-keep their documented stream contracts. The latest exit-code process proof is owed.
+Current source includes announced gate57 node head
+`bc9cacc67dba6cc8d3fb4f71fa10c31e5de4565a`, protocol25/schema21, merged at
+`1108b23c7`. The source map is **not a passing parity checklist**. All117 paths
+remain listed; complete flags/defaults/reference output/exits and exact pinned
+registration references are in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
 
-Latest source additionally includes metadata protocol25, bounded screen-inbox work
-at c3966e380, pending atomic detach consumption and native lifecycle metadata flags.
-The latter source is not covered by the queued immutable8447 suite. The queued467 consumer run was cancelled before a slot (terminal143)
-because it predated these changes. Its ONE same-lane latest replacement is
-wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723.
-The replacement completed rc1 before tests (two private-field E0616 errors in
-sealed-owner test placement; one unused read count warning). Setup3 steps0 is not
-runtime proof. Those source defects are corrected without exposing private fields;
-changed-source strict and actual execution remain owed. The latest strict target
-is8a92af01, run wp-cli-narrow-20261115T184714Z-8a92af01, which returned Cargo101
-on11 test-helper panic/unwrap/expect lints; it also compiles the PTY/testkit fixtures. No newer Rust source is introduced
-by that invocation-map documentation correction. A subsequent host observation
-fix now stages exact-ack equality and kind-aware connectivity/name matching; it
-is outside8a92 and needs its own changed-source lint and actual tests. The PTY
-module now explicitly uses cfg(all(test,unix)), preserving the existing test-only
-lint policy without adding allowances; corrected-source checks remain owed.
+The package retains move-only startup seam7489af9ed, separate registry startup
+ece8d0913, sealed EOF owner63fba65a5, bounded screen-inbox fairness c3966e380,
+host observation fixes4980/4bde, atomic-detach consumption and native lifecycle
+metadata flags. The conditional C2 engine is still product0d7/docs c0ab; full
+consumer qualification remains open. No newer frame/display producer is adopted.
+Screen is Silent and NodeAuthority OFF. All six own methods remain pendingNone.
+
+Latest executed selected strict: exact136c13952858, run
+wp-cli-narrow-20261116T004534Z-136c1395,11crates/alltargets/TSfeatures/-Dwarnings,
+Cargo0 in9s. This settles earlier test-helper/import/CLI lint returns on that
+immutable ed4-based source; it is not a full gate or a check of the laterbc9 union.
+Actual CLI/session/PTY/testkit run wp-cli-narrow-20261116T005236Z-136c1395 uses
+the SAME136c source and is currently executing after3636s in the ordinary queue.
+No actual new runtime result is claimed until that exact run finishes.
+
+The independent registry prerequisite branch has source88ed99bd onbc9, outside
+this CLI tree: exact-id/incarnation reservations, vacant-only handoff and retained
+refusal cleanup. Source/Why/tests are prepared, but no leaf Cargo/V3/merge occurred.
+Its approved priority strict then9focused units starts only after005236 finishes.
+It does not produce root/debt/quiescence evidence or activate any new RPC.
+
+Runtime success states use0, failures1, help/version0; ordinary returned wait
+states are data with0. Explicit unsupported output refuses before connection;
+raw handlers keep their documented streams. Latest exit-code process proof is
+part of the running actual suite, not assumed from parser-only tests.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an

@@ -1823,3 +1823,34 @@ standard I/O errors, preserving original I/O and join failures. Only the actual
 Tokio test unwraps/asserts results. No lint allowance or queued-byte/cancellation
 behavior changes; no source failure is called infrastructure or test PASS.
 Latest runtime execution remains owed after this changed-source strict.
+
+### Executed strict136c, actual suite and subsequent source bases
+
+wp-cli-narrow-20261116T004534Z-136c1395 is GREEN: exact136c13952858, selected
+CLI/proto/rpc/client/store/session/terminal-screen/node/web/PTY/testkit, alltargets
+with proto/web TS features and -Dwarnings, Cargo0 in9s. Its earlier source returns
+remain separate; no tests were executed by that strict command. SAMEHEAD actual
+CLI/session/PTY/testkit run005236 was submitted once ordinary and acquired after
+3636s; its runtime result is still unknown.
+
+Announcedbc9cacc6 merged as1108b23c7 while that immutable suite waits/runs. The
+only conflict combined the pure terminal-screen crate row with the upstream
+PTY diagnostic-privacy row. Cargo.lock removes no base identity and retains28
+previous package additions. The upstream generated proto.ts trailing whitespace
+is unchanged; no generator bytes were hand-edited. This newer base/contract-doc
+source has not been substituted for the executed136c result.
+
+The coordinator approved a separate named-blocked W3 reservation prerequisite
+source preparation oned4, now mergedbc9 in its isolated branch. Before start,
+node-line log had no registry.rs commits and C2 explicitly confirmed no WIP or
+committed edit. Source88ed99bd has9authored units (7identity/real-actor cases and
+2bounded shutdown-wait cases), clean direct-format/size/diff/source preflight,
+and no compilation yet. Exact88ed priority strict then units is approved only
+after005236 finishes, one Cargo run at a time; failed priority strict returns
+to ordinary. V3/integrator acceptance and the landed hash to W3 remain owed.
+
+Future cleanup ownership is explicit: GKS lifecycle produces exact agent-run
+wait/descendant/drain proof and forgotten-agent debt. W17 receives those inputs
+and composes them with its terminal/forgotten-terminal proof under W9's canonical
+RootLease; it does not manufacture agent evidence from status, Ready, PID or
+OwnedGroupExit. Neither producer is consumed here; production restore stays Busy.
