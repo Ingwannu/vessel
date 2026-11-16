@@ -3,6 +3,18 @@ union checks, full source review and owning whole gate. The next section is the
 integrated values-only carrier's preserved scope; the worker runtime continuation
 below it is separate and has not been adopted by that source verdict.
 
+## Resume status (2026-11-16)
+
+Current NODE source d45fbc880 is on announced ed4cd137 (counted17/18 with the
+named unrelated startSession/new intermittent). The canonical sequence migration
+module contains the unchanged owned claims append after listing21. Current
+strict is queued; prior de524 strict0, three-library835 and generated TS5 remain
+earlier-source evidence. W2 Relation/WorkspaceRole is canonical; its unassigned
+observation capability remains Unknown. Membership helper integration and the
+canonical lifecycle clock are not yet consumed. Five A5 methods stay None.
+
+Earlier checkpoints below are retained as source-specific history.
+
 Current source: canonical275024369 mergedde524128; the worker claims append
 remains22 after listing21, and its five pending rows follow skills.import_selection.
 Prior830 on939 passed five-crate all-target strict, actual vesseld build,980
