@@ -213,3 +213,17 @@ outer safety future is now boxed, keeping the test task stack bounded without
 changing deadlines, records, assertions, output or product code. The original
 red receipt remains; the changed test source requires the same approved narrow
 strict/runtime qualification rather than a new whole gate.
+
+
+The first corrected runtime run, `wp-search-node-narrow-20261116T004442Z-a9661230`,
+executed exactly six owned cases. Client and RPC admission, running/queued
+blocking permits, durable reopen and retention passed (5/1 overall). The sole
+failure was the measurement setup's new five-second wait for the unrelated
+full-text index to consume one 20,000-record append, before metadata paging.
+The measurement now preloads the same ordered records in batches of 1,000,
+awaiting the actual index barrier after each batch. This bounds setup work per
+phase instead of extending either the five-second phase or 30-second fixture
+safety deadline. The final snapshot, 10,000-prompt/50-page traversal, counts,
+reply size and reported read timings stay unchanged; no product source or
+performance threshold changes. Original red evidence remains; the changed
+Store test still needs strict/runtime qualification and row267 disposition.

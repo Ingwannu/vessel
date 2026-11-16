@@ -205,6 +205,27 @@ async fn prompt_index_retention_invalidates_a_continuation_and_never_returns_pru
     .expect("prompt store safety deadline");
 }
 
+// The unrelated full-text index must quiesce before timing metadata reads.
+// Bound setup work per barrier, rather than requiring all 20,000 records to
+// finish indexing in one phase. Both phase and whole-fixture deadlines stay.
+async fn measurement_preload(
+    store: &vessel_store::Store,
+    session: SessionId,
+    mut records: impl Iterator<Item = std::sync::Arc<vessel_proto::EventRecord>>,
+) {
+    const PRELOAD_RECORDS: usize = 1_000;
+    loop {
+        let batch: Vec<_> = records.by_ref().take(PRELOAD_RECORDS).collect();
+        if batch.is_empty() {
+            break;
+        }
+        phase("measurement append batch", store.append(session, batch))
+            .await
+            .unwrap();
+        phase("measurement batch indexed", store.indexed()).await;
+    }
+}
+
 /// Report timings without a performance threshold; safety deadlines identify stalled fixtures.
 #[tokio::test]
 #[ignore = "measurement of repeated snapshot paging; run explicitly with --ignored --nocapture"]
@@ -219,17 +240,14 @@ async fn prompt_index_measure_metadata_pages_over_twenty_thousand_records() {
         let store = phase("open or reopen", fixtures::open(&dir, StoreConfig::default())).await;
         let session = phase("create fixture session", messages::started(&store, 0)).await;
         let reply = "r".repeat(CHUNK_BYTES);
-        let records = (0..TURNS)
-            .flat_map(|turn| {
-                let seq = turn.saturating_mul(2).saturating_add(1);
-                [
-                    messages::prompt(seq, "한글 prompt navigation measurement"),
-                    messages::chunk(seq.saturating_add(1), &reply),
-                ]
-            })
-            .collect();
-        phase("measurement append", store.append(session, records)).await.unwrap();
-        phase("measurement indexed", store.indexed()).await;
+        let records = (0..TURNS).flat_map(|turn| {
+            let seq = turn.saturating_mul(2).saturating_add(1);
+            [
+                messages::prompt(seq, "한글 prompt navigation measurement"),
+                messages::chunk(seq.saturating_add(1), &reply),
+            ]
+        });
+        measurement_preload(&store, session, records).await;
         let mut query = request(session);
         query.limit = PromptIndexLimit::default();
         let started = Instant::now();
