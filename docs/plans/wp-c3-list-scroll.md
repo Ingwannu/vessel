@@ -77,3 +77,17 @@ acceptance. The separate current-prepaint/>32-visible-engine selection remains
 queued on App3add; production notification integration and its retained-old-
 callback/owner lifecycle proof are still owed. No additional whole gate, PNG
 matrix, OS input or other consumer is approved by these tests.
+
+## Bounded V1 review completed
+
+V1 reviewed exact2ebeedf9..94b994be and the optional6fc65ade4 documentation
+leaf: bounded SOURCE/requested Kit NARROW PASS. Its independent audit verified
+all four source pins and every declared artifact/spec/checkout/step prefix.
+The exact current result is Kit all-target strict0 and one deferred weak-owner
+GPUI case; the earlier basic absent/present case remains prior-source.
+
+The selected handoff was sent to the native lead for receiving integration;
+this is not whole Kit, C3, captures, physical OS input or a new owner lifecycle
+proof. Current prepaint/>32/retained-old-callback and programmatic reveal,
+resize, scrollbar and cached-region consumer paths remain owed. No source or
+additional run was changed for this result.
