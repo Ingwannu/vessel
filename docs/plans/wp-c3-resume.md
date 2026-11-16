@@ -852,3 +852,24 @@ Selected regular rustfmt, size and token checks passed before submission.
 W13's straight shown-source leaf d582+docsdf0700 is now receiving source/narrow
 passed, but not consumed here yet; it alone does not supply UI-visit or write
 authority. Actual write owner and F4 reactivation remain pending.
+
+## Base14.3 original-source command prerequisite
+
+Merged announced67637eb6, containing reviewed C5 shown-source and shared list.
+Unions preserve syntax_for, both passive wasm refusal/event arms and the
+complete source-producer result notes. W13 confirmed no in-flight source edit
+and authorized identity-only same_source with this actual consumer.
+
+The command target now retains the exact C5 receipt captured while projecting
+the menu; activation checks that same original receipt. Equality combines
+existing logical intention with immutable acquisition identity, never guard
+liveness. Only required C5 Changes accessors/getters/reexports are promoted;
+Diff/typed Explorer/retirement helpers stay staged. Focused real-framed identity
+and stale-command tests are added; old pure command rules remain pure logical
+model tests. This source is not yet compiled/executed.
+
+No write is enabled, no F4 source is reactivated. The legacy status owner and
+main C3 read queue still need original guarded acquisition/installation joins,
+and actual UI visit/dialog/sent-uncertain ownership remains mandatory. Details
+and Decision Log: wp-c3-source-command.md. Do not count C5 source identity as
+physical write authority or a new source lookup as the old callback's intent.

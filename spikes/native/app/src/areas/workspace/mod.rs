@@ -32,8 +32,9 @@ use vessel_app_view::workspace::words::WorkspaceWords;
 
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
+pub(crate) use code::ShownChangesContext;
 #[cfg(test)]
-pub(crate) use code::{ShownChangesContext, ShownDiffContext};
+pub(crate) use code::ShownDiffContext;
 pub(crate) use code::{code_beside, code_toggle, frame_row, syntax_for};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;

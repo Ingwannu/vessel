@@ -1,9 +1,7 @@
 //! Correlation metadata alongside the ONE Changes summary and diff controller.
 //! A stamp is source evidence only; action admission remains with its consumer.
-#[cfg(test)]
 use super::Tab;
 use super::{CodePanel, Summary};
-#[cfg(test)]
 use crate::shell::Shell;
 use std::collections::HashMap;
 use vessel_app_link::{DeliveryGuard, workspace::code_source::Request};
@@ -38,11 +36,9 @@ pub(crate) struct ShownChangesContext {
 }
 impl ShownChangesContext {
     /// Original acquisition facts; this does not admit an operation.
-    #[cfg(test)]
     pub(crate) fn connection(&self) -> &ConnectionContext {
         self.scope.connection()
     }
-    #[cfg(test)]
     pub(crate) const fn root(&self) -> vessel_proto::workspace::WorkspaceRoot {
         self.scope.root()
     }
@@ -50,6 +46,18 @@ impl ShownChangesContext {
     pub(crate) const fn comparison(&self) -> ScopeKind {
         self.comparison
     }
+    /// Compare only immutable acquisition identity, never admission or UI visit.
+    /// Retired clones can remain equal: callbacks still require the original
+    /// shown_changes_is_current check and their own intent/visibility preflight.
+    pub(crate) fn same_source(&self, other: &Self) -> bool {
+        self.root.context == other.root.context
+            && self.root.session == other.root.session
+            && self.root.ticket == other.root.ticket
+            && self.scope == other.scope
+            && self.ticket == other.ticket
+            && self.comparison == other.comparison
+    }
+
     fn live(&self) -> bool {
         self.root.current() && self.guard.validate(self.scope.connection()).is_ok()
     }
@@ -120,12 +128,10 @@ impl CodePanel {
         .then_some(diff)
     }
 }
-#[cfg(test)]
 impl Shell {
     /// Original drawn source, available only from the actual legacy Changes host.
     /// A typed Explorer caller must also validate its real `PanelContext`. Logical
     /// Workspace roots remain unavailable until their canonical runtime producer.
-    #[cfg(test)]
     pub(crate) fn shown_changes_context(&self) -> Option<ShownChangesContext> {
         let panel = &self.areas.workspace.code;
         let shown = panel.source()?;
@@ -190,7 +196,6 @@ impl Shell {
         }
     }
     /// Validate immediately at every callback lookup; counts are never identity.
-    #[cfg(test)]
     pub(crate) fn shown_changes_is_current(&self, shown: &ShownChangesContext) -> bool {
         self.shown_changes_context().is_some_and(|current| {
             current.ticket == shown.ticket

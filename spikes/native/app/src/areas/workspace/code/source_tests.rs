@@ -422,3 +422,9 @@ fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[path = "source_identity_tests.rs"]
+mod identity;
+
+#[path = "source_command_tests.rs"]
+mod commands;
