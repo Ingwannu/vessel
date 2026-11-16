@@ -194,3 +194,13 @@ replies keep the original guard/context and FollowBinding/ticket; hidden ingress
 uses binding, never a fabricated visible input or selected successor. W10 receives
 this direction to coordinate the nested hold/snapshot before source integration.
 This is no reviewed public signature, live product cutover or adoptable hash.
+
+A7 confirms snapshot_readiness currently combines W1 navigation with local
+main/origin protection, and TimelineSnapshot moves the actual entire Area. The
+checkpoint state must move intact and provide an explicit local readiness hold.
+The existing conversation_settled_scoped consumes before apply; it does not check
+W9 correlation and cannot serve as a precheck. A7 can add a staged wrapper after
+checked checkpoint state/accessors exist: inspect the bound owner through the
+same Residents::receive, match W9 pending/correlation, then consume and apply in
+ONE synchronous UI update, without await or selected-context refresh. There is
+no second ticket/read buffer. The footer/rewind renderer remains untouched.
