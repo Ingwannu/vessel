@@ -11,7 +11,7 @@ use vessel_proto::{
 /// Test liveness is independent of the product's 30-second read deadline.
 const TEST_SAFETY: std::time::Duration = std::time::Duration::from_secs(45);
 
-pub(in crate::attachments) async fn bounded<T>(future: impl std::future::Future<Output = T>) -> T {
+pub(in crate::attachments) async fn bounded<T>(future: impl Future<Output = T>) -> T {
     tokio::time::timeout(TEST_SAFETY, future)
         .await
         .expect("test safety deadline")
@@ -26,13 +26,12 @@ impl Drop for Peer {
 }
 impl Peer {
     pub(in crate::attachments) async fn finish(mut self) -> Vec<Call> {
-        match tokio::time::timeout(TEST_SAFETY, &mut self.0).await {
-            Ok(result) => result.expect("scripted peer completed"),
-            Err(_) => {
-                self.0.abort();
-                let _cancelled = (&mut self.0).await;
-                panic!("scripted peer shutdown deadline");
-            }
+        if let Ok(result) = tokio::time::timeout(TEST_SAFETY, &mut self.0).await {
+            result.expect("scripted peer completed")
+        } else {
+            self.0.abort();
+            let _cancelled = (&mut self.0).await;
+            panic!("scripted peer shutdown deadline");
         }
     }
 }

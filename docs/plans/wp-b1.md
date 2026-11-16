@@ -14,7 +14,7 @@ Status: available attachment/mention core gated and captured; dependent integrat
 - Choice: autocomplete retains its drawn request and row together and revalidates
   both. File pills retain an opaque `Arc` incarnation; context pills retain an
   incarnation plus the source revision. The renderer and regression tests use
-  the same callback constructors. These are resource leases, not a new registry
+  the same callback constructors. These are incarnation handles, not a new registry
   or network authority. Keyboard selection continues using the current choice.
 - Impact: removing/replacing/recreating a resource invalidates its old actions;
   upload progress alone does not change its identity. Captured contexts/files
@@ -31,6 +31,12 @@ up on assertion/timeout, and explicit join timeout aborts then reaps that task.
 The product30-second read deadline and real RPC/malformed/retirement assertions
 are unchanged. A stalled-script regression verifies owned cancellation.
 
+The first correction check at17f passed native quality and stopped at two Link
+fixture lints (an unnecessary Future qualification and a single-pattern match).
+Both are corrected without changing the timeout/cleanup contract. No regression
+execution was submitted on that red result; the corrected source still owes its
+quality/strict and three-changed-crate execution receipts.
+
 Existing whole42 and capture receipts below remain exact predecessor evidence;
 this correction has not yet earned its changed-source receipt. No dependency,
 source-owner integration or product-resident authority is promoted by it.
@@ -39,7 +45,7 @@ source-owner integration or product-resident authority is promoted by it.
 
 The attachment candidate is frozen on package base c3429952. Its concrete App scope is byte-file/image intake, the managed local store, correlated prepare/upload/final-payload retention, context trays, file/directory fallback mentions, sent-image reads and the shared lightbox. Workspace draft keys and editors retain their own payloads; no Workspace-to-New fallback is added. The earlier sections below are a chronological design/checkpoint record, not current acceptance receipts.
 
-The receiving common input packet separately uses the official App base9b root. It preserves B2's one field/paste/key/fullscreen implementation and W3's scoped editor, but waits for the canonical CommandKind metadata route before its one combined check. Its source, gates and product activation must not be inferred from this older candidate's gate.
+The receiving common input packet separately uses the official App base13.1 root. It preserves B2's one field/paste/key/fullscreen implementation and W3's scoped editor, but waits for the canonical CommandKind metadata route before its one combined check. Its source, gates and product activation must not be inferred from this older candidate's gate.
 
 ### Concrete differences and incomplete integrations
 
