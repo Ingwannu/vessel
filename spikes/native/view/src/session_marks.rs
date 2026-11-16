@@ -121,6 +121,11 @@ impl Requests {
     pub const fn is_pending(&self) -> bool {
         self.pending.is_some()
     }
+    /// Inspect the original pending intent without replacing its correlation.
+    #[must_use]
+    pub const fn pending(&self) -> Option<&Ask> {
+        self.pending.as_ref()
+    }
     /// Consume only the exact original UI request, including target and mark.
     pub fn finish(&mut self, ask: &Ask) -> bool {
         if self.pending.as_ref() != Some(ask) {

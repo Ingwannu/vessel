@@ -50,11 +50,8 @@ fn directory_refusal_preserves_actual_input_route_and_successor_pending(cx: &mut
             .composer
             .set_text("keep composing 한글", window, cx);
         shell.fleet.machines = vec![machine];
-        let first = shell
-            .areas
-            .session_marks
-            .begin(target.clone(), Mark::Archive)
-            .unwrap();
+        shell.mark_session_target(target.clone(), Mark::Archive, cx);
+        let first = shell.areas.session_marks.pending().unwrap().clone();
         shell.session_mark_answer(Answer::refused(first.clone(), Failure::Unsent), cx);
         assert!(!shell.areas.session_marks.is_pending());
         let second = shell
