@@ -37,6 +37,9 @@ impl std::fmt::Display for RevokeIntent {
 #[derive(Debug, Default)]
 pub struct Page {
     identity: DeviceIdentity,
+    pub(super) unconfirmed: Option<super::interrupted::Interrupted>,
+    /// This admitted caller's explicitly reported effective grant.
+    pub(super) authority: super::Authority,
     // A selected public record, never an invitation or a credential. Kept
     // while a read is pending; a successful list reconciles it by id.
     pub(super) inspection: Option<vessel_proto::DeviceInfo>,
@@ -53,7 +56,8 @@ pub struct Page {
 }
 
 impl Page {
-    fn clear_owned(&mut self) {
+    pub(super) fn clear_owned(&mut self) {
+        self.authority = super::Authority::Unchecked;
         self.listing = Listing::Empty;
         self.inviting = Inviting::Empty;
         self.revoking = Revoking::Empty;
@@ -66,6 +70,9 @@ impl Page {
             matches!(&self.target,
             Target::Online(machine) if machine == context.machine())
         });
+        if self.context() != context.as_ref() {
+            self.interrupted();
+        }
         let change = self.identity.observe(context);
         if change == IdentityChange::Replaced {
             self.clear_owned();
@@ -97,7 +104,10 @@ impl Page {
         intent: RevokeIntent,
         request: Ticket,
     ) -> Option<vessel_proto::DeviceId> {
-        if self.check_context(context).is_err() || self.revoking.intent() != Some(intent) {
+        if self.check_context(context).is_err()
+            || !self.authority.may_manage()
+            || self.revoking.intent() != Some(intent)
+        {
             return None;
         }
         self.revoking.confirm(context, intent, request)
@@ -115,6 +125,7 @@ impl Page {
     /// Replace scope, dropping everything belonging to the previous one.
     pub fn target(&mut self, target: Target) {
         if self.target != target {
+            self.interrupted();
             self.clear_owned();
             let _retired = self.identity.observe(None);
             self.target = target;
