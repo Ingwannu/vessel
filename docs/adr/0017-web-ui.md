@@ -408,3 +408,34 @@ in script (needs `blob:` in `script-src`); compressing per request
   its chunk; the figures are in `docs/PERFORMANCE.md`.
 - The binary embeds each text file three times (as it is, brotli, gzip)
   and 92 font files instead of one.
+
+## Amendment: an elapsed hello wait is retryable
+
+[Decision Log]
+- Purpose: a resource deadline is not proof of a bad credential. A busy
+  browser can miss the server's hello wait while still holding an unused,
+  valid launch code.
+- Constraints: keep the existing server and browser waits, admission and
+  frame bounds, origin/host checks, fresh nonces, HMAC proof and single-use
+  bootstrap redemption. No call reaches the bridge before a verified welcome.
+- Alternatives: raising waits hides the classification error; retrying an
+  explicit authentication refusal would weaken the existing boundary.
+- Choice: an elapsed server hello wait closes with standard websocket
+  `1013` (Try Again Later). Invalid proof and misplaced frames keep `4401`.
+  The existing browser already backs off on a transport close and stops
+  finally on `4401`, so no new frame or protocol number is needed.
+- Why: the unused launch can prove itself against a fresh challenge after
+  a transient delay. A missing proof at the deadline does not establish a
+  wrong key or a changed server identity.
+- Consequences: waits and authentication checks are unchanged. A bootstrap
+  already redeemed by a valid proof stays spent even if its welcome is
+  lost; this amendment never restores it. A retry still needs mutual proof
+  before the tab stores its independent session key.
+
+The source path previously mapped both deadline expiry and invalid proof
+to `4401`; the page then forgot its credential and showed the identity
+refusal screen. The recorded intermittent has that screen, while its exact
+historical close path remains unobserved. Real-server expiry followed by a
+fresh proof of the same unused launch, a well-formed wrong proof, and client
+retry/refusal regressions verify the distinct cases. Package execution and
+review are recorded in `docs/plans/backend-m12-web-identity.md`.

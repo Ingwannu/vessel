@@ -73,7 +73,7 @@ async fn active_unary_guard_survives_task_completion_but_does_not_retain_transpo
         let clone = guard.clone();
         assert_eq!(Arc::strong_count(&selected.lease), before);
         assert!(
-            phase("original unary", selected.call(ListSessions))
+            phase("original unary", selected.call(ListSessions::default()))
                 .await
                 .unwrap()
                 .is_empty()
@@ -114,7 +114,7 @@ async fn dropped_validity_owner_refuses_last_active_value_while_old_work_retains
         assert!(matches!(
             phase(
                 "refuse call after validity owner drop",
-                selected.call(ListSessions)
+                selected.call(ListSessions::default())
             )
             .await,
             Err(RequestFailure::Refused(Refusal::Changed))
@@ -173,7 +173,7 @@ async fn retired_inflight_unary_keeps_its_original_transport_only_until_work_end
         let Fixture { mut state, mut peer, selected, context, _home } = fixture(true).await;
         let guard = selected.delivery_guard();
         {
-            let calling = selected.call(ListSessions);
+            let calling = selected.call(ListSessions::default());
             tokio::pin!(calling);
             let request = phase("observe admitted unary", async {
                 tokio::select! {
@@ -317,7 +317,7 @@ async fn closed_identity_still_selects_and_reports_closed_retirement_once() {
         assert!(matches!(
             phase(
                 "closed request reports actor retirement",
-                admitted.call(ListSessions)
+                admitted.call(ListSessions::default())
             )
             .await,
             Err(RequestFailure::Refused(Refusal::Closed))

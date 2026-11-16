@@ -94,6 +94,12 @@ impl ConversationArea {
         {
             return false;
         }
+        self.fold_records(records)
+    }
+
+    /// One fold path after the owner has checked identity/ingress. The legacy
+    /// selected wrapper above retains its original exact-session guard.
+    pub(super) fn fold_records(&mut self, records: &[EventRecord]) -> bool {
         // Records arriving for this session: the connection is back.
         self.lost = None;
         self.follow_parking(records);
