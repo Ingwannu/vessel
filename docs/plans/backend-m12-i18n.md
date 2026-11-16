@@ -1241,3 +1241,14 @@ C/F/E2 have the unchanged source hash and the exact foreign-line report.
 The next session begins with V1's findings/approval; only after acceptance
 and a clean lead-head merge can the released next areas start. The
 About roles and S2 ownership holds listed above still remain pending.
+
+## Resume pointer — 2026-11-16 quota stop
+
+The active L slice is ADR0101, not a new General/pairing migration.
+Source WIP`5a130de20` follows experiment checkpointsfa9858287/62e00d202/
+001420839/ae7e3cfb0. Read `wp-locale-number-formatting.md`'s final resume
+section first: it lists exact queued VM IDs, stopped local controllers,
+source/graph/measurement boundaries, next fixed validation command and peers.
+No numeric candidate is reviewed/adopted; no product runtime or lock changed.
+Older accepted slice/generator/General approvals below remain historical and
+must never qualify this numeric experiment.

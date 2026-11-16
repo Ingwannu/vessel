@@ -124,7 +124,7 @@ Committed source checkpoints:
   both-memoizer API controls registered in candidate View overlay. Default Node
   oracle reproduces v1 byte for byte. Actual-boundary tests use v2, frozen
   D633 source uses v1. No candidate Rust test has executed.
-- This WIP commit records the uncompiled numeric-literal normalization edit
+- `5a130de20`: WIP records the uncompiled numeric-literal normalization edit
   and the exact stop boundary. Do not treat source-only preflight as Clippy.
 
 Verified, separate evidence:
