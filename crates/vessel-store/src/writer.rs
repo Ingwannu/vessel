@@ -63,6 +63,11 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Admission and CAS never bypass the existing serialized writer.
+    Creation {
+        change: Box<crate::creation::Write>,
+        done: Done<vessel_proto::creation::Receipt>,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create { info: Box<SessionInfo>, done: Done },
@@ -169,6 +174,8 @@ pub(crate) struct Setup {
     pub(crate) pruned: watch::Sender<u64>,
     /// Coalesced wake-up after a committed attention event, never raw output.
     pub(crate) inbox: watch::Sender<()>,
+    /// Coalesced receipt wake-up, published only after the SQL batch commits.
+    pub(crate) creation: watch::Sender<()>,
     /// Registry invalidation carries no data; consumers read a complete committed snapshot.
     pub(crate) registry: watch::Sender<()>,
     /// Whether some session's index is behind its log (protocol 12): true
@@ -179,6 +186,10 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    Creation(
+        Done<vessel_proto::creation::Receipt>,
+        Result<Box<vessel_proto::creation::Receipt>, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
     Detached(
@@ -191,6 +202,9 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::Creation(done, result) => done
+                .send(after(failed, result).map(|receipt| *receipt))
+                .is_ok(),
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
@@ -220,6 +234,8 @@ struct Effects {
     touched: HashSet<SessionId>,
     /// A committed batch introduced attention.
     attention: bool,
+    /// A successful receipt mutation was included in this batch.
+    creation: bool,
     /// A session ended, so retention may prune ended sessions.
     ended: bool,
     /// Sessions removed (deleted or pruned), whose attachment folders go
@@ -354,6 +370,9 @@ fn commit(
         }
         if effects.attention {
             setup.inbox.send_replace(());
+        }
+        if effects.creation {
+            setup.creation.send_replace(());
         }
         if effects.pruned > 0 {
             // A count of events, so wrapping is harmless: readers only look

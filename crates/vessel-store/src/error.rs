@@ -65,6 +65,15 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Namespace corruption preserves the row instead of permitting replay.
+    #[error("stored creation ownership metadata is invalid")]
+    CorruptCreationOwner(#[source] serde_json::Error),
+    /// A typed receipt conflict/refusal is distinct from a database failure.
+    #[error(transparent)]
+    Creation(#[from] vessel_proto::creation::CreationError),
+    /// Never skip a damaged receipt: it might name an already-committed effect.
+    #[error("a stored creation receipt is invalid")]
+    CorruptCreation(#[source] serde_json::Error),
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -299,6 +308,7 @@ impl StoreError {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         match self {
+            Self::Creation(error) => error.code(),
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
@@ -335,6 +345,8 @@ impl StoreError {
             | Self::Commit(_)
             | Self::InvalidParentage(_)
             | Self::Corrupt { .. }
+            | Self::CorruptCreation(_)
+            | Self::CorruptCreationOwner(_)
             | Self::CorruptPush { .. }
             | Self::CorruptId { .. }
             | Self::CorruptDevice { .. }

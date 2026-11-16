@@ -4,6 +4,7 @@
 mod attached;
 mod automation;
 mod conversation;
+mod creation;
 mod diagnostics;
 pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
 mod forge;
@@ -50,6 +51,7 @@ pub struct Store {
     /// (protocol 10, [`Store::pruned`]).
     pruned: watch::Receiver<u64>,
     inbox: watch::Receiver<()>,
+    creation: watch::Receiver<()>,
     registry: watch::Receiver<()>,
     /// Whether some session's messages are not in the search index yet
     /// (protocol 12, [`Store::indexed`]).
@@ -86,6 +88,7 @@ impl Store {
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
+            crate::creation::recover(&mut connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
             // Outside a transaction: each deletion is committed as it runs.
             for session in log::prune_ended(&connection, &retention)? {
@@ -106,6 +109,7 @@ impl Store {
         let (writes, ops) = mpsc::channel(config.write_queue.get());
         let (pruned, pruned_count) = watch::channel(0);
         let (inbox, inbox_changes) = watch::channel(());
+        let (creation, creation_changes) = watch::channel(());
         let (registry, registry_changes) = watch::channel(());
         let (indexing_sender, indexing) = watch::channel(true);
         let setup = Setup {
@@ -113,6 +117,7 @@ impl Store {
             attachments: dir.attachments_dir(),
             pruned,
             inbox,
+            creation,
             registry,
             indexing: indexing_sender,
         };
@@ -124,6 +129,7 @@ impl Store {
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
             inbox: inbox_changes,
+            creation: creation_changes,
             registry: registry_changes,
             indexing,
         };
