@@ -62,6 +62,32 @@ pub enum SpawnError {
     },
 }
 
+impl SpawnError {
+    pub(crate) fn with_diagnostics(self, spec: &crate::CommandSpec) -> Self {
+        match spec.diagnostic_policy() {
+            crate::CommandDiagnostics::Standard => self,
+            crate::CommandDiagnostics::Redacted => {
+                let program = || spec.diagnostic_program().to_path_buf();
+                match self {
+                    Self::Start { source, .. } => Self::Start {
+                        program: program(),
+                        source: spec.diagnostic_io_error(source),
+                    },
+                    Self::MissingPipe { stream, .. } => Self::MissingPipe {
+                        program: program(),
+                        stream,
+                    },
+                    Self::NoPid { .. } => Self::NoPid { program: program() },
+                    Self::NotLeader { source, .. } => Self::NotLeader {
+                        program: program(),
+                        source,
+                    },
+                }
+            }
+        }
+    }
+}
+
 /// A stop signal could not be delivered.
 #[derive(Debug, Clone)]
 pub struct SignalError(Arc<std::io::Error>);
