@@ -1,7 +1,9 @@
 # Host Voice page: source contract and staged UI plan
 
-Status: planning only. The canonical values carrier must be reviewed, checked
-and announced before the fake UI consumes it. The product settings page stays
+Status: canonical values carrier53cf2e95 is scoped-reviewed and checked in
+announced node head bc9cacc67. The app consumed only that selected carrier under
+the A8 values exception, preserving its package base. Pure node-bound page
+state and typed-fake tests are in preparation; the product settings page stays
 unregistered until the real node settings field and adapter exist.
 
 ## Reference behavior
@@ -70,3 +72,20 @@ G2 owns the current TextField writer slot. The coordinator assigned G2 the
 masked profile after its textarea slice, with ADR then V1 review. Keep key
 entry plan-only until that checked hash arrives. Masking alone does not prove
 clipboard, diagnostic, input-method or accessibility privacy.
+
+
+## Page state implementation
+
+The pure view::voice::settings owner uses the existing operation Ticket and
+canonical read/write DTOs. Loading and failed reads have no default snapshot.
+A switch changes only its own canonical switch patch, without round-tripping
+provider/key fields. Saving excludes another edit; refusal preserves the last
+confirmed snapshot and never claims the server rolled back. Offline/unsupported
+or forbidden writes require a fresh read before editing resumes. A consumed
+reply and a retained click from an older snapshot cannot apply twice or retarget
+a different NodeId. Unknown providers remain readable but do not open a known
+editor, and unknown switches are never interpreted as Off. The concrete fake
+node in tests applies changes through the canonical overlay owners; it adds no
+production store, guessed RPC, NodeSettings field or provider readiness. These
+new UI-state regressions still await the next VM suite. Renderer, editor sheet
+and credential-save controller remain separate outstanding page work.

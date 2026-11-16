@@ -5,6 +5,7 @@
 
 mod cue;
 mod meter;
+pub mod settings;
 mod state;
 
 pub use cue::{Cue, CueAction, CueError, CuePlayback, THINKING_CUE_DURATION};
