@@ -5,7 +5,7 @@
 
 use std::rc::Rc;
 
-use vessel_app_kit::terminal_grid::{CellSize, GridFrame, terminal_grid};
+use vessel_app_kit::terminal_grid::{CellSize, GridFrame, RetainedGrid};
 use vessel_app_kit::ui::{Context, IntoElement, Pixels, Render, Window};
 
 /// The grid view.
@@ -14,30 +14,35 @@ pub(crate) struct TerminalGrid {
     pub(super) frame: Rc<GridFrame>,
     /// One cell's size, measured from the code face.
     pub(super) cell: CellSize,
+    retained: RetainedGrid,
 }
 
 impl TerminalGrid {
     /// An empty grid until the first frame comes. Its cell is zero until
     /// the screen is measured: a frame with no rows and no cursor draws
     /// only its background, which does not use the cell.
-    pub(super) fn empty() -> Self {
+    pub(super) fn empty(cx: &mut Context<'_, Self>) -> Self {
+        let frame = Rc::new(GridFrame {
+            rows: Rc::from([]),
+            cursor: None,
+            background: gpui::transparent_black(),
+            font_size: super::font_size(),
+        });
+        let cell = CellSize {
+            width: Pixels::ZERO,
+            height: Pixels::ZERO,
+        };
+        let retained = RetainedGrid::new(&frame, cell, cx);
         Self {
-            frame: Rc::new(GridFrame {
-                rows: Rc::from([]),
-                cursor: None,
-                background: gpui::transparent_black(),
-                font_size: super::font_size(),
-            }),
-            cell: CellSize {
-                width: Pixels::ZERO,
-                height: Pixels::ZERO,
-            },
+            frame,
+            cell,
+            retained,
         }
     }
 }
 
 impl Render for TerminalGrid {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
-        terminal_grid(Rc::clone(&self.frame), self.cell)
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        self.retained.draw(Rc::clone(&self.frame), self.cell, cx)
     }
 }

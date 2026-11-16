@@ -34,7 +34,12 @@ use gpui::{
     UnderlineStyle, Window, canvas, fill, point, px, size,
 };
 
-use crate::fonts::{Typeface, active};
+use crate::fonts::{FontStack, Typeface, active};
+
+mod retained;
+pub use retained::RetainedGrid;
+#[cfg(test)]
+mod probe;
 
 /// A text run's line under or through its glyphs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -171,8 +176,7 @@ fn at(origin: Pixels, step: Pixels, cells: u16) -> Pixels {
 const CURSOR_WIDTH: f32 = 2.0;
 
 /// The code face at `weight` and `style`.
-fn face(weight: FontWeight, style: FontStyle) -> Font {
-    let stack = active(Typeface::Code);
+fn face(stack: &FontStack, weight: FontWeight, style: FontStyle) -> Font {
     Font {
         family: stack.family(),
         features: FontFeatures::default(),
@@ -186,7 +190,11 @@ fn face(weight: FontWeight, style: FontStyle) -> Font {
 #[must_use]
 pub fn cell_size(window: &Window, font_size: Pixels) -> CellSize {
     let text = window.text_system();
-    let id = text.resolve_font(&face(FontWeight::NORMAL, FontStyle::Normal));
+    let id = text.resolve_font(&face(
+        &active(Typeface::Code),
+        FontWeight::NORMAL,
+        FontStyle::Normal,
+    ));
     let width = text
         .advance(id, font_size, 'M')
         .map_or(font_size, |advance| advance.width);
@@ -205,10 +213,39 @@ pub fn cell_size(window: &Window, font_size: Pixels) -> CellSize {
 /// parent.
 #[must_use]
 pub fn terminal_grid(frame: Rc<GridFrame>, cell: CellSize) -> impl IntoElement {
+    control(
+        frame,
+        cell,
+        active(Typeface::Code),
+        #[cfg(test)]
+        None,
+    )
+}
+
+fn control(
+    frame: Rc<GridFrame>,
+    cell: CellSize,
+    font: FontStack,
+    #[cfg(test)] probe: Option<probe::DrawProbe>,
+) -> impl IntoElement {
     let shaped = Rc::clone(&frame);
+    #[cfg(test)]
+    let prepared = probe.clone();
     canvas(
-        move |bounds, window, _cx| shape(&shaped, cell, bounds, window),
-        move |bounds, lines, window, cx| paint(&frame, cell, bounds, &lines, window, cx),
+        move |bounds, window, _cx| {
+            #[cfg(test)]
+            if let Some(probe) = &prepared {
+                probe.note(probe::Stage::Prepare);
+            }
+            shape(&shaped, cell, &font, bounds, window)
+        },
+        move |bounds, lines, window, cx| {
+            #[cfg(test)]
+            if let Some(probe) = &probe {
+                probe.note(probe::Stage::Paint);
+            }
+            paint(&frame, cell, bounds, &lines, window, cx);
+        },
     )
     .size_full()
 }
@@ -217,6 +254,7 @@ pub fn terminal_grid(frame: Rc<GridFrame>, cell: CellSize) -> impl IntoElement {
 fn shape(
     frame: &GridFrame,
     cell: CellSize,
+    font: &FontStack,
     bounds: Bounds<Pixels>,
     window: &Window,
 ) -> Vec<(Point<Pixels>, ShapedLine)> {
@@ -228,7 +266,7 @@ fn shape(
             let x = at(bounds.origin.x, cell.width, run.col);
             let style = TextRun {
                 len: run.text.len(),
-                font: face(run.ink.weight, run.ink.style),
+                font: face(font, run.ink.weight, run.ink.style),
                 color: run.ink.color,
                 background_color: None,
                 underline: underline(run.ink),
@@ -295,7 +333,16 @@ fn paint(
         // left out; the rest of the grid still draws.
         let _painted = line.paint(*origin, cell.height, TextAlign::Left, None, window, cx);
     }
-    if let Some(cursor) = frame.cursor {
+    paint_cursor(frame.cursor, cell, bounds, window);
+}
+
+fn paint_cursor(
+    cursor: Option<GridCursor>,
+    cell: CellSize,
+    bounds: Bounds<Pixels>,
+    window: &mut Window,
+) {
+    if let Some(cursor) = cursor {
         let x = at(bounds.origin.x, cell.width, cursor.col);
         let y = at(bounds.origin.y, cell.height, cursor.row);
         window.paint_quad(fill(
