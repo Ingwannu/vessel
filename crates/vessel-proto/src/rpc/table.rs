@@ -426,7 +426,7 @@ macro_rules! method_table {
             /// Host orchestration skills (staged ADR 0065, Admin only).
             ImportSkillsSelection / import_skills_selection / "skills.import_selection" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::ImportSkillsSelection => $crate::skills::SkillsImported;
 
-            /// Complete source/account reports, pending integrator assignment.
+            /// Complete source/account reports (protocol 26, ADR 0042).
             ListUsageReports / list_usage_reports / "usage.reports" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::ListUsageReports => $crate::usage_reports::UsageReports;
             /// Resolve exactly one opaque report id without widening its scope.
             InspectUsageReport / inspect_usage_report / "usage.inspect" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::InspectUsageReport => $crate::usage_reports::UsageReportLookup;
