@@ -321,3 +321,12 @@ English/Korean expectations match `format.ts` and their timing resources.
 Sentence copy remains a surface responsibility. This adds neither a second
 clock calculation nor a new localization dependency, and it never renders raw
 seconds/ISO text or infers a reset from a missing report.
+
+
+The inactive sidebar layout policy follows `usage/pinned.ts`: show labels
+before measurement, then all meters if labels plus 16px tracks and 4px gaps
+fit, otherwise labels, otherwise percentages if narrower. It never mixes
+meter and non-meter modes in one row. Invalid observer measurements are
+explicitly treated as not measured. This minimum is the track's useful width,
+not a minimum fill; the approved zero-width-zero control remains unchanged.
+The policy uses no account IDs, report DTO or pending wire operation.

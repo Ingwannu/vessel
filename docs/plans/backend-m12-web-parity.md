@@ -1546,3 +1546,11 @@ and Korean, two-unit day/hour output, an omitted zero minor unit and the final
 positive partial minute (0m/0분, not elapsed or raw seconds). The combined suite
 passes 25 tests in six files, both typechecks and full web lint. It adds no
 clock computation, translation dependency, active surface or pending call.
+
+
+The inactive pinned-summary layout now chooses all meters, labels, or
+percentages from measured widths, following the reference's 16px track and
+4px gap rule. Five pure cases cover the exact fit, labels-only edge, smaller
+percent text, initial observation and invalid measurements. Both typechecks,
+full web lint and the combined 30 tests in seven files pass. No observer,
+preference store, account DTO, RPC or Usage screen is added by this policy.
