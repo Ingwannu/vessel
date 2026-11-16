@@ -224,3 +224,49 @@ pub(super) fn reset_line(text: impl Into<SharedString>, at_risk: bool, tokens: &
         })
         .child(text.into())
 }
+
+/// Paseo window-bar.tsx `UsagePinGlyph` size.
+const PIN_GLYPH: f32 = 12.0;
+
+/// Paseo window-bar.tsx `labelRow`: the label taking the room, the value,
+/// then, while rows pin to the sidebar, the pin glyph (foreground when
+/// pinned, muted otherwise). The whole row is the pin's click target.
+pub(super) fn label_row(
+    label: impl Into<SharedString>,
+    value: impl Into<SharedString>,
+    pinned: Option<bool>,
+    tokens: &Tokens,
+) -> Div {
+    div()
+        .w_full()
+        .min_w_0()
+        .flex()
+        .items_center()
+        .gap(px(spacing::S2))
+        .type_(Type::Body)
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .truncate()
+                .text_color(tokens.neutral.foreground)
+                .child(label.into()),
+        )
+        .child(
+            div()
+                .flex_none()
+                .text_color(tokens.neutral.foreground)
+                .child(value.into()),
+        )
+        .children(pinned.map(|pinned| {
+            div().flex_none().child(vessel_app_kit::glyph(
+                vessel_app_kit::assets::Glyph::Pin,
+                PIN_GLYPH,
+                if pinned {
+                    tokens.neutral.foreground
+                } else {
+                    tokens.neutral.foreground_muted
+                },
+            ))
+        }))
+}
