@@ -3,7 +3,7 @@
 Status: canonical values carrier53cf2e95 is scoped-reviewed and checked in
 announced node head bc9cacc67. The app consumed only that selected carrier under
 the A8 values exception, preserving its package base. Pure node-bound page
-state and typed-fake tests are in preparation; the product settings page stays
+state and typed-fake tests are checked; the product settings page stays
 unregistered until the real node settings field and adapter exist.
 
 ## Reference behavior
@@ -90,7 +90,7 @@ a different NodeId. Unknown providers remain readable but do not open a known
 editor, and unknown switches are never interpreted as Off. The concrete fake
 node in tests applies changes through the canonical overlay owners; it adds no
 production store, guessed RPC, NodeSettings field or provider readiness. These
-new UI-state regressions still await the next VM suite. Renderer, editor sheet
+UI-state regressions passed in the exact-head VM suite recorded below. Renderer, editor sheet
 and credential-save controller remain separate outstanding page work.
 
 
@@ -114,7 +114,7 @@ implemented yet. No secret field, settings route or Shell command is added.
 New headless cases draw real rows in both schemes/languages at390/800/1280
 widths and exercise a single pending switch plus blocked/fresh site actions.
 Pure tests check full localized offline sentences and provider/key-presence
-summaries. These new renderer tests are authored, not executed yet; no capture,
+summaries. These renderer tests passed in the exact-head VM suite below; no capture,
 keyboard/OS assistive-technology or end-to-end user-flow acceptance is inferred.
 The staged switches currently draw confirmed values without the optional
 180ms transition counter; the final controller's animation and actual sheet,
@@ -129,5 +129,23 @@ control. This closes the presentation ambiguity while preserving the existing
 no-action policy. Role metadata is not a keyboard/OS AT acceptance claim.
 The VM check on8eebe8da reached the app tests and found the missing named
 IntoElement trait import for the test Render signature; this correction adds
-that explicit import. The preceding strict failures and unexecuted renderer
-runtime remain recorded separately.
+that explicit import. The preceding strict failures remain recorded separately; the corrected
+renderer runtime is recorded below.
+
+
+## Checked staged page checkpoint
+
+Exact a999a828435d6be2985b38a427e5ceea9ef2c573 passed the requested VM
+App/Link/Kit/View all-target strict check with warnings denied, run
+wp-voice-narrow-20261116T022154Z-a999a828. The same source then passed
+locked/offline tests in run wp-voice-narrow-20261116T022619Z-a999a828:
+1711 passed, zero failed, two existing capture tests ignored. This includes
+all five Page state cases, all three real-composition/action/localization
+cases and both raw-PCM payload ownership/mute cases by name. The actual
+compilation and runtime log hashes are retained with the run receipts.
+
+This closes that staged source/runtime checkpoint, not product registration,
+editor forms, secure key entry, physical devices, native power integration,
+OS keyboard/accessibility, final captures or end-to-end voice qualification.
+The real node field/adapter and downstream prompt/reload/MCP prerequisites
+remain unavailable. Earlier failed strict runs remain failure evidence.
