@@ -86,7 +86,7 @@ pub(super) fn render(
         }
     }));
     let freshness = source_freshness(&view, chrono::Utc::now(), shell.words);
-    let refresh = state.source_tips.on(refresh, entry, &freshness, density);
+    let refresh = state.source_tips.on(refresh, entry, &freshness);
     let head = header(entry, &view, shell.words, tokens);
     let footer = footer(entry, freshness, shell.words, tokens);
     settings::card(tokens)

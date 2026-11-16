@@ -146,6 +146,7 @@ pub(super) fn trigger(
     .on_click(cx.listener(move |shell, _, window, cx| {
         shell.usage_toggle_options(machine.clone(), parent, opening.clone(), window, cx);
     }));
+    let button = shell.areas.usage.source_tips.action(button, id);
     Some(
         div()
             .relative()

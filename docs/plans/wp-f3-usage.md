@@ -90,8 +90,8 @@ chrome. Required source profiles remain separate:
 | --- | --- | --- |
 | Fixed sidebar Usage icon | Footer density 28/44, glyph 16/20, muted-to-foreground hover | S2 sole FooterIconButton owner, awaiting W12 lower chrome; no checked producer or footer edit |
 | Options | Toolbar small 20/32, adaptive glyph 14/18, source extra-muted ink | W12 producer in announced base 13; consumer integration requires its own strict check |
-| Refresh | Same small toolbar profile plus source loading | W12 loading follow-up remains unadopted |
-| Toolbar/card tooltip | Source side/offset and 300ms desktop delay | W12 extends existing Tooltips; source-only follow-up, not adopted |
+| Refresh | Same small toolbar profile plus source loading | W12 loading consumed through announced base 14.1; receiving strict/runtime/capture owed |
+| Toolbar/card tooltip | Source side/offset and 300ms desktop delay | Base 14.1 shared controller: card freshness top, header actions bottom; receiving capture owed |
 | Toolbar loading | Existing ActivityIndicator ring/750ms profile | W12 follow-up; no area spinner substitution |
 | Large Usage word catalog | Shared bounded cached-message generator | L canonical c829 producer landed through base 13; combined Usage compile still required |
 | Balance amounts and exact counts | USD currency, compact tokens and exact unsigned counts | L shared ADR 0101 gap; original amounts/units/counts remain visible |
@@ -180,3 +180,27 @@ and explicit Rc cloning for tooltip places. The correction changes ownership
 spelling and enum coverage, preserving guard comparisons, request payloads,
 callbacks and tooltip identity; no lint allowance is introduced. Runtime
 interaction/captures and current native strict still need their own proof.
+
+
+## Base 14.1 shared refresh continuation
+
+The announced `b54abbdc` supplies W12's checked loading/tooltip/icon chrome.
+Usage refresh now consumes ToolbarButton with adaptive14/18 ExtraMuted glyphs
+and its existing ActivityIndicator while a local request is pending. The same
+observation-owned Tooltips controller holds per-report top freshness tooltips and
+bottom header action tooltips (desktop300ms, compact suppressed). No area sizing,
+spinner, tooltip timer or overlay is added. Existing context, ticket, modal and
+popover guards remain the action authority; a cached foreign Refreshing snapshot
+does not become a local pending request.
+
+The compact header island shape, S2 footer launcher and L exact amount/count
+formatters remain separate gaps. Shared producer tests do not prove the actual
+Usage surface; receiving strict/runtime checks and inspected captures remain
+required. Native strict16 stopped only on two redundant borrowed references;
+the subsequent mechanical correction passes the already-borrowed values directly.
+
+Merge registration preserves both Usage and shortcut-help dialogs. Link's new
+framed Scenario and unit fixtures share the incoming make_state, extended only
+with the existing usage hub; the obsolete duplicate Home drop/state constructor
+is removed. The app's earlier pending node runtime ancestry is still not a
+consumer-ready root package or a values carrier.

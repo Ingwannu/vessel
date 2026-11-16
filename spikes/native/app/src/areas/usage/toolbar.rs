@@ -1,10 +1,9 @@
 //! Usage actions compose the shared typed button; geometry stays in the kit.
 use crate::shell::Shell;
 use vessel_app_kit::{
-    Button, ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing,
-    Tokens,
+    ButtonState, ControlSizing, Tokens,
     assets::Glyph,
-    button_control,
+    toolbar_button::{ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk},
     ui::{AnyElement, Context, ElementId, IntoElement as _, SharedString},
 };
 use vessel_app_view::usage::{Inventory, Phase};
@@ -17,25 +16,24 @@ pub(super) fn refresh_button(
     busy: bool,
     compact: bool,
     tokens: &Tokens,
-) -> Button {
+) -> ToolbarButton {
     let state = if enabled {
         ButtonState::Enabled
     } else {
         ButtonState::Disabled
     };
-    let config = ButtonConfig::new(
-        ButtonKind::Ghost,
-        state,
-        ControlSizing::from_compact(compact),
-    );
-    let config = if busy { config.loading() } else { config };
-    button_control(
-        id,
-        ButtonContent::Icon(ButtonIcon::muted(Glyph::RotateCw)),
-        config,
-        tokens,
-    )
-    .aria_label(label)
+    let config = ToolbarConfig::new(ControlSizing::from_compact(compact), state);
+    if busy {
+        ToolbarButton::loading(id, label, ToolbarInk::ExtraMuted, config, tokens)
+    } else {
+        ToolbarButton::new(
+            id,
+            label,
+            ToolbarIcon::new(Glyph::RotateCw, ToolbarInk::ExtraMuted).adaptive(),
+            config,
+            tokens,
+        )
+    }
 }
 pub(super) fn refresh_all(
     shell: &Shell,
@@ -66,23 +64,21 @@ pub(super) fn refresh_all(
     let receipt = super::read_states::context(shell)?;
     let busy = matches!(state.inventory.phase(), Phase::Idle | Phase::Loading { .. });
     let enabled = super::read_states::current(shell, &receipt) && !busy;
-    Some(
-        refresh_button(
-            id,
-            shell.words.usage().refresh_all(),
-            enabled,
-            busy,
-            compact,
-            tokens,
-        )
-        .on_click(cx.listener(move |shell, _, _, cx| {
-            if super::read_states::current(shell, &receipt)
-                && !matches!(shell.areas.usage.inventory.phase(), Phase::Loading { .. })
-            {
-                shell.usage_refresh_all(receipt.machine());
-                cx.notify();
-            }
-        }))
-        .into_any_element(),
+    let button = refresh_button(
+        id,
+        shell.words.usage().refresh_all(),
+        enabled,
+        busy,
+        compact,
+        tokens,
     )
+    .on_click(cx.listener(move |shell, _, _, cx| {
+        if super::read_states::current(shell, &receipt)
+            && !matches!(shell.areas.usage.inventory.phase(), Phase::Loading { .. })
+        {
+            shell.usage_refresh_all(receipt.machine());
+            cx.notify();
+        }
+    }));
+    Some(state.source_tips.action(button, id).into_any_element())
 }
