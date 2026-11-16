@@ -63,7 +63,10 @@ impl Shell {
                         window.refresh();
                     }
                     // Read where they are drawn, on the next frame.
-                    PreferenceChange::SidebarPanel(_)
+                    PreferenceChange::UsageDisplay(_)
+                    | PreferenceChange::UsagePins(_)
+                    | PreferenceChange::UsageHost(_)
+                    | PreferenceChange::SidebarPanel(_)
                     | PreferenceChange::InspectorPanel(_)
                     | PreferenceChange::Delivery(_)
                     | PreferenceChange::Alerts(_)
@@ -71,6 +74,7 @@ impl Shell {
                     | PreferenceChange::SidebarGroup(_)
                     | PreferenceChange::SidebarSort(_)
                     | PreferenceChange::SidebarEnded(_)
+                    | PreferenceChange::SidebarNavigation { .. }
                     | PreferenceChange::Shortcuts { .. }
                     | PreferenceChange::ResetShortcuts
                     | PreferenceChange::DefaultAgent { .. }

@@ -32,6 +32,7 @@ pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
 pub(crate) mod terminal;
 pub(crate) mod toasts;
+pub(crate) mod usage;
 pub(crate) mod workspace;
 
 use vessel_app_kit::ui::{Context, Window};
@@ -41,6 +42,7 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) usage: usage::State,
     pub(crate) import: import::ImportArea,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
@@ -97,6 +99,7 @@ impl Areas {
         cx: &mut Context<'_, Shell>,
     ) -> Self {
         let mut areas = Self {
+            usage: usage::State::new(window, cx),
             import: import::ImportArea::new(window, cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),

@@ -1452,6 +1452,15 @@ Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
 
+The Usage area now consumes typed generic source/account reports when its method
+family is assigned and supported; pending methods are never forced onto the wire.
+Older nodes retain the protocol-23 saved-limit path. Source/window pins share
+canonical source identities, and source disclosure grants remain separate from
+the legacy global lookup consent. Only cached reads run passively. Current
+implementation/evidence/deferred Session and plugin scope are recorded in
+`docs/plans/wp-c6.md` and `docs/plans/wp-f3-sources.md`; this base merge itself is
+not a feature, compiled-consumer or package acceptance claim.
+
 `kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
 Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
 muted text and SVG both become foreground on hover). It receives no URL and
