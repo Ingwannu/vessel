@@ -141,3 +141,10 @@ verified/stopped and PID1140789/1119622 exited naturally. Remote R2 export is
 still queued and is the only outstanding own VM run; retain it for resume.
 No new merge/run/slice follows this checkpoint. Current source is93cfde8b3;
 subsequent commits only record evidence/resume. No F4 completed/passed claim.
+
+Final read-only status refresh at2026-11-16 04:00 UTC: existing R2
+`wp-commands-20261116T030518Z-7be03b61` has advanced from queued to
+RUNNING native-build (entry03:59:56). This is the same existing run, not a
+replacement. No completed export/capture result is claimed. Verified local
+PIDs439748/1140789/1119622 remain absent. Leave the detached VM run intact
+and retrieve its terminal result on resume; do not resubmit.
