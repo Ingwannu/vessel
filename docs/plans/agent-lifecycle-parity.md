@@ -516,8 +516,9 @@ feature constant, and an unassigned constant makes the whole call None.
 Current bounded preparation: make the existing marking order transferable to an
 admitted task. The same mutex and all existing transition boundaries remain.
 No mutation clock, acknowledgement carrier or new runtime behavior is included
-in this prerequisite. The Arc field, constructor and owned-lease accessor are implemented; strict,
-existing-regression and package execution checks remain pending.
+in this prerequisite. The Arc field, constructor and owned-lease accessor passed changed-node strict
+checking and the bounded Rust package gate. Existing mark/reopen/detach cases
+passed; consumer admission/cancellation behavior still requires its own join.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
@@ -1132,3 +1133,12 @@ cleanup, deadlines or expected results. The original strict result is retained.
 - Validation: existing mark/reopen/detach regressions and changed-node strict
   checking, followed by the bounded package gate. No new test mirrors the Arc
   representation; the consumer must force cancellation before/after admission.
+
+
+The transferable-order prerequisite passed its exact-commit checks: changed-node
+all-target Clippy, then all thirteen selected Rust gate steps. Workspace tests
+were 2701 passed, none failed, twelve ignored; generated declarations were fresh
+with five export/inventory tests, and the forge fixture passed four tests. Both
+fixture prebuilds preceded the workspace tests. Existing mark/reopen/detach and
+caller-loss cases ran unchanged. No web/native/platform or new consumer-runtime
+acceptance follows from this internal representation-only change.
