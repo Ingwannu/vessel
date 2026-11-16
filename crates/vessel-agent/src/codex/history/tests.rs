@@ -49,12 +49,26 @@ async fn exchange(
 #[tokio::test]
 async fn actual_native_metadata_and_empty_filter_paging_are_preserved() {
     vessel_testkit::within(TEST_DEADLINE, async {
-        let page = exchange(vec![
-            json!({"data":[{"id":"outside","cwd":"/elsewhere"}],"nextCursor":"page-two"}),
-            json!({"data":[{"id":"native","cwd":"/work","name":"title","updatedAt":123},{"id":"unknown-time","cwd":"/work","preview":"preview"},{"id":"missing-folder"}]})
-        ], Some(Path::new("/work"))).await.unwrap().unwrap();
+        let directory = std::env::temp_dir().join("native-history-work");
+        let elsewhere = std::env::temp_dir().join("native-history-elsewhere");
+        assert!(directory.is_absolute());
+        let page = exchange(
+            vec![
+                json!({"data":[{"id":"outside","cwd":elsewhere}],"nextCursor":"page-two"}),
+                json!({"data":[
+                    {"id":"native","cwd":directory,"name":"title","updatedAt":123},
+                    {"id":"unknown-time","cwd":directory,"preview":"preview"},
+                    {"id":"missing-folder"}
+                ]}),
+            ],
+            Some(&directory),
+        )
+        .await
+        .unwrap()
+        .unwrap();
         assert_eq!(page.entries.len(), 2);
         assert_eq!(page.entries.first().unwrap().session.as_str(), "native");
+        assert_eq!(page.entries.first().unwrap().cwd, directory);
         assert_eq!(
             page.entries.first().unwrap().updated_at,
             Some(HistoryTimestamp::UnixSeconds(123))
@@ -69,11 +83,12 @@ async fn actual_native_metadata_and_empty_filter_paging_are_preserved() {
 #[tokio::test]
 async fn cursor_cycles_and_invalid_native_ids_refuse_instead_of_empty_success() {
     vessel_testkit::within(TEST_DEADLINE, async {
+        let directory = std::env::temp_dir().join("native-history-work");
         assert!(matches!(
             exchange(
                 vec![
                     json!({"data":[],"nextCursor":"same"}),
-                    json!({"data":[{"id":"real","cwd":"/work"}],"nextCursor":"same"})
+                    json!({"data":[{"id":"real","cwd":directory}],"nextCursor":"same"})
                 ],
                 None
             )
@@ -81,7 +96,7 @@ async fn cursor_cycles_and_invalid_native_ids_refuse_instead_of_empty_success() 
             Err(ProbeError::Invalid)
         ));
         assert!(matches!(
-            exchange(vec![json!({"data":[{"id":"","cwd":"/work"}]})], None).await,
+            exchange(vec![json!({"data":[{"id":"","cwd":directory}]})], None).await,
             Err(ProbeError::Invalid)
         ));
     })

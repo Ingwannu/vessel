@@ -26,9 +26,13 @@ pub(super) fn page(id: &Value, params: &Value) -> Value {
     if params.get("cursor").and_then(Value::as_str).is_none() {
         return json!({"id":id,"result":{"data":[],"nextCursor":"native-second"}});
     }
+    let directory = params
+        .get("cwd")
+        .cloned()
+        .unwrap_or_else(|| json!(std::env::temp_dir()));
     json!({"id":id,"result":{"data":[
-        {"id":"native-actual","cwd":"/work","name":"Native title","updatedAt":123},
-        {"id":"unknown-date","cwd":"/work","preview":"Preview"},
+        {"id":"native-actual","cwd":directory,"name":"Native title","updatedAt":123},
+        {"id":"unknown-date","cwd":directory,"preview":"Preview"},
         {"id":"unknown-directory"}
     ],"nextCursor":null}})
 }

@@ -295,3 +295,20 @@ listing projection, event-page masking and existing method rows. Only the two
 pending provider read rows are appended. The generated wire snapshot is taken
 from the head until the receiving union's generator supplies its exact bytes;
 it is never manually merged. SUBAGENT_RELATIONS stays unassigned.
+
+
+## Portable history fixtures before the corrected whole gate
+
+A final source audit found that the new history tests used `/work` as an
+absolute directory. It is rooted but lacks a drive prefix on Windows, so it
+would be rejected by the deliberately strict native-directory decoder. This
+is a test-fixture defect; no Windows execution had been claimed. The still-
+queued corrected whole request was superseded under the queued-owner rule,
+with its cancellation143 and original records retained before replacement.
+
+The unit and actual-process fixtures now use platform-native absolute temporary
+paths. The fake echoes the requested directory instead of substituting a Unix
+root, and both suites assert the exact returned directory in addition to every
+existing assertion. Product parsing, deadlines, account scoping and protocol
+remain unchanged. Fresh receiving checks are owed; Linux fake-process success
+alone will still not be reported as Windows execution proof.

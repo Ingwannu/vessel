@@ -14,6 +14,8 @@ async fn native_history_process_reads_pages_without_creating_or_resuming_a_threa
     vessel_testkit::within(TEST_DEADLINE, async {
         let home = tempfile::tempdir().unwrap();
         let audit = home.path().join("methods");
+        let directory = home.path().join("work");
+        assert!(directory.is_absolute());
         let command = CommandSpec::new(Fake::CodexAppServer.path().unwrap())
             .arg("app-server")
             .env_clear()
@@ -25,7 +27,7 @@ async fn native_history_process_reads_pages_without_creating_or_resuming_a_threa
             history_with(
                 Driver::CodexAppServer,
                 &command,
-                Some(std::path::Path::new("/work")),
+                Some(&directory),
                 HistoryFrom::default(),
                 PROBE_DEADLINE,
             ),
@@ -34,6 +36,7 @@ async fn native_history_process_reads_pages_without_creating_or_resuming_a_threa
         .expect("native history listing and cleanup phase timed out")
         .unwrap();
         assert_eq!(page.entries.len(), 2);
+        assert_eq!(page.entries.first().unwrap().cwd, directory);
         assert_eq!(
             page.entries.first().unwrap().session.as_str(),
             "native-actual"
