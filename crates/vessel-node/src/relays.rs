@@ -111,7 +111,13 @@ impl Serving {
         let gateway = self.gateway.clone();
         let tracker = self.connections.clone();
         let budget = relay_budget();
+        let registration = stop.clone();
         let accept = move |carrier: WsCarrier| {
+            // Join follows cancellation, so a callback racing this check still
+            // finishes its handoff before registration drain acknowledges.
+            if registration.is_cancelled() {
+                return;
+            }
             let gateway = gateway.clone();
             let route = Route::Relayed(Arc::clone(&budget));
             drop(tracker.spawn(async move {
