@@ -142,7 +142,7 @@ pub(super) fn message(
         .child(chat_markdown_with(
             ElementId::NamedInteger("message".into(), id(index)),
             text,
-            vessel_app_kit::version_of(&(rev, text.len())),
+            vessel_app_kit::version_of(&(rev, text)),
             Options {
                 marks: marks.as_ref(),
                 actions: None,

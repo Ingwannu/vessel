@@ -174,3 +174,14 @@ pending binding/ticket and checkpoint/prompt/turn correlation before canonical
 consume, then mutate its nested owner only after consume. Full current context
 admits local confirmation; queued replies retain original guard/context/binding.
 There is no implemented checkpoint state or default Ready placeholder here.
+
+## Assistant Markdown caller version
+
+A static caller audit found that (revision, visible length) can repeat after a
+source/projection replacement with equal-length different bytes. The existing
+Markdown helper replaces its retained text only when the caller's version changes.
+A7 now hashes (revision, visible text), without modifying that helper or adding a
+text/selection cache. This small caller correction follows the helper's existing
+contract and awaits the next receiving-source checks; no executed failure or
+current-source pass is claimed from earlier e66 tests. Full resident/claim/origin
+structural identity is still required for mounted state and callback authority.
