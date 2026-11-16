@@ -487,3 +487,19 @@ projection gate rejects Failed. The server claim regression retains its narrower
 recipient/admission meaning; its PASS never proves a client error OS alert.
 Changed-source native checks are owed; earlier local-error expectations are
 historical own-worker assertions superseded by this source-backed correction.
+
+
+## Base13 sidebar registration correction
+
+The exact base13 strict run reached actual App checking and failed because the
+new shared sidebar arrangement match did not include Route::Inbox. Inbox uses
+the existing workspace sidebar budget, matching its established sidebar render
+route and the other non-Settings screens. The correction adds that exhaustive
+arm without a new layout policy. The failed run executed no test proof; the
+corrected strict/test/wasm union remains to be checked.
+
+The transferable marking lease is a runtime producer. Per coordinator ruling
+it enters this APP only through an announced package base after the node
+integrator; no provisional helper or unreviewed clock ancestry is imported.
+The Node consumer and its actual cancellation regressions are checked there
+first. The current APP ingress remains disabled by its unassigned feature.
