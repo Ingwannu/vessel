@@ -2,7 +2,6 @@
 
 use super::*;
 use std::process::{Command as StdCommand, Stdio};
-use tokio::io::AsyncReadExt as _;
 
 const FIXTURE: &str = "VESSEL_IGNORED_CHILD_REAPING_FIXTURE";
 const VERIFIED: &str = "managed-child-reaping-verified";
@@ -67,7 +66,7 @@ fn inherited_ignored_sigchld_fixture() {
                 .success()
         );
         assert!(!std::fs::exists(path).unwrap());
-        println!("{VERIFIED}");
+        writeln!(std::io::stdout().lock(), "{VERIFIED}").unwrap();
     });
 }
 

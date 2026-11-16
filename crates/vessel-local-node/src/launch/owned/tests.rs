@@ -8,7 +8,7 @@ use vessel_proc::{CommandSpec, spawn};
 const SAFETY_NET: Duration = Duration::from_secs(30);
 const PHASE_DEADLINE: Duration = Duration::from_secs(5);
 
-async fn step<F: std::future::Future>(name: &str, operation: F) -> F::Output {
+async fn step<F: Future>(name: &str, operation: F) -> F::Output {
     tokio::time::timeout(PHASE_DEADLINE, operation)
         .await
         .unwrap_or_else(|error| panic!("{name} timed out: {error}"))
