@@ -1,4 +1,4 @@
-//! Query-only SQLite proves that recovery cannot silently create admissions.
+//! Query-only `SQLite` proves that recovery cannot silently create admissions.
 
 use super::tests::{admit, database, prompt, session};
 use super::{ReceiptAdmission, finish_receipt, observation::observe_input, usage};

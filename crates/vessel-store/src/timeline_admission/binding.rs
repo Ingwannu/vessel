@@ -18,17 +18,24 @@ pub(crate) fn record(
     if connection.is_autocommit() {
         return Err(StoreError::AdmissionIntegrity);
     }
-    let known = read_receipt(connection, token.session, &token.message)?
-        .ok_or(StoreError::AdmissionIntegrity)?;
-    if ReceiptFingerprint::from_sql(known.fingerprint)? != token.fingerprint {
+    // Consume the opaque owner's token; borrowing it would permit callers to
+    // reuse one callback capability for another settlement attempt.
+    let ReceiptBindingToken {
+        session,
+        message,
+        fingerprint,
+    } = token;
+    let known =
+        read_receipt(connection, session, &message)?.ok_or(StoreError::AdmissionIntegrity)?;
+    if ReceiptFingerprint::from_sql(known.fingerprint)? != fingerprint {
         return Err(StoreError::AdmissionIntegrity);
     }
     let ReceiptState::Accepted { accepted } =
-        codec::decode(token.session, Column::Admission, &known.state)?
+        codec::decode(session, Column::Admission, &known.state)?
     else {
         return Err(StoreError::AdmissionIntegrity);
     };
-    let current = decode(token.session, accepted, known.binding.as_deref())?;
+    let current = decode(session, accepted, known.binding.as_deref())?;
     validate(accepted, target)?;
     if current == target {
         return Ok(());
@@ -46,20 +53,15 @@ pub(crate) fn record(
         return Err(StoreError::AdmissionIntegrity);
     }
     let encoded = codec::encode(&target)?;
-    check_envelope(
-        &token.message,
-        &token.fingerprint,
-        &known.state,
-        Some(&encoded),
-    )?;
+    check_envelope(&message, &fingerprint, &known.state, Some(&encoded))?;
     let changed = connection.execute(
         "UPDATE timeline_admissions SET binding=?1 WHERE session=?2 AND kind='receipt'
          AND identity=?3 AND fingerprint=?4 AND state=?5 AND binding IS ?6",
         params![
             encoded,
-            token.session.to_string(),
-            token.message.as_str(),
-            token.fingerprint.bytes().as_slice(),
+            session.to_string(),
+            message.as_str(),
+            fingerprint.bytes().as_slice(),
             known.state,
             known.binding
         ],

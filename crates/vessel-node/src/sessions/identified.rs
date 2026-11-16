@@ -91,7 +91,7 @@ impl Sessions {
                     .refuse_identified(token, message, SubmissionRefusal::Moving)
                     .await;
             }
-            Ok((SubmissionDispatch::OutcomeUnknown, _target)) | Err(_) => {
+            Ok((SubmissionDispatch::OutcomeUnknown, _)) | Err(_) => {
                 return Ok(SubmitPromptReply::OutcomeUnknown { message });
             }
         };

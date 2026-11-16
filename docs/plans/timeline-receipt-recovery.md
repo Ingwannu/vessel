@@ -194,3 +194,12 @@ constant and unchanged SQL. The new RPC caller-drop boundary is retained: an
 unsent dropped caller is distinct from possibly dispatched work, and retained
 Pending cannot become a fabricated no-effect result. Current package checks
 remain separate from this incoming base evidence.
+
+
+Recovered run69 stopped on a needless-pass-by-value token lint and a fixture doc
+lint. Settlement now explicitly destructures and consumes ReceiptBindingToken;
+it is not changed into a borrowed/reusable callback capability. Run77 stopped on
+a variable bound in only one side of an uncertain-result or-pattern; the ignored
+receiver now uses a nonbinding wildcard. No retained outcome or assertion is
+changed. Both old runs stay failed and generated artifacts from the failed
+compile are not adopted; corrected current compilation/generation is required.
