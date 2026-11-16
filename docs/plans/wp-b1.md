@@ -152,6 +152,14 @@ returned and replaced, see "Lightbox toolbar correction" below.
   (icon-button-chrome.ts:79-82: hidden, then highlighted, then disabled), so a
   hidden disabled action shows at 0.5 and still takes no pointer: at fit and at
   rest ZoomOut and Scan stay faintly visible.
+  Checks on bc65b03a (format-only successor bf4ff7bc2): lightbox, viewer and
+  viewport-chrome tests lightbox-toolbar-narrow-20261116T070339Z-bc65b03a 5/0,
+  5/0 and 11/0; strict lightbox-toolbar-20261116T070454Z-bf4ff7bc 0; export
+  lightbox-toolbar-export-20261116T070341Z-bc65b03a (base12). The withdrawn 0.25
+  head's lightbox wheel test failed as expected (it never reached 0.25 in 12
+  steps); that head is superseded. Recaptured at 1280 dark: fit at rest (only the
+  faint disabled ZoomOut and Scan), fit hovered, and the pointer on the disabled
+  Scan (no highlight, no ink change).
 - Impact: tooltips, their per-action places and the old `pill_parts` buttons
   are gone from the lightbox state. Pointer positions are mapped into the
   viewport's own space. A new test covers hidden/shown presence, the shaded
