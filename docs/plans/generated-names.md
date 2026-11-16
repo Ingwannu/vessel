@@ -169,83 +169,53 @@ that already uses `..` is left alone.
 
 ## Resume point
 
-- **Implemented:** session-title provenance, durable origin projection, the
-  actor's conditional proposal, bounded generated-title/settings values,
-  project-style reading and complete response decoding for all three APIs.
-  The session-title package now also connects route selection, strict settings
-  patches, lenient retained settings, checked preparation, bounded HTTP,
-  first-input observation, cancellation, usage recording and actor application.
-- **Compatibility:** `GENERATED_NAMES` remains unassigned. Automatic calls and
-  metadata patches stay disabled until assignment; unsupported replies omit
-  metadata, while a supported empty provider list means Automatic. No method
-  is added. Existing title constructors and the person's rename remain in force.
-- **Validation:** the previous executable snapshot completed the full gate,
-  including Rust, TypeScript and web E2E/forge. The physical preparation
-  correction now retains original admission and hard-drain tracking through
-  actual style/secret completion; keyless preparation remains immediate.
-  Source review passed the package and correction. The first strict check caught an incorrect
-  token import path before tests could compile; the qualified path is corrected
-  without changing ownership. Corrected strict checks passed. The models suite
-  then passed its existing cases but exposed a fixture reinstall when the new
-  physical-work cases created their second session. That fixture now installs
-  its structured fake once per lookup; the same assertions and deadlines remain.
-  Corrected focused validation now passes: the models library group has
-  57 passed, no failed or ignored tests, including both held-real-read cases
-  across rename, park, end and node cancellation, plus the immediate keyless
-  path. Formatting, size, boundaries and workspace Clippy also pass. This is
-  focused correction evidence, not a new whole-package gate.
-- **Next:** on consuming the announced checked settings repairs, verify that
-  their privacy and writer lifetime rules retain the metadata file adapter and
-  runtime apply behavior. Obtain the remaining integration review and combined
-  gate before handover.
-  No unchanged whole-gate replay is requested. Real providers, credentials, native execution
-  and other platforms remain unverified. Branch, commit-message and pull-request
-  generation are later slices and have not started.
+- **Implemented:** title provenance and conditional actor application, bounded
+  settings and project styles, complete-response decoding, route selection,
+  checked preparation and HTTP, first-input observation, cancellation and usage.
+  `GENERATED_NAMES` stays unassigned; no method or protocol number is added.
+  Unsupported replies omit metadata; supported Automatic is an empty list.
+- **Physical work:** the original admission permits and Sessions hard-drain token
+  remain held until actual style/secret reads finish, including after cancellation.
+  Keyless preparation stays immediate. The approved `metadata_work` getter lives
+  unchanged in the private Sessions metadata module, keeping the main file within
+  budget. No replacement quota, tracker, secret reader or Teardown policy exists.
+- **Settings composition:** the announced protocol-25/schema-21 head is merged
+  without conflicts. Its sealed decoder, owned writer, shutdown, method table
+  and migration sequence remain canonical. Metadata's non-Copy proposal is cloned
+  for writing and borrowed for projection inside the same write/apply owner.
+  The file-only map view intercepts metadata's lenient value while forwarding
+  every ordinary field through SetNodeSettings and the shared tracked decoder.
+  Strict wire patches and the shared later-file copy policy remain in force.
+- **Selected validation:** run titles-narrow-20261116T003016Z-247fb9aa passed all
+  14 settings-file cases, including masked paths, duplicate keys and sealed
+  diagnostics. Run titles-20261116T003016Z-247fb9aa passed all five node settings
+  cases: startup diagnostics and both original and metadata writer cancellation,
+  preservation and shutdown. The later test-only byte-literal spelling correction
+  retains identical input bytes, product code and assertions.
+  Run titles-narrow-20261116T005107Z-ee25fe0f passed formatting, size, boundaries
+  and workspace all-target Clippy. Run titles-narrow-20261116T010044Z-ee25fe0f
+  passed five TypeScript tests with no generated difference; the complete output
+  snapshot and six checksums match the exact source commit.
+- **Retained failures:** the previous selected run passed four writer cases but
+  failed startup's masked-path assertion because serde flatten erased the field
+  path. The one-pass adapter fixes that cause; the original test is unchanged.
+  Earlier import, fixture and lint failures remain in their evidence history.
+  The earlier physical correction's 57 cases and predecessor whole gate remain
+  scoped to their snapshots; they do not establish this combined tree's gate.
+- **Next:** run one fresh combined whole gate on this clean composition, then
+  obtain the current correction and integration review before handover. Freeze
+  the base through that gate, review and handover. Existing source reviews passed
+  the earlier package, physical correction and initial settings composition;
+  the file-view correction and this final union still need review. Real providers,
+  credentials, native execution, mixed versions and other platforms are unverified.
+  No services or permissions were changed.
 
-The checked protocol-24/schema-20 node head is now composed for that consumer
-review. Its sealed decoder and cancellation-safe writer remain the owners.
-The metadata file view delegates to the generic sealed decoder; the non-Copy
-metadata proposal is cloned for writing and borrowed for projection while the
-head's owned guard and writer token keep their original ordering. The original
-writer cases are retained byte for byte, with metadata cancellation, preservation,
-shutdown and diagnostic cases added. These composition cases and the merged
-tree have not yet been executed. The earlier 57-test correction result does not
-prove this union. The approved hard-drain accessor moved unchanged to a focused
-Sessions child module so the head's main file stays within its existing budget.
-
-The first composition preflight found two older title-test builders that needed
-the canonical settings owner: the real teardown now receives the same settings
-Arc as its title task, and the persistence test changes through an Arc. Their
-assertions and deadlines are unchanged. At that clean correction boundary, the
-checked registry update brings protocol 25 and keeps schema 20; it changes no
-title setting or generation feature assignment. Corrected focused checks,
-generated TypeScript and the new combined gate remain pending.
-The corrected preflight found one unnecessary qualification in that test
-fixture; it now uses its existing Settings import. Product behavior, assertions
-and deadlines remain unchanged; corrected strict and settings checks are owed.
-
-The selected composition run passed all four retained-writer cases but failed
-startup's existing masked-field-path assertion. The file adapter's flatten
-buffer erased an ordinary field's path. The correction replaces only that
-buffer with a single-pass metadata map view through the same sealed decoder;
-common decoder, writer tests and assertions stay unchanged. The map adapter
-and root/field/duplicate-key regression cases are now implemented; their
-execution and strict checks are pending. The file regressions then passed
-all fourteen selected cases. Strict preflight found an unnecessary raw-string
-delimiter in the new root-type test; the replacement has identical input bytes
-and changes no product behavior or assertion. The checked node
-head is now merged without conflicts, retaining protocol 25, schema 21 and the
-head's migration sequence. Corrected focused checks and the final combined gate
-remain owed; the earlier strict and TypeScript passes describe the prior tree.
-
-The physical-lifetime correction reuses Sessions' existing hard-drained task
-tracker through the approved `metadata_work` token accessor. Forwarders'
-bounded grace cannot settle file work. A shared admission lease goes into the
-style closure and a tracked, non-aborted operation awaiting the one existing
-secret reader. Late results remain discarded. No replacement quota, tracker,
-secret reader or Teardown policy is added. After this return is closed, the
-separate Models-owned workspace metadata seam belongs here; G1 owns its
-commit/PR callers and ADR 0087 amendment. That seam is not part of this fix.
+The separately assigned Models-owned workspace producer remains contract-only.
+After this title consumer closes, it supplies sessionless admission, routing and
+accounting to G1's commit/PR callers. Private titles keep one attempt; root
+candidates may receive the initial attempt and two schema corrections, never
+HTTP retries. No workspace generation service or checked caller API is included
+in this package. Branch generation has not started.
 
 ### Earlier checkpoints
 
