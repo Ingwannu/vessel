@@ -62,7 +62,7 @@ Eleven literal cases passed against the original computePosition, including
 both alignments/sides, equal space, exact raw fit despite offset, oversized
 content, fractional points, shifted viewport and the second real-child height.
 The loaded file bytes independently equal the pinned1c00 Git blob.
-Evidence: /tmp/work/m12-shell-s2/placement-source-oracle.{mjs,json}.
+Evidence: placement-source-oracle.mjs and its retained source-oracle JSON.
 This validates the expected numeric cases against the actual reference; it is
 NOT execution of the Rust helper, actual GPUI input, OS motion or consumer UI.
 
@@ -71,3 +71,10 @@ separate from the one compute/assertion runner, to stay below strict function
 length without dropping numeric cases. Terminate the measurement callback's
 unit assignment explicitly. These are pre-compile test-source corrections;
 no Rust pass is inferred from formatting or the independent TS oracle.
+
+
+Resumed source is merged onto announced package base13 before its first Rust
+check. The previous F4 strict has terminated; a later Main strict is now green,
+with Main runtime tests still queued separately. This geometry producer changes
+no menu/popover consumer or existing focused root. Native source/runtime checks
+and V1 adoption remain owed; no earlier source-oracle result is a Rust pass.
