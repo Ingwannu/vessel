@@ -75,7 +75,7 @@ pub(crate) struct Sessions {
     /// Serializes marks, from the store's write to the handle's copy
     /// (`marks`), and a session's start again from its becoming visible to
     /// its handle taking the store's marks (`again`).
-    marking: tokio::sync::Mutex<()>,
+    marking: Arc<tokio::sync::Mutex<()>>,
     /// Sessions being started again (`again`), one call each.
     claims: again::Claims,
     /// Each session's end, once its log is complete (protocol 11): what an
@@ -111,7 +111,7 @@ impl Sessions {
             tasks,
             agents,
             models,
-            marking: tokio::sync::Mutex::new(()),
+            marking: Arc::new(tokio::sync::Mutex::new(())),
             claims: again::Claims::default(),
             ended: tokio::sync::broadcast::Sender::new(ENDED),
         }
