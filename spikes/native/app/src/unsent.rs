@@ -65,6 +65,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             Rejected::Full => vessel_app_link::schedules::ScheduleError::Busy,
             Rejected::Closed => vessel_app_link::schedules::ScheduleError::Offline,
         })),
+        Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
+            ask,
+            vessel_app_view::history::Problem::Unsent,
+        )),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.

@@ -1858,3 +1858,18 @@ replace string rendering. All unnecessary qualifications in the batch were
 removed, including the actor helper's already-imported LinkError and prelude
 Future. No assertion, deadline, authority check or lint is weakened. The frozen
 3a5 red remains its own evidence; corrected-source tests/strict remain owed.
+
+### Resume: announced package base 13
+
+Merged announced2ebeedf9 after all earlier runs had completed. Canonical L
+plain-cache producer and its five documentation/generator paths are byte-exact
+to that line, replacing the known-red older Shape adaptation. Schedules Fluent
+data and accepted legacy cadence/error words are unchanged. Incoming History,
+Import and host-window registrations are unioned with Schedules registrations.
+The lead's field presentation/styles split wins: existing Code and explicit MD
+textarea opt-ins now decorate its child renderer, with the same factories,
+FieldId/listen and compact/Body defaults. No duplicate root renderer is retained.
+Local size/token checks pass; native changed-source checks remain owed. Incoming
+generated wire whitespace is preserved as published, not rewritten for this merge.
+The line includes the V3-checked known-Ended node correction; the prepared App
+adaptation is still a separate follow-up, not proof from this merge.

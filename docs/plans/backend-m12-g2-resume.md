@@ -444,3 +444,15 @@ Announced base10 was merged conflict-free after W10b's refreshed overlap check.
 Preserve all incoming resident/diff/registry source; neither olderaf52 Kit proof
 nor the unregistered9440 consumer attempt qualifies the new combined tree.
 The next actual consumer submission must use the current base10 head.
+
+### 2026-11-16 resume checkpoint
+
+Read prior state and inspected remote status before new work. No own queued or
+running job needed resubmission. Exact577 segmented Clippy and Kit235/0/0 finished
+while stopped; bounded V1 closure/handoff next. App merges announced2ebeedf9,
+canonical generator and field split preserved, Code/MD opt-ins moved onto the
+child presentation. Native union checks remain owed. Node separately merged
+announceded4cd137 as8c4a79667; own checked Ended correction is already ancestral.
+Next: complete segmented packet; install separate App Ended adaptation; check
+corrected F1 consumer source on this announced App base. No node trial head is
+merged into App and no live fleets/displays were started.

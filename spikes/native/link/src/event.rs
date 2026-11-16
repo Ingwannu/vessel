@@ -22,6 +22,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// A complete schedule response or a fresh-connection notice.
     Schedules(super::schedules::Message),
+    /// An original-admission guarded history result or correlated refusal.
+    History(crate::history::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

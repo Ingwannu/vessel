@@ -12,6 +12,18 @@ use super::super::catalog;
 const LARGE: usize = 132;
 const DEEP: usize = super::plain::FIELDS_PER_RESOLVER * super::plain::FIELDS_PER_RESOLVER + 1;
 
+#[derive(Clone, Copy)]
+enum Compiler {
+    Rust,
+    Clippy,
+}
+
+#[derive(Clone, Copy)]
+enum CatalogLayout {
+    OneArea,
+    ManyAreas,
+}
+
 struct Scratch(PathBuf);
 
 impl Scratch {
@@ -28,8 +40,11 @@ impl Drop for Scratch {
     }
 }
 
-fn compiler(clippy: bool) -> PathBuf {
-    let name = if clippy { "clippy-driver" } else { "rustc" };
+fn compiler(kind: Compiler) -> PathBuf {
+    let name = match kind {
+        Compiler::Clippy => "clippy-driver",
+        Compiler::Rust => "rustc",
+    };
     std::env::var_os("RUSTC")
         .and_then(|path| {
             PathBuf::from(path)
@@ -40,8 +55,8 @@ fn compiler(clippy: bool) -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(name))
 }
 
-fn compile(directory: &Path, clippy: bool) -> Output {
-    let mut command = Command::new(compiler(clippy));
+fn compile(directory: &Path, kind: Compiler) -> Output {
+    let mut command = Command::new(compiler(kind));
     let command = command
         .current_dir(directory)
         .env_remove("CLIPPY_ARGS")
@@ -54,16 +69,21 @@ fn compile(directory: &Path, clippy: bool) -> Output {
             "-D",
             "warnings",
         ]);
-    let command = if clippy {
-        command.args([
+    let command = match kind {
+        Compiler::Clippy => command.args([
             "--emit=metadata",
+            "-D",
+            "clippy::all",
+            "-D",
+            "clippy::pedantic",
+            "-D",
+            "clippy::struct_field_names",
             "-D",
             "clippy::too_many_lines",
             "-o",
             "checked.rmeta",
-        ])
-    } else {
-        command.arg("-o").arg(executable(directory))
+        ]),
+        Compiler::Rust => command.arg("-o").arg(executable(directory)),
     };
     command.output().unwrap()
 }
@@ -81,15 +101,24 @@ fn large_plain_caches_keep_the_public_borrowed_api_and_bounded_initializers() {
     }
     control.push_str("}\nfn main() { over_limit(); }\n");
     std::fs::write(scratch.0.join("fixture.rs"), control).unwrap();
-    let rejected = compile(&scratch.0, true);
+    let rejected = compile(&scratch.0, Compiler::Clippy);
     assert!(!rejected.status.success());
     assert!(String::from_utf8_lossy(&rejected.stderr).contains("too_many_lines"));
 
-    for (count, many_areas) in [(LARGE, false), (DEEP, false), (LARGE, true)] {
-        let source = fixture(count, many_areas);
+    std::fs::write(scratch.0.join("fixture.rs"), PREFIX_CONTROL).unwrap();
+    let rejected = compile(&scratch.0, Compiler::Clippy);
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("struct_field_names"));
+
+    for (count, layout) in [
+        (LARGE, CatalogLayout::OneArea),
+        (DEEP, CatalogLayout::OneArea),
+        (LARGE, CatalogLayout::ManyAreas),
+    ] {
+        let source = fixture(count, layout);
         std::fs::write(scratch.0.join("fixture.rs"), source).unwrap();
-        for clippy in [true, false] {
-            let checked = compile(&scratch.0, clippy);
+        for kind in [Compiler::Clippy, Compiler::Rust] {
+            let checked = compile(&scratch.0, kind);
             assert!(
                 checked.status.success(),
                 "{}",
@@ -108,15 +137,14 @@ fn large_plain_caches_keep_the_public_borrowed_api_and_bounded_initializers() {
     }
 }
 
-fn fixture(count: usize, many_areas: bool) -> String {
+fn fixture(count: usize, layout: CatalogLayout) -> String {
     let mut files: BTreeMap<String, String> = BTreeMap::new();
     let mut getters = Vec::new();
     let mut keys = Vec::new();
     for index in 0..count {
-        let (area, local) = if many_areas {
-            (format!("area-{index:05}"), "title".to_owned())
-        } else {
-            ("stress".to_owned(), format!("item-{index:05}"))
+        let (area, local) = match layout {
+            CatalogLayout::ManyAreas => (format!("area-{index:05}"), "title".to_owned()),
+            CatalogLayout::OneArea => ("stress".to_owned(), format!("item-{index:05}")),
         };
         let key = format!("{area}-{local}");
         writeln!(
@@ -131,7 +159,7 @@ fn fixture(count: usize, many_areas: bool) -> String {
         ));
         keys.push(key);
     }
-    if !many_areas {
+    if matches!(layout, CatalogLayout::OneArea) {
         // A real area may look like an implementation type's name. Private
         // chunk types must live in their own namespace rather than collide.
         let _previous = files.insert(
@@ -161,6 +189,14 @@ fn fixture(count: usize, many_areas: bool) -> String {
     output.push_str(MAIN);
     output
 }
+
+const PREFIX_CONTROL: &str = r"
+struct Root { child_0: u8, child_1: u8, child_2: u8 }
+fn main() {
+    let root = Root { child_0: 1, child_1: 2, child_2: 3 };
+    assert_eq!((root.child_0, root.child_1, root.child_2), (1, 2, 3));
+}
+";
 
 const SHIM: &str = r#"
 use std::cell::Cell;

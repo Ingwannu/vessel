@@ -10,6 +10,8 @@ fields per resolver, including the registry of areas. Larger catalogs recurse
 automatically; keep related messages together rather than splitting a domain
 to satisfy Rust's function-length check. This changes only private storage:
 the same generated getters borrow prepared strings without runtime lookups.
+Split nodes use private typed tuple slots; their fixed field projections are
+compiler-checked, not collection indexes.
 
 ## Add a string
 

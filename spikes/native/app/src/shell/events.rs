@@ -17,6 +17,7 @@ impl Shell {
                     return;
                 }
             }
+            Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
                 if !self.devices_retired(&context) {
