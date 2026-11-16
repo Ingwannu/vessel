@@ -1878,7 +1878,7 @@ authority or branch-default behavior is weakened. Fresh focused execution owed.
 
 ### LaunchAdmission union on announced gate58b
 
-Merge announc ed5bfde87 as708612958, retaining setup::runtime with the original
+Merge announced d5bfde87 as708612958, retaining setup::runtime with the original
 early stop token and RuntimeServices. Reconstruct only the conflicted setup
 appendix from gated factory plus the existing startup-service block. Push::started
 then Limits::configured keep their exact arguments, await/error path and order;
