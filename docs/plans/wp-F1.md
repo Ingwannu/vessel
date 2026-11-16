@@ -2114,3 +2114,14 @@ Quota-warning boundary: finish only this current correction/checkpoint, no new
 IME/control/branch merge. The secure field has final bounded V1/coordinator
 approval and lead receiving9d7b11bd in gate; C2 change13 stays unstarted until a
 later session's announced canonical base and writer boundary.
+
+The first corrected cad14 strict passed0; Kit lib then executed292/1/0,
+so App did NOT run. Its sole old Code-form fixture expected a fourth identical
+Change after Enter, incorrectly attributed to simulate_input. The actual fixed
+engine reports only the three typed prefixes. The corrected fixture now checks
+that literal history BEFORE Enter and no submit yet, then requires Enter to
+preserve the entire history and submit the same FieldId/value. Existing clone,
+text, schemes/layouts and original F1 footer assertions remain. This strengthens
+separation of typing from Enter rather than accepting an extra edit. Raw cad14
+red is retained. One final ordinary changed-crate suite remains within the
+quota-warning window; no new work/merge/control is started.

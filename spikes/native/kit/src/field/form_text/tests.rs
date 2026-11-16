@@ -70,6 +70,20 @@ fn code_form_uses_the_same_engine_and_reports_its_retained_source(cx: &mut TestA
             view.update_in(cx, |probe, window, cx| probe.field.focus(window, cx));
             cx.run_until_parked();
             cx.simulate_input("0 9");
+            cx.run_until_parked();
+            let typed = view.read_with(cx, |probe, _| {
+                let id = probe.field.id();
+                assert_eq!(
+                    probe.changed,
+                    [
+                        (id, "0".to_owned()),
+                        (id, "0 ".to_owned()),
+                        (id, "0 9".to_owned()),
+                    ]
+                );
+                assert!(probe.submitted.is_none());
+                probe.changed.clone()
+            });
             cx.simulate_keystrokes("enter");
             cx.run_until_parked();
             view.update_in(cx, |probe, _, cx| {
@@ -77,17 +91,9 @@ fn code_form_uses_the_same_engine_and_reports_its_retained_source(cx: &mut TestA
                 assert_eq!(probe.field.form_text, FormText::Code);
                 assert_eq!(probe.field.text(cx), "0 9");
                 assert_eq!(probe.field.clone().id(), id);
-                assert_eq!(
-                    probe.changed,
-                    [
-                        (id, "0".to_owned()),
-                        (id, "0 ".to_owned()),
-                        (id, "0 9".to_owned()),
-                        // simulate_input dispatches a final empty keystroke;
-                        // the existing engine reports that unchanged value too.
-                        (id, "0 9".to_owned())
-                    ]
-                );
+                // Enter submits the retained value exactly once. It must not
+                // emit the old native-fallback Change of an unchanged value.
+                assert_eq!(probe.changed, typed);
                 assert_eq!(probe.submitted, Some((id, "0 9".to_owned())));
             });
         }
