@@ -45,6 +45,14 @@ is unsupported, matching nodectl's existing limit. This is a local launch
 prerequisite, not a change to Proc's shared spawn/seed contract; other spawners
 do not use a retained PID as this ownership proof.
 
+This registration is process-global, rather than a reversible per-controller
+setting. Tokio 1.54.1's Signal caveat explicitly says its installed OS handler
+is never unregistered, including after the last Signal value drops. Stopping or
+dropping this controller therefore does not restore inherited automatic child
+reaping; an embedding must account for its other children as well. Retaining the
+listener is the controller's explicit ownership precondition, not a promise to
+restore the embedding's prior disposition on teardown.
+
 The Linux fixture re-execs only the isolated test binary under `/bin/sh` with
 ignored CHLD and an empty environment. It first witnesses actual auto-reaping
 and ECHILD without registration; after the real launch helper registers, it
