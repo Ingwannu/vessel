@@ -484,3 +484,33 @@ an owned future resolving that SAME snapshot when polled. It remains external,
 uninstalled and uncompiled, awaiting the announced C5 node head. Include the
 new DuplicateFileEntry mutation, preserve one physical permit through cleanup,
 and do not install the superseded extra comparison Jobs queue draft.
+
+## 2026-11-16 00:2x UTC: resumed, all old runs recovered
+
+No old run is queued or running; nothing was resubmitted. Exact App21931cd3
+strict all-target Clippy is green (fonts0/cargo0), and its actual panel tests
+are13/0/0,112filtered. The retarget fixture explicitly accounts for BOTH whole
+SavePrefs effects before fresh Locate and checks the exact replacement binding;
+no unknown-command drain or production weakening. Prior9f four-crate strict0
+remains that prior source. The late old480 all-target git run is RED18/1 in the
+already-corrected retarget fixture; it is not a current-source failure or pass.
+The external owner-219-result.json records all105 source pins and log hashes.
+No main-body mount, sent/uncertain-write lifecycle, actual C5 drawn origin,
+whole-native/final C3/capture/OS/authority acceptance follows from these tests.
+
+Node9646e055 strict Proto/Client/Workspace/Node all-target0 is recovered; prior
+exacta269 workspace tests88/0/0 include all7 file-owner cases. The two commits
+have identical production source but different test assertions, so keep these
+results separately attributed. Current TS generation on a269 ran6/0/0 tests,
+then returned1 for generated wire differences; validated bytes are being landed
+on the node tree, not hand-edited. No current root whole gate or V3 cache/runtime
+approval. W9 has no checked restore hook; same-snapshot worktree+project facts
+must join its retained physical closure later. W13 shown-context and W11 root
+projection remain pending here. No owned fleets/displays/app processes exist.
+
+Next natural checkpoint: merge announced APP2ebeedf9 into this tree, and NODE
+ed4cd137 only into the separate node tree. Preserve C3 state/control/shared
+unions and resolve changed shared APIs before one meaningful changed-source
+batch. The node head is counted17/18 with the named open /new e2e intermittent;
+never call it an unqualified wholly green gate. Disk cleanup may have removed
+warm targets. project=vessel label is retained; no parallel agent was started.
