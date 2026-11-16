@@ -89,3 +89,31 @@ node in tests applies changes through the canonical overlay owners; it adds no
 production store, guessed RPC, NodeSettings field or provider readiness. These
 new UI-state regressions still await the next VM suite. Renderer, editor sheet
 and credential-save controller remain separate outstanding page work.
+
+
+## Unregistered renderer checkpoint
+
+The staged area now composes the two sections and three detail rows with the
+existing kit settings card, switch and custom-content row frame. Detail-row
+summaries stay beside the title, with source hover/pressed tokens and the
+chevron's one-token optical pull; an unknown provider keeps its summary and
+loses its chevron/action. Offline and unsupported states use the shared warning
+alert; read failure has a distinct message. Loading uses the existing spinner
+and a labelled progress role. The reference ActivityIndicator large preset is
+36 pixels (React Native Web0.21.x primary source,
+https://github.com/necolas/react-native-web/blob/0.21.2/packages/react-native-web/src/exports/ActivityIndicator/index.js);
+existing spacing tokens derive that size, without another spinner renderer.
+All page messages and composed provider summaries are Fluent EN/KO sentences.
+Callbacks carry the displayed node/ticket, not the currently selected host.
+The fake UI opens only a recorded typed site action; an actual sheet is not
+implemented yet. No secret field, settings route or Shell command is added.
+
+New headless cases draw real rows in both schemes/languages at390/800/1280
+widths and exercise a single pending switch plus blocked/fresh site actions.
+Pure tests check full localized offline sentences and provider/key-presence
+summaries. These new renderer tests are authored, not executed yet; no capture,
+keyboard/OS assistive-technology or end-to-end user-flow acceptance is inferred.
+The staged switches currently draw confirmed values without the optional
+180ms transition counter; the final controller's animation and actual sheet,
+refresh, permission/transport checks and credential partial-result flow are
+still owed before product registration or parity approval.

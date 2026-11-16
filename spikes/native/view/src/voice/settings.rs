@@ -85,6 +85,14 @@ pub struct Toggle {
     feature: Feature,
 }
 
+/// Opening an editor is also bound to the displayed host and snapshot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Edit {
+    node: NodeId,
+    source: Ticket,
+    site: Site,
+}
+
 /// Whether the current snapshot can accept another edit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Editing {
@@ -258,6 +266,23 @@ impl Page {
             Site::Synthesis => snapshot.conversation.tts.provider,
         };
         provider != DictationProvider::Unknown
+    }
+
+    /// Capture a known site's edit action for this exact displayed snapshot.
+    #[must_use]
+    pub fn edit_action(&self, site: Site) -> Option<Edit> {
+        self.can_edit(site).then_some(Edit {
+            node: self.node,
+            source: self.ticket,
+            site,
+        })
+    }
+
+    /// A retained row cannot open an editor on another host or after a save.
+    /// The editor owner allocates its fresh sheet lease only after this check.
+    #[must_use]
+    pub fn edit(&self, action: Edit) -> Option<Site> {
+        (self.edit_action(action.site) == Some(action)).then_some(action.site)
     }
 
     fn writable(&self) -> bool {
