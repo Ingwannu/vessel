@@ -323,8 +323,9 @@ consumer. No Recovery, Journal or engine start is registered by this seam.
 
 Every newly owned async case uses the existing testkit's preparation-aware
 `within` safety net. The established settings and launch case budgets remain
-unchanged; named phase waits reuse their respective case budget for held
-barriers, replies, joins and physical drains. The previously unbounded real
+unchanged; named phase waits use independently named, strictly shorter budgets for held
+barriers, replies, joins and physical drains. The phase helper checks that
+ordering, so a held phase can report its name before the outer safety net. The previously unbounded real
 Store hook and SQL projection cases gain finite safety nets. Existing accepted
 writer-regression bodies and their original clocks/assertions remain intact.
 A deadline is a failing observation, never a physical completion or capacity
