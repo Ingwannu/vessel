@@ -59,3 +59,10 @@ propagate the existing StoreError/ToSql errors and assert each intended single
 row mutation, without changing SQL, eligibility, assertions or bounds. The red
 run is retained; per coordinator rule all correction checks use the ordinary
 short lane. No Store test execution or full PASS is inferred from that run.
+
+
+The next ordinary715 strict check exposed three explicit ToSql type mismatches:
+the pinned rusqlite accepts signed SQL integers, not usize/u64 parameters. The
+query probes now use checked i64 conversions and preserve the conversion error
+inside the existing SQL/StoreError chain. This changes no query predicate or
+assertion, adds no panic/default/allow, and remains an ordinary correction.
