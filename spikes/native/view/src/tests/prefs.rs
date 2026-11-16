@@ -29,8 +29,8 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    // Keep the page/bridge fixture unchanged. The native document adds two
-    // explicit fields (the language, and Appearance's Animations, word 39)
+    // Keep the page/bridge fixture unchanged. The native document adds three
+    // explicit fields (language, Appearance's Animations and terminal history)
     // and differs in one stated default: ended sessions are listed
     // (`SidebarView::default`, 2026-11-14; the page and the bridge still
     // write `"ended":false` until the node line's slice moves them, and
@@ -43,7 +43,15 @@ fn defaults_are_the_contracts() {
             r#""conversation":"full","animations":"on""#,
             1,
         )
-        .replacen(r#""ended":false"#, r#""ended":true"#, 1);
+        .replacen(r#""ended":false"#, r#""ended":true"#, 1)
+        .replacen(
+            r#""shortcuts":{}"#,
+            &format!(
+                r#""terminal_scrollback":{},"shortcuts":{{}}"#,
+                crate::terminal::ScrollbackLines::DEFAULT.get()
+            ),
+            1,
+        );
     assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
     assert_eq!(
         serde_json::from_str::<Preferences>(&native_default).unwrap(),

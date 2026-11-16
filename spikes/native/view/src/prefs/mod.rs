@@ -117,6 +117,9 @@ pub struct Preferences {
     /// The composer.
     #[serde(deserialize_with = "lenient")]
     pub composer: Composer,
+    /// The local terminal history limit; live trimming waits for a committed save.
+    #[serde(deserialize_with = "lenient")]
+    pub terminal_scrollback: crate::terminal::ScrollbackLines,
     /// Keys the person chose, by action: an action not here has its
     /// default keys; one with an empty list has none.
     #[serde(deserialize_with = "lenient_entries")]

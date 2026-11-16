@@ -86,6 +86,11 @@ impl TerminalModel {
         Feed { consumed, replies }
     }
 
+    /// Change retention without clearing rows that still fit; evicted rows never revive.
+    pub fn set_scrollback(&mut self, limit: ScrollbackLines) {
+        self.grid.set_scrollback(limit);
+    }
+
     /// Resize the grid.
     pub fn resize(&mut self, size: GridSize) {
         self.grid.resize(size);

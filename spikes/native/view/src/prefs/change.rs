@@ -39,6 +39,8 @@ pub enum PreferenceChange {
     Send(SendKey),
     /// What Send does while a turn runs.
     Delivery(TurnDelivery),
+    /// The local history limit; applying it to live terminals requires a saved receipt.
+    TerminalScrollback(crate::terminal::ScrollbackLines),
     /// How notices are announced.
     Alerts(Alerts),
     /// Whether the window's title counts notices.
@@ -182,6 +184,7 @@ impl Preferences {
             PreferenceChange::InspectorPanel(panel) => self.layout.inspector = *panel,
             PreferenceChange::Send(send) => self.composer.send = *send,
             PreferenceChange::Delivery(delivery) => self.composer.delivery = *delivery,
+            PreferenceChange::TerminalScrollback(limit) => self.terminal_scrollback = *limit,
             PreferenceChange::Alerts(alerts) => self.notifications.alerts = *alerts,
             PreferenceChange::TitleCount(title) => self.notifications.title = *title,
             PreferenceChange::SidebarGroup(group) => self.sidebar.group = *group,
