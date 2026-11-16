@@ -33,6 +33,8 @@ mod device_invite;
 #[cfg(test)]
 mod device_self;
 #[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
 mod discovery_ingress;
 #[cfg(test)]
 mod export_metadata;
