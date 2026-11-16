@@ -472,6 +472,30 @@ fn protocol_twenty_five_methods_know_their_version_scope_and_shape() {
     assert_eq!(twenty_five, PROTOCOL_TWENTY_FIVE);
 }
 
+/// Protocol 26's methods (ADR 0042): account usage reports and per-source
+/// consent, each unary. The two constants share one version.
+const PROTOCOL_TWENTY_SIX: &[(&str, Scope)] = &[
+    ("usage.reports", Scope::Read),
+    ("usage.inspect", Scope::Read),
+    ("usage.source_lookup", Scope::Admin),
+];
+
+#[test]
+fn protocol_twenty_six_methods_know_their_version_scope_and_shape() {
+    let twenty_six: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(26)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_six, PROTOCOL_TWENTY_SIX);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only

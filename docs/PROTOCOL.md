@@ -68,6 +68,32 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 26 (2026-11-16, milestone 12): account usage reports and source consent (W5/impl U, ADR 0042)
+
+Protocol 26 introduces `usage.reports(ListUsageReports) -> UsageReports` and
+`usage.inspect(InspectUsageReport) -> UsageReportLookup` (Read), and
+`usage.source_lookup(SetUsageSourceLookup) -> UsageSourceDescriptor` (Admin).
+All three are unary and fleet-forwardable with the destination's scope
+intersection. `ACCOUNT_REPORTS_PROTOCOL` and `USAGE_SOURCE_CONSENT_PROTOCOL`
+share this one version; they stay separate constants so either can move later.
+
+A cached read performs no credential, login discovery or vendor I/O. An
+explicit refresh additionally needs Operate and the global lookup (`usage.lookup`,
+23) On, and an additional source its own grant. The original three stores
+inherit the global choice; the seven additional sources start Off, and an
+Unsupported source can never read as Enabled. `usage.source_lookup` takes the
+exact registered source and the current disclosure revision, refuses unknown
+ids and stale revisions even when enabling, and never fetches. Source Off and
+global Off invalidate pending publication and snapshots before they
+acknowledge. Read-only callers receive no monetary balances or Operate-only
+details.
+
+The rows were reviewed with both constants `None` and assigned at their
+node-line merge, the next free number in merge order, after the provider
+client began resolving names only through the node's tracked DNS scope
+(ADR 0104). Consumers on older or unassigned peers keep using `usage.limits`
+(23). The minimum protocol remains 2; the store schema is unchanged.
+
 ## Version 25 (2026-11-15, milestone 12): workspace registry metadata (W11, ADR 0082)
 
 Protocol 25 introduces the independent workspace registry's six metadata
