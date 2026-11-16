@@ -1,58 +1,55 @@
 # Workspace files, editor and document panels
 
 Status: C5/C6 implementation remains incomplete; no native package acceptance.
-The app includes announced base13.1 ad14f5f6 and the canonical node file package.
-Root crates, root Cargo.lock and generated wire files have no difference from
-that base. Only the native owner delta is intended for the app handoff. Retained
-buffers use NodeId/root/path, serialized original write tickets and sticky
-uncertain effects. Existing-engine input is mirrored before admission and
-projection, including accepted input whose owner notification is queued.
+The full retained-owner preparation includes announced base14.3 (67637eb6).
+Root crates, root Cargo.lock and generated wire files equal that base. The
+native lock adds only the View dependency edge to already-locked serde-saphyr.
+Only the native owner delta is intended for the app handoff.
 
-Latest owned strict33 on682e0186 passed all-target locked Clippy for
-Kit/View/Link/App with warnings denied (wp-files-narrow-20261116T011243Z-682e0186).
-That proof precedes the base-only ad14f5f6 merge; it is not a whole native gate.
-Actual tests14 on95ab8b89 passed App184/0/2, then failed one old Markdown
-prototype fixture in Kit249/1/0 and stopped before View/Link runtime. The
-canonical B2 Markdown producer replaced that independent fence scanner.
-Receiving tests15 ondfd1e3b2 then passed App184/0/2, Kit255/0/0 and Link119/0/0;
-View1049/2/0 failed its dependency inventory and one obsolete recovery-read
-expectation. Corrected3d3f21570 then passed View1051 library,131 integration
-and2 doc tests, plus View all-target strict. The separate wasm check passed on
-earlier682e0186; that is prior-source platform proof. Failed runs are kept.
+The bounded shown-Changes producer d58261648 received final V1 receiving-source
+and requested narrow approval, with docs df0700ed9/f20539171, and is now on that
+announced line. Its own receiving checks were View/Link/App all-target locked
+Clippy with warnings denied and eight actual framed App cases (8/0/0).
+Its opaque receipt grants no mutation, UI-visit or workspace authority. This
+bounded approval does not qualify the larger retained-file owner preparation.
 
-The existing-engine revision regression distinguishes A→X→A even when text
-equals the old snapshot. The standalone vendor/Kit producer passed bounded
-V1 source and requested strict/runtime review and was cherry-picked by the
-lead; its new line gate is not yet announced. Its vendor-private test remains
-explicitly unexecuted because the supported recipe lacks that test lock. The
-actual Kit case and C5 App equal-text case are separate executed evidence.
+The latest full-owner source is05936b803: one installed RootReceipt and original
+DeliveryGuard, NodeId/root/path buffers, serialized original write tickets,
+sticky uncertain effects and guarded file replies. Accepted engine input is
+mirrored before admission/projection, including queued owner notifications.
+The current receiving four-crate strict is queued as
+wp-files-narrow-20261116T033234Z-05936b80; no result is claimed. Its older
+queued predecessor was superseded before taking a slot and retained as143.
+The new root fixtures, language-result fences and typed dock construction case
+remain unexecuted. All public File open/close and typed dock entry points remain
+staged until their real shared callers and complete owner union are checked.
 
-Actual-engine readiness receives the same readonly App reference: a cached
-Clean model cannot hide accepted editor text whose mirror is queued. Context-free
-cache eviction conservatively retains every instantiated editor, costing cache
-capacity. Quit registration and the synchronous phase applier remain staged
-until their shared real caller and complete-window traversal are checked. No
-forced-exit recovery is promised.
+Prior-source checks are kept separately: all-target Kit/View/Link/App strict
+passed on682e0186. Tests15 ondfd1e3b2 passed App184/0/2, Kit255/0/0 and
+Link119/0/0; View1049/2/0 returned its dependency inventory and an obsolete
+recovery-read expectation. Corrected3d3f21570 passed View1184/0/0 including
+integrations/docs and View all-target strict. Earlier682e0186 passed the wasm
+Link/App check. These are not a whole gate of the current retained-owner tree.
+The old Markdown prototype failure was replaced by the canonical B2 producer;
+receiving Kit255/0/0 passed. Failed and cancelled runs remain distinct records.
 
-The node companion is final source/evidence PASS in V3 row171 on exact
-a2b69afec8669b71cc59f257fba31c7c9fbb959f. Whole run
-wp-files-node-20261115T154926Z-a2b69afe executed all18 steps with rc0:
-Rust2414/0/12, web464, e2e68, forge4; current strict, generated declarations
-and freshness passed. It landed as15610d47a in node27502436 (gate54 green)
-and is present in the announced app base. FILE_PANELS_PROTOCOL remains None.
-Whole-hash verification and atomic publication remain the actual ChunkSink
-implementation's contract. Mutable-file atomic snapshots, same-user path-swap
-limitations and real service-account flows are outside that PASS.
+The existing-engine revision getter and actual Kit A→X→A regression received
+bounded V1 source/requested narrow approval and landed through announced
+base14.1. The vendor-private case remains explicitly unexecuted because the
+supported recipe lacks its test lock. C5's actual-engine readiness reads the
+same readonly App: cached Clean cannot hide accepted text awaiting its mirror.
+Context-free eviction retains instantiated editors. Quit registration and the
+synchronous phase applier remain staged until their real caller and complete
+window traversal are checked. Forced exit has no recovery journal.
 
-Typed File opening/bindings/close requests remain test-staged until their real
-shared callers and original guards are checked. The installed legacy root
-scope is request evidence, not an irreversible UI delivery guard. The separate
-shown-Changes preparation passed eight real framed cases on340f92ede
-(wp-files-shown-20261116T012821Z-340f92ed) and is under bounded V1 review.
-It carries original acquisition guards, but its preparation contains a separate
-G4 fixture/product dependency and cannot be adopted as a whole branch. When
-joined here it must replace the root acquisition, never create a second
-resolver. It is not a checked file opener or typed Explorer mount.
+The node companion passed final V3 row171 on exacta2b69afec8669b71cc59f257fba31c7c9fbb959f.
+Whole run wp-files-node-20261115T154926Z-a2b69afe executed all18 steps rc0:
+Rust2414/0/12, web464, e2e68, forge4; strict, declarations and freshness passed.
+It landed as15610d47a in node27502436 and is on the announced app line.
+FILE_PANELS_PROTOCOL remains None. Whole-hash checking and atomic publication
+are the actual ChunkSink implementation's contract. Mutable-file atomic
+snapshots, same-user path-swap limits and real service-account flows remain
+outside that PASS.
 
 No whole native gate, inspected captures, PDF/SVG/image/HTML renderer completion,
 actual binary download sink, live quit safety or C5 completion is claimed.
@@ -107,9 +104,10 @@ execution or change the node's existing trust policy.
 
 - Vessel's content-hash save guard is retained instead of Paseo's inode/
   timestamp revision: it already protects files on coarse filesystems.
-- The initial node has no binary reader, duplicate operation, single-file
-  subscription or directory suggestions. ADR 0083 in the node companion
-  owns those additions; no invented call is sent by the app.
+- The original node lacked binary reads, duplication, single-file observation
+  and directory suggestions. The reviewed ADR0083 companion is now landed,
+  with pending protocol admission. The app must keep those methods unavailable
+  until assignment; no invented or duplicate wire contract is sent.
 - Modified ordering requires node metadata; it must not be fabricated from
   entry order or a missing timestamp.
 - Existing node path restrictions (including `.git`) remain the security
@@ -154,7 +152,8 @@ Primary sources: <https://github.com/linebender/resvg>,
 ## Validation and resume point
 
 All Rust compilation/test/gate work runs on the designated build VM. Local
-checks are direct pinned rustfmt, size, boundary and token scripts only. At
+checks are direct pinned rustfmt, size, tokens and diff checks. Boundary checks
+invoke Cargo metadata and therefore run on the build VM only. At
 package end: freeze for one complete native gate, fake-node capture matrix,
 inspection, then V4 review. The node companion has its own complete root gate
 and V3 review; no live preview or real harness is used.
@@ -167,15 +166,15 @@ sorting gated behind pending ADR0083; shared Markdown/frontmatter and scoped
 relative links; pure panel selection/association and typed LSP navigation.
 These sources have distinct earlier/current test receipts, not one acceptance.
 
-Next: consume strict19/workspace results and fix concrete errors, execute the
-current FieldId/IME/captured-callback union, finish node freshness/full gate and
-its admitted SDK review/number assignment. Then consume actual owner-context
-runtime seams from the sole layout/desktop/composer/plugin owners: file tabs,
-Explorer mounting, keyed presentations/close lifecycle, typed context intake,
-qualified image/HTML/download/upload flows, panel preferences and complete LSP
-UX. PDF/SVG follow file parity under the ADR below. The node's pending methods
-must remain visibly unavailable until integrated; do not duplicate a client
-transfer loop or infer an owning node/root from cwd or a mutable alias.
+Next: consume the current retained-owner strict result, fix concrete failures
+and execute its actual root/queued-reply/retained-file/engine/dock regressions.
+Then join real shared callers from the sole layout/desktop/composer/plugin
+owners: file open/close, Explorer visibility and selection, phase/readiness,
+context intake and qualified image/download/upload flows. Complete panel
+preferences and LSP UX, then one whole native gate and inspected captures/V4.
+The node's review/gate is complete but its pending methods still need integrator
+assignment at wiring. PDF/SVG follow file parity under the ADR above. Do not
+duplicate client transfer loops or infer node/root ownership from cwd or alias.
 
 ## Correlation regression checks (2026-11-15)
 
