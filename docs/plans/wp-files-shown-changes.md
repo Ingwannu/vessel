@@ -1,7 +1,9 @@
 # Shown Changes provenance
 
-Status: straight C5-only receiving producer on announced base14.1 b54abbdc.
-The prior bounded source/narrow review passed; this receiving assembly is unqualified until its own checks.
+Status: bounded C5-only receiving SOURCE and requested NARROW PASS on exact
+d58261648 plus docsdf0700ed9, sole source parent announcedb54abbdc. V1 closed
+the prerequisite/receiving hold; the checked minimal leaves were sent lead-first
+and then to G1. This does not approve a real consumer or full C5.
 Its shared delivery exports remain owned by that producer; this package neither
 re-promotes them nor claims a checked product handoff before its green line.
 
@@ -227,3 +229,14 @@ the final bounded delta disposition before handoff; this documentation update
 changes no Rust. No whole C5, private product event-dispatch/paint/OS, full
 multi-page transfer, mutation authority, UI-visit ABA or generic worker-drain
 claim is added. Consumer entry points remain staged until their real caller.
+
+## Final bounded receiving disposition
+
+V1 independently verified the sole parent/22 owned paths, all20 non-dispatch
+Rust blobs, the one event registration delta, canonical prerequisites and
+same-head strict/runtime evidence. The prerequisite and receiving hold are
+closed for d58261648 plus docsdf0700ed9. Those exact leaves were handed to the
+lead first, then G1. Consumer facade promotion, intent/visibility checks and
+its actual receiving assembly remain the consumer's work. The full retained
+file-owner join stays separate and unqualified. This final receipt is docs-only;
+no unchanged Rust run or new broader approval is inferred.
