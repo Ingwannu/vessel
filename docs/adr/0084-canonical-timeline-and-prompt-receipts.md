@@ -697,3 +697,17 @@ through normal lifecycle, and reports admitted revocation rather than no effect.
 This avoids a new authority lease across every parent-transition owner. See the
 exact launch-admission and handoff obligations in timeline-execution-fence.md;
 no creation API, physical-spawn atomicity or positive controller is implied.
+
+
+### Question presentation is not a question form
+
+PermissionKind::Question is a retained presentation category only. It does not
+turn PermissionRequest, a selected permission option, arbitrary tool input or a
+plan/mode label into Question/QuestionAnswer. Question producers must use the
+canonical typed form and QuestionAsked/QuestionResolved ownership path. Until an
+explicit typed join is implemented and reviewed, a Question-kind permission
+request is inert/unsupported, including a tool-less request. It offers no form
+or executable permission action. Producer/response guards and all renderers must
+preserve this before activation; no parser may infer companion fields from
+opaque provider arguments. The standalone approved values remain vocabulary,
+with no such producer or capability enabled by their adoption.
