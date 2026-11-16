@@ -53,6 +53,45 @@ impl ToolbarButton {
         config: ToolbarConfig,
         tokens: &crate::Tokens,
     ) -> Self {
+        Self::with_content(
+            id,
+            label,
+            icon.render(config.sizing(), tokens),
+            config,
+            tokens,
+        )
+    }
+
+    /// The pinned usage refresh's numeric14/18 `ActivityIndicator` uses the SAME
+    /// shared masks/750ms motion. Loading chrome is disabled and acquires no click
+    /// handler; the owner still retains original request/context admission.
+    pub fn loading(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        ink: ToolbarInk,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
+        let id = id.into();
+        let points = match config.sizing() {
+            crate::ControlSizing::Pointer => crate::loading::Points::FOURTEEN,
+            crate::ControlSizing::Touch => crate::loading::Points::EIGHTEEN,
+        };
+        let content = crate::loading::activity_indicator(
+            ElementId::NamedChild(std::sync::Arc::new(id.clone()), "activity".into()),
+            crate::loading::Size::Numeric(points),
+            ink.colour(tokens),
+        );
+        Self::with_content(id, label, content, config.disabled(), tokens)
+    }
+
+    fn with_content(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        content: impl IntoElement,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
         let label = label.into();
         let hover = fill(config, Phase::Hovered, tokens);
         let pressed = fill(config, Phase::Pressed, tokens);
@@ -74,7 +113,7 @@ impl ToolbarButton {
             .when(config.availability() == ButtonState::Enabled, |element| {
                 element.cursor_pointer()
             })
-            .child(icon.render(config.sizing(), tokens));
+            .child(content);
         Self {
             element,
             config,
@@ -94,14 +133,35 @@ impl ToolbarButton {
         self
     }
 
-    /// Decorate this same hitbox with the existing screen-owned tooltip. Its
-    /// current timing/placement are the kit's, not a new toolbar overlay.
-    pub fn tooltip(mut self, tips: &Tooltips, place: &Place) -> Self {
-        self.element = tips.on(
+    /// Pinned pane toolbar profile: desktop-only, bottom/eight/300ms, using the
+    /// existing screen-owned controller rather than a second toolbar overlay.
+    pub fn tooltip(self, tips: &Tooltips, place: &Place) -> Self {
+        let label = self.label.clone();
+        self.tooltip_text(tips, place, label, crate::tooltip::Side::Bottom)
+    }
+
+    /// Keep the same source timing/offset while selecting an explicit side,
+    /// such as the usage card refresh's top freshness tooltip.
+    pub fn tooltip_at(self, tips: &Tooltips, place: &Place, side: crate::tooltip::Side) -> Self {
+        let label = self.label.clone();
+        self.tooltip_text(tips, place, label, side)
+    }
+
+    /// Source tooltip words may describe freshness/status while the accessibility
+    /// label remains the action. The owner supplies already-resolved display text.
+    pub fn tooltip_text(
+        mut self,
+        tips: &Tooltips,
+        place: &Place,
+        text: impl Into<SharedString>,
+        side: crate::tooltip::Side,
+    ) -> Self {
+        self.element = tips.on_configured(
             self.element,
             place,
-            self.label.clone(),
-            self.config.sizing() == crate::ControlSizing::Touch,
+            text,
+            crate::tooltip::Configuration::toolbar().side(side),
+            self.config.sizing(),
         );
         self
     }
