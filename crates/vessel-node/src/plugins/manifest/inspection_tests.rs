@@ -150,6 +150,21 @@ fn safe_chain(error: &dyn Error) {
     }
 }
 
+#[test]
+fn added_file_error_families_keep_concrete_invalid_names_sealed() {
+    let invalid = "../PRIVATE-INSPECT-CANARY"
+        .parse::<RelPath>()
+        .expect_err("invalid portable path");
+    for cause in [
+        files::FileError::TransferTooLarge,
+        files::FileError::Offset,
+        files::FileError::CopyLimit,
+        files::FileError::InvalidEntry(invalid),
+    ] {
+        safe_chain(&InspectError::Read(PrivateFileError(cause)));
+    }
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn external_symlinks_and_nonregular_declarations_use_existing_file_refusals() {

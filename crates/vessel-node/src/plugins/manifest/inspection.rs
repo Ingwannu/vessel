@@ -62,6 +62,10 @@ impl fmt::Debug for PrivateFileError {
             files::FileError::Exists(_) => "exists",
             files::FileError::NotEmpty(_) => "not_empty",
             files::FileError::TooLarge => "too_large",
+            files::FileError::TransferTooLarge => "transfer_budget",
+            files::FileError::Offset => "offset",
+            files::FileError::CopyLimit => "copy_budget",
+            files::FileError::InvalidEntry(_) => "entry",
             files::FileError::Io(_) => "io",
             files::FileError::Task => "task",
         };

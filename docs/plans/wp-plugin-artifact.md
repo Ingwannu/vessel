@@ -167,3 +167,11 @@ The tests assert runner UID/GID and initial0600 creation mode without chmod/chow
 They do not manufacture or claim actual wrong-account ownership, Windows ACL,
 root/parent privacy, descendant lifetime or complete-tree proof. Actual new-source
 strict/tests and V3 selected implementation review remain owed.
+
+The first file-probe suite9e460e91 reached the node but stopped before any new
+case at an exhaustive declaration-error classification after the file package
+added four FileError variants. Both strict and test failures are retained;
+all test prerequisites succeeded. The classification now names all four fixed
+safe categories and adds a concrete invalid-entry canary through every exposed
+source level. This corrects the receiving-base join, without relaxing the probe,
+changing shared file errors or claiming the new filesystem cases executed.
