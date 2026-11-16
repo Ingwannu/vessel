@@ -363,3 +363,74 @@ while the fixture actor remains the unchanged unit-only 9bb blob. Only the
 actual Devices caller and conditional testing Scenario edge are added by
 this packet. The receiving-base union gets its own changed-source checks and
 V1 review; no earlier check is renamed as a combined-line pass.
+
+### Exact 9878 changed-state capture receipt (2026-11-16)
+
+The coordinator's drawing question is answered **changed**, relative to the
+old a86 captures: authority gating/recovery, the node-reported current-device
+badge, disabled refresh during revoke, retained public input and the typed
+uncertain/no-route messages affect the drawn tree. The old frames are not
+substituted as proof of those states.
+
+The exact normal, feature-off App from
+`devices-narrow-20261115T183517Z-9878a4b0` was exported successfully, after
+one explicitly authorized queued cancellation/replacement. Fonts, native
+build and app export completed zero; the App SHA256 is
+`ab3bc55b47b39340ef9e815cde12eb7a6252c699e31ffb41245a3c10098fc02f`.
+No compilation was resubmitted on resume. The approved shared root binaries
+are protocol23 predecessors, not same-commit artifacts; their identity and
+compatibility evidence are recorded separately from the exact App export.
+
+The changed-state index contains 64 frames: eight states, EN/KO, light/dark,
+1280x800 and 390x844. They cover current-device long names, known non-Admin,
+Admin without Read, authority loading/failure, pending/unconfirmed revoke,
+and typed NoRoutes. Six more current-device frames cover 1.25/1.5/2 display
+scales in EN dark and KO light. All 90 retained original PNGs were personally
+opened and their dimensions/SHA256 recorded: 70 changed-state/scale frames,
+18 navigation/prerequisite/support frames and two explicitly rejected
+misframings. Those two raw phone images remain unchanged in a separate
+unusable-framing folder; settled retakes supply their actual NoRoutes proof.
+
+The reference remains pinned1c00 `desktop/components/pair-device-section.tsx`
+148–179 (loading/error/retry), 181–235 (conditional actions), 245–271
+(offer/copy/security warning), and 275–300 (QR/loading). The per-device grant,
+current-caller, revoke and interrupted-result states are deliberate Vessel
+facts absent from that component; they use the existing settings rows,
+badges, dialog and Alert rather than adding a parallel renderer. The host
+page's status/error comparison remains `screens/settings/host-page.tsx`
+177–249. A long English phone confirmation leaves its final question mark
+on a separate line; it is fully visible and retained in the review packet,
+not silently relabelled ideal typography.
+
+These are real isolated loopback node facts through the normal App, not an
+injected capture model. The current-device identity comes from device.self;
+a fresh Admin-only grant proves usable management without session Read.
+Read-only has no management/invitation controls. A held own-node response
+exercises loading and uncertainty with the fixed public draft retained.
+The framed actor suite remains the separate no-replay/late-delivery proof;
+a screenshot is not substituted for its barriers. Before UI no-route
+requests, the same private fixture's CLI refused with exit1 and empty stdout;
+no invitation was created, revealed or copied by the App capture actions.
+Initial fixture enrollment used only the existing CLI pipe, with no retained
+pairing-link output. The node's configured-address removal affects only this
+fixture.
+
+All processes and fixture files used UID/GID1000/1000, with evidence folders
+0700 and PNGs0600. Both the controller and fleet holder used umask0077. The
+final cleanup tracked six owned processes to exit, removed the ephemeral
+X authority directory and left no paused node; the fleet owner's own
+three-descendant cleanup also reports none remaining. No live customer
+service account or production permission was changed or validated.
+Retained credential-byte/encoding and known pairing-link pattern checks found
+no matches in 149 readable evidence/log records; the intentionally unreadable
+workspace fixture was neither opened by bypass nor repermissioned. That scan
+and personal image inspection are bounded privacy evidence, not a universal
+secret detector. Private CLI credentials stay excluded from the review packet.
+
+Works within these inspected frames: authority-specific controls, current
+badge/action wrapping, loading and single recovery alerts, pending disabled
+controls, retained input and safe NoRoutes guidance. Full E2 pairing/QR/relay
+consent, physical phones, real GPU/OS, customer permissions and latest-base
+union are not approved by these captures. Coordinator comparison and the
+receiving-line changed-source narrow/V1 review still gate adoption; no old
+whole run is relabelled as that receiving union's result.
