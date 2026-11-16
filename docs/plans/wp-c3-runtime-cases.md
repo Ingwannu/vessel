@@ -99,3 +99,12 @@ No public wire/number/native/OS assertion follows from the list.
 - `workspace::comparison::pinned_base::tests::an_exact_ref_or_its_display_alias_keeps_the_recorded_stream_for_both_modes`
 - `workspace::comparison::pinned_base::tests::another_qualified_stream_is_not_authorized_by_the_same_display_name`
 - `workspace::comparison::pinned_base::tests::immutable_commits_and_uncommitted_reads_do_not_apply_branch_base_admission`
+
+## Successor cache-hit authority regression (not in ce9667ac)
+
+- `workspace::tests::comparison::cached_root_probe::cache_hits_refuse_registry_changes_during_the_original_root_open`
+
+This added case runs actual cached summary and file entry points against path
+and default-branch registry changes during their queued blocking root open.
+It is a source case until separately executed on the successor. Keep the66
+original-case inventory and old candidate results separately attributed.

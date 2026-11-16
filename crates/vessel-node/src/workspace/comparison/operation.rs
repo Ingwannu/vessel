@@ -80,7 +80,9 @@ impl Workspaces {
     ) -> Result<Prepared, WorkspaceError> {
         let git = self.git()?.clone();
         let admission = self.root_snapshot(request.root)?;
-        let resolved = self.resolve_snapshot(admission.clone()).await?;
+        // A hit skips Operation::run, so the original snapshot must be
+        // rechecked after the awaited open here as well as on a new job.
+        let resolved = self.resolve_unchanged(request.root, &admission).await?;
         if !resolved.git {
             return Err(WorkspaceError::NotGit);
         }

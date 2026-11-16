@@ -91,9 +91,27 @@ A subsequent self-audit found a specific remaining registry race in this source:
 prepare_comparison opens a captured snapshot, but a cache hit can bypass the
 post-open registry check performed only by Operation::run on a new build. A
 registry change during the awaited open could therefore return old cached data.
-The prepared successor reuses resolve_unchanged before the cache probe and adds
+The successor reuses resolve_unchanged before the cache probe and adds
 a real blocking-pool regression for summary/body hits and changed path/default.
-It is currently external/uninstalled/uncompiled; this candidate is NOT ready
+It is now installed but uncompiled/unexecuted; this candidate is NOT ready
 for V3 runtime submission even if the existing checks finish green. Preserve
 those outcomes on their exact source and group the correction with any actual
 returned findings before one meaningful successor check. No separate whole.
+
+## Cache-probe correction: behavior change
+
+The successor refuses a registry path/default change that occurs while its
+initial cache-probe root open is awaited, including a cache hit. This is an
+authority-fact revalidation change, not just lint or documentation. It uses the
+existing resolve_unchanged wrapper before constructing the cache identity;
+Operation::run still rechecks a newly executed job. No resolver, lock, pool,
+protocol number or physical RootLease is added.
+
+The new real Git fixture populates one cached summary or file body, occupies
+the actual one-thread Tokio blocking pool, polls a second read until its root
+open is queued, then changes path or project default and releases the pool.
+All four cases must return TargetChanged while the completed payload remains
+in storage. Before the production correction the hit skips Operation::run and
+returns the old result; that baseline behavior is source-traced, not claimed
+as an executed failing test. The existing ce9667ac remote jobs stay attached
+to their old immutable source and are not execution of this successor.

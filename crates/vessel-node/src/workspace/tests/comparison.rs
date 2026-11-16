@@ -356,3 +356,5 @@ async fn a_cached_payload_cannot_bypass_revalidation_of_the_recorded_folder() {
     assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }
+
+mod cached_root_probe;
