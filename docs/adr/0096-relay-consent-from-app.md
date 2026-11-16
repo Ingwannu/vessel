@@ -173,3 +173,28 @@ use Tokio's internal OS resolver workers. It does not prove termination of
 such a worker or bound retained resolver work across rapid control changes.
 That full-consent gap remains explicit for V3/integration; no second resolver
 or transport was introduced under the small lifetime seam.
+
+## Separate tracked native-resolution prerequisite (ADR0104)
+
+The earlier isolated registration-child seam establishes bounded async owners
+and normal callback drain; it does not establish native DNS completion. A
+STEP timeout or cancelled tungstenite/lookup_host future can leave started
+getaddrinfo work running. That limitation remains open in its original verdict.
+
+The coordinator assigned a new shared primitive in ADR0104, also consumed by
+native dictation's reqwest hook. Relay consent consumes that contract rather
+than defining a local resolver, counter or runner here. The same NodeLink owns
+its scope through actual resolution completion and pending callback drain.
+Socket stages reuse resolved/Reach-checked addresses for TCP and original
+TLS/SNI/tickets for WS, without another implicit lookup. Getaddrinfo cannot be
+cancelled: the wait is bounded only by the OS, while the settings deadline
+reports uncertain/disabling and refuses another generation. Caller timeout
+or cancellation does not release the original capacity. Drop/abort is never
+normal ACK, and established gateway carriers remain independent.
+
+This is a separate contract item on a new node branch, not an expansion of
+old370's unreviewed settings runtime or the accepted isolated row231. ADR0104
+and this reference require V3 contract review before implementation; neither
+changes settings support, a method/version/schema, endpoints, credentials,
+current consent behavior or any service. Full-consent readiness stays pending
+both shared primitive and actual settings/consumer integration evidence.
