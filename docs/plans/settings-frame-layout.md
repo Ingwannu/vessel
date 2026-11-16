@@ -94,3 +94,27 @@ private fake fleet and authenticated display under UID/GID1000. Existing capture
 from selection/rename do not count as new frame proof. Hardware/physical IME,
 OS accessibility, full E1/F5 and shared rename sibling occlusion remain outside
 this bounded change. No service, account or product permission changes occurred.
+
+## Quota stop checkpoint (2026-11-16 03:42 UTC)
+
+Final checked source927680a90ba2052fb83fb0c6e85c937ac1f2c4b0 ran six native steps
+rc0 in settings2-20261116T014900Z-927680a9: fonts/fmt/quality/Clippy/build/test.
+Raw test totals are1618/0/2, including the five new General/frame cases. Only
+capture-export failed: the old immutable submission pinned Root23 below the
+new app-capture minimum25. The whole run's overall rc1 is retained; this is not
+a Rust failure or a successful export. Native result receipt is retained locally.
+
+T52f83380 and lead2c964ed8 authorized one same-source build/export-only recovery:
+settings2-20261116T031322Z-927680a9, --steps native-build --export-app
+--shared-root-fleet base12, /tmp/work/m12-settings4/rg-frame-export-927.
+It is the SOLE queued E2 VM job. No unchanged whole or Root build is repeated.
+Recovery uses approved Rootb5b46357/protocol25, separately identified from AppRooted4.
+This docs-only WIP checkpoint does not change the pinned executable source.
+
+Export recovery, every new frame capture and final V4 review remain UNVERIFIED.
+No final review row has been submitted: wait for actual complete capture evidence.
+G3 explicitly confirmed no checked private-picker resize hook exists (31c08d3f);
+that picker remains separately UNVERIFIED, not an observed failure or part of
+General5. No back/load workaround, private-state access or new owner API was used.
+No own App/fake fleet/Xvfb was started. Two isolated capture-helper cleanup probes
+were reaped. No production account/config/credential/service permissions changed.
