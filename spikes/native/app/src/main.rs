@@ -2,8 +2,7 @@
 //! Synthetic input is compared privately; only closed observations reach disk.
 use gpui::prelude::*;
 use gpui::{
-    Bounds, ClipboardItem, Context, KeyDownEvent, Render, Window, WindowOptions, div, point, px,
-    size,
+    Bounds, ClipboardItem, Context, KeyDownEvent, Render, Window, WindowOptions, div, px, size,
 };
 use kit::field::{FieldId, SecretEdit, SecretField, SecretFieldContent, SecretPresence, TextField};
 use std::io::Write as _;
@@ -305,7 +304,7 @@ fn main() {
                     ..gpui::TitlebarOptions::default()
                 }),
                 window_bounds: Some(gpui::WindowBounds::Windowed(Bounds {
-                    origin: point(px(0.0), px(0.0)),
+                    origin: gpui::Point::default(),
                     size: size(px(WINDOW_WIDTH), px(WINDOW_HEIGHT)),
                 })),
                 ..WindowOptions::default()
