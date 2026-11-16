@@ -2,7 +2,7 @@
 //! document reads as the defaults and is not rewritten for them; each
 //! change writes only its own field.
 use super::*;
-use crate::wire::{UsageDisplay, UsagePins};
+use crate::wire::{UsageDisplay, UsagePins, UsagePreferences};
 
 fn read(text: &str) -> PrefsDoc {
     match PrefsDoc::decode(text.as_bytes()).unwrap() {
