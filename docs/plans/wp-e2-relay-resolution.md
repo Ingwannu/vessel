@@ -57,6 +57,10 @@ real relay, account, permission, process or production action. V3 subsequently
 accepted that contract; the implementation checkpoint below has its own source
 and VM evidence requirements.
 
+Quota-stop resume and exact compiled/reviewed boundaries are in
+`wp-e2-dns-resume.md`. Corrected244 strict0 and resolution9/0/0 are narrow
+evidence only; no owning whole or consumer integration is complete.
+
 Consumer direction confirmed by GKS before code: per-stream original
 Arc<dictation quota Lease> is permits-only, quota constructor uses the existing
 MAX_IN_FLIGHT_COMMITS constant, and retirement must gate entry.finished/removal
