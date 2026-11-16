@@ -78,6 +78,15 @@ impl Control {
         *self.released.lock().unwrap() = true;
         self.changed.notify_all();
     }
+    async fn wait_for_held(&self, held: Held) {
+        let entered = match held {
+            Held::Credential => &self.entered,
+            Held::Http => &self.http_started,
+        };
+        acquired(entered)
+            .phase("held source operation entered")
+            .await;
+    }
 }
 struct Release(Arc<Control>);
 impl Drop for Release {
@@ -146,18 +155,7 @@ async fn revoked_without_setter_continuation(held: Held) {
             )
             .await
     });
-    match held {
-        Held::Credential => {
-            acquired(&control.entered)
-                .phase("usage phase: acquired")
-                .await;
-        }
-        Held::Http => {
-            acquired(&control.http_started)
-                .phase("usage phase: acquired")
-                .await;
-        }
-    }
+    control.wait_for_held(held).await;
     cancel_setter_after_durable_off(&fixture)
         .phase("usage phase: cancel_setter_after_durable_off")
         .await;
