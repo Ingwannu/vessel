@@ -178,14 +178,17 @@ impl Menu {
         caret: usize,
         now: Duration,
     ) -> Result<Option<Request>, Problem> {
-        let mention = match active(text, caret) {
-            Ok(mention) => mention,
-            Err(problem) => {
+        // Outside a registered workspace nothing is asked of a node, so the
+        // token is not checked there: an over-long one stays hidden too.
+        let found = match scope.map(|registered| (registered, active(text, caret))) {
+            None | Some((_, Ok(None))) => None,
+            Some((scope, Ok(Some(mention)))) => Some((scope, mention)),
+            Some((_, Err(problem))) => {
                 self.phase = Phase::Invalid(problem.clone());
                 return Err(problem);
             }
         };
-        let Some((scope, mention)) = scope.zip(mention) else {
+        let Some((scope, mention)) = found else {
             self.phase = Phase::Hidden;
             self.dismissed = None;
             return Ok(None);
@@ -218,7 +221,17 @@ impl Menu {
             self.set_rows(request, rows);
             return Ok(None);
         }
-        let previous = self.phase.rows().to_vec();
+        // Previous rows keep their workspace's authority: another scope
+        // starts empty rather than showing the last workspace's files.
+        let previous = if self
+            .phase
+            .request()
+            .is_some_and(|old| old.scope == request.scope)
+        {
+            self.phase.rows().to_vec()
+        } else {
+            Vec::new()
+        };
         self.phase = Phase::Debouncing {
             request: request.clone(),
             previous,
