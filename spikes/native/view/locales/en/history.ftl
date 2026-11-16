@@ -78,3 +78,6 @@ history-identity-changed = The machine identity changed. Refresh history before 
 
 # A finite retained-history or batch admission limit.
 history-capacity = Choose a narrower folder or import fewer conversations at once.
+
+# The current native-history API does not provide first/last prompt metadata.
+history-no-preview = No prompt preview available

@@ -71,6 +71,8 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
             move || format!("history-row-{}", id.as_str())
         })
         .flex()
+        .w_full()
+        .overflow_hidden()
         .items_start()
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
         .gap(px(S3))
@@ -89,6 +91,12 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
             icon,
             S4,
             tokens.neutral.foreground_muted,
+        ))
+        .child(crate::agent_mark::mark_muted(
+            area.model.scope().map(|scope| &scope.harness),
+            vessel_app_kit::agent_mark::Size::Sixteen,
+            vessel_app_kit::agent_mark::Space::Compact,
+            tokens,
         ))
         .child(details(shell, entry, tokens))
         .child(
@@ -131,26 +139,52 @@ fn details(shell: &Shell, entry: &Entry, tokens: &Tokens) -> Div {
         .min_w_0()
         .flex()
         .flex_col()
+        .overflow_hidden()
         .gap(px(S1))
         .child(
             div()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground)
-                .truncate()
-                .child(title),
+                .w_full()
+                .flex()
+                .items_start()
+                .gap(px(S2))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .type_(Type::Body)
+                        .text_color(tokens.neutral.foreground)
+                        .line_clamp(1)
+                        .text_ellipsis()
+                        .child(title),
+                )
+                .child(
+                    div()
+                        .flex_shrink_0()
+                        .type_(Type::Meta)
+                        .text_color(tokens.neutral.foreground_extra_muted)
+                        .child(activity),
+                ),
         )
         .child(
             div()
+                .w_full()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
-                .truncate()
-                .child(entry.cwd.to_string_lossy().into_owned()),
+                .line_clamp(2)
+                .text_ellipsis()
+                // ADR0053 currently supplies no first/last prompt metadata.
+                // Do not turn a title into a fabricated transcript preview.
+                .child(words.no_preview()),
         )
         .child(
             div()
+                .w_full()
+                .min_w_0()
                 .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_extra_muted)
-                .child(activity),
+                .text_color(tokens.neutral.foreground_muted)
+                .line_clamp(1)
+                .text_ellipsis()
+                .child(entry.cwd.to_string_lossy().into_owned()),
         )
         .children(failure.map(|problem| {
             div()

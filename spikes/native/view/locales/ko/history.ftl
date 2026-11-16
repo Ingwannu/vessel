@@ -78,3 +78,6 @@ history-identity-changed = 머신의 식별 정보가 바뀌었습니다. 대화
 
 # A finite retained-history or batch admission limit.
 history-capacity = 폴더 범위를 좁히거나 한 번에 가져올 대화를 줄여 주세요.
+
+# The current native-history API does not provide first/last prompt metadata.
+history-no-preview = 프롬프트 미리보기 없음

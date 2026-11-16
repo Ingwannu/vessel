@@ -1,7 +1,7 @@
 # Import history row parity follow-up
 
-Status: queued after the restored-picker slice; source analysis only. No row
-rendering, preview producer or wire behavior is changed by this note.
+Status: root-free row presentation implemented for narrow validation on accepted
+base14.1. The prompt-preview producer remains queued; no wire behavior changes.
 
 The coordinator compared the accepted picker captures with pinned Paseo
 components/import-session-sheet.tsx:340–368 and requested this separate follow-up:
@@ -44,3 +44,16 @@ ellipsis rather than infer it from a style method. Run narrow App checks and the
 existing import retained-input regressions on the receiving source; do not claim
 provider previews or whole A4 from a layout-only result. Capture/review is scoped
 to this later row change, not borrowed from the accepted popup captures.
+
+## First presentation implementation
+
+The existing row now fills the list viewport, its flex content is explicitly
+constrained, the title shares one header with a non-shrinking activity label,
+and the folder uses one-line clamped text with an ellipsis. The shared muted
+agent mark comes from the same captured history scope. Selection and existing
+restore action metadata remain independent from the provider mark. A localized
+unavailable preview occupies the shared two-line-clamped preview area; actual
+provider text is still missing at the canonical read boundary, not invented.
+
+This source has not yet passed its receiving narrow checks or visual inspection.
+The accepted picker captures do not prove these later row changes.
