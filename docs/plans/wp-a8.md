@@ -5,7 +5,7 @@ four-crate all-target strict proof; its older730 source has1492/0/2 runtime
 proof. These are different sources. The selected staged Requests kernel has
 V1 bounded adoption approval and4 GPUI cases; W12 owns its real bundle/lease
 consumer. Read-only CLI `permit ls` is now wired in the separate node tree
-at e6311b8a3, with fresh checks queued. Rich provider actions, question metadata,
+at corrected2c5666640 on node bc9cacc6, with fresh checks queued. Rich provider actions, question metadata,
 durable response receipts, actual guarded resource cutover, checked shared body/
 Clone Seat adoption, final whole gates, captures and V4 remain pending.
 
@@ -880,3 +880,15 @@ The approved standalone value cut also excludes the generic ECMA trim helper;
 future allow-empty/custom readiness waits for its canonical checked producer.
 The existing private workspace trim is not copied into the UI. Current legacy
 readiness has no FEFF/U+0085 conformance claim.
+
+
+The shared body prerequisite8737a401d passed V1 row276's final bounded staged
+source/narrow review: exact289 executable strict0 and full View/Kit/App1530/0/2,
+including both retained-facade/cache-format and empty-unified regressions. It is
+a lead-first packet; this tree still waits for the announced receiving line.
+Both modules remain test-only and real A8 caller plus legacy computed-diff
+routing must activate atomically in a checked union. This is not permission or
+resource authority proof. The separate Clone Seat producer is still unreviewed.
+Its future root_get catalogue must replace permission Paint's baseline global
+fork_headers reference; missing captured root means no borrowed detail, without
+falling back to a selected or local catalogue. That API is not in minimalf264 yet.
