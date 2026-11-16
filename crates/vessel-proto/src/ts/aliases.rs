@@ -84,6 +84,9 @@
 //!   interchangeable); a `#[ts(brand)]` attribute on each type (ts-rs has
 //!   none, and the rule would be spread over many files, with nothing to
 //!   say an alias was never considered).
+//! - Skills carrier (ADR 0065): `SkillName` is a portable directory name
+//!   a person chooses, so it remains named text; Rust validates its path
+//!   invariant before filesystem use. It is not a minted handle.
 //! - Protocol 12's (track A2): `SearchCursor` is the node's handle for
 //!   where a search goes on (a handle, though a number inside, as
 //!   `CallId` is); `SearchQuery` is what a person types; `SearchLimit` a
@@ -145,7 +148,11 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("EventSeq", Alias::Quantity),
     ("EverySeconds", Alias::Quantity),
     ("FieldName", Alias::Handle),
+    ("FileBytes", Alias::Content),
+    ("FileModifiedMillis", Alias::Quantity),
+    ("FileOffset", Alias::Quantity),
     ("FilePath", Alias::Named),
+    ("FileSize", Alias::Quantity),
     ("FindQuery", Alias::Named),
     ("FiniteNumber", Alias::Quantity),
     ("FolderName", Alias::Named),
@@ -233,8 +240,11 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
     ("Sha256Hex", Alias::Named),
+    ("SkillName", Alias::Named),
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
+    ("SuggestionLimit", Alias::Quantity),
+    ("SuggestionQuery", Alias::Named),
     ("TerminalBytes", Alias::Content),
     ("TerminalId", Alias::Handle),
     ("TicketMac", Alias::Secret),
@@ -329,5 +339,19 @@ mod tests {
             branded("SessionId", "string"),
             r#"type SessionId = string & { readonly __brand: "SessionId" };"#
         );
+    }
+
+    #[test]
+    fn workspace_file_aliases_reuse_content_quantity_and_person_entered_query_rules() {
+        assert_eq!(classify("FileBytes"), Some(Alias::Content));
+        for name in [
+            "FileModifiedMillis",
+            "FileOffset",
+            "FileSize",
+            "SuggestionLimit",
+        ] {
+            assert_eq!(classify(name), Some(Alias::Quantity));
+        }
+        assert_eq!(classify("SuggestionQuery"), Some(Alias::Named));
     }
 }
