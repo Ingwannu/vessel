@@ -45,3 +45,17 @@ with zero failures, including the actual frame barrier and four original-lease
 envelope cases. Those results cover the base-13 predecessor; the straight
 base-13.1 packet preserves the same product/test blobs and still needs its
 receiving App, strict and wasm checks. It activates no Skills RPC.
+
+
+The base-13.1 receiving packet passed three-crate all-target strict in
+wp-mcp-app-narrow-20261116T024859Z-c27b1b3e (36 seconds); its full Link
+execution was already queued when base14.1 was announced. Those immutable
+runs are retained as predecessor evidence. The new straight packet starts
+on official base14.1 b54abbdc, with root delta zero.
+
+The G4 framed Scenario and its single make_state factory stay intact, with
+only this area's Hub initializer added. The shared actor remains its owner's
+exact blob. Device queue rejection keeps the base's typed constructor;
+retirement still calls the base's history retirement hook before settling
+Devices and orchestration. No shared slot or line write is claimed. Current
+receiving strict, Link/App/wasm execution and V1 remain owed.
