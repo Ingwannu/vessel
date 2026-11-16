@@ -5,6 +5,38 @@ use gpui::{AppContext as _, Entity, IntoElement, ParentElement as _, Render};
 use std::{cell::RefCell, rc::Rc};
 use vessel_app_kit::{Scheme, TextField, Tokens};
 use vessel_app_view::prefs::ConversationDisplay;
+use vessel_app_view::residents::{
+    HoldReason, OwnerReadiness, StopAction, StopCompletion, StopSettlement,
+};
+use vessel_proto::{HarnessKind, SessionInfo, SessionMode, SessionSpec};
+
+fn hydrate_lifecycle(residents: &mut SessionResidents, admission: &SessionAdmission) {
+    let info = SessionInfo::new(
+        admission.binding.resident.address.session,
+        SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        ),
+        chrono::DateTime::UNIX_EPOCH,
+    );
+    residents
+        .receive(admission.binding, |resources| {
+            resources.session.open = Some(crate::areas::session::Open::of(
+                &vessel_app_view::Card::from_session("fixture", &info),
+            ));
+            resources.conversation.open("fixture", info.id);
+            resources.conversation.info = Some(Box::new(info));
+            let snapshot =
+                crate::areas::session_lifecycle::Snapshot::received(resources, admission).unwrap();
+            resources.lifecycle.hydrate(snapshot).unwrap();
+            assert_eq!(resources.lifecycle.readiness(), OwnerReadiness::Ready);
+        })
+        .unwrap();
+}
 
 type Observed = Rc<RefCell<Vec<SessionContext>>>;
 struct Probe {
@@ -163,5 +195,52 @@ fn real_minters_scoped_factory_keeps_field_on_readmission_and_refuses_hidden_inp
     probe.read_with(window, |probe, cx| {
         assert_eq!(probe.observed.borrow().len(), 1);
         assert_eq!(probe.field.text(cx), " admitted input ");
+    });
+}
+
+#[gpui::test]
+fn full_retirement_after_sealed_ack_revokes_installed_lifecycle_hydration_with_empty_tickets(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (probe, window) = cx.add_window_view(new_probe);
+    probe.update_in(window, |probe, _, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let residents = &mut shell.areas.session_residents;
+            hydrate_lifecycle(residents, &probe.admission);
+            let binding = probe.admission.binding;
+            // Pure stop protocol is driven directly here. This does not model
+            // the future real Lifecycle ACK-held owner or its delivery guard.
+            let ticket = residents
+                .admission
+                .admit_stop(binding, StopAction::Fresh)
+                .unwrap();
+            let StopSettlement::WindowHeld(receipt) = residents
+                .admission
+                .settle_stop(binding, ticket, StopCompletion::Acknowledged)
+                .unwrap()
+            else {
+                panic!("ACK must hold")
+            };
+            let _seal = residents.admission.end_follow(binding).unwrap();
+            residents
+                .retire_follow(binding, |resources, notice| {
+                    assert!(notice.operations().is_empty());
+                    assert_eq!(
+                        resources.lifecycle.readiness(),
+                        OwnerReadiness::Hold(HoldReason::Loading)
+                    );
+                    assert_eq!(resources.session.composer.id(), probe.field.id());
+                    assert_eq!(resources.session.composer.text(cx), " admitted input ");
+                })
+                .unwrap();
+            assert!(
+                residents
+                    .admission
+                    .validate_stop_window(binding, receipt)
+                    .is_err()
+            );
+            assert!(residents.receive(binding, |_| panic!("retired")).is_err());
+        });
     });
 }
