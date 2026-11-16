@@ -406,3 +406,31 @@ reason to hide otherwise valid workspace chrome. It must reuse canonical loaded
 book facts and add no second book/authority/viewport inference. This comparison
 changes neither the shared shortcut predicate nor rendering; the exact owner
 join and its empty-book, offline-book, startup and manual-rerun tests are pending.
+
+### Decision: distinct startup navigation and one workspace presentation gate
+
+- Purpose: a placeholder must not gain explicit New's workspace navigation just
+  because both currently render the draft route.
+- Alternatives: infer from empty/online Fleet, hide whenever the wizard is open,
+  or add a second route/cache/epoch. Those conflate presentation with authority,
+  break explicit New with zero saved machines, or hide manual rerun's valid route.
+- Choice: add a distinct private App Route::Startup. Only explicit navigation or
+  the checked setup/bootstrap outcome leaves it; it is never persisted as a
+  workspace layout key. Initial setup restores to the new-session route when
+  completed, while manual setup restores its existing captured Origin.route.
+- Shared surface: Shell::workspace_chrome_enabled() reads W22's single
+  client_book_read() fact and an exhaustive route classification. New, session
+  listings, schedules/open-project and known-machine workspace routes may show
+  workspace chrome once the book is read, including explicit New with zero
+  entries. Startup/welcome/pair/setup/Settings do not. No viewport, selected
+  session, online, credential or process-ownership test is added.
+- Manual rerun: reuse onboarding's existing restore Origin.route while its
+  underlying settings step is shown. No extra route snapshot is retained.
+- Consumers: S2 uses this one result for the workspace sidebar/sheet/gesture;
+  W19 uses it only for the workspace toggle. Settings' section-navigation rail
+  is distinct and remains available. Kit window controls, menus and all
+  onboarding/error/update hosts remain mounted.
+- Cost and validation: route matches must be exhaustive, the initial-placeholder
+  transition needs explicit tests, and the checked C1/bootstrap result remains
+  a separate producer dependency. The source gate is not implemented by this
+  note. Receiving tests and requested bilingual wide/compact captures are owed.
