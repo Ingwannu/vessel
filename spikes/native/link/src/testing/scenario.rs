@@ -76,12 +76,17 @@ impl Scenario {
             })?;
         let (commands_out, commands) = mpsc::channel(crate::CHANNEL);
         let link = Link {
+            session_mark_workers: std::sync::Weak::new(),
             commands: commands_out,
             _runtime: runtime,
         };
         let home = Home::try_new()?;
         let (events, outbox) = mpsc::channel(crate::CHANNEL);
         let mut state = make_state(&home, link.commands.downgrade(), events);
+        let link = Link {
+            session_mark_workers: state.session_mark_calls.observer(),
+            ..link
+        };
         let (peer, context) = owned_runtime(&link).block_on(async {
             let mut peer =
                 peer::try_controlled(name.as_str(), vessel_proto::NodeId::random()).await?;

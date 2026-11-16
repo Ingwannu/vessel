@@ -51,3 +51,29 @@ retained row/menu/confirmation caller in the receiving union. The same typed
 Link command, guard and refusal handler are compiled independently. S2 alone
 removes that exact gate with real callers and changed-source checks; this
 packet grants no live menu, resident or whole-feature approval.
+
+
+## Actual worker observation and failure ownership
+
+The nondefault testing surface observes a Weak reference to the SAME bounded
+mark hub. It exposes no State, selected client, delivery guard constructor,
+identity allocator, RPC, or Scenario control. Taking every original semaphore
+permit proves local mark-worker publication has finished and holds admission
+closed through Scenario shutdown. It does not acknowledge a remote mutation or
+prove resident, process, descendant, socket or physical-root cleanup.
+
+A five-second observation deadline returns TimedOut while actual tasks retain
+ownership and the page remains pending. Expired or detached hubs return
+Unavailable rather than idle. Tests stop the actual peer after assertion failure,
+await the original hub, retain that permit guard through actual Scenario close,
+and only then propagate the assertion panic. Scenario's Devices-only drain is
+not reused as a mark-worker receipt. Bounded real framed App cases cover queued
+ACK, retired delivery, both alias and same-node reconnection, wrong page reply,
+blocked fresh ingress while holding the hub, and timeout followed by the original
+reply. They retain another session's actual text field and cached conversation;
+this is legacy page-state retention evidence, not resident/IME/live-stop proof.
+
+These new cases are authored, not yet executed. Earlier strict preparation failed
+on double must-use, a let-else lint, and combined test cfg attribution; the narrow
+correction preserves admission and mutation behavior. Current source must pass
+its own changed-source checks before any S2 consumer adoption.

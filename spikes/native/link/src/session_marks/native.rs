@@ -7,7 +7,7 @@ use crate::{
 use std::{sync::Arc, time::Duration};
 use vessel_proto::{Mark, Method, SessionInfo, conversation::MarkSession};
 
-const MAX_CALLS: usize = 8;
+pub(super) const MAX_CALLS: u8 = 8;
 const ACTION_DEADLINE: Duration = Duration::from_secs(30);
 pub(super) const PUBLICATION_DEADLINE: Duration = Duration::from_secs(5);
 /// Bounded work only, not an identity registry or request/ticket map.
@@ -15,18 +15,23 @@ pub(super) const PUBLICATION_DEADLINE: Duration = Duration::from_secs(5);
 pub(crate) struct Hub(pub(super) Arc<tokio::sync::Semaphore>);
 impl Default for Hub {
     fn default() -> Self {
-        Self(Arc::new(tokio::sync::Semaphore::new(MAX_CALLS)))
+        Self(Arc::new(tokio::sync::Semaphore::new(usize::from(
+            MAX_CALLS,
+        ))))
+    }
+}
+impl Hub {
+    #[cfg(any(test, feature = "testing"))]
+    pub(crate) fn observer(&self) -> std::sync::Weak<tokio::sync::Semaphore> {
+        Arc::downgrade(&self.0)
     }
 }
 impl State {
     pub(crate) async fn session_mark(&self, ask: Ask) {
-        let selected = match self.selected_connection(ask.target().context()) {
-            Ok(selected) => selected,
-            Err(_) => {
-                self.emit(Event::SessionMarked(Answer::refused(ask, Failure::Changed)))
-                    .await;
-                return;
-            }
+        let Ok(selected) = self.selected_connection(ask.target().context()) else {
+            self.emit(Event::SessionMarked(Answer::refused(ask, Failure::Changed)))
+                .await;
+            return;
         };
         let guard = selected.delivery_guard();
         let failure = if guard.validate(ask.target().context()).is_err() {

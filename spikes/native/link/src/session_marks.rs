@@ -43,7 +43,6 @@ impl Reply {
         &self.ask
     }
     /// Apply immediately, without await or a latest-alias lookup.
-    #[must_use]
     pub fn into_parts(self) -> (Ask, Result<Box<SessionInfo>, Failure>) {
         (self.ask, self.result)
     }
@@ -59,5 +58,10 @@ pub(crate) fn unsupported(ask: Ask) -> crate::Event {
 mod native;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::Hub;
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+mod workers;
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+pub use workers::{DrainProblem, WorkerDrainGuard};
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod tests;

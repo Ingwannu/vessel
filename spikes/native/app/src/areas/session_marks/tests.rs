@@ -87,3 +87,6 @@ fn directory_refusal_preserves_actual_input_route_and_successor_pending(cx: &mut
         );
     });
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+mod actor;

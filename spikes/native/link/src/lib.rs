@@ -173,6 +173,8 @@ fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsen
 /// The link: a tokio runtime and the two channels.
 #[derive(Debug)]
 pub struct Link {
+    #[cfg(any(test, feature = "testing"))]
+    session_mark_workers: std::sync::Weak<tokio::sync::Semaphore>,
     commands: mpsc::Sender<Command>,
     _runtime: tokio::runtime::Runtime,
 }
@@ -210,11 +212,15 @@ impl Link {
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
+        #[cfg(any(test, feature = "testing"))]
+        let session_mark_workers = state.session_mark_calls.observer();
         drop(runtime.spawn(state.run(inbox)));
         Ok((
             Self {
                 commands,
                 _runtime: runtime,
+                #[cfg(any(test, feature = "testing"))]
+                session_mark_workers,
             },
             outbox,
         ))
@@ -252,6 +258,8 @@ impl Link {
             Self {
                 commands,
                 _runtime: runtime,
+                #[cfg(any(test, feature = "testing"))]
+                session_mark_workers: std::sync::Weak::new(),
             },
             inbox,
         ))

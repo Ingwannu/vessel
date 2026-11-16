@@ -33,7 +33,7 @@ async fn stale_row_cannot_send_to_another_node_or_new_same_node_admission() {
             other.client.as_ref().unwrap().clone(),
             old.client.as_ref().unwrap().clone(),
         ] {
-            state.clients.get("fixture").unwrap().retire();
+            state.clients["fixture"].retire();
             let new = admit(&mut state, client);
             let _replaced = state.clients.insert("fixture".to_owned(), new);
             state.handle(Command::SessionMark(intent.clone())).await;
