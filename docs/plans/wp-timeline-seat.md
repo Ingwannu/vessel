@@ -32,9 +32,16 @@ an exact independent producer. The new populated fixture uses the actual row
 carrier and Shell toggle function across deep origins and stale presentation;
 it is not a keyboard, pointer, IME, authority or live multi-pane UI proof.
 
-Status: source preparation only. Strict App checks and the concrete tests have
-not executed. No staging attribute has been removed and no product resource has
-been admitted. W2's child carrier later also needs original parent context,
+Status: bounded staged source with exact narrow execution on ec940634.
+Locked App all-target strict passed in run
+wp-timeline-narrow-20261116T022557Z-ec940634. Full App all-target tests passed
+134/0/2 in run wp-timeline-state-tests-20261116T022515Z-ec940634; the actual
+populated snapshot, hidden record/settlement, retained-origin vote and deep
+Clone Seat/stale dispatch cases all ran. This documentation update changes no
+native bytes. V1 row307's source checkpoint remains subject to its final review
+of this runtime receipt; no full package, recursively painted row, physical
+keyboard/pointer, transport or multi-pane authority approval is inferred.
+No staging attribute has been removed and no product resource has been admitted. W2's child carrier later also needs original parent context,
 ProviderChildRef and installed projection revision through its one resident field.
 
 Preflight amendment: lazy row closures own a Clone carrier but borrow it on each
