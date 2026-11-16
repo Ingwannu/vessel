@@ -119,14 +119,8 @@ impl Reply {
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
             Self::GetConversation(conversation) => conversation
-                .usage
-                .as_ref()
-                .and_then(|usage| usage.for_protocol(protocol))
-                .map(|usage| {
-                    let mut conversation = conversation.clone();
-                    conversation.usage = Some(usage);
-                    Self::GetConversation(conversation)
-                }),
+                .composer_for_protocol(protocol)
+                .map(Self::GetConversation),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),

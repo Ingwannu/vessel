@@ -159,6 +159,7 @@ fn session_events_of_ten_reach_older_clients_as_log_lines() {
             name: format!("c{n}").parse().unwrap(),
             description: String::new(),
             hint: None,
+            kind: None,
         })
         .collect();
     assert_eq!(
