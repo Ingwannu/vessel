@@ -503,3 +503,10 @@ The isolated count carrier's first strict build found a race fixture using
 PartialEq on CredentialHash. It now uses the existing constant-time
 matches_agent API plus original marker and cardinality assertions. No credential
 bytes or hashes are formatted, and no product or race ordering changes.
+
+Generated TypeScript is now applied from the verified exact2169 metadata run:
+three proto and two web generator tests passed, then the step stopped on its
+tracked proto.ts diff. All artifact SHA256 entries and commit2169 were verified;
+the patch applied cleanly over announcedbc9's generated declarations. No shared
+incoming fields were replaced and no declaration was handwritten. A receiving
+freshness check remains required, since the generation source precedes bc9.
