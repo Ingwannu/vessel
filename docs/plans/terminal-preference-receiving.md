@@ -43,3 +43,12 @@ The old bridge/page DEFAULT fixture itself is unchanged. C2's11 owned paths
 No Cargo job was submitted: the sole existing frame gate remains queued/running.
 W19 may use this as an explicitly UNCOMPILED receiving dependency and must compile
 its exhaustive scalar merge plus actual ordered-effect caller in the union.
+
+## Stop checkpoint (2026-11-16 03:41 UTC)
+
+Exact producer9d1427e6d5dd593436d6b7903c0849f4a360311f remains SOURCE-ONLY and
+UNCOMPILED. W19 accepted its exact dependency chain in f12989e6/00adcb9d and is
+preparing a separate receiving tree; that is not actual effect/receipt approval.
+No Cargo job was submitted here. Three new cases and the modified native golden,
+all-target Clippy, live Saved-only canonical effects and row/input/UI proof remain
+UNVERIFIED. This docs-only checkpoint preserves C2's guard and all11 source paths.
