@@ -441,3 +441,31 @@ Scenario. The 55 native Rust delta files pass formatting, with native size,
 tokens and diff checks passing (719 files/13 existing size entries). Full A3
 strict/runtime, scoped delivery/destination proof, captures and final review
 remain outstanding; base13's successful gate is not borrowed as their result.
+
+## Resident consumer inventory (still open)
+
+The following are concrete current call sites for the sole W12 cutover. This
+inventory describes remaining work, not an implemented authority boundary. Local
+controller identities survive moves; network replies additionally need the
+original connection, binding and opaque operation ticket. Callbacks must never
+fall back to whichever conversation later becomes selected.
+
+| Existing owner path | Current local guard | Required consumer boundary |
+| --- | --- | --- |
+| find::start_search / find_step | Original FindBar Rc generation | Borrow the original resident for each debounce/slice; stop when that resource is retired or input closes. |
+| find/status::find_target | Original target Rc and record address | Fail only that resource's pending reveal; retain its field/query and unrelated owner reveals. |
+| prompts::prompt_jump | Original jump Rc and painted target/epoch/address | Reveal the owning turn before row lookup once A7's real API arrives; its timeout belongs to that same resident. |
+| outline::outline_effect | Original Pointer Rc plus local hover ticket | The new local guard rejects a replacement Pointer; the scoped consumer still belongs to the canonical resident owner. |
+| prompts::prompt_index_answered | Typed target, page/set ticket and epoch | Validate the original weak delivery guard, then settle the canonical Timeline operation under its exact binding before installing metadata. |
+| search::message_searched / open_search_hit | One window search, original source/query ticket | Keep search outside residents; validate weak delivery and use the original-context admitted opener before hydration/follow. |
+| find/status::find_retry | Retained shown session and input | Convert the existing alias-only Open through the same original-context carrier, with no late alias re-resolution. |
+| conversation_deactivated / conversation_outline_changed | Resource-local cancellation primitives | Invoke on the old resource before a pane getter swap; global preference changes must reach the sole owner's retained resources. |
+
+A7's exact entry_at_source membership/user-stream projection and real
+reveal_turn implementation are pending checked prerequisites on the announced
+base. Entry.through is only a conservative span, not proof that an arbitrary
+record contributed to it. The planned borrowed body-presentation helper applies
+to displayed/local-find/copy/restore text; metadata and outline previews remain
+raw per the reference. No empty helper or second transcript index fills these
+missing consumer contracts. Read-only projection replacement remains Hold while
+navigation is protected and must not advance its installed revision on refusal.
