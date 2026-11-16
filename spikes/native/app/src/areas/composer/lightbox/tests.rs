@@ -108,7 +108,7 @@ fn escape_in_the_lightbox_cannot_submit_the_background_composer(cx: &mut TestApp
 #[gpui::test]
 fn ordinary_wheel_and_modifier_wheel_use_the_same_bounded_modal_route(cx: &mut TestAppContext) {
     use gpui::{Modifiers, ScrollDelta, ScrollEvent, point, px};
-    use vessel_app_view::composer::viewer::{Extent, MAX_SCALE, MIN_SCALE, Viewport};
+    use vessel_app_view::composer::viewer::{Extent, FIT_SCALE, MAX_SCALE, MIN_SCALE, Viewport};
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
@@ -149,7 +149,7 @@ fn ordinary_wheel_and_modifier_wheel_use_the_same_bounded_modal_route(cx: &mut T
         });
         cx.run_until_parked();
         shell.read_with(cx, |shell, _| {
-            assert!(shell.areas.composer.lightbox.viewport.unwrap().scale() > MIN_SCALE);
+            assert!(shell.areas.composer.lightbox.viewport.unwrap().scale() > FIT_SCALE);
         });
     }
     for (delta, expected) in [(100_000.0, MAX_SCALE), (-100_000.0, MIN_SCALE)] {

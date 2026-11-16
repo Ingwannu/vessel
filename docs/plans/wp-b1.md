@@ -131,11 +131,21 @@ returned and replaced, see "Lightbox toolbar correction" below.
   Each action's slot stops a press from starting a drag or dismissing.
 - Why: it is the source chrome and glyph set, the controls stay usable as in
   Paseo's own window-chrome root, and nothing under the modal can take input.
-- Differences that remain: Paseo's 4/6 px `hitSlop` has no GPUI counterpart;
-  the image fits the viewport below the bar rather than the whole window; the
-  undimmed controls' corner shows the bar's own colour; Vessel keeps its
-  existing fit/minimum scale of 1 (Paseo's minimum is 0.25), so ZoomOut is
-  disabled at fit; keyboard `+`/`-`/`0` stay Vessel additions.
+- Differences that remain: the image fits the viewport below the bar rather
+  than the whole window; the undimmed controls' corner shows the bar's own
+  colour; keyboard `+`/`-`/`0` stay Vessel additions. Paseo's `hitSlop` (4,
+  6 compact) is not reproduced: the cluster's spacing-1 gap is narrower than two
+  slops, so neighbouring margins overlap. The DOM gives an overlapping press to
+  one element; GPUI sends it to every Normal hitbox under the pointer (both
+  neighbours would act), and an occluding margin would hide the viewport's own
+  hover, which is what shows the cluster (it would flicker off over a button).
+  A single-target margin needs a cluster-level hit owner; recorded, not built.
+- Coordinator verdict (same day): look PASS; required fix applied: the minimum
+  scale is Paseo's 0.25 (`DEFAULT_MIN_SCALE`), separate from the fit scale 1
+  where an image opens and reset returns. ZoomOut is enabled at fit and steps
+  by 0.8 from the centre down to 0.25; ZoomIn steps by 1.25 up to 8; Scan is
+  disabled at fit only. `viewer` tests hold the steps, floor, ceiling and the
+  centred quarter-size image.
 - Impact: tooltips, their per-action places and the old `pill_parts` buttons
   are gone from the lightbox state. Pointer positions are mapped into the
   viewport's own space. A new test covers hidden/shown presence, the shaded

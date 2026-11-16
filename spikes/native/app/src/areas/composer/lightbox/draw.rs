@@ -16,7 +16,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{ButtonState, ControlSizing, Tokens, Type, TypeExt as _, motion};
 use vessel_app_view::composer::viewer::{
-    Extent, MAX_SCALE, MIN_SCALE, Viewport, ZOOM_IN, ZOOM_OUT,
+    Extent, FIT_SCALE, MAX_SCALE, MIN_SCALE, Viewport, ZOOM_IN, ZOOM_OUT,
 };
 
 pub(crate) fn render(
@@ -245,7 +245,8 @@ fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_,
             glyph: Glyph::Scan,
             action: Action::Reset,
             label: words.image_reset().to_owned(),
-            enabled: scale.is_some_and(|v| v != MIN_SCALE),
+            // Paseo disables reset at scale 1 (toolbar.tsx:56).
+            enabled: scale.is_some_and(|v| v != FIT_SCALE),
         },
         Control {
             id: "image-close",
