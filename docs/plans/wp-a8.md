@@ -931,3 +931,32 @@ material. This merge is not that activation or a permission-authority acceptance
 The combined14.1 A8 source still needs its own strict/runtime checks after the
 current immutable CLI work; the baseline result and body proof stay separately
 qualified. No node head was merged directly into the app tree.
+
+
+## Native numeric whitespace boundary
+
+[Decision Log]
+- Purpose: number and integer readiness must use the same ECMAScript edge
+  whitespace semantics as the existing native text path and Paseo's input.
+- Existing assets: answer_text already owns the correct private TC39 table;
+  numeric readers alone still called Rust trim. FEFF around a valid number
+  was rejected, while NEL around a number was silently erased and accepted.
+- Alternatives: wait for a new wire contract, duplicate a table in each reader,
+  or normalize the editing surface. None is needed for this pure view rule.
+- Choice: modify/reuse answer_text for both numeric readers now. Keep the
+  editor draft unchanged; only the borrowed value being decoded is trimmed.
+- Why: this closes an independent validation gap with an existing API. The
+  public proto helper910 still waits for checked receiving adoption; that
+  later consolidation will replace the private table rather than add a copy.
+- Effects: no node method, schema, question presentation, field engine, UI
+  transport or approval authority changes. A pure consumer regression checks
+  FEFF numeric acceptance, NEL numeric refusal, NEL text retention, encoded
+  typed values/Question::check and exact original draft strings. It fails the
+  previous numeric readers. This new source/test has not yet run on the VM.
+
+
+Source preflight is clear for the numeric change and new consumer test. Its
+one separate finding is the existing web answer dispatcher length (base141,
+current144 with the earlier three-line A8 Unsupported response arm). It is
+retained as a source finding; no suppression or size record is introduced.
+VM proof and any combined-source wasm diagnostics remain separately owed.

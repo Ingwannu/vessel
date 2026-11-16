@@ -214,10 +214,10 @@ pub fn read_field(field: &QuestionField, draft: Option<&Draft>) -> Read {
         } => read_text(text, *min_length, *max_length),
         FieldKind::Number {
             minimum, maximum, ..
-        } => read_number(text.trim(), *minimum, *maximum),
+        } => read_number(answer_text(text), *minimum, *maximum),
         FieldKind::Integer {
             minimum, maximum, ..
-        } => read_integer(text.trim(), *minimum, *maximum),
+        } => read_integer(answer_text(text), *minimum, *maximum),
         FieldKind::Boolean { .. } => match draft {
             Some(Draft::Boolean(Some(on))) => Read::Value(AnswerValue::Boolean(*on)),
             _ => Read::Empty,

@@ -138,3 +138,61 @@ fn malformed_boolean_option_is_not_silently_treated_as_false() {
         Some(&Draft::Boolean(Some(false)))
     );
 }
+
+#[test]
+fn ecmascript_numbers_and_text_keep_exact_editor_drafts() {
+    let question: Question = serde_json::from_str(
+        r#"{
+        "id":"00000000-0000-4000-8000-000000000001", "message":"Values",
+        "fields":[
+            {"name":"number","kind":"number","required":true},
+            {"name":"integer","kind":"integer","required":true},
+            {"name":"text","kind":"text","required":true}
+        ]
+    }"#,
+    )
+    .unwrap();
+    let steps = steps_of(&question);
+    let mut drafts = empty_drafts(&question);
+    let input = ["\u{feff}1.5\u{feff}", "\u{feff}2\u{feff}", "\u{0085}"];
+    for (index, raw) in input.iter().enumerate() {
+        typed(steps[index], &mut drafts, (*raw).to_owned());
+        assert!(step_ready(steps[index], &drafts));
+        assert_eq!(
+            drafts.get(&steps[index].field.name),
+            Some(&Draft::Text((*raw).to_owned()))
+        );
+    }
+    let answer = answer_of(&question, &drafts);
+    question.check(&answer).unwrap();
+    let vessel_proto::QuestionAnswer::Accept { values } = answer else {
+        panic!("accepted typed values")
+    };
+    let Some(vessel_proto::conversation::AnswerValue::Number(number)) =
+        values.get(&steps[0].field.name)
+    else {
+        panic!("number")
+    };
+    assert_eq!(number.get(), 1.5);
+    assert_eq!(
+        values.get(&steps[1].field.name),
+        Some(&vessel_proto::conversation::AnswerValue::Integer(2))
+    );
+    assert_eq!(
+        values.get(&steps[2].field.name),
+        Some(&vessel_proto::conversation::AnswerValue::Text(
+            "\u{0085}".to_owned()
+        ))
+    );
+    for (index, raw) in ["\u{0085}1.5\u{0085}", "\u{0085}2\u{0085}"]
+        .iter()
+        .enumerate()
+    {
+        typed(steps[index], &mut drafts, (*raw).to_owned());
+        assert!(!step_ready(steps[index], &drafts));
+        assert_eq!(
+            drafts.get(&steps[index].field.name),
+            Some(&Draft::Text((*raw).to_owned()))
+        );
+    }
+}
