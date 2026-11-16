@@ -4,8 +4,9 @@ This is C1's shared metadata hook for sidebar, palette and pane consumers. Its
 source is the existing registry dependency (ADR0082), not a new registry or a
 path-derived WorkspaceId. It is isolated from the remaining Add Project/config
 forms so their unready contracts cannot be mistaken for this reader's scope.
-The root, manifests, lockfiles and protocol remain byte-identical to package
-base 13. Node protocol 25 already supplies six complete metadata methods.
+Root, manifest, lockfile and protocol changes come only from the announced
+package base; this owner packet adds none. Node protocol 25 already supplies six
+complete metadata methods.
 
 [Decision Log]
 - Purpose: empty and same-directory workspaces retain independent identity,
@@ -73,14 +74,15 @@ and source-editor state stay in their owning continuation.
 Pure tests cover independent same-path identities, exact associations, startup,
 stale/rebound/capacity/conflicting snapshots, catalog/root consistency and Windows
 metadata. Link tests use actual Command/State/framed RPC/result/Connected retirement
-and prove queued guard invalidation plus retained read capacity. App tests prove
-startup/refusal/forget only. Whole native/current-source checks remain owed.
+and are intended to verify queued guard invalidation plus retained read capacity.
+The initial App cases cover startup/refusal/forget only. Exact receiving runtime
+and whole native/current-source checks remain owed.
 
-The shared cross-App real actor fixture is still held by its owner pending the
-lead's adoption. No positive cross-App cache freshness, S2/pane/onboarding runtime,
-visual parity or full C1 completion is claimed before that actual proof. The
-portable packet changes only feature modules and registration lines on base 13;
-shared selected/delivery/fixture attributes and their minters are untouched.
+The initial portable packet changed only feature modules and registration lines
+on base 13. The receiving union now uses the announced base 14.1 cross-App fixture;
+shared selected/delivery/fixture attributes and their minters remain untouched.
+No positive cross-App cache freshness, S2/pane/onboarding runtime, visual parity or
+full C1 completion is claimed before the exact receiving proof.
 
 
 The reader's test/testing-feature receipt is an owner-local normal-return
@@ -94,3 +96,14 @@ this receipt outside Tokio workers, including retirement during an unanswered
 registry request. The cross-App Scenario's Devices-only close is never treated
 as proof that a workspace read settled. This additive proof still requires its
 own exact checks and does not qualify a shared Scenario before lead adoption.
+
+
+The announced base 14.1 now provides the reviewed real cross-App Scenario. The
+receiving test union drives the actual Shell registry-fleet command, frames all
+three typed replies, and delivers only the original guarded owner response.
+Prepared cases cover successful canonical ownership, retirement before Fleet
+installation checked on every query, a held actual response refused after
+retirement, and same-node reconnect requiring a fresh complete observation.
+Each original read and follow-up poll must supply its own normal-return receipt
+before the Devices-only Scenario close. These cases remain unexecuted until the
+exact receiving checks complete; no guard or extra actor is constructed here.

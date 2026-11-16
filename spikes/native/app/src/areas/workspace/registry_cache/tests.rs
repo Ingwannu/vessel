@@ -52,3 +52,6 @@ fn registry_cache_forgetting_a_host_drops_its_queued_ticket_and_releases_the_nam
     assert_eq!(fresh.key.context(), &replacement);
     assert_ne!(fresh.key.context(), &context);
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+mod actor_cases;
