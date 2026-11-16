@@ -57,10 +57,14 @@ is needed.
   empty success or picking an arbitrary session. No staging value grants a
   scope, ownership or liveness fact.
 
-The member helper is currently source-only W11 f9894b9a on announced node1c762ccf;
-it is not adopted before its own checks/V3. W2 SUBAGENT_RELATIONS remains None,
-so a missing receipt cannot establish a root. A separate read transaction via
-Store::workspace_registry is unsuitable for this mutation.
+The canonical same-connection member helper is now received through announced
+node gate57, after its own Store strict/SQL tests and V3 acceptance. It includes
+pending and historical associations; it does not establish active eligibility,
+root role or attention. W2 relation values are on the canonical base, but
+SUBAGENT_RELATIONS remains None for peer observations, so a missing receipt
+cannot establish a root. A separate read transaction via
+Store::workspace_registry is unsuitable for this mutation. The durable mutation
+clock and the actual atomic consumer remain outstanding.
 
 ## Timestamp producer to resolve before wiring
 

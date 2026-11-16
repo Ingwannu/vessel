@@ -554,3 +554,31 @@ existing Store FIFO. This prevents a legitimate SQLite deferred SELECT/write
 upgrade BUSY refusal from masquerading as a held ACK. It releases the external
 writer reservation, observes that real Pin commit and then the read's durable
 and live settlement; no production pause hook, fake ACK or extra lane is added.
+
+
+## Current-parent notification eligibility prerequisite
+
+The current shared SESSION predicate excludes immutable Creator::Agent. That
+conservatively suppresses a validated detached agent even though its current
+parent has been removed. Paseo agent-manager.ts:5351-5364 excludes a current
+delegated parent, and detachedAgentLabelPatch at :726-733 removes that label.
+Creator remains audit provenance and cannot stand in for current Parentage.
+
+Coordinator assigned W2 a separate canonical Store scalar, registered on every
+configured connection with the existing rusqlite functions feature. The leaf
+must reuse full Parentage validation, retain archive/side-question exclusions,
+apply before candidate LIMIT and remain in each source/lease SQL snapshot.
+Malformed receipts and missing registration must fail closed. It will be
+consumed only after checks, V3 and an announced receiving head; no receipt-NULL
+shortcut, duplicate classifier or post-LIMIT scan is installed here.
+
+ATTENTION_NOTIFICATIONS_PROTOCOL=None disables the new local claim and terminal
+push paths; it does not disable existing Inbox Web Push. The existing shared
+predicate therefore still matters today. Public detach is also unassigned, but
+that does not justify treating persisted/imported detached facts as impossible.
+
+The gate57 node base is received by merge, including the canonical same-writer
+membership decoder. This does not implement workspace mutations or supply the
+still-pending lifecycle clock. Queued earlier immutable checks retain their
+original source scope. The read-admission lifetime return remains open pending
+the checked transferable marking lease and the consumer regression results.
