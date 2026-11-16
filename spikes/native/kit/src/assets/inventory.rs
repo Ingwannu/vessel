@@ -213,4 +213,10 @@ glyph_inventory! {
     PanelMinimize => "kit/panel-minimize.svg",
     /// A 24-grid UI close X; the window Close keeps its 10-grid chrome shape.
     X => "kit/x.svg",
+    /// Added file: the canonical square plus, independent of an Add action.
+    SquarePlus => "kit/square-plus.svg",
+    /// Deleted file: the canonical square minus.
+    SquareMinus => "kit/square-minus.svg",
+    /// Modified file: the canonical stroked square dot.
+    SquareDot => "kit/square-dot.svg",
 }

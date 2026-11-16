@@ -417,3 +417,6 @@ mod inventory_tests;
 
 #[cfg(test)]
 mod panel_role_tests;
+
+#[cfg(test)]
+mod file_change_role_tests;

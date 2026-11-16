@@ -321,6 +321,17 @@ impl Glyph {
                 r#"<path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />"#
             ),
             Self::X => line_glyph!(r#"<path d="M18 6 6 18" /><path d="m6 6 12 12" />"#),
+            // FileChangeIcon inherits AppShell's LucideProvider1.5 without a
+            // role override. Keep canonical Lucide1.50 XML on the shared grid.
+            Self::SquarePlus => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 12h8" /><path d="M12 8v8" />"#
+            ),
+            Self::SquareMinus => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 12h8" />"#
+            ),
+            Self::SquareDot => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><circle cx="12" cy="12" r="1" />"#
+            ),
         }
     }
 }

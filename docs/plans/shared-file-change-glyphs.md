@@ -37,3 +37,18 @@ parsed inherited stroke, plus/minus/dot landmarks, rim and fractional14-point
 scales. Light/dark source sheets are source-only, not native header first use.
 Actual strict/runtime, V1, coordinator comparison as requested, lead receiving
 gate and G1 native consumer evidence remain separate and currently owed.
+
+Source checkpoint: the complete receiving100 prefix is byte/order/path exact,
+followed only by these three roles. Removing their three new SVG arms and one
+source comment restores the old drawing file byte-for-byte. Every canonical
+XML child tag/attribute matches the retained upstream response; the source
+provider audit explains the sole root-stroke mapping2 to1.5. The license is
+unchanged. Existing panel-role parser/raster functions gain test-only sibling
+visibility; their bodies and every old assertion are unchanged, avoiding a
+second raster harness. Three new tests are authored but UNEXECUTED.
+
+Both800x330 light/dark source sheets were personally opened. They compare each
+actual inline asset with its canonical source at14 and scales1/1.25/1.5/2,
+using the pinned status colors. The plus/minus/dot family remains distinct and
+unclipped in those SVG-source images. They are not native Header captures or
+Rust test results. No new Cargo request has been submitted for this leaf.
