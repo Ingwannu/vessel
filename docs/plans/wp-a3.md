@@ -511,3 +511,23 @@ factory or Home destructor remains. Both Architecture additions are kept.
 Selected-connection and frozen actor files are byte-identical to the head.
 Static native checks pass (779 files, 13 existing size entries; no new token
 entries; 55 changed Rust files formatted). This is not consumer runtime proof.
+
+
+## Base14.3 portable navigation union
+
+The announced `67637eb6` union retains every incoming language/navigation/hover
+test case and the CodeSource registration, plus A3's prompt registration and
+request module. Incoming numeric generation assertions are translated to the
+actual Rc allocation identity; the nested hover case drives the real ticketed
+hover model and requires an old activation to stay cancelled. These are type
+adaptations of the same checked cases, not a second navigation owner or a
+weaker predicate. Full A3 retains its metadata/jump vote and recursively checks
+all shown origins through the same staged owner hook.
+
+The incoming retirement semantics also expose a necessary empty-query fix:
+retiring a find bar must invalidate its outstanding generation/finder/target
+regardless of query length. Empty input remains Idle; nonempty input reports
+the typed failure. Field/query/selection remain owned by that exact resource,
+and unrelated reveals remain protected. A real GPUI regression starts an empty
+slice, retires it, then delivers its old timer and requires no mutation or error
+notice. This union and new case are source-only until native checks execute.

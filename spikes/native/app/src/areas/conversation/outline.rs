@@ -432,6 +432,48 @@ mod tests {
         }
     }
 
+    #[gpui::test]
+    fn navigation_hover_in_a_nested_origin_holds_and_retires_locally(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        use super::super::{ConversationArea, origin::Origin};
+        use vessel_app_view::timeline::{HoverChange, OutlineSlot};
+        cx.update(|cx| {
+            let mut root = ConversationArea::new(cx);
+            let mut leaf = ConversationArea::new(cx);
+            let slot = OutlineSlot::new(2, 3).unwrap();
+            let HoverChange::Schedule(wait) = leaf.outline_pointer.hover.point_at(slot) else {
+                panic!("expected actual local hover intent");
+            };
+            assert_eq!(
+                leaf.outline_pointer.hover.activate(wait),
+                HoverChange::Changed
+            );
+            leaf.outline_pointer.shown = Some(2);
+            let mut middle = ConversationArea::new(cx);
+            middle.origin = Origin::Shown(Box::new(leaf));
+            root.origin = Origin::Shown(Box::new(middle));
+            assert!(root.navigation_held());
+            root.navigation_retired();
+            assert!(!root.navigation_held());
+            let pointer = &mut root
+                .origin
+                .area_mut()
+                .unwrap()
+                .origin
+                .area_mut()
+                .unwrap()
+                .outline_pointer;
+            assert!(!pointer.hover.waiting() && pointer.hover.attention().is_none());
+            assert!(pointer.shown.is_none());
+            assert_eq!(
+                pointer.hover.activate(wait),
+                HoverChange::None,
+                "old intent stays cancelled"
+            );
+        });
+    }
+
     // Paseo's `resolveActivePromptSeq`: the last prompt at or before the
     // entry under the view's top; none before the first prompt.
     #[test]
