@@ -162,7 +162,9 @@ mod tests {
     #[test]
     fn upload_paths_reuse_the_workspace_utf8_byte_boundary_not_character_count() {
         for unit in ["x", "한"] {
-            let fitting = unit.repeat(RelPath::MAX_BYTES / unit.len());
+            // Whole UTF-8 units fit below the byte ceiling; a partial character
+            // is intentionally excluded, and the divisor is checked explicitly.
+            let fitting = unit.repeat(RelPath::MAX_BYTES.checked_div(unit.len()).unwrap());
             assert!(UploadPath::try_from(fitting.clone()).is_ok());
             assert!(
                 serde_json::from_str::<UploadPath>(&serde_json::to_string(&fitting).unwrap())

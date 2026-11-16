@@ -8,6 +8,16 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Upload fixture arithmetic correction
+
+Exacta1787e07 browser-filtered proto/MCP tests completed50/0/0, including the
+new completed-action, wait-kind and upload-count/UTF-8 cases. Its strict check
+and the later3dce01dd2 broad strict check stopped on the same single test-only
+integer-division lint. Make the intentional complete-character floor explicit
+with checked_div; Unicode/ASCII boundary cases and assertions remain unchanged.
+No product input/staging limit or behavior is relaxed. The corrected current
+union still needs strict execution and generated TS.
+
 ## Gate57 union, TS classification and diagnostic privacy
 
 Merged announced node head bc9cacc67 (gate57 wholly green, protocol25/schema21)
