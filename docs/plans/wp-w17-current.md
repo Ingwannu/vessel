@@ -17,7 +17,7 @@ Screen is Silent and NodeAuthority OFF. All six own methods remain pendingNone.
 Latest executed selected strict: exact136c13952858, run
 wp-cli-narrow-20261116T004534Z-136c1395,11crates/alltargets/TSfeatures/-Dwarnings,
 Cargo0 in9s. This settles earlier test-helper/import/CLI lint returns on that
-immutable ed4-based source; it is not a full gate or a check of the laterbc9 union.
+immutable ed4-based source; it is not a full gate or a check of the laterbc9/d5 union.
 Actual CLI/session/PTY/testkit run wp-cli-narrow-20261116T005236Z-136c1395 used
 the SAME136c source and finished425passed/3failed/1ignored after3636s queued.
 CLIbin155/0 and CLIprocess84/3 are retained. Real held-queue cancellation, common
@@ -71,7 +71,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 
 | Paseo path | Vessel source entry | State | Existing call / owner boundary | Limitation |
 | --- | --- | --- | --- | --- |
-| `ls` | ls | Source | session.list + bounded event replay | Cwd/archive/label/thinking filters; background visibility awaits lifecycle/workspace. |
+| `ls` | ls | Source | session.list + bounded event replay | Cwd/archive/thinking filters; explicit labels require canonical selected metadata and refuse while pending/older. Workspace background visibility awaits its producer. |
 | `run <prompt>` | run PROMPT --provider PROVIDER | Source + pending flags | session.create + session.prompt | Explicit --provider selects this root grammar; workspace, env, initial image/schema/mode/thinking await owners. No atomic creation claim. |
 | `import <id>` | import | Source | session.create with typed native resume identity | Created receipt; real workspace placement and provider policy still pending. |
 | `clone <repo>` | clone REPO --dir PARENT | Source | project.clone + bounded setup follow | Full remotes supported; shorthand needs explicit ssh/https. W11 workspace receipt still pending. |
@@ -90,7 +90,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `restart` | none | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `start` | node start (foreground) | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `status` | status | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
-| `agent ls` | agent ls | Source | session.list + bounded event replay | Cwd/archive/label/thinking filters; background visibility awaits lifecycle/workspace. |
+| `agent ls` | agent ls | Source | session.list + bounded event replay | Cwd/archive/thinking filters; explicit labels require canonical selected metadata and refuse while pending/older. Workspace background visibility awaits its producer. |
 | `agent run <prompt>` | agent run | Source + pending flags | session.create + session.prompt | Explicit --provider selects this root grammar; workspace, env, initial image/schema/mode/thinking await owners. No atomic creation claim. |
 | `agent import <id>` | agent import | Source | session.create with typed native resume identity | Created receipt; real workspace placement and provider policy still pending. |
 | `agent attach <id>` | agent attach | Raw | existing attach dispatcher | Raw conversation/TUI contract; explicit format selection refuses. C2 owns future shell renderer, independently. |

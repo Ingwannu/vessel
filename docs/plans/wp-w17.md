@@ -1909,3 +1909,21 @@ claimed. The separate registry prerequisite stays frozen for its ordinary strict
   The actual fake-node regression requires the normal listing to contain a real
   session, and pending explicit labels to emit Unsupported with empty stdout; it
   does not count that unexecuted source as runtime proof.
+
+
+### TUI fixture failure ownership and phase diagnostics
+
+[Decision Log]
+- Purpose: a failing screen/fairness assertion must signal the real fake TUI,
+  and a stalled start/output/runtime drain must identify its own phase.
+- Existing assets: runtime diagnostics already uses CancellationToken::drop_guard;
+  reuse that cancellation owner and the canonical vessel_testkit::within safety net.
+- Choice: the screen TUI fixture retains a drop guard for the same runtime token,
+  with one named outer budget and one shorter named phase budget. All waits in
+  its start/key/resize/acknowledgement/output/drain path name their phase.
+- Alternative rejected: relying only on success-path shutdown leaves a failed
+  assertion without a cancellation signal, and the outer timer hides the phase.
+- Impact: tests only, no actor policy or cleanup proof. Dropping the guard signals
+  cancellation; only the awaited runtime shutdown is reported as tracker drain.
+  Prior exact136c screen tests passed, but the modified fixtures and current d5
+  consumer union still owe their own strict and runtime execution.
