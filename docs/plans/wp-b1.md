@@ -140,6 +140,15 @@ returned and replaced, see "Lightbox toolbar correction" below.
   neighbours would act), and an occluding margin would hide the viewport's own
   hover, which is what shows the cluster (it would flicker off over a button).
   A single-target margin needs a cluster-level hit owner; recorded, not built.
+  Paseo's web build ignores `hitSlop` too (react-native-web `Pressable` has
+  none), so only its native compact 6 px differs.
+- App review round 2: the cluster now sits in Paseo's 200 x 48 toolbar box at
+  the viewport's top right (`toolbarDomStyle`, index.web.tsx:303-320, 343-350).
+  A press, release or wheel anywhere in it (a gap, beside the cluster, a hidden
+  action) stops there, so it never pans, zooms or dismisses; a release there
+  also ends any drag. The box does not occlude, so the viewport hover that
+  drives presence stays on. Test: presses and wheel in the toolbar box neither
+  dismiss nor zoom, while a press outside it beside the image dismisses.
 - Coordinator verdict (same day): look PASS. A minimum-scale change to 0.25
   was requested and then withdrawn: Paseo's lightbox renders `ZoomableImage`
   without `minScale`, whose default is 1 (image.tsx:30); 0.25 is only

@@ -3,8 +3,8 @@
 use super::{Gesture, PictureState, decode, pointer, source};
 use crate::shell::Shell;
 use gpui::{
-    AnimationExt as _, KeyDownEvent, MouseDownEvent, ObjectFit, StatefulInteractiveElement as _,
-    StyledImage as _, anchored, deferred, img,
+    AnimationExt as _, KeyDownEvent, MouseDownEvent, MouseUpEvent, ObjectFit,
+    StatefulInteractiveElement as _, StyledImage as _, anchored, deferred, img,
 };
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::icon_chrome::Presence;
@@ -214,11 +214,23 @@ struct Control {
     enabled: bool,
 }
 
+/// Paseo's toolbar wrapper (`toolbarDomStyle`, zoomable-viewport
+/// index.web.tsx:303-320, 343-350): a box this size at the viewport's top
+/// right, a sibling of the canvas.
+const TOOLBAR_REGION_WIDTH: f32 = 200.0;
+/// The wrapper's height.
+const TOOLBAR_REGION_HEIGHT: f32 = 48.0;
+
 /// Paseo's `ViewportToolbar` (zoomable-viewport/toolbar.tsx:39-71) and the
 /// lightbox's close action (attachment-lightbox.tsx:59-69): the shared small
 /// icon chrome in a top-right cluster inside the viewport, spacing 2 from its
 /// edges and spacing 1 apart, shown on hover, focus or touch. No tooltips:
 /// Paseo's buttons carry only their accessible names.
+///
+/// The cluster sits in Paseo's wrapper box: a press, release or wheel anywhere
+/// in it (a gap, beside the cluster, a hidden action) never pans, zooms or
+/// dismisses, because Paseo's canvas never receives it. The box does not
+/// occlude, so the viewport's hover, which drives `Presence`, stays on over it.
 fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Shell>) -> Div {
     let sizing = ControlSizing::from_compact(vessel_app_kit::breakpoint::phone(window));
     let lightbox = &shell.areas.composer.lightbox;
@@ -255,7 +267,7 @@ fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_,
             enabled: true,
         },
     ];
-    div()
+    let cluster = div()
         .absolute()
         .top(px(spacing::S2))
         .right(px(spacing::S2))
@@ -264,28 +276,43 @@ fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_,
         .children(
             controls
                 .into_iter()
-                .map(|control| action_slot(control, sizing, presence, tokens, cx)),
+                .map(|control| action(control, sizing, presence, tokens, cx)),
+        );
+    div()
+        .absolute()
+        .top_0()
+        .right_0()
+        .w(px(TOOLBAR_REGION_WIDTH))
+        .h(px(TOOLBAR_REGION_HEIGHT))
+        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(|shell, _event: &MouseUpEvent, _window, cx| {
+                // A drag that ends here is over; it must not continue unpressed.
+                shell.areas.composer.lightbox.gesture = None;
+                cx.stop_propagation();
+            }),
         )
+        .on_scroll(|_, _, cx| cx.stop_propagation())
+        .child(cluster)
 }
 
-/// A press on an action is not a press on the viewport: it neither starts a
-/// drag nor dismisses the image. A hidden action takes no pointer events
-/// (Paseo's `pointerEvents: "none"`), so a press there reaches the viewport.
-fn action_slot(
+/// One action of the cluster; the owner's guarded handler, no other listener.
+fn action(
     control: Control,
     sizing: ControlSizing,
     presence: Presence,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> ToolbarButton {
     let availability = if control.enabled {
         ButtonState::Enabled
     } else {
         ButtonState::Disabled
     };
     let config = ToolbarConfig::new(sizing, availability);
-    let action = control.action;
-    let button = ToolbarButton::viewport(
+    let effect = control.action;
+    ToolbarButton::viewport(
         control.id,
         control.label,
         control.glyph,
@@ -294,15 +321,8 @@ fn action_slot(
         tokens,
     )
     .on_click(cx.listener(move |shell, _, window, cx| {
-        shell.image_action(action, window, cx);
-    }));
-    let slot = div().flex_none().child(button);
-    match presence {
-        Presence::Hidden => slot,
-        Presence::Shown => slot
-            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-            .on_mouse_up(MouseButton::Left, |_, _, cx| cx.stop_propagation()),
-    }
+        shell.image_action(effect, window, cx);
+    }))
 }
 
 impl Shell {

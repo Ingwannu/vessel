@@ -220,3 +220,55 @@ fn the_toolbar_shows_on_hover_or_keys_and_the_shaded_bar_dismisses(cx: &mut Test
         assert_eq!(lightbox.presence(ControlSizing::Pointer), Presence::Shown);
     });
 }
+
+#[gpui::test]
+fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAppContext) {
+    use gpui::{Modifiers, ScrollDelta, ScrollEvent, point, px};
+    use vessel_app_view::composer::viewer::{Extent, MIN_SCALE, Viewport};
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        window.activate_window();
+        shell.open_local_image(Arc::new(Image::empty()).into(), window, cx);
+    });
+    cx.run_until_parked();
+    let (width, top, phone) = cx.update(|window, _| {
+        (
+            f32::from(window.viewport_size().width),
+            f32::from(vessel_app_kit::chrome::bar_height()),
+            vessel_app_kit::breakpoint::phone(window),
+        )
+    });
+    // Paseo's 200 x 48 wrapper at the viewport's top right: beside the
+    // cluster, above it, right of it, and the gap between Scan and X
+    // (20-point actions 4 apart, or 32 apart 4 in the compact layout).
+    let gap = if phone { 42.0 } else { 30.0 };
+    for (x, y) in [(190.0, 20.0), (60.0, 2.0), (4.0, 20.0), (gap, 18.0)] {
+        cx.simulate_click(point(px(width - x), px(top + y)), Modifiers::none());
+        cx.run_until_parked();
+        shell.read_with(cx, |shell, _| {
+            assert!(shell.areas.composer.lightbox.preview.is_some(), "{x},{y}");
+        });
+    }
+    // The wheel there does not zoom either.
+    shell.update(cx, |shell, _| {
+        let canvas = Extent::new(800.0, 600.0).unwrap();
+        shell.areas.composer.lightbox.viewport = Some(Viewport::new(canvas, canvas));
+    });
+    cx.simulate_event(ScrollEvent {
+        position: point(px(width - 190.0), px(top + 20.0)),
+        delta: ScrollDelta::Lines(point(0.0, 2.0)),
+        ..Default::default()
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let scale = shell.areas.composer.lightbox.viewport.unwrap().scale();
+        assert_eq!(scale.to_bits(), MIN_SCALE.to_bits());
+    });
+    // Outside the box, a press beside the image is the backdrop's.
+    cx.simulate_click(point(px(width - 190.0), px(top + 120.0)), Modifiers::none());
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.areas.composer.lightbox.preview.is_none());
+    });
+}
