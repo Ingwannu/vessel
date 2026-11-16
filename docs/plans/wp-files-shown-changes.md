@@ -69,8 +69,10 @@ DiffBody next-page value, with the original parent summary and page ticket; no
 second diff body or snapshot store is introduced. This proves correlation, not
 an atomic repository snapshot across requests.
 
-The isolated preparation currently has eight authored real framed App cases;
-they have not run. No G4 export, selected-client method or delivery-module staging
+The isolated preparation has eight real framed App cases. They executed on
+340f92ede in wp-files-shown-20261116T012821Z-340f92ed: 8 passed, 0 failed,
+0 ignored, 143 filtered. Fonts and Cargo steps both returned zero. This is
+scoped source-acquisition/retirement evidence, not a whole-package gate. No G4 export, selected-client method or delivery-module staging
 attribute differs from its exact producer. A typed Explorer getter is still
 unavailable until the real mount/current-target join is included; no synthetic
 Explorer tab or Workspace root is projected here.
@@ -151,3 +153,22 @@ shared actor fixture. No production lint allowance, assertion removal or
 transport-policy change is introduced. Actual fixture assertions remain test
 code; the normal product build still excludes them. This correction is on
 the announced base11 union; exact new checks remain pending.
+
+## Executed preparation and adoption boundary
+
+The prior exact 1ef7dd28 preparation passed View/Link/App all-target locked
+Clippy with warnings denied (wp-files-shown-20261116T002923Z-1ef7dd28).
+The 340f92ede merge adds announced base13.1 without changing this producer's
+owned Rust. The eight framed cases above then passed on that exact merged head.
+The earlier queued first test run was verified queued, cancelled terminal143
+and replaced once under coordinator approval; cancellation is not test evidence.
+
+The executed preparation also contains G4's separate Scenario and Devices
+producer. Those changes are not C5-owned and are not part of a whole-branch
+adoption request. The canonical delivery guard on the shared base is reused
+without changing its exports or adding constructors. G4 still owns qualification
+and landing of its fixture/product successor. A consumer must preserve that
+dependency boundary or check its actual receiving assembly. Scenario cleanup
+drains its Devices workers; these cases do not prove a generic C5 worker drain.
+The opaque shown-source consumer accessors remain staged until a real G1 caller
+joins, with its own action admission and changed-source review.
