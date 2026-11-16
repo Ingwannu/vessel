@@ -4,9 +4,10 @@ Status: built source; F5 package validation is pending. The implementation
 now includes the shared theme tile, family/numeric fields, independent text
 axes, width/reset, syntax and readonly preview. The existing eight-choice
 palette package remains separately reviewed through executable fb711444;
-that bounded result does not certify this extension. No new F5 captures or
-package test pass exist yet. The current candidate adopts announced c3429952
-and the scoped C2 quiet-font cache delta. Contributed themes remain deferred
+that bounded result does not certify this extension. No F5 package visual pass exists yet. The current candidate adopts announced base 13
+`2ebeedf9` and the scoped C2 quiet-font cache delta. The exact executable
+`235309ac4` passed its complete native gate (1652/0/2); current normal-app
+captures are being collected and have not been submitted for visual review. Contributed themes remain deferred
 to F6 by the coordinator; Markdown-file width is W13's consumer dependency.
 
 ## Scope and source
@@ -103,10 +104,10 @@ font assets and other owners' pending changes are preserved.
   replacement/withdrawal/offline retention/unsupported/removal/locale refresh.
   Static offline catalogs remain eligible; online generation checks are for
   remote actions. W16 validates the contributed path in F6 when Hub lands.
-- All control and consumer preparations are committed. Actual new field /
-  preview tests, corrected combined Clippy, local captures and the final
-  native package gate remain pending. Only the original eight-theme bounded
-  package and earlier selected121 kit tests are passed evidence.
+- All control and consumer preparations are committed. The base-13 final
+  native gate now passes (details below), including actual field/preview
+  regressions. Normal-app captures, package visual review and integration
+  disposition remain pending. Earlier scoped results stay separately bounded.
 - No local Cargo or rustc is started. All compiling checks, final gates and
   capture builds use the remote build helper; captures run on private local
   displays. No partial V1 submission is made.
@@ -726,3 +727,40 @@ input/park loss. The prior portable base9 assemblies remain unapproved as
 standalone trees; updated exports must use the corrected test source on
 base13 and receiving consumers still check their union. The full native
 package gate and same-commit app export follow; no current F5 UI approval.
+
+## Base-13 immutable native gate (2026-11-16)
+
+Executable source `235309ac4dadeac7f93bac0bef1f9483d227e5f0` adopts
+announced app base `2ebeedf9` through `f665dd12a`. The native-only run
+`themes-20261116T004442Z-235309ac` passed fonts, fmt, quality, Clippy,
+build and tests, each exit 0 with no skipped step. Raw totals are
+1652 passed, 0 failed, 2 ignored: App 140/0/2, Kit 257/0/0, Link 115/0/0,
+View 1007/0/0, other integration/doc summaries 133/0/0. Root/web code has
+no K delta from the announced base and was not retested by this native gate.
+The two ignored tests remain ignored, rather than runtime evidence.
+
+Evidence is `/tmp/work/gk-k-themes/f5/package-base13-235309ac` (steps.log,
+steps.tsv and original per-step logs), with independently recomputed totals
+and hashes in `gate-235309ac-summary.json` beside it. The fixed build exported
+one read-only app binary, SHA-256
+`c4042ad645a4d13a418005553ac0690d9ddffdaadf3b16a729a7d847229cce39`,
+through the supported exporter; no mutable target binary is used for capture.
+The 3044-file source manifest is `source-235309ac.json`, SHA-256
+`1a17696cd1ff96e4a0db46ff4791981d201e9d8c15e8dd6ee7f198421610b92a`.
+
+The capture fleet uses the separately declared, older protocol-23 shared
+root binaries as a compatibility fixture. It is not the same-commit root;
+new node behavior, real vendors and plugin RPCs are excluded. The app uses
+private cookie-authenticated Xvfb displays and a software renderer under
+UID/GID 1000. Numeric/font editing is driven through actual UI actions and
+saved-file observations, not preference-file injection. The completed gate
+alone does not prove these still-pending UI observations or certify a11y,
+physical GPU, OS IME behavior, or physical equal-metrics fonts.
+
+Minimal peer exports based on base13 are syntax `45557713` followed by the
+static-only `a786347b` (lower code.rs hex allowance 18 to 6), and field
+notifications `92ad0451`. Their source is the checked producer; each receiving
+assembly must check its own union. No independent portable-tree gate or V1
+approval was claimed. Preserve newer captured-submit and SubmitPress work
+around the canonical one callback dispatch; never restore a whole old field
+root. Current F5 does not adopt those later peer branches.
