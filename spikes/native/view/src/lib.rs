@@ -32,6 +32,7 @@ pub mod fork;
 #[cfg(test)]
 #[path = "../fluent_contract/mod.rs"]
 mod fluent_contract;
+pub mod history;
 pub mod idle_release;
 mod links;
 pub mod machine_book;

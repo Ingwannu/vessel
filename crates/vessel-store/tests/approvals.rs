@@ -86,6 +86,9 @@ async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     fixtures::undo_registry_schema(&connection);

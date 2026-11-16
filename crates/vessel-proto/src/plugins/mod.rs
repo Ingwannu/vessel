@@ -9,9 +9,12 @@ mod budget;
 mod catalog;
 mod declarations;
 mod document;
+mod hook;
 mod identity;
 mod json_error;
 mod logs;
+mod payload;
+mod process;
 mod theme;
 
 pub use address::{
@@ -46,6 +49,17 @@ pub use document::{
     ClientDocument, DocumentError, MAX_ACTION_INPUT_BYTES, MAX_CONTRIBUTIONS, MAX_CONTROLS,
     MAX_DEPTH, MAX_DOCUMENT_BYTES, MAX_METHODS,
 };
+
+pub use hook::{DuplicateHook, HookName, HookSubscriptions, HookWait};
+pub use payload::{HelperPayload, MAX_HELPER_PAYLOAD_BYTES, PayloadTooLarge};
+pub use process::{
+    HelperCall, HelperFailure, HelperProtocol, HelperToNode, InvocationId, MAX_HELPER_FRAME_BYTES,
+    NodeToHelper, UnsupportedHelperProtocol,
+};
+
+#[cfg(test)]
+#[path = "process_tests.rs"]
+mod process_tests;
 
 pub use catalog::{
     CatalogError, ClientCatalog, ClientInstallation, MAX_CATALOG_BYTES, MAX_CATALOG_INSTALLATIONS,

@@ -14,6 +14,7 @@
 //! - Cost: none beyond the two variants.
 
 use vessel_app_view::workspace::problem::Problem;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
 use vessel_proto::SessionId;
 use vessel_proto::forge::{
@@ -21,6 +22,7 @@ use vessel_proto::forge::{
     SessionPullRequest, SetFeedback,
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 use super::calls::call;
 
 /// What a screen asks of a session's pull request.
@@ -71,6 +73,7 @@ pub enum PullAnswer {
 }
 
 /// Run `ask` to its answer.
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) async fn run(client: &NodeClient, ask: PullAsk) -> PullAnswer {
     match ask {
         PullAsk::Get(ask) => PullAnswer::Read {
