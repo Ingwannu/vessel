@@ -103,7 +103,10 @@ pub(super) fn install_help(shell: &mut Shell, _window: &Window, cx: &mut Context
                 .to_owned(),
         ),
         rank: vessel_app_view::palette::registration::Rank::new(7),
-        keywords: vec!["keyboard help shortcuts".to_owned()],
+        keywords: ["keyboard", "shortcuts", "keys", "hotkeys"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
         visibility: vessel_app_view::palette::registration::Visibility::Always,
         presentation: vessel_app_view::palette::registration::Presentation::Action {
             title: vessel_app_view::shortcuts::action_label(Action::Help, shell.words).to_owned(),

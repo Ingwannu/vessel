@@ -54,3 +54,30 @@ fn root_help_tracks_actual_viewport_without_losing_pointer_palette(cx: &mut Test
         });
     }
 }
+
+#[gpui::test]
+fn root_aliases_find_their_real_owner_actions(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    for (query, expected) in [
+        ("configuration", "settings"),
+        ("hotkeys", "keyboard-shortcuts"),
+        ("panel", "toggle-left-sidebar"),
+        ("workspaces", "toggle-left-sidebar"),
+    ] {
+        update(&view, cx, |shell, _, cx| {
+            shell.palette_searched(query.to_owned(), cx)
+        });
+        ready(cx);
+        update(&view, cx, |shell, _, _| {
+            assert!(
+                snapshot::project(shell)
+                    .sections
+                    .iter()
+                    .flat_map(|section| &section.rows)
+                    .any(|row| matches!(&row.id, snapshot::Identity::Registered(id)
+                    if id.entry.as_str() == expected)),
+                "missing {expected} for {query}"
+            );
+        });
+    }
+}

@@ -101,19 +101,41 @@ fn presentation(shell: &Shell, entry: &super::Entry) -> Option<Presentation> {
 
 fn contribution(shell: &Shell, entry: &super::Entry, at: usize) -> Option<Contribution<Command>> {
     let policy = policy(entry, at)?;
+    let settings = matches!(
+        entry.target,
+        PaletteTarget::Settings(vessel_app_view::settings::Section::General)
+    );
     Some(Contribution {
         id: policy.id.parse().ok()?,
         group: format!("native-{:?}", policy.group).parse().ok()?,
         group_rank: Rank::new(rank_of(policy.group)),
         section_title: Some(shell.t.lang.palette().group(policy.group).to_owned()),
         rank: Rank::new(policy.rank),
-        keywords: entry.keywords.iter().cloned().collect(),
+        keywords: if settings {
+            ["settings", "preferences", "config", "configuration"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect()
+        } else {
+            entry.keywords.iter().cloned().collect()
+        },
         visibility: policy.visibility,
         presentation: presentation(shell, entry)?,
-        target: Command {
-            glyph: Some(super::rows::glyph_of(&entry.target)),
-            shortcut: super::rows::action_of(&entry.target),
-            action: CommandAction::Legacy(entry.target.clone()),
+        target: if settings {
+            Command::callback(
+                Some(Glyph::Settings),
+                Some(Action::Settings),
+                |shell, window, cx| {
+                    shell.open_settings(None, window, cx);
+                    true
+                },
+            )
+        } else {
+            Command {
+                glyph: Some(super::rows::glyph_of(&entry.target)),
+                shortcut: super::rows::action_of(&entry.target),
+                action: CommandAction::Legacy(entry.target.clone()),
+            }
         },
     })
 }
@@ -192,7 +214,10 @@ fn left_sidebar(shell: &Shell) -> Option<Contribution<Command>> {
                 .to_owned(),
         ),
         rank: Rank::new(8),
-        keywords: vec!["sidebar".to_owned(), "toggle".to_owned(), "left".to_owned()],
+        keywords: ["toggle", "sidebar", "left", "panel", "workspaces"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
         visibility: Visibility::Query,
         presentation: Presentation::Action {
             title: vessel_app_view::shortcuts::action_label(Action::ToggleSidebar, shell.words)

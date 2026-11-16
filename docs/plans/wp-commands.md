@@ -1052,3 +1052,12 @@ filters the registered Help item using the actual keyboard-availability value.
 No second registration predicate is added. A real resize regression now checks
 600,599,390,600 widths while the pointer-opened palette stays open: Help must
 follow the shared boundary and return when wide again. Execution remains owed.
+
+
+The ready root Settings, Help and left-sidebar items now carry the exact
+reference keyword inventories, including configuration/hotkeys/panel/workspaces.
+Settings uses the existing open_settings(None) owner entry instead of pinning
+a legacy section target; the owner still decides its default presentation.
+A real query/projection regression covers those hidden aliases. Labels, ranks
+and availability still come from their existing typed models. No missing
+feature's route or source is manufactured by these corrections.
