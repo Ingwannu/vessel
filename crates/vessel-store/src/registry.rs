@@ -53,7 +53,9 @@ pub struct StoredRegistry {
     pub revision: RegistryRevision,
     /// Empty workspaces are retained independently of session membership.
     pub workspaces: Vec<WorkspaceDescriptor>,
-    /// Explicit ownership never follows from a shared cwd.
+    /// Explicit rows, then each placed session's membership derived from its
+    /// stored project place (ADR 0106). Derived members are not revisioned: a
+    /// session start or archive changes them without a registry write.
     pub memberships: Vec<WorkspaceMembership>,
 }
 

@@ -98,6 +98,8 @@ mod remote;
 #[cfg(unix)]
 mod removal_race;
 #[cfg(test)]
+mod registration;
+#[cfg(test)]
 mod resume;
 #[cfg(test)]
 mod routing;

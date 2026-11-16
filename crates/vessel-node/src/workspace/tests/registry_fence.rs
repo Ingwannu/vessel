@@ -44,27 +44,62 @@ async fn retain(fixture: &Fixture, item: WorkspaceDescriptor) {
         .unwrap();
 }
 
+// ADR 0106 deliberately reverses W11's pin that every retained lifecycle
+// blocks: a `Local` workspace owns no directory, so legacy unregister archives
+// the Active ones in its own write and keeps the records (Paseo TRACKER 258).
 #[tokio::test]
-async fn registry_fence_empty_local_and_archived_workspaces_block_legacy_project_unregister() {
+async fn registry_fence_local_workspaces_are_archived_by_legacy_project_unregister() {
     vessel_testkit::within(REGISTRY_FENCE_DEADLINE, async {
         let fixture = Fixture::new().await;
+        let archived_at = chrono::DateTime::UNIX_EPOCH;
         for archived in [false, true] {
             let project = fixture
                 .project(if archived { "archived" } else { "active" }, None)
                 .await;
             let mut item = descriptor(&project, WorkspaceBacking::Local, project.root.clone());
             if archived {
-                item.lifecycle = WorkspaceLifecycle::Archived {
-                    at: chrono::DateTime::UNIX_EPOCH,
-                };
+                item.lifecycle = WorkspaceLifecycle::Archived { at: archived_at };
             }
+            let id = item.id;
+            retain(&fixture, item).await;
+            fixture
+                .workspaces
+                .remove_project(project.id, &[])
+                .await
+                .unwrap();
+            assert!(!fixture.workspaces.has_project(project.id));
+            assert!(project.root.join("README.md").is_file());
+            let kept = fixture.store.registry_workspace(id).await.unwrap().unwrap();
+            match kept.descriptor.lifecycle {
+                WorkspaceLifecycle::Archived { at } if archived => assert_eq!(at, archived_at),
+                WorkspaceLifecycle::Archived { at } => assert!(at > archived_at),
+                other => panic!("the record must be archived and kept, found {other:?}"),
+            }
+        }
+        fixture.stop.cancel();
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
+}
+
+#[tokio::test]
+async fn registry_fence_local_workspace_in_transition_still_blocks_legacy_project_unregister() {
+    vessel_testkit::within(REGISTRY_FENCE_DEADLINE, async {
+        let fixture = Fixture::new().await;
+        let at = chrono::DateTime::UNIX_EPOCH;
+        for (name, lifecycle) in [
+            ("archiving", WorkspaceLifecycle::Archiving { at }),
+            ("restoring", WorkspaceLifecycle::Restoring { at }),
+        ] {
+            let project = fixture.project(name, None).await;
+            let mut item = descriptor(&project, WorkspaceBacking::Local, project.root.clone());
+            item.lifecycle = lifecycle;
             retain(&fixture, item).await;
             let result = fixture.workspaces.remove_project(project.id, &[]).await;
             assert!(
                 matches!(result, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id)
             );
             assert!(fixture.workspaces.has_project(project.id));
-            assert!(project.root.join("README.md").is_file());
         }
         fixture.stop.cancel();
     })
