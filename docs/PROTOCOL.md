@@ -83,7 +83,7 @@ explicit refresh additionally needs Operate and the global lookup (`usage.lookup
 inherit the global choice; the seven additional sources start Off, and an
 Unsupported source can never read as Enabled. `usage.source_lookup` takes the
 exact registered source and the current disclosure revision, refuses unknown
-ids and stale revisions even when enabling, and never fetches. Source Off and
+ids and stale revisions for either choice, and never fetches. Source Off and
 global Off invalidate pending publication and snapshots before they
 acknowledge. Read-only callers receive no monetary balances or Operate-only
 details.

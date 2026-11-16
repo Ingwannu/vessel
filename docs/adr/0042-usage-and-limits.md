@@ -443,9 +443,9 @@ opaque handle. Labels and client-side handle parsing cannot define identity.
 - Costs: a separate consent control for newly supported sources; it avoids silently
   changing credential-use authority when a node gains a provider adapter.
 
-The new setter's pending protocol remains None. Its skeleton refuses Unsupported
-until the actual owner/adapters are connected; values and persistence tests alone
-are not executable source or consumer parity.
+The setter was reviewed with its protocol None and is assigned 26 together with
+the reports (see "Account methods assigned"). It refuses Unsupported sources;
+values and persistence tests alone are not executable source or consumer parity.
 
 ### F3 executable source ownership and refresh presentation
 
@@ -626,3 +626,22 @@ wiring above. The coordinator ruled that the node activation lands before its
 native, page and CLI consumers; they fall back to `usage.limits` (23) on older
 or unassigned peers and follow as their own packets. The consent rules above
 are unchanged by the assignment.
+
+### Revocation reaches the file before it is acknowledged (2026-11-16, review row 318 F1)
+
+[Decision Log]
+- Purpose: a person's Off must survive a restart. Before this change the setter
+  applied Off in memory, then decided whether to save by comparing the request
+  with memory. After a failed save, retrying the same Off compared equal, skipped
+  the save and acknowledged success while the file still granted the source; the
+  next start read the file and revived the grant without consent.
+- Choice: the owner keeps what the file holds as far as it knows (`persisted`,
+  `None` after an unreadable file or a failed save) and decides the write against
+  that. Revocation still applies in memory at once; an acknowledgement now always
+  means the file holds the choice.
+- Alternatives: a dirty flag beside memory (same effect, one more state to keep
+  consistent); re-reading the file before every choice (extra I/O and a race with
+  the owner's own writes).
+- Cost: one extra write when a file was unreadable at start. Regression tests in
+  `vessel-node::usage_reports::sources::tests::persistence` fail a save through a
+  read-only data directory, retry Off, and read the consent through a restarted owner.

@@ -90,6 +90,9 @@ struct Owner {
     probe: AccountUsageProbe,
     context: LimitContext,
     grants: ReportSourceGrants,
+    /// What the consent file holds as far as this owner knows; `None` after
+    /// an unreadable file or a failed save, so the next choice always writes.
+    persisted: Option<ReportSourceGrants>,
     entries: Vec<Entry>,
     jobs: JoinSet<Completed>,
     stop: CancellationToken,
@@ -134,17 +137,19 @@ impl Sources {
         context: LimitContext,
     ) -> Self {
         let dir = config.data_dir.clone();
-        let grants = tokio::task::spawn_blocking(move || dir.read_usage_sources())
+        let persisted = tokio::task::spawn_blocking(move || dir.read_usage_sources())
             .await
             .ok()
-            .and_then(Result::ok)
-            .unwrap_or_default();
+            .and_then(Result::ok);
+        // An unreadable or invalid file fails Off in memory (ADR 0042).
+        let grants = persisted.clone().unwrap_or_default();
         let legacy_supported = config.limits.supported();
         let owner = Owner {
             dir: config.data_dir.clone(),
             probe: config.usage_sources.clone(),
             context,
             grants,
+            persisted,
             entries: Vec::new(),
             jobs: JoinSet::new(),
             stop: stop.clone(),
