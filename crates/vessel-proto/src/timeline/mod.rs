@@ -3,6 +3,7 @@
 
 pub mod admission;
 mod detail;
+mod execution;
 mod identity;
 mod item;
 mod measure;
@@ -12,6 +13,7 @@ mod question;
 mod receipt;
 
 pub use detail::*;
+pub use execution::{ExecutionInvalidation, FinishGrantCeiling, ParentExecutionStamp};
 pub use identity::*;
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
