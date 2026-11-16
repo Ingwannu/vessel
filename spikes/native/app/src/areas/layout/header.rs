@@ -113,6 +113,13 @@ pub(super) struct HeaderMenu {
     context: LayoutActionContext,
 }
 
+impl HeaderMenu {
+    /// The workspace whose layout the menu was opened on.
+    pub(super) const fn workspace(&self) -> &LayoutKey {
+        &self.workspace
+    }
+}
+
 /// What a header control or menu row does to its pane.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PaneOp {
