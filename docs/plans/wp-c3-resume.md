@@ -608,3 +608,37 @@ current-range field is forwarded because pinned GPUI constructs a stale range.
 One external notification plus post-dispatch actual top is the bounded contract.
 Current-visible-cache fairness/scroll invalidation is not yet fixed or proved
 in the body consumer; the static concern is kept distinct from a runtime claim.
+
+## 2026-11-16 01:1x UTC: exact next step and live run identities
+
+Current Rust760ed4a01 includes initial body9c, e55's behavior change clearing
+retired engines,146 public paths,006 Div-order/type fix and760 Clippy style
+corrections. No body runtime/strict PASS yet. Keep exact live runs:
+- wp-git-narrow-20261116T011202Z-760ed4a0: App-only strict after nine006 style
+  findings; OUT body-style-app-clippy; short/priority0.
+- wp-git-app-tests-20261116T010439Z-0065dc7b: selected Git functional tests on
+ 006 BEFORE style-only760; OUT body-006-git-tests; ordinary/priority0, LEFT ALONE.
+- wp-git-consumer-tests-20261116T004619Z-9c1c8758: unaffected Kit document-owner
+  window test; OUT body-9c1-owner-test; ordinary/priority0, LEFT ALONE.
+The known compile-red9c and146 App tests were explicitly/standing-authorized
+queued-only cancelled143; both must remain failed/cancelled historical evidence.
+Do not submit duplicates. Actual006 strict failed only nine Clippy findings,
+not predicted functional failure; this is why its pending test was not cancelled.
+
+Both W13(f88a3eca) and B2(bf9fa3e4) explicitly confirmed no edits/reservations to
+VirtualList before installation. Lead-assigned isolated base13 leaf isb2439a023
+in the separate list-scroll tree (backend/wp-c3-list-scroll), only4paths: method,
+actual native-wheel test, README, Decision Log. Run
+wp-git-list-narrow-20261116T011116Z-b2439a02 (OUT list-scroll-kit-clippy) is queued;
+no consumer adoption/source PASS. After strict finishes, ONE actual Kit window
+selection using that SAME label/warm target, then V1 then lead. No vendor/list
+install/measure/render change. Core current-visible-marker integration remains
+uninstalled in this main tree until that source/narrow boundary is cleared.
+
+S2 explicitly still has NO reviewed whole DiffModeMenu Start/check/description
+producer, so keep mode UI unmounted and use no area workaround. K45557713 is a
+source-only/unreviewed syntax producer, not a checked adoption; keep the current
+seven-kind mapper and syntax_for. W13 shown-Changes context/root projection stays
+pending; old toolbar writes remain refused. C3 still incomplete, C4 unstarted.
+No local fleets/displays/app processes started; project=vessel was confirmed in
+actual own-agent metadata without changing runtime/account settings.
