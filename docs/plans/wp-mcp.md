@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-54 node head `275024369`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-56b node head `ed4cd137`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -854,3 +854,21 @@ One copy remains, preserving the exact projection and refusal; no lint is
 suppressed. The failed strict log is retained. Already queued unit/generation
 runs remain meaningful for unchanged behavior/wire bytes, with their exact
 source scope. Only the changed strict is replaced.
+
+
+## Resumed execution receipts and gate56b join
+
+Existing VM runs were recovered before new checks, without resubmission:
+- MCP suite on exact31c8d7e3: 32 passed, zero failed, one ignored.
+- Gate54 proto/client/node library union on cac6aeb3: 838 passed, zero failed.
+- Deduplicated d58653a9 strict: five crates plus proto TS, all targets, rc0.
+- TS on cac6aeb3: all five generation tests passed, but the step returned rc1
+  because generated proto.ts differed. That is not freshness success. Its
+  output remains an immutable older-union artifact.
+
+The announced ed4cd137 is merged next. The sole ADR0033 conflict preserves both
+the independent Ended-schedule amendment and the source-reviewed finish
+contract. This includes the integrator's named e2e intermittent (17/18 counted
+gate), not a new all-green claim. No private notice binding/fence or common
+Settings WIP is adopted by this base merge. Current source and wire freshness
+will be checked on the new union rather than re-running obsolete generation.

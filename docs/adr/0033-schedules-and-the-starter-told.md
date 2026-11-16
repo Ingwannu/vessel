@@ -295,10 +295,24 @@ all supported instants. A request outside those bounds is `time_out_of_range`;
 a search with no remaining cron instant is `no_future_run`. Neither returns
 a partial run list.
 
+
+### Definition edits after completion (F1 source amendment, 2026-11-15)
+
+Pinned Paseo0.15.4 schedule/service.ts458–509 preserves completed status while
+updating a definition; its schedule-row.tsx209–250 still opens that form.
+The schedule actor therefore admits updates of known Ended records separately
+from pause/resume/run admission. It retains the exact end reason/time, even
+when a new run cap is below the historical count. Unknown states/end reasons stay refused.
+The original ownership, forwarded-call restrictions, revision comparison,
+serialization and storage path are unchanged. This requires no wire/schema
+change. Source tests and narrow/V3 evidence are recorded in wp-F1-node; this
+amendment itself does not claim a gate or reactivation behavior.
+
 ## Proposed amendment: durable finish subscriptions (2026-11-15, row 618)
 
-**Status: proposed, not accepted or implemented.** The accepted decisions above
-remain in force until this security-relevant amendment is reviewed. W18 owns
+**Status: contract source reviewed (V3 row 251); implementation unqualified.**
+The existing runtime remains in force until the actual shared owner, fence,
+transaction and consumer joins pass their implementation checks. W18 owns
 subscription intent and the existing notice watcher; W23 owns submission
 receipts, authoritative actor-ticket binding and internal notice admission.
 W10 renders the canonical timeline notification. W7 retains OS notifications
