@@ -149,25 +149,26 @@ impl Terminals {
                 &self.state,
             ));
         }
-        match state.entries.entry(id) {
+        let rejected = match state.entries.entry(id) {
             MapEntry::Vacant(slot) => {
                 let _inserted = slot.insert(Entry {
                     handle,
                     plan,
                     owner: reservation.owner.clone(),
                 });
+                None
             }
-            MapEntry::Occupied(slot) => {
-                drop(slot);
-                drop(state);
-                return Err(RegistrationRejected::retained(
-                    Refusal::Duplicate(id),
-                    reservation,
-                    handle,
-                    plan,
-                    &self.state,
-                ));
-            }
+            MapEntry::Occupied(_) => Some((handle, plan)),
+        };
+        if let Some((handle, plan)) = rejected {
+            drop(state);
+            return Err(RegistrationRejected::retained(
+                Refusal::Duplicate(id),
+                reservation,
+                handle,
+                plan,
+                &self.state,
+            ));
         }
         state
             .starting

@@ -54,3 +54,10 @@ cleanup certificate. Two authored pure wait-selection tests cover missing-end
 shutdown and already-ended/shutdown readiness. They use the canonical outer
 within and a shorter named phase deadline. No new task owner, writer, RPC, proof
 producer or unknown-debt retirement API is introduced. All leaf execution is owed.
+
+Exact88ed priority strict run wp-cli-narrow-20261116T020812Z-88ed99bd returned
+Cargo101 after123s, one drop_non_drop lint on explicitly dropping OccupiedEntry
+to end its borrow. No focused runtime units ran. End the entry scope through the
+match result and retain the owned rejected payload outside it before unlocking.
+The vacant-only policy and cleanup ownership are unchanged. Per the approval,
+this failed strict step goes to ordinary; do not repeat priority on this fix.
