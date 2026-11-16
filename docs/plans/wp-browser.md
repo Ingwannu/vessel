@@ -8,6 +8,16 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Completed-fact projection strict follow-through
+
+Exactc5f5d7e1 all-target strict with proto TS reached all three selected crates
+and reported only two ownership-style findings: the metadata encoder borrows
+BrowserId, and its finite coordinate-field selector is Copy. Fix those without
+changing output fields, selectors, content, assertions or limits. The later
+upload-bound input slice was not part of that run; a combined changed-source
+strict check is owed on the corrected head. No completion is inferred from
+compiler analysis alone.
+
 ## Upload decoding boundary after row292 contract source pass
 
 V3 accepted the exact upload contract source, with implementation/gates owed.

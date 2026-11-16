@@ -32,7 +32,7 @@ pub(super) fn selectors_match(command: &BrowserCommand, outcome: &ActionOutcome)
     }
 }
 
-pub(super) fn metadata(browser: BrowserId, outcome: ActionOutcome) -> Value {
+pub(super) fn metadata(browser: &BrowserId, outcome: ActionOutcome) -> Value {
     use ActionOutcome as A;
     let mut fields = Map::new();
     put(&mut fields, "browserId", json!(browser));
@@ -85,6 +85,7 @@ pub(super) fn metadata(browser: BrowserId, outcome: ActionOutcome) -> Value {
     Value::Object(fields)
 }
 
+#[derive(Clone, Copy)]
 enum Coordinates {
     Normal,
     Source,

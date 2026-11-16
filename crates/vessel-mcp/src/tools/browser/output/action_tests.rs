@@ -60,7 +60,7 @@ fn same_tab_different_action_or_element_is_not_a_successful_fill() {
 fn points_are_flat_observed_coordinates_and_absence_does_not_become_null_or_zero() {
     let position: CssPoint = serde_json::from_str(r#"{"x":12.5,"y":8}"#).unwrap();
     let result = actions::metadata(
-        id(),
+        &id(),
         ActionOutcome::Drag {
             source: "@e1".parse().unwrap(),
             target: "@e2".parse().unwrap(),
@@ -74,7 +74,7 @@ fn points_are_flat_observed_coordinates_and_absence_does_not_become_null_or_zero
     assert_eq!(result["targetY"], 8.0);
     assert!(result.get("source_position").is_none());
     let result = actions::metadata(
-        id(),
+        &id(),
         ActionOutcome::Type {
             element: None,
             position: None,

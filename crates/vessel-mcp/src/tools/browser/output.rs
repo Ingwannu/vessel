@@ -74,7 +74,7 @@ pub(super) fn render(
         BrowserResult::Applied {
             browser_id,
             outcome,
-        } => (actions::metadata(browser_id, outcome), None),
+        } => (actions::metadata(&browser_id, outcome), None),
         BrowserResult::Matched {
             browser_id,
             matched,
