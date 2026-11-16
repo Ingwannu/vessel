@@ -1,308 +1,406 @@
-//! The shortcut registry (the page's `data/shortcuts/registry.ts`): every
-//! action a key can run, its group in Settings › Shortcuts, its default
-//! keys, and the person's overrides.
-//!
-//! [Decision Log] One registry, the page's actions and keys (milestone 11)
-//! - Purpose: the listener, the palette's hints, the sidebar's hints and
-//!   Settings › Shortcuts read the same table, so a key shown is the key
-//!   that works.
-//! - Choice: the page's fourteen actions in its order with its defaults,
-//!   and GOAT's two queue actions (send the first queued message now,
-//!   edit the last one) after the composer's focus; Paseo's theme cycling
-//!   joins General through the same primary-modifier grammar;
-//!   an action has at most two bindings; "session 1–9" is fixed (Alt and
-//!   a digit, one per session) and cannot be reassigned. An override
-//!   replaces an action's defaults whole (an empty list unbinds it); ids
-//!   the registry does not know are kept, so an older or newer build's
-//!   overrides survive a round trip.
-//! - The overrides are the preferences' (`Preferences::shortcuts`, track
-//!   E's one model, the bridge's document): read here, changed only
-//!   through a `PreferenceChange`.
+//! The one binding table for matching, hints, help and rebinding. Reference
+//! definitions retain Paseo's persisted ids and ordering; native extensions and
+//! explicitly unbound non-Mac pane actions are appended with named origins.
 
-use std::collections::BTreeMap;
+mod actions;
+mod agent_input;
+mod extensions;
+mod general;
+mod layout;
+mod tabs_panes;
+mod workspaces;
 
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
+
+use super::context::{Admission, CommandCenterState, FocusScope, HostKind, ShortcutContext, When};
+use super::definitions::{Definition, build_effective};
+use super::engine::{Consume, EffectiveBinding, Repeat, ShortcutIndex};
 use super::keys::{Binding, Chord, Platform};
-use crate::prefs::{ActionId, Bindings, MAX_BINDINGS};
+use super::sequence::{KeySequence, SequenceError};
+use crate::prefs::{ActionId, Bindings, InvalidActionId};
+pub use actions::Action;
 
-/// What a shortcut can run.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Action {
-    /// Open the command palette.
-    Palette,
-    /// Start a new session.
-    NewSession,
-    /// Open Settings.
-    Settings,
-    /// Advance the appearance preference through the theme catalogue.
-    CycleTheme,
-    /// Go to the board.
-    GoBoard,
-    /// Go to Settings › Machines.
-    GoMachines,
-    /// Go to Settings › Sync.
-    GoSync,
-    /// Go to Settings › Devices.
-    GoDevices,
-    /// The session above the open one in the sidebar's order.
-    PreviousSession,
-    /// The session below it.
-    NextSession,
-    /// The sidebar's session 1 to 9 (fixed keys).
-    JumpSession,
-    /// Find in the open session.
-    Find,
-    /// Focus the composer.
-    FocusComposer,
-    /// Send the first queued message now (GOAT's
-    /// `thread.steerQueuedMessage`): into the running turn when the agent
-    /// takes a steer, else as a turn of its own.
-    SteerQueued,
-    /// Edit the last queued message (GOAT's `thread.editQueuedMessage`),
-    /// from the composer's very start only.
-    EditQueued,
-    /// Show or hide the sidebar.
-    ToggleSidebar,
-    /// Show or hide the session's summary.
-    ToggleInspector,
-}
+/// Number of shipped reference binding variants, excluding named native additions.
+pub const PASEO_BINDING_COUNT: usize = 76;
 
-/// The sections of Settings › Shortcuts.
+/// Help sections keep the reference's order and never depend on enum discriminants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ShortcutGroup {
-    /// The palette, a new session, Settings.
+    /// App-wide command center, Settings and appearance.
     General,
-    /// Places and sessions.
+    /// Projects and workspaces.
     Navigation,
-    /// Inside a session.
-    Session,
-    /// The sidebar and the summary.
+    /// Tabs and split panes.
+    TabsPanes,
+    /// Sidebars and focus layout.
     Panels,
-}
-
-/// The surface that must keep a scoped shortcut for itself. An open
-/// command center takes precedence over the previously focused surface.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShortcutScope {
-    /// The command center is open, even if its old focus is retained.
-    CommandCenter,
-    /// A terminal owns keyboard input.
-    Terminal,
-    /// No surface with a special exclusion owns the input.
-    Elsewhere,
+    /// Composer and agent input.
+    Session,
 }
 
 impl ShortcutGroup {
-    /// Every group, in Settings' order.
-    pub const ALL: [Self; 4] = [Self::General, Self::Navigation, Self::Session, Self::Panels];
-}
-
-impl Action {
-    /// Every action, in the registry's order.
-    pub const ALL: [Self; 17] = [
-        Self::Palette,
-        Self::NewSession,
-        Self::Settings,
-        Self::CycleTheme,
-        Self::GoBoard,
-        Self::GoMachines,
-        Self::GoSync,
-        Self::GoDevices,
-        Self::PreviousSession,
-        Self::NextSession,
-        Self::JumpSession,
-        Self::Find,
-        Self::FocusComposer,
-        Self::SteerQueued,
-        Self::EditQueued,
-        Self::ToggleSidebar,
-        Self::ToggleInspector,
+    /// Reference help and Settings section order.
+    pub const ALL: [Self; 5] = [
+        Self::General,
+        Self::Navigation,
+        Self::TabsPanes,
+        Self::Panels,
+        Self::Session,
     ];
+}
 
-    /// The id an override is kept under (the page's).
-    #[must_use]
-    pub const fn id(self) -> &'static str {
-        match self {
-            Self::Palette => "palette",
-            Self::NewSession => "new-session",
-            Self::Settings => "settings",
-            Self::CycleTheme => "cycle-theme",
-            Self::GoBoard => "go-board",
-            Self::GoMachines => "go-machines",
-            Self::GoSync => "go-sync",
-            Self::GoDevices => "go-devices",
-            Self::PreviousSession => "previous-session",
-            Self::NextSession => "next-session",
-            Self::JumpSession => "jump-session",
-            Self::Find => "find",
-            Self::FocusComposer => "focus-composer",
-            Self::SteerQueued => "steer-queued",
-            Self::EditQueued => "edit-queued",
-            Self::ToggleSidebar => "toggle-sidebar",
-            Self::ToggleInspector => "toggle-inspector",
+/// Compatibility projection for feature callers with no editable-focus query.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShortcutScope {
+    /// An open command center owns scoped keys.
+    CommandCenter,
+    /// An actual terminal surface owns input.
+    Terminal,
+    /// Another non-editing surface.
+    Elsewhere,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Origin {
+    Reference,
+    Unassigned,
+    Extension,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HelpVisibility {
+    Visible,
+    Hidden,
+}
+
+#[derive(Debug)]
+struct Spec {
+    order: usize,
+    id: &'static str,
+    action: Action,
+    combo: &'static str,
+    when: When,
+    repeat: Repeat,
+    prevent_default: Consume,
+    stop_propagation: Consume,
+    help: HelpVisibility,
+    origin: Origin,
+}
+
+macro_rules! binding {
+    ($order:literal, $id:literal, $action:ident, $combo:literal, $when:expr, $repeat:expr, $prevent:expr, $stop:expr, $help:ident) => {
+        Spec {
+            order: $order,
+            id: $id,
+            action: Action::$action,
+            combo: $combo,
+            when: $when,
+            repeat: $repeat,
+            prevent_default: $prevent,
+            stop_propagation: $stop,
+            help: HelpVisibility::$help,
+            origin: Origin::Reference,
         }
-    }
+    };
+}
 
-    /// Its id as the preferences keep it (every registry id is one; a
-    /// test says so).
-    #[must_use]
-    pub fn action_id(self) -> Option<ActionId> {
-        self.id().parse().ok()
-    }
-
-    /// The action an id names, if the registry knows it.
-    #[must_use]
-    pub fn of_id(id: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|action| action.id() == id)
-    }
-
-    /// Its section in Settings › Shortcuts.
-    #[must_use]
-    pub const fn group(self) -> ShortcutGroup {
-        match self {
-            Self::Palette | Self::NewSession | Self::Settings | Self::CycleTheme => {
-                ShortcutGroup::General
-            }
-            Self::GoBoard
-            | Self::GoMachines
-            | Self::GoSync
-            | Self::GoDevices
-            | Self::PreviousSession
-            | Self::NextSession
-            | Self::JumpSession => ShortcutGroup::Navigation,
-            Self::Find | Self::FocusComposer | Self::SteerQueued | Self::EditQueued => {
-                ShortcutGroup::Session
-            }
-            Self::ToggleSidebar | Self::ToggleInspector => ShortcutGroup::Panels,
+macro_rules! extension {
+    ($order:literal, $id:literal, $action:ident, $combo:literal, $when:expr, $origin:ident) => {
+        Spec {
+            order: $order,
+            id: $id,
+            action: Action::$action,
+            combo: $combo,
+            when: $when,
+            repeat: Repeat::Allow,
+            prevent_default: Consume::Yes,
+            stop_propagation: Consume::Yes,
+            help: HelpVisibility::Visible,
+            origin: Origin::$origin,
         }
-    }
+    };
+}
 
-    /// Its keys before the person changes them, as an override writes
-    /// them.
-    #[must_use]
-    pub const fn defaults(self) -> &'static [&'static str] {
-        match self {
-            Self::Palette => &["Mod+K", "/"],
-            Self::NewSession => &["N"],
-            Self::Settings => &["Mod+,"],
-            Self::CycleTheme => &["Mod+Alt+T"],
-            Self::GoBoard => &["G S"],
-            Self::GoMachines => &["G M", "G F"],
-            Self::GoSync => &["G Y"],
-            Self::GoDevices => &["G D"],
-            Self::PreviousSession => &["Alt+["],
-            Self::NextSession => &["Alt+]"],
-            Self::JumpSession => &[],
-            Self::Find => &["Mod+F"],
-            Self::FocusComposer => &["Mod+L"],
-            // GOAT's defaults (`packages/shared/src/keybindings.ts`).
-            Self::SteerQueued => &["Mod+Shift+Enter"],
-            Self::EditQueued => &["Alt+Up"],
-            Self::ToggleSidebar => &["Mod+B"],
-            Self::ToggleInspector => &["Mod+Shift+B"],
+// Child modules use these macros without exporting an application-wide macro.
+use {binding, extension};
+
+/// A static definition failure is typed and contains no preference-file contents.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum RegistryError {
+    /// Every reference variant must be present before matching is enabled.
+    #[error("shortcut reference binding table is incomplete")]
+    IncompleteReference,
+    /// Stable persistence ids cannot select two different definitions.
+    #[error("duplicate shortcut definition identity")]
+    DuplicateId,
+    /// A source table id violated the preference contract.
+    #[error("invalid shortcut definition identity")]
+    Id(#[from] InvalidActionId),
+    /// A source table key violated the shared grammar.
+    #[error("invalid shortcut definition keys")]
+    Keys(#[from] SequenceError),
+}
+
+fn specs() -> &'static [&'static Spec] {
+    static SPECS: OnceLock<Vec<&'static Spec>> = OnceLock::new();
+    SPECS.get_or_init(|| {
+        let sources = [
+            general::BINDINGS,
+            workspaces::BINDINGS,
+            tabs_panes::BINDINGS,
+            layout::BINDINGS,
+            agent_input::BINDINGS,
+            extensions::BINDINGS,
+        ];
+        let mut specs: Vec<_> = sources.into_iter().flatten().collect();
+        specs.sort_by_key(|spec| spec.order);
+        specs
+    })
+}
+
+/// Parse compiled data once; every consumer uses these same typed definitions.
+///
+/// # Errors
+/// A broken compiled definition is refused before any key may execute it.
+pub fn definitions() -> Result<&'static [Definition<Action>], RegistryError> {
+    static DEFINITIONS: OnceLock<Result<Vec<Definition<Action>>, RegistryError>> = OnceLock::new();
+    DEFINITIONS
+        .get_or_init(build_definitions)
+        .as_ref()
+        .map(Vec::as_slice)
+        .map_err(Clone::clone)
+}
+
+fn build_definitions() -> Result<Vec<Definition<Action>>, RegistryError> {
+    if specs()
+        .iter()
+        .filter(|spec| spec.origin == Origin::Reference)
+        .count()
+        != PASEO_BINDING_COUNT
+    {
+        return Err(RegistryError::IncompleteReference);
+    }
+    let mut seen = BTreeSet::new();
+    let mut definitions = Vec::new();
+    for spec in specs() {
+        let id: ActionId = spec.id.parse()?;
+        if !seen.insert(id.clone()) {
+            return Err(RegistryError::DuplicateId);
         }
-    }
-
-    /// Whether its keys are fixed: session 1 to 9 is Alt and a digit, one
-    /// key per session.
-    #[must_use]
-    pub const fn fixed(self) -> bool {
-        matches!(self, Self::JumpSession)
-    }
-
-    /// Keep Paseo's theme-cycle exclusions on rebound keys too; the
-    /// other actions retain their existing dispatch rules.
-    #[must_use]
-    pub const fn enabled(self, scope: ShortcutScope, platform: Platform) -> bool {
-        match self {
-            Self::CycleTheme => match scope {
-                ShortcutScope::CommandCenter => false,
-                ShortcutScope::Terminal => matches!(platform, Platform::Mac),
-                ShortcutScope::Elsewhere => true,
+        definitions.push(Definition {
+            id,
+            action: spec.action,
+            default_keys: if spec.combo.is_empty() {
+                None
+            } else {
+                Some(KeySequence::parse(spec.combo)?)
             },
-            Self::Palette
-            | Self::NewSession
-            | Self::Settings
-            | Self::GoBoard
-            | Self::GoMachines
-            | Self::GoSync
-            | Self::GoDevices
-            | Self::PreviousSession
-            | Self::NextSession
-            | Self::JumpSession
-            | Self::Find
-            | Self::FocusComposer
-            | Self::SteerQueued
-            | Self::EditQueued
-            | Self::ToggleSidebar
-            | Self::ToggleInspector => true,
+            payload: spec.action.payload(),
+            when: spec.when,
+            repeat: spec.repeat,
+            prevent_default: spec.prevent_default,
+            stop_propagation: spec.stop_propagation,
+        });
+    }
+    Ok(definitions)
+}
+
+/// The current platform's first visible binding is the Settings/help row owner.
+#[must_use]
+pub fn binding_id(action: Action, context: ShortcutContext) -> Option<ActionId> {
+    specs()
+        .iter()
+        .find(|spec| {
+            spec.action == action
+                && spec.help == HelpVisibility::Visible
+                && spec.when.on_platform(context)
+        })
+        .and_then(|spec| spec.id.parse().ok())
+}
+
+/// Current-host rows, including explicitly unbound actions. Hidden aliases still
+/// participate in matching and conflicts, but do not duplicate Settings rows.
+///
+/// # Errors
+/// Refuses the whole table if a compiled definition is invalid.
+pub fn visible_definitions(
+    context: ShortcutContext,
+) -> Result<Vec<&'static Definition<Action>>, RegistryError> {
+    let definitions = definitions()?;
+    Ok(Action::ALL
+        .into_iter()
+        .filter_map(|action| {
+            let id = binding_id(action, context)?;
+            definitions.iter().find(|definition| definition.id == id)
+        })
+        .collect())
+}
+
+/// Migrate historical action-level keys in memory before their next write. Unknown
+/// ids and inactive-platform overrides survive; canonical ids always win.
+#[must_use]
+pub fn migrated_overrides(
+    overrides: &BTreeMap<ActionId, Bindings>,
+    context: ShortcutContext,
+) -> BTreeMap<ActionId, Bindings> {
+    let mut migrated = overrides.clone();
+    let mut seen = BTreeSet::new();
+    for spec in specs()
+        .iter()
+        .filter(|spec| spec.when.on_platform(context) && spec.help == HelpVisibility::Visible)
+    {
+        if !seen.insert(spec.action) {
+            continue;
+        }
+        let Some(legacy) = spec.action.action_id() else {
+            continue;
+        };
+        let Ok(id) = spec.id.parse::<ActionId>() else {
+            continue;
+        };
+        if legacy == id {
+            continue;
+        }
+        if let Some(keys) = overrides.get(&legacy) {
+            drop(migrated.remove(&legacy));
+            let _existing = migrated.entry(id).or_insert_with(|| keys.clone());
         }
     }
+    migrated
+}
 
-    /// Every action of a group, in the registry's order.
-    pub fn in_group(group: ShortcutGroup) -> impl Iterator<Item = Self> {
-        Self::ALL
-            .into_iter()
-            .filter(move |action| action.group() == group)
+/// The single effective snapshot used by matching, hints, help and conflicts.
+///
+/// # Errors
+/// Refuses an invalid compiled registry instead of dispatching partial bindings.
+pub fn effective_bindings(
+    overrides: &BTreeMap<ActionId, Bindings>,
+    context: ShortcutContext,
+) -> Result<Vec<EffectiveBinding<Action>>, RegistryError> {
+    let overrides = migrated_overrides(overrides, context);
+    Ok(build_effective(definitions()?, &overrides)
+        .bindings
+        .into_iter()
+        .filter(|binding| binding.when.on_platform(context))
+        .collect())
+}
+
+/// The actual primary help/sidebar binding, including a user chord override.
+/// None means explicitly unassigned or unavailable on this platform.
+///
+/// # Errors
+/// Refuses invalid compiled registry data before displaying a misleading hint.
+pub fn primary_keys(
+    action: Action,
+    overrides: &BTreeMap<ActionId, Bindings>,
+    context: ShortcutContext,
+) -> Result<Option<KeySequence>, RegistryError> {
+    let Some(id) = binding_id(action, context) else {
+        return Ok(None);
+    };
+    Ok(effective_bindings(overrides, context)?
+        .into_iter()
+        .find(|binding| binding.id == id)
+        .map(|binding| binding.keys))
+}
+
+/// Neutral context for hints and compatibility consumers; focus predicates still
+/// apply at dispatch time rather than hiding shortcuts from help.
+#[must_use]
+pub const fn default_context(platform: Platform) -> ShortcutContext {
+    ShortcutContext {
+        platform,
+        host: if cfg!(target_arch = "wasm32") {
+            HostKind::Web
+        } else {
+            HostKind::Desktop
+        },
+        focus: FocusScope::Other,
+        command_center: CommandCenterState::Closed,
+        admission: Admission::Available,
     }
 }
 
-/// The session a chord jumps to: Alt alone with a digit from 1 to 9.
+pub(super) fn default_combos(action: Action, platform: Platform) -> Vec<String> {
+    let context = default_context(platform);
+    specs()
+        .iter()
+        .filter(|spec| {
+            spec.action == action && spec.when.on_platform(context) && !spec.combo.is_empty()
+        })
+        .filter_map(|spec| KeySequence::parse(spec.combo).ok())
+        .map(|keys| keys.text())
+        .collect()
+}
+
+pub(super) fn enabled(action: Action, scope: ShortcutScope, platform: Platform) -> bool {
+    let mut context = default_context(platform);
+    match scope {
+        ShortcutScope::CommandCenter => {
+            context.focus = FocusScope::CommandCenter;
+            context.command_center = CommandCenterState::Open;
+        }
+        ShortcutScope::Terminal => context.focus = FocusScope::Terminal,
+        ShortcutScope::Elsewhere => {}
+    }
+    specs()
+        .iter()
+        .any(|spec| spec.action == action && spec.when.matches(context))
+}
+
+/// Compatibility hints derive from the same effective entries, never a second
+/// default table. New multi-step screens use `effective_bindings` directly.
+#[must_use]
+pub fn bindings_of(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> Vec<Binding> {
+    bindings_on(action, overrides, Platform::native())
+}
+
+pub(super) fn bindings_on(
+    action: Action,
+    overrides: &BTreeMap<ActionId, Bindings>,
+    platform: Platform,
+) -> Vec<Binding> {
+    effective_bindings(overrides, default_context(platform))
+        .into_iter()
+        .flatten()
+        .filter(|binding| binding.action == action)
+        .filter_map(|binding| Binding::parse(&binding.keys.text()))
+        .collect()
+}
+
+/// Whether any current-platform binding or historical alias was changed.
+#[must_use]
+pub fn modified(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> bool {
+    overrides.keys().any(|id| {
+        id.as_str() == action.id()
+            || specs()
+                .iter()
+                .any(|spec| spec.action == action && spec.id == id.as_str())
+    })
+}
+
+/// The default desktop workspace jump uses its primary modifier, not fixed Alt.
 #[must_use]
 pub fn jump_of(chord: &Chord) -> Option<u8> {
-    if chord.primary || chord.ctrl || chord.shift || chord.meta || !chord.alt {
+    if !chord.primary || chord.ctrl || chord.shift || chord.meta || chord.alt {
         return None;
     }
-    let mut chars = chord.key.chars();
-    let digit = chars.next()?.to_digit(10)?;
-    if chars.next().is_some() || digit == 0 {
-        return None;
-    }
-    u8::try_from(digit).ok()
+    ShortcutIndex::from_key(&chord.key).map(ShortcutIndex::get)
 }
 
-/// The fixed keys of session 1 to 9, as a chord to show ("⌥1–9").
+/// The actual default index-template keys, before a user override.
 #[must_use]
 pub fn jump_shown() -> Chord {
     Chord {
-        primary: false,
+        primary: true,
         ctrl: false,
-        alt: true,
+        alt: false,
         shift: false,
         meta: false,
         key: "1–9".to_owned(),
     }
 }
 
-/// Whether the person changed an action's keys (`overrides`: the
-/// preferences' shortcuts, an action listed replacing its defaults whole,
-/// an empty list unbinding it).
-#[must_use]
-pub fn modified(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> bool {
-    overrides.keys().any(|id| id.as_str() == action.id())
-}
-
-/// An action's bindings: the person's, else its defaults; at most
-/// [`MAX_BINDINGS`], any that does not parse left out.
-#[must_use]
-pub fn bindings_of(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> Vec<Binding> {
-    overrides
-        .iter()
-        .find(|(id, _)| id.as_str() == action.id())
-        .map_or_else(
-            || {
-                action
-                    .defaults()
-                    .iter()
-                    .take(MAX_BINDINGS)
-                    .filter_map(|text| Binding::parse(text))
-                    .collect()
-            },
-            |(_, keys)| {
-                keys.keys()
-                    .iter()
-                    .take(MAX_BINDINGS)
-                    .filter_map(|key| Binding::parse(key.as_str()))
-                    .collect()
-            },
-        )
-}
+#[cfg(test)]
+mod tests;

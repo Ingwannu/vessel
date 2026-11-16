@@ -275,12 +275,12 @@ fn changes_are_tagged_by_setting_with_their_value() {
             "{refused}"
         );
     }
-    let seventeen: Vec<String> = (0..17)
+    let too_many: Vec<String> = (0..=crate::prefs::MAX_EDITS)
         .map(|n| format!(r#"{{"action":"a{n}","to":{{"kind":"default"}}}}"#))
         .collect();
     let text = format!(
         r#"{{"set":"shortcuts","value":{{"edits":[{}]}}}}"#,
-        seventeen.join(",")
+        too_many.join(",")
     );
     assert!(serde_json::from_str::<PreferenceChange>(&text).is_err());
 }
@@ -386,30 +386,40 @@ fn bindings_have_one_spelling() {
         let binding: KeyBinding = good.parse().unwrap();
         assert_eq!(binding.as_str(), good);
     }
-    for (bad, why) in [
-        ("k", InvalidKeyBinding::Key("k".to_owned())),
-        ("?", InvalidKeyBinding::Key("?".to_owned())),
-        ("Shift+Mod+K", InvalidKeyBinding::Order),
-        ("Mod+", InvalidKeyBinding::NoKey),
-        ("Mod+Mod+K", InvalidKeyBinding::Order),
-        ("A B C", InvalidKeyBinding::Chords),
-        ("Plus", InvalidKeyBinding::Key("Plus".to_owned())),
-        ("Mod+K ", InvalidKeyBinding::NoKey),
-        ("", InvalidKeyBinding::NoKey),
-        (" ", InvalidKeyBinding::NoKey),
-        ("G  S", InvalidKeyBinding::NoKey),
-        ("Cmd+K", InvalidKeyBinding::Modifier("Cmd".to_owned())),
-        ("mod+K", InvalidKeyBinding::Modifier("mod".to_owned())),
-        ("Mod+F13", InvalidKeyBinding::Key("F13".to_owned())),
-        ("Mod+Shift+?", InvalidKeyBinding::Key("?".to_owned())),
-        ("Mod++", InvalidKeyBinding::NoKey),
-        (
-            "Ctrl+Alt+Shift+Meta+F12 Mod+Shift+B",
-            InvalidKeyBinding::TooLong,
-        ),
+    for (input, canonical) in [
+        ("Cmd+K", "Meta+K"),
+        ("Shift+Mod+K", "Mod+Shift+K"),
+        ("A B C", "A B C"),
+        ("Mod+Shift+?", "Mod+Shift+?"),
+        ("?", "?"),
+        ("Ctrl+Digit", "Ctrl+Digit"),
+        ("Ctrl+Insert", "Ctrl+Insert"),
     ] {
-        assert_eq!(bad.parse::<KeyBinding>(), Err(why), "{bad:?}");
+        assert_eq!(input.parse::<KeyBinding>().unwrap().as_str(), canonical);
     }
+    for bad in [
+        "k",
+        "Mod+",
+        "Mod+Mod+K",
+        "Plus",
+        "Mod+K ",
+        "",
+        " ",
+        "G  S",
+        "mod+K",
+        "Mod+F13",
+        "Mod++",
+    ] {
+        assert!(bad.parse::<KeyBinding>().is_err(), "{bad:?}");
+    }
+    let too_long = "K ".repeat(crate::shortcuts::sequence::MAX_SEQUENCE_BYTES);
+    assert_eq!(
+        too_long.parse::<KeyBinding>(),
+        Err(InvalidKeyBinding::Sequence(
+            crate::shortcuts::sequence::SequenceError::TooLong
+        ))
+    );
+
     let binding: KeyBinding = serde_json::from_str("\"Alt+]\"").unwrap();
     assert_eq!(serde_json::to_string(&binding).unwrap(), "\"Alt+]\"");
     assert!(serde_json::from_str::<KeyBinding>("\"Alt+}\"").is_err());
@@ -418,7 +428,7 @@ fn bindings_have_one_spelling() {
 /// The bridge's `action_ids_are_the_pages_own_shape`.
 #[test]
 fn action_ids_are_the_pages_own_shape() {
-    for good in ["palette", "go-sessions", "session-9", &"a".repeat(48)] {
+    for good in ["palette", "go-sessions", "session-9", &"a".repeat(96)] {
         assert_eq!(good.parse::<ActionId>().unwrap().as_str(), good);
     }
     for bad in [
@@ -428,7 +438,7 @@ fn action_ids_are_the_pages_own_shape() {
         "Palette",
         "go_sessions",
         "a b",
-        &"a".repeat(49),
+        &"a".repeat(97),
     ] {
         assert_eq!(bad.parse::<ActionId>(), Err(InvalidActionId), "{bad:?}");
     }
