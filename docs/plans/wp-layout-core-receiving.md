@@ -14,7 +14,8 @@
 - Why: actual fields, prepared form borrows, canonical ticket consumption and
   full retirement remain in their one existing owners; presentation formatting
   exposes no extra allocator or transport capability.
-- Consequences: this source still owes receiving strict/runtime and source review.
+- Consequences: receiving strict/runtime are recorded below; final source review
+  and the lead's receiving gate remain separate.
   It creates no product resident, actor, raw follow or Window-close authority.
 
 ## Exact joins
@@ -55,3 +56,23 @@ The first combined strict run,
 failed one App-test lint: cloning the expected context to make a one-element
 slice. The correction borrows that same expected context with `from_ref`; no
 production validation, ordering or test expectation changes. Tests did not run.
+
+## Executed receiving union
+
+Exact `31bc64fea1a17c685a90bbe47493e610bef265fe` completed requested locked
+View/Kit/App all-target strict Clippy in
+`wp-layout-core-union-20261116T020007Z-31bc64fe`, fonts/cargo0, with actual
+View/Kit/Link/App Checking. Same-head all-target runtime
+`wp-layout-core-union-20261116T021258Z-31bc64fe` compiled those four crates and
+passed App152/0/2 ignored, Kit244/0/0, View1002/0/0 and example142:1540/0/2 total.
+The scoped minter/field readmission and hidden-input case, installed Lifecycle
+sealed-ACK/empty-ticket full retirement case, original scoped constructor case
+and both lossless Display cases all passed explicitly. The earlier81 test-lint
+failure remains separate, with no test execution attributed to it.
+
+The selected portable native subtree equals this executed source. Its new
+commit ids and docs-only clarification were not separately executed; this is
+neither whole-repository equivalence nor a whole/native-quality gate. All
+staging and product limits above remain: typed fixture metadata/direct pure
+stop is not real guarded stream/ACK-held Window proof, and direct field draw
+does not prove the product pane mount, read tracking or IME.

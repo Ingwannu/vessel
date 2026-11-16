@@ -290,3 +290,8 @@ must preserve the remote-acknowledged fact separately from attempted-but-unknown
 wire work. Actual framed owner/Window tests must distinguish these outcomes
 and retire between every End/ACK/Window boundary in both orderings. The existing
 pure Residents kernel needs no policy change for this owner distinction.
+
+W12 confirms this exact clarification and W21's ownership on 2026-11-16. V1's
+bounded contract record is closed through the selected docs-only leaf
+`2a725a1c4f99b9abe06d366f3bfbeeddc75b2c55`; kernel behavior is unchanged. This
+signoff supplies no live adapter or framed owner/Window runtime approval.

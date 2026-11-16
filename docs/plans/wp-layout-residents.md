@@ -371,8 +371,9 @@ identity through readmission and hidden-event refusal without swapping the
 legacy global field. WorkspaceLookup and connection values are isolated typed
 fixtures: no delivery guard, RPC or runtime workspace owner is supplied.
 
-This is source preparation, uncompiled and unexecuted until its own receiving
-checks. It draws the retained field directly; it does not prove the product
+This isolated receiving case now passes in the Core run documented in
+[`wp-layout-core-receiving.md`](wp-layout-core-receiving.md). It draws the retained
+field directly; it does not prove the product
 pane mount, painted bounds, read tracking, caret/IME, owner effects, snapshots,
 live follow or removal of legacy globals. Every resident constructor/module
 test gate remains in place.
