@@ -15,13 +15,18 @@ impl Shell {
             Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
-                if !self.devices_retired(&context) {
+                let orchestration = self.orchestration_retired(&context);
+                let devices = self.devices_retired(&context);
+                if !devices && !orchestration {
                     return;
                 }
             }
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
+            Event::Orchestration(answer) => {
+                let _unclaimed = self.orchestration_received(answer);
+            }
             Event::Fleet(fleet) => {
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every
