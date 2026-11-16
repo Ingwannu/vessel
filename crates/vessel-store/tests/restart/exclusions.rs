@@ -16,6 +16,55 @@ enum Exclusion {
     Deleted,
 }
 
+// Metadata construction is separate from the real persistence/restart proof.
+fn excluded_session(case: Exclusion) -> SessionInfo {
+    let mut session = info();
+    match case {
+        Exclusion::Side => session.spec.side_question_of = Some(SessionId::random()),
+        Exclusion::Agent => {
+            session.created_by = Creator::Agent {
+                node: NodeId::random(),
+                session: SessionId::random(),
+            }
+        }
+        Exclusion::Remote => {
+            session.origin = Some(SessionOrigin::Remote {
+                node: NodeId::random(),
+                by: RemoteCreator::Owner,
+            });
+        }
+        Exclusion::Idle
+        | Exclusion::Starting
+        | Exclusion::Parked
+        | Exclusion::Archived
+        | Exclusion::Unattended
+        | Exclusion::Legacy
+        | Exclusion::Deleted => {}
+    }
+    session
+}
+
+fn activity_for(case: Exclusion) -> Vec<Arc<vessel_proto::EventRecord>> {
+    let status_now = if matches!(case, Exclusion::Starting) {
+        SessionStatus::Starting
+    } else {
+        SessionStatus::Running
+    };
+    let mut events = vec![status(0, status_now)];
+    if !matches!(case, Exclusion::Idle) {
+        events.push(started(1));
+    }
+    if matches!(case, Exclusion::Parked) {
+        events.push(record(
+            2,
+            SessionEvent::Parked {
+                reason: vessel_proto::parking::ParkReason::Asked,
+            },
+        ));
+    }
+    events
+}
+
 #[tokio::test]
 async fn exclusions_remain_manual_even_with_committed_activity() {
     case(async {
@@ -39,29 +88,7 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
             .await
             .unwrap()
             .store;
-            let mut session = info();
-            match case {
-                Exclusion::Side => session.spec.side_question_of = Some(SessionId::random()),
-                Exclusion::Agent => {
-                    session.created_by = Creator::Agent {
-                        node: NodeId::random(),
-                        session: SessionId::random(),
-                    }
-                }
-                Exclusion::Remote => {
-                    session.origin = Some(SessionOrigin::Remote {
-                        node: NodeId::random(),
-                        by: RemoteCreator::Owner,
-                    });
-                }
-                Exclusion::Idle
-                | Exclusion::Starting
-                | Exclusion::Parked
-                | Exclusion::Archived
-                | Exclusion::Unattended
-                | Exclusion::Legacy
-                | Exclusion::Deleted => {}
-            }
+            let session = excluded_session(case);
             let id = session.id;
             let eligibility = if matches!(case, Exclusion::Unattended | Exclusion::Legacy) {
                 RestartEligibility::Never
@@ -74,23 +101,7 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
             )
             .await
             .unwrap();
-            let status_now = if matches!(case, Exclusion::Starting) {
-                SessionStatus::Starting
-            } else {
-                SessionStatus::Running
-            };
-            let mut events = vec![status(0, status_now)];
-            if !matches!(case, Exclusion::Idle) {
-                events.push(started(1));
-            }
-            if matches!(case, Exclusion::Parked) {
-                events.push(record(
-                    2,
-                    SessionEvent::Parked {
-                        reason: vessel_proto::parking::ParkReason::Asked,
-                    },
-                ));
-            }
+            let events = activity_for(case);
             phase("Store append", store.append(id, events))
                 .await
                 .unwrap();

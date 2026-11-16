@@ -228,6 +228,40 @@ async fn clean_shutdown_capture_survives_the_cancelled_turn_and_final_status() {
     .await;
 }
 
+// Keep the generation/cursor choices in the scenario while naming the real
+// writer boundary once. These helpers return the actual Store acknowledgement.
+async fn arm(
+    store: &Store,
+    session: SessionId,
+    generation: RestartGeneration,
+    turn: EventSeq,
+) -> bool {
+    checkpoint(store, session, RestartCheckpoint::Arm { generation, turn }).await
+}
+
+async fn suppress(
+    store: &Store,
+    session: SessionId,
+    generation: RestartGeneration,
+    turn: Option<EventSeq>,
+) -> bool {
+    checkpoint(
+        store,
+        session,
+        RestartCheckpoint::Suppress { generation, turn },
+    )
+    .await
+}
+
+async fn checkpoint(store: &Store, session: SessionId, change: RestartCheckpoint) -> bool {
+    phase(
+        "Store checkpoint_restart",
+        store.checkpoint_restart(session, Vec::new(), change),
+    )
+    .await
+    .unwrap()
+}
+
 #[tokio::test]
 async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
     case(async {
@@ -242,38 +276,18 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
         .store;
         let session = phase("Store working", working(&store)).await;
         let next = RestartGeneration::ZERO.next().unwrap();
-        assert!(
-            phase(
-                "Store checkpoint_restart",
-                store.checkpoint_restart(
-                    session.id,
-                    Vec::new(),
-                    RestartCheckpoint::Suppress {
-                        generation: next,
-                        turn: Some(EventSeq::new(1))
-                    }
-                )
-            )
-            .await
-            .unwrap()
-        );
+        assert!(suppress(&store, session.id, next, Some(EventSeq::new(1))).await);
         phase("Store append", store.append(session.id, vec![started(2)]))
             .await
             .unwrap();
         assert!(
-            !phase(
-                "Store checkpoint_restart",
-                store.checkpoint_restart(
-                    session.id,
-                    Vec::new(),
-                    RestartCheckpoint::Arm {
-                        generation: RestartGeneration::ZERO,
-                        turn: EventSeq::new(2)
-                    }
-                )
+            !arm(
+                &store,
+                session.id,
+                RestartGeneration::ZERO,
+                EventSeq::new(2)
             )
             .await
-            .unwrap()
         );
         phase("Store close", store.close()).await;
         let store = phase(
@@ -320,35 +334,15 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
         )
         .await
         .unwrap();
+        assert!(arm(&store, session.id, next, seq).await);
         assert!(
-            phase(
-                "Store checkpoint_restart",
-                store.checkpoint_restart(
-                    session.id,
-                    Vec::new(),
-                    RestartCheckpoint::Arm {
-                        generation: next,
-                        turn: seq
-                    }
-                )
+            !suppress(
+                &store,
+                session.id,
+                next.next().unwrap(),
+                Some(EventSeq::new(1))
             )
             .await
-            .unwrap()
-        );
-        assert!(
-            !phase(
-                "Store checkpoint_restart",
-                store.checkpoint_restart(
-                    session.id,
-                    Vec::new(),
-                    RestartCheckpoint::Suppress {
-                        generation: next.next().unwrap(),
-                        turn: Some(EventSeq::new(1))
-                    }
-                )
-            )
-            .await
-            .unwrap()
         );
         phase("Store close", store.close()).await;
         let store = phase(

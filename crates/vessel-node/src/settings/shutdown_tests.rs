@@ -113,8 +113,11 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
     vessel_testkit::within(WRITE_TEST_BUDGET, async {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
-            let settings =
-                writer_tests::phase("open real settings owner", settings(root.path())).await;
+            let settings = phase(
+                "open real settings owner",
+                writer_tests::settings(root.path()),
+            )
+            .await;
             let _saved = phase(
                 "save On policy",
                 settings.change(recovery(RecoveryChoice::On)),

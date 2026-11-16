@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Current producer strict reached the bounded fixtures and found a mistyped
+  fixture call plus two oversized SQL scenarios. Metadata construction and the
+  actual typed checkpoint forwarding are now small local helpers; the original
+  scenario order, acknowledgements, exclusions and assertions remain. No lint
+  suppression or test-clock increase is used. Corrected-source checks follow.
+
+
 - Review returned the new fixture safety nets: prepare fakes before starting
   case clocks, name phase waits and bound real Store cases. These source fixes
   retain the established budgets/assertions and physical task ownership. The
