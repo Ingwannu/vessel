@@ -1394,3 +1394,9 @@ fields. Rename consumes the shared typed `Editability` at dispatch/answer;
 its `rename_element` profile wraps the same bare editor. The kit-internal
 `field::settings_frame` shares only the inset-focus bridge with Appearance
 profiles, leaving chrome to each profile and all events in the one engine.
+
+
+`VirtualList::on_scroll` observes handled scroll input through GPUI's existing
+handler, without exporting its stale visible_range or changing list motion.
+Install once for the list owner; never query/reborrow the list during callback.
+Exact source/real-window proof remains pending in `docs/plans/wp-c3-list-scroll.md`.
