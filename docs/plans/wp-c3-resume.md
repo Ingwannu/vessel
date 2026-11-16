@@ -664,3 +664,33 @@ fairness or reuse760 strict as proof of this successor. See the plan's Decision
 Log and actual test source. Old direct LRU fixture now explicitly clears its
 synthetic preceding visibility observation because it has no mounted viewport;
 its eviction and late-answer assertions remain. No new remote source batch yet.
+
+## Registered pressure successor and external header/notification proposals
+
+20d5fb32b installs ONLY the resource-veto successor and its unexecuted actual
+Shell/registry pressure fixture; it does NOT consume the pending VirtualList
+leaf. New exact App all-target strict is registered once as
+wp-git-body-narrow-20261116T013441Z-20d5fb32 (short/priority0; OUT
+body-visible-20d-clippy-newlabel). The first submission on wp-git-narrow was
+rejected BEFORE registration/compile with rc3 because its760 wasm run already
+occupies that label; no source failure/pass or cancelled build. That existing
+wasm job and all old functional selections remain in place.
+
+The notification consumer is external only: install once in Entry::new after
+review, capturing only the fresh per-Entry presentation cell, no Shell/list
+borrow or authority. A retained old callback can clear only its own old cell;
+retain_comparison never transfers the cell. This is a narrower alternative to
+the earlier weak-Shell callback plan, still requiring actual consumer tests.
+
+V1 was asked about ownership before any new file-header kit edit. The pinned
+Paseo file-header/document-file-header/presentation/DiffStat sources show that
+the current mono whole-path header is provisional: section30/content28, UI14
+name before muted directory, Meta12 counts and square change glyph14. No file
+header producer installed. SquarePlus/Minus/Dot are absent on base13; do not
+paint substitutes or edit another glyph writer. Shared exact tooltip placement
+and sticky headers remain further joins, not claims of the eventual shell.
+
+Recovered historical f1ab logs as well: strict failed101 on then-current fixture
+lints/private unused pull methods; its queued App test was cancelled143 before
+execution. These are older source evidence, not new failures or passes, and no
+run was resubmitted. Latest pre-pressure760 strict stays exact green.
