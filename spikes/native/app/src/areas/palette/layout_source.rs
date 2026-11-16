@@ -27,126 +27,152 @@ impl Capability {
     }
 }
 // This is command-center presentation, never a second keyboard/default table.
-const COMMANDS: &[(&str, Action, i16, Capability, Glyph)] = &[
-    (
-        "tab:chooser",
-        Action::NewTab,
-        0,
-        Capability::Any,
-        Glyph::Plus,
-    ),
-    (
-        "tab:previous",
-        Action::PreviousTab,
-        30,
-        Capability::Any,
-        Glyph::ChevronLeft,
-    ),
-    (
-        "tab:next",
-        Action::NextTab,
-        31,
-        Capability::Any,
-        Glyph::ChevronRight,
-    ),
-    (
-        "tab:close-current",
-        Action::CloseTab,
-        32,
-        Capability::Any,
-        Glyph::Close,
-    ),
-    (
-        "pane:split-right",
-        Action::SplitRight,
-        50,
-        Capability::Split,
-        Glyph::Split,
-    ),
-    (
-        "pane:split-down",
-        Action::SplitDown,
-        51,
-        Capability::Split,
-        Glyph::Split,
-    ),
-    (
-        "pane:focus-left",
-        Action::FocusLeft,
-        52,
-        Capability::Split,
-        Glyph::ChevronLeft,
-    ),
-    (
-        "pane:focus-right",
-        Action::FocusRight,
-        53,
-        Capability::Split,
-        Glyph::ChevronRight,
-    ),
-    (
-        "pane:focus-up",
-        Action::FocusUp,
-        54,
-        Capability::Split,
-        Glyph::ChevronUp,
-    ),
-    (
-        "pane:focus-down",
-        Action::FocusDown,
-        55,
-        Capability::Split,
-        Glyph::ChevronDown,
-    ),
-    (
-        "pane:move-tab-left",
-        Action::MoveTabLeft,
-        56,
-        Capability::Split,
-        Glyph::ChevronLeft,
-    ),
-    (
-        "pane:move-tab-right",
-        Action::MoveTabRight,
-        57,
-        Capability::Split,
-        Glyph::ChevronRight,
-    ),
-    (
-        "pane:move-tab-up",
-        Action::MoveTabUp,
-        58,
-        Capability::Split,
-        Glyph::ChevronUp,
-    ),
-    (
-        "pane:move-tab-down",
-        Action::MoveTabDown,
-        59,
-        Capability::Split,
-        Glyph::ChevronDown,
-    ),
-    (
-        "pane:close",
-        Action::ClosePane,
-        60,
-        Capability::Split,
-        Glyph::Close,
-    ),
-    (
-        "workspace:toggle-focus-mode",
-        Action::ToggleFocus,
-        26,
-        Capability::Single,
-        Glyph::Maximize,
-    ),
-    (
-        "pane:focus-mode-toggle",
-        Action::ToggleFocus,
-        62,
-        Capability::Split,
-        Glyph::Maximize,
-    ),
+struct Spec {
+    id: &'static str,
+    action: Action,
+    rank: i16,
+    capability: Capability,
+    glyph: Glyph,
+    keywords: &'static [&'static str],
+}
+
+const COMMANDS: &[Spec] = &[
+    Spec {
+        id: "tab:chooser",
+        action: Action::NewTab,
+        rank: 0,
+        capability: Capability::Any,
+        glyph: Glyph::Plus,
+        keywords: &["tab", "new", "chooser"],
+    },
+    Spec {
+        id: "tab:previous",
+        action: Action::PreviousTab,
+        rank: 30,
+        capability: Capability::Any,
+        glyph: Glyph::ArrowLeft,
+        keywords: &["tab", "previous", "switch", "navigate"],
+    },
+    Spec {
+        id: "tab:next",
+        action: Action::NextTab,
+        rank: 31,
+        capability: Capability::Any,
+        glyph: Glyph::ChevronRight,
+        keywords: &["tab", "next", "switch", "navigate"],
+    },
+    Spec {
+        id: "tab:close-current",
+        action: Action::CloseTab,
+        rank: 32,
+        capability: Capability::Any,
+        glyph: Glyph::X,
+        keywords: &["tab", "close", "current"],
+    },
+    Spec {
+        id: "pane:split-right",
+        action: Action::SplitRight,
+        rank: 50,
+        capability: Capability::Split,
+        glyph: Glyph::Columns2,
+        keywords: &["split", "pane", "vertical"],
+    },
+    Spec {
+        id: "pane:split-down",
+        action: Action::SplitDown,
+        rank: 51,
+        capability: Capability::Split,
+        glyph: Glyph::Rows2,
+        keywords: &["split", "pane", "horizontal"],
+    },
+    Spec {
+        id: "pane:focus-left",
+        action: Action::FocusLeft,
+        rank: 52,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronLeft,
+        keywords: &["pane", "focus", "left"],
+    },
+    Spec {
+        id: "pane:focus-right",
+        action: Action::FocusRight,
+        rank: 53,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronRight,
+        keywords: &["pane", "focus", "right"],
+    },
+    Spec {
+        id: "pane:focus-up",
+        action: Action::FocusUp,
+        rank: 54,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronUp,
+        keywords: &["pane", "focus", "up"],
+    },
+    Spec {
+        id: "pane:focus-down",
+        action: Action::FocusDown,
+        rank: 55,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronDown,
+        keywords: &["pane", "focus", "down"],
+    },
+    Spec {
+        id: "pane:move-tab-left",
+        action: Action::MoveTabLeft,
+        rank: 56,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronLeft,
+        keywords: &["pane", "tab", "move", "left"],
+    },
+    Spec {
+        id: "pane:move-tab-right",
+        action: Action::MoveTabRight,
+        rank: 57,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronRight,
+        keywords: &["pane", "tab", "move", "right"],
+    },
+    Spec {
+        id: "pane:move-tab-up",
+        action: Action::MoveTabUp,
+        rank: 58,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronUp,
+        keywords: &["pane", "tab", "move", "up"],
+    },
+    Spec {
+        id: "pane:move-tab-down",
+        action: Action::MoveTabDown,
+        rank: 59,
+        capability: Capability::Split,
+        glyph: Glyph::ChevronDown,
+        keywords: &["pane", "tab", "move", "down"],
+    },
+    Spec {
+        id: "pane:close",
+        action: Action::ClosePane,
+        rank: 60,
+        capability: Capability::Split,
+        glyph: Glyph::X,
+        keywords: &["pane", "close"],
+    },
+    Spec {
+        id: "workspace:toggle-focus-mode",
+        action: Action::ToggleFocus,
+        rank: 26,
+        capability: Capability::Single,
+        glyph: Glyph::Maximize,
+        keywords: &["toggle", "focus", "zen", "distraction", "fullscreen"],
+    },
+    Spec {
+        id: "pane:focus-mode-toggle",
+        action: Action::ToggleFocus,
+        rank: 62,
+        capability: Capability::Split,
+        glyph: Glyph::Maximize,
+        keywords: &["pane", "focus", "mode", "toggle"],
+    },
 ];
 #[derive(PartialEq, Eq)]
 struct Signature {
@@ -168,7 +194,7 @@ pub(super) fn refresh(shell: &mut Shell, window: &Window) {
             split: crate::areas::layout::mode(window) == LayoutMode::SplitPanes,
             labels: COMMANDS
                 .iter()
-                .map(|(_, action, _, _, _)| action_label(*action, shell.words).to_owned())
+                .map(|spec| action_label(spec.action, shell.words).to_owned())
                 .collect(),
         })
     } else {
@@ -213,29 +239,37 @@ fn contributions(signature: &Signature) -> Result<Vec<Contribution<Command>>, Re
     COMMANDS
         .iter()
         .zip(&signature.labels)
-        .filter(|((_, _, _, capability, _), _)| capability.allows(signature.split))
+        .filter(|(spec, _)| spec.capability.allows(signature.split))
         .filter_map(|(spec, label)| {
-            spec.1
+            spec.action
                 .layout_action(None)
                 .map(|operation| (spec, label, operation))
         })
-        .map(|((id, action, rank, _, glyph), label, operation)| {
+        .map(|(spec, label, operation)| {
             let context = signature.context.clone();
             Ok(Contribution {
-                id: id.parse()?,
+                id: spec.id.parse()?,
                 group: "workspace".parse()?,
                 group_rank: Rank::WORKSPACE,
                 section_title: None,
-                rank: Rank::new(*rank),
-                keywords: vec![(*id).to_owned()],
+                rank: Rank::new(spec.rank),
+                keywords: spec
+                    .keywords
+                    .iter()
+                    .map(|word| (*word).to_owned())
+                    .collect(),
                 visibility: Visibility::Query,
                 presentation: Presentation::Action {
                     title: label.clone(),
                     subtitle: None,
                 },
-                target: Command::callback(Some(*glyph), Some(*action), move |shell, window, cx| {
-                    shell.run_layout_action_at(&context, operation, window, cx)
-                }),
+                target: Command::callback(
+                    Some(spec.glyph),
+                    Some(spec.action),
+                    move |shell, window, cx| {
+                        shell.run_layout_action_at(&context, operation, window, cx)
+                    },
+                ),
             })
         })
         .collect()

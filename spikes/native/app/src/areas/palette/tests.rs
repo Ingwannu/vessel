@@ -1,5 +1,6 @@
 //! Exercise the real palette input/actions through a shell with no external I/O.
 mod import_action;
+mod layout_actions;
 mod sidebar_shortcut;
 
 use gpui::{AppContext as _, Entity, Render, TestAppContext, VisualTestContext};
@@ -628,64 +629,5 @@ fn center_navigation_precedes_global_rebinding_and_escape_closes_nested_page(
     cx.run_until_parked();
     update(&view, cx, |shell, _, _| {
         assert!(!shell.areas.palette.is_open());
-    });
-}
-
-#[gpui::test]
-fn captured_layout_command_cannot_close_a_newly_selected_workspace(cx: &mut TestAppContext) {
-    use vessel_app_view::layout::{HostAlias, LayoutKey, OpenIntent, Placement};
-    let (view, cx) = harness(cx);
-    let first = SessionId::random();
-    let target = update(&view, cx, |shell, window, cx| {
-        shell.route = Route::Session;
-        shell.areas.session.open = Some(Open {
-            machine: "one".to_owned(),
-            session: first,
-            title: "A".to_owned(),
-            agent: "fake".to_owned(),
-            structured: false,
-            live: true,
-        });
-        let key = LayoutKey::Session {
-            machine: HostAlias::parse("one").unwrap(),
-            session: first,
-        };
-        let _tab = shell
-            .layout_open_target(
-                &key,
-                vessel_app_view::layout::Target::NewTab,
-                OpenIntent::New,
-                Placement::Focused,
-                window,
-                cx,
-            )
-            .unwrap();
-        source::refresh_dynamic(shell, window);
-        shell.palette_searched("close current tab".to_owned(), cx);
-        snapshot::project(shell).sections.into_iter().flat_map(|section| section.rows)
-            .find(|row| matches!(&row.id, snapshot::Identity::Registered(id)
-                if id.source.as_str() == "workspace-layout" && id.entry.as_str() == "tab:close-current"))
-            .unwrap().activate
-    });
-    update(&view, cx, |shell, window, cx| {
-        shell.areas.session.open.as_mut().unwrap().session = SessionId::random();
-        shell.activate_command(target, window, cx);
-        assert!(
-            shell.areas.palette.is_open(),
-            "stale source is refused before closing the palette"
-        );
-        assert_eq!(
-            shell
-                .prefs
-                .layouts
-                .iter()
-                .find(|entry| matches!(entry.key,
-            LayoutKey::Session { session, .. } if session == first))
-                .unwrap()
-                .layout
-                .tabs()
-                .count(),
-            1
-        );
     });
 }

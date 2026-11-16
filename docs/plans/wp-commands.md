@@ -1153,3 +1153,30 @@ reported as current evidence.
 - Effects: no new palette Git effects until G1 supplies the checked scoped-write
   producer and the receiving union passes. Existing inherited Git consumers remain
   a separately unpassed dependency; no copied RPC, identity cache or policy.
+
+
+[Decision Log: layout row search fields and shared glyph roles]
+- Purpose: the reference's hidden aliases must work independently of translated
+  labels. A single raw command id omitted vertical/horizontal, switch/navigate
+  and the single-pane zen/distraction/fullscreen aliases.
+- Existing assets: the current layout source already owns captured W12 contexts;
+  the announced Kit inventory already contains Columns2, Rows2, X and ArrowLeft.
+- Choice: retain one source and give its local presentation spec named fields for
+  action, rank, capability, glyph and canonical keyword slices. This extends the
+  existing model rather than adding a matcher, listener or glyph renderer.
+- Source: pinned Paseo1c00 workspace-contributions.ts264-290,398-502,684-691 and
+  workspace-registration.ts69-77. Existing passive tab chooser stays a documented
+  native extension; every actual effect still uses run_layout_action_at.
+- Effects: reuse Columns2/Rows2 for split directions, X for tab/pane close and
+  ArrowLeft for previous tab. Other missing exact roles (ArrowRight, Focus, Move,
+  ArrowDownToLine) are reserved with the sole shared glyph owner, not fabricated
+  or claimed visually complete here. No existing vector or stroke is changed.
+- Verification: a new actual-frame Korean query regression types hidden English
+  aliases at split and compact widths; execution is still owed at this checkpoint.
+  The existing stale-workspace action case moves unchanged to the same focused
+  test child module, reducing the oversized parent.
+
+Git staging exact05fdbeaa6 passed App all-target strict checks in run
+wp-commands-narrow-20261116T021433Z-05fdbeaa. This compiles both the product
+configuration without F4 Git registration and the staged test configuration.
+No new write-owner readiness or inherited toolbar approval follows from it.
