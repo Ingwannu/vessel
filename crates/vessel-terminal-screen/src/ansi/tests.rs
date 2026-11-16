@@ -160,6 +160,34 @@ fn physical_display_fixture_export() {
         ("cursor-8-steady", 8, 3, "\x1b[8 qeight", None),
         ("cursor-soft-reset", 8, 3, "\x1b[1 qkept\x1b[!pX", None),
         ("cursor-ris", 8, 3, "\x1b[1 qbefore\x1bcafter", None),
+        (
+            "mode-soft-reset",
+            8,
+            3,
+            "\x1b[>3u\x1b[>7u\x1b[?1;2004;9001h\x1b[!pX",
+            None,
+        ),
+        (
+            "alternate-reentry",
+            8,
+            3,
+            "main\x1b[2;3H\x1b[?1049hA\x1b[?1049hB",
+            None,
+        ),
+        (
+            "alternate-47-carry",
+            8,
+            3,
+            "main\x1b[2;3H\x1b[?47hA\x1b[3;4H\x1b[?47lX",
+            None,
+        ),
+        (
+            "alternate-1047-carry",
+            8,
+            3,
+            "main\x1b[2;3H\x1b[?1047hA\x1b[3;4H\x1b[?1047lX",
+            None,
+        ),
     ] {
         let mut engine =
             Screen::new(Size::new(cols, rows).unwrap(), ScrollbackLines::default()).unwrap();
