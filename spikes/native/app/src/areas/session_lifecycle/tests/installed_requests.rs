@@ -213,7 +213,7 @@ fn bundled_request_retirement_and_scoped_records_preserve_only_exact_uncertainty
                 .is_err()
         );
         let unrelated = resolved(PermissionId::random(), EventSeq::ZERO);
-        shell
+        let _unrelated_projection = shell
             .conversation_records_scoped(fresh, &[unrelated])
             .unwrap();
         let resources = shell
@@ -232,7 +232,7 @@ fn bundled_request_retirement_and_scoped_records_preserve_only_exact_uncertainty
                 .conversation_records_scoped(admission.binding, std::slice::from_ref(&exact))
                 .is_err()
         );
-        shell.conversation_records_scoped(fresh, &[exact]).unwrap();
+        let _resolved_projection = shell.conversation_records_scoped(fresh, &[exact]).unwrap();
         let resources = shell
             .areas
             .session_residents

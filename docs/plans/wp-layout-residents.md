@@ -330,3 +330,9 @@ entry. They are unexecuted until the receiving VM checks complete. No delivery
 guard is fabricated: the eventual wire consumer must still check the same
 original lease before effects and after the queue. Rich authoritative Pending
 eligibility remains a required consumer amendment when its DTOs are present.
+
+The first receiving strict run, `wp-layout-core-union-20261116T010146Z-fcc63e99`,
+compiled the requested crate targets but rejected three unused-result lints in
+the App test target: the pre-consume correlation value and two projection-change
+flags. The correction names those deliberately unused values; it changes no
+validation, ordering, callback or assertion. No tests ran in that failed check.
