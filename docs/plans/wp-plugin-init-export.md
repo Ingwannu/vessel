@@ -36,6 +36,11 @@ retained. The three asynchronous subprocess cases now use canonical within
 with a named180s whole-case budget; each actual CLI invocation retains its
 existing named30s phase limit and kill_on_drop behavior. Fakes are prepared by
 within before its clock. The already declared CLI testkit dev edge is reused.
+One additional actual subprocess case checks all four absent management leaves
+and refused explicit raw-log output with the same malformed --node: command
+parser/output-admission refusals must occur before connection or local discovery,
+and the isolated HOME directory must remain empty. It uses the same complete
+case/phase clocks and subprocess helper; there is no second CLI execution path.
 
 Prior evidence remains historical: source05288eae executed112 binary units plus
 3 actual subprocess tests; d9144388 corrected only style/receipts and passed

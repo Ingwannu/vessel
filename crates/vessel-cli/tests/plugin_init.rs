@@ -10,6 +10,10 @@ mod tests {
     const CLI_START_BUDGET: Duration = Duration::from_secs(30);
 
     async fn init(root: &Path, args: &[&str]) -> std::process::Output {
+        invoke(root, &["plugin", "init"], args).await
+    }
+
+    async fn invoke(root: &Path, command_path: &[&str], args: &[&str]) -> std::process::Output {
         let mut command = Command::new(env!("CARGO_BIN_EXE_vessel"));
         let _configured = command
             .env_clear()
@@ -19,7 +23,8 @@ mod tests {
             .env("TMP", root)
             .current_dir(root)
             .kill_on_drop(true)
-            .args(["--node", "ws://[", "plugin", "init"])
+            .args(["--node", "ws://["])
+            .args(command_path)
             .args(args);
         #[cfg(windows)]
         if let Some(system_root) = std::env::var_os("SystemRoot") {
@@ -135,5 +140,42 @@ mod tests {
         })
         .await
         .expect("whole local CLI case settles");
+    }
+
+    #[tokio::test]
+    async fn unsupported_management_and_raw_log_output_refuse_before_node_or_local_effects() {
+        vessel_testkit::within(CASE_BUDGET, async {
+            for leaf in ["install", "logs", "enable", "remove"] {
+                let root = tempfile::tempdir().expect("isolated refusal case");
+                let output = invoke(root.path(), &["plugin", leaf], &["sample", "--json"]).await;
+                assert!(!output.status.success());
+                assert!(output.stdout.is_empty());
+                assert!(
+                    String::from_utf8_lossy(&output.stderr).contains("unrecognized subcommand")
+                );
+                assert_eq!(
+                    std::fs::read_dir(root.path())
+                        .expect("no local effects")
+                        .count(),
+                    0
+                );
+            }
+            let root = tempfile::tempdir().expect("isolated raw log refusal");
+            let output = invoke(root.path(), &["log", "abcd"], &["--json"]).await;
+            assert!(!output.status.success());
+            assert!(output.stdout.is_empty());
+            assert!(
+                String::from_utf8_lossy(&output.stderr)
+                    .contains("does not support explicit output selection")
+            );
+            assert_eq!(
+                std::fs::read_dir(root.path())
+                    .expect("no discovery effects")
+                    .count(),
+                0
+            );
+        })
+        .await
+        .expect("whole refusal case settles");
     }
 }
