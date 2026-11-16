@@ -92,7 +92,7 @@ impl Link {
                 self.emit(Event::FileOperation(request.unsupported()))
             }
             Command::CodeSource(request) => self.emit(Event::CodeSource(Box::new(
-                request.refused(vessel_app_view::workspace::problem::Problem::Older),
+                request.refused(Problem::Older),
             ))),
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
