@@ -429,10 +429,10 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Surface | Owner boundary | Current evidence / remaining work |
 | --- | --- | --- |
 | Workspace creation | W3 new_workspace_current | Source1f95, checked packet pending; no global Draft fallback |
-| Workspace rows, navigation, project create | W11 registry plus S2 visible projection | WorkspaceId present; withdrawn registry carrier absent; runtime registry waits announced base9 and checked native activation packet |
-| Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; targets and both-sidebar adapter pending |
-| Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Checked30a context/exit source adopted in sharedline; native owner source and dispatcher wired, union checks pending |
-| Root Import | W2 open_import | Bounded e1b..b270 candidate:031f strict App/View/Link0 + App import2pass, V1 source clear; wait announced lead adoption before rank2 import-session contribution |
+| Workspace rows, navigation, project create | W11 registry plus S2 visible projection | Canonical WorkspaceId and announced registry values present; a checked native owner projection/activation packet is still absent |
+| Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; canonical target projection remains pending. The corrected both-sidebar owner is adopted with the real caller and checked focus-exit regressions |
+| Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Checked context/exit source adopted in shared line; actual sidebar focus-exit union cases passed in R22. Resource effects still require their owner admission |
+| Root Import | W2 open_import | Announced owner opener adopted; rank2 import-session contribution and receiving Import regressions pass at f49784f8. Native first-use capture remains owed |
 | Root History | W21 Route::Sessions | Screen owner packet pending; no Archive substitute |
 | Root Schedules | G2 Route::Schedules | Source-only, physical admission repair pending; no Settings substitute |
 | Files search/open | W13 FileScope + FileLocation | Pure UI state and existing C5 acquisition available; checked actual connection-scoped opener pending |
@@ -440,12 +440,13 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Plugin items | W16 exact contribution registry + transport | Canonical values and narrow registry source exist; executable product adapter absent |
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
 | Terminal composition admission | C2 actual terminal IME/preedit owner | No production EntityInputHandler/marked-text query yet; keep existing InputPreference + shared Kit guard, no composing=false proof |
-| Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Recorder admission/helper8c052697 and receipts remain unchecked; no second writer or duplicate failure toast |
+| Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Shared keyboard producer1d908fa8 has V4 row295 bounded source PASS and waits lead announced receiving green. E3 adapter/receipt consumer remains unadopted; no second writer or duplicate failure toast |
 | Git/PR command effects | G1 captured owner target, row policy and physical admission | Existing47e compiled adapter is explicitly unpassed; checked original-connection/root/ticket admission correction still pending |
 | Messages mode | W1 existing Searching controller + W12 session-open admission | Base8b window lifetime adopted; prepared selection is UI-only; checked original-connection opening carrier absent, activation acceptance blocked |
 
-Owner-integration rows above remain skeleton. View/Kit/App source and behavioral tests must pass on
-the combined actual head before the final frozen gate/captures/V4 submission.
+These rows distinguish adopted local behavior from unavailable owner effects.
+The full combined package still owes its final frozen gate, inspected captures
+and V4 package review; individual source handoffs do not close F4.
 
 
 The command center's existing frame/search receives bare Up/Down/Enter/Escape
@@ -1112,3 +1113,25 @@ expectation: once the rank2 Import action exists, first Enter must open that
 owned modal while preserving draft route, host selection and unsent input.
 Native first-use capture and the receiving source checks remain separate owed
 evidence; library/source-sheet agreement alone is not native UI/OS approval.
+
+
+## Import receiving evidence (2026-11-16)
+
+At exact f49784f885beda13fe8437ebee1dd3bc4b2cb4e7 on announced base13.1, run
+wp-commands-narrow-20261116T015726Z-f49784f8 recompiled App and Kit and passed
+all-target Clippy with warnings denied. Run
+wp-commands-20261116T015726Z-f49784f8 recompiled the actual App binary and Kit
+library and executed the import-filter selection: App4/0/0 plus Kit2/0/0,
+with421 filtered cases. It exercised first-root Enter opening the sole Import
+modal, retired registration rejection, successful receipt preserving the draft,
+and retained owner callbacks refusing a scope ABA. Kit checked the three-path
+2.2-stroke asset and fractional-scale shape landmarks. The separate frozen
+inventory-prefix case was filtered out; its executed evidence remains the
+producer's full Kit suite, with old receiving vectors source-preserved.
+
+This is narrow receiving evidence, not the whole F4 gate or native glyph
+first-use approval. The first-use capture must use the approved protocol25
+root fleet. Export preparation found that the shared exporter still selects
+the older protocol23 root set despite returning success. That common-tool
+boundary is held with its owner; no old-root export or first-use capture is
+reported as current evidence.
