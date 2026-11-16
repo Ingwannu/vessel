@@ -229,3 +229,15 @@ used: no chmod/chown, account change or process. Tests do not claim actual
 wrong-account ownership, mounted-device or other-platform qualification. These
 new cases, current strict and the selected security delta remain unexecuted until
 the next meaningful suite; prior regular-file/pure-model evidence is separate.
+
+The62c592af regular-file suite actually ran27 cases:26 passed and the held
+same-size/restored-mtime probe's Changed-only expectation failed. Its raw log
+contains no returned value or before/after stamp, so timestamp granularity is
+only a hypothesis, not established cause. A test-only diagnostic records the
+synthetic fixture's numeric metadata and typed result while retaining the exact
+assertion. It contains no real path/content/credential. The full-tree extension
+compares two content hashes independently of this metadata expectation; neither
+has new execution proof yet. The paired strict62 run also refused unchecked
+Instant addition, a64KiB stack buffer and an unconsumed seek result. The extension
+uses checked deadline construction, a bounded heap buffer and asserts the actual
+seek receipt; those changes preserve refusal and the named budgets.

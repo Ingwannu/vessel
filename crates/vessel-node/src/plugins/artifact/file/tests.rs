@@ -43,6 +43,7 @@ fn actual_descriptor_is_nonblocking_and_same_size_restored_time_changes_hash() {
     let cancellation = CancellationToken::new();
     let first = observation.read(&cancellation).expect("first content hash");
     let held = probe(&path);
+    let prepared_stamp = held.stamp();
     assert_eq!(
         file.seek(SeekFrom::Start(0))
             .expect("replace from beginning"),
@@ -57,7 +58,10 @@ fn actual_descriptor_is_nonblocking_and_same_size_restored_time_changes_hash() {
         file.metadata().expect("mtime").modified().expect("time"),
         metadata.modified().expect("original time")
     );
-    assert!(matches!(held.read(&cancellation), Err(Failure::Changed)));
+    let after_stamp = Stamp::from(&file.metadata().expect("rewritten descriptor"));
+    let actual = held.read(&cancellation);
+    eprintln!("prepared={prepared_stamp:?}; after={after_stamp:?}; result={actual:?}");
+    assert!(matches!(actual, Err(Failure::Changed)));
     let second = probe(&path)
         .read(&cancellation)
         .expect("second content hash");
