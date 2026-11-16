@@ -51,7 +51,6 @@ use crate::shutdown::Teardown;
 use crate::terminals::{Ports, Runner, Terminals};
 use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
-use crate::workspace::{Opening, Workspaces};
 
 mod setup;
 
@@ -301,15 +300,15 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
+    let stop = CancellationToken::new();
     #[cfg(target_os = "linux")]
     let (runtime, checkpoint_requests) =
-        setup::checkpoint_runtime(config, loader, setup.private_dir.clone());
+        setup::checkpoint_runtime(config, loader, setup.private_dir.clone(), stop.clone());
     #[cfg(not(target_os = "linux"))]
-    let runtime = setup::runtime(config, loader, setup.private_dir.clone(), None);
+    let runtime = setup::unhooked(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
-    let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -378,23 +377,8 @@ async fn core(
     drop(tasks.spawn(async move {
         lsp_shutdown.stopped().await;
     }));
-    // Clones and setups are the node's tasks: shutdown stops them through
-    // `stop` and waits for them before the store closes.
-    let workspaces = Workspaces::start(
-        Opening {
-            data: config.data_dir.root().to_path_buf(),
-            workspace: setup.workspace_dir,
-            home: config.harness_env.user_home().to_path_buf(),
-            git: config.harness_lookup.find("git"),
-            git_env: Vec::new(),
-            removed: config.terminals.removed.clone().into(),
-        },
-        store.clone(),
-        tasks.clone(),
-        stop.clone(),
-    )
-    .await
-    .map_err(NodeError::Store)?;
+    // Workspace tasks settle before the store closes.
+    let workspaces = setup::workspaces(config, setup.workspace_dir, store, &tasks, &stop).await?;
     #[cfg(target_os = "linux")]
     let checkpoints = crate::checkpoint::start(
         Arc::clone(&sessions),

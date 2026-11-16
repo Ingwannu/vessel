@@ -8,7 +8,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+use tokio_util::sync::CancellationToken;
 use vessel_proto::NodeId;
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 
 use crate::config::Config;
 use crate::fleet::FleetMcp;
@@ -103,34 +105,29 @@ pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
         .map_err(NodeError::ModelClient)
 }
 
-/// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader` and whose direct drivers write a launch's
-/// private files only in `private_dir`.
-pub(super) fn runtime(
+/// Assemble the existing workspace owner without growing transport assembly.
+pub(super) async fn workspaces(
     config: &Config,
-    loader: vessel_session::AttachmentLoader,
-    private_dir: PathBuf,
-    hooks: Option<vessel_session::CheckpointHooks>,
-) -> Arc<vessel_session::SessionRuntime> {
-    let runtime = vessel_session::SessionRuntime::new(
-        vessel_session::RuntimeConfig {
-            harness_lookup: config.harness_lookup.clone(),
-            harness_env: config.harness_env.clone(),
-            ring_capacity: config.ring_capacity,
-            durable_capacity: config.durable_capacity,
-            agent_handshake_timeout: config.agent_handshake_timeout,
-            park_after: config.park_after,
-            private_dir: Some(private_dir),
+    workspace: PathBuf,
+    store: &vessel_store::Store,
+    tasks: &tokio_util::task::TaskTracker,
+    stop: &CancellationToken,
+) -> Result<Arc<crate::workspace::Workspaces>, NodeError> {
+    crate::workspace::Workspaces::start(
+        crate::workspace::Opening {
+            data: config.data_dir.root().to_path_buf(),
+            workspace,
+            home: config.harness_env.user_home().to_path_buf(),
+            git: config.harness_lookup.find("git"),
+            git_env: Vec::new(),
+            removed: config.terminals.removed.clone().into(),
         },
-        tokio_util::sync::CancellationToken::new(),
+        store.clone(),
+        tasks.clone(),
+        stop.clone(),
     )
-    .with_attachments(loader);
-    Arc::new(
-        match vessel_proto::checkpoint::FILE_CHECKPOINTS.and(hooks) {
-            Some(hooks) => runtime.with_checkpoint_hooks(hooks),
-            None => runtime,
-        },
-    )
+    .await
+    .map_err(NodeError::Store)
 }
 
 /// Keep platform capture setup out of the node's transport assembly.
@@ -139,12 +136,27 @@ pub(super) fn checkpoint_runtime(
     config: &Config,
     loader: vessel_session::AttachmentLoader,
     private_dir: PathBuf,
+    admission: CancellationToken,
 ) -> (
     Arc<vessel_session::SessionRuntime>,
     tokio::sync::mpsc::Receiver<vessel_session::CheckpointRequest>,
 ) {
     let (hooks, requests) = vessel_session::CheckpointHooks::channel();
-    (runtime(config, loader, private_dir, Some(hooks)), requests)
+    (
+        runtime(config, loader, private_dir, admission, Some(hooks)),
+        requests,
+    )
+}
+
+/// Unsupported platforms keep the canonical launch fence without capture hooks.
+#[cfg(not(target_os = "linux"))]
+pub(super) fn unhooked(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+    admission: CancellationToken,
+) -> Arc<SessionRuntime> {
+    runtime(config, loader, private_dir, admission, None)
 }
 
 /// The LSP manager's configuration with the operator's roots filled in:
@@ -214,5 +226,64 @@ impl Startup {
             clients,
             relaying,
         })
+    }
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+/// Keep the original early-stop observation when adding staged capture hooks.
+pub(super) fn runtime(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+    admission: CancellationToken,
+    hooks: Option<vessel_session::CheckpointHooks>,
+) -> Arc<SessionRuntime> {
+    let runtime = SessionRuntime::new(
+        RuntimeConfig {
+            harness_lookup: config.harness_lookup.clone(),
+            harness_env: config.harness_env.clone(),
+            ring_capacity: config.ring_capacity,
+            durable_capacity: config.durable_capacity,
+            agent_handshake_timeout: config.agent_handshake_timeout,
+            park_after: config.park_after,
+            private_dir: Some(private_dir),
+        },
+        CancellationToken::new(),
+    )
+    .with_attachments(loader)
+    .with_admission(admission);
+    Arc::new(
+        match vessel_proto::checkpoint::FILE_CHECKPOINTS.and(hooks) {
+            Some(hooks) => runtime.with_checkpoint_hooks(hooks),
+            None => runtime,
+        },
+    )
+}
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+
+    const ATTACHMENT_CAPACITY: usize = 1;
+
+    #[test]
+    fn the_actual_node_factory_observes_the_original_early_stop_token() {
+        let root = tempfile::tempdir().unwrap();
+        let config = Config::new(
+            vessel_store::DataDir::new(root.path()),
+            vessel_harness::HarnessEnv::new(root.path().to_owned()),
+        );
+        let (loader, _loads) = AttachmentLoader::channel(ATTACHMENT_CAPACITY);
+        let stop = CancellationToken::new();
+        let runtime = runtime(&config, loader, root.path().to_owned(), stop.clone(), None);
+        let observed = runtime.launch_admission();
+        assert!(observed.check().is_ok());
+        stop.cancel();
+        assert!(matches!(
+            observed.check(),
+            Err(vessel_session::SessionError::ShuttingDown)
+        ));
     }
 }

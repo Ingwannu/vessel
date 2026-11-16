@@ -156,7 +156,7 @@ pub use handle::{SessionHandle, TitleUpdate};
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use ring::{Follow, FollowError};
-pub use runtime::{Created, ForkStart, LaunchOptions, SessionRuntime};
+pub use runtime::{Created, ForkStart, LaunchAdmission, LaunchOptions, SessionRuntime};
 /// Suggested [`RuntimeConfig::agent_handshake_timeout`].
 pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;
 /// What `SessionRuntime::probe` learned (re-exported so the node needs no
