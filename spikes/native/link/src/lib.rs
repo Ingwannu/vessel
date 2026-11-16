@@ -71,6 +71,7 @@ mod demo;
 pub mod devices;
 pub mod history;
 pub mod node_settings;
+pub mod orchestration;
 pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
@@ -206,6 +207,7 @@ impl Link {
             device_calls: devices::Hub::default(),
             history_calls: history::Hub::default(),
             sync_calls: sync::Hub::default(),
+            orchestration_calls: orchestration::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -274,6 +276,7 @@ struct State {
     device_calls: devices::Hub,
     history_calls: history::Hub,
     sync_calls: sync::Hub,
+    orchestration_calls: orchestration::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).

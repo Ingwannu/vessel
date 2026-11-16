@@ -43,6 +43,7 @@ mod host_agents;
 mod language;
 mod motion;
 mod nav;
+mod orchestration;
 mod overview;
 pub(crate) mod page;
 mod prefer;
@@ -100,6 +101,7 @@ pub(crate) struct SettingsState {
     diagnostics: diagnostics::State,
     host_agents: host_agents::State,
     overview: overview::State,
+    orchestration: orchestration::State,
     /// The book as read for the machine pages (Overview, Connections).
     book: book::BookRead,
     language: language::State,
@@ -131,6 +133,7 @@ impl SettingsState {
             diagnostics: diagnostics::State::new(cx),
             host_agents: host_agents::State::default(),
             overview: overview::State::new(window, cx),
+            orchestration: orchestration::State::new(cx),
             book: book::BookRead::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
@@ -183,11 +186,12 @@ impl Shell {
     /// Each frame, the Settings pages that wait on the window settle what
     /// came in since (devices, sync, the machine's agents, the book that
     /// Overview and Connections show).
-    pub(crate) fn settle_settings(&mut self, window: &Window) {
+    pub(crate) fn settle_settings(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.settle_devices(window);
         self.settle_sync(window);
         self.settle_host_agents(window);
         self.settle_book(window);
+        self.settle_orchestration(window, cx);
     }
 
     /// Open Settings at `section` (pushed on a phone), or at its start
@@ -377,6 +381,7 @@ pub(crate) fn render(
         .children(devices::dialogs(shell, tokens, window, cx))
         .children(diagnostics::dialogs(shell, tokens, window, cx))
         .children(overview::dialogs(shell, tokens, window, cx))
+        .children(orchestration::dialog(shell, tokens, window, cx))
 }
 
 /// The section shown, as a page: its title, a refused change above its

@@ -47,6 +47,7 @@ fn make_state(
         device_calls: crate::devices::Hub::default(),
         history_calls: crate::history::Hub::default(),
         sync_calls: crate::sync::Hub::default(),
+        orchestration_calls: crate::orchestration::Hub::default(),
         offers: std::sync::Arc::default(),
     }
 }

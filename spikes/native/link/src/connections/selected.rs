@@ -157,6 +157,17 @@ impl SelectedConnection {
     pub(crate) fn protocol(&self) -> vessel_proto::ProtocolVersion {
         self.lease.client.protocol()
     }
+    /// Zero-frame support validation on this exact original lease, not a scope verdict.
+    pub(crate) fn check_call(&self, call: &vessel_proto::Call) -> Result<(), RequestFailure> {
+        self.active()?;
+        let result = self
+            .lease
+            .client
+            .check_call(call)
+            .map_err(RequestFailure::Call);
+        self.active()?;
+        result
+    }
     pub(crate) async fn call<R: Unary>(&self, request: R) -> Result<R::Response, RequestFailure> {
         self.guard(self.lease.client.call(request)).await
     }

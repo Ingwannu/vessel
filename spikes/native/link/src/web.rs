@@ -123,6 +123,12 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 ),
             ))),
+            Command::Orchestration(task) => {
+                self.emit(Event::Orchestration(crate::orchestration::Answer::refused(
+                    task,
+                    vessel_app_view::orchestration::Problem::Unsupported,
+                )))
+            }
             Command::RetireConnection(_tag) => {}
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {

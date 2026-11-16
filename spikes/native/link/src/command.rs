@@ -12,7 +12,8 @@
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{
-    Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
+    Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, orchestration,
+    search, workspace,
 };
 use vessel_proto::Delivery;
 use vessel_proto::{
@@ -52,6 +53,8 @@ pub enum Command {
     },
     /// Read or change a machine's own settings.
     NodeSettings(node_settings::Ask),
+    /// Typed host orchestration task shared with onboarding.
+    Orchestration(orchestration::Task),
     /// Read-only sharing status for one selected machine.
     Sync {
         /// Its parsed node-book identity.
