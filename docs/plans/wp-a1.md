@@ -421,3 +421,8 @@ including busy-before-intake, canonical history plus exact scoped text,
 independent sibling edits, bounded retention and original-admission retry.
 Those are state/GPUI test-platform cases, not a live minter/root authority or
 end-to-end creation proof. New receiving-union strict/browser checks remain owed.
+
+The first base13 strict build found the new shared sidebar arrangement match
+missing A1's NewWorkspace route. It now uses the same existing workspace layout
+budget as the Draft route. This selects presentation only and creates no
+workspace identity or root authority. No unrelated sidebar policy changes.
