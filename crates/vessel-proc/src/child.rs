@@ -38,6 +38,10 @@ pub struct Spawned {
 /// Fails if the program cannot be started (on Windows also if its job
 /// object cannot be set up).
 pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
+    spawn_command(spec).map_err(|error| error.with_diagnostics(spec))
+}
+
+fn spawn_command(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
     let mut command = tokio::process::Command::from(spec.to_command());
     let _ = command
         .stdin(Stdio::piped())
@@ -70,7 +74,7 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
         program: program(),
         source,
     })?;
-    tracing::debug!(pid, program = %spec.program.display(), "spawned");
+    tracing::debug!(pid, program = %spec.diagnostic_program().display(), "spawned");
 
     Ok(Spawned {
         child: Child {
