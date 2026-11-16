@@ -1,12 +1,14 @@
 //! One Plan Markdown body serves the stream and the approval dock. The caller
 //! owns disclosure and actions so displaying a plan can never approve it.
 
+use vessel_app_kit::chat_markdown::actions::CopyStyle;
+use vessel_app_kit::chat_markdown::{Options, chat_markdown_with};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, chat_markdown, version_of};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, version_of};
 use vessel_app_view::localization::TimelinePlan;
 use vessel_app_view::timeline::{PlanExpansion, PlanOutcome};
 
@@ -82,11 +84,17 @@ pub(crate) fn card(
                     .text_color(tokens.neutral.foreground_muted)
                     .child(description.to_owned())
             }))
-            .child(chat_markdown(
+            .child(chat_markdown_with(
                 card.id,
                 card.text,
                 version_of(card.text),
-                None,
+                Options {
+                    marks: None,
+                    actions: Some(super::markdown_actions::unavailable(
+                        words.image_unavailable(),
+                    )),
+                    copy: CopyStyle::Plain,
+                },
                 tokens,
                 window,
                 cx,

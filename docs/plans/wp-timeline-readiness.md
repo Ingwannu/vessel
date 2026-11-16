@@ -118,8 +118,9 @@ minimal packet; the complete A7 renderer still needs its final gate/captures/V4.
    transcript watermarks. Exact owner reads/canonical metadata and settlement/loss
    govern it; resolved records beat stale live data. A7 adds no read registry.
 6. **Semantic output and actions:** K supplies the single syntax mapping/resolver;
-   B2/W6/W13 supply actual scoped links/images/root authorization. Actions remain
-   None until then; no copied palette, opener or selected-route fallback.
+   B2/W6/W13 supply actual scoped links/images/root authorization. Positive host actions remain unavailable; the explicit shared refusal policy
+   intercepts every link and immediately rejects every image URI/data source. No
+   copied palette, opener or selected-route fallback is introduced.
    The selectable user-prompt draft stays isolated: the current HTML TextView
    rejects rendered find/reveal ranges and its highlight type has no current-ink
    override. B2 must coordinate one opt-in capability in that same engine. A
@@ -205,3 +206,14 @@ second permission projection or optimistic manager. The incoming SessionResource
 constructor owns the shared staged request resource; A7 fixture construction uses
 that constructor and retains its reasoning/display setup. All new shared request
 modules keep their incoming literal cfg(test) guard.
+
+## Explicit unavailable Markdown host
+
+B2 identified the pinned engine's default open_url and URI/data image behavior
+when Actions=None. Assistant and shared Plan card now supply the one explicit
+refusal policy: all links are intercepted, all images return the existing C5
+stateless localized Asset error. External links are intentionally unavailable
+until a checked scoped host exists. The public-helper/fake-platform tests are
+authored but unexecuted. L accepted the exact new generic EN/KO image label at
+ea070ac65 (words/key/context only); no image/permission/runtime approval follows.
+W4 owns its independent legacy permission Markdown adaptation.

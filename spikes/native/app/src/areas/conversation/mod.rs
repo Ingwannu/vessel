@@ -60,6 +60,7 @@ mod footer;
 mod fork;
 mod intake;
 mod look;
+mod markdown_actions;
 mod meter;
 mod motion;
 mod notices;
