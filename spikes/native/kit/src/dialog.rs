@@ -50,6 +50,7 @@ mod compact_tests;
 #[cfg(test)]
 mod configuration_tests;
 mod header_content;
+mod header_search;
 #[cfg(test)]
 mod header_search_tests;
 mod layout;
@@ -58,7 +59,8 @@ mod sheet;
 #[cfg(test)]
 mod title_wrap_tests;
 
-pub use header_content::{DialogInput, HeaderSearch};
+pub use header_content::DialogInput;
+pub use header_search::HeaderSearch;
 pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
 
 use crate::assets::Glyph;
@@ -393,7 +395,7 @@ fn header<V: 'static>(
             .border_b_1()
             .border_color(surfaces.surface2)
             .child(row)
-            .child(header_content::search_row(
+            .child(header_search::search_row(
                 search,
                 INSIDE,
                 surfaces.foreground_muted,
