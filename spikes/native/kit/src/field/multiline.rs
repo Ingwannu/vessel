@@ -8,8 +8,8 @@
 //! - Why/cost: no second subscription/textarea or visit counter; moving the
 //!   constructors and `SendOn` together keeps registration headroom in the root.
 use super::{
-    Callbacks, FormMinimum, Handlers, Kind, Known, MultilineStyle, TextField, TextareaState,
-    listen, register,
+    Callbacks, FormMinimum, Handlers, Kind, MultilineStyle, TextField, TextareaState, composition,
+    listen,
 };
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
@@ -130,7 +130,7 @@ impl TextField {
             window,
             cx,
         );
-        register(Known::Lines(state.downgrade()));
+        composition::lines(&state);
         Self {
             kind: Kind::Lines(state, style),
             focused,

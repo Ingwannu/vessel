@@ -1918,3 +1918,11 @@ the session-owned ConversationArea. Existing Shell search calls, the link and
 the renderer keep their interfaces. Replacing a conversation resident therefore
 preserves debounce, query tickets and merged cross-machine replies. The isolated
 prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
+
+## Native keyboard ownership
+
+The native keyboard receiving boundary is documented in
+[the keyboard mechanics plan](plans/wp-commands-keyboard-producer.md). One
+view registry/engine projects effective bindings, and one app interceptor
+resolves them to generation-specific feature callbacks. Kit popup focus and
+composition are admission facts; action metadata grants no resource authority.

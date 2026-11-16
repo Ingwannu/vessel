@@ -21,6 +21,9 @@
 
 use serde::{Deserialize, Serialize};
 
+mod toolkit;
+pub use toolkit::code_of;
+
 /// The two conventions shortcuts are shown and matched by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Platform {
@@ -86,7 +89,7 @@ pub struct Binding {
 }
 
 /// The keys written by name.
-const NAMED: [&str; 26] = [
+const NAMED: [&str; 28] = [
     "Enter",
     "Escape",
     "Tab",
@@ -101,6 +104,8 @@ const NAMED: [&str; 26] = [
     "End",
     "PageUp",
     "PageDown",
+    "Insert",
+    "Digit",
     "F1",
     "F2",
     "F3",
@@ -119,10 +124,10 @@ const NAMED: [&str; 26] = [
 const MODIFIERS: [&str; 5] = ["Mod", "Ctrl", "Alt", "Shift", "Meta"];
 
 /// The longest binding an override keeps.
-pub const MAX_BINDING: usize = 32;
+pub const MAX_BINDING: usize = super::sequence::MAX_SEQUENCE_BYTES;
 
 /// The printable keys, as a US keyboard shows them without Shift.
-const SIGNS: &str = "`-=[]\\;',./";
+const SIGNS: &str = "`-=[]\\;',./?";
 
 fn single(key: &str) -> Option<char> {
     let mut chars = key.chars();
@@ -221,12 +226,28 @@ fn chord_text(chord: &Chord) -> String {
 
 /// The modifiers a chord holds on `platform`, `Mod` resolved: Command and
 /// Control on a Mac, Control and the Windows key elsewhere.
-const fn held(chord: &Chord, platform: Platform) -> [bool; 4] {
+pub(super) const fn held(chord: &Chord, platform: Platform) -> [bool; 4] {
     let (command, control) = match platform {
         Platform::Mac => (chord.primary || chord.meta, chord.ctrl),
         Platform::Other => (chord.meta, chord.primary || chord.ctrl),
     };
     [command, control, chord.alt, chord.shift]
+}
+
+/// Primary-command identity after Mod/Ctrl/Meta resolution; Shift is separate
+/// because host-reserved chords and editing chords have different shift rules.
+pub(super) fn primary_command(chord: &Chord, platform: Platform) -> bool {
+    let [command, control, alt, _shift] = held(chord, platform);
+    match platform {
+        Platform::Mac => command && !control && !alt,
+        Platform::Other => control && !command && !alt,
+    }
+}
+
+pub(super) fn native_editing(chord: &Chord, platform: Platform) -> bool {
+    primary_command(chord, platform)
+        && !chord.shift
+        && ["A", "C", "V", "X", "Z"].contains(&chord.key.as_str())
 }
 
 /// Whether two chords are the same keys on `platform`.
@@ -240,13 +261,11 @@ pub fn same_chord(one: &Chord, two: &Chord, platform: Platform) -> bool {
 /// other.
 #[must_use]
 pub fn overlaps(one: &Binding, two: &Binding, platform: Platform) -> bool {
-    if !same_chord(&one.first, &two.first, platform) {
-        return false;
-    }
-    match (&one.then, &two.then) {
-        (Some(one), Some(two)) => same_chord(one, two, platform),
-        (None, _) | (_, None) => true,
-    }
+    super::sequence_capture::sequences_overlap(
+        &super::sequence::KeySequence::from_binding(one),
+        &super::sequence::KeySequence::from_binding(two),
+        platform,
+    )
 }
 
 /// Whether a chord holds a modifier that makes it a command rather than
@@ -300,125 +319,93 @@ const CODES: [(&str, &str); 16] = [
 /// when that is a letter or a digit.
 #[must_use]
 pub fn key_of(press: &KeyPress) -> Option<String> {
-    let code = press.code.as_str();
+    logical_key(&press.key)
+        .or_else(|| physical_key(&press.code))
+        .map(|key| key.0)
+}
+
+/// A validated key name stays typed between input-boundary helpers.
+#[derive(Debug, Clone)]
+pub(super) struct KeyName(String);
+
+impl KeyName {
+    pub(super) fn chord(self, press: &KeyPress, platform: Platform) -> Chord {
+        let mac = platform == Platform::Mac;
+        Chord {
+            primary: if mac { press.meta } else { press.ctrl },
+            ctrl: mac && press.ctrl,
+            alt: press.alt,
+            shift: press.shift,
+            meta: !mac && press.meta,
+            key: self.0,
+        }
+    }
+}
+
+pub(super) fn logical_key(text: &str) -> Option<KeyName> {
+    if text == " " {
+        return Some(KeyName("Space".to_owned()));
+    }
+    if let Some((_, name)) = CODES.iter().find(|(code, _)| *code == text) {
+        return Some(KeyName((*name).to_owned()));
+    }
+    if NAMED.contains(&text) {
+        return Some(KeyName(text.to_owned()));
+    }
+    if let Some(value) = single(text) {
+        if value.is_ascii_alphabetic() {
+            return Some(KeyName(value.to_ascii_uppercase().to_string()));
+        }
+        if let Some((_, code)) = toolkit::SHIFTED.iter().find(|(sign, _)| *sign == value) {
+            return physical_key(code);
+        }
+        if value.is_ascii_digit() || SIGNS.contains(value) {
+            return Some(KeyName(value.to_string()));
+        }
+    }
+    None
+}
+
+pub(super) fn logical_event_key(text: &str) -> Option<KeyName> {
+    if single(text).is_some_and(|value| toolkit::SHIFTED.iter().any(|(sign, _)| *sign == value)) {
+        return Some(KeyName(text.to_owned()));
+    }
+    logical_key(text)
+}
+
+pub(super) fn shifted_key_matches(wanted: &str, actual: &str) -> bool {
+    single(actual)
+        .and_then(|value| toolkit::SHIFTED.iter().find(|(sign, _)| *sign == value))
+        .and_then(|(_, code)| physical_key(code))
+        .is_some_and(|key| key.0 == wanted)
+}
+
+pub(super) fn physical_key(code: &str) -> Option<KeyName> {
     let letter = code
         .strip_prefix("Key")
         .and_then(single)
         .filter(char::is_ascii_uppercase);
     let digit = code
         .strip_prefix("Digit")
+        .or_else(|| code.strip_prefix("Numpad"))
         .and_then(single)
         .filter(char::is_ascii_digit);
     if let Some(found) = letter.or(digit) {
-        return Some(found.to_string());
+        return Some(KeyName(found.to_string()));
     }
     if let Some((_, key)) = CODES.iter().find(|(name, _)| *name == code) {
-        return Some((*key).to_owned());
+        return Some(KeyName((*key).to_owned()));
     }
-    if NAMED.contains(&code) {
-        return Some(code.to_owned());
-    }
-    if code.is_empty() {
-        let typed = press.key.to_uppercase();
-        return single(&typed)
-            .is_some_and(|one| one.is_ascii_uppercase() || one.is_ascii_digit())
-            .then_some(typed);
-    }
-    None
-}
-
-/// Shifted signs on a US keyboard, by the position they are typed at
-/// (a platform may name a shifted key by what it types: `?` for Slash).
-const SHIFTED: [(char, &str); 21] = [
-    ('~', "Backquote"),
-    ('!', "Digit1"),
-    ('@', "Digit2"),
-    ('#', "Digit3"),
-    ('$', "Digit4"),
-    ('%', "Digit5"),
-    ('^', "Digit6"),
-    ('&', "Digit7"),
-    ('*', "Digit8"),
-    ('(', "Digit9"),
-    (')', "Digit0"),
-    ('_', "Minus"),
-    ('+', "Equal"),
-    ('{', "BracketLeft"),
-    ('}', "BracketRight"),
-    ('|', "Backslash"),
-    (':', "Semicolon"),
-    ('"', "Quote"),
-    ('<', "Comma"),
-    ('>', "Period"),
-    ('?', "Slash"),
-];
-
-/// The app's toolkit's names for keys that have a name (lower case), by
-/// their position.
-const TOOLKIT: [(&str, &str); 14] = [
-    ("enter", "Enter"),
-    ("escape", "Escape"),
-    ("tab", "Tab"),
-    ("space", "Space"),
-    ("backspace", "Backspace"),
-    ("delete", "Delete"),
-    ("up", "ArrowUp"),
-    ("down", "ArrowDown"),
-    ("left", "ArrowLeft"),
-    ("right", "ArrowRight"),
-    ("home", "Home"),
-    ("end", "End"),
-    ("pageup", "PageUp"),
-    ("pagedown", "PageDown"),
-];
-
-/// The position of a key as the app's toolkit names it (`"k"`, `"K"`,
-/// `"?"`, `"pageup"`, `"f5"`), in the DOM's terms (`"KeyK"`, `"Slash"`,
-/// `"PageUp"`, `"F5"`); empty when it has none a binding can name. Its
-/// letters and signs are those of a US keyboard: the toolkit already
-/// reads another layout's key as the US key at its place.
-#[must_use]
-pub fn code_of(key: &str) -> String {
-    if let Some(one) = single(key) {
-        if one.is_ascii_alphabetic() {
-            return format!("Key{}", one.to_ascii_uppercase());
-        }
-        if one.is_ascii_digit() {
-            return format!("Digit{one}");
-        }
-        if let Some((code, _)) = CODES.iter().find(|(_, sign)| single(sign) == Some(one)) {
-            return (*code).to_owned();
-        }
-        if let Some((_, code)) = SHIFTED.iter().find(|(sign, _)| *sign == one) {
-            return (*code).to_owned();
-        }
-        return String::new();
-    }
-    let lower = key.to_ascii_lowercase();
-    if let Some((_, code)) = TOOLKIT.iter().find(|(name, _)| *name == lower) {
-        return (*code).to_owned();
-    }
-    let function = lower
-        .strip_prefix('f')
-        .and_then(|number| number.parse::<u8>().ok())
-        .filter(|number| (1..=12).contains(number));
-    function.map_or_else(String::new, |number| format!("F{number}"))
+    NAMED.contains(&code).then(|| KeyName(code.to_owned()))
 }
 
 /// A key press as a chord on `platform`; `None` for a modifier alone or a
 /// key no binding can name.
 #[must_use]
 pub fn chord_of(press: &KeyPress, platform: Platform) -> Option<Chord> {
-    let key = key_of(press)?;
-    let mac = platform == Platform::Mac;
-    Some(Chord {
-        primary: if mac { press.meta } else { press.ctrl },
-        ctrl: mac && press.ctrl,
-        alt: press.alt,
-        shift: press.shift,
-        meta: !mac && press.meta,
-        key,
-    })
+    logical_key(&press.key)
+        .or_else(|| physical_key(&press.code))
+        .map(|key| key.chord(press, platform))
 }
 
 /// One chord's caps on `platform`: a Mac's glyphs (⌃⌥⇧⌘ then the key),
@@ -431,6 +418,7 @@ pub fn chord_caps(chord: &Chord, platform: Platform) -> Vec<String> {
         "Left" => "←",
         "Right" => "→",
         "Escape" => "Esc",
+        "Digit" => "1–9",
         other => other,
     };
     let held = match platform {

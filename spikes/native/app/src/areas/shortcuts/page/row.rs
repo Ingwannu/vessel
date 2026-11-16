@@ -1,5 +1,5 @@
-//! One row of a section (Paseo's `ShortcutRow`).
-
+//! One canonical binding row uses the engine's keys and capture projection.
+use crate::shell::Shell;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
@@ -8,89 +8,82 @@ use vessel_app_kit::ui::{
     div, px, svg,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
-use vessel_app_view::shortcuts::{
-    Action, Capture, Chord, Platform, Verdict, binding_words, bindings_of, chord_caps, jump_shown,
-};
-
-use crate::shell::Shell;
-
-/// The widest a refused key's reason is drawn beside the keys, points.
+use vessel_app_view::prefs::ActionId;
+use vessel_app_view::shortcuts::definitions::Definition;
+use vessel_app_view::shortcuts::engine::EffectiveBinding;
+use vessel_app_view::shortcuts::sequence_capture::{CaptureFault, CaptureVerdict, SequenceCapture};
+use vessel_app_view::shortcuts::{Action, Chord, Platform, action_label, chord_caps};
 const WHY_MOST: f32 = 260.0;
-
-/// Paseo's `menuSlot` and `menuButton`: 32 by 32.
 const SLOT: f32 = 32.0;
 
 pub(super) fn row(
     shell: &Shell,
-    action: Action,
+    definition: &Definition<Action>,
+    bindings: &[EffectiveBinding<Action>],
     first: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let neutral = tokens.neutral;
-    let words = shell.t.lang.shortcuts();
+    let words = shell.words.shortcuts();
     let capture = shell
         .areas
         .shortcuts
         .page
         .capture
         .as_ref()
-        .filter(|capture| capture.action == action);
+        .filter(|capture| capture.binding == definition.id);
     let label = div()
         .flex_1()
         .min_w_0()
         .type_(Type::Body)
         .text_color(neutral.foreground)
-        .child(words.label(action));
+        .child(action_label(definition.action, shell.words));
     let right = div()
         .flex()
         .flex_row()
-        .flex_none()
+        .flex_wrap()
+        .justify_end()
+        .max_w(px(WHY_MOST))
         .items_center()
         .gap(px(spacing::S2));
-    let right = match capture {
-        Some(capture) => {
-            let platform = Platform::native();
-            let verdict = capture.verdict(&shell.prefs.settings.shortcuts, platform);
-            let can_save = matches!(verdict, Verdict::Ready | Verdict::Reassign(_));
-            right
-                .child(capturing_keys(shell, capture, verdict, tokens))
-                .when(capture.chord.is_some(), |right| {
-                    right.child(
-                        button_with_kind(
-                            "shortcut-done",
-                            words.done,
-                            ButtonKind::Ghost,
-                            if can_save {
-                                ButtonState::Enabled
-                            } else {
-                                ButtonState::Disabled
-                            },
-                            tokens,
-                        )
-                        .when(can_save, |button| {
-                            button.on_click(cx.listener(|shell, _event, window, cx| {
-                                shell.shortcut_done(window, cx);
-                            }))
-                        }),
-                    )
-                })
-                .child(
-                    button_with_kind(
-                        "shortcut-cancel",
-                        words.cancel,
-                        ButtonKind::Ghost,
-                        ButtonState::Enabled,
-                        tokens,
-                    )
-                    .on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.shortcut_cancel(cx);
-                    })),
+    let right = if let Some(capture) = capture {
+        let verdict = super::editing::verdict(shell, capture);
+        let can_save = matches!(verdict, CaptureVerdict::Ready { .. });
+        right
+            .child(capturing_keys(shell, capture, &verdict, tokens))
+            .child(
+                button_with_kind(
+                    "shortcut-done",
+                    words.done(),
+                    ButtonKind::Ghost,
+                    if can_save {
+                        ButtonState::Enabled
+                    } else {
+                        ButtonState::Disabled
+                    },
+                    tokens,
                 )
-        }
-        None => right
-            .child(keys(shell, action, tokens))
-            .child(menu_slot(action, tokens, cx)),
+                .when(can_save, |button| {
+                    button.on_click(
+                        cx.listener(|shell, _event, window, cx| shell.shortcut_done(window, cx)),
+                    )
+                }),
+            )
+            .child(
+                button_with_kind(
+                    "shortcut-cancel",
+                    words.cancel(),
+                    ButtonKind::Ghost,
+                    ButtonState::Enabled,
+                    tokens,
+                )
+                .on_click(cx.listener(|shell, _event, _window, cx| shell.shortcut_cancel(cx))),
+            )
+    } else {
+        right
+            .child(keys(shell, definition, bindings, tokens))
+            .child(menu_button(&definition.id, tokens, cx))
     };
     div()
         .flex()
@@ -104,113 +97,16 @@ pub(super) fn row(
         .child(label)
         .child(right)
 }
-
-/// The action's keys: one group of badges per binding (Paseo's
-/// `Shortcut`), or "Not set".
-fn keys(shell: &Shell, action: Action, tokens: &Tokens) -> Div {
-    let platform = Platform::native();
-    let joiner = match platform {
-        Platform::Mac => "",
-        Platform::Other => "+",
-    };
-    let caps = |chord: &Chord| -> SharedString { chord_caps(chord, platform).join(joiner).into() };
-    let bindings: Vec<Vec<SharedString>> = if action.fixed() {
-        vec![vec![caps(&jump_shown())]]
-    } else {
-        bindings_of(action, &shell.prefs.settings.shortcuts)
-            .iter()
-            .map(|binding| binding.chords().map(caps).collect())
-            .collect()
-    };
-    if bindings.is_empty() {
-        return div()
-            .type_(Type::Body)
-            .text_color(tokens.neutral.foreground_muted)
-            .child(shell.t.lang.shortcuts().unassigned);
-    }
-    div()
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(spacing::S2))
-        .children(bindings.iter().enumerate().flat_map(|(at, chords)| {
-            // Two keys read as two: G M, or G F (not G M G F).
-            let or = (at > 0).then(|| {
-                div()
-                    .type_(Type::Meta)
-                    .text_color(tokens.neutral.foreground_muted)
-                    .child(shell.t.lang.shortcuts().or)
-                    .into_any_element()
-            });
-            or.into_iter().chain(std::iter::once(
-                vessel_app_kit::command::key_badges(chords, tokens).into_any_element(),
-            ))
-        }))
-}
-
-/// While recording: the key pressed, or the prompt; under it why the
-/// key cannot be used, when it cannot.
-fn capturing_keys(shell: &Shell, capture: &Capture, verdict: Verdict, tokens: &Tokens) -> Div {
+fn menu_button(id: &ActionId, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let id = id.clone();
     let neutral = tokens.neutral;
-    let words = shell.t.lang.shortcuts();
-    let platform = Platform::native();
-    let joiner = match platform {
-        Platform::Mac => "",
-        Platform::Other => "+",
-    };
-    let shown = capture.chord.as_ref().map_or_else(
-        || {
-            div()
-                .type_(Type::Body)
-                .text_color(neutral.foreground_muted)
-                .child(words.capture_prompt)
-        },
-        |chord| {
-            let caps: SharedString = chord_caps(chord, platform).join(joiner).into();
-            vessel_app_kit::command::key_badges(&[caps], tokens)
-        },
-    );
-    let why = match verdict {
-        Verdict::Refused(refused) => Some(words.refusal(refused).to_owned()),
-        Verdict::Clashes(clash) => Some(
-            words.clash(
-                clash,
-                &capture
-                    .chord
-                    .as_ref()
-                    .map(|chord| binding_words(&super::chord_binding(chord), platform, words.then))
-                    .unwrap_or_default(),
-                capture.action,
-            ),
-        ),
-        Verdict::Waiting | Verdict::Ready | Verdict::Reassign(_) => None,
-    };
-    div()
-        .flex()
-        .flex_col()
-        .items_end()
-        .gap(px(spacing::S1))
-        .child(shown)
-        .children(why.map(|why| {
-            div()
-                .max_w(px(WHY_MOST))
-                .type_(Type::Meta)
-                .text_color(neutral.destructive)
-                .child(why)
-        }))
-}
-
-/// Paseo's fixed menu slot: the "…" button, or empty for a fixed row
-/// so every row's keys keep one rail.
-fn menu_slot(action: Action, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let neutral = tokens.neutral;
-    let slot = div().size(px(SLOT)).flex_none();
-    if action.fixed() {
-        return slot;
-    }
-    slot.child(
+    div().size(px(SLOT)).flex_none().child(
         div()
-            .id(SharedString::from(format!("shortcut-menu-{}", action.id())))
+            .id(SharedString::from(format!("shortcut-menu-{id}")))
+            .debug_selector({
+                let id = id.clone();
+                move || format!("shortcut-menu-{id}")
+            })
             .size(px(SLOT))
             .flex()
             .items_center()
@@ -228,8 +124,129 @@ fn menu_slot(action: Action, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Di
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                    shell.shortcut_menu(action, event.position, window, cx);
+                    shell.shortcut_menu(id.clone(), event.position, window, cx);
                 }),
             ),
     )
+}
+
+fn keys(
+    shell: &Shell,
+    definition: &Definition<Action>,
+    bindings: &[EffectiveBinding<Action>],
+    tokens: &Tokens,
+) -> Div {
+    let bindings: Vec<_> = bindings
+        .iter()
+        .filter(|binding| binding.id == definition.id)
+        .collect();
+    if bindings.is_empty() {
+        return div()
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(shell.words.shortcuts().unassigned());
+    }
+    div()
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .items_center()
+        .justify_end()
+        .gap(px(spacing::S2))
+        .children(bindings.iter().enumerate().flat_map(|(at, binding)| {
+            let or = (at > 0).then(|| {
+                div()
+                    .type_(Type::Meta)
+                    .text_color(tokens.neutral.foreground_muted)
+                    .child(shell.words.shortcuts().or())
+                    .into_any_element()
+            });
+            or.into_iter().chain(std::iter::once(
+                wrapped_caps(
+                    vessel_app_view::shortcuts::help::display_caps(
+                        definition.action,
+                        &binding.keys,
+                        vessel_app_view::shortcuts::modified(
+                            definition.action,
+                            &shell.prefs.settings.shortcuts,
+                        ),
+                        Platform::native(),
+                    )
+                    .into_iter()
+                    .map(|caps| {
+                        SharedString::from(caps.join(if Platform::native() == Platform::Mac {
+                            ""
+                        } else {
+                            "+"
+                        }))
+                    })
+                    .collect::<Vec<_>>(),
+                    tokens,
+                )
+                .into_any_element(),
+            ))
+        }))
+}
+fn caps<'a>(chords: impl Iterator<Item = &'a Chord>, tokens: &Tokens) -> Div {
+    let joiner = if Platform::native() == Platform::Mac {
+        ""
+    } else {
+        "+"
+    };
+    let caps: Vec<SharedString> = chords
+        .map(|chord| chord_caps(chord, Platform::native()).join(joiner).into())
+        .collect();
+    wrapped_caps(caps, tokens)
+}
+
+// Each chord stays intact, while a 16-step user sequence can wrap inside the
+// Settings row. The shared badge renderer remains the only cap renderer.
+fn wrapped_caps(caps: Vec<SharedString>, tokens: &Tokens) -> Div {
+    div()
+        .flex()
+        .flex_wrap()
+        .min_w_0()
+        .max_w(px(WHY_MOST))
+        .justify_end()
+        .gap(px(spacing::S1))
+        .children(
+            caps.into_iter()
+                .map(|cap| vessel_app_kit::command::key_badges(&[cap], tokens)),
+        )
+}
+fn capturing_keys(
+    shell: &Shell,
+    capture: &SequenceCapture,
+    verdict: &CaptureVerdict,
+    tokens: &Tokens,
+) -> Div {
+    let words = shell.words.shortcuts();
+    let shown = if capture.chords().next().is_some() {
+        caps(capture.chords(), tokens)
+    } else {
+        div()
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(words.capture())
+    };
+    let why = match verdict {
+        CaptureVerdict::IndexRequired => Some(words.index_required()),
+        CaptureVerdict::Refused(CaptureFault::Editing) => Some(words.editing()),
+        CaptureVerdict::Refused(CaptureFault::HostReserved) => Some(words.kept()),
+        CaptureVerdict::Refused(CaptureFault::Sequence(_)) => Some(words.too_long()),
+        CaptureVerdict::Waiting | CaptureVerdict::Ready { .. } => None,
+    };
+    div()
+        .flex()
+        .flex_col()
+        .items_end()
+        .gap(px(spacing::S1))
+        .child(shown)
+        .children(why.map(|why| {
+            div()
+                .max_w(px(WHY_MOST))
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.destructive)
+                .child(why)
+        }))
 }
