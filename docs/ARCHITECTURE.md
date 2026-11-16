@@ -1924,3 +1924,10 @@ by final structured/terminal spawn and external preparation observers; it grants
 no permission or current-run authority. The Node factory lives beside setup so
 this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
 this standalone prerequisite (ADR 0064 and launch-admission plan).
+
+Standalone timeline recovery/presentation values extend the already adopted body
+and notice vocabulary without attaching fields or calls. Private consumers can
+retain the exact original typed request and actor binding, and test generic
+approval/question presentation. No DTO constructs runtime authority, admission,
+provider offers or delivery; those remain with the existing session/receipt
+owner. See timeline-recovery-values.md for the exact portable boundary and proof.
