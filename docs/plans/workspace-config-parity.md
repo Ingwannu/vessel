@@ -595,3 +595,10 @@ selection, migration and method contracts remain unchanged, and no local
 runtime module is activated. The corrected deadline fixture is still checked
 on its earlier immutable commit; that receipt will not qualify this new
 composition. Service value/SDK work remains in the separate values tree.
+
+The subsequent announced caller-drop/plugin dependency head is merged with
+its migration sequence and policies unchanged. The corrected deadline test's
+original immutable suite has now finished: all terminal cases passed,
+including the blocked-inspection deadline and safe worker diagnostics. This
+settles that narrow test hang only; it does not qualify this merged runtime
+composition, real ownership sources, a browser engine or a service caller.
