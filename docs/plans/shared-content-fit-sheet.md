@@ -132,3 +132,17 @@ not assert Gorhom's complete internal resize algorithm. Three new normal-motion
 regressions cover the initial frame, immediate resting resize, partial openness
 and closing/closed remeasure. They are installed and unexecuted; reduced-motion
 tests alone would hide the transient gap.
+
+## Quota-stop resume checkpoint
+
+Current source0892340a911fb9c10c00d1c43f71b467fad5374b includes announced b54
+(README prose union only). It is UNCOMPILED/UNEXECUTED. Exact strict, all new
+physics/input/real GPUI tests, V1 source/runtime review, menu integration and
+consumer first-use remain owed. Old authored SnapPoints/Dialog tests are not
+relabelled as proof for measured content. No second focus/lease/frame is added.
+
+No content-fit run was submitted. Existing placement025223/3958 is the sole
+S2 job, then Main's changed receiving strict/one runtime replacement remain.
+Resume from Main docs/plans/wp-f4-sidebar-resume.md on backend/m12-wp-sidebar
+and inspect all recorded jobs before submitting; latest14.4 is intentionally
+not merged in this quota stop. No app/fleet/display or new local Cargo exists.
