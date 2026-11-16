@@ -15,11 +15,11 @@ struct Pending {
 }
 #[derive(Debug, Default)]
 pub(super) struct State {
-    pub shown: Option<Tip>,
+    pub(super) shown: Option<Tip>,
     pending: Option<Pending>,
 }
 impl State {
-    pub fn refresh_trigger(
+    pub(super) fn refresh_trigger(
         &mut self,
         place: &Place,
         trigger: &Rc<()>,
@@ -42,11 +42,11 @@ impl State {
             tip.configuration = configuration;
         }
     }
-    pub fn dismiss(&mut self) {
+    pub(super) fn dismiss(&mut self) {
         self.shown = None;
         self.pending = None;
     }
-    pub fn leave(&mut self, place: &Place) {
+    pub(super) fn leave(&mut self, place: &Place) {
         if self
             .pending
             .as_ref()
