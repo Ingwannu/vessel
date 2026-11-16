@@ -203,3 +203,20 @@ No new slice, control, merge or long VM run is authorized during the quota stop.
 Before exiting, stop only verified OWN local attach readers/fake displays/fleets
 by their recorded PIDs. Do not kill another worker or an acquired remote gate.
 Remote run IDs remain valid for later result recovery even after detaching.
+
+## Quota-stop closeout
+
+A coherent wip checkpoint was committed before stopping. No new slice, merge
+or VM run was started after the warning. Neither current execution produced a
+terminal result before local detachment: baseline was last observed queued14
+at03:39 UTC; official TS generation queued50 at03:42 UTC. Candidate has not run.
+Do not reinterpret queue/setup state as the required causal failure or pass.
+
+Only verified OWN local attach readers and their sleep children were terminated
+by PID; the readers' absence was checked afterward. No fake fleet or virtual
+display was started in this session. Neither remote gate was cancelled: recover
+its existing exact run after resumption, even if it completed while stopped.
+The local worker STATE and cleanup receipt record exact reader PIDs and UTC.
+All source trees remain committed and clean. No repository push, deployment,
+service account/permission change, actual external URL open or device capture
+was performed.
