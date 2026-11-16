@@ -88,9 +88,9 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
-            Command::CodeSource(request) => self.emit(Event::CodeSource(Box::new(
-                request.refused(Problem::Older),
-            ))),
+            Command::CodeSource(request) => {
+                self.emit(Event::CodeSource(Box::new(request.refused(Problem::Older))))
+            }
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
                 vessel_app_view::history::Problem::Unsupported,
