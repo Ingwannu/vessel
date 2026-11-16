@@ -51,7 +51,8 @@ Branch backend/m12-b1-b2-input-packet has a committed resume at
 announced14.2 c6d8df49, exact official root, with the B2/A1/B1 receiving adapters.
 Its latest current-slice correction is WIP9f16a720a after actual strict57/60/61 failures.
 The final App-only current-slice strict62 was submitted for binding-only fixture cleanup;
-inspect its actual run-id/state before doing anything. Common runtime and wasm
+App-only Clippy62 passed on9f16a720a (wp-composer-common-20261116T035202Z-9f16a720);
+no full receiving validation is implied. All recorded W6 runs are terminal. Common runtime and wasm
 were NEVER submitted and remain owed. Do not borrow Main's1404 or old bag tests.
 
 B2/W3 wait on a checked common packet; W12's e02335372+0d8df377 empty cfg(test)
