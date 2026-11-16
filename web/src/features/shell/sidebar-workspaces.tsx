@@ -23,6 +23,7 @@ import { LabelChips } from "../workspace-labels/chip";
 import { CreateLabelDialog } from "../workspace-labels/create-dialog";
 import { LabelsSubmenu } from "../workspace-labels/picker";
 import { useLabels } from "../workspace-labels/use-labels";
+import { usePruneFilter } from "../workspace-labels/use-prune-filter";
 import { SessionMark } from "./session-mark";
 import { rowClass } from "./sidebar";
 import { SidebarViewMenu } from "./sidebar-view-menu";
@@ -32,6 +33,7 @@ export function SidebarWorkspaces() {
   const fleet = useFleetState((value) => value);
   const view = useStore(prefs, (value) => value.values.sidebar);
   const { hub, state } = useLabels();
+  usePruneFilter(state, view.labels);
   const rows = useMemo(
     () => sidebarWorkspaces(fleet, state, view, view.labels),
     [fleet, state, view],
