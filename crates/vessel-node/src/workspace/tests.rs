@@ -1052,3 +1052,4 @@ mod project_admission;
 
 mod project_task;
 mod provisioning;
+mod registry_fence;

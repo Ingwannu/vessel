@@ -1,6 +1,5 @@
-//! Canonical display data shared by every timeline consumer (ADR 0084).
-//! Provider decoding belongs to vessel-agent; these values never execute tools.
-
+//! Standalone canonical display and private correlation values; no event/RPC attachment.
+//! Provider parsing, execution, authority and session ownership stay outside proto.
 pub mod admission;
 mod detail;
 mod execution;
@@ -11,6 +10,8 @@ mod notice;
 mod permission;
 mod question;
 mod receipt;
+mod recovery;
+mod submission;
 
 pub use detail::*;
 pub use execution::{ExecutionInvalidation, FinishGrantCeiling, ParentExecutionStamp};
@@ -18,18 +19,21 @@ pub use identity::*;
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
 pub use notice::{NoticeCheckpoint, NoticeKey, NoticeRequest};
+
+/// The single timeline feature remains unassigned; these values activate no peer behavior.
+pub const TIMELINE_PARITY: Option<crate::ProtocolVersion> = None;
+
+// Standalone values only: no request-field, event or method attachment.
 pub use permission::{
     PermissionAction, PermissionActionIntent, PermissionActionVariant, PermissionBehavior,
-    PermissionKind, PermissionPresentation,
+    PermissionDeliveryState, PermissionKind, PermissionPresentation,
 };
-
 pub use question::{
     EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
 };
 pub use receipt::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
-
-use crate::ProtocolVersion;
-
-/// Activation waits for native, web, CLI, inbox and forwarded-reply consumers
-/// to understand canonical details, identified prompts and durable questions.
-pub const TIMELINE_PARITY: Option<ProtocolVersion> = None;
+pub use recovery::{ObservePromptReceipt, ObservePromptReceiptReply, PromptReceiptBinding};
+pub use submission::{
+    NativeCommandRefusal, PromptDisposition, SubmissionAcceptedKind, SubmissionDelivery,
+    SubmissionRefusal,
+};

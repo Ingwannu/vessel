@@ -34,6 +34,7 @@ mod provisioning;
 #[cfg(test)]
 pub(crate) use provisioning::Provisioned;
 mod projects;
+mod registry_fence;
 mod roots;
 mod scripts;
 mod setup;

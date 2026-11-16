@@ -4,6 +4,27 @@ use serde::{Deserialize, Serialize};
 
 use super::ToolCallDetail;
 
+/// Delivery state is owned by the session, never inferred from an action label.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum PermissionDeliveryState {
+    /// A new explicit response may be admitted.
+    #[default]
+    Pending,
+    /// The owning provider is processing a correlated response.
+    Answering,
+    /// A response may have applied; never replay it automatically.
+    OutcomeUnknown,
+}
+impl PermissionDeliveryState {
+    /// Default omission preserves ordinary legacy request serialization.
+    #[must_use]
+    pub const fn is_pending(&self) -> bool {
+        matches!(self, Self::Pending)
+    }
+}
+
 /// A request's semantic kind selects its card without matching provider tool names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -35,7 +56,7 @@ pub struct PermissionPresentation {
     pub description: Option<String>,
     /// Canonical proposed work, when reported separately from the tool item.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub detail: Option<ToolCallDetail>,
+    pub detail: Option<Box<ToolCallDetail>>,
     /// Proposed plan Markdown, never inferred from an allow button.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plan_text: Option<String>,
