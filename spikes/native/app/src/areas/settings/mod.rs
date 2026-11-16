@@ -193,8 +193,8 @@ impl Shell {
         self.settle_settings_form(window);
     }
 
-    /// Open Settings at `section` (pushed on a phone), or at its start
-    /// (General beside the list; the list on a phone, as Paseo's gear),
+    /// Open Settings at `section` (pushed when navigation stacks), or at its start
+    /// (General beside a fitting dock; otherwise the list, as Paseo's gear),
     /// remembering where "Back" returns to.
     pub(crate) fn open_settings(
         &mut self,

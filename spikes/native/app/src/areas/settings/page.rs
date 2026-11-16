@@ -1,7 +1,7 @@
 //! A Settings page, as Paseo's `PageLayout` (`components/page-layout`):
 //! on a wide window a centred column at most 720 wide, 16 around and 24
 //! above, the section's title in it (26, medium, 4 in so it lines up
-//! with the cards' titles, 24 above the first); on a phone a back header
+//! with the cards' titles, 24 above the first); in stacked form a back header
 //! (Paseo's `CompactHeader`: 56 tall, 12 across, the title 16 medium) and
 //! the column without a title.
 //!
@@ -102,7 +102,7 @@ pub(crate) fn layout(
         )
 }
 
-/// Existing phone navigation delegates to the one exact header renderer.
+/// Existing stacked navigation delegates to the one exact header renderer.
 /// Its public call stays unchanged; its callback still chooses list/exit.
 pub(crate) fn compact_header(
     title: &str,

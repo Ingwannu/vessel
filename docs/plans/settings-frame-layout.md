@@ -69,3 +69,28 @@ The corrected c722 run settings2-narrow-20261116T012159Z-c722ab0d
 stopped at compile101: the new Language debug selector required the existing
 InteractiveElement trait import. This source correction adds only that import;
 raw logs remain in frame-strict-c722. It does not supply runtime proof.
+
+## Checked receiving source before the final gate
+
+Executable a80e564a2d64c9ba8852d5b497177932ebe1317b:
+- Strict settings2-narrow-20261116T012323Z-a80e564a: fonts0 and View/App
+  all-target Clippy0. This run actually checked Kit/App; unchanged View had
+  already compiled in the earlier source run, which is not relabelled fresh.
+- Runtime settings2-narrow-20261116T013345Z-a80e564a: fonts0, cargo0;
+  actual App binary selection ran all five new real-root cases,5/0/0 in1.20s,
+  after468s cold build. All four native crates compiled in that runtime run.
+  No whole-gate or visual PASS is inferred.
+
+Original raw logs/specs/steps are retained in /tmp/work/m12-settings4/
+frame-strict-a80 and frame-tests-a80, with per-file full SHA receipts alongside.
+frame-source-audit.json verifies the moved section composition matches base13
+except the declared form argument and equal spacing-token substitutions.
+frame-union-scope.json records the empty root/protocol/web delta. Earlier strict
+failures remain retained; none is classified as infrastructure or substituted.
+
+The next single final native gate/export will pin this source plus these actual
+result/docs corrections. Fresh captures must use that verified exported binary,
+private fake fleet and authenticated display under UID/GID1000. Existing captures
+from selection/rename do not count as new frame proof. Hardware/physical IME,
+OS accessibility, full E1/F5 and shared rename sibling occlusion remain outside
+this bounded change. No service, account or product permission changes occurred.

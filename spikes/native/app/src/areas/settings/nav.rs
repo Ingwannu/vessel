@@ -1,7 +1,7 @@
 //! Settings' list of sections, as Paseo's settings sidebar
 //! (`screens/settings-screen.tsx` `SettingsSidebar`, `sidebarStyles`):
 //! on a wide window in the sidebar's place, a way back above the page's
-//! groups; on a phone the root page, its groups as islands of tall rows.
+//! groups; without a fitting dock the root page, its groups as islands of tall rows.
 //!
 //! [Decision Log]
 //! - Purpose: the page lists Settings' sections in the sidebar's place
