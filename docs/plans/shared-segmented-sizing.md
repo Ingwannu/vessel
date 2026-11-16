@@ -31,3 +31,15 @@ rustfmt/size/token/diff checks only; remote Kit strict/tests and V1 are owed.
 The queued F1 consumer run3a5 is unchanged and excludes this leaf. F1 opts in
 only after the checked producer handoff and preserves source widths/no-op
 selection behavior. No whole package or priority lane is requested here.
+
+## Exact completed narrow receipt
+
+Exact577bb0a015222b70da3d384b45d7301abc47abf2 completed ordinary SHORT,
+priority0: schedules-20261115T185339Z-577bb0a0 Kit all-target Clippy0;
+schedules-20261115T190451Z-577bb0a0 full Kitlib235/0/0. Both runs have fonts/
+cargo0, no skips, immutable exact checkout and actual Kit Checking/Compiling.
+The both-theme literal case and actual scene hover/down/up/inner-bounds case
+explicitly executed successfully. Author verified every collected run-file hash
+and all four step digest prefixes. Prior source precheck is not relabelled as
+execution review; same-row V1 final disposition is requested separately. No
+App, native pixel/OS/a11y/touch, consumer or full F1 approval is inferred.
