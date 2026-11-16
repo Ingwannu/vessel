@@ -39,3 +39,28 @@ impl<T> SessionCommit<T> {
         (self.value, self.updated_at)
     }
 }
+
+/// Where a person's marked session is held when its Read/Unread mark reaches
+/// the writer: the node decides this, because only it knows which sessions
+/// its runtime has.
+///
+/// [Decision Log]
+/// - Purpose: Paseo parity for the session mutation clock (ADR 0063, TRACKER
+///   775). Paseo's live mark-read and mark-unread change attention without
+///   touching updatedAt (`agent-manager.ts` 2389-2414); its stored paths set
+///   it (`session.ts` 7697-7712, `agent-manager.ts` 2420-2433), and a stored
+///   mark-read on a record that needs no attention does nothing.
+/// - Alternative rejected: reading the row's `live` column inside the store.
+///   It flips when the end record persists, while the runtime may still hold
+///   the session until hand-over, so it would not match what the node served.
+/// - Effect: other marks (pin, archive and their inverses) tick as before.
+///   The value is a fact about the caller's lookup, not a permission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Residence {
+    /// The node's runtime has the session (Paseo's loaded agent): attention
+    /// marks leave the clock alone.
+    Loaded,
+    /// The node serves the session from the store (Paseo's stored record):
+    /// an attention mark ticks the clock when it changes attention.
+    Stored,
+}

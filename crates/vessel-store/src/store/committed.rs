@@ -2,7 +2,7 @@
 //! Legacy convenience methods delegate here and keep their original results.
 
 use super::Store;
-use crate::{SessionCommit, StoreError, writer::Write};
+use crate::{Residence, SessionCommit, StoreError, writer::Write};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use vessel_proto::{EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo};
@@ -42,6 +42,7 @@ impl Store {
 
     /// Apply the ordinary mark and acknowledge its kept marks with the clock
     /// captured in the same savepoint, without a later asynchronous re-read.
+    /// `residence` decides whether a Read or Unread advances that clock.
     /// # Errors
     /// Unknown session, invalid/exhausted time, or the existing write failures.
     pub async fn mark_committed(
@@ -49,11 +50,13 @@ impl Store {
         session: SessionId,
         mark: Mark,
         at: DateTime<Utc>,
+        residence: Residence,
     ) -> Result<SessionCommit<KeptMarks>, StoreError> {
         self.write(|done| Write::Mark {
             session,
             mark,
             at,
+            residence,
             done,
         })
         .await

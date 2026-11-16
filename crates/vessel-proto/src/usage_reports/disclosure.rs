@@ -174,8 +174,11 @@ pub struct SetUsageSourceLookup {
     /// The displayed revision; stale revisions refuse even when enabling.
     pub disclosure_version: UsageDisclosureVersion,
 }
-/// Assignment is integrator-owned; consent is not callable before its row is assigned.
-pub const USAGE_SOURCE_CONSENT_PROTOCOL: Option<ProtocolVersion> = None;
+/// Protocol 26 (2026-11-16), the same version as the reports it governs:
+/// `usage.source_lookup` (Admin, unary). It takes an exact registered source
+/// and the current disclosure revision, never fetches, and cannot enable an
+/// Unsupported source (ADR 0042).
+pub const USAGE_SOURCE_CONSENT_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(26));
 #[cfg(test)]
 mod tests {
     use super::*;

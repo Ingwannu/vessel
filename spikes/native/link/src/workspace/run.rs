@@ -9,7 +9,7 @@ use vessel_proto::workspace::{
     RemoveProject, RunSetup, WriteExpect, WriteFile,
 };
 
-use super::calls::call;
+use super::calls::{call, file_problem};
 use super::{
     Answer, Ask, FileAsk, Form, GitAsk, GitWrite, GitWritten, Hub, PathChange, ProjectAsk, Reply,
     Save, WorktreeAsk, follow,
@@ -149,6 +149,24 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
         FileAsk::Path(change) => Answer::PathChanged {
             result: path_change(client, change.clone()).await,
             change,
+        },
+        FileAsk::Observe(ask) => Answer::Observed {
+            result: client
+                .observe_workspace_file(ask.clone())
+                .await
+                .map_err(|error| file_problem(&error)),
+            ask,
+        },
+        FileAsk::Duplicate(ask) => Answer::Duplicated {
+            result: client
+                .duplicate_workspace_entry(ask.clone())
+                .await
+                .map_err(|error| file_problem(&error)),
+            ask,
+        },
+        FileAsk::Download(download) => Answer::Downloaded {
+            result: super::download::fetch(client, &download).await,
+            download,
         },
     }
 }

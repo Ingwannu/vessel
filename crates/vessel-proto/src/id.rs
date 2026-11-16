@@ -151,6 +151,16 @@ uuid_id! {
 }
 
 uuid_id! {
+    /// Service metadata etag, never a process identity or workspace incarnation.
+    ServiceSnapshotId
+}
+
+uuid_id! {
+    /// Private service settings CAS etag; not a publication grant.
+    ServicesSettingsRevision
+}
+
+uuid_id! {
     /// Identity of a Vessel node; one per machine, stable across restarts.
     NodeId
 }

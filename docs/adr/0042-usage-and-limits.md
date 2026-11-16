@@ -443,9 +443,9 @@ opaque handle. Labels and client-side handle parsing cannot define identity.
 - Costs: a separate consent control for newly supported sources; it avoids silently
   changing credential-use authority when a node gains a provider adapter.
 
-The new setter's pending protocol remains None. Its skeleton refuses Unsupported
-until the actual owner/adapters are connected; values and persistence tests alone
-are not executable source or consumer parity.
+The setter was reviewed with its protocol None and is assigned 26 together with
+the reports (see "Account methods assigned"). It refuses Unsupported sources;
+values and persistence tests alone are not executable source or consumer parity.
 
 ### F3 executable source ownership and refresh presentation
 
@@ -591,3 +591,57 @@ witness. This is a source-derived limitation, not an executed DNS or vendor prob
 - Impact: no active-readiness or physical-DNS-drain claim. No new worker whole is
   requested for this documentation; the eventual receiving integration owns the
   shared consumer checks and whole gate. Existing legacy behavior is unchanged.
+
+### Account HTTP consumes the tracked resolver (2026-11-16)
+
+The hold above is now met in source; activation is still a separate step.
+The node owns one root `ResolutionBudget` (node setup) and, for the one
+persistent `LimitContext` client, one `ResolutionScope` sized from the existing
+read bound (`LimitContext::READ_SLOTS`). Its reqwest adapter
+(`vessel-node::http_resolution`) is injected as an `Arc` of reqwest's `Resolve`
+through `ClientBuilder::dns_resolver`; Harness still depends on no relay crate.
+
+[Decision Log]
+- Purpose and intent: every provider lookup, for the active saved-login read and
+  for the pending account sources alike, is owned until native completion.
+- Existing constraints: one OnceCell client shared by both source owners; a
+  reqwest lookup carries no request identity.
+- Alternatives considered: per-read scopes (no identity to key them on), a
+  default-Gai fallback when nothing is injected (the untracked work again).
+- Choice and reason: the coordinator's client-scoped ruling. Both source owners
+  run on one local task tracker; a retirement task on the node tracker waits
+  for both, then closes and drains the scope, so node stop cannot finish first.
+  A context without a resolver builds no client and answers Unsupported.
+- Impact: the already active `usage.limits` Local read now resolves through the
+  tracked scope too (legacy behaviour changes only in who owns the lookup and
+  in the finite lookup quota: a full or closed scope reads as Unreachable).
+  The three account rows and both feature constants stay `None` until the
+  integrator assigns them at merge.
+
+### Account methods assigned (2026-11-16)
+
+`ACCOUNT_REPORTS_PROTOCOL` and `USAGE_SOURCE_CONSENT_PROTOCOL` share protocol 26,
+assigned in merge order on the node line together with the tracked-resolver
+wiring above. The coordinator ruled that the node activation lands before its
+native, page and CLI consumers; they fall back to `usage.limits` (23) on older
+or unassigned peers and follow as their own packets. The consent rules above
+are unchanged by the assignment.
+
+### Revocation reaches the file before it is acknowledged (2026-11-16, review row 318 F1)
+
+[Decision Log]
+- Purpose: a person's Off must survive a restart. Before this change the setter
+  applied Off in memory, then decided whether to save by comparing the request
+  with memory. After a failed save, retrying the same Off compared equal, skipped
+  the save and acknowledged success while the file still granted the source; the
+  next start read the file and revived the grant without consent.
+- Choice: the owner keeps what the file holds as far as it knows (`persisted`,
+  `None` after an unreadable file or a failed save) and decides the write against
+  that. Revocation still applies in memory at once; an acknowledgement now always
+  means the file holds the choice.
+- Alternatives: a dirty flag beside memory (same effect, one more state to keep
+  consistent); re-reading the file before every choice (extra I/O and a race with
+  the owner's own writes).
+- Cost: one extra write when a file was unreadable at start. Regression tests in
+  `vessel-node::usage_reports::sources::tests::persistence` fail a save through a
+  read-only data directory, retry Off, and read the consent through a restarted owner.

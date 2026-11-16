@@ -1,6 +1,10 @@
 # ADR 0083: bounded workspace file panels and live source state
 
-Status: proposed.
+Status: proposed. On 2026-11-16 the five methods (`file.inspect`,
+`file.read_bytes`, `file.duplicate`, `file.observe`, `file.suggest`) took one
+protocol number, 27, together at their node-line merge (drafted as 26; ADR 0105
+records the activation and the callers). Text below saying the constant is
+pending describes the review checkpoint.
 
 [Decision Log]
 - Purpose and intent: supply native file panels with byte-preserving

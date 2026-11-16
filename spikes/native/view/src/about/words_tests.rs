@@ -32,6 +32,11 @@ const ROLE_SENTENCES: &[(Role, &str, &str)] = &[
     (Role::Logs, "Logs", "로그"),
     (Role::QrCodes, "Pairing QR codes", "페어링 QR 코드"),
     (
+        Role::Checksums,
+        "Checking downloaded files",
+        "다운로드한 파일 확인",
+    ),
+    (
         Role::Terminal,
         "Reading a terminal program's output",
         "터미널 프로그램의 출력 읽기",

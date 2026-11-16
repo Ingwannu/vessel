@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use super::*;
+use crate::LabelRow;
 use rusqlite::params;
 use vessel_proto::workspace_labels::{
     AssignWorkspaceLabel, Assignment, DeleteWorkspaceLabel, LabelColor, UpdateWorkspaceLabel,
@@ -456,11 +457,13 @@ fn corrupt_key_and_color_are_refused_whole_instead_of_silently_skipping_rows() {
         .unwrap();
     assert!(matches!(
         catalog(&connection),
-        Err(StoreError::WorkspaceLabelIdentity)
+        Err(StoreError::WorkspaceLabelIdentity { row: LabelRow::Catalog(n) }) if n.get() == 1
     ));
     assert!(matches!(
         names(&connection, workspace),
-        Err(StoreError::WorkspaceLabelIdentity)
+        Err(StoreError::WorkspaceLabelIdentity {
+            row: LabelRow::Assignment { workspace: at, ordinal }
+        }) if at == workspace && ordinal.get() == 1
     ));
     let _changed = connection
         .execute(
@@ -470,6 +473,43 @@ fn corrupt_key_and_color_are_refused_whole_instead_of_silently_skipping_rows() {
         .unwrap();
     assert!(matches!(
         catalog(&connection),
-        Err(StoreError::WorkspaceLabelColor(_))
+        Err(StoreError::WorkspaceLabelColor { row: LabelRow::Catalog(n) }) if n.get() == 1
     ));
+}
+
+/// A corrupt row's whole error chain names the table and the row's place,
+/// and repeats neither its name nor its color (TRACKER: A6 note b ruling).
+#[test]
+fn a_corrupt_row_is_named_by_place_and_never_by_its_contents() {
+    let workspace = WorkspaceId::random();
+    let (mut connection, registry) = database(&[(workspace, State::Active)]);
+    for name in ["Alpha", "Bravo"] {
+        let _created = committed(&mut connection, |db| {
+            assign(
+                db,
+                &registry,
+                &request(workspace, name, LabelColor::Violet, Assignment::Assigned),
+            )
+        })
+        .unwrap();
+    }
+    let canary = "fake-private-row-content";
+    let _changed = connection
+        .execute(
+            "UPDATE workspace_label_catalog SET color=?1 WHERE key='bravo'",
+            [format!("\"{canary}\"")],
+        )
+        .unwrap();
+    let error = catalog(&connection).unwrap_err();
+    let mut chain = error.to_string();
+    let mut source = std::error::Error::source(&error);
+    while let Some(cause) = source {
+        chain.push_str(": ");
+        chain.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    assert!(chain.contains("workspace_label_catalog row 2"), "{chain}");
+    for content in [canary, "Bravo", "bravo"] {
+        assert!(!chain.contains(content), "{chain}");
+    }
 }

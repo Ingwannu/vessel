@@ -1,4 +1,4 @@
-//! Pending call admission and direct/nested registry field omission.
+//! Protocol 28 call admission and direct/nested registry field omission.
 
 use super::*;
 use crate::{

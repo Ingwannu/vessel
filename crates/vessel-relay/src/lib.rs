@@ -48,6 +48,7 @@ mod carrier;
 mod dial;
 mod link;
 mod reach;
+pub mod resolution;
 mod server;
 mod socket;
 mod ticket;

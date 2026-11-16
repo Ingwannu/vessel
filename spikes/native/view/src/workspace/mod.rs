@@ -13,6 +13,7 @@ pub mod changes;
 pub mod command_changes;
 pub mod diff_rows;
 pub mod editor;
+pub mod file_panels;
 pub mod file_scope;
 pub mod file_ticket;
 pub mod file_tree;
@@ -32,6 +33,7 @@ pub mod setup_log;
 pub mod size;
 pub mod start;
 pub mod syntax;
+pub mod watch;
 pub mod worktrees;
 
 /// The area's words: `text/workspace/`, by the app's convention.

@@ -5,6 +5,7 @@
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use chrono::Utc;
 use vessel_agent::{AgentSetup, Driver};
@@ -261,7 +262,7 @@ impl SessionRuntime {
                 // One agent per conversation (`claims`): held until the
                 // session is registered. A new session holds its profile
                 // alone, which the live check reads from its info.
-                let _claim = resume
+                let claim = resume
                     .as_ref()
                     .map(|conversation| {
                         let profiles = BTreeSet::from([spec.profile.clone()]);
@@ -278,7 +279,14 @@ impl SessionRuntime {
                 };
                 // Boxed: the claim held across it put every caller's future
                 // past clippy's `large_futures` bound.
-                Box::pin(self.create_structured(spec, (profile, model_proxy), start, record)).await
+                Box::pin(self.create_structured(
+                    spec,
+                    (profile, model_proxy),
+                    start,
+                    record,
+                    Arc::new(claim),
+                ))
+                .await
             }
         }
     }
@@ -366,13 +374,23 @@ impl SessionRuntime {
         (profile, proxy): (Profile, Option<ModelProxy>),
         start: AgentStart,
         record: Record,
+        claim: Arc<Option<super::claims::Claim>>,
     ) -> Result<Created, SessionError> {
         let AgentCommand {
             command,
             cwd,
             driver,
             notices: chosen,
-        } = self.agent_command(spec.clone(), profile, proxy).await?;
+        } = self
+            .agent_command_owned(
+                spec.clone(),
+                profile,
+                proxy,
+                self.default_preparation(Arc::clone(&claim)),
+            )
+            .await?;
+        #[cfg(test)]
+        self.before_registration.wait().await;
         let setup = AgentSetup {
             cwd,
             model: start.model,
@@ -400,7 +418,7 @@ impl SessionRuntime {
                 })),
                 ..ActorStart::default()
             });
-        self.run_structured(
+        let created = self.run_structured(
             Launch {
                 command,
                 setup,
@@ -410,6 +428,10 @@ impl SessionRuntime {
             begin,
             notices,
             actor,
-        )
+        );
+        // A different executor can claim this conversation even without an
+        // await here. Retain the original until the live registry replaces it.
+        drop(claim);
+        created
     }
 }

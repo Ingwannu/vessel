@@ -3,7 +3,7 @@
 //! older machine, anything else as a connection gone.
 
 use vessel_app_view::workspace::problem::Problem;
-use vessel_client::{CallError, NodeClient, Unary};
+use vessel_client::{CallError, NodeClient, Unary, WorkspaceFileCallError};
 
 /// Send `request` on `client`.
 pub(crate) async fn call<R: Unary>(
@@ -11,6 +11,15 @@ pub(crate) async fn call<R: Unary>(
     request: R,
 ) -> Result<R::Response, Problem> {
     client.call(request).await.map_err(|error| problem(&error))
+}
+
+/// A file-panel call's failure (ADR 0083's SDK) as a screen reads it: its
+/// deadline ended a wait the node never answered, like a connection gone.
+pub(crate) fn file_problem(error: &WorkspaceFileCallError) -> Problem {
+    match error {
+        WorkspaceFileCallError::Call(error) => problem(error),
+        WorkspaceFileCallError::Deadline => Problem::Gone(error.to_string()),
+    }
 }
 
 /// `error` as a screen reads it.

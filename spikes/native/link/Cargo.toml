@@ -34,6 +34,7 @@ vessel-client.workspace = true
 vessel-rpc = { workspace = true, optional = true }
 dirs.workspace = true
 hostname.workspace = true
+sha2.workspace = true
 tokio.workspace = true
 
 # In a browser (docs/plans/backend-m12-browser.md): the same channels, a

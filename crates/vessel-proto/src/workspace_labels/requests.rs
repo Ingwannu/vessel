@@ -1,4 +1,4 @@
-//! Typed pending requests; shared client admission refuses an unassigned contract.
+//! Typed protocol 28 requests; shared admission refuses them below 28.
 
 use serde::{Deserialize, Deserializer, Serialize};
 
