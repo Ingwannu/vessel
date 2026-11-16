@@ -22,50 +22,7 @@ pub(super) fn draw(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let state = &shell.areas.usage;
-    let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
-    let value = used.map(|used| DisplayPercent::reported(used, shell.prefs.settings.usage.display));
-    let label = super::source_windows::percent_label(shell, value);
-    let tone = match vessel_app_view::usage::window_tone(used, None) {
-        vessel_app_view::usage::Tone::Default => usage_meter::Tone::Default,
-        vessel_app_view::usage::Tone::Ok => usage_meter::Tone::Ok,
-        vessel_app_view::usage::Tone::Warning => usage_meter::Tone::Warning,
-        vessel_app_view::usage::Tone::Danger => usage_meter::Tone::Danger,
-    };
-    let body = div()
-        .w_full()
-        .min_w_0()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S2))
-        .p(px(spacing::S3))
-        .child(
-            div()
-                .flex()
-                .flex_wrap()
-                .justify_between()
-                .gap(px(spacing::S2))
-                .type_(Type::Body)
-                .child(window_label(window, shell.words))
-                .child(label),
-        )
-        .children(value.map(|value| {
-            usage_meter::bar(
-                Share::percent(value.whole()),
-                Appearance::Normal(tone),
-                tokens,
-            )
-        }))
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(reset_label(
-                    window.resets_at,
-                    state.offset,
-                    chrono::Utc::now(),
-                    shell.words,
-                )),
-        );
+    let body = meter(shell, window, tokens);
     let Some(account) = account.filter(|_| super::sidebar::visible(shell)) else {
         return body.into_any_element();
     };
@@ -133,4 +90,52 @@ pub(super) fn draw(
             }
         }))
         .into_any_element()
+}
+
+fn meter(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> vessel_app_kit::ui::Div {
+    let state = &shell.areas.usage;
+    let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
+    let value = used.map(|used| DisplayPercent::reported(used, shell.prefs.settings.usage.display));
+    let label = super::source_windows::percent_label(shell, value);
+    let tone = match vessel_app_view::usage::window_tone(used, None) {
+        vessel_app_view::usage::Tone::Default => usage_meter::Tone::Default,
+        vessel_app_view::usage::Tone::Ok => usage_meter::Tone::Ok,
+        vessel_app_view::usage::Tone::Warning => usage_meter::Tone::Warning,
+        vessel_app_view::usage::Tone::Danger => usage_meter::Tone::Danger,
+    };
+    div()
+        .w_full()
+        .min_w_0()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S2))
+        .p(px(spacing::S3))
+        .child(
+            div()
+                .flex()
+                .flex_wrap()
+                .justify_between()
+                .gap(px(spacing::S2))
+                .type_(Type::Body)
+                .child(window_label(window, shell.words))
+                .child(label),
+        )
+        .children(value.map(|value| {
+            usage_meter::bar(
+                Share::percent(value.whole()),
+                Appearance::Normal(tone),
+                tokens,
+            )
+        }))
+        .child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(reset_label(
+                    window.resets_at,
+                    state.offset,
+                    chrono::Utc::now(),
+                    shell.words,
+                )),
+        )
 }

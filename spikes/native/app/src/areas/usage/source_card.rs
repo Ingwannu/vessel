@@ -88,6 +88,32 @@ pub(super) fn render(
     let freshness = source_freshness(&view, chrono::Utc::now(), shell.words);
     let refresh = state.source_tips.on(refresh, entry, &freshness, density);
     let head = header(entry, &view, shell.words, tokens);
+    let footer = footer(entry, freshness, shell.words, tokens);
+    settings::card(tokens)
+        .child(settings::row_with_content(
+            head.into_any_element(),
+            Some(refresh.into_any_element()),
+            true,
+            matches!(density, Density::Compact),
+            tokens,
+        ))
+        .child(body)
+        .child(settings::row_with_content(
+            footer.into_any_element(),
+            None,
+            false,
+            matches!(density, Density::Compact),
+            tokens,
+        ))
+}
+
+fn footer(
+    entry: &SourceReportEntry,
+    freshness: String,
+    words: &'static vessel_app_view::localization::Translator,
+    tokens: &Tokens,
+) -> Div {
+    let text = words.usage();
     let mut footer = div().min_w_0().flex().flex_col().gap(px(spacing::S1));
     if let Some(account) = &entry.account_label {
         footer = footer.child(
@@ -106,22 +132,7 @@ pub(super) fn render(
     if matches!(entry.state, SourceReportState::Failed { .. }) {
         footer = footer.child(message(text.refresh_failed(), tokens));
     }
-    settings::card(tokens)
-        .child(settings::row_with_content(
-            head.into_any_element(),
-            Some(refresh.into_any_element()),
-            true,
-            matches!(density, Density::Compact),
-            tokens,
-        ))
-        .child(body)
-        .child(settings::row_with_content(
-            footer.into_any_element(),
-            None,
-            false,
-            matches!(density, Density::Compact),
-            tokens,
-        ))
+    footer
 }
 
 fn observed_content(

@@ -88,7 +88,7 @@ chrome. Required source profiles remain separate:
 
 | Surface | Pinned source | Owner / state |
 | --- | --- | --- |
-| Fixed sidebar Usage icon | Footer density 28/44, glyph 16/20, muted-to-foreground hover | S2/G2; no checked ordinary-button profile yet; no footer edit applied |
+| Fixed sidebar Usage icon | Footer density 28/44, glyph 16/20, muted-to-foreground hover | S2 sole FooterIconButton owner, awaiting W12 lower chrome; no checked producer or footer edit |
 | Options | Toolbar small 20/32, adaptive glyph 14/18, source extra-muted ink | W12 producer in announced base 13; consumer integration requires its own strict check |
 | Refresh | Same small toolbar profile plus source loading | W12 loading follow-up remains unadopted |
 | Toolbar/card tooltip | Source side/offset and 300ms desktop delay | W12 extends existing Tooltips; source-only follow-up, not adopted |
@@ -150,3 +150,14 @@ passed font preparation, then stopped on six test-only default-trait-access
 lints in Usage view fixtures. Use the named DTO defaults without altering any
 values or assertions; the same pattern in the card fixture is corrected in the
 same mechanical change. No tests or full native gate ran in this strict check.
+
+
+Source preflight also found two Usage-owned render functions just above the
+100-line bound. Extract the card's account/freshness footer and the legacy
+window's meter body into private pure rendering helpers, preserving values,
+styles and admitted callbacks. The queued strict-13 source was superseded only
+while still queued, with its cancellation record preserved; one changed-source
+replacement checks the complete consumer. No allowance or size record is raised.
+The remaining preflight finding is the base's large wasm refusal dispatcher;
+F3 adds only its typed Unsupported registration arm there. It is not compiled by
+the native strict target, so a wasm check remains a separate obligation.
