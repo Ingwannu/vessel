@@ -19,21 +19,7 @@ pub use config::{Disclosure, Selection, ToolbarConfig, ToolbarIcon, ToolbarInk};
 
 use crate::{ButtonState, Tooltips, tooltip::Place};
 use gpui::prelude::*;
-use gpui::{App, ClickEvent, Div, ElementId, SharedString, Stateful, Window, div, px};
-
-#[derive(Clone, Copy)]
-enum Phase {
-    Rest,
-    Hovered,
-    Pressed,
-}
-fn fill(config: ToolbarConfig, phase: Phase, tokens: &crate::Tokens) -> gpui::Hsla {
-    if config.highlighted() || !matches!(phase, Phase::Rest) {
-        tokens.neutral.interaction_highlight
-    } else {
-        gpui::transparent_black()
-    }
-}
+use gpui::{App, ClickEvent, Div, ElementId, SharedString, Stateful, Window};
 
 /// Small icon action with a guarded handler API and a named accessibility node.
 /// It installs no keyboard listener or feature operation admission.
@@ -54,27 +40,12 @@ impl ToolbarButton {
         tokens: &crate::Tokens,
     ) -> Self {
         let label = label.into();
-        let hover = fill(config, Phase::Hovered, tokens);
-        let pressed = fill(config, Phase::Pressed, tokens);
-        let element = div()
-            .id(id)
-            .role(gpui::Role::Button)
-            .aria_label(label.clone())
-            .flex()
-            .flex_none()
-            .items_center()
-            .justify_center()
-            .size(config.frame())
-            .p(px(crate::theme::spacing::S0))
-            .rounded(px(crate::theme::radius::MD))
-            .bg(fill(config, Phase::Rest, tokens))
-            .opacity(config.opacity())
-            .hover(move |style| style.bg(hover))
-            .active(move |style| style.bg(pressed))
-            .when(config.availability() == ButtonState::Enabled, |element| {
-                element.cursor_pointer()
-            })
-            .child(icon.render(config.sizing(), tokens));
+        let element = crate::icon_chrome::render(
+            id,
+            label.clone(),
+            crate::icon_chrome::Profile::ToolbarSmall { config, icon },
+            tokens,
+        );
         Self {
             element,
             config,
