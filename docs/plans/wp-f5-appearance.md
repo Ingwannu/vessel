@@ -717,3 +717,12 @@ label's still-used Settings words stay intact. Static size also lowers the
 session ratchet673→664 to the measured merged product lines; no budget grows.
 The project=vessel agent label was verified on resume. The next immutable
 check uses the VM only; the prior 18c failure is not reclassified.
+
+
+Exact c30229ff1 now passes selected Kit/View/App all-target strict Clippy,
+run themes-narrow-20261116T003505Z-c30229ff: fonts0/Cargo0,238s. The three
+reported diagnostics are resolved without lint suppression, assertion or
+input/park loss. The prior portable base9 assemblies remain unapproved as
+standalone trees; updated exports must use the corrected test source on
+base13 and receiving consumers still check their union. The full native
+package gate and same-commit app export follow; no current F5 UI approval.
