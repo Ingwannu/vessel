@@ -23,7 +23,11 @@ pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
 pub(crate) mod session;
+#[cfg(test)]
+pub(crate) mod session_lifecycle;
 pub(crate) mod session_marks;
+#[cfg(test)]
+pub(crate) mod sessions;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
