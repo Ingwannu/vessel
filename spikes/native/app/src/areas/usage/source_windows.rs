@@ -1,11 +1,10 @@
 //! Independent percentages, explicit source tone and optional forecasts share the approved kit bar.
 use crate::shell::Shell;
 use vessel_app_kit::{
-    Tokens, Type, TypeExt as _,
-    theme::spacing,
+    Tokens,
     ui::{
         AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-        StatefulInteractiveElement as _, Styled as _, div, px,
+        StatefulInteractiveElement as _, Styled as _,
     },
     usage_meter::{self, Appearance, Share},
 };
@@ -24,17 +23,14 @@ pub(super) fn render(
 ) -> AnyElement {
     let state = &shell.areas.usage;
     let source = entry.source();
-    let body = window_body(shell, window, retained, tokens);
-    let Some(machine) = state
+    let target = state
         .inventory
         .selection()
         .filter(|_| super::sidebar::visible(shell))
         .cloned()
-    else {
-        return body.into_any_element();
-    };
-    let Some(ticket) = state.inventory.observation_ticket() else {
-        return body.into_any_element();
+        .zip(state.inventory.observation_ticket());
+    let Some((machine, ticket)) = target else {
+        return window_body(shell, window, retained, None, tokens).into_any_element();
     };
     let pin = Pin {
         source: source.clone(),
@@ -47,6 +43,7 @@ pub(super) fn render(
         .map(|inventory| default_pins(&super::sidebar::candidates(inventory, shell.words)))
         .unwrap_or_default();
     let pinned = shell.prefs.settings.usage.pins.contains(&pin, &defaults);
+    let body = window_body(shell, window, retained, Some(pinned), tokens);
     let receipt = super::read_states::context(shell);
     let label = format!("{} · {}", entry.source_label, window.label);
     let description = if pinned {
@@ -68,15 +65,6 @@ pub(super) fn render(
     .aria_label(label)
     .aria_description(description)
     .cursor_pointer()
-    .child(vessel_app_kit::glyph(
-        vessel_app_kit::assets::Glyph::Pin,
-        14.0,
-        if pinned {
-            tokens.neutral.foreground
-        } else {
-            tokens.neutral.foreground_muted
-        },
-    ))
     .on_click(cx.listener(move |shell, _, window, cx| {
         if let Some(receipt) = &receipt
             && super::read_states::current(shell, receipt)
@@ -91,6 +79,7 @@ fn window_body(
     shell: &Shell,
     window: &UsageWindow,
     retained: bool,
+    pinned: Option<bool>,
     tokens: &Tokens,
 ) -> vessel_app_kit::ui::Div {
     let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
@@ -100,16 +89,12 @@ fn window_body(
     let percent =
         DisplayPercent::from_reported(used, remaining, shell.prefs.settings.usage.display);
     let mut body = super::card::bar()
-        .child(
-            div()
-                .flex()
-                .flex_wrap()
-                .justify_between()
-                .gap(px(spacing::S2))
-                .type_(Type::Body)
-                .child(window.label.as_str().to_owned())
-                .child(percent_label(shell, percent)),
-        )
+        .child(super::card::label_row(
+            window.label.as_str().to_owned(),
+            percent_label(shell, percent),
+            pinned,
+            tokens,
+        ))
         .children(percent.map(|percent| {
             usage_meter::bar(
                 Share::percent(percent.whole()),

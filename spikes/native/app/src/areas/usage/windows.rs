@@ -2,11 +2,10 @@
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, div, px,
+    StatefulInteractiveElement as _, Styled as _,
 };
 use vessel_app_kit::{
-    Tokens, Type, TypeExt as _,
-    theme::spacing,
+    Tokens,
     usage_meter::{self, Appearance, Share},
 };
 use vessel_app_view::usage::{
@@ -22,18 +21,18 @@ pub(super) fn draw(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let state = &shell.areas.usage;
-    let body = meter(shell, window, tokens);
+    let plain = || meter(shell, window, None, tokens).into_any_element();
     let Some(account) = account.filter(|_| super::sidebar::visible(shell)) else {
-        return body.into_any_element();
+        return plain();
     };
     let Some(machine) = state.inventory.selection().cloned() else {
-        return body.into_any_element();
+        return plain();
     };
     let Some(source) = vessel_app_view::usage::saved_source(account.harness()) else {
-        return body.into_any_element();
+        return plain();
     };
     let Some(ticket) = state.inventory.observation_ticket() else {
-        return body.into_any_element();
+        return plain();
     };
     let pin = Pin {
         source,
@@ -46,6 +45,7 @@ pub(super) fn draw(
         .map(|inventory| default_pins(&super::sidebar::candidates(inventory, shell.words)))
         .unwrap_or_default();
     let selected = shell.prefs.settings.usage.pins.contains(&pin, &defaults);
+    let body = meter(shell, window, Some(selected), tokens);
     let id = vessel_app_kit::ui::SharedString::from(format!(
         "usage-pin-{}-{}-{}",
         account.harness(),
@@ -73,15 +73,6 @@ pub(super) fn draw(
         .aria_label(label)
         .aria_description(description)
         .cursor_pointer()
-        .child(vessel_app_kit::glyph(
-            vessel_app_kit::assets::Glyph::Pin,
-            14.0,
-            if selected {
-                tokens.neutral.foreground
-            } else {
-                tokens.neutral.foreground_muted
-            },
-        ))
         .on_click(cx.listener(move |shell, _, window, cx| {
             if let Some(receipt) = &receipt
                 && super::read_states::current(shell, receipt)
@@ -92,7 +83,12 @@ pub(super) fn draw(
         .into_any_element()
 }
 
-fn meter(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> vessel_app_kit::ui::Div {
+fn meter(
+    shell: &Shell,
+    window: &LimitWindow,
+    pinned: Option<bool>,
+    tokens: &Tokens,
+) -> vessel_app_kit::ui::Div {
     let state = &shell.areas.usage;
     let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
     let value = used.map(|used| DisplayPercent::reported(used, shell.prefs.settings.usage.display));
@@ -104,16 +100,12 @@ fn meter(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> vessel_app_kit
         vessel_app_view::usage::Tone::Danger => usage_meter::Tone::Danger,
     };
     super::card::bar()
-        .child(
-            div()
-                .flex()
-                .flex_wrap()
-                .justify_between()
-                .gap(px(spacing::S2))
-                .type_(Type::Body)
-                .child(window_label(window, shell.words))
-                .child(label),
-        )
+        .child(super::card::label_row(
+            window_label(window, shell.words),
+            label,
+            pinned,
+            tokens,
+        ))
         .children(value.map(|value| {
             usage_meter::bar(
                 Share::percent(value.whole()),
