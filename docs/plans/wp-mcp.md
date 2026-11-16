@@ -957,3 +957,10 @@ node.rs; RuntimeConfig moved with the incoming factory.
 The size record shrinks from 626 to the measured 605, below the incoming
 head's 651; no allowance is raised. Changed receiving-union strict and execution are still owed. Prior
 08c MCP checks remain exact predecessor evidence.
+
+The first receiving-union strict returned two unnecessary qualifications in
+the existing Settings signature after the incoming runtime factory added those
+same imports. Use the imported SessionRuntime and CancellationToken names;
+types, ownership, order and behavior are unchanged. The failed run
+`wp-mcp-runtime-narrow-20261116T023856Z-0ea9680f` is retained. Corrected strict
+execution remains owed; the already-running Node tests are not cancelled.

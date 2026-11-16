@@ -84,9 +84,9 @@ impl SessionSetup {
 /// Configuration reads and downgrade backups stay off async runtime workers.
 pub(super) async fn settings(
     config: &Config,
-    runtime: &Arc<vessel_session::SessionRuntime>,
+    runtime: &Arc<SessionRuntime>,
     tasks: &tokio_util::task::TaskTracker,
-    stop: &tokio_util::sync::CancellationToken,
+    stop: &CancellationToken,
 ) -> Result<Arc<crate::settings::Settings>, NodeError> {
     let data = config.data_dir.clone();
     let runtime = Arc::clone(runtime);
