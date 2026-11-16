@@ -64,11 +64,8 @@ mod tests {
     }
 
     #[test]
-    #[expect(
-        clippy::float_arithmetic,
-        reason = "The test builds the binary tails a source can report"
-    )]
     fn a_binary_tail_never_reaches_the_text() {
+        // Literal sums: the binary tail a source can report (0.1 + 0.2).
         let noisy = 0.1_f64 + 0.2_f64;
         assert_eq!(amount_text(noisy, UsageBalanceUnit::Credits, en()), "0.3");
         assert_eq!(
