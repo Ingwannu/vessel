@@ -264,14 +264,18 @@ fn credential_preparation_does_not_skip_the_authoritative_duplicate_recheck() {
     let agents = Agents::new(NodeId::random());
     let id = SessionId::random();
     let prepared = agents.prepare_reservation(id, true).unwrap();
-    let _winner = agents
+    let winner = agents
         .reserve_creation(id, &Principal::Owner, true)
         .unwrap();
+    let secret = winner.secret.as_ref().unwrap();
     let mut entries = agents.lock();
-    let winner = entries.get(&id).unwrap().credentials.clone();
+    let marker = Arc::clone(&entries.get(&id).unwrap().reservation);
     assert!(matches!(
         agents.reserve_prepared(&mut entries, &Principal::Owner, prepared),
         Err(crate::error::ServiceError::AgentReserved(found)) if found == id
     ));
-    assert_eq!(entries.get(&id).unwrap().credentials, winner);
+    let entry = entries.get(&id).unwrap();
+    assert!(Arc::ptr_eq(&entry.reservation, &marker));
+    assert_eq!(entry.credentials.len(), 1);
+    assert!(entry.credentials[0].matches_agent(secret));
 }

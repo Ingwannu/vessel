@@ -498,3 +498,8 @@ reserve_prepared insertion with that same guard and no nested lock, callback,
 I/O or SQL. A deterministic race test requires the incumbent credential hashes
 to remain unchanged. This refines the earlier shorthand "before minting";
 no credential is published or replaces an entry during the race.
+
+The isolated count carrier's first strict build found a race fixture using
+PartialEq on CredentialHash. It now uses the existing constant-time
+matches_agent API plus original marker and cardinality assertions. No credential
+bytes or hashes are formatted, and no product or race ordering changes.
