@@ -361,6 +361,11 @@ select and copy (Paseo's `DetailRow` values are `selectable`), drawn by the
 kit's `plain_text`
 ([`shared-settings-selectable-code-row.md`](../../docs/plans/shared-settings-selectable-code-row.md)).
 
+The pane header is Paseo's + | maximise/restore | …: "+" opens the new-tab
+menu (the view's launch `catalog`), "…" the split menu; menu rows and toolbar
+tooltips show bound chords, and a pane goes with its last tab
+([`shared-pane-header-menus.md`](../../docs/plans/shared-pane-header-menus.md)).
+
 `kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
 profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
 the sidebar package owns the Footer wrapper. The lower frame grants no input or

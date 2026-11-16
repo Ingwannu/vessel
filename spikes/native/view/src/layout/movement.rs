@@ -1,4 +1,5 @@
 //! Drag/reorder and keyboard operations share the same atomic move path.
+use super::close::Keep;
 use super::{Layout, LayoutError, LayoutMode, PaneId, Position, TabId};
 
 /// Logical direction, independent of toolkit key names.
@@ -77,9 +78,18 @@ impl Layout {
         if next.pane(pane).is_none() {
             return Err(LayoutError::MissingPane);
         }
+        let source = next.containing(tab);
         next.detach(tab);
         next.pane_mut(pane)?.tabs.push(tab);
         next.select(tab)?;
+        // Paseo's move keeps the source only when the tab stays in it or
+        // crosses into or out of Explorer (`preserveEmptyPaneId`).
+        if let Some(source) = source
+            && source != destination
+            && pane != PaneId::EXPLORER
+        {
+            next.collapse_emptied(source, Keep::No)?;
+        }
         *self = next;
         Ok(())
     }

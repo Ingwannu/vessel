@@ -44,6 +44,9 @@ pub(crate) struct LayoutArea {
     rename_ticket: vessel_app_view::layout::RenameTicket,
     rename_dialog: vessel_app_kit::DialogState,
     menu_tab: Option<(LayoutKey, TabId)>,
+    /// The pane header's "+" and "…" menus (one open at a time).
+    header_menu: MenuState,
+    header_menu_for: Option<header::HeaderMenu>,
     maximized: Option<(LayoutKey, PaneId)>,
     drop_preview: Cell<Option<(PaneId, vessel_app_view::layout::Position)>>,
     tab_drop_preview: Cell<Option<(TabId, vessel_app_view::layout::TabInsertion)>>,
@@ -62,6 +65,8 @@ impl LayoutArea {
             rename_ticket: vessel_app_view::layout::RenameTicket::ZERO,
             rename_dialog: vessel_app_kit::DialogState::new(cx),
             menu_tab: None,
+            header_menu: MenuState::new(cx),
+            header_menu_for: None,
             maximized: None,
             drop_preview: Cell::new(None),
             tab_drop_preview: Cell::new(None),
