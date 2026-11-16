@@ -40,9 +40,16 @@ impl Fixture {
         Request::Question(self.question)
     }
 }
-fn entered(_: &mut Shell, _: FieldId, _: String, _: &mut Window, _: &mut Context<'_, Shell>) {}
-fn changed(_: &mut Shell, _: FieldId, _: String, _: &mut Context<'_, Shell>) {}
-fn question(id: QuestionId) -> Question {
+pub(super) fn entered(
+    _: &mut Shell,
+    _: FieldId,
+    _: String,
+    _: &mut Window,
+    _: &mut Context<'_, Shell>,
+) {
+}
+pub(super) fn changed(_: &mut Shell, _: FieldId, _: String, _: &mut Context<'_, Shell>) {}
+pub(super) fn question(id: QuestionId) -> Question {
     Question {
         id,
         message: "Retained form".into(),

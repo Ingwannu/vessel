@@ -342,9 +342,26 @@ impl Answering {
     pub(super) fn request_sent(&mut self) {
         self.sent = true;
     }
+
+    /// Release only the original local Sending flag; the engine/draft stay intact.
+    /// The sole owner must first validate and consume its correlated operation.
+    pub(super) fn release_request(
+        &mut self,
+        id: QuestionId,
+        source: vessel_app_kit::field::FieldId,
+    ) -> bool {
+        if self.id != id || self.field.id() != source || !self.sent {
+            return false;
+        }
+        self.sent = false;
+        true
+    }
 }
 
 #[cfg(test)]
 mod language_tests;
 #[cfg(test)]
 mod requests_tests;
+
+#[cfg(test)]
+mod disposition_tests;

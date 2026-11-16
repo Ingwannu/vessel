@@ -1,7 +1,9 @@
 //! Staged Requests owner kernel. W12 alone installs it in `SessionResources`.
 //! No factory, ticket allocator, transport, global lookup or form copy lives here.
 mod eligibility;
+mod failure;
 mod lifecycle;
+pub(crate) use failure::{Disposition, Transition};
 
 use super::ConversationArea;
 use vessel_app_kit::field::FieldId;
@@ -40,7 +42,7 @@ pub(crate) enum Stage {
 }
 #[derive(Debug)]
 struct Effect {
-    request: Request,
+    form: Form,
     binding: FollowBinding,
     ticket: OperationTicket,
     stage: Stage,
@@ -84,7 +86,11 @@ impl Requests {
         if self.0.len() >= MAX_REQUEST_EFFECTS {
             return Err(ResidentProblem::Capacity);
         }
-        if self.0.iter().any(|effect| effect.request == form.request()) {
+        if self
+            .0
+            .iter()
+            .any(|effect| effect.form.request() == form.request())
+        {
             return Err(ResidentProblem::Held);
         }
         eligibility::check(area, &form)?;
@@ -109,7 +115,7 @@ impl Requests {
                     && effect.ticket == ticket
                     && effect.stage == Stage::Sending
             })
-            .map(|effect| effect.request)
+            .map(|effect| effect.form.request())
             .ok_or(ResidentProblem::UnadmittedOperation)
     }
 
@@ -125,11 +131,19 @@ impl Requests {
             .retain(|effect| effect.binding != binding || effect.ticket != ticket);
         Ok(request)
     }
+    /// Correlation only; an original form is not a transport or retry capability.
+    #[must_use]
+    pub(crate) fn form(&self, request: Request) -> Option<&Form> {
+        self.0
+            .iter()
+            .find(|effect| effect.form.request() == request)
+            .map(|effect| &effect.form)
+    }
     #[must_use]
     pub(crate) fn stage(&self, request: Request) -> Option<Stage> {
         self.0
             .iter()
-            .find(|effect| effect.request == request)
+            .find(|effect| effect.form.request() == request)
             .map(|effect| effect.stage)
     }
 }
@@ -149,7 +163,7 @@ impl Prepared<'_> {
             }
         }
         self.owner.0.push(Effect {
-            request: self.form.request(),
+            form: self.form,
             binding: self.binding,
             ticket,
             stage: Stage::Sending,

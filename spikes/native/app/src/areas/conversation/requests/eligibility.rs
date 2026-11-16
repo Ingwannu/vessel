@@ -9,26 +9,14 @@ pub(super) fn check(area: &ConversationArea, form: &Form) -> Result<(), Resident
             if area.permit_sending.is_some() {
                 return Err(ResidentProblem::Held);
             }
-            let request = area
-                .timeline
-                .pending_permissions()
-                .find(|(_, permission)| permission.request.id == *id)
-                .map(|(_, permission)| &permission.request)
-                .or_else(|| {
-                    area.timeline
-                        .unseen_permissions(&area.live)
-                        .into_iter()
-                        .find(|permission| permission.id == *id)
-                });
+            let request = permission(area, *id);
             let request = request.ok_or(ResidentProblem::Missing)?;
             if !request.options.iter().any(|offered| offered.id == *option) {
                 return Err(ResidentProblem::UnadmittedOperation);
             }
         }
         Form::Question { id, source } => {
-            let waiting = area.timeline.waiting_questions().iter().any(|entry| {
-                matches!(&entry.kind, EntryKind::Question { question, .. } if question.id == *id)
-            }) || area.timeline.unseen_questions(&area.live).iter().any(|question| question.id == *id);
+            let waiting = question_waiting(area, *id);
             if !waiting {
                 return Err(ResidentProblem::Missing);
             }
@@ -46,4 +34,30 @@ pub(super) fn check(area: &ConversationArea, form: &Form) -> Result<(), Resident
         }
     }
     Ok(())
+}
+
+pub(super) fn permission(
+    area: &ConversationArea,
+    id: vessel_proto::PermissionId,
+) -> Option<&vessel_proto::PermissionRequest> {
+    area.timeline
+        .pending_permissions()
+        .find(|(_, permission)| permission.request.id == id)
+        .map(|(_, permission)| &permission.request)
+        .or_else(|| {
+            area.timeline
+                .unseen_permissions(&area.live)
+                .into_iter()
+                .find(|request| request.id == id)
+        })
+}
+
+pub(super) fn question_waiting(area: &ConversationArea, id: vessel_proto::QuestionId) -> bool {
+    area.timeline.waiting_questions().iter().any(
+        |entry| matches!(&entry.kind, EntryKind::Question { question, .. } if question.id == id),
+    ) || area
+        .timeline
+        .unseen_questions(&area.live)
+        .iter()
+        .any(|question| question.id == id)
 }
