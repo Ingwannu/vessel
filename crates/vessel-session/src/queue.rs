@@ -298,12 +298,13 @@ mod tests {
             notice: vessel_proto::EventSeq::new(5),
         });
         queue.0.entries[0].provenance = provenance;
-        queue
-            .apply(QueueChange::Move {
+        assert!(matches!(
+            queue.apply(QueueChange::Move {
                 entry: id,
                 before: None,
-            })
-            .unwrap();
+            }),
+            Ok(Applied::Changed)
+        ));
         assert_eq!(queue.get().entries[1].provenance, provenance);
         let Applied::Taken { entry, place, .. } = queue
             .apply(QueueChange::SendNow {
@@ -334,13 +335,14 @@ mod tests {
             Err(QueueError::Stale { .. })
         ));
         assert_eq!(queue.get().entries[1].provenance, provenance);
-        queue
-            .apply(QueueChange::Edit {
+        assert!(matches!(
+            queue.apply(QueueChange::Edit {
                 entry: id,
                 revision: 0,
                 content: text("person edited"),
-            })
-            .unwrap();
+            }),
+            Ok(Applied::Changed)
+        ));
         assert_eq!(queue.get().entries[1].provenance, None);
         assert_eq!(queue.get().entries[0].id, other);
     }

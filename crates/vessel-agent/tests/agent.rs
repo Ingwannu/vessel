@@ -239,7 +239,7 @@ async fn a_full_turn_with_a_permission_round_trip() {
         else {
             panic!("matched by the predicate above")
         };
-        assert_eq!(request.tool_call, ToolCallId::new("call-1"));
+        assert_eq!(request.tool_call, Some(ToolCallId::new("call-1")));
         let options: Vec<_> = request
             .options
             .iter()

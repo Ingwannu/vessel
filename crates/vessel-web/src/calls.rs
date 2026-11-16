@@ -77,6 +77,7 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 const fn forwardable(method: Method) -> bool {
     match method {
         Method::SubmitPrompt
+        | Method::ObservePromptReceipt
         | Method::RespondPermission
         | Method::RespondQuestion
         | Method::GetUsageLimits

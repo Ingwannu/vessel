@@ -237,9 +237,13 @@ mod tests {
         assert_eq!(decision, PlanDecision::Implement);
         assert_eq!(answering.delivery_state, PermissionDeliveryState::Answering);
         assert!(owner.begin(request.id, &outcome).is_err());
-        owner
+        let unknown = owner
             .update(PermissionDeliveryState::OutcomeUnknown)
             .unwrap();
+        assert_eq!(
+            unknown.delivery_state,
+            PermissionDeliveryState::OutcomeUnknown
+        );
         assert!(owner.begin(request.id, &outcome).is_err());
         assert!(matches!(owner.offer(proposal("turn")), Offer::Duplicate));
     }

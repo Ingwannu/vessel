@@ -221,3 +221,12 @@ public type paths and implementations on this full branch. The standalone
 presentation modules therefore depend only on already-adopted body/field-name
 values. The receiving cut changes no PermissionRequest/Question fields, RPC
 rows, events, SDK calls, compatibility walk or runtime and grants no effect.
+
+
+The browser bridge classifies the pending read-only observation alongside its
+existing unary calls; SDK and node protocol/authority checks remain unchanged.
+This is not a second submit, an effect admission, or composer activation. The
+first resumed combined strict run exposed this missing exhaustive method arm,
+three search-fixture qualifications, an old required-tool fixture and unused
+queue/plan-state results. Corrected fixtures now explicitly assert the actual
+Changed/OutcomeUnknown values; prior failed evidence is retained separately.

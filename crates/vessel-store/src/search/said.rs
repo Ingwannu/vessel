@@ -95,10 +95,7 @@ mod tests {
                 "provenance": {"kind":"internal_notice","notice":5}
             }))
             .unwrap();
-            assert_eq!(
-                super::said(&vessel_proto::SessionEvent::Agent { event }),
-                super::Said::Ends
-            );
+            assert_eq!(said(&SessionEvent::Agent { event }), Said::Ends);
         }
     }
 
