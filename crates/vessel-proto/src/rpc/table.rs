@@ -404,15 +404,15 @@ macro_rules! method_table {
             GitCompareFile / git_compare_file / "git.compare_file" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
             /// Collect bounded content-free diagnostics (protocol 24).
             Diagnostics / diagnostics / "node.diagnostics" [Read, (pending $crate::diagnostics::DIAGNOSTICS_PROTOCOL), unary]: $crate::diagnostics::GetDiagnostics => $crate::diagnostics::DiagnosticReport;
-            /// Rich explorer listing with honest modification metadata (ADR 0083).
+            /// Rich explorer listing with honest modification metadata (ADR 0083, protocol 26).
             InspectDirectory / inspect_directory / "file.inspect" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::directory_metadata::InspectDirectory => $crate::workspace::directory_metadata::InspectedDirectory;
-            /// Exact, version-bound binary page (ADR 0083).
+            /// Exact, version-bound binary page (ADR 0083, protocol 26).
             ReadFileBytes / read_file_bytes / "file.read_bytes" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::panel_files::ReadFileBytes => $crate::workspace::panel_files::FileBytePage;
-            /// Exclusive sibling duplication, never an overwrite (ADR 0083).
+            /// Exclusive sibling duplication, never an overwrite (ADR 0083, protocol 26).
             DuplicateFileEntry / duplicate_file_entry / "file.duplicate" [Operate, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::panel_files::DuplicateFileEntry => $crate::workspace::panel_files::DuplicatedFileEntry;
-            /// Finite parent-directory observation of one saved file (ADR 0083).
+            /// Finite parent-directory observation of one saved file (ADR 0083, protocol 26).
             ObserveFile / observe_file / "file.observe" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::panel_files::ObserveFile => $crate::workspace::panel_files::ObservedFile;
-            /// Bounded root-scoped file/directory discovery (ADR 0083).
+            /// Bounded root-scoped file/directory discovery (ADR 0083, protocol 26).
             SuggestEntries / suggest_entries / "file.suggest" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::suggestions::SuggestEntries => $crate::workspace::suggestions::EntrySuggestions;
 
             /// Host orchestration skills (staged ADR 0065, Admin only).
