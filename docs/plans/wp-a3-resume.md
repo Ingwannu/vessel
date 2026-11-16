@@ -62,3 +62,12 @@ exported fake captures and V4. One own VM job at a time; all Rust stays remote.
 The owned capture display was stopped after verifying PID/executable/UID and its
 auth-file identity. No own fake fleet was running. No product permission change,
 real agent, real account/service mutation or inspected final capture occurred.
+
+
+Quota-stop closure: the same existing run was still queued14 at03:46 UTC.
+The queue cannot reasonably finish inside the warning window, so no further
+build or merge is started. The local log follower is stopped after verifying
+its process/receipt; the tool explicitly detaches the recorded VM run from its
+caller. Recover/attach that SAME run on resume, inspect its final result first,
+and never submit an unchanged duplicate. This is a WIP checkpoint, not a gate,
+review or feature PASS. Owned capture processes are already stopped.
