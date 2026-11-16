@@ -161,33 +161,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             }),
         }),
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
-        Command::Files(Files::Prompt(prompt)) => {
-            return Settle::Prompt {
-                session: prompt.session,
-                text: prompt.text.clone(),
-            };
-        }
-        // A file the link never took: failed, to be tried again.
-        Command::Files(Files::Send(attach)) => Event::Files(Answer::Upload {
-            message: attach.message,
-            session: attach.session,
-            key: attach.key,
-            step: Step::Failed {
-                problem: tray::Problem::Node(said()),
-                again: Again::Restart,
-            },
-        }),
-        // A sent image the link never read: no picture this time.
-        Command::Files(Files::Capabilities(ask)) => Event::Files(Answer::Capabilities {
-            ask,
-            result: Err(vessel_app_link::attachments::CapabilityFailure::Offline),
-        }),
-        Command::Files(Files::Wake(wake)) => Event::Files(Answer::Woke {
-            message: wake.message,
-            session: wake.session,
-            outcome: vessel_app_link::attachments::WakeOutcome::Refused,
-        }),
-        Command::Files(Files::Read(sent)) => Event::Files(Answer::Read { sent, bytes: None }),
+        Command::Files(command) => return settle_files(command, words),
         Command::Open { .. }
         | Command::Stop { .. }
         | Command::Answer { .. }
@@ -213,6 +187,41 @@ pub(crate) async fn receive(
             return;
         }
     }
+}
+
+/// Preserve the attachment's original correlated refusal without a second sender.
+fn settle_files(command: Files, words: &str) -> Settle {
+    let said = || words.to_owned();
+    let answer = match command {
+        Files::Prompt(prompt) => {
+            return Settle::Prompt {
+                session: prompt.session,
+                text: prompt.text.clone(),
+            };
+        }
+        // A file the link never took: failed, to be tried again.
+        Files::Send(attach) => Answer::Upload {
+            message: attach.message,
+            session: attach.session,
+            key: attach.key,
+            step: Step::Failed {
+                problem: tray::Problem::Node(said()),
+                again: Again::Restart,
+            },
+        },
+        // A sent image the link never read: no picture this time.
+        Files::Capabilities(ask) => Answer::Capabilities {
+            ask,
+            result: Err(vessel_app_link::attachments::CapabilityFailure::Offline),
+        },
+        Files::Wake(wake) => Answer::Woke {
+            message: wake.message,
+            session: wake.session,
+            outcome: vessel_app_link::attachments::WakeOutcome::Refused,
+        },
+        Files::Read(sent) => Answer::Read { sent, bytes: None },
+    };
+    Settle::Answer(Box::new(Event::Files(answer)))
 }
 
 #[cfg(test)]

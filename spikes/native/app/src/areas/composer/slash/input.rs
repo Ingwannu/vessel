@@ -118,7 +118,7 @@ fn inline(
         .aria_label(shell.words.composer_shell().fullscreen().to_owned())
         .absolute()
         .top(px(spacing::S0))
-        .right(px(-spacing::S1_5))
+        .right(px(spacing::S1_5.mul_add(-1.0, 0.0)))
         .on_mouse_down(gpui::MouseButton::Left, |_, window, _| {
             window.prevent_default();
         })
@@ -164,9 +164,8 @@ fn hooked_text(
         element,
         move |key, window: &mut Window, cx: &mut App| {
             weak.update(cx, |shell, cx| {
-                let _field = match shell.composer_shell_field(target) {
-                    Some(field) => field,
-                    None => return KeyAnswer::Pass,
+                let Some(_field) = shell.composer_shell_field(target) else {
+                    return KeyAnswer::Pass;
                 };
                 let Some(surface) = shell.composer_surface(target, cx) else {
                     return KeyAnswer::Pass;

@@ -240,7 +240,8 @@ fn equal_bytes_change_format_in_both_directions_through_the_retained_borrowed_ap
 ) {
     crate::shell::language_tests::init(cx);
     let watch = Watch::begin();
-    let (view, cx) = cx.add_window_view(|_, _| ProposedBody {
+    let (view, cx) = cx.add_window_view(|window, cx| ProposedBody {
+        shell: cx.new(|cx| crate::shell::Shell::without_io(window, cx)),
         detail: ToolCallDetail::Unknown(UnknownToolDetail {
             input: None,
             output: None,
@@ -299,7 +300,8 @@ fn equal_bytes_change_format_in_both_directions_through_the_retained_borrowed_ap
 fn empty_patch_uses_reported_replacement_or_deletion_in_the_real_body(cx: &mut TestAppContext) {
     crate::shell::language_tests::init(cx);
     let watch = Watch::begin();
-    let (view, cx) = cx.add_window_view(|_, _| ProposedBody {
+    let (view, cx) = cx.add_window_view(|window, cx| ProposedBody {
+        shell: cx.new(|cx| crate::shell::Shell::without_io(window, cx)),
         detail: edit(Some("new"), Some("")),
         state: tool_detail::DetailContentState::Ready,
         headers: Headers::default(),
