@@ -11,11 +11,11 @@ use std::path::PathBuf;
 /// lets launch decisions be unit-tested without starting anything, and lets
 /// different runners (pipes, PTY) execute the same description.
 ///
-/// `Debug` shows the environment's names, never its values: a profile or an
-/// MCP server may put secrets there (ADRs 0011, 0012), and arguments never
-/// hold one.
+/// `Debug` normally shows the environment's names, never its values. Commands
+/// with private program/argument data opt into [`crate::CommandDiagnostics`].
 #[derive(Clone, PartialEq, Eq)]
 pub struct CommandSpec {
+    pub(crate) diagnostics: crate::CommandDiagnostics,
     /// Executable to run: an absolute path resolved by the caller, so the
     /// runner never searches `PATH` itself.
     pub program: PathBuf,
@@ -60,6 +60,16 @@ impl fmt::Debug for EnvValue {
 
 impl fmt::Debug for CommandSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.diagnostics {
+            crate::CommandDiagnostics::Standard => {}
+            crate::CommandDiagnostics::Redacted => {
+                return f
+                    .debug_struct("CommandSpec")
+                    .field("diagnostics", &self.diagnostics)
+                    .field("arguments", &self.args.len())
+                    .finish_non_exhaustive();
+            }
+        }
         f.debug_struct("CommandSpec")
             .field("program", &self.program)
             .field("environment", &self.environment)
@@ -76,6 +86,7 @@ impl CommandSpec {
     #[must_use]
     pub fn new(program: impl Into<PathBuf>) -> Self {
         Self {
+            diagnostics: crate::CommandDiagnostics::Standard,
             program: program.into(),
             environment: Environment::Inherit,
             args: Vec::new(),
