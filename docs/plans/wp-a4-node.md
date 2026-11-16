@@ -29,7 +29,15 @@ metadata, all existing method rows and family fixtures. Only the two pending
 provider reads are appended; generated wire declarations come from the exact
 receiving union. Historical scoped checks below remain predecessor evidence.
 
-Before final node handoff: validate the corrected generated union, finish
+Exact9ab58a354 generated union now passed web lint, typecheck and466 tests in
+wp-transfer-web-current-20261116T004311Z-9ab58a35. The paired actual agent
+library plus codex_history integration selection passed122/0/2, including
+both prompt-free fake-process cases and the strengthened typed-peer tests,
+in wp-transfer-history-current-20261116T004311Z-9ab58a35. Its web prerequisite
+and both A5 prebuilds also passed. The Rust sources are identical to strict8b5;
+only exact generated declarations and this disposition differ.
+
+Before final node handoff: finish
 its changed whole-root gate and obtain complete V3 package review. Earlier
 scoped durable-detach/security and value approvals do not approve provider
 execution. Native keyed child resources, archive-finished and draft seeding
