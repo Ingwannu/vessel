@@ -375,3 +375,15 @@ bind-mount proof or NodeHost/root bootstrap/ACL authority is claimed. Fixtures
 request permissions at initial creation without chmod/chown repair; the negative
 mode case checks its actual ambient-umask precondition. New source/strict/actual
 execution remain owed. All code stays beneath the literal node plugin cfg(test).
+
+The first strict48e897fa receipt reached Node and refused one external Errno
+wildcard style arm; no success is inferred. The correction keeps exactly the
+same three Unsupported categories using a predicate. Separately, source audit
+found the selected-directory probe must check EVERY intervening directory,
+not just its final component. The corrected reader checks each held component
+with the shared directory policy and rechecks its selected descriptor. The new
+nonprivate-parent/private-child regression must refuse before content open.
+The read-only kernel-mount test calls the SAME low-level resolver directly so
+it does not bypass or claim root policy. Existing bounds/guards/assertions stay.
+Prior tests, if completed, remain prior-source evidence; changed-source strict
+and execution are required. This remains descriptor facts, not CandidateStore.

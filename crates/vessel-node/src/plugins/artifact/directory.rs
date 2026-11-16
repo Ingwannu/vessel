@@ -54,8 +54,23 @@ impl DirectoryProbe {
     }
 
     fn open_directory(&self, path: &PackagePath) -> Result<Self, Failure> {
-        let root = self.resolved(path.as_str(), OFlag::O_RDONLY | OFlag::O_DIRECTORY)?;
-        Self::from_file(root.into(), self.device)
+        self.checked_directory(path.as_str())
+    }
+
+    fn checked_directory(&self, path: &str) -> Result<Self, Failure> {
+        let mut current = Self::from_file(
+            self.root.try_clone().map_err(file::io_failure)?,
+            self.device,
+        )?;
+        for component in path.split('/') {
+            let next = resolved(
+                &current.root,
+                component,
+                OFlag::O_RDONLY | OFlag::O_DIRECTORY,
+            )?;
+            current = Self::from_file(next.into(), self.device)?;
+        }
+        Ok(current)
     }
 
     fn open_file(&self, path: &PackagePath) -> Result<File, Failure> {
@@ -68,12 +83,13 @@ impl DirectoryProbe {
         before_open: impl FnOnce(),
     ) -> Result<File, Failure> {
         let (parent, name) = match path.as_str().rsplit_once('/') {
-            Some((parent, name)) => (
-                File::from(self.resolved(parent, OFlag::O_RDONLY | OFlag::O_DIRECTORY)?),
-                name,
-            ),
+            Some((parent, name)) => (self.checked_directory(parent)?.root, name),
             None => (
-                self.root.try_clone().map_err(file::io_failure)?,
+                Self::from_file(
+                    self.root.try_clone().map_err(file::io_failure)?,
+                    self.device,
+                )?
+                .root,
                 path.as_str(),
             ),
         };
@@ -93,10 +109,6 @@ impl DirectoryProbe {
         }
         Ok(opened)
     }
-
-    fn resolved(&self, path: &str, flags: OFlag) -> Result<OwnedFd, Failure> {
-        resolved(&self.root, path, flags)
-    }
 }
 
 fn resolved(parent: &File, path: &str, flags: OFlag) -> Result<OwnedFd, Failure> {
@@ -113,9 +125,10 @@ fn resolved(parent: &File, path: &str, flags: OFlag) -> Result<OwnedFd, Failure>
 }
 
 fn system(cause: Errno) -> Failure {
-    match cause {
-        Errno::ENOSYS | Errno::EINVAL | Errno::E2BIG => Failure::Unsupported(cause),
-        _ => Failure::System(cause),
+    if matches!(cause, Errno::ENOSYS | Errno::EINVAL | Errno::E2BIG) {
+        Failure::Unsupported(cause)
+    } else {
+        Failure::System(cause)
     }
 }
 

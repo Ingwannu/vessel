@@ -125,9 +125,8 @@ fn actual_kernel_mount_boundary_refuses_before_directory_policy() {
         device,
         fs::metadata("/proc").expect("actual proc mount").dev()
     );
-    let probe = DirectoryProbe { root, device };
     assert!(matches!(
-        probe.open_directory(&package_path("proc").expect("package spelling")),
+        resolved(&root, "proc", OFlag::O_RDONLY | OFlag::O_DIRECTORY),
         Err(Failure::System(Errno::EXDEV))
     ));
 }
@@ -152,6 +151,35 @@ fn unqualified_root_policy_and_all_error_chains_stay_explicit() {
     ));
     let root = private_root();
     let probe = DirectoryProbe::open(root.path()).expect("private descriptor");
+    let parent = root.path().join("shared");
+    DirBuilder::new()
+        .mode(0o755)
+        .create(&parent)
+        .expect("nonprivate parent fixture");
+    assert_ne!(
+        fs::metadata(&parent).expect("actual parent mode").mode() & 0o077,
+        0
+    );
+    directory(&parent.join("child"));
+    write(
+        &parent.join("child/value"),
+        b"private child cannot hide its parent",
+    );
+    assert!(matches!(
+        probe.open_directory(&package_path("shared/child").expect("path")),
+        Err(Failure::Directory(tree::Failure::Policy))
+    ));
+    let opened = Cell::new(false);
+    assert!(matches!(
+        probe.open_file_with_gate(&package_path("shared/child/value").expect("path"), || {
+            opened.set(true)
+        }),
+        Err(Failure::Directory(tree::Failure::Policy))
+    ));
+    assert!(
+        !opened.get(),
+        "every parent must pass before the content-open gate"
+    );
     let error = probe
         .open_directory(&package_path("PRIVATE-CANARY").expect("path"))
         .err()
