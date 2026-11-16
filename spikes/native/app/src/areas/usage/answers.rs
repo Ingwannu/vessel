@@ -37,7 +37,7 @@ impl Shell {
                 ticket,
                 result,
             } => {
-                self.usage_policy_answer(machine, ticket, result);
+                self.usage_policy_answer(&machine, ticket, result);
                 None
             }
             Answer::SourceLookup {
@@ -45,7 +45,7 @@ impl Shell {
                 ticket,
                 result,
             } => {
-                self.usage_source_answer(machine, ticket, result);
+                self.usage_source_answer(&machine, ticket, result);
                 None
             }
             Answer::Session { request, result } => self
@@ -134,16 +134,16 @@ impl Shell {
     }
     fn usage_policy_answer(
         &mut self,
-        machine: ConnectionContext,
+        machine: &ConnectionContext,
         ticket: Ticket,
         result: Result<ExternalLookup, RequestFailure>,
     ) {
-        let current = self.usage_connection_current(&machine);
+        let current = self.usage_connection_current(machine);
         let state = &mut self.areas.usage;
         let Some(pending) = &state.policy_pending else {
             return;
         };
-        if pending.machine != machine || pending.ticket != ticket {
+        if &pending.machine != machine || pending.ticket != ticket {
             return;
         }
         let problem = match result {
@@ -151,7 +151,7 @@ impl Shell {
             Ok(_) => Some(RequestFailure::InvalidReply),
             Err(reason) => Some(reason),
         };
-        state.policy_error = if current && state.connection.as_ref() == Some(&machine) {
+        state.policy_error = if current && state.connection.as_ref() == Some(machine) {
             problem
         } else {
             None

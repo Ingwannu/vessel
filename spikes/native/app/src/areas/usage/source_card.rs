@@ -81,7 +81,7 @@ pub(super) fn render(
         if let Some(receipt) = &receipt
             && super::read_states::current(shell, receipt)
         {
-            shell.usage_refresh_report(receipt.machine().clone(), id.clone());
+            shell.usage_refresh_report(receipt.machine(), id.clone());
             cx.notify();
         }
     }));

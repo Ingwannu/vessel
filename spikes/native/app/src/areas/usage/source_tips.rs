@@ -1,6 +1,6 @@
 //! Existing observation tickets retire tooltip places with their report set.
 use super::rows::Density;
-use std::{cell::RefCell, collections::BTreeMap};
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use vessel_app_kit::{
     Button, Tokens, Tooltips,
     tooltip::Place,
@@ -43,7 +43,7 @@ impl SourceTips {
         density: Density,
     ) -> Stateful<Div> {
         let mut state = self.0.borrow_mut();
-        let place = state.places.entry(entry.id().clone()).or_default().clone();
+        let place = Rc::clone(state.places.entry(entry.id().clone()).or_default());
         let refresh = div()
             .id(SharedString::from(format!(
                 "usage-report-freshness-{}",

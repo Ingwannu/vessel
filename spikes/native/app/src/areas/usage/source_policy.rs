@@ -73,11 +73,11 @@ impl Shell {
     }
     pub(super) fn usage_refresh_report(
         &mut self,
-        machine: ConnectionContext,
+        machine: &ConnectionContext,
         id: vessel_proto::usage_reports::UsageReportId,
     ) {
-        if !self.usage_connection_current(&machine)
-            || self.areas.usage.connection.as_ref() != Some(&machine)
+        if !self.usage_connection_current(machine)
+            || self.areas.usage.connection.as_ref() != Some(machine)
         {
             return;
         }
@@ -85,16 +85,16 @@ impl Shell {
     }
     pub(super) fn usage_source_answer(
         &mut self,
-        machine: ConnectionContext,
+        machine: &ConnectionContext,
         ticket: Ticket,
         result: Result<UsageSourceDescriptor, RequestFailure>,
     ) {
-        let current = self.usage_connection_current(&machine);
+        let current = self.usage_connection_current(machine);
         let state = &mut self.areas.usage;
         let Some(pending) = &state.source_pending else {
             return;
         };
-        if pending.machine != machine || pending.ticket != ticket {
+        if &pending.machine != machine || pending.ticket != ticket {
             return;
         }
         let failure = match result {
@@ -120,7 +120,7 @@ impl Shell {
             }
             Err(reason) => Some(reason),
         };
-        state.policy_error = if current && state.connection.as_ref() == Some(&machine) {
+        state.policy_error = if current && state.connection.as_ref() == Some(machine) {
             failure
         } else {
             None

@@ -81,7 +81,7 @@ pub(super) fn render(
         if let Some(receipt) = &receipt
             && super::read_states::current(shell, receipt)
         {
-            shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx);
+            shell.usage_toggle_pin(&machine, ticket, pin.clone(), window, cx);
         }
     }))
     .into_any_element()

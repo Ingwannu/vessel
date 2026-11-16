@@ -106,8 +106,8 @@ impl Shell {
             self.areas.usage.session.close();
         }
     }
-    fn usage_read_session(&mut self, expected: SessionSelection, refresh: LimitRefresh) {
-        if !self.usage_session_current(&expected) {
+    fn usage_read_session(&mut self, expected: &SessionSelection, refresh: LimitRefresh) {
+        if !self.usage_session_current(expected) {
             return;
         }
         let reader = &mut self.areas.usage.session;
@@ -165,7 +165,7 @@ pub(crate) fn session_card(
                 .children(failed.then(|| {
                     outline_button("usage-session-retry", text.retry(), true, tokens).on_click(
                         cx.listener(move |shell, _, _, cx| {
-                            shell.usage_read_session(selected.clone(), LimitRefresh::Cached);
+                            shell.usage_read_session(&selected, LimitRefresh::Cached);
                             cx.notify();
                         }),
                     )
@@ -221,7 +221,7 @@ pub(crate) fn session_card(
                 |button| {
                     button.on_click(cx.listener(move |shell, _, _, cx| {
                         if let Some(selection) = &selection {
-                            shell.usage_read_session(selection.clone(), LimitRefresh::Refresh);
+                            shell.usage_read_session(selection, LimitRefresh::Refresh);
                         }
                         cx.notify();
                     }))

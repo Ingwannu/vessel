@@ -12,13 +12,13 @@ use vessel_proto::{limits::LimitKey, usage_reports::UsageSourceId};
 impl Shell {
     pub(super) fn usage_toggle_pin(
         &mut self,
-        machine: ConnectionContext,
+        machine: &ConnectionContext,
         ticket: Ticket,
         pin: Pin<UsageSourceId, LimitKey>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.usage.inventory.selection() != Some(&machine)
+        if self.areas.usage.inventory.selection() != Some(machine)
             || self.areas.usage.inventory.observation_ticket() != Some(ticket)
         {
             return;

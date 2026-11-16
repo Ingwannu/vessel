@@ -91,7 +91,7 @@ pub(super) fn off(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -
                             .and_then(vessel_app_view::usage::Inventory::policy)
                             == Some(ExternalLookup::Off)
                     {
-                        shell.usage_set_policy(receipt.machine().clone(), ExternalLookup::On);
+                        shell.usage_set_policy(receipt.machine(), ExternalLookup::On);
                         cx.notify();
                     }
                 }))

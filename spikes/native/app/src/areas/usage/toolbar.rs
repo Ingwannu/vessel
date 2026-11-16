@@ -79,7 +79,7 @@ pub(super) fn refresh_all(
             if super::read_states::current(shell, &receipt)
                 && !matches!(shell.areas.usage.inventory.phase(), Phase::Loading { .. })
             {
-                shell.usage_refresh_all(receipt.machine().clone());
+                shell.usage_refresh_all(receipt.machine());
                 cx.notify();
             }
         }))

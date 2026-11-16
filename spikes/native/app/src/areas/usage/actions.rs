@@ -50,7 +50,7 @@ impl Shell {
                 .iter()
                 .find(|candidate| candidate.name == machine.as_str())
                 .and_then(vessel_app_view::Machine::connection_context),
-            _ => None,
+            Target::Hidden | Target::Loading | Target::NoMachines | Target::Offline(_) => None,
         };
         let state = &mut self.areas.usage;
         if state.target != target || state.connection != connection {
@@ -112,9 +112,9 @@ impl Shell {
             }));
         }
     }
-    pub(super) fn usage_refresh_all(&mut self, machine: ConnectionContext) {
-        if !self.usage_connection_current(&machine)
-            || self.areas.usage.connection.as_ref() != Some(&machine)
+    pub(super) fn usage_refresh_all(&mut self, machine: &ConnectionContext) {
+        if !self.usage_connection_current(machine)
+            || self.areas.usage.connection.as_ref() != Some(machine)
         {
             return;
         }
@@ -122,18 +122,22 @@ impl Shell {
     }
     pub(crate) fn usage_refresh_account(
         &mut self,
-        machine: ConnectionContext,
+        machine: &ConnectionContext,
         account: LimitAccount,
     ) {
-        if !self.usage_connection_current(&machine)
-            || self.areas.usage.connection.as_ref() != Some(&machine)
+        if !self.usage_connection_current(machine)
+            || self.areas.usage.connection.as_ref() != Some(machine)
         {
             return;
         }
         self.usage_accounts(InventoryRefresh::Account(account));
     }
-    pub(crate) fn usage_set_policy(&mut self, expected: ConnectionContext, policy: ExternalLookup) {
-        if !self.usage_connection_current(&expected) {
+    pub(crate) fn usage_set_policy(
+        &mut self,
+        expected: &ConnectionContext,
+        policy: ExternalLookup,
+    ) {
+        if !self.usage_connection_current(expected) {
             return;
         }
         let state = &mut self.areas.usage;
@@ -143,7 +147,7 @@ impl Shell {
         let Some(machine) = &state.connection else {
             return;
         };
-        if machine != &expected {
+        if machine != expected {
             return;
         }
         let Ok(ticket) = state.tickets.next_ticket() else {

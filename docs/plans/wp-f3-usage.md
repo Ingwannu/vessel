@@ -171,3 +171,12 @@ an obsolete domain pair is withheld before deferred shared retirement. No new
 generation allocator, focus engine or renderer is introduced. Final consumer
 capture must exercise open/close/reopen and the stale-opening case; shared
 producer tests alone do not establish this consumer interaction.
+
+
+Exact `bbce0afb9` wasm32 app/link check passed without warnings (wasm 2),
+including the captured options toggle. Native strict 15 then stopped on ten
+own Usage lints: explicit Target exhaustiveness, borrowed admission arguments,
+and explicit Rc cloning for tooltip places. The correction changes ownership
+spelling and enum coverage, preserving guard comparisons, request payloads,
+callbacks and tooltip identity; no lint allowance is introduced. Runtime
+interaction/captures and current native strict still need their own proof.
