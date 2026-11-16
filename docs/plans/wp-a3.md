@@ -529,3 +529,14 @@ factory or Home destructor remains. Both Architecture additions are kept.
 Selected-connection and frozen actor files are byte-identical to the head.
 Static native checks pass (779 files, 13 existing size entries; no new token
 entries; 55 changed Rust files formatted). This is not consumer runtime proof.
+
+
+The prepared two-machine resident regression now uses normal Search commands
+and framed replies from two peers under the canonical pair Scenario. It keeps
+both original resident replacements, the exact two-query count, ticket/row
+retention and final two results, adding per-peer transcript assertions. Its
+same-node aliases still have distinct original admissions. A guardless success
+remains only in the explicit rejection test; local typed failure/translation
+fixtures remain local refusals. This consumer source awaits the reviewed pair
+producer on an announced receiving line, then actual compilation/runtime. It
+is not an adoption or success claim for the unreviewed fixture leaf.
