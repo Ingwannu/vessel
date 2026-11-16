@@ -274,7 +274,6 @@ impl Shell {
             .find(|follow| &follow.connection == connection)
     }
 
-
     /// The Labels item of `session`'s row menu: the picker for its
     /// workspace, with the registry's labels.
     pub(crate) fn labels_row_open(
