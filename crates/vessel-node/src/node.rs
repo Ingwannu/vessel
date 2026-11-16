@@ -16,7 +16,6 @@ use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, RelayToken};
 use vessel_relay::TlsConfig;
 use vessel_relay::address::ClientAddress;
-use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
@@ -55,6 +54,7 @@ use crate::workspace::{Opening, Workspaces};
 #[cfg(windows)]
 mod desktop;
 mod handle;
+mod rpc;
 mod setup;
 
 use self::setup::{SessionSetup, SetupDirs, model_client};
@@ -133,15 +133,7 @@ impl Node {
             relays,
         } = core(&config, id, &store, &keypair, relay, setup, started).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
-        let closing = CancellationToken::new();
-        let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
-            config.rpc.clone(),
-            closing.clone(),
-        ));
-        let token = Arc::new(token);
-        let connections = TaskTracker::new();
+        let transport = rpc::Rpc::new(Arc::clone(&service), &lifecycle, &config.rpc, token);
 
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
@@ -155,8 +147,8 @@ impl Node {
             lifecycle: lifecycle.clone(),
             devices,
             config: config.rpc.clone(),
-            closing: closing.clone(),
-            connections: connections.clone(),
+            closing: transport.closing.clone(),
+            connections: transport.connections.clone(),
             unadmitted: Arc::new(Semaphore::new(MAX_UNADMITTED)),
             unadmitted_per_address: Arc::default(),
         };
@@ -165,28 +157,28 @@ impl Node {
             settings,
             tasks,
             forwarders,
-            closing,
-            connections: connections.clone(),
+            closing: transport.closing,
+            connections: transport.connections.clone(),
             store,
         };
         let router = tcp.map(|(listener, _)| {
             (
                 listener,
                 server::router(Gateway {
-                    rpc: Arc::clone(&rpc),
-                    token: Arc::clone(&token),
+                    rpc: Arc::clone(&transport.server),
+                    token: Arc::clone(&transport.token),
                     secure: secure.clone(),
                     keepalive: config.keepalive,
-                    connections: connections.clone(),
+                    connections: transport.connections.clone(),
                     clients,
                 }),
             )
         });
-        relays.serve(secure.clone(), connections.clone());
+        relays.serve(secure.clone(), transport.connections.clone());
         let gateway = LocalGateway {
-            rpc,
-            token,
-            connections,
+            rpc: transport.server,
+            token: transport.token,
+            connections: transport.connections,
             agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
         };
         #[cfg(windows)]

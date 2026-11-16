@@ -98,7 +98,10 @@ receiver closes the instance before authentication.
 
 The public node handle's existing observation/shutdown methods move unchanged
 to `node/handle.rs` to keep assembly within its existing file budget; the size
-record only decreases. This extraction does not add another shutdown owner.
+record only decreases. Shared RPC/token/closing/task-tracker construction also
+moves unchanged to `node/rpc.rs` to keep the startup function below its existing
+line limit. Both transports still share those same original resources. These
+extractions do not add another shutdown owner.
 The node-side code is preparation until the launcher split and qualified tests
 join it; it is not a working Windows Owned handoff by itself.
 
