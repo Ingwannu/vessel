@@ -306,7 +306,7 @@ fn run_header(
     (name, lead): (&'static str, usize),
     summary: String,
     open: bool,
-    toggle: fn(&mut Shell, Seat, usize, &mut Context<'_, Shell>),
+    toggle: fn(&mut Shell, &Seat, usize, &mut Context<'_, Shell>),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
@@ -323,9 +323,7 @@ fn run_header(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(
-            cx.listener(move |shell, _event, _window, cx| toggle(shell, seat.clone(), lead, cx)),
-        )
+        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, &seat, lead, cx)))
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()

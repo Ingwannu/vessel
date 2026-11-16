@@ -179,7 +179,7 @@ impl Shell {
     }
 
     /// Open or close a run of tool calls in the conversation at `seat`.
-    pub(crate) fn toggle_run(&mut self, seat: Seat, lead: usize, cx: &mut Context<'_, Self>) {
+    pub(crate) fn toggle_run(&mut self, seat: &Seat, lead: usize, cx: &mut Context<'_, Self>) {
         let before = seat.origin_height(self);
         if let Some(area) = seat.get_mut(self) {
             area.toggle_run(lead);
@@ -189,7 +189,7 @@ impl Shell {
     }
 
     /// Open or close one entry's disclosure in the conversation at `seat`.
-    pub(crate) fn toggle_entry(&mut self, seat: Seat, entry: usize, cx: &mut Context<'_, Self>) {
+    pub(crate) fn toggle_entry(&mut self, seat: &Seat, entry: usize, cx: &mut Context<'_, Self>) {
         let before = seat.origin_height(self);
         if let Some(area) = seat.get_mut(self) {
             area.toggle_entry(entry);

@@ -36,3 +36,13 @@ Status: source preparation only. Strict App checks and the concrete tests have
 not executed. No staging attribute has been removed and no product resource has
 been admitted. W2's child carrier later also needs original parent context,
 ProviderChildRef and installed projection revision through its one resident field.
+
+Preflight amendment: lazy row closures own a Clone carrier but borrow it on each
+local dispatch. A7 toggle/act helpers therefore accept &Seat; W4 supplies the
+matching permit/Place companion delta. The one retained handle is still cloned
+only when a row/closure needs ownership, without extra per-click Arc clones.
+The old alias-based act_at accepts legacy targets only. An admitted resource with
+real shown state still yields no legacy target: its actual transport needs W12's
+original guarded binding and opaque owner ticket in the coordinated cutover.
+This is not a new RPC, client, manager or transport implementation. The fixture
+also covers that non-authority boundary. All admitted staging remains literal.

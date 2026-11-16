@@ -220,7 +220,7 @@ pub(super) fn work_row(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.toggle_entry(seat.clone(), index, cx);
+            shell.toggle_entry(&seat, index, cx);
         }))
         .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))

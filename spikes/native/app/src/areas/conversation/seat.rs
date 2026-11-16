@@ -3,6 +3,7 @@
 use super::ConversationArea;
 #[cfg(test)]
 use super::ResidentSeat;
+use super::area::Shown;
 use crate::shell::Shell;
 use std::sync::Arc;
 #[cfg(test)]
@@ -37,6 +38,7 @@ impl Seat {
 
     /// Staged row adoption reuses the checked registry predicates, not a new map.
     #[cfg(test)]
+    #[must_use]
     pub(crate) fn admitted_main(context: SessionContext) -> Self {
         Self::Admitted(Arc::new(ResidentSeat::main(context)))
     }
@@ -83,6 +85,17 @@ impl Seat {
             Self::Origin(parent) => parent.get_mut(shell)?.origin.area_mut(),
             #[cfg(test)]
             Self::Admitted(seat) => seat.get_mut(shell),
+        }
+    }
+
+    /// The old alias transport authorizes no admitted operation. W12's actual
+    /// cutover must supply the original guarded binding/ticket path separately.
+    pub(super) fn legacy_target<'a>(&self, shell: &'a Shell) -> Option<&'a Shown> {
+        match self {
+            Self::Legacy { read, .. } => read(shell)?.shown.as_ref(),
+            Self::Origin(_) => None,
+            #[cfg(test)]
+            Self::Admitted(_) => None,
         }
     }
 }

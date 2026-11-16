@@ -295,12 +295,12 @@ impl Shell {
 
     /// A toggle at `seat` happened while the origin had `before` rows:
     /// when it was in the origin's rows, the list measures them again.
-    pub(super) fn origin_toggled(&mut self, seat: Seat, before: Option<usize>) {
+    pub(super) fn origin_toggled(&mut self, seat: &Seat, before: Option<usize>) {
         let Some(before) = before else { return };
         let parent = if let Some(parent) = seat.origin_parent() {
             parent.get(self)
         } else {
-            match &seat {
+            match seat {
                 // Preserve this explicit old surface; a failed admitted lookup
                 // never reaches it. Converted origins always carry their parent.
                 Seat::Legacy { .. } => Seat::ORIGIN

@@ -339,6 +339,13 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         let Admitted { a, claim_a, .. } = admitted(shell, window, cx);
+        shell
+            .areas
+            .session_residents
+            .resources_mut(&a)
+            .unwrap()
+            .conversation
+            .open("fixture", a.resident.address.session);
         let mut first = thought_area(cx, "A first origin");
         first.origin = Origin::Shown(Box::new(thought_area(cx, "A deep origin")));
         first.list.splice(0..0, first.head());
@@ -354,13 +361,15 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
         unrelated.list.splice(0..0, unrelated.head());
         shell.areas.conversation.origin = Origin::Shown(Box::new(unrelated));
         let main = crate::areas::conversation::Seat::admitted_main(a.clone());
+        assert!(main.get(shell).unwrap().shown.is_some());
+        assert!(main.legacy_target(shell).is_none());
         let deep = main.origin().origin();
         let captured = deep.clone();
         assert!(
             matches!(&deep.get(shell).unwrap().timeline.entries()[0].kind,
             EntryKind::Thought { text } if text == "A deep origin")
         );
-        shell.toggle_entry(captured.clone(), 0, cx);
+        shell.toggle_entry(&captured, 0, cx);
         assert!(deep.get(shell).unwrap().toggled.contains(&0));
         assert!(
             !crate::areas::conversation::Seat::SESSION
@@ -371,7 +380,7 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
                 .toggled
                 .contains(&0)
         );
-        shell.toggle_entry(captured.clone(), 0, cx);
+        shell.toggle_entry(&captured, 0, cx);
         assert!(!deep.get(shell).unwrap().toggled.contains(&0));
         shell
             .areas
@@ -385,7 +394,7 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
             .unwrap();
         assert!(captured.get(shell).is_none());
         assert!(captured.get_mut(shell).is_none());
-        shell.toggle_entry(captured, 0, cx);
+        shell.toggle_entry(&captured, 0, cx);
         assert!(
             !crate::areas::conversation::Seat::SESSION
                 .origin()
