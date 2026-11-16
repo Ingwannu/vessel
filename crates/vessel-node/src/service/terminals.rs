@@ -91,7 +91,7 @@ impl NodeService {
             .map_err(wire)?;
         let size = request.size.unwrap_or_default();
         let info = TerminalInfo::new(
-            id,
+            reservation.id(),
             request.place.clone(),
             folder.clone(),
             TerminalKind::Shell {
@@ -105,9 +105,11 @@ impl NodeService {
             .start_shell(&shell, info, &folder, size)
             .await
             .map_err(wire)?;
-        // Registered and watched before anything else is awaited: a caller
-        // that stops waiting now leaves a terminal the node still ends.
-        self.terminals.register(reservation, handle.clone(), None);
+        // Successful registration/watch stays synchronous before the next await.
+        // Refusal already owns tracked cleanup before observing its bounded wait.
+        if let Err(rejected) = self.terminals.register(reservation, handle.clone(), None) {
+            return Err(rejected.into_wire().await);
+        }
         // Registered, it is one of the live terminals a removal reads.
         drop(hold);
         let here = self.links.node();

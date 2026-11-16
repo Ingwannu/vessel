@@ -268,3 +268,37 @@ commands those keys name. Its parser and approval contract may land before
 execution, while the protocol assignment refuses the new sets to clients.
 It does not add a proxy. The scanner in
 decision 5 stays.
+
+## Deterministic terminal admission (W17 prerequisite, source only)
+
+[Decision Log]
+- Purpose: receipt-driven creation must reserve its exact TerminalId before any
+  process starts, through the same registry used by ordinary shells and scripts.
+- Existing assets: one mutex already counts live entries and starts; a reservation
+  holds the startup folder until registration or drop; the node's TaskTracker and
+  actor kill/end path already own asynchronous cleanup.
+- Alternatives: a second id registry races the real map. An unchecked map insert
+  replaces an incumbent. A wrapping reservation number can alias an old guard.
+- Choice: refuse existing and starting duplicate IDs under the existing lock.
+  A private allocation token and the registry state's opaque Arc identity bind
+  each held Reservation, without a serialized id or wrapping counter. Synchronous
+  registration validates that token, expected TerminalId and registry incarnation
+  before a vacant-only insert. Existing callers build actor info from the reserved
+  id. Successful registration/watch ordering remains unchanged.
+- Rejection: before returning the refusal, move the handle, reservation and plan
+  into the existing tracked task owner. Stop a fresh rejected actor; a handle whose
+  id is already an incumbent is retained without killing that incumbent. Observe
+  the existing CLOSE_WAIT budget; a timeout drops only its JoinHandle observer,
+  never its tracked task or retained startup reservation. Caller cancellation is
+  likewise unable to drop that owner. A remaining incumbent releases the retained
+  reservation when its actor ends, including node shutdown.
+- Limits: one rejected cleanup retains one already-counted start reservation;
+  there is no extra unbounded start/worker registry. This observes the base actor
+  end and does not certify reaping of every descendant, complete auxiliary I/O,
+  physical roots, forgotten debt or previous-boot recovery. Those proof producers
+  are separate; production checkpoint restore remains Busy.
+
+Implementation is staged on announceded4cd137. Authored tests cover starting and
+existing duplicates, simultaneous attempts, wrong-id and foreign-incarnation
+binding, rejected-handle cleanup, cancelled observation and incumbent survival.
+No test execution, V3 acceptance, merge or consumer-ready hash is claimed here.

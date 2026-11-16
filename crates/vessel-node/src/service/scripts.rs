@@ -183,8 +183,14 @@ impl NodeService {
         };
         let runner = &self.terminals.runner;
         let spec = terminals::scrubbed(spec, &runner.config.removed);
-        let info = TerminalInfo::new(id, plan.place.clone(), folder, plan.kind(), Utc::now())
-            .with_creator(creator(principal));
+        let info = TerminalInfo::new(
+            reservation.id(),
+            plan.place.clone(),
+            folder,
+            plan.kind(),
+            Utc::now(),
+        )
+        .with_creator(creator(principal));
         let workspaces = Arc::clone(&self.workspaces);
         let (project, digest) = (plan.script_root.project, plan.digest.clone());
         let handle = start_script(ScriptStart {
@@ -200,8 +206,12 @@ impl NodeService {
             shutdown: runner.shutdown.clone(),
             tasks: runner.tasks.clone(),
         });
-        self.terminals
-            .register(reservation, handle.clone(), Some(Arc::clone(&plan)));
+        if let Err(rejected) =
+            self.terminals
+                .register(reservation, handle.clone(), Some(Arc::clone(&plan)))
+        {
+            return Err(rejected.into_wire().await);
+        }
         drop(hold);
         self.still_placed(&handle, &plan.place)
             .await

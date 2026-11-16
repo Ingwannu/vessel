@@ -1,5 +1,12 @@
 //! [`Terminals`]: the node's terminals by id, their limits, and what ties
 //! them to sessions, projects and agents.
+//!
+//! [Decision Log]
+//! Deterministic creation receipts need the same admission as random IDs. A
+//! non-cloneable reservation binds an ID to this registry instance; duplicate
+//! starts are refused before spawn. Registration and identity checks share the
+//! same mutex. Rejected starts stay owned by tracked cleanup, never a replacing
+//! map insert. This is admission, not physical-root or quiescence evidence.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -11,9 +18,10 @@ use vessel_proto::{ErrorCode, NodeId, ProjectId, SessionId, TerminalId, WireErro
 use vessel_session::terminals::TerminalHandle;
 
 use super::scripts::Plan;
-use super::{MAX_ENDED, MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION, Runner};
+use super::{MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION, Runner};
 
 mod ending;
+mod registration;
 use crate::workspace::Occupant;
 
 /// What a terminal counts against.
@@ -57,9 +65,7 @@ pub(crate) struct Start {
 struct State {
     entries: HashMap<TerminalId, Entry>,
     /// Starts in progress, counted with the live ones.
-    starting: Vec<(u64, Start)>,
-    /// Numbers each reservation.
-    counter: u64,
+    starting: Vec<(Arc<ReservationIdentity>, Start)>,
 }
 
 /// Why a terminal call failed, before it reaches the wire.
@@ -124,19 +130,33 @@ pub(crate) struct Terminals {
     watching: Mutex<HashSet<SessionId>>,
 }
 
+/// Opaque allocation identity avoids numeric rollover and stale-guard reuse.
+#[derive(Debug)]
+struct ReservationIdentity;
+
 /// A start counted against the limits until it is registered or dropped.
 #[derive(Debug)]
 pub(crate) struct Reservation {
     state: Arc<Mutex<State>>,
-    number: u64,
+    identity: Arc<ReservationIdentity>,
+    id: TerminalId,
     owner: Owner,
+    tasks: tokio_util::task::TaskTracker,
+}
+
+impl Reservation {
+    /// The exact identity admitted before starting a process.
+    #[must_use]
+    pub(crate) const fn id(&self) -> TerminalId {
+        self.id
+    }
 }
 
 impl Drop for Reservation {
     fn drop(&mut self) {
         lock(&self.state)
             .starting
-            .retain(|(number, _)| *number != self.number);
+            .retain(|(identity, _)| !Arc::ptr_eq(identity, &self.identity));
     }
 }
 
@@ -170,6 +190,14 @@ impl Terminals {
     /// agent's four) or `Running` (the script's live or starting run).
     pub(crate) fn reserve(&self, start: Start) -> Result<Reservation, TerminalsError> {
         let mut state = self.state();
+        if state.entries.contains_key(&start.id)
+            || state.starting.iter().any(|(_, other)| other.id == start.id)
+        {
+            return Err(TerminalsError::Conflict(format!(
+                "terminal {} is already registered or starting",
+                start.id
+            )));
+        }
         if let Some((root, script)) = &start.run {
             let live = state.entries.values().find_map(|entry| {
                 let plan = entry.plan.as_ref()?;
@@ -223,51 +251,16 @@ impl Terminals {
                 "an agent may have at most 4 live terminals".to_owned(),
             ));
         }
-        state.counter = state.counter.wrapping_add(1);
-        let number = state.counter;
-        state.starting.push((number, start));
+        let identity = Arc::new(ReservationIdentity);
+        let id = start.id;
+        state.starting.push((Arc::clone(&identity), start));
         Ok(Reservation {
             state: Arc::clone(&self.state),
-            number,
+            identity,
+            id,
             owner,
+            tasks: self.runner.tasks.clone(),
         })
-    }
-
-    /// Keep a started terminal (its reservation ends, its owner kept),
-    /// forgetting the oldest ended ones past the bound. Synchronous, so a
-    /// caller holding the handle registers it before it can stop waiting.
-    pub(crate) fn register(
-        &self,
-        reservation: Reservation,
-        handle: TerminalHandle,
-        plan: Option<Arc<Plan>>,
-    ) {
-        let id = handle.id();
-        let entry = Entry {
-            handle,
-            plan,
-            owner: reservation.owner.clone(),
-        };
-        let mut state = self.state();
-        drop(state.entries.insert(id, entry));
-        let mut ended: Vec<(TerminalId, chrono::DateTime<chrono::Utc>)> = state
-            .entries
-            .values()
-            .filter(|entry| entry.handle.is_ended())
-            .map(|entry| {
-                let info = entry.handle.info();
-                (info.id, info.ended_at.unwrap_or(info.created_at))
-            })
-            .collect();
-        if ended.len() > MAX_ENDED {
-            ended.sort_by_key(|(_, at)| *at);
-            let excess = ended.len().saturating_sub(MAX_ENDED);
-            for (old, _) in ended.into_iter().take(excess) {
-                drop(state.entries.remove(&old));
-            }
-        }
-        drop(state);
-        drop(reservation);
     }
 
     /// One terminal.
@@ -378,3 +371,6 @@ impl Terminals {
         });
     }
 }
+
+#[cfg(test)]
+mod tests;
