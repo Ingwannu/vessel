@@ -34,3 +34,14 @@ Tests (`dialog::header_search_tests`): the row sits directly under the title
 across its width, the input starts 48 in (inset, mark, gap) and ends 24 from the
 edge, the input is 36 tall and the row 48, on desktop and the compact sheet;
 typing reaches the owner's change callback through the engine.
+
+Results (2026-11-16, build VM; nothing compiled locally):
+- Kit tests header-search-narrow-20261116T071641Z-e1611c4d: 57 passed, 0 failed
+  (both new cases explicit); after the module move,
+  header-search-narrow-20261116T072246Z-2715ce62 (`-- dialog::`): 18 passed, 0 failed.
+- Strict header-search-20261116T072244Z-2715ce62: fonts, fmt, quality and whole
+  native clippy 0. Its two predecessors stopped on an unused `gpui::prelude` in
+  the existing `header_content` test module: the row's style traits imported
+  into `header_content` reached that module through `use super::*`. The search
+  type and row now live in `dialog/header_search.rs`, and `header_content`
+  keeps its original imports.
