@@ -131,7 +131,10 @@ fn attention(connection: &Connection, session: SessionId) -> Result<Option<Atten
             "SELECT {MARK_COLUMNS}, attention_seq FROM sessions WHERE id = ?1"
         ))?
         .query_row([session.to_string()], |row| {
-            Ok((StoredMarks::from_row(row, 0)?, row.get::<_, Option<i64>>(4)?))
+            Ok((
+                StoredMarks::from_row(row, 0)?,
+                row.get::<_, Option<i64>>(4)?,
+            ))
         })
         .optional()?;
     stored

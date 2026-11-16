@@ -209,7 +209,10 @@ async fn read_and_unread_keep_a_loaded_clock_and_tick_a_stored_one_on_change() {
                 assert_eq!(changed.marks.unread, unread);
                 assert!(changed.updated_at > last, "{mark:?} on a stored session");
                 let repeated = fixture.sessions.mark(id, mark).await.unwrap();
-                assert_eq!(repeated.updated_at, changed.updated_at, "a repeated {mark:?}");
+                assert_eq!(
+                    repeated.updated_at, changed.updated_at,
+                    "a repeated {mark:?}"
+                );
                 last = changed.updated_at;
             }
             for read in [InboxRead::Read, InboxRead::Unread] {

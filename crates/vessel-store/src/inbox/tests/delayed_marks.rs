@@ -12,7 +12,14 @@ fn archive_then_delayed_requests_and_final_status_cannot_recreate_attention() {
         .entries
         .remove(0);
     let transaction = db.transaction().unwrap();
-    let _marks = crate::marks::mark(&transaction, id, Mark::Archive, now()).unwrap();
+    let _marks = crate::marks::mark(
+        &transaction,
+        id,
+        Mark::Archive,
+        now(),
+        crate::Residence::Loaded,
+    )
+    .unwrap();
     transaction.commit().unwrap();
     for (seq, event) in [
         (
@@ -71,6 +78,7 @@ fn read_then_delayed_append_inherits_the_kept_watermark_but_newer_source_is_unre
             through: EventSeq::new(2),
         },
         now(),
+        crate::Residence::Loaded,
     )
     .unwrap();
     transaction.commit().unwrap();
@@ -117,9 +125,11 @@ fn explicit_unread_overrides_the_watermark_for_delayed_inserts_until_the_next_re
             through: EventSeq::new(3),
         },
         now(),
+        crate::Residence::Loaded,
     )
     .unwrap();
-    let _marks = crate::marks::mark(&db, id, Mark::Unread, now()).unwrap();
+    let _marks =
+        crate::marks::mark(&db, id, Mark::Unread, now(), crate::Residence::Loaded).unwrap();
     append(&db, id, 0, AgentEvent::PermissionRequested(permission()));
     append(&db, id, 1, AgentEvent::PermissionRequested(permission()));
     assert_eq!(
@@ -138,6 +148,7 @@ fn explicit_unread_overrides_the_watermark_for_delayed_inserts_until_the_next_re
             through: EventSeq::new(1),
         },
         now(),
+        crate::Residence::Loaded,
     )
     .unwrap();
     append(&db, id, 2, AgentEvent::PermissionRequested(permission()));

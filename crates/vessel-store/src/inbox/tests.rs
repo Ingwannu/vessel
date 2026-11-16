@@ -84,6 +84,7 @@ fn reads_do_not_answer_and_late_marks_do_not_consume_new_attention() {
             key: entry.key,
             read: InboxRead::Read,
         },
+        crate::Residence::Stored,
     )
     .unwrap();
     assert_eq!(
@@ -115,7 +116,8 @@ fn reads_do_not_answer_and_late_marks_do_not_consume_new_attention() {
             &MarkInbox {
                 key: entry.key,
                 read: InboxRead::Read
-            }
+            },
+            crate::Residence::Stored,
         ),
         Err(StoreError::InboxGone)
     ));
@@ -215,6 +217,7 @@ fn huge_tool_details_are_explicit_and_an_updated_pending_title_keeps_read_state(
             key: entry.key,
             read: InboxRead::Read,
         },
+        crate::Residence::Stored,
     )
     .unwrap();
     let update: vessel_proto::ToolCallUpdate =
@@ -268,6 +271,7 @@ fn descending_pages_never_repeat_after_deletions_reads_or_newer_inserts() {
             key: first.entries[0].key,
             read: InboxRead::Read,
         },
+        crate::Residence::Stored,
     )
     .unwrap();
     let newer = session(&db);

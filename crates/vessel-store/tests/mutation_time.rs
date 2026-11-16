@@ -1,7 +1,7 @@
 //! Canonical writer commits keep one clock, including rollback and direct metadata.
 
 use chrono::{DateTime, TimeDelta, Utc};
-use clock_fixture::{clock, inject, next};
+use clock_fixture::{clock, inject, next, unread};
 use fixtures::{at, data_dir, new_session, open, output, status};
 use rusqlite::{Connection, params};
 use vessel_proto::{
@@ -304,7 +304,10 @@ async fn attention_marks_tick_only_a_stored_session_whose_attention_changes() {
         )
         .await
         .unwrap();
-    assert!(unread(&store, session.id).await, "the end asks for attention");
+    assert!(
+        unread(&store, session.id).await,
+        "the end asks for attention"
+    );
     let ended = clock(&dir, session.id);
     let through = EventSeq::new(1);
     for (mark, after) in [(Mark::Read { through }, false), (Mark::Unread, true)] {
@@ -320,7 +323,10 @@ async fn attention_marks_tick_only_a_stored_session_whose_attention_changes() {
     for (mark, after) in [(Mark::Read { through }, false), (Mark::Unread, true)] {
         let _marks = store.mark(session.id, mark, at(2)).await.unwrap();
         let changed = clock(&dir, session.id);
-        assert!(changed > last, "{mark:?} changed a stored session's attention");
+        assert!(
+            changed > last,
+            "{mark:?} changed a stored session's attention"
+        );
         assert_eq!(unread(&store, session.id).await, after);
         let _marks = store.mark(session.id, mark, at(3)).await.unwrap();
         assert_eq!(clock(&dir, session.id), changed, "a repeated {mark:?}");
@@ -332,10 +338,6 @@ async fn attention_marks_tick_only_a_stored_session_whose_attention_changes() {
         .unwrap();
     assert!(clock(&dir, session.id) > last, "other marks tick as before");
     store.close().await;
-}
-
-async fn unread(store: &vessel_store::Store, id: SessionId) -> bool {
-    store.session(id).await.unwrap().unwrap().marks.unread
 }
 
 /// TRACKER 775 for an inbox entry: a loaded session's entry marks keep the
@@ -423,5 +425,10 @@ mod clock_fixture {
                 .unwrap(),
         )
         .unwrap()
+    }
+
+    /// Whether the stored session is unread, as every reader sees it.
+    pub(super) async fn unread(store: &vessel_store::Store, id: SessionId) -> bool {
+        store.session(id).await.unwrap().unwrap().marks.unread
     }
 }

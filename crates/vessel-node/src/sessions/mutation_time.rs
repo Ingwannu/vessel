@@ -27,10 +27,7 @@ impl Sessions {
                 } else {
                     Residence::Stored
                 };
-                let committed = sessions
-                    .store
-                    .mark_inbox_committed(mark, residence)
-                    .await?;
+                let committed = sessions.store.mark_inbox_committed(mark, residence).await?;
                 if let Some(handle) = handle {
                     handle.acknowledge_time(committed.updated_at());
                 }

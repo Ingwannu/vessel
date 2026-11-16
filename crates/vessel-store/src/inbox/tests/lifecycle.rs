@@ -69,7 +69,8 @@ fn an_append_rollback_cannot_leave_a_ghost_request() {
                     seq: EventSeq::ZERO
                 },
                 read: InboxRead::Read
-            }
+            },
+            crate::Residence::Stored,
         ),
         Err(StoreError::InboxGone)
     ));
@@ -104,6 +105,7 @@ fn migration_backfills_retained_outcomes_once_and_preserves_existing_read_attent
             through: EventSeq::new(2),
         },
         now(),
+        crate::Residence::Stored,
     )
     .unwrap();
     migrate_again_without_inbox(&mut db);
