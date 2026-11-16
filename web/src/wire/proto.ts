@@ -3187,7 +3187,7 @@ export type Forward = {
  */
 node: NodeId, 
 /**
- * The call, which must be [forwardable](Method::forwardable).
+ * The call, which must be [forwardable](crate::Method::forwardable).
  */
 call: Call, };
 
