@@ -140,11 +140,21 @@ impl NumberValue {
             FluentValue::String(value) => value == category(prepared.category),
             FluentValue::Number(value) => {
                 Decimal::try_from_f64(value.value, FloatPrecision::RoundTrip)
-                    .is_ok_and(|literal| literal == prepared.decimal)
+                    .is_ok_and(|literal| normalized(&literal) == normalized(&prepared.decimal))
             }
             FluentValue::Custom(_) | FluentValue::Error | FluentValue::None => false,
         }
     }
+}
+
+fn normalized(value: &Decimal) -> Decimal {
+    let mut value = value.clone();
+    value.trim_start();
+    value.trim_end();
+    if value.is_zero() {
+        value.sign = fixed_decimal::Sign::None;
+    }
+    value
 }
 
 impl FluentType for NumberValue {

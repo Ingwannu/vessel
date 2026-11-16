@@ -319,3 +319,36 @@ unchanged, and the default generator still reproduces the v1 fixture byte
 for byte. Three misleading v1 case names are corrected only in v2. This
 reference expansion precedes execution of the actual-boundary candidate
 checks and is not itself a Rust conformance result.
+
+## Resume boundary: quota stop, no adoption
+
+The cheapest no-vendor full-syntax alternative still to evaluate is prepared
+slot lowering, rather than rebuilding a bundle for every dynamic message.
+A maintained AST pass can compile numeric expressions and their ordered
+selectors into private display/selection slots. The caller retains typed
+numeric inputs; preparation evaluates the numeric recipes and supplies final
+display strings or private variant choices to the cached bundle. Those slots
+are not public text arguments pretending to be numbers, and are never parsed
+back into numeric operands. This avoids a Fluent fork but must preserve
+references, term-local literal scopes, attributes, nested NUMBER rounding and
+ordered literal/category matches. Reused terms with different local literals
+need distinct scoped plans or maintained-AST inlining. Core and plugin
+resources must share this policy. This is a design comparison, not an
+implemented/measured cheaper replacement or a dependency recommendation.
+
+The last scratch carrier edit normalizes decimal padding for numeric-literal
+comparison, including equal signed zeros, while keeping display signs and
+presentation keys unchanged. The
+[Fluent selector guide](https://projectfluent.org/fluent/guide/selectors.html)
+includes fractional literal and ordinal literal examples. The new carrier's
+literal comparison does not copy stock FluentNumber's equality of every
+formatting option. That semantic boundary needs explicit review/regressions
+before adoption; the last edit is uncompiled and unexecuted. No product
+resolver behavior changed.
+
+The quota stop leaves both numeric backends unqualified. No candidate release,
+wasm delta, matched compile-time delta, startup measurement or adoption decision
+exists. The two already-registered VM runs remain queued; local controllers
+were stopped after UID/PID/command checks, disabling the automatic future wasm
+submission. The installed candidate validation suite is available for resume,
+but no new VM run was started after the quota warning.

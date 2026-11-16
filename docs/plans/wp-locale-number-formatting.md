@@ -98,3 +98,98 @@ compile0 red. One authorized same-source replacement was submitted:
 `i18n-number-experiment-20261116T032004Z-d633cdd4`, ordinary, currently queued.
 This is not a second live duplicate. Serde runtime activation is not inferred
 from those weak/optional lock edges. Stock080 tests remain3/0/0, separately.
+
+## Resume here — 2026-11-16 quota stop
+
+Read this before any code change or VM submission. This package is **WIP,
+not reviewed/gated/adopted**. Worktree `/home/dev/vessel-m12-i18n`, branch
+`backend/m12-i18n-fluent-experiment`. Product root/native manifests/locks and
+View/App/Kit/Link runtime source remain identical to experiment base13
+`2ebeedf964ead0b490f9a0dc4af1f29d88a2252e`. Do not merge newer app bases into
+this controlled cost comparison: its pinned T contract requires base13.
+Port the eventual approved producer onto the then-announced app line afterward
+(the last brief read announced67637eb6); this is not latest-combined evidence.
+
+Committed source checkpoints:
+
+- `fa9858287`: unlinked custom numeric carrier and checked options; records
+  stock controls and original scratch graph refusal.
+- `62e00d20252b45053a7c4448b76b8d97e5d53a61`: baseline/narrow/ICU scratch
+  overlays and actual typed amount/UInt -> generated getter -> NUMBER sources.
+  No product runtime files were installed. Temporary-index apply/rustfmt only.
+- `001420839c227d8af45d150522986743acef0b51`: READY **baseline-only** measurement
+  packet. `measurement-inputs.json` still describes existing/runtime unchanged,
+  not either candidate. Never blindly submit HEAD as a narrow packet.
+- `ae7e3cfb0`: v2 oracle52 finite+13 unsigned rows, with prior outputs retained;
+  both-memoizer API controls registered in candidate View overlay. Default Node
+  oracle reproduces v1 byte for byte. Actual-boundary tests use v2, frozen
+  D633 source uses v1. No candidate Rust test has executed.
+- This WIP commit records the uncompiled numeric-literal normalization edit
+  and the exact stop boundary. Do not treat source-only preflight as Clippy.
+
+Verified, separate evidence:
+
+- Stock rejected Fluent carrier exact08076af53: strict0, runtime3/0/0 with real
+  View compilation. Logs/verified JSON under
+  `/tmp/work/m12-i18n/number-carrier-08076af53-20261116/`.
+- Original `i18n-number-experiment-20261116T014841Z-d633cdd4`: offline metadata0,
+  graph-admissionRED, compile_attempted=false. Six exact weak/optional lock
+  edges were subsequently admitted by T, without enabling serde runtime or
+  accepting version/checksum changes. Preserve original logs/locks/red receipt.
+- Only Node oracle/reference checks, rustfmt, source preflight, temporary-index
+  overlay apply checks, size/tokens checks passed locally. No local Cargo or
+  rustc was run. New numeric runtime/gates/markers are all unverified.
+
+Already registered VM runs — query status and attach; **do not resubmit**:
+
+1. `i18n-number-experiment-20261116T032004Z-d633cdd4`, exactD633 narrow test,
+   the ONE authorized replacement after T's fixed graph audit. Out
+   `/tmp/work/m12-i18n/number-feasibility-narrow-d633-policy2-20261116`.
+2. `i18n-number-measure-20261116T032623Z-00142083`, exact001420 existing/native
+   shipping release measurement. Out
+   `/tmp/work/m12-i18n/number-measure-existing-001420839-20261116/native`.
+
+Both were still queued in the03:39 VM status snapshot. No wasm, ICU,
+candidate-validation or candidate release run has been submitted. The local
+controllers/attach groups615839 and716523 were verified owned UID1000 and
+terminated, with no non-zombie remainder; detached VM runs were not cancelled.
+The baseline controller will NOT submit wasm later. Do not restart either
+controller script: it would resubmit. Use direct attach to each existing ID.
+Cleanup/status evidence:
+`/tmp/work/m12-i18n/quota-stop-processes-20261116.json` and
+`quota-stop-vm-status-20261116.txt`. No own fake fleet/app/virtual display exists.
+
+Next, only after quota permits work:
+
+1. Read finished results/receipts/SHA/actual compiler/test names for the two
+   existing IDs. A queued/running/done run is never a reason to resubmit it.
+2. Prepare an immutable CANDIDATE measurement-inputs packet (variant narrow,
+   five-file hook selector, all exact source/overlay/fixture SHA and authored
+   reachability evidence). Existing baseline packet is not a candidate packet.
+3. T228fa193 installed bundle68bbd5bb under coordinator64f97 approval:
+   `vessel-remote-gate run --tree /home/dev/vessel-m12-i18n --commit FULL_READY_CANDIDATE_PACKET --label i18n-number-validate --out NEW --no-wait --number-validate narrow`.
+   Fixed ordinary View lib/tests Clippy-Dwarnings then unfiltered View lib
+   tests; no release/size claim. Submit once; ICU sequentially only after the
+   previous variant is terminal. It was NOT run before this stop. Read T's
+   managed number-measure.README.md first. No priority/arbitrary Cargo/lock.
+4. Fix actual strict/runtime findings on a new meaningful source. Potential
+   source concerns still require execution: ICU non-selected placement helper
+   liveness, numeric literal/option equality, both memoizers, source/fallback
+   compact exponent handling, actual generated argument/whole sentence goldens.
+5. After qualification, complete actual existing wasm and both candidate
+   native/wasm measurements in the controlled sequential label. Account for
+   warm/cold reuse and release compiler/link CPU vs wall; unmatched conditions
+   are not an honest compile-time delta. No size/first-frame values exist yet.
+6. Send ADR0101 diff + exact dependency/license/features and measured artifact
+   deltas/compile costs + Fluent patch vs cheapest exact alternative to the
+   coordinator for yes/no BEFORE product manifest/Cargo.lock changes. Then
+   port approved source, inventory/dependency checks, all required gates/review
+   and W5 consumer/cache integration. No producer hash is ready for W5.
+
+Waiting peers: W5 needs full-finite amount+unit and exact u64 producer; it keeps
+raw values, never clamps/casts/drops or adds an area formatter. T awaits the
+candidate packet if work resumes; it does not submit for L. Coordinator/lead
+have no adoption/PASS to merge. No numeric candidate package is in review.
+Older generator row248/General row247 PASS remains separate and unchanged.
+W10 added image wording exactea070ac65 received WORD/KEY/CONTEXT acceptance only
+(private evidence JSON), never runtime/image-acquisition/UI approval.
