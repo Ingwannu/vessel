@@ -33,3 +33,5 @@ mod sidebar_display;
 mod sync;
 mod toasts;
 mod tree;
+
+mod terminal_preferences;

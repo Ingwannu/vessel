@@ -266,6 +266,12 @@ the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
 section registers its renderer once, in `settings::sections::page`; a
 section without one is not listed (no placeholder pages), so the list and
 the pages cannot disagree. State and event slots are added only when needed.
+The prepared Terminal preference uses the same validated `ScrollbackLines` as
+the retained grid, in `settings.terminal_scrollback`. Its field/change model has
+no registered page or optimistic trimming; the canonical Saved-only owner and
+complete receiving checks must join before C2's test gate is removed. The exact
+boundary and unverified scope are in
+[`terminal-preference-receiving.md`](../../docs/plans/terminal-preference-receiving.md).
 Overview and Connections share one read of the machine book
 (`settings/book.rs`, asked while either is shown); a route reaches the
 screen as its endpoint only (`view::connections`).

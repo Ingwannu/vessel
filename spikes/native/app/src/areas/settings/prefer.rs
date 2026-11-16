@@ -62,8 +62,11 @@ impl Shell {
                         let _ = animations;
                         window.refresh();
                     }
-                    // Read where they are drawn, on the next frame.
-                    PreferenceChange::SidebarPanel(_)
+                    // Other values are read on the next frame. Terminal history
+                    // is irreversible: its owner must await the canonical Saved
+                    // effect, never trim from this optimistic preference path.
+                    PreferenceChange::TerminalScrollback(_)
+                    | PreferenceChange::SidebarPanel(_)
                     | PreferenceChange::InspectorPanel(_)
                     | PreferenceChange::Delivery(_)
                     | PreferenceChange::Alerts(_)
