@@ -117,3 +117,14 @@ The staged switches currently draw confirmed values without the optional
 180ms transition counter; the final controller's animation and actual sheet,
 refresh, permission/transport checks and credential partial-result flow are
 still owed before product registration or parity approval.
+
+
+Known switch controls now carry explicit Switch role, translated label and
+Toggled state through the existing GPUI metadata API. An unknown future switch
+is drawn as a localized read-only unknown-value label, not as a disabled Off
+control. This closes the presentation ambiguity while preserving the existing
+no-action policy. Role metadata is not a keyboard/OS AT acceptance claim.
+The VM check on8eebe8da reached the app tests and found the missing named
+IntoElement trait import for the test Render signature; this correction adds
+that explicit import. The preceding strict failures and unexecuted renderer
+runtime remain recorded separately.

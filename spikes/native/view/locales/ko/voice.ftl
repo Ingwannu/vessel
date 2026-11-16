@@ -52,3 +52,6 @@ voice-settings-endpoint-model = OpenAI 호환 엔드포인트 · { $model }
 # 제공자 행의 접근성 이름. 행 제목과 확인된 설정 요약을 함께 읽습니다.
 # 제공자 행의 접근성 이름입니다. $site는 제목이고 $summary는 확인된 설정 요약입니다.
 voice-settings-site-label = { $site }, { $summary }
+
+# 새 버전의 스위치 값을 끔으로 표시하지 않고 읽기 전용으로 설명합니다.
+voice-settings-unknown-switch = 알 수 없는 설정

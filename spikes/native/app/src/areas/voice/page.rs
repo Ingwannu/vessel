@@ -124,6 +124,24 @@ where
     card
 }
 
+fn switch_words(
+    feature: Feature,
+    words: &'static Translator,
+) -> (&'static str, &'static str, &'static str) {
+    match feature {
+        Feature::Dictation => (
+            "voice-settings-dictation",
+            words.voice().settings_dictation_switch(),
+            words.voice().settings_dictation_hint(),
+        ),
+        Feature::Conversation => (
+            "voice-settings-conversation",
+            words.voice().settings_conversation_switch(),
+            words.voice().settings_conversation_hint(),
+        ),
+    }
+}
+
 fn switch_row<T>(
     page: &Page,
     feature: Feature,
@@ -136,18 +154,26 @@ fn switch_row<T>(
 where
     T: Fn(Toggle, &ClickEvent, &mut Window, &mut App) + 'static,
 {
-    let (id, title, hint) = match feature {
-        Feature::Dictation => (
-            "voice-settings-dictation",
-            words.voice().settings_dictation_switch(),
-            words.voice().settings_dictation_hint(),
-        ),
-        Feature::Conversation => (
-            "voice-settings-conversation",
-            words.voice().settings_conversation_switch(),
-            words.voice().settings_conversation_hint(),
-        ),
-    };
+    let (id, title, hint) = switch_words(feature, words);
+    if value == DictationSwitch::Unknown {
+        let unknown = div()
+            .id(id)
+            .debug_selector(move || id.to_owned())
+            .type_(Type::Meta)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(SharedString::new_static(
+                words.voice().settings_unknown_switch(),
+            ));
+        return settings::row_at(
+            SharedString::new_static(title),
+            Some(SharedString::new_static(hint)),
+            None,
+            Some(unknown.into_any_element()),
+            true,
+            sizing == ControlSizing::Touch,
+            tokens,
+        );
+    }
     let request = page.toggle_action(feature);
     let mut control = settings::switch(
         id,
@@ -157,7 +183,15 @@ where
         0,
         tokens,
     );
-    control = control.debug_selector(move || id.to_owned());
+    control = control
+        .role(gpui::Role::Switch)
+        .aria_label(title)
+        .aria_toggled(if value == DictationSwitch::On {
+            gpui::Toggled::True
+        } else {
+            gpui::Toggled::False
+        })
+        .debug_selector(move || id.to_owned());
     if let Some(request) = request {
         control = control.on_click(move |event, window, cx| action(request, event, window, cx));
     }
@@ -172,19 +206,8 @@ where
     )
 }
 
-fn site_row<E>(
-    page: &Page,
-    snapshot: &Snapshot,
-    site: Site,
-    words: &'static Translator,
-    tokens: &Tokens,
-    sizing: ControlSizing,
-    action: E,
-) -> Div
-where
-    E: Fn(Edit, &ClickEvent, &mut Window, &mut App) + 'static,
-{
-    let (id, title) = match site {
+fn site_words(site: Site, words: &'static Translator) -> (&'static str, &'static str) {
+    match site {
         Site::Dictation => (
             "voice-settings-dictation-site",
             words.voice().settings_dictation_site(),
@@ -197,7 +220,22 @@ where
             "voice-settings-synthesis-site",
             words.voice().settings_synthesis_site(),
         ),
-    };
+    }
+}
+
+fn site_row<E>(
+    page: &Page,
+    snapshot: &Snapshot,
+    site: Site,
+    words: &'static Translator,
+    tokens: &Tokens,
+    sizing: ControlSizing,
+    action: E,
+) -> Div
+where
+    E: Fn(Edit, &ClickEvent, &mut Window, &mut App) + 'static,
+{
+    let (id, title) = site_words(site, words);
     let request = page.edit_action(site);
     let summary = summary(snapshot, site, words);
     let label = words
@@ -257,8 +295,8 @@ where
     div().child(row)
 }
 
-fn summary(snapshot: &Snapshot, site: Site, words: &Translator) -> String {
-    let (provider, key, local, endpoint) = match site {
+fn site_values(snapshot: &Snapshot, site: Site) -> (DictationProvider, KeyPresence, &str, &str) {
+    match site {
         Site::Dictation => {
             let s = &snapshot.dictation;
             (
@@ -286,7 +324,11 @@ fn summary(snapshot: &Snapshot, site: Site, words: &Translator) -> String {
                 s.endpoint_model.as_str(),
             )
         }
-    };
+    }
+}
+
+fn summary(snapshot: &Snapshot, site: Site, words: &Translator) -> String {
+    let (provider, key, local, endpoint) = site_values(snapshot, site);
     match provider {
         DictationProvider::Local => words
             .voice()

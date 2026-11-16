@@ -1,6 +1,6 @@
 //! Headless composition/actions only: no Shell route, RPC, provider or secret field.
 use super::*;
-use gpui::{Context, Modifiers, Render, TestAppContext, VisualTestContext, size};
+use gpui::{Context, IntoElement, Modifiers, Render, TestAppContext, VisualTestContext, size};
 use vessel_app_kit::Scheme;
 use vessel_app_view::{
     devices::Tickets,

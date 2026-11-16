@@ -52,3 +52,6 @@ voice-settings-endpoint-model = OpenAI-compatible endpoint · { $model }
 # Accessible name for a provider row: its title and confirmed summary.
 # Accessible provider-row name; $site is the title and $summary is its confirmed value.
 voice-settings-site-label = { $site }, { $summary }
+
+# Read-only label for a newer switch value; do not render it as Off.
+voice-settings-unknown-switch = Unknown setting
