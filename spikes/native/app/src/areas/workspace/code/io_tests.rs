@@ -14,8 +14,11 @@ pub(super) fn root() -> WorkspaceRoot {
 }
 
 pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
+    let session = SessionId::random();
     shell.areas.workspace.code.target = Some(Target {
-        admission: Some(scope::Acquisition {
+        admission: Some(shown_source::RootReceipt {
+            session,
+            guard: None,
             context: vessel_app_view::connection::ConnectionEpochs::default()
                 .admit(
                     vessel_app_view::connection::MachineKey::from_book("node"),
@@ -25,7 +28,7 @@ pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
             ticket: shell.next_file_ticket().unwrap(),
         }),
         machine: "node".to_owned(),
-        session: SessionId::random(),
+        session,
         place: Place::Root(root),
         cwd: Some("/fixture".into()),
     });

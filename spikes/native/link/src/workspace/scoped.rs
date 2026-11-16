@@ -91,6 +91,7 @@ impl Request {
         };
         Reply {
             context: self.context,
+            guard: None,
             outcome,
         }
     }
@@ -133,9 +134,18 @@ pub enum Outcome {
 #[derive(Debug)]
 pub struct Reply {
     context: ConnectionContext,
+    guard: Option<crate::DeliveryGuard>,
     outcome: Outcome,
 }
 impl Reply {
+    /// The SAME original actor admission is checked immediately before data
+    /// installation. A refusal still settles its original owner ticket.
+    #[must_use]
+    pub fn is_current(&self) -> bool {
+        self.guard
+            .as_ref()
+            .is_some_and(|guard| guard.validate(&self.context).is_ok())
+    }
     /// Settle the captured owner ticket, then fence installation against context.
     #[must_use]
     pub fn into_parts(self) -> (ConnectionContext, Outcome) {
@@ -160,44 +170,65 @@ impl Default for Hub {
 }
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
-    pub(crate) fn scoped_file(&self, request: Request) {
-        let selected = self.selected_connection(&request.context);
+    pub(crate) async fn scoped_file(&self, request: Request) {
+        let selected = match self.selected_connection(&request.context) {
+            Ok(selected) => selected,
+            Err(why) => {
+                self.emit(crate::Event::FileOperation(
+                    request.failed(&Problem::Gone(why.to_string())),
+                ))
+                .await;
+                return;
+            }
+        };
         let slots = match &request.work {
             Work::File { ask, .. } if matches!(ask.as_ref(), FileAsk::Observe { .. }) => {
                 &self.workspace.file_calls.observations
             }
             Work::Root { .. } | Work::File { .. } => &self.workspace.file_calls.slots,
         };
-        let slot = Arc::clone(slots).try_acquire_owned();
+        let Ok(permit) = Arc::clone(slots).try_acquire_owned() else {
+            // Actor backpressure settles a bounded refusal, without spawning
+            // unlimited full-queue workers that hold submitted write payloads.
+            self.emit(crate::Event::FileOperation(request.refused()))
+                .await;
+            return;
+        };
         let events = self.events.clone();
         drop(tokio::spawn(async move {
-            let reply = match (selected, slot) {
-                (Ok(selected), Ok(_slot)) => {
-                    let client = Client(&selected);
-                    let outcome = match request.work {
-                        Work::Root { session, ticket } => Outcome::Root {
-                            session,
-                            ticket,
-                            result: client
-                                .call(vessel_proto::GetSession { session })
-                                .await
-                                .map(Box::new),
-                        },
-                        Work::File { scope, ask } => Outcome::File(Box::new(FileReply {
-                            dispatched: true,
-                            scope,
-                            answer: super::file_run::run(&client, *ask).await,
-                        })),
-                    };
-                    Reply {
-                        context: request.context,
-                        outcome,
-                    }
-                }
-                (Err(why), _) => request.failed(&Problem::Gone(why.to_string())),
-                (Ok(_selected), Err(_full)) => request.refused(),
+            let guard = selected.delivery_guard();
+            let client = Client(&selected);
+            let outcome = match request.work {
+                Work::Root { session, ticket } => Outcome::Root {
+                    session,
+                    ticket,
+                    result: client
+                        .call(vessel_proto::GetSession { session })
+                        .await
+                        .and_then(|info| {
+                            if info.id == session {
+                                Ok(Box::new(info))
+                            } else {
+                                Err(Problem::Unsent)
+                            }
+                        }),
+                },
+                Work::File { scope, ask } => Outcome::File(Box::new(FileReply {
+                    dispatched: true,
+                    scope,
+                    answer: super::file_run::run(&client, *ask).await,
+                })),
             };
+            let reply = Reply {
+                context: request.context,
+                guard: Some(guard),
+                outcome,
+            };
+            // Preserve original terminal write evidence even after retirement.
+            // The receiver rejects stale data using this guard but MUST settle
+            // the matching original attempt; no send cancellation or replay.
             let _closed = events.send(crate::Event::FileOperation(reply)).await;
+            drop(permit);
         }));
     }
 }

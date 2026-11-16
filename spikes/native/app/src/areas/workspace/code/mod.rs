@@ -66,6 +66,13 @@ mod scope;
 #[cfg(test)]
 mod scope_tests;
 mod search;
+mod shown_source;
+mod source_acquisition;
+mod source_answer;
+mod source_follow;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod source_tests;
 mod tree;
 mod tree_memory;
 mod tree_toolbar;
@@ -79,6 +86,7 @@ use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, chang
 use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
 #[cfg(test)]
 use vessel_app_view::workspace::problem::Problem;
+
 use vessel_proto::SessionId;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 
@@ -86,6 +94,8 @@ pub(crate) use elsewhere::FindRefused;
 pub(crate) use file_search::FileSearchRequest;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
 pub(crate) use layout_adapter::{ExplorerKind, render_explorer, show_layout_explorer};
+#[cfg(test)]
+pub(crate) use shown_source::{ShownChangesContext, ShownDiffContext};
 
 use crate::shell::Shell;
 
@@ -111,7 +121,7 @@ enum Place {
 
 /// The session the panel shows.
 struct Target {
-    admission: Option<scope::Acquisition>,
+    admission: Option<shown_source::RootReceipt>,
     machine: String,
     session: SessionId,
     place: Place,
@@ -136,6 +146,7 @@ struct Changes {
     rows: Vec<ChangeRow>,
     list: VirtualList,
     picker: ComboboxState,
+    sources: shown_source::Sources,
 }
 
 /// A file shown in the Files tab.
@@ -238,6 +249,7 @@ impl CodePanel {
                 rows: Vec::new(),
                 list: VirtualList::new(false),
                 picker: ComboboxState::new(window, cx),
+                sources: shown_source::Sources::default(),
             },
             files: Files {
                 options: vessel_app_view::workspace::explorer::ExplorerOptions::default(),
@@ -268,6 +280,8 @@ impl CodePanel {
         self.finder.machine_gone(from);
         self.files.actions.invalidate();
         if let Some(target) = self.target.as_mut().filter(|target| target.machine == from) {
+            target.admission = None;
+            self.changes.sources.invalidate();
             to.clone_into(&mut target.machine);
         }
     }
@@ -281,6 +295,7 @@ impl CodePanel {
             .as_ref()
             .is_some_and(|target| target.machine == name)
         {
+            self.changes.sources.invalidate();
             self.target = None;
             self.changes.summary = Summary::Loading;
             self.changes.states.clear();
@@ -349,6 +364,7 @@ impl Shell {
     /// conversation it stays.
     fn code_handed_to_composer(&mut self, window: &Window) {
         if vessel_app_kit::breakpoint::phone(window) {
+            self.areas.workspace.code.changes.sources.invalidate();
             self.areas.workspace.code.open = false;
         }
     }
@@ -358,6 +374,7 @@ impl Shell {
             return;
         }
         let panel = &mut self.areas.workspace.code;
+        panel.changes.sources.invalidate();
         panel.open = !panel.open;
         if panel.open {
             self.search_words(window, cx);
@@ -383,6 +400,7 @@ impl Shell {
         if panel.root() != Some((machine, root)) {
             return;
         }
+        panel.changes.sources.invalidate();
         panel.stale = Stale {
             changes: true,
             files: true,

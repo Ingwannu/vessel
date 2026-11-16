@@ -36,6 +36,7 @@ mod ask;
 // answers' types build for wasm32.
 #[cfg(not(target_arch = "wasm32"))]
 mod calls;
+pub mod code_source;
 mod file_answer;
 #[cfg(not(target_arch = "wasm32"))]
 mod file_call;
@@ -91,6 +92,8 @@ pub(crate) struct Hub {
     /// task holds a clone of the machine's client until it ends).
     following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
     file_calls: scoped::Hub,
+    #[cfg(not(target_arch = "wasm32"))]
+    source: code_source::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]

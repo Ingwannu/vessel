@@ -68,7 +68,7 @@ async fn retired_request_is_settled_without_sending_a_frame_to_replacement() {
         let client = replacement.client.take().unwrap();
         let next = state.admissions.admit(MachineKey::from_book("fixture"), client.node().id).unwrap();
         let _retired = state.clients.insert("fixture".into(), Connected::new(client, Vec::new(), entry, next));
-        state.scoped_file(request);
+        state.scoped_file(request).await;
         let event = phase("settle original file request", events.recv()).await.unwrap();
         let crate::Event::FileOperation(reply) = event else { panic!("wrong owner receipt") };
         let (original_context, outcome) = reply.into_parts();
@@ -98,7 +98,7 @@ async fn retirement_after_write_dispatch_returns_original_uncertainty_without_re
         let guard = "a".repeat(64).parse::<vessel_proto::workspace::ContentHash>().unwrap();
         let ask = FileAsk::Save(super::Save { ticket, root: scope.root(), path: "a.txt".parse().unwrap(), text: "submitted".into(),
             base: Some(FileVersion { size: 8, modified: 0, hash: Some(guard.clone()) }) });
-        state.scoped_file(Request::file(scope.clone(), ask).unwrap());
+        state.scoped_file(Request::file(scope.clone(), ask).unwrap()).await;
         let dispatched = phase("observe original write frame", original.requests.as_mut().unwrap().recv()).await.unwrap();
         assert!(matches!(&dispatched.call, vessel_proto::Call::WriteFile(write)
             if write.expect == vessel_proto::workspace::WriteExpect::Content { hash: guard }));
@@ -158,7 +158,9 @@ async fn a_direct_node_write_error_is_terminal_but_never_triggers_a_second_write
                 hash: Some(vessel_proto::workspace::ContentHash::from_sha256([0; 32])),
             }),
         });
-        state.scoped_file(Request::file(scope.clone(), ask).unwrap());
+        state
+            .scoped_file(Request::file(scope.clone(), ask).unwrap())
+            .await;
         let dispatched = phase(
             "observe direct write frame",
             original.requests.as_mut().unwrap().recv(),
@@ -196,4 +198,36 @@ async fn a_direct_node_write_error_is_terminal_but_never_triggers_a_second_write
         );
     })
     .await;
+}
+
+#[tokio::test]
+async fn queued_read_guard_refuses_after_retirement_without_a_new_snapshot() {
+    within(async {
+        let home = Home::new();
+        let (mut state, mut events) = state(&home);
+        let mut original = peer::controlled("fixture").await;
+        let client = original.client.take().unwrap();
+        let context = state.admissions.admit(MachineKey::from_book("fixture"), client.node().id).unwrap();
+        let entry = vessel_client::book::BookEntry { address: "ws://127.0.0.1:0/rpc".parse().unwrap(), token: None, credential: None, id: None };
+        let _old = state.clients.insert("fixture".into(), Connected::new(client, Vec::new(), entry, context.clone()));
+        let scope = FileScope::new(context.clone(), WorkspaceRoot::Project { project: ProjectId::random() });
+        let ticket = FileTickets::default().issue().unwrap();
+        let ask = FileAsk::List { ask: ListDir { root: scope.root(), dir: RelPath::root(), ignored: true }, ticket };
+        state.scoped_file(Request::file(scope.clone(), ask).unwrap()).await;
+        let call = phase("observe original list frame", original.requests.as_mut().unwrap().recv()).await.unwrap();
+        assert!(matches!(call.call, vessel_proto::Call::ListDir(_)));
+        let _sent = call.answer.send(vessel_proto::Outcome::Ok(vessel_proto::Reply::ListDir(vessel_proto::workspace::DirListing { entries: Vec::new(), more: false })));
+        let crate::Event::FileOperation(reply) = phase("hold queued read answer", events.recv()).await.unwrap() else { panic!("original file receipt") };
+        assert!(reply.is_current());
+        state.clients["fixture"].retire();
+        assert!(!reply.is_current(), "the original watch, not a later Machine snapshot, invalidates the queued data");
+        let (answered_context, outcome) = reply.into_parts();
+        assert_eq!(answered_context, context);
+        let Outcome::File(file) = outcome else { panic!("file outcome") };
+        let (answered_scope, answer, dispatched) = file.into_parts();
+        assert_eq!(answered_scope, scope);
+        assert!(dispatched);
+        assert!(matches!(answer, super::FileAnswer::Listed { ticket: original, result: Ok(_), .. } if original == ticket), "the same ticket still settles even when data cannot install");
+        assert_eq!(original.calls.lock().unwrap().len(), 1);
+    }).await;
 }

@@ -17,7 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
-            Command::FileOperation(request) => self.scoped_file(request),
+            Command::FileOperation(request) => self.scoped_file(request).await,
             Command::History(ask) => self.history(ask).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
@@ -36,6 +36,7 @@ impl State {
             }
 
             Command::Machines(ask) => self.machine_book(ask).await,
+            Command::CodeSource(request) => self.code_source(request).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {

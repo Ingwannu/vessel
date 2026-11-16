@@ -28,11 +28,12 @@ impl Shell {
     pub(crate) fn active_file_scope(
         &self,
     ) -> Option<vessel_app_view::workspace::file_scope::FileScope> {
-        let (machine, root) = self.file_workspace_scope()?;
-        let context = self.file_connection(machine.as_str())?;
-        Some(vessel_app_view::workspace::file_scope::FileScope::new(
-            context, root,
-        ))
+        let (machine, session) = self.code_session()?;
+        let target = self.areas.workspace.code.target.as_ref()?;
+        if target.machine != machine || target.session != session {
+            return None;
+        }
+        self.file_admitted_scope()
     }
 
     /// Reuse an already resolved session root only for its exact node and

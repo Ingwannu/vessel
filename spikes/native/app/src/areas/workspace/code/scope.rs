@@ -1,8 +1,8 @@
 //! Root receipts and owner callbacks keep the original shared admission.
-use super::{Place, Stale, Summary, Target};
+use super::Place;
 use crate::shell::Shell;
 use vessel_app_kit::ui::Context;
-use vessel_app_link::workspace::scoped::{Outcome, Reply, Request};
+use vessel_app_link::workspace::scoped::{Outcome, Reply};
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::workspace::{
     file_scope::FileScope, file_ticket::FileTicket, problem::Problem, root::session_root,
@@ -23,8 +23,10 @@ impl Shell {
             .connection_context()
     }
     pub(crate) fn file_operation_answered(&mut self, reply: Reply, cx: &mut Context<'_, Self>) {
+        let guarded = reply.is_current();
         let (context, outcome) = reply.into_parts();
-        let current = self.file_connection(context.machine().as_str()).as_ref() == Some(&context);
+        let current =
+            guarded && self.file_connection(context.machine().as_str()).as_ref() == Some(&context);
         match outcome {
             Outcome::Root {
                 session,
@@ -32,27 +34,6 @@ impl Shell {
                 result,
             } => {
                 self.finder_scoped_root(&context, session, ticket, &result, current);
-                let owns = self
-                    .areas
-                    .workspace
-                    .code
-                    .target
-                    .as_ref()
-                    .is_some_and(|target| {
-                        target.session == session
-                            && target.admission.as_ref().is_some_and(|read| {
-                                read.context == context && read.ticket == ticket
-                            })
-                    });
-                if !owns {
-                    return;
-                }
-                let result = if current {
-                    result
-                } else {
-                    Err(Problem::Gone("the original connection retired".to_owned()))
-                };
-                self.install_code_session_read(session, result);
             }
             Outcome::File(reply) => {
                 let (scope, answer, dispatched) = (*reply).into_parts();
@@ -82,80 +63,17 @@ impl Shell {
     pub(crate) fn file_admitted_scope(&self) -> Option<FileScope> {
         let panel = &self.areas.workspace.code;
         let target = panel.target.as_ref()?;
-        let context = &target.admission.as_ref()?.context;
+        let admission = target.admission.as_ref()?;
+        if !admission.current() {
+            return None;
+        }
+        let context = &admission.context;
         if self.file_connection(context.machine().as_str()).as_ref() != Some(context) {
             return None;
         }
         let (_, root) = panel.root()?;
         Some(FileScope::new(context.clone(), *root))
     }
-    /// Follow the open session: read where it runs when it is not the one
-    /// shown (the panel open only).
-    pub(crate) fn code_follow(&mut self) {
-        if !self.areas.workspace.code.open {
-            return;
-        }
-        let Some((machine, session)) = self.code_session() else {
-            return;
-        };
-        let context = self.file_connection(&machine);
-        let same = self
-            .areas
-            .workspace
-            .code
-            .target
-            .as_ref()
-            .is_some_and(|target| {
-                target.machine == machine
-                    && target.session == session
-                    && target.admission.as_ref().map(|read| &read.context) == context.as_ref()
-            });
-        if same {
-            return;
-        }
-        // The file edited in the session left is written first (Paseo
-        // flushes an editor when its panel goes).
-        self.flush_file();
-        if !self.park_file() {
-            return;
-        }
-        let acquisition = context.and_then(|context| {
-            self.next_file_ticket()
-                .map(|ticket| Acquisition { context, ticket })
-        });
-        let panel = &mut self.areas.workspace.code;
-        panel.files.actions.invalidate();
-        panel.target = Some(Target {
-            admission: acquisition.clone(),
-            machine: machine.clone(),
-            session,
-            place: Place::Reading,
-            cwd: None,
-        });
-        panel.files.options = self.prefs.explorer;
-        // A new session is read whole: nothing it shows is stale.
-        panel.stale = Stale::default();
-        panel.changes.summary = Summary::Loading;
-        panel.changes.states.clear();
-        panel.changes.closed.clear();
-        panel.changes.relist();
-        panel.files.listings.clear();
-        panel.files.modified.clear();
-        panel.files.listing_tickets.clear();
-        panel.files.open.clear();
-        panel.files.viewer = None;
-        panel.files.relist();
-        if let Some(read) = acquisition {
-            self.command(vessel_app_link::Command::FileOperation(Request::root(
-                read.context,
-                session,
-                read.ticket,
-            )));
-        } else if let Some(target) = &mut self.areas.workspace.code.target {
-            target.place = Place::Failed("the original connection is unavailable".to_owned());
-        }
-    }
-
     /// Where a session runs arrived.
     pub(super) fn install_code_session_read(
         &mut self,

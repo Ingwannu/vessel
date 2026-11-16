@@ -36,6 +36,8 @@ pub(crate) use code::FileCloseRequest;
 pub(crate) use code::FindRefused;
 pub(crate) use code::{ExplorerKind, render_explorer, show_layout_explorer};
 pub(crate) use code::{FileSearchRequest, render_file_panel};
+#[cfg(test)]
+pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
