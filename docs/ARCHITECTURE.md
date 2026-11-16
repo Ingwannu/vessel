@@ -1823,6 +1823,12 @@ callers retain `require_active`, current role/attention checks and the write in
 one existing writer transaction; this reader supplies no authorization or exit
 proof. No new protocol, schema, cache or dependency accompanies the seam.
 
+Execution incarnation/invalidation has one owner in the existing Agents registry.
+Each live entry owns a UUID and latest-change watch; natural retirement invalidates
+then closes it. Transition owners use invalidate_execution before their effects.
+The proto stamp/ceiling are correlation values only. This first producer implements
+no runtime capture, parentage lease, actor queue policy or private notice admission;
+see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
 
 ## Page feedback and modal ownership
 
@@ -1917,8 +1923,7 @@ through a typed fake until the real node field/adapter lands. See
 The root lease leaf adds only a BlobHash-backed PhysicalRoot value and a Linux
 opened-FD mechanism using existing dependencies. One workspace::exclusion owner
 issues opaque leases; StartGuard pins cwd plus the nearest registered project or
-worktree ancestor and
-borrows its exact RootLease. The retained metadata pool and ordinary file.write
+worktree ancestor and borrows its exact RootLease. The retained metadata pool and ordinary file.write
 consumer preserve admission through physical completion and caller loss.
 The same registry snapshot supplies both root kinds. Opened parent/child scopes
 conflict in either order, including nested registrations added during a lease;
@@ -1928,3 +1933,10 @@ This is source awaiting exact-leaf validation and V3, not a restore, terminal
 quiescence or lifecycle capability. No store schema, protocol, checkpoint RPC or
 event is introduced. Other writer/cleanup consumers remain pending on the same
 producer. See docs/plans/root-lease-seam.md for scope and validation obligations.
+
+`vessel-session::LaunchAdmission` is a read-only clone of the runtime's existing
+shutdown token and Node's original early-stop token. Its one predicate is shared
+by final structured/terminal spawn and external preparation observers; it grants
+no permission or current-run authority. The Node factory lives beside setup so
+this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
+this standalone prerequisite (ADR 0064 and launch-admission plan).
