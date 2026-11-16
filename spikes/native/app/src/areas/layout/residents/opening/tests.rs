@@ -44,10 +44,7 @@ pub(super) fn build(
             LayoutKey::Session { .. } => panic!("rejected work must not execute"),
         }
     );
-    SessionResources {
-        session: SessionView::new(window, cx),
-        conversation: ConversationArea::new(cx),
-    }
+    SessionResources::new(SessionView::new(window, cx), ConversationArea::new(cx))
 }
 
 #[gpui::test]
@@ -288,3 +285,5 @@ fn deferred_open_refuses_changed_membership_before_allocating_a_tab(cx: &mut Tes
         assert!(shell.areas.session_residents.entries.is_empty());
     });
 }
+
+mod scoped_composer;
