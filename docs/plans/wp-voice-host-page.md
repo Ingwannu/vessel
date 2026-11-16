@@ -45,8 +45,11 @@ Unlike Paseo's single feature patch, Vessel's credential owner and settings
 writer are separate existing services. A supplied new key therefore needs a
 typed two-step result: save through `secret.set` under an editor-owned fresh
 reference, then apply the validated site patch referencing it. Reuse the same
-reference on retry; do not overwrite a previously selected/shared key merely
-to replace one site's credential. No new secret reader/writer is introduced.
+reference only when retrying the same unchanged replacement candidate. If the
+credential is edited after a partial or uncertain save, allocate another fresh
+reference: the prior name may already be attached on the host. Never overwrite
+that previously selected or potentially shared key merely to replace one site's
+credential. No new secret reader/writer is introduced.
 A settings rejection after a successful key save is a partial result, not
 success for the whole form. A lost reply is uncertain, not proof of rollback.
 Do not automatically delete a key after an uncertain or failed settings write:
