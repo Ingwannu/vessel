@@ -187,7 +187,12 @@ description: string,
  * What to type after it, when it takes input (cut at
  * [`AgentCommand::MAX_HINT`] bytes).
  */
-hint?: string | null, };
+hint?: string | null, 
+/**
+ * Explicit command classification (ADR 0085); absent from older reports.
+ * Only a Skill may be completed inline; unknown and absent remain root-only.
+ */
+kind?: CommandKind | null, };
 
 /**
  * What `agent.add` writes when a person gives the command.
@@ -1168,6 +1173,11 @@ export type CloseTransfer = {
  * Which transfer.
  */
 transfer: TransferId, };
+
+/**
+ * A provider's explicit distinction decides whether a command is useful inline.
+ */
+export type CommandKind = "command" | "skill" | "unknown";
 
 /**
  * A command the agent offers, without its `/` (`compact`, `review`).
