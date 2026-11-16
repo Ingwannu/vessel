@@ -37,6 +37,30 @@ import {
   type QuotaTone,
 } from "./values";
 
+/** The provider mark a card shows (the native `builtin_source_mark`):
+ * Cursor, Grok, Kimi, MiniMax and Z.ai have no approved mark yet. */
+export type QuotaMark = "claude" | "codex" | "opencode" | "github";
+
+function markOf(builtin: SourceReportEntry["builtin"]): QuotaMark | null {
+  switch (builtin) {
+    case "claude":
+      return "claude";
+    case "codex":
+      return "codex";
+    case "copilot":
+      return "github";
+    case "open_code_go":
+      return "opencode";
+    case "cursor":
+    case "grok":
+    case "kimi":
+    case "mini_max":
+    case "zai":
+    case null:
+      return null;
+  }
+}
+
 /** Paseo's status dot word; a current report shows none. */
 export type QuotaCardStatus = "error" | "unavailable" | null;
 
@@ -70,6 +94,7 @@ export interface QuotaCard {
   report: SourceReportEntry["id"];
   source: SourceReportEntry["source"];
   builtin: SourceReportEntry["builtin"];
+  mark: QuotaMark | null;
   name: string;
   plan: string | null;
   account: string | null;
@@ -245,6 +270,7 @@ export function quotaCards(
       report: entry.id,
       source: entry.source,
       builtin: entry.builtin,
+      mark: markOf(source?.builtin ?? entry.builtin),
       name: entry.source_label,
       plan: report?.plan ?? null,
       account: entry.account_label,

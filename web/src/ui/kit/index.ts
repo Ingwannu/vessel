@@ -39,6 +39,7 @@ export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { type OptionRow, OptionList } from "./option-list";
 export { type PanelTab, PanelTabs } from "./panel-tabs";
 export { Popover } from "./popover";
+export { ProviderMark, type ProviderMarkName } from "./provider-mark";
 export {
   QuotaMeter,
   type QuotaMeterTone,

@@ -119,6 +119,8 @@ describe("quotaCards", () => {
       NOW,
     );
     expect(card?.status).toBeNull();
+    // No builtin on the descriptor: the entry's (Codex) names the mark.
+    expect(card?.mark).toBe("codex");
     expect(card?.plan).toBe("Plus");
     expect(card?.windows[0]?.percent?.percent).toBe(96);
     expect(card?.windows[0]?.tone).toBe("danger");

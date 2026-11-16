@@ -15,7 +15,14 @@ import { quotaDurationText } from "../../data/account-usage/duration";
 import { quotaAge, QuotaInstant } from "../../data/account-usage/clock";
 import { quotaResetClock } from "../../data/account-usage/format";
 import type { QuotaDisplay } from "../../data/account-usage/values";
-import { Badge, Icon, IconButton, QuotaMeter, Tooltip } from "../../ui/kit";
+import {
+  Badge,
+  Icon,
+  IconButton,
+  ProviderMark,
+  QuotaMeter,
+  Tooltip,
+} from "../../ui/kit";
 
 /** Paseo reset-line.tsx: the countdown and its exact time, or the forecast. */
 export function resetText(
@@ -182,7 +189,11 @@ export function QuotaCardView({
   return (
     <article className="quota-card" aria-label={card.name}>
       <header className="quota-card-head">
-        <Icon name="plan" size={14} />
+        {card.mark === null ? (
+          <Icon name="plan" size={14} />
+        ) : (
+          <ProviderMark name={card.mark} size={14} />
+        )}
         <span className="quota-card-name">{card.name}</span>
         {card.plan === null ? null : <Badge>{card.plan}</Badge>}
         <span className="quota-card-spacer" />

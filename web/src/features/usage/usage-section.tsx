@@ -46,7 +46,7 @@ export function UsageSection({ machine }: { machine: NodeKey | undefined }) {
   const selected = useFleetState((state) => state.selected);
   const node = machineFor(book ?? [], machine, selected);
   return (
-    <SettingsPage lead={LEAD}>
+    <SettingsPage lead={node === null ? LEAD : undefined}>
       {node === null ? (
         book === null ? (
           <Skeleton />
@@ -86,6 +86,9 @@ function MachineUsage({ node, label }: { node: NodeKey; label: string }) {
         title={`Reported usage on ${label}`}
         action={<MachinePicker section="usage" machine={node} />}
       >
+        {/* The ledger's sentence sits with the ledger: Paseo's plan usage
+            comes first on this page. */}
+        <p className="usage-ledger-lead">{LEAD}</p>
         <RowList label="Usage interval">
           <Row
             title="Period"
