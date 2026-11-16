@@ -467,3 +467,15 @@ intention with a safe typed receipt label before acknowledgement. Raw error
 messages and returned configuration never become notice text. A returned error
 is still uncertainty, Started describes only the original node reply, and no
 receipt substitutes for a fresh current status or a health observation.
+
+
+## Bounded native capture correction
+
+The coordinator's first390x844 comparison of frozen ed272f83 found the service
+kind clipped beside a long configured name. Although its1572/0/2 whole was green,
+that field was not completely visible. The approved native-only follow-up wraps
+the existing heading row and constrains both text children to available width.
+The actual GPUI scene regression measures the kind inside its approval card.
+New en-dark/ko-light phone captures and an unchanged wide comparison are required;
+the previous whole gate does not carry over to this final head. No node behavior,
+G4 admission, digest, configuration field or approval action changes.

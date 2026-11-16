@@ -16,7 +16,8 @@ use display::{Displayed, displayed};
 
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    Context, Div, InteractiveElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_view::workspace::command_changes::{
@@ -401,6 +402,7 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
                     .child(
                         div()
                             .max_w_full()
+                            .debug_selector(|| "approval-script-kind".to_owned())
                             .type_(Type::Meta)
                             .text_color(tokens.neutral.foreground_muted)
                             .child(format!("{}{place}{declared}", words.script_kind(kind))),
@@ -425,3 +427,6 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
 }
 
 use vessel_app_kit::ui::FluentBuilder as _;
+
+#[cfg(test)]
+mod geometry_tests;
