@@ -189,7 +189,7 @@ async fn attention(
         return Ok(None);
     }
     let sessions = client
-        .call(vessel_proto::ListSessions)
+        .call(vessel_proto::ListSessions::default())
         .await
         .map_err(problem)?;
     let ids: Vec<_> = sessions.into_iter().map(|session| session.id).collect();

@@ -353,3 +353,17 @@ source differences are only a test comment and TerminalInfo::new runtime state
 initialization, which do not define TS declarations. This is generated-artifact
 reuse, not an APP generation run or whole freshness claim; the receiving root
 whole gate must still verify the final union. No generated string was spliced.
+
+
+## Credit-reset resume and shared base13
+
+Completed runs were recovered before any new submission. Prior APP root2d951e
+actual vesseld build and Proto+Node libraries passed740/0/0; native strict/test
+stopped before execution on the owned stale ListSessions unit construction.
+It now uses canonical ListSessions::default(), preserving full-list semantics.
+Prior NODEde524 strict0 and three-library835/0/0 remain exact earlier evidence.
+The resumed merge retains the canonical migrations/sequence.rs extraction and
+appends owned claim SQL there after listing21, without changing the SQL body or
+assigning a protocol. The canonical RPC caller-drop fence and relation values
+are adopted through their announced bases. Current merged checks remain owed;
+no whole, native or assigned positive-wire pass is inferred.
