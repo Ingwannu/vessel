@@ -1,7 +1,7 @@
 //! Retire a UI opening synchronously when its drawn host metadata changes.
 use crate::shell::Shell;
 use vessel_app_kit::ui::Context;
-use vessel_app_view::{Fleet, connection::ConnectionContext};
+use vessel_app_view::{Fleet, connection::ConnectionTag};
 
 impl Shell {
     /// Registration runs immediately after the sole `Fleet` installation, before
@@ -29,22 +29,19 @@ impl Shell {
     /// An exact retired context can invalidate a still-displayed metadata row.
     /// A delayed retirement for a context absent from the current fleet/scope
     /// must not touch a successor opening. No node lookup or replacement occurs.
-    pub(crate) fn history_retired(
-        &mut self,
-        context: &ConnectionContext,
-        cx: &mut Context<'_, Self>,
-    ) {
+    pub(crate) fn history_retired(&mut self, context: &ConnectionTag, cx: &mut Context<'_, Self>) {
         if self.areas.import.open
             && (self
                 .areas
                 .import
                 .model
                 .scope()
-                .is_some_and(|scope| &scope.context == context)
-                || self
-                    .fleet
-                    .online()
-                    .any(|machine| machine.connection_context().as_ref() == Some(context)))
+                .is_some_and(|scope| &scope.context.tag() == context)
+                || self.fleet.online().any(|machine| {
+                    machine
+                        .connection_context()
+                        .is_some_and(|current| &current.tag() == context)
+                }))
         {
             let _current = self.areas.import.advance_visit();
             // DeviceRetired may be irrelevant to Devices and return before the

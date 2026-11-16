@@ -13,6 +13,6 @@ impl Shell {
         context: ConnectionContext,
         cx: &mut Context<'_, Self>,
     ) {
-        self.on_event(Event::DeviceRetired(context), cx);
+        self.on_event(Event::DeviceRetired(context.tag()), cx);
     }
 }

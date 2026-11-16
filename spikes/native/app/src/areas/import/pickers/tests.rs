@@ -49,8 +49,8 @@ fn fleet(scope: &Scope) -> Fleet {
         }],
     }
 }
-fn profile(scope: &Scope) -> vessel_proto::ProfileInfo {
-    vessel_proto::ProfileInfo {
+fn profile(scope: &Scope) -> ProfileInfo {
+    ProfileInfo {
         name: "work".parse().unwrap(),
         label: None,
         harness: scope.harness.clone(),
@@ -124,7 +124,7 @@ fn replace(
         shell.history_test_fleet(fleet(&current), cx);
     }
     prepare(shell, &current, window, cx);
-    shell.history_picker(super::super::Picker::Account, window, cx);
+    shell.history_picker(Picker::Account, window, cx);
     assert!(shell.areas.import.picker.is_open());
     if matches!(how, Replacement::Retired) {
         shell.history_test_retirement(original.context.clone(), cx);
@@ -135,7 +135,7 @@ fn replace(
     }
     current
 }
-fn key(window: &mut Window, cx: &mut gpui::App, name: &str) {
+fn key(window: &mut Window, cx: &mut gpui::App, name: &'static str) {
     let _event = window.dispatch_event(
         KeyDownEvent {
             keystroke: Keystroke::parse(name).unwrap(),
