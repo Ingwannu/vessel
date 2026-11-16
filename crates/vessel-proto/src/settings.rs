@@ -9,8 +9,8 @@
 //! - Choice: one settings object, read whole (`node.settings`, read) and
 //!   changed field by field (`node.set_settings`, admin), so a later
 //!   setting is one more optional field and an older client keeps working.
-//!   The node keeps the same type as its file, so what a client sees is
-//!   what survives a restart.
+//!   Store's opaque disk model preserves saved choices independently of
+//!   wire projection; a generic reply never serializes that private document.
 //! - Protocol 18 adds `drivers` (ADR 0057): which protocol drives each
 //!   agent that has one of its own. A node of 17 answers without it, which
 //!   reads as ACP for every agent, what it runs.

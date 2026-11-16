@@ -55,8 +55,9 @@ tests derive from the same named waiting-capacity owner.
   prevents a late producer from registering physical work after drain returned.
   Dropping a shutdown waiter does not abort the worker or lose its obligations.
 
-The same lane covers generic patch, reset, explicit reload and approved dedicated
-mutations. Existing MCP pre-lock settings admission is replaced at the joint
+Generic patches use this lane now. Reset, explicit reload and approved dedicated
+mutations must join it with their actual callers; this producer adds no dormant
+operation variants. Existing MCP pre-lock settings admission is replaced at the joint
 merge, not nested around this owner. This does not remove an independently
 qualified reader/helper physical-capacity limit for another resource.
 
@@ -353,3 +354,12 @@ PreserveBeforeWrite, not acquire a new validation policy. The privacy fixture
 keeps its canonical typed-error assertions, pins that existing coverage result,
 and separately feeds malformed JSON to exercise the actual compatibility-parser
 error chain and unchanged bytes. No product decoder/store behavior changes.
+
+### Current focused qualification boundary
+
+The current focused suite passes 23 Node settings cases, 14 Store settings
+cases, 15 passive SQL integration cases and one compile-fail opaque-envelope
+doctest. The official declaration and alias tests also pass; their one-file
+stale output is checksum-verified and committed as generated. Freshness on that
+committed source and the enclosing ordinary gate still remain owed. These
+results qualify neither a recovery engine nor a private service/plugin setter.
