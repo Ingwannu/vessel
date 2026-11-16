@@ -399,9 +399,13 @@ is claimed for releasable jobs. Shared readiness is in proto::local_launch, so
 there is no reverse node-to-launcher edge.
 
 
-The local-node crate dev-depends on vessel-testkit only so its process fixtures
-use canonical prebuild-before-clock safety bounds; no production graph edge or
-reverse testkit-to-local-node dependency is introduced.
+The local-node crate dev-depends on vessel-testkit, vessel-rpc, serde, serde_json
+and futures-util only for canonical prebuild-before-clock process fixtures and
+the fixture-owned DTO/framing contract; no production edge or dependency cycle
+is introduced. Its cfg(test)-only inclusion of the node fixture's DTO source
+adds no node library dependency, runtime types or I/O to that shared file. The
+cached testkit fixture locator uses the existing nested-build mechanism, not a
+normal dependency on node or local-node, and errors rather than skipping.
 
 ## Checked owned process cleanup (W16 shared prerequisite)
 

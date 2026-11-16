@@ -212,12 +212,12 @@ post-exit takeover, attempted second-instance relay, stale/wrong stdout echo,
 token-not-sent-before-proof and same-handle post-proof closure. Fake/Linux cases
 do not prove Windows instance or DACL semantics.
 
-The supported remote Cargo feature test command selects managed_local_peer and
-managed_local_node with local-node-fixture enabled. Cargo's integration-test
-binary targets supply the fixture and real vesseld paths from that same build;
-there is no nested Cargo invocation or borrowed shared binary. No default gate
-result is claimed to execute this feature, and the actual run must confirm both
-the binary compilation and named test execution.
+The same-home causal proof is now selected by the local-node library unit tests;
+its testkit locator builds the exact feature fixture before the case clock.
+The separate managed_local_node integration target continues to use Cargo's
+same-package real vesseld binary. Neither path borrows a shared old binary or
+silently skips an unavailable feature build. The actual run must confirm both
+same-source binary compilation and all named test execution.
 
 ## Windows API probe scope
 
@@ -290,4 +290,16 @@ SIGTERM case. They are authored source, not executed proof.
 The same-home integration regression can now audit one immediate proc absence
 snapshot after confirmed cleanup, without polling for completion. Its exited-child
 barrier uses an actual SIGCHLD event before the known-child zombie snapshot.
-The separately requested local-node unit causal/witness join remains pending.
+The same-home and wrong-peer causal cases now live under local-node's Linux
+unit tests, so they consume the private cfg(test) settlement witness from the
+actual cleanup owner. The former separate managed_local_peer integration target
+is removed; normal managed_local_node public-API integration remains in node.
+The shared fixture DTO is included from its single node-owned source, as approved;
+only test wiring adds serde/serde_json/futures-util/RPC alongside testkit. Store
+access stays in node_files: a private test-only synchronous call reuses its exact
+identity reader while the causal fixture intentionally holds the sole blocking
+worker. No second credential parser, database or Store consumer is introduced.
+The testkit locator builds the exact feature-only node fixture before the case
+clock through its established nested-build owner, errors on unavailable binaries,
+and adds no normal crate edge. T's runner still owes its fixed prebuild step.
+These moved tests and locator are unexecuted until changed-source checks run.

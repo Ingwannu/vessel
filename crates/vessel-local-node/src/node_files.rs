@@ -115,21 +115,31 @@ impl NodeHome {
 
     pub(crate) async fn identity(&self) -> Result<Option<Identity>, FilesError> {
         let dir = DataDir::new(self.0.clone());
-        tokio::task::spawn_blocking(move || {
-            let Some(node) = dir.read_node_id().map_err(FilesError::Store)? else {
-                return Ok(None);
-            };
-            let token = dir.read_token().map_err(FilesError::Store)?;
-            let token: BearerToken = token.expose().parse().map_err(FilesError::Credential)?;
-            Ok(Some(Identity {
-                node,
-                endpoint: Endpoint(dir.local_endpoint(node)),
-                credential: LocalCredential::Token(token),
-            }))
-        })
-        .await
-        .map_err(FilesError::Worker)?
+        tokio::task::spawn_blocking(move || read_identity(&dir))
+            .await
+            .map_err(FilesError::Worker)?
     }
+}
+
+fn read_identity(dir: &DataDir) -> Result<Option<Identity>, FilesError> {
+    let Some(node) = dir.read_node_id().map_err(FilesError::Store)? else {
+        return Ok(None);
+    };
+    let token = dir.read_token().map_err(FilesError::Store)?;
+    let token: BearerToken = token.expose().parse().map_err(FilesError::Credential)?;
+    Ok(Some(Identity {
+        node,
+        endpoint: Endpoint(dir.local_endpoint(node)),
+        credential: LocalCredential::Token(token),
+    }))
+}
+
+/// A causal test deliberately holds the only blocking worker at a barrier.
+/// Read its isolated fixture through the SAME facade without queueing behind
+/// that worker; no public API, extra parser, database or Store edge is added.
+#[cfg(test)]
+pub(crate) fn fixture_identity(home: &NodeHome) -> Result<Option<Identity>, FilesError> {
+    read_identity(&DataDir::new(home.0.clone()))
 }
 
 #[cfg(test)]

@@ -1,10 +1,10 @@
 //! The fixture supplies causal barriers; these helpers never signal observed PIDs.
 
+use crate::{Launch, NodeHome};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt as _, AsyncReadExt as _};
-use vessel_local_node::{Launch, NodeHome};
 use vessel_proc::{Child, CommandSpec, ProcessId};
 use vessel_proto::{ClientInfo, NodeId, local_launch::Ready};
 
@@ -59,30 +59,42 @@ fn launch(root: &Path, binary: &Path) -> Launch {
     .unwrap()
 }
 
-pub(super) fn ordinary_recipe(root: &Path) -> Launch {
-    launch(root, Path::new(env!("CARGO_BIN_EXE_vesseld")))
+pub(super) struct Paths {
+    node: std::path::PathBuf,
+    fixture: std::path::PathBuf,
 }
 
-pub(super) fn recipe(root: &Path, control: SocketAddr) -> Launch {
+impl Paths {
+    pub(super) fn locate() -> Self {
+        Self {
+            node: vessel_testkit::vesseld().expect("real same-commit node build unavailable"),
+            fixture: vessel_testkit::local_node_fixture()
+                .expect("feature fixture build unavailable"),
+        }
+    }
+}
+
+pub(super) fn ordinary_recipe(root: &Path, paths: &Paths) -> Launch {
+    launch(root, &paths.node)
+}
+
+pub(super) fn recipe(root: &Path, control: SocketAddr, paths: &Paths) -> Launch {
     std::fs::create_dir_all(root.join("user-home")).unwrap();
     std::fs::create_dir_all(root.join("programs")).unwrap();
-    launch(
-        root,
-        Path::new(env!("CARGO_BIN_EXE_vessel-local-node-fixture")),
-    )
-    .environment(|command| {
-        command
-            .env(control::CONTROL_ENV, control.to_string())
-            .env(control::HOME_ENV, root.join("user-home"))
-            .env(control::PROGRAMS_ENV, root.join("programs"))
-    })
-    .unwrap()
+    launch(root, &paths.fixture)
+        .environment(|command| {
+            command
+                .env(control::CONTROL_ENV, control.to_string())
+                .env(control::HOME_ENV, root.join("user-home"))
+                .env(control::PROGRAMS_ENV, root.join("programs"))
+        })
+        .unwrap()
 }
 
 /// The sole blocking worker holds the post-Ready identity read until release.
 /// Every scenario uses the real child and its real stopped-server barrier.
 pub(super) struct HeldLaunch {
-    pub(super) starting: Pending,
+    pub(super) attempt: Attempt,
     pub(super) release: std::sync::mpsc::SyncSender<()>,
     pub(super) fixture: Fixture,
     pub(super) process: ProcessId,
@@ -91,17 +103,10 @@ pub(super) struct HeldLaunch {
 
 /// A failed assertion cancels the original startup future and its RAII owner,
 /// instead of leaving a detached start task alive until its outer deadline.
-pub(super) struct Pending(
-    tokio::task::JoinHandle<
-        Result<vessel_local_node::LocalNode, vessel_local_node::LocalNodeError>,
-    >,
-);
+pub(super) struct Pending(tokio::task::JoinHandle<Result<crate::LocalNode, crate::LocalNodeError>>);
 
 impl Future for Pending {
-    type Output = Result<
-        Result<vessel_local_node::LocalNode, vessel_local_node::LocalNodeError>,
-        tokio::task::JoinError,
-    >;
+    type Output = Result<Result<crate::LocalNode, crate::LocalNodeError>, tokio::task::JoinError>;
 
     fn poll(
         mut self: std::pin::Pin<&mut Self>,
@@ -117,22 +122,57 @@ impl Drop for Pending {
     }
 }
 
-pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
+pub(super) struct Attempt {
+    starting: Pending,
+    settlement: tokio::sync::oneshot::Receiver<crate::launch::cleanup_witness::Settlement>,
+    dropped: tokio::sync::oneshot::Receiver<()>,
+}
+
+impl Attempt {
+    pub(super) async fn refusal(self) -> crate::LocalNodeError {
+        let result = step(
+            "original startup refusal after checked cleanup",
+            self.starting,
+        )
+        .await
+        .unwrap();
+        let refusal = result.unwrap_err();
+        let settlement = step("same cleanup owner exact reap witness", self.settlement)
+            .await
+            .unwrap();
+        assert!(matches!(
+            settlement,
+            crate::launch::cleanup_witness::Settlement::Reaped(_)
+        ));
+        step("original startup owner drop witness", self.dropped)
+            .await
+            .unwrap();
+        refusal
+    }
+}
+
+pub(super) async fn held_launch(root: &Path, paths: &Paths) -> HeldLaunch {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let launch = recipe(root, listener.local_addr().unwrap());
+    let launch = recipe(root, listener.local_addr().unwrap(), paths);
     let (release, held) = std::sync::mpsc::sync_channel(1);
     let (entered, waiting) = tokio::sync::oneshot::channel();
-    let starting = Pending(tokio::spawn(async move {
-        vessel_local_node::LocalNode::start_observed(launch, move |_logs| {
-            // Reserve before Ready, so no timing guess or controller hook is
-            // needed to install the replacement before identity/authentication.
-            drop(tokio::task::spawn_blocking(move || {
-                let _delivered = entered.send(());
-                let _released = held.recv_timeout(SAFETY_NET);
-            }));
-        })
-        .await
-    }));
+    let (settled, settlement) = tokio::sync::oneshot::channel();
+    let (drop_notice, dropped) = tokio::sync::oneshot::channel();
+    let starting = Pending(tokio::spawn(crate::launch::cleanup_witness::observe(
+        settled,
+        drop_notice,
+        async move {
+            crate::LocalNode::start_observed(launch, move |_logs| {
+                // Reserve before Ready, so no timing guess or controller hook is
+                // needed to install the replacement before identity/authentication.
+                drop(tokio::task::spawn_blocking(move || {
+                    let _delivered = entered.send(());
+                    let _released = held.recv_timeout(SAFETY_NET);
+                }));
+            })
+            .await
+        },
+    )));
     step("original startup file worker entered", waiting)
         .await
         .unwrap();
@@ -157,7 +197,11 @@ pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
         matches!(serde_json::from_str(&stopped).unwrap(), control::Notice::Stopped { process: found } if process == found)
     );
     HeldLaunch {
-        starting,
+        attempt: Attempt {
+            starting,
+            settlement,
+            dropped,
+        },
         release,
         fixture,
         process,
@@ -165,9 +209,9 @@ pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
     }
 }
 
-pub(super) async fn replacement(root: &Path) -> Child {
+pub(super) async fn replacement(root: &Path, paths: &Paths) -> Child {
     let command = environment(
-        CommandSpec::new(env!("CARGO_BIN_EXE_vesseld"))
+        CommandSpec::new(&paths.node)
             .args(["--desktop-managed", "--bind", "none", "--data-dir"])
             .arg(root.join("node")),
         root,
@@ -194,12 +238,12 @@ pub(super) async fn replacement(root: &Path) -> Child {
 }
 
 pub(super) async fn client(root: &Path, node: NodeId) -> vessel_client::NodeClient {
-    let directory = vessel_store::DataDir::new(root.join("node"));
-    let token = directory.read_token().unwrap();
-    let credential = vessel_client::LocalCredential::Token(token.expose().parse().unwrap());
+    let home = NodeHome::new(root.join("node")).unwrap();
+    let identity = crate::node_files::fixture_identity(&home).unwrap().unwrap();
+    assert_eq!(identity.node, node);
     let client = vessel_client::NodeClient::connect_local(
-        &directory.local_endpoint(node),
-        &credential,
+        identity.endpoint.path(),
+        &identity.credential,
         info(),
     )
     .await

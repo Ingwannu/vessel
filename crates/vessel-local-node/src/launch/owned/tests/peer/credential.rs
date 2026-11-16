@@ -3,17 +3,19 @@
 use super::managed_local_peer_support::{self as support, HeldLaunch, SAFETY_NET};
 use tokio::io::AsyncReadExt as _;
 
-async fn refuses_before_credential() {
+async fn refuses_before_credential(paths: support::Paths) {
     let root = tempfile::tempdir().unwrap();
     let HeldLaunch {
-        starting,
+        attempt,
         release,
         fixture,
         process,
         expected,
-    } = support::held_launch(root.path()).await;
-    let directory = vessel_store::DataDir::new(root.path().join("node"));
-    let endpoint = directory.local_endpoint(expected);
+    } = support::held_launch(root.path(), &paths).await;
+    let home = crate::NodeHome::new(root.path().join("node")).unwrap();
+    let identity = crate::node_files::fixture_identity(&home).unwrap().unwrap();
+    assert_eq!(identity.node, expected);
+    let endpoint = identity.endpoint.path().to_owned();
     // The original server has stopped, but its direct child is still retained.
     // Replace only this isolated test endpoint with a listener in another PID.
     match std::fs::remove_file(&endpoint) {
@@ -37,13 +39,10 @@ async fn refuses_before_credential() {
         0,
         "an unqualified peer must receive zero credential or Hello bytes"
     );
-    let refusal = support::step("failed startup after original checked cleanup", starting)
-        .await
-        .unwrap()
-        .unwrap_err();
+    let refusal = attempt.refusal().await;
     assert!(matches!(
         refusal,
-        vessel_local_node::LocalNodeError::Launch(vessel_local_node::LaunchError::PeerUnverified)
+        crate::LocalNodeError::Launch(crate::LaunchError::PeerUnverified)
     ));
     support::reaped(process);
     drop(fixture);
@@ -51,13 +50,14 @@ async fn refuses_before_credential() {
 
 #[test]
 fn actual_wrong_peer_receives_zero_credential_bytes() {
+    let paths = support::Paths::locate();
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .max_blocking_threads(1)
         .build()
         .unwrap()
         .block_on(async {
-            vessel_testkit::within(SAFETY_NET, refuses_before_credential())
+            vessel_testkit::within(SAFETY_NET, refuses_before_credential(paths))
                 .await
                 .unwrap();
         });

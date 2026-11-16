@@ -1,4 +1,6 @@
-//! Private fixture messages carry public process facts, never node credentials.
+//! Private fixture DTOs shared by the node fixture binary and local-node unit tests.
+//! One source avoids schema copies; only serde and existing process/node IDs live
+//! here. No node runtime, I/O, parent-module path or process authority is exposed.
 
 use serde::{Deserialize, Serialize};
 use vessel_proc::ProcessId;

@@ -19,6 +19,10 @@ getrandom.workspace = true
 subtle.workspace = true
 
 [dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true
+futures-util = { workspace = true, features = ["sink"] }
+vessel-rpc.workspace = true
 vessel-testkit.workspace = true
 tempfile.workspace = true
 

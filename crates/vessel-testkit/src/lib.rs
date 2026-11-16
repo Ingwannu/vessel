@@ -98,6 +98,7 @@ use tokio::time::error::Elapsed;
 #[cfg(feature = "authority-fixtures")]
 pub mod device_fixtures;
 pub mod fleet_fixtures;
+mod local_node_fixture;
 pub mod model;
 #[cfg(feature = "relay")]
 pub mod relay;
@@ -105,6 +106,7 @@ mod report;
 pub mod schedule_fixtures;
 #[cfg(feature = "upstream")]
 pub mod upstream;
+pub use local_node_fixture::local_node_fixture;
 mod vesseld;
 
 pub use report::write_report;
