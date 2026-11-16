@@ -35,6 +35,7 @@ mod git;
 mod metadata;
 mod policy;
 mod projects;
+mod registry_fence;
 mod roots;
 mod scripts;
 mod setup;

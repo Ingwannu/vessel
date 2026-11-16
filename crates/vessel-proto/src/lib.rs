@@ -47,6 +47,7 @@ pub mod lsp;
 pub mod mcp;
 mod model;
 mod name;
+pub mod native_commands;
 mod node;
 pub mod notifications;
 mod options;

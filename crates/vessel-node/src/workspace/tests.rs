@@ -1060,3 +1060,5 @@ mod project_task;
 mod root_admission;
 #[cfg(target_os = "linux")]
 pub(in crate::workspace) mod root_case;
+
+mod registry_fence;
