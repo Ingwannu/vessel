@@ -10,11 +10,10 @@ pub const MAX_WIDTH: f32 = 960.0;
 pub const MAX_HEIGHT: f32 = 640.0;
 /// Room around a fitted image (Paseo spacing[4]).
 pub const PADDING: f32 = 16.0;
-/// The fitted size: where an image opens and where reset returns.
-pub const FIT_SCALE: f32 = 1.0;
-/// Paseo's viewport floor (`DEFAULT_MIN_SCALE`, zoomable-viewport
-/// index.web.tsx:18): zoom out to a quarter of fit, centred.
-pub const MIN_SCALE: f32 = 0.25;
+/// The lightbox never shrinks below fit: Paseo's lightbox passes no
+/// `minScale`, so `ZoomableImage`'s default 1 applies (image.tsx:30; 0.25 is
+/// only `ZoomableViewport`'s own default, which the image overrides).
+pub const MIN_SCALE: f32 = 1.0;
 /// Paseo's viewport zoom ceiling.
 pub const MAX_SCALE: f32 = 8.0;
 /// Toolbar zoom increment, shared by wheel clamping.
@@ -109,7 +108,7 @@ impl Viewport {
             content,
             canvas,
             fitted,
-            scale: FIT_SCALE,
+            scale: MIN_SCALE,
             x: 0.0,
             y: 0.0,
         }
@@ -124,7 +123,7 @@ impl Viewport {
 
     /// Return to the centered fit after zooming or panning.
     pub fn reset(&mut self) {
-        self.scale = FIT_SCALE;
+        self.scale = MIN_SCALE;
         self.x = 0.0;
         self.y = 0.0;
     }

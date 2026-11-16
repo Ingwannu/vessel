@@ -140,12 +140,18 @@ returned and replaced, see "Lightbox toolbar correction" below.
   neighbours would act), and an occluding margin would hide the viewport's own
   hover, which is what shows the cluster (it would flicker off over a button).
   A single-target margin needs a cluster-level hit owner; recorded, not built.
-- Coordinator verdict (same day): look PASS; required fix applied: the minimum
-  scale is Paseo's 0.25 (`DEFAULT_MIN_SCALE`), separate from the fit scale 1
-  where an image opens and reset returns. ZoomOut is enabled at fit and steps
-  by 0.8 from the centre down to 0.25; ZoomIn steps by 1.25 up to 8; Scan is
-  disabled at fit only. `viewer` tests hold the steps, floor, ceiling and the
-  centred quarter-size image.
+- Coordinator verdict (same day): look PASS. A minimum-scale change to 0.25
+  was requested and then withdrawn: Paseo's lightbox renders `ZoomableImage`
+  without `minScale`, whose default is 1 (image.tsx:30); 0.25 is only
+  `ZoomableViewport`'s own default. The minimum stays fit (1), the maximum 8,
+  steps 1.25/0.8; at fit ZoomOut and Scan are disabled. A `viewer` test holds
+  the steps, the fit floor and the 8 ceiling.
+- Same round, from the app reviewer and the coordinator's ruling: disabled
+  actions get no hover/press highlight and no ink change (Paseo's disabled
+  `Pressable` has neither), and the kit copies Paseo's pinned style order
+  (icon-button-chrome.ts:79-82: hidden, then highlighted, then disabled), so a
+  hidden disabled action shows at 0.5 and still takes no pointer: at fit and at
+  rest ZoomOut and Scan stay faintly visible.
 - Impact: tooltips, their per-action places and the old `pill_parts` buttons
   are gone from the lightbox state. Pointer positions are mapped into the
   viewport's own space. A new test covers hidden/shown presence, the shaded

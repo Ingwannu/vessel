@@ -16,7 +16,7 @@ fn fit_preserves_aspect_with_padding_and_presentation_caps() {
     assert_eq!(view.size(), extent(768.0, 384.0));
     let large = Viewport::new(extent(1600.0, 800.0), extent(2000.0, 1400.0));
     assert_eq!(large.size(), extent(MAX_WIDTH, 480.0));
-    assert_eq!(large.scale().to_bits(), FIT_SCALE.to_bits());
+    assert_eq!(large.scale().to_bits(), MIN_SCALE.to_bits());
     assert!(!view.contains(position(400.0, 10.0)));
     assert!(view.contains(position(400.0, 300.0)));
 }
@@ -27,7 +27,7 @@ fn a_portrait_fits_on_the_phone_and_resets_on_resize() {
     assert_eq!(view.size(), extent(320.0, MAX_HEIGHT));
     view.zoom_center(MAX_SCALE);
     view.resize(extent(800.0, 600.0));
-    assert_eq!(view.scale().to_bits(), FIT_SCALE.to_bits());
+    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
     assert_eq!(view.size(), extent(284.0, 568.0));
 }
 
@@ -44,44 +44,8 @@ fn zoom_keeps_the_focal_point_and_clamps_scale_and_pan() {
     assert_eq!(view.scale().to_bits(), MAX_SCALE.to_bits());
     view.zoom_center(f32::MIN_POSITIVE);
     assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
-    // A quarter of the 768 x 384 fit, centred: no pan below fit.
-    assert_eq!(view.size(), extent(192.0, 96.0));
-    assert_eq!(view.left().to_bits(), (304.0_f32).to_bits());
-    assert_eq!(view.top().to_bits(), (252.0_f32).to_bits());
-}
-
-#[test]
-fn toolbar_steps_reach_paseos_quarter_floor_and_eight_times_ceiling_from_fit() {
-    let mut view = viewport();
-    assert_eq!(view.scale().to_bits(), FIT_SCALE.to_bits());
-    // Zoom out is available at fit: one 0.8 step from the centre.
-    view.zoom_center(ZOOM_OUT);
-    assert_eq!(view.scale().to_bits(), ZOOM_OUT.to_bits());
-    assert!(view.contains(position(400.0, 300.0)));
-    assert!(
-        !view.contains(position(400.0, 120.0)),
-        "smaller than the fit"
-    );
-    // 0.8 to the sixth power is still above the floor; the seventh step stops at it.
-    for _ in 0..5 {
-        view.zoom_center(ZOOM_OUT);
-    }
-    assert!(view.scale() > MIN_SCALE);
-    view.zoom_center(ZOOM_OUT);
-    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
-    view.zoom_center(ZOOM_OUT);
-    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
-    view.reset();
-    assert_eq!(view.scale().to_bits(), FIT_SCALE.to_bits());
-    view.zoom_center(ZOOM_IN);
-    assert_eq!(view.scale().to_bits(), ZOOM_IN.to_bits());
-    // 1.25 to the ninth power is below the ceiling; the tenth step stops at 8.
-    for _ in 0..8 {
-        view.zoom_center(ZOOM_IN);
-    }
-    assert!(view.scale() < MAX_SCALE);
-    view.zoom_center(ZOOM_IN);
-    assert_eq!(view.scale().to_bits(), MAX_SCALE.to_bits());
+    assert_eq!(view.left().to_bits(), (16.0_f32).to_bits());
+    assert_eq!(view.top().to_bits(), (108.0_f32).to_bits());
 }
 
 #[test]
@@ -97,4 +61,25 @@ fn invalid_platform_data_cannot_poison_viewport() {
     view.zoom_center(ZOOM_IN);
     view.reset();
     assert_eq!(view, before);
+}
+
+#[test]
+fn toolbar_steps_stay_between_fit_and_eight_times_as_paseos_lightbox() {
+    let mut view = viewport();
+    // At fit zoom out has nowhere to go (the image's minimum is fit).
+    view.zoom_center(ZOOM_OUT);
+    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
+    view.zoom_center(ZOOM_IN);
+    assert_eq!(view.scale().to_bits(), ZOOM_IN.to_bits());
+    view.zoom_center(ZOOM_OUT);
+    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
+    // 1.25 to the ninth power is below the ceiling; the tenth step stops at 8.
+    for _ in 0..9 {
+        view.zoom_center(ZOOM_IN);
+    }
+    assert!(view.scale() < MAX_SCALE);
+    view.zoom_center(ZOOM_IN);
+    assert_eq!(view.scale().to_bits(), MAX_SCALE.to_bits());
+    view.reset();
+    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
 }
