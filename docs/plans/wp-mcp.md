@@ -964,3 +964,21 @@ same imports. Use the imported SessionRuntime and CancellationToken names;
 types, ownership, order and behavior are unchanged. The failed run
 `wp-mcp-runtime-narrow-20261116T023856Z-0ea9680f` is retained. Corrected strict
 execution remains owed; the already-running Node tests are not cancelled.
+
+
+### Executed receiving-union checks
+
+The two qualification-only corrections at `99a39f36d` passed Node+MCP
+all-target strict in `wp-mcp-runtime-narrow-20261116T024207Z-99a39f36`
+(46 seconds). The exact preceding union `0ea9680f7` passed Node library
+345/0/0 in `wp-mcp-response-tests-20261116T023856Z-0ea9680f`, all four
+steps zero (159-second test step). This includes the actual node runtime
+factory's original early-stop-token test, existing Settings ownership tests
+and held remote-follow supervision tests. All step hashes were independently
+recomputed. The qualification-only delta changes no types or behavior.
+
+The older exact `7321db48` five-crate plus proto-TS all-target strict also
+finished zero (110 seconds), as predecessor union evidence only. It does not
+attest later facade/runtime changes. Current wire freshness, shared Settings
+producer join, private-notice execution fence, final package audit, crash/cross-
+node and whole gates remain separate obligations.
