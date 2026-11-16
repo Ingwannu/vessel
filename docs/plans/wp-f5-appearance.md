@@ -807,3 +807,28 @@ that source. This file is also unchanged at the current Paseo checkout
 `e9f897a6`. F5 follows the actual pinned control, so it does not reuse the
 separate Codex effort slider or invent a second width input. The numeric
 width layout is source parity, not a deliberately missing slider.
+
+### Receiving consumers and native interaction limits
+
+W13 confirmed source-only `85fea32a6` uses the already-existing
+`ContentWidth::points()` seam for its Markdown document column: full width,
+centred, optional maximum; no second width parser/state or renderer. Its
+receiving strict/UI proof is still pending and its files are not copied into
+this F5 tree. F5 keeps that stable method signature while extending numeric
+widths and the following default.
+
+The Appearance fields pass translated labels into the existing engine's
+`InputAccessibility`. The generic theme tile preserves the baseline native
+click path; this package adds no radio-group focus/navigation or native AT
+projection. Keyboard theme cycling remains the existing S2 registry action,
+not a second listener in the tile. Native radio/AT parity and general a11y
+are not claimed by screenshots or the package gate. The source's Web radio
+semantics must not be inferred from the chosen-border drawing alone.
+
+The coordinator assigned the next explicit IME commit/origin projection to
+G2, after its secure-field source lands. That later seam must preserve the
+canonical one subscription and callbacks union. F5's generic Windowed
+notifications are not an explicit IME commit reason or originating-FieldId
+payload; they must not be repurposed as one by string comparison. No second
+listener, IME cache or late unreviewed field change is added to this frozen
+source.
