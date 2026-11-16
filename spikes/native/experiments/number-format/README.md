@@ -47,6 +47,15 @@ currency patterns still owed. The comparison graph explicitly enables
 `icu_decimal/alloc`, required for its string-output API. These sources are
 not native app overlays, reachable-artifact evidence or compiled results.
 
+`feasibility-inputs.json` pins the candidate sources and the two scratch-only
+test overlays. The common overlay adds only dev dependency requests and
+explicit `cfg(test)` imports to view; the ICU overlay adds its dependency and
+module. Both apply to a temporary index without changing product sources.
+Only the controlled runner may resolve the isolated offline lock and run the
+named tests. This phase cannot produce native installed-byte deltas: actual
+app callback overlays and a reachable release/wasm entry are a later packet,
+not implied by the test registrations or a passing filtered test count.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream

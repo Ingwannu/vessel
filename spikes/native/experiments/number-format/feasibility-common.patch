@@ -1,0 +1,29 @@
+--- a/spikes/native/view/Cargo.toml
++++ b/spikes/native/view/Cargo.toml
+@@ -39,6 +39,12 @@
+ fluent-syntax.workspace = true
+ unic-langid.workspace = true
+ 
++# Controlled scratch feasibility graph only; never a product manifest change.
++fixed_decimal = { version = "=0.7.3", default-features = false, features = ["ryu"] }
++icu_plurals = { version = "=2.4.0", default-features = false, features = ["compiled_data"] }
++icu_locale_core = { version = "=2.4.0", default-features = false }
++icu_provider = { version = "=2.4.0", default-features = false, features = ["sync"] }
++
+ [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+ allocation-counter.workspace = true
+ 
+--- a/spikes/native/view/src/lib.rs
++++ b/spikes/native/view/src/lib.rs
+@@ -82,3 +82,11 @@
+ 
+ pub mod layout;
+ pub mod residents;
++
++// Controlled scratch feasibility modules; absent from the product source.
++#[cfg(test)]
++#[path = "../../experiments/number-format/decimal_probe.rs"]
++mod decimal_probe;
++#[cfg(test)]
++#[path = "../../experiments/number-format/plural_probe.rs"]
++mod plural_probe;

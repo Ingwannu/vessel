@@ -1,0 +1,21 @@
+--- a/spikes/native/view/Cargo.toml
++++ b/spikes/native/view/Cargo.toml
+@@ -45,6 +45,8 @@
+ icu_locale_core = { version = "=2.4.0", default-features = false }
+ icu_provider = { version = "=2.4.0", default-features = false, features = ["sync"] }
+ 
++icu_decimal = { version = "=2.4.0", default-features = false, features = ["alloc", "compiled_data", "unstable", "ryu"] }
++
+ [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+ allocation-counter.workspace = true
+ 
+--- a/spikes/native/view/src/lib.rs
++++ b/spikes/native/view/src/lib.rs
+@@ -90,3 +90,7 @@
+ #[cfg(test)]
+ #[path = "../../experiments/number-format/plural_probe.rs"]
+ mod plural_probe;
++
++#[cfg(test)]
++#[path = "../../experiments/number-format/icu_decimal_probe.rs"]
++mod icu_decimal_probe;

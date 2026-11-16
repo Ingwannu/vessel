@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "phase": "feasibility only; no installed-size or product adoption claim",
+  "immutable_source": "18328dead33120c05191085b005a4dc6c3f2beac",
+  "measurement_contract_sha256": "8a20b0da559f2f01e3bda1dc639fed120884af8df094de83b77caf94bea8d8b0",
+  "variants": {
+    "narrow": {
+      "overlays": [
+        {
+          "path": "spikes/native/experiments/number-format/feasibility-common.patch",
+          "sha256": "da269a123b5e3f9b82589f9913811d0240785893c5403c0945ffaf7c4ead9063"
+        }
+      ]
+    },
+    "icu": {
+      "overlays": [
+        {
+          "path": "spikes/native/experiments/number-format/feasibility-common.patch",
+          "sha256": "da269a123b5e3f9b82589f9913811d0240785893c5403c0945ffaf7c4ead9063"
+        },
+        {
+          "path": "spikes/native/experiments/number-format/feasibility-icu.patch",
+          "sha256": "487b53dfd80c9c281cb5ca794b8930da2e9cccfb134b8259dff179ce002ef09f"
+        }
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "path": "spikes/native/experiments/number-format/decimal_probe.rs",
+      "sha256": "8f2e105227f8135fea574e6dfbcea744f5713b07bdfe4b14672abfc4ab0f199b"
+    },
+    {
+      "path": "spikes/native/experiments/number-format/decimal_probe_tests.rs",
+      "sha256": "1f72699e0b8b2a725cc655c3bd3d8f5c74c450fe3da12627a9a6f1298e0581c4"
+    },
+    {
+      "path": "spikes/native/experiments/number-format/oracle_probe.rs",
+      "sha256": "c2f38c5fc0673cc13035f6842d21c7b61bf2f59cb959831c6f57c9b13f4668c4"
+    },
+    {
+      "path": "spikes/native/experiments/number-format/plural_probe.rs",
+      "sha256": "1ee40e22dbff368722c73eaa258c8fadcdaae2b421b3062ff37afd49c39c883d"
+    },
+    {
+      "path": "spikes/native/experiments/number-format/icu_decimal_probe.rs",
+      "sha256": "dc61f35326d7a87ed5d6dee3712478ec4f65e74eb9587f58aadaf4a69a065ef5"
+    },
+    {
+      "path": "spikes/native/experiments/number-format/icu_decimal_probe_tests.rs",
+      "sha256": "d1369b32fbf24b3a3e5964426910f3c4d7eaedfb44f0ddb74b839ed43b44435c"
+    }
+  ],
+  "scratch_changes": [
+    "view manifest DEV dependencies only",
+    "view lib cfg(test) source registrations",
+    "isolated scratch lock through controlled offline resolution"
+  ],
+  "product_manifest_or_lock_changes": false,
+  "fixed_commands": [
+    [
+      "clippy",
+      "-p",
+      "vessel-app-view",
+      "--lib",
+      "--tests",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "test",
+      "-p",
+      "vessel-app-view",
+      "--lib",
+      "probe"
+    ]
+  ],
+  "expected_new_tests": {
+    "narrow": 8,
+    "icu": 10
+  },
+  "check": "both overlays apply sequentially to a temporary index; no actual source/index mutation",
+  "phase2": "native runtime overlays and reachable wasm probe are still owed; these test-only graphs cannot supply installed app deltas"
+}
