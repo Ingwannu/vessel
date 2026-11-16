@@ -9,7 +9,8 @@ S2 owns sidebar and shared glyphs. This is incomplete F4, not a release handoff.
 1. Read this file, the task scratch `STATE.md`, WORKER BASES and PLAN section7.
 2. Read build-VM status and existing run results before submitting anything.
    A queued/running/done run is never resubmitted. Use the VM for all Rust work.
-3. Finish the exact receiving check below. Do not merge a node head into this
+3. Read the completed receiving checks below; do not repeat them unchanged.
+   Do not merge a node head into this
    app tree. Base14.4 was announced during quota closeout; no new merge was made.
 4. Retain the original failures and their limits. No final F4 whole gate, end
    capture matrix, final V4 package review or tracker-passed state exists.
@@ -62,10 +63,12 @@ Both red logs are retained. No lint allowance or weakened assertion was used.
 R40 is the four-native-crate all-target strict check at exact93cfde8b3, label
 `wp-commands-narrow`, out `base143-messages-clippy-r40` in task scratch.
 Run `wp-commands-narrow-20261116T034830Z-93cfde8b` passed all four native
-crates' all-target strict checks (R40). App/Link receiving execution is submitted
-once as R30 `wp-commands-narrow-20261116T035107Z-93cfde8b`, out
-`base143-app-link-tests-r30`; read its terminal result before any retry.
-It was running when this closeout entry was written. No new branch merge/control/slice during
+crates' all-target strict checks (R40). R30
+`wp-commands-narrow-20261116T035107Z-93cfde8b`, out
+`base143-app-link-tests-r30`, then passed actual App224/0/2 and Link124/0/0:
+total348/0/2 at the same93cf source. All eight canonical C5 shown-source
+regressions explicitly passed, including retained-viewer no-flush and reconnect
+fences. This closes only the receiving slice; final F4 remains incomplete. No new branch merge/control/slice during
 quota closeout; any remaining verification is explicitly unverified.
 
 ## Existing first-use export: do not duplicate
@@ -122,11 +125,19 @@ unchanged. Other root glyph stroke differences remain separate limitations.
 
 ## Next intended work after resume
 
-Read R40 and any subsequent recorded receiving execution first. Fix only exact
-remaining union errors with the owner; do not weaken tests. Then merge the
+Read completed R40/R30 and the existing export state first; do not rebuild
+unchanged evidence. No known receiving error remains in this slice. Then merge the
 current announced app line at the next natural point (14.4 was available at
 stop), preserving the main local page-Back and safety holds. Retrieve existing
 R2 results/artifact without another build. For actual first use, run the approved
 fake fleet/private-cookie Xvfb under UID1000 and inspect every original; send
 only the named Import role evidence to the coordinator. Full current F4 matrix,
 whole frozen gate and one final package review remain later completion work.
+
+
+Final quota closeout at2026-11-16 03:57 UTC: R40 and R30 are terminal green.
+No local gate-follow, fake fleet, Xvfb or app process remains; PID439748 was
+verified/stopped and PID1140789/1119622 exited naturally. Remote R2 export is
+still queued and is the only outstanding own VM run; retain it for resume.
+No new merge/run/slice follows this checkpoint. Current source is93cfde8b3;
+subsequent commits only record evidence/resume. No F4 completed/passed claim.

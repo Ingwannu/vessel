@@ -1346,3 +1346,14 @@ receiving execution R30 is submitted on the same immutable source; its result
 is still pending. No new merge is made after the quota notice, so14.4 is recorded
 for resume even though its shared book source is already announced green.
 The committed resume file is docs/plans/wp-commands-resume.md.
+
+
+Final active-slice quota closeout: R30
+wp-commands-narrow-20261116T035107Z-93cfde8b completed on exact93cfde8b3 with
+App224/0/2 plus Link124/0/0, total348/0/2. All eight canonical C5 shown-source
+regressions passed, including retained-viewer no-flush and reconnect fencing.
+Together with R40 strict0 this qualifies the current receiving correction only.
+R38/R39 remain recorded failures. No new source/branch merge follows the quota
+notice;14.4 is for resume. No local app/fleet/display or follow process remains.
+The earlier immutable Import export is still queued, so no native first-use
+capture or final whole F4/matrix/review result exists.
