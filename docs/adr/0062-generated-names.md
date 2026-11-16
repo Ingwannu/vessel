@@ -972,3 +972,24 @@ Rust's whitespace class, after the raw UTF-16 check. Paseo trims its model
 result with JavaScript's whitespace class instead. This stated difference
 keeps one canonical title constructor for typed, provisional and generated
 origins; the source/style contracts do not claim identical Unicode trimming.
+
+
+### File-view diagnostic paths
+
+[Decision Log]
+- Purpose and intent: the lenient metadata file view must keep the common
+  settings decoder's masked field paths as well as its sealed private cause.
+- Existing implementation and constraints: flattening the ordinary settings
+  type buffers its fields in serde; an invalid existing field then loses its
+  original path. The startup diagnostic regression exposes that loss.
+- Alternatives considered: repeat every ordinary settings field in a file
+  struct, normalize through another JSON parse, or weaken the common assertion.
+  Those choices duplicate the schema, parse input twice, or hide the regression.
+- Choice: a single-pass file map adapter intercepts only the metadata key and
+  uses its existing lenient value decoder. All other keys and values flow
+  directly through SetNodeSettings inside the unchanged sealed decoder.
+- Why: the canonical settings type remains the only list of ordinary fields,
+  while the tracking map observes each original value at its real field path.
+- Effects: strict wire patches and shared recovery/copy behavior are unchanged.
+  A duplicate metadata key remains an error. Tests retain root-versus-field
+  diagnostics, malformed known fields, future metadata and sealed sources.

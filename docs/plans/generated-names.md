@@ -224,6 +224,15 @@ The corrected preflight found one unnecessary qualification in that test
 fixture; it now uses its existing Settings import. Product behavior, assertions
 and deadlines remain unchanged; corrected strict and settings checks are owed.
 
+The selected composition run passed all four retained-writer cases but failed
+startup's existing masked-field-path assertion. The file adapter's flatten
+buffer erased an ordinary field's path. The correction replaces only that
+buffer with a single-pass metadata map view through the same sealed decoder;
+common decoder, writer tests and assertions stay unchanged. The checked node
+head is now merged without conflicts, retaining protocol 25, schema 21 and the
+head's migration sequence. Corrected focused checks and the final combined gate
+remain owed; the earlier strict and TypeScript passes describe the prior tree.
+
 The physical-lifetime correction reuses Sessions' existing hard-drained task
 tracker through the approved `metadata_work` token accessor. Forwarders'
 bounded grace cannot settle file work. A shared admission lease goes into the
