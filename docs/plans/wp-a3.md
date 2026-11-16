@@ -424,3 +424,20 @@ navigation authority is inherited from the base's green gate.
   the earlier timer must leave the replacement waiting, and only its own later
   timer may activate it. Existing rail resize assertions remain unchanged. This
   source will require execution with the next native checks, after row267 work.
+
+The interrupted base11 merge is completed, followed by announced base13
+(2ebeedf9). Registration conflicts retain every incoming History arm/hub and
+A3's PromptIndex registration. The complete incoming RPC table and forwardable
+fixture remain byte-exact after removing only A3's appended row/item; the own
+pending row is last after skills.import_selection. Incoming deny/withholding
+cases and both Architecture texts are retained. The generated TypeScript is
+exact head output, including inherited generator whitespace; it is not edited
+by hand and still needs canonical A3 regeneration at node integration.
+
+Base13's selected-connection and shared actor files are byte-identical to the
+announced line. Their exposure arrives from that accepted base; this package
+does not independently promote staging attributes or install G4's unlanded
+Scenario. The 55 native Rust delta files pass formatting, with native size,
+tokens and diff checks passing (719 files/13 existing size entries). Full A3
+strict/runtime, scoped delivery/destination proof, captures and final review
+remain outstanding; base13's successful gate is not borrowed as their result.
