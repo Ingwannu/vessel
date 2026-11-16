@@ -35,3 +35,12 @@ exercise duplicate/capacity/rollback and exact registry/marker/Begin correlation
 including same-id replacement, current connections and consumed admission. Fresh
 receiving checks are required. It supplies neither parent execution authority nor
 any production creation API, and is not a whole A1 completion claim.
+
+Credential entropy is prepared outside the guard. The initial duplicate check
+is only a no-mint optimization for an already reserved id, not an authority
+snapshot. The authoritative second duplicate check, current depth/count policy
+and insertion remain in reserve_prepared under one existing guard. A concurrent
+winner may cause the prepared unpublished secret to be discarded. That helper
+lets the common fence compose its parent check with the exact insertion without
+nested locking, callbacks, SQL or entropy I/O. The deterministic race test
+retains the incumbent credentials. New receiving checks are still owed.
