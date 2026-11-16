@@ -203,10 +203,21 @@ glyph_inventory! {
     Gauge => "kit/gauge.svg",
     /// A catalog package with its add action.
     PackagePlus => "kit/package-plus.svg",
+    /// Two workspace pane columns, independent of session forking.
+    Columns2 => "kit/columns-2.svg",
+    /// Two workspace pane rows, independent of session forking.
+    Rows2 => "kit/rows-2.svg",
+    /// Panel maximize corners; distinct from the window's square control.
+    PanelMaximize => "kit/panel-maximize.svg",
+    /// Panel restore's inward corners; distinct from window minimize/restore.
+    PanelMinimize => "kit/panel-minimize.svg",
+    /// A 24-grid UI close X; the window Close keeps its 10-grid chrome shape.
+    X => "kit/x.svg",
     /// Voice microphone, with the source overlay's2.5-unit stroke.
     Mic => "kit/mic.svg",
     /// Muted voice microphone, with the same source stroke.
     MicOff => "kit/mic-off.svg",
     /// Filled voice Stop; the existing outlined Stop stays unchanged.
     SquareFilled => "kit/square-filled.svg",
+
 }

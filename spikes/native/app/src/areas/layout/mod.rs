@@ -3,6 +3,10 @@ mod action_context;
 mod actions;
 mod book;
 mod draw;
+// The existing Explorer host must adopt this projection with its real renderer.
+#[cfg(test)]
+mod explorer;
+mod file_guard;
 mod header;
 mod menu;
 // The desktop coordinator removes this exact staging attribute with its real caller.
@@ -116,6 +120,9 @@ fn with_layout_at<T>(
     // publish a partial target or manufacture an empty workspace entry.
     let mut next = book.get(key).cloned().unwrap_or_default();
     let value = change(&mut next)?;
+    if let Some(previous) = book.get(key) {
+        file_guard::preserve(previous, &next)?;
+    }
     let _previous = book.insert(key.clone(), next);
     Ok(value)
 }

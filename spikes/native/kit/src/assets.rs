@@ -1,6 +1,6 @@
-//! The kit's own drawings, served to GPUI as assets: the window controls'
-//! four glyphs, as SVG paths on a 10 by 10 grid (Windows 11's shapes:
-//! a line, a square, two offset squares, a cross).
+//! The kit's drawings, served to GPUI as assets: window controls on their
+//! 10 by 10 grid and shared UI line glyphs on a 24 by 24 grid. Canonical
+//! panel vectors retain their Lucide/Feather notices in the brand docs.
 //!
 //! Embedded as text, not files: the kit needs no separate asset bundle.
 //! The inventory (the enum, its list and its paths) is declared once in
@@ -417,3 +417,6 @@ mod inventory_tests;
 
 #[cfg(test)]
 mod voice_tests;
+
+#[cfg(test)]
+mod panel_role_tests;

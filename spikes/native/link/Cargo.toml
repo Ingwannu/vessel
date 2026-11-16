@@ -48,3 +48,4 @@ tokio = { workspace = true, features = ["io-util", "test-util"] }
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 cpal.workspace = true
 sonora.workspace = true
+
