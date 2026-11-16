@@ -121,6 +121,11 @@ impl TextField {
                     .text_size(px(fonts::ui(15.0)))
                     .line_height(px(fonts::ui(21.0)))
                     .text_color(neutral.foreground)
+                    // The shared listener already submitted or inserted its line.
+                    // Stop native fallback from mutating the same retained draft again.
+                    .on_action(|_: &gpui_base::input::Enter, _window, cx| {
+                        cx.stop_propagation();
+                    })
                     .child(Textarea::new(state))
                     .into_any_element()
             }

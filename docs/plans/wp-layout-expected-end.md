@@ -261,3 +261,37 @@ same-node/ABA reattach, transport retirement and a failed replacement retaining
 dirty/IME input. Physical retirement must win before or after queue acceptance.
 Timeout/refusal cannot extend the budget, clear input, resend the stop or close
 a successor. A normal-end marker alone is not this actual producer/owner proof.
+
+
+## Owner clarification: acknowledged fact versus local Window authority
+
+W21 proposed the distinction after reading the reviewed pure stop kernel; W12
+explicitly agreed it before owner adapter code. This is a contract clarification,
+not an additional expectation, ticket allocator, ledger or live promotion.
+
+An authoritative typed ACK validated under the original Weak delivery guard and
+context remains an acknowledged historical fact. A later stale, missing or
+refused originating Window, expired original deadline or full physical/follow
+retirement revokes local Window authority; it does not retroactively relabel
+that already observed remote ACK as an unknown remote outcome.
+
+The SAME LifecycleResources must retain a DISTINCT acknowledged-but-uncommitted
+owner phase and protected input. Its original StopWindowReceipt, Weak guard,
+ConnectionContext, binding, Window/key/claim and immutable ClosePlan stay tied
+to that work. Revoke the canonical expectation exactly once. Invalidation also
+notifies this owner for the exact original binding when the retired-operation
+list is empty because the network ticket was already consumed. No successor
+input/tab may be cleared, no budget extended and no operation replayed.
+
+This phase never becomes Ready merely because the reply was acknowledged or
+because no wire ticket remains. Only explicit scoped reconciliation/dismissal
+under the reviewed owner/UI guards may dispose the retained local state. It
+must preserve the remote-acknowledged fact separately from attempted-but-unknown
+wire work. Actual framed owner/Window tests must distinguish these outcomes
+and retire between every End/ACK/Window boundary in both orderings. The existing
+pure Residents kernel needs no policy change for this owner distinction.
+
+W12 confirms this exact clarification and W21's ownership on 2026-11-16. V1's
+bounded contract record is closed through the selected docs-only leaf
+`2a725a1c4f99b9abe06d366f3bfbeeddc75b2c55`; kernel behavior is unchanged. This
+signoff supplies no live adapter or framed owner/Window runtime approval.

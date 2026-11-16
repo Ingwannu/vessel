@@ -68,13 +68,15 @@ fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
     };
     let mut layout = Layout::default();
     let (claim_a, claim_b) = (claim(&mut layout, &key), claim(&mut layout, &key));
-    let mut build = |_: &SessionContext| SessionResources {
-        session: SessionView::new(window, cx),
-        conversation: ConversationArea::with_presentation(
-            ConversationDisplay::Full,
-            ReasoningExpansion::Expanded,
-            cx,
-        ),
+    let mut build = |_: &SessionContext| {
+        SessionResources::new(
+            SessionView::new(window, cx),
+            ConversationArea::with_presentation(
+                ConversationDisplay::Full,
+                ReasoningExpansion::Expanded,
+                cx,
+            ),
+        )
     };
     let a = residents
         .claim_session(

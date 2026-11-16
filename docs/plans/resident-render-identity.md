@@ -24,5 +24,13 @@
 This leaf changes no allocator, equality, wire/serde contract, persistence or
 table. The two deterministic pure cases cover all rendered components, separate
 registry/node/session/epoch keys and the maximum-width epoch. They are authored
-but not executed until the receiving View checks. Actual GPUI structural pacing,
+and pass explicitly in the receiving Core View run recorded below. Actual GPUI structural pacing,
 simultaneous panes, stale callbacks and snapshot identity remain consumer proof.
+
+Exact receiving source `31bc64fea1a17c685a90bbe47493e610bef265fe` completed
+`wp-layout-core-union-20261116T020007Z-31bc64fe` strict View/Kit/App all-targets0
+and `wp-layout-core-union-20261116T021258Z-31bc64fe` runtime1540/0/2 in total,
+including both explicit identity cases in View1002/0/0. Actual View compilation
+is present. Both owned Rust files equal the minimal producer; this is scoped
+execution inside that receiving tree, not a standalone-leaf or new-commit run.
+No admission, render/pacing consumer, transport or effects proof is inferred.
