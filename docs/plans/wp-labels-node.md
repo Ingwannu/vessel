@@ -267,3 +267,15 @@ ids and optional non-null registry label projection; no declaration was hand
 edited. A subsequent whole gate must confirm zero generator diff. Native
 workspace row/header entry remains staged: both owners confirm no checked
 runtime context/active/assignment projection is available yet.
+
+
+The first frozen whole run on a3e stopped at workspace Clippy: the CLI command
+Diagnostics exhaustive ErrorDetail match did not include the new WorkspaceLabel
+variant. Format, size and boundaries had passed; later tests/web/forge did not
+run, so this is not whole acceptance. Added only that explicit variant to its
+existing unrelated-detail fallback. A regression supplies every label reason
+under Unavailable and Conflict and requires the unchanged diagnostic category
+and private peer-text omission. No labels are interpreted as diagnostic Busy or
+Stopping, and no unknown catch-all or allowance was added. Stay on the same
+announced base for the corrected package; do not hide this owned error behind a
+new base or the unrelated routing intermittent.
