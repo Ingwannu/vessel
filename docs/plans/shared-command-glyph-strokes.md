@@ -39,3 +39,11 @@ count of each shape; CommandPlus inks more than the shared Plus; ink at the
 16-point row size over fractional scales) and
 `areas::palette::rows::stroke_tests` (New and Settings rows use the command
 roles; other rows keep theirs).
+
+Results (2026-11-16, build VM; nothing compiled locally): whole kit suite unfiltered
+command-strokes-kitall-20261116T090353Z-032880b0 312/0 (the three command role tests);
+app palette tests command-strokes-narrow-20261116T090354Z-032880b0 1/0 (rows stroke
+test); strict command-strokes-20261116T085846Z-a51a41fb all 0 (032880b0 changes a test
+count only). The 14.16 app cannot be exported against the approved protocol-25 shared
+fleet, so the captures came from a capture-only cherry-pick of these three commits onto
+14.14 (scratch/m12-command-strokes-capture, never for adoption).
