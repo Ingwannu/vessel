@@ -81,3 +81,10 @@ Results (2026-11-16, build VM):
 - The lightbox consumer on the receiving tree (W6's input packet on 14.2 plus this
   leaf) passed its own strict, its lightbox tests 5/0 and an app export; its
   captures went to the coordinator. No whole native gate ran for this leaf.
+
+Second round (app review RETURN P3 and the coordinator's style-order ruling):
+797524284 + format 253623c4f. Kit tests viewport-chrome-narrow-20261116T070320Z-79752428:
+32 passed, 0 failed (new: the responds truth table and the painted scene staying
+the same under hover and press on a disabled action). Strict
+viewport-chrome-20261116T070453Z-253623c4: fmt, quality, whole native clippy 0
+(its predecessor 070301Z stopped at native-fmt on one test layout).
