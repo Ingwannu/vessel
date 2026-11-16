@@ -59,3 +59,15 @@ selectable-row-20261116T084823Z-295b1b58 (fonts, fmt, quality, whole native clip
 tests selectable-row-narrow-20261116T083525Z-f7ea9e45 (`-p vessel-app-kit --lib --
 settings:: plain_text dialog::`) 26/0. In the pairing offer's export the drag selects a
 machine id at 1280 and an endpoint on the 390 sheet.
+
+Receiving RETURN (lead, 2026-11-16): the whole kit suite failed
+`popover::tests::pending_openings_refuse_every_rendered_dismissal_before_focus_ack`.
+Cause: GPUI registers an element's focus-on-press listener before its own mouse-down
+listeners, so the old `stop_propagation` also kept the card's `track_focus` from taking
+focus on a press; with `occlude()` alone a press on the card (the compact popover's close
+glyph while a dismissal was pending) moved focus to the card. Fix 7fc6efc12: the card also
+marks a left press default-prevented, which GPUI's focus transfer honours and the selection
+layer does not read, so focus stays where it was and selection still starts. New test
+`dialog::selection_tests::a_press_on_the_card_keeps_a_focused_field_focused`. Whole kit
+suite (no filter) selectable-row-kitall-20261116T090048Z-7fc6efc1: 311/0; strict
+selectable-row-20261116T090047Z-7fc6efc1 all 0.
