@@ -764,3 +764,34 @@ assembly must check its own union. No independent portable-tree gate or V1
 approval was claimed. Preserve newer captured-submit and SubmitPress work
 around the canonical one callback dispatch; never restore a whole old field
 root. Current F5 does not adopt those later peer branches.
+
+### Capture binding correction (2026-11-16 02:26 UTC)
+
+After the first 96-frame matrix and three partial editing frames, the tools
+owner tightened the shared-fleet verifier: current protocol 25 is required
+for this app's capture, while the old protocol-23 fleet remains a compatibility
+fixture only. Those originals and their original binary/manifest are retained
+under `f5/captures`, separately excluded from the final package. No app source
+changed and no old export metadata is rewritten or verifier bypassed.
+
+The coordinator explicitly authorized one bounded `native-build` plus app
+export on the same exact `235309ac4`, with `--shared-root-fleet base12`.
+Run `themes-20261116T022602Z-235309ac`, out `f5/capture-p25-235309ac`, is queued.
+The existing six-step whole result 1652/0/2 stands; this is a new binary/root
+binding, not a whole-gate rerun. Final captures will use a distinct
+`f5/captures-p25` folder and fresh `f5/fleet-p25` preferences.
+
+The declared base12 root export (`b5b46357`, protocol25/schema21, ten binaries)
+was verified using the supported exporter, and the unchanged fleet setup
+completed with two real private nodes and 18 fake-agent sessions. Their process
+identities, descendants and path ownership are retained in `fleet-p25-*.json`.
+They run as UID/GID1000, with directories0700 and book/token files0600. The old
+fleet was stopped using identity-checked pidfds: two nodes stopped, 23 recorded
+children already gone after node termination, zero identity refusals.
+
+One partial input-driver check also assumed that clicking the already-focused
+numeric field would re-run its focus select-all callback. The control's contract
+is selection on focus gained; the driver now moves through another actual
+field before testing focus selection. Its earlier partial frames are excluded,
+not a product regression or a reason to change callbacks. Saved-file assertions
+and the original engine/GPUI regressions remain intact.
