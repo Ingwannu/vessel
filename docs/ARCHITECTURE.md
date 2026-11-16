@@ -1877,3 +1877,5 @@ ordering is preserved without canceled unsent registrations. Public client
 APIs and frame/protocol shapes stay unchanged. Already admitted transport
 bytes and remote side effects remain outside retraction; post-admission
 Cancel is still best-effort. This adds no crate dependency or voice activation.
+
+The optional composer command-kind values live in vessel-proto::composer_commands. AgentCommand gains an optional classification; the existing event and reply projection removes it while the feature has no assigned protocol. This carrier adds no RPC, method row, runtime/driver behavior or crate edge. Existing constructors supply no classification; the full discovery producer and native intent/receipt path remain separate. See docs/plans/composer-kind-values-carrier.md.

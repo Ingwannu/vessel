@@ -19,6 +19,7 @@ mod board;
 mod book_route;
 pub mod book_values;
 pub mod browser;
+pub mod composer_commands;
 pub mod conversation;
 mod device;
 pub mod diagnostics;
