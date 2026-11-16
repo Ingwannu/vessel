@@ -23,7 +23,7 @@ async fn run(body: impl AsyncFnOnce(&RootGate, &tokio::task::JoinHandle<()>)) {
     .await;
     stop.cancel();
     drop(gate);
-    let (joined, on_time) = settle(owner).await;
+    let (joined, on_time) = settle("root owner drain", owner).await;
     match outcome {
         Ok(result) => result.unwrap(),
         Err(panic) => std::panic::resume_unwind(panic),

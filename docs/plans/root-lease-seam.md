@@ -3,7 +3,11 @@
 Status: V3 returned exact bc9cacc6..5cc56ccf for project-subdirectory
 admission and async-fixture failure cleanup. Its exact all-target strict check,
 quality checks and eight tests passed; those results do not verify this revision.
-The correction is producer-only and awaits new ordinary checks and V3 acceptance.
+The first correction passed all-target strict but its tests failed before seven
+fixture bodies: a new aggregate setup clock expired. The revision separates
+store and workspace initialization into retained named phases, keeping each bound
+and the total case budget unchanged. It records a late phase and actual completion
+rather than hiding the cause. Current source awaits ordinary checks and V3.
 No consumer-ready hash, process quiescence or restore capability is claimed.
 The full checkpoint branch's results never count as evidence for this leaf.
 

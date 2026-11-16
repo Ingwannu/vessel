@@ -29,7 +29,7 @@ struct Fixture {
 }
 
 impl Fixture {
-    async fn new() -> Self {
+    fn prepare() -> (tempfile::TempDir, Vec<(String, OsString)>, DataDir) {
         let temp = tempfile::tempdir().unwrap();
         let config = temp.path().join("gitconfig");
         std::fs::write(
@@ -49,6 +49,11 @@ impl Fixture {
         std::fs::create_dir(temp.path().join("home")).unwrap();
         let data = DataDir::new(temp.path().join("home").join(".vessel"));
         data.prepare().unwrap();
+        (temp, env, data)
+    }
+
+    async fn new() -> Self {
+        let (temp, env, data) = Self::prepare();
         let store = Store::open(&data, StoreConfig::default())
             .await
             .unwrap()

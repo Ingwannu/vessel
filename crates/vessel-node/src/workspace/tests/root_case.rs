@@ -1,9 +1,11 @@
 //! Assertion deadlines never substitute for actual fixture-owner settlement.
-use super::Fixture;
+use super::{Fixture, start};
 use crate::workspace::WorkspaceError;
 use futures_util::FutureExt as _;
 use std::{future::Future, panic::AssertUnwindSafe, sync::mpsc, time::Duration};
 use tokio::task::JoinHandle;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use vessel_store::{Store, StoreConfig};
 
 const ROOT_CASE_TIMEOUT: Duration = Duration::from_secs(30);
 const ROOT_PHASE_TIMEOUT: Duration = Duration::from_secs(5);
@@ -16,11 +18,20 @@ pub(in crate::workspace) async fn phase<T>(name: &str, future: impl Future<Outpu
 
 /// Keep the very same cleanup future alive after its diagnostic deadline. Kernel
 /// I/O cannot be aborted safely; a late receipt is still a test failure.
-pub(in crate::workspace) async fn settle<T>(future: impl Future<Output = T>) -> (T, bool) {
+pub(in crate::workspace) async fn settle<T>(
+    name: &str,
+    future: impl Future<Output = T>,
+) -> (T, bool) {
+    let began = tokio::time::Instant::now();
     tokio::pin!(future);
     match tokio::time::timeout(ROOT_PHASE_TIMEOUT, &mut future).await {
         Ok(value) => (value, true),
-        Err(_elapsed) => (future.await, false),
+        Err(_elapsed) => {
+            tracing::error!(phase = name, limit = ?ROOT_PHASE_TIMEOUT, "root fixture phase deadline exceeded; retaining actual owner");
+            let value = future.await;
+            tracing::error!(phase = name, elapsed = ?began.elapsed(), "root fixture late owner actually settled");
+            (value, false)
+        }
     }
 }
 
@@ -63,14 +74,33 @@ pub(super) async fn run(body: impl AsyncFnOnce(&Fixture, &mut Held)) {
     // Setup is retained outside the timed/caught assertions as well. If it is
     // late, finish constructing it so the real store/tracker can be closed.
     let began = tokio::time::Instant::now();
-    let (fixture, setup_on_time) = settle(Fixture::new()).await;
+    let (temp, env, data) = Fixture::prepare();
+    let tasks = TaskTracker::new();
+    let stop = CancellationToken::new();
+    let (opened, store_on_time) =
+        settle("store setup", Store::open(&data, StoreConfig::default())).await;
+    let store = opened.unwrap().store;
+    let (workspaces, workspace_on_time) = settle(
+        "workspace setup",
+        start(&temp, &data, &env, &store, &tasks, &stop),
+    )
+    .await;
+    let fixture = Fixture {
+        temp,
+        env,
+        data,
+        store,
+        tasks,
+        stop,
+        workspaces,
+    };
     let mut held = Held::default();
     let outcome = AssertUnwindSafe(vessel_testkit::within(
         ROOT_CASE_TIMEOUT.saturating_sub(began.elapsed()),
         async {
             assert!(
-                setup_on_time,
-                "root fixture setup exceeded {ROOT_PHASE_TIMEOUT:?}"
+                store_on_time && workspace_on_time,
+                "root fixture phase exceeded {ROOT_PHASE_TIMEOUT:?}: store={store_on_time}, workspace={workspace_on_time}"
             );
             body(&fixture, &mut held).await;
         },
@@ -82,7 +112,7 @@ pub(super) async fn run(body: impl AsyncFnOnce(&Fixture, &mut Held)) {
     fixture.stop.cancel();
     let mut callers_settled = true;
     for caller in held.callers.into_iter().flatten() {
-        let (joined, on_time) = settle(caller).await;
+        let (joined, on_time) = settle("caller close", caller).await;
         callers_settled &= on_time
             && match joined {
                 Ok(result) => result.is_ok(),
@@ -90,8 +120,8 @@ pub(super) async fn run(body: impl AsyncFnOnce(&Fixture, &mut Held)) {
             };
     }
     let _closed = fixture.tasks.close();
-    let ((), drained) = settle(fixture.tasks.wait()).await;
-    let ((), store_closed) = settle(fixture.store.close()).await;
+    let ((), drained) = settle("tracker drain", fixture.tasks.wait()).await;
+    let ((), store_closed) = settle("store close", fixture.store.close()).await;
     match outcome {
         Ok(result) => result.unwrap(),
         Err(panic) => std::panic::resume_unwind(panic),
