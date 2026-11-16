@@ -1,5 +1,6 @@
 //! Physical settlement precedes runtime/Store close; drain seals effects at once.
 
+use crate::settings::writer_tests::phase;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -10,28 +11,51 @@ use vessel_proto::StopWhen;
 use super::writer_tests::{RecoveryChoice, WRITE_TEST_BUDGET, recovery, runtime_with_stop};
 use super::*;
 
+struct StopOnDrop(crate::lifecycle::Lifecycle);
+
+impl Drop for StopOnDrop {
+    fn drop(&mut self) {
+        // A failed observer still asks the real owner to drain. This is a stop
+        // request, never a synthetic completion or cancellation of physical I/O.
+        self.0.stop(StopWhen::Now);
+    }
+}
+
 #[tokio::test]
 async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let runtime_stop = CancellationToken::new();
         let settings = Arc::new(
-            Settings::open(
-                DataDir::new(root.path()),
-                runtime_with_stop(root.path(), runtime_stop.clone()),
-                ParkAfter::DEFAULT,
-                false,
+            phase(
+                "open real settings and Store",
+                Settings::open(
+                    DataDir::new(root.path()),
+                    runtime_with_stop(root.path(), runtime_stop.clone()),
+                    ParkAfter::DEFAULT,
+                    false,
+                ),
             )
             .await,
         );
-        let _saved = settings.change(recovery(RecoveryChoice::On)).await.unwrap();
+        let _saved = phase(
+            "save On policy",
+            settings.change(recovery(RecoveryChoice::On)),
+        )
+        .await
+        .unwrap();
         let store = settings.state.recovery.store();
         let (entered, release) = settings.pause_cleanup();
         let first = Arc::clone(&settings);
         let caller = tokio::spawn(async move { first.change(recovery(RecoveryChoice::Off)).await });
-        entered.await.unwrap();
+        phase("enter real blocking writer", entered).await.unwrap();
         caller.abort();
-        assert!(caller.await.unwrap_err().is_cancelled());
+        assert!(
+            phase("cancelled caller joins", caller)
+                .await
+                .unwrap_err()
+                .is_cancelled()
+        );
         let saved_off = settings
             .state
             .data_dir
@@ -56,17 +80,23 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         let mut stop = Box::pin(teardown.run());
         assert!(matches!(futures_util::poll!(&mut stop), Poll::Pending));
         assert!(!runtime_stop.is_cancelled());
-        assert!(store.sessions().await.is_ok());
+        assert!(phase("Store remains live", store.sessions()).await.is_ok());
         assert!(matches!(
             settings.admission.submit(recovery(RecoveryChoice::On)),
             Err(SettingsError::Stopping)
         ));
         release.send(()).unwrap();
-        assert!(queued_on.await.unwrap().restart_recovery.enabled);
-        stop.await;
+        assert!(
+            phase("queued On settlement", queued_on)
+                .await
+                .unwrap()
+                .restart_recovery
+                .enabled
+        );
+        phase("teardown physical drain", stop).await;
         assert!(runtime_stop.is_cancelled());
         assert!(matches!(
-            store.sessions().await,
+            phase("Store remains live", store.sessions()).await,
             Err(vessel_store::StoreError::Closed)
         ));
         assert!(matches!(
@@ -80,11 +110,17 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
 
 #[tokio::test]
 async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
-            let settings = writer_tests::settings(root.path()).await;
-            let _saved = settings.change(recovery(RecoveryChoice::On)).await.unwrap();
+            let settings =
+                writer_tests::phase("open real settings owner", settings(root.path())).await;
+            let _saved = phase(
+                "save On policy",
+                settings.change(recovery(RecoveryChoice::On)),
+            )
+            .await
+            .unwrap();
             let stop = CancellationToken::new();
             let info = vessel_proto::NodeInfo {
                 id: vessel_proto::NodeId::random(),
@@ -115,7 +151,7 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
                 settings.admission.submit(recovery(RecoveryChoice::On)),
                 Err(SettingsError::Stopping)
             ));
-            settings.shutdown().await;
+            phase("settings physical drain", settings.shutdown()).await;
         }
     })
     .await
@@ -125,7 +161,7 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
 #[cfg(unix)]
 #[tokio::test]
 async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let data = DataDir::new(root.path().join("data"));
         let home = root.path().join("home");
@@ -144,7 +180,9 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
             crate::Config::new(data.clone(), vessel_harness::HarnessEnv::new(home.clone()));
         config.harness_lookup = vessel_harness::Lookup::new([bin]);
         config.bind = Some("127.0.0.1:0".parse().unwrap());
-        let node = crate::Node::start(config).await.unwrap();
+        let node = Box::pin(phase("node starts", crate::Node::start(config)))
+            .await
+            .unwrap();
         let url = format!("ws://{}/rpc", node.address().unwrap())
             .parse()
             .unwrap();
@@ -154,23 +192,29 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
             .expose()
             .parse()
             .unwrap();
-        let client = vessel_client::NodeClient::connect(
-            &url,
-            &bearer,
-            vessel_proto::ClientInfo {
-                name: "admission-fixture".to_owned(),
-                version: "0".to_owned(),
-            },
-        )
+        let client = Box::pin(phase(
+            "authenticated client connects",
+            vessel_client::NodeClient::connect(
+                &url,
+                &bearer,
+                vessel_proto::ClientInfo {
+                    name: "admission-fixture".to_owned(),
+                    version: "0".to_owned(),
+                },
+            ),
+        ))
         .await
         .unwrap();
         let service = Arc::clone(&node.secure.service);
+        let _stop_on_failure = StopOnDrop(service.0.lifecycle.clone());
         let settings = service.0.settings_for_test();
         let (write_entered, write_release) = settings.pause_write();
         let first = Arc::clone(&settings);
         let writer =
             tokio::spawn(async move { first.change(writer_tests::patch(ParkAfter::Never)).await });
-        write_entered.await.unwrap();
+        phase("enter real blocking writer", write_entered)
+            .await
+            .unwrap();
         let (place_entered, place_release) = service.0.place_gate.install();
         let create = tokio::spawn(async move {
             client
@@ -187,19 +231,24 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
                 })
                 .await
         });
-        place_entered.await.unwrap();
+        phase("create reaches post-precheck place", place_entered)
+            .await
+            .unwrap();
         service.0.lifecycle.stop(StopWhen::Now);
         let stopping = tokio::spawn(node.stop());
         assert!(settings.state.saved.try_lock().is_err());
         place_release.send(()).unwrap();
         assert!(
-            create.await.unwrap().is_err(),
+            phase("held create settles", create).await.unwrap().is_err(),
             "the request passed its lifecycle check but cannot start after stop"
         );
         assert!(settings.state.runtime.list().is_empty());
         write_release.send(()).unwrap();
-        let _saved = writer.await.unwrap().unwrap();
-        stopping.await.unwrap().unwrap();
+        let _saved = phase("real writer settles", writer).await.unwrap().unwrap();
+        phase("node physically stops", stopping)
+            .await
+            .unwrap()
+            .unwrap();
         assert!(
             !root.path().join("home/fake-tool.log").exists(),
             "the actual fake was never launched"

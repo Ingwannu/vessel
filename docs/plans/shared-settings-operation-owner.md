@@ -318,3 +318,16 @@ assert typed refusal, no registered session and no fake invocation. Standalone
 and configured observer wake cases use the original cancellation sources. These
 are authored, not executed, and do not qualify the later recovery/version-helper
 consumer. No Recovery, Journal or engine start is registered by this seam.
+
+### New-fixture deadline correction
+
+Every newly owned async case uses the existing testkit's preparation-aware
+`within` safety net. The established settings and launch case budgets remain
+unchanged; named phase waits reuse their respective case budget for held
+barriers, replies, joins and physical drains. The previously unbounded real
+Store hook and SQL projection cases gain finite safety nets. Existing accepted
+writer-regression bodies and their original clocks/assertions remain intact.
+A deadline is a failing observation, never a physical completion or capacity
+release. Owned workers keep their original guards/accounting; an abandoned
+lookup gate refuses a late child, and fixture unwinding cancels the original
+launch owners. Successful paths still join the actual writer/runtime/Store.

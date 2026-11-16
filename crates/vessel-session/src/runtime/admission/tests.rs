@@ -19,6 +19,12 @@ use crate::{
 
 const ADMISSION_CASE_BUDGET: Duration = Duration::from_secs(30);
 
+async fn phase<F: std::future::Future>(name: &str, future: F) -> F::Output {
+    tokio::time::timeout(ADMISSION_CASE_BUDGET, future)
+        .await
+        .unwrap_or_else(|error| panic!("{name}: {error}"))
+}
+
 #[derive(Debug, Default)]
 pub(in crate::runtime) struct LookupGateSlot(Mutex<Option<LookupGate>>);
 
@@ -42,9 +48,15 @@ pub(in crate::runtime) struct LookupGate {
 }
 
 impl LookupGate {
-    pub(in crate::runtime) fn pause(self) {
-        self.entered.send(()).unwrap();
-        self.released.blocking_recv().unwrap();
+    pub(in crate::runtime) fn pause(self) -> Result<(), SessionError> {
+        // Abandoning a failed fixture releases the actual blocking reader while
+        // refusing a late child; observer loss never becomes successful lookup.
+        self.entered
+            .send(())
+            .map_err(|()| SessionError::ShuttingDown)?;
+        self.released
+            .blocking_recv()
+            .map_err(|_closed| SessionError::ShuttingDown)
     }
 }
 
@@ -62,6 +74,15 @@ struct Fixture {
     profile: Profile,
     marker: PathBuf,
     cwd: PathBuf,
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        // Failure still closes the original owners. Their existing child Drop
+        // and task ownership remain in force; no PID signal or detached reaper.
+        self.node_stop.cancel();
+        self.actor_stop.cancel();
+    }
 }
 
 impl Fixture {
@@ -146,22 +167,25 @@ async fn held_lookup(mode: Mode) {
         let runtime = Arc::clone(&f.runtime);
         let spec = f.spec(mode);
         let options = f.options();
-        let create = tokio::spawn(async move { runtime.create_with(spec, options).await });
-        entered.await.unwrap();
+        let mut create = tokio::spawn(async move { runtime.create_with(spec, options).await });
+        phase("actual lookup reached", entered).await.unwrap();
         // Actor shutdown is intentionally deferred, as it is during Settings drain.
         f.node_stop.cancel();
         assert!(!f.actor_stop.is_cancelled());
         release.send(()).unwrap();
-        let result = create.await.unwrap();
+        let result = phase("held create joins", &mut create).await.unwrap();
         if let Ok(mut created) = result {
             // Settle a regression's owned child before reporting it, so a failing
             // test cannot leave a process behind its assertion.
-            while created.durable.recv().await.is_some() {}
-            f.runtime.shutdown().await;
+            phase("owned fake durable stream ends", async {
+                while created.durable.recv().await.is_some() {}
+            })
+            .await;
+            phase("owned runtime shutdown", f.runtime.shutdown()).await;
             panic!("a lookup admitted before stop started a process after stop");
         }
         assert!(matches!(result, Err(SessionError::ShuttingDown)));
-        f.runtime.shutdown().await;
+        phase("owned runtime shutdown", f.runtime.shutdown()).await;
         assert!(f.runtime.list().is_empty());
         assert!(
             !f.marker.exists(),
@@ -187,18 +211,22 @@ async fn the_same_fake_and_profile_record_actual_launches_while_admission_is_ope
     vessel_testkit::within(ADMISSION_CASE_BUDGET, async {
         for mode in [Mode::Structured, Mode::Terminal] {
             let f = Fixture::new();
-            let mut created = f
-                .runtime
-                .create_with(f.spec(mode), f.options())
-                .await
-                .unwrap();
-            while created.durable.recv().await.is_some() {}
+            let mut created = phase(
+                "open admission creates actual fake",
+                f.runtime.create_with(f.spec(mode), f.options()),
+            )
+            .await
+            .unwrap();
+            phase("owned fake durable stream ends", async {
+                while created.durable.recv().await.is_some() {}
+            })
+            .await;
             assert!(
                 f.marker.exists(),
                 "positive control observes an actual child invocation"
             );
             assert!(!std::fs::read(&f.marker).unwrap().is_empty());
-            f.runtime.shutdown().await;
+            phase("owned runtime shutdown", f.runtime.shutdown()).await;
         }
     })
     .await
@@ -207,7 +235,7 @@ async fn the_same_fake_and_profile_record_actual_launches_while_admission_is_ope
 
 #[tokio::test]
 async fn observers_wake_on_either_original_token_including_already_closed_sources() {
-    tokio::time::timeout(ADMISSION_CASE_BUDGET, async {
+    vessel_testkit::within(ADMISSION_CASE_BUDGET, async {
         let runtime = CancellationToken::new();
         let node = CancellationToken::new();
         let admission = LaunchAdmission::new(runtime.clone(), Some(node.clone()));
@@ -219,15 +247,15 @@ async fn observers_wake_on_either_original_token_including_already_closed_source
         })
         .await;
         node.cancel();
-        wait.await;
+        phase("node-stop observer wakes", wait).await;
         assert!(!runtime.is_cancelled());
         assert!(matches!(admission.check(), Err(SessionError::ShuttingDown)));
-        admission.cancelled().await;
+        phase("already closed node-stop observer", admission.cancelled()).await;
         let standalone_stop = CancellationToken::new();
         let standalone = LaunchAdmission::new(standalone_stop.clone(), None);
         assert!(standalone.check().is_ok());
         standalone_stop.cancel();
-        standalone.cancelled().await;
+        phase("standalone runtime observer", standalone.cancelled()).await;
         assert!(matches!(
             standalone.check(),
             Err(SessionError::ShuttingDown)

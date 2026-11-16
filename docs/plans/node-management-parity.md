@@ -6,6 +6,14 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Review returned the new fixture safety nets: prepare fakes before starting
+  case clocks, name phase waits and bound real Store cases. These source fixes
+  retain the established budgets/assertions and physical task ownership. The
+  current immutable narrow pipeline is preserved as predecessor evidence;
+  corrected-source execution remains owed. LaunchAdmission is being separated
+  as a minimal prerequisite, with no settings/SQL or recovery-engine consumer.
+
+
 - The next strict check reached the new test bodies and reported test-only
   unused results, concrete-default spelling and oversized future values. Bind
   setup results and box the existing fixture futures without changing their

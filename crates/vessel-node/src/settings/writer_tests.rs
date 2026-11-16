@@ -10,6 +10,13 @@ use super::*;
 
 pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
 
+/// Name the physical phase without inventing a longer budget than its case.
+pub(super) async fn phase<F: std::future::Future>(name: &str, future: F) -> F::Output {
+    tokio::time::timeout(WRITE_TEST_BUDGET, future)
+        .await
+        .unwrap_or_else(|error| panic!("{name}: {error}"))
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct GateSlot(StdMutex<Option<Gate>>);
 
@@ -190,15 +197,20 @@ async fn shutdown_joins_cancelled_writers_and_refuses_late_mutations() {
 
 #[tokio::test]
 async fn a_noop_keeps_original_file_bytes_and_future_fields_in_place() {
-    let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    let result = vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let path = DataDir::new(root.path()).settings_path();
         let bytes = br#"{ "park_after" : {"kind":"never"}, "future" : {"keep":"canary"} }"#;
         std::fs::write(&path, bytes).unwrap();
-        let settings = settings(root.path()).await;
-        let before = settings.current().await;
-        let after = settings.change(patch(ParkAfter::Never)).await.unwrap();
-        settings.shutdown().await;
+        let settings = phase("open settings owner", settings(root.path())).await;
+        let before = phase("read settings", settings.current()).await;
+        let after = phase(
+            "unchanged settings operation",
+            settings.change(patch(ParkAfter::Never)),
+        )
+        .await
+        .unwrap();
+        phase("settings drain", settings.shutdown()).await;
         assert_eq!(after, before);
         assert_eq!(
             settings.state.runtime.park_after(),

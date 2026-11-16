@@ -125,7 +125,7 @@ impl SessionRuntime {
             let command = launch_for(driver, &lookup, &env, &spec, &profile, proxy.as_ref())?;
             #[cfg(test)]
             if let Some(gate) = gate {
-                gate.pause();
+                gate.pause()?;
             }
             // ACP needs an explicit directory; the launch defaults it to
             // the home directory, and the node's own is the last resort.

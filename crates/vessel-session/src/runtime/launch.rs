@@ -314,7 +314,7 @@ impl SessionRuntime {
             )?;
             #[cfg(test)]
             if let Some(gate) = gate {
-                gate.pause();
+                gate.pause()?;
             }
             admission.check()?;
             if !launch.unattached.is_empty() {

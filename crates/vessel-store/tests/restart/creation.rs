@@ -3,6 +3,7 @@ use super::*;
 
 #[tokio::test]
 async fn failed_eligibility_insert_rolls_back_the_session_and_the_same_id_can_be_created() {
+    case(async {
     let (_temp, dir) = data_dir();
     let store = fixtures::open(&dir, StoreConfig::default()).await;
     let session = info();
@@ -27,4 +28,5 @@ async fn failed_eligibility_insert_rolls_back_the_session_and_the_same_id_can_be
         session.id
     );
     store.close().await;
+    }).await;
 }

@@ -3,25 +3,40 @@
 use super::recovery_apply::RecoveryApplyError;
 use super::writer_tests::{RecoveryChoice, WRITE_TEST_BUDGET, patch, recovery, settings};
 use super::*;
+use crate::settings::writer_tests::phase;
 use vessel_proto::restart::SetRestartRecovery;
 use vessel_store::StoreError;
 
 #[tokio::test]
 async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_retry() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path()).await;
-        let _saved = settings.change(recovery(RecoveryChoice::On)).await.unwrap();
+        let settings = phase("open real settings owner", settings(root.path())).await;
+        let _saved = phase(
+            "save On policy",
+            settings.change(recovery(RecoveryChoice::On)),
+        )
+        .await
+        .unwrap();
         let path = settings.state.data_dir.settings_path();
         let original = std::fs::read(&path).unwrap();
         let kept = root.path().join("previous-settings");
         std::fs::rename(&path, &kept).unwrap();
         std::fs::create_dir(&path).unwrap();
         assert!(matches!(
-            settings.change(recovery(RecoveryChoice::Off)).await,
+            phase(
+                "save Off policy",
+                settings.change(recovery(RecoveryChoice::Off))
+            )
+            .await,
             Err(SettingsError::Write(_))
         ));
-        assert!(settings.current().await.restart_recovery.enabled);
+        assert!(
+            phase("read published settings", settings.current())
+                .await
+                .restart_recovery
+                .enabled
+        );
         assert_eq!(std::fs::read(&kept).unwrap(), original);
         std::fs::remove_dir(&path).unwrap();
         std::fs::rename(&kept, &path).unwrap();
@@ -41,7 +56,7 @@ async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_r
             .unwrap()
             .public_settings();
         assert!(!saved.restart_recovery.unwrap().effective().enabled);
-        settings.shutdown().await;
+        phase("settings physical drain", settings.shutdown()).await;
     })
     .await
     .unwrap();
@@ -49,18 +64,36 @@ async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_r
 
 #[tokio::test]
 async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replacement() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path()).await;
-        let _saved = settings.change(recovery(RecoveryChoice::On)).await.unwrap();
-        settings.state.recovery.store().close().await;
+        let settings = phase("open real settings owner", settings(root.path())).await;
+        let _saved = phase(
+            "save On policy",
+            settings.change(recovery(RecoveryChoice::On)),
+        )
+        .await
+        .unwrap();
+        phase(
+            "close actual policy Store",
+            settings.state.recovery.store().close(),
+        )
+        .await;
         assert!(matches!(
-            settings.change(recovery(RecoveryChoice::Off)).await,
+            phase(
+                "save Off policy",
+                settings.change(recovery(RecoveryChoice::Off))
+            )
+            .await,
             Err(SettingsError::Recovery(RecoveryApplyError::Cleanup(
                 StoreError::Closed
             )))
         ));
-        assert!(!settings.current().await.restart_recovery.enabled);
+        assert!(
+            !phase("read published settings", settings.current())
+                .await
+                .restart_recovery
+                .enabled
+        );
         let path = settings.state.data_dir.settings_path();
         let off = std::fs::read(&path).unwrap();
         let (_entered, _release) = settings.pause_write();
@@ -70,7 +103,7 @@ async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replaceme
             patch(ParkAfter::Never),
         ] {
             assert!(matches!(
-                settings.change(change).await,
+                phase("settle following mutation", settings.change(change)).await,
                 Err(SettingsError::Recovery(RecoveryApplyError::Cleanup(
                     StoreError::Closed
                 )))
@@ -81,8 +114,13 @@ async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replaceme
             settings.state.gate.take().is_some(),
             "no later operation reached the real writer"
         );
-        assert!(!settings.current().await.restart_recovery.enabled);
-        settings.shutdown().await;
+        assert!(
+            !phase("read published settings", settings.current())
+                .await
+                .restart_recovery
+                .enabled
+        );
+        phase("settings physical drain", settings.shutdown()).await;
     })
     .await
     .unwrap();
@@ -90,12 +128,20 @@ async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replaceme
 
 #[tokio::test]
 async fn failed_on_apply_retries_an_identical_value_without_rewriting_or_false_success() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path()).await;
-        settings.state.recovery.store().close().await;
+        let settings = phase("open real settings owner", settings(root.path())).await;
+        phase(
+            "close actual policy Store",
+            settings.state.recovery.store().close(),
+        )
+        .await;
         assert!(matches!(
-            settings.change(recovery(RecoveryChoice::On)).await,
+            phase(
+                "save On policy",
+                settings.change(recovery(RecoveryChoice::On))
+            )
+            .await,
             Err(SettingsError::Recovery(RecoveryApplyError::Apply(
                 StoreError::Closed
             )))
@@ -104,7 +150,11 @@ async fn failed_on_apply_retries_an_identical_value_without_rewriting_or_false_s
         let on = std::fs::read(&path).unwrap();
         let (_entered, _release) = settings.pause_write();
         assert!(matches!(
-            settings.change(recovery(RecoveryChoice::On)).await,
+            phase(
+                "save On policy",
+                settings.change(recovery(RecoveryChoice::On))
+            )
+            .await,
             Err(SettingsError::Recovery(RecoveryApplyError::Apply(
                 StoreError::Closed
             )))
@@ -114,8 +164,13 @@ async fn failed_on_apply_retries_an_identical_value_without_rewriting_or_false_s
             settings.state.gate.take().is_some(),
             "the same saved value retried SQL without another replacement"
         );
-        assert!(settings.current().await.restart_recovery.enabled);
-        settings.shutdown().await;
+        assert!(
+            phase("read published settings", settings.current())
+                .await
+                .restart_recovery
+                .enabled
+        );
+        phase("settings physical drain", settings.shutdown()).await;
     })
     .await
     .unwrap();
@@ -123,28 +178,37 @@ async fn failed_on_apply_retries_an_identical_value_without_rewriting_or_false_s
 
 #[tokio::test]
 async fn ordinary_patches_preserve_the_saved_recovery_patch_and_verbatim_prompt() {
-    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+    vessel_testkit::within(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path()).await;
+        let settings = phase("open real settings owner", settings(root.path())).await;
         let recovery = SetRestartRecovery {
             enabled: Some(true),
             prompt: Some("  Preserve exactly.\n계속.\t".parse().unwrap()),
         };
-        let _saved = settings
-            .change(SetNodeSettings {
+        let _saved = phase(
+            "preserve partial recovery through typed mutation",
+            settings.change(SetNodeSettings {
                 restart_recovery: Some(recovery.clone()),
                 ..SetNodeSettings::default()
-            })
-            .await
-            .unwrap();
-        let _saved = settings.change(patch(ParkAfter::Never)).await.unwrap();
-        let _saved = settings
-            .change(SetNodeSettings {
+            }),
+        )
+        .await
+        .unwrap();
+        let _saved = phase(
+            "apply parking patch",
+            settings.change(patch(ParkAfter::Never)),
+        )
+        .await
+        .unwrap();
+        let _saved = phase(
+            "preserve partial recovery through typed mutation",
+            settings.change(SetNodeSettings {
                 drivers: Some(SetAgentDrivers::default()),
                 ..SetNodeSettings::default()
-            })
-            .await
-            .unwrap();
+            }),
+        )
+        .await
+        .unwrap();
         let saved = settings
             .state
             .data_dir
@@ -154,7 +218,9 @@ async fn ordinary_patches_preserve_the_saved_recovery_patch_and_verbatim_prompt(
             .public_settings();
         assert_eq!(saved.restart_recovery, Some(recovery.clone()));
         assert_eq!(
-            settings.current().await.restart_recovery,
+            phase("read published settings", settings.current())
+                .await
+                .restart_recovery,
             recovery.effective()
         );
         #[cfg(unix)]
@@ -169,7 +235,7 @@ async fn ordinary_patches_preserve_the_saved_recovery_patch_and_verbatim_prompt(
                 0o600
             );
         }
-        settings.shutdown().await;
+        phase("settings physical drain", settings.shutdown()).await;
     })
     .await
     .unwrap();
