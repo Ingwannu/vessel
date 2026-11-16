@@ -1548,3 +1548,14 @@ with five export/inventory tests, and the forge fixture passed four tests. Both
 fixture prebuilds preceded the workspace tests. Existing mark/reopen/detach and
 caller-loss cases ran unchanged. No web/native/platform or new consumer-runtime
 acceptance follows from this internal representation-only change.
+
+
+### Reuse of the isolated owned-order prerequisite
+
+The independently validated marking prerequisite is merged without importing
+clock code into that leaf. The clock's admitted inbox task now acquires its
+existing owned guard through that same private accessor at the identical point
+before spawn. Guard lifetime, task ownership, authority, SQL, acknowledgement
+and cancellation-test expectations are unchanged. The announced node values and
+membership-helper head is also merged; its shared entries and documents remain
+authoritative. The final package gate still qualifies this combined clock tree.

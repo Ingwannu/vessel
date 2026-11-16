@@ -10,7 +10,7 @@ impl Sessions {
     pub(crate) async fn mark_inbox(self: &Arc<Self>, mark: MarkInbox) -> Result<(), ServiceError> {
         // Cancelled callers awaiting admission retain no detached task. Once
         // admitted, exactly this owned order survives with commit/publication.
-        let order = Arc::clone(&self.marking).lock_owned().await;
+        let order = self.marking_lease().await;
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
