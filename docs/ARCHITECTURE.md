@@ -1667,6 +1667,7 @@ Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
 
 
+
 ## Relay registration child lifetime (ADR0096)
 
 One `vessel-relay::NodeLink::run` owns a bounded `link/pending::DataOpens`
@@ -1884,3 +1885,21 @@ the session-owned ConversationArea. Existing Shell search calls, the link and
 the renderer keep their interfaces. Replacing a conversation resident therefore
 preserves debounce, query tickets and merged cross-machine replies. The isolated
 prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
+
+
+## Native Devices regression transport boundary
+
+The native Link's existing nondefault testing feature conditionally enables a
+direct RPC framing dependency, already used by its unit tests. One fallible
+framed peer and one private State/admission owner supply real RPC envelopes
+for App regressions; the facade exposes no client, State, allocator, lease or
+guard constructor. The App enables testing only as a dev-dependency. Normal
+RPC calls still go through vessel-client and wasm excludes this native fixture.
+The root crate graph is unchanged; the native crate map and feature/target
+proof contract are in its README and wp-e2-device-fixtures.md. The real Devices
+Unary envelope consumes the same weak DeliveryGuard after queue delivery;
+subsequent callbacks/frames check the retained weak proof without lookup or I/O.
+A sealed actor result cannot expose successful data before this check. Pending
+writes become unconfirmed on retirement and never replay; full old contexts
+cannot retire successors. Resident follow remains test-staged. These are source
+changes, not default-feature, wasm, runtime or UI evidence.
