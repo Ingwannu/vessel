@@ -254,3 +254,29 @@ pub(super) async fn node_info(
         .await
         .map_err(NodeError::Task)
 }
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+
+    const ATTACHMENT_CAPACITY: usize = 1;
+
+    #[test]
+    fn the_actual_node_factory_observes_the_original_early_stop_token() {
+        let root = tempfile::tempdir().unwrap();
+        let config = Config::new(
+            vessel_store::DataDir::new(root.path()),
+            vessel_harness::HarnessEnv::new(root.path().to_owned()),
+        );
+        let (loader, _loads) = AttachmentLoader::channel(ATTACHMENT_CAPACITY);
+        let stop = CancellationToken::new();
+        let runtime = runtime(&config, loader, root.path().to_owned(), stop.clone());
+        let observed = runtime.launch_admission();
+        assert!(observed.check().is_ok());
+        stop.cancel();
+        assert!(matches!(
+            observed.check(),
+            Err(vessel_session::SessionError::ShuttingDown)
+        ));
+    }
+}

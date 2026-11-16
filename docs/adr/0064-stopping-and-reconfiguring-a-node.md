@@ -1069,6 +1069,34 @@ unverified by Linux fixtures.
   managers, other operating systems and service-account permissions remain
   separate from these isolated fixtures.
 
+### Shared live launch-close observation prerequisite
+
+A preparer uses `SessionRuntime::launch_admission()` to observe the same early
+node-stop and final runtime-shutdown tokens as actual process creation.
+`LaunchAdmission::check` refuses a closed owner; `cancelled` observes either
+existing source. A clone has no close, reset, signal, permit or caller-policy
+authority. Standalone runtimes retain only their original shutdown source.
+Checks precede actual structured spawn and, inside terminal blocking
+preparation, MCP writes and PTY spawn. Existing post-spawn cleanup remains for
+starts racing the final check; no atomic check/spawn claim is made.
+
+The existing node runtime factory moves beside setup unchanged first, allowing
+its owning file budget to shrink before adding the real early-stop input.
+The actual factory supplies the original node-stop token, not another signal.
+Held lookup regressions cover both modes and actual fake invocation with an
+open-admission positive control; a failed lookup fixture refuses a late child.
+Case clocks start after fake preparation, retain their original named budget
+and name the barrier, join and physical-drain phases. Observer deadlines are
+not completion or capacity-release receipts.
+
+This prerequisite has no Settings lane, saved document, SQL or recovery engine.
+It neither qualifies physical preparation ownership nor supplies current-run,
+caller, generation, scope or deadline authority to a future consumer. Those
+remain separately reviewed obligations. Paseo's instance shutdown uses an
+instance/replacement check (`packages/server/src/server/daemon-instance.ts:
+149,197-218`); the explicit early-node/final-runtime observer is a Rust lifetime
+choice, not a claim of using its PID/replacement mechanism.
+
 ## Proposed queued settings ownership and recovery settlement
 
 [Decision Log]
