@@ -32,10 +32,13 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
             Exclusion::Deleted,
         ] {
             let (_temp, dir) = data_dir();
-            let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
-                .await
-                .unwrap()
-                .store;
+            let store = phase(
+                "Store open_with_restart_policy",
+                Store::open_with_restart_policy(&dir, StoreConfig::default(), true),
+            )
+            .await
+            .unwrap()
+            .store;
             let mut session = info();
             match case {
                 Exclusion::Side => session.spec.side_question_of = Some(SessionId::random()),
@@ -65,10 +68,12 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
             } else {
                 RestartEligibility::Person
             };
-            phase("Store create_session_with_restart", store
-                .create_session_with_restart(session, eligibility))
-                .await
-                .unwrap();
+            phase(
+                "Store create_session_with_restart",
+                store.create_session_with_restart(session, eligibility),
+            )
+            .await
+            .unwrap();
             let status_now = if matches!(case, Exclusion::Starting) {
                 SessionStatus::Starting
             } else {
@@ -86,26 +91,43 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
                     },
                 ));
             }
-            phase("Store append", store.append(id, events)).await.unwrap();
+            phase("Store append", store.append(id, events))
+                .await
+                .unwrap();
             if matches!(case, Exclusion::Archived) {
-                let _marks = phase("Store mark", store
-                    .mark(id, vessel_proto::Mark::Archive, at(3)))
-                    .await
-                    .unwrap();
+                let _marks = phase(
+                    "Store mark",
+                    store.mark(id, vessel_proto::Mark::Archive, at(3)),
+                )
+                .await
+                .unwrap();
             }
             if matches!(case, Exclusion::Deleted) {
-                phase("Store append", store
-                    .append(id, vec![status(2, SessionStatus::Interrupted)]))
+                phase(
+                    "Store append",
+                    store.append(id, vec![status(2, SessionStatus::Interrupted)]),
+                )
+                .await
+                .unwrap();
+                phase("Store delete_session", store.delete_session(id))
                     .await
                     .unwrap();
-                phase("Store delete_session", store.delete_session(id)).await.unwrap();
             }
             phase("Store close", store.close()).await;
-            let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
-                .await
-                .unwrap()
-                .store;
-            assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None, "{case:?}");
+            let store = phase(
+                "Store open_with_restart_policy",
+                Store::open_with_restart_policy(&dir, StoreConfig::default(), true),
+            )
+            .await
+            .unwrap()
+            .store;
+            assert_eq!(
+                phase("Store next_restart", store.next_restart())
+                    .await
+                    .unwrap(),
+                None,
+                "{case:?}"
+            );
             phase("Store close", store.close()).await;
         }
     })
@@ -116,30 +138,47 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
 async fn a_local_turn_after_import_keeps_its_local_creator_eligibility() {
     case(async {
         let (_temp, dir) = data_dir();
-        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
-            .await
-            .unwrap()
-            .store;
+        let store = phase(
+            "Store open_with_restart_policy",
+            Store::open_with_restart_policy(&dir, StoreConfig::default(), true),
+        )
+        .await
+        .unwrap()
+        .store;
         let mut session = info();
         session.origin = Some(SessionOrigin::Imported {
             node: NodeId::random(),
             session: SessionId::random(),
         });
         let id = session.id;
-        phase("Store create_session_with_restart", store
-            .create_session_with_restart(session, RestartEligibility::Person))
-            .await
-            .unwrap();
-        phase("Store append", store
-            .append(id, vec![status(0, SessionStatus::Running), started(1)]))
-            .await
-            .unwrap();
+        phase(
+            "Store create_session_with_restart",
+            store.create_session_with_restart(session, RestartEligibility::Person),
+        )
+        .await
+        .unwrap();
+        phase(
+            "Store append",
+            store.append(id, vec![status(0, SessionStatus::Running), started(1)]),
+        )
+        .await
+        .unwrap();
         phase("Store close", store.close()).await;
-        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
-            .await
-            .unwrap()
-            .store;
-        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap().unwrap().session, id);
+        let store = phase(
+            "Store open_with_restart_policy",
+            Store::open_with_restart_policy(&dir, StoreConfig::default(), true),
+        )
+        .await
+        .unwrap()
+        .store;
+        assert_eq!(
+            phase("Store next_restart", store.next_restart())
+                .await
+                .unwrap()
+                .unwrap()
+                .session,
+            id
+        );
         phase("Store close", store.close()).await;
     })
     .await;
