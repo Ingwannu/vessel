@@ -855,3 +855,15 @@ the older ea7 generation snapshot above. Provider/draft declarations must be
 regenerated on the joined source; no current wire-equality proof is inferred.
 The version-gate source and relaunch split are still awaiting the canonical
 LaunchAdmission producer and joined checks; no provider number is assigned.
+
+
+Resume checkpoint on node56b: the announced node head adds RPC caller-drop,
+portable plugin values and the sign-in retry correction. Its counted gate has
+one named open e2e intermittent; it is not described as an eighteen-step pass.
+The provider constant remains unassigned. The retained df5 strict actually failed
+with E0618; the subsequent parameter rename preserves the pure driver selector.
+The current nine-crate ordinary strict checks the renamed source, retained
+version owner and runtime-only relaunch split on this node base. Results remain
+owed. The public preparation view is still a source proposal outside product,
+awaiting the canonical admission producer; no duplicate shutdown predicate or
+unqualified provider/host API is published as ready.
