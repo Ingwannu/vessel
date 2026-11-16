@@ -81,6 +81,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Inspect pending permission requests and questions across sessions.
+    Permit {
+        #[command(subcommand)]
+        command: crate::permit::Command,
+    },
     /// List and answer attention across sessions on the selected node.
     Inbox {
         #[command(subcommand)]

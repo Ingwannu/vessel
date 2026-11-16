@@ -2,14 +2,14 @@
 //! Inbox is an attention projection and deliberately suppresses archived rows.
 //! Existing session.list/conversation calls do not start a provider or a turn.
 use super::pending::{PendingId, Row};
-use std::{
-    collections::{BTreeMap, HashSet},
-    future::Future,
-    time::Duration,
-};
+#[cfg(test)]
+use std::collections::BTreeMap;
+use std::{collections::HashSet, future::Future, time::Duration};
 use vessel_client::{CallError, NodeClient};
 use vessel_proto::conversation::Conversation;
-use vessel_proto::{PermissionRequest, Question, SessionId, SessionInfo, SessionMode};
+#[cfg(test)]
+use vessel_proto::{PermissionRequest, Question};
+use vessel_proto::{SessionId, SessionInfo, SessionMode};
 
 mod budget;
 const MAX_SESSIONS: usize = 10_000;
@@ -45,10 +45,12 @@ pub(crate) enum SourceError {
     #[error("could not read pending requests from the selected node")]
     Node(CallError),
     #[error("a selected request was resolved or withdrawn; list pending requests again")]
+    #[cfg(test)]
     Gone,
     #[error("the node returned a duplicate session or pending request")]
     Duplicate,
     #[error("selected requests do not belong to the same agent; no answer was sent")]
+    #[cfg(test)]
     Mismatch,
 }
 impl From<CallError> for SourceError {
@@ -63,8 +65,10 @@ impl std::fmt::Debug for SourceError {
             Self::Budget => formatter.write_str("Budget"),
             Self::Limit => formatter.write_str("Limit"),
             Self::Encoding(error) => formatter.debug_tuple("Encoding").field(error).finish(),
+            #[cfg(test)]
             Self::Gone => formatter.write_str("Gone"),
             Self::Duplicate => formatter.write_str("Duplicate"),
+            #[cfg(test)]
             Self::Mismatch => formatter.write_str("Mismatch"),
             Self::Node(error) => {
                 let code = match error {
@@ -82,6 +86,7 @@ impl std::fmt::Debug for SourceError {
 }
 
 /// Complete current bodies, with their actual session rather than a fake `InboxKey`.
+#[cfg(test)]
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) enum Ready {
     Permission {
@@ -94,6 +99,7 @@ pub(crate) enum Ready {
     },
 }
 
+#[cfg(test)]
 impl std::fmt::Debug for Ready {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (session, request) = match self {
@@ -137,12 +143,14 @@ async fn collect(source: &mut impl Source) -> Result<Vec<Row>, SourceError> {
 }
 /// Mutating commands resolve their agent first, then read only that agent's
 /// current rows. An unrelated session's snapshot failure must not block them.
+#[cfg(test)]
 pub(crate) async fn for_session(
     source: &mut impl Source,
     session: SessionId,
 ) -> Result<Vec<Row>, SourceError> {
     bounded(session_rows(source, session), READ_DEADLINE).await
 }
+#[cfg(test)]
 async fn session_rows(
     source: &mut impl Source,
     session: SessionId,
@@ -192,12 +200,14 @@ fn append(
 
 /// Selection is agent-scoped. Re-read that exact canonical snapshot once and
 /// recover every selected full body before the batch can perform any effects.
+#[cfg(test)]
 pub(crate) async fn preflight(
     source: &mut impl Source,
     rows: &[Row],
 ) -> Result<Vec<Ready>, SourceError> {
     bounded(current(source, rows), READ_DEADLINE).await
 }
+#[cfg(test)]
 async fn current(source: &mut impl Source, rows: &[Row]) -> Result<Vec<Ready>, SourceError> {
     let Some(first) = rows.first() else {
         return Ok(Vec::new());
@@ -250,6 +260,7 @@ async fn current(source: &mut impl Source, rows: &[Row]) -> Result<Vec<Ready>, S
 }
 // An ephemeral index of one already-bounded reply; it owns/moves complete forms
 // rather than cloning payloads or accepting a duplicate identity's first body.
+#[cfg(test)]
 fn unique<Id: Ord, Form>(
     forms: Vec<Form>,
     id: impl Fn(&Form) -> Id,

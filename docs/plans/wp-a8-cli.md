@@ -1,11 +1,12 @@
 # A8 CLI permit
 
-Status: staged parser, typed selection, complete read-only collection/preflight,
-question-input decoding and exact-outcome confirmation. Executable eb6341db7
-passed CLI all-target strict and 25 private permit unit cases. This successor
-changes documentation only; product registration
-waits for the reviewed ADR0084 response contract; the reviewed W17 output seam
-is now adopted from announced node82ae7c91.
+Status: `permit ls` now has a product parser and handler over existing canonical
+read calls and W17's reviewed common formatter. This source change still needs
+exact strict, root-parser/private tests and normal-binary process verification.
+`allow`/`deny` and rich input/selection/confirmation remain literal cfg(test),
+absent from product help, and refuse before connecting in private root-dispatch
+tests. Executable eb6341db7's strict/25-unit proof is prior-source evidence only.
+No durable rich response contract or provider behavior is activated here.
 W4 owns these CLI files; W23 owns permission/question proto and node runtime.
 
 References read: Paseo 0.15.4
@@ -27,8 +28,8 @@ References read: Paseo 0.15.4
 - Why: flags validate before connecting and only acknowledged results may
   be described as allowed or denied. The provider alone interprets edits.
 - Effects: no new dependency or crate edge; no node calls invented. The
-  skeleton is cfg(test) until product dispatch is complete, so no fake or
-  incomplete command can answer in a product build.
+  write skeleton remains cfg(test) until response dispatch is complete, so no
+  fake or incomplete response command can answer in a product build.
 
 Behavior to retain: allow with no request means all; deny needs a request
 or explicit --all; explicit --all wins over a supplied request; denial
@@ -50,7 +51,7 @@ InboxKey or record sequence is created. Duplicate session/request identities and
 collection bounds refuse the whole read without publishing partial output.
 Rich presentation labels await the checked ADR0084 values.
 
-Next: wire snapshot/list output, W23's durable response call, bounded
+Next: verify product snapshot/list output, then W23's durable response call, bounded
 confirmation and reconciliation, batch partial-result reporting and tests
 against the in-memory node. Use W17's reviewed output helpers, not a second
 table/JSON/YAML formatter. No real agents or production nodes.
@@ -323,3 +324,33 @@ contracts, actual allow/deny adapters, final root/package checks and review are
 still owed. main.rs retains literal cfg(test) on mod permit. All Rust, manifest
 and lock bytes in this documentation-only successor remain executable-source
 identical.
+
+## Read-only product activation
+
+[Decision Log]
+- Purpose: make the already implemented pending read useful while rich response
+  carriers remain held, with no unacknowledged write exposed to an operator.
+- Existing assets and constraints: the collector already traverses canonical
+  `NodeClient::sessions()` and structured `conversation()` snapshots. It rejects
+  duplicate identities, partial traversal, oversized payloads and the complete
+  read deadline. W17 owns presentation and escaping. Neither read starts a turn.
+- Alternatives: hold this independent read behind response availability; expose
+  incomplete writes; or query Inbox, which suppresses archived attention.
+- Choice: modify/reuse the existing Command enum, enabling only Ls in product
+  builds. Gate response variants and response-only helpers with cfg(test),
+  retaining one parser/collector/formatter and their existing regression cases.
+- Why: inspection needs no provider response contract. The public root handler
+  connects once to the selected node, collects all rows before writing any output,
+  and consumes table/JSON/YAML/quiet/header options through the shared formatter.
+  Typed ListError stops arbitrary peer diagnostics at its existing safe boundary.
+- Effects: no new RPC, dependency, provider startup or permission mutation.
+  Current canonical DTOs lack actual operation-name presentation, so TOOL uses
+  safe Permission/Question captions. This display difference is explicit.
+
+The normal-binary fake-ACP process cases create actual pending permission and
+question forms, invoke every supported list format, verify full structured ids,
+reject unavailable response subcommands and verify the exact forms remain pending.
+A separate case covers the empty result and product help. Existing source-unit
+fixtures cover archived/background sessions and failed/duplicate/bounded traversal;
+these are separate from actual durable archived-question runtime acceptance.
+The new process tests are authored but unexecuted until the recorded VM result.

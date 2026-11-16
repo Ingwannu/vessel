@@ -13,6 +13,9 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Canonical pending-request reads suppress arbitrary peer error details.
+    #[error(transparent)]
+    Permit(#[from] crate::permit::ListError),
     /// File observations refuse unsafe reads before a shutdown request.
     #[error(transparent)]
     ServiceFile(#[from] crate::init::ServiceFileError),

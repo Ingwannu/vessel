@@ -36,6 +36,8 @@ mod nodes;
 #[cfg(test)]
 mod output;
 #[cfg(test)]
+mod permit;
+#[cfg(test)]
 mod reconnect;
 #[cfg(test)]
 mod side_questions;

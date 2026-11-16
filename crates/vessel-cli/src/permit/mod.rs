@@ -1,20 +1,29 @@
-//! Staged permit command edge. Product registration waits for ADR 0084's
-//! acknowledged response contract. W17's reviewed output interface is adopted;
-//! production dispatch waits for complete response handlers.
+//! Read-only pending requests use the canonical session snapshot and shared output.
+//! Response commands stay test-only until their durable rich contract is checked.
 
+#[cfg(test)]
 mod confirmation;
+#[cfg(test)]
 mod input;
 mod pending;
+#[cfg(test)]
 mod question_input;
+#[cfg(test)]
 mod selection;
 mod source;
 
+#[cfg(test)]
 use crate::selector::{IdPrefix, SessionSelector};
-use clap::{Args, Subcommand};
+#[cfg(test)]
+use clap::Args;
+use clap::Subcommand;
+#[cfg(test)]
 pub(crate) use input::ModifiedInput;
+#[cfg(test)]
 pub(crate) use selection::{Direction, Scope, SelectionError};
 
 /// External flags stay at the decoding edge; domain selection is an enum.
+#[cfg(test)]
 #[derive(Debug, Args)]
 pub(crate) struct Requests {
     /// Agent session id, or a unique prefix on the selected node.
@@ -27,6 +36,7 @@ pub(crate) struct Requests {
     all: bool,
 }
 
+#[cfg(test)]
 impl Requests {
     /// Normalize the asymmetric defaults before connecting to a node.
     pub(crate) fn scope(&self, direction: Direction) -> Result<Scope<'_>, SelectionError> {
@@ -39,6 +49,7 @@ impl Requests {
 
 /// Whether denial also asks the provider to interrupt its current work.
 /// A provider-visible interruption request, kept apart from permission denial.
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Interruption {
     KeepRunning,
@@ -51,6 +62,7 @@ pub(crate) enum Command {
     /// List pending requests, including archived sessions.
     Ls,
     /// Allow one request, or all when no request is given.
+    #[cfg(test)]
     Allow {
         #[command(flatten)]
         requests: Requests,
@@ -59,6 +71,7 @@ pub(crate) enum Command {
         input: Option<ModifiedInput>,
     },
     /// Deny an explicitly named request, or every request with --all.
+    #[cfg(test)]
     Deny {
         #[command(flatten)]
         requests: Requests,
@@ -76,11 +89,13 @@ impl std::fmt::Debug for Command {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Ls => formatter.write_str("Ls"),
+            #[cfg(test)]
             Self::Allow { requests, input } => formatter
                 .debug_struct("Allow")
                 .field("requests", requests)
                 .field("input", input)
                 .finish(),
+            #[cfg(test)]
             Self::Deny {
                 requests,
                 interrupt,
@@ -94,6 +109,7 @@ impl std::fmt::Debug for Command {
     }
 }
 
+#[cfg(test)]
 impl Command {
     /// Validate selection policy before any lookup or mutation.
     pub(crate) fn validate(&self) -> Result<(), SelectionError> {
@@ -116,6 +132,27 @@ impl Command {
                 interrupt: false, ..
             } => Interruption::KeepRunning,
         }
+    }
+}
+
+pub(crate) use source::SourceError as ListError;
+
+pub(crate) async fn run(
+    target: &crate::args::Target,
+    presentation: crate::args::parity::Presentation,
+    command: Command,
+) -> Result<(), crate::error::CliError> {
+    match command {
+        Command::Ls => {
+            let mut client = crate::connect::connect(target).await?.client;
+            let rows = source::list(&mut client).await?;
+            crate::parity::output::list(presentation, &rows).await
+        }
+        // Private parser fixtures must never reach a legacy response fallback.
+        #[cfg(test)]
+        Command::Allow { .. } | Command::Deny { .. } => Err(crate::error::CliError::Usage(
+            "permit responses are not available; no answer was sent",
+        )),
     }
 }
 

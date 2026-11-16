@@ -10,7 +10,13 @@ pub(crate) fn check(cli: &Cli) -> Result<(), CliError> {
     let Some(requested) = cli.output.requested() else {
         return Ok(());
     };
-    if matches!(cli.command, Command::Models) {
+    if matches!(
+        cli.command,
+        Command::Models
+            | Command::Permit {
+                command: crate::permit::Command::Ls
+            }
+    ) {
         return Ok(());
     }
     // Compare already owns its JSON switch. It must continue to work without
@@ -50,6 +56,10 @@ mod tests {
             vec!["vessel", "models", "--format", " YAML "],
             vec!["vessel", "models", "--quiet"],
             vec!["vessel", "models", "--no-headers"],
+            vec!["vessel", "permit", "ls", "--json"],
+            vec!["vessel", "permit", "ls", "--format", "yaml"],
+            vec!["vessel", "permit", "ls", "--quiet"],
+            vec!["vessel", "permit", "ls", "--no-headers"],
         ] {
             let cli = Cli::try_parse_from(args).unwrap();
             assert!(check(&cli).is_ok());

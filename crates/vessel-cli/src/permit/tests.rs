@@ -102,3 +102,25 @@ fn invalid_json_diagnostics_keep_the_source_without_echoing_the_argument() {
         cause = current.source();
     }
 }
+
+#[tokio::test]
+async fn root_dispatch_refuses_staged_responses_before_even_parsing_a_node_address() {
+    for name in ["allow", "deny"] {
+        let cli = crate::args::Cli::try_parse_from([
+            "vessel", "--node", "ws://[", "permit", name, SESSION, "--all",
+        ])
+        .unwrap();
+        assert!(matches!(
+            crate::commands::run(cli).await,
+            Err(crate::error::CliError::Usage(_))
+        ));
+        let cli = crate::args::Cli::try_parse_from([
+            "vessel", "--node", "ws://[", "permit", name, SESSION, "--all", "--json",
+        ])
+        .unwrap();
+        assert!(matches!(
+            crate::commands::run(cli).await,
+            Err(crate::error::CliError::UnsupportedPresentation)
+        ));
+    }
+}

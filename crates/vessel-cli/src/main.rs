@@ -30,8 +30,6 @@ mod node_ctl;
 mod nodes;
 mod pair;
 mod parity;
-// Staged until ADR 0084's acknowledged permission responses are checked.
-#[cfg(test)]
 mod permit;
 mod presentation;
 mod project_commands;
@@ -116,7 +114,8 @@ async fn cli() -> ExitCode {
     // A node shows its lifecycle; client commands only warnings.
     let default_level = match cli.command {
         Command::Node { .. } => "info",
-        Command::Nodes { .. }
+        Command::Permit { .. }
+        | Command::Nodes { .. }
         | Command::Status
         | Command::Harnesses
         | Command::Profiles { .. }
