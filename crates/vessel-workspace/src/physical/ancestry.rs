@@ -7,12 +7,29 @@ use vessel_proto::checkpoint::PhysicalRoot;
 const MAX_ANCESTORS: usize = 4096;
 /// Physical parents in nearest-first order; logical workspace ids never appear.
 #[derive(Debug)]
-pub struct Ancestry(Vec<PhysicalRoot>);
+pub struct Ancestry {
+    root: PhysicalRoot,
+    parents: Vec<PhysicalRoot>,
+}
 impl Ancestry {
-    /// Find the nearest managed root, including a bind or symlink parent alias.
+    /// The opened object at the beginning of this observation, not a path key.
+    #[must_use]
+    pub const fn root(&self) -> PhysicalRoot {
+        self.root
+    }
+    /// Nested scopes conflict in either order; shared parents alone do not.
+    #[must_use]
+    pub fn overlaps(&self, other: &Self) -> bool {
+        self.root == other.root
+            || self.parents.contains(&other.root)
+            || other.parents.contains(&self.root)
+    }
+    /// Find the nearest registered root, including a parent alias.
     #[must_use]
     pub fn nearest(&self, known: &BTreeSet<PhysicalRoot>) -> Option<PhysicalRoot> {
-        self.0.iter().copied().find(|root| known.contains(root))
+        std::iter::once(self.root)
+            .chain(self.parents.iter().copied())
+            .find(|root| known.contains(root))
     }
 }
 impl Directory {
@@ -43,7 +60,10 @@ impl Directory {
                 .map_err(io::Error::from)?,
             );
             if key(&parent.metadata()?) == identity {
-                return Ok(Ancestry(identities));
+                return Ok(Ancestry {
+                    root: self.identity(),
+                    parents: identities.into_iter().skip(1).collect(),
+                });
             }
             current = parent;
         }

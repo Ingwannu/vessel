@@ -1,13 +1,9 @@
 # Canonical physical-root borrow producer
 
-Status: producer-only implementation awaiting acceptance. The first exact source
-leaf da61a1461 on node ed4cd137 passed its own ordinary three-library Clippy
-(run wp-checkpoints-node-20261116T003228Z-da61a146, cargo0/88s) and eight selected
-library tests (run wp-checkpoints-node-20261116T012226Z-da61a146, 8/0/0). That test
-compile reported two unused-qualification warnings in a test timeout constant;
-they are removed using the already imported Duration. The next natural base merge
-consumes announced bc9cacc6. This union still needs its own strict test-code check,
-tests and remote boundaries before V3; prior-base results are scoped evidence.
+Status: V3 returned exact bc9cacc6..5cc56ccf for project-subdirectory
+admission and async-fixture failure cleanup. Its exact all-target strict check,
+quality checks and eight tests passed; those results do not verify this revision.
+The correction is producer-only and awaits new ordinary checks and V3 acceptance.
 No consumer-ready hash, process quiescence or restore capability is claimed.
 The full checkpoint branch's results never count as evidence for this leaf.
 
@@ -23,7 +19,9 @@ The full checkpoint branch's results never count as evidence for this leaf.
   StartGuard owns both opened cwd and selected ancestor FDs and exposes a borrow.
 - Why: physical aliases share admission while logical workspace identity stays
   independent. Keeping the actual ancestor FD prevents inode reuse during a
-  nested admission, including unlink/replacement.
+  nested admission, including unlink/replacement. Project roots and worktree
+  roots come from one existing registry snapshot. A project subdirectory must
+  not receive independent admission from a writer addressing its project root.
 - Costs: metadata I/O is bounded by retained worker permits but is not forcibly
   cancellable. Only one ordinary file-write consumer is wired in this leaf.
 
@@ -35,11 +33,23 @@ schemas or protocol changes. vessel-workspace::physical owns safe opened-FD
 identity and bounded parent traversal, with no admission authority.
 
 workspace::metadata retains two blocking metadata permits through actual I/O.
-workspace::admission chooses and pins the nearest managed ancestor; it keeps
+workspace::admission chooses and pins the nearest registered ancestor; it keeps
 only the selected ancestor FD rather than one descriptor per registered tree.
 workspace::exclusion owns the bounded queue and leases, independent of any
 session, logical workspace or terminal registry. Stop refuses new claims and
 waits for existing lease owners; deadline expiry does not force-unlock I/O.
+
+Nested/overlapping registrations keep their own nearest selected root and logical
+identity, but cannot divide physical exclusion: the same gate compares bounded
+opened-FD ancestor observations in both directions. A held parent refuses a child
+and a held child refuses a parent, including a parent registered after the child
+lease was issued. Sibling scopes sharing ancestors remain independent. This uses
+no pathname prefix key, registry generation as authority, or second lock. Each
+active observation is shared, bounded by the existing ancestry limit, and removed
+with its lease. Selection retains only cwd plus the selected root FDs, not one FD
+per registry record. Relative inputs refuse before ambient-cwd canonicalization
+or metadata admission. Mutable mounts, concurrent external root moves and
+race-free descriptor-relative mutation remain outside this producer's claim.
 
 workspace::starting binds opened directories to the exact lease. The returned
 StartGuard::root_lease() is borrowed, opaque and cannot outlive its guard. The
@@ -62,7 +72,20 @@ Run clippy for vessel-proto/workspace/node including test targets with warnings 
 checkpoint-filtered tests on vessel-node and vessel-workspace. The leaf tests
 cover queue saturation/expiry, aliases/drop/stop, actual ordinary file denial,
 retained I/O after RPC loss, metadata admission capacity, managed ancestor FD
-retention through unlink/replacement, and physical alias/replacement observations.
+retention through unlink/replacement, ordinary project subdirectories/parent
+aliases versus the actual Project writer, project FD replacement, nested
+registration in either order, relative refusal under saturated metadata permits,
+and physical alias/replacement observations.
+
+New async fixtures retain setup and actual owner handles outside caught/timed
+assertions. Named shorter setup, admission, worker-entry, caller-close,
+owner-close and drain phases sit inside the unchanged case budget. Cleanup always
+releases the same held channels, requests normal stop, joins callers/owner,
+drains TaskTracker and closes Store before propagating the original failure.
+A cleanup phase deadline is diagnostic failure: the same future is then awaited
+to actual completion, never aborted or counted as success. Therefore blocked
+kernel I/O may extend cleanup past a test deadline; it cannot be made cancellable
+by this harness.
 Run boundary checks on the build machine only. Local static format, size,
 test-module ordering and token checks do not establish compilation or runtime.
 All filesystem fixtures use private temporary directories. No live node,
@@ -70,7 +93,7 @@ permission change, real provider, UI capture or production flow is exercised.
 
 ## Resume point
 
-Complete the exact leaf's ordinary strict run, then tests. Keep failed and queued
-full-feature records independently. Review/adoption waits for this exact leaf's
-green evidence. After V3 acceptance, W17 consumes the exact commit and the full
+Complete revised exact-leaf ordinary strict checks, then its actual tests. Keep
+all returned-source and full-feature records independently. After V3 acceptance
+and normal integrator announcement, W17 consumes the exact commit and the full
 checkpoint branch merges that same leaf, retaining one canonical implementation.

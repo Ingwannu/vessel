@@ -1053,3 +1053,5 @@ mod project_admission;
 mod project_task;
 #[cfg(target_os = "linux")]
 mod root_admission;
+#[cfg(target_os = "linux")]
+pub(in crate::workspace) mod root_case;

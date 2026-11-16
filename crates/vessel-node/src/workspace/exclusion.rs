@@ -8,6 +8,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::PhysicalRoot;
+use vessel_workspace::physical::Ancestry;
 /// Bounds the admission actor acknowledgement, independently of filesystem I/O.
 pub(super) const ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 const ADMISSION_QUEUE: usize = 8;
@@ -40,7 +41,7 @@ impl Drop for RootLease {
 }
 #[derive(Debug)]
 struct Request {
-    root: PhysicalRoot,
+    ancestry: Arc<Ancestry>,
     deadline: Instant,
     reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
 }
@@ -67,7 +68,7 @@ impl RootGate {
                     () = shutdown.cancelled(), if accepting => { received.close(); accepting = false; },
                     request = received.recv(), if accepting => match request {
                         Some(request) => {
-                            let result = issue(request.root, request.deadline, &mut active, &notify);
+                            let result = issue(request.ancestry, request.deadline, &mut active, &notify);
                             let _gone = request.reply.send(result);
                         },
                         None => accepting = false,
@@ -80,7 +81,7 @@ impl RootGate {
     }
     pub(super) async fn claim(
         &self,
-        root: PhysicalRoot,
+        ancestry: Arc<Ancestry>,
         deadline: Instant,
     ) -> Result<RootLease, RootRefusal> {
         if self.stop.is_cancelled() {
@@ -92,7 +93,7 @@ impl RootGate {
         let (reply, received) = oneshot::channel();
         self.requests
             .try_send(Request {
-                root,
+                ancestry,
                 deadline,
                 reply,
             })
@@ -106,29 +107,45 @@ impl RootGate {
             .map_err(|_gone| RootRefusal::Closed)?
     }
 }
+#[derive(Debug)]
+struct Active {
+    ancestry: Arc<Ancestry>,
+    release: Arc<CancellationToken>,
+}
 fn issue(
-    root: PhysicalRoot,
+    ancestry: Arc<Ancestry>,
     deadline: Instant,
-    active: &mut BTreeMap<PhysicalRoot, Arc<CancellationToken>>,
+    active: &mut BTreeMap<PhysicalRoot, Active>,
     notify: &Arc<Notify>,
 ) -> Result<RootLease, RootRefusal> {
     prune(active);
     if Instant::now() >= deadline {
         return Err(RootRefusal::TimedOut);
     }
-    if active.contains_key(&root) || active.len() >= ROOT_LEASES {
+    if active.len() >= ROOT_LEASES
+        || active
+            .values()
+            .any(|held| ancestry.overlaps(&held.ancestry))
+    {
         return Err(RootRefusal::Busy);
     }
     let release = Arc::new(CancellationToken::new());
-    let _old = active.insert(root, Arc::clone(&release));
+    let root = ancestry.root();
+    let _old = active.insert(
+        root,
+        Active {
+            ancestry,
+            release: Arc::clone(&release),
+        },
+    );
     Ok(RootLease {
         root,
         release,
         notify: Arc::clone(notify),
     })
 }
-fn prune(active: &mut BTreeMap<PhysicalRoot, Arc<CancellationToken>>) {
-    active.retain(|_root, release| !release.is_cancelled());
+fn prune(active: &mut BTreeMap<PhysicalRoot, Active>) {
+    active.retain(|_root, held| !held.release.is_cancelled());
 }
 #[cfg(test)]
 mod tests;

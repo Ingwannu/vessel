@@ -47,6 +47,14 @@ impl Workspaces {
         if self.stop.is_cancelled() {
             return Err(WorkspaceError::Stopping);
         }
+        // Refuse before canonicalize can interpret a relative path against the
+        // daemon's ambient cwd (and before taking a blocking metadata permit).
+        if !folder.is_absolute() {
+            return Err(WorkspaceError::Directory(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "root must be absolute",
+            )));
+        }
         let source = folder.to_path_buf();
         let folder = self
             .root_metadata(move || std::fs::canonicalize(source))
@@ -55,7 +63,7 @@ impl Workspaces {
         let deadline = tokio::time::Instant::now()
             .checked_add(ADMISSION_TIMEOUT)
             .ok_or(RootRefusal::TimedOut)?;
-        let lease = self.exclusion.claim(opened.root, deadline).await?;
+        let lease = self.exclusion.claim(opened.ancestry, deadline).await?;
         Ok(StartGuard {
             directory: opened.directory,
             root_directory: opened.root_directory,

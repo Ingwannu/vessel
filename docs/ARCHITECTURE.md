@@ -1916,9 +1916,14 @@ through a typed fake until the real node field/adapter lands. See
 
 The root lease leaf adds only a BlobHash-backed PhysicalRoot value and a Linux
 opened-FD mechanism using existing dependencies. One workspace::exclusion owner
-issues opaque leases; StartGuard pins cwd plus the nearest managed ancestor and
+issues opaque leases; StartGuard pins cwd plus the nearest registered project or
+worktree ancestor and
 borrows its exact RootLease. The retained metadata pool and ordinary file.write
 consumer preserve admission through physical completion and caller loss.
+The same registry snapshot supplies both root kinds. Opened parent/child scopes
+conflict in either order, including nested registrations added during a lease;
+sharing only a parent does not serialize siblings. Relative input refuses before
+ambient-cwd filesystem lookup.
 This is source awaiting exact-leaf validation and V3, not a restore, terminal
 quiescence or lifecycle capability. No store schema, protocol, checkpoint RPC or
 event is introduced. Other writer/cleanup consumers remain pending on the same
