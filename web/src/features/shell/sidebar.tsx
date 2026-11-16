@@ -20,6 +20,7 @@ import { SidebarProjects } from "../projects/sidebar-projects";
 import { PHONE, useMedia } from "./use-media";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
+import { SidebarUsage } from "../usage/sidebar-usage";
 import { SidebarSettings } from "./sidebar-settings";
 import { SidebarStatuses } from "./sidebar-statuses";
 import { useShortcutWords } from "../shortcuts/use-keys";
@@ -120,6 +121,7 @@ export function Sidebar({
       ) : (
         <SidebarStatuses />
       )}
+      <SidebarUsage />
       <div className="side-foot">
         <Link className={rowClass(inSettings)} to="/settings">
           <Icon name="settings" size={16} />
