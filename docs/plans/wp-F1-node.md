@@ -249,3 +249,19 @@ announced package base2ebeedf9; no node trial/head is merged directly into App.
   handler; generation/physical-root/member-quiescence integration remains owed.
   Its terminal-cleanup foundation does not unlock backing deletion. W3 refreshed
   driver disposition is requested; no new handler or parallel registry was made.
+
+### Announced gate57 node base
+
+The integrator announcedbc9cacc67 after wholly green gate57: Rust2728/0/12,
+web465, e2e80/80, forge4, wire diff0; protocol25/MIN2/schema21. It merged
+conflict-free ase74773371 in this separate node worktree. Overed4 it supplies
+composer values, the same-connection membership reader, opt-in private creation
+diagnostics and voice-setting values. These are values/helper availability,
+not a production provisioning/receipt/archive driver. The qualified Ended edit
+remains ancestral; no unchanged producer test is repeated or newly claimed.
+
+W3 still reports no reviewed production scheduled creation/provision/launch
+entry; W21 still reports no runtime archive-by-WorkspaceId adapter. Preserve
+the typed port boundary, explicit After=Keep no-archive behavior and hidden
+isolation option. No schema/protocol number or new runtime cleanup is assigned.
+The App remains on its separately announced package line.
