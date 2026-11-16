@@ -131,6 +131,11 @@ macro_rules! counter_id {
 }
 
 uuid_id! {
+    /// Correlation for one parent execution; its spelling never grants admission.
+    ExecutionIncarnationId
+}
+
+uuid_id! {
     /// Node-minted finish intent identity; never a public submission namespace.
     FinishIntentId
 }
@@ -290,6 +295,16 @@ counter_id! {
     /// Client-assigned id correlating a request with its response; unique
     /// per connection.
     RequestId
+}
+
+uuid_id! {
+    /// One workspace-label observer generation; a restart invalidates cursors.
+    WorkspaceLabelGeneration
+}
+
+counter_id! {
+    /// Position of a committed catalog update within one label generation.
+    WorkspaceLabelSeq
 }
 
 counter_id! {

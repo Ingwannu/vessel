@@ -15,10 +15,14 @@ use gpui::{Context, Entity, Window};
 use gpui_base::input::InputEvent;
 use std::{cell::Cell, rc::Rc};
 
+// Captures are retained only by Plain; Identified keeps its engine FieldId contract.
+pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
+
 /// Follow a field's events: Enter, edits, and whether it holds the keys.
 /// What a field's events call.
 pub(super) struct Handlers<V: 'static> {
     pub(super) callbacks: Callbacks<V>,
+    pub(super) submit_press: Rc<Cell<Option<super::SubmitPress>>>,
     pub(super) focused: Rc<Cell<bool>>,
     /// A composer's send press; `None` for a form field (Enter submits).
     pub(super) send: Option<Rc<Cell<SendOn>>>,
@@ -32,6 +36,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 ) {
     let Handlers {
         callbacks,
+        submit_press,
         focused,
         send,
     } = handlers;
@@ -52,6 +57,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
                     state.update(cx, |state, cx| state.replace("\n", window, cx));
                 } else {
                     let text = state.read(cx).value().to_string();
+                    let _press = super::submit_press::Scope::enter(&submit_press, *secondary);
                     callbacks.submit(owner, source(state.entity_id()), text, window, cx);
                 }
             }
@@ -78,8 +84,12 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 /// Existing callbacks and request-scoped callbacks share the same event path.
 pub(super) enum Callbacks<V: 'static> {
     Plain {
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: Submit<V>,
         on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+    },
+    Secure {
+        on_submit: fn(&mut V, FieldId, super::SecretEdit, &mut Window, &mut Context<'_, V>),
+        on_change: fn(&mut V, FieldId, super::SecretEdit, &mut Context<'_, V>),
     },
     Identified {
         on_submit: fn(&mut V, FieldId, String, &mut Window, &mut Context<'_, V>),
@@ -91,7 +101,7 @@ impl<V: 'static> Callbacks<V> {
     fn changes(&self) -> bool {
         match self {
             Self::Plain { on_change, .. } => on_change.is_some(),
-            Self::Identified { .. } => true,
+            Self::Identified { .. } | Self::Secure { .. } => true,
         }
     }
 
@@ -106,6 +116,9 @@ impl<V: 'static> Callbacks<V> {
         match self {
             Self::Plain { on_submit, .. } => on_submit(owner, text, window, cx),
             Self::Identified { on_submit, .. } => on_submit(owner, id, text, window, cx),
+            Self::Secure { on_submit, .. } => {
+                on_submit(owner, id, super::SecretEdit::from_text(text), window, cx);
+            }
         }
     }
     fn change(&self, owner: &mut V, id: FieldId, text: String, cx: &mut Context<'_, V>) {
@@ -116,6 +129,9 @@ impl<V: 'static> Callbacks<V> {
                 }
             }
             Self::Identified { on_change, .. } => on_change(owner, id, text, cx),
+            Self::Secure { on_change, .. } => {
+                on_change(owner, id, super::SecretEdit::from_text(text), cx);
+            }
         }
     }
 }

@@ -10,7 +10,7 @@ const ROLES: [Glyph; 5] = [
     Glyph::X,
 ];
 const QUARTERS: u16 = 4;
-fn strokes(group: &usvg::Group) -> usize {
+pub(super) fn strokes(group: &usvg::Group) -> usize {
     let mut count = 0_usize;
     for node in group.children() {
         match node {
@@ -28,12 +28,12 @@ fn strokes(group: &usvg::Group) -> usize {
     }
     count
 }
-fn tree(glyph: Glyph) -> usvg::Tree {
+pub(super) fn tree(glyph: Glyph) -> usvg::Tree {
     let data = Assets.load(glyph.path()).unwrap().unwrap();
     assert_eq!(data.as_ref(), glyph.svg().as_bytes());
     usvg::Tree::from_data(&data, &usvg::Options::default()).unwrap()
 }
-fn paint(glyph: Glyph, logical: u16, quarter_scale: u16) -> image::RgbaImage {
+pub(super) fn paint(glyph: Glyph, logical: u16, quarter_scale: u16) -> image::RgbaImage {
     let side = u32::from(
         logical
             .checked_mul(quarter_scale)

@@ -34,9 +34,9 @@ layout-tabs = Tabs
 # Workspace tab or pane control; keep short.
 layout-menu = Tab actions
 # Workspace tab or pane control; keep short.
-layout-maximize = Focus pane
+layout-maximize = Maximize pane
 # Workspace tab or pane control; keep short.
-layout-restore = Show all panes
+layout-restore = Restore pane
 # Workspace tab or pane control; keep short.
 layout-promote = Open as tab
 # Workspace tab or pane control; keep short.

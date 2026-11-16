@@ -1,5 +1,6 @@
 //! Text editing state shared by every kit presentation: one factory, the
-//! weak composing-field registry, focus queries and engine event subscription.
+//! weak composing-field registry and focus queries. Engine events stay shared
+//! in `events`; editability comes from its sole shared child module.
 //! Presentation and color projection live in the child modules; they do not
 //! create another editor or subscribe to its events.
 //!
@@ -7,7 +8,7 @@
 //! - Purpose: leave room for the reserved rename/select-all and composer
 //!   extensions without growing the listed field module.
 //! - Choice: move existing presentation and theme projection unchanged;
-//!   keep factories, line registration, IME and composer hooks together.
+//!   keep factories, line registration, IME and composer hooks unchanged.
 //! - Constraint: one Entity remains the editing state on every surface.
 //!   Public entry points and all existing event behavior stay unchanged.
 
@@ -21,10 +22,30 @@ use gpui::{div, px};
 use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
+pub mod composer_layout;
+mod multiline;
+pub use multiline::SendOn;
+mod form_minimum;
+pub use form_minimum::FormMinimum;
+mod send;
+mod submit_press;
+pub use submit_press::SubmitPress;
+mod editability;
+mod events;
+pub use editability::Editability;
+use events::{Callbacks, Handlers, listen};
+mod identity;
+pub use identity::FieldId;
+pub(crate) mod composition;
 mod frame;
 mod presentation;
 mod rename;
+mod search;
+mod secure;
 mod selection;
+pub use search::SearchField;
+use secure::LinePrivacy;
+pub use secure::{SecretEdit, SecretField, SecretFieldContent, SecretInput, SecretPresence};
 mod styles;
 
 pub(crate) use frame::settings_frame;
@@ -44,22 +65,6 @@ enum Kind {
     Line(Entity<InputState>),
     /// Lines that grow (the composer).
     Lines(Entity<TextareaState>, MultilineStyle),
-}
-
-/// A field's text engine, held weakly for [`TextField::focused_composing`].
-enum Known {
-    Line(gpui::WeakEntity<InputState>),
-    Lines(gpui::WeakEntity<TextareaState>),
-}
-
-thread_local! {
-    /// Every field the kit made on this thread (GPUI's main thread), live
-    /// or not yet pruned.
-    static KNOWN: std::cell::RefCell<Vec<Known>> = const { std::cell::RefCell::new(Vec::new()) };
-}
-
-fn register(field: Known) {
-    KNOWN.with(|known| known.borrow_mut().push(field));
 }
 
 /// A multiline editor's shell; both presentations share one text engine.
@@ -88,56 +93,67 @@ pub struct TextField {
     /// submits).
     send: Rc<Cell<SendOn>>,
     form_minimum: FormMinimum,
+    composer_rows: Rc<Cell<Option<composer_layout::Rows>>>,
+    submit_press: Rc<Cell<Option<SubmitPress>>>,
+    form_text: FormText,
+    form_textarea: FormTextareaPresentation,
 }
 
-mod multiline;
-pub use multiline::SendOn;
-mod events;
-use events::{Callbacks, Handlers, listen};
-mod form_minimum;
-pub use form_minimum::FormMinimum;
 use form_minimum::form_shell;
-mod identity;
-pub use identity::FieldId;
-
-mod editability;
-pub use editability::Editability;
-mod search;
-pub use search::SearchField;
+mod form_text;
+pub use form_text::FormText;
+mod form_textarea;
+pub use form_textarea::FormTextareaPresentation;
 
 impl TextField {
-    /// Which press sends a composer's text (a form field ignores it).
-    pub fn set_send_on(&self, send: SendOn) {
-        if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {
-            self.send.set(send);
-        }
-    }
-
     fn line<V: 'static>(
         placeholder: &str,
         callbacks: Callbacks<V>,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
+        Self::line_with_privacy(placeholder, callbacks, LinePrivacy::Ordinary, window, cx)
+    }
+
+    fn line_with_privacy<V: 'static>(
+        placeholder: &str,
+        callbacks: Callbacks<V>,
+        privacy: LinePrivacy,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
         let placeholder = placeholder.to_owned();
-        let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
+        let state = cx.new(|cx| {
+            let mut state = InputState::new(window, cx).placeholder(placeholder);
+            if let LinePrivacy::Secret(label) = privacy {
+                state = state.masked(true);
+                state.set_accessibility(secure::accessibility(label));
+            }
+            state
+        });
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         listen(
             &state,
             Handlers {
                 callbacks,
+                submit_press: Rc::clone(&submit_press),
                 focused: Rc::clone(&focused),
                 send: None,
             },
             window,
             cx,
         );
-        register(Known::Line(state.downgrade()));
+        composition::line(&state);
         Self {
+            composer_rows: Rc::new(Cell::new(None)),
+            submit_press,
             kind: Kind::Line(state),
             focused,
-            form_minimum: FormMinimum::Default,
+            form_text: FormText::Body,
+            form_textarea: FormTextareaPresentation::Compact,
             send: Rc::new(Cell::new(SendOn::Enter)),
+            form_minimum: FormMinimum::Default,
         }
     }
 
@@ -227,7 +243,7 @@ impl TextField {
         range.start == 0 && range.end == 0
     }
 
-    /// Whether any kit text field in this window has the keys and an input
+    /// Whether any kit text engine in this window has the keys and an input
     /// method composing in it: what a window-wide shortcut listener asks
     /// before acting on a key (track S2's registry), since the fields are
     /// private to the areas that own them.
@@ -239,47 +255,14 @@ impl TextField {
     ///   whatever G1 and G3 add).
     /// - Constraint: those fields are private to their areas; a list of
     ///   them in S2's code would miss the next one.
-    /// - Choice: every field the kit makes registers a weak handle to its
-    ///   text engine (one per field, thread-local: GPUI's entities live on
+    /// - Choice: kit fields and code editors register weak handles in one
+    ///   registry (one per engine, thread-local: GPUI's entities live on
     ///   the main thread); this asks each live one, dropping the dead.
     ///   Only the focused field counts, as in [`Self::composing`].
-    /// - Cost: one weak handle per field ever made, pruned here; a field
-    ///   made outside the kit (none today) is not seen.
+    /// - Cost: one weak handle per engine, pruned here; an engine made
+    ///   outside the kit must register before this query can see it.
     pub fn focused_composing(window: &mut Window, cx: &mut App) -> bool {
-        use gpui::EntityInputHandler as _;
-
-        let known = KNOWN.with(|known| std::mem::take(&mut *known.borrow_mut()));
-        let mut alive = Vec::with_capacity(known.len());
-        let mut composing = false;
-        for field in known {
-            let marked = match &field {
-                Known::Line(weak) => weak.upgrade().map(|state| {
-                    !composing
-                        && state.read(cx).focus_handle(cx).is_focused(window)
-                        && state.update(cx, |state, cx| {
-                            state.marked_text_range(window, cx).is_some()
-                        })
-                }),
-                Known::Lines(weak) => weak.upgrade().map(|state| {
-                    !composing
-                        && state.read(cx).focus_handle(cx).is_focused(window)
-                        && state.update(cx, |state, cx| {
-                            state.marked_text_range(window, cx).is_some()
-                        })
-                }),
-            };
-            if let Some(marked) = marked {
-                composing |= marked;
-                alive.push(field);
-            }
-        }
-        KNOWN.with(|known| {
-            // Fields made while asking (none can be, but keep them).
-            let mut known = known.borrow_mut();
-            alive.append(&mut known);
-            *known = alive;
-        });
-        composing
+        composition::focused(window, cx)
     }
 
     /// Give it the keys.
@@ -402,3 +385,8 @@ mod composing_tests {
 
 #[cfg(test)]
 mod form_tests;
+#[cfg(test)]
+mod submit_tests;
+
+#[cfg(test)]
+mod accessibility_tests;

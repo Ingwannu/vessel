@@ -26,6 +26,45 @@
 use vessel_proto::conversation::MimeType;
 use vessel_proto::{AgentAbilities, AttachmentKind, AttachmentLimits, AttachmentName};
 
+/// A destination address may disappear or be rebound to a different node.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum TargetProblem {
+    /// Same node identity is insufficient after an admission retires.
+    #[error(transparent)]
+    Admission(#[from] crate::connection::Refusal),
+    /// No verified peer is available under the captured address.
+    #[error("the attachment destination is offline")]
+    Offline,
+    /// Never route queued bytes to a replacement node with the same book name.
+    #[error("the attachment destination identity changed")]
+    Changed {
+        /// The admitted welcome identity.
+        expected: vessel_proto::NodeId,
+        /// The replacement peer which must receive no side effect.
+        actual: vessel_proto::NodeId,
+    },
+}
+
+/// Preparation refuses before changing the retained draft.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum PrepareProblem {
+    /// Another creation owns the existing snapshot.
+    #[error("attachment creation is already pending")]
+    Busy,
+    /// All bounded submission slots are retained.
+    #[error("attachment preparation capacity reached")]
+    Capacity,
+    /// Preserve the existing machine-name validator result.
+    #[error("invalid machine selection: {0:?}")]
+    Machine(crate::machines::NameProblem),
+    /// Context validation preserves its source-specific refusal.
+    #[error(transparent)]
+    Context(#[from] super::context::ContextProblem),
+    /// A peer has not provided an authoritative destination identity.
+    #[error(transparent)]
+    Target(#[from] TargetProblem),
+}
+
 /// The longest file name the node takes, in UTF-8 bytes.
 const NAME_MAX: usize = 255;
 

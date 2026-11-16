@@ -46,12 +46,25 @@
 
 use std::ops::Range;
 
+pub mod actions;
+
+/// Optional markdown interaction policy; the old entry point retains plain copy.
+#[derive(Debug, Default)]
+pub struct Options<'a> {
+    /// Existing find state and its version key.
+    pub marks: Option<&'a FindMarks<'a>>,
+    /// Link and image ownership supplied by the host.
+    pub actions: Option<actions::Actions>,
+    /// Selection formatting independent of link handling.
+    pub copy: actions::CopyStyle,
+}
+
 use gpui::{
     AnyElement, App, AppContext as _, ElementId, Entity, Hsla, IntoElement as _, Overflow,
-    ParentElement as _, Pixels, SharedString, StyleRefinement, Styled as _, WhiteSpace, Window,
-    div, px, relative,
+    ParentElement as _, Pixels, Refineable as _, SharedString, StyleRefinement, Styled as _,
+    WhiteSpace, Window, div, px, relative,
 };
-use gpui_component::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
+use gpui_base::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
 
 use crate::copy::{CopyLook, copy_button};
 use crate::fonts::Type;
@@ -202,6 +215,32 @@ pub fn chat_markdown(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    chat_markdown_with(
+        id,
+        text,
+        version,
+        Options {
+            marks,
+            ..Options::default()
+        },
+        tokens,
+        window,
+        cx,
+    )
+}
+
+/// The same retained renderer with host-owned links/images and code-aware copy.
+/// Find, source versioning, styling and code controls use the existing path.
+pub fn chat_markdown_with(
+    id: impl Into<ElementId>,
+    text: &str,
+    version: u64,
+    options: Options<'_>,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
+    let marks = options.marks;
     let look = Look::of(tokens);
     let palette = FindPalette::of(tokens);
     let kept = window.use_keyed_state(id.into(), cx, |_, cx| Kept {
@@ -229,23 +268,40 @@ pub fn chat_markdown(
         state
     });
     let list = marks.map(|marks| (marks.list.clone(), marks.clear_top));
-    TextView::new(&state)
+    let view = TextView::new(&state)
         .on_reveal(move |bounds, _window, _cx| {
             if let Some((list, clear_top)) = &list {
                 list.reveal_bounds(bounds, *clear_top);
             }
         })
-        .style(
-            TextViewStyle::default()
-                .code_block(block(look))
-                .table(table())
-                .table_head(table_head(look))
-                .table_cell(table_cell()),
-        )
+        .style(presentation(look, cx))
         .code_block_actions(move |code, window, cx| {
-            corner(code.code(), code.lang(), look, window, cx)
-        })
-        .into_any_element()
+            corner(code.code().as_ref(), code.lang(), look, window, cx)
+        });
+    actions::finish(view, state, options.actions, options.copy)
+}
+
+/// Component installs its theme on the same Base renderer. Refine that installed
+/// style directly so new engine callbacks keep the existing palette and geometry.
+fn presentation(look: Look, cx: &App) -> TextViewStyle {
+    let defaults = gpui_base::TextViewDefaults::global(cx);
+    let themed = defaults
+        .style()
+        .cloned()
+        .unwrap_or_else(|| TextViewStyle::from_theme(&gpui_base::Theme::global(cx)));
+    let refine = |mut base: StyleRefinement, overlay: StyleRefinement| {
+        base.refine(&overlay);
+        base
+    };
+    let code = refine(themed.code_block().clone(), block(look));
+    let table = refine(themed.table().clone(), table());
+    let head = refine(themed.table_head().clone(), table_head(look));
+    let cell = refine(themed.table_cell().clone(), table_cell());
+    themed
+        .with_code_block(code)
+        .with_table(table)
+        .with_table_head(head)
+        .with_table_cell(cell)
 }
 
 /// Mark `marks` in the reply `state` holds and scroll to the current
@@ -337,12 +393,15 @@ fn table_cell() -> StyleRefinement {
 
 /// The block's corner: its language and the copy button.
 fn corner(
-    text: SharedString,
+    text: &str,
     lang: Option<SharedString>,
     look: Look,
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    let text: SharedString = gpui_base::text::trim_code_line_breaks(text)
+        .to_owned()
+        .into();
     div()
         .flex()
         .items_center()

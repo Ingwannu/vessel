@@ -95,6 +95,8 @@ fn probe(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
             agent: "fake".to_owned(),
             structured: true,
             live: true,
+            archived_at: None,
+            binding: None,
         });
         shell
     }))

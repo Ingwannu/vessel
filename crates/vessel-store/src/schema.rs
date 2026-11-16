@@ -12,7 +12,12 @@ mod background;
 mod labels;
 mod listing;
 mod migrations;
+mod mutation_time;
 mod workspace_registry;
+
+/// The label append (schema 23) follows the mutation clock (22); integration rebinds here.
+/// Keep package placement outside the full migration list's shrinking budget.
+const WORKSPACE_LABELS_SCHEMA: usize = mutation_time::MUTATION_TIME_SCHEMA.saturating_add(1);
 
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;
@@ -74,6 +79,7 @@ pub(crate) fn configure(connection: &Connection) -> Result<(), StoreError> {
     // migrations ever hold one long.
     connection.busy_timeout(std::time::Duration::from_secs(5))?;
     connection.pragma_update(None, "foreign_keys", true)?;
+    crate::subagents::configure(connection)?;
     Ok(())
 }
 

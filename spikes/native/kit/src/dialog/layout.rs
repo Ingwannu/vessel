@@ -116,6 +116,16 @@ impl DialogLayout {
 }
 
 impl DialogSize {
+    /// Change only the compact presentation, preserving this size's desktop
+    /// geometry and body spacing. Callers need not copy the shared defaults.
+    #[must_use]
+    pub const fn with_compact(self, compact: CompactLayout) -> Self {
+        Self::Configured(DialogLayout {
+            compact,
+            ..self.layout()
+        })
+    }
+
     pub(super) const fn layout(self) -> DialogLayout {
         match self {
             Self::Normal => legacy(NORMAL_WIDTH),

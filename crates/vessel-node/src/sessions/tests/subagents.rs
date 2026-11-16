@@ -198,7 +198,9 @@ async fn a_cancelled_caller_cannot_abandon_live_publication() {
     };
     // Keep persistence under this fixture's control so the node TaskTracker
     // contains exactly the real detach task whose RPC future is dropped.
-    let vessel_session::Created { handle, durable } = fixture
+    let vessel_session::Created {
+        handle, durable, ..
+    } = fixture
         .runtime
         .create_with(
             fixture.spec(),

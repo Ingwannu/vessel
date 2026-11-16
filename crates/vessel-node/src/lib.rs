@@ -107,8 +107,10 @@ mod terminals;
 mod tidying;
 mod transfers;
 mod transport;
+mod usage_reports;
 mod waits;
 mod workspace;
+mod workspace_labels;
 
 pub use config::{Config, DEFAULT_PARK_AFTER, VesselMcp};
 

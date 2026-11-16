@@ -1,3 +1,5 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional image activation retains the existing text renderer.
+// (spikes/release/patches/README.md, "gpui-base", changes 14 and 15).
 use std::{ops::Range, rc::Rc, sync::Arc};
 
 use gpui::prelude::FluentBuilder as _;
@@ -48,7 +50,7 @@ impl TextViewDefaults {
     }
 
     /// The style every text view starts from, when set.
-    pub(crate) fn style(&self) -> Option<&TextViewStyle> {
+    pub fn style(&self) -> Option<&TextViewStyle> {
         self.style.as_ref()
     }
 
@@ -107,7 +109,7 @@ pub(crate) type TableActionsFn =
 pub(crate) type ImageSourceFn = dyn Fn(&gpui::SharedUri) -> gpui::ImageSource + Send + Sync;
 
 pub(crate) type LinkClickHandlerFn =
-    dyn Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync;
+    dyn Fn(&super::LinkTarget, &ClickEvent, &mut Window, &mut App) + Send + Sync;
 
 /// Kept by the element only, so unlike the handlers the state carries, it
 /// may hold a `ScrollHandle`.
@@ -115,13 +117,13 @@ pub(crate) type RevealHandlerFn = dyn Fn(Bounds<Pixels>, &mut Window, &mut App);
 
 pub(crate) fn handle_link_click(
     handler: &Option<Arc<LinkClickHandlerFn>>,
-    url: SharedString,
+    target: super::LinkTarget,
     event: ClickEvent,
     window: &mut Window,
     cx: &mut App,
 ) {
     if let Some(handler) = handler {
-        handler(&url, &event, window, cx);
+        handler(&target, &event, window, cx);
     } else if match &event {
         ClickEvent::Mouse(click) => {
             matches!(click.up.button, MouseButton::Left | MouseButton::Middle)
@@ -129,7 +131,7 @@ pub(crate) fn handle_link_click(
         ClickEvent::Keyboard(_) => true,
         ClickEvent::Touch(click) => !click.long_press,
     } {
-        cx.open_url(&url);
+        cx.open_url(&target.href);
     }
 }
 
@@ -168,6 +170,7 @@ pub struct TextView {
     code_block_highlighter: Option<Arc<CodeBlockHighlighterFn>>,
     table_actions: Option<Arc<TableActionsFn>>,
     link_click_handler: Option<Arc<LinkClickHandlerFn>>,
+    image_click_handler: Option<Arc<super::image_activation::ImageClickHandlerFn>>,
     image_source: Option<Arc<ImageSourceFn>>,
     reveal_handler: Option<Rc<RevealHandlerFn>>,
     markdown_extensions: Arc<MarkdownExtensions>,
@@ -218,6 +221,7 @@ impl TextView {
             code_block_highlighter: None,
             table_actions: None,
             link_click_handler: None,
+            image_click_handler: None,
             image_source: None,
             reveal_handler: None,
             markdown_extensions: Arc::default(),
@@ -245,6 +249,7 @@ impl TextView {
             code_block_highlighter: None,
             table_actions: None,
             link_click_handler: None,
+            image_click_handler: None,
             image_source: None,
             reveal_handler: None,
             markdown_extensions: Arc::default(),
@@ -272,6 +277,7 @@ impl TextView {
             code_block_highlighter: None,
             table_actions: None,
             link_click_handler: None,
+            image_click_handler: None,
             image_source: None,
             reveal_handler: None,
             markdown_extensions: Arc::default(),
@@ -444,7 +450,38 @@ impl TextView {
     where
         F: Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
     {
+        self.link_click_handler = Some(Arc::new(move |target, event, window, cx| {
+            handler(&target.href, event, window, cx)
+        }));
+        self
+    }
+
+    /// Handles authored and inferred links with their original provenance.
+    #[must_use]
+    pub fn on_link_activate<F>(mut self, handler: F) -> Self
+    where
+        F: Fn(&super::LinkTarget, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
+    {
         self.link_click_handler = Some(Arc::new(handler));
+        self
+    }
+
+    /// Recognize file-like text/code using existing text runs, not custom inline atoms.
+    #[must_use]
+    pub fn inline_link_recognizer(mut self, recognizer: super::InlineLinkRecognizer) -> Self {
+        let extensions = Arc::make_mut(&mut self.markdown_extensions);
+        *extensions = extensions.clone().inline_link_recognizer(recognizer);
+        self
+    }
+
+    /// Handle image activation without replacing the image renderer or selection atom.
+    /// With no handler, only images already wrapped in links are interactive.
+    #[must_use]
+    pub fn on_image_click<F>(mut self, handler: F) -> Self
+    where
+        F: Fn(&gpui::SharedUri, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.image_click_handler = Some(Arc::new(handler));
         self
     }
 
@@ -754,6 +791,7 @@ impl Element for TextView {
             state.code_block_highlighter = code_block_highlighter;
             state.table_actions = self.table_actions.clone();
             state.link_click_handler = self.link_click_handler.clone();
+            state.image_click_handler = self.image_click_handler.clone();
             state.image_source = self.image_source.clone();
             state.set_markdown_extensions(self.markdown_extensions.clone(), cx);
             if let Some(motion) = &self.motion {

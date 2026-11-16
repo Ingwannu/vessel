@@ -21,6 +21,7 @@ fn idle(minutes: u16) -> NodeSettings {
         park_after: ParkAfter::Idle {
             minutes: IdleMinutes::new(minutes).unwrap(),
         },
+        metadata: None,
     }
 }
 
@@ -29,6 +30,7 @@ fn never() -> NodeSettings {
         restart_recovery: RestartRecovery::default(),
         drivers: AgentDrivers::default(),
         park_after: ParkAfter::Never,
+        metadata: None,
     }
 }
 
@@ -144,7 +146,8 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
                 codex: AgentDriver::Acp,
                 open_code: AgentDriver::Acp
             },
-            park_after: ParkAfter::Unknown
+            park_after: ParkAfter::Unknown,
+            metadata: None
         })
     ));
     assert_eq!(page.toggle(tickets.next_ticket().unwrap()), None);

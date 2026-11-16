@@ -1,3 +1,5 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional inferred links retain source selection and find mapping.
+// (spikes/release/patches/README.md, "gpui-base", change 15).
 use std::{
     any::Any,
     collections::HashMap,
@@ -252,9 +254,26 @@ pub struct MarkdownExtensions {
     inline_renderers: HashMap<SharedString, Arc<MarkdownInlineRenderFn>>,
     revision: u64,
     parser_revision: u64,
+    inline_link_recognizer: Option<super::InlineLinkRecognizer>,
 }
 
 impl MarkdownExtensions {
+    /// Decorate ordinary text/code runs without replacing their source or selection map.
+    #[must_use]
+    pub fn inline_link_recognizer(mut self, recognizer: super::InlineLinkRecognizer) -> Self {
+        self.inline_link_recognizer = Some(recognizer);
+        self.bump_revision();
+        self
+    }
+
+    pub(crate) fn recognized_links(
+        &self,
+        text: &str,
+        kind: super::InlineLinkKind,
+    ) -> Vec<(std::ops::Range<usize>, super::node::TextMark)> {
+        self.inline_link_recognizer
+            .map_or_else(Vec::new, |recognizer| recognizer.marks(text, kind))
+    }
     /// Change this revision when parser captures or plugin configuration change.
     /// Reusing it allows equivalent registrations rebuilt during rendering to
     /// retain the parsed document. Renderer-only changes do not need a new value.
@@ -350,6 +369,7 @@ impl MarkdownExtensions {
     /// stable; render handles may be refreshed without reparsing the document.
     pub(crate) fn has_same_parser_configuration(&self, other: &Self) -> bool {
         self.parser_revision == other.parser_revision
+            && self.inline_link_recognizer == other.inline_link_recognizer
             && self.enable_mdx == other.enable_mdx
             && self.enable_frontmatter == other.enable_frontmatter
             && self.block_parsers.len() == other.block_parsers.len()

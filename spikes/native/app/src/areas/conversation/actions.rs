@@ -16,10 +16,6 @@ use crate::shell::Shell;
 /// A confirm the area has open.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Confirm {
-    /// Archive the session (a live one is stopped first).
-    Archive,
-    /// Delete it for good.
-    Delete,
     /// Kill it.
     Kill,
 }
@@ -31,6 +27,10 @@ pub(crate) enum MenuAction {
     Mark(MarkAction),
     /// Copy the session's id.
     CopyId,
+    /// Copy a credential-free link through the shared desktop route format.
+    CopyLink,
+    /// Close using the root/child lifecycle policy.
+    Close,
     /// Kill a live session.
     Kill,
     /// Show the agent's own log (its lines are not in the conversation).
@@ -49,13 +49,14 @@ pub(crate) enum AgentLog {
 impl Shell {
     /// Ask the node to act on the session shown.
     pub(crate) fn act(&self, act: Act) {
-        self.act_at(Seat::SESSION, act);
+        self.act_at(&Seat::SESSION, act);
     }
 
     /// Ask the node to act on the session the conversation at `seat`
-    /// shows.
-    pub(crate) fn act_at(&self, seat: Seat, act: Act) {
-        if let Some(shown) = (seat.get)(self).and_then(|area| area.shown.as_ref()) {
+    /// shows, through the existing legacy transport only. Admitted operations
+    /// require W12's guarded owner path and cannot fall back to an alias.
+    pub(crate) fn act_at(&self, seat: &Seat, act: Act) {
+        if let Some(shown) = seat.legacy_target(self) {
             self.command(Command::Act {
                 machine: shown.machine.clone(),
                 session: shown.session,
@@ -84,8 +85,22 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let confirm = match action {
-            MenuAction::Mark(MarkAction::Archive) => Some(Confirm::Archive),
-            MenuAction::Mark(MarkAction::Delete) => Some(Confirm::Delete),
+            MenuAction::Mark(MarkAction::Archive) => {
+                self.prepare_session_lifecycle(
+                    vessel_app_view::sessions::LifecycleAction::Archive,
+                    window,
+                    cx,
+                );
+                None
+            }
+            MenuAction::Mark(MarkAction::Delete) => {
+                self.prepare_session_lifecycle(
+                    vessel_app_view::sessions::LifecycleAction::Delete,
+                    window,
+                    cx,
+                );
+                None
+            }
             MenuAction::Kill => Some(Confirm::Kill),
             MenuAction::Mark(MarkAction::StartAgain) => {
                 self.conversation_start_again(cx);
@@ -104,6 +119,14 @@ impl Shell {
                 self.areas.conversation.agent_log = AgentLog::Shown;
                 self.areas.conversation.dialog.focus(window, cx);
                 cx.notify();
+                None
+            }
+            MenuAction::CopyLink => {
+                self.copy_session_link(cx);
+                None
+            }
+            MenuAction::Close => {
+                self.request_session_close(window, cx);
                 None
             }
             MenuAction::CopyId => {
@@ -146,8 +169,6 @@ impl Shell {
             return;
         };
         match confirm {
-            Confirm::Archive => self.mark(MarkAction::Archive),
-            Confirm::Delete => self.mark(MarkAction::Delete),
             Confirm::Kill => self.act(Act::Kill),
         }
         cx.notify();

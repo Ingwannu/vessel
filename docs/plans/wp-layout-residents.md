@@ -37,6 +37,29 @@ query/find/confirmation hold, and a timeline reply cannot consume a child ticket
 This extends the closed owner set instead of relying on last-writer aggregation;
 the six concrete owners must all supply clean snapshots before dehydration.
 
+The staged concrete owner is `app::areas::layout::residents::SessionResidents`,
+behind a literal `cfg(test)` module while legacy globals remain the only product
+path. Its private map holds each `SessionView` and `ConversationArea` exactly once;
+the existing pure `Residents` table is its admission component, not another live
+manager. Claim validates capacity before a scoped owner factory, view borrows check
+the full current context, hidden stream ingress checks `FollowBinding`, and effect
+settlement consumes the owner ticket before mutation. Clean retirement retires
+metadata before returning resources to snapshot/cancel/drop. This foundation does
+not authorize a transport or implement the production cutover. W1's window-global
+search extraction and scoped composer constructors are prerequisites; the legacy
+selected-session composer callback must never become a resident input callback.
+The claim key itself must match the expected node (workspace form) or session
+(older-session bridge) before allocation. This consistency check is additional
+to authoritative workspace membership and the live connection lease; the staged
+resource map alone grants neither. The final product admission caller must check
+the current layout's agent target and authoritative registry membership before
+claiming, and must release a claim on guarded retarget/close.
+The staged owner retires admission in two phases: `retire_current` first invalidates
+the binding/tickets and returns bounded `FollowRetirement` data; a required owner
+callback updates matching pending UI to uncertain before replacement follow begins.
+The callback precedes generation-allocation failure as well, so exhaustion cannot
+leave an obsolete Sending indicator. Notices cannot mint or readmit operations.
+
 ## Decision Log
 
 - Purpose and intent: two agent panes must own independent conversation, scroll,
@@ -276,3 +299,104 @@ concrete child query/readonly area. Main/origin Timeline Ready cannot erase a ch
 query/find/confirmation hold, and a timeline reply cannot consume a child ticket.
 The closed owner set requires six concrete clean snapshots before dehydration;
 this value seam neither enables child resources nor promotes a live stream.
+
+## Staged concrete Requests and Lifecycle fields
+
+[Decision Log]
+- Purpose: install the reviewed owner values in the existing resource entry so
+  retirement cannot leave a separate fixture-local owner looking fresh.
+- Existing constraint: the live product still uses its original globals. This
+  packet remains behind the existing test gate and creates no second live store.
+- Alternatives: a SessionId-indexed owner map would duplicate lifetime authority;
+  treating the table's Ready markers as concrete state would discard Loading or
+  uncertain owner values. Both are rejected.
+- Choice: `SessionResources::new` moves the actual session/conversation once and
+  constructs one Requests and one Loading Lifecycle controller in that entry.
+- Why: `begin_follow`, explicit follow retirement and exact connection retirement
+  update these same owner fields before exposing the retirement callback. The
+  actual conversation's recursive navigation retirement uses the same event.
+- Consequences: clean removal checks both installed owner votes in addition to
+  all six canonical votes. It does not write derived Ready back over canonical
+  uncertainty. Explicit guarded reconciliation and snapshot transfer remain a
+  later consumer operation; this conservative stage may retain more state.
+
+Timeline record intake passes the original admitted binding and records to that
+entry's Requests controller before the existing single fold. Only exact resolved
+records can release its retired request uncertainty. Snapshot omission, reconnect
+or a new pending list supplies no equivalent proof. Lifecycle hydration still
+requires `Snapshot::received` inside the original guarded receive callback; cached
+metadata on a new binding cannot authorize lifecycle intent.
+
+The new bundled GPUI fixtures exercise Loading versus table-only Ready, retained
+composer input, automatic full-retirement owner notification and exact pending
+lifecycle uncertainty. They use the staged minter and no real delivery lease.
+They do not prove transport, atomic Request dispatch, rich Pending eligibility,
+expected-end sealing, stop acknowledgement, Window commit, painting or IME.
+The generic lifecycle acknowledgement is never the expected-stop adapter.
+
+### Atomic installed Request boundary
+
+`SessionResidents::admit_request` validates the full captured input context,
+Visible/Focused state, exact binding and the original `ConnectionContext` stored
+by the same open minter. It then splits its existing entry/admission fields:
+the installed Requests owner reserves the actual conversation form while the
+sole Residents ledger mints one Request ticket, and commit records Sending
+without an await or intervening form mutation. Any refusal drops preparation
+without a Sending change. `settle_request` checks that installed correlation,
+consumes the canonical ticket, then changes the owner before invoking its result
+callback. A reply never refreshes a local context.
+
+Two additional bundled source fixtures cover successor connection/stale/hidden
+input refusal, duplicate/foreign-namespace completion, automatic installed
+Request retirement and exact resolution via the real scoped record-intake
+entry. They now pass in the receiving run recorded below. No delivery
+guard is fabricated: the eventual wire consumer must still check the same
+original lease before effects and after the queue. Rich authoritative Pending
+eligibility remains a required consumer amendment when its DTOs are present.
+
+The first receiving strict run, `wp-layout-core-union-20261116T010146Z-fcc63e99`,
+compiled the requested crate targets but rejected three unused-result lints in
+the App test target: the pre-consume correlation value and two projection-change
+flags. The correction names those deliberately unused values; it changes no
+validation, ordering, callback or assertion. No tests ran in that failed check.
+
+### Executed receiving owner union
+
+Exact `40e2ef6064405552fcd0349c7d1c99e09bda2587` completed requested View/App
+all-target strict Clippy in `wp-layout-core-union-20261116T010607Z-40e2ef60`,
+fonts/cargo0. Its raw log shows actual Kit/App Checking; View/Link were cached.
+Same-head `wp-layout-core-union-20261116T011248Z-40e2ef60` compiled
+View/Kit/Link/App and ran App all-target tests148/0/2 ignored, fonts/cargo0.
+All four new bundled Lifecycle/Requests cases and the earlier four Requests
+kernel cases passed explicitly. The earlier failed strict run remains separate.
+
+The selected portable native subtree equals that executed source; its new commit
+ids were not separately run. This is staged source and affected App execution,
+not a whole native gate, live multi-pane input, transport/Guard, rich Pending,
+scoped composer factory, expected-stop Window, painting or IME proof. Original
+global ownership and every literal module/constructor test gate remain intact.
+
+### Scoped composer factory receiving preparation
+
+The next isolated union selects only the base13 B2 constructor leaf
+`49f89435c016cb64faefbfd15bfb6989e3b36b2e`. Its own receiving strict and App/Kit
+execution are producer evidence, not this resource-union execution. It moves
+the existing SessionView fields without changing `session/body.rs`, supplies the
+captured Plain callback and retains the bare composer Enter propagation guard.
+Its lower639-line root cap replaces673; the older larger cap is never restored.
+
+The B2 fixture's resource literal now calls the same `SessionResources::new`
+constructor so it includes the actual Requests and Loading Lifecycle fields.
+The separate authored GPUI fixture invokes `admit_session_open` with the real
+scoped SessionView factory and the kept ConversationDisplay initializer. It
+checks actual Enter dispatch to that minter-issued context, the original field
+identity through readmission and hidden-event refusal without swapping the
+legacy global field. WorkspaceLookup and connection values are isolated typed
+fixtures: no delivery guard, RPC or runtime workspace owner is supplied.
+
+This isolated receiving case now passes in the Core run documented in
+[`wp-layout-core-receiving.md`](wp-layout-core-receiving.md). It draws the retained
+field directly; it does not prove the product
+pane mount, painted bounds, read tracking, caret/IME, owner effects, snapshots,
+live follow or removal of legacy globals. Every resident constructor/module
+test gate remains in place.

@@ -57,6 +57,8 @@ pub(super) struct Paint<'a> {
     pub(super) fork_headers: &'a vessel_app_view::fork::Headers,
     /// What a fork's first line has above or under it (`origin`).
     pub(super) above: super::origin::Above<'a>,
+    /// A message's files as they are drawn (track P's).
+    pub(super) files: crate::areas::composer::SentFiles<'a>,
 }
 
 /// Entry `index` as its row.
@@ -70,7 +72,7 @@ pub(super) fn entry(
 ) -> AnyElement {
     let words = paint.words;
     match &entry.kind {
-        EntryKind::Prompt(prompt) => bubbles::person(paint, index, prompt, None),
+        EntryKind::Prompt(prompt) => bubbles::person(paint, index, prompt, None, cx),
         EntryKind::Steer { text, attachments } => bubbles::person(
             paint,
             index,
@@ -81,6 +83,7 @@ pub(super) fn entry(
                 attachments: attachments.clone(),
             },
             Some(words.steered().to_owned()),
+            cx,
         ),
         // Claude's reply that only repeats the failure ending its turn
         // (Paseo holds it back): the failure says it once.
@@ -204,7 +207,7 @@ pub(super) fn work_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -220,7 +223,7 @@ pub(super) fn work_row(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.toggle_entry(seat, index, cx);
+            shell.toggle_entry(&seat, index, cx);
         }))
         .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))

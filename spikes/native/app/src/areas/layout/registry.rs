@@ -62,9 +62,9 @@ pub(super) fn render(
                 .map_or_else(div, |render| render(shell, tokens, window, cx))
                 .into_any_element()
         }
+        Target::Draft(_) => crate::areas::draft::workspace_panel(shell, panel, tokens, window, cx),
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
         Target::Agent(_)
-        | Target::Draft(_)
         | Target::ProviderSubagent { .. }
         | Target::Terminal(_)
         | Target::Browser(_)

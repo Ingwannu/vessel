@@ -22,8 +22,9 @@ use crate::error::StoreError;
 /// Only the session's identity, spec, profile, creator, origin, model
 /// route, title and current labels come from `info`. Its status is
 /// stored as `Starting` and live, and everything else is derived from the
-/// records appended later: `info` is a snapshot the runtime took after the
-/// process started, and a session that ends within milliseconds would
+/// records appended later. The node supplies the runtime's frozen initial
+/// snapshot, before its actor publishes: a late current metadata map must
+/// not be paired with this empty log. A session that ends within milliseconds would
 /// otherwise be stored as ended with no end time and an empty log (and be
 /// the first one retention prunes, under the appends still coming).
 pub(crate) fn create_session(
@@ -66,6 +67,7 @@ pub(crate) fn create_session(
         return Err(StoreError::SessionExists(info.id));
     }
     crate::usage::initialize_cost(connection, info)?;
+    let _updated = crate::mutation_time::advance(connection, info.id)?;
     Ok(())
 }
 
@@ -119,6 +121,72 @@ struct Projection {
 }
 
 impl Projection {
+    // Keep the SQL parameter order and encoding together, separate from
+    // validating/appending log records and their projection observation.
+    fn save(
+        &self,
+        connection: &Connection,
+        session: SessionId,
+        next: EventSeq,
+    ) -> Result<(), StoreError> {
+        let _rows = connection
+            .prepare_cached(
+                "UPDATE sessions SET
+                     next_seq = ?2,
+                     retained_bytes = retained_bytes + ?3,
+                     status = COALESCE(?4, status),
+                     live = COALESCE(?5, live),
+                     ended_at = COALESCE(?6, ended_at),
+                     harness_session = COALESCE(?7, harness_session),
+                     profile = CASE WHEN ?8 THEN ?9 ELSE profile END,
+                     title = COALESCE(?10, title),
+                     title_origin = CASE WHEN ?18 THEN ?19 ELSE title_origin END,
+                     choices = COALESCE(?11, choices),
+                     abilities = COALESCE(?12, abilities),
+                     usage = COALESCE(?13, usage),
+                     queue = COALESCE(?14, queue),
+                     attention_seq = COALESCE(?15, attention_seq),
+                     latest_plan = CASE WHEN ?17 THEN ?16 ELSE latest_plan END
+                 WHERE id = ?1",
+            )?
+            .execute(params![
+                session.to_string(),
+                seq_to_sql(next)?,
+                bytes_to_sql(ByteCount::new(self.bytes))?,
+                self.status.as_ref().map(encode).transpose()?,
+                self.status.as_ref().map(SessionStatus::is_live),
+                self.ended_at.map(time_to_sql).transpose()?,
+                self.harness_session.as_ref().map(HarnessSessionId::as_str),
+                matches!(self.profile, ProfileMove::To(_)),
+                self.profile_text(),
+                self.title.as_ref().map(|(title, _origin)| title.as_str()),
+                self.choices.as_ref().map(encode).transpose()?,
+                self.abilities.as_ref().map(encode).transpose()?,
+                self.usage.as_ref().map(encode).transpose()?,
+                self.queue.as_ref().map(encode).transpose()?,
+                self.attention.map(seq_to_sql).transpose()?,
+                match &self.plan {
+                    PlanMove::Reported(plan) => Some(encode(plan)?),
+                    PlanMove::Cleared | PlanMove::Unchanged => None,
+                },
+                !matches!(self.plan, PlanMove::Unchanged),
+                self.title.is_some(),
+                self.title
+                    .as_ref()
+                    .map(|(_title, origin)| origin_sql(*origin))
+                    .transpose()?
+                    .flatten(),
+            ])?;
+        Ok(())
+    }
+
+    fn profile_text(&self) -> Option<&str> {
+        match &self.profile {
+            ProfileMove::To(Some(name)) => Some(name.as_str()),
+            ProfileMove::To(None) | ProfileMove::Unchanged => None,
+        }
+    }
+
     fn observe(&mut self, record: &EventRecord, stored_bytes: usize) {
         let stored_bytes = u64::try_from(stored_bytes).unwrap_or(u64::MAX);
         self.bytes = self.bytes.saturating_add(stored_bytes);
@@ -200,6 +268,7 @@ pub(crate) fn append<'a>(
         .optional()?
         .ok_or(StoreError::UnknownSession(session))?;
     let mut expected = seq_from_sql(next)?;
+    let before = expected;
     let mut projection = Projection::default();
     let mut insert = connection.prepare_cached(
         "INSERT INTO events (session_id, seq, at, event) VALUES (?1, ?2, ?3, ?4)",
@@ -233,65 +302,11 @@ pub(crate) fn append<'a>(
         .status
         .as_ref()
         .is_some_and(|status| !status.is_live());
-    let _rows = connection
-        .prepare_cached(
-            "UPDATE sessions SET
-                 next_seq = ?2,
-                 retained_bytes = retained_bytes + ?3,
-                 status = COALESCE(?4, status),
-                 live = COALESCE(?5, live),
-                 ended_at = COALESCE(?6, ended_at),
-                 harness_session = COALESCE(?7, harness_session),
-                 profile = CASE WHEN ?8 THEN ?9 ELSE profile END,
-                 title = COALESCE(?10, title),
-                 title_origin = CASE WHEN ?18 THEN ?19 ELSE title_origin END,
-                 choices = COALESCE(?11, choices),
-                 abilities = COALESCE(?12, abilities),
-                 usage = COALESCE(?13, usage),
-                 queue = COALESCE(?14, queue),
-                 attention_seq = COALESCE(?15, attention_seq),
-                 latest_plan = CASE WHEN ?17 THEN ?16 ELSE latest_plan END
-             WHERE id = ?1",
-        )?
-        .execute(params![
-            id,
-            seq_to_sql(expected)?,
-            bytes_to_sql(ByteCount::new(projection.bytes))?,
-            projection.status.as_ref().map(encode).transpose()?,
-            projection.status.as_ref().map(SessionStatus::is_live),
-            projection.ended_at.map(time_to_sql).transpose()?,
-            projection
-                .harness_session
-                .as_ref()
-                .map(HarnessSessionId::as_str),
-            matches!(projection.profile, ProfileMove::To(_)),
-            match &projection.profile {
-                ProfileMove::To(Some(name)) => Some(name.as_str()),
-                ProfileMove::To(None) | ProfileMove::Unchanged => None,
-            },
-            projection
-                .title
-                .as_ref()
-                .map(|(title, _origin)| title.as_str()),
-            projection.choices.as_ref().map(encode).transpose()?,
-            projection.abilities.as_ref().map(encode).transpose()?,
-            projection.usage.as_ref().map(encode).transpose()?,
-            projection.queue.as_ref().map(encode).transpose()?,
-            projection.attention.map(seq_to_sql).transpose()?,
-            match &projection.plan {
-                PlanMove::Reported(plan) => Some(encode(plan)?),
-                PlanMove::Cleared | PlanMove::Unchanged => None,
-            },
-            !matches!(projection.plan, PlanMove::Unchanged),
-            projection.title.is_some(),
-            projection
-                .title
-                .as_ref()
-                .map(|(_title, origin)| origin_sql(*origin))
-                .transpose()?
-                .flatten(),
-        ])?;
+    projection.save(connection, session, expected)?;
     crate::usage::prune(connection, Utc::now())?;
+    if expected != before {
+        let _updated = crate::mutation_time::advance(connection, session)?;
+    }
     Ok(Appended { ended })
 }
 

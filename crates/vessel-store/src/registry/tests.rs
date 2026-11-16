@@ -535,3 +535,6 @@ fn admission_distinguishes_missing_inactive_and_active_without_changing_state() 
     );
     assert_eq!(load(&db).unwrap(), before);
 }
+
+mod memberships;
+mod project_reference;

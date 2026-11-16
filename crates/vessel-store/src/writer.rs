@@ -35,6 +35,7 @@ use vessel_proto::{
 };
 
 use self::apply::{apply, isolated};
+use crate::SessionCommit;
 use crate::attachments::{self, KeptAttachment};
 use crate::config::Retention;
 use crate::devices::CredentialHash;
@@ -63,15 +64,20 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Accepted label writes belong to the serial publication actor.
+    WorkspaceLabels(Box<crate::workspace_labels::Write>),
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
-    Create { info: Box<SessionInfo>, done: Done },
+    Create {
+        info: Box<SessionInfo>,
+        done: Done<SessionCommit<()>>,
+    },
     /// Append records to a session's log. Shared with the session runtime's
     /// ring and subscribers, so persisting them copies nothing.
     Append {
         session: SessionId,
         records: Vec<Arc<EventRecord>>,
-        done: Done,
+        done: Done<SessionCommit<()>>,
     },
     /// Store a newly paired device.
     AddDevice {
@@ -96,7 +102,7 @@ pub(crate) enum Write {
         session: SessionId,
         mark: Mark,
         at: DateTime<Utc>,
-        done: Done<KeptMarks>,
+        done: Done<SessionCommit<KeptMarks>>,
     },
     /// Atomic first/repeated detach, replied only after commit.
     Detach {
@@ -111,7 +117,7 @@ pub(crate) enum Write {
     Reopen {
         session: SessionId,
         next: EventSeq,
-        done: Done<KeptMarks>,
+        done: Done<SessionCommit<KeptMarks>>,
     },
     /// Record an attachment whose file is in place and checked (protocol
     /// 10), kept at `at`. Boxed for the queue's slots, as `Create` is.
@@ -123,7 +129,7 @@ pub(crate) enum Write {
     /// Mark one exact inbox entry; a read never answers a request.
     Inbox {
         mark: vessel_proto::inbox::MarkInbox,
-        done: Done,
+        done: Done<SessionCommit<()>>,
     },
     /// Device-scoped subscription changes; lease and scope checked atomically.
     Push {
@@ -179,8 +185,36 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    LabelAssigned(
+        Done<crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelAssigned>>,
+        Result<
+            crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelAssigned>,
+            StoreError,
+        >,
+    ),
+    LabelUpdated(
+        Done<crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelUpdated>>,
+        Result<
+            crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelUpdated>,
+            StoreError,
+        >,
+    ),
+    LabelDeleted(
+        Done<crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelDeleted>>,
+        Result<
+            crate::WorkspaceLabelCommit<vessel_proto::workspace_labels::WorkspaceLabelDeleted>,
+            StoreError,
+        >,
+    ),
     Done(Done, Result<(), StoreError>),
-    Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
+    Session(
+        Done<SessionCommit<()>>,
+        Result<SessionCommit<()>, StoreError>,
+    ),
+    Marked(
+        Done<SessionCommit<KeptMarks>>,
+        Result<SessionCommit<KeptMarks>, StoreError>,
+    ),
     Detached(
         Done<vessel_proto::subagents::DetachedSession>,
         Result<vessel_proto::subagents::DetachedSession, StoreError>,
@@ -191,8 +225,12 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::LabelAssigned(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::LabelUpdated(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::LabelDeleted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Session(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };
         if !sent {

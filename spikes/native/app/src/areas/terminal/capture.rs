@@ -92,6 +92,8 @@ fn open(
             agent: "fake".into(),
             structured: false,
             live: true,
+            archived_at: None,
+            binding: None,
         },
         window,
         cx,

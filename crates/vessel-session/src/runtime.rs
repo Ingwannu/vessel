@@ -6,6 +6,8 @@
 //! shares with its handles and registers it; this module holds the map of
 //! handles and its lifetime.
 
+mod admission;
+pub use admission::LaunchAdmission;
 mod agent;
 mod claims;
 mod drivers;
@@ -57,6 +59,9 @@ use crate::handle::SessionHandle;
 pub struct SessionRuntime {
     config: RuntimeConfig,
     shutdown: CancellationToken,
+    admission: Option<CancellationToken>,
+    #[cfg(test)]
+    lookup_gate: admission::tests::LookupGateSlot,
     tasks: TaskTracker,
     sessions: RwLock<HashMap<SessionId, SessionHandle>>,
     /// The node's attachment loader (protocol 10), which every structured
@@ -76,6 +81,10 @@ pub struct SessionRuntime {
 /// A session that was just started.
 #[derive(Debug)]
 pub struct Created {
+    /// The row's seed, captured before its actor can publish. Persistence must
+    /// use this instead of a late handle snapshot: an advanced current map
+    /// cannot seed an empty log. Boxed to keep startup futures small.
+    pub initial: Box<SessionInfo>,
     /// The session.
     pub handle: SessionHandle,
     /// Every record, in order, exactly once. The node must drain it into the
@@ -94,6 +103,9 @@ impl SessionRuntime {
         Self {
             config,
             shutdown,
+            admission: None,
+            #[cfg(test)]
+            lookup_gate: admission::tests::LookupGateSlot::default(),
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
@@ -101,6 +113,21 @@ impl SessionRuntime {
             claims: claims::Claims::default(),
             drivers: drivers::Drivers::default(),
         }
+    }
+
+    /// Freeze new launches at node stop while actors stay alive for settings
+    /// settlement. This observes the existing stop source, never creates one.
+    #[must_use]
+    pub fn with_admission(mut self, node_stop: CancellationToken) -> Self {
+        self.admission = Some(node_stop);
+        self
+    }
+
+    /// Give blocking preparation the same live close sources as actual spawn.
+    /// A successful check is only liveness, never caller/permission authority.
+    #[must_use]
+    pub fn launch_admission(&self) -> LaunchAdmission {
+        LaunchAdmission::new(self.shutdown.clone(), self.admission.clone())
     }
 
     /// How long an idle structured session runs before its agent is

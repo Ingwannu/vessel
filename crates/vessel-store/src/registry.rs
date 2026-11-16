@@ -5,6 +5,7 @@ mod automation;
 mod capacity;
 mod lease_read;
 mod leases;
+mod project_reference;
 mod read;
 #[cfg(test)]
 mod tests;
@@ -26,7 +27,10 @@ pub use capacity::{
 };
 
 pub(crate) use lease_read::{current as resource_run, pending as pending_starts};
-pub(crate) use read::{load, reservation, resource_owner, workspace};
+pub(crate) use project_reference::read as project_reference;
+pub(crate) use read::{
+    load, memberships as workspace_memberships, reservation, resource_owner, workspace,
+};
 pub(crate) use write::apply;
 
 /// Whether a transaction changed the durable snapshot version.
@@ -40,6 +44,8 @@ pub(crate) enum RegistryChange {
 /// One snapshot read transaction returns placement and ownership together.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredRegistry {
+    /// Ordered label names hydrated in the same read transaction; never persisted here.
+    pub labels: Vec<vessel_proto::workspace_labels::WorkspaceLabelAssignments>,
     /// Global ordering token changes in the transaction that mutates any registry row.
     pub revision: RegistryRevision,
     /// Empty workspaces are retained independently of session membership.

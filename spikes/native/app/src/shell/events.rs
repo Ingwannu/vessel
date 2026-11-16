@@ -12,9 +12,14 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::CodeSource(answer) => self.code_source_answer(*answer),
+            Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
+            Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
+            Event::Creation(answer) => self.creation_answer(answer, cx),
             Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
+                self.history_retired(&context, cx);
                 if !self.devices_retired(&context) {
                     return;
                 }
@@ -34,6 +39,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.history_fleet(&earlier);
                 self.devices_fleet();
                 self.offers_fleet(&earlier);
                 if !self.loaded {
@@ -45,9 +51,11 @@ impl Shell {
                         self.pairing_opened(cx);
                     }
                 }
+                crate::areas::shortcuts::book_changed(self);
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                self.sessions_fleet_changed();
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);
@@ -86,7 +94,7 @@ impl Shell {
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
             Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
-            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
+            Event::Files(answer) => self.composer_answered(answer, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);
@@ -103,3 +111,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod import_retire_tests;

@@ -126,24 +126,25 @@ on the settings type when they merge.
 
 ### Shared admission foundation
 
-The purpose is to represent a protocol number that is not assigned while
-preserving the existing numeric inspection API used by many callers.
-The existing `Call::since()` table covers assigned method and field
-versions. A numeric sentinel or the current version would pretend a
-pending feature had an assigned version; changing every numeric API at
-once would disrupt unrelated features. The choice is one additive
-`Call::required_protocol() -> Option<ProtocolVersion>`, defaulting to
-`Some(self.since())`; feature-specific pending calls return `None`.
-All three fleet envelopes propagate the inner requirement. Client
-admission runs before request ids and the writer queue, and server
-admission runs before dispatch. A pending requirement is the typed
-`CallError::UnassignedProtocol { method }`, with code `Unsupported`.
-The benefit is an explicit state and one mechanism for every feature;
-the cost is that admission must use the optional accessor rather than
-numeric inspection. This foundation adds no pending call or title type;
-its guards test pending and assigned states, and a feature adds its
-end-to-end pending request test when registered. It opens no new network
-path and uses the same pure-Rust refusal on Windows.
+The method table represents unassigned protocol numbers explicitly. On the
+Quality B foundation, both `Method::since()` and `Call::since()` return
+`Option<ProtocolVersion>`; `required_protocol()` delegates to the latter.
+The metadata field contributes `GENERATED_NAMES` to the existing settings
+call, retaining its older fields' requirements. An unassigned contribution
+refuses the whole patch; assigned contributions combine with those fields
+and the method's version. There is no new method in the session-title package,
+so it adds no pending method row. Later new calls use the shared table's
+`[Scope, (pending GENERATED_NAMES), shape]` form until integration assigns it.
+
+All three fleet envelopes propagate the inner requirement. Client admission
+runs before request ids and the writer queue, and server admission before
+dispatch. A pending requirement is `CallError::UnassignedProtocol { method }`,
+with code `Unsupported`. The original shared-admission checkpoint introduced
+the optional accessor while keeping numeric inspection; Quality B now makes
+inspection optional too, with one method table. This package uses that head's
+contract, never a second admission rule or numeric sentinel. Existing assigned
+methods retain their versions. The pure-Rust refusal opens no network path
+and has the same behavior on Windows.
 
 ### The seam
 
@@ -195,19 +196,59 @@ be refused before saving. This is a deliberate security and cost bound,
 not a reproduction of Paseo's explicit-model pass-through. An effort that
 the provider's API cannot represent is omitted: Anthropic's wire effort is `low`, `medium`, `high` and
 `max` (`wire/anthropic.rs` 376–385), so `minimal` is omitted on that
-call and the provider's default stands. When the entry omits effort,
+call and the provider's default stands. Chat's `max` is likewise omitted
+rather than downgraded to `high`; a provider configured without reasoning
+fields receives no effort. These omissions apply only to metadata, and do
+not change proxy translation. When the entry omits effort,
 the provider's default stands, except the automatic `gpt-5.4-mini`
 match, which asks for low.
 
 No resolvable route: no call. The fallback below applies, and the node
 logs the class (`no route`), never the prompt.
 
-The model id sent upstream is the route's `small_model` when the entry
-did not name a model and the route has a small model, otherwise the
-route's model. Preferring `small_model` here is a Vessel cost choice.
+For a manual entry without a model, or the session-route fallback,
+the model id sent upstream is the route's `small_model` when it has one,
+otherwise its primary model. Preferring `small_model` here is a Vessel
+cost choice. An automatic model-id substring match instead keeps the
+actual matching model id, primary before small when both match. It must
+not substitute an unrelated small model after matching the primary id.
+A route-name-only alias match uses the same small/primary cost choice.
 Paseo's manual candidate without a model uses the default or first model
 (`selectDefaultModel`, 262–264); its automatic path uses the model that
 matched the substring, not a separate small-model field.
+
+### Route selection and staging
+
+The node reuses its parsed `Routes` snapshot and the bounded metadata
+settings. No provider SDK, discovery request, credential read or model
+request is needed to select a tuple. Paseo scans the supplied provider
+and model arrays (`structured-generation-providers.ts` 232–249). Vessel
+uses the catalog's deterministic route-name order for equal-priority
+matches; the primary/small ids take the place of that model array, and a
+route name remains the stated label substitute. This is a deliberate
+difference for a declared `models.toml` catalog, not a claim to reproduce
+provider discovery ordering. The hint order itself is unchanged.
+
+Manual selection never appends automatic choices. On reload, a vanished
+route may be skipped for the next stored manual entry, but an existing
+selected route with a now-disallowed explicit model or unknown effort is
+refused, not silently repaired or sent to another provider. Stored
+duplicates cannot change the first resolvable tuple and never authorize a
+second request. Selection is not settings validation: saving still needs
+the later all-candidate checks, including the actual encoded API budget.
+The session fallback supplies a route, not harness-specific thinking
+options: absent a metadata preference or automatic hint, its provider
+default stands. Paseo can carry the current selection's thinking id
+(`structured-generation-providers.ts` 95–135). Vessel keeps metadata effort
+explicit at this direct model-route seam; guessing from agent-specific
+option keys in the node would cross the harness ownership boundary.
+
+Before wiring, the node selector module and its borrowed catalog iterator
+are compiled only for tests. The wiring commit after the shared accessor
+removes both attributes and supplies the real caller; no public API or
+lint suppression is added to keep unused product code. Tests use the real
+catalog parser and typed settings with synthetic endpoints, opening no
+socket and reading no credential. The selector alone does not spend.
 
 ### Strict complete-response decoding
 
@@ -655,3 +696,300 @@ still costs a call here, and costs Paseo nothing.
   slice that makes the setting real, not in this commit: a document
   that describes a call the binary does not have would disagree with
   the code.
+
+### Project-file whitespace policy
+
+The project's `vessel.toml` instructions keep Rust `str::trim`, consistent
+with Vessel's own project-file text handling. Paseo uses JavaScript trim;
+their Unicode whitespace sets differ. The shared JavaScript-style trim
+helper, if present, is not applied to this own-format reader. This is a
+stated format choice, not a claim of identical whitespace classification.
+
+
+### Shared request options before complete requests
+
+[Decision Log]
+- Purpose and intent: keep provider quirks identical for proxy traffic and
+  the later bounded metadata request.
+- Existing implementation and constraints: the proxy assembles three
+  public upstream option structs and serializes their typed requests.
+  The complete response decoder already lives in vessel-llm; no second
+  provider grammar belongs in the node.
+- Alternatives considered: duplicate the proxy option match in metadata,
+  or introduce an SDK. Both would create a second configuration policy.
+- Choice: move option assembly to a Provider method and add one closed
+  upstream Options enum whose streamed encoder delegates to the existing
+  encoders. This extraction changes neither flags nor request bytes.
+- Why this choice: the node still owns its catalog; vessel-llm still owns
+  API encoding. Existing serde and Bytes suffice; no dependency is added.
+- Effects: the proxy shrinks. Complete-request policy will be a separate
+  change, with actual encoded-budget checks rather than proxy changes.
+
+
+### Bounded complete request preparation
+
+[Decision Log]
+- Purpose and intent: send a bounded whole-response request through the
+  same typed encoders without inheriting streaming flags or a raised cap.
+- Existing constraints: upstream encoders select streaming and Anthropic's
+  budgeted thinking may raise max_tokens. Checking only the neutral cap
+  would not bound the actual provider request.
+- Alternatives considered: hand-write a second request format, or lower a
+  thinking budget after encoding. Both create a second API policy.
+- Choice: the LLM owner takes an owned neutral request and a positive
+  OutputTokens value, applies the stated metadata effort omissions, sets
+  the cap, delegates to the existing encoder, then verifies the encoded
+  cap before serialization. It switches stream off and removes Chat's
+  stream_options. A raised or missing encoded cap is a typed refusal.
+- Why this choice: the actual request is the cost boundary. Existing
+  encoders, serde and NonZeroU32 suffice; there is no new dependency.
+- Effects: budgeted thinking that cannot fit is refused, without another
+  route or retry. This is a Vessel cost limit; Paseo's structured call
+  (worktree-branch-name-generator.ts 114–135) does not specify this cap.
+  No request is sent and no node setting changes in this library slice.
+
+### Title material and semantic result edge
+
+[Decision Log]
+- Purpose and intent: isolate bounded source material and the generated
+  title JSON from routing, HTTP, credentials and actor mutation.
+- Existing constraints: GeneratedTitle already checks raw UTF-16 units
+  before the ordinary title constructor. CompletionText and JsonFailure
+  already seal provider text and decoder diagnostics. ProjectStyles owns
+  checked replacement instructions. These types are reused.
+- Alternatives considered: accept an unbounded prompt string in the
+  transport, decode into a generic JSON tree, or copy Paseo's prompt.
+- Choice: capture at most MAX_SOURCE_CHARS Unicode scalars in a redacted
+  material type, remember whether it was cut, and construct an original
+  tool-free title-only prompt. Checked project style replaces only the
+  style section. The shared output limit constant formats instructions.
+- Why this choice: the source cap applies before encoding and cannot be
+  bypassed by prompt assembly. A blank captured prefix yields no source;
+  the observer must not substitute a later turn. Paseo's style replacement
+  is preserved (build-metadata-prompt.ts 35–43); the bounded source and
+  direct JSON prompt are Vessel's cost and integration choices.
+- Effects: the node decodes title JSON once with a typed object, seals its
+  serde cause, uses GeneratedTitle, and checks the final title for keys.
+  A nonempty whitespace-only title becomes no title, like Paseo's trim
+  fallback (worktree-branch-name-generator.ts 132). Empty raw text, invalid
+  or oversized text is refused. An escaped lone surrogate is refused by
+  serde before the title constructor. Rust title trimming remains the
+  existing constructor's rule. Unknown result keys are ignored, as the
+  reference object schema does. Branch output is not requested or applied
+  in this title-only slice; the branch slice still owes independent use
+  of a valid branch when a title is blank.
+
+The node material/prompt/result module is staged under cfg(test) until
+shared-accessor wiring supplies the real caller. This edge performs no
+file or socket I/O, discovers no route and mutates no session.
+
+### One bounded completion transport
+
+[Decision Log]
+- Purpose and intent: bound the one metadata HTTP exchange independently
+  of the proxy's long stream budgets and retries.
+- Existing implementation and constraints: vessel-llm Client already owns
+  TLS, the declared endpoint, credential headers, redirect/proxy refusal,
+  response-body bounds and Redactor. Limits are fixed when it is built.
+  Reusing the proxy instance would inherit its longer bounds and retries.
+- Alternatives considered: another HTTP stack, changing proxy limits, or
+  a trait with one production implementation. All introduce a second
+  transport policy or change unrelated model traffic.
+- Choice: the node constructs one dedicated existing Client with the named
+  metadata policy and retains its pool. A private wrapper accepts only
+  that policy, adds the total title-call timeout around send and body,
+  then delegates whole-response decoding to vessel-llm. Retries are off.
+- Why this choice: the same existing transport enforces the byte bound
+  while reading, before complete decoding. Endpoint and credential are
+  passed in by the later route/permission owner, never discovered here.
+- Effects: provider Failure is retained typed behind a sealed diagnostic
+  wrapper because its message may quote input; only its class is exposed.
+  Deadline keeps its typed elapsed cause. Complete decode results keep
+  reported usage and stop even when content is unusable. The only test
+  alternatives are cfg(test) recorded and stalled arms; product builds
+  cannot answer with a fake. Tests perform no network or real-key access.
+
+This client module remains staged under the generation module's cfg(test)
+until shared-accessor wiring installs its production caller. It does not
+choose a route, read a key, acquire session permits, record a ModelCall or
+apply a title; the later owner must do those operations in that order.
+
+### Reuse initialized TLS trust for a separate bounded pool
+
+[Decision Log]
+- Purpose and intent: construct the metadata pool once without repeating
+  operating-system certificate reads or retaining proxy connect timeouts.
+- Existing constraints: cloning vessel-llm Client shares its HTTP pool and
+  the connect bound fixed by its builder. Its current constructors already
+  load and configure trust correctly. Re-running root loading inside each
+  generation, or a cancelable lazy initializer, can duplicate blocking work.
+- Alternatives considered: clone the proxy unchanged, load roots again,
+  or add another TLS/root cache. None provides both the separate policy
+  and reuse of already initialized trust.
+- Choice: first move existing constructors unchanged into their own client
+  build module. Separately retain their immutable TLS configuration and
+  add with_limits: build a distinct existing HTTP pool with those same
+  roots and the requested limits. Ordinary Client cloning stays unchanged.
+- Why this choice: the TLS owner still owns every TLS decision and the node
+  can construct its one metadata client from the initialized proxy client.
+  Standard Arc and existing dependencies suffice; no root file is reread.
+- Effects: roots remain fixed for that client's lifetime, as before. A
+  certificate change requires the owner to rebuild it. Tests check shared
+  trust identity and independent policies without opening a socket. No
+  generation, route or credential discovery is added by the factory.
+
+### Prepared title requests and settings preflight
+
+[Decision Log]
+- Purpose and intent: make the bounded encoder the only product constructor
+  of a metadata request that can reach the transport, and validate every
+  manual setting before it can be saved.
+- Existing constraints: route selection checks one tuple; writing needs
+  all candidates checked. The text edge owns neutral defaults and effort
+  mapping, while the LLM encoder owns the actual provider cap check.
+- Alternatives considered: duplicate those checks in Settings, send a
+  probe to the provider, or let the client take arbitrary bytes.
+- Choice: reuse one candidate checker and neutral request constructor.
+  One encoder produces a redacted Prepared body with its API identity.
+  Actual title preparation supplies captured material and style. Pure
+  settings validation uses an unsent empty conversation to check the same
+  model/effort/output policy, with no route, key or capability discovery.
+- Why this choice: a route's declared flags and allowed model pair can be
+  checked without spending. The positive title-output budget is named in
+  this owner and converted to OutputTokens before encoding. An API mismatch
+  at the transport boundary is refused before any call.
+- Effects: empty automatic settings remain valid even without routes;
+  every manual entry, including a later entry, must resolve and encode.
+  Reload-time selection still skips vanished entries as already stated.
+  A typed preflight refusal leaves file and active settings untouched.
+  This validates declared local configuration, not remote model availability.
+  No setting is registered or saved in this staged preparation slice.
+
+### Shared recording, typed credentials and live admission
+
+[Decision Log]
+- Purpose and intent: share existing model accounting and credential policy
+  while ensuring an ended task cannot recreate its retired permit entry.
+- Existing constraints: the proxy owns neutral usage/stop/failure mappings;
+  Models::key currently turns read/join errors into strings. Permits are
+  keyed by session id and retirement removes that entry.
+- Alternatives considered: copy the record mappings, read credentials in
+  generation, or check liveness outside the permit-map lock. Copies drift;
+  a separate key path can bypass policy; an external check races retirement.
+- Choice: move the existing accounting mappings unchanged to their own
+  owner. Keep one Models key reader with typed, sealed read/task causes,
+  preserving missing/plain-key diagnostics at the proxy boundary. Admit
+  through the original session handle with its live check inside the
+  existing permit-map lock; the same node/session semaphores are reused.
+- Why this choice: no second writer, credential store, pool or lock crosses
+  an await. Existing proxy traffic keeps its policy and known counts.
+- Effects: generation records only actual attempts. Known reported stops
+  and usage survive semantic title refusal; unavailable/invalid preparation
+  makes no ModelCall. Unknown finality uses the existing error/truncation
+  representation, never a fabricated normal ending. Records remain best
+  effort while live, as already stated; a final status stays the last record.
+
+### Live first-input controller
+
+[Decision Log]
+- Purpose and intent: connect the checked preparation, bounded transport and
+  actor proposal without delaying session creation or replacing a person's title.
+- Existing constraints: the runtime already publishes the first titleable text
+  and its Given rename in order, provides an atomic cached/live follower and
+  owns title eligibility. Models already owns live call permits and credentials.
+- Alternatives considered: use later prompts after losing the first event,
+  inspect harness transcripts, duplicate the actor guard in the node, or make
+  creation await generation. Each weakens either provenance, privacy or latency.
+- Choice: arm only the external fresh structured creation path. Follow from
+  the beginning atomically, capture the first titleable text block once, and
+  wait for its Given title. Gaps, lag and a blank bounded prefix end the task;
+  they never substitute later text. The handle exposes the actor's existing
+  eligibility predicate for early cancellation; the actor remains the final
+  compare-and-publish authority. Untitled sessions are left alone.
+- Why this choice: cached events cover input racing creation. The original
+  handle stays with the task, so a resumed run sharing its id cannot inherit
+  old work. Info changes cancel outstanding work when ownership is lost,
+  parking occurs or the run ends; finishing an agent turn alone does not.
+- Effects: one dedicated HTTP pool reuses initialized trust. Shared permits
+  bound preparation and calls; no generation task retires a session. One
+  actual attempt emits existing best-effort ModelCall accounting, including
+  known usage and stops on semantic refusal. Cancellation can leave unknown
+  usage, recorded as truncation while live; no record follows final status.
+  Project styles resolve through the existing checked Git runner, falling
+  back to the working folder outside Git. Files run on blocking workers.
+  This differs from Paseo's main-repository style root as already stated.
+  No branch, commit or pull generation is enabled by this package.
+
+
+Cancellation observes bounded event history as well as the current info.
+A watch can coalesce a parked/woken pair; that pair must still cancel the
+original task. A gap or lag is conservative cancellation, never permission
+to take another source. Ready cancellation is polled before preparation.
+The actor's current eligibility check remains the final mutation authority.
+
+
+The settings reply carries optional metadata as a capability distinction:
+Some(empty providers) is supported Automatic, and None is unsupported.
+Per-peer projection clears the option while unassigned or below the threshold;
+it never hides Automatic from a supported peer. Runtime tasks read the settings
+owner's policy directly, independently of that wire projection. The nullable
+lenient view is shared by file and reply decoding; patches remain strict.
+
+### Physical preparation outlives cancellation
+
+[Decision Log]
+- Purpose and intent: cancelling an obsolete title must suppress its result
+  without admitting replacement file work before the original read finishes.
+- Existing constraints: dropping a `spawn_blocking` join handle does not stop
+  its closure. The first controller held model permits only in the async
+  caller, and subscription forwarders have a bounded shutdown grace. Neither
+  proves physical preparation has ended.
+- Alternatives considered: abort a join handle, release capacity on logical
+  cancellation, allocate a separate quota, or duplicate the secret reader.
+  These respectively fail to stop running file work, over-admit replacements,
+  split the existing budget, or split credential policy.
+- Choice: share the original session/node admission through an owned lease.
+  Borrow a token from the node's hard-drained task tracker, already held by
+  Sessions. The style closure retains that lease and is tracked until actual
+  completion. A non-aborted tracked key operation retains the same lease
+  while awaiting the existing `Models::key` worker to its real completion.
+  Dropping the caller's join handle discards the result; it does not abort
+  this settling operation. No second secret reader or quota is introduced.
+- Why this choice: capacity and shutdown now follow physical completion,
+  independently of the original title future. The existing key policy and
+  sealed failures remain the credential boundary. HTTP and actor application
+  stay in the cancellable caller, so a late file result cannot start a call
+  or overwrite a title.
+- Effects: ordinary shutdown waits for already admitted file work to settle.
+  The HTTP deadline is not claimed to stop filesystem work. Held-real-closure
+  tests must cover style and keyed secret reads, actual title/park/node
+  cancellation, retained capacity and drain, saturation and no late effects.
+  This adds no wire field, call, dependency, model attempt or provider stack.
+
+
+Generated titles retain SessionTitle's existing normalization, including
+Rust's whitespace class, after the raw UTF-16 check. Paseo trims its model
+result with JavaScript's whitespace class instead. This stated difference
+keeps one canonical title constructor for typed, provisional and generated
+origins; the source/style contracts do not claim identical Unicode trimming.
+
+
+### File-view diagnostic paths
+
+[Decision Log]
+- Purpose and intent: the lenient metadata file view must keep the common
+  settings decoder's masked field paths as well as its sealed private cause.
+- Existing implementation and constraints: flattening the ordinary settings
+  type buffers its fields in serde; an invalid existing field then loses its
+  original path. The startup diagnostic regression exposes that loss.
+- Alternatives considered: repeat every ordinary settings field in a file
+  struct, normalize through another JSON parse, or weaken the common assertion.
+  Those choices duplicate the schema, parse input twice, or hide the regression.
+- Choice: a single-pass file map adapter intercepts only the metadata key and
+  uses its existing lenient value decoder. All other keys and values flow
+  directly through SetNodeSettings inside the unchanged sealed decoder.
+- Why: the canonical settings type remains the only list of ordinary fields,
+  while the tracking map observes each original value at its real field path.
+- Effects: strict wire patches and shared recovery/copy behavior are unchanged.
+  A duplicate metadata key remains an error. Tests retain root-versus-field
+  diagnostics, malformed known fields, future metadata and sealed sources.

@@ -53,7 +53,10 @@ mod agents_file;
 mod attachments;
 mod automation;
 mod codec;
+mod committed;
+pub use committed::SessionCommit;
 mod config;
+mod cursor_sign_in;
 mod data_dir;
 mod devices;
 mod error;
@@ -63,6 +66,7 @@ mod inbox;
 mod lock;
 mod log;
 mod marks;
+mod mutation_time;
 mod node_key;
 mod push;
 mod push_key;
@@ -79,7 +83,10 @@ mod subagents;
 mod token;
 mod usage;
 mod usage_lookup;
+mod usage_sources;
+pub use cursor_sign_in::read_cursor_usage_sign_in;
 mod workspace;
+mod workspace_labels;
 mod writer;
 
 pub use again::EndedSession;
@@ -101,6 +108,7 @@ pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
+pub use workspace_labels::WorkspaceLabelCommit;
 
 /// Explicit workspace registry records shared by create/lifecycle services.
 pub use registry::{

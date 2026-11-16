@@ -34,9 +34,9 @@ layout-tabs = 탭
 # Workspace tab or pane control; keep short.
 layout-menu = 탭 작업
 # Workspace tab or pane control; keep short.
-layout-maximize = 이 창에 집중
+layout-maximize = 창 최대화
 # Workspace tab or pane control; keep short.
-layout-restore = 모든 창 표시
+layout-restore = 창 복원
 # Workspace tab or pane control; keep short.
 layout-promote = 탭으로 열기
 # Workspace tab or pane control; keep short.

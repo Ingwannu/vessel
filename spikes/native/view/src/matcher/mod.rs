@@ -5,7 +5,8 @@
 //! - Purpose: a query such as `lbl dsgn` must find Label as Design, with
 //!   visible matches ahead of hidden keywords and honest highlights.
 //! - Constraint: the Command Center enables subsequences, not edit-distance
-//!   typo correction. Characters cannot be joined across whitespace.
+//!   typo correction. History opts into bounded typo correction. Characters
+//!   cannot be joined across whitespace.
 //! - Choice: standard-library token scans with ordered scores. UTF-16
 //!   offsets preserve reference ranking; UTF-8 ranges address Rust text.
 //! - Alternative: a general fuzzy-search dependency has different scoring
@@ -17,6 +18,8 @@
 
 use std::cmp::Ordering;
 use std::ops::Range;
+
+mod fuzzy;
 
 #[cfg(test)]
 mod tests;
@@ -36,6 +39,7 @@ enum MatchKind {
     WordStart,
     Substring,
     Subsequence,
+    Fuzzy,
 }
 
 impl MatchKind {
@@ -47,6 +51,7 @@ impl MatchKind {
             Self::WordStart => 3,
             Self::Substring => 4,
             Self::Subsequence => 5,
+            Self::Fuzzy => 6,
         }
     }
 }
@@ -201,7 +206,7 @@ struct Hit {
     span: Range<usize>,
 }
 
-fn whitespace(value: char) -> bool {
+pub(crate) fn whitespace(value: char) -> bool {
     // ECMAScript's \s includes BOM but excludes Unicode's next-line
     // character. Rust's is_whitespace would split different words.
     matches!(
@@ -222,33 +227,60 @@ fn whitespace(value: char) -> bool {
 
 /// Parsed once for a result projection, rather than once per candidate.
 #[derive(Debug)]
-pub struct Query(Vec<Vec<char>>);
+pub struct Query {
+    tokens: Vec<Vec<char>>,
+    typos: TypoPolicy,
+}
+
+#[derive(Debug)]
+enum TypoPolicy {
+    Exact,
+    Tolerant,
+}
 
 impl Query {
     /// Parse case-folded, whitespace-separated query tokens.
     #[must_use]
     pub fn new(text: &str) -> Self {
-        Self(
-            text.to_lowercase()
+        Self {
+            tokens: text
+                .to_lowercase()
                 .split(whitespace)
                 .filter(|token| !token.is_empty())
                 .map(|token| token.chars().collect())
                 .collect(),
-        )
+            typos: TypoPolicy::Exact,
+        }
+    }
+
+    /// Recall-oriented history search allows bounded per-token typos.
+    /// Picker and command consumers retain `new`'s exact default.
+    #[must_use]
+    pub fn typo_tolerant(text: &str) -> Self {
+        let mut query = Self::new(text);
+        query.typos = TypoPolicy::Tolerant;
+        query
     }
 
     /// Whether the query contains no tokens.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.tokens.is_empty()
+    }
+
+    fn hit(&self, field: &Field, token: &[char]) -> Option<Hit> {
+        field.hit(token).or_else(|| match self.typos {
+            TypoPolicy::Exact => None,
+            TypoPolicy::Tolerant => fuzzy::hit(field, token),
+        })
     }
 
     fn fields(&self, fields: &[Field]) -> Option<Weight> {
         let mut total = Weight::default();
-        for token in &self.0 {
+        for token in &self.tokens {
             let best = fields
                 .iter()
-                .filter_map(|field| field.hit(token))
+                .filter_map(|field| self.hit(field, token))
                 .map(|hit| hit.weight)
                 .min()?;
             // Reference scores sum per-token matches. Saturation preserves
@@ -263,7 +295,7 @@ impl Query {
     /// Score every token against visible fields, falling back to the
     /// visible fields plus hidden keywords only when a visible match is
     /// impossible. Subsequence matching stays inside each word; typo
-    /// tolerance is disabled, as in Paseo's Command Center and catalog.
+    /// tolerance is enabled only by `typo_tolerant` for history callers.
     #[must_use]
     pub fn score(&self, visible: &[&str], hidden: Option<&str>) -> Option<Score> {
         let mut fields: Vec<_> = visible.iter().map(|text| Field::new(text)).collect();
@@ -286,8 +318,8 @@ impl Query {
     pub fn marks(&self, text: &str) -> Vec<Range<usize>> {
         let field = Field::new(text);
         let mut ranges = Vec::new();
-        for token in &self.0 {
-            let Some(hit) = field.hit(token) else {
+        for token in &self.tokens {
+            let Some(hit) = self.hit(&field, token) else {
                 continue;
             };
             let mut wanted = token.iter();

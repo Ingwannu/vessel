@@ -19,6 +19,7 @@ mod board;
 mod book_route;
 pub mod book_values;
 pub mod browser;
+pub mod composer_commands;
 pub mod conversation;
 mod device;
 pub mod diagnostics;
@@ -45,6 +46,7 @@ pub mod lsp;
 pub mod mcp;
 mod model;
 mod name;
+pub mod native_commands;
 mod node;
 pub mod notifications;
 mod options;
@@ -64,6 +66,7 @@ pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
+mod session_updated_at;
 pub mod settings;
 pub mod side_questions;
 pub mod skills;
@@ -77,7 +80,10 @@ mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
 pub mod usage;
+pub mod usage_reports;
+pub mod voice;
 pub mod workspace;
+pub mod workspace_labels;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
@@ -118,15 +124,15 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AgentMessageId, AttachmentId, DeviceId, EventSeq, FinishIntentId, HarnessSessionId, HookId,
-    InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId,
-    ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId,
-    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
-    WorkspaceOperationId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, ExecutionIncarnationId, FinishIntentId,
+    HarnessSessionId, HookId, InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
+    PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId,
+    SessionId, SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
+    WorkspaceLabelGeneration, WorkspaceLabelSeq, WorkspaceOperationId, WorktreeId,
 };
 pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
-pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use labels::{InvalidLabel, LabelKey, LabelPatch, LabelValue, SessionLabels};
 pub use listing::{ListingScope, SessionListing, SessionSelection};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
@@ -157,14 +163,15 @@ pub use relay::{
 pub use rpc::{
     Ack, Call, ClientFrame, ClientInfo, CreateSession, EventPage, GetNode, GetSession, Handler,
     Hello, KillSession, ListHarnesses, ListSessions, Method, MethodShape, Outcome, ReadEvents,
-    RenameSession, Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe,
-    Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
+    RenameSession, Reply, Request, SendInput, ServerFrame, SetLabels, StopNode, StopWhen,
+    Subscribe, Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
 };
 pub use secret::{CopySecret, DeleteSecret, ListSecrets, SecretValue, SetSecret};
 pub use session::{
     RemoteCreator, SessionInfo, SessionInput, SessionMode, SessionOrigin, SessionSpec,
     SessionStatus,
 };
+pub use session_updated_at::{InvalidSessionUpdatedAt, SESSION_MUTATIONS, SessionUpdatedAt};
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
 pub use title::{
     GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,

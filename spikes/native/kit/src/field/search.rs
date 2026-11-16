@@ -11,7 +11,15 @@
 //! - Why/cost: no alternate input implementation or caller-owned clear glyph;
 //!   existing `TextField`/form/composer APIs stay unchanged. Native accessibility
 //!   naming remains the existing kit-wide gap, not a claimed OS parity result.
-use super::{Kind, TextField};
+//!
+//! [Decision Log: retained search ownership]
+//! - Purpose: a replaced search editor must not edit a successor's query.
+//! - Constraint: callbacks need the existing engine's `FieldId`, not render ids.
+//! - Choice: opt into `TextField::with_source` through this same wrapper, with
+//!   identity/focus/programmatic text delegation; no second engine or renderer.
+//! - Effect: the owning view keeps its opening/source fence. Plain callbacks,
+//!   silent programmatic clear and the Search/X surface remain unchanged.
+use super::{FieldId, Kind, TextField};
 use crate::{
     Tokens,
     assets::Glyph,
@@ -42,6 +50,38 @@ impl SearchField {
             editor: TextField::with_change(placeholder, ignore_submit::<V>, on_change, window, cx),
         }
     }
+    /// Keep the original editor identity on queued changes so a retained owner
+    /// can reject input from a closed opening or replaced query field.
+    #[must_use]
+    pub fn with_source<V: 'static>(
+        placeholder: &str,
+        on_change: fn(&mut V, FieldId, String, &mut Context<'_, V>),
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        Self {
+            editor: TextField::with_source(
+                placeholder,
+                ignore_source_submit::<V>,
+                on_change,
+                window,
+                cx,
+            ),
+        }
+    }
+    /// Identity belongs to this real editor; clones preserve it.
+    #[must_use]
+    pub fn id(&self) -> FieldId {
+        self.editor.id()
+    }
+    /// Focus the same engine used by typing and the shared clear target.
+    pub fn focus(&self, window: &mut Window, cx: &mut App) {
+        self.editor.focus(window, cx);
+    }
+    /// Restore a retained query without emitting a person's Change callback.
+    pub fn set_text(&self, text: &str, window: &mut Window, cx: &mut App) {
+        self.editor.set_text(text, window, cx);
+    }
     /// Current text for the owning view's shared matcher.
     #[must_use]
     pub fn text(&self, cx: &App) -> String {
@@ -54,6 +94,25 @@ impl SearchField {
     /// Navigation may explicitly reset this same real editor.
     pub fn clear(&self, window: &mut Window, cx: &mut App) {
         self.editor.clear(window, cx);
+    }
+    /// Paseo's sheet-header search input (adaptive-modal-sheet.tsx 443-461,
+    /// `searchInput` 186-191): the same engine, unboxed, flex 1 with 8 above and
+    /// below at the base size; the dialog header draws the row and its mark.
+    /// No clear control: the owner resets the query per opening.
+    #[must_use]
+    pub fn header_search(&self, tokens: &Tokens, cx: &mut App) -> crate::dialog::HeaderSearch {
+        let focus = self.editor.clone();
+        let field = div()
+            .debug_selector(|| "dialog-header-search-input".to_owned())
+            .flex_1()
+            .min_w_0()
+            .py(px(spacing::S2))
+            .on_mouse_down(MouseButton::Left, move |_, window, cx| {
+                focus.focus(window, cx);
+            })
+            .child(self.editor.bare(tokens, cx))
+            .into_any_element();
+        crate::dialog::HeaderSearch::new(field)
     }
     /// Draw the complete source rail field; callers add no icon/clear chrome.
     #[must_use]
@@ -105,6 +164,14 @@ fn clear_from_control(editor: &TextField, window: &mut Window, cx: &mut App) {
     }
 }
 fn ignore_submit<V: 'static>(_: &mut V, _: String, _: &mut Window, _: &mut Context<'_, V>) {}
+fn ignore_source_submit<V: 'static>(
+    _: &mut V,
+    _: FieldId,
+    _: String,
+    _: &mut Window,
+    _: &mut Context<'_, V>,
+) {
+}
 fn frame(focused: bool, tokens: &Tokens) -> Div {
     let n = tokens.neutral;
     div()

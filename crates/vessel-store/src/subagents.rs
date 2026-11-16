@@ -4,6 +4,9 @@
 //! the same savepoint as the first/repeat decision; lost callers cannot cause
 //! a later retry to mint another timestamp. No process or event-log write occurs.
 
+mod sql;
+pub(crate) use sql::configure;
+
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
 use vessel_proto::{
@@ -32,6 +35,7 @@ pub(crate) fn detach(
                 "UPDATE sessions SET detach_receipt=?2 WHERE id=?1",
                 params![session.to_string(), encode(&receipt)?],
             )?;
+            info.updated_at = Some(crate::mutation_time::advance(connection, session)?);
             (receipt, DetachDisposition::Detached)
         }
     };

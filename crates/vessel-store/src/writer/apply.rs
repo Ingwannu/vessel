@@ -5,6 +5,8 @@
 //! this file maps each [`Write`] to its store operation, in its own
 //! savepoint (`isolated`), and records what the batch must do after it.
 
+mod workspace_labels;
+
 use std::sync::Arc;
 
 use rusqlite::{Connection, Transaction};
@@ -17,7 +19,7 @@ use crate::error::StoreError;
 use crate::log::{self, Appended};
 use crate::search::idle::Indexer;
 use crate::search::index;
-use crate::{again, attachments, marks};
+use crate::{SessionCommit, again, attachments, marks};
 
 /// Apply one write in its own savepoint, so a failing write leaves no
 /// partial rows and does not affect the rest of the batch.
@@ -28,7 +30,8 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        Write::Create { info, done } => write_answer(transaction, done, |connection| {
+        Write::WorkspaceLabels(write) => workspace_labels::apply(transaction, *write, effects),
+        Write::Create { info, done } => session_answer(transaction, info.id, done, |connection| {
             log::create_session(connection, &info)
         }),
         Write::Append {
@@ -37,41 +40,29 @@ pub(super) fn apply(
             done,
         } => {
             let applied = append(transaction, session, &records, effects, indexer);
-            Answer::Done(done, applied)
+            Answer::Session(done, applied)
         }
         Write::AddDevice {
             device,
             credential,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                devices::insert(connection, &device, &credential)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::DeviceSeen { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::seen(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::RevokeDevice { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::revoke(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
+        } => write_answer(transaction, done, |connection| {
+            devices::insert(connection, &device, &credential)
+        }),
+        Write::DeviceSeen { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::seen(connection, device, at)
+        }),
+        Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::revoke(connection, device, at)
+        }),
         Write::Mark {
             session,
             mark,
             at,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                marks::mark(connection, session, mark, at)
-            });
-            Answer::Marked(done, applied)
-        }
+        } => marks_answer(transaction, session, done, |connection| {
+            marks::mark(connection, session, mark, at)
+        }),
         Write::Detach { session, at, done } => {
             let applied = isolated(transaction, |connection| {
                 crate::subagents::detach(connection, session, at)
@@ -89,21 +80,17 @@ pub(super) fn apply(
             session,
             next,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
-            });
-            Answer::Marked(done, applied)
-        }
-        Write::Attach { kept, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                attachments::insert(connection, &kept, time_to_sql(at)?)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Inbox { mark, done } => write_answer(transaction, done, |connection| {
-            crate::inbox::mark(connection, &mark)
+        } => marks_answer(transaction, session, done, |connection| {
+            again::reopen(connection, session, next)
         }),
+        Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
+            attachments::insert(connection, &kept, time_to_sql(at)?)
+        }),
+        Write::Inbox { mark, done } => {
+            session_answer(transaction, mark.key.session, done, |connection| {
+                crate::inbox::mark(connection, &mark)
+            })
+        }
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
@@ -114,14 +101,11 @@ pub(super) fn apply(
         Write::Forge { write, done } => write_answer(transaction, done, |connection| {
             crate::forge::apply(connection, &write)
         }),
-        Write::Automation { writes, done } => {
-            let applied = isolated(transaction, |connection| {
-                writes
-                    .iter()
-                    .try_for_each(|write| crate::automation::apply(connection, write))
-            });
-            Answer::Done(done, applied)
-        }
+        Write::Automation { writes, done } => write_answer(transaction, done, |connection| {
+            writes
+                .iter()
+                .try_for_each(|write| crate::automation::apply(connection, write))
+        }),
     }
 }
 
@@ -162,13 +146,15 @@ fn append(
     records: &[Arc<EventRecord>],
     effects: &mut Effects,
     indexer: &mut Indexer,
-) -> Result<(), StoreError> {
+) -> Result<SessionCommit<()>, StoreError> {
     let cached = indexer.take(session);
-    let (now_ended, advanced) = isolated(transaction, |connection| {
+    let (now_ended, advanced, updated_at) = isolated(transaction, |connection| {
         let Appended { ended } = log::append(connection, session, records.iter().map(Arc::as_ref))?;
+        let updated_at = crate::mutation_time::read(connection, session)?;
         Ok((
             ended,
             index::on_append(connection, session, cached, records),
+            updated_at,
         ))
     })?;
     indexer.keep(session, advanced);
@@ -177,7 +163,7 @@ fn append(
     effects.attention |= records
         .iter()
         .any(|record| record.event.asks_for_attention());
-    Ok(())
+    Ok(SessionCommit::new((), updated_at))
 }
 
 pub(super) fn isolated<T>(
@@ -188,4 +174,42 @@ pub(super) fn isolated<T>(
     let done = operation(&savepoint)?;
     savepoint.commit()?;
     Ok(done)
+}
+
+// Read within THIS operation's savepoint, before the writer applies another
+// queued mutation; the normal Answer boundary still waits for outer commit.
+fn with_clock<T>(
+    connection: &Connection,
+    session: SessionId,
+    operation: impl FnOnce(&Connection) -> Result<T, StoreError>,
+) -> Result<SessionCommit<T>, StoreError> {
+    let value = operation(connection)?;
+    let updated_at = crate::mutation_time::read(connection, session)?;
+    Ok(SessionCommit::new(value, updated_at))
+}
+
+// These typed answer constructors share the same savepoint/clock routine;
+// only their result variants differ. Neither changes commit-before-reply.
+fn session_answer(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done<SessionCommit<()>>,
+    operation: impl FnOnce(&Connection) -> Result<(), StoreError>,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        with_clock(connection, session, operation)
+    });
+    Answer::Session(done, applied)
+}
+
+fn marks_answer(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done<SessionCommit<vessel_proto::KeptMarks>>,
+    operation: impl FnOnce(&Connection) -> Result<vessel_proto::KeptMarks, StoreError>,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        with_clock(connection, session, operation)
+    });
+    Answer::Marked(done, applied)
 }

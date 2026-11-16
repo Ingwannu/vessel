@@ -81,7 +81,15 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetNodeSettings
         | Method::SetNodeSettings
         | Method::ListInbox
-        | Method::Diagnostics => json!({}),
+        | Method::Diagnostics
+        | Method::ListWorkspaceLabels => json!({}),
+        Method::AssignWorkspaceLabel => {
+            json!({"workspace":id,"label":{"name":"Ready","color":"violet"},"assignment":"assigned"})
+        }
+        Method::UpdateWorkspaceLabel => json!({"name":"Ready","color":"sky"}),
+        Method::InspectWorkspaceLabelDelete | Method::DeleteWorkspaceLabel => {
+            json!({"name":"Ready"})
+        }
         Method::SaveSkillsSelection | Method::ImportSkillsSelection => {
             json!({"selection":{"mode":"all"}})
         }
@@ -236,6 +244,11 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         }
         Method::GetInboxEntry => json!({"key":{"session":id,"seq":1}}),
         Method::MarkInbox => json!({"key":{"session":id,"seq":1},"read":"read"}),
+        Method::ListUsageReports => json!({"scope":{"kind":"machine"},"refresh":"cached"}),
+        Method::SetUsageSourceLookup => {
+            json!({"source":"copilot","policy":"on","disclosure_version":1})
+        }
+        Method::InspectUsageReport => json!({"id":"sample:account","refresh":"cached"}),
         Method::GetUsageLimits => {
             json!({"scope":{"kind":"session","session":id},"refresh":"cached"})
         }

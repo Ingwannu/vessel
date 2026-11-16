@@ -23,8 +23,7 @@
 //! - Choice: the dialog is drawn by the screen that keeps it open, over
 //!   everything, with a focus handle of the screen's, so Escape reaches it
 //!   and nothing behind it takes a click. On a narrow window it takes the
-//!   width less 16 pixels each side (ADR 0036: every screen from 360
-//!   wide).
+//!   full viewport width.
 //! - Cost: default fitting sheets close from the scrim or close button;
 //!   configured sheets reuse the snap engine. Focus is not trapped inside the
 //!   dialog the way the page's is
@@ -47,13 +46,21 @@ use gpui::{
 };
 
 #[cfg(test)]
+mod compact_tests;
+#[cfg(test)]
 mod configuration_tests;
 mod header_content;
+mod header_search;
+#[cfg(test)]
+mod header_search_tests;
 mod layout;
 mod return_focus;
 mod sheet;
+#[cfg(test)]
+mod title_wrap_tests;
 
 pub use header_content::DialogInput;
+pub use header_search::HeaderSearch;
 pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
 
 use crate::assets::Glyph;
@@ -128,7 +135,7 @@ pub fn dialog<V: 'static>(
     close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + Clone + 'static,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
-    let (content, header_actions) = content.into().parts();
+    let (content, header_parts) = content.into().parts();
     let surfaces = Surfaces::of(tokens);
     let layout = content.size.layout();
     let sheet = match (narrow, layout.compact()) {
@@ -142,7 +149,7 @@ pub fn dialog<V: 'static>(
     let footer = footer(content.footer, &surfaces);
     let header = header(
         content.title,
-        header_actions,
+        header_parts,
         &surfaces,
         narrow,
         close.clone(),
@@ -152,6 +159,7 @@ pub fn dialog<V: 'static>(
     let card = div()
         .id("dialog")
         .track_focus(&state.focus)
+        .key_context(popup::KEY_CONTEXT)
         .on_key_down(
             cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
@@ -314,19 +322,21 @@ fn handle(color: gpui::Hsla) -> gpui::Div {
         .child(div().w(px(32.0)).h(px(4.0)).rounded(px(2.0)).bg(color))
 }
 
-/// The title and the close button, over a rule.
+/// The title and the close button, over a rule; with a search, Paseo's search
+/// row sits under the title inside the same rule (`headerContainer`).
 fn header<V: 'static>(
     title: SharedString,
-    actions: Option<AnyElement>,
+    parts: header_content::HeaderParts,
     surfaces: &Surfaces,
     narrow: bool,
     close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
     cx: &mut Context<'_, V>,
 ) -> gpui::Div {
+    let header_content::HeaderParts { actions, search } = parts;
     let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
     let hover = surfaces.surface2;
-    div()
+    let row = div()
         .debug_selector(|| "dialog-header".to_owned())
         .flex()
         .flex_shrink_0()
@@ -334,8 +344,6 @@ fn header<V: 'static>(
         .gap(px(8.0))
         .px(px(INSIDE))
         .py(px(16.0))
-        .border_b_1()
-        .border_color(surfaces.surface2)
         .child(
             div()
                 .debug_selector(|| "dialog-title".to_owned())
@@ -376,7 +384,23 @@ fn header<V: 'static>(
                         .size(px(10.0))
                         .text_color(surfaces.foreground_muted),
                 ),
-        )
+        );
+    match search {
+        None => row.border_b_1().border_color(surfaces.surface2),
+        Some(search) => div()
+            .debug_selector(|| "dialog-header-group".to_owned())
+            .flex()
+            .flex_col()
+            .flex_shrink_0()
+            .border_b_1()
+            .border_color(surfaces.surface2)
+            .child(row)
+            .child(header_search::search_row(
+                search,
+                INSIDE,
+                surfaces.foreground_muted,
+            )),
+    }
 }
 
 #[cfg(test)]

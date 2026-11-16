@@ -1,7 +1,7 @@
 //! Starting a node and stopping it.
 
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::settings::Settings;
@@ -17,9 +17,8 @@ use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
-use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
+use vessel_session::{AttachmentLoader, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
@@ -128,12 +127,7 @@ impl Node {
         } = core(&config, id, &store, &keypair, relay, setup, started).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
-        let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
-            config.rpc.clone(),
-            closing.clone(),
-        ));
+        let rpc = setup::rpc_server(&config, &service, &lifecycle, &closing);
         let token = Arc::new(token);
         let connections = TaskTracker::new();
 
@@ -155,6 +149,7 @@ impl Node {
             unadmitted_per_address: Arc::default(),
         };
         let teardown = Teardown {
+            workspace_labels: secure.service.0.workspace_labels.clone(),
             runtime,
             settings,
             tasks,
@@ -301,11 +296,11 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader, setup.private_dir.clone());
+    let stop = CancellationToken::new();
+    let runtime = setup::runtime(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
-    let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -441,11 +436,9 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let push = crate::push::Push::started(config, store.clone(), &tasks, stop.clone())
-        .await
-        .map_err(NodeError::Store)?;
-    let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
+    let features = setup::feature_state(config, store, &tasks, &stop).await?;
     let service = Arc::new(Guarded(NodeService::new(Parts {
+        workspace_labels: features.labels,
         lsp,
         lsp_roots: config.lsp_roots.clone(),
         diagnostics: crate::diagnostics::Setup {
@@ -478,9 +471,9 @@ async fn core(
         ports,
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
-        push,
+        push: features.push,
         settings: Arc::clone(&settings),
-        limits,
+        limits: features.limits,
     })));
     automation::schedules::start(
         commands,
@@ -506,27 +499,6 @@ async fn core(
         service,
         relays,
     })
-}
-
-/// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader` and whose direct drivers write a launch's
-/// private files only in `private_dir`.
-fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> Arc<SessionRuntime> {
-    Arc::new(
-        SessionRuntime::new(
-            RuntimeConfig {
-                harness_lookup: config.harness_lookup.clone(),
-                harness_env: config.harness_env.clone(),
-                ring_capacity: config.ring_capacity,
-                durable_capacity: config.durable_capacity,
-                agent_handshake_timeout: config.agent_handshake_timeout,
-                park_after: config.park_after,
-                private_dir: Some(private_dir),
-            },
-            CancellationToken::new(),
-        )
-        .with_attachments(loader),
-    )
 }
 
 /// How many prompts' attachment loads may wait for the node's loader; a

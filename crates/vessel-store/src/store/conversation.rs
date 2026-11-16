@@ -3,10 +3,10 @@
 //! start again.
 
 use chrono::{DateTime, Utc};
-use tokio::sync::oneshot;
 use vessel_proto::{Conversation, EventSeq, KeptMarks, Mark, SessionId};
 
 use super::Store;
+use crate::SessionCommit;
 use crate::again::EndedSession;
 use crate::error::StoreError;
 use crate::writer::Write;
@@ -36,15 +36,9 @@ impl Store {
         mark: Mark,
         at: DateTime<Utc>,
     ) -> Result<KeptMarks, StoreError> {
-        let (done, committed) = oneshot::channel();
-        self.send(Write::Mark {
-            session,
-            mark,
-            at,
-            done,
-        })
-        .await?;
-        committed.await.map_err(|_dropped| StoreError::Closed)?
+        self.mark_committed(session, mark, at)
+            .await
+            .map(SessionCommit::into_value)
     }
 
     /// Delete an ended session (protocol 10's `session.delete`): its log,
@@ -85,13 +79,8 @@ impl Store {
         session: SessionId,
         next: EventSeq,
     ) -> Result<KeptMarks, StoreError> {
-        let (done, committed) = oneshot::channel();
-        self.send(Write::Reopen {
-            session,
-            next,
-            done,
-        })
-        .await?;
-        committed.await.map_err(|_dropped| StoreError::Closed)?
+        self.reopen_committed(session, next)
+            .await
+            .map(SessionCommit::into_value)
     }
 }

@@ -72,7 +72,10 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 )]
 const fn forwardable(method: Method) -> bool {
     match method {
-        Method::GetUsageLimits
+        Method::ListUsageReports
+        | Method::InspectUsageReport
+        | Method::SetUsageSourceLookup
+        | Method::GetUsageLimits
         | Method::SetUsageLookup
         | Method::QueryUsage
         | Method::NodeInfo
@@ -136,6 +139,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::WriteUpload
         | Method::FinishUpload
         | Method::ReadAttachment
+        | Method::ListWorkspaceLabels
+        | Method::AssignWorkspaceLabel
+        | Method::UpdateWorkspaceLabel
+        | Method::InspectWorkspaceLabelDelete
+        | Method::DeleteWorkspaceLabel
         | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::ListProjects
         | Method::GetProject

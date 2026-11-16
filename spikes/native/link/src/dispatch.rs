@@ -14,9 +14,15 @@
 use super::{Command, Event, LinkError, State, drafts, nodes, pairing};
 use vessel_proto::{PermissionOutcome, SessionInput};
 
+const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
+
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::SessionAccess(access) => self.session_access(access),
+            Command::Sessions(ask) => self.session_navigation(ask),
+            Command::SessionLifecycle(request) => self.session_lifecycle(&request),
+            Command::Create(ask) => self.create(ask),
             Command::History(ask) => self.history(ask).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
@@ -25,16 +31,14 @@ impl State {
                 request,
                 ask,
             } => {
-                let client = self
-                    .clients
-                    .get(machine.as_str())
-                    .map(|connected| connected.client.clone());
+                let client = self.client(machine.as_str()).ok().cloned();
                 self.agents
                     .ask(client, machine, request, ask, self.events.clone())
                     .await;
             }
 
             Command::Machines(ask) => self.machine_book(ask).await,
+            Command::CodeSource(request) => self.code_source(request).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {
@@ -72,10 +76,7 @@ impl State {
                 session,
                 text,
             } => self.resume(&machine, session, text).await,
-            Command::Stop { machine, session } => {
-                let input = SessionInput::CancelTurn { turn: None };
-                self.input(&machine, session, input).await;
-            }
+            Command::Stop { machine, session } => self.input(&machine, session, CANCEL_TURN).await,
             Command::Answer {
                 machine,
                 session,

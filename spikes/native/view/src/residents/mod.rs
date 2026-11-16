@@ -5,6 +5,10 @@ mod identity;
 mod registry;
 mod retirement;
 pub use retirement::{FollowRetirement, RetiredOperation};
+mod stop;
+pub use stop::{
+    FollowEnd, FollowSeal, StopAction, StopCompletion, StopSettlement, StopWindowReceipt,
+};
 mod transport;
 pub use identity::{
     FollowBinding, FollowGeneration, HoldReason, OperationKind, OperationTicket, OwnerReadiness,

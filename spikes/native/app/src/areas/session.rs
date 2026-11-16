@@ -8,18 +8,15 @@
 //! The conversation is a list that draws only what is in view (GPUI's
 //! `list`, measured rows), so its cost does not grow with its length.
 //!
-//! A session started from the draft opens before the node has answered:
-//! its first prompt is shown at once with "Starting <agent> on <machine>…"
-//! (agent-orchestrator's local echo and its "gets ready" line), and the
-//! conversation takes its place when the first record arrives.
+//! Draft creation shows its first prompt while registration and delivery
+//! settle separately; only the matching foreground completion may follow it.
 
 use std::cell::Cell;
 
 use vessel_app_kit::ui::{
-    Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _, Styled as _, Window,
-    div, px,
+    Context, Div, IntoElement, ParentElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
@@ -30,33 +27,9 @@ use super::common::title_bar;
 use crate::routes::Route;
 use crate::shell::Shell;
 
+mod open;
+pub(crate) use open::Open;
 mod body;
-
-/// The session on screen.
-#[derive(Debug, Clone)]
-pub(crate) struct Open {
-    pub(crate) machine: String,
-    pub(crate) session: SessionId,
-    pub(crate) title: String,
-    pub(crate) agent: String,
-    pub(crate) structured: bool,
-    /// Whether it takes prompts (an ended session shows its conversation
-    /// without a composer).
-    pub(crate) live: bool,
-}
-
-impl Open {
-    pub(crate) fn of(card: &Card) -> Self {
-        Self {
-            machine: card.machine.clone(),
-            session: card.session,
-            title: card.title.clone(),
-            agent: card.agent.clone(),
-            structured: card.structured,
-            live: card.live,
-        }
-    }
-}
 
 /// A session asked for from the draft and not created yet.
 #[derive(Debug, Clone)]
@@ -66,90 +39,10 @@ pub(crate) struct Pending {
     pub(crate) prompt: String,
 }
 
-/// The session area's state.
-pub(crate) struct SessionView {
-    pub(crate) open: Option<Open>,
-    /// An ended session being started again: the prompt that will be sent
-    /// (shown under the conversation while it starts).
-    pub(crate) resuming: Option<String>,
-    /// Why starting it again failed, under the composer.
-    pub(crate) resume_error: Option<String>,
-    /// A failed resume's text, put back in the composer on the next frame.
-    restore: std::cell::RefCell<Option<String>>,
-    pub(crate) pending: Option<Pending>,
-    pub(crate) conversation: Conversation,
-    pub(crate) entries: ListState,
-    pub(crate) composer: TextField,
-}
-
-impl SessionView {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
-        Self {
-            open: None,
-            resuming: None,
-            resume_error: None,
-            restore: std::cell::RefCell::new(None),
-            pending: None,
-            conversation: Conversation::default(),
-            entries: ListState::new(0, ListAlignment::Bottom, px(800.0)),
-            composer: TextField::composer(
-                "",
-                |shell: &mut Shell, text, window, cx| shell.submit_prompt(text, window, cx),
-                window,
-                cx,
-            ),
-        }
-    }
-}
+mod resource;
+pub(crate) use resource::SessionView;
 
 impl Shell {
-    /// Open a session from a card or a row, the composer focused.
-    pub(crate) fn open_session(
-        &mut self,
-        open: Open,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        // Track P: the session composer swaps the draft it holds.
-        self.composer_switched(open.session, window, cx);
-        // An ended session takes prompts too: sending starts it again.
-        let takes_prompts = open.structured;
-        self.areas.session.pending = None;
-        self.areas.session.resuming = None;
-        self.areas.session.resume_error = None;
-        self.follow(open, cx);
-        let placeholder = self
-            .t
-            .composer_placeholder(&super::settings::send_key_words(self));
-        self.areas
-            .session
-            .composer
-            .set_placeholder(&placeholder, window, cx);
-        if takes_prompts {
-            self.areas.session.composer.focus(window, cx);
-        } else {
-            self.focus_terminal(window, cx);
-        }
-    }
-
-    /// Show a session's conversation, following it.
-    fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open, cx);
-        let view = &mut self.areas.session;
-        view.conversation = Conversation::default();
-        view.entries.reset(0);
-        if !self.terminal_follow(&open, cx) {
-            return;
-        }
-        self.command(Command::Open {
-            machine: open.machine.clone(),
-            session: open.session,
-        });
-        self.areas.session.open = Some(open);
-        self.route = Route::Session;
-        cx.notify();
-    }
-
     /// The draft was sent: show its prompt while the session starts.
     /// The machine `from` is called `to` now (Settings › Machines, track
     /// E2, after the book was written): the session open and a session
@@ -164,6 +57,11 @@ impl Shell {
             && open.machine == from
         {
             to.clone_into(&mut open.machine);
+            if let Some(binding) = &mut open.binding
+                && let Ok(host) = vessel_app_view::machine_book::Name::parse(to)
+            {
+                binding.host = host;
+            }
         }
         if let Some(pending) = &mut view.pending
             && pending.machine == from
@@ -248,12 +146,13 @@ impl Shell {
             .machines
             .iter()
             .flat_map(|machine| machine.sessions.iter())
-            .find(|card| card.session == open.session);
+            .find(|card| card.machine == open.machine && card.session == open.session);
         if let Some(card) = card {
             if !card.title.is_empty() {
                 open.title.clone_from(&card.title);
             }
             open.live = card.live;
+            open.archived_at = card.detail.marks.archived_at;
         }
     }
 
@@ -287,62 +186,6 @@ impl Shell {
         let from = before.saturating_sub(1);
         view.entries
             .splice(from..before, after.saturating_sub(from));
-    }
-
-    pub(crate) fn submit_prompt(
-        &mut self,
-        text: String,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(open) = &self.areas.session.open else {
-            return;
-        };
-        if !self.session_may_send(&text)
-            || self.areas.session.resuming.is_some()
-            || self.conversation_cannot_resume()
-        {
-            return;
-        }
-        if open.live {
-            let delivery = self.delivery();
-            // A send shows in the conversation at once (Paseo's pending
-            // message; track C's tail), unless it waits in the queue,
-            // whose rows show it.
-            if shows_at_once(delivery, self.areas.session.conversation.turn_running()) {
-                self.conversation_sending(&text, cx);
-            }
-            if self.session_sends_files(&text, delivery, window, cx) {
-                return;
-            }
-            let Some(open) = &self.areas.session.open else {
-                return;
-            };
-            self.command(Command::Prompt {
-                machine: open.machine.clone(),
-                session: open.session,
-                text,
-                delivery,
-            });
-        } else {
-            // Ended or interrupted: start it again with its conversation,
-            // then send (Paseo and GOAT continue a session the same way).
-            // The message shows in the conversation at once, the agent's
-            // working footer under it, while the session starts.
-            self.conversation_sending(&text, cx);
-            let Some(open) = &self.areas.session.open else {
-                return;
-            };
-            self.command(Command::Resume {
-                machine: open.machine.clone(),
-                session: open.session,
-                text: text.clone(),
-            });
-            self.areas.session.resuming = Some(text);
-            self.areas.session.resume_error = None;
-        }
-        self.session_composer_sent(window, cx);
-        cx.notify();
     }
 
     /// What a plain send does: Settings' default send by Paseo's rules
@@ -671,3 +514,5 @@ fn bubble(text: &str, tokens: &Tokens) -> Div {
 }
 
 use vessel_app_kit::ui::StatefulInteractiveElement as _;
+
+mod submit;

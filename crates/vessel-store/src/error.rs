@@ -65,6 +65,24 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Semantic label refusals remain structured at the RPC boundary.
+    #[error("workspace label operation was refused ({0:?})")]
+    WorkspaceLabelRefused(#[source] vessel_proto::workspace_labels::WorkspaceLabelFailure),
+    /// A persisted label name no longer satisfies the validated grammar.
+    #[error("stored workspace label name is invalid")]
+    WorkspaceLabelName(#[source] vessel_proto::workspace_labels::LabelNameError),
+    /// A stored color cannot be decoded; its raw data is never displayed.
+    #[error("stored workspace label color is invalid")]
+    WorkspaceLabelColor(#[source] serde_json::Error),
+    /// A stored normalized key disagrees with the definition or a join is missing.
+    #[error("stored workspace label identity is inconsistent")]
+    WorkspaceLabelIdentity,
+    /// A `SQLite` count did not fit the checked public count type.
+    #[error("workspace label count is outside its representation")]
+    WorkspaceLabelCount(#[source] std::num::TryFromIntError),
+    /// Appending must never wrap and reorder an existing assignment.
+    #[error("workspace label assignment order is exhausted")]
+    WorkspaceLabelOrder,
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -280,6 +298,15 @@ pub enum StoreError {
     /// A stored receipt contradicts immutable creator provenance.
     #[error("session {0} has corrupt parentage")]
     InvalidParentage(SessionId),
+    /// Stored mutation time is corrupt, or strict advancement is exhausted.
+    #[error("session {session} mutation time cannot be kept: {source}")]
+    MutationTime {
+        /// The row whose mutation must be refused atomically.
+        session: SessionId,
+        /// Preserve the typed precision/range/exhaustion reason, without data.
+        #[source]
+        source: vessel_proto::InvalidSessionUpdatedAt,
+    },
     /// The store was closed, or its writer thread is gone.
     #[error("the store is closed")]
     Closed,
@@ -299,6 +326,7 @@ impl StoreError {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         match self {
+            Self::WorkspaceLabelRefused(reason) => reason.code(),
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
@@ -320,7 +348,12 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::RegistryRevisionRange(_)
+            Self::WorkspaceLabelName(_)
+            | Self::WorkspaceLabelColor(_)
+            | Self::WorkspaceLabelIdentity
+            | Self::WorkspaceLabelCount(_)
+            | Self::WorkspaceLabelOrder
+            | Self::RegistryRevisionRange(_)
             | Self::RegistryRevisionExhausted
             | Self::RegistryDecode(_)
             | Self::Io { .. }
@@ -333,6 +366,7 @@ impl StoreError {
             | Self::NewerSchema { .. }
             | Self::Sqlite(_)
             | Self::Commit(_)
+            | Self::MutationTime { .. }
             | Self::InvalidParentage(_)
             | Self::Corrupt { .. }
             | Self::CorruptPush { .. }

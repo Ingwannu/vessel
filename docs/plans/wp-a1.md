@@ -1,0 +1,146 @@
+# New sessions and workspaces
+
+Status: skeleton in progress. This package replaces the former handoff
+assignment; `wp-a4.md` records why that assignment did not match Paseo.
+
+## Reference and existing assets
+
+Paseo 0.15.4 source inspected, paths relative to its source tree:
+
+- `packages/app/src/composer/draft/create-flow.ts:25-81,203-248`: editing /
+  creating states, validation before dispatch, duplicate-submit protection,
+  retained attempt on failure, and handoff of the first optimistic message.
+- `packages/app/src/composer/submission/writer.ts:66-72` and
+  `packages/app/src/stores/session-store.ts:1188-1227`: the first user row
+  moves to the newly created agent, rather than switching an existing agent.
+- `packages/app/src/composer/draft/workspace-tab.tsx:118-193,468-495`:
+  create with provider/model/options, draft idempotency key and first message.
+- `packages/app/src/screens/new-workspace-empty.ts:5-36`: empty text with
+  no attachments creates a workspace without an agent.
+- `packages/app/src/screens/new-workspace-terminal.ts:39-109`: ensure an
+  empty workspace, launch the selected profile or default shell, substitute
+  prompt into profile argv, or type the blank shell's command followed by CR.
+- `packages/app/src/new-workspace-launch/target.ts:9-59`: Chat default,
+  blank-shell choice, removed profile falls back to Chat.
+- `packages/app/src/new-workspace-launch/composer-state.ts:51-100`:
+  no-placeholder profiles display the resolved command read-only.
+- `packages/server/src/server/agent/create-agent/create.ts:156-214`:
+  registration commits creation; first-prompt failure belongs to that agent.
+- `packages/protocol/src/terminal-profiles.ts:11-34,45-104`: prompt sentinel,
+  default agent profiles, all-occurrence substitution and empty prompt-only
+  argument omission. More server receipt and form references are recorded
+  with their implementation before those parts are filled in.
+
+Existing native assets: draft provider/model/mode controls, project/local/
+worktree/base pickers, attachment tray/pump, worktree approvals/setup walk,
+optimistic conversation, typed session/terminal/project calls, Fluent catalogs
+and the kit. Reuse those; do not create another composer, picker, terminal
+renderer, attachment pump, workspace registry or layout model.
+
+## Decision log
+
+- Purpose and intent: one reliable creation flow for empty workspaces, chats
+  and shells, with retained input and navigation-safe asynchronous completion.
+- Existing implementation and constraints: the draft handles only chats;
+  direct session creation and first-prompt delivery share a generic failure,
+  permitting duplicate sessions after a prompt failure. Workspace identity,
+  receipts and terminal profiles need additive node work.
+- Alternatives considered: treat cwd/worktree/session as workspace identity;
+  launch terminal profiles as harness sessions; reuse the existing explicit
+  registry, terminal and draft boundaries.
+- Selected approach: **modify existing assets**, add a pure typed creation
+  state machine and correlated link boundary, then extend creation on the
+  node using the registry of ADR 0082 and existing session/terminal actors.
+- Why: stable ownership cannot be inferred from cwd; starting an agent is
+  distinct from delivery of its first prompt; a completion cannot steal a
+  route after the person leaves.
+- Advantages, costs and effects: existing controls and runtime ownership stay
+  authoritative; asynchronous creation needs receipt persistence and typed
+  reconciliation. No new external library/API is planned.
+
+## Structure and ownership
+
+- `view/src/creation/`: correlation tickets, exhaustive phases, stage-specific
+  failure/outcome-unknown state, submission kind and navigation lease.
+- `link/src/creation/`: typed commands/events, existing-call orchestration,
+  deadlines and in-memory transport tests. New node methods wait for the
+  central pending-method table and assigned protocol number.
+- `app/src/areas/draft/create.rs`, `status.rs`: actions and rendering; extend
+  existing `draft` state and reuse project/place controls.
+- `view/locales/{en,ko}/creation.ftl`: all new labels and explanations.
+- Node package: creation receipt contract/service/store and terminal profile
+  values/settings/launch. Independent node worktree starts at `d954fa3a`.
+- ADR 0082 owns `WorkspaceId`, registry snapshots, resource membership and
+  idempotent empty local/worktree provisioning. Creation reserves the workspace
+  id before invoking that API; it does not persist a second registry.
+- Layout owns opening `Target::Terminal`, terminal area owns its resident
+  store/follow, attachments owns prepared payload/tray handoff, project owner
+  owns registry persistence. Shared shell/link files get registration only.
+
+## Differences and compatibility
+
+Vessel persists in its existing SQLite store rather than Paseo's JSON files.
+Receipts must retain the same key/intent/phase/outcome-unknown behavior, not
+the reference's storage format. The node controls filesystem, shell and
+approval authority; the app never executes a configured profile itself.
+No pending call is advertised before the integrator assigns its protocol.
+Older peers receive an explicit unsupported result, never a fake success.
+
+An absent receipt after reconnect is different from an interrupted in-flight
+side effect. Only the former can start a new operation. A registered agent
+survives a first-prompt failure; retry must not create a replacement agent.
+The local state skeleton provides these distinctions while the additive
+workspace/provisioning contract is being completed.
+
+## Verification and resume point
+
+Required tests: every pure transition, duplicate submit, stale/out-of-order
+events, completion after leaving/reentering, known refusal versus uncertain
+outcome, input preservation, profile substitution and bounds, receipt intent
+conflict/restart/concurrency, first-prompt failure after registration, empty
+workspace and each launch target. Fakes only; no real agent or preview.
+
+Native base8d5513e4 is merged. Pure Ticket/Flow tests3823224d passed five cases;
+initial app/link/view skeleton Clippy found five import/qualification issues,
+now fixed for the next narrow check. This is not a whole package gate.
+
+The staged W6 range througha01781ed is integrated for combined checks, not
+claimed ready. New-session submission now captures a Ticket, options and
+placement before dispatch; worktree preparation delegates resource creation
+to the same link boundary. Registration is retained before first input,
+known first-input retries address that SessionId, and unknown outcomes lock
+resubmission. Ticketed file completion runs even after navigation; route
+ownership is relinquished by navigation boundaries. No attachment producer
+module is copied or edited by A1.
+
+Still owed: combined compilation/regressions, stable node identity pin,
+multiple seeded drafts using W12's DraftId, registry-backed empty workspace
+and terminal flows, receipt reconciliation, terminal profile selection,
+whole gates/captures/reviews. The node receipt/profile work is separate in
+ADR0091. No full parity claim or user-flow capture exists yet.
+
+Shared base6036eeb8 is merged. Creation captures `Machine.node` and refuses
+before worktree/session effects if the connected welcome identity differs;
+late completion also requires the same name/node mapping before handoff.
+This guards A1's boundary; W6 is separately pinning capability/upload calls
+and adding `prepare_draft_files_on`, so a later queued upload cannot retarget
+a reused book name. The current Ticket-only adapter remains transitional.
+`Editability` locks the actual draft editor while creating/unknown, retaining
+copy/selection. Known initial-input failure offers an explicit same-session
+retry. In-memory peer regressions assert identity mismatch sends no request
+and a retry reads the registered session rather than issuing create again.
+
+`view::creation::Launch` now distinguishes empty workspace, chat, blank shell
+and configured profile plans, using the reviewed pure profile values5c39da5f.
+Blank shell input is trimmed and followed by one CR (reference terminal.ts
+100-103); profile argv is substituted literally and never typed as shell
+source. A missing persisted profile visibly reconciles to Chat before submit;
+a removal racing preparation is refused. Terminal plans refuse attached chat
+payload instead of dropping it. These are pure plans, not working terminal RPCs.
+
+The shared DraftSeed values carry explicit Name+NodeId, NewWorkspace project
+context or authoritative ExistingWorkspaceId, canonical bounded ContextText
+and W6 ChatHistory. Approved identitye45a5d89 was cherry-picked asd24486f1;
+no registry/store/runtime producer was imported. The seed has no duplicate
+UUID: W12's DraftId will be the seed_draft parameter when its module lands.
+No seed opener or multiple-draft renderer is claimed consumer-ready yet.

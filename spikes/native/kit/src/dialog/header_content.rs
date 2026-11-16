@@ -6,12 +6,15 @@
 //! Its callbacks remain the caller's domain authority, not dialog admission.
 
 use super::DialogContent;
+use super::header_search::HeaderSearch;
 use gpui::{AnyElement, IntoElement};
 
-/// Content plus an optional trailing title-row action element, on one renderer.
+/// Content plus an optional trailing title-row action element and an optional
+/// header search row, on one renderer.
 pub struct DialogInput {
     content: DialogContent,
     header_actions: Option<AnyElement>,
+    header_search: Option<HeaderSearch>,
 }
 
 impl DialogContent {
@@ -22,7 +25,14 @@ impl DialogContent {
         DialogInput {
             content: self,
             header_actions: Some(actions.into_any_element()),
+            header_search: None,
         }
+    }
+
+    /// Put the owner's search under the title, inside the header's rule.
+    #[must_use]
+    pub fn with_header_search(self, search: HeaderSearch) -> DialogInput {
+        DialogInput::from(self).with_header_search(search)
     }
 }
 
@@ -31,13 +41,33 @@ impl From<DialogContent> for DialogInput {
         Self {
             content,
             header_actions: None,
+            header_search: None,
         }
     }
 }
 
+/// What the header draws beside and under the title.
+pub(super) struct HeaderParts {
+    pub(super) actions: Option<AnyElement>,
+    pub(super) search: Option<HeaderSearch>,
+}
+
 impl DialogInput {
-    pub(super) fn parts(self) -> (DialogContent, Option<AnyElement>) {
-        (self.content, self.header_actions)
+    /// Paseo's search row under the title; the owner keeps the query.
+    #[must_use]
+    pub fn with_header_search(mut self, search: HeaderSearch) -> Self {
+        self.header_search = Some(search);
+        self
+    }
+
+    pub(super) fn parts(self) -> (DialogContent, HeaderParts) {
+        (
+            self.content,
+            HeaderParts {
+                actions: self.header_actions,
+                search: self.header_search,
+            },
+        )
     }
 }
 
@@ -46,6 +76,7 @@ impl std::fmt::Debug for DialogInput {
         f.debug_struct("DialogInput")
             .field("content", &self.content)
             .field("header_actions", &self.header_actions.is_some())
+            .field("header_search", &self.header_search.is_some())
             .finish_non_exhaustive()
     }
 }

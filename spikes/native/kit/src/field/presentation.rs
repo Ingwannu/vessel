@@ -47,8 +47,8 @@
 //! - Cost: the native form caps at twelve whole 20-point lines within
 //!   that maximum, rather than GOAT's pixel-based cap. Enter starts a
 //!   line and Mod+Enter submits. The existing engine owns scrolling.
-//! - Boundary: engine wiring stays in the parent and color projection in
-//!   `styles`; these presentations share those handlers. Existing layout
+//! - Boundary: engine wiring is shared through `events`, color projection
+//!   through `styles`; these presentations share both. Existing layout
 //!   and marked-text regressions stay in the parent's `form_tests` module.
 
 use gpui::prelude::*;
@@ -57,7 +57,7 @@ use gpui_base::input::{Input, Textarea};
 
 use super::form_shell;
 use super::styles::project;
-use super::{COMPOSER_MIN, FORM_INSET_X, FORM_INSET_Y, FORM_MAX, Kind, MultilineStyle, TextField};
+use super::{Kind, MultilineStyle, TextField};
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
@@ -72,12 +72,14 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, tokens.neutral.foreground_muted, cx);
-                div()
+                let text = div()
                     .flex_1()
                     .min_w(px(0.0))
                     .type_(Type::Body)
                     .line_height(px(fonts::ui(20.0)))
-                    .text_color(tokens.neutral.foreground)
+                    .text_color(tokens.neutral.foreground);
+                self.form_text
+                    .apply(text)
                     .child(Input::new(state))
                     .into_any_element()
             }
@@ -93,19 +95,14 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                form_shell(self.focused.get(), tokens, narrow)
+                self.form_text
+                    .apply(form_shell(self.focused.get(), tokens, narrow))
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
             }
             Kind::Lines(state, MultilineStyle::Form) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                form_shell(self.focused.get(), tokens, narrow)
-                    .flex_col()
-                    .items_stretch()
-                    .px(px(FORM_INSET_X))
-                    .py(px(FORM_INSET_Y))
-                    .min_h(px(self.form_minimum.height(narrow)))
-                    .max_h(px(FORM_MAX))
+                self.form_textarea.frame(self.focused.get(), tokens, narrow, self.form_minimum)
                     // The engine emits Enter and propagates the action.
                     // This form already inserted a line or submitted in
                     // its callback; native fallback must not insert again.
@@ -115,18 +112,11 @@ impl TextField {
                     .child(Textarea::new(state))
                     .into_any_element()
             }
-            Kind::Lines(state, MultilineStyle::Composer) => {
-                project(state, tokens, neutral.surface4, cx);
-                div()
-                    .w_full()
-                    .min_h(px(COMPOSER_MIN))
-                    .type_(Type::Body)
-                    .text_size(px(fonts::ui(15.0)))
-                    .line_height(px(fonts::ui(21.0)))
-                    .text_color(neutral.foreground)
-                    .child(Textarea::new(state))
-                    .into_any_element()
-            }
+            Kind::Lines(_, MultilineStyle::Composer) => self.composer_element(
+                super::composer_layout::ComposerLayout::legacy(self.send.get()),
+                tokens,
+                cx,
+            ),
         }
     }
 }
@@ -141,6 +131,7 @@ impl TextField {
             .type_(Type::Body)
             .line_height(px(fonts::ui(20.0)))
             .text_color(neutral.foreground);
+        let text = self.form_text.apply(text);
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);

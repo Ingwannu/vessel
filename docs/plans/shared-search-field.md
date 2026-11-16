@@ -90,3 +90,43 @@ not a full Kit suite, consumer UI, actual OS IME/accessibility, hover-pixel or
 whole A9 result. Only selected2e3f05bf +2b9994ac +13c46693 belong to the control;
 never consume intervening A9 changes or the complete branch as its producer.
 After checked handoff, G2 becomes the sole next field writer for Code form text.
+
+
+## Additive identified-search leaf
+
+The retained label-manager consumer requires the existing engine's FieldId,
+because an old queued editor event may arrive after close/reopen. Add only
+SearchField::with_source, id, focus and set_text, delegating to that same
+TextField. Plain new/clear/render stay unchanged. Actual-engine tests cover both
+themes' Search/X geometry, silent restoration, focus and source-tagged clear,
+and a forced old-engine event delivered after replacement with an unchanged
+current query. No consumer transition, new renderer or other field module is
+included. This leaf remains uncompiled/unreviewed until its remote checks finish.
+
+
+Identified leaf277f06 strict passed (run
+wp-labels-search-source-20261116T013136Z-277f06d1), but actual focused runtime
+wp-labels-search-source-20261116T014353Z-277f06d1 returned3 passed/1 failed.
+The old-editor rejection and both pre-existing tests passed. The new test's
+last Enter assertion wrongly assumed no Change. Existing single-line Enter
+propagates; the test window forwards its newline to the input handler, whose
+normalization preserves empty text while emitting Change. Assert the full
+source-tagged history including that empty event, unchanged text and no rejected
+source. Product constructors, renderer and event behavior remain unchanged.
+Keep this red result; corrected strict/runtime and V1 adoption remain owed.
+
+
+## Corrected identified-search verification
+
+On announced base 13.1, exact `790a5f84` passed Kit all-target Clippy at
+`wp-labels-search-source-20261116T015654Z-790a5f84` (native-fonts0, cargo0;
+actual Kit checking). Focused actual-engine runtime at
+`wp-labels-search-source-20261116T020139Z-790a5f84` completed4 passed/0 failed/
+0 ignored,243 filtered, with native-fonts0 and actual Kit compilation/cargo0.
+The test now completes both themes, including the unchanged-text/full-history
+Enter checks; the forced retired-engine callback regression also passes.
+Strict/runtime Cargo step hashes are ae7b3a38f843f9d1 and34c9863d6c6e1ec8.
+This result-only follow-up changes no Rust source. Existing new/clear/element
+and control helper bodies remain byte-identical to base 13.1. V1 disposition
+and lead adoption remain owed; no manager consumer transition, full Kit suite,
+whole-native/capture/OS input/accessibility or A6 product acceptance is implied.

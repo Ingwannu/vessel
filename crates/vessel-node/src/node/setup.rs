@@ -8,7 +8,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+use tokio_util::sync::CancellationToken;
 use vessel_proto::NodeId;
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 
 use crate::config::Config;
 use crate::fleet::FleetMcp;
@@ -126,6 +128,51 @@ pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local
     );
 }
 
+/// Feature actors share the existing store and startup task/cancellation owners.
+/// Build the original guarded RPC server in the bootstrap owner, keeping node
+/// assembly within its function budget when feature teardown gains a field.
+/// The configuration, identity watch and closing token are passed unchanged.
+pub(super) fn rpc_server(
+    config: &Config,
+    service: &Arc<crate::guard::Guarded>,
+    lifecycle: &crate::lifecycle::Lifecycle,
+    closing: &CancellationToken,
+) -> Arc<vessel_rpc::Server<crate::guard::Guarded>> {
+    Arc::new(vessel_rpc::Server::new(
+        Arc::clone(service),
+        lifecycle.watch_info(),
+        config.rpc.clone(),
+        closing.clone(),
+    ))
+}
+
+/// Kept here so node assembly remains registrations rather than growing setup logic.
+pub(super) struct FeatureState {
+    pub(super) push: Arc<crate::push::Push>,
+    pub(super) limits: crate::limits::Limits,
+    pub(super) labels: crate::workspace_labels::Labels,
+}
+
+pub(super) async fn feature_state(
+    config: &Config,
+    store: &vessel_store::Store,
+    tasks: &tokio_util::task::TaskTracker,
+    stop: &CancellationToken,
+) -> Result<FeatureState, NodeError> {
+    let push = crate::push::Push::started(config, store.clone(), tasks, stop.clone())
+        .await
+        .map_err(NodeError::Store)?;
+    let limits = crate::limits::Limits::configured(config, stop.clone(), tasks).await;
+    let labels = crate::workspace_labels::Labels::open(store.clone())
+        .await
+        .map_err(NodeError::Store)?;
+    Ok(FeatureState {
+        push,
+        limits,
+        labels,
+    })
+}
+
 /// The checked disk/config phase, kept separate from transport assembly.
 /// The caller captures its monotonic start clock before this I/O begins.
 pub(super) struct Startup {
@@ -170,5 +217,58 @@ impl Startup {
             clients,
             relaying,
         })
+    }
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+pub(super) fn runtime(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+    admission: CancellationToken,
+) -> Arc<SessionRuntime> {
+    Arc::new(
+        SessionRuntime::new(
+            RuntimeConfig {
+                harness_lookup: config.harness_lookup.clone(),
+                harness_env: config.harness_env.clone(),
+                ring_capacity: config.ring_capacity,
+                durable_capacity: config.durable_capacity,
+                agent_handshake_timeout: config.agent_handshake_timeout,
+                park_after: config.park_after,
+                private_dir: Some(private_dir),
+            },
+            CancellationToken::new(),
+        )
+        .with_attachments(loader)
+        .with_admission(admission),
+    )
+}
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+
+    const ATTACHMENT_CAPACITY: usize = 1;
+
+    #[test]
+    fn the_actual_node_factory_observes_the_original_early_stop_token() {
+        let root = tempfile::tempdir().unwrap();
+        let config = Config::new(
+            vessel_store::DataDir::new(root.path()),
+            vessel_harness::HarnessEnv::new(root.path().to_owned()),
+        );
+        let (loader, _loads) = AttachmentLoader::channel(ATTACHMENT_CAPACITY);
+        let stop = CancellationToken::new();
+        let runtime = runtime(&config, loader, root.path().to_owned(), stop.clone());
+        let observed = runtime.launch_admission();
+        assert!(observed.check().is_ok());
+        stop.cancel();
+        assert!(matches!(
+            observed.check(),
+            Err(vessel_session::SessionError::ShuttingDown)
+        ));
     }
 }

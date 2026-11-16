@@ -13,6 +13,8 @@ pub mod changes;
 pub mod command_changes;
 pub mod diff_rows;
 pub mod editor;
+pub mod file_scope;
+pub mod file_ticket;
 pub mod file_tree;
 pub mod find;
 pub mod git;

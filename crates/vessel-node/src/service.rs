@@ -59,6 +59,7 @@ mod files;
 mod git;
 mod projects;
 mod registry;
+mod workspace_labels;
 mod worktrees;
 // Protocol 11's calls: pull requests (`forge`, ADR 0029).
 mod forge;
@@ -79,6 +80,7 @@ mod schedule_preview;
 mod scheduled;
 mod schedules;
 mod usage;
+mod usage_reports;
 // Protocol 12 (track A2): the conversation, further.
 mod forking;
 mod history;
@@ -88,6 +90,8 @@ mod settings;
 mod side_questions;
 
 #[cfg(test)]
+mod command_diagnostics_tests;
+#[cfg(test)]
 mod connection_life_tests;
 #[cfg(test)]
 mod dispatch_tests;
@@ -96,6 +100,7 @@ mod dispatch_tests;
 #[derive(Debug)]
 pub(crate) struct NodeService {
     file_panels: file_panels::FilePanelSlots,
+    pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -158,6 +163,7 @@ pub(crate) struct NodeService {
     listings: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
+    usage_reports: crate::usage_reports::Registry,
     limits: crate::limits::Limits,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
@@ -169,6 +175,7 @@ pub(crate) struct NodeService {
 
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
+    pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) diagnostics: crate::diagnostics::Setup,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
@@ -201,6 +208,7 @@ pub(crate) struct Parts {
 impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
+            workspace_labels,
             diagnostics,
             lsp,
             lsp_roots,
@@ -239,7 +247,9 @@ impl NodeService {
             store.clone(),
         );
         Self {
+            usage_reports: crate::usage_reports::Registry::default(),
             file_panels: file_panels::FilePanelSlots::default(),
+            workspace_labels,
             lsp,
             lsp_roots,
             lifecycle,

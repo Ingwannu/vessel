@@ -321,6 +321,22 @@ impl Glyph {
                 r#"<path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />"#
             ),
             Self::X => line_glyph!(r#"<path d="M18 6 6 18" /><path d="m6 6 12 12" />"#),
+            // Root command-center ImportIcon explicitly overrides the provider:
+            // pinned root-registration.tsx94–96, Lucide1.50 canonical paths.
+            Self::Import => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12" /><path d="m8 11 4 4 4-4" /><path d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4" /></svg>"#
+            }
+            // zoomable-viewport/toolbar.tsx sets no stroke, so AppShell's
+            // LucideProvider1.5 applies. Canonical Lucide1.50.0 XML children.
+            Self::ZoomIn => line_glyph!(
+                r#"<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="11" x2="11" y1="8" y2="14" /><line x1="8" x2="14" y1="11" y2="11" />"#
+            ),
+            Self::ZoomOut => line_glyph!(
+                r#"<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="8" x2="14" y1="11" y2="11" />"#
+            ),
+            Self::Scan => line_glyph!(
+                r#"<path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />"#
+            ),
         }
     }
 }

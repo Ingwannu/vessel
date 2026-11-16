@@ -47,6 +47,7 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::GetRegistry(snapshot) => snapshot.for_protocol(protocol).map(Self::GetRegistry),
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
@@ -113,14 +114,8 @@ impl Reply {
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
             Self::GetConversation(conversation) => conversation
-                .usage
-                .as_ref()
-                .and_then(|usage| usage.for_protocol(protocol))
-                .map(|usage| {
-                    let mut conversation = conversation.clone();
-                    conversation.usage = Some(usage);
-                    Self::GetConversation(conversation)
-                }),
+                .composer_for_protocol(protocol)
+                .map(Self::GetConversation),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
@@ -215,7 +210,11 @@ impl Reply {
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
             | Self::ReadAttachment(_)
-            | Self::GetRegistry(_)
+            | Self::ListWorkspaceLabels(_)
+            | Self::AssignWorkspaceLabel(_)
+            | Self::UpdateWorkspaceLabel(_)
+            | Self::InspectWorkspaceLabelDelete(_)
+            | Self::DeleteWorkspaceLabel(_)
             | Self::ListWorkspaces(_)
             | Self::GetWorkspace(_)
             | Self::RenameWorkspace(_)
@@ -303,6 +302,9 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::ListUsageReports(_)
+            | Self::InspectUsageReport(_)
+            | Self::SetUsageSourceLookup(_)
             | Self::GetUsageLimits(_)
             | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
@@ -338,7 +340,7 @@ impl SessionInfo {
     /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.for_protocol_with_parentage(protocol, crate::subagents::SUBAGENT_RELATIONS)
+        self.for_protocol_with_mutation_time(protocol, crate::SESSION_MUTATIONS)
     }
 
     /// One projection rule also exercised with a synthetic assigned threshold.

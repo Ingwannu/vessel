@@ -52,6 +52,8 @@ pub enum Origin {
     File(PathBuf),
     /// An image pasted from the clipboard, held until it is sent.
     Pasted(Arc<[u8]>),
+    /// An immutable private managed snapshot; its Arc protects bytes from GC.
+    Stored(Arc<super::local::LocalFile>),
 }
 
 /// An upload the node holds, and how far it got (a retry goes on from
@@ -119,6 +121,7 @@ pub enum ItemState {
 /// One attached file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
+    identity: Arc<()>,
     /// Its place in the tray.
     pub key: ItemKey,
     /// Its name as the node will keep it.
@@ -133,6 +136,25 @@ pub struct Item {
     pub origin: Origin,
     /// Where it is on its way.
     pub state: ItemState,
+}
+
+/// An opaque resource lease captured when a pill is rendered. Recreated trays
+/// cannot reuse it even when their local numeric keys start at zero again.
+#[derive(Debug, Clone)]
+pub struct ItemIntent(Arc<()>);
+impl ItemIntent {
+    /// Match the original resource, never the item now occupying its old index.
+    #[must_use]
+    pub fn matches(&self, item: &Item) -> bool {
+        Arc::ptr_eq(&self.0, &item.identity)
+    }
+}
+impl Item {
+    /// Capture a click intent without copying file bytes or upload state.
+    #[must_use]
+    pub fn intent(&self) -> ItemIntent {
+        ItemIntent(Arc::clone(&self.identity))
+    }
 }
 
 /// What the files are checked against: the session's agent and the node.
@@ -190,6 +212,7 @@ impl Tray {
         let key = ItemKey(self.next);
         self.next = self.next.saturating_add(1);
         self.items.push(Item {
+            identity: Arc::new(()),
             key,
             kind: kind_of(&mime),
             name,

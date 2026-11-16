@@ -30,6 +30,7 @@ subtle.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+url.workspace = true
 # Wipes the store's copy of `node.key` from memory (ADR 0009).
 zeroize.workspace = true
 

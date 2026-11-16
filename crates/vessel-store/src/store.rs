@@ -3,6 +3,7 @@
 
 mod attached;
 mod automation;
+mod committed;
 mod conversation;
 mod diagnostics;
 pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
@@ -13,6 +14,7 @@ mod registry;
 mod search;
 mod subagents;
 mod usage;
+mod workspace_labels;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -34,7 +36,7 @@ use crate::log;
 use crate::reader::Reader;
 use crate::workspace::{ApprovalChange, StoredWorkspace, WorkspaceWrite};
 use crate::writer::{self, Done, Setup, Write, WriteOp};
-use crate::{attachments, files, recovery, schema};
+use crate::{SessionCommit, attachments, files, recovery, schema};
 
 /// The session event log. Cheap to clone; every clone talks to the same
 /// writer thread and read pool.
@@ -145,11 +147,9 @@ impl Store {
     /// # Errors
     /// The id is already stored, or the write failed.
     pub async fn create_session(&self, info: SessionInfo) -> Result<(), StoreError> {
-        self.write(|done| Write::Create {
-            info: Box::new(info),
-            done,
-        })
-        .await
+        self.create_session_committed(info)
+            .await
+            .map(SessionCommit::into_value)
     }
 
     /// Append records to a session's log; returns once they are committed.
@@ -168,12 +168,9 @@ impl Store {
         session: SessionId,
         records: Vec<Arc<EventRecord>>,
     ) -> Result<(), StoreError> {
-        self.write(|done| Write::Append {
-            session,
-            records,
-            done,
-        })
-        .await
+        self.append_committed(session, records)
+            .await
+            .map(SessionCommit::into_value)
     }
 
     /// A page of a session's log; see `session.read` in the protocol.
@@ -381,7 +378,7 @@ impl Store {
         }
     }
 
-    async fn write(&self, write: impl FnOnce(Done) -> Write) -> Result<(), StoreError> {
+    async fn write<T>(&self, write: impl FnOnce(Done<T>) -> Write) -> Result<T, StoreError> {
         let (done, committed) = oneshot::channel();
         self.send(write(done)).await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?

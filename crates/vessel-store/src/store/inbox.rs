@@ -1,6 +1,6 @@
 //! Public async inbox operations; SQL remains in the store's projection.
 use super::Store;
-use crate::{StoreError, writer::Write};
+use crate::{SessionCommit, StoreError, writer::Write};
 use vessel_proto::inbox::{InboxPage, ListInbox, MarkInbox};
 impl Store {
     /// A bounded inbox page, newest first, read without scanning session logs.
@@ -18,12 +18,25 @@ impl Store {
         })
         .await
     }
+    /// Retain this exact entry mark's acknowledged mutation clock for live
+    /// publication, without changing how an entry is selected or authorized.
+    /// # Errors
+    /// Gone entry, invalid/exhausted session clock, or the existing write failure.
+    pub async fn mark_inbox_committed(
+        &self,
+        mark: MarkInbox,
+    ) -> Result<SessionCommit<()>, StoreError> {
+        self.write(|done| Write::Inbox { mark, done }).await
+    }
+
     /// Mark exactly one current entry read or unread.
     ///
     /// # Errors
     /// [`StoreError::InboxGone`] once answered/removed, or a database failure.
     pub async fn mark_inbox(&self, mark: MarkInbox) -> Result<(), StoreError> {
-        self.write(|done| Write::Inbox { mark, done }).await
+        self.mark_inbox_committed(mark)
+            .await
+            .map(SessionCommit::into_value)
     }
 }
 

@@ -115,10 +115,19 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
-The kit field keeps its editor factories, weak IME registry and events in
-`field.rs`; `field/presentation.rs` draws the existing form/composer shells
-and `field/styles.rs` projects tokens onto the same engines. Original public
+The kit field keeps its editor factories and weak IME registry in
+`field.rs`; the shared `field/events.rs` owns its original subscription,
+`field/editability.rs` its one editability API, `field/presentation.rs` the
+form/composer shells, and `field/styles.rs` token projection. Original public
 entry points are re-exported unchanged; composer hooks retain their contract.
+
+Machine presentation policy lives in pure `view::hosts`: an explicit badge
+choice takes precedence while the managed-local-machine lookup is pending;
+only the automatic choice waits, then hides local or names remote. These
+values own no credentials, persistence or UI paint and never replace the
+client's authenticated identity. E1 wires their consumer separately. The
+separate `hosts::Label` validates Unicode display text using the source's
+outer-whitespace rules; it is never parsed as a CLI alias or authority.
 
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
@@ -140,6 +149,17 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+Draft creation has a correlated local state machine in `view::creation`.
+Its ticket also identifies the attachment owner's prepared payload. The
+`link::creation` boundary keeps resource registration separate from the first
+message, so a delivery failure cannot imply that no session exists. Route
+ownership is relinquished when the person leaves; a late completion may
+update the registry but cannot take another route. New creation labels live
+in the English/Korean `creation.ftl` catalogs; screens compose the kit's alert.
+This local boundary adds no node RPC. Durable workspace receipts and terminal
+profiles are the additive contract of ADR 0091 and depend on ADR 0082's sole
+workspace registry.
+
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with
@@ -160,6 +180,23 @@ words, and produces the existing wire requests for `link::workspace`.
 The node remains authoritative; preparation never runs a local git
 command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
 repository root.
+
+## Durable session history and lifecycle
+
+`view::sessions` selects chronological metadata history, date buckets, local page
+windows and correlated lifecycle/navigation requests. History opts into the
+shared matcher's bounded typo mode; command and catalog defaults remain exact. `link::sessions` resolves
+an authenticated node ID to a saved connection and reads `session.get` without
+starting an agent. Its lifecycle worker reuses the existing session RPC dispatcher
+and adds a correlation ID and finite outer deadline. An uncertain mutation result
+never causes automatic retry or local tab removal.
+
+`app/areas/sessions` owns the Sessions screen, host selector and lifecycle
+confirmation. Existing board archive and pin actions retain their owner. Manual
+navigation invalidates pending deep-link and post-archive navigation, while a
+successful acknowledgement still updates the target's fleet metadata. Composer
+exit/fresh operations archive before changing screens. Package validation uses the native gate and an isolated fake fleet; current
+package evidence is recorded in `docs/plans/wp-sessions.md`.
 
 ## The app's layout
 
@@ -187,7 +224,9 @@ app/src/
                    view's parser/grid to the kit's single terminal_grid renderer
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
-                   the `/` menu (slash.rs), drafts and recall (drafts.rs)
+                   the `/` menu (slash.rs), drafts and recall (drafts.rs), files
+                   attached and sent (attach.rs, files.rs), sent images' pictures
+                   in the conversation (sent.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update
@@ -217,6 +256,12 @@ multiple agent panes work. The staged sole `SessionResidents` container validate
 contexts and binding/ticket ingress. Its single-slot minter plans a real tab before
 the scoped factory, rechecks current membership, and refuses implicit eviction.
 Independent lease retirement still invalidates tickets after a refused switch.
+The staged bundle now moves one Requests controller and one Lifecycle controller
+beside the actual session and conversation. Lifecycle begins Loading, and concrete
+owner holds block clean removal even when an older table marker says Ready.
+Follow retirement updates these same controllers before the caller's callback;
+record intake offers exact resolution records to the same Requests controller.
+These fields do not supply transport validity or the expected-stop Window phase.
 The literal test gate remains until converted globals and raw ingress are removed. Package details and evidence limits are in
 [`wp-layout.md`](../../docs/plans/wp-layout.md).
 
@@ -305,6 +350,23 @@ drawn from `Tokens` and `Type` only, exported from `kit/src/lib.rs`. A
 control another track could need (a menu, a dialog, a sheet, tabs, a
 tooltip, a virtual list) is the lead's to write: ask through the
 coordinator first, so two tracks do not write two.
+
+A dialog can carry Paseo's sheet-header search row under its title:
+`SearchField::header_search` makes the typed `HeaderSearch` from the same
+one-line engine and `DialogContent::with_header_search` places it
+([`shared-dialog-header-search.md`](../../docs/plans/shared-dialog-header-search.md)).
+
+`kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
+profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
+the sidebar package owns the Footer wrapper. The lower frame grants no input or
+effect admission. Its extraction and Footer profile are source-only until their
+own VM checks and review, as recorded in
+[`shared-icon-chrome.md`](../../docs/plans/shared-icon-chrome.md).
+Its third profile, `Viewport`, is a zoomable viewport's floating action
+(surface2 plate, muted glyph turning foreground on hover, owner-supplied
+`Presence`); `chrome::controls_corner` is the window-controls corner a
+full-window overlay leaves uncovered
+([`shared-viewport-chrome.md`](../../docs/plans/shared-viewport-chrome.md)).
 
 A settings screen (About now, the settings track's sections later) is
 built from `kit::settings`: Paseo's section with its small title, the
@@ -1283,6 +1345,40 @@ button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
 
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.
+
+### Composer shell policy
+
+`view::composer_shell` owns pure mode/access/fullscreen policy, ordered command sources, file-reference values and gesture projection (ADR0085). The current input wrappers retain one TextField Entity and delegate early client commands to the existing lifecycle. Attachments/mentions and the lightbox stay with their owner. Scoped resident construction/retention remains test-only until the sole registry cutover. Validation, unavailable contracts and supported source paths are recorded in `docs/plans/wp-composer-shell.md`; no complete package/UI pass is claimed.
+### Attachment previews
+
+Click an image in either the composer tray or a sent message to open the
+window lightbox. Its toolbar zooms in/out, resets fit, and closes; a
+ordinary wheel (also with modifiers) or a platform pinch zooms at the pointer, and dragging
+pans within the image bounds. Escape, the close action, and a tap outside
+the image dismiss it and restore the previous field's focus. Failed
+image reads and decodes show a translated failure rather than staying in
+a loading state. The overlay uses the shared surface transition, held
+still by the existing reduced-motion setting.
+
+The image viewport starts below the app's own title bar: the bar beside
+the window controls is shaded (a press there dismisses, as Paseo's backdrop
+does) and the controls' corner (`kit::chrome::controls_corner`) is left
+uncovered, so minimise, maximise and close stay usable. The toolbar is the
+kit's `ToolbarButton::viewport` cluster (ZoomIn, ZoomOut, Scan, X) at the
+viewport's top right, shown while the pointer is over the viewport, after
+Tab or a zoom key, and always in the compact layout
+(`docs/plans/wp-b1.md`, "Lightbox toolbar correction").
+
+An ended session resumes before its attachments upload; no text-only
+prompt is sent first. The same upload, progress and retry tray is used
+for new, running and resumed conversations. System file selection and
+file-manager clipboard/drop delivery depend on the platform integration;
+virtual-display captures cannot prove a desktop portal or URI-list paste.
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
@@ -1334,6 +1430,12 @@ same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
 retain and check their action context/ticket; the slot grants no host authority.
 See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
 
+`DialogSize::with_compact(CompactLayout)` replaces only the compact profile on
+Normal, Wide or Configured, retaining its desktop geometry and body spacing.
+Callers supply validated snap points without copying shared desktop constants;
+legacy fitting90 and snap60/90 remain unchanged. See
+`docs/plans/wp-dialog-compact.md` for source values and pending validation.
+
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
@@ -1362,6 +1464,12 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+The additive popup::placement primitive measures one native child against a
+captured whole trigger and flips/clamps it in prepaint. Menu and popover owners
+can share its geometry while retaining their own focus, leases and actions;
+legacy point anchors remain. Producer validation and limits are recorded in
+docs/plans/shared-popup-placement.md; no consumer is migrated by the producer.
 
 The shared combobox captures a private identity for each explicit opening.
 Retained frame callbacks admit that opening before keys, outside/scrim, row/back
@@ -1426,11 +1534,26 @@ spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
 control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
 isolated producer does not include C3 View/Link/app or any root-runtime changes.
 
+Keyboard mechanics and the typed owner callback seam are described in
+[the receiving plan](../../docs/plans/wp-commands-keyboard-producer.md).
+This bounded mechanics cut does not imply a completed command center or feature
+controller; receiving compilation and tests are recorded separately.
 `TextField::select_all` uses the existing engine for line and multiline
 fields. Rename consumes the shared typed `Editability` at dispatch/answer;
 its `rename_element` profile wraps the same bare editor. The kit-internal
 `field::settings_frame` shares only the inset-focus bridge with Appearance
 profiles, leaving chrome to each profile and all events in the one engine.
+
+`field::SecretField` is ADR0102's explicit secure single-line facade over the
+same TextField engine/listen. It never loads an existing credential, reveals
+input, returns the raw TextField or offers a text getter. Caller-localized
+Absent/Set placeholders stay distinct from replacement input. Masking blocks
+Copy/Cut in the engine; Paste retains existing editability/focus checks.
+SecretEdit::Unchanged means no replacement, never deletion; SecretInput diagnostics
+are redacted and its consumed value is only for the explicit secret-store boundary.
+The engine's PasswordInput accessibility projection suppresses its value. Current
+source/tests are unverified; no OS AT/IME/consumer/capture or persistence proof is
+implied by that policy. Ordinary TextField APIs and defaults remain unchanged.
 
 `kit::segmented::segmented_at` and `segment_at` take the shared `ControlSizing`
 for source MD32/44 (inner28/40), with unchanged SM28/24. They share the legacy
@@ -1438,3 +1561,8 @@ renderer; source opt-ins add unselected pressed surface3 after hover surface2.
 Existing `segmented`/`segment` remain pointer-sized with their original paint.
 The caller owns the value and refuses disabled/current-value actions. Why and
 pinned lines: `docs/plans/shared-segmented-sizing.md`.
+
+`VirtualList::on_scroll` observes handled scroll input through GPUI's existing
+handler, without exporting its stale visible_range or changing list motion.
+Install once for the list owner; never query/reborrow the list during callback.
+Exact source/real-window proof remains pending in `docs/plans/wp-c3-list-scroll.md`.

@@ -35,8 +35,8 @@ use vessel_app_view::workspace::place::{Place, PlaceMode, ProjectPlace, place_pr
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::setup_log::SetupLog;
 use vessel_app_view::workspace::start::Step;
+use vessel_proto::ProjectId;
 use vessel_proto::workspace::{BranchList, ProjectInfo, RefName, WorkspaceRoot};
-use vessel_proto::{HarnessRef, OptionChoice, ProjectId, SessionMode, SessionSpec};
 
 use super::start_card::Starting;
 use crate::shell::Shell;
@@ -256,36 +256,25 @@ impl Shell {
             .map(|problem| self.words().place(problem))
     }
 
-    /// Start the draft in the chosen project: in its folder, or in a new
-    /// worktree made first, each step shown on the session's screen
-    /// (`start_card`). `false` when no project is chosen: the lead's
-    /// `Command::Start` runs in the folder.
+    /// Resolve project placement before the shared correlated creation path.
+    /// `Some` leaves folder-only creation with its caller.
     pub(crate) fn start_in_place(
         &mut self,
-        machine: &str,
-        harness: &HarnessRef,
-        options: &[OptionChoice],
-        prompt: &str,
-    ) -> bool {
+        creation: vessel_app_link::creation::Ask,
+    ) -> Option<vessel_app_link::creation::Ask> {
         let Some(place) = self.chosen_place().cloned() else {
-            return false;
+            return Some(creation);
         };
         let project = self
             .chosen_project()
             .map_or_else(String::new, |project| project.name.to_string());
-        let mode = SessionMode::Structured {
-            model: None,
-            resume: None,
-            options: options.to_vec(),
-        };
-        let spec = SessionSpec::new(harness.clone(), mode);
         let (answers, asked) = tokio::sync::mpsc::channel(4);
-        let workspace = &mut self.areas.workspace;
-        workspace.starts = workspace.starts.wrapping_add(1);
-        let key = StartKey(workspace.starts);
-        workspace.start = Some(Starting {
+        let key = StartKey(creation.ticket.value());
+        let machine = creation.machine.as_str().to_owned();
+        self.areas.workspace.start = Some(Starting {
             key,
-            machine: machine.to_owned(),
+            ticket: creation.ticket,
+            machine: machine.clone(),
             project,
             worktree: place.mode != PlaceMode::Folder,
             step: Step::Idle,
@@ -294,15 +283,14 @@ impl Shell {
             folded: false,
         });
         self.ask(
-            machine,
+            &machine,
             Ask::Start(Box::new(StartAsk {
                 key,
                 place,
-                spec,
-                prompt: prompt.to_owned(),
+                creation,
                 answers: asked,
             })),
         );
-        true
+        None
     }
 }

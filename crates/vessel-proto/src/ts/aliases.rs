@@ -71,12 +71,15 @@
 //! - Project service declarations: `ServicePort` is a number a person chooses,
 //!   like a pull-request number, not a node-minted handle or a count.
 //!   `PortRange` and `PortScript` are also named choices a person writes.
+//! - `SessionUpdatedAt` is a time measure, plain rather than an authority handle.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
 //!   declared (the bridge crate's test, which sees both files, checks).
 //!   A new alias is classified here, by the rule above, in the same
 //!   change that adds it.
+//! - Workspace labels: `LabelName` is chosen text and `LabelCount`/`WorkspaceLabelSeq`
+//!   are quantities. `WorkspaceLabelGeneration` is a node-minted observer identity.
 //! - Alternatives: branding every alias (a person's text would need a
 //!   guard at every form field); branding none (the page's ids stay
 //!   interchangeable); a `#[ts(brand)]` attribute on each type (ts-rs has
@@ -171,6 +174,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),
+    ("LabelCount", Alias::Quantity),
+    ("LabelName", Alias::Named),
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
@@ -235,6 +240,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ServicePort", Alias::Named),
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
+    ("SessionUpdatedAt", Alias::Quantity),
     ("Sha256Hex", Alias::Named),
     ("SkillName", Alias::Named),
     ("StreamId", Alias::Handle),
@@ -249,7 +255,13 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ToolCallId", Alias::Handle),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
+    ("UsageAccountKey", Alias::Handle),
+    ("UsageDisclosureVersion", Alias::Quantity),
+    ("UsageReportId", Alias::Handle),
+    ("UsageSourceId", Alias::Handle),
     ("WorkspaceId", Alias::Handle),
+    ("WorkspaceLabelGeneration", Alias::Handle),
+    ("WorkspaceLabelSeq", Alias::Quantity),
     ("WorktreeId", Alias::Handle),
 ];
 

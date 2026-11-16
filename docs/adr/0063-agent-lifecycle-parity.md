@@ -528,3 +528,165 @@ other list calls refuse rather than truncate.
   the protocol change. This track does not draw a screen.
 - Not verified here: no process was restarted and no list was filtered.
   The slices after this one implement the contract.
+
+
+### Nonempty label changes at the input edge
+
+[Decision Log]
+- Purpose: a label mutation must contain a change before any actor or stored
+  session is consulted. An empty label map remains valid as session state,
+  creation input and a discovery predicate.
+- Existing assets: `SessionLabels` already bounds and validates every map entry;
+  its `apply` constructs an atomic result and checks the combined map's cap.
+  Paseo's lifecycle command rejects an empty metadata update
+  (`agent/lifecycle-command.ts:163-192`); its CLI validates before connecting
+  (`agent/update.ts:150-201`).
+- Alternatives: changing `SessionLabels` to reject empty maps would break valid
+  state and reads. A boolean mode or a separate raw map would split validation.
+- Choice: a `LabelPatch` wraps the existing validated map, without `Default` or
+  mutable access. Construction and deserialization refuse `InvalidLabel::Empty`;
+  deserialization first uses the map's bounded visitor. Serialization retains
+  the same object shape, with the TypeScript derive kept for later call wiring.
+- Why: the type carries the known input invariant across module boundaries while
+  `SessionLabels::apply` retains the context-dependent combined-cap check.
+- Effects: no new dependency or bound, method registration, event, storage write
+  or protocol assignment is introduced by this value foundation. The later
+  mutation package must prove actor/stored ordering and compatible projections.
+
+
+### Proposed durable session mutation clock
+
+This extension remains proposed. Storage implementation is in progress below;
+public Info/acknowledgement projection and its execution checks remain owed.
+It precedes label mutation wiring and claims no consumer availability.
+
+[Decision Log]
+- Purpose: finished-session selection needs one durable ordering fact that
+  survives log retention, restart and metadata-only changes. It must be read
+  with current attention and workspace membership on the existing writer
+  connection, rather than assembled from separate asynchronous reads.
+- Reference: Paseo `agent/agent-manager.ts:1017-1031` advances updatedAt with
+  `max(now, previous + one millisecond)`. Its live/stored label writes use that
+  clock (`:2290-2328`); stored unread also advances it (`:2408-2435`).
+  `session.ts:7770-7837` chooses an eligible finished workspace-relative root
+  by updatedAt descending and id ascending. No retained-log timestamp is used.
+- Existing assets: the store has one writer, per-operation savepoints and
+  commit-before-reply acknowledgement. Session projections are updated inside
+  append, marks, reopen and detach transactions. Recovery uses normal append.
+  The existing chrono and SQLite codecs suffice; no dependency is added.
+- Alternatives: an end time excludes later metadata/marks; a retained-record
+  maximum changes when history is pruned; a timestamp supplied by a client or
+  imported record can forge local ordering; a registry timestamp describes a
+  different object. A second mutation writer or a separate read-before-write
+  transaction would lose the atomic attention selection boundary.
+- Choice: append nullable `sessions.updated_at` with one relative schema
+  constant after the current head. NULL remains legacy Unknown, without a
+  historical backfill. Proposed wire/read type is
+  `SessionInfo.updated_at: Option<SessionUpdatedAt>`, a validating UTC
+  millisecond newtype, with one named minimum increment beside the type.
+  A separate pending `SESSION_MUTATIONS: Option<ProtocolVersion>` gates this
+  optional field on every info/list/page/transfer/envelope reply. Assignment
+  waits for the attention/workspace display consumers and the snapshot tests.
+- Writer rule: sample the node writer's wall clock, normalize to milliseconds,
+  then advance strictly beyond the same row's prior known value. Unknown
+  becomes that sampled time. Checked overflow refuses the whole savepoint;
+  saturation must not produce equal successive values. Caller/event/receipt
+  times remain their existing facts and never supply this ordering clock.
+- Coverage: initialize on a successful local row creation; advance on every
+  nonempty accepted append batch, accepted session mark and entry-level inbox
+  mark, successful reopen, first detach and metadata write. A rejected write,
+  empty append, repeated already-detached receipt, read, migration, pruning,
+  index rebuild or usage backfill does not advance it. Profile/options/title/
+  queue/usage changes already included in append tick there once; their SQL
+  helpers must not tick again. Deletion removes the clock with the row.
+- Why: one small store helper takes the caller's connection and is reused
+  inside each mutation's existing savepoint. A future workspace mark can read
+  the clock, membership, roles and attention and apply marks in that same
+  transaction. No public arbitrary timestamp setter or extra permission is
+  introduced. Ordering is per session; equal values across sessions use the
+  consumer's explicit id tie break, not a fabricated global order.
+- Effects and differences: Vessel stamps committed append batches, not each
+  raw chunk or transient state emission; this preserves existing batched
+  persistence instead of adding one write per token. It also stamps canonical
+  marks consistently, whereas Paseo's live unread path changes attention
+  without explicitly calling touchUpdatedAt (`:2390-2407`). Imported sessions
+  receive a new local creation clock; the source's value cannot control the
+  destination's ordering. Legacy Unknown makes dependent selection refuse
+  rather than invent a historical ordering.
+
+The proposed live-info value is the most recently acknowledged durable clock,
+never a speculative actor timestamp. Append/mark/reopen/detach acknowledgements
+must publish that typed value without regression; asynchronous actor publication
+may be ahead of it. The store row is authoritative for transactional selection.
+A live reply does not claim that its current process state and this durable
+clock are one writer snapshot. A consumer needing that guarantee must use the
+canonical durable transaction instead. The clock is neither a permission nor
+an execution-incarnation fence, and is not a revision of the current label map.
+
+### Proposed current-label coverage boundary
+
+[Decision Log]
+- Purpose: a delayed Info reply must not roll current labels back after a live
+  LabelsChanged, and replay must not overwrite a newer current map. The
+  creation spec remains immutable. This requires an explicit producer fact,
+  not an inference from an arbitrary record sequence or the mutation clock.
+- Existing constraint: `Publisher::commit` queues a record, publishes it and
+  updates Info in one actor turn; physical storage commits later. Store append
+  updates its projection and next_seq in one savepoint. New-session persistence
+  currently seeds a zero-cursor row from a handle that can already have
+  published records. That last boundary must be corrected before promising
+  label/map cursor consistency.
+- Choice proposed for review: an optional typed `labels_through` coverage field
+  on SessionInfo, carrying `LabelsWatermark` (an exclusive EventSeq). It is
+  derived from the existing log cursor, not another persisted counter or
+  timestamp. It is present only for an authoritative complete current-label
+  snapshot; absence means Unknown, including older nodes and masked peers.
+  Hide it with both label maps under the same lifecycle feature projection.
+- Producer invariant: a snapshot with watermark N contains the full current
+  label map after every LabelsChanged with seq less than N and none at or
+  beyond N. Live publication changes the map, next_seq and coverage together
+  in one Info watch update. Durable append changes map and cursor together in
+  its existing savepoint; durable readers derive the typed coverage there.
+  Creation persists a frozen pre-publication initial snapshot, not a late
+  handle read. Stored mutation appends its full-map event and updates the
+  projection in one savepoint, serialized with reopen.
+- Mutation acknowledgement: capture the actor's exact map/coverage snapshot at
+  publication and wait for durability through that captured target. Do not
+  wait for an old cursor and then answer a newer uncommitted handle snapshot.
+  Failed durability is an error. A published live event alone is not a durable
+  commit receipt.
+- Consumer rule: only an already admitted session/binding may use this data.
+  A LabelsChanged record supplies a checked exclusive coverage from its own
+  sequence. Keep the full map with the greatest coverage; an Info snapshot
+  covers events strictly before its watermark, so those events are replay
+  only. An equal covered boundary cannot supply a conflicting map. Missing
+  coverage requires a causal fresh read or a held Unknown state, never a
+  timestamp/sequence guess. Pending data belongs to the same metadata owner
+  and cannot cross retirement or a successor binding.
+- Alternatives: reusing updated_at would mix durable marks with earlier live
+  publication; assuming next_seq means label coverage without fixing creation
+  would admit a false snapshot; a second persistent label clock duplicates
+  ordering already provided by the log. The explicit optional coverage is
+  additional wire data, but makes missing/old-peer coverage distinguishable
+  from a genuinely empty current map without another database clock.
+- Verification owed: force actor publication ahead of persistence and ahead of
+  initial row creation; check exact live/map/cursor pairs, stored/reopened
+  pairs and acknowledged mutation targets. Test old Info after newer live
+  event, historical replay, Unknown coverage and every older-peer nested
+  projection. No current commit proves these future invariants yet.
+
+
+### Explicit label mutation payload
+
+The mutation payload is `SetLabels { session: SessionId, labels: LabelPatch }`.
+Both fields are required; there is no default, optional patch or empty-state
+conversion. This extends the existing typed session request payloads rather
+than introducing a generic metadata object. Its nonempty map is validated at
+construction/deserialization through the same bounded labels decoder. The
+combined-map cap still belongs to the current-state actor/store operation.
+
+The payload can be prepared independently of method registration. A standalone
+payload is neither a registered Request nor an available session.labels call.
+The pending lifecycle method and its SessionInfo reply will be wired only with
+the real mutation and its projection tests; this value adds no assignment,
+service, event or consumer availability.

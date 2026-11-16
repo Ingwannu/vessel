@@ -211,6 +211,9 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::usage_reports::ListUsageReports,
+    vessel_proto::usage_reports::InspectUsageReport,
+    vessel_proto::usage_reports::SetUsageSourceLookup,
     vessel_proto::GetDeviceSelf,
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,
@@ -308,6 +311,11 @@ untargeted!(
     vessel_proto::lsp::Diagnostics,
     vessel_proto::registry::ReleaseWorkspaceAutomation,
     vessel_proto::registry::GetRegistry,
+    vessel_proto::workspace_labels::ListWorkspaceLabels,
+    vessel_proto::workspace_labels::AssignWorkspaceLabel,
+    vessel_proto::workspace_labels::UpdateWorkspaceLabel,
+    vessel_proto::workspace_labels::InspectWorkspaceLabelDelete,
+    vessel_proto::workspace_labels::DeleteWorkspaceLabel,
     vessel_proto::registry::ListWorkspaces,
     vessel_proto::registry::GetWorkspace,
     vessel_proto::registry::RenameWorkspace,

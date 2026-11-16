@@ -32,6 +32,8 @@ use vessel_app_view::workspace::words::WorkspaceWords;
 
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
+#[cfg(test)]
+pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
@@ -51,7 +53,6 @@ pub(crate) struct Workspace {
     /// A start in a project, in flight.
     pub(crate) start: Option<start_card::Starting>,
     /// Starts so far (each start's key).
-    starts: u64,
     /// The code panel beside a session.
     pub(crate) code: code::CodePanel,
     /// The sidebar's projects unfolded past their first rows ("All
@@ -66,7 +67,6 @@ impl Workspace {
             page: projects::Page::new(window, cx),
             place: place::DraftPlace::new(window, cx),
             start: None,
-            starts: 0,
             code: code::CodePanel::new(window, cx),
             projects_unfolded: false,
         }

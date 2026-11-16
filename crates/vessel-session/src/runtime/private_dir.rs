@@ -99,7 +99,9 @@ impl Fixture {
             Some(profile) => self.spec().with_profile(profile.name().clone()),
             None => self.spec(),
         };
-        let Created { handle, durable } = self
+        let Created {
+            handle, durable, ..
+        } = self
             .runtime
             .create_with(
                 spec,
@@ -166,7 +168,9 @@ async fn a_new_session_and_one_started_again_carry_the_nodes_directory() {
             moved_through: BTreeSet::new(),
         };
         let Reopening {
-            created: Created { handle, durable },
+            created: Created {
+                handle, durable, ..
+            },
             gate,
         } = fixture
             .runtime

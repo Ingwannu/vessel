@@ -2,7 +2,9 @@
 //! sends the session is `input`'s.
 
 mod input;
+mod metadata;
 mod title;
+pub(crate) use metadata::MetadataChange;
 pub use title::TitleUpdate;
 pub(crate) use title::{Rename, RenameChange};
 
@@ -23,7 +25,7 @@ use crate::conversation::Seen;
 use crate::error::ParkRefusal;
 use crate::error::{ModeKind, SessionError};
 use crate::forge::ForgeView;
-use crate::marks::Marks;
+use crate::kept_metadata::KeptMetadata;
 use crate::moving::Control;
 use crate::parking::{ParkOrder, Route};
 use crate::ring::{Follow, FollowError, Ring};
@@ -58,9 +60,9 @@ pub(crate) struct Shared {
     /// Set just before the final status is published (`Publisher::commit`),
     /// so whoever sees that record finds it set ([`SessionHandle::has_ended`]).
     pub(crate) ended: AtomicBool,
-    /// Renames for the actor to publish (protocol 9). Bounded; a caller
-    /// waits for room, then for the rename to be in the log.
-    pub(crate) renames: mpsc::Sender<Rename>,
+    /// Metadata for the actor to publish. Bounded; a caller waits for room,
+    /// then for its change to be in the log.
+    pub(crate) metadata: mpsc::Sender<MetadataChange>,
     /// The options of the last `options_changed` the session published
     /// (protocol 9), set by the publisher; what a move or an export carries
     /// on. A `std` mutex held for one clone or one store, never across an
@@ -74,7 +76,7 @@ pub(crate) struct Shared {
     /// the node, and the attention point, set by the publisher. A `std`
     /// mutex held for one assignment or one copy, never across an
     /// `.await`.
-    pub(crate) marks: Mutex<Marks>,
+    pub(crate) kept_metadata: Mutex<KeptMetadata>,
     /// The session's pull request as the node gives it (protocol 11,
     /// `forge`): the latest wins, the actor reads it.
     pub(crate) forge: watch::Sender<Option<Arc<ForgeView>>>,
@@ -392,7 +394,8 @@ impl SessionHandle {
     /// (protocol 7): the actor publishes it as a `ModelCall` event, in
     /// order with the session's other records. Never waits: a call that
     /// finds the queue full, or the session ended, is dropped with a
-    /// warning, so a slow log never holds up the proxy.
+    /// warning, so a slow log never holds up the proxy. Generated-title
+    /// attempts reuse this same queue and best-effort rule (ADR 0062).
     pub fn model_call(&self, call: ModelCall) {
         if self.has_ended() {
             tracing::debug!(session = %self.id(), "model call after the session ended; not recorded");
@@ -411,7 +414,7 @@ impl SessionHandle {
         let mut info = self.0.info.borrow().clone();
         // The watch's lock is released before the marks' is taken: neither
         // is held while the other is.
-        self.0.marks().apply(&mut info);
+        self.0.kept_metadata().apply(&mut info);
         info
     }
 
@@ -424,7 +427,9 @@ impl SessionHandle {
     /// watchers (they change with every event, or every burst of terminal
     /// output). The sender closes once the session has published its final
     /// status. Its values carry no marks, which change apart from the
-    /// session's records: [`info`](Self::info) adds them.
+    /// session's records: [`info`](Self::info) adds them. The raw watch also omits
+    /// the separately acknowledged mutation time; use [`info`](Self::info)
+    /// for kept metadata.
     #[must_use]
     pub fn watch_info(&self) -> watch::Receiver<SessionInfo> {
         self.0.info.clone()

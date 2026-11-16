@@ -22,6 +22,14 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Passive read/follow bound to an authenticated deep-link destination.
+    SessionAccess(crate::sessions::Access),
+    /// Resolve a session for a deep link or Copy link without starting it.
+    Sessions(crate::sessions::Ask),
+    /// A correlated lifecycle mutation through existing session RPCs.
+    SessionLifecycle(vessel_app_view::sessions::PendingLifecycle),
+    /// Correlated creation distinguishes registration from first-message delivery.
+    Create(super::creation::Ask),
     /// Scoped own-history discovery and import.
     History(crate::history::Ask),
     /// A request for one machine’s Agents settings.
@@ -36,6 +44,8 @@ pub enum Command {
 
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
+    /// Original-context readonly root, summary or diff acquisition.
+    CodeSource(workspace::code_source::Request),
     /// Read the book again and connect to every node in it.
     Reload,
     /// Reconcile a known closed admission on the same actor as Fleet snapshots.

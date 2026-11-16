@@ -21,12 +21,12 @@
 //! - Cost: the session's id exists only at the end, so the screen that
 //!   shows a start keys it by the start, not by a session.
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::connections::SelectedConnection;
 use tokio::sync::mpsc;
-use vessel_app_view::Card;
 use vessel_app_view::workspace::place::ProjectPlace;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::start::{ApprovalAnswer, FailedAnswer};
-use vessel_proto::SessionSpec;
 
 // The walk calls the node through `vessel-client` on the desktop's runtime;
 // a browser has neither (its demo refuses a start, `web.rs`), so only the
@@ -45,19 +45,17 @@ use vessel_app_view::workspace::setup_log::OutputDecoder;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::workspace::start::{Refusal, Step, TRIES, branch_of, setup_ended};
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_client::NodeClient;
-#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::workspace::{
     ApproveCommands, CreateWorktree, CreateWorktreeOutcome, GetProjectCommands, ProjectCommands,
     ReadSetupOutput, RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeInfo,
 };
-#[cfg(not(target_arch = "wasm32"))]
-use vessel_proto::{ContentBlock, Delivery};
 
 #[cfg(not(target_arch = "wasm32"))]
-use super::calls::{call, problem};
+mod calls;
 #[cfg(not(target_arch = "wasm32"))]
 use super::{Answer, Reply};
+#[cfg(not(target_arch = "wasm32"))]
+use calls::call;
 
 /// The longest a read of setup's output waits for more, in seconds (the
 /// node's own bound).
@@ -75,10 +73,8 @@ pub struct StartAsk {
     pub key: StartKey,
     /// Where: a project, in its folder as it is or in a new worktree.
     pub place: ProjectPlace,
-    /// The session's spec, but for its place (filled here).
-    pub spec: SessionSpec,
-    /// The first prompt.
-    pub prompt: String,
+    /// The correlated creation, with placement resolved by this walk.
+    pub creation: crate::creation::Ask,
     /// The person's answers; dropping the sender stops the walk.
     pub answers: mpsc::Receiver<StartAnswer>,
 }
@@ -95,9 +91,10 @@ pub enum StartAnswer {
 /// How a start ended.
 #[derive(Debug)]
 pub enum StartEnded {
-    /// The session runs: open it (boxed: a card is large beside the other
-    /// endings).
-    Started(Box<Card>),
+    /// Placement finished; correlated creation owns registration and first input.
+    Prepared,
+    /// The actor refused the captured admission before any placement effect.
+    Refused(vessel_app_view::creation::Failure),
     /// Stopped by the person, by leaving, or after a refusal shown.
     Stopped,
     /// A call failed.
@@ -107,7 +104,7 @@ pub enum StartEnded {
 /// The walk's own state.
 #[cfg(not(target_arch = "wasm32"))]
 struct Walk<'a> {
-    client: &'a NodeClient,
+    client: &'a SelectedConnection,
     reply: &'a Reply,
     key: StartKey,
     answers: mpsc::Receiver<StartAnswer>,
@@ -149,10 +146,39 @@ impl Walk<'_> {
     }
 }
 
+/// The actor passes one exact selected admission; no alias lookup happens later.
+#[cfg(not(target_arch = "wasm32"))]
+pub(super) fn start_on(
+    client: SelectedConnection,
+    start: StartAsk,
+    events: mpsc::Sender<crate::Event>,
+) {
+    drop(tokio::spawn(async move {
+        let reply = Reply {
+            machine: start.creation.machine.as_str().to_owned(),
+            events,
+        };
+        walk(&client, &reply, start).await;
+    }));
+}
+
 /// Walk `start` to its end, then send how it ended.
 #[cfg(not(target_arch = "wasm32"))]
-pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
+async fn walk(client: &SelectedConnection, reply: &Reply, mut start: StartAsk) {
     let key = start.key;
+    if start.creation.context.node() != start.creation.expected_node
+        || start.creation.context.machine().as_str() != start.creation.machine.as_str()
+    {
+        reply
+            .send(Answer::StartEnded {
+                key,
+                ended: StartEnded::Refused(vessel_app_view::creation::Failure::Refused(
+                    vessel_proto::ErrorCode::Conflict,
+                )),
+            })
+            .await;
+        return;
+    }
     let mut walk = Walk {
         client,
         reply,
@@ -162,27 +188,37 @@ pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
     // A project's folder as it is needs no worktree: the session at once.
     let place = Place::Project(start.place.clone());
     let made = if let Some(part) = place_spec(&place) {
-        Ok(part.applied(start.spec))
+        Ok(part)
     } else {
         match make(&mut walk, &start.place).await {
-            Made::Ready(worktree) => {
-                let mut spec = start.spec;
-                spec.cwd = None;
-                Ok(spec.with_place(SessionPlace::Worktree { worktree }))
-            }
+            Made::Ready(worktree) => Ok(vessel_app_view::workspace::place::SpecPart {
+                cwd: None,
+                place: Some(SessionPlace::Worktree { worktree }),
+            }),
             Made::Stopped => Err(StartEnded::Stopped),
             Made::Failed(problem) => Err(StartEnded::Failed(problem)),
         }
     };
-    let ended = match made {
-        Ok(spec) => begin(client, &reply.machine, spec, start.prompt)
-            .await
-            .map_or_else(StartEnded::Failed, |card| {
-                StartEnded::Started(Box::new(card))
-            }),
-        Err(ended) => ended,
-    };
-    reply.send(Answer::StartEnded { key, ended }).await;
+    match made {
+        Ok(part) => {
+            start.creation.target = match start.creation.target {
+                crate::creation::Target::New(spec) => {
+                    crate::creation::Target::New(part.applied(spec))
+                }
+                crate::creation::Target::Registered(session) => {
+                    crate::creation::Target::Registered(session)
+                }
+            };
+            reply
+                .send(Answer::StartEnded {
+                    key,
+                    ended: StartEnded::Prepared,
+                })
+                .await;
+            crate::creation::perform(client, start.creation, &reply.events).await;
+        }
+        Err(ended) => reply.send(Answer::StartEnded { key, ended }).await,
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -299,10 +335,13 @@ async fn set_up(walk: &mut Walk<'_>, mut info: WorktreeInfo, commands: Vec<Strin
             Followed::Lost(problem) => {
                 walk.show(Step::Refused(Refusal::NotFollowed {
                     branch: branch_of(&info),
-                    problem,
+                    problem: problem.clone(),
                 }))
                 .await;
-                return Made::Stopped;
+                // The worktree already exists and setup may still be running.
+                // Preserve the failed read instead of reporting a user stop,
+                // which would permit another creation attempt.
+                return Made::Failed(problem);
             }
             Followed::Ended(setup) => setup,
         };
@@ -397,27 +436,4 @@ async fn output(walk: &Walk<'_>, info: &WorktreeInfo, commands: &[String]) -> Fo
             tokio::time::sleep(left).await;
         }
     }
-}
-
-/// Create the session in `worktree` and send its first prompt.
-///
-/// The lead's `State::start` does the same for a session without a place;
-/// a worktree needs protocol 10, so `session.prompt` is always there.
-#[cfg(not(target_arch = "wasm32"))]
-async fn begin(
-    client: &NodeClient,
-    machine: &str,
-    spec: SessionSpec,
-    prompt: String,
-) -> Result<Card, Problem> {
-    let info = client
-        .create_session(spec)
-        .await
-        .map_err(|error| problem(&error))?;
-    let content = vec![ContentBlock::Text { text: prompt }];
-    let _delivered = client
-        .prompt(info.id, content, Delivery::Start)
-        .await
-        .map_err(|error| problem(&error))?;
-    Ok(Card::from_session(machine, &info))
 }

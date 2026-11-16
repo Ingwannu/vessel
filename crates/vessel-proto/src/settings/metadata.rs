@@ -4,7 +4,7 @@
 use crate::{ModelId, ModelRouteName};
 use serde::de::{Error as _, IgnoredAny, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::fmt;
+use std::{fmt, marker::PhantomData};
 
 /// The cost bound on a stored manual candidate list, including duplicates.
 pub const MAX_METADATA_PROVIDERS: usize = 8;
@@ -45,7 +45,41 @@ impl MetadataSettings {
     pub fn is_automatic(&self) -> bool {
         self.providers.is_empty()
     }
+
+    /// Decode a retained view, ignoring fields a later file/reply may add.
+    /// The ordinary Deserialize implementation remains the strict wire patch.
+    /// No unknown content is retained here; the store owns set-aside copies.
+    ///
+    /// # Errors
+    /// A known field is malformed, or the shared provider count is exceeded.
+    pub fn deserialize_view<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = MetadataView::deserialize(deserializer)?;
+        Self::new(
+            raw.providers
+                .into_iter()
+                .map(MetadataProvider::from)
+                .collect(),
+        )
+        .map_err(D::Error::custom)
+    }
+
+    /// Decode an optional retained view for replies and files, keeping `None`
+    /// distinct from an available automatic selection. Patch decoding stays strict.
+    ///
+    /// # Errors
+    /// A known field is malformed or the shared candidate bound is exceeded.
+    pub fn deserialize_optional_view<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<Self>, D::Error> {
+        Option::<RetainedMetadata>::deserialize(deserializer).map(|view| view.map(|value| value.0))
+    }
 }
+
+#[derive(Deserialize)]
+#[serde(transparent)]
+struct RetainedMetadata(
+    #[serde(deserialize_with = "MetadataSettings::deserialize_view")] MetadataSettings,
+);
 
 /// A provider list past its cost bound; the raw entries are never echoed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -61,12 +95,12 @@ struct RawMetadataSettings {
 
 // Keep allocation bounded too: an oversized wire list must not allocate
 // every candidate before the constructor can reject its length.
-fn deserialize_providers<'de, D: Deserializer<'de>>(
+fn deserialize_providers<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
     deserializer: D,
-) -> Result<Vec<MetadataProvider>, D::Error> {
-    struct Providers;
-    impl<'de> Visitor<'de> for Providers {
-        type Value = Vec<MetadataProvider>;
+) -> Result<Vec<T>, D::Error> {
+    struct Providers<T>(PhantomData<T>);
+    impl<'de, T: Deserialize<'de>> Visitor<'de> for Providers<T> {
+        type Value = Vec<T>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(
@@ -89,7 +123,7 @@ fn deserialize_providers<'de, D: Deserializer<'de>>(
             Ok(providers)
         }
     }
-    deserializer.deserialize_seq(Providers)
+    deserializer.deserialize_seq(Providers(PhantomData))
 }
 
 impl TryFrom<RawMetadataSettings> for MetadataSettings {
@@ -115,6 +149,32 @@ pub struct MetadataProvider {
     /// the automatic `gpt-5.4-mini` match, which asks for low.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub effort: Option<MetadataEffort>,
+}
+
+// Files and read-only views tolerate additions; writes use the strict type.
+#[derive(Deserialize)]
+struct MetadataView {
+    #[serde(default, deserialize_with = "deserialize_providers")]
+    providers: Vec<ProviderView>,
+}
+
+#[derive(Deserialize)]
+struct ProviderView {
+    route: ModelRouteName,
+    #[serde(default)]
+    model: Option<ModelId>,
+    #[serde(default)]
+    effort: Option<MetadataEffort>,
+}
+
+impl From<ProviderView> for MetadataProvider {
+    fn from(value: ProviderView) -> Self {
+        Self {
+            route: value.route,
+            model: value.model,
+            effort: value.effort,
+        }
+    }
 }
 
 /// How hard a generated-name call asks the model to work.
@@ -237,3 +297,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod view_tests;

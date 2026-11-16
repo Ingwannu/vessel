@@ -19,21 +19,7 @@ pub use config::{Disclosure, Selection, ToolbarConfig, ToolbarIcon, ToolbarInk};
 
 use crate::{ButtonState, Tooltips, tooltip::Place};
 use gpui::prelude::*;
-use gpui::{App, ClickEvent, Div, ElementId, SharedString, Stateful, Window, div, px};
-
-#[derive(Clone, Copy)]
-enum Phase {
-    Rest,
-    Hovered,
-    Pressed,
-}
-fn fill(config: ToolbarConfig, phase: Phase, tokens: &crate::Tokens) -> gpui::Hsla {
-    if config.highlighted() || !matches!(phase, Phase::Rest) {
-        tokens.neutral.interaction_highlight
-    } else {
-        gpui::transparent_black()
-    }
-}
+use gpui::{App, ClickEvent, Div, ElementId, SharedString, Stateful, Window};
 
 /// Small icon action with a guarded handler API and a named accessibility node.
 /// It installs no keyboard listener or feature operation admission.
@@ -53,28 +39,72 @@ impl ToolbarButton {
         config: ToolbarConfig,
         tokens: &crate::Tokens,
     ) -> Self {
+        Self::with_content(
+            id,
+            label,
+            icon.render(config.sizing(), tokens),
+            config,
+            tokens,
+        )
+    }
+
+    /// The pinned usage refresh's numeric14/18 `ActivityIndicator` uses the SAME
+    /// shared masks/750ms motion. Loading chrome is disabled and acquires no click
+    /// handler; the owner still retains original request/context admission.
+    pub fn loading(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        ink: ToolbarInk,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
+        let id = id.into();
+        let points = match config.sizing() {
+            crate::ControlSizing::Pointer => crate::loading::Points::FOURTEEN,
+            crate::ControlSizing::Touch => crate::loading::Points::EIGHTEEN,
+        };
+        let content = crate::loading::activity_indicator(
+            ElementId::NamedChild(std::sync::Arc::new(id.clone()), "activity".into()),
+            crate::loading::Size::Numeric(points),
+            ink.colour(tokens),
+        );
+        Self::with_content(id, label, content, config.disabled(), tokens)
+    }
+
+    /// A zoomable viewport's floating action (`icon_chrome::Profile::Viewport`).
+    /// A hidden action is inert as a disabled one is: no handler can attach,
+    /// as Paseo's hidden buttons take no pointer events.
+    pub fn viewport(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        glyph: crate::assets::Glyph,
+        config: ToolbarConfig,
+        presence: crate::icon_chrome::Presence,
+        tokens: &crate::Tokens,
+    ) -> Self {
         let label = label.into();
-        let hover = fill(config, Phase::Hovered, tokens);
-        let pressed = fill(config, Phase::Pressed, tokens);
-        let element = div()
-            .id(id)
-            .role(gpui::Role::Button)
-            .aria_label(label.clone())
-            .flex()
-            .flex_none()
-            .items_center()
-            .justify_center()
-            .size(config.frame())
-            .p(px(crate::theme::spacing::S0))
-            .rounded(px(crate::theme::radius::MD))
-            .bg(fill(config, Phase::Rest, tokens))
-            .opacity(config.opacity())
-            .hover(move |style| style.bg(hover))
-            .active(move |style| style.bg(pressed))
-            .when(config.availability() == ButtonState::Enabled, |element| {
-                element.cursor_pointer()
-            })
-            .child(icon.render(config.sizing(), tokens));
+        let element =
+            crate::icon_chrome::viewport_frame(id, label.clone(), glyph, config, presence, tokens);
+        let config = match presence {
+            crate::icon_chrome::Presence::Shown => config,
+            crate::icon_chrome::Presence::Hidden => config.disabled(),
+        };
+        Self {
+            element,
+            config,
+            label,
+        }
+    }
+
+    fn with_content(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        content: impl IntoElement,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
+        let label = label.into();
+        let element = crate::icon_chrome::toolbar_frame(id, label.clone(), content, config, tokens);
         Self {
             element,
             config,
@@ -94,14 +124,35 @@ impl ToolbarButton {
         self
     }
 
-    /// Decorate this same hitbox with the existing screen-owned tooltip. Its
-    /// current timing/placement are the kit's, not a new toolbar overlay.
-    pub fn tooltip(mut self, tips: &Tooltips, place: &Place) -> Self {
-        self.element = tips.on(
+    /// Pinned pane toolbar profile: desktop-only, bottom/eight/300ms, using the
+    /// existing screen-owned controller rather than a second toolbar overlay.
+    pub fn tooltip(self, tips: &Tooltips, place: &Place) -> Self {
+        let label = self.label.clone();
+        self.tooltip_text(tips, place, label, crate::tooltip::Side::Bottom)
+    }
+
+    /// Keep the same source timing/offset while selecting an explicit side,
+    /// such as the usage card refresh's top freshness tooltip.
+    pub fn tooltip_at(self, tips: &Tooltips, place: &Place, side: crate::tooltip::Side) -> Self {
+        let label = self.label.clone();
+        self.tooltip_text(tips, place, label, side)
+    }
+
+    /// Source tooltip words may describe freshness/status while the accessibility
+    /// label remains the action. The owner supplies already-resolved display text.
+    pub fn tooltip_text(
+        mut self,
+        tips: &Tooltips,
+        place: &Place,
+        text: impl Into<SharedString>,
+        side: crate::tooltip::Side,
+    ) -> Self {
+        self.element = tips.on_configured(
             self.element,
             place,
-            self.label.clone(),
-            self.config.sizing() == crate::ControlSizing::Touch,
+            text,
+            crate::tooltip::Configuration::toolbar().side(side),
+            self.config.sizing(),
         );
         self
     }

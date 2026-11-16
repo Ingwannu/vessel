@@ -90,3 +90,38 @@ fn private_rpc_and_connection_causes_remain_internal_at_the_output_boundary() {
     assert!(!error.to_string().contains(PRIVATE));
     assert!(format!("{error:?}").contains(PRIVATE));
 }
+
+#[test]
+fn workspace_label_detail_does_not_reclassify_a_diagnostic_failure_or_echo_peer_text() {
+    use vessel_client::{CallError, DiagnosticError};
+    use vessel_proto::{
+        ErrorCode, ErrorDetail, WireError, workspace_labels::WorkspaceLabelFailure,
+    };
+    for reason in [
+        WorkspaceLabelFailure::NameTaken,
+        WorkspaceLabelFailure::LabelNotFound,
+        WorkspaceLabelFailure::WorkspaceNotFound,
+        WorkspaceLabelFailure::WorkspaceInactive,
+        WorkspaceLabelFailure::Unknown,
+    ] {
+        for (code, message) in [
+            (
+                ErrorCode::Unavailable,
+                "diagnostics unavailable: node is overloaded or stopping",
+            ),
+            (
+                ErrorCode::Conflict,
+                "diagnostics unavailable: node refused the request",
+            ),
+        ] {
+            let error =
+                CommandError::Request(DiagnosticError::Call(CallError::Remote(WireError {
+                    code,
+                    message: PRIVATE.to_owned(),
+                    detail: Some(ErrorDetail::WorkspaceLabel { reason }),
+                })));
+            assert_eq!(error.to_string(), message);
+            assert!(!error.to_string().contains(PRIVATE));
+        }
+    }
+}
