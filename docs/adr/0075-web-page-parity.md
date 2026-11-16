@@ -330,3 +330,13 @@ meter and non-meter modes in one row. Invalid observer measurements are
 explicitly treated as not measured. This minimum is the track's useful width,
 not a minimum fill; the approved zero-width-zero control remains unchanged.
 The policy uses no account IDs, report DTO or pending wire operation.
+
+Quota clock hints reuse the semantic clock and a caller-supplied standard
+Intl device formatter. The ledger's full observation timestamp cannot be
+reused: it includes a date where the reference shows only time, weekday or
+month/day depending on reset distance. The device formatter owns time zone
+and 12/24-hour preference; date names follow the viewer language in that same
+zone. The pure result leaves punctuation to localized surface words and
+withholds an exact time for forecasts, missing or elapsed resets. Percent
+text consumes the already-validated shared value without a second clamp.
+No date library, device preference reader, report DTO or surface is added.

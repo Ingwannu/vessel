@@ -1926,3 +1926,10 @@ account-report contract. ADR 0075 records the boundary and existing assets.
 The inactive account-usage host chooser selects existing branded book keys
 from explicit connection/capability facts. It owns neither lookup policy nor
 account binding; a saved host preference is not a session's saved-login proof.
+
+The inactive quota presentation also owns localized duration/percent and
+reset-clock hints, plus the measured summary fitting policy. Exact clock
+hints are derived only from a future reset, using a supplied device clock
+formatter; run-out forecasts have no exact reset hint. Fitting reserves a
+useful track width, never a minimum fill. None of these policies observes
+the DOM, reads device preferences or starts an account lookup.

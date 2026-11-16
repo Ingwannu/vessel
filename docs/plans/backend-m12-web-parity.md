@@ -1584,3 +1584,12 @@ family at the assigned `PROJECT_WORKSPACE_REGISTRY` value 25. The latter
 exposes registry descriptors independently of sessions; it is not proof of
 page workspace lifecycle parity, filesystem provisioning or project-wide PR
 enumeration. All 93 original feature labels and row origins remain unchanged.
+
+
+Inactive localized percentage and reset-clock hints now consume the existing
+finite value and semantic reset state. Six pure cases verify percent
+placement/rounding, day/week boundaries, the device's 24-hour clock, localized
+weekday/month-day in that same time zone, and suppression for forecasts or
+elapsed/missing resets. Both typechecks, full web lint and 36 tests in eight
+files pass. The ledger's complete observation timestamp is retained for its
+own purpose; no live clock, preference reader or account caller is added.
