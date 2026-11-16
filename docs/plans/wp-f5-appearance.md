@@ -832,3 +832,17 @@ notifications are not an explicit IME commit reason or originating-FieldId
 payload; they must not be repurposed as one by string comparison. No second
 listener, IME cache or late unreviewed field change is added to this frozen
 source.
+
+### Protocol-25 capture export completed
+
+`themes-20261116T022602Z-235309ac` completed fonts/build/export with exit0.
+The new supported binding proves source current/capture minimum25 (wire
+minimum2) against declared base12 protocol25/schema21. App binary SHA-256 is
+`fa6cac96e86db7c083b95ed271d238834051ffe4b9658b3c9da594c9ac2f7931`;
+it is a distinct cold-build artifact from the earlier legacy-bound binary,
+not silently substituted under that old manifest. Exact executable source
+remains `235309ac4` and the original native whole1652/0/2 is retained.
+The new export and per-step originals are `f5/capture-p25-235309ac`; its root
+manifest SHA is `a3707f86f0b4b5235b63afa1e69efaa66bb6a428093f520a3a94e740716ad1f7`.
+New captures use only this verified export and `f5/fleet-p25`, not the old
+compatibility fleet. Final UI/package review is still pending.
