@@ -508,3 +508,16 @@ these title cases. Two private fake scenarios and a driver regression cover
 ordinary async text, and the existing no-watcher case now also refuses an async
 form without losing its text. These authored fixtures are not actual native
 transport/version or real-provider proof; exact new execution remains owed.
+
+
+## Resumed receiving union
+
+The announced node gate57 base is merged, preserving its command-kind producer,
+same-connection membership reader, private diagnostics and voice values. The
+existing single timeline compatibility traversal keeps command metadata masking
+inside its existing event/snapshot branches; no second reference pass is added.
+Canonical Some(tool) approval assertions in the Codex process and inbox fixtures
+now express the optional actual-tool field without weakening their identity
+checks. These fixtures have not yet executed on this receiving union. Generated
+wire remains the incoming base bytes until the current combined generator runs;
+its formatting is never hand-edited.

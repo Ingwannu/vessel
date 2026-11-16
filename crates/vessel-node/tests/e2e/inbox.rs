@@ -68,7 +68,7 @@ async fn permission_round_trip(
         panic!("approval must retain the tool");
     };
     assert_eq!(tool.title, "Run fake tool");
-    assert_eq!(request.tool_call, tool.id);
+    assert_eq!(request.tool_call.as_ref(), Some(&tool.id));
     let input = SessionInput::AnswerPermission {
         id: request.id,
         outcome: PermissionOutcome::Selected {

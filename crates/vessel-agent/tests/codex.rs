@@ -366,7 +366,7 @@ async fn an_approval_is_asked_with_codexs_choices_and_answered() {
             )),
             "{before:?}"
         );
-        assert_eq!(request.tool_call, ToolCallId::new("cmd-1"));
+        assert_eq!(request.tool_call, Some(ToolCallId::new("cmd-1")));
         let offered: Vec<&str> = request
             .options
             .iter()
@@ -463,7 +463,7 @@ async fn a_file_change_and_more_permissions_are_asked() {
         let _ready = ready(&mut outputs).await;
         input.prompt(text("edit")).await.unwrap();
         let (_before, request) = asked(&mut outputs).await;
-        assert_eq!(request.tool_call, ToolCallId::new("edit-1"));
+        assert_eq!(request.tool_call, Some(ToolCallId::new("edit-1")));
         assert_eq!(request.options.len(), 4);
         let decline = PermissionOutcome::Selected {
             option: PermissionOptionId::new("decline"),
