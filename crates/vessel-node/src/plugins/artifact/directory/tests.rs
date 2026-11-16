@@ -7,7 +7,6 @@ use nix::{
 };
 use std::{
     cell::Cell,
-    error::Error as _,
     fs::{self, DirBuilder},
     io::{Read as _, Write as _},
     os::unix::fs::{DirBuilderExt as _, PermissionsExt as _, symlink},

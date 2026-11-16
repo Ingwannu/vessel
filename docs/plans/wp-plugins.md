@@ -3,8 +3,10 @@
 ADR: 0079 (architecture CONTRACT PASS by V3; implementation unreviewed).
 Scope: F6/W16 in PLAN.md section 7, which supersedes duplicate assignments.
 
-Current node source includes the announcedbc9cacc6 shared head (protocol25,
-store schema21). Portable checked-wait b37a3ee8 and the standalone runtime API
+Current node source includes the announcedee8e3450 shared head (protocol25,
+store schema21). Its gate60 is counted17/18 with the named TRACKER774 proc
+diagnostic-test issue; it is not represented as wholly green here.
+Portable checked-wait b37a3ee8 and the standalone runtime API
 export1cbafe18b plus documentation9e9c2983 are on that shared lineage after
 their scoped reviews, narrow checks and receiving integration. It contains no
 old W15 release/desktop join. These shared prerequisites do not activate plugins.
