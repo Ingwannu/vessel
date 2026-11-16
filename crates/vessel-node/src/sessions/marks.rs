@@ -48,6 +48,12 @@ use super::{Found, Sessions};
 use crate::error::ServiceError;
 
 impl Sessions {
+    /// Admit work to the existing metadata order before retaining its task.
+    /// The owned lease can outlive an RPC caller without a second lock/queue.
+    pub(super) async fn marking_lease(&self) -> tokio::sync::OwnedMutexGuard<()> {
+        Arc::clone(&self.marking).lock_owned().await
+    }
+
     /// Set `mark` on a session, live or stored; its info after.
     pub(crate) async fn mark(
         self: &Arc<Self>,
@@ -61,7 +67,7 @@ impl Sessions {
         // reopened under this lock (`again`): looked up again under it, a
         // stored session stays stored until its mark is written, so the
         // reopening's answer carries the mark.
-        let order = self.marking.lock().await;
+        let order = self.marking_lease().await;
         let info = match self.find(id).await? {
             Found::Live { handle, .. } => {
                 drop(order);

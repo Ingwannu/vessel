@@ -522,6 +522,10 @@ is merged with its migration sequence preserved. The dispatcher refactor keeps
 the same savepoints and commit boundary. Label coverage is still only a
 contract. No new event or mutation RPC is registered. Historical checkpoint text follows.
 
+The separate transferable marking-order prerequisite passed its bounded
+source/runtime review and is received for integration. That evidence does not
+qualify this branch's pending clock or its consumers.
+
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
 and event pages detect actual projection changes. This also incorporates the
@@ -1512,3 +1516,35 @@ not change since that generator commit. The only declaration change adds the
 optional mutation-time field and its string type. Generated whitespace is kept
 verbatim; source diff checking is separate from ts-rs formatting. Freshness on
 the final package head is still required by the whole gate.
+
+
+## Transferable marking-order prerequisite
+
+[Decision Log]
+- Purpose: an accepted metadata operation must keep the existing serialization
+  lease through commit/publication after its caller leaves, without retaining
+  tasks for callers still waiting to be admitted.
+- Existing assets: Sessions already owns one Tokio marking mutex, shared by
+  marks, reopen and detach. Arc and Tokio owned guards are existing dependencies.
+- Alternatives: a second lock or queue would create competing metadata order;
+  retaining tasks before admission would leave abandoned waiters unbounded.
+- Choice: wrap that same mutex in Arc and expose a private owned-lease accessor.
+  An existing stored-mark wait uses it at the same acquisition/drop points so
+  the product accessor is exercised without widening visibility or suppressing
+  dead code. Other existing lock users still dereference the same mutex.
+- Effects: one cheap reference-counted guard replaces a borrowed guard for that
+  caller; no operation, condition, permission, task admission, wire, number or
+  test expectation changes. Consumers must acquire before spawning accepted work.
+  This prerequisite itself adds no ReadAttention or clock implementation.
+- Validation: existing mark/reopen/detach regressions and changed-node strict
+  checking, followed by the bounded package gate. No new test mirrors the Arc
+  representation; the consumer must force cancellation before/after admission.
+
+
+The transferable-order prerequisite passed its exact-commit checks: changed-node
+all-target Clippy, then all thirteen selected Rust gate steps. Workspace tests
+were 2701 passed, none failed, twelve ignored; generated declarations were fresh
+with five export/inventory tests, and the forge fixture passed four tests. Both
+fixture prebuilds preceded the workspace tests. Existing mark/reopen/detach and
+caller-loss cases ran unchanged. No web/native/platform or new consumer-runtime
+acceptance follows from this internal representation-only change.
