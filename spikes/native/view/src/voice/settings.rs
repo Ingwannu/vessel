@@ -60,12 +60,22 @@ pub enum Problem {
 }
 
 /// A canonical change offered to an adapter, not a fabricated node RPC.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Change {
     /// Only dictation's switch is changed.
     Dictation(SetDictation),
     /// Only conversation's switch is changed.
     Conversation(SetVoice),
+}
+
+impl std::fmt::Debug for Change {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let role = match self {
+            Self::Dictation(_) => "DictationSettingsChange",
+            Self::Conversation(_) => "ConversationSettingsChange",
+        };
+        f.debug_struct(role).finish_non_exhaustive()
+    }
 }
 
 /// A request remains bound to its original machine and operation.

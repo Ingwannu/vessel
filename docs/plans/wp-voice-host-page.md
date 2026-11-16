@@ -180,3 +180,9 @@ explicit reset. No fabricated environment-override source or installation state
 is shown. Raw invalid input remains in the existing shared field; this draft
 accepts only its validated bounded type. No runtime save or model operation is
 performed. The new draft regression source has not yet run.
+
+Candidate Change diagnostics also redact their entire payload, including the
+Dictation route whose underlying DTO has a broader Debug implementation. The
+form must not make private model IDs or endpoint metadata visible merely by
+formatting a queued write. The new three-route canary regression is still
+source-only until its next exact-head VM receipt.

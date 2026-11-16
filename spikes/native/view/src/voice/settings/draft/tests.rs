@@ -144,3 +144,20 @@ fn key_presence_never_becomes_a_key_write_and_debug_omits_attempted_metadata() {
     draft.edit(Input::Provider(Provider::Local)).unwrap();
     assert_eq!(draft.key_presence(), KeyPresence::Absent);
 }
+
+#[test]
+fn candidate_diagnostics_redact_metadata_on_all_three_site_routes() {
+    for site in [Site::Dictation, Site::Recognition, Site::Synthesis] {
+        let mut draft = opened(site, values());
+        draft.edit(Input::Provider(Provider::Endpoint)).unwrap();
+        let input = match site {
+            Site::Dictation | Site::Recognition => {
+                Input::RecognitionModel(Some("private-canary-model".parse().unwrap()))
+            }
+            Site::Synthesis => Input::SynthesisModel(Some("private-canary-model".parse().unwrap())),
+        };
+        draft.edit(input).unwrap();
+        let candidate = draft.change().unwrap();
+        assert!(!format!("{candidate:?}").contains("private-canary"));
+    }
+}
