@@ -58,8 +58,9 @@ fn command_roles_have_one_asset_each_and_paseos_explicit_strokes() {
 
 #[test]
 fn command_plus_is_heavier_than_the_shared_plus() {
-    // The shared Plus keeps the provider's 1.5 for every other surface.
-    assert_eq!(stroked(tree(Glyph::Plus).root(), 1.5), 2);
+    // The shared Plus (one path) keeps the provider's 1.5 for every other
+    // surface.
+    assert_eq!(stroked(tree(Glyph::Plus).root(), 1.5), 1);
     assert_eq!(stroked(tree(Glyph::CommandPlus).root(), 2.4), 2);
     let shared = paint(Glyph::Plus, 16, 4);
     let command = paint(Glyph::CommandPlus, 16, 4);
