@@ -1564,7 +1564,12 @@ events. Their feature version remains unassigned; `pr.list` continues to
 mean watched sessions. Project resolution, provider listing and client/CLI
 transport are a following stage, not exposed by these value definitions.
 
-### Startup recovery values (ADR 0059)
+### Startup recovery values (ADR 0098)
+
+The following records the original value-only stage. The current common
+settings producer and its unwired recovery consumer boundary are defined in
+[ADR 0098](adr/0098-resume-interrupted-turns-at-node-start.md) and the shared
+settings ownership section below.
 
 `vessel-proto::restart` defines the disabled/reference-prompt policy and partial
 patch values using the existing bounded `PromptText`. The feature protocol is
