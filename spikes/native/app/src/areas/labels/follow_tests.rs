@@ -187,6 +187,11 @@ fn an_older_peer_stops_the_reads_and_says_unsupported(cx: &mut TestAppContext) {
             cx,
         );
         assert_eq!(shell.areas.labels.hosts[0].state, HostState::Unsupported);
+        // The fleet binds the same admission again: still Unsupported, not
+        // a Loading that nothing will settle.
+        shell.areas.labels.hosts[0].state = HostState::Loading;
+        shell.labels_follow(cx);
+        assert_eq!(shell.areas.labels.hosts[0].state, HostState::Unsupported);
     });
     cx.executor().advance_clock(Duration::from_secs(30));
     cx.run_until_parked();

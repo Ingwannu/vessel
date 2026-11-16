@@ -77,6 +77,10 @@ pub(super) struct Follow {
     registry_lane: Lane,
     /// The number of the latest pause.
     rests: u64,
+    /// The admission answered that it has no label calls: a bind of the
+    /// same admission keeps the host Unsupported (it would say Loading,
+    /// with no read left to settle it).
+    unsupported: bool,
 }
 
 impl Follow {
@@ -110,6 +114,7 @@ impl Shell {
                     follow.connection = connection;
                     follow.catalog = Lane::Idle;
                     follow.registry_lane = Lane::Idle;
+                    follow.unsupported = false;
                 }
                 Some(_same) => {}
                 None => state.follows.push(Follow {
@@ -120,7 +125,13 @@ impl Shell {
                     catalog: Lane::Idle,
                     registry_lane: Lane::Idle,
                     rests: 0,
+                    unsupported: false,
                 }),
+            }
+        }
+        for follow in state.follows.iter().filter(|follow| follow.unsupported) {
+            if let Some(host) = state.hosts.iter_mut().find(|host| host.key == follow.key) {
+                host.state = HostState::Unsupported;
             }
         }
         for (key, _connection) in capable {
@@ -233,6 +244,7 @@ impl Shell {
         );
         let catalog = (read == Read::Catalog)
             .then(|| (follow.replica.catalog().clone(), follow.replica.state()));
+        follow.unsupported |= unsupported;
         follow.rests = follow.rests.wrapping_add(1);
         let rest = follow.rests;
         *follow.lane(read) = match pause {
