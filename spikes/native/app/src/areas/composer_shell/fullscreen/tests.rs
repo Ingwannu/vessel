@@ -191,10 +191,16 @@ fn file_sheet_hides_fullscreen_without_clearing_or_submitting_the_underlying_com
             shell.areas.composer_shell.surface(target).extent(),
             Extent::Inline
         );
-        shell
-            .update_layout(&key, |layout| layout.dismiss_sheet(sheet), cx)
-            .unwrap();
-        assert_eq!(shell.composer_fullscreen_target(), Some(target));
+        // A File sheet is not dismissed through a generic layout change until
+        // its File owner joins (docs/plans/wp-layout-file-close.md): the sheet
+        // stays, so fullscreen stays hidden and the composer keeps its text.
+        // When the owner's close path lands, dismiss through it here and
+        // expect `Some(target)` again.
+        assert_eq!(
+            shell.update_layout(&key, |layout| layout.dismiss_sheet(sheet), cx),
+            Err(vessel_app_view::layout::LayoutError::UnsupportedHost)
+        );
+        assert_eq!(shell.composer_fullscreen_target(), None);
         assert_eq!(
             (field.text(cx), field.selection(cx), field.focus_handle(cx)),
             retained
