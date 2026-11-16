@@ -31,6 +31,7 @@ mod mapper;
 mod mcp;
 mod mode;
 mod protocol;
+mod read_probe;
 mod session;
 mod wire;
 

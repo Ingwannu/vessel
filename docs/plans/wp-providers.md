@@ -867,3 +867,16 @@ version owner and runtime-only relaunch split on this node base. Results remain
 owed. The public preparation view is still a source proposal outside product,
 awaiting the canonical admission producer; no duplicate shutdown predicate or
 unqualified provider/host API is published as ready.
+
+
+Shared read-probe source checkpoint: catalogue now delegates to the native
+history owner's common production transport, preserving this snapshot's local
+version parser, Mode::DEFAULT selection, config fallback and metadata budget.
+The frozen-763 delegation patch was not applied verbatim because those policy
+bodies differ from the current source. Native history remains separately owned;
+only the common production helper is adopted here. Its error becomes public
+with the existing real CatalogueError consumer, and the unused history test
+constructor stays with the history tests until their union. Current queued
+c170 strict does not cover this later source change. Existing native catalogue
+fake-process regressions must execute on the actual combined source before this
+refactor is described as checked; no process-cleanup guarantee is broadened.

@@ -51,3 +51,26 @@ to the host's existing arbiter and can wait on that host's existing policy watch
 It preserves the original guard/token/context through actual lookup and version
 root settlement, including caller drop. This extends the existing runtime
 tracker; it adds no policy registry, quota, persistent identity or reaper.
+
+## One native read transport
+
+[Decision Log]
+- Purpose: native catalogue and history reads must use the same bounded process,
+  initialization, ID correlation and response decoder, while keeping their own
+  typed request/response projection.
+- Existing asset: the native history owner extracted `codex::read_probe` from
+  catalogue transport. Maintaining a second runner here would let cancellation,
+  notification limits or protocol refusal diverge between read operations.
+- Choice: catalogue delegates to the same `Transaction` through `ReadRequest`
+  associated response types. Only a method-not-found response is optional;
+  malformed successful data and unsolicited execution requests still fail.
+  Catalogue retains its version parser, model/config interpretation, pagination,
+  metadata budget and current mode policy.
+- Tradeoff: a real public catalogue-error consumer requires the shared safe error
+  class to be publicly reachable; native content remains outside that error.
+  The unused history-only in-memory test constructor stays with its receiving
+  tests until their union. No second runner, new dependency, wire method or
+  newly advertised history capability is introduced by this delegation.
+- Cleanup scope: the existing terminate/wait/kill request sequence is preserved.
+  This refactor does not prove descendant death or settle the separate process
+  cleanup audit. Exact joined runtime verification remains required.
