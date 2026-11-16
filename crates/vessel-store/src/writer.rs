@@ -144,7 +144,7 @@ pub(crate) enum Write {
     /// Find or create a project root's registry workspace (ADR 0106).
     Placement {
         register: Box<crate::registry::Register>,
-        done: Done<vessel_proto::WorkspaceId>,
+        done: Done<Option<vessel_proto::WorkspaceId>>,
     },
     /// Change the record of projects and worktrees (protocol 10).
     Workspace {
@@ -225,8 +225,8 @@ enum Answer {
         Result<vessel_proto::subagents::DetachedSession, StoreError>,
     ),
     Placed(
-        Done<vessel_proto::WorkspaceId>,
-        Result<vessel_proto::WorkspaceId, StoreError>,
+        Done<Option<vessel_proto::WorkspaceId>>,
+        Result<Option<vessel_proto::WorkspaceId>, StoreError>,
     ),
 }
 

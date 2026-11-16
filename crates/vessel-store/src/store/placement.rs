@@ -12,6 +12,7 @@ impl Store {
     /// `Local` one at `placement`, or a new one with id `fresh` created at
     /// `at`. Lookup and insert share one savepoint, so concurrent callers at
     /// one root get one workspace. Registry observers wake when it is new.
+    /// `None` when the project was removed before this write ran.
     ///
     /// # Errors
     /// `RegistryFull` with no live slot left, or a database failure.
@@ -20,7 +21,7 @@ impl Store {
         placement: Placement,
         fresh: WorkspaceId,
         at: DateTime<Utc>,
-    ) -> Result<WorkspaceId, StoreError> {
+    ) -> Result<Option<WorkspaceId>, StoreError> {
         self.write(|done| Write::Placement {
             register: Box::new(registry::Register {
                 placement,

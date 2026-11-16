@@ -108,10 +108,16 @@ pub(super) fn apply(
             let applied = isolated(transaction, |connection| {
                 crate::registry::register(connection, &register)
             });
-            if matches!(applied, Ok((_, crate::registry::RegistryChange::Changed))) {
+            if matches!(
+                applied,
+                Ok(Some((_, crate::registry::RegistryChange::Changed)))
+            ) {
                 effects.registry = crate::registry::RegistryChange::Changed;
             }
-            Answer::Placed(done, applied.map(|(workspace, _)| workspace))
+            Answer::Placed(
+                done,
+                applied.map(|placed| placed.map(|(workspace, _)| workspace)),
+            )
         }
         Write::Forge { write, done } => write_answer(transaction, done, |connection| {
             crate::forge::apply(connection, &write)

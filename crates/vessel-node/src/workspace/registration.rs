@@ -34,12 +34,17 @@ impl Workspaces {
             return;
         };
         let placement = Placement { project, path };
-        if let Err(error) = self
+        match self
             .store
             .register_workspace(placement, WorkspaceId::random(), at)
             .await
         {
-            tracing::warn!(%error, %project, "could not register the project's workspace");
+            Ok(Some(_workspace)) => {}
+            // Removed between resolving the root and the write: nothing to register.
+            Ok(None) => tracing::debug!(%project, "the project was removed before registration"),
+            Err(error) => {
+                tracing::warn!(%error, %project, "could not register the project's workspace");
+            }
         }
     }
 

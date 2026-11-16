@@ -18,6 +18,7 @@
 //! - Effect: `workspace.registry` lists one workspace per opened project root
 //!   with its placed, non-archived sessions as derived members.
 
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
@@ -26,7 +27,7 @@ use vessel_proto::registry::{
     RegistryRevision, WorkspaceAutomation, WorkspaceBacking, WorkspaceDescriptor,
     WorkspaceLifecycle, WorkspaceMembership, WorkspacePin, WorkspaceResource, WorkspaceVisibility,
 };
-use vessel_proto::{ProjectId, SessionId, WorkspaceId};
+use vessel_proto::{ProjectId, WorkspaceId};
 
 use super::{RegistryChange, RegistryRecord, decode, write};
 use crate::StoreError;
@@ -53,15 +54,29 @@ pub(crate) struct Register {
     pub(crate) at: DateTime<Utc>,
 }
 
+/// `None` when the project is no longer recorded: a start that resolved its
+/// root just before legacy removal can reach the writer after
+/// `ForgetProject`, and a workspace inserted then would never be archived
+/// (the bootstrap skips projects with a record). Both writes run on the one
+/// writer, so checking the `projects` row in this savepoint closes the race
+/// without a lock (node reviewer R1).
 pub(crate) fn register(
     connection: &Connection,
     register: &Register,
-) -> Result<(WorkspaceId, RegistryChange), StoreError> {
+) -> Result<Option<(WorkspaceId, RegistryChange)>, StoreError> {
+    let recorded: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM projects WHERE id=?1)",
+        params![register.placement.project.to_string()],
+        |row| row.get(0),
+    )?;
+    if !recorded {
+        return Ok(None);
+    }
     if let Some(found) = oldest_active(connection, register.placement.project)?
         .into_iter()
         .find(|descriptor| descriptor.path == register.placement.path)
     {
-        return Ok((found.id, RegistryChange::Unchanged));
+        return Ok(Some((found.id, RegistryChange::Unchanged)));
     }
     let descriptor = WorkspaceDescriptor {
         id: register.fresh,
@@ -85,7 +100,7 @@ pub(crate) fn register(
         None,
     )?;
     write::bump_revision(connection)?;
-    Ok((register.fresh, RegistryChange::Changed))
+    Ok(Some((register.fresh, RegistryChange::Changed)))
 }
 
 /// The project's Active, foreground `Local` workspaces, oldest first (creation
@@ -213,37 +228,42 @@ pub(crate) fn derived_memberships(
             None => owners.push((descriptor.project, descriptor.id, descriptor.created_at)),
         }
     }
+    if owners.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut claimed = HashSet::new();
+    for member in explicit {
+        if let WorkspaceResource::Session { session } = member.resource {
+            let _new = claimed.insert(session);
+        }
+    }
+    let owner_of: HashMap<String, WorkspaceId> = owners
+        .into_iter()
+        .map(|(project, workspace, _)| (project.to_string(), workspace))
+        .collect();
+    // One scan of placed sessions for every project, not one per project.
+    let mut statement = connection.prepare_cached(
+        "SELECT json_extract(spec,'$.place.project'), id FROM sessions \
+         WHERE archived_at IS NULL AND json_extract(spec,'$.place.kind')='project' \
+         ORDER BY created_at,id",
+    )?;
+    let mut rows = statement.query([])?;
     let mut derived = Vec::new();
-    for (project, workspace, _) in owners {
-        for session in placed_sessions(connection, project)? {
-            let resource = WorkspaceResource::Session { session };
-            if !explicit.iter().any(|member| member.resource == resource) {
-                derived.push(WorkspaceMembership {
-                    workspace,
-                    resource,
-                });
-            }
+    while let Some(row) = rows.next()? {
+        let project: Option<String> = row.get(0)?;
+        let Some(&workspace) = project.as_ref().and_then(|project| owner_of.get(project)) else {
+            continue;
+        };
+        let id: String = row.get(1)?;
+        let session = session_id_from_sql(&id)?;
+        if !claimed.contains(&session) {
+            derived.push(WorkspaceMembership {
+                workspace,
+                resource: WorkspaceResource::Session { session },
+            });
         }
     }
     Ok(derived)
-}
-
-fn placed_sessions(
-    connection: &Connection,
-    project: ProjectId,
-) -> Result<Vec<SessionId>, StoreError> {
-    let mut statement = connection.prepare_cached(
-        "SELECT id FROM sessions WHERE archived_at IS NULL \
-         AND json_extract(spec,'$.place.kind')='project' \
-         AND json_extract(spec,'$.place.project')=?1 ORDER BY created_at,id",
-    )?;
-    let mut rows = statement.query(params![project.to_string()])?;
-    let mut sessions = Vec::new();
-    while let Some(row) = rows.next()? {
-        let id: String = row.get(0)?;
-        sessions.push(session_id_from_sql(&id)?);
-    }
-    Ok(sessions)
 }
 
 /// Bootstrap (node start, one shot per project): projects that have placed,

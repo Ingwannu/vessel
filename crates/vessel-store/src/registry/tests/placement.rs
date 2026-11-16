@@ -16,9 +16,23 @@ fn root(project: ProjectId) -> Register {
     }
 }
 
+/// A project as `project.add` records it; registration needs its row.
+fn recorded(db: &Connection) -> ProjectId {
+    let project = ProjectId::random();
+    let _inserted = db
+        .execute(
+            "INSERT INTO projects (id,created_at,info) VALUES (?1,0,'{}')",
+            [project.to_string()],
+        )
+        .unwrap();
+    project
+}
+
 fn registered(db: &mut Connection, request: &Register) -> WorkspaceId {
     let transaction = db.transaction().unwrap();
-    let (id, _change) = register(&transaction, request).unwrap();
+    let (id, _change) = register(&transaction, request)
+        .unwrap()
+        .expect("a recorded project registers");
     transaction.commit().unwrap();
     id
 }
@@ -49,7 +63,7 @@ fn archive(db: &mut Connection, project: ProjectId, at: i64) -> RegistryChange {
 #[test]
 fn a_root_finds_its_oldest_active_workspace_and_an_archived_one_is_not_restored() {
     let mut db = db();
-    let project = ProjectId::random();
+    let project = recorded(&db);
     let first = root(project);
     assert_eq!(registered(&mut db, &first), first.fresh);
     // A second start at the same root, with another fresh id, finds the first.
@@ -109,13 +123,13 @@ fn archived_records_never_refuse_a_live_create_and_are_pruned_oldest_first() {
     let mut db = db();
     let mut oldest = None;
     for at in 0..MAX_WORKSPACES {
-        let project = ProjectId::random();
+        let project = recorded(&db);
         let id = registered(&mut db, &root(project));
         let _first = oldest.get_or_insert(id);
         let _change = archive(&mut db, project, i64::try_from(at).unwrap());
     }
     // The live cap counts no archived record.
-    let live = root(ProjectId::random());
+    let live = root(recorded(&db));
     assert_eq!(registered(&mut db, &live), live.fresh);
     // One archive past the bound prunes the oldest archived record.
     let last = i64::try_from(MAX_WORKSPACES).unwrap();
@@ -132,7 +146,7 @@ fn archived_records_never_refuse_a_live_create_and_are_pruned_oldest_first() {
 #[test]
 fn placed_sessions_are_derived_members_of_the_oldest_active_root_workspace() {
     let mut db = db();
-    let project = ProjectId::random();
+    let project = recorded(&db);
     let open = placed(&db, project, 2, false);
     let _archived = placed(&db, project, 1, true);
     let _elsewhere = placed(&db, ProjectId::random(), 3, false);
@@ -157,7 +171,7 @@ fn placed_sessions_are_derived_members_of_the_oldest_active_root_workspace() {
 #[test]
 fn bootstrap_lists_each_unregistered_project_once_at_its_earliest_session() {
     let mut db = db();
-    let project = ProjectId::random();
+    let project = recorded(&db);
     let _late = placed(&db, project, 9, false);
     let _early = placed(&db, project, 4, false);
     let _gone = placed(&db, ProjectId::random(), 1, true);
@@ -170,4 +184,34 @@ fn bootstrap_lists_each_unregistered_project_once_at_its_earliest_session() {
     // A project whose workspace removal archived stays registered: one shot.
     let _change = archive(&mut db, project, 10);
     assert!(unregistered_placed(&db).unwrap().is_empty());
+}
+
+#[test]
+fn a_start_queued_behind_legacy_removal_registers_nothing() {
+    let mut db = db();
+    let project = recorded(&db);
+    let first = registered(&mut db, &root(project));
+    let transaction = db.transaction().unwrap();
+    let _change = crate::workspace::apply(
+        &transaction,
+        &crate::workspace::WorkspaceWrite::ForgetProject {
+            project,
+            at: DateTime::UNIX_EPOCH,
+        },
+    )
+    .unwrap();
+    transaction.commit().unwrap();
+    // This start resolved the root before removal; its write runs after it.
+    let transaction = db.transaction().unwrap();
+    assert_eq!(register(&transaction, &root(project)).unwrap(), None);
+    transaction.commit().unwrap();
+    let stored = load(&db).unwrap().workspaces;
+    let [kept] = stored.as_slice() else {
+        panic!("only the archived workspace remains, found {stored:?}");
+    };
+    assert_eq!(kept.id, first);
+    assert!(matches!(
+        kept.lifecycle,
+        WorkspaceLifecycle::Archived { .. }
+    ));
 }

@@ -97,6 +97,11 @@ early read raised the capacity and fence questions.
     project at the same path, with ties broken by id. Otherwise one is created.
   - The lookup and the insert share one writer savepoint, so two concurrent
     starts at one root create one workspace. The caller passes the fresh id.
+  - The savepoint first checks that the project is still recorded. A start that
+    resolved its root just before legacy removal can reach the writer after
+    `ForgetProject`; it then registers nothing, so no Active workspace outlives
+    its project. Both writes run on the one writer, so no lock is needed (node
+    reviewer R1).
   - Declared difference: an archived workspace at the path is not restored.
     Paseo unarchives it when its project is live. Here, restore is an explicit
     act (W21/W11), and project removal is the only thing that archives.
@@ -174,6 +179,7 @@ early read raised the capacity and fence questions.
     runs two starts at once);
   - archived records are not restored;
   - removal archives `Local` Active only, with one revision;
+  - a start queued behind removal registers nothing;
   - archived records never refuse a live create and are pruned oldest first;
   - derived members;
   - the one-shot bootstrap list.
