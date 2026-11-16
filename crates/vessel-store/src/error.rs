@@ -69,14 +69,27 @@ pub enum StoreError {
     #[error("workspace label operation was refused ({0:?})")]
     WorkspaceLabelRefused(#[source] vessel_proto::workspace_labels::WorkspaceLabelFailure),
     /// A persisted label name no longer satisfies the validated grammar.
-    #[error("stored workspace label name is invalid")]
-    WorkspaceLabelName(#[source] vessel_proto::workspace_labels::LabelNameError),
-    /// A stored color cannot be decoded; its raw data is never displayed.
-    #[error("stored workspace label color is invalid")]
-    WorkspaceLabelColor(#[source] serde_json::Error),
+    #[error("stored workspace label name is invalid at {row}")]
+    WorkspaceLabelName {
+        /// Which row, without its contents.
+        row: crate::LabelRow,
+        /// The grammar's fixed reason; it repeats no stored text.
+        #[source]
+        source: vessel_proto::workspace_labels::LabelNameError,
+    },
+    /// A stored color cannot be decoded. The decoder's error is dropped: it
+    /// can repeat the stored value, which no diagnostic may show.
+    #[error("stored workspace label color is invalid at {row}")]
+    WorkspaceLabelColor {
+        /// Which row, without its contents.
+        row: crate::LabelRow,
+    },
     /// A stored normalized key disagrees with the definition or a join is missing.
-    #[error("stored workspace label identity is inconsistent")]
-    WorkspaceLabelIdentity,
+    #[error("stored workspace label identity is inconsistent at {row}")]
+    WorkspaceLabelIdentity {
+        /// Which row, without its contents.
+        row: crate::LabelRow,
+    },
     /// A `SQLite` count did not fit the checked public count type.
     #[error("workspace label count is outside its representation")]
     WorkspaceLabelCount(#[source] std::num::TryFromIntError),
@@ -348,9 +361,9 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::WorkspaceLabelName(_)
-            | Self::WorkspaceLabelColor(_)
-            | Self::WorkspaceLabelIdentity
+            Self::WorkspaceLabelName { .. }
+            | Self::WorkspaceLabelColor { .. }
+            | Self::WorkspaceLabelIdentity { .. }
             | Self::WorkspaceLabelCount(_)
             | Self::WorkspaceLabelOrder
             | Self::RegistryRevisionRange(_)

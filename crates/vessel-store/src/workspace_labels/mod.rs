@@ -3,11 +3,13 @@
 mod adapter;
 mod commit;
 mod plans;
+mod row;
 mod sql;
 
 pub(crate) use adapter::{Applied, assign, delete, inspect, update};
 pub use commit::WorkspaceLabelCommit;
 pub(crate) use commit::Write;
+pub use row::LabelRow;
 
 use crate::StoreError;
 use rusqlite::Connection;

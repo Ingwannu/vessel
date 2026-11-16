@@ -68,6 +68,30 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 28 (2026-11-16, milestone 12): workspace labels (W10b A6, ADR 0086)
+
+Protocol 28 introduces the host-local workspace label catalog and its ordered
+assignments: `workspace.label.list` and `workspace.label.inspect_delete`
+(Read), and `workspace.label.assign`, `workspace.label.update` and
+`workspace.label.delete` (Operate). Each is unary and fleet-forwardable, and
+each refuses an agent principal, direct or delegated, before any lookup.
+`workspace.registry`'s snapshot gains its `labels` projection (each
+workspace's ordered label names) for peers at 28 or later; older peers and
+nested Forward/Relay/Deliver replies to them omit it. `workspace.label.list`
+with `read: observe` and a current cursor waits at most 30 seconds for the
+next committed change; delegated calls and an exhausted wait share answer at
+once. A cursor from another node process, an expired or a future cursor
+answers with a full snapshot.
+
+A corrupt stored label row refuses node start, as Paseo's daemon does; the
+error names the table and the row's place (the catalog row in key order, or a
+workspace's assignment in its order) and never its name or color. A client
+reading such a catalog gets only `internal` "stored workspace labels could not
+be read". The calls were reviewed with `WORKSPACE_LABELS = None` (ADR 0086)
+and assigned 28 at their node-line merge, the next free number in merge
+order (drafted as 26). The minimum protocol remains 2; the store schema (23, which
+already holds the label tables) is unchanged.
+
 ## Version 27 (2026-11-16, milestone 12): file panels (W13, ADRs 0083 and 0105)
 
 Protocol 27 introduces ADR 0083's five file-panel methods: `file.inspect`

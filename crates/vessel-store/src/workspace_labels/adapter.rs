@@ -28,9 +28,9 @@ impl sql::Registry for CanonicalRegistry {
                 StoreError::WorkspaceLabelRefused(WorkspaceLabelFailure::WorkspaceInactive)
             }
             error @ (StoreError::WorkspaceLabelRefused(_)
-            | StoreError::WorkspaceLabelName(_)
-            | StoreError::WorkspaceLabelColor(_)
-            | StoreError::WorkspaceLabelIdentity
+            | StoreError::WorkspaceLabelName { .. }
+            | StoreError::WorkspaceLabelColor { .. }
+            | StoreError::WorkspaceLabelIdentity { .. }
             | StoreError::WorkspaceLabelCount(_)
             | StoreError::WorkspaceLabelOrder
             | StoreError::Io { .. }

@@ -108,7 +108,7 @@ pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
-pub use workspace_labels::WorkspaceLabelCommit;
+pub use workspace_labels::{LabelRow, WorkspaceLabelCommit};
 
 /// Explicit workspace registry records shared by create/lifecycle services.
 pub use registry::{
