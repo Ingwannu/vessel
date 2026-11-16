@@ -103,7 +103,7 @@ impl Watch {
 }
 impl Drop for Watch {
     fn drop(&mut self) {
-        WATCH.replace(self.previous.take());
+        let _restored = WATCH.replace(self.previous.take());
     }
 }
 

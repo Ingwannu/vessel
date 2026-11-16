@@ -1,5 +1,13 @@
 # Borrowed tool-detail body prerequisite
 
+Current preparation contains announced base13. Base11 source192769c4 executed
+all View/Kit/App targets:1515 passed,0 failed,2 ignored, including both P2
+retained-body regressions. Exact strict on that source returned only a borrowed
+section-id diagnostic and an unused observer-restore result. Those two are now
+corrected without changing cache/precedence rules or assertions. Current-base
+strict/runtime and the bounded source recheck remain owed; no final adoption or
+product activation is inferred from the prior-base pass.
+
 Status: native source preparation, now normally merged with announced green app
 base9 db42d9c5 (native1510/0/2). Canonical body vocabulary is inherited from that
 line, not a remaining provisional root delta. No rich fields/events/RPC/runtime

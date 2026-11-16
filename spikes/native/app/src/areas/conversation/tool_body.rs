@@ -66,7 +66,7 @@ pub(super) fn render(
         .children(sections.iter().enumerate().map(|(part, section)| {
             section_body(
                 paint,
-                child_id(id, &format!("section-{part}")),
+                &child_id(id, &format!("section-{part}")),
                 section,
                 window,
                 cx,
@@ -138,14 +138,14 @@ pub(super) fn prose(
 
 fn section_body(
     paint: &BodyPaint<'_>,
-    id: ElementId,
+    id: &ElementId,
     section: &ToolSection<'_>,
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
     // A producer may refine the kind without changing a byte of its payload.
     // Format is structural identity, so raw output never aliases parsed rows.
-    let id = child_id(&id, section_format(section));
+    let id = child_id(id, section_format(section));
     match section {
         ToolSection::Terminal { command, output } => {
             let text = output.filter(|text| !text.is_empty()).map_or_else(
