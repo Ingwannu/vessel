@@ -238,3 +238,14 @@ backend tests and scoped native checks. No extra worker whole is requested.
 The new actual cog interaction probe first stopped at compilation on an unnamed
 IntoElement import inherited from its parent. Import its rendering traits
 explicitly in the test; the failed check ran no tests and remains recorded.
+
+## Resume after the quota reserve
+
+The current coherent input slice is committed through executable source
+`e97f936c2cd1d75cd62842a7c50ce069b45261f5`. Strict20 and actual tests13 passed;
+the exact usage:: selection is63/0/0 (App4, Link6, View53), including actual cog
+open/close/reopen and stale intent refusal. Earlier broad usage selection66
+includes four unchanged tests outside usage::; it is not the same selection.
+No new whole/capture/activation claim follows. Continue from
+[the committed resume](wp-f3-usage-resume.md), which records the exact frozen
+backend handoff, receiving trial, DNS contract hold and remaining producer gaps.
