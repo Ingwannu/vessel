@@ -130,17 +130,17 @@ struct AssertionProbe;
 async fn an_assertion_failure_still_drains_the_actual_fake_fixture() {
     vessel_testkit::within(CAPTURE_TEST_BOUND, async {
         let fixture = OwnedFixture::new().await;
-        let mut handle = None;
+        let handle = std::cell::OnceCell::new();
         let outcome: Result<(), _> = AssertUnwindSafe(async {
             let (_, live) = live(fixture.get()).await;
-            handle = Some(live);
+            handle.set(live).unwrap();
             std::panic::panic_any(AssertionProbe);
         })
         .catch_unwind()
         .await;
         fixture.finish().await;
         assert!(outcome.is_err_and(|payload| payload.is::<AssertionProbe>()));
-        assert!(handle.unwrap().has_ended());
+        assert!(handle.into_inner().unwrap().has_ended());
     })
     .await
     .unwrap();
@@ -160,7 +160,7 @@ fn check_principal_refusals(
         },
         Principal::delegated(
             DeviceId::random(),
-            &both,
+            both,
             Origin {
                 node,
                 by: OriginBy::Agent { session, depth: 0 },
