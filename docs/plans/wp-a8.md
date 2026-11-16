@@ -841,3 +841,32 @@ Kit/Link/App Checking; this is not merely a copied baseline result. No tests or
 whole native gate ran in this check. Prior730 runtime1492/0/2 stays prior-source
 evidence. Rich response/presentation contracts, guarded resource transport,
 checked body and Clone Seat consumer union, captures and V4 remain pending.
+
+
+## Checked value-contract preparation; consumption still held
+
+The standalone canonical permission/action/question-policy values were source
+reviewed in producer3f8378528. Its exact proto/node TS strict and root vesseld
+build passed; pure proto456 tests are the specified predecessor proof with only
+test qualification/rustfmt changes afterward. This is not a rich request/SDK or
+runtime handoff. W23 explicitly requires the checked announced receiving head
+or official app line before consumption. No values have been copied or adopted
+into this app tree, and no Question/Permission field or RPC is activated.
+
+The next UI projection must preserve actual offered option ids and order. Use
+canonical PermissionAction.behavior for the allow/deny glyph and preserve intent
+without manufacturing implementation/resume prompts. Only variant Primary
+uses CardLook::Primary; Secondary, Danger and absent explicit primary emphasis
+use the existing muted card look when provider actions are present. The source
+at agent-stream/view.tsx:1672-1698 checks only `variant === "primary"`; its shared
+PermissionActionButton:1480-1514 applies the same surface/border to every action.
+Thus a new red danger control or per-area style would change the reference.
+Fallback legacy options retain the existing fallback selection policy; explicit
+provider actions must not acquire an inferred first-allow primary emphasis.
+
+Canonical presentation.kind selects the card, never labels or arbitrary input.
+Detail borrows the shared body vocabulary; Plan text uses the existing Plan
+renderer with PermissionId-owned disclosure. Canonical delivery Answering and
+OutcomeUnknown are inspectable but cannot mint a response ticket, even without
+local pending state. Question lifetime does not imply completion. These are
+future consumer acceptance requirements, not proof from values-only tests.
