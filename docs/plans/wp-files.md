@@ -1168,3 +1168,25 @@ The fixtures now retain their original file identity for drawing; the product
 renderer still refuses an unbound file. All readiness, retained-content and
 Back-control assertions remain unchanged. This is a fixture correction, not
 a claimed complete runtime pass. New checks use announced base13 2ebeedf9.
+
+## Canonical Markdown action consumer
+
+Actual tests14 on95ab8b89 executed App184/0/2, then Kit249/1/0 and stopped
+before View/Link runtime. The single Kit failure was the inherited prototype
+code-selection fixture: its end lookup found the opening fence before the
+selection start. That prototype also rescanned fences independently of the
+renderer. The owner-confirmed minimal f4c01f61 producer replaces it with the
+existing parsed TextView selection and canonical host Actions, preserving
+source ranges, authored/inferred provenance and the existing theme resolver.
+
+Only that exact producer was adopted. Its17 Rust files match the source
+qualified by its owner; current change9, G1 editor control, field callbacks
+and root source are preserved. No App root resolver, new file permission or
+image acquisition is supplied by these callbacks. C5 still denies unresolved
+image resources and retains its original host/file context. The old failed run
+is retained; receiving strict/runtime checks remain required.
+
+The separate editor revision producer passed bounded V1 source/strict/runtime
+conditions and was handed to the lead as its two source leaves and documentation
+receipt. Line adoption is awaiting its announced green gate. This is not
+C5 whole-package approval; vendor-private execution remains explicitly absent.
