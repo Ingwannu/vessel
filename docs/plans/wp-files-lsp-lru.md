@@ -1,6 +1,7 @@
 # LSP LRU fixture deadline
 
-Status: source correction; targeted execution and strict check pending.
+Status: targeted execution passed on the exact test source; no whole-package
+or current-product timeout claim.
 
 [Decision Log]
 - Purpose: verify that filling the document bound evicts the least recently
@@ -29,3 +30,14 @@ node heads and the subsequent announced93970acb head. This leaf is based on
 93970acb; it changes only lifecycle test
 configuration and this explanation. It provides no live service or native UI
 proof. All Rust execution uses the build VM.
+
+## Executed evidence
+
+Run wp-files-node-20261115T180446Z-7afb7977 executed its four prescribed
+steps with rc0. The exact LRU case passed1/0/0,21 filtered, in2.65 seconds;
+its test compilation also completed. The cargo-step load was34.16 at entry
+and27.89 at exit; this is not a per-case scheduling measurement or cause proof.
+The original failing whole and N3's unchanged3-second replay remain separate
+evidence. There is no vessel-lsp source difference from the leaf's93970acb
+base to the announceded4cd137 head. No changed-source strict or whole suite is
+claimed for this test-only leaf, and no unchanged rerun is requested.
