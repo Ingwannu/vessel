@@ -7,8 +7,8 @@ mod text;
 mod values;
 
 pub use settings::{
-    GetTerminalProfiles, ListTerminalProfiles, ProfileRevision, ProfileSettings, ProfileSummary,
-    PromptMode, SetTerminalProfiles,
+    GetTerminalProfiles, ListTerminalProfiles, ProfileRevision, ProfileSelection, ProfileSettings,
+    ProfileSummary, PromptMode, SetTerminalProfiles,
 };
 
 pub use text::{Argument, Icon, Id, Name, Program, Prompt, TextKind};

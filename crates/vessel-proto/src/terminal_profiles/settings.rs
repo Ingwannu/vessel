@@ -54,12 +54,35 @@ pub enum PromptMode {
 pub struct ProfileSummary {
     /// Stable configuration identity, preserving configured order.
     pub id: Id,
+    /// A selected id cannot silently resolve under a later configuration.
+    pub revision: ProfileRevision,
     /// Display label, independently validated from the executable.
     pub name: Name,
     /// Optional validated visual catalog identity.
     pub icon: Option<Icon>,
     /// The form's actual editor mode rather than a boolean at the boundary.
     pub prompt: PromptMode,
+}
+
+/// Exact configuration choice retained in one creation intent.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfileSelection"))]
+pub struct ProfileSelection {
+    /// The selected profile, independent of its program/template.
+    pub profile: Id,
+    /// The settings snapshot shown by the safe metadata picker.
+    pub revision: ProfileRevision,
+}
+impl ProfileSummary {
+    /// Retain the exact safe picker choice without copying command templates.
+    #[must_use]
+    pub fn selection(&self) -> ProfileSelection {
+        ProfileSelection {
+            profile: self.id.clone(),
+            revision: self.revision,
+        }
+    }
 }
 
 /// Administrator-only configuration snapshot. Explicit empty disables profiles.
@@ -81,6 +104,7 @@ impl ProfileSettings {
             .iter()
             .map(|profile| ProfileSummary {
                 id: profile.id().clone(),
+                revision: self.revision,
                 name: profile.name().clone(),
                 icon: profile.icon().cloned(),
                 prompt: if profile.takes_prompt() {

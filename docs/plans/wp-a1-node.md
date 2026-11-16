@@ -514,3 +514,17 @@ freshness check remains required, since the generation source precedes bc9.
 The count carrier's second strict result found only an unused Option from its
 fake connection insertion. The fixture binds the returned previous value;
 all correlation/credential/count assertions and product behavior are unchanged.
+
+### Pure terminal command preparation over the landed privacy primitive
+
+Announcedd5 includes the reviewed opt-in diagnostic boundary. A literal cfg(test)
+command preparer now reuses canonical shell_spec and credential scrubbing for
+both blank shells and validated profile argv. Profile selection includes the
+safe picker revision; stale or absent profiles refuse, read-only profiles refuse
+nonempty text, empty sentinel arguments follow the original resolver. The actual
+CommandSpec is Redacted while execution fields remain literal and unchanged.
+Four owned tests inspect std::process::Command objects without executing them,
+including metacharacters, private Debug, removals/TERM, selected revision, missing
+profile, readonly empty/nonempty, omission and blank-shell argv. Tests are authored;
+new strict/runtime remain owed. This is not an executable terminal driver or a
+qualified opt-in launch caller, and new protocols/RPCs remain unavailable.

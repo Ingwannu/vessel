@@ -489,3 +489,29 @@ placement only. Active/revision start admission and Pending/Uncertain drain are
 separate registry guarantees. A cloned WorkspaceStartLease is exact settlement
 metadata, not a current parent/launch guard. The concrete cross-owner join and
 any required physical/backing/generation authority still need their own checks.
+
+### Pinned terminal profile selection and command preparation
+
+Safe picker metadata includes the same ProfileRevision on every row. Selection
+retains only the typed profile id and that revision; it confers no execution
+permission and copies no template. Server preparation rejects stale revision or
+missing profile before resolving a command, so an old idempotent intent cannot
+silently run a new configuration under a reused id. The requested revision is
+part of the intended choice; completed-key lookup must still precede fresh
+configuration work, and unavailable old configuration cannot be guessed.
+
+[Decision Log]
+- Purpose: preserve the actual selected launch semantics and keep expanded
+  prompts out of command diagnostics and public terminal metadata.
+- Existing assets: validated literal Profile::resolve, terminals::shell_spec,
+  canonical credential scrubbing and the reviewed opt-in Redacted process/PTY
+  diagnostic policy. These remain the sole preparation primitives.
+- Alternatives: interpolate shell source, duplicate environment handling, select
+  only by id after configuration changed, or prepare the exact captured revision.
+- Choice and reason: use the original program/argv boundaries without shell
+  evaluation, reject prompt text for a profile without a sentinel, and attach
+  Redacted to the actual prepared CommandSpec. New blank shells reuse the detected
+  shell and carry no invented prompt argv. Profile metadata contains id/revision.
+- Impact: preparation is pure staged work. It starts no process, sends no initial
+  input, proves no root/parent permission and settles no receipt. Actual owner
+  admission, registry registration and truthful uncertainty/stop remain required.

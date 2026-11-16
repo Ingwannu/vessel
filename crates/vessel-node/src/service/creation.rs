@@ -7,6 +7,8 @@ pub(super) mod empty;
 mod failure;
 #[cfg(test)]
 mod intake;
+#[cfg(test)]
+mod terminal_command;
 
 pub(super) use failure::stored as stored_creation_error;
 
