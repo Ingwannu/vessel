@@ -221,6 +221,7 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
             Err(ResidentProblem::StaleEpoch)
         ));
         assert!(captured.get(shell).is_none());
+        assert!(captured.root_get(shell).is_none());
         assert!(captured.get_mut(shell).is_none());
         assert!(origin_seat.get(shell).is_none());
         assert!(origin_seat.get_mut(shell).is_none());
@@ -391,6 +392,10 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
         assert!(main.legacy_target(shell).is_none());
         let deep = main.origin().origin();
         let captured = deep.clone();
+        assert!(std::ptr::eq(
+            captured.root_get(shell).unwrap(),
+            main.get(shell).unwrap()
+        ));
         assert!(
             matches!(&deep.get(shell).unwrap().timeline.entries()[0].kind,
             EntryKind::Thought { text } if text == "A deep origin")
