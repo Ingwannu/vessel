@@ -15,7 +15,7 @@ pub(super) async fn bounded(
 ) -> Result<RegistryData, RegistryReadFailure> {
     tokio::time::timeout(READ_DEADLINE, read(selected, changed_from))
         .await
-        .map_or(Err(RegistryReadFailure::Refused), |result| result)
+        .unwrap_or(Err(RegistryReadFailure::Refused))
 }
 
 async fn read(

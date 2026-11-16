@@ -33,6 +33,9 @@ impl Settlement {
     /// Await actual task return within the caller's named fixture bound.
     /// This is a blocking fixture operation, never a UI/product wait or an
     /// authority credential. Queued response capacity is owned independently.
+    ///
+    /// # Errors
+    /// Refuses an expired/disconnected receipt or abandoned producer task.
     pub fn wait(self, limit: Duration) -> Result<(), SettlementError> {
         match self
             .0

@@ -126,9 +126,9 @@ pub enum Event {
     /// The machine list does not read (the app words it, in its language;
     /// a pairing under way stops with the same words).
     BookUnreadable(vessel_app_view::files::FileFault),
-    /// A machine answered a workspace ask.
     /// Complete guarded registry metadata or a correlated refusal.
     RegistryRead(workspace::registry_reads::Response),
+    /// A machine answered a workspace ask.
     Workspace {
         /// The machine.
         machine: String,
