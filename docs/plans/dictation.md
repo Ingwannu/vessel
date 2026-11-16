@@ -6,7 +6,7 @@ merge. This plan does not change `PROTOCOL_VERSION`.
 
 ## Current resume point (2026-11-16)
 
-The designated files/shared-values head is merged. Product wiring connects the
+The designated RPC caller-drop and portable-plugin head is merged. Product wiring connects the
 bounded registry, endpoint provider, canonical ConnectionLife and speech codec,
 with five pending method-table rows. The protocol constant remains None, so the
 wire refuses activation before a number is assigned. The CLI file reader and
@@ -1116,3 +1116,14 @@ targets. The corrected focused library selection passes 26 cases. It includes
 the three original library failures, the new empty-file and provider-switch
 cases, the shared writer tests and buffered-start retirement. It excludes the
 original later-file node e2e; that case is still an explicit whole-gate obligation.
+
+### RPC cancellation and portable-plugin head adoption
+
+The next designated head adds the client caller-drop admission fence, retained
+relay children, ended-schedule edits, portable plugin values/runtime and the
+sign-in timeout retry correction. Its protocol, schema, existing methods,
+assertions and documents remain unchanged. The architecture conflict preserves
+the complete head caller-drop section, followed by the dictation product path.
+No dictation implementation or generated declaration changes in this merge.
+The combined package gate is the next product validation, including the
+original later-file node e2e and the complete CLI/protocol tests.

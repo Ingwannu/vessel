@@ -20,6 +20,8 @@ mod keepalive;
 #[cfg(test)]
 mod levers;
 #[cfg(test)]
+mod lifetime;
+#[cfg(test)]
 mod support;
 #[cfg(test)]
 mod tamper;
