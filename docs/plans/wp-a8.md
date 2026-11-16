@@ -870,3 +870,13 @@ renderer with PermissionId-owned disclosure. Canonical delivery Answering and
 OutcomeUnknown are inspectable but cannot mint a response ticket, even without
 local pending state. Question lifetime does not imply completion. These are
 future consumer acceptance requirements, not proof from values-only tests.
+
+
+Question-kind presentation is not form authority. W23's confirmed producer
+condition requires the typed Question/QuestionAsked schema path; a PermissionRequest
+marked Question stays inert/unsupported without that explicit join. No opaque
+permission input is parsed into fields, companions or a question response.
+The approved standalone value cut also excludes the generic ECMA trim helper;
+future allow-empty/custom readiness waits for its canonical checked producer.
+The existing private workspace trim is not copied into the UI. Current legacy
+readiness has no FEFF/U+0085 conformance claim.
