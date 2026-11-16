@@ -23,7 +23,7 @@
 //!   uses original trigger identity and holds no strong screen/controller reference.
 //! - Settings opt-in: top-start/immediate press explanations reuse that same
 //!   state and timer. Legacy touch hints remain suppressed; only the explicit
-//!   InfoInteraction::Press path enables a compact explanation.
+//!   `InfoInteraction::Press` path enables a compact explanation.
 
 mod config;
 mod info;
