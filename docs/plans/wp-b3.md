@@ -1,1430 +1,236 @@
 # Per-turn file checkpoints: implementation plan
 
-ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
-not a product/runtime pass. The node branch consumes the reviewed integration
-head `9c150c6e` (Quality B and gate 50c); pending rows live at the end of
-`rpc/table.rs`. The separate app branch consumes announced package base 8e `82ca07a7`
-through the app line; no checkpoint UI is implemented yet.
-
-## Current resume point
-
-Implementation source is unverified. Current code fixes the failed d437c087
-writer-dispatch lint and makes ignore defaults explicit configuration. Run
-wp-checkpoints-node-narrow-20261115T171417Z-d437c087 finished rc1; the corrected
-ordinary narrow must include both binary callers. No priority retry is authorized.
-Only after this passes, run the current four-crate checkpoint suite;
-it includes all six actual root-admission units. Then extract and validate the
-minimal canonical RootLease/StartGuard borrow leaf directly on the announced
-node head (currently 27502436) and send that leaf alone to V3. No leaf exists or is adoptable yet.
-
-The preserved old four-crate run
-wp-checkpoints-node-20261115T162908Z-4f74c616 finished rc1 at nested-vesseld:
-web-ci/fakes passed, but missing production recovery-refusal arms and a recovery
-borrow conflict prevented the test step. Both defects are fixed in current source;
-that failed run proves no runtime behavior. The later writer-variant merge fix,
-truthful result-marker status, test ordering and selected-ancestor FD retention
-also remain unverified. Namespace sets now transfer without partially moving the
-retained opened-directory evidence.
-
-Production restore remains Busy until reviewed terminal quiescence and remaining
-startup/lifecycle consumers. Generated TypeScript still needs VM regeneration
-before the whole root gate. Full node review/integration and then app UI, native
-gate/captures and V4 remain owed. App timeline owners permit only a future agreed
-one-line slot after checked producer and live keyed context; no shared renderer
-or competing menu is implemented here.
-
-## References and existing assets
-
-The exact reference/source mapping and stated differences live in
-[ADR 0077](../adr/0077-per-turn-file-checkpoints.md). Paseo's files mode and
-Claude SDK rewindFiles define files-only behavior; GOAT supplies turn-linked
-changed-files presentation. Existing node snapshots recover a removed worktree
-into a fresh one. Existing session.rewind changes conversation and leaves files.
-Neither is a fallback for this feature.
-
-Decision: extend session/workspace infrastructure with focused checkpoint
-modules. Reuse RelPath, Git probing, regular-file defenses, bounded channels,
-existing SHA-256 and SQLite. Strict enumeration refuses invalid paths rather
-than reusing an existing lossy listing. Existing rustix supplies Linux fd-based
-xattr refusal, rename exchange and effective UID checks; after adding the
-admitted-worker API it is a Linux normal dependency, with no new version. No provider SDK, tool-call-count inference or new crate edge.
-
-## Current implementation and boundaries
-
-- proto/checkpoint: validating images/metadata/limits/ids, effective permission
-  policy, typed changes and errors, unary requests/responses. FILE_CHECKPOINTS
-  remains None and PROTOCOL_VERSION is unchanged. The five canonical pending
-  rows generate client/guard/envelope plumbing. No independent method table.
-- node/checkpoint: Linux bounded capture owner, worker/root/quota leases and
-  deadline fencing. Timeout acknowledges without joining blocked I/O; capacity
-  remains occupied until actual cleanup. Candidate persistence and durable Ready
-  activation are separate phases; uncertain activation retains the archive.
-  Linux bootstrap wires the real SQL/filesystem bridge; actual actor
-  prompt/TurnEnded hooks activate only after FILE_CHECKPOINTS is assigned. Compilation/runtime verification of that connection
-  is pending; restore, expiry/GC and recovery controllers remain incomplete.
-- node/service/checkpoints: registered methods explicitly refuse as unavailable.
-  Guarded authorization and agent refusal remain in front of the seam. Ordinary
-  human forwarding preserves destination checks. Pending calls refuse locally
-  and at dispatch; no feature capability is advertised.
-- store/checkpoint: typed operations on the production writer and one schema append
-  after this base's title-origin schema. The migration runner is unchanged;
-  the integrator adjusts its one schema constant in merge order. Restore
-  admission reloads the capture's full key/session and frozen effective target.
-  Durable per-path intent and compare-and-advance phases constrain terminal
-  outcomes; human-principal-bound change pages share the frozen target/expiry, enforce
-  bounded offsets and refuse expired or consumed previews; admission enforces
-  the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. The production storage API uses the existing writer, savepoint and durable reply;
-  restore admission and all Pending path intents share that savepoint. Its
-  real-writer commit/restart/failure-injection tests remain unverified. A durable garbage table transfers retired capture reservations out of session
-  FKs; cleanup acknowledgement releases them, and active previews/recovery block
-  deletion. Startup and writer retention transfer accounting transactionally;
-  the real filesystem garbage collector still needs connecting. Node controller
-  assembly and full physical quota reconciliation remain owed.
-- workspace/checkpoint: production Linux admitted-worker API, strict enumeration, rooted nofollow reads,
-  private immutable raw blobs, bounded streaming and canonical fingerprints.
-  Files are fully staged before per-path mutation; rename exchange retains
-  original inodes, no-replace creates avoid clobbering, and guarded rollback
-  retains conflicting external edits. Apply and undo also compare inode identity,
-  refusing an equal-content external replacement. Unsupported metadata on roots
-  and intermediate directories refuses before file mutation. The node must
-  durably journal each step
-  and verify the entire covered scope before claiming success. The Linux library is active;
-  FD mount IDs also reject mount crossings on the same device; actual private
-  fixture and missing-capability tests are written but not yet verified. Other
-  platforms remain unavailable. Full enumeration/ignore/root revalidation
-  at operation boundaries and crash-restart assembly remain owed.
-- session/checkpoint: production bounded hook bridge at actual prompt/TurnEnded
-  boundaries, plus owned actor pause/result metadata. Injected steers create no
-  checkpoint; queued prompts capture only on delivery. Node bridge installation
-  and a SQL-durability barrier before filesystem reads remain owed.
-
-## Validation and remaining work
-
-Earlier fe0c868b checkpoint tests passed 92/0/6; generator/prebuild source636
-passed 4/0/0. Those are scoped evidence for their immutable heads, not current
-runtime proof. Clippy420 failed seven session lints, corrected in9fe6c1d1; its
-current ten-crate replacement is queued. The older56eff914 behavior run remains
-queued; the current tree includes later storage/permission/recovery changes.
-No package gate, code review, current permission/platform/crash recovery or
-native capture pass is claimed. Original failed/interrupted logs are retained.
-
-Next: compile the new mechanisms, regenerate TypeScript, run real migration
-rollback tests, finish writer/coordinator assembly and durable Ready reconciliation,
-then authenticated list/preview assembly, physical quota/retention and real session/
-workspace exclusion. Replace ignored obligations only after implementation.
-After node completion: one whole node gate and V3 review; after consuming the
-reviewed node contract, native view/link/words/screen, complete confirmation,
-result/status flow, captures, one native gate and V4 review. Reuse kit controls;
-shared app/link roots receive only designated registration lines.
-
-The ownership amendment to ADR 0077 persists the complete human principal,
-including delegated origin; a delivery DeviceId alone cannot authorize a
-plan. Local token/socket owners remain supported; direct/delegated agents
-are refused. Cross-origin sharing and local-owner retry tests accompany the
-amendment in the node package review.
-
-Recent scoped evidence: on `9a9c3882`, checkpoint-filtered tests passed 51 with
-zero failures and six ignored obligations. This includes real-writer savepoint
-rollback/restart, complete human principal isolation, inode checks and global
-reservation timeout fencing. It precedes owner shutdown draining, durable
-garbage and mount-ID changes. Protocol/web TypeScript declarations regenerated;
-the broader alias check found the baseline LimitPercent alias-of-alias
-classification and its one-line correction is isolated. Generated wire files
-retain the canonical generator's formatting; manual Rust sources pass whitespace
-checks independently. New node/app baseline integration follows the coordinator's
-announced `6c782cb6`, including the exact security e2e race fix `c5da5305`.
-
-Resume: merged the reviewed integration head and retained all five pending rows
-in its extracted canonical table. The generated handler receiver is retained
-by the unavailable service seam until real orchestration is ready. Latest
-scoped clippy exposed only that unused receiver; its correction is not yet
-verified. The separate TypeScript registry check reached its short-lane limit
-while compiling; it is not a passing result. Capture evidence, physical quota,
-production assembly and recovery remain the next implementation work.
-
-Physical observations now have validating persistent types distinct from content
-and desired metadata. A preview stores root, ignore-policy and per-path full/stat
-and stable object fingerprints; admission compares that exact evidence. The
-filesystem capture samples observations around its content reads. Equal-byte
-inode replacement therefore changes evidence without changing the content image.
-Ignore-policy discovery and crash-journal staging identities still need wiring;
-the supplied policy digest is not yet evidence of automatic discovery.
-
-The staged shared-writer adapter now selects FULL WAL synchronization for each
-batch containing checkpoint work, outside its transaction, then restores the
-prior policy. This closes the NORMAL-commit versus durable-file-rename ordering
-gap without changing ordinary event batches. Tests inspect real connection
-policy and rollback/reopen behavior; they are not power-loss hardware proof.
-
-Metadata listing uses a bounded timestamp/capture-id keyset, with cursor lookup
-bound to the requested session before reading any page. Tied timestamps remain
-deterministic; unavailable boundaries retain their typed reason. A running
-candidate reports temporary Busy rather than implying a ready image. The store
-never reads blobs to render marks; the node must still enforce session visibility.
-W11 confirms its start/archive lease is not a file-writer lock; lifecycle
-exclusion is being aligned with the archive owner before actual restore wiring.
-
-The canonical root admission owner is workspace::exclusion, keyed by the
-FD-derived PhysicalRoot independent of WorkspaceId and path aliases. RAII token
-release has a direct notification, not a fallible bounded release message.
-Queue/deadline/lost-reply/drain/recovery-pin tests accompany it. The lifecycle
-owner will consume this seam for actual backing mutations after the producer is
-green and reviewed; no separate cwd or workspace-id lock is introduced. Shared
-writer and actor call-site wiring remain owed; the gate alone is not exclusion.
-
-Scoped validation: the eight changed root crates' all-target clippy (including
-proto TS derivation) passed on `c580d9eb`. This includes physical-observation
-capture and the rebased pending handler seam, but precedes journal FULL-sync,
-metadata pagination and root admission. The new later behavior tests remain
-queued; no whole gate or production activation is claimed.
-
-A complete capture scope now discovers local ancestor ignore files, the actual
-Git administrative exclude file, explicit core.excludesFile and an edge-supplied
-HOME/XDG default. It hashes bounded policy bytes without archiving external
-policy inputs, then re-enumerates paths and re-discovers/re-hashes policy before
-acceptance. Git subprocess cancellation uses the same capture cancellation token.
-The synchronous assembly runs on the already admitted blocking worker and uses
-an explicit runtime handle only for Git I/O; it creates no extra filesystem
-worker. New isolated HOME/XDG fixtures and a fake Git wrapper exercise policy
-changes and a file appearing only at the second enumeration. They remain
-unverified until the next scoped run. The binary default-path adapter is owed.
-
-On `dad520f2`, checkpoint-filtered tests passed 66, zero failed, six ignored;
-this includes real FULL-sync policy admission/rollback, garbage reservations,
-non-root permissions and full observation association. It precedes metadata
-listing/root admission/full-scope policy discovery and is not product proof.
-
-Capture publication now carries a validated ObservedSnapshot end to end rather
-than dropping its physical and policy evidence after reading bytes. Ready rows
-require both image and evidence. Preview persistence additionally requires the
-selected capture and current preview to have the same PhysicalRoot and ignore
-policy digest; current root/file access observations still freeze separately
-for stale admission. These new storage and runner changes need scoped proof.
-
-RecoveryRequired is no longer a permanently unresolvable metadata pin. A separate
-recovery writer command may commit RolledBack only after a whole observed before
-image matches content/metadata, root/access/ignore policy and every original
-object identity. It cannot report Restored or accept an equal-content replacement
-inode. Resolution is idempotent for the same durable rollback decision; different
-terminal decisions refuse. The caller must hold root exclusion through actual
-verification and the FULL-sync acknowledgement. Startup filesystem replay and
-post-resolution physical garbage collection still need production assembly.
-
-The root-admission scoped clippy on `a8a3e67b` found four local lint defects
-(unused qualification, identical writer error arms and two unused results).
-They are corrected without weakening checks; the corrected head still needs
-its compiled run. Its written behavior cases are not passing evidence yet.
-
-First production writer connection: Linux file write/create-directory/rename/
-delete now use the common root gate and retained TaskTracker operation. An FD
-pins root identity; normal file APIs are reused. Caller cancellation does not
-cancel admitted blocking work or release its lease. Root startup/shutdown is
-connected to Workspaces and the node stop token. Recovery clearing remains a
-staged operation until real checkpoint startup/replay wiring; no unresolved
-checkpoint objects are created by the unavailable product service. Remaining
-Git/agent/terminal/script/lifecycle writers are not yet fenced. These changes
-have written actual Workspace fixtures but have not yet passed compilation.
-
-On `fd884246`, checkpoint-filtered tests passed 79, zero failed, six ignored.
-This verifies the staged root admission cases and full Git/ignore capture scope;
-it precedes capture-evidence persistence, recovery resolution and production file
-writer connection. The latest eight-crate clippy is queued on `3fb22a1f`.
-
-The retained writer facade is now run_write with a typed directory/repository
-requirement. All eight Git mutators consume it, preserving branch metadata
-updates. Its operation cancellation token follows caller disconnect and node
-shutdown; a scoped Git clone passes that token into the existing command group
-stop/reap path. The owner awaits actual completion before lease release, including
-noncancellable file I/O. Written regression fixtures cover denied real file/Git
-mutations, cancellation isolation in a saturated Git pool and retained response
-loss. No process-reaping runtime proof or whole gate is claimed yet.
-
-The scoped clippy on `3fb22a1f` stopped on the generation ceiling's rustdoc
-`SQLite` spelling; it did not reach proof of the later writer connection.
-That lint is corrected without an allowance. Cooperative cancellation now also
-refuses a not-yet-started write after preflight; already running blocking I/O
-still drains under its lease. The latest product writer slice needs its own
-compiled result before being offered to other consumers.
-
-The `9da7666c` all-target clippy reached the new production writers and found
-local lint issues in staged code (an unnecessary qualification, two unchecked
-set insert results, one missing unit semicolon and the unexercised Recovered
-writer command). The latter now has a real shared-writer recovery/retry/reopen
-fixture instead of a dead-code allowance. These corrections need their next
-scoped compiled run. `65b9fcec` checkpoint-filtered tests passed 87 with zero
-failures and six ignored obligations, including actual file denial and retained
-I/O after caller cancellation; this precedes the Git writer connection.
-
-## Resume point: terminal-start admission slice
-
-Terminal creation now acquires the shared physical-root admission and retains it
-in the existing task tracker through shell startup, synchronous registry entry,
-agent watches and placement validation. FD parent ancestry maps a nested or
-parent-alias CWD to a registered managed worktree root rather than treating that
-subdirectory as independent. New root metadata probes use two worker permits;
-the blocking closure retains its permit after caller cancellation. These changes
-are connected source, not compiled or runtime-verified evidence. The unused
-shell-opening import and redundant platform guard were corrected in this slice.
-
-Latest verified behavior remains `65b9fcec`: 87 checkpoint-filtered tests passed,
-zero failed, six ignored obligations. The separate run on `fe0c868b` is already
-in progress and must be collected without resubmission. It precedes this terminal
-slice. The latest Git clippy result was a failure; its reported local corrections
-are committed, but no passing clippy result for them is claimed.
-
-Scripts and services (including automatic restart), session create/resume/wake/
-move start admission, actual per-turn actor hooks, pause/queue behavior and
-restore/controller assembly remain incomplete. Physical quota/garbage/retention,
-startup reconciliation and native checkpoint marks/confirmation/result UI also
-remain owed. No whole gate or code review has run. FILE_CHECKPOINTS remains None;
-the full checkpoint feature is not complete and this producer is not ready for
-consumer adoption. Continue from the retained source and collect the existing
-run before scheduling another meaningful scoped suite.
-
-### Retained session starts
-
-Session creation (including import/fork through creation) and ended-session
-resume now move both the physical `StartGuard` and the worktree `Starting`
-count into the existing retained session task. Startup revalidates the opened
-folder before launching. A store failure drains the failed process before
-releasing admission; successful startup releases only after runtime/durability
-registration. The default harness home is resolved through the existing profile
-configuration, and the selected canonical folder becomes the launch folder.
-Root revalidation uses the same bounded metadata pool as initial admission.
-This reuses existing task/process ownership rather than introducing a second
-process owner. Automatic script restarts and live actor wake/move paths still
-need their own admission; this slice does not establish complete root exclusion.
-
-The preceding fe0c868b remote suite completed with 92 passed, 0 failed and 6
-ignored. Terminal-start commit 78bd7d16 has a registered remote clippy request;
-its result and this session-start slice's compile/runtime proof remain pending.
-New session fixtures cover replacement before spawn and guard release after
-actual registration or failed-store process cleanup. They have not yet run.
-
-### Script process attempts
-
-The existing script actor now accepts a generic admission callback without a
-node dependency. The node uses it for every actual spawn: first run, automatic
-service retry and manual restart. A registration receipt opens only after the
-registry and placement check succeed, so an actor cannot spawn in the interval
-before its handle is visible. Admission is released after process publication;
-active processes remain visible and must be refused by the restore controller.
-An approval recheck follows admission because waiting can outlive approval.
-Stopping a pending attempt cancels admission before spawn. Existing library
-callers keep the original unadmitted entry point; the node uses only the admitted
-one. Three isolated process fixtures cover publication-before-release, reacquire
-on retry plus cancellation while waiting, and refusal without command execution.
-This slice is source connected; remote compilation and execution remain owed.
-
-### Actor input/queue pause
-
-The real structured actor now owns an internal files-only pause. A successful
-receipt requires readiness, no running turn or pending human answer, and no
-other pause. It changes the input route, refuses queued and newly arriving
-controls (including move/rewind/wake), disables automatic queue advance and
-idle parking, and restores the prior route when the RAII receipt drops. An
-explicit resume waits for that actor acknowledgement. It neither emits a
-conversation rewind nor alters the held queue or the parked state. The node
-must hold physical exclusion before requesting it and release physical
-exclusion before allowing queued delivery to resume. Lost receipts automatically
-release the pause; lifecycle kill still wins. The controller and durable
-recovery ownership are not connected yet, so no RPC capability is enabled.
-Real fake-agent fixtures cover held-queue/input refusal and busy/parked behavior;
-a closed receipt fixture covers automatic release. Remote proof is pending.
-
-Remote terminal clippy 78bd7d16 and merged session-start suite 27f2a27c were both
-cancelled rc143 while queued, before compilation. These are not compiler results;
-the build-tools owner has been asked for the recovery/retry disposition.
-
-A deterministic workspace fixture now holds every real root-metadata worker,
-cancels all requesting tasks, and proves new starts are refused as MetadataBusy
-until the held I/O is released. Shutdown refuses new probes independently and
-drains the original workers. This fixture is not included in the currently
-registered 448e2550 remote source; its execution remains owed.
-
-The build-tools owner confirmed the simultaneous queued rc143 results were an
-operator-approved build-VM restart. Original logs are retained. The obsolete runs
-are superseded once by immutable 448e2550 in fresh output folders: the eight-crate
-all-target clippy (with proto TypeScript feature) and the workspace/session/node
-library+integration suite, both in the remote ordinary lane. Neither is a PASS
-until terminal logs are collected; no duplicate or local compile was started.
-
-### Setup, teardown and worktree removal admission
-
-Existing retained setup tasks now take the canonical physical admission before
-commands, retain it through actual command completion and root verification,
-and release it after that postcondition. Existing removal/retire takes one
-physical admission inside its retained task and borrows it for teardown rather
-than reacquiring. The claim spans inspection, snapshot-if-needed, teardown,
-Git removal and verification that no filesystem entry remains. A pre-existing
-missing folder still follows the prior metadata-only removal path. Refused
-admission settles the logical running claim instead of stranding it. These are
-source connections; they are not a reviewed lifecycle producer yet. Physical
-live-occupant validation and the new archive workflow adapters remain owed.
-
-The fixture holds the real root gate across actual setup/removal calls, proves
-setup cannot run and removal cannot delete during that hold, then repeats both
-after release. Its remote run is still owed. The session failed-store fixture
-now waits for its first, successful process's handover before closing the store,
-so that assertion does not depend on unrelated pending persistence output.
-
-### Durable checkpoint event foundation
-
-A before-turn capture needs an already committed anchor; guessing the next
-provider `turn_started` sequence is unsafe because incidental agent output can
-arrive while the capture runs. `CheckpointEvent::PromptAccepted` supplies that
-metadata anchor. `TurnAssociated` later binds it to the actual provider turn
-without changing provider events. `FilesRestored` is reserved for a verified,
-durably completed restoration. These are typed, bounded metadata and downgrade
-to harmless logs while FILE_CHECKPOINTS is None. No producer is connected yet.
-Conversation, attention, cost, search and CLI/MCP projections now explicitly
-handle this event family. Regression fixtures preserve conversation identity,
-the retained plan and existing inbox branch attention, including reopen. These
-new fixtures, TypeScript regeneration and native consumers are not yet verified.
-
-### Bounded actor-to-node hook bridge
-
-The public session bridge now carries only session, immutable Boundary and the
-original acknowledgement deadline. The node assigns worktree/generation and
-must reject abandoned requests before reserving resources. A typed receipt
-validates session/boundary correlation and reports prompt sent/refused or the
-after-turn boundary's completion; lost receipts never become a success. Queue
-and acknowledgement time share one deadline, and a completion-time clock check
-prevents an already-ready reply winning against an expired timer. This replaces
-the earlier private acknowledgement prototype. It is not connected to actual
-actor delivery yet; that explicit ignored proof obligation remains. Three bridge
-fixtures cover unavailable capture with normal delivery, held acknowledgement
-expiry/late reply, and wrong association/lost delivery receipt. Remote execution
-is still owed, and no node filesystem capability is activated by this bridge.
-
-### Actual actor hook producers
-
-New actors receive the bridge through SessionRuntime's explicit builder;
-Linux bootstrap now installs it (see the bootstrap section below). Real new delivery (including queued delivery,
-interrupt's replacement and a side turn) emits an accepted-prompt anchor after
-ordered driver readiness/idle checks, asks for its before-image, and reports
-actual provider delivery. Injected steers do not take this path. Actual provider
-TurnStarted is linked to the anchor even when incidental output changed sequence
-numbers. Published TurnEnded requests its after-image before queue advancement;
-a completion pumped during another delivery is settled before that next prompt.
-TurnFailed has no completed TurnEnded anchor and does not invent an after-image.
-
-Accepted-anchor durable-channel capacity and node acknowledgement share the same
-capture deadline. A congested channel, unavailable capture or expired node reply
-cannot unconditionally join filesystem work or create an unbounded capture wait.
-Kill remains observed. Real fake-agent fixtures cover queued-vs-injected steering,
-completion ordering/association and actual prompt release on a held node deadline.
-These are unrun source fixtures. The node still must wait for SQL durability of
-the anchor/TurnEnded before starting real filesystem work; the remaining ignored
-storage-ordering obligation is explicit. No product checkpoint controller is live.
-
-The 448e2550 all-target remote clippy reached compilation and stopped on five
-local findings: four unnecessary Future qualifications (Rust 2024 prelude) and a
-pause-refusal method whose receiver was used only by test controls. The former
-now use Future directly; pause refusal is an associated operation and closes
-unavailable test-only control replies while paused. No lint exemption was added.
-The unchanged earlier source's registered test job remains queued; a latest-head
-clippy will cover the subsequent actor/event/lifecycle work as well.
-
-### Private preview/restore reservations (staged)
-
-The same single checkpoint migration now includes private-work allocations.
-Reservation classes derive conservative byte envelopes from the existing image
-cap (two images for preview work, four for restoration stages/before-images and
-journal); callers cannot choose a zero-byte envelope for those classes. One SQL
-accounting equation includes captures, private allocations and durable garbage.
-Reservations are bound to the full capture key and human principal. An unfinished
-private reservation pins session retirement. Once its worker is actually done,
-a published plan or terminal/recovery journal can attach the retained allocation;
-unpublished physical cleanup leaves an accounted, non-reusable id tombstone.
-Retirement transfers private charges into the parent capture's garbage charge,
-so metadata deletion alone never frees capacity.
-
-Real-writer and SQL fixtures cover quota exhaustion, source/owner rejection,
-non-recycled cleaned ids, unfinished-worker pins and garbage charge retention.
-They have not run. Node allocation admission/cleanup callbacks and public store
-facades are not wired, capture reservations still need minimum/actual-byte policy,
-and plan expiry/retention/GC/recovery assembly remains unfinished. These staged
-primitives do not establish an operational storage quota.
-
-The registered 448e2550 test run stopped in its nested node-binary prebuild on a
-missing TerminalHandle import and its resulting inference error; runtime tests
-were never reached. The import is restored in the current source. Its four
-Future warnings were already corrected by 420dcf66. Original failed logs remain
-available; no result is reported as a runtime pass.
-
-### Capture escrow settlement (staged)
-
-The product command reserves a named fixed capture escrow; the arbitrary-size
-reservation command/constructor are now test-only accounting models. Settlement
-requires a matching immutable boundary in Ready or Unavailable, never Candidate.
-After actual private-worker cleanup, Ready keeps raw payload plus bounded entry
-and serialized-manifest allowances; Unavailable keeps its metadata reservation.
-Settlement is idempotent, refuses an undersized escrow instead of inventing extra
-capacity, and checks metadata byte length before loading/decoding it. This is a
-reservation budget, not a promise to cap the entire database/WAL or filesystem's
-physical usage. A real-writer fixture covers candidate refusal, Ready settlement
-and retry, plus unavailable cleanup. It has not run. Actual worker/cleanup and
-controller wiring, per-plan settlement/expiry and GC remain owed.
-
-
-### Ended-target metadata contract (coordinator ruling, staged)
-
-Reuse the existing store writer/log append rather than start an actor for ended
-sessions. The checkpoint restore row now stores its metadata EventSeq; append
-validates the stored Restored/checkpoint/path-count binding and records the marker
-in the same savepoint. EndedMetadata derives its event from the authoritative row,
-refuses live targets, and treats an existing marker as a completed retry. Live
-actor append uses the same projection. Checkpoint-bearing append batches select
-FULL sync as well as explicit checkpoint writes. No run/status/ended_at/queue or
-conversation mutation is introduced. The shared Status comment is copied only
-from de2908cd's approved event.rs comment hunk; no lifecycle branch was merged.
-
-New real-writer fixtures cover ended status/ended_at/held queue and harness-id
-preservation, FilesRestored after Status in history, replay after store reopen,
-live-path refusal and ordinary append projection/duplicate rejection. They are
-unrun. Store operations and projection remain staged under cfg(test), and node
-controller/live pause event delivery are still unwired; FILE_CHECKPOINTS is None.
-
-
-Wire-generation evidence: immutable 636dbe57044c6ff7cc4f3962017f70e891d0190a,
-wp-checkpoints-node-20261115T112757Z-636dbe57, finished rc0 at 11:48 UTC.
-web-ci, nested-fakes and nested-vesseld prebuilds passed; generator tests 4/0/0.
-The generated proto.ts was copied from that exact verified VM checkout before
-reusing its owned label. No wire declaration was edited manually. This proves
-generation/prebuild for that source, not later store/actor runtime behavior.
-
-
-### Owned live-pause metadata (source, not verified)
-
-The pause guard owns a private one-slot metadata channel; the general session
-handle/control channel has no result-publish command. It accepts only typed
-FilesRestored identities/count, publishes under the actor's normal sequence
-allocator, preserves input/queue exclusion, and returns the same sequence for an
-identical retry on that pause. A different result is refused. Actor publication
-is not SQL durability: the node controller must await the restore row's matching
-EventSeq before releasing the physical lease and resuming. A new fake-actor test
-covers one result, retry/refusal, conversation identity, and held queue until
-resume. It has not run. The node restore controller remains unwired.
-
-
-### Effective account preflight (staged)
+ADR 0077 passed design review at `a852bde3`. That is contract acceptance, not an
+implementation or runtime pass. The full node package is incomplete and consumes
+the announced `d5bfde87` base. Its five unary calls stay pending in the canonical
+RPC table, `FILE_CHECKPOINTS` stays `None`, and production restore returns Busy.
+No checkpoint app UI is implemented or advertised.
+
+## Existing assets and reference mapping
+
+[ADR 0077](../adr/0077-per-turn-file-checkpoints.md) records the exact inspected
+Paseo, GOAT, Claude SDK and immutable node source locations. Paseo's files rewind
+mode preserves the conversation; Claude's `rewindFiles` has provider tool-based
+coverage; GOAT supplies turn-associated changed-files presentation. Vessel's
+proposed full managed-worktree scope is a deliberate provider-independent
+extension, not a claim that the SDK already implements it.
+
+Existing `worktree.snapshots` / `drop_snapshot` recover removed worktrees into a
+new worktree. Existing `session.rewind` changes conversation and leaves files.
+Neither is checkpoint restoration or a fallback when restoration is unavailable.
+The survey reference is `parts/A-lifecycle.md#Rewind`, files mode; conversation
+rewind remains W2's separate tracker row and renderer.
 
 [Decision Log]
-- Purpose: private storage must belong to the actual executing service account;
-  comparing blobs only to the archive folder owner could accept a foreign tree.
-- Existing asset: Linux checkpoint Root/Archive/Stage already open FD-relative,
-  refuse ACL/xattr metadata and validate modes; they lacked an effective UID check.
-- Alternatives: a caller-supplied UID could diverge from process credentials, and
-  account names do not establish the kernel identity.
-- Choice: reuse the already resolved rustix dev dependency's process feature for
-  geteuid; keep it dev-only while these filesystem mechanisms are staged.
-- Consequences: project roots and private folders refuse foreign owners; private
-  directories require exactly 0700 including absence of special bits. Root/group
-  ownership and ACLs are never rewritten. Captured ordinary permissions remain
-  subject to the frozen effective desired-image policy.
-
-Isolated fixtures require the actual non-root build UID, test its own 0700 folder,
-read only foreign-owned root metadata, and refuse 0750/setgid/sticky folders. Only
-temporary fixture modes change. They are unrun; no production account/permission
-flow is claimed. Root safety, archive safety and actual service operation remain
-separate from source inspection.
-
-
-### Startup and retention (staged SQL path)
-
-Startup invalidates all candidate generations and drains bounded batches of
-Prepared→RecoveryRequired transitions under FULL sync before session retention.
-It never promotes a candidate or frees archive bytes. Ended-session pruning now
-has a staged checkpoint-aware path: the established retention order/cap remains,
-while busy workers, active previews, incomplete recovery and Restored rows still
-awaiting FilesRestored metadata stay additionally pinned. Eligible session rows
-and capture/private reservations move to independent garbage in the same
-transaction. Startup retention now also uses a transaction, so transfer and
-parent deletion cannot split across a crash. Filesystem garbage cleanup remains
-separate and unwired; no reservation is released by metadata deletion alone.
-
-SQL fixtures cover rollback of garbage transfer+session deletion, startup fencing
-and recovery pins before pruning, and an expired successful restore remaining
-pinned until its event marker is stored. They are unrun. Store checkpoint
-operations/startup/pruning still use cfg(test) staging; the production startup
-retention transaction is active but the checkpoint-specific path is not enabled.
-
-
-### Production store boundary (source; not yet compiled)
-
-Quality B and the local schema predecessor are already consumed, so the store
-checkpoint module, error family, closed CheckpointWrite command and typed reads
-now compile outside cfg(test). Commands use the sole existing writer, bounded
-queue, savepoints and FULL sync; there is no second DB connection/writer. Public
-records carry typed identities/images rather than SQL/JSON. Internal reads use
-the existing blocking read pool and expose selected immutable evidence, bound
-preview/change pages, owned operation/path journal/event marker, garbage and
-bounded recovery/unpublished pages for startup reconciliation. These Rust APIs
-are trusted node/storage seams, not RPC authorization or provider interfaces.
-
-ReserveCapture now proves the exact PromptAccepted/Agent TurnEnded boundary is
-already present in SQL before it can reserve/read files. Preview publication
-requires its private reservation to predate allocation; restore admission reserves
-its fixed private envelope and every Pending path inside the same savepoint.
-Identical Admit retries do not charge a second envelope. Arbitrary-byte Reserve
-remains cfg(test), never a product escape hatch around fixed capture admission.
-The startup/pruning/result projection now use this production store boundary.
-Filesystem/controller/GC ownership is still unwired and unreviewed; gate remains
-None, so no call/capability claims a restored image.
-
-A public integration fixture compiles the actual non-test store API and exercises
-boundary refusal/success, Ready selection, missing preview reservation refusal,
-owned preview/pages, idempotent admission, result-marker commit and ended reopen
-retry. It uses synthetic file evidence and performs no filesystem restoration;
-it has not run. Unit fixture changes reserve the same private envelopes as the
-production writer. Current source needs VM compilation and behavioral checks.
-
-
-### Capture guard uses the physical root (staged coordinator)
-
-The separate bounded capture-worker guard is now keyed by the actual physical
-root passed by the opened-FD admission bridge, independent of WorktreeId. The
-runner forwards that root to its read callback for FD-root revalidation. A second
-logical worktree alias cannot start another worker after the first actor deadline
-while the first read/cleanup remains held. Existing small admission models have
-an explicitly cfg(test)-only logical→synthetic-root helper; product capture input
-accepts a PhysicalRoot and never derives its lock from WorktreeId.
-
-The held blocking-read barrier now retries through a different logical worktree
-with the same physical key and expects Busy, then verifies no late publication.
-This is an unrun coordinator barrier, not proof of real FD/node assembly. Common
-root exclusion may be released after invalidating a read-only candidate, as its
-existing contract says; that does not release this separate worker/root/quota
-guard. Thus a stalled read does not force the next prompt/wake to wait for it.
-
-
-### Durable staged-object evidence (filesystem mechanism, not DB wiring)
-
-New bounded storage-only proto StagedPath/StagedPaths carry stable original and
-written ObjectFingerprints for exactly the approved changed paths. They are not
-RPC types and add no TypeScript declaration/protocol assignment. Workspace keeps
-full observations for fresh admission, exports canonical staged-object evidence,
-and reconstructs recovery expectations from that evidence instead of accepting
-whatever inode currently occupies the path. A reconstructed operation refuses
-forward apply; it can classify Original/Desired/Conflict and perform guarded undo.
-Stable hashes retain device/inode/owner/group/nlink while excluding rename-time
-changes. Fresh before-write checks still compare the full original observation.
-
-Two isolated filesystem fixtures drop/reopen handles and deserialize evidence:
-rollback of an applied replacement succeeds only for the expected written inode;
-an equal-content/equal-mode external replacement stays a conflict and keeps its
-bytes. These tests are unrun. Store path-journal persistence of this evidence and
-actual crash/startup controller assembly are still the next work; serialized
-fixture reconstruction is not a process-crash/recovery pass.
-
-
-### Store staged-object barrier (production storage seam)
-
-One nullable staged-evidence field joins the same checkpoint_paths table in the
-single package migration; no additional schema number is assigned. Staged commits
-the complete bounded approved path set inside the existing writer's savepoint,
-checking captured original object and target presence, refusing changed retries.
-Advance to Applied is impossible before that path's staged evidence exists;
-terminal Restored requires all applied paths to have evidence. Reads retain the
-objects through restart for workspace recovery reconstruction. A real-writer
-trigger fixture fails the second path, checks that none committed, retries once
-after removing the trigger, rejects altered object evidence and reopens the store.
-The public non-test storage fixture also uses this barrier. All remain unrun.
-Consumed plans no longer count as active preview authority or independently pin
-retirement: their restore/worker/metadata obligations provide the required pins.
-
-
-### VM lint result 420dcf66 and corrections
-
-wp-checkpoints-node-narrow-20261115T111842Z-420dcf66 finished rc1, cargo101
-at 12:19 UTC after 121 seconds of compilation. Seven session findings:
-single-pattern matches (2), receipt result missing Errors/double must_use,
-acknowledge missing must_use, structured output over100 lines, and a no-effect
-underscore binding in the test-only pause refusal. These are corrected by using
-if/if-let, documenting the actual receipt error, retaining the advancement
-receiver explicitly, and delegating the package's turn association handling to
-its checkpoint module. The established closed output dispatcher remains together
-and shrinks below the prior function length. No lint allowance or size ratchet is
-added. This old source stopped before later node/store changes and establishes
-no runtime pass; its exact failed logs remain in actor-hooks-clippy.
-
-
-### Linux admitted-worker filesystem boundary (source; uncompiled)
-
-Root/Archive/IgnoreDefaults/Restore expose the existing filesystem mechanisms to
-the node without accepting RPC paths or owning auth/storage/session state. Tree
-opens against the actual admitted PhysicalRoot, capture preserves the opened-FD
-scope, and apply/undo recheck stable root authority before and after a mutation.
-Directory mtimes changed by our own renames do not mint another authority. Recovery
-reopens expected stable objects and refuses forward apply. Source errors remain
-owned and typed; public reason classification does not expose file paths/bytes.
-
-The already resolved rustix fs/process features move from dev-only to Linux normal
-dependency for safe FD/xattr/rename/UID operations; no new version or Vessel crate
-edge. The API exists only on Linux like the existing physical FD seam; node
-adapters must explicitly return UnsupportedPlatform elsewhere when activated.
-FILE_CHECKPOINTS stays None on every platform. Test-only convenience methods are
-not product bypasses. The public-worker fixture executes on spawn_blocking with
-isolated Git configuration, checks a wrong physical root, captures/restore/reopens
-rollback evidence and asserts the actual non-root UID. It is unrun, and models its
-evidence commit without a store, so it is not end-to-end restore/crash proof.
-
-
-### Ended runtime cache visibility
-
-An ended handle can remain briefly in Sessions until persistence handover. Its
-ring is sealed; it cannot override a later stored FilesRestored page, and get/list
-retain a newer stored EventSeq instead of overwriting it with the stale ended
-SessionInfo. The existing read module owns that preference and get. The file
-budget check caught the added list branch pushing sessions.rs over500; moving its
-query method into the existing read module restores the budget without raising a
-ratchet. A real ended fake-runtime fixture checks page selection while handover
-is held, using an explicitly modeled store page; store tests separately validate
-the actual result-event binding and restart transaction. This is unrun and not a
-combined end-to-end restore/subscribe proof.
-
-
-### Hydrated recovery admission and replacement folders
-
-Workspaces now reads all bounded recovery pages and their owner-bound plans before
-starting RootGate. The same gate stores physical roots plus the managed worktree
-namespaces those unresolved rows belong to. A folder replaced with another inode
-cannot bypass recovery by presenting a new physical key for the same worktree.
-This namespace is an additional fail-closed recovery condition, never the key of
-a file lock. Lease.root remains the actual opened-FD identity. Independent logical
-identities sharing a physical root still conflict through that physical key.
-
-A single metadata helper opens the requested directory and registered worktrees,
-finds the nearest physical managed ancestor and all names bound there. Actual file/
-Git writes and starts pass that evidence to the sole gate. Pre/post writer checks
-now use the bounded retained metadata pool and verify that the admitted physical
-root is still in the directory's FD ancestry, including subdirectory starts.
-Only missing unrelated roots are skipped; other metadata failures refuse safely.
-A gate fixture checks old physical key blocking, new inode/same managed id blocking,
-and a genuinely independent root's admission. It has not run. Runtime pin/guarded
-recovery-claim/completion APIs and the actual restore controller remain owed; no
-raw production force-unlock or new lock owner is introduced by this slice.
-
-
-### VM behavior compile result 56eff914
-
-wp-checkpoints-node-20261115T114927Z-56eff914 finished rc1 at12:40 UTC.
-web-ci/nested-fakes/nested-vesseld passed; cargo stopped compiling store unit tests
-on E0308, the CheckpointWrite apply error conversion already corrected in69ed6d563.
-The emitted inbox fixture qualification warning is now corrected too. No behavior
-test executed in this run, and the preceding node prebuild is not runtime proof.
-Current storage/FS/admission source remains ahead of that failed immutable head.
-
-
-### Recovery settlement is per operation (controller seam still staged)
-
-RecoveryRoots now retains RestoreId→WorktreeId per actual physical root. Startup
-hydrates those exact identities. Resolving one operation cannot clear another
-operation or aliased worktree's pin. The staged claim/pin/resolve controller seam
-uses an uncloneable physical lease and compares its retained token by identity;
-late callbacks from a dropped/replaced lease are refused. A recovery lease remains
-owned after settlement until its physical work/postcondition has ended and the
-holder drops it. Idempotent settlement on that same held lease reuses the result.
-Recovery claims can enter an already-counted pinned root even at the root-count
-limit, avoiding a full-registry deadlock.
-
-The old test-only raw root clear is removed. Controller-facing recovery mutation
-APIs stay cfg(test) until the real restore controller consumes them; the ordinary
-production writer/start gate and startup identity index remain active. Tests cover
-two restore pins on one physical root, wrong operation, stale token, shared root
-blocking and continued physical ownership after resolution. They are unrun, and
-provide no actual SQL/whole-filesystem recovery proof by themselves.
-
-
-### VM lint result 9fe6c1d1
-
-wp-checkpoints-node-narrow-20261115T122206Z-9fe6c1d1 finished rc1/cargo101
-at12:57 UTC after163 seconds. Store lib stopped on one similar_names lint in
-capture escrow settlement (charged/changed); the SQL affected-row count is now
-updated. The run did not complete the later dependency graph, current worker API
-or recovery interfaces, and no runtime pass follows from it. Exact logs remain
-in production-store-clippy. No lint allowance is added.
-
-
-### Private storage creation (cleanup not yet wired)
-
-The Linux worker Storage API opens the service's already-private data directory
-and uses relative no-follow directory handles for checkpoints/worktree/capture,
-immutable blobs, preview before-images and restore stages. Only validated ids and
-fixed component names form descendants. Existing folders are validated for actual
-effective UID, exact0700, unsupported attributes and mount identity, never chmodded
-into acceptance. Newly created directories get a no-follow0700 chmod independent
-of umask, followed by child/parent sync; immutable Archive handles reuse opened
-folders instead of traversing a pathname again. Stage location keeps its opened
-folder owned while the existing restore worker API opens its stage.
-
-All creation requires the node's prior durable escrow and retained worker. The
-Storage API itself does not authenticate or release quota and does not delete on
-Drop. Filesystem GC/cleanup callbacks remain next work; no operational quota or
-cleanup proof follows from creation. Isolated fixtures check non-reuse, private
-UID/mode, symlink refusal and preserving an existing0750 directory. The umask0777
-case runs in a one-test child with an explicit helper selector, verifies the helper
-actually created storage, and never changes the parent/service umask. The helper
-is intentionally ignored in normal runs and explicitly executed by its parent.
-These tests are unrun; chmodat/no-follow behavior on supported kernels remains a
-VM/platform obligation. No live permissions or runtime configuration changed.
-
-### Capture cleanup is independent of publication (source; checks pending)
-
-An unavailable capture may still own blocked read I/O and private writes. The
-same migration now records active/settled worker cleanup independently of the
-candidate/ready/unavailable state. Session deletion and retention refuse active
-workers; only CaptureSettled after actual cleanup reduces escrow and permits
-garbage transfer. Startup invalidation cannot manufacture cleanup completion.
-Pure SQL fixtures explicitly model no worker; there is no production bypass.
-The writer regression covers timeout, refused deletion/no garbage, cleanup
-acknowledgement, then successful deletion with retained metadata accounting.
-This is source evidence until the next immutable remote test completes.
-
-### Private garbage cleanup mechanism (source; remote verification pending)
-
-Storage::clean_capture consumes only typed worktree/capture identities after the
-node proves worker/pin retirement. A bounded pass traverses the fixed private
-layout through no-follow FDs; only canonical blob, plan, restore and stage-slot
-names are accepted. Opened UID, regular-file/link count, mount and attributes
-are checked before unlink, with directory identity checks and parent fsync.
-Pending keeps the charge; Complete requires synced namespace absence. Unknown
-entries, symlinks, hardlinks, mount crossings and I/O errors retain accounting.
-No project paths, recursive path deletion, chmod-on-reuse or Drop cleanup.
-Fixtures cover repeated bounded passes, retry after absence, sibling isolation
-and refusal without changing linked outside bytes. Runtime GC assembly remains
-outstanding, and these new Linux fixtures have not executed yet.
-
-### Actual actor advancement gates Ready (source; remote verification pending)
-
-The capture runner now returns AcceptedCapture after the in-time durable
-candidate, retaining a separate receipt through the actor bridge. Only actual
-PromptSent/TurnComplete permits Ready activation. Refused delivery or dropped
-receipt discards; candidate acknowledgement alone cannot make Ready. The worker
-and its physical/quota admission remain occupied throughout that wait. A
-three-outcome barrier regression checks no early activation and Keep/Discard
-cleanup. This closes the adapter boundary before real bridge assembly; it does
-not claim that assembly is already installed.
-
-### Real capture backend assembly (source; not installed at bootstrap)
-
-The staged Linux backend now binds the bounded runner to the existing store
-writer and managed-worktree filesystem implementation. ReserveCapture proves
-the exact durable anchor before private namespace creation or project reads.
-The blocking worker resolves the registered WorktreeId, refuses an active
-script, verifies the supplied opened physical identity, and captures with
-explicit global-ignore defaults. Candidate and Ready remain separate store
-barriers; actual actor advancement gates Ready. Discard retains the original
-typed failure, invalidates before physical cleanup, and settles escrow only
-after synced absence. Lost reserve/activation acknowledgement retains the
-worker and archive for reconciliation. No second writer or extra I/O pool.
-The integration fixture uses a real isolated managed worktree and sole writer,
-with no provider process: accepted delivery retains readable Ready evidence;
-refused delivery exposes Unavailable and removes the private capture. Both
-are unrun until the next remote suite. Bootstrap/turn bridge, recovery and
-restore controllers remain incomplete; FILE_CHECKPOINTS stays None.
-
-### Linux bootstrap and first-anchor durability (source; unverified remotely)
-
-Linux startup now installs CheckpointHooks and starts one bounded bridge with
-the existing sessions, workspaces, sole writer, task tracker and shutdown token.
-The original actor deadline covers registration, persistence, root metadata,
-admission and candidate acknowledgement. Initial actor hooks may precede the
-node durability table: a pre-registered Notify waiter prevents lost wakeups,
-then persist::wait_until proves the exact next sequence before filesystem work.
-Runtime visibility alone never proves a committed boundary. Registered worktree
-identity comes from the session's resolved workspace or its validated place,
-then an opened physical guard is revalidated and held through actual delivery.
-The separate capture worker retains its own root/quota permit until actual
-cleanup. Full principal authorization/restore remains in the pending handlers.
-Other platforms install no capture hooks and advertise no file checkpoint RPC.
-
-Bridge work is bounded by the existing request queue and two handlers. Shutdown
-closes admission, drains handlers and waits for actual I/O; a cleanup error
-keeps serving-time admission and durable escrow pinned, while shutdown can exit
-once the I/O returned, leaving reconciliation work persisted. A blocked syscall
-cannot use this failure path. Git's default global-ignore fallback is resolved
-once at the node environment edge; unsafe defaults refuse capture.
-
-Node runtime construction moved intact into node/setup beside its other setup
-helpers to fit the file budget; its ratchet decreases from 691 to 687. Session
-limit-association reads moved into sessions/read for the same reason. No limit
-was raised. Registration/writer barrier and real-node/fake-ACP turn fixtures
-were added, including stored image reads after node shutdown/reopen. They have
-not executed yet. Runtime Busy timing, startup GC/recovery and the full node
-gate remain owed. No runtime capability, product completion or review is claimed.
-
-### Previous-process capture reconciliation identity (source; unverified)
-
-Store startup now marks prior active workers as orphaned in the same FULL
-transaction that invalidates candidates. New runtime captures remain active;
-the bounded internal orphan keyset scan cannot return them. Orphaned ready
-rows retain their exact published checkpoint identity and must have all private
-payloads verified before settlement; unavailable rows require actual private
-namespace cleanup. Retirement pins both active and orphaned workers. This
-prevents a background startup collector from sweeping a new live capture.
-The SQL fixture checks retained/discard identities and excludes a new worker;
-it models physical cleanup acknowledgement explicitly, without claiming I/O.
-Archive verification reuses the existing bounded hashing loop, now checking
-opened private blob mount identity and metadata too. The actual-worker fixture
-checks valid retained payloads and refuses later corruption. Node collection
-and shared capture/restore/GC worker admission remain the next integration step.
-
-### Shared checkpoint I/O admission (source; unverified)
-
-The Linux capture backend now receives a node-owned Workers budget rather than
-inventing a second pool. Capture jobs retain its opaque lease in both the owner
-and actual blocking closures, including cleanup. Losing the async owner cannot
-release capacity while kernel work is held; failed cleanup retains the owner
-copy until serving ends. Restore and collection must consume this same budget.
-The barrier fixture combines an external collector lease with held capture I/O,
-then loses the model owner and proves the actual closure still exhausts the
-shared budget until it returns. No real process or filesystem is cancelled by
-that fixture. Remote execution and actual collector wiring remain outstanding.
-
-### Collected shared-worker baseline clippy evidence
-
-Run wp-checkpoints-node-narrow-20261115T130022Z-bfb7559c finished rc1,
-cargo101 after16s. Five workspace-library lint diagnostics stopped it: test-only
-AtFlags import, missing method-name backticks twice, the then-production-unused
-owned archive path, and the public generic Error type name. The first three
-source sites are corrected; the public error is CheckpointFsError (internal
-scoped aliases remain short). Private directory creation already changed owned
-archive-path forwarding/consumption after that tested head; the replacement
-checks that newer source rather than claiming the old diagnostic is green.
-No runtime tests executed in this clippy run. The ordinary test run remains
-queued and is not duplicated.
-
-### Connected private collector (source; remote verification pending)
-
-Linux bootstrap now starts one serial collector with the same Workers instance
-as capture. Every pass scans bounded previous-process orphan metadata and
-durable garbage, never active runtime captures. It verifies retained Ready
-archives or removes discarded/retired namespaces on an admitted blocking
-worker, then awaits CaptureSettled/GarbageCleaned on the existing writer.
-Only successful actual I/O and its durable acknowledgement release accounting.
-A failed physical object retains its opaque lease until serving ends; a bounded
-held set prevents repeated admissions for that same object. Busy/ambiguous
-store work defers until the next named interval with quota still charged.
-Shutdown stops new collection and waits for actual in-flight I/O; no kernel
-cancellation or filesystem atomicity is claimed. Global-ignore configuration
-does not gate private cleanup. The managed-worktree backend fixture now also
-retires a real capture, proves garbage exists, collects its actual directory,
-and verifies synced absence plus the writer's accounting removal. It closes
-archive handles first. This fixture is unrun; orphan restart integration,
-preview expiry/image rotation and restore recovery remain owed.
-
-### Physical launch binding and the pending activation gate (source; unverified)
-
-Node registration retains the physical root supplied by the actual held startup
-admission through create/resume. This is launch evidence, not another root lock
-or WorkspaceId. After taking the canonical physical guard, capture checks the
-launch binding and rejects a replaced cwd inode or another live session sharing
-that physical root. Unknown live bindings conservatively yield Busy. Root and
-durability visibility publish together, and handover removes both; registry
-locks are never nested with runtime handle locks. The real fake-process fixture
-checks shared-root refusal and stable evidence after a cwd pathname is reused.
-Internal wake/move/fork start admission still needs its own complete bridge.
-
-Bootstrap now gates hook installation on the single FILE_CHECKPOINTS assignment.
-While it remains None, ordinary turns emit no new checkpoint anchor events and
-all pending RPCs stay unavailable. This avoids changing baseline history before
-central activation. The real wire/bootstrap fixture explicitly remains ignored
-until that assignment, rather than being counted as a pass. Private runtime
-and backend fixtures can install the existing typed hooks for pre-activation
-verification. The collector remains wired for already-journaled private work.
-
-### Private runtime integration fixture before wire activation (unrun)
-
-The node's session fixture can install the existing typed CheckpointHooks
-explicitly, independently of the production FILE_CHECKPOINTS gate. The new
-fixture starts a real isolated managed Git worktree, actual node session
-registration/persistence, the production bridge/backend/collector, and only the
-fake ACP provider. It sends two real turns, shuts down actors and drains tracked
-work before inspecting stored before/after images. The normal wire fixture
-remains explicitly ignored pending version assignment; this private fixture
-covers runtime ordering without inventing a production activation setting.
-No results are claimed until the immutable remote test actually executes.
-
-### Collected worker-API test attempt
-
-Run wp-checkpoints-node-20261115T124207Z-89b77cab reached the ordinary slot
-at13:57 UTC after4442s queued. web-ci and nested-fakes passed; nested-vesseld
-failed cargo101 after132s. Its root error was the missing SessionInfo import in
-sessions/read, followed by23 inference cascades in callers of get(). The import
-was already corrected in4184aa0d6; current source retains it. The old AtFlags
-warning was also corrected before the replacement. No behavior tests executed.
-The replacement runs the current runtime/GC/physical-binding fixtures rather
-than presenting the older compile attempt as their verification.
-
-### Preview selected/current union (source; unrun)
-
-The admitted Tree preview read extends current coverage with explicit absent
-observations for selected files that disappeared. An existing selected name
-outside today's Git enumeration refuses UnsupportedScope; historical coverage
-cannot authorize reading/deleting a now-ignored file. Current image and evidence
-therefore cover the same union used by effective desired files. Final verification
-must use the whole frozen desired image as its union, including approved deleted
-paths, so a missing file is compared as Absent rather than omitted. The actual
-filesystem fixture covers deleted untracked files, private creation metadata,
-and refusal without replacing currently ignored data. The node account defaults
-come from actual effective UID/GID and private0600, not project or checkpoint
-ownership. No runtime controller claim follows from this worker mechanism.
-
-### Consecutive-boundary publication handoff (source; unrun)
-
-A watch contains at most the two admitted physical roots and their bounded
-Reading/Publishing/Unavailable states. A production bridge request waits for a
-prior accepted capture's activation/cleanup inside its existing bounded handler
-and original actor deadline, before acquiring the common root. It creates no
-new read, waiter task or timeout budget. Expired reads and cleanup faults remain
-Busy; a stuck kernel job never permits a replacement worker. After actual actor
-advancement, the bridge drops its common root before allowing Ready activation,
-so the next availability notification cannot race that old common guard. The
-separate capture root/worker/quota ownership still lasts through actual cleanup.
-The held-publication regression checks a following boundary waits with only one
-read, honors an already-expired deadline, and reads only after actual release.
-The real two-turn runtime fixture remains owed remotely.
-
-### Confirmed reservation refusal versus ambiguity (source; unrun)
-
-ReserveCapture can return StorageFull from quota admission or StaleCapture from
-its boundary proof before INSERT. Neither path has begun a filesystem callback.
-The runner now distinguishes these confirmed no-reservation outcomes, returns
-the typed error, and releases its memory/root/worker admission after the no-I/O
-cleanup acknowledgement. Other storage/commit failures remain uncertain and keep
-recovery ownership. This classification applies only to the reserve phase, never
-to a candidate or Ready publication error. The repeated-refusal fixture checks
-more attempts than worker slots with no file read; the real managed backend
-also refuses an uncommitted anchor, creates no checkpoint directory, then accepts
-a valid capture. This prevents ordinary quota exhaustion permanently occupying
-both worker slots without weakening ambiguous-commit handling.
-
-### Collected turn-bridge clippy attempt
-
-Run wp-checkpoints-node-narrow-20261115T134727Z-c70c6ca4 finished rc1 at
-14:33 UTC, cargo101 after15s. Earlier public filesystem error/path/import lints
-no longer appeared. Two diagnostics stopped this attempt: a missing unit-result
-semicolon in archive verification, and an unconsumed pause Signal in the lost
-receipt regression. The source now terminates the unit statement and explicitly
-asserts Released for that signal. No runtime tests ran; later dependency graph
-and newer producer/collector/physical-binding source still require checks.
-
-### Replacement-start actor seam (source; node consumer staged)
-
-StartupHooks provides bounded queue-inclusive admission for the one start_agent
-path shared by wake, move, fork and rewind. Before any spawn, a granted permit
-becomes Starting. Synchronous spawn failure reports NotStarted; ownership and
-runtime publication report Registered before handshake processing. A dropped
-granted permit never began spawn, while Starting plus sender loss is unknown
-and must keep node exclusion. Registered grants no descendant/I/O cleanup proof.
-The node must bind W11's canonical lifecycle/restart claim and the existing
-physical RootLease before granting; that consumer is not installed yet and no
-local replacement registry/lock is introduced. Initial creation/resume still
-uses its existing retained node admission.
-
-Restart::Admission preserves typed refusal. A move that already linked the
-target profile retains its conversation claim on this failure just as it does
-for spawn/handshake failure; a failed pre-move wake keeps its existing behavior.
-Protocol fixtures distinguish dropped pre-spawn permission from unknown begun
-spawn, terminal progress after sender loss, lost node observer and queue-time
-expiry. The fake ACP wake fixture holds admission, refuses without publishing
-a replacement, then grants and observes the actual admitted wake/next turn.
-These tests are unrun. Wire version/schema and runtime Config remain unchanged;
-there is no production activation option or consumer-ready claim.
-
-### Controller preview assembly (source; unverified)
-
-[Decision Log]
-- Purpose: connect the frozen files-only confirmation to actual managed files and
-  the existing sole store writer, without letting an RPC caller own worker I/O.
-- Existing assets: capture Tree/Storage, opened-root admission, principal-bound
-  Plan/changes, the shared checkpoint semaphore and node TaskTracker already
-  provide the required boundaries; no new filesystem or database dependency.
-- Choice: extend those assets. One controller is wired into NodeService and
-  shares the capture/collector worker pool. Preview reserves private quota before
-  opening its current-image archive, validates selected blobs and ignore policy,
-  captures the selected/current union and publishes the effective desired image.
-- Reason: a disconnected/timed-out caller cannot release a blocked worker. The
-  tracker retains the job through actual cleanup and durable accounting. An
-  uncertain publication never deletes possibly referenced bytes; a failed
-  cleanup or uncertain accounting retains its worker slot for reconciliation.
-- Tradeoff: the response deadline does not cancel a database command already
-  submitted; an inaccessible late plan can remain pinned until expiry/collection.
-  Restore execution, stale-confirmation checks and allocation collection remain
-  incomplete. FILE_CHECKPOINTS remains None, so the public gate stays closed.
-
-Private cleanup now supports one typed preview or restore namespace with the
-same bounded, no-follow, synced-absence checks as whole-capture retirement.
-Regression obligations include a real bridge/fake-provider preview that leaves
-current bytes untouched, principal isolation, and idempotent namespace cleanup
-without removing siblings. These added tests have not run.
-
-Run wp-checkpoints-node-20261115T140208Z-14bc5dd4 finished rc1 at 14:59 UTC,
-with cargo101 in nested-vesseld: cleanup referred to a removed key binding.
-No tests executed. The corrected worktree/capture arguments and three reported
-warning fixes are included here. This is not runtime or permission evidence.
-
-### Retained restore execution (source; unverified)
-
-[Decision Log]
-- Purpose: make a confirmed files-only plan executable without replaying a prompt
-  or starting an ended target, while retaining truthful crash/failure outcomes.
-- Existing assets: canonical RootGate, opened Tree/Restore, per-path store intents,
-  stable staged-object evidence, whole-image recovery validation and storage-only
-  FilesRestored already implement the required mechanisms. They are extended.
-- Choice: read-only scope observation hashes through the existing bounded loop
-  without growing archives. Under the held root, fresh admission rechecks the
-  full preview image/evidence and expiry, pins recovery, and commits Admit before
-  stage creation. All stage evidence commits before first apply; each applied
-  postcondition advances its journal. Final verification uses the whole frozen
-  effective target. Failure fences RecoveryRequired before guarded undo; only
-  the store's whole original-image/object verification can report RolledBack.
-- Why: neither cancellation nor a lost SQL acknowledgement proves whether files
-  changed. A retry reads its durable operation before expiry and never reapplies
-  a terminal success. Uncertain terminal acknowledgement is reloaded before undo.
-- Tradeoff: the retained tracker enforces cancellation even after RPC caller loss,
-  then continues polling actual I/O/cleanup. A response deadline never force-drops
-  kernel work. Partial/conflicting state retains private escrow and the physical
-  and worktree recovery pins. The original writer can settle only its own held
-  verified pin; settlement does not drop the physical guard early.
-
-**Runtime admission remains closed.** W21 confirms no reviewed terminal
-quiescence producer exists, including forgotten-but-unconfirmed runners. Registry
-absence, ended flags, cwd, PID and ProcessLifetime are not cleanup proof. The
-production controller therefore returns Busy before restore admission. Only the
-private fixture that never constructs terminal runners installs an explicit
-cfg(test) admission. That fixture now covers stale confirmation before Admit,
-ended status/ended_at preservation, FilesRestored after Status, idempotent retry
-that preserves a later external edit, and a default-controller Busy assertion.
-These are source obligations, not passing runtime evidence. Live target pause,
-canonical replacement-start admission, terminal cleanup-debt adoption, automatic
-restore reconciliation and preview/image retention are still unfinished.
-
-Run wp-checkpoints-node-narrow-20261115T150311Z-4d997fe4 finished rc1 at
-15:23 UTC (cargo101). It reached session integration support and node source:
-three new test suites lacked the established cfg(test) support-module marker;
-node diagnostics covered the old long preview function, unused session lookup
-results, two doc backticks, lazy Option fallback, needless Result wrapping,
-PreviewRead borrowing and startup root-evidence/RAII naming. The long function
-and async restore were already replaced by the retained execution slice; this
-followup fixes the remaining diagnostics without new lint suppressions. Root
-launch evidence now uses an explicit conversion from the whole held Admission,
-retaining the placement guard through registration. No test/runtime pass follows
-from this lint correction.
-
-### Rotation, private expiry and restart projection (source; unverified)
-
-The existing single checkpoint migration now permits Expired capture marks and
-Orphaned private reservations. No migration-runner or schema-number change is
-introduced. Collect is a bounded command on the sole writer: it retains 40 ready
-unpinned images per session, active worker/preview/restore pins remain additional,
-and older payload charges move atomically into durable garbage while boundary
-and cursor tombstones survive. Capacity pressure plans enough safe reclamation
-for the fixed capture envelope; already pending garbage prevents over-pruning.
-Actual quota admission still counts that garbage until physical cleanup completes.
-
-Expired, unconsumed, Attached preview plans can retire independently. The plan
-loses authority before GC, its allocation id retains a metadata charge, and its
-payload charge stays in typed preview garbage. Pending child garbage pins whole
-capture/session retirement, avoiding concurrent parent/child namespace cleanup.
-Session deletion merges an existing whole-capture garbage charge atomically.
-All restore journals remain pinned in this slice; terminal journal/stage payload
-retirement is still unfinished, and StorageFull remains truthful meanwhile.
-
-Startup fences prior-process Reserved allocations as Orphaned; current new
-workers remain Reserved and cannot enter that scan. The node data lock establishes
-that the old private worker ended, independently of publication. Referenced
-orphans retain their full charge and become Attached; unpublished private ids
-move to typed preview/restore garbage without freeing bytes. Restore verifies
-its referenced current-image archive before staging. This reconciliation neither
-promotes a capture nor treats elapsed time as I/O completion.
-
-After the existing interrupt-live startup pass, pending completed restore metadata
-is replayed through the existing store transaction before retention/admission.
-FilesRestored and its restore-row EventSeq commit under FULL sync together;
-startup failure rolls back both. Added SQL regressions cover pins, the 40-image
-boundary, pressure accounting, old versus current private workers, no late plan
-publication, atomic session deletion and failed startup marker replay. These
-checks have not run. Runtime restore admission stays Busy awaiting W17's reviewed
-terminal quiescence producer and the canonical startup consumers.
-
-Run wp-checkpoints-node-20261115T150311Z-4d997fe4 completed rc1 at 15:31 UTC.
-Nested vesseld compiled, but the selected tests did not run: workspace test code
-referenced undeclared serde_json. This followup uses saved typed evidence instead;
-codec roundtrip tests stay in proto/store, which own JSON, with no new dependency.
-The reported test-only qualification/unused-result warnings are also corrected.
-
-
-### Completed payload collection and completion retry (source; unverified)
-
-[Decision Log]
-- Purpose: free terminal stage/preview payloads without forgetting an old
-  RestoreId outcome or turning a lost result-marker ack into repeated file I/O.
-- Constraint: completed result/plan metadata has foreign-key and idempotency
-  obligations beyond the raw image's retention lifetime.
-- Choice: only settled Attached private allocations with a complete outcome and
-  durable required result marker retire. Their payload charges move to typed
-  garbage; exact encoded metadata, conservative copies and per-row overhead
-  remain charged on non-reusable allocation ids. Completed plans/results remain
-  in SQL, while expired images stop authorizing new restoration.
-- Why: deleting result rows would let a reconnecting client mistake a retry for a
-  new operation; retaining worst-case stage escrow indefinitely would exhaust
-  quota despite completed cleanup. Pending child garbage still pins parent GC.
-- Tradeoff: in-flight/recovery journals remain fully pinned; metadata lives until
-  session retention. SQL accounting tests model physical acknowledgements and do
-  not prove namespace cleanup or real runtime outcomes.
-
-The same canonical RootGate now supports lookup of a pending operation's original
-physical/worktree pin. A completed retry uses that identity to acquire its exact
-recovery lease, publishes metadata only, and settles the pin. It never infers
-write authority from a point-in-time lookup or replays file changes. The private
-real-worktree/fake-provider fixture injects a failed result-marker trigger after
-file success, checks that admission stays fenced, then retries publication and
-checks root admission releases without file reapply. A later external edit is
-preserved. The new writer regression retains the completed result through payload
-collection, image expiration and database reopen. All additions remain unrun.
-
-### Actual writer ownership (source; unverified)
-
-The restore blocking closure now owns an Arc of its actual StartGuard in addition
-to the shared worker lease. The async owner and the closure therefore both retain
-physical exclusion through real mutation/postconditions. Lost async ownership
-cannot release another writer while kernel I/O still runs; the operation/pin and
-quota remain available for reconciliation. A barrier regression aborts only the
-pure test waiter and proves the canonical gate stays Busy until the real blocking
-closure drops its lease. This is an ownership test, not descendant or kernel-I/O
-cancellation proof. Live restore remains closed; its eventual owned actor pause
-must likewise survive actual worker I/O if its async coordinator disappears.
-
-StartGuard exposes a borrowed opaque root_lease() for W17's future lifetime-bound
-quiescence contract. Its physical() accessor uses that exact same lease; there is
-no copyable lease id or additional root lock. This is unverified source and no
-consumer-ready hash or external adoption is announced.
-
-
-### Refused-boundary metadata (source; unverified)
-
-Root/worker admission can refuse before a filesystem candidate exists. After
-acknowledging the actor's error, the retained bounded bridge now records a small
-Unavailable marker when the exact managed boundary/SQL anchor is known. The
-writer checks that anchor and quota, creates no private namespace, and never
-promotes it to Ready. Existing active/ready rows remain under their original
-worker's ownership and are unchanged by this best-effort metadata command.
-Missing/unsupported scope, absent anchors or exhausted metadata capacity can
-still leave no mark; the app must treat missing availability as unavailable.
-The actor never waits for this trailing write past its capture deadline.
-The regression checks durable-anchor refusal, stable single charging, no Ready
-publication, no filesystem I/O and restart persistence. It remains unrun.
-
-Run wp-checkpoints-node-narrow-20261115T153918Z-2f7778ad finished rc1 at
-16:03 UTC (cargo101, eight seconds). It stopped at a private parked() test API,
-a needless preview-observation move and startup doc formatting. Tests now use
-SessionInfo/watch_info, the observation is borrowed, and docs use ordinary field
-wording. No product API or lint suppression was added to satisfy the fixture.
-
-A separate isolated SQLite compatibility probe executed the exact extracted
-rotation/completed/garbage SQL: rank/40 boundary, marker/worker/recovery pins,
-consumed-plan FK retention, Expired state and garbage merge passed. This verifies
-SQL compatibility only; it is not Rust execution, actual namespace cleanup,
-permissions, runtime parity or a replacement for the queued remote suites.
-
-Run wp-checkpoints-node-narrow-20261115T160637Z-7e77b2cd finished rc1 at
-16:24 UTC (cargo101). The only reported error was a missing Checkpoint arm in
-an existing terminal test helper's exhaustive SessionEvent match. The helper now
-classifies checkpoint metadata with the other records a terminal must never
-emit; it does not silently accept or synthesize those records. The other
-terminal output-size projection already counts checkpoint metadata as zero.
-No selected runtime tests or normal runtime proof follow from this compile fix.
-
-### Root-seam compile corrections and truthful status (unverified)
-
-Run wp-checkpoints-node-narrow-20261115T163938Z-4f74c616 failed at library
-compilation (cargo101): an unnecessary Future qualification, production recovery
-refusal arms incorrectly limited to tests, and a mutable purpose borrow spanning
-a recovery lookup. The corrections preserve typed errors and copy the small
-purpose value before consulting the other actor-owned state. No root-admission
-unit tests ran in that run; the ordinary checkpoint suite remains queued.
-
-The status reader now reports InProgress after durable file success until the
-atomic FilesRestored marker exists. Returning Restored earlier could make a
-reconnecting client stop its metadata retry while the recovery fence remained
-held. The private real-worktree fixture checks both the failed-marker status and
-the successful same-id metadata retry; status itself never reapplies files.
-These new assertions and the implementation remain unverified by execution.
-
-### Announced node union (source; validation pending)
-
-The node tree now consumes announced head 9c150c6e (gate 50c, protocol24,
-store20). Existing registry/diagnostics methods, metadata restoration and startup
-reconciliation are retained alongside checkpoint hooks and physical admission.
-Checkpoint SQL now appends once after BACKGROUND_SCHEMA (22 locally), using the
-announced head's canonical migrations/sequence.rs. migrate() is
-unchanged. Legacy rollback fixtures drop checkpoint tables before registry tables.
-The shared node.rs budget shrinks to 668; no size record increases.
-
-Generated TypeScript currently retains the announced head's exact generated
-bytes rather than hand-resolving generated unions. Regeneration on the build VM
-must restore the additive checkpoint declarations before the complete node gate.
-FILE_CHECKPOINTS remains None and production terminal admission remains Busy.
-This merge does not claim W17 terminal proof or complete startup lease adoption.
-
-The corrected merged-head priority run
-wp-checkpoints-node-narrow-20261115T164932Z-5606bd06 stopped at library compilation
-(cargo101): the merged Detach and Registry writer variants were missing from the
-checkpoint durability-admission failure fan-out. They now receive their correctly
-typed error replies, retaining the original shared commit failure. The existing
-fault test includes both variants and checks those replies. This remains unrun;
-no root-admission units ran, no leaf was extracted, and further narrow checks use
-the ordinary lane under the coordinator's priority ruling.
-
-### Focused orchestration stages and test ordering (unverified)
-
-The local test-module preflight initially checked inline modules only. Extending
-it to external test module declarations found six owned modules before product
-items. Their declarations now follow product items; no test behavior changes.
-The corrected scan covers all changed root crates and reports no introduced
-ordering violation (unchanged base findings are reported separately).
-
-Collector orphan inspection, preview reservation, capture publication/receipt
-completion and reverse per-path undo now have focused functions. They preserve
-the same deadlines, error paths, worker/root ownership and SQL barriers; this
-keeps phase boundaries reviewable without repeating the protocol or filesystem
-logic. Existing behavior tests remain the validation target; these structural
-changes have no runtime pass yet.
-
-The architecture description now states the current module/authority boundaries
-and pending consumers once, replacing accumulated intermediate-stage statements
-that incorrectly called the normal restore/controller modules test-only or left
-implemented collection wiring listed as future work. Current source still has
-no complete runtime pass or consumer-ready RootLease leaf.
-
-An isolated SQL union probe applied all 21 extracted migrations, checked six
-checkpoint tables and foreign keys, ran the exact legacy rollback helper and
-reapplied registry/checkpoint SQL. It also compared migrate() byte-for-byte with
-the announced head. These scoped checks passed; Python SQLite execution does not
-prove the Rust writer, filesystem recovery, permissions or feature runtime.
-
-### Nested admission pins its selected ancestor (unverified)
-
-A source audit found that nested admission selected the managed ancestor's key
-but retained only the cwd FD. Discovery now retains the actual nearest ancestor
-FD, bounded independently of registry size; StartGuard and retained ordinary
-writers own it through the canonical lease and revalidate it with the cwd.
-This prevents inode reuse while the selected root is unlinked. It does not add a
-lock, registry, workspace identity or terminal quiescence claim.
-
-The private Linux test observes the process's actual opened directory identity,
-unlinks only its temporary fixture root, checks that the original inode remains
-pinned, refuses a replacement name, then verifies final guard release closes the
-root FD. No service, external directory or product permission is changed. This
-new test remains unrun; the checkpoint_root unit filter now selects six units.
-
-### Library environment isolation and writer dispatch (unverified)
-
-Run wp-checkpoints-node-narrow-20261115T171417Z-d437c087 failed at store clippy:
-writer::apply reached 102 lines after the union. Its checkpoint retirement plus
-session deletion now has one focused helper preserving the exact savepoint and
-post-success removal notification; no lint limit or assertion is weakened.
-
-A separate source audit found that bridge::defaults read ambient HOME/XDG inside
-the node library. Config::new now derives typed ignore defaults from its explicit
-HarnessEnv home. Only the two binary entry points provide XDG_CONFIG_HOME through
-with_checkpoint_environment's explicit reader, following the existing config
-snapshot pattern. Context retains the same validated default for capture,
-preview and restore. Empty XDG uses the supplied home; relative locations refuse.
-The private runtime fixture supplies its own value. New isolated-config tests
-cover these cases without changing process environment. They remain unrun.
-
-The immutable IgnoreDefaults value supports equality without opening either path.
-Platform hook construction moved into the existing bootstrap module and the
-node.rs budget shrinks to 667. No dependency, protocol, schema or live account
-configuration changes. The next ordinary narrow includes the CLI caller as well
-as proto/workspace/node; all actual root/runtime tests still remain owed.
-
-
-### New-base and comparison-cache coordination (pending)
-
-Node27502436 was announced after the current immutable narrow submission. The
-planned minimal leaf takes that announced base directly and receives its own
-validation; the old-base narrow cannot prove the leaf or the new base. The full
-checkpoint union will consume the canonical migration-sequence extraction when
-its head is announced instead of creating another extraction. No final whole
-gate or handoff freeze has started. File.duplicate is an additional real writer
-on this base and must join canonical physical admission before restore activation.
-
-G1's comparison-cache coordination has no checked restore hook yet. Immutable
-Plan.key.worktree already names the exact original managed tree. The existing
-checkpoint_files lookup can retain WorkspaceRoot::Worktree plus entry.info.project
-from that same authoritative record before I/O; it must not infer either from
-session, cwd or alias, or resolve another root. A future C3 before/after guard
-joins the actual retained blocking mutation/recovery closure through completion,
-error and owner loss. The RPC waiter is not the completion boundary. Completed
-metadata-only retries perform no file I/O. This remains a consumer obligation,
-with no public hook, producer hash or comparison-cache parity claim.
-
-
-### Resumed union and separate physical-root producer (unverified)
-
-The full node source consumes announced ed4cd137 (protocol25, schema21).
-Checkpoint tables are the one following append (22 locally); migrate() remains
-byte-identical. The canonical sequence extraction is reused, with listing kept
-before checkpoint SQL and rollback fixtures removing the checkpoint tables first.
-The checkpoint byte-count type is now CheckpointFileBytes: FileBytes on the base
-means binary content, so sharing that generated alias would misdescribe the wire.
-No serialized field or numeric bound changes. Generated wire bytes retain exactly
-the announced head pending build-machine regeneration; they are never hand-edited.
-
-Run wp-checkpoints-node-narrow-20261115T182448Z-407d3ede failed cargo101 with five
-node lints. Explicit closed-set error/outcome arms, the existing-operation absence
-predicate, map_or_else and explicit recovery imports fix those sites in source;
-no replacement execution is implied. Its records are retained.
-
-The minimal physical-root leaf is separately extracted directly on ed4cd137 as
-its own branch. It includes no checkpoint calls, events, schema, restore or debt.
-Its own ordinary strict run and subsequent tests must pass before leaf-only V3;
-full-feature checks never establish that leaf's safety. W17, W11 and W21 must not
-consume it until the exact reviewed producer is announced. This full branch will
-merge the accepted exact commit, preserving one canonical root authority.
-Production restore remains Busy; no UI or terminal quiescence capability is claimed.
-
-### Restart scan progress after settlement (test source; execution pending)
-
-The orphan collector uses a capture-id keyset, not an offset. A restart can leave
-more than one response page, while successful cleanup removes earlier rows from
-subsequent scans. The new retention/orphan_pages_tests fixture seeds more than a
-page, fences those rows once, starts a current worker, settles the first page and
-continues from its saved cursor. It requires every old identity exactly once,
-no current worker, and unchanged metadata charges until their own retirement.
-This is a SQL-only fixture with metadata-only reservations; it supplies no worker,
-filesystem cleanup or process-death proof. It will run in the next meaningful
-checkpoint store suite. The already queued library strict source is unchanged
-outside this cfg(test) addition; it is not a test-compilation result.
-
-### Test fixture phases (source-only refactor)
-
-The resumed source preflight found overlong checkpoint test functions. The shared
-writer fixtures now name opening, fixed capture reservation, candidate activation,
-preview publication and allocation cleanup independently. The completed-payload
-case separates marker publication and retirement from image expiry/restart. The
-public storage contract, managed-worktree bridge and metadata identity tests keep
-their original operation order and assertions in named preparation/verification
-phases. No product path, refusal expectation or ignored activation gate changes.
-This reduces repeated write construction and leaves failed inserts, stale anchors,
-principal refusals, escrow retention and restart deduplication visible at call sites.
-Static assert-macro counts are unchanged in every refactored file; this is an audit
-of the edit, not a runtime equivalence proof. The next checkpoint suite must run
-these exact test sources after the immutable library checks finish.
-
-### Cleanup proof ownership ruling (production still closed)
-
-The coordinator assigns agent-run cleanup proof to the lifecycle track and
-terminal registry/forgotten-terminal debt to W17. Lifecycle first writes its own
-ADR, then preserves typed wait failures and process/descendant/output-drain facts;
-its current schedule follows the marking leaf and clock package. W17's root-bound
-proof composes that producer with its terminal proof and explicitly receives
-agent runs plus forgotten agent debt. W9 consumes only the exact merged and
-announced proofs under its held canonical RootLease. No status/registry/PID or
-absent runtime substitute is permitted. StartupHooks stays unwired. The root leaf
-continues independently; this ruling is not approval to enable restoration.
+- Purpose: restore the covered files at an accepted prompt/turn boundary without
+  changing conversation, queues, session lifecycle or provider history.
+- Existing assets: the typed protocol/RPC table, session actor, store writer and
+  startup pass, TaskTracker, Git/RelPath, regular-file protections and hash types.
+- Alternatives: conversation rewind and removed-worktree snapshots have different
+  semantics; delegating to one provider SDK excludes other providers and cannot
+  establish the selected complete filesystem scope.
+- Choice: focused checkpoint modules in the existing crates; existing SQLite,
+  bounded channels, SHA-256 and Linux rustix/nix filesystem mechanisms. No new
+  provider engine or parallel RPC table.
+- Why: each layer owns its existing authority. Filesystem code cannot authenticate
+  a caller or declare durable success; the node cannot invent filesystem proof;
+  the actor alone owns prompt ordering and its pause.
+- Costs: bounded workers keep reservations after acknowledgement deadlines. Unsafe
+  metadata, stale roots, unavailable cleanup proofs and uncertain writes refuse
+  or retain recovery data. Linux is staged first; other platforms are unavailable.
+
+## Source responsibilities and data flow
+
+| Owner | Responsibility | Boundary |
+|---|---|---|
+| `vessel-proto::checkpoint` | Validating ids/limits, boundary/image/evidence/effective target, typed changes/errors/outcomes, five unary contracts | Pending capability; no assigned wire number |
+| `vessel-store::checkpoint` | Capture publication, owner-bound plans, per-file intent/stage evidence, durable results/event marker, accounting and retention | Existing writer/savepoint; SQL does not prove physical cleanup |
+| `vessel-workspace::checkpoint` | Strict enumeration/ignore policy, opened roots, private immutable archives, staging, guarded apply/undo and verification | No auth/session/store authority |
+| `vessel-node::checkpoint` | Bounded capture coordinator/workers, deadlines, preview/restore controller, recovery and collector | Accepted work remains owned through actual I/O and durable acknowledgement |
+| `vessel-session::checkpoint` | Prompt/turn handshake, owned actor pause, checkpoint metadata projection | StartupHooks remain unwired pending both cleanup producers |
+| `workspace::exclusion` | Sole physical-root admission and opaque borrowed lease | Separate minimal producer review is not yet accepted |
+| Native Timeline owner | Future marks, full changed-files confirmation and result/uncertainty state | No checkpoint app implementation yet |
+
+Node bootstrap preserves the canonical original early-stop token when attaching
+staged hooks. Workspace construction lives with the other setup helpers so the
+node assembly stays within the announced shrinking size budget. Diagnostic error
+projection matches checkpoint details explicitly while retaining safe display.
+
+## Capture, publication and coverage
+
+Initial coverage is structured sessions in a node-managed Git worktree. Ordinary
+project directories, historical imported turns, terminal sessions, unsupported
+mounts and roots shared with another live session are not capture support claims.
+Root admission nevertheless includes ordinary project writers; exclusion and
+capture eligibility are independent.
+
+The actor persists/uses the exact accepted prompt or actual TurnStarted/TurnEnded
+sequence. Steers are not new checkpoints; queued prompts capture only at delivery.
+A distinct CaptureId, boundary, root and generation fence publication. A deadline
+acknowledges unavailable without joining blocked filesystem/storage work. The
+actual worker retains its bounded permit, private namespace, reservation and
+capture guard until real settlement. Late candidates cannot become Ready through
+worker completion or startup. The read-only capture guard does not authorize
+workspace mutation or block prompt execution after its acknowledgement deadline.
+
+Strict enumeration covers the configured Git/global/repository ignore policy and
+refuses unsupported paths/metadata or excess limits rather than silently skipping
+files. Immutable raw blobs and canonical evidence are private. Enumeration and
+root/ignore/file evidence are checked at operation boundaries; same-user external
+writers and descriptor-relative race limitations remain explicit in ADR 0077.
+
+## Preview and restoration invariants
+
+A preview freezes one EffectiveDesiredImage after current owner/group/read-write
+retention and checkpoint execute-bit policy. An absent restored file is private.
+Captured access bits that are deliberately not replayed cannot create a false
+change, failure or mismatch. Preview changes, stale checks, staging, journal,
+verification and Unchanged/Restored classification all use that same target.
+
+Plans bind the complete authenticated human principal: local owner, device, or
+human delegated through the exact delivering device/origin node/origin principal.
+Direct and delegated agents cannot confirm restoration. Two delegated origins
+cannot share a plan; the local token/socket owner remains supported.
+
+RestoreId retries do not reapply files. Durable per-path intent precedes mutation;
+all desired files are staged before the first write. Rename exchange retains the
+actual originals, no-replace creation refuses external replacements, and rollback
+only undoes verified objects still owned by this operation. Conflicts retain
+recovery data. An unknown or lost storage acknowledgement never releases a pin as
+if rollback or cleanup had succeeded.
+
+Ended targets need no agent start/resume: FilesRestored is storage-only metadata
+outside a run, with its EventSeq atomically recorded on the restore row. Status,
+ended_at, conversation and queue stay unchanged. Live projection requires the
+owned actor pause. A client may see checkpoint metadata after the last runtime
+lifecycle Status. Retry/startup projection must not duplicate the marker.
+
+## Quota, retention and restart
+
+The source reserves fixed envelopes before private filesystem allocation. The
+single SQL accounting equation includes captures, preview/restore allocations,
+metadata tombstones and garbage outside session foreign keys. Active workers,
+plans and recovery journals pin their data. Only actual cleanup plus the existing
+writer's durable acknowledgement frees the corresponding physical reservation.
+
+Rotation expires oldest unpinned images. Session deletion/retention transfers
+obsolete payload charges to typed garbage transactionally; it does not pretend
+files were removed. Completed payloads may retire after their verified durable
+outcome and required metadata marker, while idempotency metadata remains charged.
+
+Startup fences previous-process capture/allocation work separately from current
+workers. Ready archives require verification; interrupted mutations remain
+recovery-required. The keyset orphan scan preserves its saved cursor even after
+prior-page rows settle. Its SQL-only pagination regression does not prove process
+quiescence or filesystem cleanup. The serial collector shares the real bounded
+worker budget and retains failed cleanup capacity conservatively.
+
+The additive checkpoint migration follows the current base's newest schema in
+W3's canonical migration sequence. The integrator assigns the final number at
+merge. Keep `migrate()` unchanged and all checkpoint tables in that one SQL append.
+Generated TypeScript must come from the build-machine generator before the final
+whole gate; do not hand-edit the generated declarations.
+
+## Shared dependencies and remaining physical admission
+
+The minimal RootLease leaf is isolated from this full feature. Its first source
+review returned ordinary project-subdirectory admission and async fixture cleanup.
+The correction includes actual project and worktree roots from one registry
+snapshot, retains the nearest selected opened FD, and compares parent/child
+opened scopes in both directions without locking siblings or inventing a path
+key. Relative input refuses before ambient-cwd canonicalization. Its current
+producer is not yet accepted or adoptable; do not import it from this full branch.
+After exact-leaf checks and V3/integrator announcement, merge that same producer
+and retain one canonical RootGate implementation, including this package's
+recovery-pin behavior.
+
+Production restore stays Busy until BOTH announced cleanup proofs are consumed
+under its exact borrowed RootLease:
+
+- GKS lifecycle owns agent wait failures, actual process/descendant settlement,
+  output drain, ended-agent proof and forgotten-agent debt (ADR 0103).
+- W17 owns terminal root binding, terminal registry/forgotten debt and its composed
+  root-bound proof receiving lifecycle's agent evidence. W21's runtime cleanup
+  foundation is a separate dependency, not registry absence or revocation proof.
+
+No status, PID/cwd, registry Ready/absence or ProcessLifetime is quiescence proof.
+Do not wire StartupHooks to bypass these dependencies. Scripts/services including
+restart, every start/restart/cleanup path, lifecycle physical effects and all
+writers must join the reviewed admission/proof contract before activation.
+W11's registry identities and logical leases remain canonical and independent of
+physical roots. Lifecycle takes its durable claim before root admission; no
+waiting for a logical claim while holding a physical lease.
+
+G1's future comparison-cache invalidation must retain the original typed
+WorkspaceRoot::Worktree and ProjectId from the same lookup. Its Mutation guard
+belongs inside retained physical I/O through rollback/recovery/owner loss, not
+around the RPC waiter. No second resolver or metadata-only retry invalidation is
+requested; the checked reusable G1 producer remains pending.
+
+## Native implementation contract
+
+The app consumes only announced package bases; its current tree is on base 13.1.
+Do not merge a node head or unreviewed checkpoint carrier into it.
+
+Checkpoints will be a concrete nested Timeline field, not another resident/ticket
+registry. A7 moves the entire original Area in TimelineSnapshot and must combine
+the actual checkpoint hold with local readiness; ordinary Ready cannot overwrite
+loading/confirmation/pending/uncertain state. Use the canonical Timeline operation
+kind with a distinct opaque ticket for each checkpoint operation.
+
+Input/confirmation requires the full current SessionContext. Queued replies retain
+the original guard/context, FollowBinding and ticket, including hidden owners;
+never refresh them to the selected successor. W9's exact pending binding/ticket
+and checkpoint/prompt/turn correlation must match BEFORE canonical consume, then
+mutate only after consume in the same synchronous UI update. A7's proposed
+`conversation_settle_if_scoped` remains staged until its checked owner packet.
+
+BeforeTurn anchors PromptAccepted, association supplies the actual TurnStarted,
+and AfterTurn names its exact TurnEnded. Do not attach an unassociated image to a
+nearby row or guessed index. Resolve original EntryKey/source before any numeric
+position. A7 will own one agreed optional action slot after checked producers;
+leave shared footer/rewind files untouched. Files eligibility never uses
+rewind_point/provider rewind support or Act::Rewind, and never changes composer
+or conversation.
+
+The dialog must load every bounded change page before enabling Confirm and show
+changed files, scope, irreversible later covered edits and preserved conversation.
+Retain the same RestoreId/plan through disconnect/reconnect and uncertain results;
+status is read-only, while the same-id retry may finish missing metadata. Use
+existing kit controls and L-owned EN/KO words.
+
+## Current verification and next steps
+
+All results below are scoped evidence, not a package completion claim:
+
+| Source/result | Disposition |
+|---|---|
+| Full feature `791531f1`, ordinary 012048 | Failed: missing exhaustive Checkpoint detail in CLI diagnostics; fixed in source |
+| Full feature `c1e564328`, ordinary 025629 | Four-crate all-target strict queued; current runtime suite still owed |
+| Minimal leaf `5cc56ccf` | Strict/quality/eight tests green; V3 source RETURNED, not adoptable |
+| Minimal leaf `1aef57a8` | All-target strict green; Node3/7 tests failed before real fixture bodies; Workspace tests not reached |
+| Revised minimal leaf `cb62b5211` | Test-only retained store/workspace setup phases separated, no limit increase; ordinary strict queued |
+| Historical full feature `fe0c868b` | 92 passed/0 failed/6 ignored before later source; not current proof |
+| Native checkpoint package | No product UI, gate, inspected captures or V4 pass |
+
+The failed leaf setup run was at recorded load above the build-machine saturation
+threshold. Keep it red. Shorter named phase instrumentation preserves actual
+cleanup and will identify late store/workspace setup; serial case execution may
+avoid concurrent SQLite migration/fsync contention without changing the internal
+2-worker concurrency probes, product admission or total case limits.
+
+Next: collect existing queued runs without duplicates. Exact-leaf strict then
+actual 12 units and quality evidence precede V3 revision on its existing review
+row. Any failed priority correction returns to ordinary lanes. Keep full-feature
+results separate. Run the current checkpoint libraries (proto/workspace/store/
+session/node) after current compilation, including permission, publication race,
+actual cleanup, rollback/restart, quota/retention and ended metadata fixtures.
+Map/remove empty ignored skeleton obligations only after the corresponding real
+implementation and test evidence exist; activation stays unavailable meanwhile.
+
+After producer dependencies and full node implementation: generated wire, final
+whole root gate and one V3 package review/integration. Then implement native
+view/link/words/screen, complete dialog/result/uncertainty flow, the native gate,
+inspected 1280x900/390x844 (and 800x600 where relevant), dark/light EN/KO captures,
+and V4 review. No real provider/service, permissions/configuration changes or
+live customer flow have been exercised by this package's private fixtures.
