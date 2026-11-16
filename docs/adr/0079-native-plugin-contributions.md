@@ -291,3 +291,16 @@ owns rejected text. Canary tests cover Display, Debug, serde errors and
 the complete source chain. Theme names reuse the existing JavaScript-edge
 `workspace::trim_project_text`, including BOM normalization, before their
 UTF-16 bound and the separately declared control refusal.
+
+## Local author scaffold extraction
+
+The implemented local `plugin init` emits a validated static native manifest and
+declarative welcome document, with passive optional-helper guidance. It reuses
+canonical values and shared CLI presentation/output; React/npm generation would
+introduce an unrelated runtime and implicit preparation workflow. The operation
+requires a new or empty ordinary target and exclusive fixed-file writes; it
+never recursively rolls back concurrent work. Creation does not install, enable,
+contact a node, launch a helper or download/build packages. The CLI-only source,
+permission/error behavior and receiving checks are specified separately in
+[wp-plugin-init-export](../plans/wp-plugin-init-export.md). This is not a host,
+installer, managed-provenance or public plugin-method implementation.

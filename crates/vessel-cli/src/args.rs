@@ -20,6 +20,7 @@ mod log;
 mod node;
 mod nodes;
 pub(crate) mod parity;
+pub(crate) mod plugin;
 mod search;
 mod terminals;
 mod usage;
@@ -81,6 +82,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Create native plugin sources locally; installation is a separate action.
+    Plugin {
+        #[command(subcommand)]
+        command: plugin::PluginCommand,
+    },
     /// List and answer attention across sessions on the selected node.
     Inbox {
         #[command(subcommand)]

@@ -10,7 +10,13 @@ pub(crate) fn check(cli: &Cli) -> Result<(), CliError> {
     let Some(requested) = cli.output.requested() else {
         return Ok(());
     };
-    if matches!(cli.command, Command::Models) {
+    if matches!(
+        cli.command,
+        Command::Models
+            | Command::Plugin {
+                command: crate::args::plugin::PluginCommand::Init { .. }
+            }
+    ) {
         return Ok(());
     }
     // Compare already owns its JSON switch. It must continue to work without
