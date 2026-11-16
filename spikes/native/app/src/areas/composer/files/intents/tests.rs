@@ -2,7 +2,7 @@ use super::*;
 use crate::shell::language_tests;
 use gpui::TestAppContext;
 use std::sync::Arc;
-use vessel_app_view::composer::tray::Origin;
+use vessel_app_view::composer::tray::{Origin, Problem};
 
 #[gpui::test]
 fn retained_pill_callbacks_never_open_or_remove_a_shifted_or_recreated_item(

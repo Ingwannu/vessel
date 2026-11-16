@@ -199,7 +199,7 @@ fn ordinary_wheel_and_modifier_wheel_use_the_same_bounded_modal_route(cx: &mut T
             assert!(shell.areas.composer.lightbox.viewport.unwrap().scale() > MIN_SCALE);
         });
     }
-    for (delta, expected) in [(100000.0, MAX_SCALE), (-100000.0, MIN_SCALE)] {
+    for (delta, expected) in [(100_000.0, MAX_SCALE), (-100_000.0, MIN_SCALE)] {
         for _step in 0..12 {
             cx.simulate_event(ScrollEvent {
                 position: point(px(100.0), px(100.0)),

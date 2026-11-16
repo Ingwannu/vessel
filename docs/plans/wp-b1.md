@@ -31,6 +31,11 @@ up on assertion/timeout, and explicit join timeout aborts then reaps that task.
 The product30-second read deadline and real RPC/malformed/retirement assertions
 are unchanged. A stalled-script regression verifies owned cancellation.
 
+The second strict check atd9a passed quality and reached App; it found two
+production wildcard imports and two wheel-fixture numeric separator lints.
+Explicit imports and readable literals fix those without changing behavior.
+No execution was submitted on either red strict result.
+
 The first correction check at17f passed native quality and stopped at two Link
 fixture lints (an unnecessary Future qualification and a single-pattern match).
 Both are corrected without changing the timeout/cleanup contract. No regression
