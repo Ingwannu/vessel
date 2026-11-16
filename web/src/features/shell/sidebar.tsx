@@ -22,6 +22,7 @@ import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
 import { SidebarSettings } from "./sidebar-settings";
 import { SidebarStatuses } from "./sidebar-statuses";
+import { SidebarWorkspaces } from "./sidebar-workspaces";
 import { useShortcutWords } from "../shortcuts/use-keys";
 import { machineInView, useNewSession } from "./use-new-session";
 
@@ -117,6 +118,8 @@ export function Sidebar({
         <SidebarSettings current={where.segments[1] ?? null} />
       ) : grouping === "machine" ? (
         <SidebarMachines />
+      ) : grouping === "workspace" ? (
+        <SidebarWorkspaces />
       ) : (
         <SidebarStatuses />
       )}

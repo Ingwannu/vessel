@@ -19,6 +19,7 @@ import { useMemo } from "react";
 
 import { openNewSession, useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
+import { labelManager } from "../../data/workspace-labels/hub";
 import {
   type PaletteEntry,
   type PalettePlace,
@@ -58,6 +59,8 @@ function iconOf(place: PalettePlace): IconName {
       return "plus";
     case "add-machine":
       return "machine";
+    case "labels":
+      return "tag";
     case "theme-system":
       return "monitor";
     case "theme-light":
@@ -94,6 +97,9 @@ function Palette() {
                 return;
               case "add-machine":
                 openAddMachine();
+                return;
+              case "manage-labels":
+                labelManager.set(true);
                 return;
               case "theme":
                 void chooseTheme(fleet, target.preference);

@@ -229,9 +229,21 @@ export function sidebarOrder(
   state: FleetState,
   view: SidebarView,
 ): SidebarSession[] {
-  return view.group === "machine"
-    ? sidebarMachines(state, view).flatMap((machine) => machine.sessions)
-    : sidebarStatuses(state, view).flatMap((group) => group.sessions);
+  switch (view.group) {
+    case "machine":
+      return sidebarMachines(state, view).flatMap(
+        (machine) => machine.sessions,
+      );
+    case "status":
+      return sidebarStatuses(state, view).flatMap((group) => group.sessions);
+    case "workspace":
+      // Workspace rows need the registry: the shortcuts walk them through
+      // `sidebarWorkspaces` (data/workspace-labels/groups.ts); without it,
+      // the machine order is the closest.
+      return sidebarMachines(state, view).flatMap(
+        (machine) => machine.sessions,
+      );
+  }
 }
 
 /** The session `by` places from `current` in `order`, wrapping; the

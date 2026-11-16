@@ -14,6 +14,8 @@
 // - Choice: one normalizer and one key, used by every label module; the
 //   key is never shown, only compared.
 
+import type { LabelColor } from "../../wire/proto";
+
 /** The filter key that means "no label" (Paseo's Unlabelled row). No real
  * name normalizes to it, because an empty name is refused. */
 export const UNLABELLED = "";
@@ -32,4 +34,24 @@ export function labelKey(name: string): string {
 /** Sort names as the catalogs list them: by name, ignoring case. */
 export function byLabelName(left: string, right: string): number {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
+}
+
+/** The colours a label can take, in the order the swatches show them
+ * (the node's ten, Paseo's order; the first is a new label's). */
+export const LABEL_COLORS = [
+  "violet",
+  "sky",
+  "emerald",
+  "orange",
+  "pink",
+  "indigo",
+  "teal",
+  "red",
+  "amber",
+  "blue",
+] as const satisfies readonly LabelColor[];
+
+/** A colour's name, for its swatch. */
+export function colorName(color: LabelColor): string {
+  return color.charAt(0).toUpperCase() + color.slice(1);
 }

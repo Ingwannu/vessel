@@ -16,6 +16,7 @@ import { FleetContext } from "./context";
 import { Fleet } from "./data/fleet";
 import { followPreferences } from "./data/prefs";
 import { AddMachineHost } from "./features/machines/add-machine";
+import { LabelManagerHost } from "./features/workspace-labels/manager";
 import { Shell } from "./features/shell/shell";
 import { HomePage } from "./routes/home";
 import {
@@ -60,6 +61,7 @@ function Root(): ReactElement {
     <>
       <Shell />
       <AddMachineHost />
+      <LabelManagerHost />
     </>
   );
 }

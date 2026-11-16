@@ -266,3 +266,20 @@ export class WorkspaceLabels {
     });
   }
 }
+
+const HUBS = new WeakMap<Fleet, WorkspaceLabels>();
+
+/** The one hub of `fleet`, made on first use. */
+export function labelsOf(fleet: Fleet): WorkspaceLabels {
+  let hub = HUBS.get(fleet);
+  if (hub === undefined) {
+    hub = new WorkspaceLabels(fleet);
+    HUBS.set(fleet, hub);
+  }
+  return hub;
+}
+
+/** Whether the label manager is open. It is opened from the palette and
+ * the view menu and drawn once by the app's root, so its state lives
+ * here (as the add-machine dialog's does). */
+export const labelManager = new Store<boolean>(false);

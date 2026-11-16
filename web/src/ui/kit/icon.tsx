@@ -87,6 +87,7 @@ export const ICON_NAMES = [
   "enter",
   "circle",
   "help",
+  "tag",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
