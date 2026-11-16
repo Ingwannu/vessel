@@ -50,7 +50,7 @@ impl Sessions {
         // can commit before that row exists, so its initial audit is authoritative.
         let info = stored.as_ref().unwrap_or(live);
         info.parentage()
-            .map(vessel_proto::subagents::Parentage::parent)
+            .map(Parentage::parent)
             .map_err(|_invalid| StoreError::InvalidParentage(info.id).into())
     }
 

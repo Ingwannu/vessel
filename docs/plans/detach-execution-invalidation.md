@@ -29,10 +29,22 @@ never-child refusal, missing execution, and both sides of the actual marking
 lock. Closing only the Store writer leaves authoritative reads available and
 forces the first write to fail: the test must observe invalidation despite no
 receipt commit. This distinguishes before-effect ordering from a late call.
-Named launch/store/transition/shutdown phases sit within an outer test budget;
+A test-local owner retains each created child before the next fallible store
+phase. Scenario assertion failures/timeouts are caught so the actual fake
+shutdown is joined before the original failure is resumed. The40-second outer
+budget includes5-second setup,25-second scenario and5-second cleanup phases;
+each launch/store/transition/shutdown phase still has its5-second budget.
+This is cleanup ownership, not a longer product or per-operation deadline.
+Named launch/store/transition/shutdown phases sit within that outer budget;
 no database polling, sleeps or second synchronization registry are used.
 
 This leaf starts on the announced invalidation producer d5bfde87, independently
 of the frozen provider/history package. No new protocol, schema, process stop,
 credential, workspace, native handle or history identity is introduced. Source
 and tests remain unexecuted until the receiving narrow checks complete.
+
+The first exact1ff strict run reported one unnecessary qualification in the
+existing parentage mapper after importing Parentage for the new callsite. Its
+correction uses that same type directly, with no policy change. The test-owner
+cleanup strengthening above is included in the same ordinary correction; no
+runtime result is inferred from the first strict failure.
