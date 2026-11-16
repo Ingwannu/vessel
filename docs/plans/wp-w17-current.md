@@ -1,9 +1,10 @@
 # W17 current invocation map
 
-Current source includes announced gate58b node head
-`d5bfde878598da21fd9ac1abfcb130571c9c1748`, protocol25/schema21, merged at
-`708612958`; the LaunchAdmission and RuntimeServices union measures648 node.rs
-lines, below the new651 base record, which is lowered to648. The source map is **not a passing parity checklist**. All117 paths
+Current source includes announced gate60 node head
+`ee8e345013d6756dfc55b1ed008a352db32786c7`, protocol25/schema21, merged at
+`e555300bf`. The earlier gate58b LaunchAdmission and RuntimeServices union keeps
+its648 node.rs lines and lowered648 size record. Gate60's named proc-diagnostics
+intermittent is TRACKER774; it is not a W17 runtime result or blanket waiver. The source map is **not a passing parity checklist**. All117 paths
 remain listed; complete flags/defaults/reference output/exits and exact pinned
 registration references are in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
 
@@ -17,7 +18,7 @@ Screen is Silent and NodeAuthority OFF. All six own methods remain pendingNone.
 Latest executed selected strict: exact136c13952858, run
 wp-cli-narrow-20261116T004534Z-136c1395,11crates/alltargets/TSfeatures/-Dwarnings,
 Cargo0 in9s. This settles earlier test-helper/import/CLI lint returns on that
-immutable ed4-based source; it is not a full gate or a check of the laterbc9/d5 union.
+immutable ed4-based source; it is not a full gate or a check of the laterbc9/d5/ee8 union.
 Actual CLI/session/PTY/testkit run wp-cli-narrow-20261116T005236Z-136c1395 used
 the SAME136c source and finished425passed/3failed/1ignored after3636s queued.
 CLIbin155/0 and CLIprocess84/3 are retained. Real held-queue cancellation, common

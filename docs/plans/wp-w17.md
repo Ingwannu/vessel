@@ -1943,3 +1943,19 @@ feature constants remain None. The CLI keeps generic consumers inactive and
 its typed refusals. It must not add a private resolver, invent report IDs from
 legacy token/quota scopes, or treat producer strict/whole counts as assigned
 wire readiness. The managed same-source fixture/CLI export is also still owed.
+
+
+### Announced gate60 base join
+
+Merged ee8e345013d6756dfc55b1ed008a352db32786c7 at e555300bf without
+conflicts. Its marking lease, registry project-reference fence, native/timeline
+values, diagnostics tests and SQL scalar remain base-owned. No new pending call
+is invented from the values; own constants remain None. The node startup move
+retains its648 size record. Selected source format/size/diff checks passed, but
+this new consumer union still owes strict and runtime checks.
+
+The coordinator counted gate60 with named TRACKER774 in the actual private
+process-spawn diagnostic test. If encountered, retain the failure and its exact
+source; do not modify that test or generalize the exception to another failure.
+The independent reservation tests stay immutable on their exact d5-based bf4d
+source while running; their result cannot qualify this separate CLI union.
