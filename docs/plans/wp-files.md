@@ -1249,3 +1249,23 @@ owner/root-guard join, typed product open/close, UI captures or full C5 acceptan
 - Validation limit: source formatting/static checks only for this reversible
   layout projection; receiving compile and inspected responsive captures are
   still owed. No typography/F5 or finished Markdown-file UI approval is claimed.
+
+## Saved-source language admission observes the actual control
+
+[Decision Log]
+- Purpose: Hover, Definition and Diagnostics must not label a query as saved
+  source while an accepted engine replacement is still awaiting its owner mirror.
+- Existing assets: the same retained CodeEditor snapshot/mirror and saved-only
+  language_request admission; the replacement engine intentionally emits no
+  change event. No new language server, request or editor model is needed.
+- Choice: synchronously mirror the existing engine before language admission,
+  then refuse an unprojected disk update as well as modified/original-writing
+  state. Existing saved-only refusal copy is reused while the display catches up.
+- Why: an event subscription or a cached Clean bit cannot establish that the
+  caret and displayed source correspond to the saved document.
+- Validation: authored real-engine/no-I/O barriers cover silent replacement
+  after a valid baseline request and a newer disk model awaiting projection.
+  They retain both accepted and saved text and require Refused(Unsaved). The
+  new cases are unexecuted; queued owner strict37 predates this primary-only
+  correction. No real LSP process, wire, cursor-unit or product acceptance proof
+  is inferred. Merge with the next receiving correction batch before checking.

@@ -37,6 +37,7 @@ impl Shell {
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.mirror_editor_for(key, cx);
         let request = self.language_request(key, cx);
         match request {
             Ok(at) => self.send_language_query(key, at, action),
@@ -65,7 +66,7 @@ impl Shell {
         let file = FilePath::try_from(std::path::PathBuf::from(key.path.as_str()))
             .map_err(|_invalid| Refusal::Path)?;
         let (line, column) = if let Some(editing) = &viewer.edit {
-            if editing.model.modified() || editing.model.writing().is_some() {
+            if editing.stale || editing.model.modified() || editing.model.writing().is_some() {
                 return Err(Refusal::Unsaved);
             }
             editing

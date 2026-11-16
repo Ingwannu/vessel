@@ -1,6 +1,9 @@
 //! The real editor/search panel updates the guarded source model after
 //! replacement; an isolated shell prevents any node or filesystem I/O.
 
+#[path = "editor_find_tests/intelligence.rs"]
+mod intelligence;
+
 use gpui::{AppContext as _, TestAppContext};
 use vessel_app_kit::code_editor::{FindState, MatchCount};
 use vessel_app_kit::ui::{
