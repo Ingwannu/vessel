@@ -12,9 +12,9 @@ use vessel_proto::{Creator, ScheduleId, SessionId};
 
 use super::actor::Actor;
 use super::book::Entry;
-use super::check::{node_anchor, settle};
+use super::check::{node_anchor, settle, settle_completed};
 use super::rules::{AGENT_SCHEDULES, Act, Asker, PEOPLE_SCHEDULES};
-use super::state::{advanced, ended_refused, ends_an_agents};
+use super::state::{advanced, ended_refused, ends_an_agents, update_admitted};
 use super::{Clock, Command, Runner};
 use crate::automation::error::AutomationError;
 use crate::automation::time::Due;
@@ -187,7 +187,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
     ) -> Result<ScheduleInfo, AutomationError> {
         let mut info = self.found(schedule)?.info.clone();
         asker.may(Act::Update, &info.defined_by)?;
-        ended_refused(&info)?;
+        update_admitted(&info)?;
         if revision != info.revision {
             return Err(AutomationError::Conflict(format!(
                 "the schedule was changed meanwhile (now revision {}); edit that one",
@@ -205,7 +205,12 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         }
         let now = self.clock.now();
         node_anchor(asker, &mut definition);
-        let first = settle(&self.zones, &mut definition, now)?;
+        let was_ended = matches!(info.state, ScheduleState::Ended { .. });
+        let first = if was_ended {
+            settle_completed(&self.zones, &mut definition, now)?
+        } else {
+            settle(&self.zones, &mut definition, now)?
+        };
         let cadence_changed = definition.cadence != info.definition.cadence;
         info.state = match info.state {
             ScheduleState::Active { next_due } => {
@@ -216,7 +221,9 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             | ScheduleState::Ended { .. }
             | ScheduleState::Unknown) => other,
         };
-        if let Some(max) = definition.max_runs
+        // Updating limits must not rewrite an already completed reason/time.
+        if !was_ended
+            && let Some(max) = definition.max_runs
             && info.runs >= max.get()
         {
             info.state = ScheduleState::Ended {
