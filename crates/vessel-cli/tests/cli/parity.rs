@@ -3,6 +3,8 @@ use crate::support::{Fixture, within};
 use serde::Deserialize;
 use vessel_proto::{ContentBlock, Delivery, SessionId, SessionMode, SessionSpec};
 
+const RESUMABLE_READY_WAIT: std::time::Duration = std::time::Duration::from_secs(10);
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Waited {
@@ -56,6 +58,17 @@ async fn ended_agents_are_not_force_archived_from_a_stale_idle_snapshot() {
             SessionMode::Structured { model: None, resume: None, options: Vec::new() })
             .with_cwd(fixture.cwd())).await.unwrap();
         let mut stream = owner.follow(info.id, vessel_proto::EventSeq::ZERO).await.unwrap();
+        // Resume needs the harness's actual conversation identity, not merely
+        // the node's early created/running status. Killing before Ready tests
+        // an unresumable startup failure instead of the intended stale snapshot.
+        tokio::time::timeout(RESUMABLE_READY_WAIT, async {
+            loop {
+                let record = stream.next().await.expect("agent ended before Ready").unwrap();
+                if matches!(record.event, vessel_proto::SessionEvent::Agent {
+                    event: vessel_proto::AgentEvent::Ready { .. },
+                }) { break; }
+            }
+        }).await.expect("resumable agent Ready phase timed out");
         owner.kill(info.id).await.unwrap();
         loop {
             let record = stream.next().await.expect("ended status missing").unwrap();

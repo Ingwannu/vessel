@@ -6,8 +6,9 @@ This is a WIP checkpoint, not full-package completion.
 
 ## Main CLI branch
 
-Branch backend/m12-wp-cli. Current product/test source is
-db9f214b0bcea6f80f7e2528bc852293ca430cad. It includes announced node
+Branch backend/m12-wp-cli. Latest executed product/test source is
+db9f214b0bcea6f80f7e2528bc852293ca430cad. This final WIP adds the bounded Ready
+fixture correction below plus documentation; that correction is unexecuted. It includes announced node
  ee8e345013d6756dfc55b1ed008a352db32786c7 through merge e555300bf. No app base
 is relevant to this node-only tree. The startup RuntimeServices move retains
 Push-before-Limits-before-host ordering and node.rs648 with a lowered648 record.
@@ -25,33 +26,39 @@ Committed work since the prior executed136c source:
 - 5cdede083: positive-control helper returns unit, removing its unused baseline.
 - 5c5c79774/0680b033e: usage DNS activation hold and gate60 union documentation.
 
-## Active VM run — inspect, never duplicate
-
-wp-cli-narrow-20261116T034217Z-db9f214b is the current only owned Cargo run.
-It tests exactdb9f: locked CLI/session/PTY/testkit default test targets with
-proto+web TS features, no benchmark/alltargets repeat. Normal short, priority0.
-At the checkpoint it is running its same-source preparations; no final runtime
-result yet. It was submitted once and its receipt was retained after a bounded
-submission delay; never replay it because a local poll was initially empty.
+## Final VM results — no queued or running owned build
 
 Exactdb9f strict034046 passed26s: all11selected crates/alltargets/TS/-Dwarnings,
 with actual Checking CLI/node/web and Finished. Original0680 strict033453
 returned Cargo101 after125s on one unused qualification in the native metadata
 fixture; the single-line correction consistently uses imported ProjectId.
-No test body or product behavior changed to make that strict pass.
 
-If the current run cannot finish within the quota window, retain its exact ID
-and result state in this committed WIP file. Start no full root gate, new feature
-or another merge. The local task STATE records private evidence locations;
-do not copy them here. No further Cargo run is planned before this quota stop.
+Exactdb9f runtime wp-cli-narrow-20261116T034217Z-db9f214b FINISHED03:52:05,
+Cargo101/344s,438passed/1failed/1ignored. All preparation steps passed. CLIbin155/0,
+CLIprocess89/1. Three previously invalid controls and the new explicit-label
+refusal regression each passed by actual name. No full package gate is green.
+
+Only failure: parity::ended_agents_are_not_force_archived_from_a_stale_idle_snapshot,
+resume_session returned Unsupported because kill happened before the harness was
+ready, so no conversation identity existed. This WIP waits for an actual
+AgentEvent::Ready under RESUMABLE_READY_WAIT before kill. It preserves all
+no-force archive refusal and unarchived-identity assertions. Direct rustfmt/diff
+and source preflight passed; the correction has NOT been compiled or executed.
+First next validation must check that correction, not replay unchanged034217.
+
+The default test targets still ran remote/main and locate_vesseld integration
+cases (74.89s and52.72s); earlier notes calling those benchmarks were incorrect.
+Do not use aggregate Cargo time as test-only runtime. No further Cargo, merge or
+feature was started after the final result. All current work is committed WIP.
+Private evidence locations are in task STATE, not this public document.
 
 ## Executed evidence that must not be widened
 
 Prior exact136c strict004534 passed11selected crates. Its actual suite005236
 finished425passed/3failed/1ignored: CLIbin155/0, CLIprocess84/3. The failed cases
 were invalid project-root/default-branch controls, not a passing metadata
-preparation test. The later fixture fixes and explicit label regression are in the current
-runtime034217; their final execution result is not yet retained here. Earlier real full-queue admission cancellation,
+preparation test. The later fixture fixes and explicit label regression passed in exactdb9f
+runtime034217; this does not exercise future assigned metadata branches. Earlier real full-queue admission cancellation,
 common TUI fairness/sealed EOF/final-ring and workspace rename modes/reset passed
 on136c only. No current-main whole/TS/export/otherOS/service proof is implied.
 
@@ -83,7 +90,8 @@ part of this leaf. No production restore is unlocked. Receiving-head gate owed.
 ## After this slice, on the next authorized session
 
 1. Recover current run and any V3 reply; finish the reservation receiving path.
-2. Recover current CLI fixture/metadata/explicit-label results. Before the final
+2. Validate the new Ready fixture correction and preserve438/1/1 as the prior
+   exact-source result. Current metadata/label controls already passed. Before the final
    package gate, check the remaining pure async screen units for canonical
    safety nets and scoped task ownership; do not infer that from actor tests.
 3. Then common node D1 adapter/rows, only against the accepted pure engine.

@@ -17,28 +17,31 @@ metadata flags. The conditional C2 engine is still product0d7/docs c0ab; full
 consumer qualification remains open. No newer frame/display producer is adopted.
 Screen is Silent and NodeAuthority OFF. All six own methods remain pendingNone.
 
-Latest executed selected strict: exact136c13952858, run
-wp-cli-narrow-20261116T004534Z-136c1395,11crates/alltargets/TSfeatures/-Dwarnings,
-Cargo0 in9s. This settles earlier test-helper/import/CLI lint returns on that
-immutable ed4-based source; it is not a full gate or a check of the laterbc9/d5/ee8 union.
-Actual CLI/session/PTY/testkit run wp-cli-narrow-20261116T005236Z-136c1395 used
-the SAME136c source and finished425passed/3failed/1ignored after3636s queued.
-CLIbin155/0 and CLIprocess84/3 are retained. Real held-queue cancellation, common
-TUI fairness/sealedEOF/final-ring and workspace rename allmodes/reset passed.
-Three new fixture controls failed; source corrections7ba3 use independent project
-roots and preserve the registered default branch. Metadata no-preparation proof
-is still owed because its positive control failed before those assertions.
+Latest executed selected strict: exactdb9f214b0bce, run
+wp-cli-narrow-20261116T034046Z-db9f214b,11crates/alltargets/TSfeatures/-Dwarnings,
+Cargo0 in26s. Prior0680 strict033453 returned one unused-qualification lint;
+the correction uses the already imported ProjectId, without a policy change.
+Actual same-source CLI/session/PTY/testkit run034217 finished438passed/1failed/
+1ignored (Cargo101/344s). CLIbin155/0 and CLIprocess89/1 are retained. All three
+corrected project-root/default-branch controls and the explicit label refusal
+case passed. Native metadata's real worktree control and pending no-preparation
+assertions now executed; future assigned metadata branches were not exercised.
 
-The independent registry prerequisite branch has corrected source9e3ce08f onbc9,
-outside this CLI tree: exact-id/incarnation reservations, vacant-only handoff and retained
-refusal cleanup. Priority strict88ed returned one drop_non_drop lint; its lexical-scope correction
-is queued ordinary as021539. No focused9unit/V3/merge pass has occurred.
+The remaining failure was ended_agents_are_not_force_archived_from_a_stale_idle_snapshot:
+it killed the harness before Ready, leaving no conversation to resume. This WIP
+adds a bounded real Ready-event wait before kill and preserves all archive/no-force
+assertions. That fixture-only correction is UNEXECUTED; the package is still RED,
+not a current-head full gate. No new run is started after the quota checkpoint.
+
+The independent registry prerequisite has exactbf4d source on d5 and docs-only
+handoff6924ada20. Strict032040 passed108s; actual032330 passed15library+6wire=21/0/0,
+including every one of the9new cases. V3 review and integrator landing are pending.
 It does not produce root/debt/quiescence evidence or activate any new RPC.
 
 Runtime success states use0, failures1, help/version0; ordinary returned wait
 states are data with0. Explicit unsupported output refuses before connection;
 raw handlers keep their documented streams. Latest exit-code process proof is
-part of the running actual suite, not assumed from parser-only tests.
+scoped to executed034217, not assumed from parser-only tests.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an

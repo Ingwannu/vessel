@@ -1965,3 +1965,24 @@ unused-qualifications error in native_metadata.rs::worktrees, whose ProjectId
 was already imported for the new positive control. Use that import consistently;
 no product/test assertion or fixture behavior changes. No runtime case executed
 in this strict run; corrected-source validation remains distinct and owed.
+
+
+### Quota checkpoint: exactdb9f execution and remaining fixture correction
+
+Strict034046 passed11selected crates/alltargets/TS/-Dwarnings in26s. Actual
+034217 completed all preparation steps, then Cargo101/344s:438passed/1failed/
+1ignored. All three previously invalid fixture controls and the explicit parity
+label refusal case passed by name, including actual pending metadata admission
+before a worktree side effect. No future assigned-metadata branch was exercised.
+
+Remaining failure: the ended-agent archive fixture killed immediately after
+create_session, then resume_session correctly refused because no Ready/harness
+conversation existed. Keep the real stale-ended/resume control: wait for the
+actual typed Ready event with a named finite phase bound before kill. All no-force
+refusal/marks assertions remain. This WIP source-only correction is NOT regated;
+no new build is started at the quota stop. The package remains red/open.
+
+Timing correction: default targets still include remote/main and locate_vesseld
+integration tests; their long74.89s/52.72s runtimes are not benchmark targets.
+Prior wording that default target selection eliminated those runs was mistaken.
+See wp-w17-resume.md for exact next step and held dependencies.
