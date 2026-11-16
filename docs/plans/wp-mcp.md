@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-58b node head `d5bfde87`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-60 node head `ee8e3450`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -989,3 +989,23 @@ Receiving wire freshness on exact `99a39f36d` also passed in
 zero generated difference, 207 seconds. The recorded raw log hash was
 independently recomputed. No generated artifact needed copying after this
 merge. This closes that named freshness check, not any remaining owner join.
+
+
+## Gate60 values-only recovery join
+
+Merged announced `ee8e3450` with a merge commit after the prior receiving
+checks completed. It is the coordinator-counted 17/18 gate with named
+TRACKER774, the vessel-proc diagnostic spawn-log race, not a wholly green
+gate. Protocol25, minimum2 and store schema21 remain unchanged.
+
+W23's qualified original SubmitPrompt/PromptReceiptBinding/recovery/native
+command values are now canonical on this node tree. This imports no new
+RPC/SDK/event field, actor/store owner, current-grant capture or positive
+private-notice admission. The same-execution cross-restart proof remains
+absent. Row618 stays pending the actual shared receipt/writer/effect fence;
+no duplicate DTO, namespace, watcher, schema or authority is invented here.
+
+The same merge retains the canonical transferable marking lease, registry
+cleanup fence and current-parent SQL scalar. No conflicts needed resolution.
+Changed receiving-union strict and Node execution are still owed; earlier
+node345/MCP36/source/freshness receipts keep their original exact scope.
