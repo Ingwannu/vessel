@@ -92,6 +92,7 @@ impl Shell {
                 self.notice = Some(why);
             }
             Event::Projects(response) => self.selected_project_answer(response, cx),
+            Event::RegistryRead(response) => self.registry_read_answer(response),
             Event::Workspace { machine, answer } => {
                 // An answer that changed nothing drawn asks for no frame
                 // (an idle git panel refreshes every five seconds).

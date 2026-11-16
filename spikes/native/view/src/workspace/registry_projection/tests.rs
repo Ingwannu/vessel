@@ -96,7 +96,7 @@ fn empty_workspaces_sharing_a_directory_keep_distinct_layout_keys_and_membership
         rows[1].resources().collect::<Vec<_>>(),
         vec![WorkspaceResource::Session { session }]
     );
-    assert!(rows.iter().all(|row| row.visible()));
+    assert!(rows.iter().all(WorkspaceRow::visible));
 }
 
 #[test]

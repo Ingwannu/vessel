@@ -147,58 +147,8 @@ mod tests {
                 shell.areas.workspace.projects[host.as_str()].project(&project.id),
                 Some(&project)
             );
-            // A session-list refusal is not a retired authenticated admission.
-            shell.fleet.machines[0].reach = Reach::Unreachable("sessions refused".to_owned());
-            assert_eq!(shell.project_connection(host.as_str()), Some(context.clone()));
             let selected = ProjectTarget::new(host.clone(), node);
-            assert_eq!(
-                shell.open_project_settings_for_connection(&context, project.id, window, cx),
-                Ok(())
-            );
-            assert_eq!(shell.areas.settings.machine.as_deref(), Some(host.as_str()));
-            assert_eq!(
-                shell
-                    .areas
-                    .workspace
-                    .page
-                    .detail
-                    .as_ref()
-                    .map(|detail| detail.project),
-                Some(project.id)
-            );
-            assert_eq!(
-                shell.open_project_settings(&selected, ProjectId::random(), window, cx),
-                Err(super::super::project_navigation::ProjectSettingsRefusal::Missing)
-            );
-            assert_eq!(
-                shell.open_project_settings(
-                    &ProjectTarget::new(host.clone(), old),
-                    project.id,
-                    window,
-                    cx
-                ),
-                Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
-            );
-            assert_eq!(
-                shell
-                    .areas
-                    .workspace
-                    .page
-                    .detail
-                    .as_ref()
-                    .map(|detail| detail.project),
-                Some(project.id)
-            );
-            shell.fleet.machines[0].node = Some(old);
-            shell.confirm_project_removal(project.id, cx);
-            assert!(
-                shell.areas.workspace.page.removing.is_none(),
-                "a rebound peer cannot inherit removal authority from the cache"
-            );
-            shell.fleet.machines[0].node = Some(node);
-            shell.confirm_project_removal(project.id, cx);
-            assert!(shell.areas.workspace.page.removing.is_some());
-            shell.areas.workspace.page.removing = None;
+            settings_followup(shell, &selected, old, &project, window, cx);
             let newest = shell
                 .areas
                 .workspace
@@ -224,46 +174,147 @@ mod tests {
                 shell.setup_readiness(&host, node),
                 vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Ready
             );
-            shell.open_add_for_connection(vessel_app_view::workspace::words::AddForm::Folder, &context, window, cx).unwrap();
-            let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
-            assert!(super::super::project_form::for_connection(shell, &context, &tokens, false, cx).is_some());
-            let next = epochs
-                .admit(
-                    vessel_app_view::connection::MachineKey::from_book(host.as_str()),
-                    node,
-                )
-                .unwrap();
-            shell.fleet.machines[0].connection_epoch = Some(next.epoch());
-            assert_eq!(shell.open_project_settings_for_connection(&context, project.id, window, cx), Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable));
-            assert!(super::super::project_form::for_connection(shell, &context, &tokens, false, cx).is_none());
-            assert!(super::super::project_form::for_connection(shell, &next, &tokens, false, cx).is_none());
-            assert_eq!(shell.setup_readiness_on(&context), vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Failed);
-            assert_eq!(shell.open_add_for_connection(vessel_app_view::workspace::words::AddForm::Folder, &context, window, cx), Err(vessel_app_view::workspace::projects::navigation::NavigationRefusal::HostUnavailable));
-            assert_eq!(
-                shell.setup_readiness(&host, node),
-                vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Pending
-            );
-            assert_eq!(
-                shell.open_project_settings(&selected, project.id, window, cx),
-                Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
-            );
-            let mut delayed = project.clone();
-            delayed.name = "retired-physical-connection".parse().unwrap();
-            delayed.revision = 1000;
-            shell.selected_project_answer(
-                vessel_app_link::workspace::project_requests::Response {
-                    context,
-                    answer: vessel_app_link::workspace::Answer::Project {
-                        node,
-                        project: delayed,
-                    },
-                },
-                cx,
-            );
-            assert_eq!(
-                shell.areas.workspace.projects[host.as_str()].project(&project.id),
-                Some(&project)
-            );
+            reconnect_followup(shell, &selected, &project, context, &mut epochs, window, cx);
         });
+    }
+    fn settings_followup(
+        shell: &mut Shell,
+        target: &ProjectTarget,
+        old: NodeId,
+        project: &ProjectInfo,
+        window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Shell>,
+    ) {
+        let host = target.host();
+        let node = target.node();
+        let context = shell.project_connection(host.as_str()).unwrap();
+        // A session-list refusal is not a retired authenticated admission.
+        shell.fleet.machines[0].reach = Reach::Unreachable("sessions refused".to_owned());
+        assert_eq!(
+            shell.project_connection(host.as_str()),
+            Some(context.clone())
+        );
+        assert_eq!(
+            shell.open_project_settings_for_connection(&context, project.id, window, cx),
+            Ok(())
+        );
+        assert_eq!(shell.areas.settings.machine.as_deref(), Some(host.as_str()));
+        assert_eq!(
+            shell
+                .areas
+                .workspace
+                .page
+                .detail
+                .as_ref()
+                .map(|detail| detail.project),
+            Some(project.id)
+        );
+        assert_eq!(
+            shell.open_project_settings(target, ProjectId::random(), window, cx),
+            Err(super::super::project_navigation::ProjectSettingsRefusal::Missing)
+        );
+        assert_eq!(
+            shell.open_project_settings(
+                &ProjectTarget::new(host.clone(), old),
+                project.id,
+                window,
+                cx
+            ),
+            Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
+        );
+        assert_eq!(
+            shell
+                .areas
+                .workspace
+                .page
+                .detail
+                .as_ref()
+                .map(|detail| detail.project),
+            Some(project.id)
+        );
+        shell.fleet.machines[0].node = Some(old);
+        shell.confirm_project_removal(project.id, cx);
+        assert!(
+            shell.areas.workspace.page.removing.is_none(),
+            "a rebound peer cannot inherit removal authority from the cache"
+        );
+        shell.fleet.machines[0].node = Some(node);
+        shell.confirm_project_removal(project.id, cx);
+        assert!(shell.areas.workspace.page.removing.is_some());
+        shell.areas.workspace.page.removing = None;
+    }
+    fn reconnect_followup(
+        shell: &mut Shell,
+        target: &ProjectTarget,
+        project: &ProjectInfo,
+        context: vessel_app_view::connection::ConnectionContext,
+        epochs: &mut vessel_app_view::connection::ConnectionEpochs,
+        window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Shell>,
+    ) {
+        let host = target.host();
+        let node = target.node();
+        let selected = target;
+        shell
+            .open_add_for_connection(
+                vessel_app_view::workspace::words::AddForm::Folder,
+                &context,
+                window,
+                cx,
+            )
+            .unwrap();
+        let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+        assert!(
+            super::super::project_form::for_connection(shell, &context, &tokens, false, cx)
+                .is_some()
+        );
+        let next = epochs
+            .admit(
+                vessel_app_view::connection::MachineKey::from_book(host.as_str()),
+                node,
+            )
+            .unwrap();
+        shell.fleet.machines[0].connection_epoch = Some(next.epoch());
+        assert_eq!(
+            shell.open_project_settings_for_connection(&context, project.id, window, cx),
+            Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
+        );
+        assert!(
+            super::super::project_form::for_connection(shell, &context, &tokens, false, cx)
+                .is_none()
+        );
+        assert!(
+            super::super::project_form::for_connection(shell, &next, &tokens, false, cx).is_none()
+        );
+        assert_eq!(
+            shell.setup_readiness_on(&context),
+            vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Failed
+        );
+        assert_eq!(shell.open_add_for_connection(vessel_app_view::workspace::words::AddForm::Folder, &context, window, cx), Err(vessel_app_view::workspace::projects::navigation::NavigationRefusal::HostUnavailable));
+        assert_eq!(
+            shell.setup_readiness(&host, node),
+            vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Pending
+        );
+        assert_eq!(
+            shell.open_project_settings(selected, project.id, window, cx),
+            Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
+        );
+        let mut delayed = project.clone();
+        delayed.name = "retired-physical-connection".parse().unwrap();
+        delayed.revision = 1000;
+        shell.selected_project_answer(
+            vessel_app_link::workspace::project_requests::Response {
+                context,
+                answer: vessel_app_link::workspace::Answer::Project {
+                    node,
+                    project: delayed,
+                },
+            },
+            cx,
+        );
+        assert_eq!(
+            shell.areas.workspace.projects[host.as_str()].project(&project.id),
+            Some(project)
+        );
     }
 }

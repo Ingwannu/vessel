@@ -101,6 +101,7 @@ impl Link {
             }),
 
             Command::Projects(request) => self.emit(Event::Projects(request.refused())),
+            Command::RegistryRead(request) => self.emit(Event::RegistryRead(request.refused())),
             Command::Devices {
                 context,
                 ticket,

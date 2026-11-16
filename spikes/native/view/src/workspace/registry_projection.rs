@@ -21,7 +21,10 @@ use vessel_proto::{
     workspace::{ProjectList, WorktreeList},
 };
 
-const MAX_REGISTRY_HOSTS: usize = 64;
+/// Finite original-admission reads, including queued complete observations.
+pub const MAX_REGISTRY_READS: usize = 4;
+/// Finite retained metadata hosts and pending read candidates.
+pub const MAX_REGISTRY_HOSTS: usize = 64;
 /// Total retained encoded metadata, independent of the transport frame budget.
 const MAX_REGISTRY_CACHE_BYTES: usize = 16 * 1024 * 1024;
 
@@ -34,6 +37,16 @@ pub struct RegistryData {
     pub projects: ProjectList,
     /// Used for explicit backing metadata/root consistency, never ownership inference.
     pub worktrees: WorktreeList,
+}
+
+impl RegistryData {
+    /// Bound one queued observation by the same total encoded cache budget.
+    ///
+    /// # Errors
+    /// Refuses encoding failure or combined metadata beyond the cache ceiling.
+    pub fn check_size(&self) -> Result<(), ProjectionRefusal> {
+        validate::bytes(self, MAX_REGISTRY_CACHE_BYTES).map(|_bytes| ())
+    }
 }
 
 /// A read ticket is correlation only; its context remains the actor's sole admission.

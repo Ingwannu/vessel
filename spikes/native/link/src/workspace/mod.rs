@@ -42,6 +42,7 @@ pub mod layout;
 mod project_flow;
 pub mod project_requests;
 mod pulls;
+pub mod registry_reads;
 #[cfg(not(target_arch = "wasm32"))]
 mod run;
 mod start;
@@ -82,6 +83,7 @@ type FollowKey = (String, NodeId, ProjectId);
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
     project_calls: project_requests::Calls,
+    registry_calls: registry_reads::Calls,
     /// Each clone followed by route, authenticated node and project. Rebinding
     /// cancels the old peer's task rather than keeping its client alive.
     following: Arc<Mutex<HashMap<FollowKey, AbortHandle>>>,

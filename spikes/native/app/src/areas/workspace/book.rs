@@ -70,6 +70,7 @@ impl Shell {
     }
 
     fn workspace_renamed(&mut self, from: &Name, to: &Name) {
+        self.areas.workspace.registry.forget(from);
         self.project_host_detached(from.as_str());
         self.areas.workspace.project_reads.detach(from);
         let (from, to) = (from.as_str(), to.as_str());
@@ -91,6 +92,7 @@ impl Shell {
     }
 
     fn workspace_forgot(&mut self, name: &Name) {
+        self.areas.workspace.registry.forget(name);
         self.project_host_detached(name.as_str());
         self.areas.workspace.project_reads.detach(name);
         let name = name.as_str();

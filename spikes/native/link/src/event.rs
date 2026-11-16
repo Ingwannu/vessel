@@ -129,6 +129,8 @@ pub enum Event {
     /// A machine answered a workspace ask.
     /// A project result from its original captured physical admission.
     Projects(workspace::project_requests::Response),
+    /// Complete registry metadata or a correlated refusal.
+    RegistryRead(workspace::registry_reads::Response),
     /// A machine answered an existing workspace resource request.
     Workspace {
         /// The machine.

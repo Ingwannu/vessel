@@ -177,6 +177,8 @@ pub enum Command {
     /// by [`Event::Workspace`] (`workspace`'s module says how).
     /// A project operation on one captured physical admission.
     Projects(workspace::project_requests::Request),
+    /// Canonical metadata read on the exact captured admission.
+    RegistryRead(workspace::registry_reads::Request),
     /// Ask a machine about its existing workspace resources.
     Workspace {
         /// The machine.

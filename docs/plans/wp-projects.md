@@ -786,3 +786,40 @@ exercised through the real shared actor fixture. Both products arrive only via
 the lead's checked G4/common owner line; no local guard constructor or shared
 attribute promotion is added. Dynamic status/role joins stay unavailable until
 their canonical producers and complete coverage are present.
+
+## Guarded registry metadata producer on package base 13
+
+[Decision Log]
+- Purpose: one authoritative metadata reader feeds pane/session ownership and
+  project/workspace rows without guessing from cwd or a selected agent.
+- Existing constraint: History already publishes the canonical weak
+  DeliveryGuard. The cross-App real actor fixture remains with its shared owner;
+  this package must not expose its private minting or staging attributes.
+- Alternatives: cache by node alone, manufacture a guard for testing, or make
+  missing startup data authoritative empty. Each would lose physical admission.
+- Choice: RegistryRead selects the captured ConnectionContext once, then reads
+  the registry and catalogs through that same SelectedConnection. A private
+  response envelope validates at receive, and the App retains its weak guard and
+  checks it again on EVERY rows/ownership/location query. Same-node reconnects
+  therefore cannot inherit cached ownership before a fresh complete observation.
+- Impact: four original-admission calls or queued responses share a finite
+  permit budget; each response holds its permit through its receive callback.
+  Combined queued metadata is capped by the canonical 16 MiB cache ceiling.
+  Before that check, at most four reads can retain three separately framed
+  replies (each subject to the transport's bound). No extra serialized copy is
+  allocated for accounting. The UI rotates admitted hosts and does not immediately
+  retry errors. Rename/forget releases that host's tickets and cache slot.
+
+This is metadata only. Separate project/worktree catalog reads are not an atomic
+snapshot; inconsistent or unsupported root placement stays unavailable. The
+cache does not attest physical continuity, root exclusion, backing generation,
+resource exit, role/status ordering or mutation authority. Actions retain their
+own original SelectedConnection and node admission. No empty-workspace creation,
+archive/restore, setup execution or auto-archive is activated here.
+
+The actual Link actor/framed tests cover a real observed reply, queued retirement
+and queued permit retention. App tests cover startup/refusal/forget only. Both
+new suites and changed-source strict checks are owed at this checkpoint; a live
+cross-App cache freshness claim additionally requires the shared owner's real
+fixture. No fake guard constructor, public fixture, shared attribute change or
+S2/pane/onboarding readiness is asserted by source registration.

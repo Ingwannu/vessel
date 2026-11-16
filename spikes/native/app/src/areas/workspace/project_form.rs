@@ -353,6 +353,19 @@ pub(crate) fn for_target(
     ))
 }
 
+fn form_current(shell: &Shell) -> bool {
+    let state = &shell.areas.workspace.page;
+    state
+        .form_host
+        .as_ref()
+        .zip(state.form_node)
+        .is_some_and(|(host, node)| {
+            shell.project_node(host.as_str()) == Some(node)
+                && state.form_context.is_some()
+                && state.form_context == shell.project_connection(host.as_str())
+        })
+}
+
 fn draw_form(
     shell: &Shell,
     machine: &str,
@@ -376,15 +389,7 @@ fn draw_form(
     let target = name
         .filter(|_| !folder.is_empty())
         .map(|name| (folder, name));
-    let bound = state
-        .form_host
-        .as_ref()
-        .zip(state.form_node)
-        .is_some_and(|(host, node)| {
-            shell.project_node(host.as_str()) == Some(node)
-                && state.form_context.is_some()
-                && state.form_context == shell.project_connection(host.as_str())
-        });
+    let bound = form_current(shell);
     let ready = bound
         && state.actions.pending().is_none()
         && !folder.is_empty()

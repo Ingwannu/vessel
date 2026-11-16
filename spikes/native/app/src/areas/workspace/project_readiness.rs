@@ -191,79 +191,88 @@ mod tests {
                 shell.setup_readiness(&host, node),
                 ProjectSetupReadiness::Pending
             );
-            let mut ready = project;
-            ready.state = ProjectState::Ready;
-            shell
-                .areas
-                .workspace
-                .projects
-                .get_mut(host.as_str())
-                .unwrap()
-                .replace(ready);
-            assert_eq!(
-                shell.setup_readiness(&host, node),
-                ProjectSetupReadiness::Ready
-            );
-            use vessel_app_view::workspace::projects::actions::ProjectInventory;
-            assert_eq!(
-                shell.project_inventory_on(&context),
-                ProjectInventory::Existing
-            );
-            let target = vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
-                host.clone(),
-                node,
-            );
-            let key = shell
-                .areas
-                .workspace
-                .project_reads
-                .begin_on(target.clone(), context.clone())
-                .unwrap();
-            assert_eq!(
-                shell.project_inventory_on(&context),
-                ProjectInventory::Pending
-            );
-            shell.projects_read(
-                host.as_str(),
-                &key,
-                Ok(ProjectList {
-                    git: GitSupport::Missing,
-                    projects: Vec::new(),
-                    more: true,
-                }),
-            );
-            assert_eq!(
-                shell.project_inventory_on(&context),
-                ProjectInventory::Unavailable
-            );
-            let key = shell
-                .areas
-                .workspace
-                .project_reads
-                .begin_on(target, context.clone())
-                .unwrap();
-            shell.projects_read(
-                host.as_str(),
-                &key,
-                Ok(ProjectList {
-                    git: GitSupport::Missing,
-                    projects: Vec::new(),
-                    more: false,
-                }),
-            );
-            assert_eq!(
-                shell.project_inventory_on(&context),
-                ProjectInventory::Empty
-            );
-            shell.fleet.machines[0].node = Some(NodeId::random());
-            assert_eq!(
-                shell.project_inventory_on(&context),
-                ProjectInventory::Unavailable
-            );
-            assert_eq!(
-                shell.setup_readiness(&host, node),
-                ProjectSetupReadiness::Failed
-            );
+            readiness_after_clone(shell, &host, node, context, project);
         });
+    }
+    fn readiness_after_clone(
+        shell: &mut Shell,
+        host: &Name,
+        node: NodeId,
+        context: ConnectionContext,
+        project: ProjectInfo,
+    ) {
+        let mut ready = project;
+        ready.state = ProjectState::Ready;
+        shell
+            .areas
+            .workspace
+            .projects
+            .get_mut(host.as_str())
+            .unwrap()
+            .replace(ready);
+        assert_eq!(
+            shell.setup_readiness(host, node),
+            ProjectSetupReadiness::Ready
+        );
+        use vessel_app_view::workspace::projects::actions::ProjectInventory;
+        assert_eq!(
+            shell.project_inventory_on(&context),
+            ProjectInventory::Existing
+        );
+        let target = vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
+            host.clone(),
+            node,
+        );
+        let key = shell
+            .areas
+            .workspace
+            .project_reads
+            .begin_on(target.clone(), context.clone())
+            .unwrap();
+        assert_eq!(
+            shell.project_inventory_on(&context),
+            ProjectInventory::Pending
+        );
+        shell.projects_read(
+            host.as_str(),
+            &key,
+            Ok(ProjectList {
+                git: GitSupport::Missing,
+                projects: Vec::new(),
+                more: true,
+            }),
+        );
+        assert_eq!(
+            shell.project_inventory_on(&context),
+            ProjectInventory::Unavailable
+        );
+        let key = shell
+            .areas
+            .workspace
+            .project_reads
+            .begin_on(target, context.clone())
+            .unwrap();
+        shell.projects_read(
+            host.as_str(),
+            &key,
+            Ok(ProjectList {
+                git: GitSupport::Missing,
+                projects: Vec::new(),
+                more: false,
+            }),
+        );
+        assert_eq!(
+            shell.project_inventory_on(&context),
+            ProjectInventory::Empty
+        );
+        shell.fleet.machines[0].node = Some(NodeId::random());
+        assert_eq!(
+            shell.project_inventory_on(&context),
+            ProjectInventory::Unavailable
+        );
+        assert_eq!(
+            shell.setup_readiness(host, node),
+            ProjectSetupReadiness::Failed
+        );
     }
 }

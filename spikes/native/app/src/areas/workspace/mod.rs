@@ -21,6 +21,8 @@ mod project_readiness;
 mod project_reads;
 mod project_selected;
 mod projects;
+mod registry_cache;
+mod registry_runtime;
 mod remove;
 mod sidebar;
 mod start_card;
@@ -52,6 +54,8 @@ pub(crate) struct Workspace {
     pub(crate) projects: HashMap<String, ProjectsView>,
     /// Request-order and peer binding for the separate project display cache.
     pub(crate) project_reads: vessel_app_view::workspace::projects::reads::ProjectReads,
+    /// Same canonical registry and original weak observation for all consumers.
+    pub(crate) registry: registry_cache::RegistryCache,
     /// Settings > Projects.
     pub(crate) page: projects::Page,
     /// The composer tray's place.
@@ -71,6 +75,7 @@ impl Workspace {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             projects: HashMap::new(),
+            registry: registry_cache::RegistryCache::default(),
             project_reads: vessel_app_view::workspace::projects::reads::ProjectReads::default(),
             page: projects::Page::new(window, cx),
             place: place::DraftPlace::new(window, cx),
@@ -106,6 +111,7 @@ impl Shell {
     /// (the fleet was read again): the sidebar's group and the composer's
     /// tray show them without a visit to Settings first.
     pub(crate) fn workspace_fleet(&mut self) {
+        self.registry_fleet();
         use vessel_app_view::{machine_book::Name, workspace::projects::navigation::ProjectTarget};
         let admitted: Vec<_> = self
             .fleet
