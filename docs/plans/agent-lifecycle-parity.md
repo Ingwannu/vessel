@@ -1626,3 +1626,10 @@ cancellation, read validation, inbox state and safety budgets remain. The former
 loaded inbox clock-increase expectation changes to equality because that is the
 explicit behavior correction; shutdown's later increase proves its final append,
 not an inbox mark tick. Source review and narrow execution remain owed.
+
+
+The existing loaded inbox regression now requires equal acknowledged time and
+also checks ordinary loaded Read/Unread through Sessions::mark. Its task/lease,
+inbox outcome and deadline assertions remain. The final shutdown increase is
+explicitly attributed to the Exited append. This is the expected behavior change,
+not a weaker general clock assertion. The test is committed before the fix.

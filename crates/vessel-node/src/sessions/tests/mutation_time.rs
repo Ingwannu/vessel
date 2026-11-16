@@ -104,7 +104,7 @@ async fn live_detach_publishes_its_ack_and_repeating_it_does_not_erase_time() {
 }
 
 #[tokio::test]
-async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
+async fn exact_loaded_attention_marks_preserve_time_and_survive_caller_cancellation() {
     vessel_testkit::within(
         MUTATION_PUBLICATION_BUDGET,
         Box::pin(async {
@@ -126,11 +126,30 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 })
                 .await
                 .unwrap();
-            assert!(handle.info().updated_at > before);
+            assert_eq!(handle.info().updated_at, before);
             assert_eq!(
                 fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
                 InboxRead::Read
             );
+            let read = fixture
+                .sessions
+                .mark(
+                    created.id,
+                    Mark::Read {
+                        through: handle.log_end(),
+                    },
+                )
+                .await
+                .unwrap();
+            assert!(!read.marks.unread);
+            assert_eq!(read.updated_at, before);
+            let unread = fixture
+                .sessions
+                .mark(created.id, Mark::Unread)
+                .await
+                .unwrap();
+            assert!(unread.marks.unread);
+            assert_eq!(unread.updated_at, before);
             fixture
                 .sessions
                 .mark_inbox(MarkInbox {
@@ -148,6 +167,9 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
                 InboxRead::Read
             );
+            // This later increase belongs to the final Exited append. The
+            // cancelled inbox operation is proved by Read above and the
+            // retained lease/task checks, not by an attention-clock tick.
             assert!(
                 fixture
                     .store
