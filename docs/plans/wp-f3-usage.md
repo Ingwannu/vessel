@@ -89,11 +89,12 @@ chrome. Required source profiles remain separate:
 | Surface | Pinned source | Owner / state |
 | --- | --- | --- |
 | Fixed sidebar Usage icon | Footer density 28/44, glyph 16/20, muted-to-foreground hover | S2/G2; no checked ordinary-button profile yet; no footer edit applied |
-| Options and refresh | Toolbar small 20/32, adaptive glyph 14/18, source extra-muted ink | W12; source/narrow candidate, await announced green containing line |
+| Options | Toolbar small 20/32, adaptive glyph 14/18, source extra-muted ink | W12 producer in announced base 13; consumer integration requires its own strict check |
+| Refresh | Same small toolbar profile plus source loading | W12 loading follow-up remains unadopted |
 | Toolbar/card tooltip | Source side/offset and 300ms desktop delay | W12 extends existing Tooltips; source-only follow-up, not adopted |
 | Toolbar loading | Existing ActivityIndicator ring/750ms profile | W12 follow-up; no area spinner substitution |
-| Large Usage word catalog | Shared bounded cached-message generator | L; await checked canonical line, no generator fork |
-| Balance amount formatting | USD currency, compact tokens with one fraction, other units with two | L shared gap; original finite amounts/units remain visible |
+| Large Usage word catalog | Shared bounded cached-message generator | L canonical c829 producer landed through base 13; combined Usage compile still required |
+| Balance amounts and exact counts | USD currency, compact tokens and exact unsigned counts | L shared ADR 0101 gap; original amounts/units/counts remain visible |
 
 No area size/ink override, Pill fallback, second tooltip engine or parallel footer
 registry is introduced. The optional summary still uses S2's single preference,
@@ -125,3 +126,20 @@ The moving native branch also inherits earlier pending F3 root ancestry. It must
 not be landed as a provisional runtime/values carrier. Final native adoption waits
 for the reviewed, whole-gated, assigned canonical F3 node through an announced app
 base; unassigned new calls remain unavailable and older peers use real limits23.
+
+
+## Base 13 consumer continuation
+
+The announced base `2ebeedf9` supplies the canonical L cached-message generator
+and the reviewed W12 small ToolbarButton. The options cog now uses that same
+renderer with adaptive glyphs, ExtraMuted ink and its admitted disclosure state;
+the existing captured connection/modal guard and shared popover lease are intact.
+No area geometry or tooltip override is added. Refresh loading, delayed tooltips
+and the footer profile still await their own checked shared producers.
+
+L also confirmed there is no exact u64 count API: Fluent's f64 number path would
+lose integers above 2^53, while current Number count/decimal inputs are u32-bounded.
+Older reset-duration/token count Text paths are provisional, not locale-number
+parity. ADR 0101 tracks exact unsigned counts separately from finite amounts.
+Keep original values; do not clamp, drop, add a formatter here or make a lossy
+cast. The accepted numeric fresh-age messages remain a distinct bounded path.

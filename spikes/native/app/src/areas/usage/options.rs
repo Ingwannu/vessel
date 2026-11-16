@@ -6,10 +6,10 @@ use super::{
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::{
-    ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens,
+    ButtonState, ControlSizing, Tokens,
     assets::Glyph,
-    button_control,
     popover::{self, Alignment, Dismissal, Lease, PopoverContent, PopoverHandlers, Width},
+    toolbar_button::{Disclosure, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk},
     ui::{AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div},
 };
 use vessel_app_view::{connection::ConnectionContext, devices::Ticket, usage::OptionsContext};
@@ -107,17 +107,25 @@ pub(super) fn trigger(
 ) -> Option<AnyElement> {
     let machine = shell.areas.usage.connection.clone()?;
     let parent = shell.areas.usage.modal.current();
-    let button = button_control(
+    let disclosure = if shell
+        .areas
+        .usage
+        .options_open
+        .as_ref()
+        .is_some_and(|opening| opening.current(shell))
+    {
+        Disclosure::Open
+    } else {
+        Disclosure::Closed
+    };
+    let button = ToolbarButton::new(
         id,
-        ButtonContent::Icon(ButtonIcon::muted(Glyph::Gear)),
-        ButtonConfig::new(
-            ButtonKind::Ghost,
-            ButtonState::Enabled,
-            ControlSizing::from_compact(compact),
-        ),
+        shell.words.usage().options(),
+        ToolbarIcon::new(Glyph::Gear, ToolbarInk::ExtraMuted).adaptive(),
+        ToolbarConfig::new(ControlSizing::from_compact(compact), ButtonState::Enabled)
+            .disclosure(disclosure),
         tokens,
     )
-    .aria_label(shell.words.usage().options())
     .on_click(cx.listener(move |shell, _, window, cx| {
         shell.usage_open_options(machine.clone(), parent, window, cx);
     }));
