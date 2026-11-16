@@ -114,7 +114,12 @@ fn acts(shell: &Shell, card: &Card) -> Vec<RowAct> {
     }
     // Paseo's order: after Pin, before Archive; only for a session whose
     // host knows its workspace.
-    if shell.areas.labels.row(&card.machine, card.session).is_some() {
+    if shell
+        .areas
+        .labels
+        .row(&card.machine, card.session)
+        .is_some()
+    {
         acts.push(RowAct::Labels);
     }
     if marks_taken {

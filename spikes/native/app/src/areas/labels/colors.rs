@@ -43,7 +43,7 @@ pub(super) fn foreground(color: Color, tokens: &Tokens) -> gpui::Hsla {
 pub(crate) fn chip(label: &Label, tokens: &Tokens) -> Div {
     let hue = hue(label.color);
     div()
-        .flex_shrink()
+        .flex_shrink(1.0)
         .min_w_0()
         .px(px(S1_5))
         .rounded_full()

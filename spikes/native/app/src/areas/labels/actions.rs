@@ -148,7 +148,8 @@ impl Shell {
         }
         let inspection = matches!(&event.answer, Answer::Inspected(Ok(_)));
         let accepted = match event.answer {
-            Answer::Listed(_) | Answer::Assigned { .. } => false,
+            // The followed reads and the picker's answers are taken before.
+            Answer::Listed(_) | Answer::Registry(_) | Answer::Assigned { .. } => false,
             Answer::Inspected(result) => state.manager.inspected(event.ticket, result),
             Answer::Updated(result) => {
                 matches!(state.manager.state(), ManagerState::Saving { .. })

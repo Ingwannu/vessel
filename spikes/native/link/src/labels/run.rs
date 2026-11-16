@@ -22,11 +22,11 @@ use std::time::Duration;
 use vessel_app_view::connection::Refusal;
 use vessel_app_view::labels::{Failure, Label, Name};
 use vessel_client::CallError;
+use vessel_proto::registry::GetRegistry;
 use vessel_proto::workspace_labels::{
     AssignWorkspaceLabel, CatalogRead, DeleteWorkspaceLabel, InspectWorkspaceLabelDelete,
     ListWorkspaceLabels, UpdateWorkspaceLabel, WorkspaceLabelFailure,
 };
-use vessel_proto::registry::GetRegistry;
 use vessel_proto::{ErrorCode, ErrorDetail, WireError};
 
 use super::{Answer, Command, Event, Request};

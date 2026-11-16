@@ -231,12 +231,8 @@ impl Shell {
             &event.answer,
             Answer::Listed(Err(Failure::Unsupported)) | Answer::Registry(Err(Failure::Unsupported))
         );
-        let catalog = (read == Read::Catalog).then(|| {
-            (
-                follow.replica.catalog().clone(),
-                follow.replica.state(),
-            )
-        });
+        let catalog = (read == Read::Catalog)
+            .then(|| (follow.replica.catalog().clone(), follow.replica.state()));
         follow.rests = follow.rests.wrapping_add(1);
         let rest = follow.rests;
         *follow.lane(read) = match pause {
@@ -319,7 +315,8 @@ impl Shell {
             node: row.connection.node(),
             workspace: row.workspace,
         };
-        let Ok(target) = vessel_app_view::labels::WorkspaceTarget::new(row.connection.clone(), &key)
+        let Ok(target) =
+            vessel_app_view::labels::WorkspaceTarget::new(row.connection.clone(), &key)
         else {
             return;
         };
@@ -372,8 +369,15 @@ impl super::Labels {
 
     /// A session row's workspace and labels, on `machine`'s host: none
     /// while the host is not followed or the session has no workspace.
-    pub(crate) fn row(&self, machine: &str, session: vessel_proto::SessionId) -> Option<RowLabels<'_>> {
-        let host = self.hosts.iter().find(|host| host.route.as_str() == machine)?;
+    pub(crate) fn row(
+        &self,
+        machine: &str,
+        session: vessel_proto::SessionId,
+    ) -> Option<RowLabels<'_>> {
+        let host = self
+            .hosts
+            .iter()
+            .find(|host| host.route.as_str() == machine)?;
         let connection = host.connection.as_ref()?;
         let follow = self
             .follows
@@ -387,13 +391,10 @@ impl super::Labels {
             .map(|name| {
                 // A name the catalog does not hold yet (its read is behind
                 // the registry's) keeps the create colour until it arrives.
-                host.catalog
-                    .get(name)
-                    .cloned()
-                    .unwrap_or_else(|| Label {
-                        name: name.clone(),
-                        color: vessel_app_view::labels::Color::default(),
-                    })
+                host.catalog.get(name).cloned().unwrap_or_else(|| Label {
+                    name: name.clone(),
+                    color: vessel_app_view::labels::Color::default(),
+                })
             })
             .collect();
         Some(RowLabels {
