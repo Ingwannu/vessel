@@ -68,9 +68,11 @@ fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
     };
     let mut layout = Layout::default();
     let (claim_a, claim_b) = (claim(&mut layout, &key), claim(&mut layout, &key));
-    let mut build = |_: &SessionContext| SessionResources {
-        session: SessionView::new(window, cx),
-        conversation: ConversationArea::with_display(ConversationDisplay::Full, cx),
+    let mut build = |_: &SessionContext| {
+        SessionResources::new(
+            SessionView::new(window, cx),
+            ConversationArea::with_display(ConversationDisplay::Full, cx),
+        )
     };
     let a = residents
         .claim_session(
@@ -314,6 +316,95 @@ fn a_clean_snapshot_moves_the_real_rows_disclosures_and_scroll_while_holds_retur
         assert_eq!(restored.timeline.entries().len(), 2);
         assert!(restored.toggled.contains(&0));
         assert_eq!(restored.list.top(), before);
+    });
+}
+
+fn thought_area(cx: &mut gpui::App, text: &str) -> ConversationArea {
+    let mut area = ConversationArea::with_display(ConversationDisplay::Full, cx);
+    let mut thought = record(1, text);
+    thought.event = SessionEvent::Agent {
+        event: AgentEvent::ThoughtChunk {
+            content: ContentBlock::Text {
+                text: text.to_owned(),
+            },
+        },
+    };
+    assert!(area.fold_records(&[thought]));
+    area
+}
+
+fn origin_tree(cx: &mut gpui::App, first: &str, deep: &str) -> ConversationArea {
+    let mut area = thought_area(cx, first);
+    area.origin = Origin::Shown(Box::new(thought_area(cx, deep)));
+    area.list.splice(0..0, area.head());
+    area
+}
+
+fn assert_unrelated_origin_closed(shell: &Shell) {
+    assert!(
+        !crate::areas::conversation::Seat::SESSION
+            .origin()
+            .origin()
+            .get(shell)
+            .unwrap()
+            .toggled
+            .contains(&0)
+    );
+}
+
+#[gpui::test]
+fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let Admitted { a, claim_a, .. } = admitted(shell, window, cx);
+        shell
+            .areas
+            .session_residents
+            .resources_mut(&a)
+            .unwrap()
+            .conversation
+            .open("fixture", a.resident.address.session);
+        let first = origin_tree(cx, "A first origin", "A deep origin");
+        shell
+            .areas
+            .session_residents
+            .resources_mut(&a)
+            .unwrap()
+            .conversation
+            .origin = Origin::Shown(Box::new(first));
+        let unrelated = origin_tree(cx, "selected first origin", "selected deep origin");
+        shell.areas.conversation.origin = Origin::Shown(Box::new(unrelated));
+        let main = crate::areas::conversation::Seat::admitted_main(a.clone());
+        assert!(main.get(shell).unwrap().shown.is_some());
+        assert!(main.legacy_target(shell).is_none());
+        let deep = main.origin().origin();
+        let captured = deep.clone();
+        assert!(
+            matches!(&deep.get(shell).unwrap().timeline.entries()[0].kind,
+            EntryKind::Thought { text } if text == "A deep origin")
+        );
+        shell.toggle_entry(&captured, 0, cx);
+        assert!(deep.get(shell).unwrap().toggled.contains(&0));
+        assert_unrelated_origin_closed(shell);
+        shell.toggle_entry(&captured, 0, cx);
+        assert!(!deep.get(shell).unwrap().toggled.contains(&0));
+        shell
+            .areas
+            .session_residents
+            .present(
+                a.resident,
+                &claim_a,
+                PaneId::MAIN,
+                Visibility::RetainedHidden,
+            )
+            .unwrap();
+        assert!(captured.get(shell).is_none());
+        assert!(captured.get_mut(shell).is_none());
+        shell.toggle_entry(&captured, 0, cx);
+        assert_unrelated_origin_closed(shell);
     });
 }
 

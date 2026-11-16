@@ -27,6 +27,7 @@ use vessel_app_view::shortcuts::{
     effective_bindings,
 };
 
+mod admission;
 mod badges;
 mod core;
 pub(crate) mod dispatch;
@@ -40,6 +41,7 @@ mod tests;
 
 use crate::routes::Route;
 use crate::shell::Shell;
+pub(crate) use admission::book_changed;
 
 /// What the listener keeps between presses.
 pub(crate) struct ShortcutListener {
@@ -190,6 +192,10 @@ impl Shell {
             self.areas.shortcuts.engine.reset();
             self.areas.shortcuts.held.release();
             badges::clear(&mut self.areas.shortcuts);
+            return;
+        }
+        if !self.global_shortcuts_enabled() {
+            book_changed(self);
             return;
         }
         let keyboard_available = available(window);

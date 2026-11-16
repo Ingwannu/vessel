@@ -36,6 +36,7 @@ impl State {
             }
 
             Command::Machines(ask) => self.machine_book(ask).await,
+            Command::CodeSource(request) => self.code_source(request).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {

@@ -36,7 +36,7 @@ pub(crate) fn card<P: Place>(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let area = (P::SEAT.get)(shell)?;
+    let area = P::SEAT.get(shell)?;
     let question = waiting(area);
     let answering = match (&question, &area.answering) {
         (None, None) => return None,

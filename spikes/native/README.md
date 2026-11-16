@@ -210,6 +210,12 @@ multiple agent panes work. The staged sole `SessionResidents` container validate
 contexts and binding/ticket ingress. Its single-slot minter plans a real tab before
 the scoped factory, rechecks current membership, and refuses implicit eviction.
 Independent lease retirement still invalidates tickets after a refused switch.
+The staged bundle now moves one Requests controller and one Lifecycle controller
+beside the actual session and conversation. Lifecycle begins Loading, and concrete
+owner holds block clean removal even when an older table marker says Ready.
+Follow retirement updates these same controllers before the caller's callback;
+record intake offers exact resolution records to the same Requests controller.
+These fields do not supply transport validity or the expected-stop Window phase.
 The literal test gate remains until converted globals and raw ingress are removed. Package details and evidence limits are in
 [`wp-layout.md`](../../docs/plans/wp-layout.md).
 
@@ -1342,6 +1348,12 @@ same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
 retain and check their action context/ticket; the slot grants no host authority.
 See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
 
+`DialogSize::with_compact(CompactLayout)` replaces only the compact profile on
+Normal, Wide or Configured, retaining its desktop geometry and body spacing.
+Callers supply validated snap points without copying shared desktop constants;
+legacy fitting90 and snap60/90 remain unchanged. See
+`docs/plans/wp-dialog-compact.md` for source values and pending validation.
+
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
@@ -1444,9 +1456,25 @@ its `rename_element` profile wraps the same bare editor. The kit-internal
 `field::settings_frame` shares only the inset-focus bridge with Appearance
 profiles, leaving chrome to each profile and all events in the one engine.
 
+`field::SecretField` is ADR0102's explicit secure single-line facade over the
+same TextField engine/listen. It never loads an existing credential, reveals
+input, returns the raw TextField or offers a text getter. Caller-localized
+Absent/Set placeholders stay distinct from replacement input. Masking blocks
+Copy/Cut in the engine; Paste retains existing editability/focus checks.
+SecretEdit::Unchanged means no replacement, never deletion; SecretInput diagnostics
+are redacted and its consumed value is only for the explicit secret-store boundary.
+The engine's PasswordInput accessibility projection suppresses its value. Current
+source/tests are unverified; no OS AT/IME/consumer/capture or persistence proof is
+implied by that policy. Ordinary TextField APIs and defaults remain unchanged.
+
 `kit::segmented::segmented_at` and `segment_at` take the shared `ControlSizing`
 for source MD32/44 (inner28/40), with unchanged SM28/24. They share the legacy
 renderer; source opt-ins add unselected pressed surface3 after hover surface2.
 Existing `segmented`/`segment` remain pointer-sized with their original paint.
 The caller owns the value and refuses disabled/current-value actions. Why and
 pinned lines: `docs/plans/shared-segmented-sizing.md`.
+
+`VirtualList::on_scroll` observes handled scroll input through GPUI's existing
+handler, without exporting its stale visible_range or changing list motion.
+Install once for the list owner; never query/reborrow the list during callback.
+Exact source/real-window proof remains pending in `docs/plans/wp-c3-list-scroll.md`.

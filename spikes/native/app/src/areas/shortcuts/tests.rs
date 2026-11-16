@@ -1,5 +1,6 @@
 //! Actual GPUI events through the production listener, without a link.
 //! The terminal owner query has a separate actual focus/route/close fixture.
+mod book_admission;
 
 use crate::shell::{Shell, language_tests};
 use gpui::{
@@ -16,6 +17,21 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_view::prefs::Theme;
 use vessel_app_view::shortcuts::Platform;
+
+/// Existing keyboard fixtures exercise an enabled UI, without online authority.
+pub(super) fn configured_book(shell: &mut Shell) {
+    shell.loaded = true;
+    shell.fleet.machines = vec![vessel_app_view::Machine {
+        name: "configured-offline".to_owned(),
+        node: None,
+        connection_epoch: None,
+        reach: vessel_app_view::Reach::Unreachable("fixture offline".to_owned()),
+        sessions: Vec::new(),
+        agents: Vec::new(),
+        protocol: None,
+        version: None,
+    }];
+}
 
 struct Probe {
     shell: Entity<Shell>,
@@ -59,6 +75,7 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
     let (view, cx) = cx.add_window_view(|window, cx| {
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
+            configured_book(&mut shell);
             super::listen(&mut shell, window, cx);
             shell
         });
