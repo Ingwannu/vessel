@@ -177,7 +177,7 @@ fn accepts(tool: BrowserTool, result: &BrowserResult) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vessel_proto::browser::{NoBrowserArgs, ScreenshotArgs, ScreenshotPng};
+    use vessel_proto::browser::{NoBrowserArgs, ScreenshotArgs, ScreenshotExtent, ScreenshotPng};
     fn id(last: char) -> BrowserId {
         format!("00000000-0000-4000-8000-00000000000{last}")
             .parse()
@@ -195,7 +195,7 @@ mod tests {
         let encoded = String::from(image.clone());
         let command = BrowserCommand::Screenshot(ScreenshotArgs {
             browser_id: id('1'),
-            extent: Default::default(),
+            extent: ScreenshotExtent::default(),
         });
         let result = render(
             &command,
@@ -226,7 +226,7 @@ mod tests {
     fn mismatched_target_or_operation_refuses_before_exposing_a_result() {
         let command = BrowserCommand::Screenshot(ScreenshotArgs {
             browser_id: id('1'),
-            extent: Default::default(),
+            extent: ScreenshotExtent::default(),
         });
         let result = render(
             &command,

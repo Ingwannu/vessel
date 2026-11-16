@@ -37,7 +37,7 @@ mod tests {
     #[cfg(feature = "ts")]
     #[test]
     fn typescript_browser_change_allows_omission_but_not_null() {
-        let declaration = <SetNodeSettings as ts_rs::TS>::decl();
+        let declaration = <SetNodeSettings as ts_rs::TS>::decl(&ts_rs::Config::new());
         assert!(declaration.contains("browser_tools?: BrowserTools"));
         assert!(!declaration.contains("browser_tools?: BrowserTools | null"));
     }

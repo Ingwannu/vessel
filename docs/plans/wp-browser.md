@@ -8,6 +8,29 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Resume: announced node union and stopped-time results
+
+Merged announced node head ed4cd137 (gate56b counted17/18; the named
+startSession stays /new intermittent remains open). The architecture table
+retains both independently owned browser and plugin rows; no code conflict
+or protocol assignment was introduced.
+
+Exact79439089 functional run wp-browser-execution-tests-20261115T185714Z-79439089
+completed1039/0/2: browser68/0/2, client93/0, MCP20/0, node329/0,
+proto419/0, RPC54/0 and web56/0. Both ignored tests require the approved
+runtime account/artifact; this does not execute CFT or qualify an engine.
+The strict run failed only two default_trait_access test findings; the TS run
+failed its browser-settings fixture because ts-rs12 requires a Config argument.
+Reuse the existing ServicePorts fixture's Config::new pattern and name
+ScreenshotExtent explicitly. No assertion or product behavior changes.
+Generated TS artifacts from that failed compilation contain no changed files;
+fresh generation remains owed. The completed runs were attached, never resubmitted.
+
+Next: changed-union narrow strict/TS checks and functional checks, then one
+fixed test-executable export after strict succeeds. Actual CFT pipe execution,
+D2 verified connection, retained cleanup, full actions and native wiring remain
+owed. NoEngine/hidden and BROWSER_PROTOCOL=None are unchanged.
+
 ## Current implementation boundary
 
 | Area | Implemented source | Remaining acceptance |
