@@ -2100,6 +2100,15 @@ view registry/engine projects effective bindings, and one app interceptor
 resolves them to generation-specific feature callbacks. Kit popup focus and
 composition are admission facts; action metadata grants no resource authority.
 
+## Native invitation confirmation
+
+Invitation confirmation uses view::pairing::OfferRoutes to project the existing
+Endpoint/Route types and prepare bilingual labels outside Render. Native and
+browser decoders share this pure projection; only the native Link retains the
+private decoded effect input. Public presentation/Debug cannot carry raw route
+userinfo, paths, query or fragments. This adds no crate edge or pairing effect;
+it is not the ADR0097 authenticated receipt or book upsert producer.
+
 ## Native Devices regression transport boundary
 
 The native Link's existing nondefault testing feature conditionally enables a

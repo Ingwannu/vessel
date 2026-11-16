@@ -58,6 +58,8 @@ mod header_search;
 mod header_search_tests;
 mod layout;
 mod return_focus;
+#[cfg(test)]
+mod selection_tests;
 mod sheet;
 #[cfg(test)]
 mod title_wrap_tests;
@@ -173,8 +175,20 @@ pub fn dialog<V: 'static>(
                 }
             }),
         )
-        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-            cx.stop_propagation();
+        // A press inside the card must neither close (the scrim's close) nor
+        // move focus (the card's own `track_focus` focus-on-press, and any
+        // focusable ancestor's), yet the window's text-selection layer
+        // (gpui-base's Root, painted under every deferred layer) must still
+        // see it, or a selectable value in a dialog could not be selected
+        // (Paseo's `DetailRow` values are `selectable`). So the card occludes
+        // the scrim's hitbox and marks the press default-prevented, which
+        // GPUI's focus transfer honours and the selection layer ignores,
+        // instead of stopping the event. GPUI registers an element's focus
+        // listener before its own mouse-down listeners, so this listener runs
+        // first in the bubble phase, as the old `stop_propagation` did.
+        .occlude()
+        .on_mouse_down(MouseButton::Left, |_event, window, _cx| {
+            window.prevent_default();
         })
         .flex()
         .flex_col()

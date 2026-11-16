@@ -13,6 +13,9 @@
 
 use crate::localization::Translator;
 
+mod offer;
+pub use offer::{OfferRoute, OfferRoutes};
+
 /// Why the pasted pairing link cannot be used.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinkProblem {

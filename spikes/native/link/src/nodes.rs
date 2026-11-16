@@ -146,7 +146,7 @@ async fn read_credential(
 /// What a pairing link offers, for a person to check before pairing: the
 /// node's key's fingerprint (printed on the node with the link), its id,
 /// its routes and when the link expires.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Offer {
     /// The decoded offer.
     pub(crate) decoded: vessel_proto::PairingOffer,
@@ -155,9 +155,22 @@ pub struct Offer {
     /// The node's id.
     pub node: String,
     /// Its routes, direct ones first.
-    pub routes: Vec<String>,
+    pub routes: vessel_app_view::pairing::OfferRoutes,
     /// When the link stops working, UTC.
     pub expires: String,
+}
+
+impl std::fmt::Debug for Offer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // The decoded effect input can carry private URL components. Only
+        // projected public facts belong in diagnostic output.
+        f.debug_struct("Offer")
+            .field("key", &self.key)
+            .field("node", &self.node)
+            .field("routes", &self.routes)
+            .field("expires", &self.expires)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Decode a pasted pairing link.
@@ -169,12 +182,7 @@ pub fn read_link(text: &str) -> Result<Offer, vessel_proto::LinkError> {
         .trim()
         .parse::<PairingLink>()
         .and_then(|link| link.decode())?;
-    let routes: Vec<String> = offer
-        .direct
-        .iter()
-        .chain(&offer.relays)
-        .map(ToString::to_string)
-        .collect();
+    let routes = vessel_app_view::pairing::OfferRoutes::of(&offer);
     Ok(Offer {
         key: vessel_client::fingerprint(&offer.key),
         node: offer.node.to_string(),
@@ -331,6 +339,40 @@ pub(crate) async fn pair(
 mod tests {
     use super::{LinkError, book_name, read_book_at};
     use vessel_app_view::Lang;
+
+    #[test]
+    fn decoded_offer_exposes_only_safe_routes_but_preserves_effect_inputs() {
+        let original = vessel_proto::PairingOffer {
+            v: vessel_proto::OfferVersion,
+            node: "00000000-0000-4000-8000-000000000099".parse().unwrap(),
+            key: vessel_proto::NodePublicKey::from_bytes([4; 32]),
+            direct: vec!["wss://hidden-user:private-password@host.invalid:7443/private-path?private-query#private-fragment".parse().unwrap()],
+            relays: vec!["wss://relay.invalid:443/private-ticket".parse().unwrap()],
+            invite: vessel_proto::InvitationSecret::from_bytes([7; 16]),
+            expires: "2026-11-20T00:00:00Z".parse().unwrap(),
+        };
+        let link = vessel_proto::PairingLink::encode(&original).unwrap();
+        let offer = super::read_link(link.expose()).unwrap();
+        assert_eq!(offer.decoded, original);
+        let [direct, relay] = offer.routes.rows() else {
+            panic!("two route rows required");
+        };
+        assert_eq!(direct.kind(Lang::En), "TCP");
+        assert_eq!(&**direct.endpoint(), "host.invalid:7443");
+        assert_eq!(relay.kind(Lang::Ko), "릴레이");
+        assert_eq!(&**relay.endpoint(), "relay.invalid:443");
+        let diagnostic = format!("{offer:?}");
+        for hidden in [
+            "hidden-user",
+            "private-password",
+            "private-path",
+            "private-query",
+            "private-fragment",
+            "private-ticket",
+        ] {
+            assert!(!diagnostic.contains(hidden));
+        }
+    }
 
     /// A token written into the book (it takes a file) reaches the app as
     /// a place and a kind only: the error's Display and Debug and the
