@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "phase": "feasibility only; no installed-size or product adoption claim",
-  "immutable_source": "18328dead33120c05191085b005a4dc6c3f2beac",
+  "immutable_source": "bc948736bd4f30456a84d028a9df0c62a9d0b31d",
   "measurement_contract_sha256": "8a20b0da559f2f01e3bda1dc639fed120884af8df094de83b77caf94bea8d8b0",
   "variants": {
     "narrow": {
@@ -28,15 +28,15 @@
   "inputs": [
     {
       "path": "spikes/native/experiments/number-format/decimal_probe.rs",
-      "sha256": "8f2e105227f8135fea574e6dfbcea744f5713b07bdfe4b14672abfc4ab0f199b"
+      "sha256": "4ff3a862c1025d207813623f379205afefba61f6ef993b3575b1ec063ebeed57"
     },
     {
       "path": "spikes/native/experiments/number-format/decimal_probe_tests.rs",
-      "sha256": "1f72699e0b8b2a725cc655c3bd3d8f5c74c450fe3da12627a9a6f1298e0581c4"
+      "sha256": "611b9ba744eabe80915eb7041f0bbcfd9c86f693436583e11253dfd8bb75587f"
     },
     {
       "path": "spikes/native/experiments/number-format/oracle_probe.rs",
-      "sha256": "c2f38c5fc0673cc13035f6842d21c7b61bf2f59cb959831c6f57c9b13f4668c4"
+      "sha256": "61815f5fa297e9dc43a6f1b643d19c6dd8b5a493ee7d05a9453847892e934cf0"
     },
     {
       "path": "spikes/native/experiments/number-format/plural_probe.rs",
