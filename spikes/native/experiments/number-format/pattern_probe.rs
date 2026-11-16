@@ -81,7 +81,7 @@ pub(super) enum NumberParts<'a> {
 
 pub(super) struct Patterns {
     bundle: FluentBundle<FluentResource>,
-    scales: Vec<i16>,
+    scales: Option<Vec<i16>>,
 }
 
 impl std::fmt::Debug for Patterns {
@@ -100,8 +100,14 @@ impl Patterns {
             .map_err(|error| PatternError::Locale(Arc::new(error)))?;
         let resource = FluentResource::try_new(source.to_owned())
             .map_err(|(_, errors)| PatternError::Parse(errors))?;
-        let scales = extract_scales(&resource)?;
-        let _validated = CompactScales::new(&scales)?;
+        let scales = match extract_scales(&resource) {
+            Ok(scales) => {
+                let _validated = CompactScales::new(&scales)?;
+                Some(scales)
+            }
+            Err(PatternError::Missing(COMPACT_BODY)) => None,
+            Err(error) => return Err(error),
+        };
         let mut bundle = FluentBundle::new_concurrent(vec![language]);
         bundle.set_use_isolating(false);
         bundle
@@ -110,8 +116,26 @@ impl Patterns {
         Ok(Self { bundle, scales })
     }
 
-    pub(super) fn scales(&self) -> Result<CompactScales<'_>, ScaleError> {
-        CompactScales::new(&self.scales)
+    pub(super) fn require_complete(&self) -> Result<(), PatternError> {
+        for key in [QUANTITY, USD, COMPACT, COMPACT_BODY] {
+            if self
+                .bundle
+                .get_message(key)
+                .and_then(|message| message.value())
+                .is_none()
+            {
+                return Err(PatternError::Missing(key));
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn scales(&self) -> Result<CompactScales<'_>, PatternError> {
+        let scales = self
+            .scales
+            .as_deref()
+            .ok_or(PatternError::Missing(COMPACT_BODY))?;
+        Ok(CompactScales::new(scales)?)
     }
 
     pub(super) fn render(&self, parts: NumberParts<'_>) -> Result<String, PatternError> {

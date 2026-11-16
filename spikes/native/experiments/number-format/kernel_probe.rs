@@ -65,8 +65,6 @@ pub(super) enum KernelError {
     Placement(#[from] PlacementError),
     #[error(transparent)]
     Pattern(#[from] PatternError),
-    #[error(transparent)]
-    Scales(#[from] super::decimal_probe::ScaleError),
 }
 
 impl From<fixed_decimal::LimitError> for KernelError {
@@ -96,6 +94,10 @@ impl<'a> NumberKernel<'a> {
             cardinal: PluralRules::try_new_cardinal(locale.clone().into())?,
             ordinal: PluralRules::try_new_ordinal(locale.into())?,
         })
+    }
+
+    pub(super) fn require_complete(&self) -> Result<(), KernelError> {
+        Ok(self.patterns.require_complete()?)
     }
 
     pub(super) fn amount(&self, amount: Amount) -> Result<String, KernelError> {

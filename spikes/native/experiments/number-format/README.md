@@ -84,6 +84,13 @@ They do not yet supply English fallback, app callback reachability, wasm
 entry, current generated-message unsigned arguments, or a consumer cache.
 Those integration requirements and all dependency/adoption gates remain open.
 
+The later `fallback_probe.rs` source adds whole numeric-pattern fallback and
+an English-baseline completeness check. A partial source may keep its own
+quantity while missing USD/compact messages reprepare the English digits,
+scale and pattern together. Its two child tests are unlinked/uncompiled,
+not part of stage 1. Fallback for whole app messages and their generated
+unsigned arguments is still a separate open integration requirement.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
