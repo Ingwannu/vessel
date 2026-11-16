@@ -294,3 +294,15 @@ recaptures a fresh UUID or returns an unlocked admission proof. The existing
 named fake-runtime supervision encloses both the invalidation and sender-closure
 wait assertions. This observation-only checkpoint remains cfg(test), unqualified
 for product use until exact source/runtime review and the concrete capsule join.
+
+
+The capture fixture correction keeps the outer 120-second safety owner and adds
+named ten-second setup/create/find/ready/invalidation/ended-handle phases. A
+single test-only task retains the actual fixture from setup through runtime
+shutdown, task drain and Store close. The assertion future is unwind-caught only
+so cleanup runs before its original failure is resumed. Each drain has its own
+named observer; completion signals follow the actual operation, not a fabricated
+acknowledgement. Losing an observer does not abort that owner or claim physical
+release. A new deliberate assertion-failure case starts a real fake handle,
+observes that original failure and proves the actual handle ended after cleanup.
+No inherited fixture body, product timeout or grant/effect API changes.
