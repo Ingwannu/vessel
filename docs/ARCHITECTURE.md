@@ -2024,3 +2024,10 @@ or protocol capability. This carrier adds no node settings field, persistence,
 RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
 through a typed fake until the real node field/adapter lands. See
 `docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
+
+`vessel-session::LaunchAdmission` is a read-only clone of the runtime's existing
+shutdown token and Node's original early-stop token. Its one predicate is shared
+by final structured/terminal spawn and external preparation observers; it grants
+no permission or current-run authority. The Node factory lives beside setup so
+this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
+this standalone prerequisite (ADR 0064 and launch-admission plan).

@@ -40,11 +40,13 @@ impl SessionRuntime {
         notices: Vec<String>,
         actor: ActorStart,
     ) -> Result<Created, SessionError> {
+        let admission = self.launch_admission();
+        admission.check()?;
         // `fork`/`exec` on this thread, as `tokio::process` does.
         let (agent, input, outputs) =
             AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone())
                 .map_err(SessionError::agent_not_started)?;
-        if self.shutdown.is_cancelled() {
+        if admission.check().is_err() {
             // Dropping the agent kills its process group.
             drop(agent);
             return Err(SessionError::ShuttingDown);
@@ -118,9 +120,15 @@ impl SessionRuntime {
         let notices = chosen.notices;
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
+        #[cfg(test)]
+        let gate = self.lookup_gate.take();
         // Lookup and directory checks block.
         tokio::task::spawn_blocking(move || {
             let command = launch_for(driver, &lookup, &env, &spec, &profile, proxy.as_ref())?;
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                gate.pause()?;
+            }
             // ACP needs an explicit directory; the launch defaults it to
             // the home directory, and the node's own is the last resort.
             let cwd = command
@@ -160,9 +168,7 @@ impl SessionRuntime {
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
     ) -> Result<vessel_agent::Probed, SessionError> {
-        if self.shutdown.is_cancelled() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.launch_admission().check()?;
         let mode = SessionMode::Structured {
             model: None,
             resume: None,
@@ -180,6 +186,7 @@ impl SessionRuntime {
             ..
         } = self.agent_command(spec, profile, proxy).await?;
         let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
+        self.launch_admission().check()?;
         Ok(vessel_agent::probe_with(driver, &command, setup).await?)
     }
 
@@ -202,9 +209,7 @@ impl SessionRuntime {
         folder: Option<&std::path::Path>,
         from: vessel_agent::HistoryFrom,
     ) -> Result<vessel_agent::HistoryPage, SessionError> {
-        if self.shutdown.is_cancelled() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.launch_admission().check()?;
         let mode = SessionMode::Structured {
             model: None,
             resume: None,
@@ -219,6 +224,7 @@ impl SessionRuntime {
             command, driver, ..
         } = self.agent_command(spec, profile, proxy).await?;
         let limit = self.config.agent_handshake_timeout;
+        self.launch_admission().check()?;
         Ok(vessel_agent::history_with(driver, &command, folder, from, limit).await?)
     }
 

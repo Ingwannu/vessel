@@ -1,8 +1,5 @@
 //! Starting a node and stopping it.
 
-mod runtime;
-use runtime::runtime;
-
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
@@ -27,8 +24,6 @@ use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
-use crate::attachments::uploads::{self, Uploads};
-use crate::attachments::{Attachments, Verified, load};
 use crate::automation;
 use crate::automation::schedules::node_runner::NodeRunner;
 use crate::automation::schedules::{Schedules, SystemClock};
@@ -304,11 +299,19 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader, setup.private_dir.clone(), store);
+    let stop = CancellationToken::new();
+    let runtime = setup::runtime(
+        config,
+        loader,
+        setup.private_dir.clone(),
+        stop.clone(),
+        Some(Arc::new(crate::question_bridge::Questions::new(
+            store.clone(),
+        ))),
+    );
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
-    let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -326,7 +329,7 @@ async fn core(
         Arc::clone(&agents),
         Arc::clone(&setup.models),
     ));
-    let attachments = attachments(config, store, &sessions, loads, (&tasks, &stop));
+    let attachments = setup::attachments(config, store, &sessions, loads, (&tasks, &stop));
     let forwarders = TaskTracker::new();
     let devices = Arc::new(Devices::new(
         store.clone(),
@@ -514,27 +517,6 @@ async fn core(
 /// How many prompts' attachment loads may wait for the node's loader; a
 /// session finding no room waits (each has at most one in flight).
 const ATTACHMENT_LOADS: usize = 16;
-
-/// The node's attachments (protocol 10): its uploads and their idle sweep,
-/// and the loader that answers the sessions' `loads`.
-fn attachments(
-    config: &Config,
-    store: &Store,
-    sessions: &Arc<Sessions>,
-    loads: tokio::sync::mpsc::Receiver<vessel_session::LoadAttachments>,
-    (tasks, stop): (&TaskTracker, &CancellationToken),
-) -> Arc<Attachments> {
-    let verified = Arc::new(Verified::default());
-    load::serve(store.clone(), Arc::clone(&verified), loads, tasks, stop);
-    let uploads = Arc::new(Uploads::new(staging::root(&config.data_dir), uploads::IDLE));
-    uploads.sweep(tasks, stop);
-    Arc::new(Attachments::new(
-        store.clone(),
-        Arc::clone(sessions),
-        uploads,
-        verified,
-    ))
-}
 
 /// Bind the local socket, and the TCP address if the config has one.
 async fn bind(

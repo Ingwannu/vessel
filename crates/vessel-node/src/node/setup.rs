@@ -8,14 +8,22 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+use tokio_util::sync::CancellationToken;
 use vessel_proto::NodeId;
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 
+use crate::attachments::staging;
+use crate::attachments::uploads::{self, Uploads};
+use crate::attachments::{Attachments, Verified, load};
 use crate::config::Config;
 use crate::fleet::FleetMcp;
 use crate::ipc::Endpoint;
 use crate::models::Models;
 use crate::profiles::NodeProfiles;
 use crate::profiles::launch::{AgentTools, Launcher, McpSource};
+use crate::sessions::Sessions;
+use tokio_util::task::TaskTracker;
+use vessel_store::Store;
 
 /// What sessions are created with: the node's profiles and the launch seam.
 pub(super) struct SessionSetup {
@@ -170,5 +178,82 @@ impl Startup {
             clients,
             relaying,
         })
+    }
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+pub(super) fn runtime(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+    admission: CancellationToken,
+    questions: Option<Arc<dyn vessel_session::durable_questions::QuestionPersistence>>,
+) -> Arc<SessionRuntime> {
+    let runtime = SessionRuntime::new(
+        RuntimeConfig {
+            harness_lookup: config.harness_lookup.clone(),
+            harness_env: config.harness_env.clone(),
+            ring_capacity: config.ring_capacity,
+            durable_capacity: config.durable_capacity,
+            agent_handshake_timeout: config.agent_handshake_timeout,
+            park_after: config.park_after,
+            private_dir: Some(private_dir),
+        },
+        CancellationToken::new(),
+    )
+    .with_attachments(loader)
+    .with_admission(admission);
+    Arc::new(match questions {
+        Some(questions) => runtime.with_questions(questions),
+        None => runtime,
+    })
+}
+
+/// The node's attachments (protocol 10): its uploads and their idle sweep,
+/// and the loader that answers the sessions' `loads`.
+pub(super) fn attachments(
+    config: &Config,
+    store: &Store,
+    sessions: &Arc<Sessions>,
+    loads: tokio::sync::mpsc::Receiver<vessel_session::LoadAttachments>,
+    (tasks, stop): (&TaskTracker, &CancellationToken),
+) -> Arc<Attachments> {
+    let verified = Arc::new(Verified::default());
+    load::serve(store.clone(), Arc::clone(&verified), loads, tasks, stop);
+    let uploads = Arc::new(Uploads::new(staging::root(&config.data_dir), uploads::IDLE));
+    uploads.sweep(tasks, stop);
+    Arc::new(Attachments::new(
+        store.clone(),
+        Arc::clone(sessions),
+        uploads,
+        verified,
+    ))
+}
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+
+    const ATTACHMENT_CAPACITY: usize = 1;
+
+    #[test]
+    fn the_actual_node_factory_observes_the_original_early_stop_token() {
+        let root = tempfile::tempdir().unwrap();
+        let config = Config::new(
+            vessel_store::DataDir::new(root.path()),
+            vessel_harness::HarnessEnv::new(root.path().to_owned()),
+        );
+        let (loader, _loads) = AttachmentLoader::channel(ATTACHMENT_CAPACITY);
+        let stop = CancellationToken::new();
+        let runtime = runtime(&config, loader, root.path().to_owned(), stop.clone(), None);
+        let observed = runtime.launch_admission();
+        assert!(observed.check().is_ok());
+        stop.cancel();
+        assert!(matches!(
+            observed.check(),
+            Err(vessel_session::SessionError::ShuttingDown)
+        ));
     }
 }

@@ -521,3 +521,15 @@ now express the optional actual-tool field without weakening their identity
 checks. These fixtures have not yet executed on this receiving union. Generated
 wire remains the incoming base bytes until the current combined generator runs;
 its formatting is never hand-edited.
+
+
+The gate58b receiving merge preserves the original early-stop LaunchAdmission
+carrier and the canonical runtime factory beside node setup. Its optional
+QuestionPersistence attachment retains the timeline owner's existing durable
+question bridge; the base factory regression passes None and keeps its original
+stop-token assertions. The duplicate older factory is removed. Attachment
+bootstrap moves unchanged beside the runtime factory to keep node assembly
+within its shrinking budget (636, formerly651); no channel limit, loader/sweep
+ordering or caller changes beyond qualification. No process-lifetime observation
+is promoted into an execution/grant fence by this join. Exact receiving checks
+remain owed; source movement and predecessor green are not merged-head proof.
