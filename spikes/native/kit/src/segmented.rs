@@ -14,11 +14,25 @@
 //! The control draws; the caller owns the value and is told of a choice
 //! through each segment's click, as the kit's other controls do.
 
+//! Explicit `_at` entries additionally use MD44/inner40 on compact layouts and
+//! the source unselected pressed surface3. Legacy entries retain pointer32/28
+//! and their prior hover-only paint, so no existing caller changes silently.
+//!
+//! [Decision Log]
+//! - Purpose: schedules need the pinned compact filter, not an area height override.
+//! - Existing assets: one segmented renderer and shared `ControlSizing`/touch44.
+//! - Alternatives: resize the caller's div, migrate all old owners, or duplicate it.
+//! - Choice: additive typed layout entries, delegating to one private body; old
+//!   functions keep pointer geometry and paint while new opt-ins get source press.
+//! - Why/cost: every consumer can migrate deliberately; legacy callers remain
+//!   staged pointer presentations until their owner opts in.
+
 use gpui::prelude::*;
 use gpui::{Div, ElementId, SharedString, Stateful, div, px};
 
+use crate::control_sizing::{ControlSizing, TOUCH_TARGET};
 use crate::fonts::Type;
-use crate::theme::Tokens;
+use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 
 /// The control's size (Paseo's two control sizes, pointer-sized).
@@ -50,20 +64,61 @@ impl SegmentSize {
     }
 }
 
-/// The row that holds the segments.
+// `SEGMENTED_INSET` in pinned control-geometry.ts35/308–326: two sides.
+const SEGMENT_INSET: f32 = spacing::S0_5;
+#[derive(Clone, Copy)]
+enum Presentation {
+    Legacy,
+    Source,
+}
+#[derive(Clone, Copy)]
+struct Profile {
+    size: SegmentSize,
+    sizing: ControlSizing,
+    presentation: Presentation,
+}
+struct Geometry {
+    outer: f32,
+    inner: f32,
+    horizontal: f32,
+    text: f32,
+}
+fn geometry(size: SegmentSize, sizing: ControlSizing) -> Geometry {
+    let outer = match (size, sizing) {
+        (SegmentSize::Medium, ControlSizing::Touch) => TOUCH_TARGET,
+        (SegmentSize::Medium, ControlSizing::Pointer)
+        | (SegmentSize::Small, ControlSizing::Pointer | ControlSizing::Touch) => size.height(),
+    };
+    let (horizontal, text) = match size {
+        SegmentSize::Medium => (spacing::S3, 14.0),
+        SegmentSize::Small => (spacing::S2, 12.0),
+    };
+    Geometry {
+        outer,
+        // Subtract the same source inset on both sides without unchecked arithmetic.
+        inner: SEGMENT_INSET.mul_add(-2.0, outer),
+        horizontal,
+        text,
+    }
+}
+/// Legacy pointer-sized row, unchanged for every existing caller.
 #[must_use]
 pub fn segmented(size: SegmentSize) -> Div {
+    segmented_at(size, ControlSizing::Pointer)
+}
+/// Source row with explicit input layout: MD32 pointer/44 touch; SM28 both.
+#[must_use]
+pub fn segmented_at(size: SegmentSize, sizing: ControlSizing) -> Div {
     div()
         .flex()
         .flex_row()
         .flex_none()
         .items_center()
-        .gap(px(4.0))
-        .min_h(px(size.height()))
+        .gap(px(spacing::S1))
+        .min_h(px(geometry(size, sizing).outer))
 }
-
-/// One segment; `chosen` fills it, `enabled` false dims it (the caller adds
-/// `on_click` only to enabled ones).
+/// Legacy pointer segment and paint, unchanged. Callers attach a handler only
+/// when enabled and recheck their current selection before changing it.
 #[must_use]
 pub fn segment(
     id: impl Into<ElementId>,
@@ -73,12 +128,58 @@ pub fn segment(
     size: SegmentSize,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let (padding, text) = match size {
-        SegmentSize::Medium => (12.0, 14.0),
-        SegmentSize::Small => (8.0, 12.0),
-    };
+    render(
+        id,
+        label,
+        chosen,
+        enabled,
+        Profile {
+            size,
+            sizing: ControlSizing::Pointer,
+            presentation: Presentation::Legacy,
+        },
+        tokens,
+    )
+}
+/// Source MD28/40 segment inside the32/44 row, or SM24 inside28.
+/// Unselected hover uses surface2 and press surface3. Selected stays surface3.
+/// As with the legacy entry, callers attach no disabled action and refuse a
+/// no-op choice of their currently selected value.
+#[must_use]
+pub fn segment_at(
+    id: impl Into<ElementId>,
+    label: impl Into<SharedString>,
+    chosen: bool,
+    enabled: bool,
+    size: SegmentSize,
+    sizing: ControlSizing,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    render(
+        id,
+        label,
+        chosen,
+        enabled,
+        Profile {
+            size,
+            sizing,
+            presentation: Presentation::Source,
+        },
+        tokens,
+    )
+}
+fn render(
+    id: impl Into<ElementId>,
+    label: impl Into<SharedString>,
+    chosen: bool,
+    enabled: bool,
+    profile: Profile,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let geometry = geometry(profile.size, profile.sizing);
     let neutral = &tokens.neutral;
     let hover = neutral.surface2;
+    let pressed = neutral.surface3;
     div()
         .id(id)
         .flex()
@@ -86,12 +187,12 @@ pub fn segment(
         .flex_none()
         .items_center()
         .justify_center()
-        .gap(px(4.0))
-        .min_h(px(size.inner()))
-        .px(px(padding))
+        .gap(px(spacing::S1))
+        .min_h(px(geometry.inner))
+        .px(px(geometry.horizontal))
         .rounded_full()
         .type_(Type::Body)
-        .text_size(px(crate::fonts::ui(text)))
+        .text_size(px(crate::fonts::ui(geometry.text)))
         .text_color(if chosen {
             neutral.foreground
         } else {
@@ -100,7 +201,16 @@ pub fn segment(
         .when(chosen, |segment| segment.bg(neutral.surface3))
         .when(!enabled, |segment| segment.opacity(0.5))
         .when(enabled && !chosen, |segment| {
-            segment.cursor_pointer().hover(move |style| style.bg(hover))
+            segment
+                .cursor_pointer()
+                .hover(move |style| style.bg(hover))
+                .when(
+                    matches!(profile.presentation, Presentation::Source),
+                    |segment| segment.active(move |style| style.bg(pressed)),
+                )
         })
         .child(label.into())
 }
+
+#[cfg(test)]
+mod tests;
