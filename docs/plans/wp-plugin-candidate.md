@@ -77,6 +77,15 @@ before content I/O; O_NONBLOCK and actual descriptor verification remain require
 for regular files. Symlink records retain their separate bounded observation
 policy; this proposal does not silently replace it with symlink traversal.
 
+The current file/tree observer still opens pathnames. Retaining a root descriptor
+beside it does not confine those later opens. The future join must move its real
+entry enumeration, file/link checks and both content passes onto retained
+descriptor-relative operations while reusing the same hash/budget policy. Do not
+turn the descriptor into a /proc pathname, reopen the old absolute root, or keep
+a parallel pathname producer that can manufacture a reviewed candidate. Until
+that actual join and its tests exist, the existing observer stays staged and
+cannot supply the proposed positive managed-candidate boundary.
+
 The root bootstrap and each later use must retain their explicit guarantees.
 An open root descriptor does not retroactively verify an insecure ancestor
 lookup. Even verified descriptors do not prevent same-account content mutation,
