@@ -64,7 +64,8 @@ View/Kit/App all-target strict Clippy in
 `wp-layout-core-union-20261116T020007Z-31bc64fe`, fonts/cargo0, with actual
 View/Kit/Link/App Checking. Same-head all-target runtime
 `wp-layout-core-union-20261116T021258Z-31bc64fe` compiled those four crates and
-passed App152/0/2 ignored, Kit244/0/0, View1002/0/0 and example142:1540/0/2 total.
+passed App152/0/2 ignored, Kit244/0/0, View1002/0/0 and integration and example
+tests142:1540/0/2 total (integration131 plus locale_coverage example11).
 The scoped minter/field readmission and hidden-input case, installed Lifecycle
 sealed-ACK/empty-ticket full retirement case, original scoped constructor case
 and both lossless Display cases all passed explicitly. The earlier81 test-lint
