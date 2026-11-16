@@ -541,3 +541,9 @@ then hold a real SQLite writer transaction while dropping an already admitted
 caller and verify one operation/lease survives through durable+live drain.
 They are not executed evidence or assigned positive RPC proof. Existing scope,
 nonforwardability, pending veto, exact-through and unread semantics stay intact.
+
+
+Resource preflight also short-circuits an oversized attention batch before
+allocating its distinct-id set. Count/distinct validation, error text and
+ATTENTION_BATCH remain the same; only invalid-input allocation order changes.
+No additional bound, wire or authority is introduced.

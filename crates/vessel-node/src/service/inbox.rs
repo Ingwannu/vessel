@@ -117,8 +117,16 @@ impl NodeService {
         request: vessel_proto::inbox_attention::GetInboxAttention,
     ) -> Result<Vec<vessel_proto::inbox_attention::SessionAttention>, WireError> {
         use vessel_proto::inbox_attention::ATTENTION_BATCH;
-        let distinct: std::collections::HashSet<_> = request.sessions.iter().collect();
-        if request.sessions.len() > ATTENTION_BATCH || distinct.len() != request.sessions.len() {
+        // Bound the request before allocating the distinct-id set. Even an
+        // invalid decoded frame must not scale that work beyond this policy.
+        if request.sessions.len() > ATTENTION_BATCH
+            || request
+                .sessions
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                != request.sessions.len()
+        {
             return Err(WireError::new(
                 ErrorCode::InvalidRequest,
                 format!("request at most {ATTENTION_BATCH} distinct sessions for inbox attention"),
