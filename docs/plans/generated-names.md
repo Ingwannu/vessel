@@ -230,7 +230,10 @@ buffer erased an ordinary field's path. The correction replaces only that
 buffer with a single-pass metadata map view through the same sealed decoder;
 common decoder, writer tests and assertions stay unchanged. The map adapter
 and root/field/duplicate-key regression cases are now implemented; their
-execution and strict checks are pending. The checked node
+execution and strict checks are pending. The file regressions then passed
+all fourteen selected cases. Strict preflight found an unnecessary raw-string
+delimiter in the new root-type test; the replacement has identical input bytes
+and changes no product behavior or assertion. The checked node
 head is now merged without conflicts, retaining protocol 25, schema 21 and the
 head's migration sequence. Corrected focused checks and the final combined gate
 remain owed; the earlier strict and TypeScript passes describe the prior tree.

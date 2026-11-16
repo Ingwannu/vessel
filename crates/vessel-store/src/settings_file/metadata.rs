@@ -100,7 +100,7 @@ mod diagnostic_tests {
 
     #[test]
     fn a_root_type_failure_stays_at_the_root_and_duplicate_metadata_is_refused() {
-        let error = decode(br#"[]"#).unwrap_err();
+        let error = decode(b"[]").unwrap_err();
         assert_eq!(error.to_string(), "invalid field at $");
         for bytes in [
             br#"{"metadata":null,"metadata":null}"#.as_slice(),
