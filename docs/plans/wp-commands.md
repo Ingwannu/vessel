@@ -1317,3 +1317,13 @@ c7eb3b1f1 on base14.1; native bytes equal executed159f6856. R37 App strict0 and
 R29 actual AppBIN19/0/0 were independently verified. That shared source is handed
 to the lead; consumer adoption waits an announced receiving green. This is not
 final F4, W15 chrome or live node/OS/persistence approval.
+
+
+The first14.3 receiving strict run R38 stopped before App tests: the automatic
+union had declared/initialized the existing FileTickets allocator twice, and
+the incoming retained-viewer test lacked the older receiving Viewer's three
+extra inert fields. The duplicate declaration/initializer is removed, preserving
+one allocator shared by old and canonical readers. The test adds reading=None,
+workspace_dir=None and intelligence=Idle without changing its assertions or
+creating a connection receipt. W13's canonical follow/body policy stays intact.
+Current receiving checks remain owed; R38 is retained as a compilation failure.

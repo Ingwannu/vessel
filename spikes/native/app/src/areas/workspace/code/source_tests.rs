@@ -381,6 +381,9 @@ fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
         let _step = edit.model.edit("retained draft");
         assert!(edit.model.modified());
         shell.areas.workspace.code.files.viewer = Some(Viewer {
+            reading: None,
+            workspace_dir: None,
+            intelligence: intelligence::State::Idle,
             path: "a.rs".parse().unwrap(),
             text: Shown::Loading,
             list: VirtualList::new(false),

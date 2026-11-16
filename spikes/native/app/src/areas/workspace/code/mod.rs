@@ -197,7 +197,6 @@ pub(crate) struct CodePanel {
     stale: Stale,
     /// Each session's root for finds from other areas (`code_find_files`).
     finder: elsewhere::Finder,
-    tickets: vessel_app_view::workspace::file_ticket::FileTickets,
 }
 
 /// Which tabs are to be read again when shown.
@@ -243,7 +242,6 @@ impl CodePanel {
             row: std::rc::Rc::new(std::cell::Cell::new(None)),
             stale: Stale::default(),
             finder: elsewhere::Finder::default(),
-            tickets: vessel_app_view::workspace::file_ticket::FileTickets::default(),
         }
     }
 
