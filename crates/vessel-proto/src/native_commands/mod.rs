@@ -122,9 +122,6 @@ impl NativeCommandStatus {
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 /// Bound the original command echo as well as the normalized goal objective.
 /// A small fixed prefix/whitespace allowance never silently truncates submitted text.
 pub const MAX_NATIVE_COMMAND_ORIGINAL_BYTES: usize = MAX_GOAL_OBJECTIVE_BYTES.saturating_add(256);
@@ -137,3 +134,6 @@ impl NativeCommandIntent {
         matches!(content, [crate::ContentBlock::Text { text }] if text.len() <= MAX_NATIVE_COMMAND_ORIGINAL_BYTES && self.matches_text(text))
     }
 }
+
+#[cfg(test)]
+mod tests;

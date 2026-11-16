@@ -203,3 +203,12 @@ a variable bound in only one side of an uncertain-result or-pattern; the ignored
 receiver now uses a nonbinding wildcard. No retained outcome or assertion is
 changed. Both old runs stay failed and generated artifacts from the failed
 compile are not adopted; corrected current compilation/generation is required.
+
+
+Standalone recovery values are separated from their later event attachment tests
+before the minimal carrier is cut. The two existing command-echo/original-bound
+tests move, with their assertions intact, from receipt.rs to the event test
+module; native command tests are declared last. Product definitions and wire
+shapes are unchanged. A values-only receiving tree can therefore test the exact
+request/receipt/binding modules without inventing CommandAccepted or importing
+the unfinished actor. Its tests cannot be cited as event/runtime proof.

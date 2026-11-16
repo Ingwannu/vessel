@@ -389,3 +389,6 @@ mod optional;
 
 #[cfg(test)]
 mod timeline_tests;
+
+#[cfg(test)]
+mod receipt_echo_tests;
