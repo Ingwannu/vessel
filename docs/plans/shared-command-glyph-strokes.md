@@ -89,3 +89,7 @@ cmd-weight-palette-79a49c08a 2/0 (the app is unchanged since); strict
 cmd-weight-strict5-d238b52e7 all 0 (d238b52e7 = 08bd87972 + test formatting). Captures
 from the exact export of 08bd87972 against the shared base14.19 fleet (protocol 28):
 no capture-only cherry-pick was needed.
+
+Coordinator visual PASS (2026-11-16): every command-centre glyph matches Paseo (2.2,
+Plus 2.4). The derived command-weight assets are approved instead of explicit `Command*`
+copies: one source per path and no drift between a shared role and its command copy.
