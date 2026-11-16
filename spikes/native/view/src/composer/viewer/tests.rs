@@ -58,7 +58,10 @@ fn toolbar_steps_reach_paseos_quarter_floor_and_eight_times_ceiling_from_fit() {
     view.zoom_center(ZOOM_OUT);
     assert_eq!(view.scale().to_bits(), ZOOM_OUT.to_bits());
     assert!(view.contains(position(400.0, 300.0)));
-    assert!(!view.contains(position(400.0, 120.0)), "smaller than the fit");
+    assert!(
+        !view.contains(position(400.0, 120.0)),
+        "smaller than the fit"
+    );
     // 0.8 to the sixth power is still above the floor; the seventh step stops at it.
     for _ in 0..5 {
         view.zoom_center(ZOOM_OUT);
