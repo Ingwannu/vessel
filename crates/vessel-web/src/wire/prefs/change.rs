@@ -54,8 +54,7 @@ pub enum PreferenceChange {
     SidebarSort(SessionSort),
     /// [`SidebarView::ended`].
     SidebarEnded(bool),
-    /// [`SidebarView::labels`]: the whole filter, at most
-    /// [`super::MAX_LABEL_PICKS`] names.
+    /// [`SidebarView::labels`]: the whole filter, at most 32 names.
     SidebarLabels {
         /// The names picked; `""` is Unlabelled.
         #[cfg_attr(feature = "ts", ts(as = "Vec<String>"))]

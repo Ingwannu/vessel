@@ -18,12 +18,12 @@ use serde::{Deserialize, Deserializer, Serialize, de};
 use super::Bounded;
 
 /// The most label names the filter keeps.
-pub const MAX_LABEL_PICKS: usize = 32;
+pub(crate) const MAX_LABEL_PICKS: usize = 32;
 
 /// The longest picked name, in bytes.
-pub const MAX_LABEL_PICK_BYTES: usize = 256;
+pub(crate) const MAX_LABEL_PICK_BYTES: usize = 256;
 
-/// The picked names: at most [`MAX_LABEL_PICKS`]. In TypeScript an array
+/// The picked names: at most 32 (`MAX_LABEL_PICKS`). In TypeScript an array
 /// of strings (each field using it says so with `ts(as)`).
 pub type LabelPicks = Bounded<LabelPick, MAX_LABEL_PICKS>;
 
@@ -35,14 +35,14 @@ pub struct LabelPick(String);
 /// A picked name longer than [`MAX_LABEL_PICK_BYTES`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("a picked label name is longer than {MAX_LABEL_PICK_BYTES} bytes")]
-pub struct LabelPickTooLong;
+pub(crate) struct LabelPickTooLong;
 
 impl LabelPick {
     /// `name`, when it fits.
     ///
     /// # Errors
     /// Longer than [`MAX_LABEL_PICK_BYTES`].
-    pub fn new(name: String) -> Result<Self, LabelPickTooLong> {
+    pub(crate) fn new(name: String) -> Result<Self, LabelPickTooLong> {
         if name.len() > MAX_LABEL_PICK_BYTES {
             Err(LabelPickTooLong)
         } else {

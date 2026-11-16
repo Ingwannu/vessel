@@ -52,7 +52,7 @@ pub use change::{PreferenceChange, ShortcutEdit, ShortcutTarget};
 pub use drafts::{Draft, DraftKey, DraftText, DraftTooLong, DraftsState, MAX_DRAFT};
 pub use keys::{ActionId, InvalidActionId, InvalidKeyBinding, KeyBinding};
 use labels::no_picks;
-pub use labels::{LabelPick, LabelPickTooLong, LabelPicks, MAX_LABEL_PICK_BYTES, MAX_LABEL_PICKS};
+pub use labels::{LabelPick, LabelPicks};
 
 /// The most keys bound to one action.
 pub const MAX_BINDINGS: usize = 2;
@@ -369,7 +369,7 @@ pub struct SidebarView {
     pub ended: bool,
     /// The workspace labels the sidebar is filtered by, when grouped by
     /// workspace; empty lists every workspace, `""` is Unlabelled. At most
-    /// [`MAX_LABEL_PICKS`].
+    /// 32 names.
     #[serde(default = "no_picks")]
     #[cfg_attr(feature = "ts", ts(as = "Vec<String>"))]
     pub labels: LabelPicks,
