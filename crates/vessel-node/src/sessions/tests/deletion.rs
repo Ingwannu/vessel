@@ -31,7 +31,7 @@ async fn archive_delete_waits_for_publication_admission_and_retains_its_commit()
         // as proof that deletion reached the publication barrier.
         std::future::poll_fn(|cx| match request.as_mut().poll(cx) {
             std::task::Poll::Ready(result) => panic!("delete escaped held admission: {result:?}"),
-            std::task::Poll::Pending if fixture.tasks.len() == 0 => std::task::Poll::Pending,
+            std::task::Poll::Pending if fixture.tasks.is_empty() => std::task::Poll::Pending,
             std::task::Poll::Pending => std::task::Poll::Ready(()),
         })
         .await;
