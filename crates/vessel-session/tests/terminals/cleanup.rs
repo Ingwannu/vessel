@@ -2,6 +2,7 @@
 use super::*;
 use std::{future::Future, time::Duration};
 use vessel_session::terminals::{CleanupFact, CleanupObservation};
+#[path = "cleanup/safety.rs"]
 mod safety;
 use safety::case;
 const PHASE: Duration = Duration::from_secs(10);
