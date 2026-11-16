@@ -8,10 +8,13 @@ use crate::ProtocolVersion;
 /// Assignment requires the shared required-protocol gate, CLI run/resume,
 /// list/update, MCP create/list/update, and the native/web metadata views
 /// to validate and handle labels. The integrator sets Some(version) only
-/// when these consumers are ready; None hides labels from every peer.
+/// when these consumers and background discovery/inheritance are ready;
+/// None hides labels and listing from every peer.
 pub const SINCE: Option<ProtocolVersion> = None;
 
-/// Unassigned metadata stays private even for the newest peer.
-pub(crate) fn visible(assigned: Option<ProtocolVersion>, peer: ProtocolVersion) -> bool {
+/// Share the reply projection rule with export producers, so an unreadable
+/// transfer is refused before it could discard metadata at a peer.
+#[must_use]
+pub fn visible(assigned: Option<ProtocolVersion>, peer: ProtocolVersion) -> bool {
     assigned.is_some_and(|since| peer >= since)
 }

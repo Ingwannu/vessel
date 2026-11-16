@@ -47,6 +47,7 @@ mod connector;
 mod conversation;
 mod credential;
 mod device_self;
+mod diagnostics;
 mod error;
 pub mod file_fault;
 mod fleet_control;
@@ -60,12 +61,15 @@ mod resume;
 mod schedules;
 pub mod secure;
 mod side_questions;
+mod skills;
 mod stream;
 #[cfg(test)]
 mod tests;
 mod token;
 mod url;
 mod usage;
+mod workspace_files;
+mod workspace_transfer;
 mod ws;
 
 pub use address::{
@@ -76,6 +80,7 @@ pub use chunks::{ChunkSink, FetchError, fetch_chunks};
 pub use client::NodeClient;
 pub use connector::{Connector, WsConnector};
 pub use credential::{CredentialError, CredentialMismatch, CredentialSource, DeviceCredential};
+pub use diagnostics::{DIAGNOSTIC_REQUEST_TIMEOUT, DiagnosticError};
 pub use error::{ConnectError, StreamError};
 pub use local::{LocalConnectError, LocalCredential};
 pub use pinned::{Pinned, PinnedError};
@@ -89,4 +94,8 @@ pub use vessel_rpc::{
 };
 /// The short fingerprint people compare to recognise a node's key.
 pub use vessel_secure::fingerprint;
+pub use workspace_files::WorkspaceFileCallError;
+pub use workspace_transfer::{
+    InvalidFilePage, WorkspaceFileFetchError, WorkspaceFilePageError, fetch_workspace_file_with,
+};
 pub use ws::WsTransportError;

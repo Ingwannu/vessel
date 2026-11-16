@@ -109,3 +109,12 @@ keeps the actual old and new scroll handles unchanged before redraw, then
 requires fresh B native wheel to work. This closes a source inspection gap;
 these new tests remain unexecuted. Existing authored docs now name configured
 open heights rather than implying every sheet always opens at60 percent.
+
+On resume, merge announced package base13 before the first check; retain all
+existing SearchField/inventory/editor/field README sections alongside this
+adapter. No Dialog source or authored defaults are changed by that union.
+The placement check exposed the same AnyElement prepaint report here: retain
+that Option<FocusHandle> locally, because child prepaint already updates Window
+and this geometry adapter must not acquire focus. This is a static owning
+compatibility correction, not executed content-fit evidence. Exact native
+strict/input/gesture tests and V1 review remain owed.

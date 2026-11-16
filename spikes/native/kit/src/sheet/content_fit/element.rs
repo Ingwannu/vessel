@@ -111,7 +111,10 @@ impl Element for Fitted {
                 .as_f32()
                 .mul_add(-1.0, geometry.top.as_f32())),
         );
-        window.with_element_offset(shift, |window| self.child.prepaint(window, cx));
+        // Child prepaint already records focus in Window. Geometry retains
+        // its report without acquiring focus or creating another owner.
+        let _child_focus =
+            window.with_element_offset(shift, |window| self.child.prepaint(window, cx));
         true
     }
     fn paint(
