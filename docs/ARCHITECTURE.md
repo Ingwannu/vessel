@@ -1884,3 +1884,16 @@ the session-owned ConversationArea. Existing Shell search calls, the link and
 the renderer keep their interfaces. Replacing a conversation resident therefore
 preserves debounce, query tickets and merged cross-machine replies. The isolated
 prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
+
+
+## Voice settings values carrier
+
+vessel-proto::voice contains only the canonical VoiceSettings/SetVoice metadata
+and bounded independent recognition/synthesis options. It reuses dictation's
+existing omission/reset visitor, validated metadata and secret references;
+readers receive key presence only. The pending None constant grants no runtime
+or protocol capability. This carrier adds no node settings field, persistence,
+RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
+through a typed fake until the real node field/adapter lands. See
+`docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
+
