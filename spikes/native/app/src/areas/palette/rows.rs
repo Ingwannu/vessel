@@ -157,7 +157,10 @@ mod stroke_tests {
     /// 2.2; other rows keep the shared glyphs.
     #[test]
     fn root_action_rows_use_the_command_stroke_roles() {
-        assert_eq!(glyph_of(&PaletteTarget::NewSession(None)), Glyph::CommandPlus);
+        assert_eq!(
+            glyph_of(&PaletteTarget::NewSession(None)),
+            Glyph::CommandPlus
+        );
         assert_eq!(
             glyph_of(&PaletteTarget::Settings(Section::General)),
             Glyph::CommandSettings

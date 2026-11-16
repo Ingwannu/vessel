@@ -26,7 +26,10 @@ fn stroked(group: &usvg::Group, width: f32) -> usize {
         count.saturating_add(match node {
             usvg::Node::Path(path) => {
                 assert!(path.fill().is_none(), "an unfilled line glyph");
-                assert_eq!(path.stroke().unwrap().width().get().to_bits(), width.to_bits());
+                assert_eq!(
+                    path.stroke().unwrap().width().get().to_bits(),
+                    width.to_bits()
+                );
                 1
             }
             usvg::Node::Group(group) => stroked(group, width),
@@ -76,7 +79,10 @@ fn command_roles_keep_ink_at_the_row_size_over_fractional_scales() {
     for (glyph, _, _) in ROLES {
         for scale in [4_u16, 5, 6, 8] {
             let image = paint(glyph, 16, scale);
-            assert!(image.pixels().any(|pixel| pixel.0[3] > 0), "{glyph:?}/{scale}");
+            assert!(
+                image.pixels().any(|pixel| pixel.0[3] > 0),
+                "{glyph:?}/{scale}"
+            );
         }
     }
 }
