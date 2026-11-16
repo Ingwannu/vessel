@@ -45,7 +45,15 @@ pub(super) fn render(
     let pinned = shell.prefs.settings.usage.pins.contains(&pin, &defaults);
     let body = window_body(shell, window, retained, Some(pinned), tokens);
     let receipt = super::read_states::context(shell);
-    let label = format!("{} · {}", entry.source_label, window.label);
+    let label = format!(
+        "{} · {}",
+        entry.source_label,
+        vessel_app_view::usage::window_label_text(
+            window.id.as_str(),
+            window.label.as_str(),
+            shell.words
+        )
+    );
     let description = if pinned {
         shell.words.usage().unpin()
     } else {
@@ -90,7 +98,11 @@ fn window_body(
         DisplayPercent::from_reported(used, remaining, shell.prefs.settings.usage.display);
     let mut body = super::card::bar()
         .child(super::card::label_row(
-            window.label.as_str().to_owned(),
+            vessel_app_view::usage::window_label_text(
+                window.id.as_str(),
+                window.label.as_str(),
+                shell.words,
+            ),
             percent_label(shell, percent),
             pinned,
             tokens,

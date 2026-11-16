@@ -188,11 +188,13 @@ fn observed_content(
                 || reports.cost_visibility == vessel_proto::usage::CostVisibility::Permitted
         })
         .map(|detail| {
-            card::detail(
-                detail.label.to_string().into(),
-                detail.value.to_string().into(),
-                tokens,
-            )
+            let (label, value) = vessel_app_view::usage::detail_text(
+                detail.id.as_str(),
+                detail.label.as_str(),
+                detail.value.as_str(),
+                shell.words,
+            );
+            card::detail(label.into(), value.into(), tokens)
         })
         .collect::<Vec<_>>();
     if !details.is_empty() {

@@ -22,7 +22,11 @@ pub(super) fn render(
     // balance-bar.tsx labelRow: the same 12 px medium label and value as a
     // window row, without the pin (balances are never pinned).
     let mut body = card::bar().child(card::label_row(
-        balance.label.as_str().to_owned(),
+        vessel_app_view::usage::balance_label_text(
+            balance.id.as_str(),
+            balance.label.as_str(),
+            shell.words,
+        ),
         balance_amount(balance, visibility, shell.words),
         None,
         tokens,

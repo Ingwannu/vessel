@@ -371,5 +371,11 @@ usage-off-on = { $host }의 사용량 확인이 꺼져 있습니다.
 usage-turn-on = 켜기
 # 머신이 계정 사용량을 하나도 보고하지 않을 때의 흐린 카드 문구입니다.
 usage-plan-empty = 사용량 데이터가 없습니다
-# 잔액 라벨 옆에 표시하는 남은 양입니다(Paseo providerUsage.values.remaining). $amount에는 단위가 포함됩니다.
+# 잔액 라벨 옆에 표시하는 남은 양입니다(Paseo providerUsage.values.remaining). $amount는 아래 금액 문구입니다.
 usage-amount-left = { $amount } 남음
+# 크레딧이나 요청 수로 된 잔액입니다(Paseo formatAmount: 단위는 라벨이 말하고, 소수는 둘째 자리까지).
+usage-amount = { NUMBER($amount, maximumFractionDigits: 2) }
+# 미국 달러로 된 잔액입니다(Paseo formatAmount: 한국어 Intl의 US$ 표기, 소수 둘째 자리).
+usage-amount-usd = US${ NUMBER($amount, minimumFractionDigits: 2, maximumFractionDigits: 2) }
+# 토큰 수로 된 잔액입니다. 정수로 자릿수를 묶어 표시합니다(Paseo의 축약 표기는 ADR 0101 이후).
+usage-amount-tokens = { NUMBER($amount, maximumFractionDigits: 0) }
