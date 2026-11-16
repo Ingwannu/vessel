@@ -97,3 +97,12 @@ context. The authored real-Scenario reconnect case keeps the editor/find focus,
 publishes a different actual node, and requires immediate Find refusal with
 the original model/editor text retained. It is unexecuted; queued strict36
 predates this small source correction and will not qualify it.
+
+The announced base14.2 c6d8df49 (native1777/0/2, wasm0) was merged before
+the replacement owner check. Superseded strict36 was verified queued and
+cancelled terminal143 under standing approval, retaining its records. Its one
+replacement uses the new immutable head in the same ordinary lane. Source
+preflight found no new native owner candidates: its reported long functions
+are the browser-only existing answer match and adopted vendor text-engine
+functions outside native workspace lint resolution. That static judgement
+is not a Clippy pass; actual receiving compilation remains owed.
