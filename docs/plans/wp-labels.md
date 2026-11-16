@@ -544,9 +544,9 @@ or establishes a typed watermark/causal-read contract. W10/W12/C2 share this
 hold, and no native compile leaf has been installed.
 
 
-## Current resume point after base 13.1
+## Current resume point after base 14.1
 
-Merged only announced app base 13.1 `ad14f5f6`, retaining history and label
+Merged only announced app base 14.1 `b54abbdc`, retaining history and label
 registrations and the shared preference-save implementation. Local source size,
 token and diff checks pass; current native compilation/runtime/captures remain
 owed after the older scoped 45-test result. No whole node head entered this app.
@@ -570,9 +570,11 @@ callbacks and id/focus/set_text without changing plain new/clear/render. Origina
 focused runtime passed the forced old-editor rejection and both existing tests,
 but its new Enter event-count assertion failed. The test now follows the existing
 single-line normalization path, with product behavior unchanged. Corrected leaf
-`790a5f84` on base 13.1 passed Kit all-target strict; focused runtime is pending.
-It is not adopted here. V1 and lead acceptance precede the separate manager
-consumer switch, which retains its opening/source callback regression.
+`790a5f84` on base 13.1 passed Kit all-target strict and actual focused4/0/0,
+243 filtered. The docs-only final `b7c199edf` passed V1 row304; the lead merged
+it into green base14.1 (native1755/0/2). That producer is now adopted here.
+The separate manager consumer below retains its opening/source callback
+regression; its own narrow execution, V1 disposition and A6 gates remain owed.
 
 
 ## Shared manager search consumer
