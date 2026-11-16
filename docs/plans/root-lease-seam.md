@@ -1,9 +1,15 @@
 # Canonical physical-root borrow producer
 
-Status: source extracted on announced node ed4cd137; no compile/runtime pass,
-review acceptance or consumer-ready hash. The full checkpoint branch's results
-are not evidence for this leaf. Validate this exact leaf with ordinary strict
-clippy, then its tests; submit it alone to V3 only after both pass.
+Status: producer-only implementation awaiting acceptance. The first exact source
+leaf da61a1461 on node ed4cd137 passed its own ordinary three-library Clippy
+(run wp-checkpoints-node-20261116T003228Z-da61a146, cargo0/88s) and eight selected
+library tests (run wp-checkpoints-node-20261116T012226Z-da61a146, 8/0/0). That test
+compile reported two unused-qualification warnings in a test timeout constant;
+they are removed using the already imported Duration. The next natural base merge
+consumes announced bc9cacc6. This union still needs its own strict test-code check,
+tests and remote boundaries before V3; prior-base results are scoped evidence.
+No consumer-ready hash, process quiescence or restore capability is claimed.
+The full checkpoint branch's results never count as evidence for this leaf.
 
 [Decision Log]
 - Purpose: W17's future terminal quiescence proof must borrow the node's exact
@@ -52,7 +58,7 @@ controller remain separate consumer work; this leaf is no full-root safety claim
 
 ## Validation owed
 
-Run clippy for vessel-proto/workspace/node libraries with warnings denied, then
+Run clippy for vessel-proto/workspace/node including test targets with warnings denied, then
 checkpoint-filtered tests on vessel-node and vessel-workspace. The leaf tests
 cover queue saturation/expiry, aliases/drop/stop, actual ordinary file denial,
 retained I/O after RPC loss, metadata admission capacity, managed ancestor FD

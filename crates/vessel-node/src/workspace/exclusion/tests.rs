@@ -1,6 +1,6 @@
 //! Pure admission barriers never claim terminal or filesystem cleanup proof.
 use super::*;
-const ROOT_TEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+const ROOT_TEST_TIMEOUT: Duration = Duration::from_secs(30);
 use vessel_proto::BlobHash;
 fn root(byte: u8) -> PhysicalRoot {
     PhysicalRoot::new(BlobHash::from_bytes([byte; 32]))
