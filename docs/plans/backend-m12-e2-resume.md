@@ -81,3 +81,11 @@ exited after registration. Preserve the remote job; stop only any verified owned
 LOCAL attach/monitor by PID when ending. Never kill an old fleet pids file blindly
 or another worker's display. All compile/tests/builds run on VM only, UID/GID1000.
 No production configs, credentials, services, ACLs or ownership changes were made.
+
+## Final owner stop update
+
+W19 receiving dependency is WIP5c8bd34c1 in vessel-wp-desktop-effects; it reported
+NO compile, actual five Link tests, two-window/replay/gate/review/adoption and
+still-pending admission ordering (3636fd83). Do not consume it as Saved-only ready.
+Read the committed Terminal resume for the latest docs-only checkpoint; exact
+source9d remains unchanged. No new Cargo or branch merge was started under stop.
