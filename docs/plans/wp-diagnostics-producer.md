@@ -15,9 +15,9 @@ receiving SDK leaf `41215ebf` with fresh Link all-target strict zero and framed
 SDK tests 4/0/0 (120 filtered); its documentation-only receipt is `c27cf137`.
 The full consumer now removes only that method's staging attribute atomically
 with its real guarded E4 caller. Existing call/guard/follow/protocol/export and
-SDK method bodies remain unchanged. The larger APP/Link collector, weak-receipt
-handling and Scenario/drain tests require their own compilation, runtime and
-review. No new whole gate, build, live full-report capture, clipboard/privacy
+SDK method bodies remain unchanged. The actual Link collector now passes its own all-target strict check and
+16 diagnostic tests on `8726efe1`; APP strict is queued, and APP Scenario,
+clipboard, current wasm, whole gate and review remain unverified. No new whole gate, build, live full-report capture, clipboard/privacy
 or product adoption pass is claimed from the staged leaf's approval.
 
 ## Decision Log
@@ -170,3 +170,11 @@ APP fixture uses the same explicit request assertion. The queued APP check was
 cancelled before taking a slot when the lead required base 14.3; its terminal
 143 is a supersession record, not a compiler result. Fresh consumer checks use
 the required receiving base and preserve the failure logs.
+
+## Quota stop checkpoint
+
+The owner required retaining 30 percent of weekly quota with no extra reset.
+Current actual consumer code is committed and Link narrow checks pass, but the
+queued APP gate cannot complete within the stop window. The continuation and
+exact evidence scopes are committed in `wp-diagnostics-resume.md`. This is a WIP
+checkpoint, not product completion; no new slice, merge or long build starts.
