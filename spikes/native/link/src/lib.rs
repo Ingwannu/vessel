@@ -23,6 +23,9 @@
 //!   never grows memory.
 
 mod command;
+// History observed replies validate original weak delivery at UI application.
+mod delivery;
+pub use delivery::DeliveryGuard;
 #[cfg(not(target_arch = "wasm32"))]
 mod connections;
 #[cfg(not(target_arch = "wasm32"))]
@@ -66,6 +69,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod history;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
@@ -84,6 +88,7 @@ use tokio::sync::mpsc;
 use vessel_app_view::connection::ConnectionEpochs;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::SessionId;
 
 pub use command::Command;
@@ -199,6 +204,7 @@ impl Link {
 
             admissions: ConnectionEpochs::default(),
             device_calls: devices::Hub::default(),
+            history_calls: history::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -266,6 +272,7 @@ struct State {
 
     admissions: ConnectionEpochs,
     device_calls: devices::Hub,
+    history_calls: history::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

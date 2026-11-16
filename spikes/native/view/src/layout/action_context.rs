@@ -18,6 +18,21 @@ impl LayoutActionContext {
     pub const fn workspace(&self) -> &LayoutKey {
         &self.workspace
     }
+    /// Effective captured target. A top compact sheet takes precedence over
+    /// the underlying pane, so input cannot silently select a hidden draft.
+    #[must_use]
+    pub fn target(&self) -> Option<&Target> {
+        self.selected().map(|(_, target)| target)
+    }
+    /// Effective captured tab and target, scoped by `workspace()`. A compact
+    /// sheet takes precedence; callers still validate the complete context.
+    #[must_use]
+    pub fn selected(&self) -> Option<(TabId, &Target)> {
+        self.sheet
+            .as_ref()
+            .or(self.selected.as_ref())
+            .map(|(tab, target)| (*tab, target))
+    }
 }
 impl Layout {
     /// Capture before opening a palette; execution must validate it again.
@@ -78,6 +93,7 @@ mod tests {
         let key = workspace();
         let tab = open(&mut layout, Target::NewTab, OpenIntent::New);
         let context = layout.action_context(&key);
+        assert_eq!(context.target(), Some(&Target::NewTab));
         assert!(layout.accepts_action_context(&key, &context));
         assert!(!layout.accepts_action_context(&workspace(), &context));
         let _background = open(&mut layout, Target::NewTab, OpenIntent::Background);
@@ -91,6 +107,10 @@ mod tests {
             })
             .unwrap();
         assert!(!layout.accepts_action_context(&key, &context));
+        assert!(matches!(
+            layout.action_context(&key).target(),
+            Some(Target::Draft(_))
+        ));
     }
     #[test]
     fn focus_and_compact_sheet_changes_refuse_a_pending_palette_action() {
@@ -118,5 +138,9 @@ mod tests {
             )
             .unwrap();
         assert!(!layout.accepts_action_context(&key, &context));
+        assert!(matches!(
+            layout.action_context(&key).target(),
+            Some(Target::File { .. })
+        ));
     }
 }

@@ -79,6 +79,7 @@ mod tests {
             )
             .unwrap();
         let stale = layout.request_close(tab).unwrap();
+        assert_eq!(stale.target(), &Target::NewTab);
         let target = Target::Draft(crate::layout::DraftId::random());
         assert_eq!(
             layout
@@ -95,6 +96,7 @@ mod tests {
             layout.close_confirmed(&stale, crate::layout::CloseApproval::Local),
             Err(LayoutError::InvalidState)
         );
+        assert_eq!(stale.target(), &Target::NewTab);
         layout.set_modified(tab, Modified::Dirty).unwrap();
         assert_eq!(
             layout.retarget(RetargetRequest {

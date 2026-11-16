@@ -37,10 +37,47 @@ impl std::fmt::Debug for RequestFailure {
 /// An immutable original client; never resolved again through another alias.
 #[derive(Clone)]
 pub(crate) struct SelectedConnection {
+    lease: std::sync::Arc<SelectedLease>,
+    commands: tokio::sync::mpsc::WeakSender<Command>,
+}
+/// One canonical immutable lease anchored by Connected, not by queued events.
+pub(crate) struct SelectedLease {
     client: vessel_client::NodeClient,
     context: ConnectionContext,
     validity: tokio::sync::watch::Receiver<Validity>,
-    commands: tokio::sync::mpsc::WeakSender<Command>,
+}
+impl SelectedLease {
+    pub(super) fn new(
+        client: vessel_client::NodeClient,
+        context: ConnectionContext,
+        validity: tokio::sync::watch::Receiver<Validity>,
+    ) -> Self {
+        Self {
+            client,
+            context,
+            validity,
+        }
+    }
+    pub(crate) fn validate(&self, expected: &ConnectionContext) -> Result<(), Refusal> {
+        if !self.matches(expected) {
+            return Err(Refusal::Changed);
+        }
+        // NodeClient::closed -> rpc::Connection::closed -> CancellationToken.
+        // A single stack poll performs no I/O and drops its waiter on return.
+        let mut closed = std::pin::pin!(self.client.closed());
+        let mut task = std::task::Context::from_waker(std::task::Waker::noop());
+        if closed.as_mut().poll(&mut task).is_ready() {
+            Err(Refusal::Closed)
+        } else {
+            Ok(())
+        }
+    }
+    pub(super) fn matches(&self, expected: &ConnectionContext) -> bool {
+        self.context == *expected
+            && self.client.node().id == expected.node()
+            && self.validity.has_changed().is_ok()
+            && *self.validity.borrow() == Validity::Active
+    }
 }
 impl State {
     pub(crate) fn selected_connection(
@@ -53,30 +90,22 @@ impl State {
             .filter(|connected| connected.matches(expected))
             .ok_or(Refusal::Changed)?;
         Ok(SelectedConnection {
-            client: connected.client.clone(),
-            context: connected.context.clone(),
-            validity: connected.validity(),
+            lease: std::sync::Arc::clone(&connected.lease),
             commands: self.commands.clone(),
         })
     }
 }
 impl SelectedConnection {
     fn active(&self) -> Result<(), Refusal> {
-        if self.client.node().id == self.context.node()
-            && *self.validity.borrow() == Validity::Active
-        {
-            Ok(())
-        } else {
-            Err(Refusal::Changed)
-        }
+        self.lease.validate(&self.lease.context)
     }
     async fn fence<T>(&self, value: T) -> Result<T, Refusal> {
         self.active()?;
-        let mut validity = self.validity.clone();
+        let mut validity = self.lease.validity.clone();
         tokio::select! {
             biased;
             _retired = validity.wait_for(|state| *state == Validity::Retired) => Err(Refusal::Changed),
-            () = self.client.closed() => Err(Refusal::Closed),
+            () = self.lease.client.closed() => Err(Refusal::Closed),
             value = std::future::ready(value) => Ok(value),
         }
     }
@@ -84,12 +113,17 @@ impl SelectedConnection {
         &self,
         operation: impl Future<Output = Result<T, CallError>>,
     ) -> Result<T, RequestFailure> {
-        self.active()?;
-        let mut validity = self.validity.clone();
+        if let Err(why) = self.active() {
+            if why == Refusal::Closed {
+                self.report_closed().await;
+            }
+            return Err(why.into());
+        }
+        let mut validity = self.lease.validity.clone();
         let answer = tokio::select! {
             biased;
             _retired = validity.wait_for(|state| *state == Validity::Retired) => Err(Refusal::Changed.into()),
-            () = self.client.closed() => Err(Refusal::Closed.into()),
+            () = self.lease.client.closed() => Err(Refusal::Closed.into()),
             answer = operation => answer.map_err(|error| match error {
                 CallError::Disconnected => RequestFailure::Refused(Refusal::Closed),
                 error @ (CallError::Remote(_) | CallError::NotInProtocol { .. }
@@ -114,12 +148,21 @@ impl SelectedConnection {
             // The actor orders this retirement with its Machine snapshots.
             // Weak ownership lets dropping the UI close the command inbox.
             let _closed = commands
-                .send(Command::RetireConnection(self.context.tag()))
+                .send(Command::RetireConnection(self.lease.context.tag()))
                 .await;
         }
     }
+    /// Original immutable peer metadata, never permission or admission proof.
+    /// Effects still pass through the existing call pre/post retirement fence.
+    pub(crate) fn protocol(&self) -> vessel_proto::ProtocolVersion {
+        self.lease.client.protocol()
+    }
     pub(crate) async fn call<R: Unary>(&self, request: R) -> Result<R::Response, RequestFailure> {
-        self.guard(self.client.call(request)).await
+        self.guard(self.lease.client.call(request)).await
+    }
+    // Minted once by real A4 result-envelope producers; never by the UI.
+    pub(crate) fn delivery_guard(&self) -> crate::DeliveryGuard {
+        crate::DeliveryGuard::from_lease(&self.lease)
     }
 }
 
@@ -127,6 +170,11 @@ impl SelectedConnection {
 // this exact attribute; Unary remains a real Devices product path above.
 #[cfg(test)]
 mod follow;
+// Real bounded result-envelope callers remove this literal staging attribute.
+#[cfg(test)]
+mod delivery_tests;
+mod queue;
+pub(crate) use queue::SendFailure;
 
 #[cfg(test)]
 mod privacy_tests {

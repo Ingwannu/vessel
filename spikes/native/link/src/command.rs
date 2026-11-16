@@ -14,7 +14,6 @@
 use super::{
     Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::Delivery;
 use vessel_proto::{
     AgentCommand, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
@@ -23,6 +22,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Scoped own-history discovery and import.
+    History(crate::history::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -149,7 +150,8 @@ pub enum Command {
         option: PermissionOptionId,
     },
     /// Remember the person's choices (machine, agent, folders).
-    SavePrefs(Prefs),
+    // Prefs grew past large_enum_variant; a save is infrequent.
+    SavePrefs(Box<Prefs>),
     /// Act on a session: rename, mark, start again, delete, kill, move,
     /// terminal input (answered by `Event::Acted`).
     Act {

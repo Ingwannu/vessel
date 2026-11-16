@@ -8,7 +8,9 @@
 use super::{Glyph, MARK};
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
-/// as Paseo's icons are drawn; the paths are the kit's own.
+/// as Paseo's icons are drawn. Canonical panel paths retain the upstream
+/// Lucide/Feather notice in docs/design/brand/lucide-LICENSE.txt; older
+/// original drawings keep their existing vectors.
 macro_rules! line_glyph {
     ($body:literal) => {
         concat!(
@@ -52,6 +54,9 @@ impl Glyph {
                 line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
             }
             Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
+            // AppShell's LucideProvider supplies1.5; ExternalLink does not
+            // override it. Keep the canonical line glyph's inherited stroke.
+            Self::ArrowUpRight => line_glyph!(r#"<path d="M7 17 17 7M7 7h10v10"/>"#),
             Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
             Self::Shield => {
                 line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
@@ -295,6 +300,27 @@ impl Glyph {
             Self::Monitor => line_glyph!(
                 r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
             ),
+            Self::Gauge => line_glyph!(
+                r#"<path d="M4.75 18.5a9 9 0 1 1 14.5 0"/><path d="m12 13.5 4.5-4.5"/>"#
+            ),
+            Self::PackagePlus => line_glyph!(
+                r#"<path d="M12 3.25 3.5 7.75 12 12.25l8.5-4.5L12 3.25M3.5 7.75v9L12 21.25l3-1.6M12 12.25v9M20.5 7.75v4.5M7.75 5.5l8.5 4.5M19 14.75v6.5M15.75 18h6.5"/>"#
+            ),
+            // Canonical Lucide1.50 panel roles; effective provider stroke is
+            // already supplied by line_glyph, not the vendor default2.
+            Self::Columns2 => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M12 3v18" />"#
+            ),
+            Self::Rows2 => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 12h18" />"#
+            ),
+            Self::PanelMaximize => line_glyph!(
+                r#"<path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />"#
+            ),
+            Self::PanelMinimize => line_glyph!(
+                r#"<path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />"#
+            ),
+            Self::X => line_glyph!(r#"<path d="M18 6 6 18" /><path d="m6 6 12 12" />"#),
         }
     }
 }

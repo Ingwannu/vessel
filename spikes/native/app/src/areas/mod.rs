@@ -17,6 +17,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod import;
 pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
@@ -36,6 +37,7 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) import: import::ImportArea,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
@@ -45,6 +47,9 @@ pub(crate) struct Areas {
     pub(crate) workspace: workspace::Workspace,
     pub(crate) git: git::GitArea,
     pub(crate) layout: layout::LayoutArea,
+    // Sole future resource owner; legacy globals remain product-only until cutover.
+    #[cfg(test)]
+    pub(crate) session_residents: layout::residents::SessionResidents,
     pub(crate) pulls: pulls::PullsArea,
     pub(crate) board: board::BoardArea,
     pub(crate) palette: palette::PaletteArea,
@@ -61,17 +66,24 @@ pub(crate) struct Areas {
 }
 
 impl Areas {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+    pub(crate) fn new(
+        general: settings::PreparedGeneral,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
         let mut areas = Self {
+            import: import::ImportArea::new(window, cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
-            settings: settings::SettingsState::new(window, cx),
+            settings: settings::SettingsState::new(general, window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
             layout: layout::LayoutArea::new(cx),
+            #[cfg(test)]
+            session_residents: layout::residents::SessionResidents::new(),
             pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),

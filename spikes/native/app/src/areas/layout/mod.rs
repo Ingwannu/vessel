@@ -3,6 +3,10 @@ mod action_context;
 mod actions;
 mod book;
 mod draw;
+// The existing Explorer host must adopt this projection with its real renderer.
+#[cfg(test)]
+mod explorer;
+mod file_guard;
 mod header;
 mod menu;
 // The desktop coordinator removes this exact staging attribute with its real caller.
@@ -12,6 +16,9 @@ mod queries;
 pub(crate) mod registry;
 mod rename;
 mod resize;
+// The product cutover removes this gate together with converted global storage.
+#[cfg(test)]
+pub(crate) mod residents;
 mod sheets;
 
 use crate::shell::Shell;
@@ -27,6 +34,8 @@ pub(crate) use draw::frame;
 
 /// Presentation retained across navigation; buffers stay with feature owners.
 pub(crate) struct LayoutArea {
+    #[cfg(test)]
+    retirements: registry::retirement::Owners,
     book: RefCell<Option<BTreeMap<LayoutKey, Layout>>>,
     menu: MenuState,
     tips: vessel_app_kit::Tooltips,
@@ -43,6 +52,8 @@ pub(crate) struct LayoutArea {
 impl LayoutArea {
     pub(crate) fn new(cx: &mut App) -> Self {
         Self {
+            #[cfg(test)]
+            retirements: registry::retirement::Owners::new(),
             book: RefCell::new(None),
             menu: MenuState::new(cx),
             tips: vessel_app_kit::Tooltips::new(),
@@ -105,7 +116,15 @@ fn with_layout_at<T>(
     initialized(shell);
     let mut book = shell.areas.layout.book.borrow_mut();
     let book = book.as_mut().ok_or(LayoutError::InvalidState)?;
-    change(book.entry(key.clone()).or_default())
+    // Copy metadata only: neither failed batches nor a failed first open may
+    // publish a partial target or manufacture an empty workspace entry.
+    let mut next = book.get(key).cloned().unwrap_or_default();
+    let value = change(&mut next)?;
+    if let Some(previous) = book.get(key) {
+        file_guard::preserve(previous, &next)?;
+    }
+    let _previous = book.insert(key.clone(), next);
+    Ok(value)
 }
 
 impl Shell {
@@ -121,7 +140,9 @@ impl Shell {
                         })
                         .collect();
                 }
-                self.command(vessel_app_link::Command::SavePrefs(self.prefs.clone()));
+                self.command(vessel_app_link::Command::SavePrefs(Box::new(
+                    self.prefs.clone(),
+                )));
             }
             Err(LayoutError::Modified) => {
                 self.notice = Some(self.words.layout().modified().to_owned());

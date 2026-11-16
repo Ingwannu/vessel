@@ -37,7 +37,7 @@
 //! - Protocol 10 is the first to add to what an existing event holds: a
 //!   prompt (`TurnStarted`) may name an attachment, a content block a
 //!   version 9 client cannot decode. So an agent event's version is read
-//!   from its content too ([`AgentEvent::since`]), and its stand-in keeps
+//!   from its content too ([`AgentEvent::required_protocol`]), and its stand-in keeps
 //!   the event, each attachment shown as a `ResourceLink` to
 //!   `attachment:<id>`. Fields added as optional (`Ready.abilities`,
 //!   `TurnEnded.usage`) need none: older clients skip what they do not
@@ -62,9 +62,9 @@ use crate::title::SessionTitle;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SessionEvent {
-    /// The process changed state. A final `Status` is the last event of
-    /// every run of a session: `session.resume` (protocol 10) starts
-    /// another run, which continues the same log after it.
+    /// The process changed state. A final `Status` is the last runtime-produced
+    /// lifecycle record of a run; checkpoint metadata may follow an ended run.
+    /// `session.resume` (protocol 10) starts another run in the same log.
     Status {
         /// New state.
         status: SessionStatus,
@@ -171,7 +171,7 @@ impl SessionEvent {
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
             Self::Status { .. } | Self::Terminal(_) => Some(ProtocolVersion::new(2)),
-            Self::Agent { event } => Some(event.since()),
+            Self::Agent { event } => event.required_protocol(),
             Self::ProfileChanged { .. } => Some(ProtocolVersion::new(5)),
             Self::ModelCall(_) => Some(ProtocolVersion::new(7)),
             Self::OptionsChanged { .. } | Self::Renamed { .. } => Some(ProtocolVersion::new(9)),
@@ -187,6 +187,13 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        // An assigned enclosing variant can still contain optional fields
+        // introduced later. Always let the inner event mask those fields.
+        if let Self::Agent { event } = self {
+            return event
+                .for_protocol(protocol)
+                .map(|event| Self::Agent { event });
+        }
         let readable = self
             .required_protocol()
             .is_some_and(|since| since <= protocol);
@@ -267,18 +274,20 @@ impl SessionEvent {
 
 impl AgentEvent {
     /// The first protocol version that can decode this event: its
-    /// variant's, or 10 for a prompt holding an attachment.
+    /// variant's, or 10 for a prompt holding an attachment. A feature
+    /// awaiting its assigned protocol returns `None`; it must never be
+    /// published as though it belonged to the current protocol.
     #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
             Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::TurnStarted { content } if content.iter().any(is_attachment) => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::UserMessageChunk { content } if is_attachment(content) => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::Ready { .. }
             | Self::TurnStarted { .. }
@@ -292,7 +301,7 @@ impl AgentEvent {
             | Self::PermissionResolved { .. }
             | Self::TurnEnded { .. }
             | Self::TurnFailed { .. }
-            | Self::HarnessLog { .. } => ProtocolVersion::new(2),
+            | Self::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
         }
     }
 
@@ -300,7 +309,10 @@ impl AgentEvent {
     /// it can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self.since() <= protocol {
+        if self
+            .required_protocol()
+            .is_some_and(|since| since <= protocol)
+        {
             return None;
         }
         let log = |line: String| Some(Self::HarnessLog { line });
@@ -469,3 +481,7 @@ impl EventRecord {
 
 #[cfg(test)]
 mod admission_tests;
+
+#[cfg(test)]
+#[path = "event/protocol_tests.rs"]
+mod protocol_tests;

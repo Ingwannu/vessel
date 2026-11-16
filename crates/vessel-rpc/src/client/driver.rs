@@ -30,6 +30,8 @@ use vessel_proto::{
 use super::RequestIds;
 use crate::error::{CallError, ProtocolViolation};
 
+mod send_call;
+
 /// How long closing the transport may take once every handle is gone.
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -73,6 +75,21 @@ pub(super) enum Waiter {
     /// `session.subscribe` or `terminal.subscribe` (protocol 11): the
     /// reader opens a route when the reply arrives.
     Subscribe(oneshot::Sender<Result<Opened, CallError>>),
+}
+
+impl Waiter {
+    fn is_closed(&self) -> bool {
+        match self {
+            Self::Unary(sender) => sender.is_closed(),
+            Self::Subscribe(sender) => sender.is_closed(),
+        }
+    }
+    async fn closed(&mut self) {
+        match self {
+            Self::Unary(sender) => sender.closed().await,
+            Self::Subscribe(sender) => sender.closed().await,
+        }
+    }
 }
 
 /// What a subscription follows, as the reply that opened it described it.
@@ -195,43 +212,34 @@ where
         let Some(command) = command else { break };
         let frame = match command {
             Command::Call { id, call, waiter } => {
-                if register.send(Registration::Wait(id, waiter)).await.is_err() {
-                    break;
+                match send_call::send(&mut sink, &register, &closed, id, *call, waiter).await? {
+                    send_call::Transfer::Sent => unflushed = true,
+                    send_call::Transfer::Skipped => {}
+                    send_call::Transfer::Closed => break 'drive,
                 }
-                ClientFrame::Request { id, call: *call }
+                None
             }
             Command::Cancel(id) => {
                 if register.send(Registration::Forget(id)).await.is_err() {
                     break;
                 }
-                ClientFrame::Cancel { id }
+                Some(ClientFrame::Cancel { id })
             }
-            Command::Unsubscribe(subscription) => {
-                let Some(id) = ids.next() else {
-                    if unflushed && commands.is_empty() {
-                        flush(&mut sink, &closed).await?;
-                        unflushed = false;
-                    }
-                    continue;
-                };
-                ClientFrame::Request {
-                    id,
-                    call: Unsubscribe { subscription }.into_call(),
-                }
-            }
+            Command::Unsubscribe(subscription) => ids.next().map(|id| ClientFrame::Request {
+                id,
+                call: Unsubscribe { subscription }.into_call(),
+            }),
         };
-        let text = serde_json::to_string(&frame).map_err(DriverError::Encode)?;
-        // Watch `closed` around every wait on the sink: a node that stopped
-        // reading must not keep this writer, and the callers queued behind
-        // it, waiting after the connection is known to be over.
-        let written = tokio::select! {
-            biased;
-            () = closed.cancelled() => break 'drive,
-            written = sink.feed(text) => written,
-        };
-        written.map_err(DriverError::Transport)?;
-        unflushed = true;
-        if commands.is_empty() {
+        if let Some(frame) = frame {
+            let text = serde_json::to_string(&frame).map_err(DriverError::Encode)?;
+            let written = tokio::select! { biased;
+                () = closed.cancelled() => break 'drive,
+                written = sink.feed(text) => written,
+            };
+            written.map_err(DriverError::Transport)?;
+            unflushed = true;
+        }
+        if unflushed && commands.is_empty() {
             flush(&mut sink, &closed).await?;
             unflushed = false;
         }

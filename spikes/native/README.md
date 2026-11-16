@@ -12,6 +12,12 @@ channel; SSH routes come later).
 This is a workspace of its own, outside Vessel's: Vessel's gate does not
 build it, and its tree (GPUI's) stays out of the main lock file.
 
+The native process registers its first Shell in the one `app::host_windows`
+registry. This keeps OS callback routing independent of desktop persistence and
+node startup; callbacks must still validate their own source/context. The staged
+live-root dispatcher and optional factory contract are described in
+`docs/plans/shared-host-windows.md`; a missing factory is explicitly unavailable.
+
 ## Crates, and what may depend on what
 
 | Crate | Owns | Must not | Depends on |
@@ -58,6 +64,25 @@ Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
 replaced without touching them.
 
+The link's wasm32 build has its types without its calls. A `Command`'s
+or `Event`'s payload (an `Act`, a workspace `Ask`/`Answer`, a start's
+types, `NodeName`) builds on both targets. Everything that reaches a
+node through `vessel-client`, tokio's runtime or files carries
+`#[cfg(not(target_arch = "wasm32"))]`: whole modules where they are only
+calls (`connections`, `dispatch`, `workspace::{calls, follow, run}`), and
+single items and imports where a file mixes both (`session.rs`,
+`workspace/{mod, start, pulls}.rs`). `web.rs` answers every `Command`
+from the demo fleet or refuses it the way a node refuses something it does
+not support. In a browser, `NodeName` is a twin of the desktop's over the
+view's `machine_book::Name`. The app follows the same rule. The updater's
+twin (`update_off.rs`) stands in for `update.rs`. Where a screen reads a
+desktop-only crate or module (`vessel-app-log`, `dirs`, `motion`, link's
+`drafts`), a `let` or statement carries the cfg and the browser gets an
+empty value or nothing. The native gate does not build wasm32, so a change
+to the link's commands or modules, or to a screen's use of desktop-only
+crates, is also checked with `cargo check --locked -p vessel-app-link -p
+vessel-app --target wasm32-unknown-unknown`.
+
 Settings' agent discovery remains in `view::agent_status` (the page's
 fixtures). `agent_status::readiness` separately describes the node's
 installation, conversation support and authentication facts from
@@ -72,6 +97,11 @@ Provider-removal preparation stays in `view::agent_status::removal` and
 reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
+
+The kit field keeps its editor factories, weak IME registry and events in
+`field.rs`; `field/presentation.rs` draws the existing form/composer shells
+and `field/styles.rs` projects tokens onto the same engines. Original public
+entry points are re-exported unchanged; composer hooks retain their contract.
 
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
@@ -166,7 +196,11 @@ per-attempt reply fences. It contains no GPUI state or connection identity cache
 The current SessionView and ConversationArea globals remain the only live product
 owner while concrete owner adapters are prepared; the coordinated cutover must
 remove those globals and the single follow together. Pure core tests do not prove
-multiple agent panes work. Package details and evidence limits are in
+multiple agent panes work. The staged sole `SessionResidents` container validates full
+contexts and binding/ticket ingress. Its single-slot minter plans a real tab before
+the scoped factory, rechecks current membership, and refuses implicit eviction.
+Independent lease retirement still invalidates tickets after a refused switch.
+The literal test gate remains until converted globals and raw ingress are removed. Package details and evidence limits are in
 [`wp-layout.md`](../../docs/plans/wp-layout.md).
 
 ### Adding a screen (an area)
@@ -291,6 +325,9 @@ with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`Gauge` is the shared Usage navigation dial (16/20); `PackagePlus` is the
+catalog fallback (20). Both are original24-grid/1.5-stroke drawings, appended
+without replacing older vectors or adding aliases.
 `outline_button_with_glyph` puts one before an outline button's words
 (Paseo's `leftIcon`: 14 square, the button's 8 gap, glyph and words in one
 tone), as Settings › Overview's Remove draws its Trash2.
@@ -304,6 +341,10 @@ Labels remain whole and explanations belong below their row.
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
+Each explicit menu opening has a private render lease: callbacks retained from
+a prior opening or replaced state stand down before state, focus or action
+changes. See `../../docs/plans/backend-m12-menu-render-lease.md` for the lifecycle
+and headless GPUI proof boundary.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
@@ -748,9 +789,10 @@ Environment:
   frame before the renderer rasterises (on a software renderer the
   process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
-  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
-  updates itself; without them it never does.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_KEY` too and
+  the feed's address written into the built executable afterwards (track
+  R's `build.sh` does both; ADR 0099), the build updates itself; without
+  them it never does.
 
 ## Composed sections in one bounded viewport
 
@@ -1244,6 +1286,30 @@ input boundary consumes only the nested menu's outside press, preserving
 its host dialog; no second scrim or area popup is drawn. See
 `docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
 
+### Adaptive caller-content popover
+
+`kit::popover` is the shared control for arbitrary settings bodies: captured
+start/end anchor points on desktop and the existing dialog/snap renderer on compact
+layouts. `PopoverState::open` returns an opaque lease; `PopoverHandlers::admit`
+must accept that opening before any close or ReturnFocus acknowledgment. The
+control rechecks after admission, so retained old input cannot close a newer
+surface. Domain context and body actions stay with feature owners.
+
+`PopoverContent` uses validated Width, natural compact content capped at80%,
+and optional existing CompactLayout. DialogLayout's typed BodySpacing::Caller
+avoids adding a second inset around forms; legacy dialogs keep Inset24 and all
+existing geometry defaults. See `docs/plans/wp-adaptive-popover.md` for exact
+Paseo references, API, pending remote tests and V1/lead handoff requirements.
+
+### Caller-owned dialog title actions
+
+`DialogContent::with_header_actions(controls)` adds an optional trailing element
+before the existing close button, through the same `dialog` renderer. Plain
+struct literals still convert without actions; their geometry/defaults stay the
+same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
+retain and check their action context/ticket; the slot grants no host authority.
+See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
+
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
@@ -1254,3 +1320,77 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+`kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
+Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
+muted text and SVG both become foreground on hover). It receives no URL and
+performs no OS action: callers keep their typed URL and opener. Use existing
+Tooltips only when the source consumer needs a hint. `None` is arrow-only.
+It has no button fill or private target override. Native Type::Meta supplies
+12/16 regular metrics where Paseo leaves line height platform-defined;
+accessibility/keyboard semantics remain the existing kit-wide gap.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.
+
+The shared combobox captures a private identity for each explicit opening.
+Retained frame callbacks admit that opening before keys, outside/scrim, row/back
+or implicit pointer focus; they cannot act on a later opening. Final dismissal
+reuses the shared weak ReturnFocus policy; state replacement acknowledges actual
+close before dropping its opener cycle. Existing signatures, placement and
+geometry remain. Evidence and limits: `docs/plans/shared-picker-admission.md`.
+
+### Identified form textarea
+
+TextField::form_multiline_with_source takes the same checked FieldId callbacks
+as a line, plus FormMinimum::Default (existing GOAT68/80) or Expanded
+(Paseo schedule prompt96). One TextareaState/factory/listen, not another input
+engine. Legacy Plain signatures/Enter/readonly/defaults stay unchanged.
+SendOn remains exported at field::SendOn after moving with the constructor
+family; field.rs now fits the ordinary size budget. Caller still checks original
+form visit, current source id, connection and authority; FieldId alone is none
+of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
+only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+`kit::SearchField` is the shared standalone filter profile over TextField's
+one-line engine and bare renderer. It owns Search14/X14, the source420-point
+maximum,34-point shell and focus palette; areas provide only localized placeholder
+and the existing change callback. Its X uses the ordinary replacement event/undo
+path and retains focus; navigation clear remains programmatic. Do not add search
+chrome or another editor in an area. See docs/plans/shared-search-field.md for
+the source values and unverified keyboard/accessibility/first-use boundaries. Exact corrected13c46693
+Kit all-target Clippy and its two focused tests completed0; this is not a full
+Kit suite, consumer UI or whole A9 gate. Selected-producer review remains distinct
+from area first-use evidence.
+
+Glyph declarations live once in kit/src/assets/inventory.rs; one macro
+generates the existing Glyph, ALL and const path match in their original
+module. Append future declarations there and keep the separate exhaustive
+drawing match. The frozen pre-refactor order/path snapshot guards this
+mechanical registry change; it does not approve new glyphs or consumer ink.
+
+The additive kit `code_editor::DiffEditor` and `DiffDocumentEditor` are readonly
+profiles of the existing source editor, with validated source-row metadata,
+independent old/new states of the same caller lexer, optional mapped gutter/row
+paint, full-height parent scrolling and owner caret reveal. They add no token
+kind, syntax parser, palette, transport, repository authority or second engine.
+Ordinary CodeEditor shares the same style factory and retains its existing
+behavior. The diff-only style uses terminal blue at0.45 alpha, after Paseo
+paint.web.ts paintSelection; the ordinary style stays unchanged. Both-theme
+policy tests cover that value; actual selection-path readability remains a
+capture obligation. Vendor patch7 and its precise source/runtime/paint limitations are in
+spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
+control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
+isolated producer does not include C3 View/Link/app or any root-runtime changes.
+
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.

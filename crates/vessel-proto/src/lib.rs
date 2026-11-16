@@ -7,13 +7,18 @@
 //! Rules this crate keeps (see `AGENTS.md`):
 //! - no I/O and no async runtime, so any client can depend on it;
 //! - no untyped JSON: open-ended payloads are [`RawJson`], never a `Value`;
-//! - it is the only place wire types are defined.
+//! - it is the only place wire types are defined;
+//! - documented local client-book values also live here so client and view
+//!   share types without an I/O/UI edge. They add no RPC/version/TS field.
 
 mod agent;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
 mod board;
+mod book_route;
+pub mod book_values;
+pub mod browser;
 pub mod conversation;
 mod device;
 pub mod diagnostics;
@@ -30,14 +35,18 @@ mod harness;
 pub mod history;
 mod id;
 pub mod inbox;
+pub mod inbox_attention;
 mod key;
 pub mod labels;
 pub mod lifecycle_version;
 pub mod limits;
+mod listing;
 pub mod lsp;
+pub mod mcp;
 mod model;
 mod name;
 mod node;
+pub mod notifications;
 mod options;
 mod pairing;
 pub mod parking;
@@ -47,6 +56,7 @@ mod profile;
 mod proxy;
 pub mod push;
 mod raw;
+pub mod registry;
 mod relay;
 pub mod restart;
 mod rpc;
@@ -56,8 +66,12 @@ mod secret;
 mod session;
 pub mod settings;
 pub mod side_questions;
+pub mod skills;
+pub mod subagents;
 mod terminal;
+pub mod terminal_profiles;
 pub mod terminals;
+pub mod timeline;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
@@ -72,6 +86,7 @@ pub use agent::{
 };
 pub use agents::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
+pub use book_route::BookRouteId;
 pub use conversation::{
     AgentAbilities, AgentCommand, AttachmentKind, AttachmentLimits, AttachmentName, AttachmentRef,
     ContextUsage, Conversation, Delivered, Delivery, KeptMarks, Mark, PromptQueue, Question,
@@ -103,13 +118,16 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
-    NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
-    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, FinishIntentId, HarnessSessionId, HookId,
+    InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId,
+    ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId,
+    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
+    WorkspaceOperationId, WorktreeId,
 };
+pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use listing::{ListingScope, SessionListing, SessionSelection};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,

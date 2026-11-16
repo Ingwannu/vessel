@@ -29,8 +29,10 @@
 //! - Choice: the table is the exported `method_table!` macro, which hands
 //!   its rows to a callback; this crate, the node and the client generate
 //!   their per-method code from the same rows. Two columns were added: the
-//!   protocol column accepts `(pending FEATURE)`, and the shape column
-//!   (`MethodShape`) says what the hand lists used to say.
+//!   protocol column accepts `(pending FEATURE)` (and, since 2026-11-15,
+//!   `(staged FEATURE)` for values that land before their runtime; see
+//!   methods.rs), and the shape column (`MethodShape`) says what the hand
+//!   lists used to say.
 //! - Cost: types in rows are written from the crate root (`$crate::`), and
 //!   `Method::since()` / `Call::since()` return an `Option`, so tests that
 //!   compare them wrap the expected version in `Some`.
@@ -89,3 +91,6 @@ mod tests;
 
 #[cfg(test)]
 mod conversation_tests;
+
+#[cfg(test)]
+mod staged_tests;
