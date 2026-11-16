@@ -7,43 +7,28 @@ use vessel_app_view::workspace::editor::{Step, Written};
 
 pub(super) fn opening(
     shell: &mut Shell,
+    scene: &mut vessel_app_link::testing::Scenario,
     root: vessel_proto::workspace::WorkspaceRoot,
+    cx: &mut Context<'_, Shell>,
 ) -> (FileOpenContext, LayoutKey) {
-    io_tests::target(shell, root);
-    let target = shell.areas.workspace.code.target.as_ref().unwrap();
-    let context = target.admission.as_ref().unwrap().context.clone();
-    let session = target.session;
-    shell.areas.session.open = Some(crate::areas::session::Open {
-        machine: "node".into(),
+    let opening = super::super::root_fixture::acquire(shell, scene, root, cx);
+    let session = shell.areas.workspace.code.target.as_ref().unwrap().session;
+    let key = LayoutKey::Session {
+        machine: HostAlias::parse(opening.scope().connection().machine().as_str()).unwrap(),
         session,
-        title: "fixture".into(),
-        agent: "fixture".into(),
-        structured: true,
-        live: true,
-    });
-    let mut machine = vessel_app_view::Machine::unreachable("node".into(), "fixture");
-    machine.node = Some(context.node());
-    machine.connection_epoch = Some(context.epoch());
-    shell.fleet.machines.push(machine);
-    (
-        shell.file_open_context().unwrap(),
-        LayoutKey::Session {
-            machine: HostAlias::parse("node").unwrap(),
-            session,
-        },
-    )
+    };
+    (opening, key)
 }
 
 #[gpui::test]
 fn original_receipt_creates_one_actual_tab_and_stale_open_allocates_nothing(
     cx: &mut TestAppContext,
 ) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     shell.update_in(cx, |shell, window, cx| {
         let root = io_tests::root();
-        let (origin, workspace) = opening(shell, root);
+        let (origin, workspace) = opening(shell, &mut scene, root, cx);
         let path = "a.txt".parse().unwrap();
         let first = shell
             .open_workspace_file(&origin, path, None, Placement::Focused, window, cx)
@@ -79,17 +64,17 @@ fn original_receipt_creates_one_actual_tab_and_stale_open_allocates_nothing(
         );
         assert_eq!(shell.areas.workspace.code.file_tabs.bindings.len(), count);
         assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&file));
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
 #[gpui::test]
 fn rejected_placement_restores_original_active_owner_without_new_binding(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     shell.update_in(cx, |shell, window, cx| {
         let root = io_tests::root();
-        let (origin, workspace) = opening(shell, root);
+        let (origin, workspace) = opening(shell, &mut scene, root, cx);
         let first = shell
             .open_workspace_file(
                 &origin,
@@ -147,17 +132,17 @@ fn rejected_placement_restores_original_active_owner_without_new_binding(cx: &mu
                 .1,
             first
         );
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
 #[gpui::test]
 fn unknown_original_write_keeps_the_same_layout_tab_modified_after_undo(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     shell.update_in(cx, |shell, window, cx| {
         let root = io_tests::root();
-        let (origin, workspace) = opening(shell, root);
+        let (origin, workspace) = opening(shell, &mut scene, root, cx);
         let tab = shell
             .open_workspace_file(
                 &origin,
@@ -206,6 +191,7 @@ fn unknown_original_write_keeps_the_same_layout_tab_modified_after_undo(cx: &mut
             .unwrap();
         assert_eq!(modified, Modified::Dirty);
         assert!(shell.areas.workspace.code.file_tabs.contains(&file));
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
@@ -213,12 +199,11 @@ fn unknown_original_write_keeps_the_same_layout_tab_modified_after_undo(cx: &mut
 fn binding_reference_survives_layout_absence_until_owner_ack_then_becomes_disposable(
     cx: &mut TestAppContext,
 ) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     shell.update_in(cx, |shell, window, cx| {
         let root = io_tests::root();
-        let (origin, workspace) = opening(shell, root);
+        let (origin, workspace) = opening(shell, &mut scene, root, cx);
         shell.areas.workspace.code.files.narrow.set(true);
         let tab = shell
             .open_workspace_file(
@@ -286,6 +271,7 @@ fn binding_reference_survives_layout_absence_until_owner_ack_then_becomes_dispos
             .remove(&(workspace, tab));
         assert!(shell.reserve_readonly_source(&b, super::super::buffers::MAX_READONLY_SOURCE));
         assert!(!shell.areas.workspace.code.files.retained.contains_key(&a));
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
@@ -293,13 +279,11 @@ fn binding_reference_survives_layout_absence_until_owner_ack_then_becomes_dispos
 fn reused_alias_session_and_wire_root_cannot_rebind_the_original_nodes_tab(
     cx: &mut TestAppContext,
 ) {
-    use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     shell.update_in(cx, |shell, window, cx| {
         let root = io_tests::root();
-        let (origin, workspace) = opening(shell, root);
+        let (origin, workspace) = opening(shell, &mut scene, root, cx);
         let tab = shell
             .open_workspace_file(
                 &origin,
@@ -325,33 +309,13 @@ fn reused_alias_session_and_wire_root_cannot_rebind_the_original_nodes_tab(
             .model
             .edit("unsaved A");
         shell.publish_file_tabs(&original, cx);
-        let mut epochs = ConnectionEpochs::default();
-        let _first = epochs
-            .admit(MachineKey::from_book("node"), original.node)
-            .unwrap();
-        let other = epochs
-            .admit(
-                MachineKey::from_book("node"),
-                vessel_proto::NodeId::random(),
+        let _replacement = scene
+            .reconnect(
+                shell.fixture_link(),
+                vessel_app_link::testing::Reconnect::DifferentNode,
             )
             .unwrap();
-        let receipt = shell.next_file_ticket().unwrap();
-        let admission = shell
-            .areas
-            .workspace
-            .code
-            .target
-            .as_mut()
-            .unwrap()
-            .admission
-            .as_mut()
-            .unwrap();
-        admission.context = other.clone();
-        admission.ticket = receipt;
-        let machine = shell.fleet.machines.first_mut().unwrap();
-        machine.node = Some(other.node());
-        machine.connection_epoch = Some(other.epoch());
-        let replacement = shell.file_open_context().unwrap();
+        let replacement = super::super::root_fixture::refresh(shell, &mut scene, root, cx);
         assert_eq!(
             shell.open_workspace_file(
                 &replacement,
@@ -373,5 +337,6 @@ fn reused_alias_session_and_wire_root_cannot_rebind_the_original_nodes_tab(
         );
         assert!(shell.layout_tab_exists(&workspace, tab));
         assert_eq!(shell.areas.workspace.code.file_tabs.bindings.len(), 1);
+        scene.close(shell.fixture_link()).unwrap();
     });
 }

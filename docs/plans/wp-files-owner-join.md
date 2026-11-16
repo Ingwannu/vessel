@@ -54,3 +54,22 @@ file-scope/opener getters plus the captured activation to refuse before any
 file request or viewer allocation. Root refresh also invalidates the existing
 summary request metadata before requesting its new original receipt. These
 are unexecuted changed-assembly cases, not borrowed from the standalone eight.
+
+## Shared actual-root fixture migration (unexecuted)
+
+One code-owned native test helper now reuses the existing G4 Scenario and Shell
+test-Link constructor. It drives typed GetSession and GitChanges replies through
+the actual selected actor, then obtains FileOpenContext only from the real owner
+getter. No guard constructor, second Link, currentness bypass or validity cache
+is introduced. The prior source tests reuse the same metadata/setup functions.
+
+File-tab, close, presentation, toolbar and Markdown activation fixtures use this
+root helper. Reconnect and metadata refresh obtain fresh actor receipts rather
+than editing a fabricated epoch/ticket. Draft, stale-click, binding and close
+assertions remain. File read/save reducer payloads in these cases are still
+locally injected; this migration does not prove their full wire/event dispatch.
+Each fixture explicitly closes its Scenario via the original Link. That closes
+the shared fixture and Devices8 workers, not a claimed generic C5 task drain.
+All of this receiving source is uncompiled/unexecuted pending the announced
+prerequisite line and its own targeted checks; standalone340 evidence is not
+relabelled as proof for this assembly.

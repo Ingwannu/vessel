@@ -11,17 +11,22 @@ struct Probe {
     workspace: LayoutKey,
     tab: TabId,
     file: FileKey,
+    scene: Option<vessel_app_link::testing::Scenario>,
 }
 impl Probe {
     fn new(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         let mut address = None;
+        let (link, mut scene) = vessel_app_link::testing::Scenario::start(
+            &vessel_app_view::machine_book::Name::parse("node").unwrap(),
+        )
+        .unwrap();
         let shell = cx.new(|cx| {
-            let mut shell = Shell::without_io(window, cx);
+            let mut shell = Shell::with_test_link(window, cx, link);
             shell.areas.workspace.code.open = true;
             shell.areas.workspace.code.tab = super::super::Tab::Files;
             shell.route = crate::routes::Route::Session;
             let root = io_tests::root();
-            let (origin, workspace) = tests::opening(&mut shell, root);
+            let (origin, workspace) = tests::opening(&mut shell, &mut scene, root, cx);
             let tab = shell
                 .open_workspace_file(
                     &origin,
@@ -51,6 +56,7 @@ impl Probe {
             workspace,
             tab,
             file,
+            scene: Some(scene),
         }
     }
 }
@@ -81,6 +87,15 @@ impl Render for Probe {
             )
         })
     }
+}
+
+fn finish(probe: &Entity<Probe>, cx: &mut gpui::VisualTestContext) {
+    probe.update(cx, |probe, cx| {
+        let mut scene = probe.scene.take().unwrap();
+        probe
+            .shell
+            .update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
+    });
 }
 
 #[gpui::test]
@@ -139,6 +154,7 @@ fn explorer_keeps_the_tree_while_bound_file_paints_the_existing_editor(cx: &mut 
         );
         assert!(editing.model.modified());
     });
+    finish(&probe, cx);
 }
 
 #[gpui::test]
@@ -228,6 +244,7 @@ fn focused_retained_file_routes_find_and_hidden_pane_refuses_it(cx: &mut TestApp
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&b));
         });
     });
+    finish(&probe, cx);
 }
 
 #[gpui::test]
@@ -253,4 +270,5 @@ fn the_legacy_unbound_viewer_records_its_actual_back_control(cx: &mut TestAppCon
         "the negative pane assertion has a real Explorer control"
     );
     assert!(cx.debug_bounds("code-file-tree").is_none());
+    finish(&probe, cx);
 }

@@ -1,4 +1,5 @@
-//! Synthetic layout/resource tests; no filesystem, transport or OS opener.
+//! Real framed root receipts with local file-reducer injections; no filesystem
+//! or OS opener. These are owner/close cases, not full file-wire dispatch proof.
 use super::close::Decision;
 use super::*;
 use crate::areas::workspace::{FileCloseRequest, code::io_tests};
@@ -9,9 +10,10 @@ fn loaded(
     shell: &mut Shell,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
+    scene: &mut vessel_app_link::testing::Scenario,
 ) -> (LayoutKey, TabId, FileKey) {
     let root = io_tests::root();
-    let (origin, workspace) = tests::opening(shell, root);
+    let (origin, workspace) = tests::opening(shell, scene, root, cx);
     let tab = shell
         .open_workspace_file(
             &origin,
@@ -47,10 +49,9 @@ fn plan(
 
 #[gpui::test]
 fn clean_owner_close_releases_only_after_actual_layout_ack(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     shell.update_in(cx, |shell, window, cx| {
-        let (workspace, tab, file) = loaded(shell, window, cx);
+        let (workspace, tab, file) = loaded(shell, window, cx, &mut scene);
         let close = plan(shell, &workspace, tab, cx);
         assert_eq!(
             shell.request_layout_file_close(&workspace, &close, window, cx),
@@ -59,15 +60,15 @@ fn clean_owner_close_releases_only_after_actual_layout_ack(cx: &mut TestAppConte
         assert!(!shell.layout_tab_exists(&workspace, tab));
         assert!(!shell.areas.workspace.code.file_tabs.contains(&file));
         assert!(shell.areas.workspace.code.viewer_at(&file).is_none());
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
 #[gpui::test]
 fn dirty_prompt_suspends_writes_cancel_keeps_and_discard_closes(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     shell.update_in(cx, |shell, window, cx| {
-        let (workspace, tab, file) = loaded(shell, window, cx);
+        let (workspace, tab, file) = loaded(shell, window, cx, &mut scene);
         let _step = shell.editing_for(&file).unwrap().model.edit("draft");
         shell.publish_file_tabs(&file, cx);
         let close = plan(shell, &workspace, tab, cx);
@@ -135,15 +136,15 @@ fn dirty_prompt_suspends_writes_cancel_keeps_and_discard_closes(cx: &mut TestApp
         shell.file_close_answered(current, Decision::Discard, cx);
         assert!(!shell.layout_tab_exists(&workspace, tab));
         assert!(shell.areas.workspace.code.viewer_at(&file).is_none());
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
 #[gpui::test]
 fn original_unknown_effect_cannot_be_discarded_even_after_undo(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     shell.update_in(cx, |shell, window, cx| {
-        let (workspace, tab, file) = loaded(shell, window, cx);
+        let (workspace, tab, file) = loaded(shell, window, cx, &mut scene);
         let _step = shell.editing_for(&file).unwrap().model.edit("attempt");
         let Step::Write { sequence, .. } = shell.editing_for(&file).unwrap().model.save() else {
             panic!("original write");
@@ -164,15 +165,15 @@ fn original_unknown_effect_cannot_be_discarded_even_after_undo(cx: &mut TestAppC
         assert!(shell.layout_tab_exists(&workspace, tab));
         assert!(shell.editing_for(&file).unwrap().model.writing().is_some());
         assert!(shell.areas.workspace.code.file_tabs.contains(&file));
+        scene.close(shell.fixture_link()).unwrap();
     });
 }
 
 #[gpui::test]
 fn changed_draft_after_prompt_is_preserved_and_refuses_confirmation(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let (shell, cx, mut scene) = super::super::root_fixture::setup(cx, "node");
     shell.update_in(cx, |shell, window, cx| {
-        let (workspace, tab, file) = loaded(shell, window, cx);
+        let (workspace, tab, file) = loaded(shell, window, cx, &mut scene);
         let _step = shell.editing_for(&file).unwrap().model.edit("draft");
         shell.publish_file_tabs(&file, cx);
         let close = plan(shell, &workspace, tab, cx);
@@ -201,5 +202,6 @@ fn changed_draft_after_prompt_is_preserved_and_refuses_confirmation(cx: &mut Tes
             "accepted before hold"
         );
         assert!(shell.areas.workspace.code.file_tabs.contains(&file));
+        scene.close(shell.fixture_link()).unwrap();
     });
 }

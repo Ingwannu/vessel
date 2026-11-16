@@ -108,77 +108,43 @@ mod tests {
         }
     }
 
-    fn preview_shell(shell: &mut Shell, cx: &mut Context<'_, Shell>) -> FileKey {
-        use crate::areas::workspace::code::io_tests;
-        let root = io_tests::root();
-        io_tests::target(shell, root);
-        shell.route = crate::routes::Route::Session;
+    #[cfg(not(target_arch = "wasm32"))]
+    fn preview_shell(
+        shell: &mut Shell,
+        scene: &mut vessel_app_link::testing::Scenario,
+        cx: &mut Context<'_, Shell>,
+    ) -> FileKey {
+        let root = crate::areas::workspace::code::io_tests::root();
+        let _opening = super::super::super::root_fixture::acquire(shell, scene, root, cx);
         shell.areas.workspace.code.open = true;
         shell.areas.workspace.code.tab = super::super::super::Tab::Files;
-        let session = shell.areas.workspace.code.target.as_ref().unwrap().session;
-        shell.areas.session.open = Some(crate::areas::session::Open {
-            machine: "node".into(),
-            session,
-            title: "fixture".into(),
-            agent: "fixture".into(),
-            structured: true,
-            live: true,
-        });
         shell.open_file_at("docs/start.md".parse().unwrap(), None, cx);
         shell.areas.workspace.code.file_key().unwrap()
     }
 
     #[gpui::test]
+    #[cfg(not(target_arch = "wasm32"))]
     fn old_preview_click_cannot_use_rebound_same_node_or_another_session(
         cx: &mut gpui::TestAppContext,
     ) {
-        use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
         use vessel_app_view::workspace::file_scope::FileScope;
-        crate::shell::language_tests::init(cx);
-        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        let (shell, cx, mut scene) = super::super::super::root_fixture::setup(cx, "node");
         shell.update(cx, |shell, cx| {
-            let key = preview_shell(shell, cx);
+            let key = preview_shell(shell, &mut scene, cx);
             let root = key.root;
-            let mut epochs = ConnectionEpochs::default();
-            let first = epochs
-                .admit(MachineKey::from_book("node"), key.node)
-                .unwrap();
-            let old = FileScope::new(first.clone(), root);
-            shell
-                .areas
-                .workspace
-                .code
-                .target
-                .as_mut()
-                .unwrap()
-                .admission
-                .as_mut()
-                .unwrap()
-                .context = first.clone();
-            shell.areas.workspace.code.viewer_for(&key).unwrap().scope = old.clone();
-            let mut machine = vessel_app_view::Machine::unreachable("node".into(), "fixture");
-            machine.node = Some(key.node);
-            machine.connection_epoch = Some(first.epoch());
-            shell.fleet.machines.push(machine);
+            let first = scene.context();
+            let old = FileScope::new(first, root);
             let old_open = shell.file_open_context().unwrap();
             assert_eq!(old_open.scope(), &old);
             assert!(shell.markdown_link_is_current(&key, &old_open));
-            let second = epochs
-                .admit(MachineKey::from_book("node"), key.node)
+            let second = scene
+                .reconnect(
+                    shell.fixture_link(),
+                    vessel_app_link::testing::Reconnect::SameNode,
+                )
                 .unwrap();
-            let new = FileScope::new(second.clone(), root);
-            shell.fleet.machines.last_mut().unwrap().connection_epoch = Some(second.epoch());
-            shell
-                .areas
-                .workspace
-                .code
-                .target
-                .as_mut()
-                .unwrap()
-                .admission
-                .as_mut()
-                .unwrap()
-                .context = second;
+            let _receipt = super::super::super::root_fixture::refresh(shell, &mut scene, root, cx);
+            let new = FileScope::new(second, root);
             shell.areas.workspace.code.viewer_for(&key).unwrap().scope = new.clone();
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
             assert!(!shell.markdown_link_is_current(&key, &old_open));
@@ -197,24 +163,14 @@ mod tests {
             assert!(!shell.markdown_link_is_current(&key, &new_open));
             assert!(!shell.file_tree_scope_is_current(&new_open));
             shell.areas.workspace.code.open = true;
-            let next_receipt = shell.next_file_ticket().unwrap();
-            shell
-                .areas
-                .workspace
-                .code
-                .target
-                .as_mut()
-                .unwrap()
-                .admission
-                .as_mut()
-                .unwrap()
-                .ticket = next_receipt;
+            let _receipt = super::super::super::root_fixture::refresh(shell, &mut scene, root, cx);
             assert!(!shell.markdown_link_is_current(&key, &new_open));
             let refreshed = shell.file_open_context().unwrap();
             assert!(shell.markdown_link_is_current(&key, &refreshed));
             shell.areas.session.open.as_mut().unwrap().session = vessel_proto::SessionId::random();
             assert!(!shell.markdown_link_is_current(&key, &new_open));
             assert!(shell.active_file_scope().is_none());
+            scene.close(shell.fixture_link()).unwrap();
         });
     }
 }

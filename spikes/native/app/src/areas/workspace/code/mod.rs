@@ -62,6 +62,9 @@ mod markdown;
 mod mutation;
 mod observation;
 mod receipts;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod root_fixture;
 mod scope;
 #[cfg(test)]
 mod scope_tests;

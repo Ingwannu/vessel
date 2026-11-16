@@ -1,4 +1,5 @@
 //! Actual framed root/summary/diff replies enter the real `CodePanel` owner.
+use super::root_fixture::metadata;
 use super::*;
 use crate::areas::workspace::{ShownChangesContext, ShownDiffContext};
 use gpui::TestAppContext;
@@ -7,10 +8,10 @@ use vessel_app_link::{
     testing::Scenario,
     workspace::code_source::{Answer, Request},
 };
-use vessel_app_view::{connection::ConnectionContext, machine_book::Name};
+use vessel_app_view::connection::ConnectionContext;
 use vessel_proto::{
-    Call, HarnessKind, Outcome, ProjectId, Reply, SessionInfo, SessionMode, SessionSpec,
-    workspace::{ChangeStatus, DiffContent, FileChange, FileDiff, SessionWorkspace},
+    Call, Outcome, ProjectId, Reply,
+    workspace::{ChangeStatus, DiffContent, FileChange, FileDiff},
 };
 
 fn prepare(shell: &mut Shell, context: &ConnectionContext) -> (SessionId, ProjectId) {
@@ -33,26 +34,7 @@ fn prepare(shell: &mut Shell, context: &ConnectionContext) -> (SessionId, Projec
     shell.code_follow();
     (session, ProjectId::random())
 }
-fn metadata(session: SessionId, project: ProjectId) -> SessionInfo {
-    let mut info = SessionInfo::new(
-        session,
-        SessionSpec::new(
-            HarnessKind::ClaudeCode,
-            SessionMode::Structured {
-                model: None,
-                resume: None,
-                options: Vec::new(),
-            },
-        ),
-        chrono::DateTime::UNIX_EPOCH,
-    );
-    info.workspace = Some(Box::new(SessionWorkspace {
-        project,
-        worktree: None,
-        branch: None,
-    }));
-    info
-}
+
 fn summary() -> DiffSummary {
     DiffSummary {
         from: None,
@@ -106,10 +88,7 @@ fn ready(scene: &mut Scenario, shell: &mut Shell) {
     assert!(shell.shown_changes_is_current(&shown));
 }
 fn setup(cx: &mut TestAppContext) -> (gpui::Entity<Shell>, &mut gpui::VisualTestContext, Scenario) {
-    crate::shell::language_tests::init(cx);
-    let (link, scene) = Scenario::start(&Name::parse("fixture").unwrap()).unwrap();
-    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
-    (shell, cx, scene)
+    root_fixture::setup(cx, "fixture")
 }
 #[gpui::test]
 fn queued_summary_cannot_install_after_original_retirement(cx: &mut TestAppContext) {
