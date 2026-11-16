@@ -443,3 +443,46 @@ fn root_refresh_retains_old_epoch_draft_and_settles_only_its_original_refusal(
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn file_opener_refuses_original_root_after_retirement_before_fleet(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let original = scene.context();
+        let (session, project) = prepare(shell, &original);
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let opening = shell.file_open_context().unwrap();
+        assert_eq!(opening.scope().connection(), &original);
+        let before = scene.transcript(shell.fixture_link()).unwrap().len();
+        scene.retire(shell.fixture_link()).unwrap();
+        assert_eq!(
+            shell.file_connection(original.machine().as_str()).as_ref(),
+            Some(&original),
+            "Fleet has intentionally not published retirement"
+        );
+        assert!(shell.file_admitted_scope().is_none());
+        assert!(shell.active_file_scope().is_none());
+        assert!(shell.file_open_context().is_none());
+        assert!(!shell.file_open_context_is_current(&opening));
+        assert_eq!(
+            shell.open_workspace_file(
+                &opening,
+                "a.rs".parse().unwrap(),
+                None,
+                vessel_app_view::layout::Placement::Focused,
+                window,
+                cx
+            ),
+            Err(file_open::FileOpenRefusal::Changed)
+        );
+        assert!(shell.areas.workspace.code.files.viewer.is_none());
+        assert!(shell.areas.workspace.code.files.retained.is_empty());
+        assert_eq!(
+            scene.transcript(shell.fixture_link()).unwrap().len(),
+            before,
+            "refused opener sent no file request"
+        );
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}

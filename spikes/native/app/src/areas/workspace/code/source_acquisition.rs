@@ -21,6 +21,7 @@ impl Shell {
             return false;
         };
         let panel = &mut self.areas.workspace.code;
+        panel.changes.sources.invalidate();
         let Ok(ticket) = panel.tickets.issue() else {
             if let Some(target) = panel.target.as_mut() {
                 target.place = Place::Failed(String::new());

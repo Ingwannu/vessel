@@ -47,3 +47,10 @@ existing actor instead of creating unbounded full-queue reply workers. The
 existing root reader also checks the returned SessionId before the mention
 cache can consume it. A new real-framed queued-read retirement case is authored,
 unexecuted; no generic worker-drain or permit-lifetime runtime proof is claimed.
+
+A second authored App case obtains its opener scope from the real framed root
+receipt, retires the actor without publishing Fleet, and requires all public
+file-scope/opener getters plus the captured activation to refuse before any
+file request or viewer allocation. Root refresh also invalidates the existing
+summary request metadata before requesting its new original receipt. These
+are unexecuted changed-assembly cases, not borrowed from the standalone eight.
