@@ -838,3 +838,17 @@ This receiving source is uncompiled/unexecuted until its own grouped narrow.
 Prior3add pressure1/0/0 and old006 functional226/0/0 stay prior-source; no old
 result proves this new base, notification join or old-callback tests. Header,
 full C3/captures/OS and the scoped write-owner join remain pending.
+
+The base14.2 consumer source is5c951a7452caeaa1fd3078badf20ac19240ee1e0.
+Its ONE ordinary all-target View/Kit/Link/App strict is
+wp-git-body-narrow-20261116T031342Z-5c951a74 (list-consumer14-strict), and
+ONE ordinary App BIN areas::git::panel selection is
+wp-git-consumer-tests-20261116T031358Z-5c951a74 (list-consumer14-tests).
+Both are queued/unverified. Source-delta preflight has0 findings; whole-owned
+union scan additionally reports the legacy wasm-only web::Link::answer length
+(base141 body lines/current144 after the GitPanel refusal arm). No native
+function allowance or shared file was enlarged/split for that base finding.
+Selected regular rustfmt, size and token checks passed before submission.
+W13's straight shown-source leaf d582+docsdf0700 is now receiving source/narrow
+passed, but not consumed here yet; it alone does not supply UI-visit or write
+authority. Actual write owner and F4 reactivation remain pending.
