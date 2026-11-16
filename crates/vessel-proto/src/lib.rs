@@ -46,6 +46,7 @@ pub mod lsp;
 pub mod mcp;
 mod model;
 mod name;
+pub mod native_commands;
 mod node;
 pub mod notifications;
 #[cfg(test)]
@@ -122,10 +123,10 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AgentMessageId, AttachmentId, DeviceId, EventSeq, FinishIntentId, HarnessSessionId, HookId,
-    InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId,
-    ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId,
-    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, ExecutionIncarnationId, FinishIntentId,
+    HarnessSessionId, HookId, InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
+    PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId,
+    SessionId, SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
     WorkspaceOperationId, WorktreeId,
 };
 pub use id::{SetupRevision, SetupRunId};

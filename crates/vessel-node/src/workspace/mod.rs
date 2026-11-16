@@ -29,6 +29,7 @@ mod forge;
 mod git;
 mod policy;
 mod projects;
+mod registry_fence;
 mod roots;
 mod scripts;
 mod setup;
