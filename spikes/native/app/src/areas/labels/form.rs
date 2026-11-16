@@ -1,9 +1,13 @@
-//! One persistent editor through input, inspection, confirmation and mutation.
+//! One persistent editor through input, inspection, confirmation and mutation,
+//! laid out as Paseo's `WorkspaceLabelEditView` and its footer
+//! (manager-modal.tsx 142-167, 289-344): a "Name" field, a "Color" field
+//! holding the swatch row, then Delete (outline, never red) and Save side by
+//! side in the dialog's footer. The way back is the header's (draw.rs).
 
-use vessel_app_kit::theme::spacing::S3;
+use vessel_app_kit::theme::spacing::{S2, S4};
 use vessel_app_kit::ui::{
-    Context, Div, FluentBuilder as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_view::{
@@ -14,9 +18,11 @@ use vessel_app_view::{
 use super::actions::{Action, Target};
 use crate::shell::Shell;
 
+/// `saveButton.minWidth`.
+const SAVE_MIN: f32 = 112.0;
+
 pub(super) fn editor(
     shell: &Shell,
-    host: &Host,
     draft: &Draft,
     target: &Target,
     tokens: &Tokens,
@@ -27,166 +33,165 @@ pub(super) fn editor(
     div()
         .flex()
         .flex_col()
-        .gap(px(S3))
-        .type_(Type::Body)
-        .child(state.name.element(tokens, false, cx))
-        .child(super::colors::choices(
-            shell,
-            draft.color(),
-            target,
+        .gap(px(S4))
+        .child(field(
+            words.field_name(),
+            state.name.element(tokens, false, cx).into_any_element(),
             tokens,
-            cx,
         ))
-        .child(
-            button_with_kind(
-                "labels-back",
-                words.back(),
-                ButtonKind::Ghost,
-                enabled(!state.manager.state().busy()),
-                tokens,
-            )
-            .when(!state.manager.state().busy(), |button| {
-                let target = target.clone();
-                button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    if !target.matches(
-                        shell.areas.labels.opening,
-                        &shell.areas.labels.manager,
-                        shell
-                            .areas
-                            .labels
-                            .selected_host()
-                            .and_then(|host| host.connection.as_ref()),
-                    ) {
-                        return;
-                    }
-                    if let Err(failure) = shell.areas.labels.manager.back() {
-                        shell.areas.labels.error = Some(failure);
-                    }
-                    shell.settle_labels(cx);
-                    cx.notify();
-                }))
-            }),
-        )
-        .child(actions(shell, host, target, tokens, cx))
+        .child(field(
+            words.field_color(),
+            super::colors::choices(shell, draft.color(), target, tokens, cx).into_any_element(),
+            tokens,
+        ))
 }
 
-fn actions(
+/// Paseo's `Field`: its label in 14 `foregroundMuted`, 8 above the control.
+fn field(label: &'static str, control: AnyElement, tokens: &Tokens) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(S2))
+        .child(
+            div()
+                .min_w_0()
+                .truncate()
+                .type_(Type::Body)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(label),
+        )
+        .child(control)
+}
+
+/// The dialog's footer for the draft: Delete then Save while editing (Save
+/// only once the draft differs, both off while anything is under way); the
+/// confirmation's Cancel and Delete while it asks.
+pub(super) fn footer(
     shell: &Shell,
     host: &Host,
     target: &Target,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> Vec<AnyElement> {
     let words = shell.words.labels();
-    let row = div().flex().flex_col().gap(px(S3));
-    match shell.areas.labels.manager.state() {
-        ManagerState::Listing => row,
-        ManagerState::Editing(draft) => {
-            let current = host.catalog.get(&draft.original().name);
-            let online = host.state.connected()
-                && target.matches(
-                    shell.areas.labels.opening,
-                    &shell.areas.labels.manager,
-                    host.connection.as_ref(),
-                );
-            let can_save =
-                online && current.is_some_and(|label| draft.replacement(label).is_some());
-            let can_delete = online && current.is_some();
-            row.child(
-                button_with_kind(
-                    "labels-save",
-                    words.save(),
-                    ButtonKind::Primary,
-                    enabled(can_save),
-                    tokens,
-                )
-                .when(can_save, |button| {
-                    let action = Action::Save(target.clone());
-                    button.on_click(cx.listener(move |shell, _, _window, cx| {
-                        shell.label_action(&action, cx);
-                    }))
-                }),
+    let manager = &shell.areas.labels.manager;
+    let online = host.state.connected()
+        && target.matches(
+            shell.areas.labels.opening,
+            manager,
+            host.connection.as_ref(),
+        );
+    match manager.state() {
+        ManagerState::Listing | ManagerState::Deleting { .. } => Vec::new(),
+        ManagerState::Editing(_) | ManagerState::Saving { .. } | ManagerState::Inspecting { .. } => {
+            let (can_save, can_delete) = match manager.state() {
+                ManagerState::Editing(draft) => {
+                    let current = host.catalog.get(&draft.original().name);
+                    (
+                        online && current.is_some_and(|label| draft.replacement(label).is_some()),
+                        online && current.is_some(),
+                    )
+                }
+                ManagerState::Listing
+                | ManagerState::Saving { .. }
+                | ManagerState::Inspecting { .. }
+                | ManagerState::Confirming { .. }
+                | ManagerState::Deleting { .. } => (false, false),
+            };
+            let delete = button_with_kind(
+                "labels-delete",
+                words.delete(),
+                ButtonKind::Outline,
+                enabled(can_delete),
+                tokens,
             )
-            .child(
-                button_with_kind(
-                    "labels-delete",
-                    words.delete(),
-                    ButtonKind::Secondary,
-                    enabled(can_delete),
-                    tokens,
-                )
-                .when(can_delete, |button| {
-                    let action = Action::Inspect(target.clone());
-                    button.on_click(cx.listener(move |shell, _, _window, cx| {
-                        shell.label_action(&action, cx);
-                    }))
-                }),
+            .when(can_delete, |button| {
+                let action = Action::Inspect(target.clone());
+                button.on_click(cx.listener(move |shell, _, _window, cx| {
+                    shell.label_action(&action, cx);
+                }))
+            });
+            let save = button_with_kind(
+                "labels-save",
+                words.save(),
+                ButtonKind::Primary,
+                enabled(can_save),
+                tokens,
             )
+            .min_w(px(SAVE_MIN))
+            .when(can_save, |button| {
+                let action = Action::Save(target.clone());
+                button.on_click(cx.listener(move |shell, _, _window, cx| {
+                    shell.label_action(&action, cx);
+                }))
+            });
+            // Paseo's footer content: one row, Delete at the start and Save
+            // at the end (`justifyContent: "space-between"`).
+            vec![
+                div()
+                    .debug_selector(|| "labels-footer".to_owned())
+                    .flex_1()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(S2))
+                    .child(delete)
+                    .child(save)
+                    .into_any_element(),
+            ]
         }
-        ManagerState::Saving { .. } | ManagerState::Deleting { .. } => row.child(words.pending()),
-        ManagerState::Inspecting { .. } => row.child(words.inspecting()),
-        ManagerState::Confirming { count, ticket, .. } => {
-            confirmation(shell, host, *count, target.clone(), *ticket, tokens, cx)
+        ManagerState::Confirming { ticket, .. } => {
+            let cancel = super::surface::Dismiss::Confirmation {
+                opening: target.opening(),
+                inspection: *ticket,
+            };
+            let action = Action::Delete {
+                target: target.clone(),
+                inspection: *ticket,
+            };
+            vec![
+                button_with_kind(
+                    "labels-delete-cancel",
+                    words.cancel(),
+                    ButtonKind::Secondary,
+                    ButtonState::Enabled,
+                    tokens,
+                )
+                .on_click(cx.listener(move |shell, _, window, cx| {
+                    shell.labels_close(cancel, window, cx);
+                }))
+                .into_any_element(),
+                button_with_kind(
+                    "labels-delete-confirm",
+                    words.delete(),
+                    ButtonKind::Destructive,
+                    enabled(online),
+                    tokens,
+                )
+                .when(online, |button| {
+                    button.on_click(cx.listener(move |shell, _, _window, cx| {
+                        shell.label_action(&action, cx);
+                    }))
+                })
+                .into_any_element(),
+            ]
         }
     }
 }
 
-fn confirmation(
-    shell: &Shell,
-    host: &Host,
-    count: Count,
-    target: Target,
-    inspection: vessel_app_view::labels::Ticket,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+/// Paseo's `confirmDialog` content: the question and the affected count.
+pub(super) fn confirmation(shell: &Shell, count: Count) -> Div {
     let words = shell.words.labels();
-    let enabled_connection = host.state.connected()
-        && target.matches(
-            shell.areas.labels.opening,
-            &shell.areas.labels.manager,
-            host.connection.as_ref(),
-        );
-    let cancel = super::surface::Dismiss::Confirmation {
-        opening: target.opening(),
-        inspection,
-    };
     div()
         .flex()
         .flex_col()
-        .gap(px(S3))
+        .gap(px(S2))
         .child(words.confirm())
         .child(
             words
                 .affected(Number::count(count.get()))
                 .unwrap_or_else(|_| words.failed().to_owned()),
-        )
-        .child(
-            button_with_kind(
-                "labels-delete-cancel",
-                words.cancel(),
-                ButtonKind::Secondary,
-                ButtonState::Enabled,
-                tokens,
-            )
-            .on_click(cx.listener(move |shell, _, window, cx| {
-                shell.labels_close(cancel, window, cx);
-            })),
-        )
-        .child(
-            button_with_kind(
-                "labels-delete-confirm",
-                words.delete(),
-                ButtonKind::Destructive,
-                enabled(enabled_connection),
-                tokens,
-            )
-            .when(enabled_connection, |button| {
-                let action = Action::Delete { target, inspection };
-                button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    shell.label_action(&action, cx);
-                }))
-            }),
         )
 }
 

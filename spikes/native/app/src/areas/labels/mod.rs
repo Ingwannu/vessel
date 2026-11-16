@@ -4,8 +4,11 @@
 mod actions;
 mod colors;
 mod draw;
+#[cfg(test)]
+mod draw_tests;
 mod fields;
 mod form;
+mod host_filter;
 mod hosts;
 // No authoritative workspace caller has landed: enable with that owner only.
 #[cfg(test)]
@@ -37,8 +40,10 @@ pub(crate) struct Labels {
     search: SearchField,
     name: TextField,
     dialog: DialogState,
+    /// Paseo's `HostFilter` list and where its pill was last drawn.
+    host_list: vessel_app_kit::ComboboxState,
+    host_anchor: vessel_app_kit::select::Anchor,
     error: Option<Failure>,
-    color_turn: colors::ColorTurn,
     unresolved: Vec<vessel_app_view::machine_book::Name>,
     applied_editability: Option<EditAccess>,
     tickets: vessel_app_view::labels::Tickets,
@@ -60,8 +65,9 @@ impl Labels {
             search: fields::search("", window, cx),
             name: fields::manager("", window, cx),
             dialog: DialogState::new(cx),
+            host_list: vessel_app_kit::ComboboxState::new(window, cx),
+            host_anchor: vessel_app_kit::select::Anchor::default(),
             error: None,
-            color_turn: colors::ColorTurn::default(),
             unresolved: Vec::new(),
             applied_editability: None,
             tickets: vessel_app_view::labels::Tickets::default(),
@@ -143,8 +149,9 @@ impl Shell {
             .name
             .set_placeholder(self.words.labels().name(), window, cx);
         state.opening = Some(opening);
+        // Paseo's manager passes no `autoFocus` to its header search: the
+        // dialog takes focus (Escape, Tab) and the field waits for a click.
         state.dialog.focus(window, cx);
-        state.search.focus(window, cx);
         cx.notify();
     }
 
@@ -163,6 +170,7 @@ impl Shell {
             }
             surface::Outcome::Close => {
                 state.opening = None;
+                state.host_list.close();
                 state.dialog.dismissed(window, cx);
                 // Accepted writes keep their owner even while hidden.
                 if !state.manager.state().busy() {

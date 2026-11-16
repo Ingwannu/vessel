@@ -37,7 +37,6 @@ pub(super) fn overlay(
         .gap(px(S3))
         .child(picker.name.element(tokens, false, cx))
         .child(super::super::colors::choices_for(
-            shell,
             draft.color(),
             if editable {
                 EditAccess::Editable
@@ -119,7 +118,6 @@ fn color_choice(opening: Opening) -> super::super::colors::ColorChoice {
             && draft.color() != color
         {
             draft.set_color(color);
-            state.color_turn.advance();
             cx.notify();
         }
     })

@@ -1,36 +1,37 @@
-//! Label values choose generic theme identities; existing buttons draw choices.
+//! Label values choose generic theme identities; one swatch row picks them.
+//!
+//! [Decision Log]
+//! - Purpose: Paseo's label colour picker (`workspace-labels/swatch.tsx`
+//!   `WorkspaceLabelSwatchRow`, used by the manager's edit view and the
+//!   picker's create view): one row of the ten colours as 20-point circles,
+//!   gap 12, wrapping; the selection an inset 2-point `foreground` ring that
+//!   cannot reflow the row; the colour names only as accessibility labels.
+//! - Before: named Ghost pills with a dot and a fading selection border (the
+//!   coordinator's RETURN on the manager body, 2026-11-16).
+//! - Choice: a plain circle per colour drawn here, GPUI's border sitting
+//!   inside the box as React Native's does. No animation (Paseo's ring
+//!   switches at once). Read-only rows draw the same circles without a handler.
+//! - Impact: the colour names have no place to go until the kit has an
+//!   accessibility tree (the kit-wide gap `host_rename.rs` records); Paseo's
+//!   12-point `hitSlop` is not reproduced (its web build has none).
 
-use gpui::AnimationExt as _;
-use vessel_app_kit::motion::{QUICK, transition};
 use vessel_app_kit::theme::{
     identity::{self, Hue},
-    spacing::S2,
+    spacing::S3,
 };
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind, dot};
+use vessel_app_kit::{Tokens, dot};
 use vessel_app_view::labels::{Color, EditAccess, HostState};
 
 use crate::shell::Shell;
 
-/// Reference menu-dot size, distinct from the existing button's touch target.
+/// `DOT_SIZE`: the mark in front of a label's name.
 const DOT_SIZE: f32 = 10.0;
-
-/// Visual identities never wrap back to an older animation key.
-#[derive(Default)]
-pub(super) struct ColorTurn(u64);
-
-impl ColorTurn {
-    pub(super) fn advance(&mut self) {
-        self.0 = self.0.saturating_add(1);
-    }
-    fn key(&self, color: Color) -> ElementId {
-        ElementId::Name(format!("label-color-{color:?}-{}", self.0).into())
-    }
-}
-
+/// `SWATCH_SIZE`: the swatch row's only unit.
+pub(super) const SWATCH_SIZE: f32 = 20.0;
 pub(super) fn foreground(color: Color, tokens: &Tokens) -> gpui::Hsla {
     identity::foreground(hue(color), tokens.scheme)
 }
@@ -65,18 +66,17 @@ pub(super) fn choices(
             && draft.color() != color
         {
             draft.set_color(color);
-            state.color_turn.advance();
             cx.notify();
         }
     });
-    choices_for(shell, selected, access(shell), &on_choose, tokens, cx)
+    choices_for(selected, access(shell), &on_choose, tokens, cx)
 }
 
 pub(super) type ColorChoice = std::rc::Rc<dyn Fn(&mut Shell, Color, &mut Context<'_, Shell>)>;
 
-/// Both label workflows use the same existing button/dot/animation renderer.
+/// Both label workflows use this one swatch row (Paseo's
+/// `WorkspaceLabelSwatchRow`).
 pub(super) fn choices_for(
-    shell: &Shell,
     selected: Color,
     editability: EditAccess,
     on_choose: &ColorChoice,
@@ -84,46 +84,31 @@ pub(super) fn choices_for(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     div()
+        .debug_selector(|| "label-swatches".to_owned())
         .flex()
+        .flex_row()
         .flex_wrap()
-        .gap(px(S2))
+        .items_center()
+        .gap(px(S3))
         .children(Color::ALL.into_iter().map(|color| {
             let on_choose = std::rc::Rc::clone(on_choose);
-            let button = button_with_kind(
-                ElementId::Name(format!("label-swatch-{color:?}").into()),
-                name(shell, color),
-                ButtonKind::Ghost,
-                match editability {
-                    EditAccess::Editable => ButtonState::Enabled,
-                    EditAccess::ReadOnly => ButtonState::Disabled,
-                },
-                tokens,
-            )
-            .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
-            .border_1()
-            .border_color(if color == selected {
-                tokens.neutral.foreground
-            } else {
-                tokens.neutral.border
-            })
-            .gap(px(S2))
-            .child(mark(color, tokens))
-            .when(editability == EditAccess::Editable, |button| {
-                button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    on_choose(shell, color, cx);
-                }))
-            });
-            if color == selected {
-                button
-                    .with_animation(
-                        shell.areas.labels.color_turn.key(color),
-                        transition(QUICK),
-                        vessel_app_kit::ui::Styled::opacity,
-                    )
-                    .into_any_element()
-            } else {
-                button.into_any_element()
-            }
+            div()
+                .id(ElementId::Name(format!("label-swatch-{color:?}").into()))
+                .debug_selector(move || format!("label-swatch-{color:?}"))
+                .flex_none()
+                .size(px(SWATCH_SIZE))
+                .rounded_full()
+                .bg(foreground(color, tokens))
+                .when(color == selected, |swatch| {
+                    swatch.border_2().border_color(tokens.neutral.foreground)
+                })
+                .when(editability == EditAccess::Editable, |swatch| {
+                    swatch
+                        .cursor_pointer()
+                        .on_click(cx.listener(move |shell, _, _window, cx| {
+                            on_choose(shell, color, cx);
+                        }))
+                })
         }))
 }
 
@@ -147,21 +132,5 @@ const fn hue(color: Color) -> Hue {
         Color::Red => Hue::Red,
         Color::Amber => Hue::Amber,
         Color::Blue => Hue::Blue,
-    }
-}
-
-fn name(shell: &Shell, color: Color) -> &'static str {
-    let words = shell.words.labels();
-    match color {
-        Color::Violet => words.color_violet(),
-        Color::Sky => words.color_sky(),
-        Color::Emerald => words.color_emerald(),
-        Color::Orange => words.color_orange(),
-        Color::Pink => words.color_pink(),
-        Color::Indigo => words.color_indigo(),
-        Color::Teal => words.color_teal(),
-        Color::Red => words.color_red(),
-        Color::Amber => words.color_amber(),
-        Color::Blue => words.color_blue(),
     }
 }

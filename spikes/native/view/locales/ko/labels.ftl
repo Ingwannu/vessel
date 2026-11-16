@@ -11,6 +11,10 @@ labels-delete-title = “{ $name }” 라벨을 삭제할까요?
 labels-search = 라벨 검색
 # Label manager name text; shown inside the adaptive dialog.
 labels-name = 라벨 이름
+# Label manager edit view: the name field's label (Paseo's "Name").
+labels-field-name = 이름
+# Label manager edit view: the colour swatch row's label (Paseo's "Color").
+labels-field-color = 색상
 # Label manager create text; shown inside the adaptive dialog.
 labels-create = 라벨 만들기
 # Label manager save text; shown inside the adaptive dialog.
@@ -23,8 +27,8 @@ labels-cancel = 취소
 labels-back = 뒤로
 # Label manager host text; shown inside the adaptive dialog.
 labels-host = 호스트
-# Label manager empty text; shown inside the adaptive dialog.
-labels-empty = 라벨 없음
+# Label manager empty line, for no labels and for no match alike (Paseo's `manage.empty`).
+labels-empty = 이 호스트에 라벨이 없습니다.
 # Label manager no matches text; shown inside the adaptive dialog.
 labels-no-matches = 일치하는 라벨 없음
 # Label manager no hosts text; shown inside the adaptive dialog.
@@ -34,9 +38,9 @@ labels-connect = 라벨을 불러오려면 호스트에 연결하세요.
 # Label manager loading text; shown inside the adaptive dialog.
 labels-loading = 라벨 불러오는 중…
 # Label manager offline text; shown inside the adaptive dialog.
-labels-offline = 라벨을 편집하려면 이 호스트에 연결하세요.
+labels-offline = 이 호스트는 오프라인입니다.
 # Label manager unsupported text; shown inside the adaptive dialog.
-labels-unsupported = 작업공간 라벨을 사용하려면 호스트를 업데이트하세요.
+labels-unsupported = 라벨을 관리하려면 이 호스트를 업데이트하세요.
 # Label manager load failed text; shown inside the adaptive dialog.
 labels-load-failed = 라벨을 불러오지 못했습니다. 다시 시도하세요.
 # Label manager pending text; shown inside the adaptive dialog.

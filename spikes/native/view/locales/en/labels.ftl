@@ -11,6 +11,10 @@ labels-delete-title = Delete “{ $name }”?
 labels-search = Search labels
 # Label manager name text; shown inside the adaptive dialog.
 labels-name = Label name
+# Label manager edit view: the name field's label (Paseo's "Name").
+labels-field-name = Name
+# Label manager edit view: the colour swatch row's label (Paseo's "Color").
+labels-field-color = Color
 # Label manager create text; shown inside the adaptive dialog.
 labels-create = Create label
 # Label manager save text; shown inside the adaptive dialog.
@@ -23,8 +27,8 @@ labels-cancel = Cancel
 labels-back = Back
 # Label manager host text; shown inside the adaptive dialog.
 labels-host = Host
-# Label manager empty text; shown inside the adaptive dialog.
-labels-empty = No labels
+# Label manager empty line, for no labels and for no match alike (Paseo's `manage.empty`).
+labels-empty = No labels on this host.
 # Label manager no matches text; shown inside the adaptive dialog.
 labels-no-matches = No matching labels
 # Label manager no hosts text; shown inside the adaptive dialog.
@@ -34,9 +38,9 @@ labels-connect = Connect to a host to load its labels.
 # Label manager loading text; shown inside the adaptive dialog.
 labels-loading = Loading labels…
 # Label manager offline text; shown inside the adaptive dialog.
-labels-offline = Connect to this host to edit labels.
+labels-offline = This host is offline.
 # Label manager unsupported text; shown inside the adaptive dialog.
-labels-unsupported = Update this host to use workspace labels.
+labels-unsupported = Update this host to manage labels.
 # Label manager load failed text; shown inside the adaptive dialog.
 labels-load-failed = Could not load labels. Try again.
 # Label manager pending text; shown inside the adaptive dialog.

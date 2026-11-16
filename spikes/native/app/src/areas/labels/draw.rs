@@ -1,16 +1,49 @@
-//! Draw every manager phase from view state using existing kit furniture.
+//! Draw every manager phase after Paseo's `workspace-labels/manager-modal.tsx`
+//! (120-357) on the kit dialog.
+//!
+//! [Decision Log]
+//! - Purpose: the manager's body is Paseo's (the coordinator's RETURN on the
+//!   W10b body, 2026-11-16): the host filter only with more than one host,
+//!   one left rail of rows (the colour dot, the name, a pencil that fades in
+//!   on hover), Paseo's empty, offline and update lines, and an edit view of
+//!   the name and the swatch row with the way back in the header and Delete
+//!   and Save in the footer.
+//! - Before: host-named buttons, centred Ghost rows with the dot after the
+//!   name, info alerts for every status, a body Back and stacked Save/Delete.
+//! - Choice: the kit dialog's own header search (listing) and header back
+//!   (editing), its footer slot for the actions, the kit combobox for the host
+//!   list; the row, its pencil and the status lines are drawn here because
+//!   only this manager has them.
+//! - Kept: every admission check (opening, host, connection, ticket) of the
+//!   W10b actions, and the delete confirmation as its own phase. The
+//!   confirmation shows Paseo's `confirmDialog` content (the question, the
+//!   count) with Cancel and Delete in the footer, in place of the edit view,
+//!   as the kit has no dialog over a dialog.
+//! - Differences: the kit button has no loading state, so a pending save or
+//!   check shows a muted line under the swatches rather than a spinner in
+//!   Save; the pencil's and the swatches' `hitSlop` is not reproduced (Paseo's
+//!   web build has none).
 
-use vessel_app_kit::alert::{Content, Size, Variant, alert};
-use vessel_app_kit::dialog::{DialogContent, DialogInput, DialogSize, dialog};
-use vessel_app_kit::theme::spacing::{S2, S3};
+use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::dialog::{DialogContent, DialogInput, DialogSize, HeaderBack, dialog};
+use vessel_app_kit::theme::spacing::{S1, S2, S4};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, SharedString, Stateful,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
-use vessel_app_view::labels::{Failure, HostState, ManagerState};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
+use vessel_app_view::labels::{Failure, Host, HostState, Label, ManagerState};
 
+use super::actions::Target;
 use crate::shell::Shell;
+
+/// `rowEdit`: the pencil glyph (`EDIT_ICON_SIZE`).
+const PENCIL: f32 = 14.0;
+/// `row.minHeight`.
+const ROW_MIN: f32 = 32.0;
+/// `rowEditPressed.opacity`.
+const PRESSED: f32 = 0.6;
 
 pub(crate) fn overlay(
     shell: &Shell,
@@ -21,32 +54,55 @@ pub(crate) fn overlay(
     let state = &shell.areas.labels;
     let opening = state.opening?;
     let dismiss = super::surface::Dismiss::capture(opening, state.manager.state());
-    let body = body(shell, opening, tokens, cx);
+    let narrow = vessel_app_kit::breakpoint::phone(window);
+    let target = target(shell, opening);
+    let body = body(shell, target.as_ref(), narrow, tokens, cx);
+    let footer = target
+        .as_ref()
+        .zip(state.selected_host())
+        .map_or_else(Vec::new, |(target, host)| {
+            super::form::footer(shell, host, target, tokens, cx)
+        });
     let content = DialogContent {
         title: title(shell).into(),
         body: body.into_any_element(),
-        footer: Vec::new(),
+        footer,
         size: DialogSize::Normal,
     };
-    // Paseo's manager gives its query to the sheet header while listing
-    // (manager-modal.tsx 120-138); editing shows no search.
-    let content: DialogInput = match state.manager.state() {
-        ManagerState::Listing => content.with_header_search(state.search.header_search(tokens, cx)),
-        ManagerState::Editing(_)
-        | ManagerState::Saving { .. }
-        | ManagerState::Inspecting { .. }
-        | ManagerState::Confirming { .. }
-        | ManagerState::Deleting { .. } => content.into(),
+    // Paseo's manager gives its query to the sheet header while listing and
+    // its way back to the header while editing (manager-modal.tsx 120-141).
+    let content: DialogInput = match (state.manager.state(), target) {
+        (ManagerState::Listing, _) => {
+            content.with_header_search(state.search.header_search(tokens, cx))
+        }
+        (
+            ManagerState::Editing(_) | ManagerState::Saving { .. } | ManagerState::Inspecting { .. },
+            Some(target),
+        ) => content.with_header_back(back(target, cx)),
+        (
+            ManagerState::Editing(_)
+            | ManagerState::Saving { .. }
+            | ManagerState::Inspecting { .. }
+            | ManagerState::Confirming { .. }
+            | ManagerState::Deleting { .. },
+            _,
+        ) => content.into(),
     };
-    Some(dialog(
+    let modal = dialog(
         &state.dialog,
         content,
         tokens,
         window,
-        vessel_app_kit::breakpoint::phone(window),
+        narrow,
         move |shell, window, cx| shell.labels_close(dismiss, window, cx),
         cx,
-    ))
+    );
+    Some(
+        div()
+            .child(modal)
+            .children(super::host_filter::list(shell, tokens, window, cx))
+            .into_any_element(),
+    )
 }
 
 fn title(shell: &Shell) -> String {
@@ -62,182 +118,285 @@ fn title(shell: &Shell) -> String {
     }
 }
 
-fn body(
-    shell: &Shell,
-    opening: super::surface::Opening,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+/// The draft's admission: the opening, the host and the connection it was
+/// opened on (a confirmation keeps the one it inspected on).
+fn target(shell: &Shell, opening: super::surface::Opening) -> Option<Target> {
     let state = &shell.areas.labels;
-    let words = shell.words.labels();
-    let mut body = div().flex().flex_col().gap(px(S3)).type_(Type::Body);
-    let host = state.selected_host();
-    body = body.child(hosts(shell, tokens, cx));
-    let Some(host) = host else {
-        return body.child(if state.unresolved.is_empty() {
-            words.no_hosts()
-        } else {
-            words.connect()
-        });
-    };
-    if let Some(message) = availability(host.state, shell) {
-        body = body.child(notice(message, tokens));
-    }
-    if matches!(state.manager.state(), ManagerState::Confirming { .. })
-        && state.confirmation.as_ref() != host.connection.as_ref()
-    {
-        body = body.child(notice(words.changed(), tokens));
-    }
-    if let Some(failure) = state.error.or_else(|| state.manager.error()) {
-        body = body.child(notice(failure_text(failure, shell), tokens));
-    }
-    match state.manager.state() {
-        ManagerState::Listing => body.child(list(shell, host, tokens, cx)),
+    let host = state.selected_host()?;
+    let (draft, connection) = match state.manager.state() {
+        ManagerState::Listing => return None,
         ManagerState::Editing(draft)
         | ManagerState::Saving { draft, .. }
-        | ManagerState::Inspecting { draft, .. }
-        | ManagerState::Confirming { draft, .. }
-        | ManagerState::Deleting { draft, .. } => {
-            let connection = match state.manager.state() {
-                ManagerState::Confirming { .. } | ManagerState::Deleting { .. } => {
-                    state.confirmation.clone()
-                }
-                ManagerState::Listing
-                | ManagerState::Editing(_)
-                | ManagerState::Saving { .. }
-                | ManagerState::Inspecting { .. } => host.connection.clone(),
-            };
-            let target = super::actions::Target::new(
-                opening,
-                host.key,
-                connection,
-                draft.original().name.clone(),
-            );
-            body.child(super::form::editor(shell, host, draft, &target, tokens, cx))
+        | ManagerState::Inspecting { draft, .. } => (draft, host.connection.clone()),
+        ManagerState::Confirming { draft, .. } | ManagerState::Deleting { draft, .. } => {
+            (draft, state.confirmation.clone())
         }
-    }
+    };
+    Some(Target::new(
+        opening,
+        host.key,
+        connection,
+        draft.original().name.clone(),
+    ))
 }
 
-fn list(
+/// Paseo's header back (`cancelEdit`): leaves the edit view for the list;
+/// nothing while a save or check is under way.
+fn back(target: Target, cx: &mut Context<'_, Shell>) -> HeaderBack {
+    HeaderBack::new(cx.listener(move |shell, _event, _window, cx| {
+        let state = &mut shell.areas.labels;
+        if state.manager.state().busy()
+            || !target.matches(
+                state.opening,
+                &state.manager,
+                state
+                    .selected_host()
+                    .and_then(|host| host.connection.as_ref()),
+            )
+        {
+            return;
+        }
+        if let Err(failure) = state.manager.back() {
+            state.error = Some(failure);
+        }
+        shell.settle_labels(cx);
+        cx.notify();
+    }))
+}
+
+fn body(
     shell: &Shell,
-    host: &vessel_app_view::labels::Host,
+    target: Option<&Target>,
+    narrow: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let state = &shell.areas.labels;
     let words = shell.words.labels();
-    let mut body = div().flex().flex_col().gap(px(S3));
-    let labels = state.manager.filtered(&host.catalog);
-    if labels.is_empty() && host.state == HostState::Online {
-        body = body.child(if state.manager.has_query() {
-            words.no_matches()
-        } else {
-            words.empty()
-        });
-    }
-    for label in labels {
-        let label = label.clone();
-        let route = host.route.clone();
-        let connection = host.connection.clone();
-        body = body.child(
-            button_with_kind(
-                label.name.as_str().to_owned(),
-                label.name.as_str().to_owned(),
-                ButtonKind::Ghost,
-                ButtonState::Enabled,
-                tokens,
-            )
-            .child(super::colors::mark(label.color, tokens))
-            .on_click(cx.listener(move |shell, _, window, cx| {
-                let state = &mut shell.areas.labels;
-                if !state
-                    .selected_host()
-                    .is_some_and(|host| host.route == route && host.connection == connection)
-                {
-                    return;
-                }
-                match state.manager.edit(label.clone()) {
-                    Ok(()) => {
-                        state.name =
-                            super::fields::manager(shell.words.labels().name(), window, cx);
-                        state.applied_editability = None;
-                        state.name.set_text(label.name.as_str(), window, cx);
-                        state.name.focus(window, cx);
-                    }
-                    Err(failure) => state.error = Some(failure),
-                }
-                shell.settle_labels(cx);
-                cx.notify();
-            })),
-        );
-    }
-    body
-}
-
-use vessel_app_kit::ui::StatefulInteractiveElement as _;
-
-fn hosts(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let state = &shell.areas.labels;
-    let mut row = div().flex().flex_wrap().gap(px(S2));
-    for host in &state.hosts {
-        let route = host.route.clone();
-        let connection = host.connection.clone();
-        row = row.child(
-            button_with_kind(
-                host.route.as_str().to_owned(),
-                host.route.as_str().to_owned(),
-                if state.route.as_ref() == Some(&route) {
-                    ButtonKind::Primary
-                } else {
-                    ButtonKind::Secondary
-                },
-                if state.manager.state().busy() {
-                    ButtonState::Disabled
-                } else {
-                    ButtonState::Enabled
-                },
-                tokens,
-            )
-            .when(!state.manager.state().busy(), |button| {
-                button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    if !shell
-                        .areas
-                        .labels
-                        .hosts
-                        .iter()
-                        .any(|host| host.route == route && host.connection == connection)
-                    {
-                        return;
-                    }
-                    if let Err(failure) = shell.areas.labels.select_route(&route) {
-                        shell.areas.labels.error = Some(failure);
-                    }
-                    cx.notify();
-                }))
-            }),
-        );
-    }
-    for route in &state.unresolved {
-        row = row.child(button_with_kind(
-            route.as_str().to_owned(),
-            route.as_str().to_owned(),
-            ButtonKind::Secondary,
-            ButtonState::Disabled,
+    // Paseo's sheet content: its children 16 apart.
+    let body = div()
+        .debug_selector(|| "labels-body".to_owned())
+        .flex()
+        .flex_col()
+        .gap(px(S4))
+        .type_(Type::Body);
+    let Some(host) = state.selected_host() else {
+        return body.child(muted(
+            if state.unresolved.is_empty() {
+                words.no_hosts()
+            } else {
+                words.connect()
+            },
             tokens,
         ));
+    };
+    match (state.manager.state(), target) {
+        (ManagerState::Listing, _) | (_, None) => listing(shell, host, narrow, tokens, cx, body),
+        (
+            ManagerState::Editing(draft)
+            | ManagerState::Saving { draft, .. }
+            | ManagerState::Inspecting { draft, .. },
+            Some(target),
+        ) => body
+            .child(super::form::editor(shell, draft, target, tokens, cx))
+            .children(pending(shell, tokens))
+            .children(errors(shell, host, tokens)),
+        (ManagerState::Confirming { count, .. }, Some(_)) => body
+            .child(super::form::confirmation(shell, *count))
+            .children(changed(shell, host, tokens))
+            .children(errors(shell, host, tokens)),
+        (ManagerState::Deleting { .. }, Some(_)) => body
+            .child(muted(words.pending(), tokens))
+            .children(errors(shell, host, tokens)),
     }
-    row
 }
 
-fn availability(state: HostState, shell: &Shell) -> Option<&'static str> {
+/// Paseo's list view: the host filter with more than one host, the rows,
+/// then the empty, offline, update and error lines in its order.
+fn listing(
+    shell: &Shell,
+    host: &Host,
+    narrow: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+    body: Div,
+) -> Div {
+    let state = &shell.areas.labels;
     let words = shell.words.labels();
-    match state {
-        HostState::Online => None,
-        HostState::Offline => Some(words.offline()),
-        HostState::Loading => Some(words.loading()),
-        HostState::Unsupported => Some(words.unsupported()),
-        HostState::Failed(failure) => Some(failure_text(failure, shell)),
+    let labels = state.manager.filtered(&host.catalog);
+    // Paseo: `state.host?.status !== "online" || state.pending`.
+    let enabled = host.state == HostState::Online && !state.manager.state().busy();
+    let mut list = div()
+        .debug_selector(|| "labels-list".to_owned())
+        .flex()
+        .flex_col()
+        .gap(px(S1));
+    // Paseo shows its one empty line for no labels and for no match alike.
+    if labels.is_empty() {
+        list = list.child(muted(words.empty(), tokens));
     }
+    for label in labels {
+        list = list.child(row(shell, host, label, enabled, narrow, tokens, cx));
+    }
+    body.when(super::host_filter::shown(state), |body| {
+        body.child(super::host_filter::trigger(shell, tokens, cx))
+    })
+    .child(list)
+    .children(match host.state {
+        HostState::Online | HostState::Failed(_) => None,
+        HostState::Offline => Some(muted(words.offline(), tokens)),
+        HostState::Loading => Some(muted(words.loading(), tokens)),
+        HostState::Unsupported => Some(muted(words.unsupported(), tokens)),
+    })
+    .children(errors(shell, host, tokens))
+}
+
+/// One label: its colour, its name, and the pencil that opens it. The row
+/// is a fixed rail so the pencil fading in cannot move it.
+fn row(
+    shell: &Shell,
+    host: &Host,
+    label: &Label,
+    enabled: bool,
+    narrow: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Stateful<Div> {
+    let neutral = tokens.neutral;
+    let name = label.name.as_str().to_owned();
+    let group = SharedString::from(format!("label-row-{name}"));
+    let selector = group.to_string();
+    // Paseo reveals the pencil on hover, and always on a phone.
+    let revealed = narrow;
+    let pencil_group = group.clone();
+    let pencil = div()
+        .id(ElementId::Name(format!("label-edit-{name}").into()))
+        .debug_selector({
+            let name = name.clone();
+            move || format!("label-edit-{name}")
+        })
+        .flex()
+        .flex_none()
+        .items_center()
+        .justify_center()
+        .child(glyph(Glyph::Pencil, PENCIL, neutral.foreground_muted))
+        .when(!revealed, |pencil| {
+            pencil
+                .opacity(0.0)
+                .group_hover(pencil_group, |style| style.opacity(1.0))
+        })
+        .when(enabled, |pencil| {
+            let label = label.clone();
+            let route = host.route.clone();
+            let connection = host.connection.clone();
+            pencil
+                .cursor_pointer()
+                .active(|style| style.opacity(PRESSED))
+                .on_click(cx.listener(move |shell, _, window, cx| {
+                    shell.labels_edit(&route, connection.as_ref(), &label, window, cx);
+                }))
+        });
+    div()
+        .id(ElementId::Name(group.clone()))
+        .debug_selector(move || selector.clone())
+        .group(group)
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(S2))
+        .min_h(px(ROW_MIN))
+        .child(super::colors::mark(label.color, tokens).flex_none())
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .truncate()
+                .type_(Type::Meta)
+                .text_color(neutral.foreground)
+                .child(name),
+        )
+        .child(pencil)
+}
+
+impl Shell {
+    /// Paseo's `model.edit`: the row's host must still be the shown one on
+    /// the same connection.
+    fn labels_edit(
+        &mut self,
+        route: &vessel_app_view::machine_book::Name,
+        connection: Option<&vessel_app_view::connection::ConnectionContext>,
+        label: &Label,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.labels;
+        if !state
+            .selected_host()
+            .is_some_and(|host| &host.route == route && host.connection.as_ref() == connection)
+        {
+            return;
+        }
+        state.host_list.close();
+        match state.manager.edit(label.clone()) {
+            Ok(()) => {
+                state.name = super::fields::manager(self.words.labels().name(), window, cx);
+                state.applied_editability = None;
+                state.name.set_text(label.name.as_str(), window, cx);
+                state.name.focus(window, cx);
+            }
+            Err(failure) => state.error = Some(failure),
+        }
+        self.settle_labels(cx);
+        cx.notify();
+    }
+}
+
+/// A save or a check under way (in place of Paseo's spinner in Save).
+fn pending(shell: &Shell, tokens: &Tokens) -> Option<Div> {
+    let words = shell.words.labels();
+    match shell.areas.labels.manager.state() {
+        ManagerState::Saving { .. } => Some(muted(words.pending(), tokens)),
+        ManagerState::Inspecting { .. } => Some(muted(words.inspecting(), tokens)),
+        ManagerState::Listing
+        | ManagerState::Editing(_)
+        | ManagerState::Confirming { .. }
+        | ManagerState::Deleting { .. } => None,
+    }
+}
+
+/// The confirmation's connection is not the shown one any more.
+fn changed(shell: &Shell, host: &Host, tokens: &Tokens) -> Option<Div> {
+    (shell.areas.labels.confirmation.as_ref() != host.connection.as_ref())
+        .then(|| error(shell.words.labels().changed(), tokens))
+}
+
+/// Paseo's error line: the operation's error, else the host's load error.
+fn errors(shell: &Shell, host: &Host, tokens: &Tokens) -> Option<Div> {
+    let state = &shell.areas.labels;
+    let failure = state.error.or_else(|| state.manager.error()).or(match host.state {
+        HostState::Failed(failure) => Some(failure),
+        HostState::Online | HostState::Offline | HostState::Loading | HostState::Unsupported => {
+            None
+        }
+    })?;
+    Some(error(failure_text(failure, shell), tokens))
+}
+
+/// Paseo's `muted` line: 12, `foregroundMuted`.
+fn muted(text: &'static str, tokens: &Tokens) -> Div {
+    div()
+        .type_(Type::Meta)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(text)
+}
+
+/// Paseo's `error` line: 12, `destructive`.
+fn error(text: &'static str, tokens: &Tokens) -> Div {
+    div()
+        .debug_selector(|| "labels-error".to_owned())
+        .type_(Type::Meta)
+        .text_color(tokens.neutral.destructive)
+        .child(text)
 }
 
 pub(super) fn failure_text(failure: Failure, shell: &Shell) -> &'static str {
@@ -253,17 +412,4 @@ pub(super) fn failure_text(failure: Failure, shell: &Shell) -> &'static str {
         Failure::Load => words.load_failed(),
         Failure::Update | Failure::TicketExhausted => words.failed(),
     }
-}
-
-fn notice(message: &'static str, tokens: &Tokens) -> Div {
-    alert(
-        Content {
-            title: Some(message.into()),
-            description: None,
-            action: None,
-        },
-        Variant::Info,
-        Size::Small,
-        tokens,
-    )
 }
