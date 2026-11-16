@@ -47,8 +47,6 @@ labels-unsupported = 라벨을 관리하려면 이 호스트를 업데이트하�
 labels-load-failed = 라벨을 불러오지 못했습니다. 다시 시도하세요.
 # Label manager pending text; shown inside the adaptive dialog.
 labels-pending = 라벨 업데이트 중…
-# Label manager inspecting text; shown inside the adaptive dialog.
-labels-inspecting = 영향받는 작업공간 확인 중…
 # Label manager confirm text; shown inside the adaptive dialog.
 labels-confirm = 이 라벨을 삭제하고 해당 작업공간의 라벨 할당도 제거할까요?
 # Advisory deletion inspection count; $count is the numeric workspace count.
