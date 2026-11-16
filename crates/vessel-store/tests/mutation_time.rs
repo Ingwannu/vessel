@@ -1,7 +1,7 @@
 //! Canonical writer commits keep one clock, including rollback and direct metadata.
 
 use chrono::{DateTime, TimeDelta, Utc};
-use clock_fixture::{clock, inject, next};
+use clock_fixture::{clock, inject, next, unread};
 use fixtures::{at, data_dir, new_session, open, output, status};
 use rusqlite::{Connection, params};
 use vessel_proto::{
@@ -10,7 +10,7 @@ use vessel_proto::{
     inbox::{InboxKey, InboxRead, MarkInbox},
     subagents::DetachDisposition,
 };
-use vessel_store::{DataDir, StoreConfig, StoreError};
+use vessel_store::{DataDir, Residence, StoreConfig, StoreError};
 
 #[cfg(test)]
 #[path = "support/fixtures.rs"]
@@ -83,13 +83,16 @@ async fn inbox_reopen_and_first_detach_share_the_same_clock_but_repeat_receipts_
     let ended = clock(&dir, session.id).unwrap();
     assert!(ended > first);
     let marked_entry = store
-        .mark_inbox_committed(MarkInbox {
-            key: InboxKey {
-                session: session.id,
-                seq: EventSeq::ZERO,
+        .mark_inbox_committed(
+            MarkInbox {
+                key: InboxKey {
+                    session: session.id,
+                    seq: EventSeq::ZERO,
+                },
+                read: InboxRead::Read,
             },
-            read: InboxRead::Read,
-        })
+            Residence::Stored,
+        )
         .await
         .unwrap();
     assert_eq!(marked_entry.updated_at(), clock(&dir, session.id));
@@ -189,8 +192,8 @@ async fn each_ack_keeps_its_own_marks_and_clock_before_later_queued_writes() {
         .unwrap();
     assert_eq!(created.updated_at(), clock(&dir, session.id));
     let (pinned, unpinned) = tokio::join!(
-        store.mark_committed(session.id, Mark::Pin, at(0)),
-        store.mark_committed(session.id, Mark::Unpin, at(0)),
+        store.mark_committed(session.id, Mark::Pin, at(0), Residence::Loaded),
+        store.mark_committed(session.id, Mark::Unpin, at(0), Residence::Loaded),
     );
     let (pin_marks, pin_time) = pinned.unwrap().into_parts();
     let (unpin_marks, unpin_time) = unpinned.unwrap().into_parts();
@@ -226,7 +229,7 @@ async fn an_empty_ack_keeps_legacy_unknown_until_an_actual_mutation() {
         .unwrap();
     assert_eq!(empty.updated_at(), None);
     let mark = store
-        .mark_committed(session.id, Mark::Pin, at(0))
+        .mark_committed(session.id, Mark::Pin, at(0), Residence::Loaded)
         .await
         .unwrap();
     assert!(mark.updated_at().is_some());
@@ -285,6 +288,103 @@ async fn corrupt_precision_refuses_reads_and_rolls_back_a_metadata_write() {
     store.close().await;
 }
 
+/// TRACKER 775, Paseo parity: a loaded session's Read and Unread leave the
+/// clock alone (agent-manager.ts 2389-2414); a stored session's tick it when
+/// they change attention (session.ts 7697-7712, agent-manager.ts 2420-2433).
+#[tokio::test]
+async fn attention_marks_tick_only_a_stored_session_whose_attention_changes() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let session = new_session(0);
+    store.create_session(session.clone()).await.unwrap();
+    store
+        .append(
+            session.id,
+            vec![status(0, SessionStatus::Exited { code: Some(0) })],
+        )
+        .await
+        .unwrap();
+    assert!(
+        unread(&store, session.id).await,
+        "the end asks for attention"
+    );
+    let ended = clock(&dir, session.id);
+    let through = EventSeq::new(1);
+    for (mark, after) in [(Mark::Read { through }, false), (Mark::Unread, true)] {
+        let loaded = store
+            .mark_committed(session.id, mark, at(1), Residence::Loaded)
+            .await
+            .unwrap();
+        assert_eq!(loaded.updated_at(), ended, "{mark:?} on a loaded session");
+        assert_eq!(unread(&store, session.id).await, after);
+    }
+    assert_eq!(clock(&dir, session.id), ended);
+    let mut last = ended;
+    for (mark, after) in [(Mark::Read { through }, false), (Mark::Unread, true)] {
+        let _marks = store.mark(session.id, mark, at(2)).await.unwrap();
+        let changed = clock(&dir, session.id);
+        assert!(
+            changed > last,
+            "{mark:?} changed a stored session's attention"
+        );
+        assert_eq!(unread(&store, session.id).await, after);
+        let _marks = store.mark(session.id, mark, at(3)).await.unwrap();
+        assert_eq!(clock(&dir, session.id), changed, "a repeated {mark:?}");
+        last = changed;
+    }
+    let _pinned = store
+        .mark_committed(session.id, Mark::Pin, at(4), Residence::Loaded)
+        .await
+        .unwrap();
+    assert!(clock(&dir, session.id) > last, "other marks tick as before");
+    store.close().await;
+}
+
+/// TRACKER 775 for an inbox entry: a loaded session's entry marks keep the
+/// clock; a stored session's tick only when the entry changes.
+#[tokio::test]
+async fn inbox_marks_tick_only_a_stored_session_entry_that_changes() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let session = new_session(0).with_creator(Creator::Agent {
+        node: NodeId::random(),
+        session: SessionId::random(),
+    });
+    store.create_session(session.clone()).await.unwrap();
+    store
+        .append(
+            session.id,
+            vec![status(0, SessionStatus::Exited { code: Some(0) })],
+        )
+        .await
+        .unwrap();
+    let key = InboxKey {
+        session: session.id,
+        seq: EventSeq::ZERO,
+    };
+    let entry = |read| MarkInbox { key, read };
+    let ended = clock(&dir, session.id);
+    for read in [InboxRead::Read, InboxRead::Read, InboxRead::Unread] {
+        let loaded = store
+            .mark_inbox_committed(entry(read), Residence::Loaded)
+            .await
+            .unwrap();
+        assert_eq!(loaded.updated_at(), ended);
+        assert_eq!(store.inbox_entry(key).await.unwrap().unwrap().read, read);
+    }
+    let mut last = ended;
+    for read in [InboxRead::Read, InboxRead::Unread] {
+        store.mark_inbox(entry(read)).await.unwrap();
+        let changed = clock(&dir, session.id);
+        assert!(changed > last, "{read:?} changed a stored session's entry");
+        store.mark_inbox(entry(read)).await.unwrap();
+        assert_eq!(clock(&dir, session.id), changed, "a repeated {read:?}");
+        assert_eq!(store.inbox_entry(key).await.unwrap().unwrap().read, read);
+        last = changed;
+    }
+    store.close().await;
+}
+
 // Keep corruption and clock-bound assertions wholly in the test configuration,
 // as the shared store fixture does; none is an application timestamp setter.
 #[cfg(test)]
@@ -325,5 +425,10 @@ mod clock_fixture {
                 .unwrap(),
         )
         .unwrap()
+    }
+
+    /// Whether the stored session is unread, as every reader sees it.
+    pub(super) async fn unread(store: &vessel_store::Store, id: SessionId) -> bool {
+        store.session(id).await.unwrap().unwrap().marks.unread
     }
 }

@@ -1,6 +1,8 @@
 //! Real source owner, recorded vendor body, synthetic credential capability; no live account.
 mod cancellation;
 mod harness;
+#[cfg(unix)]
+mod persistence;
 use super::*;
 use crate::limits::test_support::PhaseWait;
 use harness::{Fixture, TEST_BUDGET};

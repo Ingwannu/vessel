@@ -67,6 +67,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use serde_json::{Value, json};
 
+#[path = "fake_codex_app_server/version_audit.rs"]
+mod version_audit;
+
 /// The version printed when `FAKE_CODEX_VERSION` is unset: the one the
 /// driver's schema was generated from.
 const VERSION: &str = "0.166.0";
@@ -94,6 +97,9 @@ fn main() -> ExitCode {
     let version = std::env::var("FAKE_CODEX_VERSION").unwrap_or_else(|_unset| VERSION.to_owned());
     match args.first().map(String::as_str) {
         Some("--version") => {
+            if version_audit::entered().is_err() {
+                return ExitCode::FAILURE;
+            }
             let mut stdout = std::io::stdout();
             match writeln!(stdout, "codex-cli {version}").and_then(|()| stdout.flush()) {
                 Ok(()) => ExitCode::SUCCESS,

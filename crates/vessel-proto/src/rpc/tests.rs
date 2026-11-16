@@ -63,6 +63,9 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "skills.save_selection",
             "skills.import_selection",
             "usage.source_lookup",
+            "service.settings",
+            "service.set_gateway",
+            "service.set_exposure",
         ]
     );
     assert_eq!(
@@ -271,7 +274,14 @@ const PROTOCOL_TEN_WORKSPACE: &[&str] = &[
 
 /// Methods in the same families added after protocol 10 and assigned a
 /// number: each is checked by its package's own test, which adds it here.
-const WORKSPACE_FAMILIES_LATER: &[&str] = &[];
+/// Protocol 27's file panels: `PROTOCOL_TWENTY_SEVEN`.
+const WORKSPACE_FAMILIES_LATER: &[&str] = &[
+    "file.inspect",
+    "file.read_bytes",
+    "file.duplicate",
+    "file.observe",
+    "file.suggest",
+];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
 /// (ADR 0029) and C's terminals, scripts and ports (ADR 0031) read with
@@ -470,6 +480,82 @@ fn protocol_twenty_five_methods_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(twenty_five, PROTOCOL_TWENTY_FIVE);
+}
+
+/// Protocol 26's methods (ADR 0042): account usage reports and per-source
+/// consent, each unary. The two constants share one version.
+const PROTOCOL_TWENTY_SIX: &[(&str, Scope)] = &[
+    ("usage.reports", Scope::Read),
+    ("usage.inspect", Scope::Read),
+    ("usage.source_lookup", Scope::Admin),
+];
+
+#[test]
+fn protocol_twenty_six_methods_know_their_version_scope_and_shape() {
+    let twenty_six: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(26)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_six, PROTOCOL_TWENTY_SIX);
+}
+
+/// Protocol 27's methods (ADR 0083, ADR 0105): the file panels' five calls,
+/// each unary. Only `file.duplicate` changes the disk, so only it is Operate.
+const PROTOCOL_TWENTY_SEVEN: &[(&str, Scope)] = &[
+    ("file.inspect", Scope::Read),
+    ("file.read_bytes", Scope::Read),
+    ("file.duplicate", Scope::Operate),
+    ("file.observe", Scope::Read),
+    ("file.suggest", Scope::Read),
+];
+
+#[test]
+fn protocol_twenty_seven_methods_know_their_version_scope_and_shape() {
+    let twenty_seven: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(27)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_seven, PROTOCOL_TWENTY_SEVEN);
+}
+
+/// Protocol 28's methods (ADR 0086): the workspace label catalog and its
+/// ordered assignments, each unary.
+const PROTOCOL_TWENTY_EIGHT: &[(&str, Scope)] = &[
+    ("workspace.label.list", Scope::Read),
+    ("workspace.label.assign", Scope::Operate),
+    ("workspace.label.update", Scope::Operate),
+    ("workspace.label.inspect_delete", Scope::Read),
+    ("workspace.label.delete", Scope::Operate),
+];
+
+#[test]
+fn protocol_twenty_eight_methods_know_their_version_scope_and_shape() {
+    let twenty_eight: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(28)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_eight, PROTOCOL_TWENTY_EIGHT);
 }
 
 #[test]

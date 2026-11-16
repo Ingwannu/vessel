@@ -567,7 +567,9 @@ It precedes label mutation wiring and claims no consumer availability.
   connection, rather than assembled from separate asynchronous reads.
 - Reference: Paseo `agent/agent-manager.ts:1017-1031` advances updatedAt with
   `max(now, previous + one millisecond)`. Its live/stored label writes use that
-  clock (`:2290-2328`); stored unread also advances it (`:2408-2435`).
+  clock (`:2290-2328`); stored unread also advances it (`:2408-2435`), and a
+  stored mark-read sets it (`session.ts:7697-7712`). Live mark-read and
+  mark-unread change attention without touching it (`:2389-2414`).
   `session.ts:7770-7837` chooses an eligible finished workspace-relative root
   by updatedAt descending and id ascending. No retained-log timestamp is used.
 - Existing assets: the store has one writer, per-operation savepoints and
@@ -593,8 +595,12 @@ It precedes label mutation wiring and claims no consumer availability.
   saturation must not produce equal successive values. Caller/event/receipt
   times remain their existing facts and never supply this ordering clock.
 - Coverage: initialize on a successful local row creation; advance on every
-  nonempty accepted append batch, accepted session mark and entry-level inbox
-  mark, successful reopen, first detach and metadata write. A rejected write,
+  nonempty accepted append batch, accepted session mark other than Read/Unread,
+  successful reopen, first detach and metadata write. A Read/Unread session
+  mark and an entry-level inbox mark advance it only for a session the node
+  serves from the store, and only when the mark changes that session's
+  attention or that entry (TRACKER 775). On a session the runtime has, they
+  change attention and leave the clock. A rejected write,
   empty append, repeated already-detached receipt, read, migration, pruning,
   index rebuild or usage backfill does not advance it. Profile/options/title/
   queue/usage changes already included in append tick there once; their SQL
@@ -607,9 +613,14 @@ It precedes label mutation wiring and claims no consumer availability.
   consumer's explicit id tie break, not a fabricated global order.
 - Effects and differences: Vessel stamps committed append batches, not each
   raw chunk or transient state emission; this preserves existing batched
-  persistence instead of adding one write per token. It also stamps canonical
-  marks consistently, whereas Paseo's live unread path changes attention
-  without explicitly calling touchUpdatedAt (`:2390-2407`). Imported sessions
+  persistence instead of adding one write per token. Read/Unread follow Paseo
+  (coordinator ruling, 2026-11-16): reading or viewing a loaded finished
+  session does not reorder it, and after a workspace read pass the last root
+  read does not win mark-unread. The node passes `vessel_store::Residence`
+  (`Loaded` for a session its runtime has, `Stored` otherwise, decided under
+  the marking order a reopen also takes); the store applies the rule in the
+  mark's own savepoint. Paseo throws on a repeated stored mark-unread; Vessel
+  answers it and leaves the clock. Imported sessions
   receive a new local creation clock; the source's value cannot control the
   destination's ordering. Legacy Unknown makes dependent selection refuse
   rather than invent a historical ordering.

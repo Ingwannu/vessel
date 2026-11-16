@@ -12,6 +12,7 @@ mod stream;
 mod unserved;
 mod websocket;
 mod workspace_labels;
+mod workspace_services;
 
 use std::num::NonZeroUsize;
 use std::path::PathBuf;

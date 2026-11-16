@@ -309,3 +309,25 @@ review, protocol/schema assignment and integrator receiving acceptance are still
 owed; all five methods remain pending WORKSPACE_LABELS None. Native catalog
 transport, canonical row/header caller, current-session ordering, full native
 gate/captures and V4 feature acceptance are not established by this node gate.
+
+## Activation (2026-11-16, node carrier for the paused W10b)
+
+The calls are assigned protocol 26 (drafted; the integrator renumbers if
+another activation merges first): `WORKSPACE_LABELS = Some(26)`,
+`PROTOCOL_VERSION` 26, a protocol-26 pin test, and assigned-wire tests that
+replace the pending ones: the SDK refuses MIN and 25 before a frame and sends
+each call at 26; the real server and SDK answer list, assign, registry
+projection, update, inspect, delete and a cursor read at 26.
+The integrator assigned 28 at the node-line merge (account usage reports took
+26 and file panels 27 just before); the code, pin test and docs say 28.
+
+Review note b is settled as the coordinator ruled (ADR 0086 "Activation"): a
+corrupt row still refuses node start, now as `NodeError::WorkspaceLabels`,
+whose cause names `workspace_label_catalog` or `workspace_label_assignments`
+and the row's place, never its contents. The color error no longer carries the
+serde decoder's error. Notes a (actor outside the node tracker) and c (one
+query per workspace in the registry read) are unchanged.
+
+Not in this packet: the page's label manager and filter (separate consumer,
+captures to the coordinator), the native manager (waits for the Kit
+header-search seam), CLI label commands.

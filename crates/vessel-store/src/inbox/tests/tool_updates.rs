@@ -31,6 +31,7 @@ fn an_unretainable_update_invalidates_the_prior_tool_snapshot() {
             key: old.key,
             read: InboxRead::Read,
         },
+        crate::Residence::Stored,
     )
     .unwrap();
     append(

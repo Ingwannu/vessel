@@ -9,11 +9,13 @@ use std::sync::Arc;
 /// The node normally uses [`Lookup::from_env`]. Tests build one over a
 /// directory holding testkit fakes, so the real resolution logic runs
 /// against fake binaries. Cheap to clone.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Lookup {
     dirs: Arc<[PathBuf]>,
     /// `dirs` joined in the platform's `PATH` syntax, computed once.
     joined: Option<OsString>,
+    #[cfg(feature = "fakes")]
+    gate: Option<Arc<crate::fakes::lookup_gate::Gate>>,
 }
 
 impl Lookup {
@@ -48,7 +50,12 @@ impl Lookup {
             .collect();
         // Every entry joins on its own, so together they do too.
         let joined = std::env::join_paths(dirs.iter()).ok();
-        Self { dirs, joined }
+        Self {
+            dirs,
+            joined,
+            #[cfg(feature = "fakes")]
+            gate: None,
+        }
     }
 
     /// The directories searched, in order.
@@ -74,6 +81,26 @@ impl Lookup {
     #[must_use]
     pub fn find(&self, binary: &str) -> Option<PathBuf> {
         let joined = self.joined.as_ref()?;
+        #[cfg(feature = "fakes")]
+        if let Some(gate) = &self.gate {
+            gate.enter(binary);
+        }
         which::which_in(binary, Some(joined), Path::new("/")).ok()
+    }
+}
+
+// Search locations determine equality; a test's observation does not change
+// which executable this lookup denotes. Default builds have no observer.
+impl PartialEq for Lookup {
+    fn eq(&self, other: &Self) -> bool {
+        self.dirs == other.dirs && self.joined == other.joined
+    }
+}
+impl Eq for Lookup {}
+#[cfg(feature = "fakes")]
+impl Lookup {
+    pub(crate) fn with_lookup_gate(mut self, gate: Arc<crate::fakes::lookup_gate::Gate>) -> Self {
+        self.gate = Some(gate);
+        self
     }
 }

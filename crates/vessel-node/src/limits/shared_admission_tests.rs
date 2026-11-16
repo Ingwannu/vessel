@@ -75,7 +75,10 @@ async fn configured(
         format: RecordedUsageFormat::Vendor,
     };
     // Only configured actors are started: no default TCP listener, daemon or real login.
-    let limits = Limits::configured(&config, stop, tasks)
+    // The real assembly path, including the client name-resolution scope
+    // whose retirement `tasks.wait()` below must cover (ADR 0104).
+    let resolution = vessel_relay::resolution::ResolutionBudget::default();
+    let limits = Limits::configured(&config, stop, tasks, &resolution)
         .phase("usage phase: Limits::configured")
         .await;
     assert_eq!(

@@ -1,6 +1,6 @@
 //! Bounded binary pages, duplicates and file observation (ADR 0083).
-//! The method table registers these values as pending; admission refuses
-//! them until integration assigns their shared feature a protocol number.
+//! The method table names [`FILE_PANELS_PROTOCOL`] for all five methods;
+//! a peer below that number is refused before any request is sent.
 
 use base64::Engine as _;
 use bytes::Bytes;
@@ -9,8 +9,14 @@ use serde::{Deserialize, Serialize};
 use super::{ContentHash, RelPath, WorkspaceRoot};
 use crate::ProtocolVersion;
 
-/// Assigned only after node and native consumers are integrated.
-pub const FILE_PANELS_PROTOCOL: Option<ProtocolVersion> = None;
+/// Protocol 27 (2026-11-16, ADR 0105): the five file-panel methods together,
+/// `file.inspect`, `file.read_bytes`, `file.observe` and `file.suggest` (Read)
+/// and `file.duplicate` (Operate), all unary and fleet-forwardable. Each has
+/// a complete node effect (bounded reads, a finite observation, an exclusive
+/// copy that never overwrites), so they activate as one feature; the native
+/// and page callers fall back to their earlier behaviour on an older peer.
+/// Assigned in merge order at the node line; it was None while reviewed.
+pub const FILE_PANELS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(27));
 /// Maximum source size for a binary transfer or directory duplication.
 pub const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
 /// Maximum bytes in a single binary page (Paseo's stream chunk size).
@@ -221,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn pending_file_methods_pin_scope_shape_and_direct_and_envelope_admission() {
+    fn file_methods_pin_their_protocol_scope_shape_and_envelope_admission() {
         use crate::{Method, MethodShape, Request as _, Scope};
         let methods = [
             (Method::InspectDirectory, Scope::Read),
@@ -230,16 +236,14 @@ mod tests {
             (Method::ObserveFile, Scope::Read),
             (Method::SuggestEntries, Scope::Read),
         ];
-        assert_eq!(
-            FILE_PANELS_PROTOCOL, None,
-            "the integrator assigns the package protocol at wiring merge"
-        );
+        let assigned = Some(ProtocolVersion::new(27));
+        assert_eq!(FILE_PANELS_PROTOCOL, assigned);
         for (method, scope) in methods {
-            assert_eq!(method.since(), None);
+            assert_eq!(method.since(), assigned);
             assert_eq!(method.scope(), Some(scope));
             assert_eq!(method.shape(), MethodShape::Unary);
             let call = crate::rpc::samples::call(method).unwrap();
-            assert_eq!(call.required_protocol(), None);
+            assert_eq!(call.required_protocol(), assigned);
             let forwarded = crate::Forward {
                 node: crate::NodeId::random(),
                 call: Box::new(call.clone()),
@@ -257,7 +261,7 @@ mod tests {
             }
             .into_call();
             for envelope in [forwarded, relayed, delivered] {
-                assert_eq!(envelope.required_protocol(), None);
+                assert_eq!(envelope.required_protocol(), assigned);
             }
         }
     }

@@ -69,6 +69,7 @@ mod token;
 mod url;
 mod usage;
 mod workspace_files;
+mod workspace_services;
 mod workspace_transfer;
 mod ws;
 
