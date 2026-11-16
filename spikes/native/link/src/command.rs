@@ -42,6 +42,8 @@ pub enum Command {
 
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
+    /// Original-context readonly root, summary or diff acquisition.
+    CodeSource(workspace::code_source::Request),
     /// Read the book again and connect to every node in it.
     Reload,
     /// Reconcile a known closed admission on the same actor as Fleet snapshots.

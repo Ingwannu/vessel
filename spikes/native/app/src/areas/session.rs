@@ -16,10 +16,9 @@
 use std::cell::Cell;
 
 use vessel_app_kit::ui::{
-    Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _, Styled as _, Window,
-    div, px,
+    Context, Div, IntoElement, ParentElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
@@ -42,41 +41,8 @@ pub(crate) struct Pending {
     pub(crate) prompt: String,
 }
 
-/// The session area's state.
-pub(crate) struct SessionView {
-    pub(crate) open: Option<Open>,
-    /// An ended session being started again: the prompt that will be sent
-    /// (shown under the conversation while it starts).
-    pub(crate) resuming: Option<String>,
-    /// Why starting it again failed, under the composer.
-    pub(crate) resume_error: Option<String>,
-    /// A failed resume's text, put back in the composer on the next frame.
-    restore: std::cell::RefCell<Option<String>>,
-    pub(crate) pending: Option<Pending>,
-    pub(crate) conversation: Conversation,
-    pub(crate) entries: ListState,
-    pub(crate) composer: TextField,
-}
-
-impl SessionView {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
-        Self {
-            open: None,
-            resuming: None,
-            resume_error: None,
-            restore: std::cell::RefCell::new(None),
-            pending: None,
-            conversation: Conversation::default(),
-            entries: ListState::new(0, ListAlignment::Bottom, px(800.0)),
-            composer: TextField::composer(
-                "",
-                |shell: &mut Shell, text, window, cx| shell.submit_prompt(text, window, cx),
-                window,
-                cx,
-            ),
-        }
-    }
-}
+mod resource;
+pub(crate) use resource::SessionView;
 
 impl Shell {
     /// The draft was sent: show its prompt while the session starts.

@@ -101,6 +101,9 @@ impl Link {
             Command::Sessions(ask) => self.emit(Event::Sessions(
                 ask.refused(crate::sessions::Failure::Offline),
             )),
+            Command::CodeSource(request) => self.emit(Event::CodeSource(Box::new(
+                request.refused(vessel_app_view::workspace::problem::Problem::Older),
+            ))),
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
                 vessel_app_view::history::Problem::Unsupported,
@@ -117,15 +120,11 @@ impl Link {
                 context,
                 ticket,
                 ask,
-            } => self.emit(Event::Devices(crate::devices::Answer {
+            } => self.emit(Event::Devices(ask.rejected(
                 context,
-                outcome: ask.refused(
-                    ticket,
-                    vessel_app_view::devices::Problem::Refused(
-                        vessel_proto::ErrorCode::Unsupported,
-                    ),
-                ),
-            })),
+                ticket,
+                vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
+            ))),
             Command::Machines(ask) => self.emit(Event::Machines(
                 ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
             )),

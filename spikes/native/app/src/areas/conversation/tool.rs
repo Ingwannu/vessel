@@ -192,8 +192,9 @@ fn diff(
                         tone: match line.side {
                             Side::Removed => Tone::Removed,
                             Side::Added => Tone::Added,
+                            Side::Context | Side::Header => Tone::Plain,
                         },
-                        number: Some(line.number),
+                        number: line.number,
                     })
                     .collect(),
                 copy: None,

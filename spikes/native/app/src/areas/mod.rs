@@ -24,6 +24,8 @@ pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
 pub(crate) mod session;
+#[cfg(test)]
+pub(crate) mod session_lifecycle;
 pub(crate) mod sessions;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
@@ -93,7 +95,7 @@ impl Areas {
             pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
-            shortcuts: shortcuts::ShortcutListener::new(cx),
+            shortcuts: shortcuts::ShortcutListener::new(window, cx),
             sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::new(cx),

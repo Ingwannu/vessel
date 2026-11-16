@@ -12,9 +12,9 @@ repository.workspace = true
 workspace = true
 
 [features]
-# `Link::detached`: a link with no task behind its queue, for the app's
-# tests that fill the queue.
-testing = []
+# Existing queue-only tests plus the explicit framed Scenario facade.
+# App selects this feature only as a dev-dependency, never for its binary.
+testing = ["dep:vessel-rpc"]
 
 [dependencies]
 vessel-app-view.workspace = true
@@ -31,6 +31,8 @@ tracing.workspace = true
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 vessel-client.workspace = true
 vessel-proc.workspace = true
+# Existing framed regression transport; never selected by the default app.
+vessel-rpc = { workspace = true, optional = true }
 dirs.workspace = true
 hostname.workspace = true
 tokio.workspace = true
