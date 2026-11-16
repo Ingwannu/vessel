@@ -23,7 +23,7 @@ use crate::{
         MarkdownNode, TableActionsFn,
         document::{NodeRenderOptions, PrevBlock, flow_position},
         inline::{
-            Inline, InlineHighlight, InlineState, code_insets, combine_highlights, fade_highlights,
+            Inline, InlineHighlight, InlineState, code_insets, combine_highlights,
             point_in_text_selection, text_runs, text_size_ranges,
         },
         inline_flow::{InlineFlow, InlineFlowItem, slice_ranges},
@@ -1605,6 +1605,15 @@ impl PartialEq for Paragraph {
 }
 
 impl Paragraph {
+    pub(super) fn range_key(&self, source: Option<TextLeafKey>) -> Option<TextLeafKey> {
+        self.state
+            .lock()
+            .ok()
+            .and_then(|state| state.rendered_key)
+            .map(TextLeafKey::Rendered)
+            .or(source)
+    }
+
     pub(crate) fn new(text: String) -> Self {
         Self {
             span: None,
@@ -2361,6 +2370,21 @@ impl PartialEq for CodeBlock {
 }
 
 impl CodeBlock {
+    pub(super) fn set_rendered_key(&self, key: super::rendered_leaf::RenderedLeafKey) {
+        if let Ok(mut state) = self.state.lock() {
+            state.rendered_key = Some(key);
+        }
+    }
+
+    pub(super) fn range_key(&self) -> Option<TextLeafKey> {
+        self.state
+            .lock()
+            .ok()
+            .and_then(|state| state.rendered_key)
+            .map(TextLeafKey::Rendered)
+            .or_else(|| self.span.map(|span| TextLeafKey::block(span.start)))
+    }
+
     /// Get the language of the code block.
     pub fn lang(&self) -> Option<SharedString> {
         self.lang.clone()
@@ -2533,7 +2557,7 @@ impl CodeBlock {
         cx: &mut App,
     ) -> AnyElement {
         let style = &node_cx.style;
-        let leaf_key = self.span.map(|span| TextLeafKey::block(span.start));
+        let leaf_key = self.range_key();
         // The language sits quietly in the top-right corner, where custom
         // actions go instead when the caller provides them; the top padding
         // keeps the first line clear of it. Like the actions, it stays out of
@@ -2575,7 +2599,7 @@ impl CodeBlock {
                 Inline::new(
                     self.state.clone(),
                     vec![],
-                    fade_highlights(
+                    node_cx.text_highlights(
                         node_cx
                             .code_block_highlighter
                             .as_ref()
@@ -2584,7 +2608,9 @@ impl CodeBlock {
                             .into_iter()
                             .map(|(range, style)| (range, InlineHighlight::from(style)))
                             .collect(),
-                        node_cx.stream_fades(leaf_key),
+                        leaf_key,
+                        0,
+                        self.code().len(),
                     ),
                     node_cx.link_click_handler.clone(),
                 )
@@ -2692,7 +2718,7 @@ impl NodeContext {
     }
 
     /// The fade ranges of the text leaf `key`, in its rendered byte space.
-    fn stream_fades(&self, key: Option<TextLeafKey>) -> &[(Range<usize>, f32)] {
+    pub(super) fn stream_fades(&self, key: Option<TextLeafKey>) -> &[(Range<usize>, f32)] {
         match (&self.stream_fade, key) {
             (Some(frame), Some(key)) => frame.fades(key).unwrap_or_default(),
             _ => &[],
@@ -2814,14 +2840,20 @@ impl Paragraph {
         _window: &mut Window,
         cx: &mut App,
     ) -> AnyElement {
+        let fade_key = self.range_key(fade_key);
         let children = &self.children;
-        let fades = node_cx.stream_fades(fade_key);
         let backgrounds = node_cx.range_backgrounds(fade_key);
 
         if self.should_render_inline_flow() {
             return InlineFlow::new(
                 leaf_element_id(fade_key),
-                self.inline_flow_items(fade_key, fades, backgrounds, node_cx, cx),
+                self.inline_flow_items(
+                    fade_key,
+                    node_cx.stream_fades(fade_key),
+                    backgrounds,
+                    node_cx,
+                    cx,
+                ),
                 node_cx.link_click_handler.clone(),
             )
             .editor_key(self.leaf_key())
@@ -2845,7 +2877,7 @@ impl Paragraph {
                     *link_mark = mark.clone();
                 }
             }
-            let highlights = fade_highlights(highlights, &slice_fades(fades, 0, text.len()));
+            let highlights = node_cx.text_highlights(highlights, fade_key, 0, text.len());
             let backgrounds = slice_backgrounds(backgrounds, 0, text.len());
             let reveal = node_cx.reveal_at(fade_key, 0, text.len());
             if let Ok(mut state) = self.state.lock() {
@@ -2885,9 +2917,11 @@ impl Paragraph {
                         Inline::new(
                             inline_node.state.clone(),
                             links.clone(),
-                            fade_highlights(
+                            node_cx.text_highlights(
                                 highlights.clone(),
-                                &slice_fades(fades, consumed, consumed + text.len()),
+                                fade_key,
+                                consumed,
+                                consumed + text.len(),
                             ),
                             node_cx.link_click_handler.clone(),
                         )
@@ -2974,7 +3008,7 @@ impl Paragraph {
         // Add the last text node
         if text.len() > 0 {
             let text_end = consumed + text.len();
-            let highlights = fade_highlights(highlights, &slice_fades(fades, consumed, text_end));
+            let highlights = node_cx.text_highlights(highlights, fade_key, consumed, text_end);
             if let Ok(mut state) = self.state.lock() {
                 state.set_text(text.into());
             }
@@ -3031,7 +3065,7 @@ impl Paragraph {
     fn inline_flow_items(
         &self,
         leaf_key: Option<TextLeafKey>,
-        fades: &[(Range<usize>, f32)],
+        _fades: &[(Range<usize>, f32)],
         backgrounds: &[(Range<usize>, Hsla)],
         node_cx: &NodeContext,
         cx: &mut App,
@@ -3051,16 +3085,21 @@ impl Paragraph {
                     state.set_text(text.clone().into());
                 }
                 if !text.is_empty() {
-                    let item_fades = slice_fades(fades, consumed, consumed + text.len());
                     let item_backgrounds =
                         slice_backgrounds(backgrounds, consumed, consumed + text.len());
                     let item_reveal = node_cx.reveal_at(leaf_key, consumed, consumed + text.len());
+                    let item_start = consumed;
                     consumed += text.len();
                     items.push(InlineFlowItem::Text {
                         state: inline_node.state.clone(),
                         text: std::mem::take(&mut text).into(),
                         links: std::mem::take(&mut links),
-                        highlights: fade_highlights(std::mem::take(&mut highlights), &item_fades),
+                        highlights: node_cx.text_highlights(
+                            std::mem::take(&mut highlights),
+                            leaf_key,
+                            item_start,
+                            consumed,
+                        ),
                         backgrounds: item_backgrounds,
                         reveal: item_reveal,
                     });
@@ -3110,9 +3149,11 @@ impl Paragraph {
                         state: inline_node.state.clone(),
                         text: text.clone().into(),
                         links: links.clone(),
-                        highlights: fade_highlights(
+                        highlights: node_cx.text_highlights(
                             highlights.clone(),
-                            &slice_fades(fades, consumed, consumed + text.len()),
+                            leaf_key,
+                            consumed,
+                            consumed + text.len(),
                         ),
                         backgrounds: slice_backgrounds(
                             backgrounds,
@@ -3167,10 +3208,8 @@ impl Paragraph {
             if let Ok(mut state) = self.state.lock() {
                 state.set_text(text.clone().into());
             }
-            let highlights = fade_highlights(
-                highlights,
-                &slice_fades(fades, consumed, consumed + text.len()),
-            );
+            let highlights =
+                node_cx.text_highlights(highlights, leaf_key, consumed, consumed + text.len());
             let backgrounds = slice_backgrounds(backgrounds, consumed, consumed + text.len());
             let reveal = node_cx.reveal_at(leaf_key, consumed, consumed + text.len());
             items.push(InlineFlowItem::Text {
@@ -3279,7 +3318,7 @@ fn gapped(block: AnyElement, gap: Rems) -> AnyElement {
 }
 
 /// The fade ranges overlapping `start..end`, rebased to start at `start`.
-fn slice_fades(
+pub(super) fn slice_fades(
     fades: &[(Range<usize>, f32)],
     start: usize,
     end: usize,

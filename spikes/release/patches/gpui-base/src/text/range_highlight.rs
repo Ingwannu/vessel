@@ -33,6 +33,7 @@ use gpui::{Bounds, EntityId, Hsla, Pixels, SharedString};
 use super::{
     document::ParsedDocument,
     node::{BlockNode, Paragraph, SourceSegment},
+    rendered_leaf::{RenderedLeafKey, RenderedScope},
     stream_fade::{TextLeaf, TextLeafKey, text_leaves},
 };
 
@@ -171,7 +172,7 @@ impl PartialEq for RenderedText {
 
 impl Eq for RenderedText {}
 
-/// A background painted behind one range of a [`RenderedText`].
+/// A background and optional glyph ink over one range of a [`RenderedText`].
 ///
 /// It is painted under the text and under the selection, and never changes
 /// layout. Where highlights overlap, the later one paints over the earlier.
@@ -179,6 +180,7 @@ impl Eq for RenderedText {}
 pub struct RangeHighlight {
     range: Range<usize>,
     background: Hsla,
+    foreground: Option<Hsla>,
 }
 
 impl RangeHighlight {
@@ -187,7 +189,15 @@ impl RangeHighlight {
         Self {
             range,
             background: background.into(),
+            foreground: None,
         }
+    }
+
+    /// Refine only the glyph color; absent foreground preserves authored ink.
+    /// Overlapping foregrounds use the last supplied color.
+    pub fn with_foreground(mut self, foreground: Option<Hsla>) -> Self {
+        self.foreground = foreground;
+        self
     }
 
     pub fn range(&self) -> Range<usize> {
@@ -204,8 +214,8 @@ impl RangeHighlight {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum RangeHighlightError {
-    /// The view renders HTML, which records no source positions to address
-    /// its text by.
+    /// HTML rendered ranges were not enabled, or its replacement parse is
+    /// still pending. Markdown source ranges are unaffected.
     Unsupported,
     /// The range at this index, the highlight's or the one revealed, is
     /// reversed, out of bounds, or not on a character boundary.
@@ -215,7 +225,7 @@ pub enum RangeHighlightError {
 impl std::fmt::Display for RangeHighlightError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unsupported => f.write_str("HTML views do not support ranges of their text"),
+            Self::Unsupported => f.write_str("HTML rendered ranges are unavailable for this parse"),
             Self::InvalidRange(ix) => write!(f, "range {ix} is not a range of the text"),
         }
     }
@@ -271,9 +281,21 @@ impl LeafSpan {
 
 impl RenderedIndex {
     pub(super) fn new(document: &ParsedDocument) -> Self {
-        let mut builder = IndexBuilder::default();
+        Self::build(document, None)
+    }
+
+    pub(super) fn html(document: &ParsedDocument, owner: EntityId, revision: usize) -> Self {
+        Self::build(document, Some(RenderedScope::new(owner, revision)))
+    }
+
+    fn build(document: &ParsedDocument, scope: Option<RenderedScope>) -> Self {
+        let mut builder = IndexBuilder {
+            scope,
+            ..Default::default()
+        };
         let mut blocks = Vec::with_capacity(document.blocks.len());
-        for block in document.blocks.iter() {
+        for (block_ix, block) in document.blocks.iter().enumerate() {
+            builder.block = block_ix;
             let start = builder.text.len();
             builder.push_block(block);
             blocks.push(start..builder.text.len());
@@ -400,6 +422,9 @@ impl RenderedIndex {
 /// leaf, and where its text came from in the source, as it goes.
 #[derive(Default)]
 struct IndexBuilder {
+    scope: Option<RenderedScope>,
+    block: usize,
+    ordinal: usize,
     text: String,
     leaves: Vec<LeafSpan>,
     source_map: Vec<SourceSegment>,
@@ -450,11 +475,13 @@ impl IndexBuilder {
             BlockNode::CodeBlock(code_block) => {
                 let code = code_block.code();
                 self.push_source_segments(self.text.len(), &code, &code_block.source_segments);
-                self.push_leaf(
-                    &code,
-                    code_block.span.map(|span| TextLeafKey::block(span.start)),
-                    Vec::new(),
-                );
+                let key = if let Some(key) = self.next_rendered_key() {
+                    code_block.set_rendered_key(key);
+                    Some(TextLeafKey::Rendered(key))
+                } else {
+                    code_block.range_key()
+                };
+                self.push_leaf(&code, key, Vec::new());
             }
             BlockNode::Custom { node, .. } => {
                 self.push_object_source(self.text.len(), node.as_text(), node.source_range());
@@ -470,7 +497,24 @@ impl IndexBuilder {
         }
     }
 
+    fn next_rendered_key(&mut self) -> Option<RenderedLeafKey> {
+        let scope = self.scope?;
+        let key = RenderedLeafKey::new(scope, self.block, self.ordinal);
+        // Each ordinal owns a parsed leaf; checked advance refuses exhaustion
+        // without aliasing an earlier leaf identity.
+        self.ordinal = self.ordinal.checked_add(1)?;
+        Some(key)
+    }
+
     fn push_paragraph(&mut self, paragraph: &Paragraph, key: Option<TextLeafKey>) {
+        let key = if let Some(key) = self.next_rendered_key() {
+            if let Ok(mut state) = paragraph.state.lock() {
+                state.rendered_key = Some(key);
+            }
+            Some(TextLeafKey::Rendered(key))
+        } else {
+            paragraph.range_key(key)
+        };
         let start = self.text.len();
         let mut text = String::new();
         let mut objects = Vec::new();
@@ -598,6 +642,7 @@ pub(crate) struct RangeHighlightFrame {
     /// Sorted by key. A leaf's backgrounds keep the order the application
     /// gave them in, so a later one paints over an earlier one.
     leaves: Vec<(TextLeafKey, Vec<(Range<usize>, Hsla)>)>,
+    foregrounds: Vec<(TextLeafKey, Vec<(Range<usize>, Hsla)>)>,
 }
 
 impl RangeHighlightFrame {
@@ -615,20 +660,30 @@ impl RangeHighlightFrame {
             pieces.extend(
                 leaf_ranges
                     .into_iter()
-                    .map(|(key, range)| (key, range, highlight.background)),
+                    .map(|(key, range)| (key, range, highlight.background, highlight.foreground)),
             );
         }
 
         // Stable, so each leaf keeps the application's order.
-        pieces.sort_by_key(|(key, _, _)| *key);
+        pieces.sort_by_key(|(key, _, _, _)| *key);
         let mut leaves: Vec<(TextLeafKey, Vec<(Range<usize>, Hsla)>)> = Vec::new();
-        for (key, range, background) in pieces {
+        let mut foregrounds: Vec<(TextLeafKey, Vec<(Range<usize>, Hsla)>)> = Vec::new();
+        for (key, range, background, foreground) in pieces {
+            if let Some(color) = foreground {
+                match foregrounds.last_mut() {
+                    Some((last, colors)) if *last == key => colors.push((range.clone(), color)),
+                    _ => foregrounds.push((key, vec![(range.clone(), color)])),
+                }
+            }
             match leaves.last_mut() {
                 Some((last, backgrounds)) if *last == key => backgrounds.push((range, background)),
                 _ => leaves.push((key, vec![(range, background)])),
             }
         }
-        Ok((!leaves.is_empty()).then_some(Self { leaves }))
+        Ok((!leaves.is_empty()).then_some(Self {
+            leaves,
+            foregrounds,
+        }))
     }
 
     /// The backgrounds of leaf `key`, in its rendered byte space.
@@ -638,27 +693,40 @@ impl RangeHighlightFrame {
             .map_or(&[], |ix| self.leaves[ix].1.as_slice())
     }
 
-    /// The highlights that still describe `new`, the document `remap` maps
-    /// the old one to: each follows its leaf as far as the leaf's text is
-    /// unchanged, and is dropped with a leaf that is gone.
-    pub(super) fn remap(&self, remap: &LeafRemap) -> Option<Self> {
-        let mut leaves = self
-            .leaves
-            .iter()
-            .filter_map(|(key, backgrounds)| {
-                let (new_key, unchanged) = remap.leaf(*key)?;
-                let clipped = backgrounds
-                    .iter()
-                    .filter(|(range, _)| range.start < unchanged)
-                    .map(|(range, background)| (range.start..range.end.min(unchanged), *background))
-                    .collect::<Vec<_>>();
-                (!clipped.is_empty()).then_some((new_key, clipped))
-            })
-            .collect::<Vec<_>>();
-        // Moving keys keeps their order, but stay safe for the binary search.
-        leaves.sort_by_key(|(key, _)| *key);
-        (!leaves.is_empty()).then_some(Self { leaves })
+    /// Foreground refinements, retaining input order independently of backgrounds.
+    pub(crate) fn foregrounds(&self, key: TextLeafKey) -> &[(Range<usize>, Hsla)] {
+        self.foregrounds
+            .binary_search_by_key(&key, |(leaf, _)| *leaf)
+            .map_or(&[], |ix| self.foregrounds[ix].1.as_slice())
     }
+
+    /// Carry both color layers through the existing Markdown source remap.
+    pub(super) fn remap(&self, remap: &LeafRemap) -> Option<Self> {
+        let leaves = remap_colors(&self.leaves, remap);
+        (!leaves.is_empty()).then(|| Self {
+            leaves,
+            foregrounds: remap_colors(&self.foregrounds, remap),
+        })
+    }
+}
+
+type LeafColors = Vec<(TextLeafKey, Vec<(Range<usize>, Hsla)>)>;
+
+fn remap_colors(colors: &LeafColors, remap: &LeafRemap) -> LeafColors {
+    let mut leaves = colors
+        .iter()
+        .filter_map(|(key, colors)| {
+            let (new_key, unchanged) = remap.leaf(*key)?;
+            let clipped = colors
+                .iter()
+                .filter(|(range, _)| range.start < unchanged)
+                .map(|(range, color)| (range.start..range.end.min(unchanged), *color))
+                .collect::<Vec<_>>();
+            (!clipped.is_empty()).then_some((new_key, clipped))
+        })
+        .collect::<Vec<_>>();
+    leaves.sort_by_key(|(key, _)| *key);
+    leaves
 }
 
 /// Where the text leaves of one parsed document are found in the document
@@ -762,19 +830,20 @@ impl<'a> LeafRemap<'a> {
     /// Where leaf `key` is in the new document, and how much of its text is
     /// unchanged, or `None` when it is gone.
     pub(super) fn leaf(&self, key: TextLeafKey) -> Option<(TextLeafKey, usize)> {
+        let block_start = key.block_start()?;
         if self
             .tail_start
-            .is_some_and(|tail_start| key.block_start() < tail_start)
+            .is_some_and(|tail_start| block_start < tail_start)
         {
             return Some((key, usize::MAX));
         }
-        let new_key = key.moved_to(self.moved(key.block_start())?);
+        let new_key = key.moved_to(self.moved(block_start)?)?;
         let old_leaf = Self::find(&self.old_leaves, key)?;
         // A table's cells are only known by their place in it, so after a
         // change inside the table a cell is the same one only when the source
         // of its whole row ends before that change.
         if key.cell_ix().is_some()
-            && key.block_start() < self.unchanged_prefix
+            && block_start < self.unchanged_prefix
             && self.tail_start.is_none()
             && self
                 .row_source_end(key)
@@ -901,6 +970,7 @@ mod tests {
                     .iter()
                     .map(|(key, _)| (*key, vec![(0..1, hsla(0.15, 1., 0.5, 0.4))]))
                     .collect(),
+                ..Default::default()
             };
             assert_eq!(frame.leaves.len(), (rows + 1) * columns);
             let kept = frame.remap(&remap).unwrap();
@@ -1563,10 +1633,14 @@ impl PendingReveal {
     /// The index of the top-level block of `document` the reveal starts in.
     pub(super) fn block_ix(&self, document: &ParsedDocument) -> Option<usize> {
         match self.target {
+            RevealTarget::Line {
+                key: TextLeafKey::Rendered(key),
+                ..
+            } => (key.block() < document.blocks.len()).then_some(key.block()),
             RevealTarget::Line { key, .. } => document.blocks.iter().rposition(|block| {
                 block
                     .span()
-                    .is_some_and(|span| span.start <= key.block_start())
+                    .is_some_and(|span| key.block_start().is_some_and(|start| span.start <= start))
             }),
             RevealTarget::Block { ix } => (ix < document.blocks.len()).then_some(ix),
         }

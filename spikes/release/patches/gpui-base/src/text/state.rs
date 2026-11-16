@@ -1,3 +1,6 @@
+mod rendered_ranges;
+pub use rendered_ranges::RangeHighlightStamp;
+
 use futures::Stream as _;
 #[cfg(not(target_family = "wasm"))]
 use std::time::Instant;
@@ -161,6 +164,8 @@ pub struct TextViewState {
     /// The rendered text of `parsed_content`, built when first read.
     rendered_index: Arc<OnceLock<RenderedIndex>>,
     range_highlights: Option<Arc<RangeHighlightFrame>>,
+    range_accepted: Option<Arc<()>>,
+    rendered_range_support: super::RenderedRangeSupport,
     pub(super) pending_reveal: Option<PendingReveal>,
     pub(super) selection_revision: usize,
     compatible_layout_update: bool,
@@ -254,6 +259,8 @@ impl TextViewState {
             full_update_revision: 0,
             rendered_index: Arc::default(),
             range_highlights: None,
+            range_accepted: None,
+            rendered_range_support: super::RenderedRangeSupport::default(),
             pending_reveal: None,
             selection_revision: 0,
             compatible_layout_update: false,
@@ -522,6 +529,7 @@ impl TextViewState {
     fn increment_update(&mut self, text: &str, append: bool, cx: &mut Context<Self>) {
         self.revision += 1;
         if !append {
+            self.reset_html_ranges();
             self.full_update_revision = self.revision;
             self.selection_revision = self.selection_revision.wrapping_add(1);
             // Old native layouts must not project a still-active gesture back
@@ -677,11 +685,12 @@ impl TextViewState {
         highlights: impl IntoIterator<Item = RangeHighlight>,
         cx: &mut Context<Self>,
     ) -> Result<(), RangeHighlightError> {
-        if self.format != TextViewFormat::Markdown {
+        if !self.ranges_supported() {
             return Err(RangeHighlightError::Unsupported);
         }
         let text = self.rendered_text();
         self.range_highlights = RangeHighlightFrame::new(&text, highlights)?.map(Arc::new);
+        self.range_accepted = Some(Arc::new(()));
         cx.notify();
         Ok(())
     }
@@ -713,7 +722,7 @@ impl TextViewState {
         range: Range<usize>,
         cx: &mut Context<Self>,
     ) -> Result<(), RangeHighlightError> {
-        if self.format != TextViewFormat::Markdown {
+        if !self.ranges_supported() {
             return Err(RangeHighlightError::Unsupported);
         }
         let text = self.rendered_text();
@@ -732,7 +741,8 @@ impl TextViewState {
 
     /// Remove all range highlights.
     pub fn clear_range_highlights(&mut self, cx: &mut Context<Self>) {
-        if self.range_highlights.take().is_some() {
+        let accepted = self.range_accepted.take().is_some();
+        if self.range_highlights.take().is_some() || accepted {
             cx.notify();
         }
     }
@@ -748,6 +758,11 @@ impl TextViewState {
         let tail_only = append && self.full_update_revision <= self.committed_revision;
         self.committed_revision = revision;
         self.rendered_index = Arc::default();
+        if self.format == TextViewFormat::Html {
+            self.reset_html_ranges();
+            self.index_html_ranges(new);
+            return;
+        }
         if self.range_highlights.is_some() || self.pending_reveal.is_some() {
             let remap = LeafRemap::new(&self.parsed_content.document, new, tail_only);
             self.range_highlights = self
@@ -3391,6 +3406,28 @@ mod tests {
         fn an_enclosing_list_scrolls_to_a_line_of_a_fit_content_view(cx: &mut TestAppContext) {
             let outer = ListState::new(2, ListAlignment::Top, px(1000.));
             let (state, cx) = window(&words(400), Container::List(outer.clone()), cx);
+            reveal(&state, "w390", cx);
+            assert!(!is_pending(&state, cx));
+            let top = outer.logical_scroll_top();
+            assert_eq!(top.item_ix, 1, "{top:?}");
+            assert!(top.offset_in_item > px(100.), "{top:?}");
+        }
+
+        #[gpui::test]
+        fn html_rendered_range_reveal_reaches_the_same_enclosing_list(cx: &mut TestAppContext) {
+            cx.update(crate::init);
+            let outer = ListState::new(2, ListAlignment::Top, px(1000.));
+            let html = format!("<pre>{}</pre>", words(400));
+            let (root, cx) = cx.add_window_view(|_, cx| Root {
+                state: cx.new(|cx| {
+                    TextViewState::html(&html, cx)
+                        .rendered_range_support(crate::text::RenderedRangeSupport::HtmlAndMarkdown)
+                }),
+                container: Container::List(outer.clone()),
+            });
+            cx.run_until_parked();
+            draw(cx);
+            let state = root.read_with(cx, |root, _| root.state.clone());
             reveal(&state, "w390", cx);
             assert!(!is_pending(&state, cx));
             let top = outer.logical_scroll_top();

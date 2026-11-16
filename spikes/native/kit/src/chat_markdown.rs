@@ -44,6 +44,9 @@
 //!   highlighted (the renderer's highlighter needs a grammar feature the
 //!   kit does not build).
 
+mod find;
+pub(crate) use find::AppliedMark;
+
 use std::ops::Range;
 
 use gpui::{
@@ -124,16 +127,14 @@ impl Look {
 /// `goat-thread-find-active`, `index.css`, their oklch in sRGB): every
 /// match washed yellow, the current one amber. Not neutral colours, so
 /// not the kit's neutral steps.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FindPalette {
     /// Behind every match: oklch(0.915 0.11 85) light, oklch(0.55 0.1
     /// 85) dark.
     pub found: Hsla,
     /// Behind the current one: oklch(0.774 0.152 74.3).
     pub current: Hsla,
-    /// The current one's ink, where the text's colour can be set (a plain
-    /// text; a reply's renderer paints backgrounds only): oklch(0.216
-    /// 0.028 77.4).
+    /// The current match's glyph ink: oklch(0.216 0.028 77.4).
     pub current_ink: Hsla,
 }
 
@@ -186,7 +187,7 @@ struct Kept {
     /// The version of the text it holds.
     version: u64,
     /// The marks' key it shows; `None`: none shown.
-    marked: Option<u64>,
+    marked: Option<AppliedMark>,
 }
 
 /// A reply's Markdown, its code blocks drawn as GOAT draws them, find's
@@ -217,7 +218,12 @@ pub fn chat_markdown(
         }
         let state = kept.state.clone();
         match marks {
-            Some(marks) if kept.marked != Some(marks.key) => {
+            Some(marks)
+                if !kept
+                    .marked
+                    .as_ref()
+                    .is_some_and(|applied| applied.is_current(state.read(cx), marks, palette)) =>
+            {
                 kept.marked = state.update(cx, |state, cx| mark(state, marks, palette, cx));
             }
             None if kept.marked.is_some() => {
@@ -249,18 +255,15 @@ pub fn chat_markdown(
 }
 
 /// Mark `marks` in the reply `state` holds and scroll to the current
-/// one; the key marked, or `None` while the text is not laid out yet (it
-/// is tried again next frame).
-fn mark(
+/// one. Cache only its accepted owner/revision receipt; refusal stays
+/// retryable on the next current parse.
+pub(crate) fn mark(
     state: &mut TextViewState,
     marks: &FindMarks<'_>,
     palette: FindPalette,
     cx: &mut gpui::Context<'_, TextViewState>,
-) -> Option<u64> {
+) -> Option<AppliedMark> {
     let rendered = state.rendered_text();
-    if rendered.is_empty() {
-        return None;
-    }
     let spans = (marks.spans)(rendered.as_str());
     let current = marks.current.and_then(|nth| spans.get(nth).cloned());
     let highlights = spans.iter().enumerate().map(|(nth, span)| {
@@ -270,14 +273,15 @@ fn mark(
             palette.found
         };
         RangeHighlight::new(span.clone(), color)
+            .with_foreground((Some(nth) == marks.current).then_some(palette.current_ink))
     });
-    // A range the renderer refuses (text outside every block) leaves the
-    // reply unmarked rather than failing the frame.
-    let _refused = state.set_range_highlights(highlights, cx);
+    // Only complete acceptance creates a cache receipt. Invalid UTF-8 or
+    // unsupported HTML stays retryable; no raw text is logged on refusal.
+    state.set_range_highlights(highlights, cx).ok()?;
     if let Some(current) = current {
         let _not_taken = state.reveal_range(current, cx);
     }
-    Some(marks.key)
+    AppliedMark::accepted(state, marks, palette)
 }
 
 /// The block's style over the renderer's.

@@ -95,58 +95,67 @@ impl TextViewMotion {
     }
 }
 
-/// Identifies one run of rendered text across re-parses: the source start of
-/// the block that owns it, plus the cell ordinal inside a table.
-///
-/// Keys order as their leaves appear in the document.
+/// One existing Markdown source leaf or one committed rendered-only HTML leaf.
+/// The domains cannot be confused by a source remap.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub(crate) struct TextLeafKey {
-    block_start: usize,
-    ordinal: usize,
+pub(crate) enum TextLeafKey {
+    Source { block_start: usize, ordinal: usize },
+    Rendered(super::rendered_leaf::RenderedLeafKey),
 }
 
-/// The key as an element id, for a leaf that needs element state or an
-/// accessibility identity: unique per leaf, and allocation-free, as it is
-/// built every frame.
 impl From<TextLeafKey> for ElementId {
     fn from(key: TextLeafKey) -> Self {
-        let mut bytes = [0; 20];
-        bytes[..8].copy_from_slice(&(key.block_start as u64).to_le_bytes());
-        bytes[8..16].copy_from_slice(&(key.ordinal as u64).to_le_bytes());
-        ElementId::OpaqueId(bytes)
+        match key {
+            TextLeafKey::Source {
+                block_start,
+                ordinal,
+            } => {
+                let mut bytes = [0; 20];
+                bytes[..8].copy_from_slice(&(block_start as u64).to_le_bytes());
+                bytes[8..16].copy_from_slice(&(ordinal as u64).to_le_bytes());
+                ElementId::OpaqueId(bytes)
+            }
+            TextLeafKey::Rendered(key) => key.element_id(),
+        }
     }
 }
 
 impl TextLeafKey {
     pub(crate) fn block(start: usize) -> Self {
-        Self {
+        Self::Source {
             block_start: start,
             ordinal: 0,
         }
     }
 
     pub(crate) fn table_cell(table_start: usize, ordinal: usize) -> Self {
-        Self {
+        Self::Source {
             block_start: table_start,
             ordinal: ordinal + 1,
         }
     }
 
-    pub(crate) fn block_start(&self) -> usize {
-        self.block_start
+    pub(crate) fn block_start(self) -> Option<usize> {
+        match self {
+            Self::Source { block_start, .. } => Some(block_start),
+            Self::Rendered(_) => None,
+        }
     }
 
-    /// The index of the table cell the leaf is, among all the cells of its
-    /// table, or `None` when it is not a cell.
-    pub(crate) fn cell_ix(&self) -> Option<usize> {
-        self.ordinal.checked_sub(1)
+    pub(crate) fn cell_ix(self) -> Option<usize> {
+        match self {
+            Self::Source { ordinal, .. } => ordinal.checked_sub(1),
+            Self::Rendered(_) => None,
+        }
     }
 
-    /// The same leaf in its block moved to start at `block_start`.
-    pub(crate) fn moved_to(self, block_start: usize) -> Self {
-        Self {
-            block_start,
-            ordinal: self.ordinal,
+    pub(crate) fn moved_to(self, block_start: usize) -> Option<Self> {
+        match self {
+            Self::Source { ordinal, .. } => Some(Self::Source {
+                block_start,
+                ordinal,
+            }),
+            Self::Rendered(_) => None,
         }
     }
 }

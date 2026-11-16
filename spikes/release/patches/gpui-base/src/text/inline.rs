@@ -349,6 +349,8 @@ pub(crate) struct InlineState {
     /// the leaf reports its geometry to the collector installed by
     /// `editor_host::collect_leaf_geometry`. `None` for every plain `TextView`.
     pub(crate) editor_key: Option<u64>,
+    /// Derived on the UI commit path by the same rendered index used for find.
+    pub(super) rendered_key: Option<super::rendered_leaf::RenderedLeafKey>,
     /// UI owners of retained layouts; cleanup metadata is not document state.
     pub(super) cleanup_senders: Vec<Sender<()>>,
 }

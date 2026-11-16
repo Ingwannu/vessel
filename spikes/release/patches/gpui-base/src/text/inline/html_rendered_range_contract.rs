@@ -9,6 +9,7 @@ use gpui::{
 // reach the real Unsupported result, rather than fail on a nonexistent API.
 fn literal_state(text: &str, cx: &mut Context<TextViewState>) -> TextViewState {
     TextViewState::html(&literal_html(text), cx)
+        .rendered_range_support(crate::text::RenderedRangeSupport::HtmlAndMarkdown)
 }
 
 fn literal_html(text: &str) -> String {
@@ -118,8 +119,8 @@ fn painted_runs(text: &str) -> Vec<TextRun> {
 
 // Implementation later adds only the optional foreground builder here. The
 // baseline still draws a valid background range so a real ink assertion fails.
-fn current_highlight(range: Range<usize>, background: Hsla, _foreground: Hsla) -> RangeHighlight {
-    RangeHighlight::new(range, background)
+fn current_highlight(range: Range<usize>, background: Hsla, foreground: Hsla) -> RangeHighlight {
+    RangeHighlight::new(range, background).with_foreground(Some(foreground))
 }
 
 #[gpui::test]
@@ -167,4 +168,136 @@ fn html_rendered_range_contract_current_ink_reaches_actual_retained_runs(cx: &mu
         before,
         "clear restores the original drawn runs"
     );
+}
+
+struct LiteralSelectionRoot {
+    state: Entity<TextViewState>,
+}
+impl Render for LiteralSelectionRoot {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        gpui::div()
+            .w(px(220.))
+            .child(crate::TextSelectionLayer)
+            .child(TextView::new(&self.state).selectable(true))
+    }
+}
+
+#[gpui::test]
+fn html_partial_multiblock_drag_keeps_literal_plain_copy_after_find(cx: &mut TestAppContext) {
+    cx.update(crate::init);
+    let source = "<p>prefix 한글🙂 literal first</p><pre>middle  spaces\n\t tab &amp; &lt;literal&gt;</pre><p>literal ending suffix</p>";
+    let (root, cx) = cx.add_window_view(|_, cx| LiteralSelectionRoot {
+        state: cx.new(|cx| {
+            TextViewState::html(source, cx)
+                .rendered_range_support(crate::text::RenderedRangeSupport::HtmlAndMarkdown)
+        }),
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    let state = root.read_with(cx, |root, _| root.state.clone());
+    let bounds = state.read_with(cx, |state, _| state.bounds());
+    let start = bounds.origin + point(px(35.), px(4.));
+    let end = bounds.bottom_right() - point(px(35.), px(4.));
+    cx.simulate_mouse_down(start, gpui::MouseButton::Left, gpui::Modifiers::default());
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    cx.simulate_mouse_move(end, gpui::MouseButton::Left, gpui::Modifiers::default());
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    cx.simulate_mouse_up(end, gpui::MouseButton::Left, gpui::Modifiers::default());
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    let selected = state.read_with(cx, |state, _| {
+        let selected = state.selected_text();
+        assert!(
+            selected.contains("middle  spaces\n\t tab & <literal>"),
+            "{selected:?}"
+        );
+        assert!(selected.len() < state.rendered_text().len());
+        assert!(state.selected_source_range().is_none());
+        selected
+    });
+    state.update(cx, |state, cx| {
+        let text = state.rendered_text();
+        let start = text.as_str().find("middle").unwrap();
+        state
+            .set_range_highlights([highlight(start..start + 6)], cx)
+            .unwrap();
+        state.reveal_range(start..start + 6, cx).unwrap();
+    });
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    assert_eq!(
+        state.read_with(cx, |state, _| state.selected_text()),
+        selected
+    );
+    state.update(cx, |state, cx| state.clear_range_highlights(cx));
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    assert_eq!(
+        state.read_with(cx, |state, _| state.selected_text()),
+        selected
+    );
+}
+
+struct InkRoot {
+    state: Entity<TextViewState>,
+    ink: Hsla,
+}
+impl Render for InkRoot {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        gpui::div()
+            .w(px(320.))
+            .text_color(self.ink)
+            .child(TextView::new(&self.state).selectable(true))
+    }
+}
+
+#[gpui::test]
+fn html_drawn_foreground_overlap_updates_and_clear_preserve_fonts_in_both_schemes(
+    cx: &mut TestAppContext,
+) {
+    cx.update(crate::init);
+    for (appearance, body, fill) in [
+        (
+            crate::ThemeAppearance::Light,
+            gpui::rgb(0x181818),
+            gpui::rgb(0xffde8b),
+        ),
+        (
+            crate::ThemeAppearance::Dark,
+            gpui::rgb(0xeeeeee),
+            gpui::rgb(0x8c6c1f),
+        ),
+    ] {
+        cx.update(|cx| crate::Theme::global_mut(cx).appearance = appearance);
+        let text = "html ink overlap";
+        let (root, visual) = cx.add_window_view(|_, cx| InkRoot {
+            state: cx.new(|cx| literal_state(text, cx)),
+            ink: body.into(),
+        });
+        visual.run_until_parked();
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+        let before = painted_runs(text);
+        let state = root.read_with(visual, |root, _| root.state.clone());
+        for ink in [gpui::rgb(0x21180a), gpui::rgb(0x553300)] {
+            state.update(visual, |state, cx| {
+                state
+                    .set_range_highlights(
+                        [
+                            RangeHighlight::new(3..8, fill)
+                                .with_foreground(Some(gpui::rgb(0xff0000).into())),
+                            RangeHighlight::new(0..text.len(), fill)
+                                .with_foreground(Some(ink.into())),
+                            RangeHighlight::new(2..9, fill),
+                        ],
+                        cx,
+                    )
+                    .unwrap();
+            });
+            visual.update(|window, cx| window.draw(cx).clear(cx));
+            let after = painted_runs(text);
+            assert!(after.iter().all(|run| run.color == ink.into()));
+            assert!(after.iter().all(|run| run.font == before[0].font));
+            assert_eq!(after.iter().map(|run| run.len).sum::<usize>(), text.len());
+        }
+        state.update(visual, |state, cx| state.clear_range_highlights(cx));
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+        assert_eq!(painted_runs(text), before);
+    }
 }

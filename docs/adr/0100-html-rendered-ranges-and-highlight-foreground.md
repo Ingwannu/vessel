@@ -1,8 +1,9 @@
 # ADR 0100: HTML rendered ranges and optional highlight foreground in the shared text engine
 
-Status: proposed contract; coordinator-owned scope approved, V1 direction pending.
+Status: V1 contract direction clear; separate implementation candidate uncompiled.
 Owner: B2, the existing text-engine seam owner. A7 owns only its prompt caller.
-Receiving native baseline: announced package base10, 3e7820e3.
+Failing-first test-only baseline: package base10, 3e7820e3.
+Implementation candidate: announced package base13.1, ad14f5f6.
 
 ## Decision Log
 
@@ -80,3 +81,42 @@ The approved failing-first strategy uses existing APIs: HTML assertions fail on 
 Baseline fixtures are now authored before feature code. The literal test first proves UTF-8/entities/whitespace and Plain copy, then requires actual HTML range acceptance and atomic invalid UTF-8 refusal/clear; the default HTML fixture preserves Unsupported. The Markdown fixture draws the same TextView, reads its actual retained TextRun color/font, requires current ink, then verifies clearing restores the original runs. Only cfg(test) module registration and tests accompany this stage; fixture helpers intentionally use existing constructors/background-only ranges so the missing capabilities fail at real runtime assertions. No nonexistent opt-in/foreground symbol is referenced.
 
 The test-only baseline additionally requires reveal_range acceptance for the same valid literal UTF-8 range. It keeps the original highlight/copy/ink assertions and references no new API. This prevents later highlight support alone from hiding an unchanged Unsupported reveal. Original baseline ad889 remains available; neither baseline has been executed while the approved engine-unit recipe is pending.
+
+
+## Source candidate and execution boundary
+
+The original test-only baseline remains immutable, with no capability setup:
+`eff369b040c1c3a2480f0213b777a3321cc35d36`. The separate candidate adds only
+the opt-in/foreground calls in its original fixture helpers; its existing
+result, copy, actual-run ink, reveal and clear assertions remain intact.
+Neither source has been run through the approved engine-unit scratch recipe.
+The scratch recipe is tool-owner work: no product manifest, dependency or lock
+is changed to simulate an engine test. Native dependency compilation cannot be
+reported as executing the vendored engine's cfg(test) tests.
+
+The same IndexBuilder now assigns HTML keys into the retained InlineState
+while building the committed index on the UI thread. Keys have a separate
+Rendered domain, view owner, committed revision, top-level block and global
+leaf ordinal. Paint obtains that same key from the same state used by
+selection; reveal uses its top-level block. Markdown Source keys keep their
+original encoding/order and source remap. HTML indexes are built eagerly at
+opt-in/commit so a retained snapshot has fixed keys before an append can share
+old leaf states. This trades one rendered-index traversal per committed
+opted-in HTML parse for immutable snapshot identity. No background parser
+mutates displayed identity. Named element IDs retain all identity components;
+the fixed opaque ID is too small to carry them without truncation.
+
+Foreground ranges are resolved independently of backgrounds, in original
+input order, and refine only color after authored styles and before existing
+stream fade. They reach the original retained TextRun cache; changing ink
+changes its existing run comparison. Background-only input adds no foreground.
+One opaque acceptance receipt includes the actual owner/committed revision and
+retains a per-set Arc token; invalid input preserves the previous receipt,
+accepted empty sets clear paint with a fresh receipt, and clear/reparse revoke
+it. The single kit mark cache also checks palette and current ordinal.
+
+Additional candidate fixtures cover atomic multi-range refusal, accepted-empty
+clear, A-B-A, rejected stale async commit, actual enclosing-list reveal, native
+partial/multiblock literal selection, and actual retained run overlap/update/
+clear under both appearance settings. They are authored assertions, not passed
+execution evidence. Product A7 remains unchanged and its caller adoption held.
