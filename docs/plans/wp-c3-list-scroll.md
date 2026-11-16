@@ -36,9 +36,12 @@ input dispatch and compares motion with the no-handler path. No latest range
 is forwarded, so a stale range cannot be consumed through this API. The fixture
 has no node, filesystem observer, credentials or second list state.
 
-All source is currently UNCOMPILED and the test is UNEXECUTED. Standalone pinned
-rustfmt, size/token and source-preflight checks precede the remote Kit strict
-and actual window-test checks. V1 then the lead review this isolated leaf.
+Exact b2439a023 Kit all-target strict Clippy is GREEN: native-fonts0,
+native-cargo0, no skipped step, with actual Base/gpui-component/Kit checking.
+The selected real-window test remains queued and UNEXECUTED; do not infer its
+result from type checking. Standalone pinned rustfmt, size/token and source
+preflight passed before submission. V1 then the lead review the complete
+isolated packet after the actual selected test finishes.
 This is not C3 body/cache fairness, all Kit, full native, UI/capture/OS approval.
 No change to another caller is included; actual C3 visibility-marker protection
 and >32-visible-section/cached scroll tests remain separate consumer work.
