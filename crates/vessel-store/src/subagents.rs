@@ -4,6 +4,9 @@
 //! the same savepoint as the first/repeat decision; lost callers cannot cause
 //! a later retry to mint another timestamp. No process or event-log write occurs.
 
+mod sql;
+pub(crate) use sql::configure;
+
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
 use vessel_proto::{
