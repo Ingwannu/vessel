@@ -210,6 +210,12 @@ multiple agent panes work. The staged sole `SessionResidents` container validate
 contexts and binding/ticket ingress. Its single-slot minter plans a real tab before
 the scoped factory, rechecks current membership, and refuses implicit eviction.
 Independent lease retirement still invalidates tickets after a refused switch.
+The staged bundle now moves one Requests controller and one Lifecycle controller
+beside the actual session and conversation. Lifecycle begins Loading, and concrete
+owner holds block clean removal even when an older table marker says Ready.
+Follow retirement updates these same controllers before the caller's callback;
+record intake offers exact resolution records to the same Requests controller.
+These fields do not supply transport validity or the expected-stop Window phase.
 The literal test gate remains until converted globals and raw ingress are removed. Package details and evidence limits are in
 [`wp-layout.md`](../../docs/plans/wp-layout.md).
 
@@ -1482,3 +1488,8 @@ renderer; source opt-ins add unselected pressed surface3 after hover surface2.
 Existing `segmented`/`segment` remain pointer-sized with their original paint.
 The caller owns the value and refuses disabled/current-value actions. Why and
 pinned lines: `docs/plans/shared-segmented-sizing.md`.
+
+`VirtualList::on_scroll` observes handled scroll input through GPUI's existing
+handler, without exporting its stale visible_range or changing list motion.
+Install once for the list owner; never query/reborrow the list during callback.
+Exact source/real-window proof remains pending in `docs/plans/wp-c3-list-scroll.md`.
