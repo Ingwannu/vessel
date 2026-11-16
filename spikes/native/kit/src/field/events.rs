@@ -15,6 +15,9 @@ use gpui::{Context, Entity, Window};
 use gpui_base::input::InputEvent;
 use std::{cell::Cell, rc::Rc};
 
+// Captures are retained only by Plain; Identified keeps its engine FieldId contract.
+pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
+
 /// Follow a field's events: Enter, edits, and whether it holds the keys.
 /// What a field's events call.
 pub(super) struct Handlers<V: 'static> {
@@ -78,7 +81,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 /// Existing callbacks and request-scoped callbacks share the same event path.
 pub(super) enum Callbacks<V: 'static> {
     Plain {
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: Submit<V>,
         on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
     },
     Identified {
