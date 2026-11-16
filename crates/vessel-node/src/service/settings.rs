@@ -1,6 +1,7 @@
 //! Protocol 12's `node.settings` and `node.set_settings` (ADR 0038): the
 //! node's settings, kept and applied by `crate::settings`.
 
+use vessel_proto::restart::RestartRecovery;
 use vessel_proto::settings::{GetNodeSettings, NodeSettings, SetNodeSettings};
 use vessel_proto::{ErrorCode, WireError};
 
@@ -8,6 +9,12 @@ use super::{Connection, NodeService};
 use crate::settings::SettingsError;
 
 impl NodeService {
+    /// Isolated node fixtures pause the actual settings owner rather than a copy.
+    #[cfg(test)]
+    pub(crate) fn settings_for_test(&self) -> std::sync::Arc<crate::settings::Settings> {
+        std::sync::Arc::clone(&self.settings)
+    }
+
     /// `node.settings`: the settings in force.
     pub(crate) async fn node_settings(
         &self,
@@ -16,7 +23,7 @@ impl NodeService {
     ) -> Result<NodeSettings, WireError> {
         let mut settings = self.settings.current().await;
         if !request.include_restart_recovery {
-            settings.restart_recovery = Default::default();
+            settings.restart_recovery = RestartRecovery::default();
         }
         Ok(settings)
     }

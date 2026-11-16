@@ -6,8 +6,8 @@
 //! - Invariant: integration appends here; the parent re-export preserves schema callers.
 use super::super::restart_migration::RESTART_SCHEMA;
 use super::{
-    INBOX, LABELS, SIDE_CONTEXT, SUBAGENT_RELATIONS, TITLE_ORIGIN, USAGE_LEDGER,
-    V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13,
+    INBOX, LABELS, SIDE_CONTEXT, SUBAGENT_RELATIONS, TITLE_ORIGIN, USAGE_LEDGER, V1, V2, V3, V4,
+    V5, V6, V7, V8, V9, V10, V11, V12, V13,
 };
 
 /// Every migration, oldest first. Index `n` takes the schema from version

@@ -338,7 +338,7 @@ impl State {
                 recovery.over(
                     next.restart_recovery
                         .as_ref()
-                        .unwrap_or(&Default::default()),
+                        .unwrap_or(&vessel_proto::restart::SetRestartRecovery::default()),
                 ),
             );
         }

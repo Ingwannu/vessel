@@ -12,6 +12,10 @@ use vessel_proto::{
 };
 use vessel_store::{ByteCount, RestartEligibility, Retention, Store, StoreConfig};
 #[path = "support/fixtures.rs"]
+#[expect(
+    dead_code,
+    reason = "shared fixture builders include registry rollback used only by legacy migration tests"
+)]
 mod fixtures;
 
 fn info() -> SessionInfo {

@@ -9,7 +9,7 @@ use std::fmt;
 /// Only integration assigns the feature after those consumers are present.
 pub const RESTART_RECOVERY_PROTOCOL: Option<crate::ProtocolVersion> = None;
 
-/// Node-level startup continuation policy (ADR 0059).
+/// Node-level startup continuation policy (ADR 0098).
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct RestartRecovery {

@@ -1,7 +1,7 @@
 //! Starting a node and stopping it.
 
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::settings::Settings;
@@ -114,18 +114,7 @@ impl Node {
             relaying: relay,
         } = setup::Startup::open(&config).await?;
 
-        let Core {
-            runtime,
-            settings,
-            lifecycle,
-            stop,
-            tasks,
-            forwarders,
-            devices,
-            agents,
-            service,
-            relays,
-        } = core(
+        let core = core(
             &config,
             id,
             &store,
@@ -135,11 +124,11 @@ impl Node {
             started,
         )
         .await?;
-        drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
+        drop(tokio::spawn(serve_models(models, proxy, core.stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
+            Arc::clone(&core.service),
+            core.lifecycle.watch_info(),
             config.rpc.clone(),
             closing.clone(),
         ));
@@ -149,14 +138,14 @@ impl Node {
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
-        service.0.diagnostics.bound(tcp.as_ref());
+        core.service.0.diagnostics.bound(tcp.as_ref());
 
         let secure = SecureGateway {
             keypair,
             channel: vessel_secure::Config::default(),
-            service,
-            lifecycle: lifecycle.clone(),
-            devices,
+            service: core.service,
+            lifecycle: core.lifecycle.clone(),
+            devices: core.devices,
             config: config.rpc.clone(),
             closing: closing.clone(),
             connections: connections.clone(),
@@ -164,10 +153,10 @@ impl Node {
             unadmitted_per_address: Arc::default(),
         };
         let teardown = Teardown {
-            runtime,
-            settings,
-            tasks,
-            forwarders,
+            runtime: core.runtime,
+            settings: core.settings,
+            tasks: core.tasks,
+            forwarders: core.forwarders,
             closing,
             connections: connections.clone(),
             store,
@@ -185,17 +174,17 @@ impl Node {
                 }),
             )
         });
-        relays.serve(secure.clone(), connections.clone());
+        core.relays.serve(secure.clone(), connections.clone());
         let gateway = LocalGateway {
             rpc,
             token,
             connections,
-            agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
+            agents: AgentGateway::new(core.agents, &secure, config.rpc.clone()),
         };
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
-            stop.clone(),
+            core.stop.clone(),
             teardown,
             lock,
         ));
@@ -203,11 +192,11 @@ impl Node {
         Ok(Self {
             address,
             local: local_endpoint,
-            lifecycle,
+            lifecycle: core.lifecycle,
             #[cfg(test)]
             secure,
-            relays,
-            stop,
+            relays: core.relays,
+            stop: core.stop,
             task,
         })
     }

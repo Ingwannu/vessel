@@ -72,7 +72,7 @@ impl Fixture {
         std::fs::create_dir(&bin).unwrap();
         std::fs::create_dir(&home).unwrap();
         for role in [Role::Structured, Role::Terminal] {
-            install(
+            let _installed = install(
                 &bin,
                 HarnessKind::ClaudeCode,
                 role,

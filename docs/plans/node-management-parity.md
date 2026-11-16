@@ -6,6 +6,16 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- The second changed-source strict run found only compile/lint defects: unused
+  imports and qualifications, a fixture's private-owner access, shared fixture
+  dead code and the startup function budget. The corrections keep assertions,
+  budgets and behavior intact; startup keeps its Core aggregate instead of
+  destructuring every field before use. The node size record shrinks again.
+  The newly designated node head is merged with its migration sequence move;
+  recovery is appended after that unchanged sequence. Exact changed checks,
+  generated declarations and the single producer whole gate remain owed.
+
+
 - Generic launch admission now observes the same early node-stop and final
   runtime-shutdown sources. Fresh checks precede actual structured and terminal
   spawn (and terminal MCP write); actors remain alive through settings drain.

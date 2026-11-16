@@ -6,7 +6,6 @@ use std::task::Poll;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::StopWhen;
-use vessel_proto::settings::SetNodeSettings;
 
 use super::writer_tests::{RecoveryChoice, WRITE_TEST_BUDGET, recovery, runtime_with_stop};
 use super::*;
@@ -84,7 +83,7 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
-            let settings = super::writer_tests::settings(root.path()).await;
+            let settings = writer_tests::settings(root.path()).await;
             settings.change(recovery(RecoveryChoice::On)).await.unwrap();
             let stop = CancellationToken::new();
             let info = vessel_proto::NodeInfo {
@@ -138,13 +137,8 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
             vessel_harness::fakes::Role::Structured,
             vessel_harness::fakes::Role::Terminal,
         ] {
-            vessel_harness::fakes::install(
-                &bin,
-                vessel_proto::HarnessKind::ClaudeCode,
-                role,
-                &fake,
-            )
-            .unwrap();
+            let _installed =
+                vessel_harness::fakes::install(&bin, HarnessKind::ClaudeCode, role, &fake).unwrap();
         }
         let mut config =
             crate::Config::new(data.clone(), vessel_harness::HarnessEnv::new(home.clone()));
@@ -171,21 +165,18 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
         .await
         .unwrap();
         let service = Arc::clone(&node.secure.service);
-        let settings = Arc::clone(&service.0.settings);
+        let settings = service.0.settings_for_test();
         let (write_entered, write_release) = settings.pause_write();
         let first = Arc::clone(&settings);
-        let writer = tokio::spawn(async move {
-            first
-                .change(super::writer_tests::patch(ParkAfter::Never))
-                .await
-        });
+        let writer =
+            tokio::spawn(async move { first.change(writer_tests::patch(ParkAfter::Never)).await });
         write_entered.await.unwrap();
         let (place_entered, place_release) = service.0.place_gate.install();
         let create = tokio::spawn(async move {
             client
                 .call(vessel_proto::CreateSession {
                     spec: vessel_proto::SessionSpec::new(
-                        vessel_proto::HarnessKind::ClaudeCode,
+                        HarnessKind::ClaudeCode,
                         vessel_proto::SessionMode::Structured {
                             model: None,
                             resume: None,

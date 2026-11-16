@@ -136,7 +136,7 @@ pub(super) struct Startup {
     pub(super) token: vessel_store::NodeToken,
     pub(super) keypair: Arc<vessel_secure::NodeKeypair>,
     pub(super) lock: vessel_store::NodeLock,
-    pub(super) store: vessel_store::Store,
+    pub(super) store: Store,
     pub(super) models: Arc<Models>,
     pub(super) proxy: TcpListener,
     pub(super) session_setup: SessionSetup,
