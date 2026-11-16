@@ -27,7 +27,7 @@ Updated 2026-11-16, 07:05 UTC. The full row-by-row state is in `TRACKER.md`. The
 
 - The Codex-based worker tracks are paused for the week (the maintainer keeps 30 % of that quota). Work continues with Claude Opus and Sonnet workers: reviews, receiving packets, visual comparison against the pinned reference, and switching staged work on.
 - Next: switch on what is already built (file panels, usage reports, sub-agent relations, labels, residents, diagnostics UI), then the largest empty areas (usage and quota cards, notifications, PR timeline, scripts and services, browser pane, terminal input).
-- Open visual follow-ups from today's comparisons: the pane header's split menu and new-tab menu (TRACKER 776), the import sheet's header search and press-to-import rows (TRACKER 777), the host-confirmation route rows, and the lightbox minimum zoom (0.25).
+- Open visual follow-ups from today's comparisons: the pane header's split menu and new-tab menu (TRACKER 776), the import sheet's header search and press-to-import rows (TRACKER 777), the host-confirmation route rows, and the lightbox toolbar's disabled-state styling.
 
 ## Rules settled on 2026-11-15 that affect the remaining work
 
