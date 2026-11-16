@@ -206,6 +206,8 @@ pub(super) fn runtime(
 mod admission_tests {
     use super::*;
 
+    const ATTACHMENT_CAPACITY: usize = 1;
+
     #[test]
     fn the_actual_node_factory_observes_the_original_early_stop_token() {
         let root = tempfile::tempdir().unwrap();
@@ -213,7 +215,7 @@ mod admission_tests {
             vessel_store::DataDir::new(root.path()),
             vessel_harness::HarnessEnv::new(root.path().to_owned()),
         );
-        let (loader, _loads) = AttachmentLoader::channel(1);
+        let (loader, _loads) = AttachmentLoader::channel(ATTACHMENT_CAPACITY);
         let stop = CancellationToken::new();
         let runtime = runtime(&config, loader, root.path().to_owned(), stop.clone());
         let observed = runtime.launch_admission();
