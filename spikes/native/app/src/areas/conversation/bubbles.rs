@@ -145,7 +145,9 @@ pub(super) fn message(
             vessel_app_kit::version_of(&(rev, text)),
             Options {
                 marks: marks.as_ref(),
-                actions: None,
+                actions: Some(super::markdown_actions::unavailable(
+                    paint.catalog.timeline_plan().image_unavailable(),
+                )),
                 copy: CopyStyle::MarkdownCodeAware,
             },
             paint.tokens,
