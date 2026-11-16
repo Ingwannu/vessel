@@ -13,6 +13,7 @@ pub(super) fn overlay(
     shell: &Shell,
     layout: &Layout,
     key: &LayoutKey,
+    agent: &mut Option<registry::AgentRenderer>,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -59,7 +60,7 @@ pub(super) fn overlay(
             target: tab.target(),
             focus: registry::PanelFocus::Focused,
         },
-        &mut None,
+        agent,
         tokens,
         window,
         cx,
@@ -88,7 +89,13 @@ impl Shell {
         id: TabId,
         cx: &mut Context<'_, Self>,
     ) {
+        #[cfg(test)]
+        let before = registry::retirement::Before::layout(self, key);
         let result = super::with_layout_at(self, key, |layout| layout.dismiss_sheet(id));
+        #[cfg(test)]
+        if result.is_ok() {
+            self.layout_retired(before, registry::retirement::Source::Local, cx);
+        }
         self.layout_result(result, cx);
     }
 }

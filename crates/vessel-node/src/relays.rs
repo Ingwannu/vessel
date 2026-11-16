@@ -111,7 +111,13 @@ impl Serving {
         let gateway = self.gateway.clone();
         let tracker = self.connections.clone();
         let budget = relay_budget();
+        let registration = stop.clone();
         let accept = move |carrier: WsCarrier| {
+            // Join follows cancellation, so a callback racing this check still
+            // finishes its handoff before registration drain acknowledges.
+            if registration.is_cancelled() {
+                return;
+            }
             let gateway = gateway.clone();
             let route = Route::Relayed(Arc::clone(&budget));
             drop(tracker.spawn(async move {
@@ -307,5 +313,30 @@ pub(crate) fn relay_tls(relays: &[RouteUrl]) -> Result<TlsConfig, NodeError> {
             tracing::debug!(%error, "no TLS roots; only ws:// relays are configured");
             TlsConfig::with_roots(rustls::RootCertStore::empty()).map_err(NodeError::RelayTls)
         }
+    }
+}
+
+impl Relays {
+    pub(crate) fn diagnostic_counts(&self) -> vessel_proto::diagnostics::DiagnosticRelays {
+        use vessel_proto::diagnostics::DiagnosticRelayCounts;
+        fn add(total: &mut DiagnosticRelayCounts, source: &watch::Receiver<LinkState>) {
+            let count = vessel_relay::diagnostic_observation(source);
+            total.connecting = total.connecting.saturating_add(count.connecting);
+            total.registered = total.registered.saturating_add(count.registered);
+            total.refused = total.refused.saturating_add(count.refused);
+            total.stopped = total.stopped.saturating_add(count.stopped);
+            total.unrecognized = total.unrecognized.saturating_add(count.unrecognized);
+        }
+        let state = self.state();
+        let mut result = vessel_proto::diagnostics::DiagnosticRelays::default();
+        for (_route, source) in &state.configured {
+            add(&mut result.configured, source);
+        }
+        if let Some(callback) = &state.callback {
+            for (_route, source, _stop) in &callback.links {
+                add(&mut result.callback, source);
+            }
+        }
+        result
     }
 }

@@ -105,3 +105,23 @@ Headless GPUI results do not close historical native Linux focused-field F5,
 physical input/OS/IME, accessibility, current App/F1 or real W2/W5 feature proof.
 After V1's checked handoff, the temporary label is retired and the isolated
 producer goes to the lead/consumers; no parallel picker engine is authorized.
+
+
+## Final V1 disposition and temporary label retired
+
+V1 final89528d40 independently reverified exact ten Git blob/byte/SHA pins,
+aggregate, all28 submitted run files/spec/checkout/step digests and all six
+explicitly passing new cases. Bounded SOURCE/requested KIT NARROW PASS on exact
+914..a1b1..eceae..99 + docs467; prior REDs retained. Audit:
+/tmp/work/m12-review/g2-picker-admission-99ad/audit.json. The selected producer
+was handed to lead/W2/W5 preserving newer kit union; no full F1 adoption. W5
+explicitly retains NodeId/current-modal ticket guards and owes its own retained
+host-row/reconnect/reopen integration proof. This lease is UI callback admission,
+never backend context/visit/ticket/transport authority.
+
+After that checked handoff, vessel-remote-gate drop picker-control finished0:
+label removed, no run remained. Retirement steps/logs are retained under
+/tmp/work/m12-g2/retire-picker-control-20261115.*. Source worktree/Git and copied
+raw evidence remain available; no unchanged gate was rerun. All earlier OS/F5/
+IME/a11y/App/F1/consumer UI exclusions remain. G2 resumes F1 and waits for G3's
+checked SearchField before its assigned Code profile; no field writer overlap.

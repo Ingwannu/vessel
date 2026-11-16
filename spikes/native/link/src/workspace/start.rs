@@ -21,30 +21,47 @@
 //! - Cost: the session's id exists only at the end, so the screen that
 //!   shows a start keys it by the start, not by a session.
 
-use std::time::Instant;
-
 use tokio::sync::mpsc;
 use vessel_app_view::Card;
-use vessel_app_view::workspace::command_changes::{Listed, compare_approved, needs_folder};
-use vessel_app_view::workspace::pace::{QUIET, quiet_left};
-use vessel_app_view::workspace::place::{Place, ProjectPlace, place_spec, worktree_branch};
+use vessel_app_view::workspace::place::ProjectPlace;
 use vessel_app_view::workspace::problem::Problem;
+use vessel_app_view::workspace::start::{ApprovalAnswer, FailedAnswer};
+use vessel_proto::SessionSpec;
+
+// The walk calls the node through `vessel-client` on the desktop's runtime;
+// a browser has neither (its demo refuses a start, `web.rs`), so only the
+// start's types build for wasm32.
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::workspace::command_changes::{Listed, compare_approved, needs_folder};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::workspace::pace::{QUIET, quiet_left};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::workspace::place::{Place, place_spec, worktree_branch};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::workspace::setup_log::OutputDecoder;
-use vessel_app_view::workspace::start::{
-    ApprovalAnswer, FailedAnswer, Refusal, Step, TRIES, branch_of, setup_ended,
-};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::workspace::start::{Refusal, Step, TRIES, branch_of, setup_ended};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::workspace::{
     ApproveCommands, CreateWorktree, CreateWorktreeOutcome, GetProjectCommands, ProjectCommands,
     ReadSetupOutput, RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeInfo,
 };
-use vessel_proto::{ContentBlock, Delivery, SessionSpec};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_proto::{ContentBlock, Delivery};
 
+#[cfg(not(target_arch = "wasm32"))]
 use super::calls::{call, problem};
+#[cfg(not(target_arch = "wasm32"))]
 use super::{Answer, Reply};
 
 /// The longest a read of setup's output waits for more, in seconds (the
 /// node's own bound).
+#[cfg(not(target_arch = "wasm32"))]
 const OUTPUT_WAIT_S: u32 = 30;
 
 /// Which start a step belongs to (the composer's count; one per Send).
@@ -88,6 +105,7 @@ pub enum StartEnded {
 }
 
 /// The walk's own state.
+#[cfg(not(target_arch = "wasm32"))]
 struct Walk<'a> {
     client: &'a NodeClient,
     reply: &'a Reply,
@@ -95,6 +113,7 @@ struct Walk<'a> {
     answers: mpsc::Receiver<StartAnswer>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Walk<'_> {
     async fn show(&self, step: Step) {
         self.reply
@@ -131,6 +150,7 @@ impl Walk<'_> {
 }
 
 /// Walk `start` to its end, then send how it ended.
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
     let key = start.key;
     let mut walk = Walk {
@@ -165,9 +185,11 @@ pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
     reply.send(Answer::StartEnded { key, ended }).await;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::workspace::start::Made;
 
 /// Make the worktree and set it up, asking the person where they decide.
+#[cfg(not(target_arch = "wasm32"))]
 async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
     let Ok(Some(branch)) = worktree_branch(&Place::Project(place.clone())) else {
         return Made::Stopped;
@@ -269,6 +291,7 @@ async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
 }
 
 /// Follow a made worktree's setup to its end; on a failure, ask.
+#[cfg(not(target_arch = "wasm32"))]
 async fn set_up(walk: &mut Walk<'_>, mut info: WorktreeInfo, commands: Vec<String>) -> Made {
     loop {
         let ended = match output(walk, &info, &commands).await {
@@ -304,6 +327,7 @@ async fn set_up(walk: &mut Walk<'_>, mut info: WorktreeInfo, commands: Vec<Strin
 }
 
 /// How following setup's output ended.
+#[cfg(not(target_arch = "wasm32"))]
 enum Followed {
     /// Setup no longer runs, and every byte was read.
     Ended(SetupState),
@@ -314,6 +338,7 @@ enum Followed {
 }
 
 /// Follow `info`'s setup output to its end, sending each page.
+#[cfg(not(target_arch = "wasm32"))]
 async fn output(walk: &Walk<'_>, info: &WorktreeInfo, commands: &[String]) -> Followed {
     let mut decoder = OutputDecoder::default();
     let mut from = 0_u64;
@@ -378,6 +403,7 @@ async fn output(walk: &Walk<'_>, info: &WorktreeInfo, commands: &[String]) -> Fo
 ///
 /// The lead's `State::start` does the same for a session without a place;
 /// a worktree needs protocol 10, so `session.prompt` is always there.
+#[cfg(not(target_arch = "wasm32"))]
 async fn begin(
     client: &NodeClient,
     machine: &str,

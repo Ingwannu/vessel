@@ -1,6 +1,8 @@
 //! Mutually authenticate before starting the bridge. Tungstenite owns the
 //! socket so a fresh 4 MiB parser is installed only after proof;
 //! axum's WebSocket wrapper cannot change its configuration after upgrade.
+//! An elapsed hello budget is not proof of a bad credential: it remains
+//! retryable, while invalid proof and unexpected frames remain refusals.
 use std::sync::Arc;
 
 use axum::Extension;
@@ -15,7 +17,7 @@ use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::{
     Message,
     handshake::server::create_response,
-    protocol::{CloseFrame, Role, WebSocketConfig},
+    protocol::{CloseFrame, Role, WebSocketConfig, frame::coding::CloseCode},
 };
 
 use crate::server::Ui;
@@ -64,15 +66,39 @@ enum Hello {
     },
 }
 
+enum AuthFailure {
+    Refused,
+    TimedOut,
+}
+
+impl AuthFailure {
+    fn frame(self) -> CloseFrame {
+        let (code, reason) = match self {
+            Self::Refused => (
+                CLOSE_UNAUTHORIZED.into(),
+                "the UI was restarted or authentication failed",
+            ),
+            Self::TimedOut => (CloseCode::Again, "UI authentication timed out"),
+        };
+        CloseFrame {
+            code,
+            reason: reason.into(),
+        }
+    }
+}
+
 async fn run<S: NodeSource>(ui: Arc<Ui<S>>, mut socket: WebSocket, place: Arc<Connection>) {
     let accepted = tokio::time::timeout(ui.hello_deadline, authenticate(&ui, &mut socket)).await;
-    if !matches!(accepted, Ok(true)) {
+    let failure = match accepted {
+        Ok(true) => None,
+        Ok(false) => Some(AuthFailure::Refused),
+        Err(_elapsed) => Some(AuthFailure::TimedOut),
+    };
+    if let Some(failure) = failure {
+        // A bounded best-effort reason; the socket is dropped either way.
         let _closed = tokio::time::timeout(
             std::time::Duration::from_millis(100),
-            socket.send(Message::Close(Some(CloseFrame {
-                code: CLOSE_UNAUTHORIZED.into(),
-                reason: "the UI was restarted or authentication failed".into(),
-            }))),
+            socket.send(Message::Close(Some(failure.frame()))),
         )
         .await;
         return;

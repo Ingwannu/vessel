@@ -5,6 +5,14 @@ exactly the same variables. Files are embedded at build time. Never edit the
 generated Rust: adding a string or language needs only Fluent files and its
 normal typed caller.
 
+The generator prepares plain messages in typed cache nodes with at most 64
+fields per resolver, including the registry of areas. Larger catalogs recurse
+automatically; keep related messages together rather than splitting a domain
+to satisfy Rust's function-length check. This changes only private storage:
+the same generated getters borrow prepared strings without runtime lookups.
+Split nodes use private typed tuple slots; their fixed field projections are
+compiler-checked, not collection indexes.
+
 ## Add a string
 
 1. Use lowercase words separated by hyphens for the area filename and keys:
@@ -29,6 +37,9 @@ with whole sentences in every branch; do not join translated fragments. A
 translator may change the selector and sentence order. Give separate keys to
 places with different meanings even if their English words happen to match.
 Keep context comments and mark buttons, badges and other short labels.
+English context comments become generated Rust documentation. Put Rust
+identifiers such as `MAX_ACTIONS` in Markdown backticks; a comment-only typo
+can fail the same strict Clippy gate as handwritten documentation.
 
 A Korean particle whose sound depends on a value uses `PARTICLE($value, "topic")`
 (or `subject`, `object`, `with`, `direction`). The [grammar table](../src/text/localization/grammar.rs) states the Hangul, digit and Latin rules.
@@ -106,11 +117,24 @@ placeholder; retain the typed value, caret, selection, current step and focus.
 Test that retention with the actual language-change dispatch and input keys
 (the find, question, queued-edit and project-form tests are examples).
 
+At a GPUI boundary, borrow a plain message from the static process catalog with
+`SharedString::new_static(shell.words.general().title())`. GPUI's generic
+`From<&str>` copies longer values; that also affects expanded pseudo labels.
+The static lifetime comes from the prepared Translator cache. Dynamic messages
+instead become a retained SharedString at state/language events and are cloned
+by renderers. This rule concerns message storage, not widget/tree allocations.
+
 For value messages, retain the input facts and shared prepared text at state and
 language events; invalidate cached rows/measurements when that text changes.
 `view::updates` and `view::fork::Headers` are examples. A frame reads the
 prepared value instead of formatting it again. Evict cache entries with their
 source data, and test unchanged refreshes as well as renames/language changes.
+
+Dynamic Fluent values deliberately retain Unicode FSI/PDI direction isolates.
+Whole raw sentence goldens include `\u{2068}` and `\u{2069}` around their
+placeables, as the existing localization/updates/fork tests do. Keep clipboard,
+identifier and API values sourced from the original typed data rather than the
+formatted sentence. Formatting controls are not payload data.
 
 Project errors from typed variants/codes into complete recovery messages.
 Keep original diagnostics in the host's logs or authoritative state, never in a
