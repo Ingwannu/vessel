@@ -2,7 +2,7 @@
 //!
 //! [Decision Log]
 //! - Purpose: retain a numeric operand through NUMBER and ordered selectors.
-//! - Constraint: FluentType's display methods cannot return a typed error.
+//! - Constraint: `FluentType`'s display methods cannot return a typed error.
 //! - Choice: prepare source and English values before binding, and select only
 //!   between those completed results using the bundle's memoized locale.
 //! - Cost: a dynamic argument prepares two values, including when no fallback
@@ -47,7 +47,7 @@ impl NumberContext {
         value: Decimal,
         options: NumericOptions,
     ) -> Result<FluentValue<'static>, KernelError> {
-        let source = prepare_options(&self.source, &value, &options)?;
+        let source = self.prepare_source(&value, &options)?;
         let english = prepare_options(&self.english, &value, &options)?;
         Ok(FluentValue::Custom(Box::new(NumberValue {
             context: Arc::clone(self),
@@ -55,6 +55,30 @@ impl NumberContext {
             source,
             english,
         })))
+    }
+
+    fn prepare_source(
+        &self,
+        value: &Decimal,
+        options: &NumericOptions,
+    ) -> Result<PreparedNumeric, KernelError> {
+        prepare_options(&self.source, value, options).or_else(|selected| {
+            let mut fallback =
+                prepare_options(&self.english, value, options).map_err(|english| {
+                    KernelError::Fallback {
+                        selected: Box::new(selected),
+                        english: Box::new(english),
+                    }
+                })?;
+            // A numeric-pattern fallback changes the digits/unit together;
+            // the surrounding source-language sentence keeps its own grammar.
+            fallback.category = self.source.category(
+                &fallback.operand,
+                options.fluent.r#type,
+                fallback.exponent,
+            )?;
+            Ok(fallback)
+        })
     }
 
     pub(super) fn function<'a>(
@@ -132,7 +156,10 @@ impl FluentType for NumberValue {
         let options = self.options.merged(named).ok()?;
         // Reprepare each language from its own previous numeric result. A
         // compact coefficient may differ between source and English bundles.
-        let source = prepare_options(&self.context.source, &self.source.decimal, &options).ok()?;
+        let source = self
+            .context
+            .prepare_source(&self.source.decimal, &options)
+            .ok()?;
         let english =
             prepare_options(&self.context.english, &self.english.decimal, &options).ok()?;
         Some(Box::new(Self {

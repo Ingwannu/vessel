@@ -122,3 +122,18 @@ fn source_and_fallback_amount_patterns_keep_their_own_compact_scale() {
         assert_eq!(render(&bundle, "usd", value), "-$0.00");
     }
 }
+
+#[test]
+fn missing_numeric_pattern_reprepares_whole_english_body_with_source_grammar() {
+    let context = context("ru", "unrelated = Partial catalog");
+    let source = "result = { NUMBER($count, notation: \"compact\") }/{ $count ->\n    [one] one\n   *[other] other\n}";
+    let bundle = bundle("ru", &context, source);
+    let value = context
+        .bind(Decimal::from(21_u64), NumericOptions::default())
+        .unwrap();
+    assert_eq!(render(&bundle, "result", value), "21/one");
+    let value = context
+        .bind(Decimal::from(10_000_u64), NumericOptions::default())
+        .unwrap();
+    assert_eq!(render(&bundle, "result", value), "10K/other");
+}

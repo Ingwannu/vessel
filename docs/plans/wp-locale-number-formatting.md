@@ -80,3 +80,21 @@ source/English numeric results, exact unsigned input and compact magnitude
 through nested NUMBER. These remain source-only; the actual native callback,
 generated binding, numeric-pattern failure boundary and fixed wasm example
 overlays are still owed. Product source/manifests/locks are unchanged.
+
+### Phase-2 overlay preparation
+
+Prepared baseline/narrow/ICU overlays in experiment data only. Temporary-index
+apply checks and rustfmt succeeded; product runtime/manifests/locks are still
+byte-identical to base13. Normal candidate sources share numeric arithmetic,
+options, typed source/English carrier and fallback, with backend-specific
+placement/data renderers. The candidate standalone example exercises actual
+generated Number arguments, all three full-finite unit policies and exact
+unsigned values. No black-box-only engine or unused dependency is presented
+as an installed-size measurement. Neither candidate has compiled yet; source
+review, strict/runtime, full release/wasm costs and startup remain owed.
+
+T's fixed six-edge lock admission correction preserves the original D633
+compile0 red. One authorized same-source replacement was submitted:
+`i18n-number-experiment-20261116T032004Z-d633cdd4`, ordinary, currently queued.
+This is not a second live duplicate. Serde runtime activation is not inferred
+from those weak/optional lock edges. Stock080 tests remain3/0/0, separately.

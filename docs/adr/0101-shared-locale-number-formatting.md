@@ -289,14 +289,17 @@ in the test profile; this is not a release compile-time delta.
 The narrow feasibility run
 `i18n-number-experiment-20261116T014841Z-d633cdd4` resolved offline successfully
 but was rejected before compilation. Existing versions/checksums were retained,
-while feature-unified dependency edges changed: `icu_locale_core` gained
+while weak/optional lock dependency edges changed: `icu_locale_core` gained
 `serde`; `icu_provider` gained `serde` and `stable_deref_trait`; `potential_utf`
 gained `serde_core` and `writeable`; `zerotrie` gained `zerovec`. Five packages
 were added: `fixed_decimal`, `icu_locale_fallback`, its data crate, `icu_plurals`
 and its data crate. The scratch audit refused the first unapproved existing
 edge rather than silently relaxing its graph policy. The build-tool owner
-must justify and admit only the exact required edges before a replacement
-experiment. The original red receipt, original/result locks and patch remain
+has admitted only those six exact edges in four existing packages, while
+continuing to reject upgrades, checksum changes, removals and unrelated edges.
+The metadata feature set did not enable serde: a lock edge alone is not runtime
+feature activation. One same-source replacement is queued after this tool
+correction, with the original red result preserved. The original red receipt, original/result locks and patch remain
 evidence. No numeric candidate test ran, and no release/wasm size was measured.
 
 Later unlinked carrier sources prepare source/English numeric results before

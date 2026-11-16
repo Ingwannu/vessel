@@ -3,30 +3,37 @@
 //! Locale patterns/grouping and the Fluent adapter are separate measurements;
 //! this module does not claim to be a complete formatter.
 
-use fixed_decimal::{
-    Decimal, FloatPrecision, LimitError, SignedRoundingMode, UnsignedRoundingMode,
-};
+#[cfg(test)]
+use fixed_decimal::FloatPrecision;
+use fixed_decimal::{Decimal, LimitError, SignedRoundingMode, UnsignedRoundingMode};
+#[cfg(test)]
 use vessel_proto::conversation::FiniteNumber;
 
+#[cfg(test)]
 const TWO_FRACTION_MAGNITUDE: i16 = -2;
 const COMPACT_FRACTION_MAGNITUDE: i16 = -1;
 const MIN_COMPACT_MAGNITUDE: i16 = 1;
-const MAX_FINITE_MAGNITUDE: i16 = 308;
+// CLDR compact operand API has an unsigned-byte exponent. This bounds
+// folder scale declarations, never the magnitude of a finite input value.
+const MAX_COMPACT_MAGNITUDE: i16 = 255;
 const HALF_EXPAND: SignedRoundingMode =
     SignedRoundingMode::Unsigned(UnsignedRoundingMode::HalfExpand);
 
 /// Preserve the source's numeric input, including signed zero. The backend
 /// documents finite input; a backend error here is not a u32 range policy.
+#[cfg(test)]
 pub(super) fn decimal(value: FiniteNumber) -> Result<Decimal, LimitError> {
     Decimal::try_from_f64(value.get(), FloatPrecision::RoundTrip)
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum DecimalPresentation {
     Usd,
     Quantity,
 }
 
+#[cfg(test)]
 pub(super) fn rounded(
     value: FiniteNumber,
     presentation: DecimalPresentation,
@@ -41,9 +48,11 @@ pub(super) fn rounded(
 }
 
 /// This capability never converts through the finite-float carrier.
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ExactCount(u64);
 
+#[cfg(test)]
 impl ExactCount {
     pub(super) const fn new(value: u64) -> Self {
         Self(value)
@@ -96,7 +105,7 @@ impl<'a> CompactScales<'a> {
     pub(super) fn new(values: &'a [i16]) -> Result<Self, ScaleError> {
         if values
             .iter()
-            .any(|value| !(MIN_COMPACT_MAGNITUDE..=MAX_FINITE_MAGNITUDE).contains(value))
+            .any(|value| !(MIN_COMPACT_MAGNITUDE..=MAX_COMPACT_MAGNITUDE).contains(value))
         {
             return Err(ScaleError::OutOfRange);
         }
@@ -140,6 +149,7 @@ impl CompactQuantity {
     }
 }
 
+#[cfg(test)]
 pub(super) fn compact(
     value: FiniteNumber,
     scales: &impl ScaleSource,

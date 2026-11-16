@@ -1,0 +1,532 @@
+--- a/spikes/native/Cargo.toml
++++ b/spikes/native/Cargo.toml
+@@ -17,6 +17,7 @@
+ [workspace]
+ resolver = "3"
+ members = ["view", "link", "kit", "app"]
++exclude = ["experiments/number-format/fluent-bundle-scratch"]
+ 
+ [workspace.package]
+ version = "0.0.0"
+@@ -195,3 +196,5 @@
+ gpui-pre-windows = { path = "../release/patches/gpui-pre-windows" }
+ gpui-pre-linux = { path = "../release/patches/gpui-pre-linux" }
+ gpui-base = { path = "../release/patches/gpui-base" }
++
++fluent-bundle = { path = "experiments/number-format/fluent-bundle-scratch" }
+--- a/spikes/native/view/Cargo.toml
++++ b/spikes/native/view/Cargo.toml
+@@ -12,6 +12,12 @@
+ workspace = true
+ 
+ [dependencies]
++icu_decimal = { version = "=2.4.0", default-features = false, features = ["alloc", "compiled_data", "unstable", "ryu"] }
++# Isolated ADR0101 scratch graph; not a product dependency adoption.
++fixed_decimal = { version = "=0.7.3", default-features = false, features = ["ryu"] }
++icu_plurals = { version = "=2.4.0", default-features = false, features = ["compiled_data"] }
++icu_locale_core = { version = "=2.4.0", default-features = false }
++icu_provider = { version = "=2.4.0", default-features = false, features = ["sync"] }
+ chrono.workspace = true
+ serde.workspace = true
+ thiserror.workspace = true
+--- a/spikes/native/view/build_support/generate.rs
++++ b/spikes/native/view/build_support/generate.rs
+@@ -200,7 +200,10 @@
+                 } else {
+                     argument
+                 };
+-                writeln!(output, "arguments.set({name:?}, {owned}.fluent());")?;
++                writeln!(
++                    output,
++                    "arguments.set({name:?}, self.translator.number({owned})?);"
++                )?;
+             }
+             Kind::Date => {
+                 writeln!(output, "arguments.set({name:?}, {argument}.fluent()?);")?;
+--- a/spikes/native/view/examples/number_format_probe.rs
++++ b/spikes/native/view/examples/number_format_probe.rs
+@@ -0,0 +1,35 @@
++//! Fixed candidate entry through the same generated API used by native callers.
++//! This is a standalone artifact probe, not a browser runtime or a live preview.
++
++use vessel_app_view::localization::{AmountUnit, LANGUAGES, Number, Translator};
++use vessel_proto::conversation::FiniteNumber;
++
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    let count = std::env::args()
++        .nth(1)
++        .and_then(|value| value.parse().ok())
++        .unwrap_or(u64::MAX);
++    let value = std::env::args()
++        .nth(2)
++        .and_then(|value| value.parse().ok())
++        .unwrap_or(f64::MAX);
++    let value = FiniteNumber::new(value)?;
++    for locale in LANGUAGES {
++        let translator = Translator::get(*locale)?;
++        println!(
++            "{}",
++            translator.examples().grouped(Number::unsigned(count))?
++        );
++        for unit in [
++            AmountUnit::Usd,
++            AmountUnit::CompactTokens,
++            AmountUnit::Quantity,
++        ] {
++            println!(
++                "{}",
++                translator.examples().grouped(Number::amount(value, unit))?
++            );
++        }
++    }
++    Ok(())
++}
+--- a/spikes/native/view/locales/en/number-cost.ftl
++++ b/spikes/native/view/locales/en/number-cost.ftl
+@@ -0,0 +1,55 @@
++# Experimental numeric presentation patterns, not embedded in the product.
++# Own complete sign/unit placement here; code supplies unsigned prepared digits.
++
++# Short complete ordinary decimal quantity; preserve a negative zero sign.
++number-cost-quantity =
++    { $sign ->
++        [negative] -{ $absolute }
++       *[positive] { $absolute }
++    }
++
++# Short complete USD amount; $absolute already has exactly two fraction digits.
++number-cost-usd =
++    { $sign ->
++        [negative] -${ $absolute }
++       *[positive] ${ $absolute }
++    }
++
++# Short complete compact amount. $category is computed by the maintained
++# plural engine from the rounded coefficient; every CLDR category is declared
++# so another language can specialize a whole amount without a Rust edit.
++number-cost-compact =
++    { $category ->
++        [zero] { number-cost-compact-body }
++        [one] { number-cost-compact-body }
++        [two] { number-cost-compact-body }
++        [few] { number-cost-compact-body }
++        [many] { number-cost-compact-body }
++       *[other] { number-cost-compact-body }
++    }
++
++# Complete default compact amount, reused above. $absolute is prepared digits;
++# $sign preserves signed zero; numeric keys declare this folder's scale data.
++number-cost-compact-body =
++    { $exponent ->
++        [3] { $sign ->
++            [negative] -{ $absolute }K
++           *[positive] { $absolute }K
++        }
++        [6] { $sign ->
++            [negative] -{ $absolute }M
++           *[positive] { $absolute }M
++        }
++        [9] { $sign ->
++            [negative] -{ $absolute }B
++           *[positive] { $absolute }B
++        }
++        [12] { $sign ->
++            [negative] -{ $absolute }T
++           *[positive] { $absolute }T
++        }
++       *[0] { $sign ->
++            [negative] -{ $absolute }
++           *[positive] { $absolute }
++        }
++    }
+--- a/spikes/native/view/locales/ko/number-cost.ftl
++++ b/spikes/native/view/locales/ko/number-cost.ftl
+@@ -0,0 +1,55 @@
++# Experimental numeric presentation patterns, not embedded in the product.
++# Own complete sign/unit placement here; code supplies unsigned prepared digits.
++
++# Short complete ordinary decimal quantity; preserve a negative zero sign.
++number-cost-quantity =
++    { $sign ->
++        [negative] -{ $absolute }
++       *[positive] { $absolute }
++    }
++
++# Short complete USD amount; $absolute already has exactly two fraction digits.
++number-cost-usd =
++    { $sign ->
++        [negative] -US${ $absolute }
++       *[positive] US${ $absolute }
++    }
++
++# Short complete compact amount. $category is computed by the maintained
++# plural engine from the rounded coefficient; every CLDR category is declared
++# so another language can specialize a whole amount without a Rust edit.
++number-cost-compact =
++    { $category ->
++        [zero] { number-cost-compact-body }
++        [one] { number-cost-compact-body }
++        [two] { number-cost-compact-body }
++        [few] { number-cost-compact-body }
++        [many] { number-cost-compact-body }
++       *[other] { number-cost-compact-body }
++    }
++
++# Complete default compact amount, reused above. $absolute is prepared digits;
++# $sign preserves signed zero; numeric keys declare this folder's scale data.
++number-cost-compact-body =
++    { $exponent ->
++        [3] { $sign ->
++            [negative] -{ $absolute }천
++           *[positive] { $absolute }천
++        }
++        [4] { $sign ->
++            [negative] -{ $absolute }만
++           *[positive] { $absolute }만
++        }
++        [8] { $sign ->
++            [negative] -{ $absolute }억
++           *[positive] { $absolute }억
++        }
++        [12] { $sign ->
++            [negative] -{ $absolute }조
++           *[positive] { $absolute }조
++        }
++       *[0] { $sign ->
++            [negative] -{ $absolute }
++           *[positive] { $absolute }
++        }
++    }
+--- a/spikes/native/view/src/lib.rs
++++ b/spikes/native/view/src/lib.rs
+@@ -82,3 +82,34 @@
+ 
+ pub mod layout;
+ pub mod residents;
++
++#[path = "../../experiments/number-format/decimal_probe.rs"]
++mod decimal_probe;
++
++#[path = "../../experiments/number-format/placement_probe.rs"]
++mod placement_probe;
++
++#[path = "../../experiments/number-format/pattern_probe.rs"]
++mod pattern_probe;
++
++#[path = "../../experiments/number-format/kernel_probe.rs"]
++mod kernel_probe;
++
++#[path = "../../experiments/number-format/options_probe.rs"]
++mod options_probe;
++
++#[path = "../../experiments/number-format/carrier_probe.rs"]
++mod carrier_probe;
++
++#[cfg(test)]
++#[path = "../../experiments/number-format/fallback_probe.rs"]
++mod fallback_probe;
++
++#[cfg(test)]
++#[path = "../../experiments/number-format/plural_probe.rs"]
++mod plural_probe;
++
++#[path = "../../experiments/number-format/backend_contract_probe.rs"]
++mod backend_contract_probe;
++#[path = "../../experiments/number-format/backend_icu_probe.rs"]
++mod backend_probe;
+--- a/spikes/native/view/src/text/localization/mod.rs
++++ b/spikes/native/view/src/text/localization/mod.rs
+@@ -36,6 +36,8 @@
+ mod grammar;
+ mod language;
+ mod number;
++#[path = "../../../../experiments/number-format/runtime_probe.rs"]
++mod numeric_runtime;
+ mod runtime;
+ 
+ use fluent_bundle::FluentArgs;
+@@ -45,27 +47,57 @@
+ use runtime::{Bundle, Embedded, resolve};
+ pub use runtime::{FormatError, InitError, Translator};
+ 
+-/// A checked numeric message argument. Counts are exact `u32`; decimal values
+-/// use Fluent's floating-point representation and are not financial arithmetic.
++// Experimental replacement for the Number block in the scratch View overlay.
++// It is not included or exported by the product worktree.
++
++/// Numeric input kept exact until this translator prepares its two namespaces.
+ #[derive(Debug, Clone, PartialEq)]
+-pub struct Number(fluent_bundle::types::FluentNumber);
+-
+-/// A decimal argument exceeded the finite range this formatter supports.
++pub struct Number(NumberInput);
++
++#[derive(Debug, Clone)]
++enum NumberInput {
++    Count(u64),
++    Decimal(
++        fluent_bundle::types::FluentNumber,
++        crate::options_probe::Notation,
++    ),
++}
++
++impl PartialEq for NumberInput {
++    fn eq(&self, other: &Self) -> bool {
++        match (self, other) {
++            (Self::Count(left), Self::Count(right)) => left == right,
++            (Self::Decimal(left, left_notation), Self::Decimal(right, right_notation)) => {
++                left.value.to_bits() == right.value.to_bits()
++                    && left.options == right.options
++                    && left_notation == right_notation
++            }
++            (Self::Count(_), Self::Decimal(..)) | (Self::Decimal(..), Self::Count(_)) => false,
++        }
++    }
++}
++
++/// The legacy decimal constructor's compatibility bound, retained by the probe.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+ #[error("message decimals must be finite, within u32 magnitude, and at most nine decimal places")]
+ pub struct NumberError;
+ 
+ impl Number {
+-    /// All u32 counts are exactly representable by Fluent.
++    /// Preserve the existing source API while widening its private carrier.
+     #[must_use]
+     pub fn count(value: u32) -> Self {
+-        Self(value.into())
+-    }
+-
+-    /// Supply a decimal without making NaN/infinity or unbounded plural operands
+-    /// representable in the message API.
++        Self::unsigned(u64::from(value))
++    }
++
++    /// Experimental exact unsigned entry, with no conversion to floating point.
++    #[must_use]
++    pub const fn unsigned(value: u64) -> Self {
++        Self(NumberInput::Count(value))
++    }
++
++    /// Preserve the existing bounded decimal API during this cost experiment.
+     /// # Errors
+-    /// Rejects non-finite values and magnitudes above `u32::MAX`.
++    /// Rejects values outside the legacy constructor's documented contract.
+     pub fn decimal(value: f64) -> Result<Self, NumberError> {
+         if !value.is_finite()
+             || value.abs() > f64::from(u32::MAX)
+@@ -76,12 +108,107 @@
+         {
+             return Err(NumberError);
+         }
+-        Ok(Self(value.into()))
+-    }
+-
+-    fn fluent(self) -> fluent_bundle::FluentValue<'static> {
+-        self.0.into()
+-    }
++        Ok(Self(NumberInput::Decimal(
++            value.into(),
++            crate::options_probe::Notation::Ordinary,
++        )))
++    }
++
++    /// Experimental full-finite amount and closed policy; no magnitude ceiling.
++    #[must_use]
++    pub fn amount(value: vessel_proto::conversation::FiniteNumber, unit: AmountUnit) -> Self {
++        use crate::options_probe::Notation;
++        use fluent_bundle::types::{FluentNumber, FluentNumberOptions, FluentNumberStyle};
++        const AMOUNT_FRACTION_DIGITS: usize = 2;
++        const COMPACT_FRACTION_DIGITS: usize = 1;
++        let mut options = FluentNumberOptions::default();
++        let notation = match unit {
++            AmountUnit::Usd => {
++                options.style = FluentNumberStyle::Currency;
++                options.currency = Some("USD".to_owned());
++                options.minimum_fraction_digits = Some(AMOUNT_FRACTION_DIGITS);
++                options.maximum_fraction_digits = Some(AMOUNT_FRACTION_DIGITS);
++                Notation::Ordinary
++            }
++            AmountUnit::CompactTokens => {
++                options.maximum_fraction_digits = Some(COMPACT_FRACTION_DIGITS);
++                Notation::Compact
++            }
++            AmountUnit::Quantity => {
++                options.maximum_fraction_digits = Some(AMOUNT_FRACTION_DIGITS);
++                Notation::Ordinary
++            }
++        };
++        Self(NumberInput::Decimal(
++            FluentNumber::new(value.get(), options),
++            notation,
++        ))
++    }
++
++    fn fluent(
++        self,
++        context: &std::sync::Arc<crate::carrier_probe::NumberContext>,
++    ) -> Result<fluent_bundle::FluentValue<'static>, FormatError> {
++        use crate::options_probe::NumericOptions;
++        let (value, options) = match self.0 {
++            NumberInput::Count(value) => (
++                fixed_decimal::Decimal::from(value),
++                NumericOptions::default(),
++            ),
++            NumberInput::Decimal(value, notation) => {
++                let decimal = fixed_decimal::Decimal::try_from_f64(
++                    value.value,
++                    fixed_decimal::FloatPrecision::RoundTrip,
++                )
++                .map_err(|error| {
++                    FormatError::Numeric(crate::kernel_probe::KernelError::from(error).into())
++                })?;
++                (
++                    decimal,
++                    NumericOptions {
++                        fluent: value.options,
++                        notation,
++                    },
++                )
++            }
++        };
++        context
++            .bind(value, options)
++            .map_err(|error| FormatError::Numeric(error.into()))
++    }
++}
++
++/// Retained numeric diagnostic without exposing the experimental backend API.
++#[derive(Debug, Clone)]
++pub struct NumericFailure(std::sync::Arc<crate::kernel_probe::KernelError>);
++
++impl std::fmt::Display for NumericFailure {
++    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        std::fmt::Display::fmt(&self.0, formatter)
++    }
++}
++
++impl std::error::Error for NumericFailure {
++    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
++        Some(self.0.as_ref())
++    }
++}
++
++impl From<crate::kernel_probe::KernelError> for NumericFailure {
++    fn from(error: crate::kernel_probe::KernelError) -> Self {
++        Self(std::sync::Arc::new(error))
++    }
++}
++
++/// Closed presentation policies for the scratch amount entry, not wire units.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum AmountUnit {
++    /// Whole USD currency pattern with two fraction digits.
++    Usd,
++    /// Short compact token amount with at most one fraction digit.
++    CompactTokens,
++    /// Ordinary quantity with at most two fraction digits.
++    Quantity,
+ }
+ 
+ /// Valid Gregorian date/local-clock parts. The engine serializes them only
+@@ -127,3 +254,7 @@
+ 
+ #[cfg(test)]
+ mod fixture;
++
++#[cfg(test)]
++#[path = "../../../../experiments/number-format/runtime_binding_probe_tests.rs"]
++mod numeric_binding_tests;
+--- a/spikes/native/view/src/text/localization/runtime.rs
++++ b/spikes/native/view/src/text/localization/runtime.rs
+@@ -45,6 +45,9 @@
+ /// A generated dynamic message could not resolve in either language.
+ #[derive(Debug, Clone, Error)]
+ pub enum FormatError {
++    /// Typed numeric candidate failure, retained for diagnostics only.
++    #[error(transparent)]
++    Numeric(#[from] super::NumericFailure),
+     /// Internal typed date encoding failed.
+     #[error("cannot encode date parts: {0}")]
+     DateEncoding(#[source] Arc<serde_json::Error>),
+@@ -72,6 +75,7 @@
+ 
+ /// A prepared language: bundles and all resolved plain messages.
+ pub struct Translator {
++    numeric: Arc<crate::carrier_probe::NumberContext>,
+     locale: Locale,
+     bundle: Bundle,
+     english: Bundle,
+@@ -116,15 +120,34 @@
+         let english = EMBEDDED
+             .get(ENGLISH.index)
+             .ok_or(InitError::MissingLocale)?;
+-        let translated = bundle(source.tag, embedded.sources, locale == PSEUDO)?;
+-        let english = bundle("en", english.sources, locale == PSEUDO)?;
++        let numeric = super::numeric_runtime::context(source.tag, embedded.sources)?;
++        let translated = bundle(
++            source.tag,
++            embedded.sources,
++            locale == PSEUDO,
++            Arc::clone(&numeric),
++        )?;
++        let english = bundle(
++            "en",
++            english.sources,
++            locale == PSEUDO,
++            Arc::clone(&numeric),
++        )?;
+         let plain = Plain::resolve(&translated, &english)?;
+         Ok(Self {
++            numeric,
+             locale,
+             bundle: translated,
+             english,
+             plain,
+         })
++    }
++
++    pub(super) fn number(
++        &self,
++        value: super::Number,
++    ) -> Result<fluent_bundle::FluentValue<'static>, FormatError> {
++        value.fluent(&self.numeric)
+     }
+ 
+     pub(super) fn format(
+@@ -140,13 +163,20 @@
+     fluent_pseudo::transform(text, false, true)
+ }
+ 
+-fn bundle(tag: &str, sources: &[&str], pseudo_locale: bool) -> BundleResult {
++fn bundle(
++    tag: &str,
++    sources: &[&str],
++    pseudo_locale: bool,
++    numeric: Arc<crate::carrier_probe::NumberContext>,
++) -> BundleResult {
+     let language = tag
+         .parse::<unic_langid::LanguageIdentifier>()
+         .map_err(|error| InitError::Locale(Arc::new(error)))?;
+     let mut bundle = Bundle::new_concurrent(vec![language]);
+     bundle
+-        .add_function("NUMBER", super::number::fluent)
++        .add_function("NUMBER", move |positional, named| {
++            numeric.function(positional, named)
++        })
+         .map_err(|error| InitError::Bundle(vec![error]))?;
+     bundle
+         .add_function("PARTICLE", grammar::fluent)
+@@ -200,5 +230,10 @@
+ 
+ #[cfg(test)]
+ pub(super) fn fixture(tag: &str, source: &str) -> Result<Bundle, InitError> {
+-    bundle(tag, &[source], false)
+-}
++    bundle(
++        tag,
++        &[source],
++        false,
++        super::numeric_runtime::context(tag, &[source])?,
++    )
++}

@@ -2,11 +2,11 @@
 //! Both the rendered value and selector operands are derived from one decimal.
 
 use fixed_decimal::{Decimal, SignedRoundingMode, UnsignedRoundingMode};
-use fluent_bundle::types::{FluentNumberStyle, FluentNumberType};
+use fluent_bundle::types::FluentNumberStyle;
 use icu_plurals::PluralCategory;
 
 use super::super::{
-    decimal_probe,
+    backend_contract_probe::{CompactView, NumericBackend},
     options_probe::{Notation, NumericOptions},
     pattern_probe::NumberParts,
     placement_probe::Grouping,
@@ -19,9 +19,11 @@ const USD_FRACTION: i16 = -2;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(in super::super) struct PreparedNumeric {
-    pub(super) decimal: Decimal,
-    pub(super) display: String,
-    pub(super) category: PluralCategory,
+    pub(in super::super) decimal: Decimal,
+    pub(in super::super) operand: Decimal,
+    pub(in super::super) exponent: Option<super::super::decimal_probe::CompactExponent>,
+    pub(in super::super) display: String,
+    pub(in super::super) category: PluralCategory,
 }
 
 pub(in super::super) fn prepare_options(
@@ -33,7 +35,7 @@ pub(in super::super) fn prepare_options(
     let compact = match options.notation {
         Notation::Ordinary => None,
         Notation::Compact => {
-            let prepared = decimal_probe::compact_decimal(&value, &kernel.patterns.scales()?)?;
+            let prepared = kernel.backend.compact(&value, &kernel.patterns)?;
             value = prepared.value().clone();
             Some(prepared.exponent())
         }
@@ -63,31 +65,34 @@ pub(in super::super) fn prepare_options(
     } else {
         Grouping::Auto
     };
-    let absolute = kernel.symbols.format(&value.absolute, grouping)?;
-    let category = match fluent.r#type {
-        FluentNumberType::Cardinal => kernel.cardinal.category_for(&value),
-        FluentNumberType::Ordinal => kernel.ordinal.category_for(&value),
-    };
+    let category = kernel.category(&value, fluent.r#type, compact)?;
     let sign = number_sign(&value);
-    let parts = if let Some(exponent) = compact {
-        NumberParts::Compact {
-            absolute: &absolute,
-            sign,
-            exponent,
-            category,
-        }
-    } else if fluent.style == FluentNumberStyle::Currency {
-        NumberParts::Usd {
-            absolute: &absolute,
-            sign,
-        }
+    let display = if let Some(exponent) = compact {
+        kernel.backend.compact_display(
+            CompactView {
+                value: &value,
+                exponent,
+                grouping,
+            },
+            &kernel.patterns,
+            &kernel.cardinal,
+        )?
     } else {
-        NumberParts::Quantity {
-            absolute: &absolute,
-            sign,
-        }
+        let absolute = kernel.backend.absolute(&value, grouping)?;
+        let parts = if fluent.style == FluentNumberStyle::Currency {
+            NumberParts::Usd {
+                absolute: &absolute,
+                sign,
+            }
+        } else {
+            NumberParts::Quantity {
+                absolute: &absolute,
+                sign,
+            }
+        };
+        kernel.patterns.render(parts)?
     };
-    let display = kernel.patterns.render(parts)?;
+    let operand = value.clone();
     // Keep the amount, not its compact coefficient, as the next NUMBER's
     // operand. Otherwise nested formatting would turn 10K into 10.
     if let Some(exponent) = compact {
@@ -96,6 +101,8 @@ pub(in super::super) fn prepare_options(
     Ok(PreparedNumeric {
         display,
         decimal: value,
+        operand,
+        exponent: compact,
         category,
     })
 }

@@ -77,7 +77,7 @@ fn valid(key: &str, value: &FluentValue<'_>) -> bool {
             value.value.is_finite()
                 && value.value >= 0.0
                 && value.value <= f64::from(MAX_MESSAGE_DIGITS)
-                && value.value.fract() == 0.0
+                && value.value.fract().classify() == std::num::FpCategory::Zero
         }
         _ => false,
     }

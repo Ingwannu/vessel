@@ -203,3 +203,33 @@ existing dependency edge (`icu_locale_core`); it attempted no compilation.
 The exact graph delta and original red receipt are retained by the build
 tool owner. No retry or ICU run has been submitted on that uncorrected policy.
 See ADR 0101 for the full edge list and the separate stock-carrier control.
+
+## Phase-2 source overlays (not a successful measurement)
+
+`measurement-existing.patch` adds only the fixed standalone View example to
+base13. `measurement-narrow.patch` and `measurement-icu.patch` prepare scratch
+normal dependencies, the checked five-file Fluent path override/exclude, real
+Number/Translator binding and callback, generated numeric arguments, and the
+EN/KO numeric pattern files. Product source/manifests/locks remain unchanged.
+Both candidates share arithmetic, option handling, carrier and fallback;
+`backend_contract_probe.rs` separates the folder-owned backend from ICU's
+maintained decimal/compact formatter. ICU owns its digits/grouping/compact
+symbols rather than treating the folder's overrides as its data source.
+That difference and its compiled data cost belong in the eventual decision.
+
+The candidate example feeds exact unsigned input and each of the three typed
+amount policies through an existing generated getter and the registered
+NUMBER callback. The baseline example uses only its existing u32 API. The
+wasm artifact is a standalone probe, not the full app or browser runtime;
+its entry bytes differ explicitly because baseline lacks the wider API.
+`runtime_binding_probe_tests.rs` adds whole oracle sentences, exact unsigned
+sentences, actual core English fallback, and signed-zero/unit keys. Source
+and English compact operands retain their exponent for maintained CLDR rules;
+the numeric payload itself remains lossless. The backend's u8 compact exponent
+bounds folder scale declarations to255, not finite numeric input magnitude.
+
+These overlays passed temporary-index apply checks and Rust formatting only.
+They have NOT compiled, run tests, passed source/V3 review or produced release
+artifacts. A readiness packet and every measured value remain separate from
+these prepared patches. The frozen D633 feasibility inputs remain pinned to
+their earlier source commit; none of these additions is counted in its8/10.
