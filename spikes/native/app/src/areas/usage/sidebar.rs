@@ -127,6 +127,12 @@ pub(crate) fn sidebar_summary(
         .summary_place
         .get()
         .and_then(|bounds| SummaryWidth::measured(f32::from(bounds.size.width)));
+    if available.is_none() {
+        // Paseo re-renders after onLayout reports the width; the probe here
+        // measures during paint, so ask for one more frame until it has.
+        // Without it the first-guess Labels layout stayed and was clipped.
+        window.request_animation_frame();
+    }
     let labels = measure(&pinned, SummaryLayout::Labels, window);
     let percents = measure(&pinned, SummaryLayout::Percents, window);
     let layout = summary_layout(SummaryMeasurements {
