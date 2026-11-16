@@ -85,6 +85,11 @@ async fn accepted_read_keeps_the_same_lease_through_store_and_live_publication_a
     let connection =
         rusqlite::Connection::open(DataDir::new(fixture.data.path()).database_path()).unwrap();
     connection.execute_batch("BEGIN IMMEDIATE").unwrap();
+    // Queue a real write-first operation ahead of the read. ReadAttention's
+    // pending veto starts with SELECT; making that SELECT the contended upgrade
+    // could legitimately return SQLITE_BUSY instead of holding the ACK.
+    let mut prior_write = Box::pin(fixture.store.mark(id, Mark::Pin, chrono::Utc::now()));
+    assert!(futures_util::poll!(prior_write.as_mut()).is_pending());
     {
         let mut request = Box::pin(fixture.sessions.read_attention(id, EventSeq::ZERO));
         assert!(futures_util::poll!(request.as_mut()).is_pending());
@@ -112,6 +117,10 @@ async fn accepted_read_keeps_the_same_lease_through_store_and_live_publication_a
     );
     connection.execute_batch("ROLLBACK").unwrap();
     drop(connection);
+    tokio::time::timeout(SETTLEMENT_DEADLINE, prior_write)
+        .await
+        .expect("the preceding real Store operation commits")
+        .unwrap();
     tokio::time::timeout(SETTLEMENT_DEADLINE, fixture.tasks.wait())
         .await
         .expect("the accepted read owns durable and live settlement after its caller leaves");
@@ -128,6 +137,17 @@ async fn accepted_read_keeps_the_same_lease_through_store_and_live_publication_a
             .unread
     );
     assert!(!handle.info().marks.unread);
+    assert!(
+        fixture
+            .store
+            .session(id)
+            .await
+            .unwrap()
+            .unwrap()
+            .marks
+            .pinned
+    );
+    assert!(handle.info().marks.pinned);
     drop(durable);
     fixture.stop().await;
 }

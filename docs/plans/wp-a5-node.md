@@ -547,3 +547,10 @@ Resource preflight also short-circuits an oversized attention batch before
 allocating its distinct-id set. Count/distinct validation, error text and
 ATTENTION_BATCH remain the same; only invalid-input allocation order changes.
 No additional bound, wire or authority is introduced.
+
+
+The held-SQL fixture queues a real write-first Pin ahead of the read on the
+existing Store FIFO. This prevents a legitimate SQLite deferred SELECT/write
+upgrade BUSY refusal from masquerading as a held ACK. It releases the external
+writer reservation, observes that real Pin commit and then the read's durable
+and live settlement; no production pause hook, fake ACK or extra lane is added.
