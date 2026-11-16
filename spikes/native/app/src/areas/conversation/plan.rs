@@ -45,7 +45,7 @@ pub(super) fn row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let neutral = paint.tokens.neutral;
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     let mark = match activity {
         PlanActivity::Created { .. } => Glyph::SquareCheck,
         PlanActivity::Added(_) => Glyph::Plus,
@@ -69,7 +69,7 @@ pub(super) fn row(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.toggle_entry(seat, index, cx);
+            shell.toggle_entry(&seat, index, cx);
         }))
         .child(disclosure(open, ink))
         .child(glyph(mark, 14.0, ink))

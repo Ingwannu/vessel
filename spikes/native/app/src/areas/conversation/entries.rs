@@ -265,7 +265,7 @@ pub(super) fn marked_work_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -286,11 +286,11 @@ pub(super) fn marked_work_row(
                 .is_some_and(|area| area.tool_sheet.group_open());
             if !inline_details
                 && vessel_app_kit::breakpoint::phone(window)
-                && shell.entry_sheet(seat, index, window, cx)
+                && shell.entry_sheet(&seat, index, window, cx)
             {
                 return;
             }
-            shell.toggle_entry(seat, index, cx);
+            shell.toggle_entry(&seat, index, cx);
         }))
         .child(disclosure(open, paint.look.secondary))
         .children(mark.map(|mark| glyph(mark, 14.0, paint.look.secondary)))

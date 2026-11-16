@@ -159,7 +159,7 @@ impl Shell {
     /// Only tools and non-forced reasoning use compact details; plans stay inline.
     pub(crate) fn entry_sheet(
         &mut self,
-        seat: Seat,
+        seat: &Seat,
         index: usize,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
@@ -180,7 +180,7 @@ impl Shell {
 
     pub(crate) fn run_sheet(
         &mut self,
-        seat: Seat,
+        seat: &Seat,
         lead: usize,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
@@ -212,7 +212,7 @@ impl Shell {
 
     fn dismiss_tool_sheet(
         &mut self,
-        seat: Seat,
+        seat: &Seat,
         generation: Generation,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
@@ -239,10 +239,10 @@ pub(super) fn overlay(
     let area = seat.get(shell)?;
     let shown = area.tool_sheet.shown.as_ref()?;
     let generation = shown.generation;
-    let paint = super::timeline::paint(shell, area, seat, tokens, window);
+    let paint = super::timeline::paint(shell, area, seat.clone(), tokens, window);
     let Some((title, body)) = content(&paint, area, &shown.selection, window, cx) else {
         cx.defer_in(window, move |shell, window, cx| {
-            shell.dismiss_tool_sheet(seat, generation, window, cx);
+            shell.dismiss_tool_sheet(&seat, generation, window, cx);
         });
         return None;
     };
@@ -257,7 +257,9 @@ pub(super) fn overlay(
         tokens,
         window,
         breakpoint::phone(window),
-        move |shell: &mut Shell, window, cx| shell.dismiss_tool_sheet(seat, generation, window, cx),
+        move |shell: &mut Shell, window, cx| {
+            shell.dismiss_tool_sheet(&seat, generation, window, cx)
+        },
         cx,
     ))
 }

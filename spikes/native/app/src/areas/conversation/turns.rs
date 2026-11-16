@@ -75,8 +75,8 @@ impl ConversationArea {
 }
 
 impl Shell {
-    pub(crate) fn toggle_turn(&mut self, seat: Seat, host: usize, cx: &mut Context<'_, Self>) {
-        let before = self.areas.conversation.head();
+    pub(crate) fn toggle_turn(&mut self, seat: &Seat, host: usize, cx: &mut Context<'_, Self>) {
+        let before = seat.origin_height(self);
         if let Some(area) = seat.get_mut(self) {
             area.toggle_turn(host);
             self.origin_toggled(seat, before);

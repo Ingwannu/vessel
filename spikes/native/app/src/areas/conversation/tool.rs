@@ -79,7 +79,7 @@ fn proposal(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     super::plan_card::card(
         super::plan_card::PlanCard {
             id: ElementId::NamedInteger("stream-plan".into(), super::entries::id(index)),
@@ -94,7 +94,7 @@ fn proposal(
             },
             footer: None,
         },
-        move |shell, _window, cx| shell.toggle_entry(seat, index, cx),
+        move |shell, _window, cx| shell.toggle_entry(&seat, index, cx),
         paint.catalog.timeline_plan(),
         paint.tokens,
         window,

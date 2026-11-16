@@ -89,14 +89,16 @@ pub(crate) fn rows(
     }
     // A fork's origin's rows come first (`origin`).
     let head = area.head();
+    let origin = seat.origin();
+    let row_seat = seat.clone();
     let list = area
         .list
         .element(
             cx.processor(move |shell: &mut Shell, row: usize, window, cx| {
                 let tokens = vessel_app_kit::tokens(cx);
                 match row.checked_sub(head) {
-                    Some(own) => row_element(shell, seat, own, &tokens, window, cx),
-                    None => row_element(shell, Seat::ORIGIN, row, &tokens, window, cx),
+                    Some(own) => row_element(shell, row_seat.clone(), own, &tokens, window, cx),
+                    None => row_element(shell, origin.clone(), row, &tokens, window, cx),
                 }
             }),
         )
@@ -328,11 +330,11 @@ pub(super) fn run_header(
     (kind, lead): (RunHeaderKind, usize),
     summary: String,
     open: bool,
-    toggle: fn(&mut Shell, Seat, usize, &mut Context<'_, Shell>),
+    toggle: fn(&mut Shell, &Seat, usize, &mut Context<'_, Shell>),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     let name = match kind {
         RunHeaderKind::Tools => "run",
         RunHeaderKind::Turn => "turn",
@@ -352,11 +354,11 @@ pub(super) fn run_header(
         .on_click(cx.listener(move |shell, _event, window, cx| {
             if kind == RunHeaderKind::Tools
                 && breakpoint::phone(window)
-                && shell.run_sheet(seat, lead, window, cx)
+                && shell.run_sheet(&seat, lead, window, cx)
             {
                 return;
             }
-            toggle(shell, seat, lead, cx);
+            toggle(shell, &seat, lead, cx);
         }))
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
