@@ -48,8 +48,9 @@ stop any resulting child, preserving uncertainty on caller loss, deadline or
 failed stop. The three revocation orders, lost-watch-gap handoff, exact parent/
 count checks, positive constructor, caller-loss and phase/failure-owner tests are
 still owed. Capture itself remains staged pending its separate A7 fixture closure.
-No fake caller, blanket dead-code expectation, RPC, Store/schema or protocol
-assignment is supplied to manufacture standalone readiness. Compile/strict/runtime
+No fake caller, blanket dead-code expectation, RPC or protocol assignment
+is supplied to manufacture standalone readiness. The separately staged canonical
+Store dependency now permits actual Begin acknowledgements in constructor tests. Compile/strict/runtime
 of this joint candidate and its real consumers remain owed.
 
 Common-owner source review adds two fixed preconditions: Candidate.owner_matches
@@ -60,3 +61,24 @@ correlation; range failure returns the same retained input. Placement Debug now
 prints only correlation ids, never recursively traverses the retained Sessions
 owner. These checks add no authority token or constructor and still require
 actual common insertion and settlement qualification.
+
+
+The constructor fixture reuses the actual Sessions fake harness runtime, Project
+registration/admission, Store registry descriptor/start leases and canonical
+receipt writer. Parent membership is completed only after actual fake actor
+registration/ready; its principal comes from the actual credential admission.
+Child placement reads the current canonical revision and obtains the sealed
+Sessions-owned hold. Begin is the Store writer's committed ACK, not Receipt::advance
+called in test code. This tests construction, not common parent-grant insertion
+or physical backing continuity. Each async phase has a named 15-second bound
+inside the 120-second outer safety net. Test assertion/phase panic retains the
+fixture, attempts actual runtime stop, task drain and Store close independently,
+then resumes the failure. A deliberate assertion control verifies those effects.
+
+The retained placement also captures the original runtime LaunchAdmission from
+that same Sessions owner. Candidate.check_runtime forwards its synchronous close
+predicate, retaining SessionError for the common refusal path. This observer is
+additional refusal evidence only, not an execution-incarnation permission or a
+current accepting/launch-spawn guarantee. Actual runtime internally performs its
+own early-stop checks. No new token, registry or permission cache is introduced.
+The constructor regression checks both open and actually shut-down runtime cases.

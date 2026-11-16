@@ -1,6 +1,7 @@
 //! Visibility of sessions while they are created, and when the store
 //! cannot record one; what a session looks like once handed over.
 
+pub(super) mod creation_fixture;
 mod discovery;
 mod execution_capture;
 mod handover;

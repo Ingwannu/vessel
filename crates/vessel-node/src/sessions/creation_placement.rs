@@ -36,6 +36,8 @@ pub(crate) struct CreationPlacement {
     descriptor: WorkspaceDescriptor,
     root: Root,
     start: WorkspaceStartLease,
+    // Read-only original runtime/node close observation, not parent authority.
+    launch: vessel_session::LaunchAdmission,
     // This existing global64 hold extends unrelated-project latency through
     // actor settlement. It is not a per-project or physical generation lease.
     _project: Arc<ProjectAdmission>,
@@ -103,6 +105,7 @@ impl Sessions {
             descriptor,
             root: resolved.root,
             start,
+            launch: self.runtime.launch_admission(),
             _project: project,
             owner: Arc::clone(self),
             _metadata: metadata,
@@ -121,6 +124,10 @@ impl std::fmt::Debug for CreationPlacement {
 }
 
 impl CreationPlacement {
+    pub(crate) fn check_runtime(&self) -> Result<(), vessel_session::SessionError> {
+        self.launch.check()
+    }
+
     /// Same node ids are not enough: this retained metadata owner must use
     /// the actual registry whose guard performs launch admission.
     pub(crate) fn owner_matches(&self, registry: &Agents) -> bool {

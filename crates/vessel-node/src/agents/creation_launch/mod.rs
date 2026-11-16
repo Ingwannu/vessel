@@ -169,6 +169,11 @@ impl<'c> Candidate<'c> {
             Ok(())
         }
     }
+    /// Additional refusal observation only; the common owner must retain the
+    /// concrete error and still perform its original current-grant/count checks.
+    pub(in crate::agents) fn check_runtime(&self) -> Result<(), vessel_session::SessionError> {
+        self.data.input.placement.check_runtime()
+    }
     pub(in crate::agents) fn child(&self) -> SessionId {
         self.data.input.placement.child()
     }
@@ -193,3 +198,6 @@ impl TrackedLaunch<'_> {
         self.data.input.parent.invalidated().await
     }
 }
+
+#[cfg(test)]
+mod tests;
