@@ -34,16 +34,16 @@ impl Render for DragPreview {
             .child(self.0.label.clone())
     }
 }
-/// Existing session render hands over one screen; docking never duplicates it.
+/// Build the legacy agent body only after the registry admits its visible host.
 pub(crate) fn frame(
     shell: &Shell,
-    screen: Div,
+    renderer: registry::AgentRenderer,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let Some(open) = shell.areas.session.open.as_ref() else {
-        return screen;
+        return div();
     };
     let state = with_layout(shell, |layout| {
         if !layout
@@ -61,9 +61,11 @@ pub(crate) fn frame(
         Ok(layout.clone())
     });
     let (Ok(layout), Ok(key)) = (state, key(shell)) else {
-        return screen;
+        return div()
+            .p(px(spacing::S4))
+            .child(shell.words.layout().panel_unavailable().to_owned());
     };
-    let mut agent = Some(screen);
+    let mut agent = Some(renderer);
     let content = if let Some(pane) = super::queries::projected_pane(shell, &layout, &key, window)
         .and_then(|id| {
             layout
@@ -93,7 +95,7 @@ pub(crate) fn frame(
         .relative()
         .child(content)
         .children(super::sheets::overlay(
-            shell, &layout, &key, tokens, window, cx,
+            shell, &layout, &key, &mut agent, tokens, window, cx,
         ))
         .children(super::menu::overlay(shell, tokens, window, cx))
         .children(super::rename::overlay(shell, tokens, window, cx))
@@ -109,7 +111,7 @@ type DrawUi<'a, 'cx> = (&'a mut Window, &'a mut Context<'cx, Shell>);
 fn tree(
     source: DrawSource<'_>,
     node: &SplitNode,
-    agent: &mut Option<Div>,
+    agent: &mut Option<registry::AgentRenderer>,
     tokens: &Tokens,
     ui: DrawUi<'_, '_>,
 ) -> Div {
@@ -153,7 +155,7 @@ fn tree(
 fn pane_view(
     source: DrawSource<'_>,
     pane: &Pane,
-    agent: &mut Option<Div>,
+    agent: &mut Option<registry::AgentRenderer>,
     tokens: &Tokens,
     ui: DrawUi<'_, '_>,
 ) -> Div {
