@@ -212,3 +212,12 @@ module; native command tests are declared last. Product definitions and wire
 shapes are unchanged. A values-only receiving tree can therefore test the exact
 request/receipt/binding modules without inventing CommandAccepted or importing
 the unfinished actor. Its tests cannot be cited as event/runtime proof.
+
+
+The portable values cut also includes existing approval/action and question-policy
+vocabulary requested by the native request owner. Request-dependent inbox
+references/helpers now live in separate attachment modules, preserving the same
+public type paths and implementations on this full branch. The standalone
+presentation modules therefore depend only on already-adopted body/field-name
+values. The receiving cut changes no PermissionRequest/Question fields, RPC
+rows, events, SDK calls, compatibility walk or runtime and grants no effect.

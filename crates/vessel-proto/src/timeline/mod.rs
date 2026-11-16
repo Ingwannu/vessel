@@ -10,9 +10,11 @@ mod item;
 mod measure;
 mod notice;
 mod permission;
+mod permission_reference;
 mod plan;
 mod provenance;
 mod question;
+mod question_reference;
 mod question_reply;
 mod receipt;
 mod recovery;
@@ -32,15 +34,16 @@ pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
 pub use permission::{
     PermissionAction, PermissionActionIntent, PermissionActionVariant, PermissionBehavior,
-    PermissionDeliveryState, PermissionKind, PermissionPresentation, PermissionReference,
+    PermissionDeliveryState, PermissionKind, PermissionPresentation,
 };
 
 pub use notice::{NoticeCheckpoint, NoticeKey, NoticeRequest};
+pub use permission_reference::PermissionReference;
 pub use provenance::PromptProvenance;
 pub use question::{
     EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
-    QuestionReference,
 };
+pub use question_reference::QuestionReference;
 pub use question_reply::{QuestionResponseRefusal, RespondQuestion, RespondQuestionReply};
 pub use receipt::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
 pub use recovery::{ObservePromptReceipt, ObservePromptReceiptReply, PromptReceiptBinding};
