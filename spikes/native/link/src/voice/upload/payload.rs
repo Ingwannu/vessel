@@ -1,8 +1,9 @@
 //! A typed request's shared bytes retain the original capture allocation and permit.
 //!
 //! Dropping an upload future does not necessarily destroy its queued request.
-//! Keep the device's budget owner inside the byte allocation until the writer
-//! discards or commits that request and all its aliases have been destroyed.
+//! Keep the device's budget owner inside each queued raw-PCM byte allocation.
+//! Encoding may release that owner before sink admission; the resulting JSON
+//! frame has the RPC transport's separate bound, not this capture permit.
 
 use super::{CaptureError, Frame};
 use bytes::Bytes;
