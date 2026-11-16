@@ -162,3 +162,17 @@ They are not reviewed implementation or consumer-ready; exact narrow and package
 checks remain owed. Provider observations/projection, native consumer wiring,
 generated wire declarations and final package gates remain outstanding. See
 `docs/plans/wp-a4-node.md` for module/data flow and evidence boundaries.
+
+
+## Current parentage inside SQL selection
+
+Notification eligibility uses the validated current parent, so an independently
+detached session can be considered without rewriting Creator audit. Store's
+configured connections register one input-only deterministic scalar over the
+serialized Creator and DetachReceipt, reusing Parentage::of. A plain SQL
+receipt-not-null or JSON comparison would bypass typed corruption/foreign-parent
+validation; filtering after LIMIT could starve eligible roots. A missing scalar
+registration is a SQL error, with no permissive fallback. Source and lease SQL
+retain their statement snapshot and all other eligibility checks. This adds no
+schema, wire, authority or protocol number; the notification owner still owns
+consumer registration and its receiving tests (see parentage-sql plan).

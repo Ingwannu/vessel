@@ -184,6 +184,11 @@ fn in_language(root: &std::path::Path, language: lsp::Language) -> Query {
     })
 }
 
+// LRU exercises real stdio and document capacity, not timeout behavior. Its
+// child can be descheduled by concurrent gates; keep the normal product-sized
+// budget here without changing the shorter crash/idle fixtures or their checks.
+const LRU_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// Review finding: open documents were never evicted, so 64 distinct files
 /// locked every new file out for as long as queries kept the server alive.
 #[tokio::test]
@@ -206,7 +211,11 @@ async fn the_least_recently_used_document_makes_room_for_a_new_one() {
             })
         };
         let stop = CancellationToken::new();
-        let manager = Manager::start(config("normal", &state), stop.child_token());
+        let config = Config {
+            request_timeout: LRU_REQUEST_TIMEOUT,
+            ..config("normal", &state)
+        };
+        let manager = Manager::start(config, stop.child_token());
         for index in 0..=crate::process::MAX_DOCUMENTS {
             let outcome = manager.query(scope(&root), file(index)).await;
             assert!(outcome.is_ok(), "file {index}: {outcome:?}");
