@@ -740,3 +740,22 @@ The remaining observation design is recorded in wp-c3-observation.md. It reuses
 existing notify/root/cache/tracked owners, records the actual reference timers
 and distinguishes C5's finite file watcher from a checkout lifecycle. No new
 observer/classifier/subscription/fetch source or gate was installed by the note.
+
+## Pure metadata event decoding, before observation runtime
+
+Existing assets checked: the Git library owns path/ref parsing and already
+depends on typed RefName values; C5 owns finite notify file observation. Extend
+Git's deliberate lower API with one pure metadata decoder, not another watcher,
+root registry or cache. One ordered16-rule inventory drives event classification
+and watcher pruning after Paseo git-metadata-event-rules.ts. Scope, base refresh,
+namespace and namespace-only events are closed types. A malformed ref retains
+the original InvalidText rather than becoming an executable string or ignored
+change; a future observer must reconcile structurally on that failure.
+
+Five unexecuted unit cases cover source owner/common/ref fixtures, lock precedence
+and derived pruning, namespace-only/near-prefix cases, native separators with
+Unicode/remote identity, and exact typed malformed-name errors. No wire/dependency,
+Node handler, watcher registration, callback, process, credential or invalidation
+change. The root feature remains None. The observation feature remains missing;
+this pure lower part is not a completed watcher or push/cache parity claim.
+Next one changed-workspace strict check and its selected metadata tests remotely.

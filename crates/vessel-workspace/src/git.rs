@@ -5,6 +5,7 @@ mod clone;
 mod diff;
 pub mod gitfile;
 mod history;
+pub mod metadata;
 mod panel_history;
 mod patch;
 mod redact;

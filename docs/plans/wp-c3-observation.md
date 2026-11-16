@@ -1,6 +1,6 @@
 # C3 observation join: design, not an installed observer
 
-Status: unimplemented. The current node comparison/cache/file-mutation tests do
+Status: observation runtime unimplemented. The current node comparison/cache/file-mutation tests do
 not prove external-change observation, subscriptions or background fetch. Keep
 those tracker rows missing until their actual implementation and checks exist.
 
@@ -36,7 +36,7 @@ Reference values to preserve: workspace refresh debounce1000ms; ignored-dir
 refresh quiet300/max2000ms and known-directory cap50000; subscribe deadline10s;
 observation re-ensure60s; degraded polling5s doubling while quiet to60s; recovery
 30s up to300s with4 bounded backoff steps, continuing recovery. Background fetch
-interval180s, original-origin check and noninteractive bounded120s Git command;
+interval180s, fetch only when origin exists, and a noninteractive bounded120s Git command;
 metadata echo suppression5000ms. These are source facts, not current behavior.
 
 Working-tree change is root-local and invalidates Uncommitted/All consumers.
@@ -46,7 +46,12 @@ config.worktree and Paseo metadata; common local/remote refs, packed refs,
 reftable/config; administrative/objects/logs/hooks ignores and derived pruning.
 A malformed or namespace-only ref event needs a typed structural fallback, not
 an invented valid branch or a silently stale cache. Do not expose raw path/ref
-strings as executable Git arguments. No classification implementation exists.
+strings as executable Git arguments. A new pure `vessel_workspace::git::metadata` decoder now owns this ordered
+inventory. It derives pruning from the same rules, preserves typed validated
+ref names and reports namespace-only events explicitly; malformed ref names
+retain `InvalidText`. Native separators normalize at this decoding edge.
+Its source/tests are newly authored and unverified; no native watcher, Node
+cache invalidation callback, subscription or first runtime consumer is wired.
 
 ## Joins and tests still owed
 
@@ -68,6 +73,6 @@ or explicit events; wall-clock sleeps do not coordinate fixtures. Include lost
 delivery and shutdown through actual native cleanup. No real remote/credential,
 provider, agent, OS opener or live checkout is needed for these tests.
 
-This note installs no watcher, RPC, protocol number, metadata parser, default
+The decoder installs no watcher, RPC, protocol number, default
 handler, polling loop or fetch. It does not extend the V3 values-only approval
 or borrow the announced node gate as proof of the current C3 runtime.
