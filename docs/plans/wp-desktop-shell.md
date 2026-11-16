@@ -545,6 +545,12 @@ and dark/light captures at1280×900,390×844 and800×600. Submit one V4 review p
 with precise works/does-not/unverified evidence. Only reviewed outcomes advance
 tracker rows or go to the release lead.
 
+Source preflight also moved the changelog's existing test module after its
+production items, completed unit-return assertion semicolons, and extracted the
+unchanged lifecycle-unsent answer so the shared settle function stays below its
+line limit. Assertions and runtime policies are unchanged; these later style
+edits await the next receiving check and do not expand prior execution evidence.
+
 The old read-only protocol23 root binaries were reapproved only through dd13/base6
 for windows/menus/changelog/credential-free navigation, with no same-commit claim.
 They omit service-port/allocation approval, strict decode failure, session.delete

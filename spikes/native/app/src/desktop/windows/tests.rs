@@ -304,7 +304,7 @@ fn extra_window_zoom_is_independent_and_replaced_root_refuses_a_queued_zoom(
     cx.update(|_, cx| {
         handle
             .update(cx, |_, window, _| {
-                assert_eq!(window.zoom().to_bits(), before.0)
+                assert_eq!(window.zoom().to_bits(), before.0);
             })
             .unwrap();
         assert_eq!(retained.read(cx).areas.desktop.zoom, before.1);

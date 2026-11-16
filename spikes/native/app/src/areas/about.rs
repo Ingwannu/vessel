@@ -16,14 +16,15 @@
 //!   outline button for "확인" and its accent button for the update.
 //!   Paseo's confirm before the update restarts the app; "새로운 소식" opening
 //!   the release notes; the log row's "경로 복사" and "로그 열기".
-//! - Differences, each for a reason: "새로운 소식" shows the running build's
-//!   notes only, and only when the feed gave them (Paseo's changelog lists
-//!   every version from its website; Vessel's feed carries one build's
-//!   notes, kept by the build that downloaded it); no release channel
+//! - Differences, each for a reason: "새로운 소식" lists bundled published
+//!   Vessel release notes and supplements the running label with notes from
+//!   the existing signed feed. Vessel has no published changelog website to
+//!   fetch like Paseo's; the bundled source retains its known-limit notices.
+//!   There is no release channel choice
 //!   (one feed); a switch row for automatic updates, which Paseo does not
 //!   have (Vessel's updater has the setting, track R's
 //!   `Updater::set_automatic`); "로그 경로가 복사되었습니다." is said in the
-//!   frame's foot (the app has no toast yet).
+//!   frame's foot.
 //! - Settings › About (`areas/settings`) shows this card in Settings'
 //!   page, then Vessel's licence and the parts the app is built from with
 //!   theirs, as the page's About; its own screen and route are gone.

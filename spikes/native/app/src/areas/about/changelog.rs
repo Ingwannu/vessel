@@ -162,27 +162,6 @@ fn layout() -> DialogSize {
     configured.map_or(DialogSize::Wide, DialogSize::Configured)
 }
 
-#[cfg(test)]
-mod configuration_tests {
-    use super::*;
-    #[test]
-    fn changelog_uses_the_authored_shared_layout_instead_of_legacy_wide() {
-        let DialogSize::Configured(layout) = layout() else {
-            panic!("configured changelog");
-        };
-        assert_eq!(layout.width().get(), 620);
-        let DesktopHeight::Exact(height) = layout.height() else {
-            panic!("fixed desktop percentage");
-        };
-        assert_eq!(height.value(), 85);
-        let CompactLayout::Draggable(points) = layout.compact() else {
-            panic!("draggable compact sheet");
-        };
-        assert_eq!(points.compact().value(), 85);
-        assert_eq!(points.expanded().value(), 95);
-    }
-}
-
 fn release_view(index: usize, release: &Release, shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.words.desktop_shell();
     let installed = if release.version() == crate::LABEL {
@@ -228,4 +207,25 @@ fn release_view(index: usize, release: &Release, shell: &Shell, tokens: &Tokens)
             ("changelog-release", index),
             release.markdown().to_owned(),
         ))
+}
+
+#[cfg(test)]
+mod configuration_tests {
+    use super::*;
+    #[test]
+    fn changelog_uses_the_authored_shared_layout_instead_of_legacy_wide() {
+        let DialogSize::Configured(layout) = layout() else {
+            panic!("configured changelog");
+        };
+        assert_eq!(layout.width().get(), 620);
+        let DesktopHeight::Exact(height) = layout.height() else {
+            panic!("fixed desktop percentage");
+        };
+        assert_eq!(height.value(), 85);
+        let CompactLayout::Draggable(points) = layout.compact() else {
+            panic!("draggable compact sheet");
+        };
+        assert_eq!(points.compact().value(), 85);
+        assert_eq!(points.expanded().value(), 95);
+    }
 }

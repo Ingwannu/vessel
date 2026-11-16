@@ -65,12 +65,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             code: None,
             message: words.to_owned(),
         }),
-        Command::SessionLifecycle(request) => {
-            Event::SessionLifecycle(vessel_app_link::sessions::lifecycle::Answer {
-                ticket: request.ticket,
-                result: Err(vessel_app_link::sessions::lifecycle::Failure::Unsent),
-            })
-        }
+        Command::SessionLifecycle(request) => lifecycle_unsent(request.ticket),
         Command::Sessions(ask) => {
             Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
         }
@@ -169,6 +164,13 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+fn lifecycle_unsent(ticket: vessel_app_view::sessions::LifecycleTicket) -> Event {
+    Event::SessionLifecycle(vessel_app_link::sessions::lifecycle::Answer {
+        ticket,
+        result: Err(vessel_app_link::sessions::lifecycle::Failure::Unsent),
+    })
 }
 
 /// The commands the link gave back, into the shell, until it closes.
