@@ -52,6 +52,8 @@ mod header_content;
 mod layout;
 mod return_focus;
 mod sheet;
+#[cfg(test)]
+mod title_wrap_tests;
 
 pub use header_content::DialogInput;
 pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
@@ -152,6 +154,7 @@ pub fn dialog<V: 'static>(
     let card = div()
         .id("dialog")
         .track_focus(&state.focus)
+        .key_context(popup::KEY_CONTEXT)
         .on_key_down(
             cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {

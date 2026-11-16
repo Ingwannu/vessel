@@ -34,6 +34,7 @@ pub(super) enum Action {
     Import,
     More,
     ShowAll,
+    Picker(super::Picker),
     Row {
         id: HarnessSessionId,
         selection: Selection,
@@ -50,6 +51,9 @@ pub(super) fn listener(
             || super::draw::state(&action, &shell.areas.import.model)
                 == vessel_app_kit::ButtonState::Disabled
         {
+            return;
+        }
+        if matches!(action, Action::Picker(_)) && !super::pickers::ready(shell) {
             return;
         }
         if let Action::Row { id, selection } = &action
@@ -70,6 +74,7 @@ pub(super) fn listener(
             Action::Import => shell.history_import(),
             Action::More => shell.history_more(),
             Action::ShowAll => shell.history_show_all(),
+            Action::Picker(which) => shell.history_picker(*which, window, cx),
             Action::Row { id, .. } => shell.history_row(id, window, cx),
         }
         cx.notify();

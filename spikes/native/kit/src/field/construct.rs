@@ -1,6 +1,9 @@
 //! Single-line fields retain the canonical callbacks and one IME registry.
 use super::events::{Callbacks, Handlers, listen};
-use super::{FormMinimum, InputState, Kind, SendOn, TextField, composition};
+use super::{
+    FormMinimum, FormText, FormTextareaPresentation, InputState, Kind, SendOn, TextField,
+    composition,
+};
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
 
@@ -28,6 +31,8 @@ pub(super) fn line<V: 'static>(
         kind: Kind::Line(state),
         focused,
         form_minimum: FormMinimum::Default,
+        form_text: FormText::Body,
+        form_textarea: FormTextareaPresentation::Compact,
         send: Rc::new(Cell::new(SendOn::Enter)),
     }
 }

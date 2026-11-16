@@ -16,8 +16,9 @@ prototype fixture in Kit249/1/0 and stopped before View/Link runtime. The
 canonical B2 Markdown producer replaced that independent fence scanner.
 Receiving tests15 ondfd1e3b2 then passed App184/0/2, Kit255/0/0 and Link119/0/0;
 View1049/2/0 failed its dependency inventory and one obsolete recovery-read
-expectation. Those two corrections are below; current View checks are owed.
-The separate wasm boundary check remains queued. Earlier failed runs are kept.
+expectation. Corrected3d3f21570 then passed View1051 library,131 integration
+and2 doc tests, plus View all-target strict. The separate wasm check passed on
+earlier682e0186; that is prior-source platform proof. Failed runs are kept.
 
 The existing-engine revision regression distinguishes A→X→A even when text
 equals the old snapshot. The standalone vendor/Kit producer passed bounded
@@ -1213,3 +1214,22 @@ The canonical Markdown replacement and actual editor/field cases passed.
 - Cost and validation: only the About data row and owned regression change;
   corrected-source View tests/strict are required. Existing results remain scoped
   to their exact source. No live service, account or permission mutation occurred.
+
+## Corrected View and prior-source platform receipts
+
+Exact3d3f21570 passed wp-files-query-values-20261116T020952Z-3d3f2157:
+fonts0/Cargo0, View1051 library tests,131 integration tests and2 doc tests
+(1184/0/0 overall). Both previously failing cases visibly passed. The same
+source passed all-target View Clippy with warnings denied in
+wp-files-query-values-20261116T023053Z-3d3f2157; real View compilation ran.
+The initial strict submission was refused before registration because its
+label still owned the queued wasm run; it produced no compiler evidence.
+The eventual strict used this owner's existing, freed warm test label.
+
+The original wp-files-narrow-20261116T011849Z-682e0186 wasm check completed
+Link/App rc0 with no warnings. This belongs to earlier682e0186, not the newer
+owner-join preparation. No unchanged App/Kit/Link runtime or whole gate was
+replayed after the two View corrections. The standalone shown-source packet
+also received bounded V1 source/requested narrow approval with its prerequisite
+and receiving assembly held. Neither result qualifies the isolated retained
+owner/root-guard join, typed product open/close, UI captures or full C5 acceptance.

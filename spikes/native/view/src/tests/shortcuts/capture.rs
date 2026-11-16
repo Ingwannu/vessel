@@ -30,8 +30,8 @@ fn goat_queue_keys_are_registered_in_the_session_group_with_goat_defaults() {
 }
 
 #[test]
-fn a_fixed_action_cannot_record_and_nothing_pressed_waits() {
-    assert!(Capture::start(Action::JumpSession).is_none());
+fn index_actions_can_record_and_nothing_pressed_waits() {
+    assert!(Capture::start(Action::JumpSession).is_some());
     let none = Overrides::new();
     let mut capture = Capture::start(Action::Find).unwrap();
     assert_eq!(capture.verdict(&none, OTHER), Verdict::Waiting);
@@ -49,7 +49,7 @@ fn the_pages_refusals_and_clashes_keep_done_off() {
         ("Mod+W", Verdict::Refused(Refusal::Kept)),
         ("Mod+C", Verdict::Refused(Refusal::Editing)),
         ("Mod+F", Verdict::Clashes(Clash::Same(Action::Find))),
-        ("Alt+3", Verdict::Clashes(Clash::Fixed(Action::JumpSession))),
+        ("Mod+3", Verdict::Refused(Refusal::Kept)),
     ] {
         let capture = recording(Action::Find, pressed);
         assert_eq!(capture.verdict(&none, OTHER), verdict, "{pressed}");
@@ -62,7 +62,7 @@ fn done_replaces_the_actions_keys_whole_as_paseos_rebind() {
     let none = Overrides::new();
     let capture = recording(Action::Palette, "Mod+J");
     assert_eq!(capture.verdict(&none, OTHER), Verdict::Ready);
-    // Paseo's row has one binding: the palette's `/` goes with Mod+K.
+    // Rebinding replaces the complete row, rather than appending an alias.
     assert_eq!(
         capture.done(&none, OTHER),
         Done::Save(vec![edit(Action::Palette, keys(&["Mod+J"]))])
@@ -83,7 +83,7 @@ fn a_key_another_action_has_is_moved_only_after_asking() {
             from: Action::Palette,
             edits: vec![
                 edit(Action::Find, keys(&["Mod+K"])),
-                edit(Action::Palette, keys(&["/"])),
+                edit(Action::Palette, keys(&[])),
             ],
         }
     );

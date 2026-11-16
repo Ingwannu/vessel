@@ -97,7 +97,7 @@ fn an_action_limit_refusal_is_cleared_by_the_same_success_path_as_before(
                     .unwrap()
                     .words
                     .as_ref(),
-                "That change was not kept. Keys can be kept for at most \u{2068}64\u{2069} actions."
+                "That change was not kept. Keys can be kept for at most \u{2068}128\u{2069} actions."
             );
             shell.prefer(&PreferenceChange::Send(SendKey::ModEnter), window, cx);
             assert!(shell.areas.settings.refused.is_none());
