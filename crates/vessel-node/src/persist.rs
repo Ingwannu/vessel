@@ -67,14 +67,18 @@ pub(crate) async fn run(
             return Persisted::Incomplete;
         };
         let records = std::mem::replace(&mut batch, Vec::with_capacity(BATCH));
-        if let Err(error) = store.append(session, records).await {
-            tracing::error!(%session, %error, "cannot persist session records; killing the session");
-            durability.send_modify(|durability| *durability = Durability::Broken);
-            handle.kill();
-            // Dropping `durable` here lets the session finish without
-            // waiting for a store that cannot take its records.
-            return Persisted::Incomplete;
-        }
+        let committed = match store.append_committed(session, records).await {
+            Ok(committed) => committed,
+            Err(error) => {
+                tracing::error!(%session, %error, "cannot persist session records; killing the session");
+                durability.send_modify(|durability| *durability = Durability::Broken);
+                handle.kill();
+                // Dropping `durable` here lets the session finish without
+                // waiting for a store that cannot take its records.
+                return Persisted::Incomplete;
+            }
+        };
+        handle.acknowledge_time(committed.updated_at());
         durability.send_modify(|durability| *durability = Durability::Through(next));
     }
     tracing::debug!(%session, "session log fully persisted");

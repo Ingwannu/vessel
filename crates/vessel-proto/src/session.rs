@@ -269,6 +269,11 @@ pub struct SessionInfo {
     pub status: SessionStatus,
     /// When the session was created.
     pub created_at: DateTime<Utc>,
+    /// Latest acknowledged local durable mutation, not a label-map revision
+    /// or an atomic snapshot of live actor state. None preserves Unknown on
+    /// legacy rows and peers that cannot carry this feature (ADR 0063).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<crate::SessionUpdatedAt>,
     /// When the process ended, if it has.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ended_at: Option<DateTime<Utc>>,
@@ -408,6 +413,7 @@ impl SessionInfo {
             detach_receipt: None,
             status: SessionStatus::Starting,
             created_at,
+            updated_at: None,
             ended_at: None,
             next_seq: EventSeq::ZERO,
             harness_session: None,

@@ -175,7 +175,7 @@ impl Publisher {
         // Before the record is anywhere too: whoever sees a turn's end
         // finds the session unread.
         if record.event.asks_for_attention() {
-            self.shared.marks().asked(seq);
+            self.shared.kept_metadata().asked(seq);
         }
         match slot {
             Slot::Durable(permit) => drop(permit.send(Arc::clone(&record))),

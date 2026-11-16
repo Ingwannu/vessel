@@ -252,6 +252,7 @@ pub(crate) fn mark(connection: &Connection, mark: &MarkInbox) -> Result<(), Stor
     if rows == 0 {
         return Err(StoreError::InboxGone);
     }
+    let _updated = crate::mutation_time::advance(connection, mark.key.session)?;
     Ok(())
 }
 

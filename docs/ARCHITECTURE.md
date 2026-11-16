@@ -1993,3 +1993,16 @@ retain the exact original typed request and actor binding, and test generic
 approval/question presentation. No DTO constructs runtime authority, admission,
 provider offers or delivery; those remain with the existing session/receipt
 owner. See timeline-recovery-values.md for the exact portable boundary and proof.
+
+## Durable session mutation clock
+
+The session mutation clock (ADR 0063) is a nullable column in the canonical
+session row. The existing store writer advances it with append, mark and direct
+metadata changes inside their current savepoints. A helper takes that same
+connection so future transactional workspace selection can reuse the clock
+without a second read engine. Reads, retention and index maintenance do not
+advance it. It describes committed local mutation order; it is neither actor
+log coverage nor an execution authorization fact. Typed write acknowledgements carry each operation's own time before later
+queued writes; runtime kept metadata applies that known clock monotonically.
+The raw actor watch omits it and normal Info reads overlay it. Public protocol
+availability remains pending, and this does not establish label-map coverage.

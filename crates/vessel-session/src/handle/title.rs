@@ -1,7 +1,7 @@
 //! Title changes sent to the owning actor. A generated proposal carries
 //! the expected title so validation and mutation share the actor's order.
 
-use super::SessionHandle;
+use super::{MetadataChange, SessionHandle};
 use crate::SessionError;
 use tokio::sync::oneshot;
 use vessel_proto::{GeneratedTitle, SessionInfo, SessionTitle, TitleOrigin};
@@ -93,8 +93,8 @@ impl SessionHandle {
         }
         let (done, answered) = oneshot::channel();
         self.0
-            .renames
-            .send(Rename { change, done })
+            .metadata
+            .send(MetadataChange::Rename(Rename { change, done }))
             .await
             .map_err(|_ended| SessionError::Ended)?;
         answered.await.map_err(|_ended| SessionError::Ended)

@@ -177,14 +177,20 @@ impl Sessions {
         let id = ended.info.id;
         let next = ended.info.next_seq;
         let Reopening {
-            created: Created { handle, durable },
+            created: Created {
+                handle, durable, ..
+            },
             gate,
         } = self.runtime.start_again(continued(ended), launch).await?;
         let (durability, reopened) = {
             let _order = self.marking.lock().await;
             let durability = self.track(&handle, next);
-            let reopened = match self.store.reopen(id, next).await {
-                Ok(kept) => self.restore_metadata(&handle, kept).await,
+            let reopened = match self.store.reopen_committed(id, next).await {
+                Ok(committed) => {
+                    let (kept, updated_at) = committed.into_parts();
+                    handle.acknowledge_time(updated_at);
+                    self.restore_metadata(&handle, kept).await
+                }
                 Err(error) => Err(error),
             };
             (durability, reopened)

@@ -84,7 +84,7 @@ fn decode_text<T: serde::de::DeserializeOwned>(
 /// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then attention and labels.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
      via, origin, model, title, abilities, pinned, archived_at, read_seq, marked_unread, \
-     attention_seq, labels, title_origin, detach_receipt, listing";
+     attention_seq, labels, title_origin, detach_receipt, listing, updated_at";
 
 /// Where the marks' columns start in [`SESSION_COLUMNS`].
 const FIRST_MARK: usize = 14;
@@ -99,6 +99,8 @@ const DETACH_RECEIPT: usize = TITLE_ORIGIN.saturating_add(1);
 
 /// Creation-only discovery follows the detach receipt in the row projection.
 const LISTING: usize = DETACH_RECEIPT.saturating_add(1);
+/// The mutation clock follows the head's immutable listing projection.
+const UPDATED_AT: usize = LISTING.saturating_add(1);
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -172,6 +174,7 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
         .parentage()
         .map_err(|_invalid| StoreError::InvalidParentage(id))?;
     info.listing = decode(id, Column::Listing, &row.get::<_, String>(LISTING)?)?;
+    info.updated_at = crate::mutation_time::decode(id, row.get(UPDATED_AT)?)?;
     Ok(info)
 }
 

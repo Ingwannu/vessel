@@ -1,8 +1,10 @@
 //! Visibility of sessions while they are created, and when the store
 //! cannot record one; what a session looks like once handed over.
 
+mod creation;
 mod discovery;
 mod handover;
+mod mutation_time;
 mod subagents;
 
 use std::sync::Arc;

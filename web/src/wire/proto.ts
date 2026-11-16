@@ -8539,6 +8539,12 @@ status: SessionStatus,
  */
 created_at: string, 
 /**
+ * Latest acknowledged local durable mutation, not a label-map revision
+ * or an atomic snapshot of live actor state. None preserves Unknown on
+ * legacy rows and peers that cannot carry this feature (ADR 0063).
+ */
+updated_at?: SessionUpdatedAt | null, 
+/**
  * When the process ended, if it has.
  */
 ended_at?: string | null, 
@@ -8953,6 +8959,12 @@ empty_fork?: boolean, } | { "state": "interrupted" };
  * A session's title: one line of text a person reads.
  */
 export type SessionTitle = string;
+
+/**
+ * A local writer's monotonic, millisecond mutation timestamp. It is data,
+ * never a label-map revision, execution fence or caller attestation.
+ */
+export type SessionUpdatedAt = string;
 
 /**
  * Where a session runs, as the node resolved it (`SessionInfo.workspace`).

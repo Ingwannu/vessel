@@ -513,12 +513,20 @@ feature constant, and an unassigned constant makes the whole call None.
 
 ## Resume point
 
-Current bounded preparation: make the existing marking order transferable to an
-admitted task. The same mutex and all existing transition boundaries remain.
-No mutation clock, acknowledgement carrier or new runtime behavior is included
-in this prerequisite. The Arc field, constructor and owned-lease accessor passed changed-node strict
-checking and the bounded Rust package gate. Existing mark/reopen/detach cases
-passed; consumer admission/cancellation behavior still requires its own join.
+Current preparation: integrated discovery is merged; nonempty patches and the
+metadata queue refactor have narrow evidence. Mutation-clock and label-coverage
+contracts below have passed source review. The nullable clock, transactional acknowledgements, optional Info projection and
+live acknowledgement publication are implemented. The corrected changed-crate
+strict check and runtime forcing tests passed on their exact pre-merge revision;
+original generated declarations are committed. The complete gate of the merged
+package and its implementation review remain pending. The latest shared node head
+is merged with its migration sequence preserved. The dispatcher refactor keeps
+the same savepoints and commit boundary. Label coverage is still only a
+contract. No new event or mutation RPC is registered. Historical checkpoint text follows.
+
+The separate transferable marking-order prerequisite passed its bounded
+source/runtime review and is received for integration. That evidence does not
+qualify this branch's pending clock or its consumers.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
@@ -562,6 +570,15 @@ No label mutation call or LabelsChanged event is implemented yet. Actual reload
 also remains unimplemented: a reviewed producer with proved transient-prompt
 support/capture/restore precedes that common orchestration. No real-provider,
 platform or end-user metadata workflow is claimed.
+
+Current label-mutation preparation: `LabelPatch` and its five edge tests are
+implemented. The corrected TypeScript-enabled prototype Clippy passed on its
+exact pre-merge revision; runtime tests remain pending. The shared node base is
+merged without conflict. A separate refactor wraps the existing rename queue as
+one metadata queue, with its response and capacity unchanged. No label mutation
+method/event, actor/store write or feature assignment exists yet. Earlier notes
+below retain their historical checkpoints.
+
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
@@ -1111,6 +1128,397 @@ keep-alive-only underscore names are replaced with ordinary field names. This
 resolves the strict used-underscore-binding check without changing ownership,
 cleanup, deadlines or expected results. The original strict result is retained.
 
+## Nonempty label patch foundation
+
+- Modify existing validated map operations; introduce only the type distinction
+  between an empty state/filter and a nonempty mutation. Existing `ServicePorts`
+  demonstrates a constructor invariant enforced at the serde edge, but its port
+  choices are not a label map and are not reused as a generic container.
+- Use standard `TryFrom` and the existing serde/ts-rs dependencies. There is no
+  external library or new dependency to justify; a second validator or generic
+  JSON patch would add an unnecessary boundary.
+- Follow Paseo's caller chain: CLI `agent/update.ts:150-201` checks for changes
+  before connection; `agent/lifecycle-command.ts:163-192` refuses an empty metadata
+  update; manager `agent-manager.ts:2529-2578` serializes live/stored metadata.
+  This increment adds no runtime mutation and claims none of that execution.
+- Planned tests: empty construction/serde refusal, the unchanged bounded map's
+  refusal paths, valid duplicate-key/value behavior and a transparent object
+  round trip. Combined-cap failure must still leave the original map unchanged.
+- The mutation's later request registration, pending event projection and actual
+  live/terminal/stored persistence remain separate work in the same package.
+
+
+The value implementation uses a private transparent `SessionLabels` wrapper,
+`TryFrom<SessionLabels>` and a deserializer that first invokes the existing
+bounded map decoder. A borrowed accessor exposes no mutation. Five edge tests
+cover empty input, valid canonical duplicates and preserved values, empty values,
+invalid map shapes/entries and the original cap. Existing map-operation tests
+remain the source for combined-cap atomicity; their assertions are unchanged.
+No wire request, actor/store operation, protocol assignment or consumer readiness
+is implied by this implementation. Compilation and execution remain unverified
+until the remote narrow results arrive.
+
+
+The first TypeScript-enabled narrow Clippy stopped at `doc_markdown`: the module
+header named the map type without code markup. The header now links that existing
+type. No input, serializer, test expectation or bound changed; the original
+strict failure is retained and execution is still unverified.
+
+
+## Metadata queue preparation (behavior-preserving refactor)
+
+[Decision Log]
+- Purpose: title and label mutations need one actor publication order instead
+  of independently scheduled per-field queues.
+- Existing asset: both session modes already receive renames through a bounded
+  channel and publish through `Lifecycle`; title comparison and acknowledgement
+  already happen there, including generated-title precedence.
+- Alternatives: a second queue would not establish this shared order. A trait or
+  dynamic dispatcher is unnecessary for a closed set of metadata changes.
+- Choice: wrap the existing rename message in a private enum and retain the same
+  channel under the metadata name. `METADATA_CAPACITY` retains the former bound.
+  The only produced variant is Rename; both actors delegate to the unchanged
+  rename implementation.
+- Effects: no wire, dependency, new mutation, signal, response, deadline or test
+  expectation changes. Existing structured/terminal rename and generated-title
+  tests remain the behavior checks; no implementation-mirroring test is added.
+- Follow-up: label mutation will add its own variant and tests in the behavior
+  commit. The external native-options mailbox and later execution fence remain
+  their existing owners' boundaries and are not edited by this refactor.
+
+
+## Mutation clock and label coverage: design predecision
+
+The durable session mutation clock and the current-label coverage boundary are
+proposed in ADR 0063 before implementation. They have different purposes:
+updated_at orders committed session mutations for selection, while a label
+coverage watermark states which full-map events an Info snapshot includes.
+Neither is an authority or execution fence. The timestamp is not a substitute
+for the coverage watermark.
+
+Source reading for this proposal:
+
+- Paseo `server/agent/agent-manager.ts:1017-1031`: monotonic millisecond clock;
+  `:2290-2328`: live/stored label mutation; `:2390-2435`: live and stored unread
+  differ in whether they explicitly advance updatedAt.
+- Paseo `server/session.ts:7770-7837`: canonical eligible root selection with
+  updatedAt descending/id ascending. The predicate is not inferred from cwd,
+  creation parent alone or an incomplete client list.
+- Store `writer/apply.rs`: one savepoint per operation, followed by the writer's
+  commit-before-acknowledgement. `log.rs` owns creation/append projections;
+  `marks.rs`, `inbox.rs`, `again.rs` and `subagents.rs` own direct mutations.
+  `recovery.rs` appends an interruption through the normal log path.
+- Store profile/cost and search updates are projections inside append or
+  maintenance; they do not justify a second clock or a duplicate tick.
+- Session `publish.rs` and node `persist.rs` distinguish publication from a
+  durable append. Node `sessions.rs` currently seeds storage from late
+  `handle.info()` while create_session sets next_seq to zero. A frozen initial
+  seed is a prerequisite for the proposed label coverage, not a claim about
+  the already shipped creation behavior with immutable labels.
+
+Proposed writer coverage to verify:
+
+| Operation | Clock effect | Existing atomic boundary |
+|---|---|---|
+| Successful new row | Initialize from writer time, ignore supplied/imported ordering time | Create savepoint |
+| Nonempty ordered append, including recovery and metadata events | Advance once per accepted batch | Append projection savepoint |
+| Session mark or an existing inbox-entry mark | Advance with the accepted mark | Mark savepoint |
+| Reopen | Advance only on success | Conditional reopen savepoint |
+| First detach | Advance once; repeated receipt stays unchanged | Receipt savepoint |
+| Future stored label mutation | Advance with its event/projection, once | Existing writer savepoint under reopen ordering |
+| Read, failed write, empty append, migration, retention/index/backfill maintenance | Keep the clock | Existing behavior retained |
+
+A private store helper must take the existing writer connection. Later workspace
+attention mutations need no public setter or separate read: require_active,
+owned members/roles, current attention/clock selection and marking stay in one
+transaction. Legacy NULL remains Unknown and a selection requiring that fact
+refuses. Widening session.mark permissions is outside this package.
+
+Proposed protocol additions remain unassigned: optional SessionUpdatedAt and
+LabelsWatermark fields and the future full-map LabelsChanged variant. The
+mutation timestamp has its own pending feature; label coverage shares the
+existing lifecycle metadata projection. No new feature constant, wire field,
+event, RPC registration, schema append or clock writer is implemented by this
+contract. Native timeline/terminal/current-metadata consumers remain separate;
+no exhaustive-match repair is made in this node package.
+
+Current evidence: the nonempty label patch's sixteen filtered map/patch tests
+passed, and the metadata queue refactor passed TypeScript-enabled Clippy for
+proto/session on their exact pre-merge revision. Existing options/generated-title
+regressions are queued after the integrated discovery head merge. Those checks
+do not prove timestamp production, label-event coverage or complete mutations.
+The next step is design review of this contract, then implementation and the
+forcing tests before one complete package gate.
+
+
+### Creation boundary extraction (behavior-preserving)
+
+Before adding a frozen initial seed, creation and its cancellation-safe startup
+move unchanged from the session collection into sessions/creation.rs. The
+collection still owns lookup, tracking and handover. The extracted methods keep
+all existing ordering, cleanup, conditions and return values, including the
+late handle snapshot that the following behavior correction will replace.
+No test expectation or deadline changes in this extraction.
+
+
+### Frozen creation seed prerequisite
+
+The runtime now captures a boxed initial Info immediately before spawning its
+actor and returns it with Created. Node creation stores that seed, while its
+ordinary reply and subsequent publications still use the handle. Reopen keeps
+its existing authoritative stored-row flow and ignores the extra initial seed.
+This extends the existing start boundary, with one bounded snapshot clone per
+run and no new queue, lock, dependency or wire field. The store still accepts
+an explicitly supplied current map; it does not replace it with spec.labels.
+
+A fake-actor regression holds the durable receiver, completes a rename and
+checks that the returned empty-log seed still has the creation title and zero
+cursor. This forces publication ahead of persistence without a sleep or a
+new product hook. It does not yet prove future LabelsChanged behavior.
+A node regression then stores that seed before draining the held receiver,
+checks the zero-cursor creation title and verifies the changed title appears
+only after the actual durable append. Existing Created destructuring in
+resume, diagnostics and private-dir/detach fixtures gains only `..`; no
+existing assertion or deadline is changed.
+The mutation-clock and explicit label-coverage contracts remain proposed.
+
+
+### Label mutation request value
+
+Reuse the existing SessionId and validated nonempty LabelPatch in one SetLabels
+payload, with required session/labels fields and the existing serde/TypeScript
+derives. A nullable or optional patch would blur "nothing to update" with an
+empty current state, so it is not used. No external package is needed. Payload
+shape/refusal tests belong beside the RPC payload; registration, version checks,
+authorization and mutation behavior remain the later wiring step.
+
+
+The SetLabels value now retains both required fields, using LabelPatch's
+existing validating deserializer. Payload tests check exact target/map round
+trip and missing/empty/malformed target or patch refusal. No Request marker,
+method row, handler, send path, event or available mutation is added yet.
+
+
+### Mutation timestamp value foundation
+
+SessionUpdatedAt reuses chrono and the existing signed-nanosecond store range,
+while requiring whole milliseconds at the wire/value edge. Its pure advance
+operation normalizes only the writer sample, chooses a later sample or the
+previous value plus MIN_INCREMENT, and refuses exhaustion instead of saturation.
+One named tick defines the increment. Tests cover serde/value precision refusal,
+Unknown initialization, repeated/backwards time, a later sample and exhaustion.
+This value adds no store column, writer, Info field, clock setter or protocol
+assignment. It is not a producer attestation or a label coverage marker.
+
+
+### Durable clock writer implementation, before public projection
+
+The nullable column append now follows BACKGROUND_SCHEMA through one relative
+MUTATION_TIME_SCHEMA and the migration table's checked length. The runner is
+unchanged and legacy rows remain NULL. SQL lives with that append so the head's
+migration file stays within budget. The separate mutation_time module reads and
+advances only on the caller's existing connection, preserving typed range,
+precision and exhaustion errors. It samples the writer's own wall time.
+
+Creation, nonempty append batches, marks, exact inbox marks, reopen and first
+detach now invoke that helper inside their existing savepoints. Append-derived
+metadata is counted there once; a repeated receipt and failed/empty/read work
+add no tick. No public Info field, caller timestamp setter or protocol number
+is introduced in this step. Exact acknowledgement/live-info propagation remains
+next, so this is not yet an external producer handoff.
+
+New migration and real Store-writer tests cover legacy Unknown/idempotence,
+strict per-batch/mark time, independence from event/client time, inbox/reopen/
+detach and repeated receipts, failed operations and savepoint rollback on clock
+exhaustion. Existing approvals/devices/log/marks/title-origin rollback fixtures
+only gain DROP COLUMN updated_at immediately before their old SQL; existing
+assertions and deadlines stay unchanged. Compile and execution remain pending.
+
+
+### Acknowledgement preparation (behavior-preserving)
+
+The private Store::write channel helper is generic over its existing typed
+reply instead of fixing it to unit. Its send, Closed mapping and commit wait
+are unchanged, and all current callers retain the same unit result. This lets
+subsequent clock acknowledgements reuse that one channel path; no new reply,
+public signature or mutation behavior is introduced by the refactor.
+
+
+### Exact durable acknowledgement carriers
+
+The writer now captures SessionCommit<T> (the operation's result and optional
+mutation clock) inside that operation's savepoint, before applying another
+queued write. Its existing outer commit and typed failure mapping still decide
+whether a caller receives success. The additional public committed variants
+serve runtime publication; the original create/append/mark/reopen methods keep
+their original signatures and results by delegating and discarding only the
+extra acknowledged time. No extra write queue or clock writer is introduced.
+
+The paired mark regression verifies each operation retains its own kept marks
+and distinct time even when queued together; final stored marks match the latest
+acknowledged time. An empty append on a legacy-Unknown row preserves None until
+an actual mark initializes it. Node live-clock application and public Info
+projection are still next; no consumer readiness follows from these source tests.
+
+
+### Pending mutation-time Info projection
+
+SessionInfo now has optional updated_at, decoded with the writer's same cell
+validator. Its constructor and old wire omission preserve Unknown. The separate
+SESSION_MUTATIONS constant remains None, with assignment prerequisites stated
+beside it; the normal Info projection composes the head's parentage/title/labels
+rules before hiding this clock. New tests name every direct Info result, list,
+subscription, detach, both session-shaped exports, starting import and mixed
+Forward/Relay/Deliver nesting. A synthetic assigned threshold keeps a supported
+value; no real number is assigned. Saved/scheduled specs contain no such clock.
+
+The TS primitive is classified as a time quantity in the same change that first
+references it on the wire; generated declaration recovery/freshness is still
+owed. First detach now includes the exact newly committed row time in its Info,
+while repeated detach keeps the existing time. Live acknowledgement publication
+remains the next implementation step; this field is hidden from all peers now.
+
+
+### Kept runtime metadata naming (behavior-preserving)
+
+Before copying acknowledged clock data, marks.rs/Marks becomes
+kept_metadata.rs/KeptMetadata. Its existing kept marks, detach receipt and
+actor-derived attention already share that one overlay lock. Only private
+module/type/field/accessor names move; public mark and receipt setters, reducer
+logic, locking and test expectations remain unchanged. The following behavior
+change can add durable time to this same bounded row-copy responsibility.
+
+
+### Append projection extraction after the strict check
+
+The first clock-storage strict check stopped because the existing append
+function grew past the function budget. Its SQL/parameter block moves into
+Projection::save, with the profile enum binding named separately. Record
+validation/observation, exact SQL text and parameter order, indexing/retention,
+clock timing and savepoint behavior are unchanged. No bound, assertion or
+deadline is altered. This is a separate behavior-preserving correction;
+the original strict failure remains in the validation history.
+
+
+### Live acknowledgement publication
+
+The existing kept-metadata lock now overlays the latest acknowledged mutation
+time as well as kept marks/receipt. It takes the maximum known acknowledged
+clock and never clears it with Unknown. Crucially, an append's newer time does
+not authorize discarding an earlier mark that still needs publication: marks
+retain the node's original serialized order, while only the scalar clock uses
+a high-water rule. No extra actor queue, mutex, writer or authority is added.
+
+Creation, persistence, live marking, reopen and detach consume their actual
+Store acknowledgements. Persistence applies the clock before advancing its
+durability notification. Reopen seeds/restores the canonical stored time before
+opening its existing gate. The raw actor watch omits this separately kept time,
+as it already omits kept marks; SessionHandle::info adds the current overlay,
+including after actor EOF. Stored replies use the canonical row snapshot.
+
+New unit tests force delayed/Unknown clock acknowledgements and verify the
+older mark still applies without regressing time. Real fake-node tests exercise
+create/append/mark/handover and live detach/repeat publication. Existing error,
+cleanup, authority, cancellation, deadlines and assertions are unchanged. This
+still establishes no label-map coverage, new label event or reload behavior.
+
+
+### Exact inbox mark acknowledgement join
+
+The entry-mark convenience API now delegates to a committed variant, preserving
+its original unit result and Gone-entry semantics. The existing inbox handler
+keeps its scope and exact agent refusal, then delegates to the session owner
+instead of discarding the Store acknowledgement. That owner reuses the metadata
+lock and tracked-task pattern so a caller leaving cannot abandon a committed
+clock's live publication. No extra read path, timestamp source or permission is
+introduced. Later passive attention joins use this same acknowledgement rule.
+
+The fake-node regression waits for the exact TurnEnded record to be durable,
+marks its entry and checks live time. A cancelled call while metadata is held
+creates no retained task and leaves the entry unchanged. A separately admitted
+call owns that same metadata lease before caller loss; normal shutdown drains
+its task and the canonical mark/time remain committed. The shared inbox
+handler change is only this delegation/error-boundary adjustment; its original
+authority checks and messages are untouched.
+
+
+### Owned metadata order preparation (behavior-preserving)
+
+The existing metadata mutex is held in Arc so admission can transfer an owned
+lease to a retained task. Existing lock calls dereference the same mutex; no
+ordering, condition, operation, permission or test expectation changes here.
+The following inbox cancellation correction obtains that lease before spawning,
+instead of retaining arbitrarily many cancelled waiters. This is no new fence.
+
+
+The inbox task acquires the owned metadata lease before spawning. This keeps
+cancelled admission waiters within the existing RPC lifetime rather than
+creating an unbounded detached wait queue. After admission, the single lease
+travels with the already-authorized operation through commit/publication.
+No deadline, numeric limit, permission, Origin or execution fence is added.
+
+
+The inbox cancellation test setup is split into named turn/persistence,
+before-admission and after-admission phases. Only test code moves; every input,
+poll, assertion and deadline remains the same. This keeps the resource-admission
+proof readable without weakening or lengthening its safety budget.
+
+
+Additional clock regressions refuse a corrupt fractional stored value on both
+read and mark, preserving the prior row on failure; supplied creation/import
+clock data cannot choose the destination's local time. A fake-node reopen case
+checks the actual writer clock is already visible when the existing publication
+gate opens, the raw actor watch remains Unknown, and handover retains the final
+acknowledged time. These are new cases, with existing assertions/deadlines kept.
+
+
+The next changed-crate strict run stopped at a missing code span in the new
+SessionUpdatedAt alias comment. That comment now uses code markup; the original
+red result is retained. No validator, writer, projection, test expectation or
+deadline changed. Latest-head strict and execution checks are still owed.
+
+
+### Typed dispatcher answers after the next strict check
+
+The dispatcher exceeded its function budget after adding clock acknowledgements.
+Typed session/marks answer constructors now call the same savepoint/clock helper;
+ordinary device/attachment/automation branches reuse the existing unit-answer
+helper. Operation order, closures, errors, effects and commit-before-reply are
+unchanged. This separate refactor shrinks dispatch without an exemption, numeric
+budget change or modified test expectation. The original failure is retained.
+
+
+### Clock fixture configuration after strict checking
+
+The current strict check reached the new Store integration fixture and found
+its three clock/corruption helpers outside the test-only module convention.
+They now live in a cfg(test) module, and the shared fixture import records why
+its unrelated paging/rollback helpers are unused here, as existing tests do.
+No helper body, input, assertion, deadline or product behavior changes. The
+original strict result remains red; the corrected strict check remains owed.
+
+
+### Inbox rollback fixture after clock test execution
+
+The real proto/store run passed the new clock cases but found the inbox replay
+fixture still retaining the new clock column while rewinding its schema. It now
+drops only this append's updated_at before the head's existing rollback SQL.
+The production runner, migration ordering, inbox cases, assertions and deadlines
+remain unchanged. Both original duplicate-column failures remain in the log.
+An independent unchanged registry-watcher test also timed out under load; that
+result remains separate from this fixture correction and has not been retried.
+
+
+### Generated mutation-time declaration
+
+The named TypeScript step passed its five generator/inventory tests and correctly
+reported stale declarations. Its original generated proto.ts bytes are now
+committed after checking every artifact hash and confirming the TS inputs did
+not change since that generator commit. The only declaration change adds the
+optional mutation-time field and its string type. Generated whitespace is kept
+verbatim; source diff checking is separate from ts-rs formatting. Freshness on
+the final package head is still required by the whole gate.
+
 
 ## Transferable marking-order prerequisite
 
@@ -1142,3 +1550,59 @@ with five export/inventory tests, and the forge fixture passed four tests. Both
 fixture prebuilds preceded the workspace tests. Existing mark/reopen/detach and
 caller-loss cases ran unchanged. No web/native/platform or new consumer-runtime
 acceptance follows from this internal representation-only change.
+
+
+### Reuse of the isolated owned-order prerequisite
+
+The independently validated marking prerequisite is merged without importing
+clock code into that leaf. The clock's admitted inbox task now acquires its
+existing owned guard through that same private accessor at the identical point
+before spawn. Guard lifetime, task ownership, authority, SQL, acknowledgement
+and cancellation-test expectations are unchanged. The announced node values and
+membership-helper head is also merged; its shared entries and documents remain
+authoritative. The final package gate still qualifies this combined clock tree.
+
+
+The corrected fixture strict check reached the session watch documentation and
+reported one missing code link around info(). That reference now links to the
+existing method. No executable body, test expectation, wire declaration or
+deadline changes; the original strict failure is retained. The current merged
+head still needs a green strict result before its package gate.
+
+
+The current runtime forcing run built its fixture binaries successfully but
+found an unavailable convenience constructor in the new inbox test. The input
+now uses ContentBlock's existing Text variant with the identical prompt bytes.
+Only test construction changes; no assertion, product behavior or deadline is
+altered. The actual frozen-seed integration test passed independently on the
+same pre-fix executable source; Node/session runtime execution remains owed.
+
+
+The new crate-private clock/acknowledgement boundaries and test-only fixture
+functions now each state their reason locally: same-connection snapshot, exact
+queued-operation result, projection order and retained publication. Only docs
+change; no executable or test body, input, declaration or deadline changes.
+
+
+## Clock package verification before the complete gate
+
+The corrected changed-crate TS-enabled all-target Clippy passed on its exact
+executable revision. The corrected Node/session library run passed 398 tests,
+including all four clock publication/cancellation cases, the delayed/Unknown
+acknowledgements and the held-persistence creation seed. The independent actual
+creation integration passed its one frozen-seed case. Their inputs, original
+assertions and safety budgets are unchanged by the fixture construction fixes.
+
+The earlier proto/store run passed 641 tests and retained three failures in its
+original log. The two inbox rollback failures were this append's missing DROP;
+the corrected lifecycle fixture passed all five cases. The unchanged registry
+watcher timeout had one explicitly permitted exact replay, which passed. It is
+recorded as a named intermittent under load; its cause is not claimed solved.
+
+The five generator/inventory tests passed before the expected stale-wire result;
+all retrieved artifact hashes and original declaration bytes were verified. The
+current package includes those bytes and the announced node head's additions.
+The later merge preserves that head's launch admission and execution invalidator;
+no stop/resume/archive caller joins or stronger process proof are added here.
+The final complete gate must verify this combined head, including all wire/web
+checks. None of the partial checks is represented as that complete result.
