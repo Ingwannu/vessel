@@ -5,7 +5,7 @@ use vessel_app_link::{
     Command,
     session_marks::{Answer, Failure},
 };
-use vessel_app_view::session_marks::CapturedSessionTarget;
+use vessel_app_view::session_marks::{BeginError, CapturedSessionTarget};
 use vessel_proto::Mark;
 
 impl Shell {
@@ -19,7 +19,12 @@ impl Shell {
         let ask = self.areas.session_marks.begin(target, mark);
         match ask {
             Ok(ask) => self.command(Command::SessionMark(ask)),
-            Err(_) => self.notice = Some(self.words.session_marks().busy().to_owned()),
+            Err(BeginError::Busy) => {
+                self.notice = Some(self.words.session_marks().busy().to_owned())
+            }
+            Err(BeginError::Exhausted | BeginError::ReadBoundary) => {
+                self.notice = Some(self.words.session_marks().unavailable().to_owned());
+            }
         }
         cx.notify();
     }
