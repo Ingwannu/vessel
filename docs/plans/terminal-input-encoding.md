@@ -57,3 +57,30 @@ Next: retain an independent oracle from the actual unmodified functions across
 all modifiers/mode combinations, then typed tests and implementation, exact
 changed-crate remote tests/strict checks. Current engine whole remains frozen
 in its separate tree; no readiness or whole-gate result is borrowed from it.
+
+
+## Staged exact source receipt
+
+Exact665288f9 passed51 tests with zero failures/ignores (the existing48
+engine tests plus three input suites) and strict all-target Clippy with warnings
+denied. Runs termscreen-narrow-20261116T024725Z-665288f9 and
+termscreen-query-20261116T024725Z-665288f9 actually compiled/checked this crate.
+All6016 original-key oracle cases and10 original-paste cases are asserted,
+including all16 modifier combinations, app-cursor and Win32 switches, Kitty
+on/off, casing expansion, embedded paste-end markers and exact byte budgets.
+Committed Unicode text and unsupported physical-key refusal are separate tests.
+
+The firstf600 source already passed51/0/0; strict rejected missing error docs,
+unchecked bounded arithmetic, similar names and wildcard error mapping. Those
+original logs are preserved. The correction uses checked lengths/code conversion
+and bounded modifier bit masks, with unchanged oracle inputs/expectations.
+No lint waiver or weakened assertion is introduced. Manifests/dependencies/lock
+and engine/vendor interpretation are unchanged. This final follow-up is docs only.
+
+Public staged API: Key::try_from external key names; Modifiers with typed
+Modifier states; encode_key(Key,Modifiers,InputModes); encode_text(text,
+InputBudget); encode_paste(text,InputModes,InputBudget), returning InputBytes
+or typed InputError. Budget is explicit caller byte admission, not another
+transport limit. This remains a proposed pure producer for the later D1 union:
+no enclosing package gate/review, actual native/CLI caller, clipboard/IME/OS,
+PTY delivery or NodeAuthority activation is claimed.
