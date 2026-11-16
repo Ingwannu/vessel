@@ -738,3 +738,21 @@ label-header-search-export-20261116T075419Z-df5ab068 on the shared root fleet ba
 The host filter's dot follows the connection (Paseo's `HostStatusDot`), so a host
 without the label contract still shows connected. Captures went to the
 coordinator; the listing, filter, editing views came from the capture-only build.
+
+## Pending Save and accessible names (TRACKER 781, 782; visual lane, 2026-11-16)
+
+- Save is drawn by the kit's `button_control`; while a save or a delete check
+  is under way it takes `ButtonConfig::loading()`: the kit's spinner before
+  "Save", faded and without a click, as Paseo's `loading={state.pending}`
+  (any operation). The muted "Updating labels…" / "Checking affected
+  workspaces…" line under the swatches is gone (it stood in for the spinner).
+  The Kit had this loading state already; the earlier note that it had none
+  was wrong.
+- The pencil is a button named "Edit {name}" / "{name} 편집" (new message
+  `labels-edit-named`, Paseo's `workspaceLabels.manage.editLabel`).
+- Each swatch is a radio button named by its colour (`labels-color-*`),
+  checked only when chosen (Paseo's `swatch.tsx` 99-104).
+- Not reproduced: Paseo's `disabled`/`busy` states (GPUI has no setter).
+- Tests: `areas::labels::draw_tests::the_pencil_and_the_swatches_are_named_as_paseos`
+  (GPUI's real accessibility snapshot) and
+  `a_save_under_way_refuses_a_second_save`.

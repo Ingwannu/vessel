@@ -19,10 +19,14 @@
 //!   confirmation shows Paseo's `confirmDialog` content (the question, the
 //!   count) with Cancel and Delete in the footer, in place of the edit view,
 //!   as the kit has no dialog over a dialog.
-//! - Differences: the kit button has no loading state, so a pending save or
-//!   check shows a muted line under the swatches rather than a spinner in
-//!   Save; the pencil's and the swatches' `hitSlop` is not reproduced (Paseo's
-//!   web build has none).
+//! - Pending: a save or a delete check under way shows Paseo's spinner in
+//!   Save (`loading={state.pending}`: any operation), with both footer
+//!   buttons off; no line under the swatches (TRACKER 781).
+//! - Accessibility (TRACKER 782): the pencil is a button named "Edit {name}"
+//!   and each swatch a radio button named by its colour, checked when chosen,
+//!   as Paseo's; the header's close and back are named by the kit.
+//! - Differences: the pencil's and the swatches' `hitSlop` is not reproduced
+//!   (Paseo's web build has none); GPUI has no disabled state to announce.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::dialog::{DialogContent, DialogInput, DialogSize, HeaderBack, dialog};
@@ -201,7 +205,6 @@ fn body(
             Some(target),
         ) => body
             .child(super::form::editor(shell, draft, target, tokens, cx))
-            .children(pending(shell, tokens))
             .children(errors(shell, host, tokens)),
         (ManagerState::Confirming { count, .. }, Some(_)) => body
             .child(super::form::confirmation(shell, *count))
@@ -238,7 +241,11 @@ fn listing(
         list = list.child(muted(words.empty(), tokens));
     }
     for label in labels {
-        list = list.child(row(host, label, enabled, narrow, tokens, cx));
+        // The pencil's name (Paseo's `workspaceLabels.manage.editLabel`).
+        let edit_name = words
+            .edit_named(label.name.as_str())
+            .unwrap_or_else(|_| words.edit().to_owned());
+        list = list.child(row(host, label, edit_name, enabled, narrow, tokens, cx));
     }
     body.when(super::host_filter::shown(state), |body| {
         body.child(super::host_filter::trigger(shell, tokens, cx))
@@ -258,6 +265,7 @@ fn listing(
 fn row(
     host: &Host,
     label: &Label,
+    edit_name: String,
     enabled: bool,
     narrow: bool,
     tokens: &Tokens,
@@ -276,6 +284,9 @@ fn row(
             let name = name.clone();
             move || format!("label-edit-{name}")
         })
+        // Paseo: `accessibilityRole="button"`, "Edit {name}".
+        .role(gpui::Role::Button)
+        .aria_label(edit_name)
         .flex()
         .flex_none()
         .items_center()
@@ -349,19 +360,6 @@ impl Shell {
         }
         self.settle_labels(cx);
         cx.notify();
-    }
-}
-
-/// A save or a check under way (in place of Paseo's spinner in Save).
-fn pending(shell: &Shell, tokens: &Tokens) -> Option<Div> {
-    let words = shell.words.labels();
-    match shell.areas.labels.manager.state() {
-        ManagerState::Saving { .. } => Some(muted(words.pending(), tokens)),
-        ManagerState::Inspecting { .. } => Some(muted(words.inspecting(), tokens)),
-        ManagerState::Listing
-        | ManagerState::Editing(_)
-        | ManagerState::Confirming { .. }
-        | ManagerState::Deleting { .. } => None,
     }
 }
 

@@ -1,6 +1,7 @@
 //! The manager body as Paseo's: one rail of rows with the pencil at its end,
 //! the host filter only with several hosts, the edit view's header back,
-//! swatch row and footer, and no focus taken by the search on open.
+//! swatch row and footer, no focus taken by the search on open, the
+//! pencil's and swatches' accessible names, and a pending Save.
 use super::*;
 use gpui::{Modifiers, TestAppContext, VisualTestContext, px};
 use vessel_app_view::{
@@ -169,4 +170,72 @@ fn the_pencil_opens_the_edit_view_with_header_back_swatches_and_footer(cx: &mut 
         ));
     });
     assert!(cx.debug_bounds("dialog-header-search").is_some());
+}
+
+/// GPUI's real accessibility snapshot, read only for the names below; no raw
+/// snapshot is printed.
+fn snapshot(cx: &mut VisualTestContext) -> String {
+    cx.update(|window, _| window.debug_a11y_tree_json().unwrap())
+}
+
+#[gpui::test]
+fn the_pencil_and_the_swatches_are_named_as_paseos(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, &["fixture"]);
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    shell.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    // The pencil: a button named "Edit {name}".
+    let listing = snapshot(cx);
+    assert!(listing.contains(r#""label": "Edit Ready""#));
+    assert!(listing.contains(r#""label": "Edit Blocked""#));
+    let pencil = cx.debug_bounds("label-edit-Ready").unwrap();
+    cx.simulate_click(pencil.center(), Modifiers::none());
+    cx.run_until_parked();
+    // Ten radio swatches named by colour; only the chosen one is checked.
+    let editing = snapshot(cx);
+    assert_eq!(editing.matches(r#""role": "RadioButton""#).count(), 10);
+    assert!(editing.contains(r#""label": "Violet""#));
+    assert!(editing.contains(r#""label": "Blue""#));
+    assert_eq!(editing.matches(r#""toggled": "True""#).count(), 1);
+    assert_eq!(editing.matches(r#""toggled": "False""#).count(), 9);
+}
+
+#[gpui::test]
+fn a_save_under_way_refuses_a_second_save(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, &["fixture"]);
+    let pencil = cx.debug_bounds("label-edit-Ready").unwrap();
+    cx.simulate_click(pencil.center(), Modifiers::none());
+    cx.run_until_parked();
+    let blue = cx.debug_bounds("label-swatch-Blue").unwrap();
+    cx.simulate_click(blue.center(), Modifiers::none());
+    cx.run_until_parked();
+    shell.update(cx, |shell, cx| {
+        let state = &mut shell.areas.labels;
+        let catalog = state.hosts.first().unwrap().catalog.clone();
+        let ticket = vessel_app_view::labels::Tickets::default().issue().unwrap();
+        state
+            .manager
+            .save(HostState::Online, &catalog, ticket)
+            .unwrap();
+        cx.notify();
+    });
+    cx.run_until_parked();
+    // Save keeps its place at the footer's end while pending; a press on it
+    // starts nothing (the kit's loading button attaches no click).
+    let footer = cx.debug_bounds("labels-footer").unwrap();
+    let end = gpui::point(
+        px(f32::from(footer.right()).mul_add(1.0, -20.0)),
+        footer.center().y,
+    );
+    cx.simulate_click(end, Modifiers::none());
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _cx| {
+        assert!(matches!(
+            shell.areas.labels.manager.state(),
+            ManagerState::Saving { .. }
+        ));
+        assert!(shell.areas.labels.error.is_none());
+    });
 }

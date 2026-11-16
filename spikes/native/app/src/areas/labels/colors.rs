@@ -69,7 +69,7 @@ pub(super) fn choices(
             cx.notify();
         }
     });
-    choices_for(selected, access(shell), &on_choose, tokens, cx)
+    choices_for(shell, selected, access(shell), &on_choose, tokens, cx)
 }
 
 pub(super) type ColorChoice = std::rc::Rc<dyn Fn(&mut Shell, Color, &mut Context<'_, Shell>)>;
@@ -77,6 +77,7 @@ pub(super) type ColorChoice = std::rc::Rc<dyn Fn(&mut Shell, Color, &mut Context
 /// Both label workflows use this one swatch row (Paseo's
 /// `WorkspaceLabelSwatchRow`).
 pub(super) fn choices_for(
+    shell: &Shell,
     selected: Color,
     editability: EditAccess,
     on_choose: &ColorChoice,
@@ -95,6 +96,15 @@ pub(super) fn choices_for(
             div()
                 .id(ElementId::Name(format!("label-swatch-{color:?}").into()))
                 .debug_selector(move || format!("label-swatch-{color:?}"))
+                // Paseo's swatch: a radio named by its colour, checked when
+                // chosen (`swatch.tsx` 99-104).
+                .role(gpui::Role::RadioButton)
+                .aria_label(color_name(shell, color))
+                .aria_toggled(if color == selected {
+                    gpui::Toggled::True
+                } else {
+                    gpui::Toggled::False
+                })
                 .flex_none()
                 .size(px(SWATCH_SIZE))
                 .rounded_full()
@@ -110,6 +120,24 @@ pub(super) fn choices_for(
                         }))
                 })
         }))
+}
+
+/// The colour's name (Paseo's `workspaceLabelColorName`).
+fn color_name(shell: &Shell, color: Color) -> String {
+    let words = shell.words.labels();
+    match color {
+        Color::Violet => words.color_violet(),
+        Color::Sky => words.color_sky(),
+        Color::Emerald => words.color_emerald(),
+        Color::Orange => words.color_orange(),
+        Color::Pink => words.color_pink(),
+        Color::Indigo => words.color_indigo(),
+        Color::Teal => words.color_teal(),
+        Color::Red => words.color_red(),
+        Color::Amber => words.color_amber(),
+        Color::Blue => words.color_blue(),
+    }
+    .to_owned()
 }
 
 fn access(shell: &Shell) -> EditAccess {

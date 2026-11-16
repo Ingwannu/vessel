@@ -9,7 +9,10 @@ use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
+use vessel_app_kit::{
+    ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
+    button_control, button_with_kind,
+};
 use vessel_app_view::{
     labels::{Count, Draft, Host, ManagerState},
     localization::Number,
@@ -88,11 +91,13 @@ pub(super) fn footer(
                 online && current.is_some_and(|label| draft.replacement(label).is_some());
             let can_delete = online && current.is_some();
             vec![edit_actions(
-                shell, target, can_save, can_delete, tokens, cx,
+                shell, target, can_save, can_delete, false, tokens, cx,
             )]
         }
+        // Paseo's `loading={state.pending}`: any operation under way spins in
+        // Save, a delete check too.
         ManagerState::Saving { .. } | ManagerState::Inspecting { .. } => {
-            vec![edit_actions(shell, target, false, false, tokens, cx)]
+            vec![edit_actions(shell, target, false, false, true, tokens, cx)]
         }
         ManagerState::Confirming { ticket, .. } => {
             confirm_actions(shell, target, *ticket, online, tokens, cx)
@@ -101,12 +106,14 @@ pub(super) fn footer(
 }
 
 /// Paseo's edit footer: one row, Delete (outline) at the start and Save at
-/// the end (`justifyContent: "space-between"`).
+/// the end (`justifyContent: "space-between"`). `pending`: Save shows the
+/// kit's loading state (the spinner before its word, off).
 fn edit_actions(
     shell: &Shell,
     target: &Target,
     can_save: bool,
     can_delete: bool,
+    pending: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -124,20 +131,23 @@ fn edit_actions(
             shell.label_action(&action, cx);
         }))
     });
-    let save = button_with_kind(
-        "labels-save",
-        words.save(),
+    let config = ButtonConfig::new(
         ButtonKind::Primary,
         enabled(can_save),
+        ControlSizing::Pointer,
+    );
+    // The kit's `Button` attaches the click only while enabled and not pending.
+    let action = Action::Save(target.clone());
+    let save = button_control(
+        "labels-save",
+        ButtonContent::Label(words.save().into()),
+        if pending { config.loading() } else { config },
         tokens,
     )
     .min_w(px(SAVE_MIN))
-    .when(can_save, |button| {
-        let action = Action::Save(target.clone());
-        button.on_click(cx.listener(move |shell, _, _window, cx| {
-            shell.label_action(&action, cx);
-        }))
-    });
+    .on_click(cx.listener(move |shell, _, _window, cx| {
+        shell.label_action(&action, cx);
+    }));
     div()
         .debug_selector(|| "labels-footer".to_owned())
         .flex_1()
