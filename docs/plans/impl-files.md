@@ -1,11 +1,11 @@
 # File panels callers (ADR 0105)
 
-Status: A1 (live watch of the shown file) implemented on package base 14.9;
-A2 (Explorer Duplicate) and A3 (Explorer Download) follow. The node packet
+Status: A1 (live watch of the shown file) and A2 (Explorer Duplicate)
+implemented on package base 14.9; A3 (Explorer Download) follows. The node packet
 assigns ADR 0083's five methods one protocol number (drafted as 26) at its
 node-line merge; until that number reaches this line every caller here keeps
-its earlier behaviour (`view::workspace::watch::offered` is false while
-`FILE_PANELS_PROTOCOL` is None or the machine is older).
+its earlier behaviour (`view::workspace::file_panels::offered` is false
+while `FILE_PANELS_PROTOCOL` is None or the machine is older).
 
 ## Paseo reference (0.15.4)
 
@@ -36,6 +36,21 @@ its earlier behaviour (`view::workspace::watch::offered` is false while
 - `link::workspace`: `FileAsk::Observe` and `Answer::Observed` over the
   client SDK's `observe_workspace_file` (its 70 s deadline maps to
   `Problem::Gone`).
+
+## A2: Explorer Duplicate
+
+- Paseo: `components/file-actions-menu.tsx:214-222` puts Duplicate in the
+  manage group after Rename, only when `fsEntryDuplicateEnabled`;
+  `hooks/use-file-explorer-actions.ts:267-282` lists the parent again after
+  a success; `components/file-explorer-pane.tsx:786-803` selects the copy or
+  shows `duplicateFailed`.
+- Built: `Action::Duplicate` in group 3 after Rename, in the menu only when
+  the root's machine has the file panels' calls; `FileAsk::Duplicate` over
+  the SDK's `duplicate_workspace_entry`; on success the copy's folder is
+  listed again; a refusal shows the machine's reason under the existing
+  "The machine did not make this change" note, as rename and delete do.
+  Words: Duplicate / 복제 (Paseo's `fileActions.duplicate`).
+- Difference: this tree has no selected row, so the copy is not selected.
 
 ## Differences from Paseo
 

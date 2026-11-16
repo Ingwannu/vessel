@@ -1,7 +1,7 @@
 //! What a workspace screen asks: one enum per subject, each variant
 //! holding the wire's own request.
 
-use vessel_proto::workspace::panel_files::ObserveFile;
+use vessel_proto::workspace::panel_files::{DuplicateFileEntry, ObserveFile};
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateDir, DeletePath, Discard, DropSnapshot, Fetch,
     FileVersion, FindFiles, GetChanges, GetFileDiff, GetProjectCommands, InitProject, ListDir,
@@ -103,6 +103,8 @@ pub enum FileAsk {
     Path(PathChange),
     /// `file.observe` (protocol 26, ADR 0105): the shown file's next state.
     Observe(ObserveFile),
+    /// `file.duplicate` (protocol 26, ADR 0105): a copy beside an entry.
+    Duplicate(DuplicateFileEntry),
 }
 
 /// A git write (`git.stage` to `git.stash`).

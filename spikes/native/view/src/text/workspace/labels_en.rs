@@ -135,6 +135,7 @@ pub const EN: Labels = Labels {
     copy_relative_path: "Copy relative path",
     add_to_chat: "Add to chat",
     rename: "Rename",
+    duplicate: "Duplicate",
     delete: "Delete",
     delete_file_title: "Delete this file?",
     delete_folder_title: "Delete this folder?",

@@ -179,6 +179,7 @@ impl Shell {
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             Answer::Observed { ask, result } => self.file_observed(&ask, result, cx),
+            Answer::Duplicated { ask, result } => self.entry_duplicated(&ask, result),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
                 // An unchanged status asks for no frame (track G1's

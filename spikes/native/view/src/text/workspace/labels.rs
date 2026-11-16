@@ -156,6 +156,8 @@ pub struct Labels {
     pub add_to_chat: &'static str,
     /// A tree entry's menu.
     pub rename: &'static str,
+    /// A tree entry's menu: a copy beside it (Paseo's `fileActions.duplicate`).
+    pub duplicate: &'static str,
     /// A tree entry's menu, and the delete dialog's button.
     pub delete: &'static str,
     /// The delete dialog's title for a file.
@@ -164,7 +166,7 @@ pub struct Labels {
     pub delete_folder_title: &'static str,
     /// The delete dialog's sentence; the entry's name is shown under it.
     pub delete_message: &'static str,
-    /// Over the Files tree when the machine refused a new entry, a rename or a delete; its reason is shown under it.
+    /// Over the Files tree when the machine refused a new entry, a rename, a duplicate or a delete; its reason is shown under it.
     pub change_refused: &'static str,
     /// The file editor's conflict bar: the file changed on disk while it was edited (Paseo's `changedOnDisk`).
     pub editor_changed_on_disk: &'static str,

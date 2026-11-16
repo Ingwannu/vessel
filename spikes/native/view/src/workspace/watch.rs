@@ -27,19 +27,11 @@
 
 use std::time::{Duration, Instant};
 
-use vessel_proto::ProtocolVersion;
-use vessel_proto::workspace::panel_files::{FILE_PANELS_PROTOCOL, ObserveFile, ObservedFile};
+use vessel_proto::workspace::panel_files::{ObserveFile, ObservedFile};
 use vessel_proto::workspace::{ContentHash, RelPath, WorkspaceRoot};
 
 use super::pace;
 use super::problem::Problem;
-
-/// Whether a machine speaking `protocol` (`None`: not connected) can be
-/// asked `file.observe`; the panel does not watch on any other.
-#[must_use]
-pub fn offered(protocol: Option<ProtocolVersion>) -> bool {
-    matches!((protocol, FILE_PANELS_PROTOCOL), (Some(speaks), Some(needs)) if speaks >= needs)
-}
 
 /// Where the watch is.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

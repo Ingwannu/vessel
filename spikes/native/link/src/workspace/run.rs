@@ -157,6 +157,13 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
                 .map_err(|error| file_problem(&error)),
             ask,
         },
+        FileAsk::Duplicate(ask) => Answer::Duplicated {
+            result: client
+                .duplicate_workspace_entry(ask.clone())
+                .await
+                .map_err(|error| file_problem(&error)),
+            ask,
+        },
     }
 }
 

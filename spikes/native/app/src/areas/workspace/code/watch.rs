@@ -20,8 +20,9 @@ use std::time::{Duration, Instant};
 
 use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::{Ask, FileAsk};
+use vessel_app_view::workspace::file_panels::offered;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::watch::{Answered, offered};
+use vessel_app_view::workspace::watch::Answered;
 use vessel_proto::workspace::panel_files::{ObserveFile, ObservedFile};
 use vessel_proto::workspace::{ContentHash, ReadFile, RelPath};
 

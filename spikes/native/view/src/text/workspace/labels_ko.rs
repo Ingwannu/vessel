@@ -135,6 +135,7 @@ pub const KO: Labels = Labels {
     copy_relative_path: "상대 경로 복사",
     add_to_chat: "채팅에 추가",
     rename: "이름 바꾸기",
+    duplicate: "복제",
     delete: "삭제",
     delete_file_title: "파일을 삭제할까요?",
     delete_folder_title: "폴더를 삭제할까요?",

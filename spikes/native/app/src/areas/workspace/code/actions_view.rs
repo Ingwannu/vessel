@@ -107,6 +107,7 @@ pub(super) fn overlays(
                     Action::CopyRelativePath => labels.copy_relative_path,
                     Action::AddToChat => labels.add_to_chat,
                     Action::Rename => labels.rename,
+                    Action::Duplicate => labels.duplicate,
                     Action::Delete => labels.delete,
                 };
                 let item = if *action == Action::Delete {

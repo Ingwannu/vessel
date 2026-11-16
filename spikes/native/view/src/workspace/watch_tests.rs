@@ -2,9 +2,9 @@ use std::time::{Duration, Instant};
 
 use vessel_proto::workspace::panel_files::{FileRevision, FileSize, ObservedFile};
 use vessel_proto::workspace::{ContentHash, RelPath, WorkspaceRoot};
-use vessel_proto::{ErrorCode, ProjectId, ProtocolVersion};
+use vessel_proto::{ErrorCode, ProjectId};
 
-use super::{Answered, Watch, offered};
+use super::{Answered, Watch};
 use crate::workspace::pace::QUIET;
 use crate::workspace::problem::Problem;
 
@@ -41,22 +41,6 @@ fn anchored(root: WorkspaceRoot, first: ObservedFile, shown: Option<&ContentHash
     };
     watch.rested(rest);
     watch
-}
-
-#[test]
-fn only_a_machine_speaking_the_file_panels_protocol_is_watched() {
-    assert!(!offered(None));
-    let needs = vessel_proto::workspace::panel_files::FILE_PANELS_PROTOCOL;
-    assert_eq!(
-        offered(Some(vessel_proto::PROTOCOL_VERSION)),
-        needs.is_some()
-    );
-    if let Some(needs) = needs {
-        assert!(offered(Some(needs)));
-        assert!(!offered(Some(ProtocolVersion::new(
-            needs.get().saturating_sub(1)
-        ))));
-    }
 }
 
 #[test]
