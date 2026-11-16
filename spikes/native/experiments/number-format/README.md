@@ -20,6 +20,16 @@ startup, and have not compiled. Normal View checks cannot cover unlinked
 experiment files. No production public API or backend choice follows from
 these sources.
 
+`fluent_hook_probe.rs` is a companion integration-test input for the patched
+upstream crate, not an app module. The controlled runner must register it as
+an explicit upstream test target if the archive disables test autodiscovery.
+Its two memoizer tests check actual selector dispatch, nested option merging,
+literal/category order, ordinary numbers and default non-numeric custom
+behavior. Its category mock deliberately contains no language rules: passing
+it would prove hook mechanics, not exact plural arithmetic. It is also
+uncompiled at present. The earlier missing selector-loop gate would fail its
+positive direct-selection assertion.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
