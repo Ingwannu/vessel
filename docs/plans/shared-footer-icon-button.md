@@ -60,3 +60,18 @@ profile tests, Toolbar and icon_chrome files are unchanged. Native tests for
 caption geometry/wrap, stationary pending/shown props and Footer hit/key/timing
 are installed, not executed. Framework/OS accessibility and real consumer
 first-use pixels are unverified; primitive254 is not this wrapper's result.
+
+## Quota-stop resume checkpoint
+
+Committed WIP source331a87cb43a3caeb2c743ffb1e06a5be1897cb49 is based on
+announced b54abbdc. No Cargo run was submitted for it. All compilation, strict,
+runtime, framework/OS accessibility, App dispatcher integration, first-use
+pixels and V1/lead receiving approval remain UNVERIFIED. No Usage/Settings
+registration exists. W5/G2 must keep waiting; do not consume this as passed.
+
+The only outstanding S2 run is placement025223/3958, not this control. Before
+any next-session run inspect that existing state and the Main track resume
+file docs/plans/wp-f4-sidebar-resume.md on backend/m12-wp-sidebar. Main receiving
+strict and its one runtime replacement remain ahead. Latest announced14.4 is
+intentionally unmerged during the stop. Start no new merge, control or Cargo
+until resumed. All current source is committed; no local app/fleet/display ran.
