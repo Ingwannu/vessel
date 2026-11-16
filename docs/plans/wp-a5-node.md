@@ -580,5 +580,7 @@ that does not justify treating persisted/imported detached facts as impossible.
 The gate57 node base is received by merge, including the canonical same-writer
 membership decoder. This does not implement workspace mutations or supply the
 still-pending lifecycle clock. Queued earlier immutable checks retain their
-original source scope. The read-admission lifetime return remains open pending
-the checked transferable marking lease and the consumer regression results.
+original source scope. The transferable marking lease now has scoped V3 and
+Rust-gate acceptance; its normal integrator receiving gate and announcement
+remain required before import. The read-admission lifetime return remains open
+pending that receiving head, the consumer fix and its actual regression results.
