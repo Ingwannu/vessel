@@ -1,5 +1,31 @@
 # Vessel native app
 
+## 0.0.0.0.22
+
+에이전트가 남긴 예전 대화를 가져오는 창이 생겼습니다. 목록을 검색해 고르면 Vessel에서 그 대화를 이어 갑니다. 창을 다시 열거나 범위를 바꾼 뒤에 늦게 온 응답이 새 목록이나 선택을 바꾸지 않습니다.
+좁은 창에서 사이드바: 폭 600에 탐색기가 없으면 사이드바가 폭 200으로 붙고 내용이 나머지 400을 씁니다. 사이드바를 숨기면 사라지고, 보이게 하면 아래쪽 바닥글도 함께 보입니다.
+좁은 창에서 위로 열리는 에이전트 시트의 본문을 보통 화면과 같은 방식으로 그립니다.
+선택 목록도 메뉴처럼, 앞서 열렸던 목록으로 보낸 키나 바깥 클릭이 새로 연 목록을 바꾸지 않습니다.
+기기 설정에서 이름 바꾸기를 누르면 이름이 선택되고, 저장하는 동안 고친 내용이 유지됩니다. 이름이 비어 있으면 바꿀 수 없고, 저장이 거절된 뒤 내용을 고치면 거절 표시가 사라집니다.
+설정의 일반 항목(라벨, 안내 문구, 저장 거절 알림)이 앱 언어로 나옵니다.
+노드 프로토콜 25까지 알아듣습니다(세션 목록 선택 등). 프로토콜 2 이상의 노드와 연결됩니다.
+0.0.0.0.21에서 이 빌드로 올 때 처음으로 압축본(Windows 약 21MB, Linux 약 31MB)을 받고, 다운로드가 끊기면 받은 데부터 이어 받습니다.
+알려진 문제: 좁은 창(폭 600)에서 입력창 아래의 모델·모드 선택 이름이 많이 잘려 보입니다.
+알려진 한계: 새 공용 컨트롤(툴바 버튼, 대화상자 머리글 동작, 검색 입력란, 패널 아이콘)은 들어왔지만 아직 어느 화면에서도 쓰지 않습니다. 창 확대·축소 기능이 GPUI에 들어왔지만 앱에서 쓰는 곳은 아직 없습니다(확대 상태의 입력기와 창 메뉴는 미확인). 기록 가져오기 창은 처음 쓸 때의 안내 팝업과 자동 열기가 아직 없습니다. 탐색기 패널은 아직 꺼져 있습니다. 명령줄과 노드는 아직 앱 꾸러미에 들어 있지 않습니다.
+화면으로 확인하지 못한 것: Windows 빌드 실행, Windows에서의 이어받기, 기록 가져오기 창에서 실제로 대화를 가져와 이어 가기(창 열기·목록 보기·닫기까지만 확인), 대화상자 위에 열린 메뉴에서의 Esc.
+
+There is a window for importing an agent's earlier conversations: search the list, pick one, and Vessel continues it. A late answer no longer changes the new list or selection after the window is reopened or its scope changes.
+The sidebar at narrow widths: at a width of 600 with no Explorer, the sidebar docks at 200 and the content takes the remaining 400. Hiding the sidebar removes it; showing it brings its footer too.
+The agent sheet that opens at the top of a narrow window draws its body the same way as the full view.
+Pickers, like menus: keys or an outside click sent to a picker that was already replaced no longer change the newer one.
+Machine settings: Rename selects the name and keeps your edits while saving. A blank name cannot be saved, and a refused save's notice clears once the draft changes.
+The General settings (labels, hints, refusal notices) appear in the app's language.
+The app understands node protocol 25 (session list selection and more) and still connects to nodes from protocol 2.
+Coming from 0.0.0.0.21, this is the first update downloaded as a compressed copy (about 21 MB on Windows, 31 MB on Linux), resumed from where it stopped if the download breaks off.
+Known problems: in a narrow window (600 wide), the model and mode names under the composer are cut short.
+Known limits: new shared controls (toolbar button, dialog header actions, search field, panel icons) are in place but not used on any screen yet. Window zoom is in GPUI, but nothing in the app uses it yet (input methods and the window menu at a zoom other than 1 are unchecked). The import window has no first-use popup or automatic opening yet. The Explorer panel is still off. The command line and the node are not in the app's package yet.
+Not checked on screen: running the Windows build, resuming on Windows, actually importing and continuing a conversation from the import window (opening, listing and closing it were checked), Esc in a menu above a dialog.
+
 ## 0.0.0.0.21
 
 메뉴를 다시 열거나 대화상자 위에 메뉴를 겹쳐 연 뒤에도, 앞서 열렸던 메뉴로 보낸 키가 새 메뉴를 바꾸지 않습니다. 대화상자 안에서 연 메뉴를 Esc로 닫으면 그 메뉴만 닫히고 대화상자는 그대로 남습니다.

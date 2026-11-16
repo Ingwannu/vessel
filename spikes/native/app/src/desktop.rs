@@ -10,7 +10,7 @@ mod windows;
 
 use crate::host_windows::{WindowClose, WindowRecord};
 use crate::shell::Shell;
-use gpui::{App, Global, WeakEntity};
+use gpui::{App, Global};
 use std::sync::Arc;
 use vessel_app_link::desktop::{
     environment::ShellEnvironment, preferences::Coordinator, store::Store,

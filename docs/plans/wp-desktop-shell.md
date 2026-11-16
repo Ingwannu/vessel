@@ -29,8 +29,10 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line `bb5e5541` (base11, native1600/0/2),
-merged at `0d4eca5f`. Earlier immutable runs retain their base9/base10 unions.
+latest application base is package line `2ebeedf9` (base13, native1614/0/2),
+merged at `e1cbf82d`. Earlier immutable runs retain their base9/base10 unions. The base13 body split
+retains both lifecycle render children and the private Open type; the session
+size record shrank660 to608 without an allowance increase.
 It contains the reviewed shared popover,
 title actions, pane/query seams, attention
 values and picker admission. The link's existing SavePrefs fallback was extracted
@@ -420,7 +422,7 @@ and 85%/90% fitting caps remain unchanged. Captured open cycles protect close an
 reveal callbacks; actual close alone acknowledges ReturnFocus and clears snap
 state. Configured bounds and snap/scroll handoff have regression tests.
 
-The complete available release-owner notes 0.4 through 0.21 are bundled newest first,
+The complete available release-owner notes 0.4 through 0.22 are bundled newest first,
 including historical known problems/unchecked flows and Korean-only early notes.
 CHANGELOG.sources retains source hashes. Notes19/20 additionally match the supplied
 signed-manifest hashes: 98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae
@@ -429,9 +431,11 @@ Release21 was published on2026-11-15 at14:02:47Z. Its exact2356-byte owner text
 was checked against signed-manifest hash
 3e610b0d0dd856bc970a10ae6bfdd2d74124d8ddb96c1aa6523aa8ecca5fb00c
 and added without changing any older note bytes or dropping its known-problem /
-not-checked lines. Running signed-feed notes supplement that history. No published Vessel changelog
+not-checked lines. Published release22 (2026-11-15T19:35:42Z) adds the exact4341-byte
+text at SHA2561d145931fa8af863e94feaa032c1b3307026280b838dc9c748d3207a0d1729ef,
+including its Known limits line; all earlier note bytes remain unchanged. Running signed-feed notes supplement that history. No published Vessel changelog
 endpoint exists; never fetch Paseo releases. Reveal is 1 immediately, 5 after yield,
-then 10 more; 18 real releases make the paging controls meaningful.
+then 10 more; 19 real releases make the paging controls meaningful.
 
 ## Remaining integrations and deliberate differences
 
@@ -454,6 +458,7 @@ rustfmt and the size/token scripts are the only local source checks.
 | Shared adaptive popover/configuration, run143258Z | 7730d570; selected fonts/fmt/quality/strict/test all0, raw1444/0/2, Kit193 including13 control cases; V1 row233 and announced line2b806402 | No E3 policy, OS, consumer or Linux focused-field F5 approval. |
 | Shared header actions, run153102Z | dd7ef7ec; all selected steps0, raw1447/0/2, Kit196 including3 header cases; V1 row249 and announced linea7aab9d6 | Caller owns stale-action authority; headless Dark fixtures do not prove both-theme OS visuals. |
 | Unit21, run160356Z | ec90c53f;1420/0/2: App106/0/2, Kit197, Link142, View975 | Delayed writer, state fence, initial preference/cache and edit-recipient tests passed; later two-window and zoom changes excluded. |
+| Library strict26, run173910Z | b5cf516a; all-target Kit/Link/View Clippy0, actual changed Kit/Link checking | App and later enum/base13 source excluded. |
 | Library strict22, run160743Z | ec90c53f; all-target Kit/Link/View Clippy0 | App excluded. |
 | App24, run170102Z | 7d70dc15;118/0/2 including real two-window prefer_with_receipt, physical save failure followed by another window's success before observation |13 pending owner API warnings; no App strict or later base9/zoom proof. |
 | Unit25, run173910Z | b5cf516a;1476/0/2: App127/0/2, Kit215, Link143, View991 | Actual production zoom/DPI/bounds, both limits, extra window, queued root replacement and legacy store migration passed; later close-admission hardening excluded. |
@@ -461,9 +466,12 @@ rustfmt and the size/token scripts are the only local source checks.
 | Windows5, run173954Z | b5cf516a; fonts0 and locked MSVC all-target App check0, including actual changed Kit/Link/App Checking | Normal/test warnings22/13. This compiles the production zoom and store migration, not later close/host enumeration/base10 changes; no Windows execution, IME or OS menu claim. |
 | Close-admission App27 | a006a921; stopped before tests with E0502 in registered_probe | Fixture borrowed the registry before capturing its Shell. The receiving repair uses the real shared register operation, without changing assertions. |
 
-Library strict26 on b5cf516a is running independently. App28 on
-c19762c8 is the first submitted real host/factory/enumeration/check-token union;
-its outcome is pending and it predates the subsequent announced base10 merge. No App
+App29 on exact9fa9dc4f passed140/0/2, including all three deferred close/root/check
+identity tests, complete enumeration and the real current-root/missing-Client
+persistence fence. Its13 warnings include an unused WeakEntity import removed
+afterward and unconsumed owner APIs; it is not App strict or a C5 domain verdict.
+The obsolete App28/c197 and Host3/dc059 queued runs were cancelled143 before
+execution, with records retained. App29 predates the base11/base13 receiving union. No App
 strict result, final whole native gate, native-build/export, inspected capture
 set or V4 package verdict exists for this E3 tree. Pending owner consumers are
 not hidden by lint allowances or fabricated registrations.
@@ -507,8 +515,10 @@ is missing, duplicated, expired or has replaced its registered root. desktop::sh
 delegates to it and requires App-level mutable access after all window/Shell
 borrows end. The preference currentness fence uses that same enumeration and
 also refuses a current Shell without its canonical Client. A partial weak list
-can no longer grant global admission. New direct/wrapped/unknown/root-replacement
-and real preference-fence regressions are installed but not executed yet. W15's
+can no longer grant global admission. The direct/wrapped/unknown/root-replacement and real preference-fence regressions
+passed in exact9fa9 App29. The tiny staged host producer e262 separately passed
+all selected steps/raw1491/0/2 and V1 row284; only actual receiving callers remove
+its two staging guards. Neither proof grants C5 document/node authority. W15's
 document guard must refuse this result, not omit the successor; its actual
 consumer and the receiving source/runtime checks remain required.
 
@@ -521,7 +531,7 @@ tracker rows or go to the release lead.
 The old read-only protocol23 root binaries were reapproved only through dd13/base6
 for windows/menus/changelog/credential-free navigation, with no same-commit claim.
 They omit service-port/allocation approval, strict decode failure, session.delete
-handover and pending-label admission. The current base10 uses protocol25: obtain
+handover and pending-label admission. The current base13 uses protocol25: obtain
 fresh lead approval before any fleet capture. Desktop does not rebuild shared
 root binaries, launch real agents, use live preview ports or open real browsers.
 
