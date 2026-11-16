@@ -1427,3 +1427,45 @@ uses a controlled regression from the confirmed cause, not repeated
 unexplained browser runs. This investigation precedes the next usage-page
 implementation; the new account-report contract remains gated on its
 reviewed, assigned and merged node source.
+
+
+## F3 account usage: presentation skeleton
+
+The prior auth timeout correction is integrated; its final bounded runtime
+review uses the existing integrated whole with the named open `/new`
+intermittent. The next assigned web package is the Usage parity consumer.
+Its report/inspect/source-consent calls are not yet reviewed, assigned and
+merged. They remain inactive; no provisional protocol number is invented.
+
+The first implementation is pure presentation under `data/account-usage`:
+finite clamped percentage, independent used/remaining preference, reported
+source tone, separately formatted balance units, validated instants, reset
+versus exhaustion states, and successful snapshot age. Source references and
+reuse decisions are recorded in ADR 0075. The files do not define a wire DTO,
+register a UI, read credentials, fetch a provider or infer account association.
+Tests cover unknown versus zero, finite bounds, source thresholds, locale
+formatting, two-unit floor/boundaries and retained past risk. Their execution
+is recorded at the implementation checkpoint; no feature gate or visual pass
+is claimed by this skeleton.
+
+After the assigned source is ready, add its typed adapter and a selection-owned
+bounded reader, preserving exact machine/session/report binding. Reuse the
+existing Settings and kit controls for cards, source consent, modal/sidebar
+summary and session quota notice. Cached Read never becomes vendor polling;
+Refresh is explicit and distinct from a foreign cached Refreshing snapshot.
+Global Off clears external-account presentation while reported ledger/context
+stays available. Host errors retain complete data when present; agent errors
+hide partial account data. A per-report failure retains the original successful
+timestamp and does not retain past risk or summary eligibility.
+
+Use the managed real-node fixture after exporting the exact reviewed, assigned,
+merged combined source. Seed a success before holding its actual reader; always
+release the synthetic hold before shutdown. No browser-authored quota payload,
+old-backend/new-page mixture, real sign-in or vendor probe substitutes for this.
+The one package whole and affected real-browser matrix come after the consumer
+is complete, not once per small presentation commit.
+
+Initial pure presentation checks: two test files, eleven passing tests; both
+TypeScript configurations and the changed-file ESLint pass. Prettier and the
+diff check pass. These narrow checks compile no Rust and are not the one
+feature-package whole, a screen capture, or a report-consumer runtime test.

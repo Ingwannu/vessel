@@ -220,3 +220,51 @@ verified same-commit managed CLI/node/fake exports, without a local Rust or
 bundle build. The selected source and binary identities match before/after.
 This replaces the earlier narrow-width visual claim only; the plan retains
 the exact execution, provenance limits and next investigation.
+
+
+## F3 account usage presentation boundary
+
+[Decision Log]
+- Purpose: prepare the account quota cards and their sidebar/session views
+  without equating account quota with historical tokens or context occupancy.
+- Existing assets: reuse Fleet, Outcome, Store, Settings and the existing kit.
+  The ledger's `data/usage/facts.ts` expects integer token counters and reports
+  per-field coverage. The context meter owns context occupancy. Neither is an
+  account balance formatter: provider balances can be fractional and carry
+  separate units, while a quota has reset and projected exhaustion facts.
+- Alternatives: broadening the ledger reader would conflate historical profile
+  aggregation with a current account binding. Reusing its integer formatter
+  would reject legitimate fractional balances. Adding a client pricing library
+  would introduce estimates and dependencies that neither contract needs.
+- Choice: small pure modules under `data/account-usage` validate finite paint
+  percentages, preserve independent used/remaining observations and source tone,
+  format each reported amount in its own unit, and model reset, projected
+  exhaustion and successful-snapshot age as separate states. They use standard
+  Intl formatting and the existing dependency set, with no credential, network,
+  account discovery, prices, polling, local persistence or wire declaration.
+- Why: a source's own used and remaining values need not be complementary.
+  Unknown and zero differ. Only a reset state carries an exact reset instant;
+  an exhaustion warning must not accidentally show that instant as the time of
+  exhaustion. Retained past risk is suppressed, as in the reference.
+- Consequences: this is an inactive presentation skeleton. It does not register
+  a screen, issue a pending call or create an account binding. The account
+  report/inspect/source-consent adapter waits for its reviewed, assigned and
+  merged node contract. Unsupported sources get no working-looking action.
+  Agent-reported ledger/context remains independent when external lookup is Off.
+
+Reference: pinned Paseo `usage/model.ts:8–19,209–244`, `format.ts:29–38,48–204`
+and `tone.ts`. The source tone overrides inferred thresholds; the fallback is
+muted below 70, warning from 70 through 90, danger strictly above 90. Amount
+formatting uses USD currency, compact tokens, and two decimal places for other
+units. Following the conservative guard used for ledger token counts, this account
+amount formatter flags values beyond the browser's safe integer range rather
+than printing trustworthy-looking exact digits. This is a stated difference
+from Paseo's amount formatter; it is not a change to ledger cost formatting.
+
+Host query data precedes a host query error in the reference, while an agent
+query error hides its prior/partial list (`model.ts:114–181`). A successful query
+containing a per-report failure is different: it may show the last successful
+values and their original successful timestamp. The eventual reader must keep
+these distinctions and its own request lifetime separate from a cached remote
+Refreshing phase. None of these view states diagnoses a stopped turn or enables
+automatic wait/resume or account switching.
