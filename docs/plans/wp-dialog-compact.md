@@ -36,7 +36,12 @@ replacement of a prior override, and keep legacy fitting90 and snap60/90 intact.
 
 ## Validation status
 
-Source and static preflight only. Ordinary selected fonts/format/quality/Clippy/
-tests, V1 review and lead adoption are required before consumer use. F1 must own
+First ordinary selected run `wp-desktop-dialog-compact-20261116T010904Z-2eab2ef8`
+passed fonts, formatting and quality, then stopped at Clippy's panic-in-result-fn
+rule in all three new tests. No tests ran. The correction uses ordinary unit
+test returns and the workspace's existing permitted unwrap-in-tests policy;
+all product logic and assertions stay unchanged, with no new allowance. The
+receiving source also includes announced base13.1. A corrected ordinary selected
+run, V1 review and lead adoption are required before consumer use. F1 must own
 its actual sheet captures and source comparison; this builder does not qualify
 consumer focus, native OS behavior or visual parity.

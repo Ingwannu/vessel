@@ -4,10 +4,9 @@ use super::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogSize}
 use crate::sheet::snap::{Percentage, SnapPoints};
 
 #[test]
-fn normal_and_wide_accept_source_adaptive_stops_without_copying_desktop_geometry()
--> Result<(), &'static str> {
-    let points = SnapPoints::new(65, 90).ok_or("source adaptive stops must validate")?;
-    let cap = Percentage::new(85).ok_or("desktop height cap must validate")?;
+fn normal_and_wide_accept_source_adaptive_stops_without_copying_desktop_geometry() {
+    let points = SnapPoints::new(65, 90).unwrap();
+    let cap = Percentage::new(85).unwrap();
     for (original, width) in [(DialogSize::Normal, 520), (DialogSize::Wide, 640)] {
         let size = original.with_compact(CompactLayout::Draggable(points));
         assert!(matches!(size, DialogSize::Configured(_)));
@@ -19,21 +18,19 @@ fn normal_and_wide_accept_source_adaptive_stops_without_copying_desktop_geometry
         assert_eq!(points.compact().value(), 65);
         assert_eq!(points.expanded().value(), 90);
     }
-    Ok(())
 }
 
 #[test]
-fn configured_exact_height_and_caller_spacing_survive_compact_replacement()
--> Result<(), &'static str> {
-    let cap = Percentage::new(85).ok_or("authored exact height must validate")?;
+fn configured_exact_height_and_caller_spacing_survive_compact_replacement() {
+    let cap = Percentage::new(85).unwrap();
     let prior = DialogLayout::new(
         620,
         DesktopHeight::Exact(cap),
         CompactLayout::Fixed(Percentage::FULL),
     )
-    .ok_or("authored width must validate")?
+    .unwrap()
     .with_body_spacing(BodySpacing::Caller);
-    let points = SnapPoints::new(65, 90).ok_or("source adaptive stops must validate")?;
+    let points = SnapPoints::new(65, 90).unwrap();
     let first = DialogSize::Configured(prior).with_compact(CompactLayout::Draggable(points));
     let next = first.with_compact(CompactLayout::Fixed(cap)).layout();
     assert_eq!(first.layout().width().get(), 620);
@@ -44,15 +41,13 @@ fn configured_exact_height_and_caller_spacing_survive_compact_replacement()
     assert_eq!(next.height(), prior.height());
     assert_eq!(next.body_spacing(), BodySpacing::Caller);
     assert_eq!(next.compact(), CompactLayout::Fixed(cap));
-    Ok(())
 }
 
 #[test]
-fn compact_opt_in_leaves_unconfigured_dialog_and_snap_defaults_unchanged()
--> Result<(), &'static str> {
-    let points = SnapPoints::new(65, 90).ok_or("source adaptive stops must validate")?;
+fn compact_opt_in_leaves_unconfigured_dialog_and_snap_defaults_unchanged() {
+    let points = SnapPoints::new(65, 90).unwrap();
     let _configured = DialogSize::Normal.with_compact(CompactLayout::Draggable(points));
-    let fitting = Percentage::new(90).ok_or("legacy compact cap must validate")?;
+    let fitting = Percentage::new(90).unwrap();
     assert_eq!(
         DialogSize::Normal.layout().compact(),
         CompactLayout::Fixed(fitting)
@@ -65,5 +60,4 @@ fn compact_opt_in_leaves_unconfigured_dialog_and_snap_defaults_unchanged()
     assert_eq!(SnapPoints::default().expanded().value(), 90);
     assert!(SnapPoints::new(90, 65).is_none());
     assert!(SnapPoints::new(0, 90).is_none());
-    Ok(())
 }
