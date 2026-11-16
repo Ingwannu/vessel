@@ -29,14 +29,14 @@ impl TextField {
     /// `on_submit` on its owner with the text it holds.
     pub fn new<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
         Self::line(
             placeholder,
             Callbacks::Plain {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 on_change: None,
             },
             window,
@@ -47,7 +47,7 @@ impl TextField {
     /// (to say what is wrong with it beside the field as it is typed).
     pub fn with_change<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         on_change: fn(&mut V, String, &mut Context<'_, V>),
         window: &mut Window,
         cx: &mut Context<'_, V>,
@@ -55,7 +55,7 @@ impl TextField {
         Self::line(
             placeholder,
             Callbacks::Plain {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 on_change: Some(on_change),
             },
             window,

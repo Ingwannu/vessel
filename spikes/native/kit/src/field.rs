@@ -1,5 +1,6 @@
 //! Text editing state shared by every kit presentation: one factory, the
-//! weak composing-field registry, focus queries and engine event subscription.
+//! weak composing-field registry and focus queries. Engine events stay shared
+//! in `events`; editability comes from its sole shared child module.
 //! Presentation and color projection live in the child modules; they do not
 //! create another editor or subscribe to its events.
 //!
@@ -7,7 +8,7 @@
 //! - Purpose: leave room for the reserved rename/select-all and composer
 //!   extensions without growing the listed field module.
 //! - Choice: move existing presentation and theme projection unchanged;
-//!   keep factories, line registration, IME and composer hooks together.
+//!   keep factories, line registration, IME and composer hooks unchanged.
 //! - Constraint: one Entity remains the editing state on every surface.
 //!   Public entry points and all existing event behavior stay unchanged.
 
@@ -21,10 +22,26 @@ use gpui::{div, px};
 use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
+pub mod composer_layout;
+mod multiline;
+pub use multiline::SendOn;
+mod form_minimum;
+pub use form_minimum::FormMinimum;
+mod send;
+mod submit_press;
+pub use submit_press::SubmitPress;
+mod editability;
+mod events;
+pub use editability::Editability;
+use events::{Callbacks, Handlers, listen};
+mod identity;
+pub use identity::FieldId;
 mod frame;
 mod presentation;
 mod rename;
+mod search;
 mod selection;
+pub use search::SearchField;
 mod styles;
 
 pub(crate) use frame::settings_frame;
@@ -88,31 +105,11 @@ pub struct TextField {
     /// submits).
     send: Rc<Cell<SendOn>>,
     form_minimum: FormMinimum,
+    composer_rows: Rc<Cell<Option<composer_layout::Rows>>>,
+    submit_press: Rc<Cell<Option<SubmitPress>>>,
 }
 
-mod multiline;
-pub use multiline::SendOn;
-mod events;
-use events::{Callbacks, Handlers, listen};
-mod form_minimum;
-pub use form_minimum::FormMinimum;
-use form_minimum::form_shell;
-mod identity;
-pub use identity::FieldId;
-
-mod editability;
-pub use editability::Editability;
-mod search;
-pub use search::SearchField;
-
 impl TextField {
-    /// Which press sends a composer's text (a form field ignores it).
-    pub fn set_send_on(&self, send: SendOn) {
-        if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {
-            self.send.set(send);
-        }
-    }
-
     fn line<V: 'static>(
         placeholder: &str,
         callbacks: Callbacks<V>,
@@ -122,10 +119,12 @@ impl TextField {
         let placeholder = placeholder.to_owned();
         let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         listen(
             &state,
             Handlers {
                 callbacks,
+                submit_press: Rc::clone(&submit_press),
                 focused: Rc::clone(&focused),
                 send: None,
             },
@@ -134,10 +133,12 @@ impl TextField {
         );
         register(Known::Line(state.downgrade()));
         Self {
+            composer_rows: Rc::new(Cell::new(None)),
+            submit_press,
             kind: Kind::Line(state),
             focused,
-            form_minimum: FormMinimum::Default,
             send: Rc::new(Cell::new(SendOn::Enter)),
+            form_minimum: FormMinimum::Default,
         }
     }
 
@@ -402,3 +403,5 @@ mod composing_tests {
 
 #[cfg(test)]
 mod form_tests;
+#[cfg(test)]
+mod submit_tests;

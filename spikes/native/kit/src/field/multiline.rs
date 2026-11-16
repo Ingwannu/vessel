@@ -14,7 +14,7 @@ use super::{
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
 /// The existing composer's maximum visible complete lines.
-const COMPOSER_LINES: usize = 12;
+pub(super) const COMPOSER_LINES: usize = 12;
 /// The existing form's maximum visible complete lines.
 const FORM_LINES: usize = 12;
 /// The existing form's minimum complete lines before its outer minimum.
@@ -29,6 +29,8 @@ pub enum SendOn {
     Enter,
     /// Mod+Enter sends; Enter and Shift+Enter start a line.
     ModEnter,
+    /// Compact layouts submit through a button; every Enter remains text input.
+    ButtonOnly,
 }
 
 impl SendOn {
@@ -39,6 +41,7 @@ impl SendOn {
         match self {
             Self::Enter => true,
             Self::ModEnter => with_mod,
+            Self::ButtonOnly => false,
         }
     }
 }
@@ -55,7 +58,7 @@ impl TextField {
     /// sending).
     pub fn composer<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -63,7 +66,7 @@ impl TextField {
             MultilineStyle::Composer,
             placeholder,
             Callbacks::Plain {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 on_change: None,
             },
             window,
@@ -76,7 +79,7 @@ impl TextField {
     /// textarea supplies the 68 / 80-point minimum and 256-point cap.
     pub fn form_multiline<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -84,7 +87,7 @@ impl TextField {
             MultilineStyle::Form,
             placeholder,
             Callbacks::Plain {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 on_change: Some(|_, _, cx| cx.notify()),
             },
             window,
@@ -115,6 +118,7 @@ impl TextField {
                 .placeholder(placeholder)
         });
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         let shortcut = match style {
             MultilineStyle::Composer => SendOn::Enter,
             MultilineStyle::Form => SendOn::ModEnter,
@@ -124,6 +128,7 @@ impl TextField {
             &state,
             Handlers {
                 callbacks,
+                submit_press: Rc::clone(&submit_press),
                 focused: Rc::clone(&focused),
                 send: Some(Rc::clone(&send)),
             },
@@ -132,6 +137,8 @@ impl TextField {
         );
         register(Known::Lines(state.downgrade()));
         Self {
+            composer_rows: Rc::new(Cell::new(None)),
+            submit_press,
             kind: Kind::Lines(state, style),
             focused,
             form_minimum: FormMinimum::Default,

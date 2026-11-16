@@ -47,17 +47,16 @@
 //! - Cost: the native form caps at twelve whole 20-point lines within
 //!   that maximum, rather than GOAT's pixel-based cap. Enter starts a
 //!   line and Mod+Enter submits. The existing engine owns scrolling.
-//! - Boundary: engine wiring stays in the parent and color projection in
-//!   `styles`; these presentations share those handlers. Existing layout
+//! - Boundary: engine wiring is shared through `events`, color projection
+//!   through `styles`; these presentations share both. Existing layout
 //!   and marked-text regressions stay in the parent's `form_tests` module.
 
 use gpui::prelude::*;
 use gpui::{AnyElement, App, div, px};
 use gpui_base::input::{Input, Textarea};
 
-use super::form_shell;
-use super::styles::project;
-use super::{COMPOSER_MIN, FORM_INSET_X, FORM_INSET_Y, FORM_MAX, Kind, MultilineStyle, TextField};
+use super::{FORM_INSET_X, FORM_INSET_Y, FORM_MAX, Kind, MultilineStyle, TextField};
+use super::{form_minimum::form_shell, styles::project};
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
@@ -115,18 +114,11 @@ impl TextField {
                     .child(Textarea::new(state))
                     .into_any_element()
             }
-            Kind::Lines(state, MultilineStyle::Composer) => {
-                project(state, tokens, neutral.surface4, cx);
-                div()
-                    .w_full()
-                    .min_h(px(COMPOSER_MIN))
-                    .type_(Type::Body)
-                    .text_size(px(fonts::ui(15.0)))
-                    .line_height(px(fonts::ui(21.0)))
-                    .text_color(neutral.foreground)
-                    .child(Textarea::new(state))
-                    .into_any_element()
-            }
+            Kind::Lines(_, MultilineStyle::Composer) => self.composer_element(
+                super::composer_layout::ComposerLayout::legacy(self.send.get()),
+                tokens,
+                cx,
+            ),
         }
     }
 }

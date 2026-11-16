@@ -15,10 +15,15 @@ use gpui::{Context, Entity, Window};
 use gpui_base::input::InputEvent;
 use std::{cell::Cell, rc::Rc};
 
+// Captures belong only to the plain callback extension point; identified forms
+// retain their canonical engine FieldId and function-pointer ownership contract.
+pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
+
 /// Follow a field's events: Enter, edits, and whether it holds the keys.
 /// What a field's events call.
 pub(super) struct Handlers<V: 'static> {
     pub(super) callbacks: Callbacks<V>,
+    pub(super) submit_press: Rc<Cell<Option<super::SubmitPress>>>,
     pub(super) focused: Rc<Cell<bool>>,
     /// A composer's send press; `None` for a form field (Enter submits).
     pub(super) send: Option<Rc<Cell<SendOn>>>,
@@ -32,6 +37,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 ) {
     let Handlers {
         callbacks,
+        submit_press,
         focused,
         send,
     } = handlers;
@@ -52,6 +58,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
                     state.update(cx, |state, cx| state.replace("\n", window, cx));
                 } else {
                     let text = state.read(cx).value().to_string();
+                    let _press = super::submit_press::Scope::enter(&submit_press, *secondary);
                     callbacks.submit(owner, source(state.entity_id()), text, window, cx);
                 }
             }
@@ -78,7 +85,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 /// Existing callbacks and request-scoped callbacks share the same event path.
 pub(super) enum Callbacks<V: 'static> {
     Plain {
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: Submit<V>,
         on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
     },
     Identified {
