@@ -179,6 +179,27 @@ impl Shell {
         })
     }
 
+    /// Check concrete owner correlation before consuming its canonical ticket.
+    /// This stays in one synchronous UI update; original lease admission is the
+    /// caller's prerequisite, and hidden ingress never refreshes selected state.
+    pub(crate) fn conversation_settle_if_scoped<T>(
+        &mut self,
+        binding: FollowBinding,
+        ticket: OperationTicket,
+        validate: impl FnOnce(&ConversationArea) -> bool,
+        apply: impl FnOnce(&mut ConversationArea) -> T,
+    ) -> Result<Option<T>, ResidentProblem> {
+        let matches = self
+            .areas
+            .session_residents
+            .receive(binding, |resources| validate(&resources.conversation))?;
+        if !matches {
+            return Ok(None);
+        }
+        self.conversation_settled_scoped(binding, ticket, apply)
+            .map(Some)
+    }
+
     /// Consume a concrete owner's admitted effect once BEFORE changing input/state.
     pub(crate) fn conversation_settled_scoped<T>(
         &mut self,

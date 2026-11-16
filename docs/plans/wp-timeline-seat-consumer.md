@@ -39,3 +39,12 @@ The shared Paint preparation now returns Option. A missing root rejects the
 borrowed detail or row instead of substituting even a local catalogue. Rows and
 the compact overlay propagate that refusal, so this API does not hide a failed
 scoped resolution behind metadata from another surface.
+
+A staged owner-correlation adapter reuses the same registry receive/settle paths:
+conversation_settle_if_scoped accepts original binding and Timeline ticket, checks
+an immutable owner predicate, and only then consumes before mutation. False
+correlation leaves the ticket available; replayed spent tickets cannot call the
+mutation closure. There is no await or selected-context refresh between checks.
+A generic concrete-entry regression exercises hidden ingress without inventing
+checkpoint state or identifiers. Actual W9 correlation and its nested readiness
+vote remain required with its checked producer; this is not their approval.
