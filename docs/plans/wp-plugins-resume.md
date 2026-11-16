@@ -69,13 +69,17 @@ based onbc9cacc6. Five leaf source files match selected reviewed d9144388.
 Canonical whole-case clocks preserve all20 original assertions and add8 actual
 unsupported-management/raw-log-before-effects assertions. Root/CLI manifests
 and lock are unchanged. V3 row238 portable recheck requested; actual current
-strict/functional results remain owed. Both are ordinary, priority0:
+receiving integration remain owed. Both executed checks are ordinary, priority0:
 
 - wp-plugins-cli-check-20261116T024802Z-3f25c0f0
 - wp-plugins-cli-test-20261116T024802Z-3f25c0f0
 
-At03:49 the strict job is DONE0 (actual Checking CLI/Finished1m37s), while
-the functional job is still running. Retrieve its result; do not resubmit.
+Both are now DONE0: strict actual Checking CLI/Finished1m37s; functional actual
+115 binary units plus4 actual CLI subprocess cases,119/0/0,0filtered. All four
+preparations/cargo steps pass. The new unsupported-management/raw-log refusal
+case ran by name. Packet cli-init-portable-evidence-3f.json verifies every raw
+step/spec/head/hash. These are exact3f results; old115-source evidence is not
+borrowed. V3 source/review and normal receiving integration are still pending.
 
 Earlier471 queued jobs were verified and cancelled before any slot/compile,
 terminal143; their logs are preserved. Do not repeat them.
@@ -117,4 +121,7 @@ All Cargo/rustc/metadata remain VM-only. No real credentials/services/accounts,
 chmod/chown repair, created mounts, live agents, browser opener, fake fleet or
 virtual display were started manually. Detached VM jobs remain owned by their
 runner; do not kill another worker or resubmit them. No local persistent test
-process needs cleanup. Keep project=vessel and do not push shared history.
+process needs cleanup. The final local UID1000 executable inspection found zero
+readable matches under owned workspace paths, with8 other own executable links
+unreadable; this is not an exhaustive all-process proof. No signal was sent and
+no foreign process was touched. Keep project=vessel; do not push shared history.
