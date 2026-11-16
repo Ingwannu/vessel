@@ -10,8 +10,8 @@ use vessel_app_kit::ui::{
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{
-    ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
-    button_control, button_with_kind,
+    ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, Tokens, Type,
+    TypeExt as _, button_control, button_with_kind,
 };
 use vessel_app_view::{
     labels::{Count, Draft, Host, ManagerState},
