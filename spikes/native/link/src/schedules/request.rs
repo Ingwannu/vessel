@@ -93,10 +93,10 @@ impl Request {
                 request,
                 result: Err(error),
             }),
-            Self::Lookup(request) => Message::SessionReplied(SessionAnswer {
+            Self::Lookup(request) => Message::SessionReplied(Box::new(SessionAnswer {
                 request,
                 result: Err(error),
-            }),
+            })),
         }
     }
 }

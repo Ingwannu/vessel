@@ -61,7 +61,7 @@ pub enum Message {
     /// Read-only history with its original schedule/admission/ticket.
     HistoryReplied(HistoryAnswer),
     /// Historical session metadata only, under the original physical admission.
-    SessionReplied(SessionAnswer),
+    SessionReplied(Box<SessionAnswer>),
 }
 
 /// Complete response, retaining every transport error until the app consumes it.
@@ -81,5 +81,6 @@ mod form;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use calls::Hub;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod tests;

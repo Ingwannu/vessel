@@ -134,7 +134,7 @@ async fn run(client: &SelectedConnection, ask: Ask) -> Result<Value, ScheduleErr
                 .await?,
         ),
         Ask::Delete(id) => {
-            client
+            let _deleted = client
                 .call(vessel_proto::automation::DeleteSchedule { schedule: id })
                 .await?;
             WriteValue::Deleted
@@ -158,10 +158,13 @@ impl crate::State {
                 )
                 .await;
             }
-            ordinary => {
+            ordinary @ (Request::Row(_)
+            | Request::Form(_)
+            | Request::History(_)
+            | Request::Lookup(_)) => {
                 self.schedule_calls
                     .ask(client, ordinary, self.events.clone())
-                    .await
+                    .await;
             }
         }
     }
@@ -179,9 +182,7 @@ impl crate::State {
                 vessel_app_view::schedules::editor::definition::Save::Create(value) => &value.definition.target,
                 vessel_app_view::schedules::editor::definition::Save::Update(value) => &value.definition.target,
             }, ScheduleTarget::NewSession { .. }));
-        let result = if !admitted {
-            Err(ScheduleError::Preferences)
-        } else {
+        let result = if admitted {
             match client {
                 Err(error) => Err(error),
                 Ok(client) => {
@@ -194,6 +195,8 @@ impl crate::State {
                     Err(ScheduleError::Preferences)
                 }
             }
+        } else {
+            Err(ScheduleError::Preferences)
         };
         let _closed = self
             .events
@@ -227,12 +230,12 @@ async fn execute(client: &SelectedConnection, request: &Request) -> Message {
                 .await
                 .map_err(ScheduleError::from),
         }),
-        Request::Lookup(request) => Message::SessionReplied(SessionAnswer {
+        Request::Lookup(request) => Message::SessionReplied(Box::new(SessionAnswer {
             request: request.clone(),
             result: client
                 .call(request.input())
                 .await
                 .map_err(ScheduleError::from),
-        }),
+        })),
     }
 }

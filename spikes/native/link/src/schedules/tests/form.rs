@@ -130,20 +130,27 @@ async fn row_editor_and_history_work_share_one_four_request_pool() {
         let mut forms = 0;
         let mut histories = 0;
         for _ in 0..vessel_app_view::schedules::load::MAX_IN_FLIGHT {
-            match settled(phase("settled receipt", events.recv()).await.unwrap()) {
-                crate::Event::Schedules(Message::Replied(answer)) => {
+            let crate::Event::Schedules(message) =
+                settled(phase("settled receipt", events.recv()).await.unwrap())
+            else {
+                panic!("not a schedules receipt");
+            };
+            match message {
+                Message::Replied(answer) => {
                     assert!(answer.result.is_err());
                     rows += 1;
                 }
-                crate::Event::Schedules(Message::FormReplied(answer)) => {
+                Message::FormReplied(answer) => {
                     assert!(answer.result.is_err());
                     forms += 1;
                 }
-                crate::Event::Schedules(Message::HistoryReplied(answer)) => {
+                Message::HistoryReplied(answer) => {
                     assert!(answer.result.is_err());
                     histories += 1;
                 }
-                event => panic!("wrong receipt: {event:?}"),
+                message @ (Message::Connected(_)
+                | Message::SessionReplied(_)
+                | Message::Delivered(_)) => panic!("wrong receipt: {message:?}"),
             }
         }
         assert_eq!((rows, forms, histories), (1, 2, 1));

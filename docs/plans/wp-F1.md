@@ -1937,3 +1937,19 @@ Code/MD c81ab50a is with V1 for source precheck, execution still owed. ADR0102
 reserves the single masked-field producer and privacy policy for W19; no masked
 implementation or Host Voice input is enabled by this plan. SearchField-only
 identity wrapper is separately lead-assigned to W10b; G2 does not edit that file.
+
+### Exact base13 strict result and complete reported repair
+
+schedules-20261116T003105Z-2d2ef63f completed fonts0/cargo101/helper1. Kit was
+checked; Link strict stopped at six product diagnostics and33 lib-test diagnostics;
+no tests or App/whole/consumer approval is claimed. Lookup's large SessionInfo
+receipt is now boxed at its Message variant; typed request branches are explicit,
+Delete Ack is bound, the unit await has its semicolon and the preference branch
+uses positive admission. Assertions and operation policy are unchanged.
+The test-only schedules module retains identical test/native conditions as two
+canonical cfg attributes rather than cfg(all(...)); this preserves compilation
+semantics and lets the configured test-only unwrap/panic policy recognize its
+fixture helpers. No allow/expect, lint setting, assertion or deadline changes.
+The saturation test first checks the Schedules envelope, then exhaustively handles
+its own message variants. Corrected-source remote strict/tests are still owed.
+The later guarded delivery and segmented consumer are separate from the2d2 result.
