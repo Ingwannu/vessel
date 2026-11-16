@@ -38,53 +38,27 @@ where
         Status::Ready(snapshot, _, failure) => (snapshot, failure),
     };
     let (snapshot, failure) = content;
-    let dictation = settings::card(tokens)
-        .child(switch_row(
-            page,
-            Feature::Dictation,
-            snapshot.dictation.switch,
-            words,
-            tokens,
-            sizing,
-            actions.toggle.clone(),
-        ))
-        .child(site_row(
-            page,
-            snapshot,
-            Site::Dictation,
-            words,
-            tokens,
-            sizing,
-            actions.edit.clone(),
-        ));
-    let conversation = settings::card(tokens)
-        .child(switch_row(
-            page,
-            Feature::Conversation,
-            snapshot.conversation.switch,
-            words,
-            tokens,
-            sizing,
-            actions.toggle,
-        ))
-        .child(site_row(
-            page,
-            snapshot,
-            Site::Recognition,
-            words,
-            tokens,
-            sizing,
-            actions.edit.clone(),
-        ))
-        .child(site_row(
-            page,
-            snapshot,
-            Site::Synthesis,
-            words,
-            tokens,
-            sizing,
-            actions.edit,
-        ));
+    let dictation = card(
+        page,
+        snapshot,
+        Feature::Dictation,
+        words,
+        tokens,
+        sizing,
+        Actions {
+            toggle: actions.toggle.clone(),
+            edit: actions.edit.clone(),
+        },
+    );
+    let conversation = card(
+        page,
+        snapshot,
+        Feature::Conversation,
+        words,
+        tokens,
+        sizing,
+        actions,
+    );
     let mut body = div()
         .flex()
         .flex_col()
@@ -107,10 +81,49 @@ where
     body
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "one shared row's data, words, sizing and typed callback"
-)]
+fn card<T, E>(
+    page: &Page,
+    snapshot: &Snapshot,
+    feature: Feature,
+    words: &'static Translator,
+    tokens: &Tokens,
+    sizing: ControlSizing,
+    actions: Actions<T, E>,
+) -> Div
+where
+    T: Fn(Toggle, &ClickEvent, &mut Window, &mut App) + 'static,
+    E: Fn(Edit, &ClickEvent, &mut Window, &mut App) + Clone + 'static,
+{
+    let (value, sites): (_, &[Site]) = match feature {
+        Feature::Dictation => (snapshot.dictation.switch, &[Site::Dictation]),
+        Feature::Conversation => (
+            snapshot.conversation.switch,
+            &[Site::Recognition, Site::Synthesis],
+        ),
+    };
+    let mut card = settings::card(tokens).child(switch_row(
+        page,
+        feature,
+        value,
+        words,
+        tokens,
+        sizing,
+        actions.toggle,
+    ));
+    for site in sites {
+        card = card.child(site_row(
+            page,
+            snapshot,
+            *site,
+            words,
+            tokens,
+            sizing,
+            actions.edit.clone(),
+        ));
+    }
+    card
+}
+
 fn switch_row<T>(
     page: &Page,
     feature: Feature,
@@ -159,10 +172,6 @@ where
     )
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "one shared row's data, words, sizing and typed callback"
-)]
 fn site_row<E>(
     page: &Page,
     snapshot: &Snapshot,
