@@ -1,6 +1,34 @@
 # Composer attachment parity
 
-Status: implementation in progress; review pending.
+Status: available attachment/mention core gated and captured; dependent integrations incomplete; V4 review pending.
+
+## Current verification boundary (supersedes historical checkpoints below)
+
+The attachment candidate is frozen on package base c3429952. Its concrete App scope is byte-file/image intake, the managed local store, correlated prepare/upload/final-payload retention, context trays, file/directory fallback mentions, sent-image reads and the shared lightbox. Workspace draft keys and editors retain their own payloads; no Workspace-to-New fallback is added. The earlier sections below are a chronological design/checkpoint record, not current acceptance receipts.
+
+The receiving common input packet separately uses the official App base9b root. It preserves B2's one field/paste/key/fullscreen implementation and W3's scoped editor, but waits for the canonical CommandKind metadata route before its one combined check. Its source, gates and product activation must not be inferred from this older candidate's gate.
+
+### Concrete differences and incomplete integrations
+
+- The existing node contract allows generic files up to50MiB and images/audio up to10MiB, with16 attachments per prompt and100MiB per session. Node-advertised limits remain authoritative. Upload occurs at Send, before the final prompt; the App never substitutes a successful upload for a prompt receipt.
+- Image input supports PNG/JPEG/GIF/WebP/BMP/TIFF. Static PNG/JPEG are preserved; the other four and animated PNG's first frame normalize through the one kit decoder. HEIC/HEIF/AVIF/SVG input is not claimed. Attachment decoding retains its4096-side/64MiB policy; the separately checked screenshot projection does not relax it. Both OS chooser actions currently share the unfiltered GPUI path prompt. Recognized raster paths normalize as images; other extensions remain ordinary generic files rather than gaining image decoding support. Unsupported clipboard image bytes are explicitly refused. MIME-classified audio follows the node audio capability/limit rather than claiming Paseo generic-upload parity.
+- Directory suggestions use requested-parent file.list rather than recursive fuzzy matching until the canonical producer is integrated. File ranking uses the existing file.find operation with captured target/root/query correlation.
+- Forge issue/PR Search/Lookup, picker and URL auto-attachment are blocked on G1's canonical root-bound producer. No pr.list search, fake immutable commit or free-URL authority exists. Plugin source search/runtime picker and source-owner review/browser/explorer intake integrations remain separate dependencies.
+- ClientMessageId is retained before byte preparation. Full identified SubmitPrompt/receipt/echo transport and the timeline's atomic optimistic reconciliation are held on their canonical producer. Legacy Delivered is not an exact-ID receipt. Unknown outcomes retain the original payload and never automatically reupload/resend. Durable restart recovery preserves byte ownership and locks uncertainty, but does not yet restore every text/context/id/final-reference field.
+- Resident resources are an isolated literal cfg(test) owner kernel only. It creates no second map, moves no product globals and grants no connection/follow/queued delivery authority. The sole resident owner coordinates that cutover.
+
+### Verification receipts
+
+Exact code c3c497f3 passed run wp-composer-20261115T174925Z-c3c497f3: all six native steps returned0 and tests totaled1576/0/2. The App export is the same code and its SHA-256 is8d8d99dc136518faf243feed0cda4c85eca7c3e5e6c7cf67f797551dc63cea03. The earlier executed whole38 stopped at a stale invalid-image paste fixture (App128/1/2); its correction uses real PNG bytes and awaits background decoding, with a separate malformed-image refusal regression. That focused GPUI run passed4/0/0 before the final whole. V4 review is pending; this is not a complete B1 parity approval.
+
+Separate image-helper source703268a0 passed Kit all-target strict and five codec/pixel-policy tests. It proves CPU decode/limits and RenderImage byte projection only, not GPU paint or browser acquisition. Its portable40ddff88c leaf preserves those exact Rust bodies.
+
+The actual App capture set has34 saved and opened images with matching SHA-256 and requested/actual geometry. Twelve representative cases cover1280x900,800x600 and390x844 in dark/light and EN/KO;1024x700 is additional. One immediate lightEN resize frame is retained but excluded from layout acceptance: bare Xvfb had OS focus1, and a correctly focused settled recapture replaces that evidence. No image was edited or resized to simulate a viewport.
+
+Actual UI actions proved OS image clipboard intake, image-only App Send followed by a node user-image/echo, pending and sent image display, local/sent lightbox fit, keyboard zoom, mouse pan, reset, Escape and original-field focus restoration. The reset screenshot equals the original fit screenshot by hash. Real file.find/requested-parent directory suggestions, directory/Korean-spaced-file choice and Tab choice with continued typing were inspected. Fresh App processes restored the unsent image/text and reopened the earlier App-uploaded sent image. These observations do not establish an exact-ID receipt or full uncertain restart recovery.
+
+The native Upload file action produced its translated visible failure on this display; no chooser opened. A URI-list clipboard attempt produced no attachment. Successful OS file dialogs, external file paste and native drops remain unproved. The CLI-seeded TXT attachment proves rendering only, not generic-file App acquisition/upload. Captures use private fake nodes and an authenticated display under UID/GID1000, with store root0700/files0600 and display authority0600 checked; production permissions and shared root binaries are unchanged. The fixture root binaries use the approved protocol23 contract, not newer node behavior. The final handoff excludes private development root ancestors and must preserve the official integrated root.
+
 
 ## Reference and existing assets
 
