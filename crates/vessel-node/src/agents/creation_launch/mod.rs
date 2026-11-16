@@ -125,6 +125,12 @@ impl<'c> Candidate<'c> {
                 input: Box::new(input),
             });
         }
+        let Some(expires) = Instant::now().checked_add(MAX_LAUNCH_ADMISSION_AGE) else {
+            return Err(PreparationRejected {
+                problem: CandidateProblem::Expired,
+                input: Box::new(input),
+            });
+        };
         let Ok(correlation) = count.creation_correlation() else {
             return Err(PreparationRejected {
                 problem: CandidateProblem::Binding,
@@ -143,9 +149,12 @@ impl<'c> Candidate<'c> {
             data: Box::new(Data {
                 input,
                 count: correlation,
-                expires: Instant::now() + MAX_LAUNCH_ADMISSION_AGE,
+                expires,
             }),
         })
+    }
+    pub(in crate::agents) fn owner_matches(&self, registry: &super::Agents) -> bool {
+        self.data.input.placement.owner_matches(registry)
     }
     pub(in crate::agents) fn capture(&self) -> &CapturedParentExecution {
         &self.data.input.parent

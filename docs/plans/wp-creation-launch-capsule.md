@@ -51,3 +51,12 @@ still owed. Capture itself remains staged pending its separate A7 fixture closur
 No fake caller, blanket dead-code expectation, RPC, Store/schema or protocol
 assignment is supplied to manufacture standalone readiness. Compile/strict/runtime
 of this joint candidate and its real consumers remain owed.
+
+Common-owner source review adds two fixed preconditions: Candidate.owner_matches
+compares the retained Sessions owner's actual Agents pointer with the registry
+being locked, rather than treating matching UUIDs as owner identity. Candidate
+uses checked_add for its finite monotonic deadline before consuming count
+correlation; range failure returns the same retained input. Placement Debug now
+prints only correlation ids, never recursively traverses the retained Sessions
+owner. These checks add no authority token or constructor and still require
+actual common insertion and settlement qualification.
