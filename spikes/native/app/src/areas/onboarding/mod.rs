@@ -105,8 +105,12 @@ fn selected_host(shell: &Shell) -> Option<&vessel_app_view::Machine> {
                 vessel_app_view::local_node::Status::Working
                     | vessel_app_view::local_node::Status::Owned(_)
                     | vessel_app_view::local_node::Status::Attached(_)
+                    | vessel_app_view::local_node::Status::Kept(_)
             )
         ) {
+            // Keep followed by a late quit veto can leave this app open. Only
+            // explicit reconnect may restore local admission; never retarget
+            // setup to the first unrelated remote machine during that gap.
             return None;
         }
     }

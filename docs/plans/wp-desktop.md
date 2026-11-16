@@ -346,3 +346,10 @@ build VM. Only verified Cargo-free formatting/static size/token checks remain
 local. No final whole native gate, inspected desktop/compact bilingual/theme
 captures, V4 product approval or Windows/macOS execution is claimed. The package
 tracker remains skeleton until those actual owner/consumer boundaries are done.
+
+
+A kept local node also holds setup in Waiting until explicit reconnect restores
+an authenticated local admission. If a late document or persistence veto keeps
+the app open after Keep, setup must not silently select the first remote host.
+This is source policy; the actual Keep/veto/reconnect UI union still requires its
+own runtime coverage and does not recover process authority from NodeId.
