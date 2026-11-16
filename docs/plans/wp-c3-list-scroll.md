@@ -42,3 +42,19 @@ and actual window-test checks. V1 then the lead review this isolated leaf.
 This is not C3 body/cache fairness, all Kit, full native, UI/capture/OS approval.
 No change to another caller is included; actual C3 visibility-marker protection
 and >32-visible-section/cached scroll tests remain separate consumer work.
+
+## Deferred owner counterfactual added before handoff
+
+The second actual-window case installs the same public notification on the
+Probe owner. It uses Window::defer before upgrading the weak owner, reading
+VirtualList::top and notifying that owner. Native wheel input must call it
+exactly once and its observed value must equal the actual new top after
+dispatch. A synchronous list reborrow would panic, and an old-origin position
+would differ. No new range/geometry field, renderer, install/measure/vendor
+change is introduced. This case is currently UNEXECUTED.
+
+The original exactb243 basic-wheel selection is already queued; do not cancel
+or duplicate it. After it is terminal, use the warm label for one changed-test
+Kit strict and the new deferred case only. C3's separate >32-visible engine
+pressure fixture is queued on3add and remains unverified; this Kit case does
+not turn that into an accepted cache or production first-use result.
