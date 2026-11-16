@@ -58,6 +58,8 @@ mod header_search;
 mod header_search_tests;
 mod layout;
 mod return_focus;
+#[cfg(test)]
+mod selection_tests;
 mod sheet;
 #[cfg(test)]
 mod title_wrap_tests;
@@ -173,9 +175,14 @@ pub fn dialog<V: 'static>(
                 }
             }),
         )
-        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-            cx.stop_propagation();
-        })
+        // The card keeps a press from the scrim (a press inside never closes)
+        // by occluding the scrim's hitbox, not by stopping the event: the
+        // window's text-selection layer (gpui-base's Root, painted under every
+        // deferred layer) must still see the press, or a selectable value in a
+        // dialog could not be selected (Paseo's `DetailRow` values are
+        // `selectable`). Element listeners under the dialog stay behind the
+        // scrim's own occlusion.
+        .occlude()
         .flex()
         .flex_col()
         .w_full()
