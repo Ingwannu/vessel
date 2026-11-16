@@ -1,18 +1,18 @@
 # Borrowed tool-detail body prerequisite
 
-Current preparation contains announced base13. Base11 source192769c4 executed
-all View/Kit/App targets:1515 passed,0 failed,2 ignored, including both P2
-retained-body regressions. Exact strict on that source returned only a borrowed
-section-id diagnostic and an unused observer-restore result. Those two are now
-corrected without changing cache/precedence rules or assertions. Current-base
-strict/runtime and the bounded source recheck remain owed; no final adoption or
-product activation is inferred from the prior-base pass.
+Current base13 executable source289cf10a6 passed View/Kit/App all-target
+Clippy with warnings denied and all-target tests1530/0/2. Actual App137/0/2,
+Kit246/0/0 and View1147/0/0 ran, including both retained-body P2 regressions.
+Runs: wp-timeline-narrow-20261116T003002Z-289cf10a and
+wp-timeline-state-tests-20261116T003002Z-289cf10a; their spec/steps/cargo logs were
+inspected. The final portable cut changes only this documentation and history;
+all executable blobs remain byte-identical to that tested source.
 
-Status: native source preparation, now normally merged with announced green app
-base9 db42d9c5 (native1510/0/2). Canonical body vocabulary is inherited from that
-line, not a remaining provisional root delta. No rich fields/events/RPC/runtime
-are added. This isolated native source has not yet been compiled/tested;
-no consumer-ready or native adoption verdict is inferred.
+The packet inherits canonical body vocabulary from the official app line, with
+no root delta, rich event/field/RPC/receipt or runtime activation. V1's bounded
+source recheck and consumer integration remain required. Both facade and kernel
+stay literal cfg(test); enabling them needs the actual A8 caller and legacy diff
+delegation in the same union. This is not a full A7 gate, UI/capture or V4 pass.
 
 [Decision Log]
 - Purpose: A8 draws a reported proposed ToolCallDetail without constructing a
