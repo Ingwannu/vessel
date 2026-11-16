@@ -1394,3 +1394,14 @@ fields. Rename consumes the shared typed `Editability` at dispatch/answer;
 its `rename_element` profile wraps the same bare editor. The kit-internal
 `field::settings_frame` shares only the inset-focus bridge with Appearance
 profiles, leaving chrome to each profile and all events in the one engine.
+
+`field::SecretField` is ADR0102's explicit secure single-line facade over the
+same TextField engine/listen. It never loads an existing credential, reveals
+input, returns the raw TextField or offers a text getter. Caller-localized
+Absent/Set placeholders stay distinct from replacement input. Masking blocks
+Copy/Cut in the engine; Paste retains existing editability/focus checks.
+SecretEdit::Unchanged means no replacement, never deletion; SecretInput diagnostics
+are redacted and its consumed value is only for the explicit secret-store boundary.
+The engine's PasswordInput accessibility projection suppresses its value. Current
+source/tests are unverified; no OS AT/IME/consumer/capture or persistence proof is
+implied by that policy. Ordinary TextField APIs and defaults remain unchanged.

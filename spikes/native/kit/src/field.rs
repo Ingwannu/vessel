@@ -24,7 +24,10 @@ pub mod composer_hooks;
 mod frame;
 mod presentation;
 mod rename;
+mod secure;
 mod selection;
+use secure::LinePrivacy;
+pub use secure::{SecretEdit, SecretField, SecretFieldContent, SecretInput, SecretPresence};
 mod styles;
 
 pub(crate) use frame::settings_frame;
@@ -125,8 +128,25 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
+        Self::line_with_privacy(placeholder, callbacks, LinePrivacy::Ordinary, window, cx)
+    }
+
+    fn line_with_privacy<V: 'static>(
+        placeholder: &str,
+        callbacks: Callbacks<V>,
+        privacy: LinePrivacy,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
         let placeholder = placeholder.to_owned();
-        let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
+        let state = cx.new(|cx| {
+            let mut state = InputState::new(window, cx).placeholder(placeholder);
+            if let LinePrivacy::Secret(label) = privacy {
+                state = state.masked(true);
+                state.set_accessibility(secure::accessibility(label));
+            }
+            state
+        });
         let focused = Rc::new(Cell::new(false));
         listen(
             &state,
