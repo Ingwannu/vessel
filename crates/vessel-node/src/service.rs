@@ -207,10 +207,10 @@ pub(crate) struct Parts {
 
 impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
+        #[cfg(target_os = "linux")]
+        let checkpoints = parts.checkpoints;
         let Parts {
             diagnostics,
-            #[cfg(target_os = "linux")]
-            checkpoints,
             lsp,
             lsp_roots,
             lifecycle,
@@ -237,6 +237,7 @@ impl NodeService {
             settings,
             push,
             limits,
+            ..
         } = parts;
         let store = sessions.store().clone();
         let readiness = Arc::new(crate::readiness::Readiness::default());

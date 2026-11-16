@@ -2040,3 +2040,10 @@ by final structured/terminal spawn and external preparation observers; it grants
 no permission or current-run authority. The Node factory lives beside setup so
 this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
 this standalone prerequisite (ADR 0064 and launch-admission plan).
+
+Checkpoint integration preserves the canonical node early-stop token when creating
+its session runtime; capture hooks remain gated by FILE_CHECKPOINTS. The existing
+workspace-owner construction lives beside the other setup helpers so transport
+assembly stays within the announced shrinking size budget. Diagnostic refusal
+projection handles the typed checkpoint detail explicitly without exposing private
+source evidence. These source changes await their own current compilation.
