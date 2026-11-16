@@ -371,3 +371,5 @@ usage-off-on = { $host }의 사용량 확인이 꺼져 있습니다.
 usage-turn-on = 켜기
 # 머신이 계정 사용량을 하나도 보고하지 않을 때의 흐린 카드 문구입니다.
 usage-plan-empty = 사용량 데이터가 없습니다
+# 잔액 라벨 옆에 표시하는 남은 양입니다(Paseo providerUsage.values.remaining). $amount에는 단위가 포함됩니다.
+usage-amount-left = { $amount } 남음

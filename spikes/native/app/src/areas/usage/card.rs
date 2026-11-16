@@ -194,3 +194,33 @@ pub(super) fn quiet(text: SharedString, tokens: &Tokens) -> AnyElement {
         .child(text)
         .into_any_element()
 }
+
+/// Paseo window-bar.tsx `row` and balance-bar.tsx `container`: the label row,
+/// the meter and the reset line, 3 px apart. Paseo uses this exact gap, which
+/// is not a spacing step.
+const BAR_GAP: f32 = 3.0;
+
+/// One window or balance: vertical padding 6, no inset of its own (the card's
+/// padding is the only horizontal inset, so bars align with the header).
+pub(super) fn bar() -> Div {
+    div()
+        .w_full()
+        .min_w_0()
+        .flex()
+        .flex_col()
+        .gap(px(BAR_GAP))
+        .py(px(spacing::S1_5))
+}
+
+/// Paseo `UsageResetLine`: muted, or danger when it is a runs-out warning.
+pub(super) fn reset_line(text: impl Into<SharedString>, at_risk: bool, tokens: &Tokens) -> Div {
+    div()
+        .min_w_0()
+        .type_(Type::Meta)
+        .text_color(if at_risk {
+            tokens.status().error.foreground
+        } else {
+            tokens.neutral.foreground_muted
+        })
+        .child(text.into())
+}

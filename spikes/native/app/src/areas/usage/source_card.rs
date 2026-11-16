@@ -42,9 +42,7 @@ pub(super) fn render(
             body.push(card::error(error.into(), tokens));
         }
     }
-    body.extend(observed_content(
-        shell, reports, entry, &view, density, tokens, cx,
-    ));
+    body.extend(observed_content(shell, reports, entry, &view, tokens, cx));
     for (at, retry) in [(view.attempted_at, false), (view.retry_at, true)] {
         if let Some(at) = at {
             let at = timestamp(at, state.offset, shell.words);
@@ -145,7 +143,6 @@ fn observed_content(
     reports: &UsageReports,
     entry: &SourceReportEntry,
     view: &vessel_app_view::usage::SourceView<'_>,
-    density: Density,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Vec<AnyElement> {
@@ -166,7 +163,7 @@ fn observed_content(
             super::source_windows::render(shell, entry, window, view.retained, tokens, cx)
         })
         .chain(report.balances.as_slice().iter().map(|balance| {
-            super::source_balances::render(shell, balance, reports.cost_visibility, density, tokens)
+            super::source_balances::render(shell, balance, reports.cost_visibility, tokens)
                 .into_any_element()
         }))
         .collect::<Vec<_>>();

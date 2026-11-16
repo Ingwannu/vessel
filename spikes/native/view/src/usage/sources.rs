@@ -185,6 +185,53 @@ pub fn balance_facts(
     })
     .collect()
 }
+/// Paseo balance-bar.tsx `resolveBalance`, as one line beside the label:
+/// "used / allowance unit" when a positive allowance is reported, else
+/// "amount left", else the used amount. Hidden values stay hidden, and an
+/// unknown used amount under an allowance shows Paseo's dash.
+#[must_use]
+#[expect(
+    clippy::float_arithmetic,
+    reason = "Allowance minus remaining is the reported used amount, shown, never accounted"
+)]
+pub fn balance_amount(
+    balance: &UsageBalance,
+    visibility: CostVisibility,
+    words: &'static Translator,
+) -> String {
+    /// Paseo's placeholder for an amount the source did not report.
+    const UNKNOWN: &str = "\u{2014}";
+    let text = words.usage();
+    if visibility == CostVisibility::Withheld {
+        return text.withheld().to_owned();
+    }
+    let unit = match balance.unit {
+        UsageBalanceUnit::Usd => text.unit_usd(),
+        UsageBalanceUnit::Credits => text.unit_credits(),
+        UsageBalanceUnit::Requests => text.unit_requests(),
+        UsageBalanceUnit::Tokens => text.unit_tokens(),
+    };
+    let limit = balance
+        .limit
+        .map(vessel_proto::conversation::FiniteNumber::get)
+        .filter(|limit| *limit > 0.0);
+    if let Some(limit) = limit {
+        let used = balance
+            .used
+            .map(vessel_proto::conversation::FiniteNumber::get)
+            .or_else(|| balance.remaining.map(|remaining| limit - remaining.get()))
+            .map_or_else(|| UNKNOWN.to_owned(), |used| used.to_string());
+        return format!("{used} / {limit} {unit}");
+    }
+    if let Some(remaining) = balance.remaining {
+        let amount = format!("{} {unit}", remaining.get());
+        return text.amount_left(&amount).unwrap_or(amount);
+    }
+    balance.used.map_or_else(
+        || UNKNOWN.to_owned(),
+        |used| format!("{} {unit}", used.get()),
+    )
+}
 /// Source tone wins; otherwise explicit remaining can establish used share for the threshold fallback.
 #[must_use]
 #[expect(
