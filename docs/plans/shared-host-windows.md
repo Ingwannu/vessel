@@ -76,3 +76,43 @@ d8b73397 with docs-only89e2b707. Real registration may be adopted; dispatcher,
 reexports and factory field remain staged until actual checked W7/E3 callers.
 This verdict does not review the separate E3 move0934 or receiving consumer/lead
 unions, and grants no notice/source/context/lease or OS authority.
+
+## Complete lifecycle enumeration follow-up
+
+Focused notification/menu dispatch can choose one valid recipient. Global quit,
+node-stop document admission and preference currentness need every live window:
+filtering a retained old Shell after root replacement can omit its successor.
+This is a new receiving-boundary debt, not covered by the earlier five tests.
+
+The same registry now stages shells(&mut App) -> LiveShells::{Available(Vec<WeakEntity<Shell>>),
+Unavailable}. Any live handle without exactly one registered live current-root
+Shell refuses the entire enumeration; no partial vector grants admission. It
+uses the existing root helper inside each original window. The local weak vector
+is temporary, not another window owner. Call only at App level after every
+Window/Shell borrow ends and consume synchronously without awaiting.
+
+The module/reexport remain literal cfg(test) until W15's actual global document
+caller or E3's preference-fence caller joins. Remove only those two attributes
+with that real caller; neither caller may map Unavailable to an empty vector or
+success. The guard remains feature-owned and read-only. One new actual GPUI test
+covers simultaneous direct/wrapped roots, an unknown live window, deliberately
+retained old A, replacement B without registration, and explicit B registration.
+Exact source e2628d5ee passed ordinary selected run
+wp-desktop-host-narrow-20261115T185140Z-e2628d5e: fonts, formatting, quality,
+all-target strict Clippy and tests returned zero. Raw1491/0/2 includes App109/0/2,
+Kit204/0/0 and the new complete-enumeration test plus all prior five host tests.
+The logs show actual changed App checking/compilation. Review and receiving
+consumer checks remain required; earlier row273 does not approve this extension.
+
+Availability uses LiveShells::{Available,Unavailable}, not an ad hoc Result error
+or another App dependency. The complete-list test preserves typed refusal; real
+callers must match Unavailable to refusal, never convert it into an empty list.
+This source correction does not inherit the earlier focused-host review.
+
+V1 row284 accepted bounded staged source e2628d5e and its exact ordinary
+selected fonts/fmt/quality/all-target Clippy/test suite, all0 and raw1491/0/2.
+The producer is on announced base13.1 ad14f5f6. This E3 receiving tree has real
+canonical fence callers, so it retains one promoted enumeration module/reexport;
+it does not retain the incoming staged duplicate. W15 global document/node
+admission and this newer receiving union still need their own source/runtime
+checks; no C5 or OS authority follows from the shared-source result.
