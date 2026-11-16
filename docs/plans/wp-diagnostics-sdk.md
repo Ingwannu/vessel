@@ -1,6 +1,8 @@
 # Selected diagnostics SDK adapter (staged leaf)
 
-This leaf starts at announced app package base 13. It contains only the
+This receiving leaf starts at announced app package base 14.1 (`b54abbdc`).
+It ports the exact staged adapter/tests from reviewed `d6cd2058` on base 13.
+It contains only the
 SelectedConnection SDK adapter and memory-only framed regressions; E4 view,
 actor/receipt/UI adoption and G4 Scenario/export changes are excluded.
 
@@ -27,3 +29,11 @@ successful report, identity mismatch, semantic denial, retirement, physical
 closure notification and held-response timeout. Narrow VM checks are owed at
 initial submission; whole app, UI/copy/privacy and producer approval are not
 claimed by this bounded source packet.
+
+The prior leaf has V1 row287 FINAL bounded STAGED SOURCE/requested Link NARROW
+PASS, exact all-target strict zero and four framed SDK tests passing. Those
+results do not establish this receiving union. G4's newly public Scenario and
+its feature/dependency graph are inherited from the approved line; this leaf
+adds no facade, export or consumer. Existing selected bodies remain byte equal
+to the receiving base after removing only the adapter and test registration.
+Receiving all-target strict and focused SDK runtime checks are owed initially.
