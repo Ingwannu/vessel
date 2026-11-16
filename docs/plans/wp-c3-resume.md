@@ -774,3 +774,38 @@ consumer unavailable, no substitute SVG. The literal reference tooltip has
 was flagged to coordinator before implementation). Header source sketch remains
 external/uninstalled; actual name-first geometry, passive/interactive, tooltip,
 sticky/action and captures are still owed, not approved by writer assignment.
+
+## Actual3add registry pressure GREEN; shared notification reviewed
+
+wp-git-consumer-tests-20261116T014950Z-3add5bc1 completed0: native-fonts0,
+native-cargo0/no skip; actual App/Kit/Link compilation and the selected
+actual_registry_visible_engines_quiesce_and_outer_wheel_releases_old_vetoes
+passed1/0/0,158filtered. All retained step prefixes/log digests/spec/checkout
+and current panel source pins match immutable3add. The external result packet
+is body-engines-3ad-runtime-result.json. This fixture drives actual Shell ->
+one layout registry ->128-file summary ->32 actual document engines, a
+synthetic1280x6000 viewport and4000-pixel native wheel. Its bounded settling
+helper explicitly draws frames; this is not proof of a cached-region owner
+notification path, physical OS input or final UI captures.
+
+V1 FINAL bounded VirtualList control SOURCE/requested Kit NARROW PASS is
+exact2ebeedf9..94b994be (optional6fc65ade4 docs). Selected handoff went to the
+native lead; no full Kit/C3/OS/whole claim. The current App has not installed
+that leaf yet. Revised external scroll.rs proposes one deferred weak-Shell
+notification after discover assigns an Entry instance. It captures the
+original pane/target/instance/connection and rechecks registration, sole layout
+visibility/target and same original admission before clearing presentation
+vetoes/notifying the actual owner. Never reborrow ListState synchronously or
+forward the old-origin event range. That proposed consumer remains uncompiled
+and uninstalled, with retained-old-callback/cached-region tests still owed.
+
+The bounded C3 node runtime producer is now separately coordinator-authorized:
+ordinary exact changed-crate strict/runtime cases then V3, integrator receiving
+whole/number assignment; NO worker whole. Its isolated ce9667ac strict/library/TS
+runs remain queued. A self-audit found a cache-hit registry race; successor
+82aec7d14 reuses resolve_unchanged before the cache probe and adds an actual
+blocking-pool summary/body/path/default regression. It is committed but
+uncompiled/unexecuted. Old candidate results must remain exact-source, and
+V3 runtime submission waits for the corrected candidate's meaningful checks.
+Observation/subscription/fetch, Models generation, W9 restore, RootLease/CAS,
+native UI and C4 remain excluded. GIT_PANEL stays None.
