@@ -5,6 +5,7 @@
 //! Mutable access serializes target operations. After a lost/failed CDP command,
 //! only close is allowed: an uncertain mutation must not be silently replayed.
 
+mod capture;
 mod evaluation;
 mod input;
 mod snapshot;

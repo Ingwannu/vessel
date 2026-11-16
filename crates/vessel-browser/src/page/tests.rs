@@ -6,7 +6,7 @@ use serde::Deserialize;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_tungstenite::tungstenite::Message;
-use vessel_proto::browser::{BrowserHistory, ViewportSide};
+use vessel_proto::browser::{BrowserHistory, ScreenshotExtent, ViewportSide};
 const FIXTURE_DEADLINE: Duration = Duration::from_secs(20);
 
 pub(super) fn viewport(width: u32, height: u32) -> ViewportSize {
@@ -96,9 +96,13 @@ async fn actual_target_requests_check_history_surface_and_uncertain_delivery() {
             vessel_proto::browser::TextCompleteness::Whole
         );
         assert!(page.revision() > before);
+        capture::tests::cases(&mut page).await;
         assert!(page.revision() > BrowserRevision::ZERO);
         assert!(!format!("{page:?}").contains("private-target"));
-        assert!(matches!(page.capture().await, Err(PageError::Cdp(_))));
+        assert!(matches!(
+            page.capture_extent(ScreenshotExtent::Viewport).await,
+            Err(PageError::Cdp(_))
+        ));
         assert!(matches!(page.stop().await, Err(PageError::Uncertain)));
         page.close().await.unwrap();
         client.shutdown().await.unwrap();
@@ -113,6 +117,8 @@ async fn peer(listener: TcpListener) {
     let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
     let mut histories = 0_u8;
     let mut frame_queries = 0_u8;
+    let mut metrics = 0_u8;
+    let mut captures = 0_u8;
     while let Some(Ok(frame)) = socket.next().await {
         if frame.is_close() {
             break;
@@ -129,12 +135,7 @@ async fn peer(listener: TcpListener) {
             }
             "Page.getFrameTree" => {
                 frame_queries = frame_queries.checked_add(1).unwrap();
-                let loader = if frame_queries == 4 {
-                    "changed-loader"
-                } else {
-                    "first-loader"
-                };
-                serde_json::json!({"frameTree":{"frame":{"id":"own-frame","loaderId":loader}}})
+                frame_result(frame_queries, captures)
             }
             "Page.createIsolatedWorld" => {
                 assert_eq!(call["params"]["grantUniveralAccess"], false);
@@ -155,7 +156,37 @@ async fn peer(listener: TcpListener) {
                     serde_json::json!({"result":{"value":{"kind":"value","text":"{\"owned\":7}","completeness":"whole"}}})
                 }
             }
-            "Page.captureScreenshot" => serde_json::json!({"data":"bm90LXBuZw=="}),
+            "Page.getLayoutMetrics" => {
+                metrics = metrics.checked_add(1).unwrap();
+                if metrics == 1 {
+                    assert_eq!(captures, 0);
+                    serde_json::json!({"cssContentSize":{"width":8192,"height":8192}})
+                } else {
+                    if metrics == 2 {
+                        assert_eq!(captures, 0);
+                    }
+                    serde_json::json!({"cssContentSize":{"width":390.25,"height":1700.01}})
+                }
+            }
+            "Page.captureScreenshot" => {
+                if call["params"].get("clip").is_some() {
+                    captures = captures.checked_add(1).unwrap();
+                    assert_eq!(call["params"]["captureBeyondViewport"], true);
+                    assert_eq!(
+                        call["params"]["clip"],
+                        serde_json::json!({"x":0,"y":0,"width":391,"height":1701,"scale":1})
+                    );
+                    // Deliberately HEADER-ONLY: protocol/geometry fixture, not pixels/paint.
+                    let encoded = if captures == 2 {
+                        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+                    } else {
+                        "iVBORw0KGgoAAAANSUhEUgAAAYcAAAal"
+                    };
+                    serde_json::json!({"data":encoded})
+                } else {
+                    serde_json::json!({"data":"bm90LXBuZw=="})
+                }
+            }
             "Input.dispatchKeyEvent"
             | "Input.dispatchMouseEvent"
             | "Input.insertText"
@@ -283,4 +314,13 @@ async fn revision_exhaustion_requires_target_close_instead_of_more_commands() {
     })
     .await
     .unwrap();
+}
+
+fn frame_result(queries: u8, captures: u8) -> serde_json::Value {
+    let loader = if queries == 4 || captures == 3 {
+        "changed-loader"
+    } else {
+        "first-loader"
+    };
+    serde_json::json!({"frameTree":{"frame":{"id":"own-frame","loaderId":loader}}})
 }

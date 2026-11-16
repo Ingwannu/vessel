@@ -43,6 +43,7 @@ methods! {
     NavigateHistory => "Page.navigateToHistoryEntry",
     Evaluate => "Runtime.evaluate",
     Capture => "Page.captureScreenshot",
+    LayoutMetrics => "Page.getLayoutMetrics",
     SetViewport => "Emulation.setDeviceMetricsOverride",
     ClearViewport => "Emulation.clearDeviceMetricsOverride",
     InsertText => "Input.insertText",
@@ -66,6 +67,8 @@ mod keyboard;
 mod modifiers;
 mod pointer;
 pub(crate) use keyboard::{KeyboardError, KeyboardState};
+mod capture;
+pub(crate) use capture::{CapturePage, LayoutMetrics};
 mod condition;
 mod snapshot;
 pub(crate) use condition::ConditionProbe;
@@ -92,6 +95,7 @@ empty_requests! {
     EnableNetwork => Acknowledged,EnableNetwork,"Observe bounded metadata; never collect request headers/bodies.";
     Stop => Acknowledged,Stop,"Stop loading without implying a successful reload.";
     Reload => Acknowledged,Reload,"Reload the current target, invalidating refs first.";
+    Metrics => LayoutMetrics,LayoutMetrics,"Read explicit CSS content dimensions before a full-page surface is admitted.";
     History => NavigationHistory,History,"Read actual browser history before selecting a history entry.";
     Capture => Captured,Capture,"Capture a viewport PNG from a real engine target.";
     ClearViewport => Acknowledged,ClearViewport,"Clear a metrics override before responsive sizing resumes.";

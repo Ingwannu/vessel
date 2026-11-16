@@ -8,6 +8,42 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Full-page screenshot controller (staged)
+
+[Decision Log]
+- Purpose: screenshot Page intent needs actual full-document dimensions and
+  captureBeyondViewport, rather than silently returning the viewport image.
+- Existing assets: reuse sealed CDP requests, Page's delivery/loader owner,
+  ViewportSide, the combined surface check and ScreenshotPng transport validation.
+- Choice: read Page.getLayoutMetrics CSS content size, ceil each bounded side,
+  admit the combined raster before Page.captureScreenshot, then require exact
+  returned PNG header geometry and the same frame/loader before publishing.
+- Why: no duplicate image codec, allocation budget or independent capacity pool.
+  Two bounded metadata numbers use std decimal conversion after rounding; no
+  unchecked numeric cast or new dependency is introduced.
+
+Reference desktop browser-automation/service.ts:1220–1235 chooses fullPage
+explicitly; :1304–1354 rounds content extents and captures PNG with a clip from
+origin zero, scale1 and captureBeyondViewport. This implementation follows that
+behavior independently. Pinned Chrome must provide cssContentSize; absent CSS
+units refuse rather than falling back to deprecated potentially device-scaled
+metrics. Dimensions above the existing8192 side/32MiB raster ceilings refuse
+before capture. The format and bounded result may differ from the reference's
+uncapped page sizes for this documented resource reason.
+
+Prepared protocol fixtures cover fractional rounding, finite/range and missing
+CSS refusal, combined-area refusal before capture, explicit full-page options,
+returned geometry mismatch and a replaced loader. Their deliberately header-only
+PNG values are geometry/transport fixtures, never valid pixel/paint substitutes.
+Normal viewport behavior remains the existing path. Actual runtime full-page,
+first-paint/codec/native GPU proof, event-actor invalidation, dialog handling and
+engine qualification are separate debts. NoEngine remains.
+
+The preceding function-evaluation correction cd7080776 passed all-target strict
+Clippy in run wp-browser-wait-narrow-20261116T030853Z-cd708077 at03:10:02 UTC.
+That is before this new screenshot source. Its db3 functional suite remains
+queued at the time of writing; no functional result is inferred from Clippy.
+
 ## Function fixture ownership correction
 
 Exactdb3fc1bfd strict analysis returned one test-helper ownership lint: the
