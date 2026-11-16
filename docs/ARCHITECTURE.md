@@ -1694,7 +1694,10 @@ owner and never resolves a global composer from route or target metadata.
 Palette source tokens reject stale presented entries; captured pane commands
 also use W12's LayoutActionContext fence. These are presentation guards, not
 physical node/connection leases. File/Git/plugin operations retain their owner
-admission and dispatch paths. Shared preference receipt/rollback belongs to the
+admission and dispatch paths. The new Git palette source is test-staged until
+the scoped write-owner packet is checked; UI target equality does not activate
+it in product builds. Import registers only the existing owner modal, without a
+second host resolver or operation path. Shared preference receipt/rollback belongs to the
 desktop coordinator, with shortcut cache invalidation on effective deltas.
 The current package is still in progress; docs/plans/wp-commands.md distinguishes
 written source, executed checks and required owner integrations.

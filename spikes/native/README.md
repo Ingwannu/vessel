@@ -1380,7 +1380,11 @@ extension registration; supported desktop operations remain with their owner.
 Command sources register typed callbacks into the existing palette registry;
 owner tokens fence replacement/removal before a presented row executes. W12
 pane callbacks additionally capture its LayoutActionContext and use the owner
-run_at adapter; G1 callbacks use its exact target/menu/activation projection.
+run_at adapter. The new F4 Git source remains cfg(test)-only until G1 supplies
+a checked original-connection/root/ticket write-owner packet; existing toolbar
+callers remain a separately unpassed dependency. Import uses the announced
+owner modal through the same source registry: rank2, callback close first, then
+open_import. Its shared Import glyph retains foreground_muted in active rows.
 Local palette keys precede global overrides. Palette/help actual close reuses
 kit::focus::ReturnFocus instead of retaining a strong opener.
 Missing/dead openers stay blurred; canonical composer focus has no route-level
