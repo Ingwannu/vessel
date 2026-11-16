@@ -256,7 +256,7 @@ impl Shell {
             }
         }
         if let Some(wait) = pause {
-            self.labels_rest(key, read, rest, wait, cx);
+            rest_then_read(key, read, rest, wait, cx);
         }
         if read == Read::Registry {
             self.labels_picker_refresh(cx);
@@ -274,30 +274,6 @@ impl Shell {
             .find(|follow| &follow.connection == connection)
     }
 
-    /// After `wait`, `read` of `key` may ask again (if still resting from
-    /// the same answer).
-    fn labels_rest(
-        &mut self,
-        key: HostKey,
-        read: Read,
-        rest: u64,
-        wait: Duration,
-        cx: &mut Context<'_, Self>,
-    ) {
-        cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(wait).await;
-            let _gone = this.update(cx, |shell, _cx| {
-                let follows = &mut shell.areas.labels.follows;
-                if let Some(follow) = follows.iter_mut().find(|follow| follow.key == key)
-                    && *follow.lane(read) == Lane::Resting(rest)
-                {
-                    *follow.lane(read) = Lane::Idle;
-                    shell.labels_read(key, read);
-                }
-            });
-        })
-        .detach();
-    }
 
     /// The Labels item of `session`'s row menu: the picker for its
     /// workspace, with the registry's labels.
@@ -404,4 +380,28 @@ impl super::Labels {
             writable: host.state.writable().is_ok(),
         })
     }
+}
+
+/// After `wait`, `read` of `key` may ask again (if still resting from the
+/// same answer).
+fn rest_then_read(
+    key: HostKey,
+    read: Read,
+    rest: u64,
+    wait: Duration,
+    cx: &mut Context<'_, Shell>,
+) {
+    cx.spawn(async move |this, cx| {
+        cx.background_executor().timer(wait).await;
+        let _gone = this.update(cx, |shell, _cx| {
+            let follows = &mut shell.areas.labels.follows;
+            if let Some(follow) = follows.iter_mut().find(|follow| follow.key == key)
+                && *follow.lane(read) == Lane::Resting(rest)
+            {
+                *follow.lane(read) = Lane::Idle;
+                shell.labels_read(key, read);
+            }
+        });
+    })
+    .detach();
 }
