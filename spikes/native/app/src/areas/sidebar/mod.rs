@@ -254,16 +254,13 @@ const PANEL: Panel = Panel {
 };
 
 /// One sidebar-only layout decision, including the width currently dragged.
-/// Settings retains its old compact form until its frame owner consumes the
-/// shared budget; docking it at 600 now would duplicate its compact nav list.
+/// Settings consumes this same result for its list/back fallback; global
+/// phone chrome does not choose whether its navigation can dock.
 pub(crate) fn arrangement(
     shell: &Shell,
     window: &Window,
 ) -> vessel_app_view::panels::SidebarLayout {
-    use vessel_app_view::panels::{SidebarContext, SidebarLayout, sidebar_layout};
-    if shell.route == Route::Settings && vessel_app_kit::breakpoint::phone(window) {
-        return SidebarLayout::Sheet;
-    }
+    use vessel_app_view::panels::{SidebarContext, sidebar_layout};
     let context = match shell.route {
         Route::Settings => SidebarContext::Settings,
         Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
@@ -399,4 +396,4 @@ pub(crate) fn nav_row(
 }
 
 #[cfg(test)]
-mod policy_tests;
+pub(crate) mod policy_tests;

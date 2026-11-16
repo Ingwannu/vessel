@@ -8,7 +8,7 @@ use std::{cell::RefCell, rc::Rc};
 use vessel_app_kit::ui::px;
 use vessel_app_view::{panels::SidebarLayout, prefs::Panel};
 
-pub(super) fn setup(
+pub(crate) fn setup(
     cx: &mut TestAppContext,
     width: f32,
     route: Route,
@@ -76,22 +76,4 @@ fn root_docks_requested_sidebar_at_exact_six_hundred_without_explorer_or_setting
         assert!(!shell.sidebar_open());
         assert_eq!(shell.prefs.settings.layout.sidebar, Panel::Hidden);
     });
-}
-
-#[gpui::test]
-fn settings_keeps_current_phone_form_and_wide_navigation_until_frame_fallback(
-    cx: &mut TestAppContext,
-) {
-    language_tests::init(cx);
-    for (width, sheet) in [(650.0, true), (800.0, false)] {
-        let (shell, cx) = setup(cx, width, Route::Settings);
-        cx.update(|window, cx| {
-            shell.read_with(cx, |shell, _| {
-                assert_eq!(
-                    matches!(arrangement(shell, window), SidebarLayout::Sheet),
-                    sheet
-                );
-            });
-        });
-    }
 }

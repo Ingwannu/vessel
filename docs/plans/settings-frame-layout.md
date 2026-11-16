@@ -34,3 +34,20 @@ cover narrow list -> section -> back, explicit open-to-section, resizing
 across sharing boundaries, hidden/wide preference, one nav/header and
 retained section/body density. Captures and a final package gate/review
 remain owed; this plan does not mark source or runtime complete.
+
+## Source checkpoint
+
+The frame now derives `Form::{Split,Stacked}` from the existing sidebar
+arrangement and removes both temporary Settings exceptions in the same change.
+The section-page composition moved into `settings/form.rs` by responsibility;
+its body still receives the original global phone density. A form transition
+closes the existing combobox anchor without applying a choice. The existing
+real-root fixture is shared only through test visibility; four new cases cover
+actual navigation, pointer back/list flow, resize/density and popup retirement.
+Debug selectors identify existing surfaces and actions, with no release paint.
+
+Local source checks: native size709 files/13 shrinking exceptions, token audit
+none new (one obsolete settings/mod.rs px-step record removed), diff whitespace0.
+These checks do not compile. Strict checks, all four new runtime cases, final
+native gate/export, inspected captures and receiving review remain unverified.
+No file/account permission or service changes were made.

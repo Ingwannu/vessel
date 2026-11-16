@@ -76,15 +76,15 @@ pub enum Sharing {
     TooNarrow,
 }
 
-/// One computed sidebar placement, also consumed by Settings' future compact
-/// fallback. The Settings exception preserves its only navigation path today.
+/// One computed sidebar placement, also consumed by Settings' list/back
+/// fallback. Both surfaces keep navigation when docking cannot share the row.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SidebarLayout {
     /// Compact overlay, opened/closed independently by the shell.
     Sheet,
-    /// Desktop preference is hidden or the workspace cannot share the row.
+    /// Desktop preference is hidden or the content cannot share the row.
     Hidden,
-    /// Docked width and the real budget result (Settings may be `TooNarrow`).
+    /// Docked width and the real budget result.
     Docked {
         /// Whole logical points after native frame insets and clamping.
         width: f32,
@@ -126,9 +126,8 @@ pub fn sidebar_share(room: f32, width: f32, context: SidebarContext) -> Sharing 
 }
 
 /// Compute form, width and auto-hiding once from typed route/preference facts.
-/// Settings temporarily remains docked when too narrow: its sidebar is its
-/// only navigation, unlike Paseo's independent settings split. E2 will consume
-/// `sharing` for a list/back stack before that exception may be removed.
+/// A sidebar docks only when its content can share the row. Settings consumes
+/// the same result for its list/back fallback, without a second width rule.
 #[must_use]
 pub fn sidebar_layout(
     viewport: f32,
@@ -145,18 +144,15 @@ pub fn sidebar_layout(
     }
     // Width targeting must not become the admission test: Paseo keeps 400
     // when ordinary content admits zero (`desktop-sidebar-layout.ts:40–87`).
-    // Settings retains the lead-approved 720 width exception until E2's frame.
+    // Settings targets a width that leaves its existing content minimum.
     let width = match context {
         SidebarContext::Workspace(_) => SIDEBAR.width(asked, room),
         SidebarContext::Settings => SIDEBAR.width_leaving(asked, room, SETTINGS_CONTENT_MINIMUM),
     };
     let sharing = sidebar_share(room, width, context);
-    match (context, sharing) {
-        (SidebarContext::Workspace(_), Sharing::TooNarrow) => SidebarLayout::Hidden,
-        (SidebarContext::Workspace(_), Sharing::Fits)
-        | (SidebarContext::Settings, Sharing::Fits | Sharing::TooNarrow) => {
-            SidebarLayout::Docked { width, sharing }
-        }
+    match sharing {
+        Sharing::TooNarrow => SidebarLayout::Hidden,
+        Sharing::Fits => SidebarLayout::Docked { width, sharing },
     }
 }
 
@@ -365,10 +361,7 @@ mod sidebar_policy_tests {
         );
         assert_eq!(
             sidebar_layout(800.0, 788.0, None, Panel::Shown, SidebarContext::Settings),
-            SidebarLayout::Docked {
-                width: 200.0,
-                sharing: Sharing::TooNarrow
-            }
+            SidebarLayout::Hidden
         );
         assert_eq!(
             sidebar_layout(932.0, 920.0, None, Panel::Shown, SidebarContext::Settings),

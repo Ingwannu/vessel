@@ -196,6 +196,7 @@ fn section_row(
         compact,
         tokens,
     )
+    .debug_selector(move || format!("settings-section-{}", section.slug()))
     .on_click(cx.listener(move |shell, _event, _window, cx| {
         shell.settings_section(section, cx);
     }))
@@ -326,6 +327,7 @@ fn group(label: Option<&str>, rows: Vec<Stateful<Div>>, compact: bool, tokens: &
 pub(crate) fn sidebar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.settings();
     div()
+        .debug_selector(|| "settings-nav-docked".to_owned())
         .size_full()
         .flex()
         .flex_col()
@@ -364,6 +366,7 @@ pub(crate) fn sidebar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
 pub(crate) fn compact(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.settings();
     div()
+        .debug_selector(|| "settings-nav-list".to_owned())
         .size_full()
         .flex()
         .flex_col()

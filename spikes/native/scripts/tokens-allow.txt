@@ -81,7 +81,6 @@ px-step spikes/native/app/src/areas/palette.rs 3
 px-step spikes/native/app/src/areas/session.rs 7
 px-step spikes/native/app/src/areas/settings/agents/rows.rs 2
 px-step spikes/native/app/src/areas/settings/appearance.rs 11
-px-step spikes/native/app/src/areas/settings/mod.rs 2
 px-step spikes/native/app/src/areas/settings/nav.rs 10
 px-step spikes/native/app/src/areas/settings/page.rs 4
 px-step spikes/native/app/src/areas/shortcuts/page/row.rs 1

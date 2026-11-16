@@ -44,7 +44,7 @@ impl std::fmt::Debug for DetailHeader {
     }
 }
 
-/// A section's page: `title` over `body`; `compact` on a phone (the title
+/// A section's page: `title` over `body`; `compact` when navigation stacks (the title
 /// in a back header to the list).
 pub(crate) fn layout(
     title: &str,
@@ -77,6 +77,7 @@ pub(crate) fn layout(
         })
         .child(body);
     div()
+        .debug_selector(|| "settings-section-page".to_owned())
         .size_full()
         .flex()
         .flex_col()
@@ -131,6 +132,14 @@ pub(crate) fn header(
 ) -> Div {
     let neutral = tokens.neutral;
     let button = div()
+        .debug_selector(move || {
+            if compact {
+                "settings-compact-back"
+            } else {
+                "settings-detail-back"
+            }
+            .to_owned()
+        })
         .id(if compact {
             "settings-compact-back"
         } else {

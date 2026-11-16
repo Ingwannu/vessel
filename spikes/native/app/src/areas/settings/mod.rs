@@ -2,7 +2,7 @@
 //! listed in the sidebar's place under Paseo's two headings, App and the
 //! machine (Paseo's Host), with a way back and the machine picker
 //! (`nav.rs`); the chosen section's page beside them (`page.rs`). On a
-//! phone the list is the page, and a section is pushed over it with a way
+//! stacked form the list is the page, and a section is pushed over it with a way
 //! back (Paseo's compact layout). Which sections are drawn, and so
 //! listed, is `sections.rs`.
 //!
@@ -36,6 +36,7 @@ pub(crate) mod connected;
 mod connections;
 mod devices;
 mod diagnostics;
+mod form;
 mod general;
 mod general_words;
 pub(crate) use general_words::PreparedGeneral;
@@ -54,13 +55,11 @@ mod theme;
 pub(crate) use sections::drawn;
 mod sync;
 
-use gpui::AnimationExt as _;
 use vessel_app_kit::select::{self, Anchor};
 use vessel_app_kit::ui::{
-    AnyElement, App, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _,
-    Window, div, px,
+    AnyElement, App, Context, Div, IntoElement as _, ParentElement as _, Styled as _, Window, div,
 };
-use vessel_app_kit::{ComboHandlers, ComboboxState, SendOn, Tokens, Type, TypeExt as _, combobox};
+use vessel_app_kit::{ComboHandlers, ComboboxState, SendOn, Tokens, combobox};
 use vessel_app_view::prefs::{SendKey, send_key_label};
 use vessel_app_view::settings::Section;
 
@@ -76,8 +75,10 @@ pub(crate) struct SettingsState {
     pub(crate) general: PreparedGeneral,
     /// The section shown.
     pub(crate) section: Section,
-    /// On a phone: the section's page is pushed over the list.
+    /// In the stacked form: the section page is pushed over the list.
     pub(crate) pushed: bool,
+    /// Prior form detects anchor lifecycle changes, never chooses the policy.
+    last_form: Option<form::Form>,
     /// How many times a page has arrived (a section chosen, Settings
     /// opened): a new count fades the page in; 0, drawn in place.
     turn: u64,
@@ -118,6 +119,7 @@ impl SettingsState {
             general,
             section: Section::DEFAULT,
             pushed: false,
+            last_form: None,
             turn: 0,
             machine: None,
             from: Route::Draft,
@@ -188,6 +190,7 @@ impl Shell {
         self.settle_sync(window);
         self.settle_host_agents(window);
         self.settle_book(window);
+        self.settle_settings_form(window);
     }
 
     /// Open Settings at `section` (pushed on a phone), or at its start
@@ -348,9 +351,8 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
     .detach();
 }
 
-/// The Settings screen: on a wide window the chosen section's page (the
-/// list is in the sidebar's place); on a phone the list, or the section
-/// pushed over it.
+/// The Settings screen: a shared fitting sidebar shows the chosen page;
+/// without it the existing list/back flow keeps every section reachable.
 pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
@@ -359,10 +361,11 @@ pub(crate) fn render(
 ) -> Div {
     let phone = vessel_app_kit::breakpoint::phone(window);
     let state = &shell.areas.settings;
-    let body = if phone && !state.pushed {
+    let form = form::current(shell, window);
+    let body = if form == form::Form::Stacked && !state.pushed {
         nav::compact(shell, tokens, cx).into_any_element()
     } else {
-        section_page(shell, tokens, phone, window, cx)
+        form::section_page(shell, tokens, form, phone, window, cx)
     };
     div()
         .size_full()
@@ -376,58 +379,6 @@ pub(crate) fn render(
         .children(devices::dialogs(shell, tokens, window, cx))
         .children(diagnostics::dialogs(shell, tokens, window, cx))
         .children(overview::dialogs(shell, tokens, window, cx))
-}
-
-/// The section shown, as a page: its title, a refused change above its
-/// body, the body fading in when it has just arrived.
-fn section_page(
-    shell: &Shell,
-    tokens: &Tokens,
-    phone: bool,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let state = &shell.areas.settings;
-    // A section no longer listed (its machine left the book) gives way to
-    // the first one, as opening it would.
-    let section = if sections::listed(state.section, shell) {
-        state.section
-    } else {
-        Section::DEFAULT
-    };
-    let title = shell.t.lang.settings().section(section, shell.words);
-    let body = sections::draw(section, shell, tokens, phone, window, cx)
-        .unwrap_or_else(|| div().into_any_element());
-    let body = div()
-        .flex()
-        .flex_col()
-        .children(state.refused.as_ref().map(|refused| {
-            div()
-                .mb(px(16.0))
-                .px(px(4.0))
-                .type_(Type::Body)
-                .text_color(tokens.neutral.destructive)
-                .child(refused.words.clone())
-        }))
-        .child(body);
-    let body = if state.turn == 0 {
-        body.into_any_element()
-    } else {
-        body.with_animation(
-            ElementId::NamedInteger("settings-page".into(), state.turn),
-            vessel_app_kit::motion::transition(vessel_app_kit::motion::STANDARD),
-            gpui::Styled::opacity,
-        )
-        .into_any_element()
-    };
-    // Providers (the agents' page) keeps a scroll position per machine and
-    // per agent, and an agent's detail has its own header.
-    let (scroll_id, detail) = if section == Section::Providers {
-        (agents::scroll_id(shell), agents::header(shell))
-    } else {
-        ("settings-page".into(), None)
-    };
-    page::layout(title, body, phone, scroll_id, detail, tokens, cx).into_any_element()
 }
 
 /// Whether a setting's row is shown: only a setting the app already draws
