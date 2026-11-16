@@ -17,14 +17,14 @@
 
 use vessel_app_kit::theme::{
     identity::{self, Hue},
-    spacing::S3,
+    spacing::{S1_5, S3},
 };
 use vessel_app_kit::ui::{
     Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{Tokens, dot};
-use vessel_app_view::labels::{Color, EditAccess, HostState};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, dot};
+use vessel_app_view::labels::{Color, EditAccess, HostState, Label};
 
 use crate::shell::Shell;
 
@@ -34,6 +34,30 @@ const DOT_SIZE: f32 = 10.0;
 pub(super) const SWATCH_SIZE: f32 = 20.0;
 pub(super) fn foreground(color: Color, tokens: &Tokens) -> gpui::Hsla {
     identity::foreground(hue(color), tokens.scheme)
+}
+
+/// A label where it is read, not managed (Paseo's `WorkspaceLabelChip`):
+/// its name in its colour on a 10% ground of the same hue, a pill exactly
+/// as tall as its 12/16 line (no vertical padding, so a row does not grow
+/// for it), the ground 6 points past the name; a long name is cut.
+pub(crate) fn chip(label: &Label, tokens: &Tokens) -> Div {
+    let hue = hue(label.color);
+    div()
+        .flex_shrink()
+        .min_w_0()
+        .px(px(S1_5))
+        .rounded_full()
+        .bg(identity::tint(hue))
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .whitespace_nowrap()
+                .text_ellipsis()
+                .type_(Type::Meta)
+                .text_color(identity::foreground(hue, tokens.scheme))
+                .child(label.name.as_str().to_owned()),
+        )
 }
 
 pub(super) fn mark(color: Color, tokens: &Tokens) -> Div {

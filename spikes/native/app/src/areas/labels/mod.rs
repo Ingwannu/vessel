@@ -16,6 +16,7 @@ mod hosts;
 mod picker;
 mod surface;
 
+pub(crate) use colors::chip;
 pub(crate) use follow::RowLabels;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
