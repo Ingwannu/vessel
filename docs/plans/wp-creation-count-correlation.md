@@ -54,3 +54,12 @@ new equality trait, product behavior or race ordering changes.
 The second strict result reached the same count tests and returned one unused
 Option from the fake connection insertion. The fixture now binds that result;
 no state, ordering, count, credential, correlation or refusal assertion changes.
+
+After the announced execution owner joined the count refactor, source inspection
+found its UUID/watch constructor still inside reserve_prepared's final registry
+guard. PreparedReservation now owns the unpublished Execution and exact rollback
+Arc as well as credentials, constructed before that guard. reserve_prepared only
+moves them into the authoritative entry after current duplicate/grant/count
+checks. Losing preparation is private and unobservable through the registry;
+its UUID/watch cannot be captured or used as authority. No execution body/watch
+policy changes, nested lock, callback or alternate count owner is added.
