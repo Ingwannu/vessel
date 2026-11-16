@@ -269,3 +269,14 @@ reference, while a readonly earlier snapshot keeps its own cut. This replaces
 the previous delayed alternate invalidation at the next entry. Repeated entry
 and exit do not create an extra transition or copy coordinates from an inactive
 buffer. The recorded oracle supplements rather than replaces earlier fixtures.
+
+
+## Staged typed input projection
+
+The same pure terminal crate will own key/paste byte encoding from its typed
+InputModes, following the actual production terminal-key-input and paste
+functions. This is an output encoding rule, not another decoder or negotiation
+tracker. The existing node writer and UI focus/IME/opening admission remain
+outside. CLI textual send-keys retains its separate literal/token grammar.
+The contract and reference paths are in terminal-input-encoding.md. The staged
+producer has no actual native/CLI caller, new RPC or authority activation.
