@@ -30,6 +30,14 @@ it would prove hook mechanics, not exact plural arithmetic. It is also
 uncompiled at present. The earlier missing selector-loop gate would fail its
 positive direct-selection assertion.
 
+`plural_probe.rs` is a separate test-only module for the ICU candidate graph.
+It passes exact `u64` directly to maintained `category_for`, including English
+ordinal, Russian/Arabic last-digit cases and Spanish/French/Portuguese million
+divisibility neighbors. It also characterizes why shipped EN/KO cardinal
+categories do not change at large unsigned values. It is uncompiled and
+unregistered; no extra language ships and no native/plugin selector has been
+connected by preparing these tests.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
