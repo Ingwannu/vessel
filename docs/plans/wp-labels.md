@@ -663,3 +663,15 @@ box. The same per-opening `FieldId`, Listing admission, silent restore/reset
 and focus stay. The X test is replaced by a regression: typing in the header
 row filters the listing, and closing and opening again starts with an empty
 query and a fresh field.
+
+Checks (2026-11-16, build VM; nothing compiled locally): strict
+label-header-search-20261116T072259Z-f820cab9 (fonts, fmt, quality, whole native
+clippy 0; the two before it stopped on the Kit test-module import fixed in the
+Kit leaf); tests label-header-search-narrow-20261116T072355Z-f820cab9
+(`-p vessel-app -p vessel-app-kit -- areas::labels dialog::`) 33 passed,
+0 failed, including the new regression and both Kit header-search cases; app
+export label-header-search-export-20261116T072357Z-f820cab9 on the shared root
+fleet base12. The node does not serve label catalogs yet (`WORKSPACE_LABELS` is
+unset), so on a real fleet every host shows the update hint; listing, filtering
+and editing captures came from a separate capture-only build that seeds a fixed
+catalog and is not part of this branch.
