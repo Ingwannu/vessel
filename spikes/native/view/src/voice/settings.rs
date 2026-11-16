@@ -1,7 +1,7 @@
 //! Host Voice's node-bound read/write presentation, without a settings store.
 //!
 //! The canonical DTOs own provider/default/reset policy. This page only keeps
-//! actual replies, excludes stale callbacks and requests one switch change.
+//! actual replies, excludes stale callbacks and requests one canonical change.
 //! A missing or failed read never becomes a default configuration.
 
 pub mod draft;

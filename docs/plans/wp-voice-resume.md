@@ -115,3 +115,13 @@ Record its actual run ID and result below. The quota warning freezes this
 slice on base14.3 despite the subsequent14.4 announcement; no new merge or
 secure-field activation follows. If execution cannot finish before the stop,
 leave an explicitly WIP commit and exact pending receipt, not a runtime claim.
+
+
+## Dictation owner stopped with no consumer handoff
+
+Latest owner update: WIP a17fe9b4 contains only docs over frozen execution
+source b61e91cc. Workspace/all-target strict0 and RPC lib58/0/0 are scoped
+proofs; whole `dictation-20261116T030821Z-b61e91cc` is still queued and
+V3row288 incomplete. Firstfield/Copy is still NOT consumer-ready. Do not import
+mutable main or replay its existing run. Await checked review/integrator
+adoption after an authorized resume.
