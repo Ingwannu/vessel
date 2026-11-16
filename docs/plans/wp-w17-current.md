@@ -1,7 +1,9 @@
 # W17 current invocation map
 
-Product checkpoint: announced gate54 node head
-`2750243693543a8469477a3586eda472423079c3`, schema21, merged after gate53, with move-only startup seam
+Product checkpoint: announced gate56b node head
+`ed4cd1377`, protocol25/schema21, merged at80298bb73 after gate54. Its gate is
+counted17/18 with the named open startSession /new intermittent (TRACKER770);
+it is not described here as a wholly green result. The package retains move-only startup seam
 `7489af9ed`, separate registry startup `ece8d0913`, sealed EOF owner `63fba65a5`,
 and the unexecuted real-queue prerequisite fixture `8ddd99ae5`. Conditional C2
 source integration remains `0d7cf46e` product / `c0abda32` docs; full consumer

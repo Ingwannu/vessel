@@ -1768,3 +1768,24 @@ Conflict (no retry), rather than reporting a pre-write unknown-id usage failure.
 Add the absent observation to the existing concurrent-edit regression. This tiny
 follow-up is outside the immutable queued7705369d strict; CLI lint/execution remain
 owed on the final union. No second lookup, mutation or fallback is added.
+
+### Resume on announced node gate56b
+
+Read own current invocation map, final plan entries and remote inventory before
+new work. There is no separate prior STATE file. Exact7705369d was verified queued
+and cancelled before acquisition at19:05:42, terminal143; no Cargo ran and no
+replacement was registered before the credit stop. Exact8a92 completed red on
+the retained test-helper lints. Neither is a pass or missing-result rerun.
+
+Merge announceded4cd137 as80298bb73 without rebasing, preserving both independent
+architecture appendices. This base is counted17/18 with the named startSession
+/new intermittent (TRACKER770), not falsely reported wholly green. Cargo.lock
+parses, removes no base package identity, and retains28 previously recorded
+package additions. Changed crate sources pass direct rustfmt check and local
+size/diff checks; boundaries remain VM-only.
+
+The ONE same-lane latest replacement for queued-cancelled770 now includes the
+post-ack deletion race correction and announced base. Run the full selected
+strict once, then real CLI/session/PTY/testkit execution, named wire generation
+and eventual package qualification. Keep Screen Silent/NodeAuthority OFF; no
+unreviewed C2 display branch, W21 cleanup or W9 root seam is adopted.
