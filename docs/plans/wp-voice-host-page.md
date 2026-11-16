@@ -229,7 +229,35 @@ secure-field producer and a separate credential controller. No field is
 adopted solely from the producer's isolated tests; lead-first receiving and
 announcement remain binding.
 
-The new held/refused/lost/dismissed save regressions are source-only until the
-next exact-head VM check. They reuse the existing test node; no real node,
+The held/refused/lost/dismissed save regressions passed on exact96619e9f in
+the scoped VM execution recorded below. They reuse the existing test node; no real node,
 secret, provider, model or microphone is contacted. New EN/KO refusal copy is
 distinct from the existing unconfirmed-save message, without foreign errors.
+
+
+## Quota-stop save-controller result
+
+The current controller slice is checked at exact
+`96619e9f19b4c72a3ef656ce140d7538414b6258` on frozen package base14.3.
+All4all-target strict passed in run
+`wp-voice-narrow-20261116T034356Z-96619e9f`, cargo26s/exit0, full SHA256
+`ee8f696b309993004ea6ba6beeee643ee3343dec19e781f3f9e8c0eaf1104f12`.
+View lib execution in run `wp-voice-narrow-20261116T034611Z-96619e9f`
+passed1104/0/0, including all four new save-controller cases; full cargo
+SHA256`6907fc889c5901d007fed1c89bb43f1f89fa28ed2c2de8d82d20fe1309474f42`.
+The --lib selection did not execute the binary App. The separate explicit
+App binary page filter in run
+`wp-voice-narrow-20261116T034832Z-96619e9f` passed4/0/0 with197filtered,
+including the new refusal/unconfirmed full-message case and the actual page
+composition/handler cases; cargo181s, full SHA256
+`f9f737e0a3388acfb051a4ef98777b080a7ee4b135bb0784599cede1fd013a84`.
+Original46c moved-type compile failures are retained; no lint waiver or changed
+assertion substituted for the corrected execution. Later changes are docs or
+a module-header wording correction only.
+
+This completes only the staged non-secret save-controller slice. The App route
+is still unregistered; real settings/credential transport, shared sheet/field
+composition, model/device/prompt/MCP activation and final package evidence are
+outstanding. The operator's quota stop prevents adopting the newly announced
+secure-field line14.4 or starting another slice. Resume from wp-voice-resume.md
+only after authorization; no own fleet/display/app/server or live check remains.
