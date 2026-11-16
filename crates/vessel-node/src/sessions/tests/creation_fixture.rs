@@ -109,6 +109,45 @@ impl CreationFixture {
         phase("explicit runtime close", self.inner.runtime.shutdown()).await;
     }
 
+    /// Lower lifecycle fixture only: this tracked task owns the actual spawn
+    /// future even when its JoinHandle observer is dropped. It bypasses the
+    /// unfinished creation controller and supplies no admission qualification.
+    pub(crate) fn start_child_custody(
+        &self,
+        parent: CapturedParentExecution,
+        child: SessionId,
+    ) -> tokio::task::JoinHandle<
+        Result<super::super::creation_custody::RegisteredBoundChild, ServiceError>,
+    > {
+        let sessions = Arc::clone(&self.inner.sessions);
+        let spec = self.inner.structured().with_cwd(self.project.root.clone());
+        let options = LaunchOptions {
+            id: Some(child),
+            created_by: Creator::Agent {
+                node: parent.stamp().node,
+                session: parent.stamp().session,
+            },
+            ..LaunchOptions::default()
+        };
+        self.inner.tasks.spawn(async move {
+            let created = sessions.runtime.create_with(spec, options).await?;
+            sessions.keep_bound_child(created, parent).await
+        })
+    }
+
+    pub(crate) async fn child_stored(&self, child: SessionId) -> SessionInfo {
+        phase(
+            "child durable handover",
+            self.inner.sessions.wait_stored(child),
+        )
+        .await
+        .unwrap();
+        phase("stored child", self.store().session(child))
+            .await
+            .unwrap()
+            .unwrap()
+    }
+
     /// Authenticate through the actual credential owner, then capture from the
     /// same registry that Sessions populated with the real fake actor handle.
     pub(crate) async fn parent(&self) -> (Principal, Registration) {

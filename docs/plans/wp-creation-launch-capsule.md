@@ -72,8 +72,9 @@ Sessions-owned hold. Begin is the Store writer's committed ACK, not Receipt::adv
 called in test code. This tests construction, not common parent-grant insertion
 or physical backing continuity. Each async phase has a named 15-second bound
 inside the 120-second outer safety net. Test assertion/phase panic retains the
-fixture, attempts actual runtime stop, task drain and Store close independently,
-then resumes the failure. A deliberate assertion control verifies those effects.
+SAME qualified fixture cleanup actor through actual runtime stop, task drain
+and Store close, then resumes the failure. Observation deadlines do not cancel
+that actor; sibling reuse is recorded in the fixture-owner plan. A deliberate assertion control verifies those effects.
 
 The retained placement also captures the original runtime LaunchAdmission from
 that same Sessions owner. Candidate.check_runtime forwards its synchronous close
@@ -82,3 +83,40 @@ additional refusal evidence only, not an execution-incarnation permission or a
 current accepting/launch-spawn guarantee. Actual runtime internally performs its
 own early-stop checks. No new token, registry or permission cache is introduced.
 The constructor regression checks both open and actually shut-down runtime cases.
+
+
+## Staged child lifecycle custody
+
+Sessions::keep_bound_child accepts an actual runtime Created after the tracked
+admitted driver has already owned spawn; it supplies no spawn/current-grant API.
+After actual Store registration it MOVES the original CapturedParentExecution
+into the child's existing tracked persistence/hand_over lifecycle. There is no
+receiver clone, recapture, second child registry, separate detached monitor or
+creation permit retained for the child's lifetime. Project/metadata/count/start
+settlement remains the creation driver's separate obligation.
+
+The child persistence owner checks original observation and selects that same
+watch against actual durable drain. Pending-before-first-poll invalidation stays
+observed, unavailable/grant-loss is not treated as success, and simultaneous
+completion prefers the invalidation branch. Revocation calls normal handle.kill
+and continues to own persistence and hand_over. Registration failure also kills
+and retains actual cleanup through hand_over, not just a timed reply. Original
+capture is continuously owned across the move and through final child custody.
+
+RegisteredBoundChild returns the actual handle and historical parent observation.
+It is not a public settlement or KnownNoSpawn result. The controller must still
+own pending spawn, stop supervision, exact start/count/receipt settlement and
+RevokedAfterAdmission persistence; lost caller/deadline/failed stop never release
+physical work. Those joins and the three logical admission orders remain owed.
+Legacy creation/persist is unchanged. This entire lower seam stays cfg(test).
+
+
+Three lower-layer regressions use real fake child processes: invalidation already
+pending before custody's first poll, invalidation after registered custody, and
+normal child completion while the parent remains live. Each waits actual ended
+and durable Store hand_over. Their helper starts the actual Created future in
+Sessions' existing TaskTracker, so a cancelled observer cannot discard it. These
+are lifecycle custody tests only: they do not exercise the unfinished creation
+controller, physical backing, first prompt, public receipt classification or
+current-grant launch admission. The common owner's six separate staged cases
+exercise original-parent/count/Begin checks and remain independently attributed.

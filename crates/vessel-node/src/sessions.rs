@@ -23,6 +23,8 @@
 //! (ended) session while it runs.
 
 #[cfg(test)]
+mod creation_custody;
+#[cfg(test)]
 mod creation_placement;
 #[cfg(test)]
 pub(crate) use creation_placement::{BoundCreationPlace, CreationPlacement};
