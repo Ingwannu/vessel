@@ -12,7 +12,6 @@ use portable_pty::native_pty_system;
 use tokio::sync::{mpsc, oneshot};
 use vessel_proc::{CommandSpec, ProcessLifetime, ProcessLifetimeGuard, Signal, SignalError};
 
-use crate::command::command_builder;
 use crate::error::{PtyClosed, PtyError};
 use crate::kill::Killer;
 use crate::size::WindowSize;
@@ -57,19 +56,20 @@ impl PtyProcess {
     /// an I/O thread cannot be started. The program is stopped before an
     /// error is returned.
     pub fn spawn(spec: &CommandSpec, size: WindowSize) -> Result<(Self, PtyOutput), PtyError> {
+        crate::diagnostics::spawn(spec, || Self::spawn_command(spec, size))
+            .map_err(|error| error.with_diagnostics(spec))
+    }
+
+    // Keep the existing ordered spawn/cleanup lifecycle together. The public
+    // wrapper seals every returned diagnostic without changing that lifecycle.
+    fn spawn_command(spec: &CommandSpec, size: WindowSize) -> Result<(Self, PtyOutput), PtyError> {
         let program = || spec.program.display().to_string();
         let pair = native_pty_system()
             .openpty(size.to_pty())
             .map_err(|error| PtyError::Open {
                 message: error.to_string(),
             })?;
-        let child = pair
-            .slave
-            .spawn_command(command_builder(spec))
-            .map_err(|error| PtyError::Spawn {
-                program: program(),
-                message: error.to_string(),
-            })?;
+        let child = crate::diagnostics::spawn_backend(&*pair.slave, spec)?;
         // The node must not hold the slave end, or the output would never
         // end: the PTY stays open while any process has it.
         drop(pair.slave);
@@ -100,7 +100,7 @@ impl PtyProcess {
         );
         match started {
             Ok(threads) => {
-                tracing::debug!(pid, program = %spec.program.display(), "pty spawned");
+                tracing::debug!(pid, program = %spec.diagnostic_program().display(), "pty spawned");
                 Ok((
                     Self {
                         pid,

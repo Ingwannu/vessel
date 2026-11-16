@@ -1,4 +1,4 @@
-// MODIFIED by Vessel (Team-WICKED), 2026-11-15: mapped readonly position lookup (spikes/release/patches/README.md, "gpui-base", change 7)
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: mapped readonly position lookup and readonly document revision (spikes/release/patches/README.md, "gpui-base", changes 7 and 9)
 //! A text input field that allows the user to enter text.
 //!
 //! Based on the `Input` example from the `gpui` crate.
@@ -1605,6 +1605,16 @@ impl<M: InputModeKind> InputBaseState<M> {
     /// [`Rope`] the state owns, which is borrowed and costs nothing to read.
     pub fn value(&self) -> SharedString {
         SharedString::new(self.text.to_string())
+    }
+
+    /// The existing edit revision, including edits returning to identical text.
+    ///
+    /// Compare only with a prior value from this same state. This wrapping
+    /// counter is not a file version, persisted identity or authority to write.
+    // Vessel patch (change 9): expose existing engine evidence without a new
+    // counter or delayed subscription that could miss queued owner changes.
+    pub fn document_revision(&self) -> u64 {
+        self.document_revision
     }
 
     /// Return the portion of the value within the input field that
@@ -5194,6 +5204,24 @@ impl<M: InputModeKind> Render for InputBaseState<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Vessel patch (change 9): text equality alone misses accepted A -> X -> A.
+    #[gpui::test]
+    fn document_revision_retains_edits_that_return_to_the_same_text(cx: &mut TestAppContext) {
+        cx.update(crate::init);
+        let (editor, cx) = cx.add_window_view(|window, cx| {
+            crate::input::EditorState::new(window, cx).default_value("A")
+        });
+        editor.update_in(cx, |editor, window, cx| {
+            let before = editor.document_revision();
+            editor.replace_text_in_range(Some(0..1), "X", window, cx);
+            let changed = editor.document_revision();
+            assert!(changed > before);
+            editor.replace_text_in_range(Some(0..1), "A", window, cx);
+            assert_eq!(editor.value(), "A");
+            assert!(editor.document_revision() > changed);
+        });
+    }
 
     #[gpui::test]
     fn accessibility_actions_recheck_live_editability(cx: &mut TestAppContext) {

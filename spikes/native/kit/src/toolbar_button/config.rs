@@ -5,8 +5,8 @@ use gpui::{Pixels, Svg, px, svg};
 
 const POINTER_FRAME: Pixels = px(20.0);
 const COMPACT_FRAME: Pixels = px(32.0);
-const FIXED_GLYPH: Pixels = px(14.0);
-const COMPACT_GLYPH: Pixels = px(18.0);
+const FIXED_GLYPH: Pixels = crate::loading::Points::FOURTEEN.pixels();
+const COMPACT_GLYPH: Pixels = crate::loading::Points::EIGHTEEN.pixels();
 const DISABLED_OPACITY: f32 = 0.5;
 const ENABLED_OPACITY: f32 = 1.0;
 
@@ -62,19 +62,23 @@ impl ToolbarConfig {
     pub const fn availability(self) -> ButtonState {
         self.availability
     }
-    pub(super) const fn sizing(self) -> ControlSizing {
+    pub(crate) const fn sizing(self) -> ControlSizing {
         self.sizing
     }
-    pub(super) const fn frame(self) -> Pixels {
+    pub(super) const fn disabled(mut self) -> Self {
+        self.availability = ButtonState::Disabled;
+        self
+    }
+    pub(crate) const fn frame(self) -> Pixels {
         match self.sizing {
             ControlSizing::Pointer => POINTER_FRAME,
             ControlSizing::Touch => COMPACT_FRAME,
         }
     }
-    pub(super) const fn highlighted(self) -> bool {
+    pub(crate) const fn highlighted(self) -> bool {
         matches!(self.selection, Selection::Selected) || matches!(self.disclosure, Disclosure::Open)
     }
-    pub(super) const fn opacity(self) -> f32 {
+    pub(crate) const fn opacity(self) -> f32 {
         match self.availability {
             ButtonState::Enabled => ENABLED_OPACITY,
             ButtonState::Disabled => DISABLED_OPACITY,
@@ -90,6 +94,15 @@ pub enum ToolbarInk {
     Muted,
     /// Source workspace rail's extra-muted icon mapping.
     ExtraMuted,
+}
+impl ToolbarInk {
+    pub(super) fn colour(self, tokens: &Tokens) -> gpui::Hsla {
+        match self {
+            Self::Foreground => tokens.neutral.foreground,
+            Self::Muted => tokens.neutral.foreground_muted,
+            Self::ExtraMuted => tokens.neutral.foreground_extra_muted,
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GlyphSizing {
@@ -127,16 +140,11 @@ impl ToolbarIcon {
             | (GlyphSizing::Adaptive, ControlSizing::Pointer) => FIXED_GLYPH,
         }
     }
-    pub(super) fn render(self, sizing: ControlSizing, tokens: &Tokens) -> Svg {
-        let ink = match self.ink {
-            ToolbarInk::Foreground => tokens.neutral.foreground,
-            ToolbarInk::Muted => tokens.neutral.foreground_muted,
-            ToolbarInk::ExtraMuted => tokens.neutral.foreground_extra_muted,
-        };
+    pub(crate) fn render(self, sizing: ControlSizing, tokens: &Tokens) -> Svg {
         svg()
             .path(self.glyph.path())
             .size(self.size(sizing))
             .flex_none()
-            .text_color(ink)
+            .text_color(self.ink.colour(tokens))
     }
 }
