@@ -16,7 +16,11 @@ use crate::prefs::{
     SidebarView, Theme, TurnDelivery,
 };
 
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
+
+/// The usage section both documents share (ADR 0107), as the page/bridge
+/// fixture writes it.
+const USAGE: &str = r#""usage":{"display":"used","host":null,"pins":null}"#;
 
 fn change(json: &str) -> PreferenceChange {
     serde_json::from_str(json).unwrap()
@@ -29,20 +33,21 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    // Keep the page/bridge fixture unchanged. The native document adds three
-    // explicit fields (the usage display, host and pins of the Usage pages,
-    // first so a stored document keeps its order; the language; and
-    // Appearance's Animations, word 39) and differs in one stated default: ended sessions are listed
+    // Keep the page/bridge fixture unchanged. Both documents carry the
+    // usage section (display, host, pins; ADR 0107); the native one writes
+    // it first, so a stored document keeps its order, and keeps whether the
+    // sidebar shows the summary in its sidebar navigation instead of the
+    // bridge's `sidebar.usage`. The native document adds two explicit
+    // fields (the language, and Appearance's Animations, word 39) and
+    // differs in one stated default: ended sessions are listed
     // (`SidebarView::default`, 2026-11-14; the page and the bridge still
     // write `"ended":false` until the node line's slice moves them, and
     // then this exception goes). Every other byte of its defaults still
     // comes from that fixture.
     let native_default = DEFAULT
-        .replacen(
-            '{',
-            r#"{"usage":{"display":"used","host":null,"pins":null},"language":"system","#,
-            1,
-        )
+        .replacen(&format!("{USAGE},"), "", 1)
+        .replacen(r#","usage":false"#, "", 1)
+        .replacen('{', &format!(r#"{{{USAGE},"language":"system","#), 1)
         .replacen(
             r#""conversation":"full""#,
             r#""conversation":"full","animations":"on""#,
