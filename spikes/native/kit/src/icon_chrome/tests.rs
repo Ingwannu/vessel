@@ -98,10 +98,9 @@ fn viewport_profile_is_the_small_frame_on_surface2_with_muted_ink_and_hidden_pre
         for (sizing, edge) in [(ControlSizing::Pointer, 20.0), (ControlSizing::Touch, 32.0)] {
             for availability in [ButtonState::Enabled, ButtonState::Disabled] {
                 let config = ToolbarConfig::new(sizing, availability);
-                for (presence, opacity) in [
-                    (Presence::Shown, config.opacity()),
-                    (Presence::Hidden, 0.0),
-                ] {
+                for (presence, opacity) in
+                    [(Presence::Shown, config.opacity()), (Presence::Hidden, 0.0)]
+                {
                     let mut outer = render(
                         "zoom-in",
                         "Zoom in",
