@@ -1503,3 +1503,38 @@ and availability round trips without mutating the explicit preference. Its
 combined narrow suite passes 21 tests in five files, both typechecks and
 changed-file ESLint. This routing choice proves no account association and
 performs no discovery, persistence or RPC; all report methods remain inactive.
+
+
+## Shared quota meter: executed control comparison packet
+
+The renderer/gallery producer is exactly `f876a23a`, retained in a separate
+frozen checkout. The fifteen pure tests and full web lint/typechecks pass.
+Managed run `webparity-20261116T010443Z-f876a23a` completes all four fixed
+build steps and exports ten same-source binaries (587,549,320 bytes); a build
+export is not a package test gate. Hashes, recipes, ABI and actual UID/GID
+1000 ownership with executable 0500/metadata 0400 are checked before use.
+No Rust or bundle build runs on the capture machine.
+
+Eight real-browser specimen cases pass in 13.3 seconds: two locales, two
+themes, 1280/390px widths at 900px viewport height. All 64 normal/quiet
+measurements assert 6px height, 3px track radius, full-radius fill, clipped
+overflow and exact zero fill at zero. The 125 input paints 100%, with no
+minimum arc. The eight original control-region PNGs (976x390 or 358x606)
+are personally opened and rehashed; they show aligned tracks and four tones
+without region overflow. They are bilingual gallery specimens, not a fully
+localized application or a cold-phone account screen.
+
+The selected 3,535-input identities match before and after; all 3,531 tracked
+content hashes match the producer's Git blobs. Eighteen served static assets
+are observed from the hash-verified managed CLI; they are not compared with
+an old local bundle. Original identities of five fixture processes and two
+capture helpers are gone, the owned runtime scan is empty, and the private
+0700 temporary root is cleared from three entries to zero without signals.
+No live service or permission is changed.
+
+Submit these control-only results to the reviewer and then coordinator for
+the required comparison before any Usage screen uses the control. The stated
+web status/muted palette adaptation remains explicit. This packet does not
+approve the full F3 feature, account reports, live vendors/credentials, general
+accessibility/security, native UI or deployment; report methods remain inactive
+until their reviewed, assigned and merged node contract is available.
