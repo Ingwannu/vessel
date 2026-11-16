@@ -80,8 +80,8 @@ to specialize a category without joining fragments in Rust. `kernel_probe.rs`
 combines arithmetic, placement and those patterns for a single locale, with
 whole-corpus tests, unsigned glyph/category tests and signed-zero presentation
 keys. Both remain unlinked/uncompiled and outside the frozen stage-1 graph.
-They do not yet supply English fallback, app callback reachability, wasm
-entry, current generated-message unsigned arguments, or a consumer cache.
+They do not yet supply app callback reachability, a wasm entry, current
+generated-message unsigned arguments, or a consumer cache.
 Those integration requirements and all dependency/adoption gates remain open.
 
 The later `fallback_probe.rs` source adds whole numeric-pattern fallback and

@@ -44,5 +44,23 @@ patch or product behavior has been adopted. The next action is that narrow
 characterization check and scratch-only runtime adapter comparison, not
 another run of the finished generator checks. All Rust compilation stays
 on the build VM.
+Stage 1 is now a controlled offline scratch graph, pinned at `d633cdd4d` with
+code snapshot `bc948736b`. Run `i18n-number-experiment-20261116T014841Z-d633cdd4`
+is queued; it resolves/audits the graph before strict and eight narrow probe
+tests. The ICU comparison may follow only after that label is terminal.
+It is not an installed-app measurement or product lock update.
+
+The stock-carrier characterization's exact `08076af53` strict run
+`i18n-narrow-20261116T004824Z-08076af5` passed, with actual View recompilation.
+Its three runtime tests remain queued in
+`i18n-narrow-20261116T014848Z-08076af5`; no execution result is borrowed.
+
+Later unlinked sources prepare folder-based placement, whole amount patterns,
+a single-locale narrow kernel, signed-zero keys and whole numeric-pattern
+English fallback. They are outside the frozen stage-1 inputs and remain
+uncompiled. Actual app callback overlays, the agreed native-workspace View
+example `number_format_probe`, generated-message unsigned binding/fallback,
+dependency size/time artifacts and coordinator adoption approval remain owed.
+
 No own fleet/display is active. About dependency rows must preserve the voice
 package's coupled audio entries when that accepted package reaches the line.
