@@ -329,5 +329,11 @@ body still disconnects the held worker's original std sender; no second worker,
 reaper or fabricated settlement is added. Every old permit/tracker/cancellation/
 canary assertion remains, and missing-runtime stays a synchronous test. Parent
 module descriptions now name staged filesystem and blocking work accurately.
-Actual changed-test strict and execution remain owed; prior38-case evidence is
-preserved as predecessor execution, not borrowed for the clock correction.
+The corrected3904e02b checkpoint has now executed38 plugin cases successfully
+(324 filtered,0 ignored) with all prerequisite steps passing and paired locked,
+offline node all-target strict success. V3 independently checked the exact
+commit, raw logs and step hashes. This closes the changed-test obligation for
+the staged adapter only; the earlier38-case receipt remains predecessor history.
+No real host admission, candidate lease, mount/ACL or installation authority is
+supplied by those tests. The next proposed ownership boundary is specified in
+[wp-plugin-candidate](wp-plugin-candidate.md), separately from this observer.

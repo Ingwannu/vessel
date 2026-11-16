@@ -478,3 +478,12 @@ on the announced node line. It preserves real launch fields and the decorated
 spawn/owned cleanup path. This seals actual spawn diagnostics, beyond the outer
 prepared-value Debug; it does not protect OS argv or helper-authored output and
 adds no Node product caller, executable/source authority or sandbox promise.
+
+### Owned candidate boundary proposal
+
+[wp-plugin-candidate](../plans/wp-plugin-candidate.md) separates exclusively
+created, retained staging storage from observed content, acquired source facts
+and human review. Its descriptor/cleanup/platform requirements are a proposed
+private prerequisite, not a new producer, managed provenance or start authority.
+The existing staged pathname observer and tracked operation remain separate;
+their scoped tests cannot qualify the proposed root bootstrap or installation.

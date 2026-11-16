@@ -3,15 +3,16 @@
 ADR: 0079 (architecture CONTRACT PASS by V3; implementation unreviewed).
 Scope: F6/W16 in PLAN.md section 7, which supersedes duplicate assignments.
 
-Current node source includes the announced1c762ccf shared head (protocol25,
-store schema20), merged through9c150c6e; portable checked-wait b37a3ee8 is now
-on that shared lineage. It contains no old W15 release/desktop join. The separate
-portable runtime API export is1cbafe18b on9c150c6e; its own exact source review
-passed, with current strict/fixture execution and integrator adoption still owed.
+Current node source includes the announcedbc9cacc6 shared head (protocol25,
+store schema21). Portable checked-wait b37a3ee8 and the standalone runtime API
+export1cbafe18b plus documentation9e9c2983 are on that shared lineage after
+their scoped reviews, narrow checks and receiving integration. It contains no
+old W15 release/desktop join. These shared prerequisites do not activate plugins.
 The helper/manifest/catalog models in this feature tree remain staged, with no
 node method, installer, global settings field or process activation. The app
-uses only its separately announced line and the explicit canonical-values
-private development exception. Historical checkpoints below retain their exact
+uses only its separately announced line; package base13 now contains the
+canonical values previously covered by the private development exception.
+Historical checkpoints below retain their exact
 bases/evidence and do not qualify the current complete union. F6 remains
 skeleton: actual saved-owner/installer/NodeHost/broker/hooks/public RPC, real Hub
 routing and feature adapters, translations/themes and final package proof remain.
