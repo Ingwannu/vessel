@@ -1,3 +1,4 @@
+use crate::text::ecmascript_space as space;
 //! Reference codex-app-server-agent.ts:226-242,4125-4141,5166-5189.
 //! An advertised typed kind is required; parsing alone grants no capability.
 
@@ -61,12 +62,6 @@ impl NativeCommandIntent {
 }
 
 pub(super) fn trim(text: &str) -> &str {
-    text.trim_matches(space)
+    crate::trim_ecmascript(text)
 }
 
-// JavaScript trim / \s includes BOM and excludes NEL, unlike Rust is_whitespace.
-fn space(ch: char) -> bool {
-    matches!(ch, '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}'
-        | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}'
-        | '\u{205f}' | '\u{3000}' | '\u{feff}')
-}

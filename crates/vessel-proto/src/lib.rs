@@ -74,6 +74,8 @@ mod terminal;
 pub mod terminal_profiles;
 pub mod terminals;
 pub mod timeline;
+mod text;
+pub use text::trim_ecmascript;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
