@@ -10,10 +10,8 @@ use super::{Glyph, MARK};
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
 /// as Paseo's icons are drawn. Original kit paths use this directly; the
 /// four attributed Lucide paths below retain their licence in SVG metadata.
-/// as Paseo's icons are drawn. Canonical panel paths retain the upstream
-/// Lucide/Feather notice in docs/design/brand/lucide-LICENSE.txt; older
-/// original drawings keep their existing vectors.
-
+/// Canonical panel paths retain the upstream Lucide/Feather notice in
+/// docs/design/brand/lucide-LICENSE.txt; older drawings keep their vectors.
 macro_rules! line_glyph {
     ($body:expr) => {
         concat!(
