@@ -12,7 +12,7 @@ vessel-client.workspace = true
 vessel-proto.workspace = true
 vessel-store.workspace = true
 vessel-proc.workspace = true
-tokio = { workspace = true, features = ["io-util", "process", "rt", "sync", "time"] }
+tokio = { workspace = true, features = ["io-util", "process", "rt", "signal", "sync", "time"] }
 thiserror.workspace = true
 # Approved existing primitives: OS entropy and constant-time launch echo matching.
 getrandom.workspace = true

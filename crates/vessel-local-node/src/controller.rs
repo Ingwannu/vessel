@@ -115,10 +115,23 @@ enum Lease {
 }
 
 /// A caller's task owns this value and serializes its commands; no shared mutex.
+///
+/// Unix owned launch installs a SIGCHLD listener before creating the child and
+/// retains it for this controller's lifetime. Embeddings must not replace that
+/// disposition afterward: automatic reaping would invalidate retained PID proof.
 pub struct LocalNode {
     launch: Launch,
     lease: Lease,
     logs: Option<LogReader>,
+    #[cfg(unix)]
+    _reaping: Option<tokio::signal::unix::Signal>,
+}
+
+struct Opened {
+    lease: Lease,
+    logs: Option<LogReader>,
+    #[cfg(unix)]
+    reaping: Option<tokio::signal::unix::Signal>,
 }
 
 impl std::fmt::Debug for LocalNode {
@@ -148,7 +161,7 @@ impl LocalNode {
         launch: Launch,
         on_logs: impl FnOnce(LogReader),
     ) -> Result<Self, LocalNodeError> {
-        let (lease, logs) = tokio::time::timeout(START_DEADLINE, open(&launch, on_logs))
+        let opened = tokio::time::timeout(START_DEADLINE, open(&launch, on_logs))
             .await
             .map_err(|source| LocalNodeError::Deadline {
                 operation: Operation::Start,
@@ -156,8 +169,10 @@ impl LocalNode {
             })??;
         Ok(Self {
             launch,
-            lease,
-            logs,
+            lease: opened.lease,
+            logs: opened.logs,
+            #[cfg(unix)]
+            _reaping: opened.reaping,
         })
     }
 
@@ -320,16 +335,18 @@ async fn serving(client: &NodeClient) -> Result<(), LocalNodeError> {
     }
 }
 
-async fn open(
-    launch: &Launch,
-    on_logs: impl FnOnce(LogReader),
-) -> Result<(Lease, Option<LogReader>), LocalNodeError> {
+async fn open(launch: &Launch, on_logs: impl FnOnce(LogReader)) -> Result<Opened, LocalNodeError> {
     let _permit = launch.home().start_permit().await?;
     if let Some(identity) = launch.home().identity().await? {
         match connect(launch, &identity).await {
             Ok(client) => {
                 serving(&client).await?;
-                return Ok((Lease::Attached(client), None));
+                return Ok(Opened {
+                    lease: Lease::Attached(client),
+                    logs: None,
+                    #[cfg(unix)]
+                    reaping: None,
+                });
             }
             Err(LocalNodeError::Connect(LocalConnectError::Unreachable { source, .. }))
                 if matches!(
@@ -342,6 +359,8 @@ async fn open(
     let started: Started = Owned::start(launch, on_logs).await?;
     let mut child = started.child;
     let ready = started.ready;
+    #[cfg(unix)]
+    let reaping = started.reaping;
     #[cfg(windows)]
     let connection = started.connection;
     let identity = launch
@@ -378,13 +397,15 @@ async fn open(
         result = serving(&client) => result?,
     }
     let logs = Some(child.logs());
-    Ok((
-        Lease::Owned {
+    Ok(Opened {
+        lease: Lease::Owned {
             client,
             child: Box::new(child),
         },
         logs,
-    ))
+        #[cfg(unix)]
+        reaping: Some(reaping),
+    })
 }
 
 async fn stop(lease: &mut Lease, policy: StopPolicy) -> Result<ProcessExit, LocalNodeError> {

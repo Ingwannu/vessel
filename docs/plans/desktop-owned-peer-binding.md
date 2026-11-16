@@ -36,6 +36,23 @@ that point. Query failure or absent peer data refuses Owned. An already reaped
 or released owner cannot satisfy the check. Use biased child-wait-first selection
 as additional defense, not as the ownership proof.
 
+The launcher installs a Tokio SIGCHLD listener before spawn and retains it in
+the controller for its whole lifetime, including Keep. This replaces inherited
+SIG_IGN/SA_NOCLDWAIT that could otherwise auto-reap an exited child before peer
+qualification. Registration failure is a typed launch refusal, never a PID or
+child-alive fallback. An embedding host that changes SIGCHLD after registration
+is unsupported, matching nodectl's existing limit. This is a local launch
+prerequisite, not a change to Proc's shared spawn/seed contract; other spawners
+do not use a retained PID as this ownership proof.
+
+The Linux fixture re-execs only the isolated test binary under `/bin/sh` with
+ignored CHLD and an empty environment. It first witnesses actual auto-reaping
+and ECHILD without registration; after the real launch helper registers, it
+witnesses the known child's zombie state until its explicit wait. The outer
+Proc-owned group and finite deadlines bound the fixture. No operator config,
+real agent, arbitrary PID signal or test hook in the public controller is used.
+This fixture is prepared source until its exact runtime result is obtained.
+
 The current NodeClient opens once and passes one framed stream into one RPC
 driver. Clone shares that Connection; transport closure is terminal and there
 is no transparent redial. The correction must preserve this property. Reopening

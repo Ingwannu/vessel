@@ -23,6 +23,8 @@ pub(crate) struct Owned {
 pub(crate) struct Started {
     pub(crate) child: Owned,
     pub(crate) ready: Ready,
+    #[cfg(unix)]
+    pub(crate) reaping: tokio::signal::unix::Signal,
     #[cfg(windows)]
     pub(crate) connection: vessel_client::LocalConnection,
 }
@@ -64,6 +66,8 @@ impl Owned {
         launch: &Launch,
         on_logs: impl FnOnce(LogReader),
     ) -> Result<Started, LaunchError> {
+        #[cfg(unix)]
+        let reaping = register_reaping()?;
         #[cfg(windows)]
         let pipe = bootstrap::pipe()?;
         let Spawned {
@@ -85,6 +89,7 @@ impl Owned {
             Ok(Started {
                 child: owned,
                 ready,
+                reaping,
             })
         }
         #[cfg(windows)]
@@ -155,6 +160,16 @@ impl Owned {
         }));
         Ok(KeptNode { detached })
     }
+}
+
+#[cfg(unix)]
+fn register_reaping() -> Result<tokio::signal::unix::Signal, LaunchError> {
+    // A retained Child PID is evidence only while it cannot auto-reap. Install
+    // before spawn to replace inherited SIG_IGN/SA_NOCLDWAIT; registration after
+    // spawn is too late. Embeddings changing SIGCHLD afterward are unsupported.
+    // Keep this launch prerequisite here, not in Proc's shared spawn contract.
+    tokio::signal::unix::signal(tokio::signal::unix::SignalKind::child())
+        .map_err(LaunchError::Reaping)
 }
 
 async fn record(source: impl AsyncRead + Unpin, bound: usize) -> Result<String, LaunchError> {

@@ -160,3 +160,6 @@ async fn first_record_completes_without_eof_and_refuses_prefetched_duplicates() 
     .await
     .unwrap();
 }
+
+#[cfg(target_os = "linux")]
+mod reaping;

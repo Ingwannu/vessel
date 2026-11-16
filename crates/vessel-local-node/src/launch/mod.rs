@@ -30,6 +30,9 @@ pub enum LaunchError {
     /// OS randomness failed; no weaker name or challenge is substituted.
     #[error("local launch entropy is unavailable")]
     Entropy(#[source] getrandom::Error),
+    /// Without a registered handler, an inherited ignored SIGCHLD can auto-reap.
+    #[error("local child reaping could not be registered")]
+    Reaping(#[source] std::io::Error),
     /// The private bootstrap record or stdout echo was malformed.
     #[error("invalid private launch transcript")]
     Transcript(#[source] vessel_proto::local_launch::TranscriptError),
