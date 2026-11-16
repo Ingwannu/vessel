@@ -36,6 +36,7 @@ use super::edge::{Panel, PanelEdge};
 use crate::routes::Route;
 use crate::shell::Shell;
 
+mod actions;
 mod display;
 mod foot;
 mod layout;
@@ -255,6 +256,33 @@ const PANEL: Panel = Panel {
     side: vessel_app_kit::resize::Edge::Right,
 };
 
+/// One sidebar-only layout decision, including the width currently dragged.
+/// Settings retains its old compact form until its frame owner consumes the
+/// shared budget; docking it at 600 now would duplicate its compact nav list.
+pub(crate) fn arrangement(
+    shell: &Shell,
+    window: &Window,
+) -> vessel_app_view::panels::SidebarLayout {
+    use vessel_app_view::panels::{SidebarContext, SidebarLayout, sidebar_layout};
+    if shell.route == Route::Settings && vessel_app_kit::breakpoint::phone(window) {
+        return SidebarLayout::Sheet;
+    }
+    let context = match shell.route {
+        Route::Settings => SidebarContext::Settings,
+        Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
+            SidebarContext::Workspace(shell.code_placement(window))
+        }
+    };
+    let viewport = f32::from(window.viewport_size().width);
+    sidebar_layout(
+        viewport,
+        crate::areas::workspace::frame_row(viewport),
+        PANEL.asked(shell),
+        shell.prefs.settings.layout.sidebar,
+        context,
+    )
+}
+
 /// What stands in the sidebar's place on a wide window (the workspace
 /// sidebar, or Settings' list: one width for both, so the frame beside
 /// it does not move when Settings opens), at the width dragged to,
@@ -266,11 +294,10 @@ pub(crate) fn frame(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    // What it leaves depends on the code panel (`panels::sidebar_leaves`):
-    // the sidebar gives way before the conversation does.
-    let leaves = vessel_app_view::panels::sidebar_leaves(shell.code_placement(window));
-    let room = crate::areas::workspace::frame_row(f32::from(window.viewport_size().width));
-    let width = PANEL.width_leaving(shell, room, leaves);
+    let vessel_app_view::panels::SidebarLayout::Docked { width, .. } = arrangement(shell, window)
+    else {
+        return div();
+    };
     div()
         .relative()
         .flex_shrink_0()
@@ -373,3 +400,6 @@ pub(crate) fn nav_row(
         }))
         .child(label)
 }
+
+#[cfg(test)]
+mod policy_tests;

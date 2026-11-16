@@ -1,0 +1,232 @@
+//! Exercise generated Rust with the real compiler and Clippy, not a line-count
+//! parser. The fake resolver deliberately tests cache construction, borrowing
+//! and error propagation only; the real formatter has its own runtime tests.
+
+use std::collections::BTreeMap;
+use std::fmt::Write as _;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+
+use super::super::catalog;
+
+const LARGE: usize = 132;
+const DEEP: usize = super::plain::FIELDS_PER_RESOLVER * super::plain::FIELDS_PER_RESOLVER + 1;
+
+#[derive(Clone, Copy)]
+enum Compiler {
+    Rust,
+    Clippy,
+}
+
+#[derive(Clone, Copy)]
+enum CatalogLayout {
+    OneArea,
+    ManyAreas,
+}
+
+struct Scratch(PathBuf);
+
+impl Scratch {
+    fn new(name: &str) -> Self {
+        let path = std::env::temp_dir().join(format!("vessel-plain-{}-{name}", std::process::id()));
+        std::fs::create_dir(&path).unwrap();
+        Self(path)
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _removed = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+fn compiler(kind: Compiler) -> PathBuf {
+    let name = match kind {
+        Compiler::Clippy => "clippy-driver",
+        Compiler::Rust => "rustc",
+    };
+    std::env::var_os("RUSTC")
+        .and_then(|path| {
+            PathBuf::from(path)
+                .parent()
+                .map(|parent| parent.join(format!("{name}{}", std::env::consts::EXE_SUFFIX)))
+        })
+        .filter(|path| path.is_file())
+        .unwrap_or_else(|| PathBuf::from(name))
+}
+
+fn compile(directory: &Path, kind: Compiler) -> Output {
+    let mut command = Command::new(compiler(kind));
+    let command = command
+        .current_dir(directory)
+        .env_remove("CLIPPY_ARGS")
+        .env("CLIPPY_CONF_DIR", directory)
+        .args([
+            "--edition=2024",
+            "--crate-name",
+            "plain_fixture",
+            "fixture.rs",
+            "-D",
+            "warnings",
+        ]);
+    let command = match kind {
+        Compiler::Clippy => command.args([
+            "--emit=metadata",
+            "-D",
+            "clippy::all",
+            "-D",
+            "clippy::pedantic",
+            "-D",
+            "clippy::struct_field_names",
+            "-D",
+            "clippy::too_many_lines",
+            "-o",
+            "checked.rmeta",
+        ]),
+        Compiler::Rust => command.arg("-o").arg(executable(directory)),
+    };
+    command.output().unwrap()
+}
+
+fn executable(directory: &Path) -> PathBuf {
+    directory.join(format!("fixture{}", std::env::consts::EXE_SUFFIX))
+}
+
+#[test]
+fn large_plain_caches_keep_the_public_borrowed_api_and_bounded_initializers() {
+    let scratch = Scratch::new("contract");
+    let mut control = "fn over_limit() {\n".to_owned();
+    for index in 0..LARGE {
+        writeln!(control, "let _unused_{index} = {index};").unwrap();
+    }
+    control.push_str("}\nfn main() { over_limit(); }\n");
+    std::fs::write(scratch.0.join("fixture.rs"), control).unwrap();
+    let rejected = compile(&scratch.0, Compiler::Clippy);
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("too_many_lines"));
+
+    std::fs::write(scratch.0.join("fixture.rs"), PREFIX_CONTROL).unwrap();
+    let rejected = compile(&scratch.0, Compiler::Clippy);
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("struct_field_names"));
+
+    for (count, layout) in [
+        (LARGE, CatalogLayout::OneArea),
+        (DEEP, CatalogLayout::OneArea),
+        (LARGE, CatalogLayout::ManyAreas),
+    ] {
+        let source = fixture(count, layout);
+        std::fs::write(scratch.0.join("fixture.rs"), source).unwrap();
+        for kind in [Compiler::Clippy, Compiler::Rust] {
+            let checked = compile(&scratch.0, kind);
+            assert!(
+                checked.status.success(),
+                "{}",
+                String::from_utf8_lossy(&checked.stderr)
+            );
+        }
+        let ran = Command::new(executable(&scratch.0))
+            .arg("resolved-value")
+            .output()
+            .unwrap();
+        assert!(
+            ran.status.success(),
+            "{}",
+            String::from_utf8_lossy(&ran.stderr)
+        );
+    }
+}
+
+fn fixture(count: usize, layout: CatalogLayout) -> String {
+    let mut files: BTreeMap<String, String> = BTreeMap::new();
+    let mut getters = Vec::new();
+    let mut keys = Vec::new();
+    for index in 0..count {
+        let (area, local) = match layout {
+            CatalogLayout::ManyAreas => (format!("area-{index:05}"), "title".to_owned()),
+            CatalogLayout::OneArea => ("stress".to_owned(), format!("item-{index:05}")),
+        };
+        let key = format!("{area}-{local}");
+        writeln!(
+            files.entry(area.clone()).or_default(),
+            "# Short fixture message.\n{key} = Value {index}"
+        )
+        .unwrap();
+        getters.push(format!(
+            "|translator| translator.r#{}().r#{}(),",
+            super::snake(&area),
+            super::snake(&local)
+        ));
+        keys.push(key);
+    }
+    if matches!(layout, CatalogLayout::OneArea) {
+        // A real area may look like an implementation type's name. Private
+        // chunk types must live in their own namespace rather than collide.
+        let _previous = files.insert(
+            "stress-node0".to_owned(),
+            "# Short alias fixture.\nstress-node0-title = Other".to_owned(),
+        );
+        getters.push("|translator| translator.stress_node0().title(),".to_owned());
+        keys.push("stress-node0-title".to_owned());
+    }
+    let language = catalog::parse("en".to_owned(), files).unwrap();
+    let mut output = SHIM.to_owned();
+    super::api(&mut output, &language).unwrap();
+    writeln!(
+        output,
+        "type Getter = fn(&Translator) -> &str;\nstatic GETTERS: [Getter; {}] = [\n{}\n];",
+        getters.len(),
+        getters.join("\n")
+    )
+    .unwrap();
+    writeln!(output, "static KEYS: [&str; {}] = {:?};", keys.len(), keys).unwrap();
+    writeln!(
+        output,
+        "const FAIL_AT: usize = {};",
+        super::plain::FIELDS_PER_RESOLVER
+    )
+    .unwrap();
+    output.push_str(MAIN);
+    output
+}
+
+const PREFIX_CONTROL: &str = r"
+struct Root { child_0: u8, child_1: u8, child_2: u8 }
+fn main() {
+    let root = Root { child_0: 1, child_1: 2, child_2: 3 };
+    assert_eq!((root.child_0, root.child_1, root.child_2), (1, 2, 3));
+}
+";
+
+const SHIM: &str = r#"
+use std::cell::Cell;
+#[derive(Debug)]
+struct InitError;
+struct Bundle { calls: Cell<usize>, fail_at: Option<usize>, prefix: String }
+fn resolve(bundle: &Bundle, _english: &Bundle, key: &str, _args: Option<()>) -> Result<String, InitError> {
+    let call = bundle.calls.get();
+    bundle.calls.set(call + 1);
+    if bundle.fail_at == Some(call) { return Err(InitError); }
+    Ok(format!("{}:{key}", bundle.prefix))
+}
+#[derive(Debug)]
+struct Translator { plain: Plain }
+"#;
+
+const MAIN: &str = r#"
+fn main() {
+    let prefix = std::env::args().nth(1).unwrap();
+    let bundle = Bundle { calls: Cell::new(0), fail_at: None, prefix: prefix.clone() };
+    let translator = Translator { plain: Plain::resolve(&bundle, &bundle).unwrap() };
+    assert_eq!(bundle.calls.get(), KEYS.len());
+    for (getter, key) in GETTERS.iter().zip(KEYS.iter()) {
+        let first = getter(&translator);
+        assert_eq!(first, format!("{prefix}:{key}"));
+        assert!(std::ptr::eq(first.as_ptr(), getter(&translator).as_ptr()));
+    }
+    assert_eq!(bundle.calls.get(), KEYS.len());
+    let failed = Bundle { calls: Cell::new(0), fail_at: Some(FAIL_AT), prefix };
+    assert!(Plain::resolve(&failed, &failed).is_err());
+    assert_eq!(failed.calls.get(), FAIL_AT + 1);
+}
+"#;
