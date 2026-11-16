@@ -1,6 +1,7 @@
 # ADR 0104: Tracked DNS resolution lifetime
 
-Status: proposed contract, coordinator-assigned; V3 review required before code.
+Status: contract source accepted by V3 on 2026-11-16, exact f2779ab90.
+Shared implementation and consumer source/runtime checks remain separate.
 This is a separate prerequisite for relay consent (ADR0096) and native
 HTTP dictation endpoints (ADR0067). It does not extend either package's
 existing source/runtime verdict or activate an unassigned method.

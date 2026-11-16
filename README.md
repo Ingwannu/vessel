@@ -10,6 +10,12 @@ client) plug into it.
 
 ## Why
 
+Native resolution lifetime is specified in ADR0104. The shared relay-crate
+primitive retains standard OS work after async cancellation; OS getaddrinfo
+cannot be cancelled, so normal drain can remain uncertain until it returns.
+Relay/HTTP consumer wiring and platform/runtime verification are separate
+from that primitive; see `docs/plans/wp-e2-relay-resolution.md`.
+
 Today each machine is an island. The harness on your desktop cannot hand work
 to the Linux box with the GPU, your skills and MCP servers are configured
 separately everywhere, and remote access means SSH plus luck.

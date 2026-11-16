@@ -41,3 +41,30 @@ MAX_IN_FLIGHT_COMMITS constant, and retirement must gate entry.finished/removal
 and next-generation settings snapshot/preparation on actual scope drain.
 First-stop reasons and connection isolation remain unchanged; a builder hook
 or retained permit alone is not completion. GKS source/whole remains frozen.
+
+## Shared primitive source checkpoint
+
+V3 accepted the exact f2779ab90 contract before source installation. The first
+implementation adds only vessel-relay::resolution and its registration, with
+no manifest/dependency/lock/wire changes. A stable ResolutionBudget creates
+non-Clone ResolutionScope<Hold> owners; weak ResolutionHandle values resolve
+HostName/ResolutionPort under the root and constructor-supplied scope quotas.
+Scope close, admission and actual native-start decisions share one small
+bookkeeping lock; no lock is held through resolution or an await. Native work
+and its original permits-only Hold live inside the actual blocking closure.
+One bounded completion task retains each real blocking join after a result
+waiter disappears. Drain closes admission, waits for every observed join and
+never converts worker failure or runtime/owner drop into NormalDrain.
+
+This source does not connect NodeLink sockets or an HTTP client. Neither uses
+the primitive yet; their existing lifetime gaps stay open. No node lifecycle
+root pool or dictation registry consumer is claimed ready merely because a
+public source API exists. Normal stop can remain OS-bound and uncertain.
+
+Authored tests hold the actual blocking closure before/after its native-start
+gate, lose callers/drain waiters/scope owners, exhaust the shared root across
+scopes, preserve original consumer holds and test failed-phase unwind. Numeric
+standard-native plumbing, raw-address overflow/dedup/order/empty refusal and
+all safe source-chain canaries are distinct checks. These are unexecuted until
+the exact VM receipts exist; a controlled native-worker barrier is not an
+observed hung external DNS server. All tests use named phase and outer bounds.

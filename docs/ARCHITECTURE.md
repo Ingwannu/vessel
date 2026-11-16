@@ -36,6 +36,13 @@ and 0013).
 
 ## Crates
 
+`vessel-relay::resolution` owns the shared standard-native resolution lifetime
+(ADR0104): stable root budget, weak per-generation handles, original consumer
+permit holds inside actual blocking work, retained joins and normal-drain
+receipts. It has no DNS protocol/cache or extra runtime and adds no dependency
+edge. NodeLink and reqwest dictation adapters remain separate consumer work;
+the presence of this primitive does not claim their DNS shutdown is wired.
+
 | Crate | Job | Depends on |
 | --- | --- | --- |
 | `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9; ADR 0062 adds typed title origin with a merge-assigned protocol threshold); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10); agents beyond the four (`agents`: `HarnessRef`, `AgentName`, protocol 11); schedules, runs, saved prompts and hooks (`automation`: `CronExpr` parsed into bit sets, bounded names and prompt text, typed run outcomes, protocol 11). No I/O. | - |
