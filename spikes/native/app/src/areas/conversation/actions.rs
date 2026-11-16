@@ -49,13 +49,14 @@ pub(crate) enum AgentLog {
 impl Shell {
     /// Ask the node to act on the session shown.
     pub(crate) fn act(&self, act: Act) {
-        self.act_at(Seat::SESSION, act);
+        self.act_at(&Seat::SESSION, act);
     }
 
     /// Ask the node to act on the session the conversation at `seat`
-    /// shows.
-    pub(crate) fn act_at(&self, seat: Seat, act: Act) {
-        if let Some(shown) = (seat.get)(self).and_then(|area| area.shown.as_ref()) {
+    /// shows, through the existing legacy transport only. Admitted operations
+    /// require W12's guarded owner path and cannot fall back to an alias.
+    pub(crate) fn act_at(&self, seat: &Seat, act: Act) {
+        if let Some(shown) = seat.legacy_target(self) {
             self.command(Command::Act {
                 machine: shown.machine.clone(),
                 session: shown.session,

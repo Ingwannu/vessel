@@ -8,43 +8,8 @@ use vessel_app_link::Act;
 use vessel_app_view::timeline::ToolView;
 use vessel_proto::{PermissionId, PermissionOptionId, QuestionAnswer, QuestionId, ToolCallId};
 
-use super::ConversationArea;
+use super::Seat;
 use crate::shell::Shell;
-
-/// Where a conversation's state is kept, for the rows drawn from it and
-/// the toggles they answer: the session area's ([`Seat::SESSION`]), or
-/// another area's own [`ConversationArea`] (a side question's panel).
-/// `get` and `get_mut` must reach the same state.
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct Seat {
-    /// The state, to draw from; `None` once it is gone (a panel closed).
-    pub(crate) get: fn(&Shell) -> Option<&ConversationArea>,
-    /// The same state, to change.
-    pub(crate) get_mut: fn(&mut Shell) -> Option<&mut ConversationArea>,
-}
-
-impl Seat {
-    /// The session area's conversation.
-    pub(crate) const SESSION: Self = Self {
-        get: session_seat,
-        get_mut: session_seat_mut,
-    };
-
-    /// The session area's fork's origin, once read (`origin`): its
-    /// rows are the list's first, read-only.
-    pub(crate) const ORIGIN: Self = Self {
-        get: origin_seat,
-        get_mut: origin_seat_mut,
-    };
-}
-
-fn origin_seat(shell: &Shell) -> Option<&ConversationArea> {
-    shell.areas.conversation.origin.area()
-}
-
-fn origin_seat_mut(shell: &mut Shell) -> Option<&mut ConversationArea> {
-    shell.areas.conversation.origin.area_mut()
-}
 
 /// An answer the person gave on a request's card.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,7 +40,7 @@ pub(crate) trait Place: 'static {
             Answer::Permit(id, option) => Act::Permit(id, option),
             Answer::Question(id, answer) => Act::Answer(id, answer),
         };
-        shell.act_at(Self::SEAT, act);
+        shell.act_at(&Self::SEAT, act);
         cx.notify();
     }
 
@@ -90,7 +55,9 @@ pub(crate) trait Place: 'static {
     /// it. An area holding a request without its session's log (the
     /// inbox) gives the call it keeps, never a record made up for it.
     fn tool<'a>(shell: &'a Shell, id: &ToolCallId) -> Option<&'a ToolView> {
-        (Self::SEAT.get)(shell).and_then(|area| area.timeline.tool_call(id))
+        Self::SEAT
+            .get(shell)
+            .and_then(|area| area.timeline.tool_call(id))
     }
 }
 
@@ -99,20 +66,4 @@ pub(crate) struct SessionPlace;
 
 impl Place for SessionPlace {
     const SEAT: Seat = Seat::SESSION;
-}
-
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "a seat's reader may find no state; the session area's always has one"
-)]
-const fn session_seat(shell: &Shell) -> Option<&ConversationArea> {
-    Some(&shell.areas.conversation)
-}
-
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "a seat's reader may find no state; the session area's always has one"
-)]
-const fn session_seat_mut(shell: &mut Shell) -> Option<&mut ConversationArea> {
-    Some(&mut shell.areas.conversation)
 }

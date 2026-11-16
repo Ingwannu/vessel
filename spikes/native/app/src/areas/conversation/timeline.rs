@@ -78,7 +78,7 @@ pub(crate) fn rows(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let Some(area) = (seat.get)(shell) else {
+    let Some(area) = seat.get(shell) else {
         return div().into_any_element();
     };
     area.bench
@@ -89,13 +89,14 @@ pub(crate) fn rows(
     }
     // A fork's origin's rows come first (`origin`).
     let head = area.head();
+    let origin = seat.origin();
     area.list
         .element(
             cx.processor(move |shell: &mut Shell, row: usize, window, cx| {
                 let tokens = vessel_app_kit::tokens(cx);
                 match row.checked_sub(head) {
-                    Some(own) => row_element(shell, seat, own, &tokens, window, cx),
-                    None => row_element(shell, Seat::ORIGIN, row, &tokens, window, cx),
+                    Some(own) => row_element(shell, seat.clone(), own, &tokens, window, cx),
+                    None => row_element(shell, origin.clone(), row, &tokens, window, cx),
                 }
             }),
         )
@@ -149,7 +150,7 @@ fn row_element(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let Some(area) = (seat.get)(shell) else {
+    let Some(area) = seat.get(shell) else {
         return div().into_any_element();
     };
     let paint = paint(shell, area, seat, tokens, window);
@@ -305,11 +306,11 @@ fn run_header(
     (name, lead): (&'static str, usize),
     summary: String,
     open: bool,
-    toggle: fn(&mut Shell, Seat, usize, &mut Context<'_, Shell>),
+    toggle: fn(&mut Shell, &Seat, usize, &mut Context<'_, Shell>),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     div()
         .id(ElementId::NamedInteger(name.into(), id(lead)))
         .flex()
@@ -322,7 +323,7 @@ fn run_header(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, seat, lead, cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, &seat, lead, cx)))
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()

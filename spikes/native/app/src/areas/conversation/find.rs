@@ -425,7 +425,7 @@ impl Shell {
             .map(|run| run.lead)
             .filter(|lead| *lead != found && !area.open_runs.contains(lead));
         if let Some(lead) = folded_in {
-            self.toggle_run(super::Seat::SESSION, lead, cx);
+            self.toggle_run(&super::Seat::SESSION, lead, cx);
         }
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {
