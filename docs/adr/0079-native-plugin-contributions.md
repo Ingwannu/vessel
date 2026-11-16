@@ -470,3 +470,11 @@ The probe uses nonblocking/no-follow open plus actual-descriptor verification,
 sealed original I/O evidence and bounded hashing; it never supplies root/ACL,
 confinement, managed provenance, installation or blocking-owner lifetime proof.
 The reasoning and required real-filesystem cases are in the artifact plan.
+
+### Prepared command diagnostic policy join
+
+PreparedCommand consumes the reviewed proc CommandDiagnostics::Redacted policy
+on the announced node line. It preserves real launch fields and the decorated
+spawn/owned cleanup path. This seals actual spawn diagnostics, beyond the outer
+prepared-value Debug; it does not protect OS argv or helper-authored output and
+adds no Node product caller, executable/source authority or sandbox promise.
