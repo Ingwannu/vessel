@@ -538,3 +538,11 @@ The capture assertion probe retains its one actual handle in a single-assignment
 cell so it remains observable after unwinding. The retained fixture still drains
 the actual runtime and checks the original typed panic and ended handle; this
 fixture correction changes no capture or effect-admission semantics.
+
+## Continuation checkpoint
+
+The current WIP source and exact queued/completed evidence, adoption limits and
+next steps are recorded in wp-timeline-node-resume.md. No final runtime or
+consumer-ready claim follows from these source checkpoints. Resume by reading
+existing run results before submitting work; the new ticket join remains
+uncompiled and unexecuted, and durable queued dispatch recovery remains open.
