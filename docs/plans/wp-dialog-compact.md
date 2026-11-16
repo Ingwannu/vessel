@@ -52,3 +52,11 @@ This records selected source evidence; V1 review and lead adoption are still
 required before consumer use. F1 must own
 its actual sheet captures and source comparison; this builder does not qualify
 consumer focus, native OS behavior or visual parity.
+
+V1 subsequently confirmed bounded SOURCE / requested selected NARROW PASS on
+exact `ad14f5f6..e1dba79c` plus docs-only `d3b27f014`. The five paths, source
+values, unchanged legacy profiles, all log hashes and three pure cases were
+independently checked. The selected packet has been sent to the lead; G2 waits
+for an announced adopted green line. There is no painted 65/90 sheet, consumer,
+OS, IME, accessibility or full-package approval. At the quota stop this producer
+is finished; no unchanged rerun is requested.
