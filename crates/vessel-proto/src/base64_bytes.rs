@@ -47,7 +47,15 @@ impl Visitor<'_> for Base64Visitor {
                 return Err(E::custom("base64 payload exceeds its byte limit"));
             }
         }
-        let bytes = STANDARD.decode(text).map(Bytes::from).map_err(E::custom)?;
+        let bytes = STANDARD.decode(text).map(Bytes::from).map_err(|error| {
+            if self.decoded_limit.is_some() {
+                // The audio boundary reports its rule, never an offending
+                // encoded byte/offset from a private microphone payload.
+                E::custom("base64 audio payload is invalid")
+            } else {
+                E::custom(error)
+            }
+        })?;
         if self.decoded_limit.is_some_and(|limit| bytes.len() > limit) {
             return Err(E::custom("base64 payload exceeds its byte limit"));
         }

@@ -45,6 +45,27 @@ fn pcm_caps_apply_to_constructors_and_untrusted_base64() {
 }
 
 #[test]
+fn invalid_audio_encoding_diagnostics_do_not_report_submitted_bytes() {
+    for encoded in [r#""AAAA~AAA""#, r#""AAAA====""#, r#""AAA""#] {
+        let errors = [
+            serde_json::from_str::<CapturePcm>(encoded).unwrap_err(),
+            serde_json::from_str::<PlaybackPcm>(encoded).unwrap_err(),
+        ];
+        for error in errors {
+            assert!(
+                error
+                    .to_string()
+                    .starts_with("base64 audio payload is invalid")
+            );
+            let debug = format!("{error:?}");
+            assert!(debug.contains("base64 audio payload is invalid"));
+            assert!(!debug.contains("Invalid byte"));
+            assert!(!debug.contains("AAAA"));
+        }
+    }
+}
+
+#[test]
 fn speech_is_nonblank_bounded_and_diagnostic_safe() {
     assert!(
         SpeechText::try_from(

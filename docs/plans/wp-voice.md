@@ -606,3 +606,16 @@ The canonical settings values carrier53cf2e95 passed its scoped root vesseld
 build and Proto TS391/0/0 checks; it awaits receiving-union qualification and
 announcement. It adds no node settings field, Copy/persistence conversion,
 service/engine availability or opt-in. Host Voice stays unregistered.
+
+
+### Invalid audio encoding diagnostics
+
+The bounded base64 visitor is used only by the voice PCM types. Its former
+foreign decoder error could include an offending encoded byte and offset, even
+though the outer RPC edge already hides malformed requests. Classify that
+error immediately into a static audio-encoding rule so direct typed decoding
+also avoids payload-derived diagnostics. Reuse the same visitor; the unbounded
+existing terminal/blob path retains its prior behavior, and audio size checks
+still precede decoding. New capture/playback regressions cover malformed bytes,
+padding and length with static Display/Debug assertions. They await VM runtime;
+no wire shape, limit, provider or service availability changes.
