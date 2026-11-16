@@ -427,7 +427,8 @@ impl SessionHandle {
     /// output). The sender closes once the session has published its final
     /// status. Its values carry no marks, which change apart from the
     /// session's records: [`info`](Self::info) adds them. The raw watch also omits
-    /// the separately acknowledged mutation time; use info() for kept metadata.
+    /// the separately acknowledged mutation time; use [`info`](Self::info)
+    /// for kept metadata.
     #[must_use]
     pub fn watch_info(&self) -> watch::Receiver<SessionInfo> {
         self.0.info.clone()

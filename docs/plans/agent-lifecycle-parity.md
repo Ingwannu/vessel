@@ -1559,3 +1559,10 @@ before spawn. Guard lifetime, task ownership, authority, SQL, acknowledgement
 and cancellation-test expectations are unchanged. The announced node values and
 membership-helper head is also merged; its shared entries and documents remain
 authoritative. The final package gate still qualifies this combined clock tree.
+
+
+The corrected fixture strict check reached the session watch documentation and
+reported one missing code link around info(). That reference now links to the
+existing method. No executable body, test expectation, wire declaration or
+deadline changes; the original strict failure is retained. The current merged
+head still needs a green strict result before its package gate.
