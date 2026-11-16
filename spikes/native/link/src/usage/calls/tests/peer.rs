@@ -7,7 +7,7 @@ use tokio::{
 use vessel_client::{ClientConfig, NodeClient};
 use vessel_proto::{
     Call, ClientFrame, ClientInfo, NodeId, NodeInfo, NodeState, Outcome, ProtocolRange,
-    ServerFrame, Welcome,
+    ProtocolVersion, ServerFrame, Welcome,
 };
 const FRAME_BYTES: usize = 65_536;
 pub(super) struct Peer {
@@ -40,7 +40,16 @@ async fn write(stream: &mut DuplexStream, frame: ServerFrame) -> bool {
     }
     stream.write_all(&bytes).await.is_ok()
 }
-pub(super) async fn connect(mut reply: impl FnMut(Call) -> Outcome + Send + 'static) -> Peer {
+/// A peer speaking this build's protocol.
+pub(super) async fn connect(reply: impl FnMut(Call) -> Outcome + Send + 'static) -> Peer {
+    connect_at(vessel_proto::PROTOCOL_VERSION, reply).await
+}
+/// A peer that welcomes at `protocol`, so a test can pin the paths an older
+/// node takes (methods it does not have are refused by the client).
+pub(super) async fn connect_at(
+    protocol: ProtocolVersion,
+    mut reply: impl FnMut(Call) -> Outcome + Send + 'static,
+) -> Peer {
     let (local, mut remote) = tokio::io::duplex(FRAME_BYTES);
     let task = tokio::spawn(async move {
         assert!(matches!(
@@ -63,10 +72,7 @@ pub(super) async fn connect(mut reply: impl FnMut(Call) -> Outcome + Send + 'sta
         assert!(
             write(
                 &mut remote,
-                ServerFrame::Welcome(Welcome {
-                    protocol: vessel_proto::PROTOCOL_VERSION,
-                    node
-                })
+                ServerFrame::Welcome(Welcome { protocol, node })
             )
             .await
         );

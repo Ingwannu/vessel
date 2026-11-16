@@ -1,5 +1,6 @@
 use super::*;
 mod peer;
+mod reports;
 use std::sync::Mutex;
 use vessel_proto::{
     Call, Outcome, ProfileInfo, Reply,
@@ -15,6 +16,12 @@ fn profile(name: &str) -> ProfileInfo {
         model: None,
     }
 }
+/// The protocol just before account reports: a node that has only the
+/// saved-login methods, where the inventory falls back to them.
+fn before_reports() -> vessel_proto::ProtocolVersion {
+    let reports = vessel_proto::Method::ListUsageReports.since().unwrap();
+    vessel_proto::ProtocolVersion::new(reports.get().checked_sub(1).unwrap())
+}
 fn limits(account: LimitAccount) -> UsageLimits {
     UsageLimits {
         policy: vessel_proto::limits::ExternalLookup::On,
@@ -29,7 +36,7 @@ fn limits(account: LimitAccount) -> UsageLimits {
 async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failures() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let seen = Arc::clone(&calls);
-    let peer = peer::connect(move |call| {
+    let peer = peer::connect_at(before_reports(), move |call| {
         seen.lock().unwrap().push(call.clone());
         if matches!(&call, Call::ListProfiles(_)) {
             return Outcome::Ok(Reply::ListProfiles(vec![
@@ -81,7 +88,7 @@ async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failu
 }
 #[tokio::test]
 async fn cached_inventory_rejects_a_reply_for_another_account() {
-    let peer = peer::connect(|call| {
+    let peer = peer::connect_at(before_reports(), |call| {
         if matches!(&call, Call::ListProfiles(_)) {
             return Outcome::Ok(Reply::ListProfiles(vec![profile("first")]));
         }
@@ -117,7 +124,7 @@ fn raw_node_error_text_never_crosses_the_usage_event_boundary() {
 async fn refresh_all_targets_the_bounded_inventory_and_cached_reads_never_refresh() {
     let modes = Arc::new(Mutex::new(Vec::new()));
     let seen = Arc::clone(&modes);
-    let peer = peer::connect(move |call| {
+    let peer = peer::connect_at(before_reports(), move |call| {
         if matches!(&call, Call::ListProfiles(_)) {
             return Outcome::Ok(Reply::ListProfiles(vec![
                 profile("first"),
