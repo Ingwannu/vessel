@@ -29,8 +29,11 @@ Why batch was reviewed; this does not accept native/web/CLI parity or real-sourc
 operation. Independent proof: `usage-final-e1ff-independent.json` in V3's evidence.
 
 The integrator received EXACT91 as batch23 and merged it over announced node
-`ee8e345013d6756dfc55b1ed008a352db32786c7` into trial `5243a701f`. Focused TS then
-receiving whole were pending at handoff. **No green receiving announcement yet.**
+`ee8e345013d6756dfc55b1ed008a352db32786c7` into
+`5243a701f20cbbe09e01564e53838d2482bbdd52`. At04:06 UTC the integrator announced
+this as the node head: receiving gate61 **GREEN18/18**, Rust2832/0/12, web465,
+E2E80/80, forge4/0 and generated TS diff0. This is the receiving result, not a
+new W5 run. No new method number was assigned; the DNS activation hold remains.
 Receiver completions: lib module order usage_reports before voice; Architecture
 keeps incoming paragraphs then Usage section. Do not change the frozen handoff
 or start another owner whole. Coordinator accepts whole87 + exact corrected
@@ -108,9 +111,16 @@ Current strict/runtime greens do not retroactively qualify those sources.
   Required usage-fixture compilation is not managed binary runtime/export proof.
 - S2 FooterIconButton producer: fixed Usage launcher withheld, no ordinary MD or
   Toolbar fallback. Optional pinned summary uses one defaultHidden preference.
+  Quota-stop receipt331a87cb43a3caeb2c743ffb1e06a5be1897cb49 is WIP, resume
+  f8fa2b173/Main72facfa10; no compile/runtime/review/registration/consumer approval.
+  Do not consume it while stopped.
 - L ADR0101 full finite amount/unit and exact-u64 count formatters: no ready API;
   preserve values/units, no clamp/drop/lossy cast/area formatter. Amount preparation
-  keys must preserve get().to_bits()+unit, including signed zero.
+  keys must preserve get().to_bits()+unit, including signed zero. Quota-stop
+  receipt WIP5a130de20/resume19aa0be82 remains unqualified and unadopted;
+  stock loss reproducer3/0/0 is not producer proof, candidate validation was not
+  submitted and controlled graph/baseline measurement remained queued. No
+  experimental API or lock adoption.
 - W22 actual applied provider/env/sign-in associations for seven extra Session
   sources and W16 F6 usage adapter: Unsupported until their reviewed producers.
 - Final working native slice whole, managed same-source captures, actual tooltip
