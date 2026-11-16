@@ -1857,6 +1857,12 @@ callers retain `require_active`, current role/attention checks and the write in
 one existing writer transaction; this reader supplies no authorization or exit
 proof. No new protocol, schema, cache or dependency accompanies the seam.
 
+Execution incarnation/invalidation has one owner in the existing Agents registry.
+Each live entry owns a UUID and latest-change watch; natural retirement invalidates
+then closes it. Transition owners use invalidate_execution before their effects.
+The proto stamp/ceiling are correlation values only. This first producer implements
+no runtime capture, parentage lease, actor queue policy or private notice admission;
+see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
 
 ## Page feedback and modal ownership
 
@@ -1946,3 +1952,10 @@ or protocol capability. This carrier adds no node settings field, persistence,
 RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
 through a typed fake until the real node field/adapter lands. See
 `docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
+
+`vessel-session::LaunchAdmission` is a read-only clone of the runtime's existing
+shutdown token and Node's original early-stop token. Its one predicate is shared
+by final structured/terminal spawn and external preparation observers; it grants
+no permission or current-run authority. The Node factory lives beside setup so
+this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
+this standalone prerequisite (ADR 0064 and launch-admission plan).
