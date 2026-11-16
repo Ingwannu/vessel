@@ -1,13 +1,25 @@
-//! Typed catalog UI seam. No RPC is invented before ADR 0086 is integrated.
-//! Workspace assignment carries ADR 0082's reviewed identity; runtime stays pending.
+//! The workspace labels' commands and answers between the app and the
+//! link (ADR 0086, protocol 28). Assignment carries ADR 0082's registry
+//! identity; the calls themselves are `run`.
 
-use vessel_app_view::labels::{Catalog, Count, Failure, Label, Name, Ticket};
+use vessel_app_view::labels::{Count, Failure, Label, Name, Ticket};
+use vessel_proto::registry::{RegistryRevision, RegistrySnapshot};
+use vessel_proto::workspace_labels::{CatalogCursor, CatalogList, CatalogRead};
+
+#[cfg(not(target_arch = "wasm32"))]
+mod run;
 
 /// Intent issued by a workspace picker or catalog manager, with validated names.
 #[derive(Debug, Clone)]
 pub enum Command {
-    /// Load the host's authoritative catalog.
-    List,
+    /// Read the host's catalog: a snapshot without `cursor`, else the
+    /// changes after it; `Observe` waits for the next change.
+    List {
+        /// Where the caller's copy stands.
+        cursor: Option<CatalogCursor>,
+        /// At once, or on the next change (or the node's heartbeat).
+        read: CatalogRead,
+    },
     /// Set one workspace assignment; creation and assignment are one operation.
     Assign {
         /// Registry identity captured with the exact admission.
@@ -23,6 +35,13 @@ pub enum Command {
         original: Name,
         /// Both replacement fields together.
         replacement: Label,
+    },
+    /// Read the host's workspace registry (its sessions' workspaces and
+    /// the workspaces' labels): at once without `changed_from`, else when
+    /// it moves past that revision (or at the node's heartbeat).
+    Registry {
+        /// The revision the caller holds.
+        changed_from: Option<RegistryRevision>,
     },
     /// Read affected count before presenting confirmation.
     InspectDelete(Name),
@@ -67,16 +86,19 @@ pub struct Event {
 /// Disjoint result types prevent treating an inspection as a completed deletion.
 #[derive(Debug, Clone)]
 pub enum Answer {
-    /// Authoritative definitions, or a typed refusal.
-    Listed(Result<Catalog, Failure>),
+    /// The host's catalog or its changes, with the head to continue from.
+    Listed(Result<CatalogList, Failure>),
+    /// The host's workspace registry.
+    Registry(Result<Box<RegistrySnapshot>, Failure>),
     /// Assignment settlement retains the immutable workspace and requested name.
     Assigned {
         /// The registry workspace that owned the intent.
         workspace: vessel_proto::WorkspaceId,
         /// Original requested identity, regardless of canonical reply spelling.
         name: Name,
-        /// Ordered registry observation owns committed assignment projection.
-        result: Result<(), Failure>,
+        /// The workspace's committed labels, in order; the registry's next
+        /// snapshot carries the same.
+        result: Result<Vec<Name>, Failure>,
     },
     /// A committed atomic update.
     Updated(Result<Label, Failure>),
@@ -91,7 +113,8 @@ impl Command {
     #[must_use]
     pub fn refused(&self, failure: Failure) -> Answer {
         match self {
-            Self::List => Answer::Listed(Err(failure)),
+            Self::List { .. } => Answer::Listed(Err(failure)),
+            Self::Registry { .. } => Answer::Registry(Err(failure)),
             Self::Assign {
                 workspace, label, ..
             } => Answer::Assigned {
@@ -103,20 +126,6 @@ impl Command {
             Self::InspectDelete(_) => Answer::Inspected(Err(failure)),
             Self::Delete(_) => Answer::Deleted(Err(failure)),
         }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl crate::State {
-    pub(super) async fn labels(&self, request: Request) {
-        // Even the pending-contract refusal retains exact admission semantics.
-        let failure = match self.selected_connection(&request.context) {
-            Ok(_original_connection) => Failure::Unsupported,
-            Err(vessel_app_view::connection::Refusal::Changed) => Failure::Changed,
-            Err(vessel_app_view::connection::Refusal::Closed) => Failure::Offline,
-        };
-        self.emit(crate::Event::Labels(request.refused(failure)))
-            .await;
     }
 }
 
@@ -132,7 +141,11 @@ mod tests {
             color: vessel_app_view::labels::Color::Violet,
         };
         assert!(matches!(
-            Command::List.refused(Failure::Unsupported),
+            Command::List {
+                cursor: None,
+                read: CatalogRead::Now,
+            }
+            .refused(Failure::Unsupported),
             Answer::Listed(Err(Failure::Unsupported))
         ));
         let workspace = vessel_proto::WorkspaceId::random();

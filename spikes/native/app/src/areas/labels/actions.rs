@@ -139,8 +139,7 @@ impl Shell {
     }
 
     pub(crate) fn labels_answer(&mut self, event: Event, cx: &mut Context<'_, Self>) {
-        #[cfg(test)]
-        if self.labels_picker_answer(&event, cx) {
+        if self.labels_followed(&event, cx) || self.labels_picker_answer(&event, cx) {
             return;
         }
         let state = &mut self.areas.labels;
@@ -149,7 +148,8 @@ impl Shell {
         }
         let inspection = matches!(&event.answer, Answer::Inspected(Ok(_)));
         let accepted = match event.answer {
-            Answer::Listed(_) | Answer::Assigned { .. } => false,
+            // The followed reads and the picker's answers are taken before.
+            Answer::Listed(_) | Answer::Registry(_) | Answer::Assigned { .. } => false,
             Answer::Inspected(result) => state.manager.inspected(event.ticket, result),
             Answer::Updated(result) => {
                 matches!(state.manager.state(), ManagerState::Saving { .. })
