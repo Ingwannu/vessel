@@ -90,6 +90,11 @@
 //!   `CallId` is); `SearchQuery` is what a person types; `SearchLimit` a
 //!   quantity.
 
+// Browser contract (pending ADR0078): BrowserId and ElementRef are minted,
+// opaque handles handed back by callers. Geometry, revisions, metrics, budgets
+// and HTTP status codes remain numeric quantities. URLs/upload paths are named
+// input; page/input/evaluation text and PNG data are content, not authority.
+
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Alias {
@@ -123,6 +128,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("BlobHash", Alias::Handle),
     ("BookName", Alias::Named),
     ("BranchName", Alias::Named),
+    ("BrowserId", Alias::Handle),
+    ("BrowserRevision", Alias::Quantity),
+    ("BrowserUrl", Alias::Named),
     ("BundlePath", Alias::Named),
     ("CallId", Alias::Handle),
     ("CheckName", Alias::Named),
@@ -136,12 +144,15 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ContentHash", Alias::Handle),
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
+    ("CssCoordinate", Alias::Quantity),
+    ("CssDelta", Alias::Quantity),
     ("CustomAgentSlot", Alias::Quantity),
     ("DeviceId", Alias::Handle),
     ("DiagnosticProcessId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
+    ("ElementRef", Alias::Handle),
     ("EnvName", Alias::Named),
     ("EventSeq", Alias::Quantity),
     ("EverySeconds", Alias::Quantity),
@@ -163,10 +174,12 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
+    ("HttpStatus", Alias::Quantity),
     ("HttpUrl", Alias::Named),
     ("IdleMinutes", Alias::Quantity),
     ("InboxCount", Alias::Quantity),
     ("InboxCursor", Alias::Quantity),
+    ("InputText", Alias::Content),
     ("InstallId", Alias::Handle),
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
@@ -174,6 +187,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
+    ("LogCount", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -186,6 +200,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("Offset", Alias::Quantity),
     ("OptionId", Alias::Handle),
     ("OptionValueId", Alias::Handle),
+    ("PageText", Alias::Content),
     ("PairingLink", Alias::Secret),
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
@@ -218,12 +233,14 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("RemoteName", Alias::Named),
     ("RepoPath", Alias::Named),
     ("ReportCount", Alias::Quantity),
+    ("RequiredInput", Alias::Content),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
     ("RunNumber", Alias::Quantity),
     ("SavedPromptId", Alias::Handle),
     ("ScheduleId", Alias::Handle),
     ("ScheduleName", Alias::Named),
+    ("ScreenshotPng", Alias::Content),
     ("ScriptName", Alias::Named),
     ("SearchCursor", Alias::Handle),
     ("SearchKey", Alias::Handle),
@@ -237,18 +254,23 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SessionTitle", Alias::Named),
     ("Sha256Hex", Alias::Named),
     ("SkillName", Alias::Named),
+    ("SnapshotMetric", Alias::Quantity),
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
     ("SuggestionLimit", Alias::Quantity),
     ("SuggestionQuery", Alias::Named),
     ("TerminalBytes", Alias::Content),
     ("TerminalId", Alias::Handle),
+    ("TextByteCount", Alias::Quantity),
     ("TicketMac", Alias::Secret),
     ("TimeZoneName", Alias::Named),
     ("TokenCount", Alias::Quantity),
     ("ToolCallId", Alias::Handle),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
+    ("UploadPath", Alias::Named),
+    ("ViewportSide", Alias::Quantity),
+    ("WaitTimeout", Alias::Quantity),
     ("WorkspaceId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
@@ -317,6 +339,26 @@ mod tests {
         assert_eq!(classify("PairingLink"), Some(Alias::Secret));
         assert_eq!(classify("EventSeq"), Some(Alias::Quantity));
         assert_eq!(classify("Nothing"), None);
+    }
+
+    #[test]
+    fn browser_aliases_brand_only_minted_handles_and_preserve_content_and_units() {
+        assert_eq!(classify("BrowserId"), Some(Alias::Handle));
+        assert_eq!(classify("ElementRef"), Some(Alias::Handle));
+        assert_eq!(classify("BrowserRevision"), Some(Alias::Quantity));
+        assert_eq!(classify("CssCoordinate"), Some(Alias::Quantity));
+        assert_eq!(classify("PageText"), Some(Alias::Content));
+        assert_eq!(classify("ScreenshotPng"), Some(Alias::Content));
+        assert_eq!(classify("UploadPath"), Some(Alias::Named));
+        let mut declarations = Declarations::new();
+        declarations.add::<crate::browser::BrowserResult>().unwrap();
+        assert!(declarations.unclassified().next().is_none());
+        let output = declarations.render(None);
+        assert!(
+            output
+                .contains(r#"export type BrowserId = string & { readonly __brand: "BrowserId" };"#)
+        );
+        assert!(output.contains("export type PageText = string;"));
     }
 
     #[test]

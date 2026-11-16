@@ -8,6 +8,47 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Gate57 union, TS classification and diagnostic privacy
+
+Merged announced node head bc9cacc67 (gate57 wholly green, protocol25/schema21)
+without conflicts, preserving the single pending method table. It adds the
+shared opt-in command-diagnostic helper; candidate launch data now chooses its
+Redacted policy so process Debug/startup diagnostics cannot disclose private
+profile/argv/path data. Actual argv/env/binary/proxy/sandbox behavior is unchanged.
+The launch-data fixture now also checks that policy and redacted profile path.
+This does not qualify the new process helper/runtime combination.
+
+Exact41ecc652 functional run completed1074/0/2 (browser68/0/2, client93,
+MCP20, node334, proto445, RPC58, web56). Its TS run passed three shape fixtures
+but stopped before generation because17 new primitive aliases were unclassified.
+Classify BrowserId/ElementRef as opaque minted handles; coordinates, revision,
+metrics, status and budgets as quantities; URLs/paths as named input; user/page/
+function/PNG data as content. Reuse the one sorted ALIASES table and retain its
+unclassified/sorted/declaration checks. Add a BrowserResult dependency/branding
+fixture, without weakening the failing classification assertion.
+
+The failed41 TS artifact has no generated diff. Do not copy that old snapshot
+over the newer gate57 base: new canonical incoming declarations must survive.
+Generate once from the current immutable union after these corrections. Current
+DTO/aliases/diagnostic privacy and pending upload limits need their own checks;
+older scoped successes remain exact older-source evidence.
+
+## Actual condition-script diagnostic
+
+The independently authored condition source SHA16b65f4d43be2e3bb58887445e2160fbb0c6f0dc5b678337527188873c1954a1
+ran once as UID/GID1000 with the approved sandboxed CFT149/private child pipes,
+cleared private environment and a synthetic allowlisted fixture proxy. Six
+text/URL cases, hidden-text exclusion, a literal injection needle and poisoned
+main-world String.prototype all produced expected booleans in the private
+realm; URL fragment matching and frame/loader observations also passed.
+The browser exited0, profile mode0700 and retained entries private; root TCP
+listeners0 and post-run exact-profile matching processes0 were observed.
+
+This proves only condition JavaScript/realm semantics for that diagnostic.
+It does not execute Rust Page.wait, qualify product proxy/UDP/Preview/Windows,
+prove all-descendant containment or authorize any file/engine/profile release.
+The exact Rust test artifact is still separately queued. NoEngine remains.
+
 ## Completed-fact projection strict follow-through
 
 Exactc5f5d7e1 all-target strict with proto TS reached all three selected crates

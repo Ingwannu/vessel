@@ -12,7 +12,7 @@ use crate::profile::Profile;
 use identity::{Candidate, LaunchError};
 use std::ffi::OsString;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use vessel_proc::{Child, CommandSpec};
+use vessel_proc::{Child, CommandDiagnostics, CommandSpec};
 
 const FIXED_SHELL: &str = "/bin/sh";
 const FIXED_SOURCE: &str = "umask 077; exec 3<&0 4>&1; exec \"$@\"";
@@ -72,6 +72,7 @@ impl Plan {
         let mut directory = OsString::from("--user-data-dir=");
         directory.push(profile.root());
         let command = CommandSpec::new(FIXED_SHELL)
+            .with_diagnostics(CommandDiagnostics::Redacted)
             .env_clear()
             .cwd(profile.root())
             .args(["-c", FIXED_SOURCE, INERT_LABEL, Candidate::browser_path()])

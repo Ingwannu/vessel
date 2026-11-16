@@ -12,6 +12,8 @@ fn candidate_argv_never_interpolates_page_data_and_only_explicit_environment_sur
     let plan = Plan::build(profile, proxy, Candidate::FIXTURE);
     assert!(!format!("{plan:?}").contains(parent.path().to_str().unwrap()));
     let (command, profile) = plan.into_supervised_parts();
+    assert_eq!(command.diagnostic_policy(), CommandDiagnostics::Redacted);
+    assert!(!format!("{command:?}").contains(profile.root().to_str().unwrap()));
     assert_eq!(command.environment, Environment::Clear);
     assert_eq!(command.program, PathBuf::from(FIXED_SHELL));
     assert_eq!(command.args.first().unwrap(), "-c");
