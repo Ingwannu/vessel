@@ -8,6 +8,17 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Evaluation result projection follow-through
+
+Reference protocol rpc-schemas.ts:443–449 and server browser-tools/tools.ts:770–824
+require resultJson as a string and an explicit truncation fact. Reuse CappedText
+and its existing UTF-8 bound; project observed output without parsing truncated
+JSON or copying the request function into a success. No new DTO, bound, engine
+method or authority is needed. Two fixtures distinguish observed output from
+request source and preserve Unicode truncation. They are not executed yet.
+The previously queued41ecc652 strict/tests/TS checks retain their exact source
+scope and do not validate this later MCP-only projection.
+
 ## Resume: announced node union and stopped-time results
 
 Merged announced node head ed4cd137 (gate56b counted17/18; the named

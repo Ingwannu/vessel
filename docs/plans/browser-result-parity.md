@@ -41,7 +41,7 @@ caller-selected cwd or control endpoint.
 | Hover | Current ref and optional actual point | Applied has only id; hit testing/actionability and result remain owed. |
 | Drag | Both current refs and optional actual source/drop points | Applied has only id; full trusted drag sequence and result remain owed. |
 | Logs | Console entries and resource timing/network entries, each requested tail | Current DTO is a deliberately incomplete typed foundation; see log debt below. No real producer/ring exists. |
-| Evaluate | Actual serialized result plus truncation | Evaluation has capped JSON but internal field names/shape differ. Explicit result projection and real engine result/exception behavior remain owed; never echo the function as a result. |
+| Evaluate | Actual serialized result plus truncation | Evaluation has capped JSON but internal field names/shape differ. Staged explicit MCP projection now preserves observed resultJson as an opaque string plus truncated; real engine result/exception behavior and changed-source checks remain owed. Never echo the function as a result. |
 | Scroll | Applied deltas, optional ref and actual point | Applied has only id; element/actionability and result projection remain owed. |
 | Resize | Actual resulting width/height | Staged projection now extracts completed effective dimensions for fixed/responsive modes, not requested ones. Actual resize and changed-source checks remain owed. |
 | Close tab | Completed close id | Controller now retains the target until ACK. Actual actor destruction/watch/slot settlement remains owed. |

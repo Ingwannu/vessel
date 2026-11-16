@@ -63,8 +63,14 @@ pub(super) fn render(
             }),
             None,
         ),
+        BrowserResult::Evaluation { browser_id, json } => (
+            json!({
+                "browserId": browser_id, "resultJson": json.text,
+                "truncated": json.completeness == vessel_proto::browser::TextCompleteness::Truncated
+            }),
+            None,
+        ),
         other @ (BrowserResult::Applied { .. }
-        | BrowserResult::Evaluation { .. }
         | BrowserResult::Logs { .. }
         | BrowserResult::Matched { .. }
         | BrowserResult::Closed { .. }) => (serde_json::to_value(other)?, None),
@@ -253,3 +259,6 @@ mod tests {
 mod snapshot_tests;
 #[cfg(test)]
 mod tab_tests;
+
+#[cfg(test)]
+mod evaluation_tests;
