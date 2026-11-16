@@ -28,7 +28,8 @@ pinned-layout; kit QuotaMeter f876a23a), copying pinned Paseo (packages/app/src/
   `hostUpgradeRequired`). (b) would add a second, legacy card path the page never had.
 - Display (Used/Remaining) is page state in P1, default Used. The bridge's preferences (ADR 0028) have no usage
   field; persisting it with pins and the sidebar summary needs a bridge preference change and comes with P2.
-- Source marks: the page has no agent brand marks; cards use the kit `plan` icon until a mark set exists.
+- Source marks: the native kit's approved artwork (copied byte for byte into ui/kit/provider-marks), light and
+  dark forms by scheme; sources without an approved mark keep the kit glyph, as on the native app.
 - Costs: English words are copied from the native usage words (view/locales/en/usage.ftl); numbers and dates
   follow the browser language through N2's Intl helpers (so tokens are compact here, unlike the native
   interim formatter, which waits for ADR 0101).

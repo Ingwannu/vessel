@@ -19,11 +19,12 @@ const AROUND = 2 * Math.PI * RADIUS;
 export function ContextRing({
   usage,
   node,
-  session,
+  id,
 }: {
   usage: ContextUsage | null;
+  /** The machine and the session the ring describes. */
   node: NodeKey;
-  session: SessionId;
+  id: SessionId;
 }) {
   const meter = meterOf(usage);
   if (meter === null) {
@@ -61,7 +62,7 @@ export function ContextRing({
           {line}
         </p>
       ))}
-      <SessionUsage node={node} session={session} />
+      <SessionUsage node={node} session={id} />
     </HoverCard>
   );
 }
