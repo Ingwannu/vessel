@@ -63,11 +63,13 @@ async fn wrong_session_or_unsatisfied_postcondition_cannot_be_a_success() {
                 )))
                 .await;
             let request = actor.request().await;
+            let mut info = peer::info(returned);
+            // Wrong identity has an otherwise valid postcondition; the second
+            // frame isolates a correct identity with an invalid postcondition.
+            info.marks.pinned = returned != session;
             request
                 .answer
-                .send(Outcome::Ok(vessel_proto::Reply::MarkSession(peer::info(
-                    returned,
-                ))))
+                .send(Outcome::Ok(vessel_proto::Reply::MarkSession(info)))
                 .unwrap();
             assert!(matches!(
                 answer(&mut actor).await.into_reply().into_parts().1,
@@ -134,6 +136,30 @@ async fn physical_close_after_queued_ack_is_still_uncertain() {
         ));
     })
     .await;
+}
+
+#[tokio::test]
+async fn archive_and_unarchive_are_only_original_directory_marks() {
+    within(async {
+        let mut actor = Actor::new("fixture").await;
+        let session = SessionId::random();
+        for mark in [Mark::Archive, Mark::Unarchive] {
+            let original = ask(&actor.context(), session, mark);
+            actor.dispatch(Command::SessionMark(original.clone())).await;
+            let request = actor.request().await;
+            assert!(matches!(request.call, Call::MarkSession(request) if request.session == session && request.mark == mark));
+            let mut info = peer::info(session);
+            info.status = vessel_proto::SessionStatus::Exited { code: None };
+            info.marks.archived_at = (mark == Mark::Archive).then_some(chrono::DateTime::UNIX_EPOCH);
+            request.answer.send(Outcome::Ok(vessel_proto::Reply::MarkSession(info.clone()))).unwrap();
+            let (retained, result) = answer(&mut actor).await.into_reply().into_parts();
+            assert_eq!(retained, original);
+            assert_eq!(*result.unwrap(), info);
+        }
+        // The worker issued only the two explicitly observed MarkSession calls;
+        // no create/resume operation or resident completion was requested.
+        actor.close_peer().await;
+    }).await;
 }
 
 mod replacement;
