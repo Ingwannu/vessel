@@ -33,3 +33,10 @@ are unchanged, and correcting only the prepared option can still consume the
 count relation once. It performs no common insertion or spawn. An unused raw
 descriptor accessor is removed until an actual controller needs it; no dead-code
 expectation or fabricated product caller is added.
+
+The first custody strict check failed before Node on a duplicate canonical
+ExecutionIncarnationId declaration: the independently staged capture patch and
+announced-head merge inserted the same existing UUID type at different adjacent
+positions. The id module is restored byte-for-byte to the announced d5 head;
+only one canonical identity remains. No constructor, type body or behavior is
+changed. The raw compiler failure is retained and is no runtime evidence.
