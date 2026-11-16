@@ -1,5 +1,5 @@
 //! Concrete staged creation owner; no RPC, permission token or spawn is added.
-//! The driver keeps AgentReservation independently of the reply/capsule.
+//! The driver keeps `AgentReservation` independently of the reply/capsule.
 use super::{
     AgentReservation, CapturedParentExecution, CreationCountCorrelation, ExecutionObservation,
 };

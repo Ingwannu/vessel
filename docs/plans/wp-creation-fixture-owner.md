@@ -40,3 +40,13 @@ announced-head merge inserted the same existing UUID type at different adjacent
 positions. The id module is restored byte-for-byte to the announced d5 head;
 only one canonical identity remains. No constructor, type body or behavior is
 changed. The raw compiler failure is retained and is no runtime evidence.
+
+
+The corrected-identity strict reached Node and returned fixture/doc lints. The
+constructor test's synchronous registry assertion now has a lexical scope before
+awaiting runtime shutdown, preserving the exact assertion and lock order without
+lint suppression. The previously retention-only bin field is named bin because
+the shared owner now actually supplies the project root from it; allocation and
+lifetime are unchanged. Documentation backticks and redundant qualification/
+borrow corrections leave behavior and deadlines intact. The common owner's
+separate identical guard-scope correction remains his leaf. Raw failures stay.
