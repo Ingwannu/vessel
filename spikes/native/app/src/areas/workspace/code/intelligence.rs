@@ -140,7 +140,7 @@ impl Shell {
         let Some(ask) = self.language_ready_for(key, ticket, cx) else {
             return;
         };
-        let mut at = ask.at.clone();
+        let mut at = ask.at;
         at.page.offset = offset;
         let action = ask.action;
         self.send_language_query(key, at, action);
