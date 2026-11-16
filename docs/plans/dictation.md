@@ -4,39 +4,52 @@ Node-side speech to text, following Paseo's composer dictation. ADR 0067
 is the contract. The protocol number is `dictation::SINCE`, given at
 merge. This plan does not change `PROTOCOL_VERSION`.
 
-## Current resume point (2026-11-16)
+## Current resume point (2026-11-16, validation pending)
 
-The designated RPC caller-drop and portable-plugin head is merged. Product wiring connects the
-bounded registry, endpoint provider, canonical ConnectionLife and speech codec,
-with five pending method-table rows. The protocol constant remains None, so the
-wire refuses activation before a number is assigned. The CLI file reader and
-concurrent sender/result consumer are implemented; local engines, app capture
-and TTS remain deferred.
+Implementation is committed through
+`b61e91cc5e13bc651bde56a77d821e4aaf0c7921`, on the designated node base
+`ed4cd13776cc32a2da0ffeb4ffa67e2e2548461e`. Keep that base fixed through package
+validation and review; later heads are a separate integration. Five pending
+method rows and the optional settings field are implemented, with
+`dictation::SINCE` still None. Local engines, app capture and TTS remain deferred.
 
-The latest five-crate all-target strict check passes. The corrected focused
-Node/Store library suite passes 26 cases, including startup diagnostics, empty
-file overrides, selection/deletion races, provider-switch refusals, retained
-settings writers and buffered-start retirement. The earlier broad focused run
-remains red with its four findings; the original later-file node e2e was not in
-the library selection and must pass the final whole gate.
+The complete package has not passed its whole gate or independent source review.
+Two whole runs stopped at Clippy because the client and RPC test fakes lacked
+the new Handler items. Both failures are retained; neither reached runtime.
+The client completion is `53a74bd760967b174546a96a89c17b5b7060e349`, and the RPC
+completion is `b61e91cc5e13bc651bde56a77d821e4aaf0c7921`. Each appends exactly five
+rows to its existing unserved macro, with no existing body, assertion or branch
+change. The corrected workspace-wide all-target strict check passes at b61,
+followed by the existing RPC library tests, 58 passed. The client strict check
+and 89 library tests passed at 53. Earlier Node/Store library regressions passed
+26 cases at 48d062ba; those are separate scoped results, not package proof.
 
-The generated declarations now match the verified generator snapshot for this
-combined source: five generator/inventory tests passed, and the freshness
-failure identified the exact patch applied here. The next designated node head
-has now been adopted without changing dictation code or generated declarations.
-The first whole gate stopped at Clippy: the client test FakeNode lacked the
-five new Handler items. Its existing unserved macro now supplies exactly those
-Unsupported methods. Client strict and library tests precede the final corrected
-whole gate; no runtime result is claimed from the first stopped run. The combined
-source range is submitted for review, with the original red evidence retained.
-The second whole also stopped before tests because the RPC test Fake lacked the
-same five items. Both manual fake lists are now complete; the node guard and
-connection fixture are generated from the table. The next preflight checks every
-workspace target, followed by the existing RPC library tests, before the
-corrected whole gate. Neither stopped whole is runtime proof. Narrow evidence is not a package
-or integration pass. No real ASR, HTTPS credential, other-platform deployment,
-service-account or microphone behavior is claimed. Earlier resume paragraphs
-below are historical checkpoints.
+The authorized corrected whole run is
+`dictation-20261116T030821Z-b61e91cc`, ordinary, on the exact implementation
+commit above. It is queued and has no result at this checkpoint. Retrieve its
+existing receipt and logs before starting anything; do not duplicate it.
+The original runs are `dictation-20261116T003226Z-7ad04165` and
+`dictation-20261116T013331Z-53a74bd7`, both red at Clippy. The independent combined
+review range is `a6a171d3c6d1cb592b2b665825fa054d99f924d3` through b61. Its verdict
+and the corrected whole evidence remain owed.
+
+Next: read the existing whole result, verify every executed step and the named
+regressions (especially the original later-file node e2e, excluded by the earlier
+library-only selection), then resolve independent review findings. Current TS
+freshness, full workspace runtime, forge configuration and web checks still need
+that whole result. Generated declarations came from the verified 48d062ba
+snapshot; no declaration was hand-edited. Do not promote the field/Clone contract
+to a consumer-ready prerequisite before qualification and integration.
+
+Known separate activation condition: standard native DNS can outlive an aborted
+HTTP job. ADR 0104 is the accepted shared contract for that lifetime, with a
+separate implementation and receiving checks still required. No parallel resolver
+is added here, and no native DNS termination is claimed. Keep external calls
+fail-closed under None until that shared work and the endpoint consumer are
+qualified. No real ASR, HTTPS credential, recognition quality, microphone,
+Windows/macOS or service-account/permission behavior is verified; no service,
+account or permission was changed. URL/idna linked/WASM size remains unmeasured.
+Earlier resume paragraphs below are historical checkpoints.
 
 ## What Paseo does
 
