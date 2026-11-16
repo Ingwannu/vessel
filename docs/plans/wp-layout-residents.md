@@ -310,3 +310,23 @@ lifecycle uncertainty. They use the staged minter and no real delivery lease.
 They do not prove transport, atomic Request dispatch, rich Pending eligibility,
 expected-end sealing, stop acknowledgement, Window commit, painting or IME.
 The generic lifecycle acknowledgement is never the expected-stop adapter.
+
+### Atomic installed Request boundary
+
+`SessionResidents::admit_request` validates the full captured input context,
+Visible/Focused state, exact binding and the original `ConnectionContext` stored
+by the same open minter. It then splits its existing entry/admission fields:
+the installed Requests owner reserves the actual conversation form while the
+sole Residents ledger mints one Request ticket, and commit records Sending
+without an await or intervening form mutation. Any refusal drops preparation
+without a Sending change. `settle_request` checks that installed correlation,
+consumes the canonical ticket, then changes the owner before invoking its result
+callback. A reply never refreshes a local context.
+
+Two additional bundled source fixtures cover successor connection/stale/hidden
+input refusal, duplicate/foreign-namespace completion, automatic installed
+Request retirement and exact resolution via the real scoped record-intake
+entry. They are unexecuted until the receiving VM checks complete. No delivery
+guard is fabricated: the eventual wire consumer must still check the same
+original lease before effects and after the queue. Rich authoritative Pending
+eligibility remains a required consumer amendment when its DTOs are present.

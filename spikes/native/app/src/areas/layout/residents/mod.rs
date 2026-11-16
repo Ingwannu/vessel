@@ -4,6 +4,7 @@
 //! selected-session composer callback is not a production resource constructor.
 mod access;
 mod opening;
+mod requests;
 pub(crate) use opening::{SessionAdmission, SessionOpening, SessionOpeningProblem};
 #[cfg(test)]
 mod tests;
