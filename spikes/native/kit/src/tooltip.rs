@@ -81,7 +81,7 @@ impl Content {
 
     fn keys(&self) -> Option<&[SharedString]> {
         match self {
-            Self::Keyed(_, keys) if !keys.is_empty() => Some(keys),
+            Self::Keyed(_, keys) if !keys.is_empty() => Some(&keys[..]),
             Self::Text(_) | Self::Code(_) | Self::Keyed(..) => None,
         }
     }
