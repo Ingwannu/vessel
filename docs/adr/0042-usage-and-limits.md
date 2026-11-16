@@ -567,3 +567,27 @@ The complete list/inspect budget bounds the request; it is not a universal promi
 that every returned report is terminal. Consumers own their local request pending
 state separately from the cached attempt phase, so a foreign Refreshing snapshot
 cannot permanently disable an explicit refresh or a cache-only retry.
+
+### Account HTTP activation waits for tracked native DNS (ADR 0104)
+
+The usage client in `vessel-harness/src/limits/http.rs::Http::new`, also used by
+`AccountUsageProbe::Local`'s body reader, is a known third consumer of the shared
+tracked DNS resolution primitive (after NodeLink relay and dictation endpoints).
+Its current reqwest builder uses the default resolver. Cancelling the async body
+future does not establish that an already-started native resolver closure ended;
+the two-request admission limit must not be presented as a physical DNS drain
+witness. This is a source-derived limitation, not an executed DNS or vendor probe.
+
+[Decision Log]
+- Purpose and intent: keep actual native DNS work owned through completion using
+  the one shared ADR 0104 primitive and reqwest's `dns_resolver` hook.
+- Existing constraints: recorded fixture tests bypass native resolution; successful
+  request cancellation, credential drain and the product whole do not prove it.
+- Alternatives considered: a private usage resolver, a fork and interpreting async
+  cancellation as physical completion would duplicate ownership or misstate proof.
+- Choice and reason: bounded backend preparation may be reviewed with an explicit
+  activation hold. Both new feature constants and all three new account method
+  rows stay unassigned (`None`) until the reviewed shared resolver is wired.
+- Impact: no active-readiness or physical-DNS-drain claim. No new worker whole is
+  requested for this documentation; the eventual receiving integration owns the
+  shared consumer checks and whole gate. Existing legacy behavior is unchanged.
