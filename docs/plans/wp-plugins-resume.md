@@ -13,7 +13,9 @@ without conflicts in plugin source. Gate60 is counted17/18 with the named
 TRACKER774 proc diagnostic-test failure, not wholly green. No further merge is
 authorized during this quota-stop window. App worktrees take only their app line.
 
-The current private descriptor source is817dff1c7 (subject starts with wip:).
+The semantic descriptor correction is817dff1c7 (subject starts with wip:).
+Style-only bbb674155 adds a missing unit-statement semicolon and its evidence
+note; it changes no guard, call or assertion. Its exact strict is pending.
 Initial source78c605307 is six artifact/doc paths;48e897faa joined the announced
 base and narrowed an unused test import. Everything stays under literal node
 plugin cfg(test), with Linux-only descriptor code and the existing Unix DEV
@@ -33,10 +35,12 @@ At03:42 the original48 test run completed43/0/0,334filtered,1.40s with all four
 preparation/cargo steps passing. This is predecessor proof, not817 evidence.
 Current correction checks to retrieve:
 
-- wp-plugins-artifact-check-20261116T034114Z-817dff1c: short, priority0;
-  current Node all-target strict, running at03:42.
-- The current817 functional replacement is being registered on the same test
-  label only AFTER48 became terminal. Record its exact run id before stopping.
+- wp-plugins-artifact-check-20261116T034114Z-817dff1c: RED only the unit
+  semicolon lint; preserve it separately from the earlier Errno style failure.
+- wp-plugins-artifact-test-20261116T034228Z-817dff1c: current semantic-source
+  functional replacement, registered only AFTER48 became terminal; running.
+- The final bbb674155 strict is registering on the same check label only AFTER
+  its817 predecessor became terminal. Record its exact run id before stopping.
 - Preserve first48 strict RED and actual43-case logs; do not call either a pass
   for the added intermediate-parent regression.
 
