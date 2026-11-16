@@ -75,74 +75,80 @@ async fn passive_reads_and_consent(fixture: &Fixture) {
 
 #[tokio::test]
 async fn real_service_enforces_consent_refresh_and_redaction_without_read_discovery() {
-    vessel_testkit::within(SERVICE_TEST_BUDGET, async {
-        let fixture = Fixture::start().await;
-        passive_reads_and_consent(&fixture)
-            .phase("usage phase: passive_reads_and_consent")
-            .await;
-        let current = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
-        let entry = cursor(&current);
-        let id = entry.id().clone();
-        let SourceReportState::Available { observed } = &entry.state else {
-            panic!("real recorded service success")
-        };
-        let original = observed.clone();
-        assert!(observed.report.balances.as_slice()[0].remaining.is_some());
-        assert_eq!(observed.report.details.as_slice().len(), 1);
-        let reads = fixture.reads();
-        assert!(reads > 0);
-        let read = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
-        let SourceReportState::Available { observed } = &cursor(&read).state else {
-            panic!("cached success")
-        };
-        assert_eq!(read.cost_visibility, CostVisibility::Withheld);
-        assert!(observed.report.balances.as_slice()[0].remaining.is_none());
-        assert!(observed.report.details.is_empty());
-        assert_eq!(fixture.reads(), reads);
-        std::fs::write(
-            fixture.root.path().join("report.json"),
-            b"malformed synthetic source",
-        )
-        .unwrap();
-        let failed = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
-        assert_eq!(cursor(&failed).id(), &id);
-        let SourceReportState::Failed {
-            retained: Some(retained),
-            ..
-        } = &cursor(&failed).state
-        else {
-            panic!("same-binding retained service failure")
-        };
-        assert_eq!(retained, &original);
-        let private = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
-        let SourceReportState::Failed {
-            retained: Some(retained),
-            ..
-        } = &cursor(&private).state
-        else {
-            panic!("retained read projection")
-        };
-        assert_eq!(retained.at, original.at);
-        assert!(retained.report.balances.as_slice()[0].remaining.is_none());
-        assert!(retained.report.details.is_empty());
-        let reads = assert_opaque_inspect_refusals(&fixture, id).await;
-        let _off = fixture
-            .service()
-            .set_usage_source_lookup(&fixture.owner, Fixture::source_request(ExternalLookup::Off))
-            .phase("usage phase: fixture .service .set_usage_source_lookup")
-            .await
+    vessel_testkit::within(
+        SERVICE_TEST_BUDGET,
+        Box::pin(async {
+            let fixture = Fixture::start().await;
+            passive_reads_and_consent(&fixture)
+                .phase("usage phase: passive_reads_and_consent")
+                .await;
+            let current = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
+            let entry = cursor(&current);
+            let id = entry.id().clone();
+            let SourceReportState::Available { observed } = &entry.state else {
+                panic!("real recorded service success")
+            };
+            let original = observed.clone();
+            assert!(observed.report.balances.as_slice()[0].remaining.is_some());
+            assert_eq!(observed.report.details.as_slice().len(), 1);
+            let reads = fixture.reads();
+            assert!(reads > 0);
+            let read = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
+            let SourceReportState::Available { observed } = &cursor(&read).state else {
+                panic!("cached success")
+            };
+            assert_eq!(read.cost_visibility, CostVisibility::Withheld);
+            assert!(observed.report.balances.as_slice()[0].remaining.is_none());
+            assert!(observed.report.details.is_empty());
+            assert_eq!(fixture.reads(), reads);
+            std::fs::write(
+                fixture.root.path().join("report.json"),
+                b"malformed synthetic source",
+            )
             .unwrap();
-        let revoked = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
-        assert!(
-            revoked
-                .reports
-                .as_slice()
-                .iter()
-                .all(|entry| entry.source().as_str() != "cursor")
-        );
-        assert_eq!(fixture.reads(), reads);
-        fixture.finish().await;
-    })
+            let failed = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
+            assert_eq!(cursor(&failed).id(), &id);
+            let SourceReportState::Failed {
+                retained: Some(retained),
+                ..
+            } = &cursor(&failed).state
+            else {
+                panic!("same-binding retained service failure")
+            };
+            assert_eq!(retained, &original);
+            let private = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
+            let SourceReportState::Failed {
+                retained: Some(retained),
+                ..
+            } = &cursor(&private).state
+            else {
+                panic!("retained read projection")
+            };
+            assert_eq!(retained.at, original.at);
+            assert!(retained.report.balances.as_slice()[0].remaining.is_none());
+            assert!(retained.report.details.is_empty());
+            let reads = assert_opaque_inspect_refusals(&fixture, id).await;
+            let _off = fixture
+                .service()
+                .set_usage_source_lookup(
+                    &fixture.owner,
+                    Fixture::source_request(ExternalLookup::Off),
+                )
+                .phase("usage phase: fixture .service .set_usage_source_lookup")
+                .await
+                .unwrap();
+            let revoked = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
+            assert!(
+                revoked
+                    .reports
+                    .as_slice()
+                    .iter()
+                    .all(|entry| entry.source().as_str() != "cursor")
+            );
+            assert_eq!(fixture.reads(), reads);
+            fixture.finish().await;
+        }),
+    )
     .await
     .unwrap();
 }
@@ -196,8 +202,10 @@ async fn aggregate_refresh_cannot_hold_a_request_indefinitely() {
     let before = tokio::time::Instant::now();
     let refusal = vessel_testkit::within(
         REFRESH_SAFETY_BUDGET,
-        refresh_within_budget(std::future::pending::<Result<(), WireError>>())
-            .phase_for("aggregate refresh response", AGGREGATE_REPLY_BUDGET),
+        Box::pin(
+            refresh_within_budget(std::future::pending::<Result<(), WireError>>())
+                .phase_for("aggregate refresh response", AGGREGATE_REPLY_BUDGET),
+        ),
     )
     .await
     .unwrap()

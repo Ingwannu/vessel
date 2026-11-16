@@ -153,62 +153,65 @@ fn configured_sources_and_saved_logins_cannot_admit_a_third_actual_reader() {
         .build()
         .unwrap();
     runtime.block_on(async {
-        vessel_testkit::within(MIXED_ADMISSION_BUDGET, async {
-            let root = tempfile::tempdir().unwrap();
-            let gate = Arc::new(Gate::new());
-            let _release = Release(Arc::clone(&gate));
-            let stop = CancellationToken::new();
-            let tasks = TaskTracker::new();
-            let limits = configured(root.path(), Arc::clone(&gate), stop.clone(), &tasks)
-                .phase("usage phase: configured")
+        vessel_testkit::within(
+            MIXED_ADMISSION_BUDGET,
+            Box::pin(async {
+                let root = tempfile::tempdir().unwrap();
+                let gate = Arc::new(Gate::new());
+                let _release = Release(Arc::clone(&gate));
+                let stop = CancellationToken::new();
+                let tasks = TaskTracker::new();
+                let limits = configured(root.path(), Arc::clone(&gate), stop.clone(), &tasks)
+                    .phase("usage phase: configured")
+                    .await;
+                let global = limits
+                    .observation()
+                    .phase("usage phase: limits.observation")
+                    .await
+                    .unwrap();
+                let sources = limits.sources.clone();
+                let source = tokio::spawn(async move { sources.refresh_all(&global).await });
+                let entered = gate
+                    .entered
+                    .acquire()
+                    .phase("usage phase: gate.entered.acquire")
+                    .await
+                    .unwrap();
+                entered.forget();
+                // The sole blocking worker is occupied by the real source callback.
+                // One saved reader can queue with the other permit; another must refuse.
+                let [a, b] = bindings(root.path());
+                let mut first = queue(&limits, a).phase("usage phase: queue").await;
+                let mut second = queue(&limits, b).phase("usage phase: queue").await;
+                let (first_finished, refused) = async {
+                    tokio::select! {
+                        result = &mut first => (true, result.unwrap().unwrap()),
+                        result = &mut second => (false, result.unwrap().unwrap()),
+                    }
+                }
+                .phase("saved reader refusal while the physical source occupies capacity")
                 .await;
-            let global = limits
-                .observation()
-                .phase("usage phase: limits.observation")
-                .await
-                .unwrap();
-            let sources = limits.sources.clone();
-            let source = tokio::spawn(async move { sources.refresh_all(&global).await });
-            let entered = gate
-                .entered
-                .acquire()
-                .phase("usage phase: gate.entered.acquire")
-                .await
-                .unwrap();
-            entered.forget();
-            // The sole blocking worker is occupied by the real source callback.
-            // One saved reader can queue with the other permit; another must refuse.
-            let [a, b] = bindings(root.path());
-            let mut first = queue(&limits, a).phase("usage phase: queue").await;
-            let mut second = queue(&limits, b).phase("usage phase: queue").await;
-            let (first_finished, refused) = async {
-                tokio::select! {
-                    result = &mut first => (true, result.unwrap().unwrap()),
-                    result = &mut second => (false, result.unwrap().unwrap()),
+                assert!(matches!(
+                    refused.state,
+                    AccountLimitState::Failed {
+                        reason: LimitFailure::Busy,
+                        ..
+                    }
+                ));
+                gate.release();
+                let _remaining = if first_finished {
+                    second.phase("usage phase: second").await
+                } else {
+                    first.phase("usage phase: first").await
                 }
-            }
-            .phase("saved reader refusal while the physical source occupies capacity")
-            .await;
-            assert!(matches!(
-                refused.state,
-                AccountLimitState::Failed {
-                    reason: LimitFailure::Busy,
-                    ..
-                }
-            ));
-            gate.release();
-            let _remaining = if first_finished {
-                second.phase("usage phase: second").await
-            } else {
-                first.phase("usage phase: first").await
-            }
-            .unwrap()
-            .unwrap();
-            let _source = source.phase("usage phase: source").await.unwrap();
-            stop.cancel();
-            let _closed = tasks.close();
-            tasks.wait().phase("usage phase: tasks.wait").await;
-        })
+                .unwrap()
+                .unwrap();
+                let _source = source.phase("usage phase: source").await.unwrap();
+                stop.cancel();
+                let _closed = tasks.close();
+                tasks.wait().phase("usage phase: tasks.wait").await;
+            }),
+        )
         .await
         .expect("mixed source and saved-login work did not drain");
     });

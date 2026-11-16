@@ -21,10 +21,15 @@ pub(crate) const CASE_BUDGET: Duration = Duration::from_secs(20);
 const PHASE_BUDGET: Duration = Duration::from_secs(10);
 
 pub(crate) trait PhaseWait: Future + Sized {
-    async fn phase(self, name: &'static str) -> Self::Output {
-        tokio::time::timeout(PHASE_BUDGET, self)
-            .await
-            .unwrap_or_else(|cause| panic!("{name}: {cause}"))
+    fn phase(self, name: &'static str) -> impl Future<Output = Self::Output> {
+        // Boxing happens without polling. The timer starts only when the phase
+        // is polled inside within, after the canonical fake preparation.
+        let operation = Box::pin(self);
+        async move {
+            tokio::time::timeout(PHASE_BUDGET, operation)
+                .await
+                .unwrap_or_else(|cause| panic!("{name}: {cause}"))
+        }
     }
 }
 impl<F: Future> PhaseWait for F {}

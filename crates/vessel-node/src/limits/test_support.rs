@@ -107,13 +107,18 @@ impl Cached {
 pub(crate) const PHASE_BUDGET: Duration = Duration::from_secs(10);
 
 pub(crate) trait PhaseWait: Future + Sized {
-    async fn phase(self, name: &'static str) -> Self::Output {
-        self.phase_for(name, PHASE_BUDGET).await
+    fn phase(self, name: &'static str) -> impl Future<Output = Self::Output> {
+        self.phase_for(name, PHASE_BUDGET)
     }
-    async fn phase_for(self, name: &'static str, budget: Duration) -> Self::Output {
-        tokio::time::timeout(budget, self)
-            .await
-            .unwrap_or_else(|cause| panic!("{name}: {cause}"))
+    fn phase_for(self, name: &'static str, budget: Duration) -> impl Future<Output = Self::Output> {
+        // Keep named deadlines from copying large node setup futures onto the
+        // test stack. This allocation does not poll or start its clock.
+        let operation = Box::pin(self);
+        async move {
+            tokio::time::timeout(budget, operation)
+                .await
+                .unwrap_or_else(|cause| panic!("{name}: {cause}"))
+        }
     }
 }
 impl<F: Future> PhaseWait for F {}

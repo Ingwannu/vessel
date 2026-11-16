@@ -159,19 +159,22 @@ mod tests {
     }
     #[tokio::test]
     async fn revoked_http_capability_does_not_poll_the_request() {
-        vessel_testkit::within(CANCELLATION_TEST_BUDGET, async {
-            let stop = CancellationToken::new();
-            stop.cancel();
-            let polled = AtomicBool::new(false);
-            let result = cancellable(&stop, async {
-                polled.store(true, Ordering::SeqCst);
-                Ok(())
-            })
-            .phase("usage phase: cancellable")
-            .await;
-            assert_eq!(result, Err((LimitFailure::Unsupported, None)));
-            assert!(!polled.load(Ordering::SeqCst));
-        })
+        vessel_testkit::within(
+            CANCELLATION_TEST_BUDGET,
+            Box::pin(async {
+                let stop = CancellationToken::new();
+                stop.cancel();
+                let polled = AtomicBool::new(false);
+                let result = cancellable(&stop, async {
+                    polled.store(true, Ordering::SeqCst);
+                    Ok(())
+                })
+                .phase("usage phase: cancellable")
+                .await;
+                assert_eq!(result, Err((LimitFailure::Unsupported, None)));
+                assert!(!polled.load(Ordering::SeqCst));
+            }),
+        )
         .await
         .unwrap();
     }
@@ -190,12 +193,15 @@ mod tests {
             ready.phase("usage phase: ready").await.unwrap();
             stop.cancel();
         };
-        let (result, ()) = vessel_testkit::within(CANCELLATION_TEST_BUDGET, async {
-            tokio::join!(
-                cancellable(&stop, reading).phase("active HTTP cancellation"),
-                revoke
-            )
-        })
+        let (result, ()) = vessel_testkit::within(
+            CANCELLATION_TEST_BUDGET,
+            Box::pin(async {
+                tokio::join!(
+                    cancellable(&stop, reading).phase("active HTTP cancellation"),
+                    revoke
+                )
+            }),
+        )
         .await
         .unwrap();
         assert_eq!(result, Err((LimitFailure::Unsupported, None)));

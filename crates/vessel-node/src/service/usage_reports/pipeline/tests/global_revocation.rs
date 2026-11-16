@@ -79,7 +79,7 @@ fn recorded(root: &std::path::Path) -> Cached {
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_old_report_cannot_start_a_probe_after_off_on_before_actor_admission() {
-    vessel_testkit::within(BINDING_REGRESSION_BUDGET, check_revocation())
+    vessel_testkit::within(BINDING_REGRESSION_BUDGET, Box::pin(check_revocation()))
         .await
         .expect("saved report policy admission did not settle");
 }

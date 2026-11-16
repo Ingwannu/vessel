@@ -35,131 +35,137 @@ fn recorded(
 }
 #[tokio::test]
 async fn recorded_observation_preserves_same_login_proof_and_rejects_token_echo() {
-    vessel_testkit::within(CASE_BUDGET, async {
-        let root = tempfile::tempdir().unwrap();
-        write(
-            root.path(),
-            ".grok/auth.json",
-            br#"{"https://auth.x.ai::fixture":{"key":"synthetic-source-token"}}"#,
-        );
-        let probe = recorded(
-            root.path(),
-            BuiltinUsageSource::Grok,
-            access(root.path()),
-            br#"{"usage":{"creditUsage":10}}"#,
-        );
-        let context = LimitContext::new();
-        let stop = CancellationToken::new();
-        let first = probe
-            .read(&context, BuiltinUsageSource::Grok, Utc::now(), &stop)
-            .phase("usage phase: probe .read")
-            .await;
-        assert!(matches!(
-            first.result,
-            Ok(AccountUsageOutcome::Available(_))
-        ));
-        assert!(first.identity.is_some());
-        let again = probe
-            .read(&context, BuiltinUsageSource::Grok, Utc::now(), &stop)
-            .phase("usage phase: probe .read")
-            .await;
-        assert_eq!(first.identity, again.identity);
-        write(
-            root.path(),
-            ".grok/auth.json",
-            br#"{"access_token":"different-synthetic-token"}"#,
-        );
-        let changed = probe
-            .read(&context, BuiltinUsageSource::Grok, Utc::now(), &stop)
-            .phase("usage phase: probe .read")
-            .await;
-        assert_ne!(first.identity, changed.identity);
-        let copy = AccountSourceAccess::new(root.path().to_owned(), |name| {
-            (name == "COPILOT_TOKEN").then(|| OsString::from("credential-must-not-become-plan"))
-        });
-        let echo = recorded(
-            root.path(),
-            BuiltinUsageSource::Copilot,
-            copy,
-            br#"{"copilot_plan":"credential-must-not-become-plan"}"#,
-        );
-        assert_eq!(
-            echo.read(&context, BuiltinUsageSource::Copilot, Utc::now(), &stop)
-                .phase("usage assertion: echo.read")
-                .await
-                .result,
-            Err(LimitFailure::ChangedResponse)
-        );
-        context.drain().phase("usage phase: context.drain").await;
-    })
+    vessel_testkit::within(
+        CASE_BUDGET,
+        Box::pin(async {
+            let root = tempfile::tempdir().unwrap();
+            write(
+                root.path(),
+                ".grok/auth.json",
+                br#"{"https://auth.x.ai::fixture":{"key":"synthetic-source-token"}}"#,
+            );
+            let probe = recorded(
+                root.path(),
+                BuiltinUsageSource::Grok,
+                access(root.path()),
+                br#"{"usage":{"creditUsage":10}}"#,
+            );
+            let context = LimitContext::new();
+            let stop = CancellationToken::new();
+            let first = probe
+                .read(&context, BuiltinUsageSource::Grok, Utc::now(), &stop)
+                .phase("usage phase: probe .read")
+                .await;
+            assert!(matches!(
+                first.result,
+                Ok(AccountUsageOutcome::Available(_))
+            ));
+            assert!(first.identity.is_some());
+            let again = probe
+                .read(&context, BuiltinUsageSource::Grok, Utc::now(), &stop)
+                .phase("usage phase: probe .read")
+                .await;
+            assert_eq!(first.identity, again.identity);
+            write(
+                root.path(),
+                ".grok/auth.json",
+                br#"{"access_token":"different-synthetic-token"}"#,
+            );
+            let changed = probe
+                .read(&context, BuiltinUsageSource::Grok, Utc::now(), &stop)
+                .phase("usage phase: probe .read")
+                .await;
+            assert_ne!(first.identity, changed.identity);
+            let copy = AccountSourceAccess::new(root.path().to_owned(), |name| {
+                (name == "COPILOT_TOKEN").then(|| OsString::from("credential-must-not-become-plan"))
+            });
+            let echo = recorded(
+                root.path(),
+                BuiltinUsageSource::Copilot,
+                copy,
+                br#"{"copilot_plan":"credential-must-not-become-plan"}"#,
+            );
+            assert_eq!(
+                echo.read(&context, BuiltinUsageSource::Copilot, Utc::now(), &stop)
+                    .phase("usage assertion: echo.read")
+                    .await
+                    .result,
+                Err(LimitFailure::ChangedResponse)
+            );
+            context.drain().phase("usage phase: context.drain").await;
+        }),
+    )
     .await
     .unwrap();
 }
 #[tokio::test]
 async fn expiry_cancellation_and_fixed_origin_refusals_happen_before_body_access() {
-    vessel_testkit::within(CASE_BUDGET, async {
-        let root = tempfile::tempdir().unwrap();
-        write(
-            root.path(),
-            ".kimi-code/credentials/kimi-code.json",
-            br#"{"access_token":"synthetic-expired","expires_at":"100"}"#,
-        );
-        let probe = recorded(
-            root.path(),
-            BuiltinUsageSource::Kimi,
-            access(root.path()),
-            b"must never decode",
-        );
-        let context = LimitContext::new();
-        let stop = CancellationToken::new();
-        assert_eq!(
-            probe
-                .read(
-                    &context,
-                    BuiltinUsageSource::Kimi,
-                    DateTime::from_timestamp(200, 0).unwrap(),
-                    &stop
-                )
-                .phase("usage assertion: probe .read")
-                .await
-                .result,
-            Err(LimitFailure::Expired)
-        );
-        stop.cancel();
-        assert_eq!(
-            probe
-                .read(&context, BuiltinUsageSource::Kimi, Utc::now(), &stop)
-                .phase("usage assertion: probe .read")
-                .await
-                .result,
-            Err(LimitFailure::Unsupported)
-        );
-        let access = AccountSourceAccess::new(root.path().to_owned(), |name| match name {
-            "MINIMAX_API_KEY" => Some("fixture-only".into()),
-            "MINIMAX_BASE_URL" => Some("https://foreign.invalid".into()),
-            _ => None,
-        });
-        let probe = recorded(
-            root.path(),
-            BuiltinUsageSource::MiniMax,
-            access,
-            b"must never decode",
-        );
-        assert_eq!(
-            probe
-                .read(
-                    &context,
-                    BuiltinUsageSource::MiniMax,
-                    Utc::now(),
-                    &CancellationToken::new()
-                )
-                .phase("usage assertion: probe .read")
-                .await
-                .result,
-            Err(LimitFailure::DifferentRoute)
-        );
-        context.drain().phase("usage phase: context.drain").await;
-    })
+    vessel_testkit::within(
+        CASE_BUDGET,
+        Box::pin(async {
+            let root = tempfile::tempdir().unwrap();
+            write(
+                root.path(),
+                ".kimi-code/credentials/kimi-code.json",
+                br#"{"access_token":"synthetic-expired","expires_at":"100"}"#,
+            );
+            let probe = recorded(
+                root.path(),
+                BuiltinUsageSource::Kimi,
+                access(root.path()),
+                b"must never decode",
+            );
+            let context = LimitContext::new();
+            let stop = CancellationToken::new();
+            assert_eq!(
+                probe
+                    .read(
+                        &context,
+                        BuiltinUsageSource::Kimi,
+                        DateTime::from_timestamp(200, 0).unwrap(),
+                        &stop
+                    )
+                    .phase("usage assertion: probe .read")
+                    .await
+                    .result,
+                Err(LimitFailure::Expired)
+            );
+            stop.cancel();
+            assert_eq!(
+                probe
+                    .read(&context, BuiltinUsageSource::Kimi, Utc::now(), &stop)
+                    .phase("usage assertion: probe .read")
+                    .await
+                    .result,
+                Err(LimitFailure::Unsupported)
+            );
+            let access = AccountSourceAccess::new(root.path().to_owned(), |name| match name {
+                "MINIMAX_API_KEY" => Some("fixture-only".into()),
+                "MINIMAX_BASE_URL" => Some("https://foreign.invalid".into()),
+                _ => None,
+            });
+            let probe = recorded(
+                root.path(),
+                BuiltinUsageSource::MiniMax,
+                access,
+                b"must never decode",
+            );
+            assert_eq!(
+                probe
+                    .read(
+                        &context,
+                        BuiltinUsageSource::MiniMax,
+                        Utc::now(),
+                        &CancellationToken::new()
+                    )
+                    .phase("usage assertion: probe .read")
+                    .await
+                    .result,
+                Err(LimitFailure::DifferentRoute)
+            );
+            context.drain().phase("usage phase: context.drain").await;
+        }),
+    )
     .await
     .unwrap();
 }
@@ -241,54 +247,57 @@ fn capabilities_are_deferred_and_each_stored_shape_has_an_exact_source() {
 }
 #[tokio::test]
 async fn no_plan_is_distinct_from_a_transport_error_and_retry_after_is_preserved() {
-    vessel_testkit::within(CASE_BUDGET, async {
-        let root = tempfile::tempdir().unwrap();
-        let access = AccountSourceAccess::new(root.path().to_owned(), |name| {
-            (name == "ZAI_API_KEY").then(|| "fixture-key".into())
-        });
-        let mut probe = recorded(
-            root.path(),
-            BuiltinUsageSource::Zai,
-            access,
-            br#"{"data":[]}"#,
-        );
-        let context = LimitContext::new();
-        let stop = CancellationToken::new();
-        assert!(matches!(
-            probe
-                .read(&context, BuiltinUsageSource::Zai, Utc::now(), &stop)
-                .phase("usage assertion: probe .read")
-                .await
-                .result,
-            Ok(AccountUsageOutcome::Unavailable(
-                UsageProblem::NoQuota { .. }
-            ))
-        ));
-        if let AccountUsageProbe::Recorded {
-            status,
-            retry_after,
-            ..
-        } = &mut probe
-        {
-            *status = 429;
-            *retry_after = Some("120".to_owned());
-        }
-        let at = DateTime::UNIX_EPOCH;
-        let limited = probe
-            .read(&context, BuiltinUsageSource::Zai, at, &stop)
-            .phase("usage phase: probe .read")
-            .await;
-        assert_eq!(limited.result, Err(LimitFailure::RateLimited));
-        assert_eq!(limited.retry_at, Some(at + chrono::TimeDelta::seconds(120)));
-        context.drain().phase("usage phase: context.drain").await;
-    })
+    vessel_testkit::within(
+        CASE_BUDGET,
+        Box::pin(async {
+            let root = tempfile::tempdir().unwrap();
+            let access = AccountSourceAccess::new(root.path().to_owned(), |name| {
+                (name == "ZAI_API_KEY").then(|| "fixture-key".into())
+            });
+            let mut probe = recorded(
+                root.path(),
+                BuiltinUsageSource::Zai,
+                access,
+                br#"{"data":[]}"#,
+            );
+            let context = LimitContext::new();
+            let stop = CancellationToken::new();
+            assert!(matches!(
+                probe
+                    .read(&context, BuiltinUsageSource::Zai, Utc::now(), &stop)
+                    .phase("usage assertion: probe .read")
+                    .await
+                    .result,
+                Ok(AccountUsageOutcome::Unavailable(
+                    UsageProblem::NoQuota { .. }
+                ))
+            ));
+            if let AccountUsageProbe::Recorded {
+                status,
+                retry_after,
+                ..
+            } = &mut probe
+            {
+                *status = 429;
+                *retry_after = Some("120".to_owned());
+            }
+            let at = DateTime::UNIX_EPOCH;
+            let limited = probe
+                .read(&context, BuiltinUsageSource::Zai, at, &stop)
+                .phase("usage phase: probe .read")
+                .await;
+            assert_eq!(limited.result, Err(LimitFailure::RateLimited));
+            assert_eq!(limited.retry_at, Some(at + chrono::TimeDelta::seconds(120)));
+            context.drain().phase("usage phase: context.drain").await;
+        }),
+    )
     .await
     .unwrap();
 }
 
 #[tokio::test]
 async fn report_fixture_preserves_forecasts_and_still_refuses_credential_echo() {
-    vessel_testkit::within(CASE_BUDGET, async {
+    vessel_testkit::within(CASE_BUDGET, Box::pin(async {
     let root = tempfile::tempdir().unwrap();
     write(
         root.path(),
@@ -338,7 +347,7 @@ async fn report_fixture_preserves_forecasts_and_still_refuses_credential_echo() 
     assert_eq!(first.identity, echoed.identity);
     context.drain().phase("usage phase: context.drain").await;
 
-    }).await.unwrap();
+    })).await.unwrap();
 }
 
 mod lifetimes;

@@ -105,7 +105,10 @@ async fn revoked_without_setter_continuation(held: Held) {
     let control = Arc::new(Control::new());
     let _release = Release(Arc::clone(&control));
     let capability = Arc::clone(&control);
-    let fixture = Fixture::with_access(move |home, reads| capability.access(home, reads)).await;
+    let fixture = Box::pin(Fixture::with_access(move |home, reads| {
+        capability.access(home, reads)
+    }))
+    .await;
     fixture.allow().await;
     let original = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
     let original_id = cursor(&original).id().clone();
@@ -147,12 +150,12 @@ async fn revoked_without_setter_continuation(held: Held) {
         Held::Credential => {
             acquired(&control.entered)
                 .phase("usage phase: acquired")
-                .await
+                .await;
         }
         Held::Http => {
             acquired(&control.http_started)
                 .phase("usage phase: acquired")
-                .await
+                .await;
         }
     }
     cancel_setter_after_durable_off(&fixture)
@@ -312,7 +315,7 @@ async fn cancel_setter_after_durable_off(fixture: &Fixture) {
 async fn committed_global_off_cancels_held_credentials_after_the_setter_is_dropped() {
     vessel_testkit::within(
         REVOCATION_TEST_BUDGET,
-        revoked_without_setter_continuation(Held::Credential),
+        Box::pin(revoked_without_setter_continuation(Held::Credential)),
     )
     .await
     .unwrap();
@@ -321,7 +324,7 @@ async fn committed_global_off_cancels_held_credentials_after_the_setter_is_dropp
 async fn committed_global_off_drops_active_http_after_the_setter_is_dropped() {
     vessel_testkit::within(
         REVOCATION_TEST_BUDGET,
-        revoked_without_setter_continuation(Held::Http),
+        Box::pin(revoked_without_setter_continuation(Held::Http)),
     )
     .await
     .unwrap();
