@@ -47,3 +47,12 @@ is authorized for this correction. If red, preserve it and diagnose only the
 owned cause; no unchanged reruns or deadline lengthening. Final V3 is pending,
 PROMPT_INDEX_PROTOCOL remains None, positive assigned-RPC/native/UI acceptance
 is not claimed. The integrator owns assignment and newer-base union.
+
+
+Quota-stop closure: the same existing run was still queued14 at03:46 UTC.
+The queue cannot reasonably finish inside the warning window, so no further
+build or merge is started. The local log follower is stopped after verifying
+its process/receipt; the tool explicitly detaches the recorded VM run from its
+caller. Recover/attach that SAME run on resume, inspect its final result first,
+and never submit an unchanged duplicate. This is a WIP checkpoint, not a gate,
+review or feature PASS. Owned capture processes are already stopped.
