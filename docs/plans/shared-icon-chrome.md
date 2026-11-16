@@ -48,9 +48,9 @@ separate loading consumer can retain this same frame when composed.
 The existing three Toolbar tests retain every assertion, with fill assertions
 pointing at the extracted implementation. New source fixtures cover Footer's
 literal frame/glyph/padding/square outer versus round inner style and actual GPUI
-corner clicks for both layouts. They are authored but unexecuted in this leaf.
-Local format, native size, tokens and diff checks pass. VM compilation/runtime
-and source review remain required before a consumer handoff. No native Footer
+corner clicks for both layouts. Their executed receiving results are recorded
+below. Local format, native size, tokens and diff checks pass. Source review and
+the lead's receiving gate remain required before a consumer handoff. No native Footer
 capture, hover/pressed pixel parity, tooltip, focus or accessibility approval is
 claimed by these model and hitbox fixtures.
 
@@ -75,4 +75,11 @@ No loading, disabled guard or tooltip method body changes. Only the old frame
 body moves; config keeps its new loading helper and widens the extracted frame's
 accessors inside the Kit crate. The public Footer profile calls the same renderer
 path, without taking over the sidebar wrapper or adding arbitrary style knobs.
-This changed receiving source still owes its own strict/runtime checks.
+This changed receiving source passed exact Kit all-target strict run
+`wp-layout-core-union-20261116T013239Z-5edbe544` and same-head all-target runtime
+`wp-layout-core-union-20261116T014015Z-5edbe544`, fonts/cargo0 for both. The raw
+runtime shows actual Kit compilation and254/0/0: Footer's literal and corner
+click cases, both loading cases, all Tooltip profiles and original Toolbar cases
+passed explicitly. No App/pane/Footer-wrapper capture or effect authority is
+inferred. This docs-only successor keeps the executed native subtree unchanged;
+its new commit id was not separately executed.
