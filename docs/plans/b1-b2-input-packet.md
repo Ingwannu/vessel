@@ -120,3 +120,9 @@ All of these receiving corrections remain unverified until the next immutable
 quality/strict, owner execution and wasm diagnostics checks. The frozen Main
 correction has a separate native strict receipt and still owes execution. None
 of those receipts may be inferred for this different packet.
+
+The next actual ee082 check passed quality and narrowed compilation failures to
+the existing PluginResource snapshot-kind label and the three standalone tool
+fixture constructors. The label uses the already-declared kind (no plugin
+producer/registry); each fixture now owns the same isolated Shell, with the
+AppContext trait in scope. No owner execution ran on that red result.

@@ -319,6 +319,9 @@ pub(super) fn tray(
                     ContextKind::BrowserElement => {
                         (Glyph::Monitor, words.context_browser().to_owned())
                     }
+                    ContextKind::PluginResource => {
+                        (Glyph::Boxes, words.context_plugin().to_owned())
+                    }
                     ContextKind::Review => (Glyph::FileText, words.context_review().to_owned()),
                     ContextKind::ChatHistory => {
                         (Glyph::Message, words.context_history().to_owned())

@@ -19,7 +19,7 @@ fn borrowed_request_sections_preserve_structural_parent_identity() {
 }
 
 use crate::areas::conversation::{Seat, entries::Paint, look::Look, origin::Above, tool_detail};
-use gpui::{Context, Render, TestAppContext, Window};
+use gpui::{AppContext as _, Context, Render, TestAppContext, Window};
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::rc::Rc;
