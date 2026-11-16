@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::Lang;
 use crate::connections::{Endpoint, Route};
 
-/// An offer's routes in preference order, with shared prepared words.
+/// An offer's routes in preference order, with their prepared row words.
 #[derive(Debug, Clone)]
 pub struct OfferRoutes(Arc<[OfferRoute]>);
 
@@ -33,19 +33,23 @@ impl OfferRoutes {
     }
 }
 
-/// One typed safe endpoint and its prepared bilingual row title.
+/// One typed safe endpoint, its kind's words in both languages and its
+/// prepared endpoint text: the row's title and its value (Paseo's
+/// `DetailRow`: "Relay" over the endpoint).
 #[derive(Debug)]
 pub struct OfferRoute {
     route: Route,
-    en: Arc<str>,
-    ko: Arc<str>,
+    kind_en: &'static str,
+    kind_ko: &'static str,
+    endpoint: Arc<str>,
 }
 
 impl OfferRoute {
     fn new(route: Route) -> Self {
         Self {
-            en: Arc::from(Lang::En.overview().route(&route)),
-            ko: Arc::from(Lang::Ko.overview().route(&route)),
+            kind_en: Lang::En.overview().route_kind(&route),
+            kind_ko: Lang::Ko.overview().route_kind(&route),
+            endpoint: Arc::from(route.endpoint().as_str()),
             route,
         }
     }
@@ -56,13 +60,19 @@ impl OfferRoute {
         &self.route
     }
 
-    /// Shared text ready for a row, without formatting during Render.
+    /// The route's kind ("TCP", "Relay" / "릴레이"): the row's title.
     #[must_use]
-    pub fn words(&self, lang: Lang) -> &Arc<str> {
+    pub const fn kind(&self, lang: Lang) -> &'static str {
         match lang {
-            Lang::En => &self.en,
-            Lang::Ko => &self.ko,
+            Lang::En => self.kind_en,
+            Lang::Ko => self.kind_ko,
         }
+    }
+
+    /// The endpoint ("host:port"), prepared once: the row's value.
+    #[must_use]
+    pub const fn endpoint(&self) -> &Arc<str> {
+        &self.endpoint
     }
 }
 

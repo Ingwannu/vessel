@@ -48,3 +48,36 @@ VMquality0 and normal App build/export0. The changed-state capture packet has
 personally opened. Reviewer/receiving/owning-whole and complete E2 journey
 remain unverified; exact runs, safety/cleanup and restart steps are recorded
 in wp-e2-resume.md. No new long run or merge starts during this warning.
+
+## Coordinator visual RETURN, applied by the visual lane (2026-11-16)
+
+The coordinator's comparison of the 88ab captures with Paseo's
+`hosts/host-confirmation-sheet.tsx` 19-90 returned three items; G4 is paused,
+so the visual lane is the temporary writer on package base 14.13.
+
+[Decision Log]
+- Purpose: every row of the confirmation card has Paseo's `DetailRow` shape and
+  every value can be selected, as Paseo's.
+- Before: machine and fingerprint were label + muted code value (`code_row`),
+  but each route was one foreground line "TCP (endpoint)"; no value could be
+  selected; at 1280 a long endpoint broke after the kind so "TCP" read as a
+  label.
+- Choice:
+  - View: `OverviewText::route_kind` names the kind alone ("TCP", "Relay" /
+    "릴레이", "Remote SSH" / "원격 SSH"; `route()` now uses it, unchanged
+    output); `OfferRoute` prepares `kind(lang)` and the bare `endpoint()` once
+    in place of the joined `words(lang)`.
+  - App: machine, fingerprint and each route are
+    `settings::selectable_code_row` rows (kit leaf
+    backend/m12-settings-selectable-code-row, additive): the label in the
+    foreground, the value muted in the code face, selectable through the kit's
+    `plain_text`. Route rows are titled by their kind with the endpoint as the
+    value (Paseo's `relayLabel` 40-45 over its endpoint).
+- Kept (accepted differences): values in the code face, the "Name for this
+  machine" field, several routes in place of Paseo's single relay.
+- Impact: a long endpoint wraps inside its row (it may break at any character)
+  and is never clipped; the card's rows all read the same.
+
+Tests: the view projection test now checks the kinds in both languages and the
+bare endpoints, and that no URL canary reaches either; the kit leaf has its own
+rail and wrapping tests (`settings::selectable_tests`).

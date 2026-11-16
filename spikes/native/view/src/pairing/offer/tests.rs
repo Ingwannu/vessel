@@ -16,7 +16,7 @@ fn offer() -> PairingOffer {
 }
 
 #[test]
-fn safe_routes_keep_kind_order_and_whole_bilingual_labels() {
+fn safe_routes_keep_kind_order_bilingual_kinds_and_bare_endpoints() {
     let routes = OfferRoutes::of(&offer());
     let [direct, relay] = routes.rows() else {
         panic!("two projected route rows required");
@@ -25,10 +25,12 @@ fn safe_routes_keep_kind_order_and_whole_bilingual_labels() {
     assert!(matches!(relay.route(), Route::Relay(_)));
     assert_eq!(direct.route().endpoint().as_str(), "[::1]:7443");
     assert_eq!(relay.route().endpoint().as_str(), "relay.invalid:443");
-    assert_eq!(&**direct.words(Lang::En), "TCP ([::1]:7443)");
-    assert_eq!(&**direct.words(Lang::Ko), "TCP ([::1]:7443)");
-    assert_eq!(&**relay.words(Lang::En), "Relay (relay.invalid:443)");
-    assert_eq!(&**relay.words(Lang::Ko), "릴레이 (relay.invalid:443)");
+    assert_eq!(direct.kind(Lang::En), "TCP");
+    assert_eq!(direct.kind(Lang::Ko), "TCP");
+    assert_eq!(relay.kind(Lang::En), "Relay");
+    assert_eq!(relay.kind(Lang::Ko), "릴레이");
+    assert_eq!(&**direct.endpoint(), "[::1]:7443");
+    assert_eq!(&**relay.endpoint(), "relay.invalid:443");
     let diagnostic = format!("{routes:?}");
     for hidden in [
         "hidden-user",
@@ -41,8 +43,9 @@ fn safe_routes_keep_kind_order_and_whole_bilingual_labels() {
     ] {
         assert!(!diagnostic.contains(hidden));
         for row in routes.rows() {
+            assert!(!row.endpoint().contains(hidden));
             for lang in [Lang::En, Lang::Ko] {
-                assert!(!row.words(lang).contains(hidden));
+                assert!(!row.kind(lang).contains(hidden));
             }
         }
     }

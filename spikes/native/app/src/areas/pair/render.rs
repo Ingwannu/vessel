@@ -3,7 +3,7 @@
 use crate::shell::Shell;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
@@ -82,43 +82,53 @@ fn link_step(
     modal(shell, words.title(), body, tokens, window, narrow, cx)
 }
 
-/// The second step, Paseo's host confirmation: what connecting allows, the
-/// host, its key's fingerprint (the machine printed the same with the
-/// link) and its relay in a settings card; then the name the book will
-/// call it (Vessel's), Cancel and Connect.
+/// The second step, Paseo's host confirmation: what connecting allows, then
+/// a settings card of detail rows, each a label over its selectable value
+/// in the code face: the machine, its key's fingerprint (the machine printed
+/// the same with the link) and each route (its kind over its endpoint,
+/// Paseo's `DetailRow` with `relayLabel`); then the name the book will call
+/// it (Vessel's), Cancel and Connect.
 fn confirm_step(
     shell: &Shell,
     offer: &Offer,
     tokens: &Tokens,
-    window: &Window,
+    window: &mut Window,
     narrow: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.words.pairing();
     let pair = &shell.areas.pair;
     let neutral = tokens.neutral;
-    let card = settings::card(tokens)
-        .child(settings::code_row(
+    let mut card = settings::card(tokens)
+        .child(settings::selectable_code_row(
+            "pair-offer-machine",
             words.machine(),
-            offer.node.clone(),
+            &offer.node,
             true,
             tokens,
+            window,
+            cx,
         ))
-        .child(settings::code_row(
+        .child(settings::selectable_code_row(
+            "pair-offer-key",
             words.fingerprint(),
-            offer.key.clone(),
+            &offer.key,
             false,
             tokens,
-        ))
-        .children(offer.routes.rows().iter().map(|route| {
-            settings::row(
-                std::sync::Arc::clone(route.words(shell.t.lang)),
-                None,
-                None,
-                false,
-                tokens,
-            )
-        }));
+            window,
+            cx,
+        ));
+    for (index, route) in offer.routes.rows().iter().enumerate() {
+        card = card.child(settings::selectable_code_row(
+            ElementId::Name(format!("pair-offer-route-{index}").into()),
+            route.kind(shell.t.lang),
+            route.endpoint(),
+            false,
+            tokens,
+            window,
+            cx,
+        ));
+    }
     let body = div()
         .flex()
         .flex_col()
