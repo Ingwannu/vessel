@@ -49,3 +49,9 @@ The first changed-source strict check found the factory move's now-unused
 PathBuf import and an unnecessarily qualified prelude Future bound in the new
 phase fixture. Both are removed without changing behavior or assertions. Its
 red log is retained; corrected-source ordinary checks are still owed.
+
+The fixture phase clock is independently named and strictly shorter than the
+unchanged outer case safety net. Otherwise the earlier-started outer clock
+would hide the phase's diagnostic. The helper checks that ordering before
+waiting; semantic assertions, actual fake controls and product waits stay the
+same. Earlier immutable strict evidence remains separate from this correction.
