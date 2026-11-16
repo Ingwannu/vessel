@@ -94,16 +94,25 @@ impl Relay {
 
     /// Stop serving and wait for the server to end.
     pub(crate) async fn stop(mut self) {
+        self.stop_owned().await;
+    }
+
+    /// Keep the abort owner across a caller's named phase timeout.
+    pub(crate) async fn stop_owned(&mut self) {
         self.shutdown.cancel();
-        if let Some(task) = self.task.take() {
+        if let Some(task) = self.task.as_mut() {
             within(task).await.unwrap();
         }
+        let _joined = self.task.take();
     }
 }
 
 impl Drop for Relay {
     fn drop(&mut self) {
         self.shutdown.cancel();
+        if let Some(task) = &self.task {
+            task.abort();
+        }
     }
 }
 
