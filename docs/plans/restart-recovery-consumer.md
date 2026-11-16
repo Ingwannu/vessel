@@ -100,6 +100,8 @@ mutation retries, larger deadlines or weakened assertions.
   committed Off, deadline expiry and node stop each refuse a subsequent helper
   or session effect. Check an actual version-spawn witness as well as session
   state; an empty PID list alone does not prove absence of helper execution.
+  Isolate node-only stop from runtime shutdown when proving which source
+  refuses the helper; separately check hard drain while physical work is held.
 - Pause PendingOff at the shared writer. The original attempt waits; a failed
   save restores the prior admission and wakes that same attempt. A successful
   Off invalidates its generation and a following On cannot rebase it.
