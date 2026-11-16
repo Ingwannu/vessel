@@ -705,3 +705,24 @@ already passed. No handler/version changed: GIT_PANEL stays None. The old4be
 E0061 attempt stays failed historical evidence. Next merge announceded4cd137
 and regenerate/check the actual merged wire once, preserving incoming plugin,
 relation and caller-drop/relay source. No outstanding old run is resubmitted.
+
+## Exact merged22ab checked before the next C3 runtime work
+
+The announceded4 join is committed as22ab7a963. All selected exact runs are now
+recovered: four-crate all-target strict0, workspace88/0/0 (280filtered; all7 new
+physical-file cases ran), and TypeScript6/0/0 with ZERO generated-file difference.
+All prescribed prerequisite steps returned0, changed Node compilation and all
+artifact hash prefixes/source pins were checked. node-22ab-result.json records
+the immutable evidence; earliera269/964 results remain their own snapshots.
+No extra whole gate was run or implied. Runtime/cache V3 review and full C3
+acceptance still remain; GIT_PANEL and history feature admission stay None.
+
+The existing file service uses try_acquire, so a full budget refuses immediately:
+there is no added file-permit waiting queue. The root constructor regression
+checks replacement BEFORE its already-owned future is scheduled/polled; the
+lost-waiter case separately keeps actual disk work and invalidation through
+tracked completion. Do not rename either into full service-wire/admission proof
+or an atomic filesystem RootLease. W9 restoration still has no exposed checked
+hook here and retains its own original worktree/project/physical owner contract.
+Next node work is the remaining C3 observer/mutation/generation joins, on the
+same cache and physical owners; no second pool/router/provider stack.
