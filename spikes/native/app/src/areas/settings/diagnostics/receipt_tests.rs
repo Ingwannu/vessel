@@ -51,12 +51,12 @@ fn node(context: &ConnectionContext) -> NodeInfo {
 }
 fn settled(scene: &mut Scenario, shell: &Shell, context: &ConnectionContext) -> Answer {
     for _ in 0..2 {
-        let outcome = match scene.request(shell.fixture_link()).unwrap() {
-            Call::NodeInfo(_) => Outcome::Ok(Reply::NodeInfo(node(context))),
-            Call::Diagnostics(_) => {
-                Outcome::Ok(Reply::Diagnostics(report::partial(context.node())))
-            }
-            other => panic!("unexpected diagnostic request: {other:?}"),
+        let call = scene.request(shell.fixture_link()).unwrap();
+        assert!(matches!(&call, Call::NodeInfo(_) | Call::Diagnostics(_)));
+        let outcome = if matches!(call, Call::NodeInfo(_)) {
+            Outcome::Ok(Reply::NodeInfo(node(context)))
+        } else {
+            Outcome::Ok(Reply::Diagnostics(report::partial(context.node())))
         };
         scene.reply(shell.fixture_link(), outcome).unwrap();
     }

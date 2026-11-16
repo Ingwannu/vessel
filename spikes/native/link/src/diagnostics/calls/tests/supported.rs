@@ -48,13 +48,12 @@ async fn reporting_peer(
                 panic!("expected explicit read");
             };
             let _previous = counted.total.fetch_add(1, Ordering::SeqCst);
-            let outcome = match call {
-                Call::NodeInfo(_) => basic.clone(),
-                Call::Diagnostics(_) => {
-                    let _previous = counted.diagnostics.fetch_add(1, Ordering::SeqCst);
-                    diagnostic.clone()
-                }
-                other => panic!("unexpected diagnostic request: {other:?}"),
+            assert!(matches!(&call, Call::NodeInfo(_) | Call::Diagnostics(_)));
+            let outcome = if matches!(call, Call::NodeInfo(_)) {
+                basic.clone()
+            } else {
+                let _previous = counted.diagnostics.fetch_add(1, Ordering::SeqCst);
+                diagnostic.clone()
             };
             write(&mut remote, ServerFrame::Response { id, outcome }).await;
         }

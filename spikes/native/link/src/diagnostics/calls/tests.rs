@@ -47,12 +47,11 @@ async fn peer(admitted: NodeId, outcome: Outcome) -> (NodeClient, tokio::task::J
             let ClientFrame::Request { id, call } = read(&mut remote).await else {
                 panic!("expected diagnostic read");
             };
-            let outcome = match call {
-                Call::NodeInfo(_) => outcome.clone(),
-                Call::Diagnostics(_) => {
-                    Outcome::Err(WireError::new(ErrorCode::Unsupported, CANARY))
-                }
-                other => panic!("unexpected diagnostic request: {other:?}"),
+            assert!(matches!(&call, Call::NodeInfo(_) | Call::Diagnostics(_)));
+            let outcome = if matches!(call, Call::NodeInfo(_)) {
+                outcome.clone()
+            } else {
+                Outcome::Err(WireError::new(ErrorCode::Unsupported, CANARY))
             };
             write(&mut remote, ServerFrame::Response { id, outcome }).await;
         }

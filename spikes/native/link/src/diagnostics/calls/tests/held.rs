@@ -148,12 +148,11 @@ async fn held_peer(admitted: NodeId) -> HeldPeer {
             let ClientFrame::Request { id, call } = read(&mut remote).await else {
                 panic!("released permit must admit next read");
             };
-            let outcome = match call {
-                Call::NodeInfo(_) => Outcome::Ok(Reply::NodeInfo(node(admitted))),
-                Call::Diagnostics(_) => {
-                    Outcome::Err(WireError::new(ErrorCode::Unsupported, CANARY))
-                }
-                other => panic!("unexpected diagnostic request: {other:?}"),
+            assert!(matches!(&call, Call::NodeInfo(_) | Call::Diagnostics(_)));
+            let outcome = if matches!(call, Call::NodeInfo(_)) {
+                Outcome::Ok(Reply::NodeInfo(node(admitted)))
+            } else {
+                Outcome::Err(WireError::new(ErrorCode::Unsupported, CANARY))
             };
             write(&mut remote, ServerFrame::Response { id, outcome }).await;
         }

@@ -8,7 +8,7 @@ the producer-unavailable boundary in the earlier bounded app package. The
 previous V4 row173 approval, whole1302/0/2, corrected tests1304/0/2 and captures
 are historical evidence only; they do not validate this follow-up.
 
-Integration is in progress on approved app package base 14.1 (`b54abbdc`),
+Integration is in progress on approved app package base 14.3 (`67637eb6`),
 which includes G4's framed Scenario and testing feature. The lead assigned
 W20 the selected-connection writer slot. V1 row287 passed the exact staged
 receiving SDK leaf `41215ebf` with fresh Link all-target strict zero and framed
@@ -161,3 +161,12 @@ receives the existing diagnostic Hub, preserving History. Retirement events
 run the existing History handler and E4 handler before the Devices early return;
 the new shared Fleet/history ordering remains unchanged. No second fixture
 actor, codec, guard constructor, resolver or epoch allocator is introduced.
+
+The first actual-consumer Link strict run on `7cbe59d0` stopped at three test
+fixture Call wildcard arms before runtime tests. The fixtures now assert the
+explicit two-read set before selecting their typed reply; unexpected RPCs still
+fail the test, with no lint allowance or removed assertion. The corresponding
+APP fixture uses the same explicit request assertion. The queued APP check was
+cancelled before taking a slot when the lead required base 14.3; its terminal
+143 is a supersession record, not a compiler result. Fresh consumer checks use
+the required receiving base and preserve the failure logs.
