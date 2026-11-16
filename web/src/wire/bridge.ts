@@ -854,7 +854,7 @@ ended: boolean,
 /**
  * The workspace labels the sidebar is filtered by, when grouped by
  * workspace; empty lists every workspace, `""` is Unlabelled. At most
- * [`MAX_LABEL_PICKS`].
+ * 32 names.
  */
 labels: Array<string>, };
 
