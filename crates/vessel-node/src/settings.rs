@@ -56,7 +56,7 @@ mod writer_tests;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
+    AgentDriver, AgentDrivers, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
@@ -148,14 +148,14 @@ impl Settings {
             data_dir,
             runtime,
             flag,
-            saved: Arc::new(Mutex::new(saved)),
+            saved: Arc::new(Mutex::new(saved.clone())),
             writers: TaskTracker::new(),
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
             kept,
             later: AtomicBool::new(later),
         };
-        let in_force = settings.in_force(saved);
+        let in_force = settings.in_force(&saved);
         if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
@@ -171,12 +171,13 @@ impl Settings {
 
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
-    fn in_force(&self, saved: SetNodeSettings) -> NodeSettings {
+    fn in_force(&self, saved: &SetNodeSettings) -> NodeSettings {
         let park_after = match saved.park_after {
             Some(after @ (ParkAfter::Never | ParkAfter::Idle { .. })) => after,
             // A newer build's choice, read after a downgrade: the flag's.
             Some(ParkAfter::Unknown) | None => self.flag,
         };
+        let metadata = saved.metadata.clone().unwrap_or_default();
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -195,13 +196,20 @@ impl Settings {
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
+            metadata: Some(metadata),
         }
     }
 
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
-        let saved = *self.saved.lock().await;
-        self.in_force(saved)
+        let saved = self.saved.lock().await;
+        self.in_force(&saved)
+    }
+
+    /// Background generation reads policy itself, before any per-peer reply projection.
+    pub(crate) async fn metadata(&self) -> MetadataSettings {
+        let saved = self.saved.lock().await;
+        saved.metadata.clone().unwrap_or_default()
     }
 
     /// Change what `change` names, keep it, then apply it; answers what is
@@ -223,12 +231,15 @@ impl Settings {
             }
         }
         let saved = Arc::clone(&self.saved).lock_owned().await;
-        let mut next = *saved;
+        let mut next = saved.clone();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
+        }
+        if let Some(metadata) = change.metadata {
+            next.metadata = Some(metadata);
         }
         self.persist(saved, next).await
     }

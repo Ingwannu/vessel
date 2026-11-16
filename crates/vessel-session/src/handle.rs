@@ -394,7 +394,8 @@ impl SessionHandle {
     /// (protocol 7): the actor publishes it as a `ModelCall` event, in
     /// order with the session's other records. Never waits: a call that
     /// finds the queue full, or the session ended, is dropped with a
-    /// warning, so a slow log never holds up the proxy.
+    /// warning, so a slow log never holds up the proxy. Generated-title
+    /// attempts reuse this same queue and best-effort rule (ADR 0062).
     pub fn model_call(&self, call: ModelCall) {
         if self.has_ended() {
             tracing::debug!(session = %self.id(), "model call after the session ended; not recorded");

@@ -43,6 +43,7 @@ fn every_envelope_recursively_requires_the_inner_method_or_field_version() {
                     codex: Some(AgentDriver::Acp),
                     ..SetAgentDrivers::default()
                 }),
+                ..SetNodeSettings::default()
             }
             .into_call(),
             ProtocolVersion::new(18),
@@ -55,6 +56,24 @@ fn every_envelope_recursively_requires_the_inner_method_or_field_version() {
             for nested in envelopes(outer) {
                 assert_eq!(nested.since(), Some(needed));
             }
+        }
+    }
+}
+
+#[test]
+fn metadata_patches_are_refused_before_dispatch_through_every_envelope() {
+    let patch = crate::settings::SetNodeSettings {
+        metadata: Some(crate::settings::MetadataSettings::default()),
+        ..crate::settings::SetNodeSettings::default()
+    }
+    .into_call();
+    let expected =
+        crate::GENERATED_NAMES.map(|version| version.max(patch.method().since().unwrap()));
+    assert_eq!(patch.required_protocol(), expected);
+    for outer in envelopes(patch) {
+        assert_eq!(outer.required_protocol(), expected);
+        for nested in envelopes(outer) {
+            assert_eq!(nested.required_protocol(), expected);
         }
     }
 }

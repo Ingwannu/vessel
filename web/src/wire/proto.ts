@@ -5283,6 +5283,41 @@ export type Mergeable = "mergeable" | "conflicting" | "blocked" | "unstable" | "
 export type MessageRole = "prompt" | "reply";
 
 /**
+ * How hard a generated-name call asks the model to work.
+ */
+export type MetadataEffort = "minimal" | "low" | "medium" | "high" | "max" | "unknown";
+
+/**
+ * One manual route for generated names.
+ */
+export type MetadataProvider = { 
+/**
+ * A route in `models.toml`.
+ */
+route: ModelRouteName, 
+/**
+ * That route's model or its `small_model`. Absent prefers the small
+ * model when the route has one.
+ */
+model?: ModelId | null, 
+/**
+ * How hard that model works. Absent is the provider's default, except
+ * the automatic `gpt-5.4-mini` match, which asks for low.
+ */
+effort?: MetadataEffort | null, };
+
+/**
+ * How a generated name is routed (ADR 0062). Empty [`providers`](Self::providers)
+ * is automatic, the default, and what an older `settings.json` becomes.
+ */
+export type MetadataSettings = { 
+/**
+ * Manual routes, in the stored order. At most
+ * [`MAX_METADATA_PROVIDERS`]. Empty is automatic: nothing is appended.
+ */
+providers: Array<MetadataProvider>, };
+
+/**
  * Every RPC method.
  */
 export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "session.detach" | "workspace.registry" | "workspace.list" | "workspace.get" | "workspace.rename" | "workspace.pin" | "workspace.release_automation" | "git.compare" | "git.compare_file" | "node.diagnostics" | "file.inspect" | "file.read_bytes" | "file.duplicate" | "file.observe" | "file.suggest" | "skills.status" | "skills.reconcile" | "skills.uninstall" | "skills.save_selection" | "skills.import_selection" | "usage.reports" | "usage.inspect" | "usage.source_lookup";
@@ -5314,6 +5349,7 @@ export type ModelApi = "anthropic_messages" | "openai_responses" | "openai_chat_
 /**
  * One call a session made to a model through the node's proxy: metadata
  * only, never prompt or completion content, tool arguments or keys.
+ * Bounded generated-title attempts reuse this record and its accounting (ADR 0062).
  */
 export type ModelCall = { 
 /**
@@ -5519,7 +5555,12 @@ drivers?: AgentDrivers,
  * Startup policy, hidden until its protocol is assigned (ADR 0059).
  * This value-only field does not enable an engine or register input.
  */
-restart_recovery?: RestartRecovery, };
+restart_recovery?: RestartRecovery, 
+/**
+ * Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
+ * `None` means this peer cannot generate.
+ */
+metadata?: MetadataSettings, };
 
 /**
  * Whether a node is taking new work.
@@ -9038,7 +9079,12 @@ park_after?: ParkAfter | null,
  * is refused, and so is `direct` for an agent whose driver this node
  * does not offer yet.
  */
-drivers?: SetAgentDrivers | null, };
+drivers?: SetAgentDrivers | null, 
+/**
+ * Strict generated-name patch; an empty list resets automatic selection.
+ * Refused until `GENERATED_NAMES` is assigned at integration.
+ */
+metadata?: MetadataSettings | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

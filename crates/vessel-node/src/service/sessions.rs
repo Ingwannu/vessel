@@ -2,7 +2,7 @@
 //! path too, and a place resolved into its folder), send, kill, read the
 //! log, subscribe. Routing only, as the rest of the service.
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{
@@ -57,7 +57,23 @@ impl NodeService {
         request: CreateSession,
     ) -> Result<SessionInfo, WireError> {
         crate::label_ingress::spec(&request.spec)?;
-        self.create(connection, request.spec, None).await
+        let info = self.create(connection, request.spec, None).await?;
+        if let Some(handle) = self.sessions.live(info.id) {
+            let cwd = info
+                .spec
+                .cwd
+                .clone()
+                .unwrap_or_else(|| self.profiles.user_home().to_owned());
+            self.models.arm_title(
+                handle,
+                Arc::clone(&self.settings),
+                cwd,
+                self.workspaces.git().ok().cloned(),
+                self.lifecycle.stopping(),
+                self.sessions.metadata_work(),
+            );
+        }
+        Ok(info)
     }
 
     /// A session of `spec` for `connection`'s caller: `session.create`'s

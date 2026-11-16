@@ -6,7 +6,7 @@
 use std::fmt::Write as _;
 use std::future::Future;
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use axum::body::Bytes;
@@ -39,18 +39,19 @@ const KEY: &str = "sk-upstream-test-key";
 /// What a session's records come to once it has ended.
 type Records = JoinHandle<Vec<Arc<EventRecord>>>;
 
-struct Fixture {
-    data: TempDir,
-    _bin: TempDir,
-    runtime: Arc<SessionRuntime>,
-    upstream: FakeUpstream,
-    models: Arc<Models>,
+pub(super) struct Fixture {
+    pub(super) data: TempDir,
+    bin: TempDir,
+    structured: OnceLock<()>,
+    pub(super) runtime: Arc<SessionRuntime>,
+    pub(super) upstream: FakeUpstream,
+    pub(super) models: Arc<Models>,
     proxy: SocketAddr,
     stop: CancellationToken,
 }
 
 impl Fixture {
-    async fn new() -> Self {
+    pub(super) async fn new() -> Self {
         Self::with(Limits::default()).await
     }
 
@@ -91,7 +92,8 @@ impl Fixture {
         )));
         Self {
             data,
-            _bin: bin,
+            bin,
+            structured: OnceLock::new(),
             runtime,
             upstream,
             models,
@@ -138,11 +140,46 @@ impl Fixture {
         (created.handle, token, records)
     }
 
+    /// Structured title tests borrow the same isolated runtime/provider fixture.
+    pub(super) async fn structured(&self) -> (SessionHandle, Records) {
+        // Replacement-admission cases create multiple sessions in one lookup.
+        let _installed = self.structured.get_or_init(|| {
+            drop(
+                install(
+                    self.bin.path(),
+                    HarnessKind::ClaudeCode,
+                    Role::Structured,
+                    &Fake::Acp.path().unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+        let spec = SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        )
+        .with_cwd(self.data.path().to_owned());
+        let created = self.runtime.create(spec).await.unwrap();
+        let mut durable = created.durable;
+        let records = tokio::spawn(async move {
+            let mut records = Vec::new();
+            while let Some(record) = durable.recv().await {
+                records.push(record);
+            }
+            records
+        });
+        (created.handle, records)
+    }
+
     async fn call(&self, request_line: &str, headers: &[(&str, &str)], body: &str) -> Answer {
         call(self.proxy, request_line, headers, body).await
     }
 
-    async fn stop(self) {
+    pub(super) async fn stop(self) {
         self.stop.cancel();
         self.runtime.shutdown().await;
     }
@@ -325,7 +362,7 @@ async fn model_calls(handle: &SessionHandle, records: Records) -> Vec<ModelCall>
 /// Fail a test that hangs rather than hang the suite; the clock starts once
 /// the fakes are built (`Fixture::with` finds `fake-tui`, whose first use
 /// builds them).
-async fn within(test: impl Future<Output = ()>) {
+pub(super) async fn within(test: impl Future<Output = ()>) {
     vessel_testkit::within(Duration::from_secs(60), Box::pin(test))
         .await
         .unwrap();
@@ -336,6 +373,30 @@ const MESSAGE: &str =
 
 /// Everything refused is refused before the provider is called, in the
 /// harness's error shape, without echoing what was presented.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_ended_handle_cannot_recreate_its_retired_call_limit() {
+    within(async {
+        let fixture = Fixture::new().await;
+        let (handle, _token, records) = fixture.session("sonnet").await;
+        drop(fixture.models.slot(&handle).unwrap());
+        handle.kill();
+        let _ended = handle.ended().await;
+        fixture.models.retire(handle.id());
+        assert!(fixture.models.slot(&handle).is_none());
+        assert!(
+            !fixture
+                .models
+                .session_slots
+                .lock()
+                .unwrap()
+                .contains_key(&handle.id())
+        );
+        let _records = records.await.unwrap();
+        fixture.stop().await;
+    })
+    .await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn who_may_call() {
     within(async {

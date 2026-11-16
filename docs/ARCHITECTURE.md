@@ -922,6 +922,15 @@ In the crate table's order.
     `unsupported`) and gives the restarted agent a second token, the old
     one kept until the move ends (`begin_move`/`end_move`, as agent
     credentials).
+  Generated session titles (ADR 0062) reuse these same credential and
+  semaphore owners. External fresh creation arms one tracked first-input
+  task on the original handle; a bounded cached/live cursor freezes its
+  provisional source and remembers cancellation events. Current metadata
+  settings and one immutable route snapshot prepare a bounded tool-free
+  request. Styles borrow the checked Git runner; a separate HTTP pool
+  borrows initialized TLS. Usage reaches the existing best-effort model
+  record queue, and only the actor compares and applies the proposal.
+  Unassigned protocol admission disables patches and automatic calls.
 - `vessel-client`: the websocket connection with the bearer token (`wss://`
   refused for token connections: ADR 0005's amendment), one typed method
   per call, the gap-free `SessionStream`. `Connector` (`WsConnector`; the

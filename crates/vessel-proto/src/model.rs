@@ -191,6 +191,7 @@ impl DurationMs {
 
 /// One call a session made to a model through the node's proxy: metadata
 /// only, never prompt or completion content, tool arguments or keys.
+/// Bounded generated-title attempts reuse this record and its accounting (ADR 0062).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ModelCall {

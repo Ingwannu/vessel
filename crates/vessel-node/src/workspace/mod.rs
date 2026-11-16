@@ -261,7 +261,8 @@ impl Workspaces {
     }
 
     /// The node's git, or [`WorkspaceError::NoGit`].
-    fn git(&self) -> Result<&Git, WorkspaceError> {
+    /// Title styles borrow its checked runner, pool and own-config policy.
+    pub(crate) fn git(&self) -> Result<&Git, WorkspaceError> {
         self.git.as_ref().ok_or(WorkspaceError::NoGit)
     }
 

@@ -102,5 +102,6 @@ fn settings() -> NodeSettings {
             enabled: true,
             prompt: "private custom startup prompt".parse().unwrap(),
         },
+        metadata: None,
     }
 }
