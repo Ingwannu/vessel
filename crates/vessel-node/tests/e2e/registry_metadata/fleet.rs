@@ -147,11 +147,11 @@ async fn devices(relay: &Relay, home: &Member, target: &Member, workspace: Works
         .unwrap();
     read(&writer, target, workspace).await;
     write(&writer, target, workspace).await;
-    let reader = device_with(relay, home, vec![Scope::Read])
-        .await
-        .connect(client())
-        .await
-        .unwrap();
+    // Keep one explicitly relayed device positive path. Remaining first hops
+    // use the same real paired authority over direct transport, avoiding the
+    // relay's unchanged four-client admission share while all devices are live.
+    // Their delegated Forward target hop still uses the actual fleet/relay path.
+    let reader = super::authority::paired(&home.owner, &home.node, vec![Scope::Read]).await;
     read(&reader, target, workspace).await;
     assert_eq!(
         code(
@@ -167,11 +167,7 @@ async fn devices(relay: &Relay, home: &Member, target: &Member, workspace: Works
         ),
         ErrorCode::Forbidden
     );
-    let operator = device_with(relay, home, vec![Scope::Operate])
-        .await
-        .connect(client())
-        .await
-        .unwrap();
+    let operator = super::authority::paired(&home.owner, &home.node, vec![Scope::Operate]).await;
     // The envelope independently needs Read; Operate does not imply it.
     assert_eq!(
         code(
@@ -187,11 +183,7 @@ async fn devices(relay: &Relay, home: &Member, target: &Member, workspace: Works
         ),
         ErrorCode::Forbidden
     );
-    let admin = device_with(relay, home, vec![Scope::Admin])
-        .await
-        .connect(client())
-        .await
-        .unwrap();
+    let admin = super::authority::paired(&home.owner, &home.node, vec![Scope::Admin]).await;
     assert_eq!(
         code(admin.call_on(target.id(), GetRegistry::default()).await),
         ErrorCode::Forbidden

@@ -10,7 +10,11 @@ use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::secure::{advertise_placeholder_route, device_via, dialer, direct_route};
 use crate::support::{Fixture, client, within};
 
-async fn paired(owner: &NodeClient, node: &vessel_node::Node, scopes: Vec<Scope>) -> NodeClient {
+pub(super) async fn paired(
+    owner: &NodeClient,
+    node: &vessel_node::Node,
+    scopes: Vec<Scope>,
+) -> NodeClient {
     const INVITE_SECONDS: u32 = 600;
     let mut offer = owner
         .invite_with_scopes(None, INVITE_SECONDS, scopes)

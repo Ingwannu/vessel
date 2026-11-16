@@ -36,3 +36,16 @@ fixture's existing join wait is reused without introducing new clock polling.
 Runtime outcome, every listed supported-wire cell and immutable gate review must
 be recorded before full matrix readiness is claimed. These tests exercise fake
 harnesses only and never execute a real provider, editor or provisioning effect.
+
+The first actual matrix run passed the typed old-hop no-frame case and three
+real direct Owner/paired/Agent cases, then stopped on its own fleet fixture:
+four simultaneously retained relayed device first hops exhausted the relay's
+existing per-node/address admission share during another pairing. That red is
+retained; the raw RPC cases later in Cargo's order did not execute.
+
+The fixture now keeps one explicitly relayed paired-device positive path and
+uses the existing actual direct-pairing helper for the three independent scope
+refusals. Their delegated target hops still use the real fleet/relay route.
+No protocol, limits, grants, authority assertions, sleeps or product behavior
+change. This checks authority across actual paired transports while respecting
+the existing relay admission budget. Corrected exact-head execution is owed.
