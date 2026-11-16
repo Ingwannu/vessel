@@ -80,19 +80,15 @@ impl Render for Probe {
 #[gpui::test]
 fn host_cards_keep_all_three_site_rows_within_phone_and_desktop_bounds(cx: &mut TestAppContext) {
     cx.update(|cx| cx.set_reduce_motion(true));
-    for width in [390.0, 800.0, 1280.0] {
+    for (width, sizing) in [
+        (390.0, ControlSizing::Touch),
+        (800.0, ControlSizing::Pointer),
+        (1280.0, ControlSizing::Pointer),
+    ] {
         for scheme in [Scheme::Light, Scheme::Dark] {
             for tag in ["en", "ko"] {
                 let window = cx.open_window(size(px(width), px(844.0)), move |_, _| {
-                    Probe::new(
-                        tag,
-                        scheme,
-                        if width == 390.0 {
-                            ControlSizing::Touch
-                        } else {
-                            ControlSizing::Pointer
-                        },
-                    )
+                    Probe::new(tag, scheme, sizing)
                 });
                 let mut visual = VisualTestContext::from_window(window.into(), cx);
                 visual.run_until_parked();

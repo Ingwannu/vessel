@@ -262,7 +262,7 @@ where
                 icon::SM,
                 tokens.neutral.foreground_muted,
             )
-            .mr(px(-spacing::S1)),
+            .mr(px(spacing::S1.copysign(-1.0))),
         );
     }
     let title = div()
