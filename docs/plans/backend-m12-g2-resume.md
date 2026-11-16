@@ -7,13 +7,37 @@ published-base and stop checkpoints below are records only. Read current worker/
 the shared-control ledger before further integration. All Rust/Cargo work,
 including metadata and capture builds, runs through the remote gate only.
 
-## QUOTA WARNING checkpoint — 2026-11-16, active correction only
+## QUOTA STOP final — 2026-11-16 03:48 UTC
 
 Read THIS section first; all later dated blocks are historical. The warning
 permits finishing only the current F1 Enter correction. No new control, slice,
 branch merge or IME implementation. Read actual remote status/results before
 resubmitting anything; queued/running/done is never permission for a duplicate.
 All Cargo/rustc/metadata/capture builds remain VM-only and detached.
+
+### FINAL stop override (read before the historical in-flight bullets)
+
+- Current checked source is78bd863a96c86bd936c1f9978e22a24b1a33feea. cad14
+  Kit failed292/1/0 only because the old Code test expected the now-removed
+  extra unchanged Change after Enter.78bd first asserts literal typed history
+  BEFORE Enter, then unchanged history and exact submit AFTER Enter.
+- FINAL exact78bd ordinary-short requested checks all PASS: locked Kit+App
+  alltargetClippy0 run schedules-20261116T034422Z-78bd863a; Kit293/0/0
+  run034541Z; explicit App-bin199/0/2 run034648Z. Actual Code case and F1
+  ready Enter/footer/one-original-update/no-double-save case explicitly ok.
+  Six step hashes/all run-file hashes/specs/checkout verified. No run queued
+  or running remains in this completed suite. No unchanged rerun.
+- Source fixes cad14 +test78bd are committed. This final docs checkpoint does
+  NOT extend checked Rust or claim a whole F1 gate/consumer/V1 approval.
+- Lead announced GREEN base14.4=935569d5 (1801/0/2) carrying SecretField;
+  W19 canonical handoff delivered. NOT MERGED under the quota stop. Future
+  compact-only14.5 announcement is still awaited. No new merge or control.
+- C2 IME next item gpui-base change13 is now assigned to G2 as sole writer;
+  place its README after W12change12. ADR-light/source/tests UNSTARTED.
+  Next session takes the appropriate announced line/ownership boundary first.
+- Full F1/actual captures/review/isolation/admitted opener remain owed. Private
+  STATE has exact output paths; verified proofs include f1-enter-78bd-final-
+  verified-result.json and retained40e4/cad14 red packets.
 
 ### Main F1 source and exact checks
 
