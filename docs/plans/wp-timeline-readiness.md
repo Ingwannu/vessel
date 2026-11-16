@@ -133,7 +133,8 @@ minimal packet; the complete A7 renderer still needs its final gate/captures/V4.
 
 Use the currently announced app line; preserve whole-gate freeze once started.
 Announced app base9 db42d9c5 includes the canonical standalone body vocabulary and
-S2 glyph inventory. A7 appends only Wrench/Eye/MicVocal/Scissors after the fixed95;
+S2 glyph inventory. Later published S2 rows make the preserved prefix100;
+A7 appends only Wrench/Eye/MicVocal/Scissors after that prefix;
 the exhaustive drawing, license metadata and frozen prefix test remain intact.
 Local checks are rustfmt, static size/tokens/diff/import/doc scans and test-module
 ordering. Cargo/rustc/boundaries/compilation/tests/gates run only through the build
