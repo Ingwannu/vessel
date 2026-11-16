@@ -97,7 +97,12 @@ with that real caller; neither caller may map Unavailable to an empty vector or
 success. The guard remains feature-owned and read-only. One new actual GPUI test
 covers simultaneous direct/wrapped roots, an unknown live window, deliberately
 retained old A, replacement B without registration, and explicit B registration.
-This follow-up source is unchecked; earlier row273 does not approve it.
+Exact source e2628d5ee passed ordinary selected run
+wp-desktop-host-narrow-20261115T185140Z-e2628d5e: fonts, formatting, quality,
+all-target strict Clippy and tests returned zero. Raw1491/0/2 includes App109/0/2,
+Kit204/0/0 and the new complete-enumeration test plus all prior five host tests.
+The logs show actual changed App checking/compilation. Review and receiving
+consumer checks remain required; earlier row273 does not approve this extension.
 
 Availability uses LiveShells::{Available,Unavailable}, not an ad hoc Result error
 or another App dependency. The complete-list test preserves typed refusal; real
