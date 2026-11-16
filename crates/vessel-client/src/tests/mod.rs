@@ -583,6 +583,11 @@ impl Handler for FakeNode {
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
         detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
+        start_dictation: vessel_proto::dictation::StartDictation => Ack;
+        chunk_dictation: vessel_proto::dictation::ChunkDictation => vessel_proto::dictation::DictationAck;
+        finish_dictation: vessel_proto::dictation::FinishDictation => vessel_proto::dictation::FinishAccepted;
+        next_dictation: vessel_proto::dictation::NextDictation => vessel_proto::dictation::DictationUpdate;
+        cancel_dictation: vessel_proto::dictation::CancelDictation => Ack;
     }
 }
 

@@ -24,8 +24,11 @@ The generated declarations now match the verified generator snapshot for this
 combined source: five generator/inventory tests passed, and the freshness
 failure identified the exact patch applied here. The next designated node head
 has now been adopted without changing dictation code or generated declarations.
-Next: run the one whole product/package gate and submit the combined source
-range for review. Narrow evidence is not a package
+The first whole gate stopped at Clippy: the client test FakeNode lacked the
+five new Handler items. Its existing unserved macro now supplies exactly those
+Unsupported methods. Client strict and library tests precede the final corrected
+whole gate; no runtime result is claimed from the first stopped run. The combined
+source range is submitted for review, with the original red evidence retained. Narrow evidence is not a package
 or integration pass. No real ASR, HTTPS credential, other-platform deployment,
 service-account or microphone behavior is claimed. Earlier resume paragraphs
 below are historical checkpoints.
@@ -1128,3 +1131,14 @@ the complete head caller-drop section, followed by the dictation product path.
 No dictation implementation or generated declaration changes in this merge.
 The combined package gate is the next product validation, including the
 original later-file node e2e and the complete CLI/protocol tests.
+
+### Client test Handler compatibility completion
+
+The first whole-workspace Clippy check reached a test-only client implementation
+outside the earlier five selected crates. Its Handler trait gained the five
+pending dictation methods, but FakeNode still lacked their entries. Appending
+the five rows to its existing unserved macro keeps the same Unsupported fake
+policy without changing any existing handler, assertion or branch. No product
+implementation, method behavior or generated declaration changes here. The
+original whole gate stops before tests and remains red; focused client strict
+and library checks must pass before the corrected package whole gate.
