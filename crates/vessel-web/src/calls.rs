@@ -179,8 +179,8 @@ const fn forwardable(method: Method) -> bool {
         | Method::GitStash
         | Method::ListDir
         | Method::ReadFile
-        // ADR0083: unary workspace calls remain subject to node scope and
-        // pending protocol admission; no stream or browser authority is added.
+        // ADR 0083 (protocol 26): unary workspace calls remain subject to node
+        // scope and protocol admission; no stream or browser authority is added.
         | Method::InspectDirectory
         | Method::ReadFileBytes
         | Method::DuplicateFileEntry
@@ -351,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn file_panel_unaries_keep_pending_admission_when_forwarded() {
+    fn file_panel_unaries_forward_at_their_assigned_protocol() {
         for method in [
             Method::InspectDirectory,
             Method::ReadFileBytes,
@@ -360,7 +360,11 @@ mod tests {
             Method::SuggestEntries,
         ] {
             assert!(forwardable(method));
-            assert_eq!(method.since(), None);
+            assert_eq!(
+                method.since(),
+                vessel_proto::workspace::panel_files::FILE_PANELS_PROTOCOL
+            );
+            assert!(method.since().is_some(), "{method:?}");
             assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
         }
     }

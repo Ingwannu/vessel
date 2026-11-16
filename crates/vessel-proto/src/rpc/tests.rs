@@ -271,7 +271,14 @@ const PROTOCOL_TEN_WORKSPACE: &[&str] = &[
 
 /// Methods in the same families added after protocol 10 and assigned a
 /// number: each is checked by its package's own test, which adds it here.
-const WORKSPACE_FAMILIES_LATER: &[&str] = &[];
+/// Protocol 26's file panels: `PROTOCOL_TWENTY_SIX`.
+const WORKSPACE_FAMILIES_LATER: &[&str] = &[
+    "file.inspect",
+    "file.read_bytes",
+    "file.duplicate",
+    "file.observe",
+    "file.suggest",
+];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
 /// (ADR 0029) and C's terminals, scripts and ports (ADR 0031) read with
@@ -470,6 +477,32 @@ fn protocol_twenty_five_methods_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(twenty_five, PROTOCOL_TWENTY_FIVE);
+}
+
+/// Protocol 26's methods (ADR 0083, ADR 0105): the file panels' five calls,
+/// each unary. Only `file.duplicate` changes the disk, so only it is Operate.
+const PROTOCOL_TWENTY_SIX: &[(&str, Scope)] = &[
+    ("file.inspect", Scope::Read),
+    ("file.read_bytes", Scope::Read),
+    ("file.duplicate", Scope::Operate),
+    ("file.observe", Scope::Read),
+    ("file.suggest", Scope::Read),
+];
+
+#[test]
+fn protocol_twenty_six_methods_know_their_version_scope_and_shape() {
+    let twenty_six: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(26)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_six, PROTOCOL_TWENTY_SIX);
 }
 
 #[test]
