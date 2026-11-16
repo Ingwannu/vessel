@@ -75,6 +75,17 @@ impl DiffDocumentEditor {
         self.editor.set_wrapping(wrapping, window, cx);
     }
 
+    /// A bounded document cache must not evict the engine that currently owns
+    /// keyboard selection. Query the existing input focus, never a second flag.
+    #[must_use]
+    pub fn selection_focused(&self, window: &Window, cx: &App) -> bool {
+        self.editor
+            .editor
+            .state
+            .read(cx)
+            .has_selection_focus(window, cx)
+    }
+
     /// Full content height. Parent clipping never changes the document's extent.
     pub fn element(
         &self,

@@ -1169,3 +1169,13 @@ unions and resolve changed shared APIs before one meaningful changed-source
 batch. The node head is counted17/18 with the named open /new e2e intermittent;
 never call it an unqualified wholly green gate. Disk cleanup may have removed
 warm targets. project=vessel label is retained; no parallel agent was started.
+
+## Readonly document retention prerequisite
+
+The actual body consumer needs to avoid evicting a focused selection engine.
+Reuse the existing engine's has_selection_focus query through the readonly
+DiffDocumentEditor wrapper; do not infer it from a second active-file flag.
+The existing real-window keyboard/reveal test now checks false before focus and
+true after focusing that same engine. This additive query changes no paint,
+input, selection, copy or ordinary editor path. Exact changed-source runtime
+and Clippy remain pending; the older413 control result is not relabeled.

@@ -33,7 +33,9 @@ fn keyboard_end_and_shift_selection_reveal_the_real_document_owner(cx: &mut Test
         cx.add_window_view(|window, cx| document_owner(&source, DiffWrapping::Scroll, window, cx));
     cx.update(|window, cx| {
         window.activate_window();
+        assert!(!owner.read(cx).editor.selection_focused(window, cx));
         owner.update(cx, |owner, cx| owner.editor.editor.focus(window, cx));
+        assert!(owner.read(cx).editor.selection_focused(window, cx));
         window.draw(cx).clear(cx);
     });
     cx.run_until_parked();
