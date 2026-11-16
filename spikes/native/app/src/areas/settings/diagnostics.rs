@@ -9,8 +9,7 @@ use vessel_app_link::{
     Command,
     diagnostics::{Ask, MAX_PARALLEL_HOSTS, Message},
 };
-use vessel_app_view::Reach;
-use vessel_app_view::devices::{MachineKey, Tickets};
+use vessel_app_view::devices::{ConnectionContext, MachineKey, Tickets};
 use vessel_app_view::diagnostics::collection::{
     Collection, HostCount, MAX_REPORT_HOSTS, Phase, Problem, Progress, ReportText,
 };
@@ -21,6 +20,7 @@ pub(crate) struct State {
     pub(super) collection: Collection,
     pub(super) dialog: DialogState,
     copied_notice: Option<&'static str>,
+    receipts: Vec<(ConnectionContext, vessel_app_link::DeliveryGuard)>,
     tickets: Tickets,
     pub(super) target: Option<MachineKey>,
 }
@@ -30,6 +30,7 @@ impl State {
             collection: Collection::default(),
             dialog: DialogState::new(cx),
             copied_notice: None,
+            receipts: Vec::new(),
             tickets: Tickets::default(),
             target: None,
         }
@@ -38,6 +39,8 @@ impl State {
 impl Shell {
     /// Only a settled bounded report can cross the clipboard boundary.
     fn copy_diagnostic(&mut self, report: &ReportText, cx: &mut Context<'_, Self>) {
+        self.settle_diagnostics();
+        cx.notify();
         // An earlier frame's enabled button can run after refresh or close.
         // Only the current settled payload may cross the clipboard boundary.
         if self.areas.settings.diagnostics.collection.report() != Some(report) {
@@ -72,6 +75,7 @@ impl Shell {
             return;
         }
         self.areas.settings.diagnostics.collection.close();
+        self.areas.settings.diagnostics.receipts.clear();
         let facts = app_facts(self, window);
         let client =
             diagnostics::client_report(&facts, HostCount::from_book(self.fleet.machines.len()));
@@ -92,10 +96,8 @@ impl Shell {
         state.target = target;
         state.collection.start(ticket, client, hosts);
         for machine in &self.fleet.machines {
-            if let Some(node) = machine.node {
-                state
-                    .collection
-                    .expect_node(&MachineKey::from_book(&machine.name), node);
+            if let Some(context) = machine.connection_context() {
+                state.collection.expect_connection(context);
             }
         }
         self.pump_diagnostics();
@@ -121,11 +123,28 @@ impl Shell {
     }
     pub(crate) fn diagnostic_answer(&mut self, message: Message) {
         match message {
-            Message::Answered(answer) => self.areas.settings.diagnostics.collection.answer(
-                answer.ticket,
-                &answer.machine,
-                answer.result,
-            ),
+            Message::Answered(answer) => {
+                let state = &mut self.areas.settings.diagnostics;
+                if state.collection.ticket() != Some(answer.ticket())
+                    || !state.collection.rows().iter().any(|row| {
+                        row.context.as_ref() == Some(answer.context())
+                            && row.progress == Progress::Running
+                    })
+                {
+                    return;
+                }
+                let received = answer.receive();
+                if received.result.is_ok()
+                    && let Some(guard) = received.guard
+                {
+                    state.receipts.push((received.context.clone(), guard));
+                }
+                state.collection.answer_connection(
+                    received.ticket,
+                    &received.context,
+                    received.result,
+                );
+            }
             Message::Connected { machine, node } => self
                 .areas
                 .settings
@@ -134,6 +153,19 @@ impl Shell {
                 .connected(&machine, node),
         }
         self.pump_diagnostics();
+    }
+    pub(crate) fn diagnostics_retired(
+        &mut self,
+        tag: &vessel_app_view::connection::ConnectionTag,
+    ) -> bool {
+        let run = &mut self.areas.settings.diagnostics.collection;
+        let changed = run.rows().iter().any(|row| {
+            row.context.as_ref().is_some_and(|context| {
+                context.machine() == tag.machine() && context.epoch() == tag.epoch()
+            }) && row.progress != Progress::Failed(Problem::ConnectionChanged)
+        });
+        run.retired(tag);
+        changed
     }
     fn pump_diagnostics(&mut self) {
         let run = &self.areas.settings.diagnostics.collection;
@@ -155,22 +187,29 @@ impl Shell {
             .iter()
             .filter(|row| row.progress == Progress::Pending)
             .take(capacity)
-            .map(|row| Ask {
-                machine: row.machine.clone(),
-                ticket,
-            })
+            .filter_map(|row| row.context.clone().map(|context| Ask { context, ticket }))
             .collect();
         for ask in asks {
             self.areas
                 .settings
                 .diagnostics
                 .collection
-                .running(ticket, &ask.machine);
+                .running(ticket, ask.context.machine());
             self.command(Command::Diagnostics(ask));
         }
     }
     /// Retire pending data after forget, rename or disconnect before accepting more results.
     pub(crate) fn settle_diagnostics(&mut self) {
+        let state = &mut self.areas.settings.diagnostics;
+        let run = &mut state.collection;
+        state.receipts.retain(|(context, guard)| {
+            if guard.validate(context).is_ok() {
+                true
+            } else {
+                run.retired(&context.tag());
+                false
+            }
+        });
         self.areas
             .settings
             .diagnostics
@@ -221,10 +260,9 @@ fn host_requests(
         .map(|machine| {
             (
                 MachineKey::from_book(&machine.name),
-                match machine.reach {
-                    Reach::Online => Ok(()),
-                    Reach::Unreachable(_) => Err(Problem::Offline),
-                },
+                machine
+                    .connection_context()
+                    .map_or(Err(Problem::Offline), |_| Ok(())),
             )
         })
         .collect();
@@ -244,3 +282,7 @@ mod language_tests;
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod refresh_tests;
+
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod receipt_tests;

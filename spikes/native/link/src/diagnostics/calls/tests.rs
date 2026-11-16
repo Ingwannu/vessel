@@ -2,7 +2,7 @@
 use super::*;
 use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream};
-use vessel_client::ClientConfig;
+use vessel_client::{ClientConfig, NodeClient};
 use vessel_proto::{
     Call, ClientFrame, ClientInfo, ErrorCode, NodeId, NodeInfo, NodeState, Outcome, ProtocolRange,
     Reply, ServerFrame, Welcome, WireError,
@@ -43,14 +43,18 @@ async fn peer(admitted: NodeId, outcome: Outcome) -> (NodeClient, tokio::task::J
     let (local, mut remote) = tokio::io::duplex(FRAME_BYTES);
     let task = tokio::spawn(async move {
         welcome(&mut remote, admitted).await;
-        if let ClientFrame::Request { id, call } = read(&mut remote).await {
-            assert!(
-                matches!(call, Call::NodeInfo(_)),
-                "diagnostics must not discover a provider"
-            );
+        for _ in 0..2 {
+            let ClientFrame::Request { id, call } = read(&mut remote).await else {
+                panic!("expected diagnostic read");
+            };
+            let outcome = match call {
+                Call::NodeInfo(_) => outcome.clone(),
+                Call::Diagnostics(_) => {
+                    Outcome::Err(WireError::new(ErrorCode::Unsupported, CANARY))
+                }
+                other => panic!("unexpected diagnostic request: {other:?}"),
+            };
             write(&mut remote, ServerFrame::Response { id, outcome }).await;
-        } else {
-            panic!("expected explicit node-info read");
         }
         let mut byte = [0];
         let _closed = remote.read(&mut byte).await;
@@ -61,7 +65,7 @@ async fn peer(admitted: NodeId, outcome: Outcome) -> (NodeClient, tokio::task::J
 async fn node_info_projects_only_allowed_fields_without_discovery() {
     let id = NodeId::random();
     let (client, task) = peer(id, Outcome::Ok(Reply::NodeInfo(node(id)))).await;
-    let answer = collect(&client).await;
+    let answer = collect_client(client).await;
     assert_eq!(answer.admitted, id);
     assert_eq!(answer.facts.as_ref().unwrap().node, id);
     assert!(!format!("{answer:?}").contains(CANARY));
@@ -76,7 +80,7 @@ async fn peer_error_message_never_crosses_the_diagnostic_edge() {
     ] {
         let (client, task) =
             peer(NodeId::random(), Outcome::Err(WireError::new(code, CANARY))).await;
-        let answer = collect(&client).await;
+        let answer = collect_client(client).await;
         assert_eq!(answer.facts, Err(expected));
         assert!(!format!("{answer:?}").contains(CANARY));
         task.abort();
@@ -106,7 +110,7 @@ async fn a_reply_for_another_node_is_not_attributed_to_the_admitted_host() {
         Outcome::Ok(Reply::NodeInfo(node(NodeId::random()))),
     )
     .await;
-    let answer = collect(&client).await;
+    let answer = collect_client(client).await;
     assert_eq!(answer.admitted, admitted);
     assert_eq!(answer.facts, Err(Problem::InvalidReply));
     task.abort();
@@ -123,7 +127,7 @@ async fn a_fresh_framed_connection_notifies_before_an_identical_fleet() {
     let (replacement, second_task) =
         peer(node_id, Outcome::Ok(Reply::NodeInfo(node(node_id)))).await;
     let (events, mut receiving) = tokio::sync::mpsc::channel(LIFECYCLE_ROOM);
-    let state = fixture_state(events);
+    let (_home, state) = fixture_state(events);
     let book_name = "laptop".parse::<vessel_client::book::NodeName>().unwrap();
     let machine = MachineKey::from_book(book_name.as_str());
     let mut tickets = Tickets::default();
@@ -135,7 +139,7 @@ async fn a_fresh_framed_connection_notifies_before_an_identical_fleet() {
         [(machine.clone(), Ok(()))],
     );
     collection.running(ticket, &machine);
-    let first = collect(&client).await;
+    let first = collect_client(client).await;
     collection.answer(ticket, &machine, Ok(first.clone()));
     assert_eq!(collection.phase(), &Phase::Ready);
     let fleet = vessel_app_view::Fleet::default();
@@ -178,25 +182,44 @@ async fn framed_client(local: DuplexStream) -> NodeClient {
     .await
     .unwrap()
 }
-fn fixture_state(events: tokio::sync::mpsc::Sender<crate::Event>) -> crate::State {
-    crate::State {
-        label: "diagnostic-test".to_owned(),
-        events,
-        clients: std::collections::HashMap::new(),
-        follow: None,
-        follow_machine: None,
-        book_path: crate::machines::BookPath::File(std::path::PathBuf::from(
-            "unopened-fixture-book",
-        )),
-        workspace: crate::workspace::Hub::default(),
-        agents: crate::agents::Hub::default(),
-        device_calls: crate::devices::Hub::default(),
-        sync_calls: crate::sync::Hub::default(),
-        diagnostic_calls: Hub::default(),
-        offers: Arc::default(),
-    }
+fn fixture_state(
+    events: tokio::sync::mpsc::Sender<crate::Event>,
+) -> (crate::testing::Home, crate::State) {
+    let home = crate::testing::Home::new();
+    let (mut state, _receiving) = crate::testing::state(&home);
+    state.events = events;
+    (home, state)
 }
+fn admit(state: &mut crate::State, client: NodeClient, machine: &str) -> ConnectionContext {
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    let connected = state
+        .admit_connection(machine, &binding, client, Vec::new())
+        .unwrap();
+    let context = connected.context.clone();
+    assert!(
+        state
+            .clients
+            .insert(machine.to_owned(), connected)
+            .is_none()
+    );
+    context
+}
+async fn collect_client(client: NodeClient) -> HostResult {
+    let (events, _receiving) = tokio::sync::mpsc::channel(4);
+    let (_home, mut state) = fixture_state(events);
+    let context = admit(&mut state, client, "fixture");
+    let selected = state.selected_connection(&context).unwrap();
+    collect(&selected, &context).await.unwrap()
+}
+mod close;
 mod held;
+mod queue;
+mod supported;
 
 async fn welcome(remote: &mut DuplexStream, admitted: NodeId) {
     assert!(matches!(read(remote).await, ClientFrame::Hello(_)));

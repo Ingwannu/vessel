@@ -162,8 +162,6 @@ impl SelectedConnection {
     }
     /// Keep SDK identity/deadline failures typed while the existing guard owns
     /// physical closure and irreversible admission retirement.
-    // Staged until E4's real consumer lands; no unused product API is exposed.
-    #[cfg(test)]
     pub(crate) async fn diagnostics(
         &self,
     ) -> Result<

@@ -1,8 +1,8 @@
 //! Explicit, bounded diagnostics reads on existing authenticated connections.
-//! Only node identity/protocol/lifecycle cross this edge; no harness discovery,
+//! Only validated allowlisted diagnostics cross this edge; no harness discovery,
 //! raw error, hostname, route, environment, key or agent output is retained.
 
-use vessel_app_view::devices::{MachineKey, Ticket};
+use vessel_app_view::devices::{ConnectionContext, MachineKey, Ticket};
 use vessel_app_view::diagnostics::collection::{HostResult, Problem};
 
 /// Bound shared by the dispatcher and its per-run scheduling.
@@ -11,21 +11,25 @@ pub const MAX_PARALLEL_HOSTS: usize = 4;
 /// One page-issued request; refresh allocates a different ticket.
 #[derive(Debug, Clone)]
 pub struct Ask {
-    /// Parsed node-book entry.
-    pub machine: MachineKey,
+    /// Exact alias, admitted node and non-reused connection epoch.
+    pub context: ConnectionContext,
     /// The active collection identity.
     pub ticket: Ticket,
 }
 /// A correlated result whose fields cannot carry untrusted diagnostic prose.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Answer {
-    /// Entry selected when this read started.
-    pub machine: MachineKey,
+    /// Admission selected when this read started, never a later alias lookup.
+    context: ConnectionContext,
     /// Original collection identity.
-    pub ticket: Ticket,
+    ticket: Ticket,
     /// Safe facts or a closed reason.
-    pub result: Result<HostResult, Problem>,
+    result: Result<HostResult, Problem>,
+    /// Weak original admission checked after UI queueing; absent only for unsent refusal.
+    guard: Option<crate::DeliveryGuard>,
 }
+mod receipt;
+pub use receipt::Received;
 /// Answers and connection lifecycle notices share one feature event seam.
 #[derive(Debug)]
 pub enum Message {
@@ -45,9 +49,10 @@ impl Ask {
     #[must_use]
     pub fn refused(self, problem: Problem) -> Answer {
         Answer {
-            machine: self.machine,
+            context: self.context,
             ticket: self.ticket,
             result: Err(problem),
+            guard: None,
         }
     }
 }

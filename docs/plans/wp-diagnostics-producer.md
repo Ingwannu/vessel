@@ -8,10 +8,17 @@ the producer-unavailable boundary in the earlier bounded app package. The
 previous V4 row173 approval, whole1302/0/2, corrected tests1304/0/2 and captures
 are historical evidence only; they do not validate this follow-up.
 
-Integration is in progress. The shared selected-connection adapter is reserved
-behind the lead's G4 slot and is not applied before that source lands green.
-Only the view slice is independently checkable at this checkpoint. No live
-full-report, build, capture, new gate or review success is claimed yet.
+Integration is in progress on approved app package base 14.1 (`b54abbdc`),
+which includes G4's framed Scenario and testing feature. The lead assigned
+W20 the selected-connection writer slot. V1 row287 passed the exact staged
+receiving SDK leaf `41215ebf` with fresh Link all-target strict zero and framed
+SDK tests 4/0/0 (120 filtered); its documentation-only receipt is `c27cf137`.
+The full consumer now removes only that method's staging attribute atomically
+with its real guarded E4 caller. Existing call/guard/follow/protocol/export and
+SDK method bodies remain unchanged. The larger APP/Link collector, weak-receipt
+handling and Scenario/drain tests require their own compilation, runtime and
+review. No new whole gate, build, live full-report capture, clipboard/privacy
+or product adoption pass is claimed from the staged leaf's approval.
 
 ## Decision Log
 
@@ -36,7 +43,13 @@ full-report, build, capture, new gate or review success is claimed yet.
   removes old copyable data. Existing ticket and current-payload copy checks
   still apply. Original weak DeliveryGuard receipts are revalidated after UI
   queueing and immediately before copying, without retaining a client or transport.
-  Duplicate answers cannot grow the bounded receipts beyond one per host. No root/node/wire implementation is modified by this package.
+  Duplicate answers cannot grow the bounded receipts beyond one per host. The
+  existing guarded event send refuses stale payloads if retirement or physical
+  closure wins against a full UI queue. As in history delivery, a correlated
+  refusal then settles the original ticket and retains the bounded host permit
+  until the live receiver can drain it; dropping that fallback would strand a
+  running row. The queued weak receipt is independently checked at installation. No root/node/wire implementation is modified by
+  this package.
 
 ## Data flow and data policy
 
@@ -111,11 +124,40 @@ The typed Stopping admission refusal has a distinct recovery sentence. Mapping
 it to the old build-unavailable problem would falsely claim the API is missing.
 Only ErrorCode::Unavailable with the diagnostics detail selects Busy/Stopping;
 a contradictory detail never overrides an authority failure code. All Problem
-variants have whole EN/KO goldens; the framing acceptance before this small
-addition remains limited to its previously reviewed FTL delta.
+variants have whole EN/KO goldens. L accepted final explanatory framing on
+`07ea44bd` and the daemon-specific Stopping sentence/context on `87cbebe3`;
+these are WORD/KEY/CONTEXT acceptances only, not behavior/privacy approval.
 
 A replacement live admission reports ConnectionChanged rather than claiming
 the reachable machine is offline. Missing/closed snapshots keep Offline; a
 shared retirement invalidates the old admission without implying OS shutdown.
 Semantic session-list refusal retains the admitted context and lets the node
 apply diagnostics Read authority independently.
+
+The later `87cbebe3` selected view suite passed 28/0/0 and `6ad0578b`
+all-target view Clippy passed; neither result covers the new APP/Link collector
+or the later `035485a1` retirement semantics. Run
+`wp-onboarding-view-20261116T004253Z-4e65312f` checks that final committed view
+slice on base 13. It passed 28/0/0 after fonts/native-cargo both returned zero. This result
+excludes uncommitted APP/Link work. Existing failures and old capture scopes are retained.
+
+Current committed view all-target Clippy also passed on `4e65312f` in run
+`wp-onboarding-view-20261116T005143Z-4e65312f` (fonts and native-cargo zero,
+no warnings). The independently successful current view checks still exclude
+the uncommitted APP/Link adoption and the staged SDK leaf's separate strict run.
+
+The G4 Scenario close ACK covers Devices workers only. E4 separately tests its
+actual diagnostic dispatcher: hold a real framed read, retain an observer of
+the still-open transport, then drop the actor and event receiver and acquire
+all four diagnostic permits under the existing five-second phase bound. This
+proves original-admission cancellation and bounded worker drain before the
+SDK's ten-second deadline or peer closure. The one held peer is then explicitly
+aborted and reaped. APP receipt tests borrow Scenario for framing and its own
+cleanup only; no generic diagnostic-worker close ACK is inferred from it.
+
+The actual consumer promotion retains the SDK unit-test module's `cfg(test)`;
+only the used SDK method becomes a product path. G4's canonical `make_state`
+receives the existing diagnostic Hub, preserving History. Retirement events
+run the existing History handler and E4 handler before the Devices early return;
+the new shared Fleet/history ordering remains unchanged. No second fixture
+actor, codec, guard constructor, resolver or epoch allocator is introduced.

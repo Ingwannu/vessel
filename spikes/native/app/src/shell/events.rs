@@ -17,7 +17,8 @@ impl Shell {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
                 self.history_retired(&context, cx);
-                if !self.devices_retired(&context) {
+                let diagnostic_changed = self.diagnostics_retired(&context);
+                if !self.devices_retired(&context) && !diagnostic_changed {
                     return;
                 }
             }

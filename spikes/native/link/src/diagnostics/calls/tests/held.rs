@@ -2,9 +2,10 @@
 use super::*;
 use std::{sync::mpsc as wall_channel, thread};
 use tokio::sync::{mpsc, oneshot};
-use vessel_app_view::devices::{MachineKey, Ticket, Tickets};
+use vessel_app_view::devices::{ConnectionContext, Ticket, Tickets};
 
 const EVENT_ROOM: usize = MAX_PARALLEL_HOSTS + 1;
+const HELD_REQUESTS: usize = MAX_PARALLEL_HOSTS.checked_mul(2).unwrap();
 const BEFORE_EXPIRY: Duration = Duration::from_millis(1);
 const WALL_SAFETY: Duration = Duration::from_secs(20);
 
@@ -41,22 +42,14 @@ async fn deadline_case() {
         task,
     } = held_peer(node_id).await;
     let (events, mut receiving) = mpsc::channel(EVENT_ROOM);
-    let mut state = fixture_state(events);
-    let machine = MachineKey::from_book("held-host");
-    let previous = state.clients.insert(
-        machine.as_str().to_owned(),
-        crate::Connected {
-            client,
-            agents: Vec::new(),
-        },
-    );
-    assert!(previous.is_none());
+    let (_home, mut state) = fixture_state(events);
+    let context = admit(&mut state, client, "held-host");
     let mut tickets = Tickets::default();
     let pending =
-        occupy_and_refuse(&mut state, &machine, &mut tickets, written, &mut receiving).await;
+        occupy_and_refuse(&mut state, &context, &mut tickets, written, &mut receiving).await;
     expire_pending(&state, &mut receiving, pending).await;
     release.send(()).unwrap();
-    let next = ask(&machine, &mut tickets);
+    let next = ask(&context, &mut tickets);
     let ticket = next.ticket;
     state.handle(crate::Command::Diagnostics(next)).await;
     let answer = next_answer(&mut receiving).await;
@@ -72,20 +65,20 @@ async fn deadline_case() {
 
 async fn occupy_and_refuse(
     state: &mut crate::State,
-    machine: &MachineKey,
+    context: &ConnectionContext,
     tickets: &mut Tickets,
     written: oneshot::Receiver<()>,
     receiving: &mut mpsc::Receiver<crate::Event>,
 ) -> Vec<Ticket> {
     let mut pending = Vec::new();
     for _ in 0..MAX_PARALLEL_HOSTS {
-        let next = ask(machine, tickets);
+        let next = ask(context, tickets);
         pending.push(next.ticket);
         state.handle(crate::Command::Diagnostics(next)).await;
     }
     written.await.unwrap();
     assert_eq!(state.diagnostic_calls.0.available_permits(), 0);
-    let overflow = ask(machine, tickets);
+    let overflow = ask(context, tickets);
     let ticket = overflow.ticket;
     state.handle(crate::Command::Diagnostics(overflow)).await;
     let answer = next_answer(receiving).await;
@@ -115,7 +108,12 @@ async fn expire_pending(
             .position(|ticket| *ticket == answer.ticket)
             .unwrap();
         let _settled = pending.remove(position);
-        assert_eq!(answer.result.unwrap().facts, Err(Problem::TimedOut));
+        let result = answer.result.unwrap();
+        assert_eq!(result.facts, Err(Problem::TimedOut));
+        assert_eq!(
+            result.daemon,
+            DaemonSnapshot::Unavailable(Problem::TimedOut)
+        );
     }
     assert!(pending.is_empty());
     assert!(began.elapsed() <= NODE_INFO_DEADLINE.checked_add(BEFORE_EXPIRY).unwrap());
@@ -125,9 +123,9 @@ async fn expire_pending(
     );
 }
 
-fn ask(machine: &MachineKey, tickets: &mut Tickets) -> Ask {
+fn ask(context: &ConnectionContext, tickets: &mut Tickets) -> Ask {
     Ask {
-        machine: machine.clone(),
+        context: context.clone(),
         ticket: tickets.next_ticket().unwrap(),
     }
 }
@@ -146,18 +144,19 @@ async fn held_peer(admitted: NodeId) -> HeldPeer {
     let task = tokio::spawn(async move {
         welcome(&mut remote, admitted).await;
         hold_requests(&mut remote, seen, released).await;
-        let ClientFrame::Request { id, call } = read(&mut remote).await else {
-            panic!("a released permit must admit the next read");
-        };
-        assert!(matches!(call, Call::NodeInfo(_)));
-        write(
-            &mut remote,
-            ServerFrame::Response {
-                id,
-                outcome: Outcome::Ok(Reply::NodeInfo(node(admitted))),
-            },
-        )
-        .await;
+        for _ in 0..2 {
+            let ClientFrame::Request { id, call } = read(&mut remote).await else {
+                panic!("released permit must admit next read");
+            };
+            let outcome = match call {
+                Call::NodeInfo(_) => Outcome::Ok(Reply::NodeInfo(node(admitted))),
+                Call::Diagnostics(_) => {
+                    Outcome::Err(WireError::new(ErrorCode::Unsupported, CANARY))
+                }
+                other => panic!("unexpected diagnostic request: {other:?}"),
+            };
+            write(&mut remote, ServerFrame::Response { id, outcome }).await;
+        }
         std::future::pending::<()>().await;
     });
     HeldPeer {
@@ -174,16 +173,16 @@ async fn hold_requests(
     released: oneshot::Receiver<()>,
 ) {
     let mut held = Vec::new();
-    for _ in 0..MAX_PARALLEL_HOSTS {
+    for _ in 0..HELD_REQUESTS {
         let ClientFrame::Request { id, call } = read(remote).await else {
             panic!("expected a held node-info request");
         };
-        assert!(matches!(call, Call::NodeInfo(_)));
+        assert!(matches!(call, Call::NodeInfo(_) | Call::Diagnostics(_)));
         held.push(id);
     }
     seen.send(()).unwrap();
     released.await.unwrap();
-    for _ in 0..MAX_PARALLEL_HOSTS {
+    for _ in 0..HELD_REQUESTS {
         let ClientFrame::Cancel { id } = read(remote).await else {
             panic!("expired reads must cancel their RPCs");
         };

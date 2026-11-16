@@ -110,11 +110,23 @@ fn source_card(shell: &Shell, tokens: &Tokens, layout: PageLayout) -> Div {
     let labels = shell.words.diagnostic_flow();
     let mut sources = settings::card(tokens);
     let sections = [
-        (labels.daemon(), labels.daemon_note()),
-        (labels.process(), labels.process_note()),
-        (labels.logs(), labels.logs_note()),
+        (
+            labels.daemon(),
+            labels.daemon_note(),
+            labels.host_dependent(),
+        ),
+        (
+            labels.process(),
+            labels.process_note(),
+            labels.host_dependent(),
+        ),
+        (
+            labels.logs(),
+            labels.logs_note(),
+            labels.unavailable_badge(),
+        ),
     ];
-    for (index, (label, note)) in sections.into_iter().enumerate() {
+    for (index, (label, note, availability)) in sections.into_iter().enumerate() {
         sources = sources.child(settings::row_at(
             label,
             Some(note.into()),
@@ -123,7 +135,7 @@ fn source_card(shell: &Shell, tokens: &Tokens, layout: PageLayout) -> Div {
                 div()
                     .type_(Type::Meta)
                     .text_color(tokens.neutral.foreground_muted)
-                    .child(labels.unavailable_badge())
+                    .child(availability)
                     .into_any_element(),
             ),
             index == 0,

@@ -1281,19 +1281,31 @@ while collection is in progress, and the action checks that state again. Closing
 discards late results. Host names, routes, keys and raw errors are excluded from the
 shareable host sections.
 
-The current node does not expose a full host diagnostic, extended process
-diagnostic or daemon log API. Each source is shown as unavailable;
-no provider executable is started by this page. Session and terminal logs
-remain in their own views. ADR 0074 owns the future safe daemon report, and
-the app collection model lives in `view/src/diagnostics/`; link calls live in
-`link/src/diagnostics/`, drawing in `app/src/areas/settings/diagnostics/`.
+The protocol-24 producer is now on the app line. Its app adoption is being
+integrated; exact source/check status is in
+`docs/plans/wp-diagnostics-producer.md`. The consumer uses the existing typed
+`NodeClient::diagnostics()` independently of basic node info, preserving the
+SDK's ten-second deadline and report/welcome identity check. Only the node's
+allowlisted immutable report enters the shareable text; no provider executable,
+credential refresh, arbitrary process scan or raw daemon-log read is added.
 
-The immutable ADR 0074 daemon report is consumed independently of the basic
-node-info result. Its full/partial typed fixtures are test-only until the real
-producer is registered. Nested technical section data uses canonical JSON to
-retain saturation, omission and observation timestamps; a missing section is
-never represented by zero. Node identity is verified before any report joins
-the copyable result.
+The shared `ConnectionContext` pins alias, node and physical admission epoch.
+The one selected-client guard fences polling/completion, and weak receipt guards
+are checked after UI queueing and immediately before copying. No extra resolver,
+client cache or product epoch allocator exists. Ticket, duplicate, refresh and
+current-payload fences remain. Retirement removes old data even before a newer
+Fleet snapshot, including same-node reconnects and physical transport closure.
+
+The view collection model lives in `view/src/diagnostics/`, the link edge in
+`link/src/diagnostics/`, and the existing Settings page/dialog in
+`app/src/areas/settings/diagnostics/`. Nested typed section JSON retains
+saturation, omission and observation timestamps. The self-process section has
+numeric pid/optional parent and bounded memory counts; unavailable nested memory
+and unsupported platforms remain partial, never healthy zero. Raw daemon logs
+stay excluded: recent failed local node calls are only a bounded code/time
+summary, not a log tail. Desktop lifecycle/updater diagnostics remain unavailable;
+provider diagnostics belongs to its own area. No full Paseo metric parity is
+claimed. Session and terminal logs remain in their own views.
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
 rename/removal dialogs and delegates actions to that parent. The browser

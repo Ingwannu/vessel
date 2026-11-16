@@ -69,7 +69,14 @@ fn hold_first_read(
     language_tests::attach_link(shell, link);
     let mut machine = Machine::unreachable("held-host".to_owned(), "unused fixture error");
     machine.reach = Reach::Online;
-    machine.node = Some(NodeId::random());
+    let context = vessel_app_view::connection::ConnectionEpochs::default()
+        .admit(
+            vessel_app_view::connection::MachineKey::from_book("held-host"),
+            NodeId::random(),
+        )
+        .unwrap();
+    machine.node = Some(context.node());
+    machine.connection_epoch = Some(context.epoch());
     shell.fleet.machines.push(machine);
     shell.run_diagnostic(None, window, cx);
     let Command::Diagnostics(held) = commands.try_recv().unwrap() else {
