@@ -1,8 +1,9 @@
 # Assigned workspace metadata wire validation
 
-Status: the corrected protocol-25 validation has passed all-target strict checks
-and all seven targeted runtime cases. Bounded review and receiving combined-line
-proof remain owed. This supplements the registry assignment rather than enabling any
+Status: the earlier normal-path protocol-25 validation passed strict checks and
+seven runtime cases. The retained-owner follow-up has passed Node all-target
+strict checks; its exact functional execution, bounded review and receiving
+combined-line proof remain owed. This supplements the registry assignment rather than enabling any
 provisioning, generation, archive, config, editor or process effect.
 
 [Decision Log]
