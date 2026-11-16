@@ -166,6 +166,9 @@ impl Shell {
         window: &Window,
         cx: &App,
     ) -> bool {
+        if !self.global_shortcuts_enabled() {
+            return false;
+        }
         self.areas
             .shortcuts
             .dispatch
@@ -191,6 +194,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
+        if !self.global_shortcuts_enabled() {
+            return false;
+        }
         let candidates = self.areas.shortcuts.dispatch.candidates(request.action);
         for candidate in candidates {
             if self

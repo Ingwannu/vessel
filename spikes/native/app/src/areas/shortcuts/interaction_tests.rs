@@ -12,6 +12,7 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     cx.update(|cx| cx.set_reduce_motion(true));
     cx.add_window_view(|window, cx| {
         let mut shell = Shell::without_io(window, cx);
+        super::tests::configured_book(&mut shell);
         super::listen(&mut shell, window, cx);
         shell
     })

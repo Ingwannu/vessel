@@ -1197,3 +1197,26 @@ and checksum digests; same_commit remains false relative to the app. One bounded
 native-build app export is submitted on d31181c4 through that approved route.
 Its first-use originals, inspection and coordinator comparison remain owed.
 This bounded build is separate from the final whole F4 gate/capture matrix.
+
+
+[Decision Log: one global UI shortcut admission predicate]
+- Purpose: follow pinned _layout.tsx398/416 and the coordinator's explicit book
+  ruling; a native always-mounted titlebar does not authorize global shortcuts.
+- Existing assets: Shell.loaded records installation of the first successful
+  Fleet snapshot. Link refresh first awaits saved_entries; book failures emit
+  failure and return, while configured offline entries remain in the successful
+  snapshot. No selected-session, online, welcome or resource lease is needed.
+- Choice: expose client_book_read over that existing fact and one Shell predicate
+  global_shortcuts_enabled = Settings OR (book read once AND nonempty entries).
+  The listener, dispatcher availability/activation and badge eligibility reuse
+  it; viewport600/mobile policy remains independent. A single Fleet event hook
+  retires pending prefixes/capture/badges when the global UI becomes disabled.
+- Alternatives rejected: infer readiness from selected session or successful
+  welcome, duplicate S2/W15 policy, or add a second book cache/event publisher.
+- Effects: an offline configured entry enables UI shortcuts, an empty/unread book
+  disables them outside Settings, and a custom feature handler cannot bypass
+  admission. Onboarding chrome presentation stays W15's separate task.
+- Verification: existing keyboard harnesses now explicitly seed a configured
+  offline book, preserving their enabled-input intent. New real-key cases cover
+  unread/empty/offline and Settings; direct owner dispatch and book-loss chord
+  retirement have their own regressions. They are not yet executed.
