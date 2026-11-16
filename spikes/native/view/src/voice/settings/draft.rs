@@ -184,7 +184,7 @@ impl Draft {
         }
     }
 
-    /// The caller combines this form fact with Page::can_submit_editor.
+    /// The caller combines this form fact with `Page::can_submit_editor`.
     #[must_use]
     pub fn can_save(&self) -> bool {
         self.phase == Phase::Editing && self.change().is_some()
