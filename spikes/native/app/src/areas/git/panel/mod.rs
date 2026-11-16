@@ -15,6 +15,7 @@ mod document;
 mod draw;
 mod file;
 mod lifecycle;
+mod scroll;
 mod visibility;
 
 use std::collections::{HashMap, VecDeque};

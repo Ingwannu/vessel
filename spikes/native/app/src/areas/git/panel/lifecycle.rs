@@ -85,6 +85,7 @@ impl Shell {
             entry.retain_comparison(previous);
         }
         let request = discover(&mut entry, &address, &mut self.areas.git.keys);
+        super::scroll::listen(&entry, &address, cx);
         let _old = self.areas.git.panels.entries.insert(address, entry);
         if let Some(ask) = request {
             self.command(vessel_app_link::Command::GitPanel(ask));

@@ -5,37 +5,6 @@ use gpui::{Entity, TestAppContext, VisualTestContext, point, px, size};
 use tokio::sync::mpsc;
 use vessel_app_link::git_panel::{Answer, Outcome};
 use vessel_app_link::{Command, Link};
-use vessel_app_view::layout::{LayoutKey, OpenIntent, Placement, Target};
-
-fn background_agent(
-    shell: &mut Shell,
-    address: &PanelAddress,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-    inbox: &mut mpsc::Receiver<Command>,
-) {
-    let LayoutKey::Session { session, .. } = address.workspace else {
-        panic!("legacy session fixture");
-    };
-    let _tab = shell
-        .layout_open_target(
-            &address.workspace,
-            Target::Agent(session),
-            OpenIntent::Background,
-            Placement::Focused,
-            window,
-            cx,
-        )
-        .unwrap();
-    let Command::SavePrefs(prefs) = inbox.try_recv().unwrap() else {
-        panic!("one background-agent layout persistence");
-    };
-    assert_eq!(*prefs, shell.prefs);
-    assert!(matches!(
-        inbox.try_recv(),
-        Err(mpsc::error::TryRecvError::Empty)
-    ));
-}
 
 fn finish_visible_calls(
     shell: &Entity<Shell>,
@@ -44,7 +13,6 @@ fn finish_visible_calls(
 ) -> usize {
     let mut total = 0_usize;
     for _frame in 0..64 {
-        cx.update(|window, cx| window.draw(cx).clear(cx));
         cx.run_until_parked();
         let mut calls = 0_usize;
         shell.update_in(cx, |shell, _window, cx| {
@@ -91,7 +59,7 @@ fn actual_registry_visible_engines_quiesce_and_outer_wheel_releases_old_vetoes(
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = Shell::with_test_link(window, cx, link);
         let (address, _paths) = tests::prepare(&mut shell, window, cx, 128, &mut inbox);
-        background_agent(&mut shell, &address, window, cx, &mut inbox);
+        super::super::target_tests::background_agent(&mut shell, &address, window, cx, &mut inbox);
         shell
     });
     cx.simulate_resize(size(px(1280.), px(6000.)));

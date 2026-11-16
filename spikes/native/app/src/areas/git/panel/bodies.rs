@@ -312,6 +312,9 @@ impl Shell {
 }
 
 #[cfg(test)]
+pub(super) use tests::prepare;
+
+#[cfg(test)]
 #[path = "bodies_tests.rs"]
 mod tests;
 

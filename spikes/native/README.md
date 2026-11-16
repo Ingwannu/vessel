@@ -1534,4 +1534,5 @@ pinned lines: `docs/plans/shared-segmented-sizing.md`.
 `VirtualList::on_scroll` observes handled scroll input through GPUI's existing
 handler, without exporting its stale visible_range or changing list motion.
 Install once for the list owner; never query/reborrow the list during callback.
-Exact source/real-window proof remains pending in `docs/plans/wp-c3-list-scroll.md`.
+Bounded source/Kit narrow review and remaining receiving limits are recorded
+in `docs/plans/wp-c3-list-scroll.md`.

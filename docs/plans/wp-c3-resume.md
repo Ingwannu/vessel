@@ -809,3 +809,32 @@ uncompiled/unexecuted. Old candidate results must remain exact-source, and
 V3 runtime submission waits for the corrected candidate's meaningful checks.
 Observation/subscription/fetch, Models generation, W9 restore, RootLease/CAS,
 native UI and C4 remain excluded. GIT_PANEL stays None.
+
+## Base14.2 and notification consumer source join
+
+Merged announced b54abbdc then c6d8df49 before new App checks. The source union
+keeps Git startup after the new window-taking shortcuts initializer, History
+retirement/fleet calls plus Git retirement/fleet calls before Devices early
+returns, and the single incoming framed test-state factory with GitPanel hub
+appended. No duplicate Home/State factory, guard, transport or fixture stack.
+No running whole gate was changed.
+
+Selected V1-cleared VirtualList source b243+94b is provisionally joined (not a
+whole moving branch). New scroll.rs installs its handler once after original
+Entry discovery assigns an instance. The closure defers owner access, then
+checks original pane/target/instance/connection plus live sole-layout visibility
+before clearing presentation vetoes and notifying the actual Shell. No range,
+ListState reborrow, new read/write or second list state.
+
+The real Shell pressure fixture now relies on the actual owner notifications
+instead of forcing window.draw in its settling loop. Its helper is shared with
+the new real deferred-callback test: current owner clears vetoes, Refresh before
+dispatch cannot touch its successor, and retired original connection cannot
+clear a later sentinel. Observation is explicitly before paint can rebuild the
+frame markers. The fixture now uses its discovery incarnation for root binding,
+matching production instead of allocating an unrelated replacement key.
+
+This receiving source is uncompiled/unexecuted until its own grouped narrow.
+Prior3add pressure1/0/0 and old006 functional226/0/0 stay prior-source; no old
+result proves this new base, notification join or old-callback tests. Header,
+full C3/captures/OS and the scoped write-owner join remain pending.

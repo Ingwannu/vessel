@@ -77,6 +77,7 @@ pub(super) fn prepare_uninitialized(
     let mut entry = Entry::new(PanelTarget::WorkingDiff, Some(context.clone()));
     entry.instance = Some(instance);
     entry.reads = Some(reads);
+    super::scroll::listen(&entry, &address, cx);
     let _old = shell
         .areas
         .git
@@ -95,6 +96,36 @@ pub(super) fn prepare_uninitialized(
         },
         ticket,
     )
+}
+
+pub(super) fn background_agent(
+    shell: &mut Shell,
+    address: &PanelAddress,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+    inbox: &mut tokio::sync::mpsc::Receiver<Command>,
+) {
+    let LayoutKey::Session { session, .. } = address.workspace else {
+        panic!("legacy session fixture");
+    };
+    let _tab = shell
+        .layout_open_target(
+            &address.workspace,
+            Target::Agent(session),
+            OpenIntent::Background,
+            Placement::Focused,
+            window,
+            cx,
+        )
+        .unwrap();
+    let Command::SavePrefs(prefs) = inbox.try_recv().unwrap() else {
+        panic!("one background-agent layout persistence");
+    };
+    assert_eq!(*prefs, shell.prefs);
+    assert!(matches!(
+        inbox.try_recv(),
+        Err(mpsc::error::TryRecvError::Empty)
+    ));
 }
 
 /// A drawn empty-state callback must have actual accepted data, not an Empty store.

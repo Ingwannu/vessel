@@ -13,7 +13,7 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{HarnessKind, SessionInfo, SessionMode, SessionSpec};
 
-pub(super) fn prepare(
+pub(in crate::areas::git::panel) fn prepare(
     shell: &mut Shell,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -31,8 +31,8 @@ pub(super) fn prepare(
         .collect::<Vec<_>>();
     let git = &mut shell.areas.git;
     let entry = git.panels.entries.get_mut(&old.address).unwrap();
-    let location_key = git.keys.issue().unwrap();
-    entry.instance = Some(location_key);
+    // Product discovery uses this same incarnation key for root acquisition.
+    let location_key = entry.instance.unwrap();
     let location = entry
         .binding
         .begin(old.address.clone(), old.context.clone(), location_key)
