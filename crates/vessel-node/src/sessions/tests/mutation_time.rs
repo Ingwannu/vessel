@@ -170,7 +170,9 @@ async fn finished_key(fixture: &Fixture, handle: &SessionHandle) -> InboxKey {
     let mut follow = handle.follow(EventSeq::ZERO).unwrap();
     handle
         .send(SessionInput::Prompt {
-            content: vec![ContentBlock::text("plain")],
+            content: vec![ContentBlock::Text {
+                text: "plain".to_owned(),
+            }],
         })
         .await
         .unwrap();

@@ -1566,3 +1566,11 @@ reported one missing code link around info(). That reference now links to the
 existing method. No executable body, test expectation, wire declaration or
 deadline changes; the original strict failure is retained. The current merged
 head still needs a green strict result before its package gate.
+
+
+The current runtime forcing run built its fixture binaries successfully but
+found an unavailable convenience constructor in the new inbox test. The input
+now uses ContentBlock's existing Text variant with the identical prompt bytes.
+Only test construction changes; no assertion, product behavior or deadline is
+altered. The actual frozen-seed integration test passed independently on the
+same pre-fix executable source; Node/session runtime execution remains owed.
