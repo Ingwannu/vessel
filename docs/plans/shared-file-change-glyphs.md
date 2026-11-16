@@ -52,3 +52,11 @@ actual inline asset with its canonical source at14 and scales1/1.25/1.5/2,
 using the pinned status colors. The plus/minus/dot family remains distinct and
 unclipped in those SVG-source images. They are not native Header captures or
 Rust test results. No new Cargo request has been submitted for this leaf.
+
+Before the first check, merge announced base14.1 b54abbdc. Its full101 prefix,
+including the accepted Import role and its private2.2 arm, stays intact; these
+three unpublished declarations follow it. Only their unpublished iteration
+positions shift from the earlier source checkpoint. All old public positions,
+names, paths and SVGs remain exact. The original100-prefix proof and sheets
+are retained as prior-source evidence; final source checks use the receiving
+101 prefix. This composition is not yet compiled or runtime-tested.

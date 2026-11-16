@@ -76,6 +76,8 @@ impl Shell {
 
     pub(super) fn close_import(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.import;
+        area.picker.close();
+        area.choosing = None;
         area.open = false;
         area.visit = None;
         area.profile_request = None;
