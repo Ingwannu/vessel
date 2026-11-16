@@ -158,8 +158,25 @@ remain unavailable. Earlier failed strict runs remain failure evidence.
 - Existing assets: the Page already owns the exact node/read ticket and checked canonical DTO snapshot. Reuse devices::Tickets for bounded fresh identities; the shared dialog continues to own focus, layers and rendering.
 - Choice: Page::open_editor creates one private-field Editor token only after the displayed Edit action passes its existing host/snapshot/readiness check. A second opening and switches are excluded while that editor is held. Only the exact current token can read the presence-only snapshot or close the form.
 - Why: the form must not follow mutable machine selection, recycle an old form identity, or use a dialog close callback as authority for a different opening.
-- Impact: a page replacement, another read ticket, close and reopen fence old tokens. These correlation values add no backend authority, settings store, credential field or model readiness. Existing actual callback tests now open the token rather than merely recording a site name. New same-host/foreign-host/reopen regressions remain unexecuted until the next exact-head VM suite.
+- Impact: a page replacement, another read ticket, close and reopen fence old tokens. These correlation values add no backend authority, settings store, credential field or model readiness. Existing actual callback tests now open the token rather than merely recording a site name. The same-host/foreign-host/reopen regressions passed at exact66f0c3b7 in VM run wp-voice-narrow-20261116T024248Z-66f0c3b7: App/View tests1288/0/2, with exact all-target strict0 in run024028. These are fake/model and actual callback checks, not an OS modal or credential proof.
 
 This slice supplies only the form lifecycle boundary. Draft fields, save
 validation, partial credential/settings outcomes and actual sheet composition
 are still outstanding; no secure entry or product route is activated.
+
+
+## Non-secret form draft
+
+[Decision Log]
+- Purpose: reproduce the reference form's one-site provider/field patch decisions while keeping key entry behind the actual secure-field producer.
+- Existing assets: canonical bounded Language/EndpointBase/EndpointModel/local catalogue/TTS-role types and SetVoiceStt/SetVoiceTts/SetDictation. Parsing remains in those types; no copied parser, raw-text store, model catalogue, resolver or key reader is introduced.
+- Choice: a fresh current Editor can create one pure metadata Draft. Typed edits distinguish field reset from omission, preserve unsaved edits when switching provider back, filter inactive provider fields, preserve recognition language explicitly across a provider switch, and route the candidate to exactly its dictation/STT/TTS site. Feature switches and keys are always omitted.
+- Why: serializing a complete read snapshot would replay effective defaults and key-presence metadata, overwrite sibling sites and retain dormant provider fields. The reference form instead emits changes to the selected site. Existing node overlay validation remains the authority when a candidate is applied.
+- Impact: unchanged/reverted values produce no candidate; explicit cleared endpoint/language values use Reset. Wrong-role fields and newly chosen future local models are refused with static rules. A selected local model stays metadata only. Debug redacts draft/input metadata. No secure key value or reference is accepted by this model, and its candidate is not transport admission; the save controller still must recheck the current Page/editor, permissions and pending write.
+
+The read DTO reports effective values, so fields initially display those values
+rather than infer whether an override was absent in a file. Clearing one is an
+explicit reset. No fabricated environment-override source or installation state
+is shown. Raw invalid input remains in the existing shared field; this draft
+accepts only its validated bounded type. No runtime save or model operation is
+performed. The new draft regression source has not yet run.

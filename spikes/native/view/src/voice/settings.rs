@@ -4,6 +4,8 @@
 //! actual replies, excludes stale callbacks and requests one switch change.
 //! A missing or failed read never becomes a default configuration.
 
+pub mod draft;
+
 use crate::devices::{Ticket, Tickets};
 use vessel_proto::dictation::{
     DictationChange, DictationProvider, DictationSettings, DictationSwitch, SetDictation,
@@ -333,6 +335,12 @@ impl Page {
             return None;
         }
         self.read.as_ref()?.as_ref().ok()
+    }
+
+    /// Create a non-secret form model only for this current editor opening.
+    #[must_use]
+    pub fn editor_draft(&self, editor: Editor) -> Option<draft::Draft> {
+        draft::Draft::new(editor.site, self.editor_values(editor)?)
     }
 
     /// An old close/cancel callback must not dismiss the next form.
