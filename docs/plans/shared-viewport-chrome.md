@@ -41,8 +41,10 @@ Additive on package base 14.6; no existing profile, glyph, path or drawing chang
   every small icon action; the glyph roles stay distinct from window and panel
   glyphs by drawing, and tests hold that.
 - Impact: the owner decides presence and keeps callbacks, stop-propagation and
-  labels. Paseo's 4/6 px `hitSlop` has no GPUI counterpart; the hit area is the
-  frame. `panel_role_tests` helpers gain `pub(super)` (the same three-word change
+  labels. Paseo's 4/6 px `hitSlop` is not reproduced: the hit area is the frame.
+  With a spacing-1 gap two slops overlap; GPUI delivers a press to every Normal
+  hitbox under the pointer, and an occluding margin would block the owner's
+  viewport hover that drives `Presence` (see the lightbox plan in wp-b1.md). `panel_role_tests` helpers gain `pub(super)` (the same three-word change
   as the S2 file-change leaf, so the two merge cleanly).
 
 ## Inventory order
