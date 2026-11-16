@@ -106,6 +106,8 @@ struct PreparedReservation {
     id: SessionId,
     secret: Option<AgentSecret>,
     credentials: Vec<CredentialHash>,
+    execution: execution::Execution,
+    reservation: Arc<()>,
 }
 
 impl std::fmt::Debug for PreparedReservation {
@@ -196,6 +198,8 @@ impl Agents {
             id,
             secret,
             credentials,
+            execution: execution::Execution::new(),
+            reservation: Arc::new(()),
         })
     }
 
@@ -252,16 +256,17 @@ impl Agents {
         let PreparedReservation {
             secret,
             credentials,
+            execution,
+            reservation,
             ..
         } = prepared;
-        let reservation = Arc::new(());
         let _previous = sessions.insert(
             id,
             Entry {
+                execution,
                 reservation: Arc::clone(&reservation),
                 #[cfg(test)]
                 creation_launch: reservation::CountLaunchState::Reserved,
-                execution: execution::Execution::new(),
                 credentials,
                 scopes,
                 depth,
