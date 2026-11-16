@@ -91,6 +91,9 @@ impl Link {
             Command::GitPanel(ask) => self.emit(Event::GitPanel(ask.refused(
                 vessel_app_view::workspace::git::panel::ReadFailure::ComparisonUnavailable,
             ))),
+            Command::CodeSource(request) => {
+                self.emit(Event::CodeSource(Box::new(request.refused(Problem::Older))))
+            }
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
                 vessel_app_view::history::Problem::Unsupported,

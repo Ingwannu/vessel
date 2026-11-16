@@ -36,9 +36,12 @@ input dispatch and compares motion with the no-handler path. No latest range
 is forwarded, so a stale range cannot be consumed through this API. The fixture
 has no node, filesystem observer, credentials or second list state.
 
-All source is currently UNCOMPILED and the test is UNEXECUTED. Standalone pinned
-rustfmt, size/token and source-preflight checks precede the remote Kit strict
-and actual window-test checks. V1 then the lead review this isolated leaf.
+Exact b2439a023 Kit all-target strict Clippy is GREEN: native-fonts0,
+native-cargo0, no skipped step, with actual Base/gpui-component/Kit checking.
+The selected real-window test remains queued and UNEXECUTED; do not infer its
+result from type checking. Standalone pinned rustfmt, size/token and source
+preflight passed before submission. V1 then the lead review the complete
+isolated packet after the actual selected test finishes.
 This is not C3 body/cache fairness, all Kit, full native, UI/capture/OS approval.
 No change to another caller is included; actual C3 visibility-marker protection
 and >32-visible-section/cached scroll tests remain separate consumer work.
@@ -58,3 +61,19 @@ or duplicate it. After it is terminal, use the warm label for one changed-test
 Kit strict and the new deferred case only. C3's separate >32-visible engine
 pressure fixture is queued on3add and remains unverified; this Kit case does
 not turn that into an accepted cache or production first-use result.
+
+## Narrow results ready for bounded review
+
+Exact94b994be5 Kit all-target strict passed0 and its actual deferred-owner
+window case passed1/0/0; fonts0/cargo0/no skipped steps. Originalb243 basic
+absent/present native-wheel case passed1/0/0 on THAT prior source. The product
+virtual_list.rs bytes are identical betweenb243 and94b; the later test harness
+adds the observed position field and deferred case. Do not relabel the earlier
+case as current-source execution. All immutable source/artifact hashes and
+step log prefixes are recorded in the external list-scroll-producer packet.
+
+This is a bounded control source/narrow request, not the C3 resource consumer
+acceptance. The separate current-prepaint/>32-visible-engine selection remains
+queued on App3add; production notification integration and its retained-old-
+callback/owner lifecycle proof are still owed. No additional whole gate, PNG
+matrix, OS input or other consumer is approved by these tests.
