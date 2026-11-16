@@ -16,7 +16,11 @@ it. Borrow that fixture explicitly. No execution/script/result/loader behavior,
 assertion, timeout or bound changes. The queued db3 functional suite retains its
 original source and remains meaningful prior-style evidence; a corrected strict
 check is required for this changed head. The original failed strict result is
-retained.
+retained. The first borrow correction missed one multiline call site and
+therefore returned a test-only type error. Correct that remaining argument too;
+all calls were rechecked together and no assertions changed. The original db3
+functional source remains intact, with its original by-value helper and no type
+mismatch; only the strict correction is replaced.
 
 ## Ordinary-page function evaluation (staged)
 

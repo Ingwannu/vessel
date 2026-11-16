@@ -15,7 +15,7 @@ fn valid_result_remains_opaque_and_keeps_its_truncation_fact() {
     assert_eq!(content.completeness, TextCompleteness::Whole);
     assert!(!format!("{content:?}").contains("signed-in"));
     let preview = observed(
-        serde_json::json!({"kind":"value","text":"\"partial\"","completeness":"truncated"}),
+        &serde_json::json!({"kind":"value","text":"\"partial\"","completeness":"truncated"}),
     );
     assert_eq!(
         finish(&preview).unwrap().completeness,
