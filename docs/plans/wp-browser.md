@@ -8,6 +8,15 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Real-controller fixture style follow-through
+
+Exact99d46dad8 fixture Clippy reached the new helper and returned four style
+findings: two redundant parent qualifications, the now-used listener's former
+underscore name, and the HTTP handler's owned request not being consumed.
+Use the imported sibling module, name the listener, and consume request parts/
+body explicitly. Fixed-host/method refusal, content, assertions, cleanup and
+all deadlines remain unchanged. No real controller execution has occurred.
+
 ## Next real controller fixture (prepared, unexecuted)
 
 The existing ignored fixed-artifact test now additionally starts a synthetic

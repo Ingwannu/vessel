@@ -50,10 +50,12 @@ impl FixtureProxy {
     }
 }
 fn document(request: Request<Body>) -> std::future::Ready<Response> {
-    if request.method() != axum::http::Method::GET || request.uri().host() != Some("fixture.test") {
+    let (parts, body) = request.into_parts();
+    drop(body);
+    if parts.method != axum::http::Method::GET || parts.uri.host() != Some("fixture.test") {
         return std::future::ready(StatusCode::FORBIDDEN.into_response());
     }
-    if request.uri().path() == "/favicon.ico" {
+    if parts.uri.path() == "/favicon.ico" {
         return std::future::ready(StatusCode::NO_CONTENT.into_response());
     }
     std::future::ready(

@@ -17,7 +17,7 @@ struct Fixture {
     plan: Plan,
     root: PathBuf,
     temporary: PathBuf,
-    _proxy: TcpListener,
+    listener: TcpListener,
 }
 
 async fn fixture() -> Fixture {
@@ -55,7 +55,7 @@ async fn fixture() -> Fixture {
         plan,
         root,
         temporary,
-        _proxy: proxy,
+        listener: proxy,
     }
 }
 
@@ -91,9 +91,9 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             plan,
             root,
             temporary,
-            _proxy,
+            listener,
         } = fixture().await;
-        let proxy = super::candidate_page::FixtureProxy::start(_proxy);
+        let proxy = candidate_page::FixtureProxy::start(listener);
         let spawned = plan.spawn_for_diagnostic().unwrap();
         let run = spawned.child.lifetime();
         let (client, _events) = Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
@@ -112,7 +112,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             .await
             .unwrap();
         let page = if identity.is_ok() && version.is_ok() {
-            Some(super::candidate_page::exercise(&client).await)
+            Some(candidate_page::exercise(&client).await)
         } else {
             None
         };
