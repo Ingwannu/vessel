@@ -426,3 +426,10 @@ The first base13 strict build found the new shared sidebar arrangement match
 missing A1's NewWorkspace route. It now uses the same existing workspace layout
 budget as the Draft route. This selects presentation only and creates no
 workspace identity or root authority. No unrelated sidebar policy changes.
+
+The exact base13 browser check reached Link and found that the merge's desktop
+cfg had attached to the retained entry module rather than also guarding follow.
+The existing follow implementation is desktop-only again, matching the shared
+line. Native behavior is identical; no browser transport or unsupported facade
+is invented. The failed browser log is retained and a corrected receiving
+browser check is required.

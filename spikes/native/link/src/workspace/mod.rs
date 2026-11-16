@@ -38,6 +38,7 @@ mod ask;
 mod calls;
 #[cfg(not(target_arch = "wasm32"))]
 mod entry;
+#[cfg(not(target_arch = "wasm32"))]
 mod follow;
 mod intelligence;
 pub mod layout;
