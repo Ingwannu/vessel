@@ -74,6 +74,24 @@ pub(crate) struct Pointer {
     wait: u64,
 }
 
+impl Pointer {
+    /// Both a pending intent and a visible hover protect this resource.
+    #[cfg(test)]
+    pub(super) fn navigation_held(&self) -> bool {
+        self.candidate.is_some() || self.attention.is_some()
+    }
+
+    /// Same cancellation used by pointer leave and exact-resource retirement.
+    pub(super) fn leave(&mut self) -> bool {
+        let was_visible = self.attention.is_some();
+        *self = Self {
+            wait: self.wait.wrapping_add(1),
+            ..Self::default()
+        };
+        was_visible
+    }
+}
+
 impl Shell {
     /// The pointer came onto slot `index`.
     fn outline_point(&mut self, index: usize, cx: &mut Context<'_, Self>) {
@@ -103,11 +121,7 @@ impl Shell {
     /// The pointer left the rail.
     fn outline_left(&mut self, cx: &mut Context<'_, Self>) {
         let pointer = &mut self.areas.conversation.outline_pointer;
-        let was = pointer.attention.is_some();
-        *pointer = Pointer {
-            wait: pointer.wait.wrapping_add(1),
-            ..Pointer::default()
-        };
+        let was = pointer.leave();
         if was {
             cx.notify();
         }
@@ -303,6 +317,38 @@ mod tests {
             prompt: String::new(),
             reply: None,
         }
+    }
+
+    #[gpui::test]
+    fn navigation_hover_in_a_nested_origin_holds_and_retires_locally(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        use super::super::{ConversationArea, origin::Origin};
+        cx.update(|cx| {
+            let mut root = ConversationArea::new(cx);
+            let mut leaf = ConversationArea::new(cx);
+            leaf.outline_pointer.candidate = Some(2);
+            leaf.outline_pointer.attention = Some(2);
+            leaf.outline_pointer.active = true;
+            let wait = leaf.outline_pointer.wait;
+            let mut middle = ConversationArea::new(cx);
+            middle.origin = Origin::Shown(Box::new(leaf));
+            root.origin = Origin::Shown(Box::new(middle));
+            assert!(root.navigation_held());
+            root.navigation_retired();
+            assert!(!root.navigation_held());
+            let pointer = &root
+                .origin
+                .area()
+                .unwrap()
+                .origin
+                .area()
+                .unwrap()
+                .outline_pointer;
+            assert!(pointer.candidate.is_none() && pointer.attention.is_none());
+            assert!(!pointer.active);
+            assert_ne!(pointer.wait, wait);
+        });
     }
 
     // Paseo's `resolveActivePromptSeq`: the last prompt at or before the
