@@ -4,6 +4,9 @@ These files are an ADR 0101 experiment, not an installed runtime patch.
 No manifest names them, no path override is active, and no product lockfile
 has changed. Only the build-tool owner's controlled offline scratch runner
 may materialize the candidate graph for measurements.
+`measurement-contract.json` fixes the requested graphs, data/profile/strip
+scope and required evidence. It is a specification for the missing controlled
+runner, not a selector already installed or a runnable worker-side recipe.
 
 ## Custom-number hook candidate
 

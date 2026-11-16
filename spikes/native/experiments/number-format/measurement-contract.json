@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "status": "scratch experiment requested; selector, candidate overlays and measurements owed",
+  "baseline_commit": "2ebeedf964ead0b490f9a0dc4af1f29d88a2252e",
+  "provisioning": {
+    "owner": "build tools",
+    "source": "offline build cache only",
+    "product_lock_changes": false,
+    "scratch_lock": "isolated, retained with exact transitive versions/features and checksums",
+    "existing_package_upgrades": false,
+    "missing_cache_entry": "stop and report; no worker-side network resolution"
+  },
+  "shared_candidate_dependencies": {
+    "fixed_decimal": { "version": "=0.7.3", "default-features": false, "features": ["ryu"], "license": "Unicode-3.0" },
+    "icu_plurals": { "version": "=2.4.0", "default-features": false, "features": ["compiled_data"], "license": "Unicode-3.0" },
+    "icu_locale_core": { "version": "=2.4.0", "default-features": false, "features": [], "license": "Unicode-3.0" },
+    "icu_provider": { "version": "=2.4.0", "default-features": false, "features": ["sync"], "license": "Unicode-3.0" }
+  },
+  "icu_comparison_additional_dependency": {
+    "icu_decimal": { "version": "=2.4.0", "default-features": false, "features": ["compiled_data", "unstable", "ryu"], "license": "Unicode-3.0" }
+  },
+  "locale_data": {
+    "shipped": ["en", "ko"],
+    "numeric_data": "full upstream baked decimal/compact/plural sets for the requested components; exact linked markers retained",
+    "subset_datagen": false,
+    "usd_patterns": "same folder-owned USD-only patterns in both candidates",
+    "experimental_all_currency_crate": false
+  },
+  "variants": ["existing", "narrow-decimal-and-plurals", "icu-decimal-compact-and-plurals"],
+  "native": {
+    "target": "x86_64-unknown-linux-gnu",
+    "workspace": "spikes/native",
+    "package": "vessel-app",
+    "profile": "release",
+    "lto": "thin",
+    "codegen_units": "cargo default 16; no override",
+    "debug": "line-tables-only",
+    "strip": ["objcopy --only-keep-debug", "objcopy --strip-debug --add-gnu-debuglink"],
+    "sidecar_basename": "vessel-app.debug in every variant",
+    "measured": "actual installed-form executable bytes; debug sidecar excluded",
+    "distribution_directory_writes": false,
+    "reachability": "formatter reachable through the actual NUMBER callback and its options; no unused dependency or black-box-only size claim"
+  },
+  "portable": {
+    "target": "wasm32-unknown-unknown",
+    "profile": "release with the same workspace settings",
+    "entry": "standalone view localization probe retaining all formatter policies",
+    "strip": "llvm-strip --strip-debug",
+    "claim": "probe bytes and view portability only; not full browser app or browser runtime"
+  },
+  "evidence": [
+    "source commit and exact overlay digest for each variant",
+    "offline cache inventory, scratch lock and resolved features",
+    "compiler and binary-tool versions",
+    "dependency licenses and linked data markers",
+    "build command, acquired/start/end times, queue time excluded",
+    "cold/warm and reused-artifact provenance; unmatched conditions explicitly identified",
+    "compiler/link time and wall duration; no queue delay presented as compile cost",
+    "artifact raw/stripped bytes, SHA256, ownership and modes",
+    "view numeric and selector correctness results distinct from artifact-size results",
+    "native first-frame comparison if formatter construction changes startup"
+  ],
+  "adoption": "coordinator yes/no on ADR diff plus actual numbers before product manifest/lock changes"
+}
