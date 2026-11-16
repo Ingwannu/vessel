@@ -66,3 +66,21 @@ the pinned rusqlite accepts signed SQL integers, not usize/u64 parameters. The
 query probes now use checked i64 conversions and preserve the conversion error
 inside the existing SQL/StoreError chain. This changes no query predicate or
 assertion, adds no panic/default/allow, and remains an ordinary correction.
+
+
+## Exact corrected narrow evidence
+
+Exact479431b2 passed Store all-target strict Clippy with --locked in ordinary
+short run wp-transfer-parentage-sql-20261116T015339Z-479431b2. The same immutable
+source then passed all113 Store library tests (0 failed/ignored), including all
+five new SQL cases, in wp-transfer-parentage-sql-20261116T020750Z-479431b2. Both
+logs show fresh Store checking/compilation and successful cargo steps. The prior
+priority and ordinary helper compilation failures remain recorded; no unchanged
+rerun or priority correction was used.
+
+Cargo.lock is byte-identical to the announced bc9cacc6 parent, SHA256
+ef11d9ea924f364204492f311ac7925c3778d5a56eb6d19f032dba6bd81c6438.
+The result closes this producer's requested narrow checks. V3 source review,
+integrator receiving checks/announcement and actual A5 consumer integration are
+separate obligations; no whole package, delivery or live permission proof is
+implied.
