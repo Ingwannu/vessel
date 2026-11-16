@@ -88,10 +88,7 @@ fn admitted(
                 let mut conversation = ConversationArea::new(cx);
                 conversation.open("fixture", info.id);
                 conversation.info = Some(Box::new(info));
-                SessionResources {
-                    session,
-                    conversation,
-                }
+                SessionResources::new(session, conversation)
             },
             |_, _| panic!("first admission retired"),
             window,
@@ -453,3 +450,5 @@ fn exact_no_send_releases_only_pending_ui_while_uncertainty_preserves_input(
         });
     }
 }
+
+mod installed;

@@ -276,3 +276,37 @@ concrete child query/readonly area. Main/origin Timeline Ready cannot erase a ch
 query/find/confirmation hold, and a timeline reply cannot consume a child ticket.
 The closed owner set requires six concrete clean snapshots before dehydration;
 this value seam neither enables child resources nor promotes a live stream.
+
+## Staged concrete Requests and Lifecycle fields
+
+[Decision Log]
+- Purpose: install the reviewed owner values in the existing resource entry so
+  retirement cannot leave a separate fixture-local owner looking fresh.
+- Existing constraint: the live product still uses its original globals. This
+  packet remains behind the existing test gate and creates no second live store.
+- Alternatives: a SessionId-indexed owner map would duplicate lifetime authority;
+  treating the table's Ready markers as concrete state would discard Loading or
+  uncertain owner values. Both are rejected.
+- Choice: `SessionResources::new` moves the actual session/conversation once and
+  constructs one Requests and one Loading Lifecycle controller in that entry.
+- Why: `begin_follow`, explicit follow retirement and exact connection retirement
+  update these same owner fields before exposing the retirement callback. The
+  actual conversation's recursive navigation retirement uses the same event.
+- Consequences: clean removal checks both installed owner votes in addition to
+  all six canonical votes. It does not write derived Ready back over canonical
+  uncertainty. Explicit guarded reconciliation and snapshot transfer remain a
+  later consumer operation; this conservative stage may retain more state.
+
+Timeline record intake passes the original admitted binding and records to that
+entry's Requests controller before the existing single fold. Only exact resolved
+records can release its retired request uncertainty. Snapshot omission, reconnect
+or a new pending list supplies no equivalent proof. Lifecycle hydration still
+requires `Snapshot::received` inside the original guarded receive callback; cached
+metadata on a new binding cannot authorize lifecycle intent.
+
+The new bundled GPUI fixtures exercise Loading versus table-only Ready, retained
+composer input, automatic full-retirement owner notification and exact pending
+lifecycle uncertainty. They use the staged minter and no real delivery lease.
+They do not prove transport, atomic Request dispatch, rich Pending eligibility,
+expected-end sealing, stop acknowledgement, Window commit, painting or IME.
+The generic lifecycle acknowledgement is never the expected-stop adapter.
