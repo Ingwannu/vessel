@@ -496,3 +496,13 @@ no request, so retaining the connection while the app queue is full would make
 an unrelated notice extend the old transport lifetime. Successful/in-flight
 work retains the existing guarded-send policy. This is prepared source only;
 actual saturation/retirement and close/drain tests still qualify its adoption.
+
+
+Navigation/rail component fixtures seed the existing PromptIndex view model
+through its typed answered transition, asserting Ready before exercising UI.
+They do not fabricate a successful unguarded receive event or a delivery guard.
+The separate actual receive rejection fixture still sends a guardless success
+and asserts no address installation. Genuine positive metadata receive remains
+unverified until canonical protocol assignment reaches the announced app line;
+component fixtures are not evidence for that wire or admission boundary. All
+existing navigation/rail assertions remain in place.

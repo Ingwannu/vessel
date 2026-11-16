@@ -1,4 +1,5 @@
-//! The real shell receives metadata and owns pending navigation; no node is started.
+//! UI navigation over seeded view state; guarded actor receive is tested separately.
+//! No unassigned positive metadata call or valid delivery guard is fabricated.
 
 use gpui::{AppContext as _, Entity, Render, TestAppContext, VisualTestContext};
 use vessel_app_kit::ui::{
@@ -95,14 +96,15 @@ fn seed(shell: &mut Shell, cx: &mut Context<'_, Shell>) -> (IndexTarget, PromptI
         None,
     )
     .unwrap();
-    shell.prompt_index_answered(
-        IndexAnswer {
-            ask,
-            delivery: None,
-            result: Ok(page),
-        },
-        cx,
+    // Seed the component's view model, not the production receive boundary.
+    // Positive metadata RPC is still pending protocol assignment; the genuine
+    // actor suite must prove admission independently once that call is assigned.
+    assert!(index.answered(&ask, Ok(page)).is_none());
+    assert_eq!(
+        index.phase(),
+        vessel_app_view::prompt_index::IndexPhase::Ready
     );
+    cx.notify();
     (target, epoch)
 }
 
