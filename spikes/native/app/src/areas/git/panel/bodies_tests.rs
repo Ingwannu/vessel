@@ -298,7 +298,7 @@ impl Render for Mounted {
     }
 }
 
-fn changed_file(path: RelPath) -> FileDiff {
+pub(super) fn changed_file(path: RelPath) -> FileDiff {
     FileDiff {
         path,
         old_path: None,

@@ -1316,9 +1316,9 @@ in the body consumer; the static concern is kept distinct from a runtime claim.
   it is NOT adopted here. Cached-owner, resize, keyboard reveal and real scroll
   invalidation are not established by these source changes.
 
-A new unexecuted real-Shell fixture uses the ONE layout registry and80 file
-sections in a large viewport, preserves a background Agent tab so layout does
+A new unexecuted real-Shell fixture uses the ONE layout registry and128 file
+sections in a synthetic1280x6000 pressure viewport, preserves a background Agent tab so layout does
 not replace the chosen WorkingDiff, and bounds response/frame iterations. It
-requires32 initial reads then quiescence, actual native outer-wheel movement,
+requires32 initial reads and32 actual text engines then quiescence, actual native outer-wheel movement,
 new visible reads without exceeding32 slots, and renewed quiescence. It does
 not prove OS input, final UI parity, cross-file copy or the whole C3 package.

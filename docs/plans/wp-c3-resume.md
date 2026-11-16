@@ -694,3 +694,22 @@ Recovered historical f1ab logs as well: strict failed101 on then-current fixture
 lints/private unused pull methods; its queued App test was cancelled143 before
 execution. These are older source evidence, not new failures or passes, and no
 run was resubmitted. Latest pre-pressure760 strict stays exact green.
+
+## Exact20d pressure-source strict return
+
+The new App all-target strict completed native-fonts0/native-cargo101 after
+actual App checking: its sole error is unused_qualifications on the test's
+super::tests::prepare path (the parent glob already imports tests). Remove
+only that qualification; no product logic or assertion is weakened. Exact20d
+is not a Clippy pass, and no selected pressure test ran. Keep full logs.
+
+The coherent successor also strengthens that new pressure fixture: reuse the
+existing typed changed_file test data rather than Unchanged notices, require32
+actual document engines,128 summary files and a synthetic1280x6000 viewport
+with a4000-pixel wheel packet. This large viewport stresses resource pressure;
+it is not a final UI capture size or physical desktop/OS proof. The same32-slot
+quota,33rd visible header, bounded frame loop and quiescence/progress assertions
+remain. Only the existing fixture helper gains pub(super) test visibility.
+Current product source stays byte-identical20d; the shared notification leaf is
+still awaiting its independent queued wheel test/V1 adoption. Next: one grouped
+changed-test-source strict correction, then the actual pressure selection.

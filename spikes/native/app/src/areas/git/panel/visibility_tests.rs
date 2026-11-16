@@ -6,7 +6,6 @@ use tokio::sync::mpsc;
 use vessel_app_link::git_panel::{Answer, Outcome};
 use vessel_app_link::{Command, Link};
 use vessel_app_view::layout::{LayoutKey, OpenIntent, Placement, Target};
-use vessel_proto::workspace::{ChangeStatus, DiffContent, FileDiff};
 
 fn background_agent(
     shell: &mut Shell,
@@ -63,17 +62,7 @@ fn finish_visible_calls(
                     Answer {
                         address,
                         context,
-                        outcome: Outcome::File(
-                            ticket,
-                            Ok(FileDiff {
-                                path,
-                                old_path: None,
-                                status: ChangeStatus::Modified,
-                                mode: None,
-                                content: DiffContent::Unchanged,
-                                more_from: None,
-                            }),
-                        ),
+                        outcome: Outcome::File(ticket, Ok(tests::changed_file(path))),
                     },
                     cx,
                 );
@@ -94,32 +83,33 @@ fn finish_visible_calls(
 }
 
 #[gpui::test]
-fn actual_registry_visible_slots_quiesce_and_outer_wheel_releases_old_vetoes(
+fn actual_registry_visible_engines_quiesce_and_outer_wheel_releases_old_vetoes(
     cx: &mut TestAppContext,
 ) {
     language_tests::init(cx);
     let (link, mut inbox) = Link::detached(128).unwrap();
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = Shell::with_test_link(window, cx, link);
-        let (address, _paths) = super::tests::prepare(&mut shell, window, cx, 80, &mut inbox);
+        let (address, _paths) = tests::prepare(&mut shell, window, cx, 128, &mut inbox);
         background_agent(&mut shell, &address, window, cx, &mut inbox);
         shell
     });
-    cx.simulate_resize(size(px(1280.), px(2400.)));
+    cx.simulate_resize(size(px(1280.), px(6000.)));
     assert_eq!(finish_visible_calls(&shell, &mut inbox, cx), MAX_BODY_FILES);
     assert_eq!(finish_visible_calls(&shell, &mut inbox, cx), 0);
     let extra = cx
         .debug_bounds("git-file-section-32")
         .expect("33rd actual file section");
     assert!(extra.size.height > px(0.));
-    assert!(extra.top() >= px(0.) && extra.bottom() < px(2400.));
+    assert!(extra.top() >= px(0.) && extra.bottom() < px(6000.));
     let before = shell.read_with(cx, |shell, _| {
         let entry = shell.areas.git.panels.entries.values().next().unwrap();
+        assert_eq!(entry.documents.len(), MAX_BODY_FILES);
         (entry.files.top(), shell.areas.git.panels.body_order.clone())
     });
     cx.simulate_event(gpui::ScrollEvent {
-        position: point(px(1000.), px(1600.)),
-        delta: gpui::ScrollDelta::Pixels(point(px(0.), px(-1400.))),
+        position: point(px(1000.), px(4000.)),
+        delta: gpui::ScrollDelta::Pixels(point(px(0.), px(-4000.))),
         touch_phase: gpui::TouchPhase::Moved,
         ..Default::default()
     });
