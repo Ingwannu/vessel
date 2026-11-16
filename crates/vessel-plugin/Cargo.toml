@@ -1,0 +1,35 @@
+[package]
+name = "vessel-plugin"
+description = "Trusted plugin helper framing, bounded admission and process-group supervision"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[features]
+# Explicit process fixtures only; not part of a product binary or node selector.
+fixture = ["tokio/io-std"]
+
+[[bin]]
+name = "vessel-plugin-fixture"
+path = "tests/fixtures/peer.rs"
+required-features = ["fixture"]
+
+[dependencies]
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+vessel-proc.workspace = true
+vessel-proto.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+# Deterministically arbitrate a completed Ready frame at its expired deadline.
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true
