@@ -1,6 +1,7 @@
 //! Canonical writer commits keep one clock, including rollback and direct metadata.
 
 use chrono::{DateTime, TimeDelta, Utc};
+use clock_fixture::{clock, inject, next};
 use fixtures::{at, data_dir, new_session, open, output, status};
 use rusqlite::{Connection, params};
 use vessel_proto::{
@@ -13,41 +14,11 @@ use vessel_store::{DataDir, StoreConfig, StoreError};
 
 #[cfg(test)]
 #[path = "support/fixtures.rs"]
+#[expect(
+    dead_code,
+    reason = "shared store fixtures include rollback and paging helpers"
+)]
 mod fixtures;
-
-fn clock(dir: &DataDir, id: SessionId) -> Option<SessionUpdatedAt> {
-    let connection = Connection::open(dir.database_path()).unwrap();
-    let raw: Option<i64> = connection
-        .query_row(
-            "SELECT updated_at FROM sessions WHERE id=?1",
-            [id.to_string()],
-            |row| row.get(0),
-        )
-        .unwrap();
-    raw.map(|nanos| SessionUpdatedAt::try_from(DateTime::from_timestamp_nanos(nanos)).unwrap())
-}
-
-// Test-only corruption/future-time injection, after an acknowledged write.
-// No production setter accepts a caller's timestamp.
-fn inject(dir: &DataDir, id: SessionId, time: DateTime<Utc>) {
-    let connection = Connection::open(dir.database_path()).unwrap();
-    let _rows = connection
-        .execute(
-            "UPDATE sessions SET updated_at=?2 WHERE id=?1",
-            params![id.to_string(), time.timestamp_nanos_opt().unwrap()],
-        )
-        .unwrap();
-}
-
-fn next(previous: SessionUpdatedAt) -> SessionUpdatedAt {
-    SessionUpdatedAt::try_from(
-        previous
-            .time()
-            .checked_add_signed(SessionUpdatedAt::MIN_INCREMENT)
-            .unwrap(),
-    )
-    .unwrap()
-}
 
 #[tokio::test]
 async fn one_nonempty_batch_and_each_mark_tick_once_without_using_record_time() {
@@ -312,4 +283,45 @@ async fn corrupt_precision_refuses_reads_and_rolls_back_a_metadata_write() {
     assert!(!pinned);
     assert_eq!(kept, at(0).timestamp_nanos_opt().unwrap());
     store.close().await;
+}
+
+// Keep corruption and clock-bound assertions wholly in the test configuration,
+// as the shared store fixture does; none is an application timestamp setter.
+#[cfg(test)]
+mod clock_fixture {
+    use super::*;
+
+    pub(super) fn clock(dir: &DataDir, id: SessionId) -> Option<SessionUpdatedAt> {
+        let connection = Connection::open(dir.database_path()).unwrap();
+        let raw: Option<i64> = connection
+            .query_row(
+                "SELECT updated_at FROM sessions WHERE id=?1",
+                [id.to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        raw.map(|nanos| SessionUpdatedAt::try_from(DateTime::from_timestamp_nanos(nanos)).unwrap())
+    }
+
+    // Test-only corruption/future-time injection, after an acknowledged write.
+    // No production setter accepts a caller's timestamp.
+    pub(super) fn inject(dir: &DataDir, id: SessionId, time: DateTime<Utc>) {
+        let connection = Connection::open(dir.database_path()).unwrap();
+        let _rows = connection
+            .execute(
+                "UPDATE sessions SET updated_at=?2 WHERE id=?1",
+                params![id.to_string(), time.timestamp_nanos_opt().unwrap()],
+            )
+            .unwrap();
+    }
+
+    pub(super) fn next(previous: SessionUpdatedAt) -> SessionUpdatedAt {
+        SessionUpdatedAt::try_from(
+            previous
+                .time()
+                .checked_add_signed(SessionUpdatedAt::MIN_INCREMENT)
+                .unwrap(),
+        )
+        .unwrap()
+    }
 }

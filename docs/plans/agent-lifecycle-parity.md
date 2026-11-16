@@ -1480,3 +1480,13 @@ ordinary device/attachment/automation branches reuse the existing unit-answer
 helper. Operation order, closures, errors, effects and commit-before-reply are
 unchanged. This separate refactor shrinks dispatch without an exemption, numeric
 budget change or modified test expectation. The original failure is retained.
+
+
+### Clock fixture configuration after strict checking
+
+The current strict check reached the new Store integration fixture and found
+its three clock/corruption helpers outside the test-only module convention.
+They now live in a cfg(test) module, and the shared fixture import records why
+its unrelated paging/rollback helpers are unused here, as existing tests do.
+No helper body, input, assertion, deadline or product behavior changes. The
+original strict result remains red; the corrected strict check remains owed.
