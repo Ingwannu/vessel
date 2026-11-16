@@ -542,3 +542,29 @@ revision. Current-label apply/Ready remains held until tested source proves the
 atomic labels/cursor snapshot, including initial creation's live-to-store edge,
 or establishes a typed watermark/causal-read contract. W10/W12/C2 share this
 hold, and no native compile leaf has been installed.
+
+
+## Current resume point after base13
+
+Merged only announced appbase13 `2ebeedf9`, retaining both history and label
+registrations and the shared preference-save implementation. Local source size,
+token and diff checks pass; current native compilation/runtime/captures remain
+owed after the older scoped45-test result. No whole node head entered this app.
+
+The separate label node source now includes announceded4, exact generated TS
+and an in-progress frozen whole gate. Prior171d passed six-package all-target
+strict and38 actual runtime tests, including the real Store and generated guard;
+that scoped evidence is not whole/V3 acceptance or permission to invent an app
+capability. Label methods remain pending None.
+
+Both sidebar and layout owners reaffirm no checked authoritative native
+workspace row/header runtime producer for original context, active fact and
+ordered assignments. Keep the picker staged and unregistered; presentation keys
+are not authority. The current-session label watermark/event producer is also
+separate and unready, so no current-map apply/Ready transition is installed.
+
+A separately assigned additive SearchField leaf is prepared on base13: existing
+engine FieldId callbacks, id/focus/set_text, no new renderer and byte-identical
+plain new/clear/render. It is uncompiled/unreviewed and not adopted here. After
+its remote narrow and V1/lead acceptance, switch only the manager consumer in a
+separate range, preserving the existing opening/source callback regression.
