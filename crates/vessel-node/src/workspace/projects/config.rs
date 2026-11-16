@@ -64,7 +64,13 @@ fn edit_error(error: &ConfigEditError) -> WireError {
         | ConfigEditError::Text(_)
         | ConfigEditError::Read(_)
         | ConfigEditError::Write(
-            FileError::Kind(..) | FileError::NotEmpty(_) | FileError::TooLarge,
+            FileError::Kind(..)
+            | FileError::NotEmpty(_)
+            | FileError::TooLarge
+            | FileError::TransferTooLarge
+            | FileError::Offset
+            | FileError::CopyLimit
+            | FileError::InvalidEntry(_),
         ) => ErrorCode::InvalidRequest,
         ConfigEditError::Root(_) | ConfigEditError::Write(FileError::Path(_)) => {
             ErrorCode::NotFound
