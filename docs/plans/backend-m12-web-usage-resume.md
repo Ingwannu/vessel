@@ -71,3 +71,8 @@ managed same-source fixture and affected theme/locale/size captures before
 the package review. Node/native/CLI source rows belong to their source owner;
 this track owns only the web presentation row. No extra unchanged control
 run, historical replay or old-source export is required.
+
+## Taken over (2026-11-16)
+
+The account methods are assigned protocol 26 on node head d077aa94. impl U (Claude wave) builds the consumer
+from these values in its own tree: see docs/plans/m12-impl-usage-page.md.
