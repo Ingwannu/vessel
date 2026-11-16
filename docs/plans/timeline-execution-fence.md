@@ -286,3 +286,11 @@ loss, deadline while spawn is held, failed stop, exact child/count marker mismat
 concurrent last slot, duplicate child id and parent replacement with identical
 SessionId. Existing setup/final supervision remains bounded and retains work
 through settlement. No positive bound creation is enabled by this document.
+
+
+The staged capture now also exposes its own `invalidated(&mut self)` observation
+wait. It awaits the original watch and re-reads its actual registry; it never
+recaptures a fresh UUID or returns an unlocked admission proof. The existing
+named fake-runtime supervision encloses both the invalidation and sender-closure
+wait assertions. This observation-only checkpoint remains cfg(test), unqualified
+for product use until exact source/runtime review and the concrete capsule join.

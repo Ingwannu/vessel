@@ -11,7 +11,7 @@ use vessel_proto::{ExecutionIncarnationId, SessionId};
 #[cfg(test)]
 mod capture;
 #[cfg(test)]
-pub(crate) use capture::{CaptureRefusal, ExecutionObservation};
+pub(crate) use capture::{CaptureRefusal, CapturedParentExecution, ExecutionObservation};
 
 #[derive(Debug, Clone, Copy)]
 struct Change {

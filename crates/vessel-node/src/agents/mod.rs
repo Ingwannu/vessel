@@ -55,7 +55,7 @@ use crate::principal::Principal;
 
 mod execution;
 #[cfg(test)]
-pub(crate) use execution::{CaptureRefusal, ExecutionObservation};
+pub(crate) use execution::{CaptureRefusal, CapturedParentExecution, ExecutionObservation};
 
 /// Live sessions an agent may own (that it created itself) at once.
 pub(crate) const MAX_OWNED: usize = 8;

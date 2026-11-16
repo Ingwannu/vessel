@@ -43,6 +43,16 @@ impl CapturedParentExecution {
         self.ceiling
     }
 
+    /// Wait on this original capture, never a replacement incarnation. The
+    /// tracked owner supplies its named supervision deadline and retains any
+    /// in-flight spawn through settlement; this notification grants no effect.
+    pub(crate) async fn invalidated(&mut self) -> ExecutionObservation {
+        if self.changed.changed().await.is_err() {
+            return ExecutionObservation::Unavailable;
+        }
+        self.observation()
+    }
+
     pub(crate) fn observation(&self) -> ExecutionObservation {
         let entries = self.agents.lock();
         let Some(entry) = entries.get(&self.stamp.session) else {

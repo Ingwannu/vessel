@@ -1,7 +1,7 @@
 //! Staged capture tests use actual registered fake SessionHandles. They do not
 //! qualify parentage, queue insertion, persistence or a private notice capability.
 use super::*;
-use crate::agents::{Agents, CaptureRefusal, ExecutionObservation};
+use crate::agents::{Agents, CaptureRefusal, CapturedParentExecution, ExecutionObservation};
 use crate::principal::Principal;
 use std::time::Duration;
 use vessel_proto::timeline::{ExecutionInvalidation, FinishGrantCeiling};
@@ -91,7 +91,7 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
             limited.capture_execution(&local),
             Err(CaptureRefusal::Grant)
         ));
-        let captured = agents.capture_execution(&local).unwrap();
+        let mut captured: CapturedParentExecution = agents.capture_execution(&local).unwrap();
         assert_eq!(captured.stamp().node, node);
         assert_eq!(captured.stamp().session, session);
         assert_eq!(captured.ceiling(), FinishGrantCeiling::ReadOperate);
@@ -101,7 +101,11 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
             captured.observation(),
             ExecutionObservation::Invalidated(Some(ExecutionInvalidation::PersonStop))
         );
-        let fresh = agents.capture_execution(&local).unwrap();
+        assert_eq!(
+            captured.invalidated().await,
+            ExecutionObservation::Invalidated(Some(ExecutionInvalidation::PersonStop))
+        );
+        let mut fresh = agents.capture_execution(&local).unwrap();
         assert_ne!(captured.stamp().incarnation, fresh.stamp().incarnation);
         // A later fresh capture never replaces authority in the old object.
         assert_eq!(captured.ceiling(), FinishGrantCeiling::ReadOperate);
@@ -111,6 +115,7 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
         );
         agents.retire(session);
         assert_eq!(fresh.observation(), ExecutionObservation::Unavailable);
+        assert_eq!(fresh.invalidated().await, ExecutionObservation::Unavailable);
         fixture.runtime.shutdown().await;
         // Ended is refused even while another registry still retains its entry.
         assert!(matches!(
