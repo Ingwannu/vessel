@@ -329,11 +329,22 @@ fn uncertain_effect_survives_undo_and_fresh_reads_until_original_completion() {
         model.read(stale_read, Read::Text("old".into(), version(3))),
         Step::None
     );
-    let fresh = read_of(&model.reconcile());
-    assert_eq!(
-        model.read(fresh, Read::Text("baseline".into(), version(8))),
-        Step::None
-    );
+    let unchanged_read = model.reading();
+    assert_eq!(model.reconcile(), Step::None);
+    assert_eq!(model.reading(), unchanged_read);
+    // Unknown remote effects never issue a recovery read. Even an unsolicited
+    // observation of the baseline, submitted bytes or other content is not
+    // terminal evidence for the original attempt.
+    for observed in ["baseline", "submitted", "third content"] {
+        assert_eq!(
+            model.read(unchanged_read, Read::Text(observed.into(), version(8))),
+            Step::None
+        );
+        assert_eq!(model.writing(), Some(sequence));
+        assert_eq!(model.write_state(), Some(super::WriteState::Uncertain));
+        assert_eq!(model.content(), "baseline");
+        assert_eq!(model.status(), EditorStatus::Error);
+    }
     assert_eq!(model.writing(), Some(sequence));
     assert_eq!(model.write_state(), Some(super::WriteState::Uncertain));
     assert_eq!(model.content(), "baseline");

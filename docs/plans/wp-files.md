@@ -13,9 +13,11 @@ Kit/View/Link/App with warnings denied (wp-files-narrow-20261116T011243Z-682e018
 That proof precedes the base-only ad14f5f6 merge; it is not a whole native gate.
 Actual tests14 on95ab8b89 passed App184/0/2, then failed one old Markdown
 prototype fixture in Kit249/1/0 and stopped before View/Link runtime. The
-canonical B2 Markdown producer now replaces the independent fence scanner;
-receiving runtime tests15 remain queued. The new wasm boundary check is also
-queued. Neither has a result yet, and the earlier failed evidence is retained.
+canonical B2 Markdown producer replaced that independent fence scanner.
+Receiving tests15 ondfd1e3b2 then passed App184/0/2, Kit255/0/0 and Link119/0/0;
+View1049/2/0 failed its dependency inventory and one obsolete recovery-read
+expectation. Those two corrections are below; current View checks are owed.
+The separate wasm boundary check remains queued. Earlier failed runs are kept.
 
 The existing-engine revision regression distinguishes A→X→A even when text
 equals the old snapshot. The standalone vendor/Kit producer passed bounded
@@ -1185,3 +1187,29 @@ The separate editor revision producer passed bounded V1 source/strict/runtime
 conditions and was handed to the lead as its two source leaves and documentation
 receipt. Line adoption is awaiting its announced green gate. This is not
 C5 whole-package approval; vendor-private execution remains explicitly absent.
+
+## First complete selected runtime execution and two corrections
+
+Run wp-files-query-values-20261116T005734Z-dfd1e3b2 executed all four selected
+packages: App184/0/2, Kit255/0/0, Link119/0/0 and View1049/2/0. Total1607
+passed,2 failed,2 ignored; this is not a whole gate or a successful selected suite.
+The canonical Markdown replacement and actual editor/field cases passed.
+
+[Decision Log]
+- Purpose: preserve the sticky original write contract and report the actual
+  runtime dependency licences rather than weaken checks after their first run.
+- Existing constraints: an Uncertain attempt blocks reconcile entirely; even a
+  fresh read cannot prove the original remote write ended. The owned test still
+  tried to extract a new read step from reconcile, a superseded fixture premise.
+- Choice: assert reconcile returns None without allocating a read sequence,
+  then inject baseline/submitted/third-content observations and require the same
+  original attempt, Error status and local undo to remain held. Keep wrong-ticket
+  rejection and definitive original-completion settlement assertions unchanged.
+- Why: the test now checks the stricter agreed contract without enabling reads,
+  retrying writes, clearing uncertainty or modifying production editor behavior.
+- Dependency disclosure: add serde-saphyr in the shared manifest order using the
+  exact locked1.3.0 manifest licence MIT OR Apache-2.0 and the existing Data role.
+  The inventory equality assertion remains unchanged; no dependency is excluded.
+- Cost and validation: only the About data row and owned regression change;
+  corrected-source View tests/strict are required. Existing results remain scoped
+  to their exact source. No live service, account or permission mutation occurred.

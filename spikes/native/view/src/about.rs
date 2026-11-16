@@ -121,6 +121,7 @@ pub const BUNDLED: &[Bundled] = &[
     krate("serde_json", "MIT OR Apache-2.0", Role::Data),
     krate("sys-locale", "MIT OR Apache-2.0", Role::Language),
     krate("thiserror", "MIT OR Apache-2.0", Role::Errors),
+    krate("serde-saphyr", "MIT OR Apache-2.0", Role::Data),
     krate("tokio", "MIT", Role::Network),
     krate("tracing", "MIT", Role::Logs),
     krate("tracing-subscriber", "MIT", Role::Logs),
