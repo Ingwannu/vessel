@@ -9,6 +9,22 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Announced base14.1 receiving composition
+
+Merged the announced app line b54abbdc into the browser worktree as
+7ec37ab326010df161df24b33ba30253f0d6a5d9. The sole merge conflict was the
+kit module list: preserve both the shared image_input decoder and incoming
+icon_chrome registration. No browser policy, native frame ownership, renderer
+behavior or input/focus registration changed.
+
+Run wp-browser-native-narrow-20261116T025412Z-7ec37ab3 passed native fonts
+and Kit/View/App all-target strict Clippy, each rc0, at03:03:03 UTC. This is
+receiving-source compilation evidence only. The prior base13 two CPU frame
+composition tests remain prior-source evidence; no newer functional execution,
+actual frame stream, first paint/GPU output, qualified engine, live focus,
+credential/Preview authority or supported feature is claimed. The sole panel
+continues to render NoEngine.
+
 ## Current native implementation boundary
 
 The pane owner retains layout and resource tickets. Browser rendering uses its
