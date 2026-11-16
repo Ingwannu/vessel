@@ -1,5 +1,7 @@
 # W17 current invocation map
 
+Quota-stop continuation: read [the committed resume notes](wp-w17-resume.md) first.
+
 Current source includes announced gate60 node head
 `ee8e345013d6756dfc55b1ed008a352db32786c7`, protocol25/schema21, merged at
 `e555300bf`. The earlier gate58b LaunchAdmission and RuntimeServices union keeps
