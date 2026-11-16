@@ -75,3 +75,10 @@ file docs/plans/wp-f4-sidebar-resume.md on backend/m12-wp-sidebar. Main receivin
 strict and its one runtime replacement remain ahead. Latest announced14.4 is
 intentionally unmerged during the stop. Start no new merge, control or Cargo
 until resumed. All current source is committed; no local app/fleet/display ran.
+
+Terminal closeout update: placement025223 on exact3958ad38 finished03:51 UTC,
+fonts0/cargo0, three tests passed,271 filtered. There is no remaining S2 Cargo
+job. V1 f0838d9b recorded INTAKE ONLY and review/adoption HOLD for resume;
+prior1b strict is not exact395 strict. Earlier queued-job wording above is the
+historical checkpoint. This result validates none of this leaf's source.
+No new run, merge, control or consumer registration was started at closeout.
