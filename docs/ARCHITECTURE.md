@@ -2082,3 +2082,24 @@ This view has no node consumer yet: the node's draft command listing, recovery
 separate packages. `vessel-agent::probe_catalog_with` waits for both Ready and
 a command report; the native Codex driver does not report its catalogue in this
 stage, so a Codex catalogue probe ends `CatalogTimedOut` at its deadline.
+
+## Account quota presentation preparation (page)
+
+The page's dependency-free `quota-percent` value owns the finite 0–100 paint
+invariant, shared by data projections and the kit without a reverse import.
+`data/account-usage` owns independent reported balance units, validated
+instants and reset/exhaustion/freshness view states. It is separate from `data/usage`, which presents node-owned historical
+ledger totals and coverage, and from the context meter. The preparation has no
+transport or registered surface; its future adapter requires the assigned
+account-report contract. ADR 0075 records the boundary and existing assets.
+
+The inactive account-usage host chooser selects existing branded book keys
+from explicit connection/capability facts. It owns neither lookup policy nor
+account binding; a saved host preference is not a session's saved-login proof.
+
+The inactive quota presentation also owns localized duration/percent and
+reset-clock hints, plus the measured summary fitting policy. Exact clock
+hints are derived only from a future reset, using a supplied device clock
+formatter; run-out forecasts have no exact reset hint. Fitting reserves a
+useful track width, never a minimum fill. None of these policies observes
+the DOM, reads device preferences or starts an account lookup.

@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: A1, paired page corrections and A2a accepted; feedback package narrow checks pass, whole/browser/captures pending, 2026-11-15. ADR 0075.
+Status: A1, A2a and bounded feedback corrections accepted and integrated; shared quota meter source/specimens and coordinator comparison accepted. F3 account surfaces remain inactive pending their merged report contract, 2026-11-16. ADR 0075.
 
 ## Scope and evidence
 
@@ -8,7 +8,10 @@ The browser client remains `web/` behind the local bridge (ADR 0017),
 retained under ADR 0036 while ADR 0035's native client develops. ADR 0020
 was never accepted and is historical, replaced by ADR 0035. This track changes no native source and adds no protocol.
 Original inventory row origins: `7f87d41c` (protocol 21). Node availability
-columns are updated through merged `f453ec2e` (protocol 23, schema 17); native source snapshot:
+columns retain the merged `f453ec2e` inventory (protocol 23, schema 17), with
+explicit workspace-registry/diagnostics deltas below checked against merged
+`bc9cacc6` (protocol 25, schema 21). This is not a fresh behavioral audit of
+every incoming package. Native source snapshot:
 `1fc0f66a`; Paseo 0.15.4: `1c00b365`. Native working drafts and unrelated
 branches are excluded: presence in a branch is not an integrated screen.
 
@@ -89,7 +92,7 @@ new wire number or native modification.
 | F41 / m11:148 / Approve or refuse in the session, with the agent's own choices | session.send answer_permission | session/permission-dock.tsx | conversation/permission.rs | [P06](#reference-p06) | Existing choices; permission-card text/layout follow actual request, with scoped failure. |
 | F42 / m11:149 / Everything waiting on you, from every machine, in one place | inbox.list/get/mark22; existing session.send validates answers | board/lane.tsx plus individual session docks | board/mod.rs; conversation/dock.rs, no inbox renderer | [P06](#reference-p06); [P32](#reference-p32) | Assigned inbox contract is available; dedicated fleet list/answer-in-place remains B1/B2, including read-only refusal. |
 | F43 / m11:150 / Answer from the command line or from another agent | CLI session answer and agent tools; session.send | session/question-dock.tsx; permission-dock.tsx | conversation/permission.rs; question.rs | [P06](#reference-p06); [P07](#reference-p07) | No separate CLI screen required; retain identical resolved request identities. |
-| F44 / m11:156 / Projects: add a folder, clone, start new | project.list/get/add/clone/init/remove | projects/add-project-dialog.tsx; projects-section.tsx | workspace/projects.rs | [P18](#reference-p18) | Existing add/clone/init; clone/setup failures and cancellation need visual review. |
+| F44 / m11:156 / Projects: add a folder, clone, start new | project.list/get/add/clone/init/remove; workspace.registry/list/get/rename/pin/release_automation25 | projects/add-project-dialog.tsx; projects-section.tsx | workspace/projects.rs | [P18](#reference-p18) | Existing add/clone/init; clone/setup failures and cancellation need visual review. |
 | F45 / m11:157 / A worktree and branch per session | worktree.list/create/output/remove | compose/start-worktree.ts; workspace/setup-card.tsx | workspace/start_card.rs | [P18](#reference-p18) | Existing per-session worktree start; do not bypass setup approval. |
 | F46 / m11:158 / Per-project setup and teardown commands, scripts, environment | project.commands/approve; worktree.setup; script.list/run | projects/project-commands.tsx; script-list.tsx (approval only) | workspace/approval.rs | [P18](#reference-p18); [P23](#reference-p23) | Approval display exists; script execution/service controls missing in web. |
 | F47 / m11:159 / Diff: working, staged, everything since the base branch | git.status/changes/diff/show/log | workspace/changes-tab.tsx; scope-menu.tsx | workspace/code/changes.rs | [P19](#reference-p19) | Existing working/staged/base scopes; compare default and empty/error behavior. |
@@ -137,7 +140,7 @@ new wire number or native modification.
 | F89 / m11:226 / Languages | Client language resources; not node wire | English labels; no page locale selector | settings/language.rs; Fluent-backed text source | [P39](#reference-p39) | Shared translation integration is separate; first feature must not claim whole-page Korean parity. |
 | F90 / m11:227 / Command palette | Client command registry | palette/palette.tsx; data/palette.ts | palette.rs | [P13](#reference-p13); [P31](#reference-p31) | Existing command palette; add working routes only, not future capabilities. |
 | F91 / m11:228 / Update from the page | node.stop3 and CLI node update; no remote-update RPC | settings/about.tsx has versions, not update action | update.rs app updater, not node update | [P24](#reference-p24) | Node update UI remains blocked by its missing update contract; app updater and node.stop do not supply remote update. |
-| F92 / m11:229 / Diagnostics | node.info; staged diagnostic types/collector, no assigned report RPC | settings/about.tsx; no diagnostics report | settings/sections.rs Diagnostics=None | [P40](#reference-p40) | Basic versions exist; diagnostics screen needs assigned report transport. Staged collector/redaction values alone are not callable. |
+| F92 / m11:229 / Diagnostics | node.info; node.diagnostics24 | settings/about.tsx; no diagnostics report | settings/sections.rs Diagnostics=None | [P40](#reference-p40) | Bounded metadata report transport is now assigned; a page report renderer and refusal/error states remain absent. No provider refresh is implied. |
 | F93 / m11:230 / Plugins | Plugin management wire not on base | No plugins section | settings/sections.rs Plugins=None | [P33](#reference-p33) | Blocked; no arbitrary script/plugin loading in browser. |
 
 ## Milestone 12 feature rows
@@ -158,7 +161,7 @@ assignments as current implementation proof.
 | m12:367 / Machines/devices/sync (F63–F69) | device.*; fleet.status/published/join/leave/sync | machines/machines-section.tsx; settings/{devices-section,sync-section}.tsx | pair/render.rs; settings/{devices,sync}.rs | [P24](#reference-p24) | Wire existing fleet Admin actions and self-scopes; no credential exposure. |
 | m12:368 / Automation (F75–F78) | schedule.*; prompt.*; hooks absent | No automation route | No schedule renderer in pinned settings/sections.rs | [P25](#reference-p25) | Largest unimplemented ready family: list then edit/preview/actions/runs; hooks wait. |
 | m12:369 / Board/sidebar/palette/notices (F79–F82,F90) | session board/marks plus client preferences | board/board-page.tsx; shell/sidebar.tsx; palette/palette.tsx | board/mod.rs; sidebar.rs; palette.rs | [P05](#reference-p05) [P32](#reference-p32) [P37](#reference-p37) | Durable inbox; regress existing controls rather than replacing their design. |
-| m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings/stop; staged diagnostics, no assigned report/update RPC | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation/themes remain; diagnostics and remote update still need callable assigned contracts. |
+| m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings/stop; node.diagnostics24; no assigned update RPC | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation/themes remain; diagnostics presentation is missing, while remote update still needs an assigned contract. |
 | m12:371 / History/lifecycle (F13–F18,F20) | session.rewind/fork/search/park/wake; agent.history; no cross-agent handoff | No these action surfaces; session resume exists | conversation/rewind.rs; search.rs partial | [P10](#reference-p10) [P11](#reference-p11) [P12](#reference-p12) [P14](#reference-p14) [P24](#reference-p24) | Wire existing history/lifecycle actions incrementally; no file restore promise. |
 | m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a agent/profile selection is accepted; next A3/A4 consent/windows/factual notices on assigned limits calls. |
 | m12:373 / Phone/push (F71–F72) | Shared node transport; push.key/subscribe/unsubscribe/presence22 | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
@@ -1408,7 +1411,7 @@ real account, deployment or combined latest-line approval is claimed.
 
 | Investigation | State | Evidence | Next |
 |---|---|---|---|
-| WEB-IDENTITY-1: intermittent web UI identity refusal under build-VM load | Open; cause unknown. Investigate after the feedback package; no further unchanged replays. | Source `811c18d53`; whole `webparity-20261115T143312Z-811c18d5` (78 passed / one timeout); authorized single replay `webparity-20261115T153059Z-811c18d5` (one passed; 7.0s case, 26.3s including fixture). Error-context SHA256 `d5667e687c89c749f2099486637274d897e513c613cc08343de913e0494fb783`. | Follow the one-use bootstrap, challenge/hello/welcome proof, socket refusal/drop and receipt-persistence paths from source; identify the cause before changing behavior. |
+| WEB-IDENTITY-1: intermittent web UI identity refusal under build-VM load | Bounded timeout-classification correction accepted and integrated; historical unique cause remains unproven. Separate creation-route intermittent stays independently owned. | Source `811c18d53`; whole `webparity-20261115T143312Z-811c18d5` (78 passed / one timeout); authorized single replay `webparity-20261115T153059Z-811c18d5` (one passed; 7.0s case, 26.3s including fixture). Error-context SHA256 `d5667e687c89c749f2099486637274d897e513c613cc08343de913e0494fb783`. | The auth plan records source, real-server execution and first owning combined-whole disposition. No additional historical replay or claim that a spent bootstrap is restored. |
 
 The retained DOM says “The UI was restarted or its identity could not be
 verified”. This is an actual identity-verification refusal, not evidence
@@ -1427,3 +1430,176 @@ uses a controlled regression from the confirmed cause, not repeated
 unexplained browser runs. This investigation precedes the next usage-page
 implementation; the new account-report contract remains gated on its
 reviewed, assigned and merged node source.
+
+
+## F3 account usage: presentation skeleton
+
+The prior auth timeout correction is integrated; its final bounded runtime
+review uses the existing integrated whole with the named open `/new`
+intermittent. The next assigned web package is the Usage parity consumer.
+Its report/inspect/source-consent calls are not yet reviewed, assigned and
+merged. They remain inactive; no provisional protocol number is invented.
+
+The first implementation is pure presentation under `data/account-usage`:
+finite clamped percentage, independent used/remaining preference, reported
+source tone, separately formatted balance units, validated instants, reset
+versus exhaustion states, and successful snapshot age. Source references and
+reuse decisions are recorded in ADR 0075. The files do not define a wire DTO,
+register a UI, read credentials, fetch a provider or infer account association.
+Tests cover unknown versus zero, finite bounds, source thresholds, locale
+formatting, two-unit floor/boundaries and retained past risk. Their execution
+is recorded at the implementation checkpoint; no feature gate or visual pass
+is claimed by this skeleton.
+
+After the assigned source is ready, add its typed adapter and a selection-owned
+bounded reader, preserving exact machine/session/report binding. Reuse the
+existing Settings and kit controls for cards, source consent, modal/sidebar
+summary and session quota notice. Cached Read never becomes vendor polling;
+Refresh is explicit and distinct from a foreign cached Refreshing snapshot.
+Global Off clears external-account presentation while reported ledger/context
+stays available. Host errors retain complete data when present; agent errors
+hide partial account data. A per-report failure retains the original successful
+timestamp and does not retain past risk or summary eligibility.
+
+Use the managed real-node fixture after exporting the exact reviewed, assigned,
+merged combined source. Seed a success before holding its actual reader; always
+release the synthetic hold before shutdown. No browser-authored quota payload,
+old-backend/new-page mixture, real sign-in or vendor probe substitutes for this.
+The one package whole and affected real-browser matrix come after the consumer
+is complete, not once per small presentation commit.
+
+Initial pure presentation checks: two test files, eleven passing tests; both
+TypeScript configurations and the changed-file ESLint pass. Prettier and the
+diff check pass. These narrow checks compile no Rust and are not the one
+feature-package whole, a screen capture, or a report-consumer runtime test.
+
+The shared value is then extracted to dependency-free `quota-percent`, with
+its unchanged data API re-exported and a leaf import rule. Its constructor
+body is byte-identical; the clamp test and infinity assertion move with it.
+The first refactor check catches one unused moved-test import; removing that
+import yields both typechecks, changed ESLint and all eleven tests passing
+across three files. The original failed check remains recorded. No screen,
+wire adapter or package whole is activated by this structural change.
+
+
+The coordinator assigns N2 sole ownership of the shared web quota meter under
+TRACKER 771, separately from W5's native controls. The kit control is first
+rendered only in its unlinked `/kit` gallery. Before a Usage surface consumes
+it, submit pure tests and original light/dark 0/50/100/overflow specimens to
+the reviewer and coordinator. The capture cases also cover 390px width and
+both browser locales; they assert actual 6px/3px geometry and zero-width zero.
+Use one managed same-source root-fleet export for these local browser checks;
+no local Rust, stale backend/new page mixture or vendor quota mock is needed.
+
+The initial shared-control source passes both typechecks, full web lint
+(including formatting, 132 font stacks, kit-only native controls and size),
+and fifteen pure tests across four files. The added renderer tests cover
+read-only names, clamp/zero width, normal/quiet tone and escaped labels.
+Actual managed-binary captures and their comparison remain pending at this
+source checkpoint; no Usage screen is allowed to consume the meter yet.
+
+
+The inactive host-choice model now follows the pinned sidebar/modal fallback
+rules using existing branded NodeKeys. Six pure cases cover picked/active/first,
+offline and removed picks, unsupported connected picks, no reporting host,
+and availability round trips without mutating the explicit preference. Its
+combined narrow suite passes 21 tests in five files, both typechecks and
+changed-file ESLint. This routing choice proves no account association and
+performs no discovery, persistence or RPC; all report methods remain inactive.
+
+
+## Shared quota meter: executed control comparison packet
+
+The renderer/gallery producer is exactly `f876a23a`, retained in a separate
+frozen checkout. The fifteen pure tests and full web lint/typechecks pass.
+Managed run `webparity-20261116T010443Z-f876a23a` completes all four fixed
+build steps and exports ten same-source binaries (587,549,320 bytes); a build
+export is not a package test gate. Hashes, recipes, ABI and actual UID/GID
+1000 ownership with executable 0500/metadata 0400 are checked before use.
+No Rust or bundle build runs on the capture machine.
+
+Eight real-browser specimen cases pass in 13.3 seconds: two locales, two
+themes, 1280/390px widths at 900px viewport height. All 64 normal/quiet
+measurements assert 6px height, 3px track radius, full-radius fill, clipped
+overflow and exact zero fill at zero. The 125 input paints 100%, with no
+minimum arc. The eight original control-region PNGs (976x390 or 358x606)
+are personally opened and rehashed; they show aligned tracks and four tones
+without region overflow. They are bilingual gallery specimens, not a fully
+localized application or a cold-phone account screen.
+
+The selected 3,535-input identities match before and after; all 3,531 tracked
+content hashes match the producer's Git blobs. Eighteen served static assets
+are observed from the hash-verified managed CLI; they are not compared with
+an old local bundle. Original identities of five fixture processes and two
+capture helpers are gone, the owned runtime scan is empty, and the private
+0700 temporary root is cleared from three entries to zero without signals.
+No live service or permission is changed.
+
+Submit these control-only results to the reviewer and then coordinator for
+the required comparison before any Usage screen uses the control. The stated
+web status/muted palette adaptation remains explicit. This packet does not
+approve the full F3 feature, account reports, live vendors/credentials, general
+accessibility/security, native UI or deployment; report methods remain inactive
+until their reviewed, assigned and merged node contract is available.
+
+
+Inactive duration text now localizes the semantic clock's already-floored
+parts through standard Intl units. Four additional pure cases check English
+and Korean, two-unit day/hour output, an omitted zero minor unit and the final
+positive partial minute (0m/0분, not elapsed or raw seconds). The combined suite
+passes 25 tests in six files, both typechecks and full web lint. It adds no
+clock computation, translation dependency, active surface or pending call.
+
+
+The inactive pinned-summary layout now chooses all meters, labels, or
+percentages from measured widths, following the reference's 16px track and
+4px gap rule. Five pure cases cover the exact fit, labels-only edge, smaller
+percent text, initial observation and invalid measurements. Both typechecks,
+full web lint and the combined 30 tests in seven files pass. No observer,
+preference store, account DTO, RPC or Usage screen is added by this policy.
+
+
+## Current F3 boundary and shared-control approval
+
+The shared read-only quota meter's exact renderer `f876a23a`, with the
+unchanged percent-value leaf from `68b9aedce`, passes source/specimen review
+and the coordinator's reference comparison. Screens may reuse that control.
+The eight inspected originals and 64 measurements establish only the gallery
+states described above. The managed export remains build/export provenance,
+separate from fifteen control tests and eight actual-browser cases; it is
+not a whole-package gate. The earlier pending-comparison paragraphs record
+their source checkpoints rather than the current disposition.
+
+On merged `bc9cacc6`, `usage.query` remains 21 and `usage.limits`/`usage.lookup`
+remain 23. The generic account-report inventory, exact inspection and
+source-consent contracts are not assigned or merged here. F3 therefore has
+no active account surface, caller or vendor work. Thirty pure tests now
+cover values, clock, host selection, duration, fitting and the shared control.
+The final consumer still owes its one whole gate, managed same-source
+real-node fixtures, affected captures and package review.
+
+The inventory's additional named node deltas are `node.diagnostics` at 24
+and the independent `workspace.registry/list/get/rename/pin/release_automation`
+family at the assigned `PROJECT_WORKSPACE_REGISTRY` value 25. The latter
+exposes registry descriptors independently of sessions; it is not proof of
+page workspace lifecycle parity, filesystem provisioning or project-wide PR
+enumeration. All 93 original feature labels and row origins remain unchanged.
+
+
+Inactive localized percentage and reset-clock hints now consume the existing
+finite value and semantic reset state. Six pure cases verify percent
+placement/rounding, day/week boundaries, the device's 24-hour clock, localized
+weekday/month-day in that same time zone, and suppression for forecasts or
+elapsed/missing resets. Both typechecks, full web lint and 36 tests in eight
+files pass. The ledger's complete observation timestamp is retained for its
+own purpose; no live clock, preference reader or account caller is added.
+
+
+F3 activation has a further explicit dependency: backend preparation may
+pass while ADR 0104's tracked-DNS activation hold remains open. The usage
+HTTP owner must use the shared resolver through reqwest's `dns_resolver`;
+a private resolver, parser tests or earlier green whole do not prove the
+physical lookup work is drained. All three new account methods and both
+feature constants remain unassigned until that dependency is resolved.
+Keep the generic web consumer inactive until the actual reviewed, assigned
+and merged source and its managed same-source fixture recipe are handed off.
