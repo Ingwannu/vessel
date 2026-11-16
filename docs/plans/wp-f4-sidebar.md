@@ -951,3 +951,17 @@ optional summary still follows the single navigation preference and defaults
 hidden. No new footer source or checked API is claimed by this plan. The first
 consumer must check literal bounds, corner hits, hover/pressed ink and actual
 Usage opening in both layouts/themes, then submit original captures.
+
+## Global shortcut admission ownership
+
+The coordinator ruled to follow pinned _layout.tsx:398,416: W22 owns the sole
+global UI shortcut predicate `(book_read_once && configured_entry_exists) ||
+Settings`. It is independent of viewport600/mobile and of online, selected
+session, workspace or authority facts. S2 adds no parallel gate. An offline
+configured book entry still enables global shortcuts; an empty/unread book
+does not outside Settings. The dispatcher consumes W22's one predicate.
+
+The current native root always mounts its titlebar and has no paired-book
+sidebar gate. That is observed source behavior, not an approved always-on
+shortcut difference. W15 owns the separate onboarding chrome comparison;
+this shortcut ruling changes no root geometry or OS window chrome here.
