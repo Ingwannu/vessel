@@ -22,9 +22,10 @@ the library selection and must pass the final whole gate.
 
 The generated declarations now match the verified generator snapshot for this
 combined source: five generator/inventory tests passed, and the freshness
-failure identified the exact patch applied here. Next: merge the next designated
-node head, retain its definitions, then run the one whole product/package gate
-and submit the combined source range for review. Narrow evidence is not a package
+failure identified the exact patch applied here. The next designated node head
+has now been adopted without changing dictation code or generated declarations.
+Next: run the one whole product/package gate and submit the combined source
+range for review. Narrow evidence is not a package
 or integration pass. No real ASR, HTTPS credential, other-platform deployment,
 service-account or microphone behavior is claimed. Earlier resume paragraphs
 below are historical checkpoints.
