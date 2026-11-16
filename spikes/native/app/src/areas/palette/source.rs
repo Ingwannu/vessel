@@ -17,6 +17,7 @@ type Run = dyn Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) -> bool;
 #[derive(Clone)]
 pub(crate) enum CommandAction {
     Callback(Rc<Run>),
+    Shortcut(Action),
     Page(GroupId),
     Legacy(Target),
 }
@@ -29,6 +30,15 @@ pub(crate) struct Command {
 }
 
 impl Command {
+    /// An existing keyboard owner also handles this command-center action.
+    pub(crate) const fn shortcut(glyph: Option<Glyph>, action: Action) -> Self {
+        Self {
+            action: CommandAction::Shortcut(action),
+            glyph,
+            shortcut: Some(action),
+        }
+    }
+
     /// The callback must revalidate the captured resource generation/host before
     /// invoking the owner's existing operation. False leaves a safe unavailable
     /// notice; owner-specific errors remain the owner's responsibility.

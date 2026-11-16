@@ -1,4 +1,5 @@
 //! Exercise the real palette input/actions through a shell with no external I/O.
+mod sidebar_shortcut;
 
 use gpui::{AppContext as _, Entity, Render, TestAppContext, VisualTestContext};
 use std::time::Duration;

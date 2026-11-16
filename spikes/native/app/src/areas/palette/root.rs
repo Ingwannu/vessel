@@ -120,6 +120,7 @@ fn contribution(shell: &Shell, entry: &super::Entry, at: usize) -> Option<Contri
 
 fn extra(shell: &Shell) -> Vec<Contribution<Command>> {
     let mut entries = Vec::new();
+    entries.extend(left_sidebar(shell));
     if let (Ok(id), Ok(group)) = ("search-messages".parse(), "native-Actions".parse()) {
         entries.push(Contribution {
             id,
@@ -175,6 +176,31 @@ fn extra(shell: &Shell) -> Vec<Contribution<Command>> {
         });
     }
     entries
+}
+
+fn left_sidebar(shell: &Shell) -> Option<Contribution<Command>> {
+    Some(Contribution {
+        id: "toggle-left-sidebar".parse().ok()?,
+        group: "native-Actions".parse().ok()?,
+        group_rank: Rank::new(0),
+        section_title: Some(
+            shell
+                .t
+                .lang
+                .palette()
+                .group(PaletteGroup::Actions)
+                .to_owned(),
+        ),
+        rank: Rank::new(8),
+        keywords: vec!["sidebar".to_owned(), "toggle".to_owned(), "left".to_owned()],
+        visibility: Visibility::Query,
+        presentation: Presentation::Action {
+            title: vessel_app_view::shortcuts::action_label(Action::ToggleSidebar, shell.words)
+                .to_owned(),
+            subtitle: None,
+        },
+        target: Command::shortcut(Some(Glyph::PanelLeft), Action::ToggleSidebar),
+    })
 }
 const fn rank_of(group: PaletteGroup) -> i16 {
     match group {

@@ -1022,3 +1022,25 @@ same missing crate visibility on the shared whitespace predicate, before any
 App/Kit/View test executed. Its fix changes one visibility token and preserves
 the existing ECMAScript predicate, rankings and marks. That extraction is still
 not an independently checked producer or a full F4 package handoff.
+
+
+[Decision Log: ready root actions share the dispatcher]
+- Purpose: the reference root query-only toggle-left-sidebar item has an actual
+  native owner and must use the same post-handled focus-mode exit as its key.
+- Constraint: direct palette callbacks bypassed that common dispatcher behavior;
+  manufacturing a keyboard event would mix physical input and typed intent.
+- Alternatives: another sidebar toggle callback, synthetic keypress dispatch,
+  or a parallel action/default table.
+- Choice: a typed Shortcut command variant closes the palette, asks the same
+  current context/admission helper, and calls the existing ordered dispatcher.
+  Only chord matching is skipped because the action is already known.
+- Why: the core owner remains the only implementation, with the existing W12
+  post-handled exit. Actual popup context, recording and composition still deny
+  a command. Compact pointer actions are independent of global-key availability.
+- Effects: root toggle-left-sidebar is query-only, group0/rank8, using the
+  existing PanelLeft glyph, canonical translated action label and effective
+  hint resolver. No new binding or unowned NewWorkspace fallback is added.
+
+A real-frame query/Enter regression and the actual-menu/capture fixture exercise
+this typed route. They are written but not executed yet; in particular they do
+not establish retained-hidden-opener visibility or OS input behavior.

@@ -354,6 +354,12 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         match action {
+            source::CommandAction::Shortcut(action) => {
+                self.close_palette(window, cx);
+                if !self.dispatch_shortcut_command(action, window, cx) {
+                    self.command_unavailable(cx);
+                }
+            }
             source::CommandAction::Page(group) => self.palette_page(
                 vessel_app_view::palette::pages::ChoiceLocation::group(group),
                 window,

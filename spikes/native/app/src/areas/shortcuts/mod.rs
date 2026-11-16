@@ -198,7 +198,7 @@ impl Shell {
             badges::clear(&mut self.areas.shortcuts);
             self.areas.shortcuts.page.leave();
         }
-        let context = self.shortcut_context(event, window, cx);
+        let context = self.shortcut_context(&event.context_stack, window, cx);
         if context.admission == Admission::Overlay {
             self.areas.shortcuts.engine.reset();
             self.areas.shortcuts.held.release();
@@ -303,7 +303,7 @@ impl Shell {
 
     fn shortcut_context(
         &self,
-        event: &KeystrokeEvent,
+        context_stack: &[gpui::KeyContext],
         window: &Window,
         cx: &App,
     ) -> ShortcutContext {
@@ -313,8 +313,7 @@ impl Shell {
         } else {
             CommandCenterState::Closed
         };
-        if event
-            .context_stack
+        if context_stack
             .iter()
             .any(|entry| entry.contains(vessel_app_kit::popup::KEY_CONTEXT))
             || self.areas.shortcuts.help.is_open()
@@ -342,11 +341,7 @@ impl Shell {
             FocusScope::Terminal
         } else if composer_focused {
             FocusScope::MessageInput
-        } else if event
-            .context_stack
-            .iter()
-            .any(|entry| entry.contains("Input"))
-        {
+        } else if context_stack.iter().any(|entry| entry.contains("Input")) {
             FocusScope::Editable
         } else {
             FocusScope::Other

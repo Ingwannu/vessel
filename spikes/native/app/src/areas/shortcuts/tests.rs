@@ -247,12 +247,22 @@ fn actual_menu_context_pauses_settings_capture_before_recording(cx: &mut TestApp
                 binding_id(Action::Palette, default_context(Platform::native())).unwrap(),
                 CaptureRole::Ordinary,
             ));
+            assert!(!shell.dispatch_shortcut_command(Action::CycleTheme, window, cx));
         });
         probe
             .overlay
             .open(gpui::point(px(20.0), px(20.0)), window, cx);
     });
     cx.run_until_parked();
+    view.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let capture = shell.areas.shortcuts.page.capture.take();
+            let theme = shell.prefs.settings.appearance.theme;
+            assert!(!shell.dispatch_shortcut_command(Action::CycleTheme, window, cx));
+            assert_eq!(shell.prefs.settings.appearance.theme, theme);
+            shell.areas.shortcuts.page.capture = capture;
+        });
+    });
     let key = match Platform::native() {
         Platform::Mac => "cmd-k",
         Platform::Other => "ctrl-k",

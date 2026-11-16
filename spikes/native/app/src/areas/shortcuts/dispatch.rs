@@ -120,6 +120,38 @@ impl NativeDispatcher {
 }
 
 impl Shell {
+    /// A command-center action is already typed, so it skips chord matching but
+    /// retains current admission and the same ordered owner callbacks. Compact
+    /// pointer commands remain usable even where global keyboard input is off.
+    pub(crate) fn dispatch_shortcut_command(
+        &mut self,
+        action: Action,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        if !window.is_visible()
+            || self.areas.shortcuts.page.recording()
+            || vessel_app_kit::TextField::focused_composing(window, cx)
+        {
+            return false;
+        }
+        let context = self.shortcut_context(&window.context_stack(), window, cx);
+        if context.admission != vessel_app_view::shortcuts::context::Admission::Available {
+            return false;
+        }
+        self.dispatch_shortcut_to_owners(
+            ShortcutRequest {
+                action,
+                scope: action.scope(),
+                index: None,
+                repeat: KeyRepeat::Initial,
+                context,
+            },
+            window,
+            cx,
+        )
+    }
+
     /// A retained feature registers once and removes its own token on teardown.
     pub(crate) fn register_shortcut_handler(
         &mut self,
