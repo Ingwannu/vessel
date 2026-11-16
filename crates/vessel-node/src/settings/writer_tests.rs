@@ -9,10 +9,12 @@ use tokio::sync::oneshot;
 use super::*;
 
 pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
+const WRITE_PHASE_BUDGET: Duration = Duration::from_secs(5);
 
 /// Name the physical phase without inventing a longer budget than its case.
 pub(super) async fn phase<F: Future>(name: &str, future: F) -> F::Output {
-    tokio::time::timeout(WRITE_TEST_BUDGET, future)
+    assert!(WRITE_PHASE_BUDGET < WRITE_TEST_BUDGET);
+    tokio::time::timeout(WRITE_PHASE_BUDGET, future)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))
 }

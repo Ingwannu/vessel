@@ -18,9 +18,11 @@ use crate::{
 };
 
 const ADMISSION_CASE_BUDGET: Duration = Duration::from_secs(30);
+const ADMISSION_PHASE_BUDGET: Duration = Duration::from_secs(10);
 
 async fn phase<F: Future>(name: &str, future: F) -> F::Output {
-    tokio::time::timeout(ADMISSION_CASE_BUDGET, future)
+    assert!(ADMISSION_PHASE_BUDGET < ADMISSION_CASE_BUDGET);
+    tokio::time::timeout(ADMISSION_PHASE_BUDGET, future)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))
 }
