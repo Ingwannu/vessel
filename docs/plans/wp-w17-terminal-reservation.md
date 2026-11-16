@@ -14,7 +14,7 @@ edit the registry. W17 is the single writer for this leaf.
 The existing registry owns ID admission. Its registration submodule owns the
 synchronous reservation-to-handle handoff and retained refusal cleanup. The
 reservation captures the expected TerminalId, registry state identity and a
-private non-reusable allocation token. Identity, source owner and vacant entry
+private non-reusable allocation token. Identity, reservation owner and vacant entry
 are checked under the same mutex; duplicate existing/starting IDs refuse before
 spawn. The old numeric wrapping counter is removed. Actor internals and process
 wait/reaping semantics are unchanged.
@@ -40,3 +40,9 @@ debt under W9's reviewed canonical RootLease. No StartupHooks/ended-status proof
 Local static preparation: direct rustfmt, size and diff checks passed; the source
 preflight reports no findings and cargo_run=false. No compilation or actual test
 result is implied. The original CLI suite remains immutable on136c1395.
+
+The authored actor cases keep the canonical60s outer vessel_testkit::within
+safety net. Shorter named10s observation and15s actual tracker-drain deadlines
+identify readiness/output, rejected actor/process-waiter and worker-drain failures.
+Fixture drop always signals the real runner stop token before yielding, and a
+dropped cleanup observer never counts as settlement. These remain unexecuted.

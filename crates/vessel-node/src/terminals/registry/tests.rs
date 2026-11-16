@@ -2,8 +2,13 @@
 //! None of these observations certifies descendants or physical-root quiescence.
 use super::*;
 #[cfg(unix)]
-use std::time::Duration;
+use std::{future::Future, time::Duration};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
+
+#[cfg(unix)]
+const OBSERVATION_WAIT: Duration = Duration::from_secs(10);
+#[cfg(unix)]
+const TRACKER_DRAIN_WAIT: Duration = Duration::from_secs(15);
 
 struct Fixture {
     root: tempfile::TempDir,
@@ -71,7 +76,12 @@ impl Fixture {
     async fn stop(&self) {
         self.terminals.runner.shutdown.cancel();
         assert!(self.terminals.runner.tasks.close());
-        self.terminals.runner.tasks.wait().await;
+        phase(
+            "tracked terminal task drain",
+            TRACKER_DRAIN_WAIT,
+            self.terminals.runner.tasks.wait(),
+        )
+        .await;
     }
 }
 impl Drop for Fixture {
@@ -179,8 +189,13 @@ async fn wrong_id_is_refused_and_the_rejected_actor_is_cleaned_up() {
             .unwrap_err();
         let refusal = rejected.into_wire().await;
         assert_eq!(refusal.code, ErrorCode::Conflict);
-        handle.ended().await;
-        observed_process.ended().await;
+        phase("rejected actor end", OBSERVATION_WAIT, handle.ended()).await;
+        phase(
+            "rejected process waiter",
+            OBSERVATION_WAIT,
+            observed_process.ended(),
+        )
+        .await;
         assert!(!observed_process.is_live());
         assert!(fixture.terminals.state().entries.is_empty());
         assert!(fixture.terminals.state().starting.is_empty());
@@ -204,7 +219,7 @@ async fn a_foreign_registry_cannot_consume_another_incarnations_guard() {
             .register(reservation, handle.clone(), None)
             .unwrap_err();
         assert_eq!(rejected.into_wire().await.code, ErrorCode::Conflict);
-        handle.ended().await;
+        phase("rejected actor end", OBSERVATION_WAIT, handle.ended()).await;
         assert!(other.state().entries.is_empty());
         assert!(fixture.terminals.state().entries.is_empty());
         assert!(fixture.terminals.state().starting.is_empty());
@@ -227,7 +242,7 @@ async fn dropping_the_refusal_observer_does_not_drop_its_cleanup_owner() {
             .register(reservation, handle.clone(), None)
             .unwrap_err();
         drop(rejected);
-        handle.ended().await;
+        phase("rejected actor end", OBSERVATION_WAIT, handle.ended()).await;
         fixture.stop().await;
         assert!(fixture.terminals.state().starting.is_empty());
     })
@@ -271,6 +286,18 @@ async fn a_misbound_incumbent_is_retained_instead_of_being_killed() {
 
 #[cfg(unix)]
 async fn until_text(handle: &TerminalHandle, expected: &str) {
+    phase(expected, OBSERVATION_WAIT, observe_text(handle, expected)).await;
+}
+
+#[cfg(unix)]
+async fn phase<F: Future>(name: &str, budget: Duration, future: F) -> F::Output {
+    tokio::time::timeout(budget, future)
+        .await
+        .unwrap_or_else(|elapsed| panic!("{name} phase timed out: {elapsed}"))
+}
+
+#[cfg(unix)]
+async fn observe_text(handle: &TerminalHandle, expected: &str) {
     let mut stream = handle.follow(vessel_proto::EventSeq::ZERO).unwrap();
     let mut text = String::new();
     for record in stream.cached {
