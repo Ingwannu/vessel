@@ -28,6 +28,7 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::Creation { change, done } => creation(transaction, *change, done, effects),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),
@@ -123,6 +124,19 @@ pub(super) fn apply(
             Answer::Done(done, applied)
         }
     }
+}
+
+fn creation(
+    transaction: &mut Transaction<'_>,
+    change: crate::creation::Write,
+    done: Done<vessel_proto::creation::Receipt>,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        crate::creation::apply(connection, change)
+    });
+    effects.creation |= applied.is_ok();
+    Answer::Creation(done, applied.map(Box::new))
 }
 
 // State-only writes keep the same savepoint and acknowledgement boundary,
