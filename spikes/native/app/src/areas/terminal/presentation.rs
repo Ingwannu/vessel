@@ -13,6 +13,14 @@ pub(super) enum Playback {
 }
 
 impl Shell {
+    /// Keyboard context follows the currently focused terminal opening, not a
+    /// session selection or a guessed loading/readiness phase.
+    pub(crate) fn terminal_focused(&self, window: &Window) -> bool {
+        self.route == Route::Session
+            && self.areas.terminal.shown.is_some()
+            && self.areas.terminal.focus.is_focused(window)
+    }
+
     /// The grid, rather than the hidden conversation composer, owns terminal input focus.
     pub(crate) fn focus_terminal(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.areas.terminal.focus.focus(window, cx);
@@ -93,5 +101,37 @@ impl Shell {
                 }
             }
         }));
+    }
+}
+
+#[cfg(test)]
+mod focus_tests {
+    use super::*;
+    use gpui::TestAppContext;
+    use vessel_app_link::TerminalOpening;
+    use vessel_proto::SessionId;
+
+    #[gpui::test]
+    fn focus_query_tracks_the_opening_focus_route_and_close(cx: &mut TestAppContext) {
+        crate::shell::language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, window, cx| {
+            shell.route = Route::Session;
+            shell.areas.terminal.shown = Some(TerminalOpening::new(
+                "fake".parse().unwrap(),
+                SessionId::random(),
+            ));
+            shell.areas.terminal.focus.focus(window, cx);
+            assert!(shell.terminal_focused(window));
+            shell.areas.session.composer.focus(window, cx);
+            assert!(!shell.terminal_focused(window));
+            shell.areas.terminal.focus.focus(window, cx);
+            shell.route = Route::Board;
+            assert!(!shell.terminal_focused(window));
+            shell.route = Route::Session;
+            assert!(shell.terminal_focused(window));
+            shell.terminal_closed();
+            assert!(!shell.terminal_focused(window));
+        });
     }
 }
