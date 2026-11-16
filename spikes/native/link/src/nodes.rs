@@ -357,8 +357,10 @@ mod tests {
         let [direct, relay] = offer.routes.rows() else {
             panic!("two route rows required");
         };
-        assert_eq!(&**direct.words(Lang::En), "TCP (host.invalid:7443)");
-        assert_eq!(&**relay.words(Lang::Ko), "릴레이 (relay.invalid:443)");
+        assert_eq!(direct.kind(Lang::En), "TCP");
+        assert_eq!(&**direct.endpoint(), "host.invalid:7443");
+        assert_eq!(relay.kind(Lang::Ko), "릴레이");
+        assert_eq!(&**relay.endpoint(), "relay.invalid:443");
         let diagnostic = format!("{offer:?}");
         for hidden in [
             "hidden-user",
