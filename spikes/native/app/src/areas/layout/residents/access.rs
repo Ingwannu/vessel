@@ -49,7 +49,7 @@ impl SessionResidents {
         &mut self,
         token: ResidentToken,
     ) -> Result<SessionResources, ResidentProblem> {
-        let _entry = self.entry(token)?;
+        self.check_installed_readiness(token)?;
         self.admission.retire_clean(token)?;
         self.entries
             .remove(&token.address.session)
@@ -63,7 +63,7 @@ impl SessionResidents {
     ) -> Result<FollowBinding, ResidentProblem> {
         let _entry = self.entry(token)?;
         if let Some(notice) = self.admission.retire_current(token)? {
-            retired(&mut self.entry_mut(token)?.resources, &notice);
+            self.notify_retirement(token, &notice, retired)?;
         }
         self.admission.begin_follow(token)
     }
@@ -74,7 +74,32 @@ impl SessionResidents {
     ) -> Result<(), ResidentProblem> {
         let _entry = self.entry(binding.resident)?;
         let notice = self.admission.retire_binding(binding)?;
-        retired(&mut self.entry_mut(binding.resident)?.resources, &notice);
+        self.notify_retirement(binding.resident, &notice, retired)
+    }
+    fn notify_retirement(
+        &mut self,
+        token: ResidentToken,
+        notice: &FollowRetirement,
+        retired: impl FnOnce(&mut SessionResources, &FollowRetirement),
+    ) -> Result<(), ResidentProblem> {
+        let resources = &mut self.entry_mut(token)?.resources;
+        resources.follow_retired(notice);
+        retired(resources, notice);
+        Ok(())
+    }
+    /// Concrete holds cannot be bypassed by an old table-only Ready marker.
+    /// This conservative gate never clears a canonical uncertainty vote; actual
+    /// owner reconciliation must publish that separately in the scoped consumer.
+    fn check_installed_readiness(&self, token: ResidentToken) -> Result<(), ResidentProblem> {
+        if self
+            .entry(token)?
+            .resources
+            .installed_readiness()
+            .iter()
+            .any(|(_, vote)| *vote != OwnerReadiness::Ready)
+        {
+            return Err(ResidentProblem::Held);
+        }
         Ok(())
     }
     pub(crate) fn admit_operation(
