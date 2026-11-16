@@ -21,7 +21,8 @@ pub(super) struct Resident {
     pub claims: BTreeMap<PanelClaim, ClaimState>,
     pub owners: BTreeMap<ResourceOwner, OwnerReadiness>,
     pub follow: FollowGeneration,
-    pub attached: bool,
+    pub follow_state: super::stop::FollowState,
+    pub stop: Option<super::stop::Expectation>,
     pub operations: Admissions,
     pub next_operation: u64,
     pub unclaimed_at: Option<Duration>,
@@ -117,7 +118,8 @@ impl Residents {
                     .map(|owner| (owner, OwnerReadiness::Hold(HoldReason::Loading)))
                     .collect(),
                 follow: FollowGeneration(0),
-                attached: false,
+                follow_state: super::stop::FollowState::Retired,
+                stop: None,
                 operations: Admissions::new(),
                 next_operation: 0,
                 unclaimed_at: None,
@@ -298,6 +300,7 @@ impl Residents {
                 .values()
                 .any(|ready| *ready != OwnerReadiness::Ready)
             || !entry.operations.is_empty()
+            || entry.stop.is_some()
         {
             return Err(ResidentProblem::Held);
         }

@@ -500,3 +500,14 @@ no-frame EOF or task join must fail at its named wait instead of hanging the
 runner. Existing no-frame, original-target/ticket and retirement assertions are
 preserved. This closes the native counterpart found while auditing the root
 row267 test correction; native strict/runtime qualification is still pending.
+
+
+The announced base14.1 `b54abbdc` brings G4's actual Scenario and the shared
+focus/shortcut changes. Integration preserves the incoming ReturnFocus policy,
+keyboard-admission module and navigation reset, while retaining Messages query
+invalidation and find deactivation. The canonical testing factory is incoming
+source plus only A3's existing prompt Hub initializer; no old duplicate State
+factory or Home destructor remains. Both Architecture additions are kept.
+Selected-connection and frozen actor files are byte-identical to the head.
+Static native checks pass (779 files, 13 existing size entries; no new token
+entries; 55 changed Rust files formatted). This is not consumer runtime proof.

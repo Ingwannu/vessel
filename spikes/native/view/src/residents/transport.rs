@@ -13,7 +13,7 @@ impl Residents {
     pub fn begin_follow(&mut self, token: ResidentToken) -> Result<FollowBinding, ResidentProblem> {
         let entry = self.entry_mut(token)?;
         // Invalidate even when exhausted: the old attempt cannot remain authorized.
-        entry.attached = false;
+        entry.follow_state = super::stop::FollowState::Retired;
         retire_operations(entry);
         let next = entry
             .follow
@@ -21,7 +21,7 @@ impl Residents {
             .checked_add(1)
             .ok_or(ResidentProblem::Exhausted)?;
         entry.follow = FollowGeneration(next);
-        entry.attached = true;
+        entry.follow_state = super::stop::FollowState::Receiving;
         Ok(FollowBinding {
             resident: token,
             follow: entry.follow,
@@ -32,10 +32,7 @@ impl Residents {
     /// # Errors
     /// A queued old disconnect cannot retire a newer attempt.
     pub fn retire_follow(&mut self, binding: FollowBinding) -> Result<(), ResidentProblem> {
-        self.validate_binding(binding)?;
-        let entry = self.entry_mut(binding.resident)?;
-        entry.attached = false;
-        retire_operations(entry);
+        let _notice = self.retire_binding(binding)?;
         Ok(())
     }
     /// Every metadata, record, error and action reply checks this before mutation.
@@ -44,7 +41,9 @@ impl Residents {
     /// Refuses retired/replaced attempts, even if the `NodeId` is the same again.
     pub fn validate_binding(&self, binding: FollowBinding) -> Result<(), ResidentProblem> {
         let entry = self.entry(binding.resident)?;
-        if !entry.attached || entry.follow != binding.follow {
+        if entry.follow_state != super::stop::FollowState::Receiving
+            || entry.follow != binding.follow
+        {
             return Err(ResidentProblem::StaleBinding);
         }
         Ok(())
@@ -90,6 +89,14 @@ impl Residents {
         if ticket.binding != binding || ticket.kind != kind {
             return Err(ResidentProblem::UnadmittedOperation);
         }
+        if self
+            .entry(binding.resident)?
+            .stop
+            .is_some_and(|stop| stop.ticket == ticket)
+        {
+            // An armed stop has a single dedicated consume/Window transition.
+            return Err(ResidentProblem::UnadmittedOperation);
+        }
         if !self
             .entry_mut(binding.resident)?
             .operations
@@ -109,4 +116,5 @@ pub(super) fn retire_operations(entry: &mut super::registry::Resident) {
         );
     }
     entry.operations.clear();
+    entry.stop = None;
 }

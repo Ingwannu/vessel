@@ -6,8 +6,8 @@ use super::{
 /// An admitted operation whose wire outcome must now remain uncertain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RetiredOperation {
-    kind: OperationKind,
-    ticket: OperationTicket,
+    pub(super) kind: OperationKind,
+    pub(super) ticket: OperationTicket,
 }
 impl RetiredOperation {
     /// Only the matching resource owner changes its pending UI state.
@@ -51,7 +51,7 @@ impl Residents {
         token: ResidentToken,
     ) -> Result<Option<FollowRetirement>, ResidentProblem> {
         let entry = self.entry_mut(token)?;
-        if !entry.attached {
+        if entry.follow_state == super::stop::FollowState::Retired {
             return Ok(None);
         }
         let binding = FollowBinding {
@@ -70,11 +70,24 @@ impl Residents {
                 },
             })
             .collect();
-        entry.attached = false;
+        entry.follow_state = super::stop::FollowState::Retired;
         super::transport::retire_operations(entry);
         Ok(Some(FollowRetirement {
             binding,
             operations,
         }))
+    }
+    /// Full retirement includes a sealed binding and acknowledged Window work.
+    /// The notice is delivered even when every wire ticket was already consumed.
+    ///
+    /// # Errors
+    /// An old end/retirement cannot retire a successor binding.
+    pub fn retire_binding(
+        &mut self,
+        binding: FollowBinding,
+    ) -> Result<FollowRetirement, ResidentProblem> {
+        self.validate_current_binding(binding)?;
+        self.retire_current(binding.resident)?
+            .ok_or(ResidentProblem::StaleBinding)
     }
 }

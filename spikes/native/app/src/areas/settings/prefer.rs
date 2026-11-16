@@ -84,6 +84,12 @@ impl Shell {
                     Some(super::PreparedRefusal::new(self.words, refused));
             }
         }
+        if matches!(
+            change,
+            PreferenceChange::Shortcuts { .. } | PreferenceChange::ResetShortcuts
+        ) {
+            crate::areas::shortcuts::preferences_changed(self);
+        }
         cx.notify();
     }
 }
