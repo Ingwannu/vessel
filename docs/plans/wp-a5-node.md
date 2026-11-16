@@ -522,3 +522,22 @@ appends owned claim SQL there after listing21, without changing the SQL body or
 assigning a protocol. The canonical RPC caller-drop fence and relation values
 are adopted through their announced bases. Current merged checks remain owed;
 no whole, native or assigned positive-wire pass is inferred.
+
+
+## V3 Read admission lifetime return
+
+V3 found that the new read_attention ingress retained a TaskTracker task before
+acquiring the shared metadata/marking lock. Repeatedly cancelling pre-admission
+RPC waiters could therefore retain unbounded tasks despite RPC capacity. None
+still prevents public enablement; this is a source blocker, not a current
+unauthenticated exploit. Coordinator assigned the minimal Arc/owned-lease
+producer to lifecycle; no unreviewed clock branch is imported.
+
+The correction must acquire that SAME owned metadata lease before spawning
+accepted work and move it through actual Store commit and live publication.
+There is no second lock, operation lane or read engine. Two drafted regressions
+hold the actual shared lease while polling/dropping repeated real read futures,
+then hold a real SQLite writer transaction while dropping an already admitted
+caller and verify one operation/lease survives through durable+live drain.
+They are not executed evidence or assigned positive RPC proof. Existing scope,
+nonforwardability, pending veto, exact-through and unread semantics stay intact.
