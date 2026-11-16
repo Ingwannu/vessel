@@ -1,5 +1,19 @@
 # Authentication timeout validation continuation
 
+## Current execution status
+
+The checkpoint below is historical. Its queued job now passes 86/0, including
+both real-server authentication regressions. The stack is integrated as
+`ed4cd137`; the first combined whole is counted by the coordinator as 17/18
+with the named `/new` intermittent, not wholly green. Exact results and limits
+are in `backend-m12-web-identity.md`, “Subsequent execution and integration”.
+No duplicate old whole or narrow job is required. Final bounded runtime review
+is pending; the integration owner retains TRACKER 770. The page track has
+fast-forwarded to this announced node head. After that review, continue the
+assigned web Usage package only from its reviewed, assigned, merged contract.
+
+## Historical credit checkpoint
+
 The implementation and test-fixture correction are committed in `a36b0f37`
 and `7535d60c`, after baseline `3015b640`. The review accepts their source;
 final execution and integration approval remain pending. This checkpoint is

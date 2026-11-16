@@ -109,3 +109,38 @@ The continuation is recorded in `backend-m12-web-identity-resume.md`.
 This checkpoint changes documentation only; the queued test continues to
 select its original immutable source. No new authentication, timeout,
 assertion, wire or dependency change accompanies these status notes.
+
+## Subsequent execution and integration
+
+The previously queued real-server run,
+`webparity-20261115T185321Z-7535d60c`, completes with all four stages passing:
+web bundle, both prerequisite builds, and the actual `vessel-web` tests.
+It executes 86 tests (55 library, 31 UI), with zero failures or ignores.
+Both new `server::auth_timeout` cases and the protected original websocket
+security case pass. The source is exactly `7535d60c`; its log records a fresh
+`vessel-web` compilation. This closes the checkpoint's missing Rust execution.
+
+The integration line merges the complete `949dfb15` stack as `ed4cd137`.
+Its first whole run is `node-line-20261115T192309Z-ed4cd137`: 17 of 18 stages
+pass, Rust 2,701/0/12 (passed/failed/ignored), TypeScript freshness 5/0 with
+zero generated difference, web unit 465/0 in 87 files, and forge 4/0. The
+same five authentication implementation/test files are byte-identical to
+the reviewed source. Both new real-server regressions pass in this whole;
+the client suite's ten tests, including the new 1013 regression, pass too.
+
+The full run remains exit 1: web E2E is 79/1. The single failure is
+`app.spec.ts:267`, where `startSession` remains on `/new`; the integration
+owner investigates it as TRACKER 770. The coordinator counts this head with
+that named open intermittent. This is not a wholly green run or an erased
+failure. The earlier identity-refusal case passes in this run, which does
+not uniquely reconstruct the cause of the historical incident.
+
+The page track fast-forwards to that announced head after the queued job
+finishes. Its original whole script is not launched as an additional
+unchanged execution: the integration run is the package's first whole.
+No retrospective pre/post pin is created. Contemporary run specifications,
+checkout records and raw log hashes are retained; selected authentication
+blob equality is a separate source comparison. Final bounded runtime review
+is submitted with this distinction and the named full-gate failure intact.
+There is no live preview, physical device, vendor/account or general security
+audit claim, and no new native or service-permission change.
