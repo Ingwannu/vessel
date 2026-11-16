@@ -43,6 +43,7 @@ mod logs;
 mod meter;
 mod origin;
 mod outline;
+mod pending;
 mod permission;
 mod plan;
 mod question;
