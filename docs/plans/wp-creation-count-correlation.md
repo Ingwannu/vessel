@@ -1,0 +1,65 @@
+# Creation count and launch correlation dependency
+
+[Decision Log]
+- Purpose: let the one creation owner retain the existing Agents count lease
+  and correlate its post-Begin concrete launch capsule with the same entry.
+- Existing constraint: legacy reserve returned a credential and replaced duplicate
+  ids after logging. A durable retry must never overwrite that entry or remint
+  its credentials. A reply future cannot own rollback for a tracked launch.
+- Alternatives: a second counter; a free-standing permission stamp; or a retained
+  guard over the original registry entry with private identity correlation.
+- Choice and reason: the existing Agents reserve delegates to AgentReservation;
+  duplicate ids refuse before minting. Legacy success explicitly keeps the same
+  existing lifecycle. A staged count correlation uses that registry reference,
+  child id, private Arc marker and original Begin operation/revision.
+- Impact: creation-specific Begin/refusal/correlation and entry phase state remain
+  literal cfg(test). The current-parent fence and actual tracked concrete capsule
+  are separate producers. No correlation authorizes any launch by itself.
+
+The canonical creation value bodies accompany this dependency because the count
+relation uses their exact operation revision and pure receipt transition types.
+Only the module registration and these values are included. Observation request
+and method registration are deliberately absent: there is no RPC, Store/schema,
+profile setting, filesystem provisioning, runtime launch, or protocol assignment.
+The value constants describe receipt budgets; this carrier does not enforce a
+persistent ledger. No second revision/id type or copied registry is introduced.
+
+Reserved, Begun and Admitted are states inside the existing count entry. A known
+pre-admission refusal clears the old Begin binding before rollback. An admitted
+launch cannot be undone as a known no-spawn refusal. The common Agents guard
+must check the current parent and insert into the concrete owner capsule in the
+same critical section; the helper has no callback, I/O or internal registry lock.
+
+This is a staged dependency for the joint execution-fence review. Named tests
+exercise duplicate/capacity/rollback and exact registry/marker/Begin correlation,
+including same-id replacement, current connections and consumed admission. Fresh
+receiving checks are required. It supplies neither parent execution authority nor
+any production creation API, and is not a whole A1 completion claim.
+
+Credential entropy is prepared outside the guard. The initial duplicate check
+is only a no-mint optimization for an already reserved id, not an authority
+snapshot. The authoritative second duplicate check, current depth/count policy
+and insertion remain in reserve_prepared under one existing guard. A concurrent
+winner may cause the prepared unpublished secret to be discarded. That helper
+lets the common fence compose its parent check with the exact insertion without
+nested locking, callbacks, SQL or entropy I/O. The deterministic race test
+retains the incumbent credentials. New receiving checks are still owed.
+
+The first exact strict build found the new race fixture comparing CredentialHash
+values with PartialEq, which the existing constant-time API intentionally does
+not implement. The fixture now checks the original private entry marker,
+credential cardinality and matches_agent(original_secret). No hash formatting,
+new equality trait, product behavior or race ordering changes.
+
+The second strict result reached the same count tests and returned one unused
+Option from the fake connection insertion. The fixture now binds that result;
+no state, ordering, count, credential, correlation or refusal assertion changes.
+
+After the announced execution owner joined the count refactor, source inspection
+found its UUID/watch constructor still inside reserve_prepared's final registry
+guard. PreparedReservation now owns the unpublished Execution and exact rollback
+Arc as well as credentials, constructed before that guard. reserve_prepared only
+moves them into the authoritative entry after current duplicate/grant/count
+checks. Losing preparation is private and unobservable through the registry;
+its UUID/watch cannot be captured or used as authority. No execution body/watch
+policy changes, nested lock, callback or alternate count owner is added.
