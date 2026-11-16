@@ -1269,3 +1269,23 @@ owner/root-guard join, typed product open/close, UI captures or full C5 acceptan
   new cases are unexecuted; queued owner strict37 predates this primary-only
   correction. No real LSP process, wire, cursor-unit or product acceptance proof
   is inferred. Merge with the next receiving correction batch before checking.
+
+### Result actions retain the original language query
+
+- Purpose: an old result's next-page or definition callback must not borrow a
+  replacement query's ticket or navigate after silent accepted source input.
+- Existing assets: the retained language request ticket and actual-control
+  mirror above; no new query identity, server, cache or navigation controller.
+- Choice: capture that same FileTicket in result controls; mirror the actual
+  editor and require the exact still-Ready ticket plus saved-source admission
+  before paging or opening a definition. A superseded callback leaves the
+  replacement results unchanged. An edit invalidates the original results.
+- Why: root/path identity alone cannot distinguish two queries in one buffer,
+  and a queued mirror is not evidence that the displayed source is still saved.
+- Units: source inspection confirms the existing rope cursor counts Unicode
+  scalars, matching the protocol's one-based scalar columns. No conversion or
+  vendor edit is needed; this is not an executed Unicode cursor test.
+- Validation: authored real-control tests inject typed definition pages locally
+  and exercise superseded callbacks and each silent-edit activation separately.
+  They are unexecuted and make no wire, server, painted-callback or UI proof.
+  Receiving compilation/tests remain owed with the next owner correction batch.
