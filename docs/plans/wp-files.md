@@ -1320,3 +1320,22 @@ owner/root-guard join, typed product open/close, UI captures or full C5 acceptan
   It is unexecuted, not painted selection/click or live-root proof. The typed
   entry/export stays cfg(test) until the real sole-registry/dock/visibility and
   original file-receipt union is checked; no product promotion is claimed.
+
+## Base 14.3 retained-owner receiving join (source only)
+
+The full owner preparation now joins the announced base14.3 line, independently
+of the bounded shown-source leaf already accepted on that line. The owner keeps
+one RootReceipt admission and one FileTickets allocator; canonical duplicate
+receipt/allocator insertions are removed. Existing retained draft/original write
+obligations, root fixture and guarded file replies remain unchanged through the
+merge. Incoming VirtualList/selected-connection producers retain line bytes.
+The browser refusal uses the lead's formatted Problem::Older correction.
+
+The legacy Explorer selection now calls the existing code_tab operation, which
+invalidates shown-Changes stamps before changing comparison presentation. This
+consumes the canonical setter rather than retaining an unused method beside a
+second direct assignment. Typed callbacks remain layout-owned and staged.
+The optional content width, saved-source language controls and typed dock
+facade/test above are included in this receiving source. Compilation and actual
+new tests are still owed; the old queued strict belongs to its original source.
+No root protocol, schema, authority, permission or live-service change is made.

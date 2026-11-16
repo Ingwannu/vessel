@@ -72,12 +72,11 @@ pub(crate) fn show_layout_explorer(
     shell.areas.workspace.code.files.options = shell.prefs.explorer;
     shell.search_words(window, cx);
     shell.code_follow();
-    shell.areas.workspace.code.tab = match kind {
+    let tab = match kind {
         ExplorerKind::Files => Tab::Files,
         ExplorerKind::Changes => Tab::Changes,
     };
-    shell.code_read_tab();
-    cx.notify();
+    shell.code_tab(tab, cx);
 }
 
 /// Draw only the area body; panes own its frame, tabs and placement.
