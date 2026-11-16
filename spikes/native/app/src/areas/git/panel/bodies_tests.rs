@@ -113,14 +113,15 @@ fn accept(
     ticket: FileTicket,
     cx: &mut Context<'_, Shell>,
 ) {
+    let path = ticket.path().clone();
     shell.git_panel_answer(
         Answer {
             address: captured.address.panel.clone(),
             context: captured.context.clone(),
             outcome: Outcome::File(
-                ticket.clone(),
+                ticket,
                 Ok(FileDiff {
-                    path: ticket.path().clone(),
+                    path,
                     old_path: None,
                     status: ChangeStatus::Modified,
                     mode: None,

@@ -58,6 +58,7 @@ pub(super) struct Document {
     receipt: FileTicket,
     content: Content,
 }
+#[derive(Clone, Copy)]
 pub(super) struct Words<'a> {
     pub(super) catalog: &'a Translator,
     pub(super) legacy: &'static dyn WorkspaceWords,
@@ -77,7 +78,7 @@ impl Document {
                         crate::areas::workspace::syntax_for(pages.ticket().path()),
                         DiffWrapping::Scroll,
                         move |shell: &mut Shell, bounds, window, cx| {
-                            shell.git_panel_reveal(&reveal, bounds, window, cx)
+                            shell.git_panel_reveal(&reveal, bounds, window, cx);
                         },
                         window,
                         cx,

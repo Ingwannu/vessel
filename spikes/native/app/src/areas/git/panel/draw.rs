@@ -49,10 +49,10 @@ pub(crate) fn render_panel(
         || loading(Some(shell.words.git_panel().checking()), tokens),
         |entry| {
             if let Some(why) = &entry.problem {
-                return failure(&shell.words, why, tokens, window, cx);
+                return failure(shell.words, why, tokens, window, cx);
             }
             match &entry.binding {
-                PanelBinding::Failed(why) => failure(&shell.words, why, tokens, window, cx),
+                PanelBinding::Failed(why) => failure(shell.words, why, tokens, window, cx),
                 PanelBinding::Idle | PanelBinding::Locating(_) => {
                     loading(Some(shell.words.git_panel().checking()), tokens)
                 }
@@ -88,7 +88,7 @@ pub(in crate::areas::git) fn owner_notice(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let why = shell.areas.git.panels.owner_problem()?;
-    Some(failure(&shell.words, &why, tokens, window, cx))
+    Some(failure(shell.words, &why, tokens, window, cx))
 }
 
 fn summary(
@@ -109,7 +109,7 @@ fn summary(
         Body::Connecting => message(shell.words.git_panel().problem_connection(), tokens),
         Body::CheckingRepository => loading(Some(shell.words.git_panel().checking()), tokens),
         Body::RepositoryFailed(why) | Body::DiffFailed(why) => {
-            failure(&shell.words, why, tokens, window, cx)
+            failure(shell.words, why, tokens, window, cx)
         }
         Body::NotRepository => message(shell.words.git_panel().not_repository(), tokens),
         Body::ReadingDiff => loading(None, tokens),

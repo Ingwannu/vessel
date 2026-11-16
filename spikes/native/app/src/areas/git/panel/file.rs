@@ -48,7 +48,7 @@ pub(super) fn row(
     };
     shell.areas.git.panels.touch_body(address, &path);
     let legacy = shell.words();
-    let words = &shell.words;
+    let words = shell.words;
     let Some(entry) = shell.areas.git.panels.entries.get_mut(address) else {
         return header;
     };
@@ -191,11 +191,9 @@ fn actions(
     };
     Some(
         vessel_app_kit::button("git-file-read", &label, false, tokens)
-            .on_click(
-                cx.listener(move |shell, _, window, cx| {
-                    shell.git_panel_file(&captured, window, cx)
-                }),
-            )
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                shell.git_panel_file(&captured, window, cx);
+            }))
             .into_any_element(),
     )
 }

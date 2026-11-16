@@ -586,3 +586,25 @@ queued146 App git test, retaining cancelled143 evidence before one ordinary
 successor. The unaffected Kit-only9c owner test stays untouched. All actual body
 runtime/strict outcomes remain pending, and the static visible-cache pressure
 question is recorded separately; no body consumer-ready or parity claim.
+
+## Actual006 strict return: typed source compiles; nine App style findings
+
+Exact006 reached App product/test checking, then strict Clippy returned101 on
+nine findings: two missing unit-closure semicolons, four redundant Translator
+borrows, two pass-by-value warnings on a two-borrow prepared Words value and an
+unnecessarily cloned test ticket. Make Words explicitly Copy/Clone (it contains
+only shared references), use the existing translator reference directly, end
+unit closures consistently and consume the helper's owned ticket into its typed
+answer after retaining the requested path. No assertion, quota, call policy,
+selection/input behavior or geometry changes, and no lint waiver/suppression.
+The queued006 functional Git test is still useful and is LEFT IN PLACE; these
+Clippy style findings are not a predicted runtime failure. Do not cancel it.
+
+W13 and B2 both directly confirmed no VirtualList writer/patch/reservation. The
+lead-assigned notification-only source is now a separate linear base13 leaf
+b2439a023 in its own worktree, not installed into this consumer. Its Kit strict
+run is newly submitted; native-wheel test/source review remain pending. No
+current-range field is forwarded because pinned GPUI constructs a stale range.
+One external notification plus post-dispatch actual top is the bounded contract.
+Current-visible-cache fairness/scroll invalidation is not yet fixed or proved
+in the body consumer; the static concern is kept distinct from a runtime claim.
