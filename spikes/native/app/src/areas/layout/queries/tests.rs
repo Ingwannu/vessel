@@ -57,45 +57,182 @@ fn retargeted_tab_keeps_its_id_but_refuses_the_original_resource_callback(cx: &m
         assert_eq!(*shell.areas.layout.book.borrow(), before);
     });
 }
+fn retained_agent(
+    _shell: &Shell,
+    _tokens: &vessel_app_kit::Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> gpui::Div {
+    cx.defer_in(window, |shell, _window, _cx| {
+        shell
+            .notice
+            .get_or_insert_with(String::new)
+            .push_str("agent body constructed");
+    });
+    div()
+        .size_full()
+        .debug_selector(|| "layout-survivor".to_owned())
+        .child("retained agent")
+}
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.0.update(cx, |shell, cx| {
+            // Count builder invocations within this render pass, not earlier frames.
+            shell.notice = None;
             let tokens = vessel_app_kit::tokens(cx);
-            super::super::draw::frame(
-                shell,
-                div()
-                    .size_full()
-                    .debug_selector(|| "layout-survivor".to_owned())
-                    .child("retained agent"),
-                &tokens,
-                window,
-                cx,
-            )
+            super::super::draw::frame(shell, retained_agent, &tokens, window, cx)
         })
     }
+}
+fn probe(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
+    Probe(cx.new(|cx| {
+        let mut shell = Shell::without_io(window, cx);
+        shell.route = crate::routes::Route::Session;
+        shell.areas.session.open = Some(Open {
+            machine: "isolated".to_owned(),
+            session: SessionId::random(),
+            title: "retained".to_owned(),
+            agent: "fake".to_owned(),
+            structured: true,
+            live: true,
+            archived_at: None,
+            binding: None,
+        });
+        shell
+    }))
+}
+
+fn hidden_probe(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
+    let probe = probe(window, cx);
+    probe.0.update(cx, |shell, cx| {
+        let key = super::super::key(shell).unwrap();
+        let session = shell.areas.session.open.as_ref().unwrap().session;
+        for target in [Target::Agent(session), Target::NewTab] {
+            let _tab = shell
+                .layout_open_target(
+                    &key,
+                    target,
+                    OpenIntent::Reveal,
+                    Placement::Focused,
+                    window,
+                    cx,
+                )
+                .unwrap();
+        }
+    });
+    probe
+}
+fn select_agent(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    let key = super::super::key(shell).unwrap();
+    shell
+        .update_layout(
+            &key,
+            |layout| {
+                let tab = layout
+                    .tabs()
+                    .find_map(|tab| matches!(tab.target(), Target::Agent(_)).then_some(tab.id()))
+                    .unwrap();
+                layout.select(tab)
+            },
+            cx,
+        )
+        .unwrap();
+}
+fn cover_agent(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    let key = super::super::key(shell).unwrap();
+    shell.notice = None;
+    let _tab = shell
+        .update_layout(
+            &key,
+            |layout| {
+                layout.open(
+                    Target::File {
+                        root: vessel_proto::workspace::WorkspaceRoot::Project {
+                            project: vessel_proto::ProjectId::random(),
+                        },
+                        path: "covered.rs".parse().unwrap(),
+                    },
+                    OpenIntent::Reveal,
+                    Placement::Focused,
+                    vessel_app_view::layout::AgentRole::Unknown,
+                    LayoutMode::Compact,
+                )
+            },
+            cx,
+        )
+        .unwrap();
+}
+
+fn agent_sheet_probe(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
+    let probe = probe(window, cx);
+    probe.0.update(cx, |shell, cx| {
+        let key = super::super::key(shell).unwrap();
+        let session = shell.areas.session.open.as_ref().unwrap().session;
+        let _tab = shell
+            .update_layout(
+                &key,
+                |layout| {
+                    layout.open(
+                        Target::Agent(session),
+                        OpenIntent::Reveal,
+                        Placement::Focused,
+                        vessel_app_view::layout::AgentRole::Child,
+                        LayoutMode::Compact,
+                    )
+                },
+                cx,
+            )
+            .unwrap();
+    });
+    probe
+}
+
+#[gpui::test]
+fn the_current_agent_in_a_top_compact_sheet_builds_and_paints_once(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(agent_sheet_probe);
+    cx.simulate_resize(gpui::size(gpui::px(390.0), gpui::px(844.0)));
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        assert_eq!(
+            probe.0.read(cx).notice.as_deref(),
+            Some("agent body constructed")
+        );
+    });
+    assert!(cx.debug_bounds("layout-survivor").is_some());
+}
+
+#[gpui::test]
+fn agent_builder_is_lazy_behind_another_tab_and_a_compact_sheet(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(hidden_probe);
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| assert!(probe.0.read(cx).notice.is_none()));
+    assert!(cx.debug_bounds("layout-survivor").is_none());
+    probe.update_in(cx, |probe, _window, cx| {
+        probe.0.update(cx, select_agent);
+    });
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        assert_eq!(
+            probe.0.read(cx).notice.as_deref(),
+            Some("agent body constructed")
+        );
+    });
+    assert!(cx.debug_bounds("layout-survivor").is_some());
+    probe.update_in(cx, |probe, _window, cx| {
+        probe.0.update(cx, cover_agent);
+    });
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| assert!(probe.0.read(cx).notice.is_none()));
+    assert!(cx.debug_bounds("layout-survivor").is_none());
 }
 #[gpui::test]
 fn closing_a_maximized_empty_pane_restores_surviving_panel_and_poll_visibility(
     cx: &mut TestAppContext,
 ) {
     language_tests::init(cx);
-    let (probe, cx) = cx.add_window_view(|window, cx| {
-        Probe(cx.new(|cx| {
-            let mut shell = Shell::without_io(window, cx);
-            shell.route = crate::routes::Route::Session;
-            shell.areas.session.open = Some(Open {
-                machine: "isolated".to_owned(),
-                session: SessionId::random(),
-                title: "retained".to_owned(),
-                agent: "fake".to_owned(),
-                structured: true,
-                live: true,
-                archived_at: None,
-                binding: None,
-            });
-            shell
-        }))
-    });
+    let (probe, cx) = cx.add_window_view(probe);
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     probe.update_in(cx, |probe, window, cx| {
         probe.0.update(cx, |shell, cx| {

@@ -39,11 +39,8 @@ fn rename_dialog(
     let typed = state.field.text(cx);
     let pending = open.pending.is_some();
     // Paseo's submit is off while the name is unchanged or being saved.
-    let can_submit = !pending && typed.trim() != open.machine.as_str();
-    let error = state
-        .problem
-        .clone()
-        .or_else(|| refusal(open.refused.as_ref(), shell));
+    let can_submit = open.rename_enabled(&typed);
+    let error = rename_error(shell);
     let body = div()
         .flex()
         .flex_col()
@@ -92,6 +89,16 @@ fn rename_dialog(
         |shell: &mut Shell, _window, _cx| close(&mut shell.areas.settings.overview.rename),
         cx,
     ))
+}
+
+/// One error source for the real dialog and its input/answer regression.
+fn rename_error(shell: &Shell) -> Option<String> {
+    let state = &shell.areas.settings.overview;
+    let open = state.rename.as_ref()?;
+    state
+        .problem
+        .clone()
+        .or_else(|| refusal(open.refused.as_ref(), shell))
 }
 
 fn remove_dialog(
@@ -200,3 +207,6 @@ const fn enabled(on: bool) -> ButtonState {
         ButtonState::Disabled
     }
 }
+
+#[cfg(test)]
+mod tests;

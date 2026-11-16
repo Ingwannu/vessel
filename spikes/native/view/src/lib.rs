@@ -32,6 +32,7 @@ pub mod effort;
 pub mod extras;
 pub mod files;
 pub mod fork;
+pub mod history;
 pub mod hosts;
 pub mod idle_release;
 mod links;

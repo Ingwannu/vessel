@@ -103,7 +103,7 @@ async fn buffered_record_and_metadata_are_refused_after_retirement() {
         // actually buffered before retirement, not merely scheduled for sending.
         let sessions = phase(
             "observe injected event before barrier reply",
-            selected.call(ListSessions),
+            selected.call(ListSessions::default()),
         )
         .await
         .unwrap();
@@ -192,7 +192,7 @@ async fn closed_reports_return_to_the_actor_and_never_retire_a_new_admission() {
         assert!(matches!(
             phase(
                 "refuse a call on the closed transport",
-                selected.call(ListSessions)
+                selected.call(ListSessions::default())
             )
             .await,
             Err(RequestFailure::Refused(Refusal::Closed))

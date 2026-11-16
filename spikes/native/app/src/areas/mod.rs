@@ -18,6 +18,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod import;
 pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
@@ -38,6 +39,7 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) import: import::ImportArea,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
@@ -74,7 +76,13 @@ impl Areas {
         window: &mut Window,
         cx: &mut Context<'_, Shell>,
     ) -> Self {
-        let mut areas = Self::with_drafts(general, vessel_app_link::drafts::load(), window, cx);
+        // Keep native IO in the production constructor; isolated tests and the
+        // browser receive an explicit in-memory document through the same path.
+        #[cfg(not(target_arch = "wasm32"))]
+        let drafts = vessel_app_link::drafts::load();
+        #[cfg(target_arch = "wasm32")]
+        let drafts = vessel_app_view::composer::drafts::Drafts::default();
+        let mut areas = Self::with_drafts(general, drafts, window, cx);
         composer::restore_local(&mut areas);
         areas
     }
@@ -87,6 +95,7 @@ impl Areas {
         cx: &mut Context<'_, Shell>,
     ) -> Self {
         let mut areas = Self {
+            import: import::ImportArea::new(window, cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),

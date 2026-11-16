@@ -779,25 +779,6 @@ the actual producer handoff, using the existing admitted identity and
 request-generation mechanisms. Node update awaits nodectl's ADR/call;
 Plugins belongs to its separate package owner.
 
-### Final rename disposition (2026-11-15)
-
-V1 passed the consumer `ae6ba8f6`, long-name fix `ad2d4ef3` and parent
-isolation `990da6dc` for bounded source, native gates and inspected
-visuals. The final normal executable is SHA-256
-`a3a7b3729eba6100ee29831da7f2919a645ab4f3429dd49e68a6e6110e49b344`.
-The review recorded all 74 release and eight long-name image hashes and
-dimensions, independently matched 22 idle/hover pairs, and opened all
-26 final dialogs, four phone pages and all eight long-name originals.
-The OCR miss is visually intact. Earlier edge/cursor probes retain their
-original consumer attribution; the final parent/clip audit is separate.
-
-This does not approve the still-failing sibling overlap, select-all,
-inherited Remove-with-glyph control, keyboard accessibility, physical
-input methods, OS integration or the latest combined build. The code hash
-was sent to the lead for the normal selected-package integration route;
-no unchanged gate or capture matrix was rerun. E1 and F5 continuation
-boundaries are now recorded in `wp-e1.md` and `wp-f5.md`.
-
 ### Field responsibility split on the validated package base
 
 Merged the announced package base `8d5513e4` as `0671404b`. The field's
@@ -816,35 +797,6 @@ K owns the later additive blur factory and Appearance profiles; W12 owns
 the later composer layout/ButtonOnly policy. Neither is folded into this
 move-only change. Narrow compilation and existing field tests are owed
 before reporting the split as usable.
-
-Pure field split `0cee06de` narrow checks are now complete: exact remote
-kit all-targets Clippy exit zero (`settings2-narrow-20261115T065223Z-0cee06de`),
-and the unchanged field/composer-hook/form tests passed 16/0/0
-(`settings2-narrow-20261115T065533Z-0cee06de`). The queued run is retained;
-no duplicate or unchanged rerun was started. This is a move-only narrow
-result, not the select-all package or combined-base approval.
-
-The lead then required W4's events-only extraction followed by its sole
-Editability API to enter a new package base first. The uncommitted E2
-selection/profile experiment was preserved as a patch and per-file hashes
-and removed from the working tree. After that base is announced, retain
-the rendering/style move, reuse W4's Editability and add E2 select_all
-separately. Do not restore the duplicate E2 editability implementation.
-
-### Combining the shared field base
-
-Merged announced package base 2 `6036eeb8` on the existing render/style
-work. The root now imports the one shared events and Editability modules;
-no E2 duplicate setter is restored. All original 32 field function bodies
-remain equal, with only W4's shared setter added. Measured product sizes:
-field root 415, events 75, editability 27; the field stays off the size
-list. The merged demo shrinks from its 523 ceiling to 517, which is
-recorded. Format/size/boundary/token checks pass. No function or test
-expectation was changed to resolve the module conflicts.
-
-The independent display-label narrow check found a wrong test fixture
-constructor and a documentation lint. Their original red log is kept;
-they are corrected separately, not disguised as part of the field move.
 
 ### Selection consumer on package base 2
 
@@ -867,3 +819,241 @@ Prepared engine regressions cover selection of ASCII/Hangul/emoji before
 the first edit, keyboard/paste/IME refusal, re-enable with draft retained
 and reopen. Narrow compilation/runtime and actual dialog captures are
 still owed; prepared tests are not counted as passed.
+
+
+Pre-capture source comparison found an inherited button-state difference:
+Paseo's AdaptiveRenameModal disables submit for a blank draft, while the
+existing native condition enabled it whenever it differed from the name.
+Editing::rename_enabled now owns the nonblank/change/pending rule and the
+screen delegates to it. Enter still runs validation and shows the required
+name error. A pure transition fixture covers idle blank/unchanged, pending
+and failed-write retry. No input engine, grammar, store or control paint
+changes. This correction is prepared before the first normal capture
+compilation; its new fixture still needs execution with the package gate.
+
+
+### Queued-only correction before the final native run
+
+The first final request settings2-20261115T130924Z-0610958f was formally
+superseded while still queued. The supported queued-only cancellation
+verified its process group and reached cancelled143 before replacement;
+no compiler or test step had started. Its original records remain intact.
+This is an authorized source amendment, not a compiler failure or a pass.
+
+The search owner supplied00ebfdeafaac650462d73853b54050ac57ca2f84:
+only the two cfg(test) counters inside ordinary cache methods change
+from +=1 to saturating_add. Native arithmetic_side_effects is denied;
+no actual lint failure on061 was observed. There is no production,
+expectation, threshold or public API change. The coordinator authorized
+this exact queued-only amendment to avoid spending a whole gate on the
+known strict-lint issue. Freeze the corrected source and register the
+same complete native gate with supported app export once, in the ordinary
+lane and a fresh output directory. Captures still await that actual export.
+
+### Executed selection package: 2026-11-15
+
+The preceding queued/export debts are superseded by actual source
+`0a0a5a87bc490620ccccebca104b8a2686319450`, run
+`settings2-20261115T135403Z-0a0a5a87`. Native fonts, format, quality,
+whole all-target Clippy, normal app build and tests each returned zero;
+tests were **1420 passed, 0 failed, 2 ignored**. The logs show the changed
+View, Kit, Link and App compiling/checking. Supported app export also
+returned zero. Original logs, spec and six-step digests are retained in
+`/tmp/work/m12-settings4/rg-selection-final2`; this is the final consuming
+source, not a pass borrowed from the lead. No unchanged whole rerun is due.
+
+The exported normal binary SHA256 is
+`282f70d9ecd0662398fdc22ecebedb21e8d7170440e7dfd8d83a129f48c6300b`.
+Eight real flows cover 1280x900 and 390x844, EN/KO and dark/light:
+opening selects the existing name, first input replaces it without Ctrl+A,
+blank input is refused, reopening selects again, pending edits/Backspace/
+Escape are ignored, failed saving preserves the draft, and a subsequent
+edit/retry commits exactly that draft. All eight completed. The three
+actual selection-engine tests, including typing/paste/both IME replacement
+paths under readonly, and the blank/unchanged/pending submit fixture also
+passed in the combined gate. These are synthetic engine tests, not a
+physical IME or operating-system claim.
+
+There are 56 original PNGs in `/tmp/work/m12-settings4/shots/selection`.
+`selection-capture-manifest.json` records every SHA/dimension and the
+explicit subset personally opened; `selection-capture-results.json`
+records each flow. Pending is forced only in the isolated legacy reader
+using a controlled FIFO, then a real directory-write refusal. This does
+not prove the future safe-file API (which must refuse FIFOs), latency or
+new format/writer behavior. Capture-driver failures are preserved as
+attempt-01 and manual unfocused artifacts; they are not product failures
+or passing UI evidence. The final driver explicitly focuses the window.
+
+The capture app used the approved shared protocol-23 root binary, with
+its different source identity explicit (`same_root_commit=false`); the
+actual app showed the fixture connected. Runs used UID/GID 1000 with
+private directories 0700 and book/credentials 0600. Original book bytes
+and modes were restored after every case. Only the verified owned node
+and Xvfb were stopped, checking PID, executable, owner and start time;
+the app was already stopped by the driver. No production permissions,
+services, real credentials or customer data were changed.
+
+Review requested is bounded to the pure render/style move, shared-engine
+selection/frame/rename consumer and its submit rules. Inherited pending
+label remains Rename rather than Paseo's Saving; error typography remains
+Meta rather than its base size, and existing footer/frame adaptation was
+not redrawn. The previously accepted parent-isolation change does not
+resolve the separately deferred sibling-occlusion finding. No full E1/F5,
+physical keyboard/IME, hardware GPU, accessibility or latest combined
+release approval follows from this package. V1 review remains pending.
+
+Public book values have a separate route: strict proto all-target Clippy
+on `7becce7f` actually returned zero. Per the coordinator's corrected
+decision, its five pure root/docs commits were cherry-picked by the node
+integrator as a58e08bc/c1717a02/d9bbb8c0/390fc201/c75d6391. Their A12 and
+nine root tests belong to that integration receipt, still awaited here;
+the app receives them through an announced base. No app ancestry is
+merged into the node line. Native appearance compatibility and E1's
+private-files/routes implementation remain separate unfinished work.
+
+
+### Same-package V4 return: previous failure belongs to the old draft
+
+V1 forwarded the final packet to V4 under the review-balance rule. V4
+row239 verified the exact six-step gate, exported binary and all56 images,
+but returned one actual consumer defect: typing after a failed save cleared
+the validation error only; the dialog still displayed Editing.refused.
+The retry-editable originals truthfully show the old failed-save sentence
+alongside the new draft. Those scenes are evidence of that defect, not a
+passed error-clearing state. Existing selection/pending/retry checks still
+have their recorded narrower outcomes; the package is not approved.
+
+Paseo rename-modal.handleChange clears all displayed error on edit. The
+correction keeps the existing TextField subscription and clears both
+previous validation and book refusal only while that rename is editable.
+Pending/mismatched-answer behavior and editing engine are unchanged. A real
+consumer regression renders the actual dialog, dispatches through a detached
+link, injects mismatched then matching failed answers, types through the
+real TextField and checks absent prior error, retained new draft and exact
+retry command. No model-only stand-in or network/file task is involved.
+Its execution and changed-source checks/export/affected scenes are owed;
+no unchanged whole gate or full matrix is requested by the return. The
+earlier sibling policy and disclosed typography/label adaptations stay
+separate.
+
+The first changed-source repair run
+settings2-20261115T153816Z-5344a764 actually returned101 at native-clippy:
+the new regression used `impl IntoElement` without its named import.
+Fonts and quality returned zero; no test, normal build or export ran.
+The source issue was identified while queued and a queued-only amendment
+was requested. When the coordinator's standing own-queued approval
+arrived, the run had already acquired a slot, so it was kept through its
+actual result, not cancelled or relabelled. The original log remains in
+`/tmp/work/m12-settings4/rg-selection-repair` (Clippy75seconds,
+SHA prefix943ce885e0818a55). The correction is one named trait import;
+product behavior and every assertion remain unchanged. A new exact
+changed-source check/export is owed; no successful repair is claimed.
+
+### Executed same-row correction and affected scenes
+
+Exact385dc0950763cbb53450a3438e6d73d544a9b049 passed the changed-source
+named checks in settings2-20261115T161139Z-385dc095:
+fonts, native quality, whole all-target Clippy, normal app build and native
+tests each returned zero; tests were1421/0/2. The actual new
+editing_after_a_failed_answer_clears_the_displayed_error_and_retries_the_exact_draft
+case is explicitly ok. Original five logs/digests and supported app export
+are retained in `/tmp/work/m12-settings4/rg-selection-repair2`.
+This is a named changed-source receipt, not a relabelled six-step whole;
+the original0a full gate and the5344 compile failure remain unchanged.
+The exported normal app SHA256 is
+9727f41b907e22ef3186ee4cab7bc88683e8b6524b24822977acec8045f31a1c.
+
+Both affected real flows completed on that exact binary:1280x900 light EN
+and390x844 dark KO. In each, the actual failed-save sentence is visible
+before editing and absent immediately after typing; held-draft-retry is
+retained and committed exactly. Opening selection, blank refusal,
+pending typing/Backspace/Escape refusal, failure preservation and retry
+also retain their recorded outcomes. Fourteen new original PNGs live in
+`/tmp/work/m12-settings4/shots/selection-repair`; their SHA/dimensions,
+the eight personally opened pending/failure/edit/saved originals and
+limits are in selection-repair-capture-manifest.json. Old56 original
+hashes were rechecked and preserved; they remain evidence of the old
+error-clearing defect. No full matrix was rerun or reclassified.
+
+The thirteen Kit field files are byte-identical0a to385. Actual App
+Checking/Compiling appears in all three changed-source compiler/test logs.
+Capture export, PID/exe/inode/hash and UID1000 checks were completed before
+launch; its shared-root source remains explicitly different. The driver
+restored original book bytes,0600 and parent0700. Its app had stopped;
+only the verified owned node and display were then stopped after their
+PID/executable/UID/start-time checks. No production/service permissions
+changed. All existing physicalIME/OS/GPU/accessibility/latest-union and
+inherited Saving/Meta/footer/sibling-policy limits remain separate.
+Same V4 row239 review closure is requested; no approval is inferred here.
+
+
+### Selection-only portable chain on package base 9
+
+[Decision Log]
+- Purpose: deliver the V4 row239 selection/rename correction without the
+  moving Settings branch's E1/F5, ADR0097 or inherited merge ancestry.
+- Existing assets: announced base db42d9c5 already supplies W4 callbacks,
+  Editability, FieldId, SearchField and typed FormMinimum. Reuse these
+  modules; neither an alternate editor nor an external dependency is needed.
+- Choice: replay only the lead's named commits in a straight chain.
+  All three W1 cache/test commits applied; none was empty.
+- Compatibility resolution: preserve base9's existing events, multiline,
+  identity, search, form-minimum and editability files exactly. Relocate
+  the six presentation/style function bodies byte-for-byte from that base,
+  retaining Expanded96 and default68/80 through the sole form-shell helper.
+  The presentation imports that existing helper through its parent alias.
+- The base9 SendOn regression is retained unchanged. An initial extraction
+  range inadvertently excluded it; the pre-check body audit caught this
+  before any compile or PASS claim, and this follow-up restores it.
+- Documentation conflicts keep only each selected commit's actual added
+  text, excluding missing parent context about other packages. The size
+  ratchet remains byte-identical to base9, without increasing any allowance.
+- Evidence before compilation: 24 source comparisons and all18 retained
+  root function bodies match their declared base/passed source; details at
+  /tmp/work/m12-settings4/portable/source-proof.json. Owned selection,
+  frame, rename, engine tests and actual dialog regression match385dc0950.
+  This is source comparison, not compiler/test/UI or new-base approval.
+- Verification pending: remote strict and native tests on this exact
+  portable tree, then V4 same-source/base-only qualification. Existing
+  captures remain attributed to385 and its prior base; no new capture,
+  whole E1/F5 completion or sibling-overlap resolution is inferred.
+
+
+### Actual base9 portable receiving checks
+
+The exact executable source bc394c26c1a4c6a034cefa67c7bfd9590fc59300 ran as
+settings2-20261115T172956Z-bc394c26 on the build VM. It acquired its slot at
+18:27:31 after3406 seconds queued and finished at18:34:33 with rc0. All four
+planned steps actually executed without skips: fonts24s, quality5s,
+strict150s and native tests236s, each rc0. Quality checked678 native files /
+13 shrinking exceptions,4 crate boundaries /7 owned external crates /2 name
+rules, and reported no new tokens. No allowance was increased.
+
+Raw native totals across ten test groups are1516 passed /0 failed /2 ignored.
+Clippy actually checked and tests actually compiled all four App/Kit/Link/View
+crates. Seven explicit passing cases include the three Unicode/readonly/
+retry selection tests, the retained SendOn regression, both base9 FormMinimum
+(default68/80 and Expanded96) regressions, and the actual Shell/dialog/
+detached-Link failed-answer -> edit -> absent error -> exact retry regression.
+This receiving execution is distinct from the old1421/source385 receipt.
+
+Original logs/spec/steps are retained at
+/tmp/work/m12-settings4/portable/remote-checks. All four original log hashes
+match their steps.tsv prefixes; the checked machine-readable summary is
+/tmp/work/m12-settings4/portable/check-receipt.json. The reproducible immutable
+source audit checks45 comparisons at verify-source.py / immutable-source-audit.json.
+Original-to-portable full commit mapping is commit-map.json; no pick was empty.
+
+This following leaf only records actual results and corrects the two stale
+Overview module-comment lines that claimed selection was still waiting.
+After that comment correction, the entire Overview file equals passed385.
+No executable statement, assertion, formatter expectation or input behavior
+changes after the checked bc394 source. Same-row V4 base-only confirmation
+and lead adoption remain separate. No unchanged whole gate was rerun.
+
+Scope: requested named quality/strict/tests plus fonts, not a new full native
+fmt/build/export gate. There is no new binary export or capture claim. The
+old fourteen correction and fifty-six original images retain their385/0a
+source/binary scopes; sibling overlap stays open. Latest combined line,
+physicalIME, OS/GPU/a11y and fullE1/F5 completion remain unverified. No real
+service/config/credential or permission changes were made in this port.

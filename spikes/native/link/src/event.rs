@@ -26,6 +26,8 @@ pub enum Event {
     SessionLifecycle(crate::sessions::lifecycle::Answer),
     /// A correlated creation transition.
     Creation(super::creation::Answer),
+    /// An original-admission guarded history result or correlated refusal.
+    History(crate::history::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
