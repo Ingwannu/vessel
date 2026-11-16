@@ -372,3 +372,11 @@ passed, but freshness failed on the uncommitted generated service declarations.
 That old snapshot is retained as evidence and will not overwrite the incoming
 wire. The merged composition requires its own official regeneration, followed
 by committed generated output, freshness and the enclosing package gate.
+
+The official generator on the merged values source passed all six generation
+tests. Its exact tracked patch and full snapshot were verified against that
+source commit and applied without manual edits, preserving incoming wire
+declarations. The generation run's stale-file failure is retained. Freshness
+of the committed artifact and all enclosing checks remain for the one values
+package gate; generated DTOs do not activate the staged methods or a service
+consumer.
