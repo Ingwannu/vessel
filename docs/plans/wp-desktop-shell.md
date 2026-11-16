@@ -238,6 +238,13 @@ turnover regression keeps the original root visible, registers B then A, and
 requires the old close to perform no document/quit action. This receiving test is
 not a claim of an observed native OS root-replacement lifecycle.
 
+An installed per-window document guard also refuses a missing registry or missing
+record. Unknown windows cannot bypass that guard, and close/reset operations
+never initialize the registry: only the host owner installs its cleanup observer.
+A negative case covers both absent and initialized-but-empty registries without
+inventing document facts. This later source correction needs its next execution;
+earlier App29 totals do not qualify it.
+
 ## Environment and CLI
 
 Shell capture uses vessel-proc's existing groups/jobs and cancellation behavior,

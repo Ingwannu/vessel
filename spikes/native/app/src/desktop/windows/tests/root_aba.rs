@@ -109,3 +109,32 @@ fn a_new_registration_of_the_same_root_does_not_inherit_its_old_close(cx: &mut T
         assert_eq!(cx.windows().len(), 2);
     });
 }
+
+#[gpui::test]
+fn installed_document_guard_refuses_an_unknown_window_without_creating_a_registry(
+    cx: &mut TestAppContext,
+) {
+    setup(cx);
+    let (_unknown, cx) = cx.add_window_view(|_, _| Empty);
+    let _extra = cx.update(|_, cx| {
+        cx.open_window(gpui::WindowOptions::default(), |_, cx| cx.new(|_| Empty))
+            .unwrap()
+    });
+    cx.update(|window, cx| {
+        assert!(!cx.has_global::<Registry>());
+        request_close(window, cx);
+        assert_eq!(cx.windows().len(), 2);
+        assert!(
+            !cx.has_global::<Registry>(),
+            "close cannot create a second init path"
+        );
+    });
+    cx.cx.update(crate::host_windows::init);
+    cx.update(|window, cx| {
+        assert!(cx.global::<Registry>().records.is_empty());
+        request_close(window, cx);
+        assert_eq!(cx.windows().len(), 2);
+        assert_eq!(cx.global::<AdmissionAttempts>().0, 0);
+        assert_eq!(cx.global::<QuitAttempts>().0, 0);
+    });
+}

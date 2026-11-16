@@ -48,13 +48,18 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     else {
         return true;
     };
-    let registry = cx.default_global::<Registry>();
+    // An installed document boundary cannot admit an unknown owner. Only the
+    // host module initializes the registry and its window-close observer.
+    if !cx.has_global::<Registry>() {
+        return false;
+    }
+    let registry = cx.global_mut::<Registry>();
     let Some(record) = registry
         .records
         .iter_mut()
         .find(|record| record.window == window.window_handle())
     else {
-        return true;
+        return false;
     };
     if record.close.is_checking() {
         return false;
@@ -113,8 +118,11 @@ fn current_record(record: &WindowRecord, root: &gpui::AnyView, cx: &App) -> bool
 }
 
 fn reset_close(record: &WindowRecord, cx: &mut App) {
+    if !cx.has_global::<Registry>() {
+        return;
+    }
     if let Some(retained) = cx
-        .default_global::<Registry>()
+        .global_mut::<Registry>()
         .records
         .iter_mut()
         .find(|retained| {
