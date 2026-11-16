@@ -161,3 +161,13 @@ replacement checks the complete consumer. No allowance or size record is raised.
 The remaining preflight finding is the base's large wasm refusal dispatcher;
 F3 adds only its typed Unsupported registration arm there. It is not compiled by
 the native strict target, so a wasm check remains a separate obligation.
+
+
+The pinned menu trigger toggles its open state (menu-root.tsx:87). Usage options
+now captures the rendered Opening for a close intent: it validates that exact
+lease and domain before removing the owner pair or acknowledging shared focus.
+A stale A close cannot close B, a stale open cannot replace an existing B, and
+an obsolete domain pair is withheld before deferred shared retirement. No new
+generation allocator, focus engine or renderer is introduced. Final consumer
+capture must exercise open/close/reopen and the stale-opening case; shared
+producer tests alone do not establish this consumer interaction.

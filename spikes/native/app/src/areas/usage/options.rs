@@ -36,10 +36,11 @@ pub(super) fn admitted(shell: &Shell, receipt: &Opening) -> bool {
     receipt.current(shell)
 }
 impl Shell {
-    fn usage_open_options(
+    fn usage_toggle_options(
         &mut self,
         machine: ConnectionContext,
         parent: Option<Ticket>,
+        opening: Option<Opening>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -49,7 +50,22 @@ impl Shell {
         {
             return;
         }
+        if let Some(opening) = opening {
+            if !opening.current(self) {
+                return;
+            }
+            let _retired = self.areas.usage.options_open.take();
+            let _closed = self.areas.usage.options.close(&opening.lease, window, cx);
+            cx.notify();
+            return;
+        }
+        self.retire_usage_options(window, cx);
         let state = &mut self.areas.usage;
+        // A retained closed-trigger frame must not replace an opening created
+        // since it was drawn. Close intents above carry that opening's lease.
+        if state.options_open.is_some() {
+            return;
+        }
         let Some(anchor) = state.options_anchor.get() else {
             return;
         };
@@ -107,13 +123,14 @@ pub(super) fn trigger(
 ) -> Option<AnyElement> {
     let machine = shell.areas.usage.connection.clone()?;
     let parent = shell.areas.usage.modal.current();
-    let disclosure = if shell
+    let opening = shell
         .areas
         .usage
         .options_open
         .as_ref()
-        .is_some_and(|opening| opening.current(shell))
-    {
+        .filter(|opening| opening.current(shell))
+        .cloned();
+    let disclosure = if opening.is_some() {
         Disclosure::Open
     } else {
         Disclosure::Closed
@@ -127,7 +144,7 @@ pub(super) fn trigger(
         tokens,
     )
     .on_click(cx.listener(move |shell, _, window, cx| {
-        shell.usage_open_options(machine.clone(), parent, window, cx);
+        shell.usage_toggle_options(machine.clone(), parent, opening.clone(), window, cx);
     }));
     Some(
         div()
