@@ -164,3 +164,10 @@ queued-only cancellations remain separately scoped records. V4 recheck and
 the lead's combined-line gate are pending. Actual Usage/Schedules consumers,
 new screen/release measurements, wasm/browser/Windows/GPU/plugin validators
 and the subsequent amount-formatter task remain outside this result.
+
+V4 row 248 subsequently passed the bounded producer source and exact changed
+View evidence at `c8290e56e` plus documentation leaf `bfc9f6f19`. The lead
+merged the straight producer range at `f2169502`; green package base 12
+`b5b46357` and package base 13 `2ebeedf9` include it. Actual consumer packages
+retain their own checks. ADR 0101 is a new numeric-formatting extension and
+does not inherit this producer approval.
