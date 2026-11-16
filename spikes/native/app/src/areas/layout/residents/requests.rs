@@ -60,7 +60,8 @@ impl SessionResidents {
         apply: impl FnOnce(&mut SessionResources, Request) -> T,
     ) -> Result<T, ResidentProblem> {
         self.admission.validate_binding(binding)?;
-        self.entry(binding.resident)?
+        let _expected_request = self
+            .entry(binding.resident)?
             .resources
             .requests
             .settling(binding, ticket)?;
