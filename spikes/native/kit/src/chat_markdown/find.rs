@@ -47,6 +47,10 @@ mod tests {
     use gpui_base::text::RenderedRangeSupport;
 
     #[gpui::test]
+    #[expect(
+        clippy::expect_used,
+        reason = "the fixture requires an accepted valid rendered range"
+    )]
     fn refused_marks_retry_and_equal_keys_do_not_survive_reparse_or_palette_changes(
         cx: &mut TestAppContext,
     ) {
@@ -64,8 +68,8 @@ mod tests {
             current: gpui::hsla(0.1, 1., 0.5, 1.),
             current_ink: gpui::hsla(0., 0., 0.1, 1.),
         };
-        let invalid = |_: &str| vec![1..3];
-        let valid = |_: &str| vec![0..3];
+        let invalid = |_: &str| std::iter::once(1..3).collect::<Vec<_>>();
+        let valid = |_: &str| std::iter::once(0..3).collect::<Vec<_>>();
         let mut marks = FindMarks {
             list: &list,
             clear_top: px(0.),
@@ -77,7 +81,8 @@ mod tests {
             assert!(super::super::mark(state, &marks, palette, cx).is_none());
             assert!(state.range_highlight_stamp().is_none());
             marks.spans = &valid;
-            let applied = super::super::mark(state, &marks, palette, cx).unwrap();
+            let applied = super::super::mark(state, &marks, palette, cx)
+                .expect("valid range must be accepted");
             assert!(applied.is_current(state, &marks, palette));
             let changed = FindPalette {
                 current_ink: gpui::hsla(0., 0., 0.9, 1.),
