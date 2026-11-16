@@ -1258,3 +1258,21 @@ case. Its paired strict run wp-commands-narrow-20261116T024729Z-5ebb31b0 failed
 only a new documentation backtick around saved_entries in admission.rs. That
 comment is corrected without a lint allowance; current App checks remain owed.
 No whole gate or first-use capture result is implied by this narrow suite.
+
+
+At exact7be03b612a4c149e8311aedc4c8f51eab2739c38, receiving run
+wp-commands-narrow-20261116T025851Z-7be03b61 passed all four native crates'
+all-target Clippy with warnings denied. Run
+wp-commands-20261116T025851Z-7be03b61 recompiled the App binary and passed
+197/0/2, including the new empty-book local-page Back case and all three book
+admission cases. Unchanged Kit/View execution remains the earlier1738 suite,
+with its exact limits retained. There is no final whole F4 gate or UI/OS claim.
+
+The earlier d311 first-use export never took a slot. After the lead required
+announced14.1 for first use, its queued-only cancellation was verified terminal
+143 and raw records retained. A single replacement native-build export is now
+registered as wp-commands-20261116T030518Z-7be03b61, ordinary lane, explicit
+protocol25 base12 fleet. No app/display/fake-fleet process or image exists yet.
+The shared book fact is also assembled as a bounded nine-path producer on
+announced14.1, excluding the moving full F4 tree; portable checks remain owed
+before W15/lead consumption.
