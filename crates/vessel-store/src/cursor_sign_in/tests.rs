@@ -39,7 +39,7 @@ fn safe_chain(error: &(dyn Error + 'static)) {
 fn assert_private_read(path: &Path, body: &[u8]) {
     let before = std::fs::read(path).unwrap();
     let metadata = std::fs::metadata(path).unwrap();
-    let error = crate::read_cursor_usage_sign_in(path).unwrap_err();
+    let error = read_cursor_usage_sign_in(path).unwrap_err();
     safe_chain(&error);
     let StoreError::Io { source, .. } = error else {
         panic!("expected a legacy decode refusal");
@@ -90,19 +90,12 @@ fn direct_key_precedence_and_empty_legacy_sign_ins_are_unchanged() {
         .unwrap();
     drop(connection);
     assert_eq!(
-        crate::read_cursor_usage_sign_in(&path)
-            .unwrap()
-            .unwrap()
-            .as_str(),
+        read_cursor_usage_sign_in(&path).unwrap().unwrap().as_str(),
         "fixture-direct"
     );
-    for body in [
-        r#"{}"#,
-        r#"{"accessToken":null}"#,
-        r#"{"accessToken":"  "}"#,
-    ] {
+    for body in ["{}", r#"{"accessToken":null}"#, r#"{"accessToken":"  "}"#] {
         let (_root, path) = fixture(body);
-        assert!(crate::read_cursor_usage_sign_in(&path).unwrap().is_none());
+        assert!(read_cursor_usage_sign_in(&path).unwrap().is_none());
     }
 }
 

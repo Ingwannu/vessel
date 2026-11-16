@@ -448,3 +448,13 @@ wrong-field, truncated and trailing credential JSON, public io get_ref diagnosti
 unchanged bytes/mode/ownership/no side files, direct-key precedence and empty legacy
 values; existing success/WAL/absent-file controls remain. These are authored tests,
 not executed proof until the exact remote results are recorded.
+
+
+Exact `4c5586908` remote decoder suite executed 311 passing tests, zero failures
+and one ignored pre-existing performance measurement. The exported all-seven
+vendor canaries, private retained causes, real SQLite TEXT/BLOB canaries and
+read-only/WAL controls all visibly passed. This is scoped runtime evidence, not
+full package acceptance. Its workspace strict run stopped on three unnecessary
+qualifications and one needless raw-string marker in the new store tests; TS
+did not run. The mechanical correction preserves every input and assertion.
+The separate `4e1d935d5` client/RPC suite passed 143 tests with no failures.
