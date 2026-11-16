@@ -368,10 +368,9 @@ ProcessLifetime revocation and durable PID identity do not mint it. No crate
 edge, dependency, wire field or management caller is added by this mechanism.
 The source/validation record is docs/plans/checked-process-cleanup.md.
 
-Milestone 12 (ADR 0079) adds `vessel-plugin -> proto, proc`: the private
-helper envelopes and declarative graph remain in proto; the new crate owns
-bounded pipe workers, callback cancellation/settlement and one supervised
-process-group lifetime. Reusing proc avoids a second Unix/Windows cleanup
-implementation. This crate cannot authenticate a caller, select an install
-source or parse a vendor provider. The node policy edge is added only with
-its later actual caller, not inferred from this supervision foundation.
+The standalone plugin helper API reuses proto declaration/private-frame values
+and proc owned cleanup. It owns bounded framing, logs, correlation/cancellation
+and helper supervision. No node/product manifest depends on it in this slice;
+there is no installer, source acquisition, caller authorization or broker. Its
+public library API is the explicitly approved exception for actual own fixtures,
+not permission to add a callerless Node service or advertise incomplete providers.
