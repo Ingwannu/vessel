@@ -923,3 +923,31 @@ Announced base13.1 ad14f5f6 is merged at the next natural Main boundary before
 that runtime replacement. Its staged window enumeration and additive segmented
 control remain owner/base changes; no unpublished Sidebar row, hierarchy,
 settings or canonical workspace behavior becomes passed through this merge.
+
+## Reserved footer control dependency
+
+[Decision Log]
+- Purpose: the fixed footer Usage/Help/Settings actions need the source footer
+  chrome rather than an ordinary Medium32 button or the Toolbar20/32 profile.
+- Existing assets: W12 owns the lower icon chrome extraction, with closed
+  ToolbarSmall and SidebarFooter profiles. Its footer source is prepared, not
+  yet a checked/announced dependency; do not copy its private renderer here.
+- Choice: once that leaf lands, a separate FooterIconButton file delegates its
+  frame to that same renderer and decorates the same hitbox through Tooltips.
+  The wrapper owns no menu, operation, preference store or focus listener.
+- Why: left-sidebar.tsx:282–330 and910–917, density.ts:15,18–28,39–44, and
+  sidebar-footer-icon-highlight.tsx:1–25 require square28/44 targets, glyph16/20,
+  padding4, muted-to-foreground hover, and a pointer-transparent round pressed
+  layer INSIDE the square hit region. Rounding the outer target loses corner
+  taps. The fill is existing interactionHighlight, not a new theme color.
+- Impact: caller order, original captured action context and actual layout
+  decision stay at the application edge. The source tooltip is top/center8
+  after300ms, with whole caller label and optional effective shortcut content;
+  reuse the checked shared tooltip options rather than another tooltip engine.
+
+W5's proposed ordinary Medium32/icon14 substitute was withdrawn before any
+footer edit. Its fixed Usage action remains pending this named control; the
+optional summary still follows the single navigation preference and defaults
+hidden. No new footer source or checked API is claimed by this plan. The first
+consumer must check literal bounds, corner hits, hover/pressed ink and actual
+Usage opening in both layouts/themes, then submit original captures.
