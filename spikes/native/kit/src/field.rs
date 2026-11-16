@@ -93,6 +93,7 @@ pub struct TextField {
 mod multiline;
 pub use multiline::SendOn;
 mod events;
+pub use events::FieldEvents;
 use events::{Callbacks, Handlers, listen};
 mod form_minimum;
 pub use form_minimum::FormMinimum;
