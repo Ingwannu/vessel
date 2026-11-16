@@ -55,6 +55,8 @@ use crate::principal::Principal;
 
 mod reservation;
 pub(crate) use reservation::AgentReservation;
+#[cfg(test)]
+pub(crate) use reservation::CreationCountCorrelation;
 
 /// Live sessions an agent may own (that it created itself) at once.
 pub(crate) const MAX_OWNED: usize = 8;
@@ -78,6 +80,8 @@ pub(crate) struct Agents {
 struct Entry {
     /// Local rollback ownership, independent of the public session identity.
     reservation: Arc<()>,
+    #[cfg(test)]
+    creation_launch: reservation::CountLaunchState,
     /// Accepted credentials: one, or two while a profile move runs.
     credentials: Vec<CredentialHash>,
     /// What the session's agent may do.
@@ -204,6 +208,8 @@ impl Agents {
             id,
             Entry {
                 reservation: Arc::clone(&reservation),
+                #[cfg(test)]
+                creation_launch: reservation::CountLaunchState::Reserved,
                 credentials,
                 scopes,
                 depth,

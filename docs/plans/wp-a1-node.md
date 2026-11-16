@@ -470,3 +470,21 @@ creation command. Canonical CapturedParentExecution is still staged cfg(test),
 not a qualified production API. No private stamp, receiver clone or generic
 callback substitutes for it. The current lower actor join remains staged until
 the actual owner/capture composition is implemented and reviewed together.
+
+### Count correlation for the concrete launch capsule (staged)
+
+The existing AgentReservation now offers one cfg(test) creation correlation
+constructor after its exact Begin binding. The tracked driver retains the guard;
+the correlation owns no credential and grants no parent authority. It records
+the same registry reference, child identity, private Arc marker and Begin pair.
+The common Agents guard alone can compare it against the current pending entry.
+No lookup lock, Store query, callback or I/O runs inside that comparison.
+
+The entry's cfg(test) count state distinguishes Reserved, Begun and Admitted.
+A known pre-admission refusal clears the old Begin relation before rollback;
+a later launch admission cannot be undone as a known no-spawn refusal. This
+state is correlation in the existing count registry, not a second authority map.
+The common fence still owes its current-parent check and concrete capsule
+insertion in that same critical section. Five regressions cover pre-Begin and
+single-use construction, foreign registry, replacement/connection, consumed
+admission and stale relation after known refusal. New execution is owed.

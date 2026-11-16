@@ -8,7 +8,7 @@ use vessel_proto::creation::{
 };
 use vessel_proto::{AgentAuth, BlobHash, NodeId, WorkspaceId, WorkspaceOperationId};
 
-fn marker(session: SessionId) -> Receipt {
+pub(super) fn marker(session: SessionId) -> Receipt {
     let mut receipt = Receipt::admitted(
         Kind::Agent,
         Reservation {

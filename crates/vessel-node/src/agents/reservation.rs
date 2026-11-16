@@ -3,6 +3,13 @@ use super::{Agents, Entry};
 use std::sync::Arc;
 use vessel_proto::{AgentSecret, SessionId};
 
+#[cfg(test)]
+mod launch;
+#[cfg(test)]
+pub(in crate::agents) use launch::CountLaunchState;
+#[cfg(test)]
+pub(crate) use launch::CreationCountCorrelation;
+
 /// No credential, owner/grant or public session identity is replaced on `Drop`.
 #[must_use = "retain the count reservation through commit or known refusal"]
 pub(crate) struct AgentReservation<'a> {
@@ -11,6 +18,8 @@ pub(crate) struct AgentReservation<'a> {
     marker: Arc<()>,
     secret: Option<AgentSecret>,
     rollback: bool,
+    #[cfg(test)]
+    launch_correlated: bool,
     #[cfg(test)]
     boundary: Option<(
         vessel_proto::WorkspaceOperationId,
@@ -31,6 +40,8 @@ impl<'a> AgentReservation<'a> {
             marker,
             secret,
             rollback: true,
+            #[cfg(test)]
+            launch_correlated: false,
             #[cfg(test)]
             boundary: None,
         }
@@ -61,17 +72,23 @@ impl<'a> AgentReservation<'a> {
         {
             return Err(CreationError::InvalidTransition);
         }
-        let entries = self.agents.lock();
-        if !entries
-            .get(&self.session)
-            .is_some_and(|entry| self.owns_pending(entry))
-        {
+        let mut entries = self.agents.lock();
+        let entry = entries
+            .get_mut(&self.session)
+            .filter(|entry| self.owns_pending(entry))
+            .ok_or(CreationError::InvalidTransition)?;
+        if entry.creation_launch != CountLaunchState::Reserved {
             return Err(CreationError::InvalidTransition);
         }
-        self.boundary = Some((
+        let begin = (
             receipt.snapshot().reserved.operation,
             receipt.snapshot().revision,
-        ));
+        );
+        entry.creation_launch = CountLaunchState::Begun {
+            operation: begin.0,
+            revision: begin.1,
+        };
+        self.boundary = Some(begin);
         self.rollback = false;
         Ok(())
     }
@@ -106,13 +123,20 @@ impl<'a> AgentReservation<'a> {
         {
             return Err(CreationError::InvalidTransition);
         }
-        let entries = self.agents.lock();
-        if !entries
-            .get(&self.session)
-            .is_some_and(|entry| self.owns_pending(entry))
+        let mut entries = self.agents.lock();
+        let entry = entries
+            .get_mut(&self.session)
+            .filter(|entry| self.owns_pending(entry))
+            .ok_or(CreationError::InvalidTransition)?;
+        if entry.creation_launch
+            != (CountLaunchState::Begun {
+                operation,
+                revision: begin,
+            })
         {
             return Err(CreationError::InvalidTransition);
         }
+        entry.creation_launch = CountLaunchState::Reserved;
         self.rollback = true;
         Ok(())
     }
