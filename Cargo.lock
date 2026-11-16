@@ -3885,6 +3885,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "jiff",
+ "log",
  "nix 0.31.3",
  "reqwest",
  "rusqlite",
@@ -3915,6 +3916,7 @@ dependencies = [
  "vessel-mcp",
  "vessel-proc",
  "vessel-proto",
+ "vessel-pty",
  "vessel-relay",
  "vessel-rpc",
  "vessel-secure",
@@ -3975,11 +3977,14 @@ name = "vessel-pty"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "log",
  "nix 0.31.3",
  "portable-pty",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
+ "tracing-core",
+ "tracing-subscriber",
  "vessel-proc",
  "vessel-testkit",
 ]
