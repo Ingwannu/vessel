@@ -66,7 +66,7 @@ pub fn render(
     }
 }
 
-/// The loading toolbar can supply its existing shared ActivityIndicator while
+/// The loading toolbar can supply its existing shared `ActivityIndicator` while
 /// retaining this exact frame. External callers cannot invent another profile.
 pub(crate) fn toolbar_frame(
     id: impl Into<ElementId>,
