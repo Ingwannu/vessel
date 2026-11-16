@@ -44,7 +44,7 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
             workspaces.push(decode(&text)?);
         }
     }
-    let memberships = memberships(&transaction)?;
+    let memberships = super::workspace_memberships(&transaction, None::<WorkspaceId>)?;
     transaction.commit()?;
     Ok(StoredRegistry {
         revision: RegistryRevision::from(
@@ -55,9 +55,17 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
     })
 }
 
-fn memberships(connection: &Connection) -> Result<Vec<WorkspaceMembership>, StoreError> {
-    let mut statement = connection.prepare_cached("SELECT workspace,kind,resource FROM workspace_registry_resources ORDER BY workspace,kind,resource")?;
-    let mut rows = statement.query([])?;
+/// Read resource associations on the caller's existing connection/transaction.
+/// A `WorkspaceId` selects exactly that workspace; `None` is the complete snapshot.
+/// Pending/failed/historical associations remain present, without role/activity
+/// inference. The caller separately owns lifecycle/permission/mutation checks.
+pub(crate) fn memberships(
+    connection: &Connection,
+    workspace: impl Into<Option<WorkspaceId>>,
+) -> Result<Vec<WorkspaceMembership>, StoreError> {
+    let workspace = workspace.into();
+    let mut statement = connection.prepare_cached("SELECT workspace,kind,resource FROM workspace_registry_resources WHERE (?1 IS NULL OR workspace=?1) ORDER BY workspace,kind,resource")?;
+    let mut rows = statement.query(params![workspace.map(|id| id.to_string())])?;
     let mut memberships = Vec::new();
     while let Some(row) = rows.next()? {
         let (workspace, kind, id): (String, String, String) =
