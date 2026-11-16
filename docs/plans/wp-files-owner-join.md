@@ -85,3 +85,15 @@ new package version. G4 selected/delivery
 files are unchanged. The receiving owner assembly still needs its own checks;
 the separately reviewed small shown-source producer remains the G1 handoff
 path and does not carry this full file-owner join.
+
+## Presentation facts for local Find
+
+Source analysis found that pane drawing already refused a known different
+node under a reused alias, while focused Find used only target/visibility and
+viewer scope. One shared presentation predicate now serves both paths. It is
+a facts filter, not a connection authority check: missing/offline connections
+retain the prior local-draft behavior, and every effect still uses its original
+context. The authored real-Scenario reconnect case keeps the editor/find focus,
+publishes a different actual node, and requires immediate Find refusal with
+the original model/editor text retained. It is unexecuted; queued strict36
+predates this small source correction and will not qualify it.

@@ -272,3 +272,49 @@ fn the_legacy_unbound_viewer_records_its_actual_back_control(cx: &mut TestAppCon
     assert!(cx.debug_bounds("code-file-tree").is_none());
     finish(&probe, cx);
 }
+
+#[gpui::test]
+fn unavailable_different_node_pane_cannot_claim_find_from_its_old_focus(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        let scene = probe.scene.as_mut().unwrap();
+        let file = probe.file.clone();
+        probe.shell.update(cx, |shell, cx| {
+            let editor = shell
+                .editing_for(&file)
+                .unwrap()
+                .editor
+                .as_ref()
+                .unwrap()
+                .clone();
+            editor.focus(window, cx);
+            assert!(shell.file_visible_in_layout(&file, window));
+            assert!(shell.file_find_at_focus(window, cx));
+            let replacement = scene
+                .reconnect(
+                    shell.fixture_link(),
+                    vessel_app_link::testing::Reconnect::DifferentNode,
+                )
+                .unwrap();
+            let machine = shell.fleet.machines.first_mut().unwrap();
+            machine.node = Some(replacement.node());
+            machine.connection_epoch = Some(replacement.epoch());
+            assert!(!shell.file_visible_in_layout(&file, window));
+            assert!(
+                !shell.file_find_at_focus(window, cx),
+                "unavailable content cannot use a retained focus handle as a visible editor"
+            );
+            assert_eq!(
+                shell.editing_for(&file).unwrap().model.content(),
+                "baseline"
+            );
+            assert_eq!(editor.text(cx), "baseline");
+            assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&file));
+        });
+    });
+    finish(&probe, cx);
+}

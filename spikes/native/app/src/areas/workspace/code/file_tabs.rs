@@ -107,10 +107,7 @@ pub(crate) fn render_file_panel(
     else {
         return unavailable();
     };
-    if shell
-        .file_connection(binding.origin.scope().connection().machine().as_str())
-        .is_some_and(|current| current.node() != binding.file.node)
-    {
+    if !shell.file_binding_available(binding) {
         return unavailable();
     }
     if binding.file.root != *root
@@ -122,9 +119,6 @@ pub(crate) fn render_file_panel(
     let Some(viewer) = shell.areas.workspace.code.viewer_at(&binding.file) else {
         return unavailable();
     };
-    if viewer.scope != *binding.origin.scope() {
-        return unavailable();
-    }
     div()
         .size_full()
         .flex()
@@ -149,6 +143,22 @@ pub(crate) fn render_file_panel(
 }
 
 impl Shell {
+    // Drawing and focused local Find share the same presentation facts. A missing
+    // connection may still show a retained local draft; a known different node
+    // cannot lend that unavailable pane's old focus to the current workspace.
+    fn file_binding_available(&self, binding: &Binding) -> bool {
+        !self
+            .file_connection(binding.origin.scope().connection().machine().as_str())
+            .is_some_and(|current| current.node() != binding.file.node)
+            && binding.file.node == binding.origin.scope().node()
+            && self
+                .areas
+                .workspace
+                .code
+                .viewer_at(&binding.file)
+                .is_some_and(|viewer| viewer.scope == *binding.origin.scope())
+    }
+
     // Visibility comes from the sole layout projection. This only routes local
     // editor UI; original connection preflight still owns every file effect.
     pub(super) fn file_visible_in_layout(&self, file: &FileKey, window: &Window) -> bool {
@@ -163,9 +173,7 @@ impl Shell {
                     path: file.path.clone(),
                 };
                 binding.file == *file
-                    && panel
-                        .viewer_at(file)
-                        .is_some_and(|viewer| viewer.scope == *binding.origin.scope())
+                    && self.file_binding_available(binding)
                     && self.layout_tab_matches(workspace, *tab, &target)
                     && self.layout_panel_visible(workspace, *tab, window)
             })
