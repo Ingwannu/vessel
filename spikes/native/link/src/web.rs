@@ -85,6 +85,19 @@ impl Link {
         }
     }
 
+    /// The demo's records for a prompt, with files or without: a browser
+    /// sends none, so both commands answer the same way.
+    fn demo_prompt(
+        &self,
+        session: vessel_proto::SessionId,
+        text: &str,
+        now: chrono::DateTime<Utc>,
+    ) {
+        let records = self.demo.borrow_mut().prompt(&session, text, now);
+        self.emit(Event::Records { session, records });
+        self.emit(Event::Sent { session });
+    }
+
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
@@ -148,19 +161,14 @@ impl Link {
                 let records = self.demo.borrow().records(&session);
                 self.emit(Event::Records { session, records });
             }
-            Command::Prompt { session, text, .. }
-            | Command::Files(crate::attachments::Files::Prompt(crate::attachments::WithFiles {
-                session,
-                text,
-                ..
-            })) => {
-                let records = self.demo.borrow_mut().prompt(&session, &text, now);
-                self.emit(Event::Records { session, records });
-                self.emit(Event::Sent { session });
+            Command::Prompt { session, text, .. } => self.demo_prompt(session, &text, now),
+            Command::Files(crate::attachments::Files::Prompt(with)) => {
+                self.demo_prompt(with.session, &with.text, now);
             }
             // A browser has no files to send yet (track P's row c).
             Command::Files(crate::attachments::Files::Send(attach)) => {
                 self.emit(Event::Files(crate::attachments::Answer::Upload {
+                    message: attach.message,
                     session: attach.session,
                     key: attach.key,
                     step: crate::attachments::Step::Failed {
@@ -180,6 +188,7 @@ impl Link {
             }
             Command::Files(crate::attachments::Files::Wake(wake)) => {
                 self.emit(Event::Files(crate::attachments::Answer::Woke {
+                    message: wake.message,
                     session: wake.session,
                     outcome: crate::attachments::WakeOutcome::Refused,
                 }));
