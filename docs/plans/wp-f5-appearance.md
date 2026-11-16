@@ -707,3 +707,13 @@ head is merged independently; root changes belong to this announced app base.
 The next correction splits the test by setup/observation/assertion roles,
 keeps all assertions, makes the enum match exhaustive and removes the unused
 row-only binding. No lint allowance or budget increase is introduced.
+
+
+The new event test is split into setup, raw-source observation and contract
+assertion helpers. Every assertion expression (owner/self normalization only)
+and every input/park call is mechanically preserved. Its Seen match now
+names all non-Edit variants. choices::rows removes only its unused binding;
+label's still-used Settings words stay intact. Static size also lowers the
+session ratchet673→664 to the measured merged product lines; no budget grows.
+The project=vessel agent label was verified on resume. The next immutable
+check uses the VM only; the prior 18c failure is not reclassified.

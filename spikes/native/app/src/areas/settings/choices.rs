@@ -102,7 +102,6 @@ pub(super) fn delivery_label(shell: &Shell) -> SharedString {
 
 /// `list`'s rows.
 pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> {
-    let words = shell.t.lang.settings();
     let settings = &shell.prefs.settings;
     let appearance = &settings.appearance;
     let row = |label: String, checked: bool| ComboRow {
