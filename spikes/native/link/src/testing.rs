@@ -34,6 +34,7 @@ fn make_state(
     events: mpsc::Sender<Event>,
 ) -> State {
     State {
+        usage_calls: crate::usage::Hub::default(),
         label: "test".to_owned(),
         commands,
         events,

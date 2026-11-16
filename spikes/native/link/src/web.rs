@@ -104,6 +104,9 @@ impl Link {
             Command::CodeSource(request) => {
                 self.emit(Event::CodeSource(Box::new(request.refused(Problem::Older))))
             }
+            Command::Usage(ask) => self.emit(Event::Usage(
+                ask.refused(vessel_app_view::usage::RequestFailure::Unsupported),
+            )),
             Command::SessionAccess(access) => self.emit(access.refused(ActFailed {
                 code: Some(vessel_proto::ErrorCode::Unsupported),
                 message: "Authenticated session navigation requires a native connection".to_owned(),

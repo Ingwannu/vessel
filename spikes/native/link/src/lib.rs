@@ -76,10 +76,10 @@ pub mod node_settings;
 pub mod search;
 pub mod sessions;
 pub mod sync;
+pub mod usage;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
-
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
@@ -210,6 +210,7 @@ impl Link {
             device_calls: devices::Hub::default(),
             history_calls: history::Hub::default(),
             sync_calls: sync::Hub::default(),
+            usage_calls: usage::Hub::default(),
             session_navigation: sessions::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -280,6 +281,7 @@ struct State {
     device_calls: devices::Hub,
     history_calls: history::Hub,
     sync_calls: sync::Hub,
+    usage_calls: usage::Hub,
     session_navigation: sessions::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

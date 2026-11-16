@@ -17,6 +17,17 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "set", content = "value", rename_all = "snake_case")]
 pub enum PreferenceChange {
+    /// Usage percentage presentation, shared by all usage surfaces.
+    UsageDisplay(crate::usage::DisplayAs),
+    /// Explicit usage host selected by handshake identity.
+    UsageHost(Option<NodeId>),
+    /// Explicit quota windows shared by settings and the summary.
+    UsagePins(
+        crate::usage::PinSelection<
+            vessel_proto::usage_reports::UsageSourceId,
+            vessel_proto::limits::LimitKey,
+        >,
+    ),
     /// The app language; applies at once on every screen.
     Language(crate::localization::LanguagePreference),
     /// The theme.
@@ -49,6 +60,13 @@ pub enum PreferenceChange {
     SidebarSort(SessionSort),
     /// Whether the sidebar lists ended sessions.
     SidebarEnded(bool),
+    /// Replace one sidebar navigation band, retaining the other.
+    SidebarNavigation {
+        /// Header or optional footer rows.
+        section: crate::sidebar::navigation::Section,
+        /// Bounded choices produced by the shared navigation resolver.
+        entries: crate::sidebar::navigation::Entries,
+    },
     /// Some actions' keys.
     Shortcuts {
         /// The edits, applied in order.
@@ -171,6 +189,9 @@ impl Preferences {
     /// Apply `change`, replacing only the setting it names.
     fn apply(&mut self, change: &PreferenceChange) {
         match change {
+            PreferenceChange::UsageDisplay(display) => self.usage.display = *display,
+            PreferenceChange::UsageHost(host) => self.usage.host = *host,
+            PreferenceChange::UsagePins(pins) => self.usage.pins = pins.clone(),
             PreferenceChange::Language(language) => self.language = *language,
             PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,
@@ -187,6 +208,9 @@ impl Preferences {
             PreferenceChange::SidebarGroup(group) => self.sidebar.group = *group,
             PreferenceChange::SidebarSort(sort) => self.sidebar.sort = *sort,
             PreferenceChange::SidebarEnded(ended) => self.sidebar.ended = *ended,
+            PreferenceChange::SidebarNavigation { section, entries } => {
+                self.sidebar_navigation.set(*section, entries.clone());
+            }
             PreferenceChange::Shortcuts { edits } => {
                 for edit in edits.items() {
                     match &edit.to {

@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Correlated usage facts or safe failures.
+    Usage(crate::usage::Answer),
     /// Session address lookup, correlated to its requesting control.
     Sessions(crate::sessions::Answer),
     /// The matching lifecycle mutation result.
