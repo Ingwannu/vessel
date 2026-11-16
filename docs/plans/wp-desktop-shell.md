@@ -178,6 +178,16 @@ kit's existing actions to the selection owner. EditContext admits Copy and Paste
 independently, so read-only script/service terminals can disable Paste. Desktop
 contains no second terminal parser, clipboard engine or input policy.
 
+The public edit-context adapter currently has test callers; it is not yet a
+default right-click connection for production fields or C2's terminal. A separate
+coordinator-owned field/host leaf stages explicit TextField opt-in through the
+existing deferred input callback, weak live permission/focus probes and this same
+host registry. G2's in-flight field files remain untouched; the lead receives an
+unapplied module hookup patch, and evidence runs on a scratch branch with that
+patch applied. The staged source does not qualify actual E3 field opt-ins, menu
+or recorder execution. It must pass V1 and lead adoption before this consumer
+uses it; no fallback input menu is advertised as the kit menu.
+
 G2's isolated8158be6d producer was adopted via103a042ac, retaining newer dialog
 configuration. MenuState is the sole weak return-focus owner. A chosen row
 restores before dispatch; a replaced app-menu cycle refuses old row actions.
