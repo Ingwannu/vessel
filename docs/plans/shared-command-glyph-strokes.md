@@ -75,8 +75,9 @@ fleet, so the captures came from a capture-only cherry-pick of these three commi
   derived 1.5 → 2.2 path gives the same weight.
 
 Tests: `assets::command_weight_tests` (each line glyph's derived asset is the
-shared SVG with only the root stroke at 2.2, same stroked-vector count, every
-stroke 2.2; other drawings and the `Command*` roles keep their path and have no
+shared SVG with only the root stroke at 2.2: the same vectors, each one drawn
+at 1.5 now at 2.2, and a child's own stroke kept, as the spinner's arc at 2;
+the Vessel-only row glyphs draw every vector at 2.2; other drawings and the `Command*` roles keep their path and have no
 derived asset; the Vessel-only rows are derived; the shared list is unchanged)
 and `areas::palette::rows::stroke_tests::every_other_row_draws_at_the_command_weight`
 (every settings section, theme, machine, board and session row).

@@ -5,22 +5,21 @@ use super::{ALL, Assets, COMMAND_WEIGHT, Glyph, LINE_ROOT};
 use gpui::AssetSource as _;
 use resvg::usvg;
 
-/// Stroked vectors under `group`, each asserted unfilled at `width`.
-fn stroked(group: &usvg::Group, width: f32) -> usize {
-    group.children().iter().fold(0_usize, |count, node| {
-        count.saturating_add(match node {
+/// The stroke width of every vector under `group`, in order, each asserted
+/// unfilled.
+fn widths(group: &usvg::Group) -> Vec<u32> {
+    group
+        .children()
+        .iter()
+        .flat_map(|node| match node {
             usvg::Node::Path(path) => {
                 assert!(path.fill().is_none(), "an unfilled line glyph");
-                assert_eq!(
-                    path.stroke().unwrap().width().get().to_bits(),
-                    width.to_bits()
-                );
-                1
+                vec![path.stroke().unwrap().width().get().to_bits()]
             }
-            usvg::Node::Group(group) => stroked(group, width),
+            usvg::Node::Group(group) => widths(group),
             usvg::Node::Image(_) | usvg::Node::Text(_) => panic!("vector line paths only"),
         })
-    })
+        .collect()
 }
 
 fn parse(data: &[u8]) -> usvg::Tree {
@@ -51,12 +50,20 @@ fn every_line_glyph_has_a_command_weight_asset_with_the_same_vectors_at_2_2() {
                 .replacen(r#"stroke-width="1.5""#, r#"stroke-width="2.2""#, 1),
             "{glyph:?}"
         );
+        // The same vectors; each one drawn at the root's 1.5 is now at 2.2,
+        // and a child's own stroke (the spinner's arc at 2) is kept.
         let base = Assets.load(glyph.path()).unwrap().unwrap();
-        assert_eq!(
-            stroked(parse(&data).root(), 2.2),
-            stroked(parse(&base).root(), 1.5),
-            "{glyph:?}"
-        );
+        let expected: Vec<u32> = widths(parse(&base).root())
+            .into_iter()
+            .map(|width| {
+                if width == 1.5_f32.to_bits() {
+                    2.2_f32.to_bits()
+                } else {
+                    width
+                }
+            })
+            .collect();
+        assert_eq!(widths(parse(&data).root()), expected, "{glyph:?}");
     }
     assert!(lines > 80, "{lines}");
 }
@@ -108,8 +115,16 @@ fn the_vessel_only_rows_are_derived() {
         Glyph::Palette,
         Glyph::Keyboard,
     ] {
+        let path = glyph.command_weight_path();
+        let data = Assets.load(&path).unwrap().unwrap();
+        let drawn = widths(parse(&data).root());
+        assert!(!drawn.is_empty(), "{glyph:?}");
         assert!(
-            glyph.command_weight_path().starts_with(COMMAND_WEIGHT),
+            drawn.iter().all(|width| *width == 2.2_f32.to_bits()),
+            "{glyph:?}"
+        );
+        assert!(
+            path.starts_with(COMMAND_WEIGHT),
             "{glyph:?}"
         );
     }
