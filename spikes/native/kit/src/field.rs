@@ -14,6 +14,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+#[cfg(test)]
 use gpui::prelude::*;
 use gpui::{App, Context, Entity, Focusable as _, Window};
 #[cfg(test)]
