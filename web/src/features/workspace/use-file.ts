@@ -22,15 +22,27 @@
 //   first (at most 1 MiB), and the edit keeps the version it started
 //   from: that, not whatever was read since, is the save's guard.
 // - Cost: a file larger than the write bound can be read, not edited.
+// - The disk (ADR 0105): while the file is shown, `file.observe` follows
+//   it (`data/workspace/watch.ts`) on a node with protocol 26; `disk`
+//   turns `changed` when it moved past what is shown, and `refresh` reads
+//   it again without blanking the view. An older node, a refusal or the
+//   socket gone ends the watch: the page behaves as it did before.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import type { Problem } from "../../data/outcome";
-import { readFile, writeFile } from "../../data/workspace/files";
+import { observeFile, readFile, writeFile } from "../../data/workspace/files";
+import { halted, quiet } from "../../data/workspace/pace";
 import { type Saved, saveText } from "../../data/workspace/save";
+import { changed } from "../../data/workspace/watch";
 import type { NodeKey } from "../../wire/bridge";
-import type { FileVersion, RelPath, WorkspaceRoot } from "../../wire/proto";
+import type {
+  FileVersion,
+  ObservedFile,
+  RelPath,
+  WorkspaceRoot,
+} from "../../wire/proto";
 
 /** The most `file.write` takes, in bytes. */
 export const WRITE_LIMIT = 1024 * 1024;
@@ -50,6 +62,9 @@ export type FileText =
       tail: string;
     };
 
+/** The disk against what is shown, as the watch last saw it. */
+export type Disk = "same" | "changed";
+
 /** The whole text of a file and the version it was read at. */
 export interface Whole {
   text: string;
@@ -67,6 +82,11 @@ export interface OpenFile {
   save: (text: string, base: FileVersion | null) => Promise<Saved>;
   /** Read it again from the start. */
   reload: () => void;
+  /** The disk moved past what is shown (`file.observe`): a view follows
+   * it with `refresh` unless an edit is open. */
+  disk: Disk;
+  /** Read it again from the start, what is shown kept until it arrives. */
+  refresh: () => void;
 }
 
 type TextRead = Extract<FileText, { kind: "text" }>;
@@ -107,6 +127,7 @@ export function useFile(
   const fleet = useFleet();
   const [text, setText] = useState<FileText>({ kind: "loading" });
   const [round, setRound] = useState(0);
+  const [disk, setDisk] = useState<Disk>("same");
   const latest = useRef(text);
   useEffect(() => {
     latest.current = text;
@@ -216,9 +237,48 @@ export function useFile(
   );
 
   const reload = useCallback(() => {
+    setDisk("same");
     setText({ kind: "loading" });
     setRound((value) => value + 1);
   }, []);
 
-  return { text, more, whole, save, reload };
+  const refresh = useCallback(() => {
+    reading.current = true;
+    void page(0).then((first) => {
+      reading.current = false;
+      latest.current = first;
+      setText(first);
+      setDisk("same");
+    });
+  }, [page]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const follow = async (signal: AbortSignal) => {
+      let after: ObservedFile | null = null;
+      while (!halted(signal)) {
+        const asked = performance.now();
+        const observed = await observeFile(fleet, node, root, path, after);
+        if (halted(signal) || !observed.ok) {
+          return;
+        }
+        const now = latest.current;
+        const shown =
+          now.kind === "text" || now.kind === "binary"
+            ? (now.version.hash ?? null)
+            : null;
+        if (changed(after, observed.value, shown)) {
+          setDisk("changed");
+        }
+        after = observed.value;
+        await quiet(asked, signal);
+      }
+    };
+    void follow(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [fleet, node, root, path]);
+
+  return { text, more, whole, save, reload, disk, refresh };
 }

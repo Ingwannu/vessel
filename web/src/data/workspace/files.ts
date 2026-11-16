@@ -15,6 +15,7 @@ import type {
   GrepCase,
   GrepMode,
   GrepResult,
+  ObservedFile,
   RelPath,
   WorkspaceRoot,
   WriteExpect,
@@ -32,6 +33,21 @@ export function listDir(
 ): Promise<Outcome<DirListing>> {
   return attempt(() =>
     fleet.bridge.call(node, "file.list", { root, dir, ignored }),
+  );
+}
+
+/** A file's saved state (`file.observe`, protocol 26, ADR 0105): at
+ * once without `after`; else when it is no longer `after`, or at the
+ * node's heartbeat with the same state. */
+export function observeFile(
+  fleet: Fleet,
+  node: NodeKey,
+  root: WorkspaceRoot,
+  path: RelPath,
+  after: ObservedFile | null,
+): Promise<Outcome<ObservedFile>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "file.observe", { root, path, after }),
   );
 }
 

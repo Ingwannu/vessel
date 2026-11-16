@@ -1,7 +1,8 @@
 # File panels callers (ADR 0105)
 
-Status: A1 (live watch of the shown file), A2 (Explorer Duplicate) and A3
-(Explorer Download) implemented on package base 14.9. The node packet
+Status: A1 (live watch of the shown file), A2 (Explorer Duplicate), A3
+(Explorer Download) and P1 (the page's live watch) implemented on package
+base 14.9. The node packet
 assigns ADR 0083's five methods one protocol number (drafted as 26) at its
 node-line merge; until that number reaches this line every caller here keeps
 its earlier behaviour (`view::workspace::file_panels::offered` is false
@@ -78,6 +79,22 @@ while `FILE_PANELS_PROTOCOL` is None or the machine is older).
   "다운로드한 파일 확인".
 - Differences: no progress toast while the pages arrive; a partial file
   needs room beside the chosen one.
+
+## P1: the page's live watch
+
+- `web/src/data/workspace/watch.ts`: the same change rule as the native
+  watch (a version shown is no change; the first answer against what is
+  shown; then any state other than the anchor), with vitest cases.
+- `data/workspace/files.ts` `observeFile`; `features/workspace/use-file.ts`
+  follows the shown file with one observation at a time, `pace.ts`'s quiet
+  time after each answer, cancelled when the file is left; `disk` turns
+  `changed`, `refresh` reads the file again without blanking the view.
+- `file-view.tsx`: the view follows the disk when no edit is open; an open
+  edit keeps its text under a "Changed on disk" banner, and its save meets
+  the change as the existing conflict (the page edits on Edit, unlike
+  Paseo's always-on editor, so a clean draft is not replaced under it).
+- An older node refuses `file.observe` before sending; the watch ends and
+  the page behaves as before.
 
 ## Differences from Paseo
 
