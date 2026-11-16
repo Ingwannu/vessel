@@ -85,7 +85,7 @@ fn vote(
     token: super::super::ResidentToken,
     owner: ResourceOwner,
 ) -> OwnerReadiness {
-    *residents.entry(token).unwrap().owners.get(&owner).unwrap()
+    residents.entry(token).unwrap().owners[&owner]
 }
 #[test]
 fn both_end_ack_orderings_preserve_only_original_window_work_and_never_make_ready() {
