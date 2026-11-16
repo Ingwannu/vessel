@@ -327,7 +327,7 @@ fn thought_area(cx: &mut gpui::App, text: &str) -> ConversationArea {
             },
         },
     };
-    area.fold_records(&[thought]);
+    assert!(area.fold_records(&[thought]));
     area
 }
 
