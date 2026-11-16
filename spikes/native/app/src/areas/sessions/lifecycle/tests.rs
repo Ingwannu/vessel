@@ -1,5 +1,6 @@
 //! A mutation acknowledgement cannot bless a replacement node at the same alias.
 use super::*;
+mod marks;
 use gpui::TestAppContext;
 use vessel_app_link::sessions::Binding;
 use vessel_app_view::{Card, Machine, Reach, sessions::SessionAddress};
@@ -64,6 +65,7 @@ fn pending_exit(shell: &mut Shell) -> (SessionInfo, Name, NodeId, LifecycleTicke
         action: LifecycleAction::Exit,
         seed: None,
         choices: Vec::new(),
+        directory: None,
     });
     (info, host, admitted, request.ticket)
 }
@@ -299,57 +301,6 @@ fn navigation_ends_old_focus_cycle_before_a_new_confirmation_opens(cx: &mut Test
                 .focus_handle(cx)
                 .is_focused(window)
         );
-    });
-}
-
-#[gpui::test]
-fn history_operation_preserves_rendered_node_and_reports_failure_on_history(
-    cx: &mut TestAppContext,
-) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
-    shell.update_in(cx, |shell, window, cx| {
-        let (info, host, admitted, pending) = pending_exit(shell);
-        let _cancelled = shell.areas.sessions.lifecycle.running.finish(pending);
-        shell.areas.sessions.lifecycle.after = None;
-        shell.route = Route::Sessions;
-        let target = LifecycleTarget {
-            host,
-            session: info.id,
-            node: Some(admitted),
-        };
-        shell.history_lifecycle(target.clone(), HistoryAction::Unarchive, window, cx);
-        let request = shell
-            .areas
-            .sessions
-            .lifecycle
-            .running
-            .pending()
-            .unwrap()
-            .clone();
-        assert_eq!(request.target, target);
-        assert_eq!(request.action, LifecycleAction::Unarchive);
-        shell.sessions_lifecycle_answer(
-            Answer {
-                ticket: request.ticket,
-                result: Err(Failure::Unsent),
-            },
-            cx,
-        );
-        assert!(shell.notice.is_some());
-        assert_eq!(shell.route, Route::Sessions);
-        assert!(!shell.sessions_lifecycle_busy());
-        shell.history_lifecycle(
-            LifecycleTarget {
-                node: None,
-                ..target
-            },
-            HistoryAction::Archive,
-            window,
-            cx,
-        );
-        assert!(shell.areas.sessions.lifecycle.asking.is_none());
-        assert!(!shell.sessions_lifecycle_busy());
     });
 }
 

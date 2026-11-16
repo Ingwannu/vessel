@@ -22,6 +22,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// Session address lookup, correlated to its requesting control.
     Sessions(crate::sessions::Answer),
+    /// Original-admission guarded directory update or correlated refusal.
+    SessionMarked(crate::session_marks::Answer),
     /// The matching lifecycle mutation result.
     SessionLifecycle(crate::sessions::lifecycle::Answer),
     /// An original-admission guarded history result or correlated refusal.

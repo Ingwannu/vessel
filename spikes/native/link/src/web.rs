@@ -98,6 +98,7 @@ impl Link {
                     result: Err(crate::sessions::lifecycle::Failure::Unsent),
                 },
             )),
+            Command::SessionMark(ask) => self.emit(crate::session_marks::unsupported(ask)),
             Command::Sessions(ask) => self.emit(Event::Sessions(
                 ask.refused(crate::sessions::Failure::Offline),
             )),

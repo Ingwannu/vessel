@@ -24,6 +24,8 @@ use vessel_proto::{
 pub enum Command {
     /// Passive read/follow bound to an authenticated deep-link destination.
     SessionAccess(crate::sessions::Access),
+    /// Directory metadata intent bound to its original rendered admission.
+    SessionMark(crate::session_marks::Ask),
     /// Resolve a session for a deep link or Copy link without starting it.
     Sessions(crate::sessions::Ask),
     /// A correlated lifecycle mutation through existing session RPCs.

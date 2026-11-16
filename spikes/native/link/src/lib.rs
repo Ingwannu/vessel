@@ -72,6 +72,7 @@ pub mod devices;
 pub mod history;
 pub mod node_settings;
 pub mod search;
+pub mod session_marks;
 pub mod sessions;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
@@ -208,6 +209,7 @@ impl Link {
             history_calls: history::Hub::default(),
             sync_calls: sync::Hub::default(),
             session_navigation: sessions::Hub::default(),
+            session_mark_calls: session_marks::Hub::default(),
             session_projection: sessions::Projection::default(),
             offers: std::sync::Arc::default(),
         };
@@ -278,6 +280,7 @@ struct State {
     history_calls: history::Hub,
     sync_calls: sync::Hub,
     session_navigation: sessions::Hub,
+    session_mark_calls: session_marks::Hub,
     session_projection: sessions::Projection,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

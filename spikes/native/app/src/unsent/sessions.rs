@@ -13,3 +13,8 @@ pub(super) fn lifecycle(ticket: LifecycleTicket) -> Event {
         result: Err(Failure::Unsent),
     })
 }
+
+/// The original navigation request was not admitted by the link.
+pub(super) fn navigation(ask: vessel_app_link::sessions::Ask) -> Event {
+    Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
+}

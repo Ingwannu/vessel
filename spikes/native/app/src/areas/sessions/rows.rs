@@ -11,6 +11,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button};
 use vessel_app_link::sessions::Binding;
 use vessel_app_view::machine_book::Name;
+use vessel_app_view::session_marks::CapturedSessionTarget;
 use vessel_app_view::sessions::{DateBucket, LifecycleTarget, SessionAddress};
 use vessel_app_view::{Card, Reach};
 
@@ -107,14 +108,21 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
                 .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
                 .child(content(shell, card, tokens)),
         )
-        .child(lifecycle_button(shell, card, target, &id, tokens, cx))
+        .child(lifecycle_button(
+            shell,
+            card,
+            captured_target(shell, card),
+            &id,
+            tokens,
+            cx,
+        ))
         .into_any_element()
 }
 
 fn lifecycle_button(
     shell: &Shell,
     card: &Card,
-    target: Option<LifecycleTarget>,
+    target: Option<CapturedSessionTarget>,
     id: &str,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -143,6 +151,15 @@ fn lifecycle_button(
         }
     }))
     .into_any_element()
+}
+
+fn captured_target(shell: &Shell, card: &Card) -> Option<CapturedSessionTarget> {
+    let machine = shell
+        .fleet
+        .machines
+        .iter()
+        .find(|machine| machine.name == card.machine)?;
+    CapturedSessionTarget::capture(machine, card).ok()
 }
 
 fn lifecycle_target(shell: &Shell, card: &Card) -> Option<LifecycleTarget> {

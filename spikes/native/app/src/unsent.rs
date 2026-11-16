@@ -67,9 +67,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             message: words.to_owned(),
         }),
         Command::SessionLifecycle(request) => sessions::lifecycle(request.ticket),
-        Command::Sessions(ask) => {
-            Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
-        }
+        Command::SessionMark(ask) => crate::areas::session_marks::unsent(ask),
+        Command::Sessions(ask) => sessions::navigation(ask),
         Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
             ask,
             vessel_app_view::history::Problem::Unsent,

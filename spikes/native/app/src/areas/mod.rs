@@ -25,6 +25,7 @@ pub(crate) mod pulls;
 pub(crate) mod session;
 #[cfg(test)]
 pub(crate) mod session_lifecycle;
+pub(crate) mod session_marks;
 pub(crate) mod sessions;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
@@ -45,6 +46,7 @@ pub(crate) struct Areas {
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) sessions: sessions::SessionsArea,
+    pub(crate) session_marks: vessel_app_view::session_marks::Requests,
     pub(crate) pair: pair::Pairing,
     pub(crate) conversation: conversation::ConversationArea,
     pub(crate) settings: settings::SettingsState,
@@ -81,6 +83,7 @@ impl Areas {
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             sessions: sessions::SessionsArea::new(window, cx),
+            session_marks: vessel_app_view::session_marks::Requests::default(),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
             settings: settings::SettingsState::new(general, window, cx),

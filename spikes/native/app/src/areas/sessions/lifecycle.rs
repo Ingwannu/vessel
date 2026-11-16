@@ -52,6 +52,7 @@ struct Prepared {
     action: LifecycleAction,
     seed: Option<Box<SessionInfo>>,
     choices: Vec<vessel_proto::OptionChoice>,
+    directory: Option<vessel_app_view::session_marks::CapturedSessionTarget>,
 }
 impl State {
     pub(super) fn new(cx: &mut Context<'_, Shell>) -> Self {
@@ -108,7 +109,9 @@ impl Shell {
     }
     pub(crate) fn sessions_lifecycle_busy(&self) -> bool {
         let state = &self.areas.sessions.lifecycle;
-        state.running.pending().is_some() || state.confirming.pending().is_some()
+        state.running.pending().is_some()
+            || state.confirming.pending().is_some()
+            || self.areas.session_marks.is_pending()
     }
     pub(crate) fn prepare_session_lifecycle(
         &mut self,
@@ -139,7 +142,7 @@ impl Shell {
     /// History callbacks retain the rendered node, never a newer alias binding.
     pub(super) fn history_lifecycle(
         &mut self,
-        target: LifecycleTarget,
+        captured: vessel_app_view::session_marks::CapturedSessionTarget,
         action: HistoryAction,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
@@ -148,11 +151,11 @@ impl Shell {
         if self.sessions_lifecycle_busy() {
             return;
         }
-        if target.node.is_none() {
-            self.notice = Some(self.words.sessions().identity_unavailable().to_owned());
-            cx.notify();
-            return;
-        }
+        let target = LifecycleTarget {
+            host: captured.context().machine().clone(),
+            session: captured.session(),
+            node: Some(captured.context().node()),
+        };
         let effect = match action {
             HistoryAction::Archive => LifecycleAction::Archive,
             HistoryAction::Unarchive => LifecycleAction::Unarchive,
@@ -162,6 +165,7 @@ impl Shell {
             action: effect,
             seed: None,
             choices: Vec::new(),
+            directory: Some(captured),
         };
         match action {
             HistoryAction::Archive => self.ask_session_lifecycle(prepared, window, cx),
@@ -234,6 +238,7 @@ impl Shell {
             action,
             seed,
             choices,
+            directory: None,
         })
     }
     fn fresh_lifecycle_problem(
@@ -270,6 +275,18 @@ impl Shell {
         )
     }
     fn send_session_lifecycle(&mut self, prepared: Prepared, cx: &mut Context<'_, Self>) {
+        if let Some(target) = prepared.directory {
+            let mark = match prepared.action {
+                LifecycleAction::Archive => vessel_proto::Mark::Archive,
+                LifecycleAction::Unarchive => vessel_proto::Mark::Unarchive,
+                LifecycleAction::Delete
+                | LifecycleAction::Resume
+                | LifecycleAction::Exit
+                | LifecycleAction::Fresh => return,
+            };
+            self.mark_session_target(target, mark, cx);
+            return;
+        }
         let area = &mut self.areas.sessions.lifecycle;
         match area.running.begin(prepared.target.clone(), prepared.action) {
             Ok(request) => {

@@ -50,6 +50,7 @@ pub(crate) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             history_calls: crate::history::Hub::default(),
             sync_calls: crate::sync::Hub::default(),
             session_navigation: crate::sessions::Hub::default(),
+            session_mark_calls: crate::session_marks::Hub::default(),
             session_projection: crate::sessions::Projection::default(),
             offers: std::sync::Arc::default(),
         },

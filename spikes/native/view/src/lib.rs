@@ -49,6 +49,7 @@ pub mod rewind;
 pub mod search;
 pub mod session;
 pub mod session_lifecycle;
+pub mod session_marks;
 pub mod sessions;
 pub mod settings;
 pub mod shortcuts;
