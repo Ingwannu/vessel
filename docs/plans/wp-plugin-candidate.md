@@ -97,6 +97,11 @@ must retain the candidate lease through actual acquisition/observation/cleanup
 settlement, even when its reply caller disappears. Cancellation is cooperative
 and cannot release a permit while a syscall or child still owns work. Host
 shutdown must close actual admission before draining that work.
+The current observation adapter retains a permit only through observation; it
+does not yet implement this larger acquisition/apply lifetime. Its integration
+must preserve that ownership rather than borrowing its successful result as a
+new permit. Awaiting human review retains candidate ownership as explicit bounded
+state, not a running syscall or an indefinitely held settings-writer guard.
 
 Drop must not recursively delete a saved path or start untracked blocking work.
 Explicit cleanup is confined to the exact exclusively created staging entry,
@@ -105,6 +110,10 @@ It never follows links into another tree, deletes a user directory, repairs
 permissions, or treats failed/unfinished cleanup as success. Failed settlement
 keeps an explicit unavailable/cleanup-pending outcome; eventual crash recovery
 requires its own persisted ownership contract, not a scan-and-delete heuristic.
+Identity comparison refuses an observed replacement; it is not an atomic
+unlink-if-inode operation. A same-account rename between comparison and removal
+remains outside this guarantee. If the required owned-entry evidence is absent,
+cleanup refuses instead of searching by a stale saved pathname.
 
 Concrete I/O/kernel causes remain privately retained. Public Display, Debug,
 serde-facing diagnostics and every exposed source level reveal safe closed
