@@ -182,11 +182,6 @@ impl SessionRuntime {
         self.tasks.token()
     }
 
-    /// Whether shutdown began: no session starts any more.
-    pub(crate) fn is_shutting_down(&self) -> bool {
-        self.shutdown.is_cancelled()
-    }
-
     /// How long an agent's handshake may take.
     pub(crate) const fn handshake_timeout(&self) -> Duration {
         self.config.agent_handshake_timeout
