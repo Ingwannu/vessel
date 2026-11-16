@@ -19,6 +19,8 @@ mod areas;
 pub mod badge;
 mod brand;
 mod chrome;
+#[cfg(not(target_arch = "wasm32"))]
+mod host_windows;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]
 mod motion;
@@ -80,6 +82,7 @@ fn main() {
             let opened = cx.open_window(options, |window, cx| {
                 motion::note_renderer(window, cx);
                 let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
+                host_windows::register(&shell, window, cx);
                 vessel_app_kit::root(shell, window, cx)
             });
             match opened {

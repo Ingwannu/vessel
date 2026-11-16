@@ -688,3 +688,22 @@ requires the receiving consumer's own union check; neither has an independent
 standalone run or V1/full F5 approval. Earlier b010/102036 prototypes remain
 unverified and are not the handoff. Full native gate/export and actual
 private-display evidence remain next.
+
+
+## 2026-11-16 resume: base13 and completed-run audit
+
+The stopped run themes-20261115T190722Z-18c56a03 is terminal FAILED, not
+resubmitted. Fonts/fmt/quality0; Clippy101 found the new event regression's
+139-line body and wildcard enum arm, plus an unused choices::rows words
+binding after the base9 composition merge. Build/tests/export were not
+reached. Prior e805 Kit228/0/0 remains a scoped test result, not a strict
+portable/package approval. No F5 app captures exist yet.
+
+Announced app base13 2ebeedf9 is merged after that run ended. The existing
+presentation/style split and F5 active-family/component Theme::update adapter
+are retained, along with canonical identity, multiline, search and shared
+root_owner export. The lower head session ratchet673 is preserved. No node
+head is merged independently; root changes belong to this announced app base.
+The next correction splits the test by setup/observation/assertion roles,
+keeps all assertions, makes the enum match exhaustive and removes the unused
+row-only binding. No lint allowance or budget increase is introduced.
