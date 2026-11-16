@@ -59,5 +59,17 @@ Tests added: `assets::viewport_role_tests` (one asset each, viewBox, stroke coun
 at 1.5, lens/plus/corner landmarks that keep the three apart and unfilled, a clear
 rim at 14 and 18 points over fractional scales), `icon_chrome` viewport style
 values in both themes and both sizings, a hidden/shown click probe on
-`ToolbarButton::viewport`, and the controls corner. Remote results are recorded
-below as they finish; nothing here was compiled locally.
+`ToolbarButton::viewport`, and the controls corner. Nothing here was compiled
+locally.
+
+Results (2026-11-16, build VM):
+- Kit tests, run viewport-chrome-narrow-20261116T063522Z-86ebdcce:
+  `test --locked -p vessel-app-kit --lib -- assets:: icon_chrome:: toolbar_button:: chrome::`
+  30 passed, 0 failed (all six new cases explicit).
+- First strict run viewport-chrome-20261116T063521Z-86ebdcce stopped at native-fmt
+  (two layout differences); the format commit followed. Strict run
+  viewport-chrome-20261116T064035Z-26584ef6: native-fmt, native-quality and
+  native-clippy (`--all-targets -D warnings`, whole native workspace) all 0.
+- The lightbox consumer on the receiving tree (W6's input packet on 14.2 plus this
+  leaf) passed its own strict, its lightbox tests 5/0 and an app export; its
+  captures went to the coordinator. No whole native gate ran for this leaf.
