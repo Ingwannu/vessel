@@ -44,7 +44,6 @@ pub(super) fn wait<F: Future>(future: F) -> F::Output {
 
 pub(super) fn desktop(preferences: Coordinator) -> Desktop {
     Desktop {
-        records: Vec::new(),
         saved: None,
         latest: WindowState::default(),
         geometry_publication: Arc::new(()),

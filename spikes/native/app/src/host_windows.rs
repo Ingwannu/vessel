@@ -10,17 +10,46 @@
 
 use crate::shell::Shell;
 use gpui::{AnyWindowHandle, App, Entity, Global, WeakEntity, Window};
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub(crate) struct WindowRecord {
     pub(crate) window: AnyWindowHandle,
     pub(crate) shell: WeakEntity<Shell>,
+    pub(crate) close: WindowClose,
+}
+
+#[derive(Clone)]
+pub(crate) enum WindowClose {
+    Idle,
+    Checking(Rc<()>),
+}
+
+impl WindowClose {
+    #[must_use]
+    pub(crate) fn begin() -> Self {
+        Self::Checking(Rc::new(()))
+    }
+
+    #[must_use]
+    pub(crate) const fn is_checking(&self) -> bool {
+        matches!(self, Self::Checking(_))
+    }
+
+    /// Re-registering the same Shell after replacement must not revive its old
+    /// close request. Value/handle identity alone cannot distinguish that cycle.
+    #[must_use]
+    pub(crate) fn same_check(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Checking(current), Self::Checking(captured)) => Rc::ptr_eq(current, captured),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Default)]
 pub(crate) struct Registry {
     pub(crate) records: Vec<WindowRecord>,
-    #[cfg(test)]
     factory: Option<dispatch::Factory>,
 }
 impl Global for Registry {}
@@ -54,18 +83,15 @@ pub(crate) fn register(shell: &Entity<Shell>, window: &Window, cx: &mut App) {
     records.push(WindowRecord {
         window: handle,
         shell: shell.downgrade(),
+        close: WindowClose::Idle,
     });
 }
 
 // These host operations gain product callers in the W7/E3 owner unions. The
 // literal staging attributes are removed only with those real callers.
-#[cfg(test)]
 mod dispatch;
-#[cfg(test)]
 pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
-#[cfg(test)]
 mod enumeration;
-#[cfg(test)]
 pub(crate) use enumeration::{LiveShells, shells};
 #[cfg(test)]
 mod tests;

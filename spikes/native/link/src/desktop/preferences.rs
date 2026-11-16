@@ -356,6 +356,10 @@ impl Client {
         let acknowledged = *self.acknowledgements.borrow();
         self.refused.get().is_none()
             && self.pending.borrow().is_empty()
+            // Another window can commit while this one has no local writes.
+            // The shared publication identity alone cannot prove its watch was
+            // observed and its canonical projection was applied.
+            && self.revision.get() == checkpoint.snapshot.revision()
             && acknowledged.sequence == self.sequence.get()
             && acknowledged.revision <= checkpoint.snapshot.revision()
             && Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)

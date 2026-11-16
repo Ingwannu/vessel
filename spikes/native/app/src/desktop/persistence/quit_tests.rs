@@ -1,6 +1,6 @@
 //! The real desktop quit caller must consult documents after its Shell borrow ends.
 
-use crate::desktop::{Desktop, WindowClose, WindowRecord};
+use crate::desktop::Desktop;
 use crate::quit::{self, DocumentReadiness};
 use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
@@ -36,11 +36,7 @@ async fn keep_quit_refusal_preserves_the_window_and_releases_the_shared_phase(
     let (shell, window) = cx.add_window_view(Shell::without_io);
     shell.update_in(window, crate::desktop::preferences::start);
     window.update(|window, cx| {
-        cx.global_mut::<Desktop>().records.push(WindowRecord {
-            window: window.window_handle(),
-            shell: shell.downgrade(),
-            close: WindowClose::Idle,
-        });
+        crate::host_windows::register(&shell, window, cx);
     });
     let guards: [fn(&Shell, &gpui::App) -> DocumentReadiness; 3] = [
         |_shell, _cx| DocumentReadiness::Dirty,

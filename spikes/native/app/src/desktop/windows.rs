@@ -1,6 +1,7 @@
 //! The first window restores state; additional windows have independent placement.
 
 use super::{Desktop, WindowClose, WindowRecord};
+use crate::host_windows::Registry;
 use crate::shell::Shell;
 use gpui::{App, AppContext as _, Bounds, Context, Pixels, Window, WindowBounds, point, size};
 use vessel_app_link::desktop::instance::Launch;
@@ -15,10 +16,10 @@ enum Placement {
 }
 
 pub(super) fn open_primary(launch: Option<Launch>, cx: &mut App) {
-    open(Placement::Primary, launch, cx);
+    let _delivery = open(Placement::Primary, launch, cx);
 }
-pub(crate) fn open_additional(cx: &mut App) {
-    open(Placement::Additional, None, cx);
+pub(crate) fn open_additional(cx: &mut App) -> crate::host_windows::Delivery {
+    open(Placement::Additional, None, cx)
 }
 
 /// Last-window removal waits for the same owned-node quit boundary as the menu.
@@ -44,32 +45,48 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     else {
         return true;
     };
-    let desktop = cx.global_mut::<Desktop>();
-    let Some(record) = desktop
+    // An installed document boundary cannot admit an unknown owner. Only the
+    // host module initializes the registry and its window-close observer.
+    if !cx.has_global::<Registry>() {
+        return false;
+    }
+    let registry = cx.global_mut::<Registry>();
+    let Some(record) = registry
         .records
         .iter_mut()
         .find(|record| record.window == window.window_handle())
     else {
-        return true;
+        return false;
     };
-    if record.close == WindowClose::Checking {
+    if record.close.is_checking() {
         return false;
     }
-    record.close = WindowClose::Checking;
+    record.close = WindowClose::begin();
     let record = record.clone();
     // Shortcut/menu close can run while its Shell is mutably borrowed. Reading
     // its documents here would reborrow and panic, so admission runs next turn.
     cx.defer(move |cx| {
+        let current = record
+            .window
+            .update(cx, |root, _window, cx| current_record(&record, &root, cx))
+            .unwrap_or(false);
+        if !current {
+            reset_close(&record, cx);
+            return;
+        }
         if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
             reset_close(&record, cx);
             super::request_quit(cx);
             return;
         }
-        let result = record.window.update(cx, |_root, window, cx| {
+        let result = record.window.update(cx, |root, window, cx| {
+            if !current_record(&record, &root, cx) {
+                return;
+            }
             let admitted = record
                 .shell
                 .upgrade()
-                .is_none_or(|shell| shell.update(cx, handler));
+                .is_some_and(|shell| shell.update(cx, handler));
             if admitted {
                 if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
                     super::request_quit(cx);
@@ -86,25 +103,47 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     false
 }
 
+fn current_record(record: &WindowRecord, root: &gpui::AnyView, cx: &App) -> bool {
+    cx.try_global::<Registry>().is_some_and(|registry| {
+        registry.records.iter().any(|current| {
+            current.window == record.window
+                && current.shell.entity_id() == record.shell.entity_id()
+                && current.close.same_check(&record.close)
+        })
+    }) && record.shell.upgrade().is_some()
+        && vessel_app_kit::root_contains_view(root, record.shell.entity_id(), cx)
+}
+
 fn reset_close(record: &WindowRecord, cx: &mut App) {
+    if !cx.has_global::<Registry>() {
+        return;
+    }
     if let Some(retained) = cx
-        .global_mut::<Desktop>()
+        .global_mut::<Registry>()
         .records
         .iter_mut()
-        .find(|retained| retained.window == record.window)
+        .find(|retained| {
+            retained.window == record.window
+                && retained.shell.entity_id() == record.shell.entity_id()
+                && retained.close.same_check(&record.close)
+        })
     {
         retained.close = WindowClose::Idle;
     }
 }
 
-fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
+fn open(
+    placement: Placement,
+    launch: Option<Launch>,
+    cx: &mut App,
+) -> crate::host_windows::Delivery {
     let prefs = (*cx.global::<Desktop>().preferences.current()).clone();
     let language = crate::language::Language::new();
     let words = match language.prepare(prefs.settings.language) {
         Ok(words) => words,
         Err(error) => {
             tracing::error!(%error,"window translations could not start");
-            return;
+            return crate::host_windows::Delivery::Unavailable;
         }
     };
     let state = match placement {
@@ -153,11 +192,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
         window.on_window_should_close(cx, may_close);
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
-        cx.global_mut::<Desktop>().records.push(WindowRecord {
-            window: window.window_handle(),
-            shell: shell.downgrade(),
-            close: WindowClose::Idle,
-        });
+        crate::host_windows::register(&shell, window, cx);
         shell.update(cx, |shell, cx| {
             if primary {
                 watch_window(shell, window, cx);
@@ -167,8 +202,14 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
         });
         vessel_app_kit::root(shell, window, cx)
     }) {
-        Ok(_opened) => cx.activate(true),
-        Err(error) => tracing::error!(%error,"native window could not open"),
+        Ok(_opened) => {
+            cx.activate(true);
+            crate::host_windows::Delivery::Delivered
+        }
+        Err(error) => {
+            tracing::error!(%error,"native window could not open");
+            crate::host_windows::Delivery::Unavailable
+        }
     }
 }
 
@@ -183,33 +224,20 @@ fn capture_size() -> Option<(f64, f64)> {
 
 pub(super) fn deliver(launch: Launch, cx: &mut App) {
     match launch {
-        Launch::NewWindow => open_additional(cx),
+        Launch::NewWindow => {
+            let _delivery = crate::host_windows::open_additional(cx);
+        }
         Launch::Project(directory) => {
-            open(Placement::Additional, Some(Launch::Project(directory)), cx);
+            let _delivery = open(Placement::Additional, Some(Launch::Project(directory)), cx);
         }
         session @ Launch::Session(_) => {
-            let active = cx.active_window();
-            let desktop = cx.global::<Desktop>();
-            let target = desktop
-                .records
-                .iter()
-                .find(|record| Some(record.window) == active)
-                .or_else(|| desktop.records.first())
-                .cloned();
-            if let Some(record) = target {
-                let result = record.window.update(cx, |_root, window, cx| {
-                    window.activate_window();
-                    if let Some(shell) = record.shell.upgrade() {
-                        shell.update(cx, |shell, cx| {
-                            shell.areas.desktop.pending = Some(session);
-                            cx.notify();
-                        });
-                    }
-                });
-                if let Err(error) = result {
-                    tracing::warn!(%error,"desktop destination window is no longer available");
-                }
-            } else {
+            let pending = session.clone();
+            let delivery = crate::host_windows::with_focused_shell(cx, move |shell, window, cx| {
+                window.activate_window();
+                shell.areas.desktop.pending = Some(pending);
+                cx.notify();
+            });
+            if delivery == crate::host_windows::Delivery::Unavailable {
                 open_primary(Some(session), cx);
             }
         }
@@ -241,5 +269,5 @@ fn remember(window: &Window, cx: &mut App) {
     cx.global_mut::<Desktop>().remember(state);
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_os = "macos")))]
 mod tests;

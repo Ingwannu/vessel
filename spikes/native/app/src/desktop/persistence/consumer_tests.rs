@@ -1,6 +1,6 @@
 //! The lifecycle consumer must wait for accepted edits to reach their UI owner.
 
-use crate::desktop::{Desktop, WindowClose, WindowRecord};
+use crate::desktop::Desktop;
 use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use vessel_app_link::desktop::preferences::Coordinator;
@@ -18,11 +18,7 @@ async fn exit_effect_observes_settled_accepted_preferences_on_the_same_app_turn(
     let (shell, window) = cx.add_window_view(Shell::without_io);
     shell.update_in(window, crate::desktop::preferences::start);
     window.update(|window, cx| {
-        cx.global_mut::<Desktop>().records.push(WindowRecord {
-            window: window.window_handle(),
-            shell: shell.downgrade(),
-            close: WindowClose::Idle,
-        });
+        crate::host_windows::register(&shell, window, cx);
     });
     shell.update_in(window, |shell, window, cx| {
         shell.prefer(&PreferenceChange::Theme(Theme::Light), window, cx);
@@ -31,6 +27,7 @@ async fn exit_effect_observes_settled_accepted_preferences_on_the_same_app_turn(
     let accepted = shell.clone();
     let admitted = window
         .spawn(async move |cx| {
+            assert!(cx.update(crate::quit::activate));
             crate::local_node::flush_then(&cx, |cx| {
                 assert!(crate::quit::is_finalizing(cx));
                 assert_eq!(

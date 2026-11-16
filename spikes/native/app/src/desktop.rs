@@ -8,8 +8,9 @@ mod startup_error;
 mod testing;
 mod windows;
 
+use crate::host_windows::{WindowClose, WindowRecord};
 use crate::shell::Shell;
-use gpui::{AnyWindowHandle, App, Global, WeakEntity};
+use gpui::{App, Global};
 use std::sync::Arc;
 use vessel_app_link::desktop::{
     environment::ShellEnvironment, preferences::Coordinator, store::Store,
@@ -19,24 +20,13 @@ use vessel_app_view::desktop::window::WindowState;
 
 pub(crate) use persistence::{StateReadiness, StateReceipt, flush_current, flush_state};
 pub(crate) use startup::run;
-pub(crate) use windows::open_additional;
-
-#[derive(Clone)]
-struct WindowRecord {
-    window: AnyWindowHandle,
-    shell: WeakEntity<Shell>,
-    close: WindowClose,
+pub(crate) fn open_additional(cx: &mut App) {
+    let _delivery = crate::host_windows::open_additional(cx);
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum WindowClose {
-    Idle,
-    Checking,
-}
 type WindowCloseHandler = fn(&mut Shell, &mut gpui::Context<'_, Shell>) -> bool;
 
 pub(crate) struct Desktop {
-    records: Vec<WindowRecord>,
     saved: Option<WindowState>,
     latest: WindowState,
     geometry_publication: Arc<()>,
@@ -75,7 +65,6 @@ impl Desktop {
             None
         };
         Ok(Self {
-            records: Vec::new(),
             saved,
             latest: saved.unwrap_or_default(),
             geometry_publication: Arc::new(()),
@@ -183,13 +172,12 @@ fn install(
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment)?);
+    crate::host_windows::init(cx);
+    crate::host_windows::set_factory(windows::open_additional, cx);
     cx.set_quit_mode(gpui::QuitMode::Explicit);
     vessel_app_kit::chrome::set_close_handler(windows::request_close, cx);
     crate::areas::desktop::listen(cx);
-    cx.on_window_closed(|cx, closed| {
-        cx.global_mut::<Desktop>()
-            .records
-            .retain(|record| record.window.window_id() != closed);
+    cx.on_window_closed(|cx, _closed| {
         if !cfg!(target_os = "macos") && cx.windows().is_empty() {
             request_quit(cx);
         }
@@ -219,41 +207,12 @@ pub(crate) fn with_focused_shell(
     cx: &mut App,
     run: impl FnOnce(&mut Shell, &mut gpui::Window, &mut gpui::Context<'_, Shell>),
 ) {
-    let active = cx.active_window();
-    let Some(desktop) = cx.try_global::<Desktop>() else {
-        return;
-    };
-    let record = desktop
-        .records
-        .iter()
-        .find(|record| Some(record.window) == active)
-        .or_else(|| desktop.records.first())
-        .cloned();
-    if let Some(record) = record {
-        let result = record.window.update(cx, |_root, window, cx| {
-            if let Some(shell) = record.shell.upgrade() {
-                shell.update(cx, |shell, cx| run(shell, window, cx));
-            }
-        });
-        if let Err(error) = result {
-            tracing::warn!(%error,"desktop menu target is no longer available");
-        }
-    }
+    let _delivery = crate::host_windows::with_focused_shell(cx, run);
 }
 
-/// Quit admission reads document owners through the existing window registry.
-/// Closed windows and expired entities grant no retained document target.
-pub(crate) fn shells(cx: &App) -> Vec<WeakEntity<Shell>> {
-    let Some(desktop) = cx.try_global::<Desktop>() else {
-        return Vec::new();
-    };
-    let windows = cx.windows();
-    desktop
-        .records
-        .iter()
-        .filter(|record| windows.contains(&record.window))
-        .filter_map(|record| record.shell.upgrade().map(|shell| shell.downgrade()))
-        .collect()
+/// App-level complete enumeration; unknown roots refuse rather than disappear.
+pub(crate) fn shells(cx: &mut App) -> crate::host_windows::LiveShells {
+    crate::host_windows::shells(cx)
 }
 
 /// Canonical current local policy is shared across every window.

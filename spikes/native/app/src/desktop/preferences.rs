@@ -45,6 +45,7 @@ pub(crate) fn submit(
         forward @ (Command::RetireConnection(_)
         | Command::LocalNode(_)
         | Command::Onboarding(_)
+        | Command::History(_)
         | Command::Agents { .. }
         | Command::Machines(_)
         | Command::Reload

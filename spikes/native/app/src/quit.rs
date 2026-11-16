@@ -118,7 +118,7 @@ pub(crate) fn activate(cx: &mut App) -> bool {
     {
         return false;
     }
-    let crate::desktop::LiveShells::Available(shells) = crate::desktop::shells(cx) else {
+    let crate::host_windows::LiveShells::Available(shells) = crate::desktop::shells(cx) else {
         finish(cx);
         tracing::warn!("finalization refused: not every live document window is available");
         crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
@@ -154,7 +154,7 @@ pub(crate) fn finish(cx: &mut App) {
     if is_finalizing(cx) {
         cx.global_mut::<Documents>().phase = Phase::Idle;
         if cx.global::<Documents>().applier.is_some()
-            && let crate::desktop::LiveShells::Available(shells) = crate::desktop::shells(cx)
+            && let crate::host_windows::LiveShells::Available(shells) = crate::desktop::shells(cx)
         {
             let _restored = apply(shells, cx);
         }

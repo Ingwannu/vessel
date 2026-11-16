@@ -17,7 +17,11 @@ fn admit_matching(
     cx: &mut App,
     readiness: impl Fn(&crate::shell::Shell, &App) -> DocumentReadiness,
 ) -> bool {
-    let blocked = crate::desktop::shells(cx)
+    let shells = match crate::desktop::shells(cx) {
+        crate::host_windows::LiveShells::Available(shells) => shells,
+        crate::host_windows::LiveShells::Unavailable => return false,
+    };
+    let blocked = shells
         .into_iter()
         .filter_map(|weak| weak.upgrade())
         .map(|shell| readiness(shell.read(cx), cx))

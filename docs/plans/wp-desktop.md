@@ -353,3 +353,34 @@ an authenticated local admission. If a late document or persistence veto keeps
 the app open after Keep, setup must not silently select the first remote host.
 This is source policy; the actual Keep/veto/reconnect UI union still requires its
 own runtime coverage and does not recover process authority from NodeId.
+
+
+## Complete window-owner receiving join
+
+The announced base 13.1 carries the reviewed staged LiveShells producer. Its
+actual desktop consumer now removes Desktop.records and uses only the canonical
+host Registry for creation, focused delivery, close admission and lifecycle
+traversal. The real startup installs the actual window factory; factory,
+dispatcher and enumeration staging are promoted with those real callers.
+Deferred close carries one opaque operation token on that same record and
+rechecks handle, Shell and current root before admission/removal, so an old
+A-to-B-to-A callback cannot clear or close a successor. Missing Registry/record
+with an installed document handler refuses; close never creates another init
+path. Unknown global roots are Unavailable, never an empty or partial document
+list. This joins the same read-only document guard and queued phase, without
+introducing another close/save/quit policy.
+
+The state fence uses that complete enumeration and requires every current Shell
+to have its canonical Client. A passive Client with no pending local edits must
+also have observed the checkpoint's canonical revision; shared publication
+identity alone cannot acknowledge another window's edit. The receiving two-window
+regression reconciles only A through the real Client observation API and requires
+Changed until B's production watch runs. It does not manufacture a saved receipt
+or invoke a private apply helper. An additional unknown-owner close regression
+and the pure two-Client regression accompany the receiving fixes.
+
+These source adaptations include the desktop owner's bounded consumer packet
+and its later unknown-owner/passive-client fixes. The producer's V1 row284 and
+older Main tests do not qualify this receiving union. New strict/runtime checks
+are still required; neither actual C5 engine freezing nor Owned node safety is
+claimed from the generic registry and marker fixtures.
