@@ -22,10 +22,23 @@ retention, with the same decode/size-match/map behavior).
 
 This model does not receive a frame or prove node/workspace/browser/revision,
 paint, GPU lifetime, focus or permission. Those remain the actual owner's
-requirements before any product image/input path. W18's isolated values carrier
-still awaits the announced receiving/app base; no browser identity is invented
-here to bypass that dependency. Windows and actual browser qualification remain
+requirements before any product image/input path. W18's reviewed browser/MCP
+values are now present through announced package base13; no browser identity
+is invented here and those values create no runtime authority. Windows and actual browser qualification remain
 unproved. Earlier source/checkpoint sections below are historical scoped evidence.
+
+## Resume: package base13 composition
+
+Merged exact announced package base13 2ebeedf9, retaining the browser registry
+arm and W6's single decoder/projection. No conflicts required resolution.
+This brings W18's values and the canonical panel/resident changes through the
+app line, rather than merging a node head independently. The prior frame
+composition tests89add9b11 and stricta1e395f6 remain exact older-source evidence;
+receiving-union checks are owed before claiming the new app union is checked.
+
+Next: scoped Kit/View/App strict checks and the two existing composition tests.
+No browser focus, stream, resource owner or renderer capability is fabricated.
+The engine remains unavailable and the feature stays hidden.
 
 ## Paseo reference, read before implementation
 
