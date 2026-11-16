@@ -10,7 +10,11 @@ use gpui::{Render, TestAppContext};
 struct Probe;
 
 impl Render for Probe {
-    fn render(&mut self, _window: &mut gpui::Window, _cx: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+    fn render(
+        &mut self,
+        _window: &mut gpui::Window,
+        _cx: &mut gpui::Context<'_, Self>,
+    ) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let pending = ButtonConfig::new(
             ButtonKind::Primary,

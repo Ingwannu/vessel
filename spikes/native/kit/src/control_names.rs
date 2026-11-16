@@ -50,7 +50,5 @@ pub fn set_control_names(names: ControlNames, cx: &mut App) {
 /// The names in use: the app's, or English before the app sets them.
 #[must_use]
 pub fn control_names(cx: &App) -> ControlNames {
-    cx.try_global::<ControlNames>()
-        .cloned()
-        .unwrap_or_default()
+    cx.try_global::<ControlNames>().cloned().unwrap_or_default()
 }

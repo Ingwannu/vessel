@@ -46,12 +46,12 @@ use gpui::{
 };
 
 #[cfg(test)]
+mod accessibility_tests;
+#[cfg(test)]
 mod compact_tests;
 #[cfg(test)]
 mod configuration_tests;
 mod header_back;
-#[cfg(test)]
-mod accessibility_tests;
 #[cfg(test)]
 mod header_back_tests;
 mod header_content;
@@ -364,10 +364,14 @@ fn header<V: 'static>(
     // (adaptive-modal-sheet.tsx 411-434); the kit takes the words from the app.
     let names = crate::control_names(cx);
     let hover = surfaces.surface2;
-    let back =
-        back.map(|back| {
-            header_back::button(back, &names.back, surfaces.foreground_muted, surfaces.foreground)
-        });
+    let back = back.map(|back| {
+        header_back::button(
+            back,
+            &names.back,
+            surfaces.foreground_muted,
+            surfaces.foreground,
+        )
+    });
     let row = div()
         .debug_selector(|| "dialog-header".to_owned())
         .flex()
