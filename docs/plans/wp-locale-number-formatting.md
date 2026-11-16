@@ -64,3 +64,19 @@ dependency size/time artifacts and coordinator adoption approval remain owed.
 
 No own fleet/display is active. About dependency rows must preserve the voice
 package's coupled audio entries when that accepted package reaches the line.
+
+### 2026-11-16 carrier preparation and first controlled graph
+
+Stock carrier controls exact08076af53: strict zero, runtime three passed,
+zero failed/ignored; actual View recompiled. Narrow D633 feasibility: offline
+metadata zero, graph-admission red, compile_attempted=false. Existing package
+versions/checksums unchanged but four packages gained feature-unified edges;
+T is examining the exact allowlist rather than weakening the guard. Both
+receipts are preserved. No ICU retry yet and all release/wasm delta cells
+remain unmeasured.
+
+New unlinked option/decimal preparation and custom carrier controls retain
+source/English numeric results, exact unsigned input and compact magnitude
+through nested NUMBER. These remain source-only; the actual native callback,
+generated binding, numeric-pattern failure boundary and fixed wasm example
+overlays are still owed. Product source/manifests/locks are unchanged.

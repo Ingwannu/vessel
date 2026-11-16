@@ -5,8 +5,9 @@ No manifest names them, no path override is active, and no product lockfile
 has changed. Only the build-tool owner's controlled offline scratch runner
 may materialize the candidate graph for measurements.
 `measurement-contract.json` fixes the requested graphs, data/profile/strip
-scope and required evidence. It is a specification for the missing controlled
-runner, not a selector already installed or a runnable worker-side recipe.
+scope and required evidence. It is the measurement specification. The fixed feasibility selector is
+installed; phase 2 still requires actual reachable app/example overlays.
+Neither selector installation nor an unlinked source is a measured result.
 
 `decimal_probe.rs` and its child tests are unlinked candidate arithmetic
 sources for that controlled runner. They reuse `FiniteNumber`, maintained
@@ -183,3 +184,22 @@ The first source-only artifact omitted the resolver's earlier String/Number
 eligibility gate, so adding a match hook alone could never dispatch it. The
 corrected artifact includes that fifth file. Neither artifact has compiled;
 preserve that correction when citing the source-context apply result.
+
+## Later carrier preparation (not in the frozen stage-1 graph)
+
+`options_probe.rs`, `kernel_prepare_probe.rs` and `carrier_probe.rs` prepare
+the opt-in hook carrier. Validated NUMBER options operate on a maintained
+decimal; rendering and plural operands share the same rounded value. Source
+and English displays/categories are prepared before binding, and an
+infallible memoized namespace selects between them. Compact preparation
+retains its scaled amount, so nested NUMBER does not turn 10K into 10. Four
+carrier integration controls cover exact unsigned digits/categories, English
+ordinal fallback, ordered literal/category matches, nested rounding and
+per-language compact scale. These modules/tests are unlinked and uncompiled.
+They are not included in D633's eight/ten-test descriptor.
+
+The first D633 narrow run stopped after offline metadata at an unapproved
+existing dependency edge (`icu_locale_core`); it attempted no compilation.
+The exact graph delta and original red receipt are retained by the build
+tool owner. No retry or ICU run has been submitted on that uncorrected policy.
+See ADR 0101 for the full edge list and the separate stock-carrier control.

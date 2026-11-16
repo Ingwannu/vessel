@@ -134,6 +134,7 @@ impl<'a> NumberKernel<'a> {
         value: ExactCount,
         mode: PluralMode,
     ) -> Result<CountDisplay, KernelError> {
+        let value_count = value.get();
         let value = value.decimal();
         let digits = self.symbols.format(&value.absolute, Grouping::Auto)?;
         let rules = match mode {
@@ -142,7 +143,7 @@ impl<'a> NumberKernel<'a> {
         };
         Ok(CountDisplay {
             digits,
-            category: rules.category_for(&value),
+            category: rules.category_for(value_count),
         })
     }
 
@@ -171,3 +172,8 @@ fn number_sign(value: &Decimal) -> NumberSign {
 #[cfg(test)]
 #[path = "kernel_probe_tests.rs"]
 mod tests;
+
+#[path = "kernel_prepare_probe.rs"]
+mod prepare;
+
+pub(super) use prepare::{PreparedNumeric, prepare_options};

@@ -49,6 +49,10 @@ impl ExactCount {
         Self(value)
     }
 
+    pub(super) const fn get(self) -> u64 {
+        self.0
+    }
+
     pub(super) fn decimal(self) -> Decimal {
         Decimal::from(self.0)
     }
@@ -140,9 +144,15 @@ pub(super) fn compact(
     value: FiniteNumber,
     scales: &impl ScaleSource,
 ) -> Result<CompactQuantity, LimitError> {
-    let original = decimal(value)?;
+    compact_decimal(&decimal(value)?, scales)
+}
+
+pub(super) fn compact_decimal(
+    original: &Decimal,
+    scales: &impl ScaleSource,
+) -> Result<CompactQuantity, LimitError> {
     let exponent = scales.exponent(original.nonzero_magnitude_start());
-    let rounded = scaled(&original, exponent)?;
+    let rounded = scaled(original, exponent)?;
     let magnitude = rounded
         .nonzero_magnitude_start()
         .checked_add(exponent.get())
@@ -154,7 +164,7 @@ pub(super) fn compact(
     let value = if carried == exponent {
         rounded
     } else {
-        scaled(&original, carried)?
+        scaled(original, carried)?
     };
     Ok(CompactQuantity {
         value,

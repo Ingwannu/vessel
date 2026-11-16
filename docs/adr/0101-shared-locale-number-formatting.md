@@ -28,7 +28,7 @@ text does not close this gap.
 The same caller needs exact `u64` token counts and duration counts. Casting
 them to `f64` loses integer information beyond `2^53`. A full-finite amount
 and an exact unsigned count therefore cannot share an unqualified float
-representation. The existing `vessel_proto::FiniteNumber` already admits
+representation. The existing `vessel_proto::conversation::FiniteNumber` already admits
 every finite binary64 value; reuse that validation instead of defining
 another finite-number wire scalar.
 
@@ -151,11 +151,11 @@ checks immutable and record exact revisions, features and commands.
 ## Dependency experiment and approval boundary
 
 The coordinator requires a yes/no decision on the ADR diff and measured
-numbers **before any product lockfile change**. The build tooling currently
-has no installed selector for this scratch dependency experiment. Its owner
-must provision the exact graph offline from the build cache and preserve a
-separate experiment lock/feature manifest; this is not permission for a
-worker to resolve or download dependencies through the ordinary locked gate.
+numbers **before any product lockfile change**. The controlled build-tool selector provisions only an isolated scratch graph
+offline from the build cache, preserving the experiment lock/feature manifest.
+It is not permission to resolve or download dependencies through the ordinary
+product gate. Its first exact run stopped at dependency-edge admission before
+compilation; installation of the selector is not candidate validation.
 Missing measurement cells remain missing, not zero.
 
 The narrow candidate starts with these exact requests, all `Unicode-3.0`:
@@ -275,3 +275,36 @@ cardinal selection sees the rounded value, and English ordinal selection
 also loses a last digit. Positive small-integer controls separate this
 numeric limitation from a malformed test bundle. Its changed-source VM
 result is pending; no product numeric capability has been extended yet.
+
+## Recorded controls and first scratch result
+
+The unmodified Fluent carrier controls at `08076af53` passed their strict
+View integration-test check and all three runtime tests. The runtime run is
+`i18n-narrow-20261116T014848Z-08076af5`: fonts and Cargo exited zero, with
+actual View compilation and three passed, zero failed/ignored. These reproduce
+loss in the rejected float carrier, including English ordinal selection at
+`2^53 + 1`; they do not validate a replacement. Compilation took 52.23 seconds
+in the test profile; this is not a release compile-time delta.
+
+The narrow feasibility run
+`i18n-number-experiment-20261116T014841Z-d633cdd4` resolved offline successfully
+but was rejected before compilation. Existing versions/checksums were retained,
+while feature-unified dependency edges changed: `icu_locale_core` gained
+`serde`; `icu_provider` gained `serde` and `stable_deref_trait`; `potential_utf`
+gained `serde_core` and `writeable`; `zerotrie` gained `zerovec`. Five packages
+were added: `fixed_decimal`, `icu_locale_fallback`, its data crate, `icu_plurals`
+and its data crate. The scratch audit refused the first unapproved existing
+edge rather than silently relaxing its graph policy. The build-tool owner
+must justify and admit only the exact required edges before a replacement
+experiment. The original red receipt, original/result locks and patch remain
+evidence. No numeric candidate test ran, and no release/wasm size was measured.
+
+Later unlinked carrier sources prepare source/English numeric results before
+binding and use the bundle memoizer only to select the prepared namespace.
+This avoids a fallible locale constructor inside FluentType's infallible
+display method, and avoids a global registry or Any/downcast bridge. Nested
+NUMBER options consume a numeric decimal, not displayed text; compact output
+retains its full scaled amount for a subsequent NUMBER. These are uncompiled
+experiment sources. Partial numeric-pattern failure at this binding boundary,
+actual app reachability, both backend variants, and portable/release costs
+remain open; no public API or runtime adoption follows from this design.
