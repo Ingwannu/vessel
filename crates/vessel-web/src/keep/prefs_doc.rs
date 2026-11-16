@@ -263,6 +263,9 @@ impl PrefsDoc {
             PreferenceChange::SidebarGroup(group) => body.sidebar.make_read().group.set(*group),
             PreferenceChange::SidebarSort(sort) => body.sidebar.make_read().sort.set(*sort),
             PreferenceChange::SidebarEnded(on) => body.sidebar.make_read().ended.set(*on),
+            PreferenceChange::SidebarLabels { picks } => {
+                body.sidebar.make_read().labels.set(picks.clone());
+            }
             PreferenceChange::Shortcuts { edits } => {
                 let shortcuts = body.shortcuts.make_read();
                 for edit in edits.items() {

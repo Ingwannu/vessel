@@ -37,6 +37,7 @@ mod bounded;
 mod change;
 mod drafts;
 mod keys;
+mod labels;
 
 use std::collections::BTreeMap;
 
@@ -50,6 +51,9 @@ pub use bounded::{
 pub use change::{PreferenceChange, ShortcutEdit, ShortcutTarget};
 pub use drafts::{Draft, DraftKey, DraftText, DraftTooLong, DraftsState, MAX_DRAFT};
 pub use keys::{ActionId, InvalidActionId, InvalidKeyBinding, KeyBinding};
+pub use labels::{
+    LabelPick, LabelPickTooLong, LabelPicks, MAX_LABEL_PICK_BYTES, MAX_LABEL_PICKS, no_picks,
+};
 
 /// The most keys bound to one action.
 pub const MAX_BINDINGS: usize = 2;
@@ -355,7 +359,7 @@ pub enum Alerts {
 }
 
 /// How the sidebar lists sessions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SidebarView {
     /// What sessions are grouped by.
@@ -364,6 +368,12 @@ pub struct SidebarView {
     pub sort: SessionSort,
     /// Whether ended sessions are listed.
     pub ended: bool,
+    /// The workspace labels the sidebar is filtered by, when grouped by
+    /// workspace; empty lists every workspace, `""` is Unlabelled. At most
+    /// [`MAX_LABEL_PICKS`].
+    #[serde(default = "no_picks")]
+    #[cfg_attr(feature = "ts", ts(as = "Vec<String>"))]
+    pub labels: LabelPicks,
 }
 
 impl Default for SidebarView {
@@ -374,6 +384,7 @@ impl Default for SidebarView {
             group: Grouping::default(),
             sort: SessionSort::default(),
             ended: true,
+            labels: no_picks(),
         }
     }
 }
@@ -388,6 +399,9 @@ pub enum Grouping {
     Machine,
     /// Their status.
     Status,
+    /// Their registry workspace (ADR 0106), each with its label chips;
+    /// only this grouping is filtered by labels.
+    Workspace,
 }
 
 /// The order of sessions within a group.
