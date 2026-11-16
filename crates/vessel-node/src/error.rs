@@ -293,6 +293,9 @@ pub(crate) enum ServiceError {
     /// An agent's session is gone while it asks for a new one.
     #[error("the calling agent's session {0} has ended")]
     AgentGone(SessionId),
+    /// Exact-id receipt continuation cannot replace an existing count/credential.
+    #[error("the agent place for session {0} is already reserved")]
+    AgentReserved(SessionId),
     /// Agents may start agents only so deep (ADR 0013).
     #[error("agents may start sessions at most {limit} levels deep")]
     AgentDepth {
@@ -416,6 +419,7 @@ impl ServiceError {
             | Self::HomeUnknown(_)
             | Self::NotLoggedIn(_)
             | Self::AgentGone(_)
+            | Self::AgentReserved(_)
             | Self::MoveRunning(_)
             | Self::ForkRunning(_)
             | Self::Live(_)
