@@ -3,6 +3,7 @@
 //! identity; the calls themselves are `run`.
 
 use vessel_app_view::labels::{Count, Failure, Label, Name, Ticket};
+use vessel_proto::registry::{RegistryRevision, RegistrySnapshot};
 use vessel_proto::workspace_labels::{CatalogCursor, CatalogList, CatalogRead};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -34,6 +35,13 @@ pub enum Command {
         original: Name,
         /// Both replacement fields together.
         replacement: Label,
+    },
+    /// Read the host's workspace registry (its sessions' workspaces and
+    /// the workspaces' labels): at once without `changed_from`, else when
+    /// it moves past that revision (or at the node's heartbeat).
+    Registry {
+        /// The revision the caller holds.
+        changed_from: Option<RegistryRevision>,
     },
     /// Read affected count before presenting confirmation.
     InspectDelete(Name),
@@ -80,6 +88,8 @@ pub struct Event {
 pub enum Answer {
     /// The host's catalog or its changes, with the head to continue from.
     Listed(Result<CatalogList, Failure>),
+    /// The host's workspace registry.
+    Registry(Result<Box<RegistrySnapshot>, Failure>),
     /// Assignment settlement retains the immutable workspace and requested name.
     Assigned {
         /// The registry workspace that owned the intent.
@@ -104,6 +114,7 @@ impl Command {
     pub fn refused(&self, failure: Failure) -> Answer {
         match self {
             Self::List { .. } => Answer::Listed(Err(failure)),
+            Self::Registry { .. } => Answer::Registry(Err(failure)),
             Self::Assign {
                 workspace, label, ..
             } => Answer::Assigned {

@@ -1,0 +1,406 @@
+//! Each label-capable host's catalog and registry, followed while it is
+//! connected (Paseo's `workspace-labels/internal/host-replica.ts`: a host's
+//! labels stay current without a reload).
+//!
+//! [Decision Log]
+//! - Purpose: the manager, the picker and the session rows draw the host's
+//!   real labels; another device's edit or assignment shows within moments.
+//! - Constraint: the node's catalog read and registry read are finite
+//!   calls that wait for a change from a cursor or revision (or answer at
+//!   their heartbeat); an answer must apply only to the admission that
+//!   asked; a gap in the catalog's sequence needs a fresh snapshot.
+//! - Choice: per host, one catalog read and one registry read out at a
+//!   time: the first at once, every later one waiting from where the last
+//!   answer left off. The catalog goes through the view's `Replica`
+//!   (contiguous changes, a snapshot after a gap); the registry through
+//!   `Assignments`. Each answer is followed by the file watch's quiet
+//!   pause, a failed read by a longer one; an older peer, a closed or
+//!   replaced admission stops the host's reads until it binds again.
+//! - Cost: two waiting calls per connected host (each holds one of the
+//!   node's wait shares); answers to a host that went away are dropped.
+
+use std::time::Duration;
+
+use vessel_app_kit::ui::Context;
+use vessel_app_link::labels::{Answer, Command, Event, Request};
+use vessel_app_view::connection::ConnectionContext;
+use vessel_app_view::labels::{
+    Assignments, EditAccess, Failure, HostKey, HostState, Label, Replica, Ticket,
+};
+use vessel_app_view::workspace::pace::QUIET;
+use vessel_proto::workspace_labels::CatalogRead;
+
+use crate::shell::Shell;
+
+/// A session row's workspace labels: its host's admission, its registry
+/// workspace, its labels in order with their host colours, and whether
+/// the host takes changes now.
+pub(crate) struct RowLabels<'a> {
+    pub(crate) connection: &'a ConnectionContext,
+    pub(crate) workspace: vessel_proto::WorkspaceId,
+    pub(crate) labels: Vec<Label>,
+    pub(crate) writable: bool,
+}
+
+/// The pause after a failed read, before the host is read again.
+const AFTER_FAILURE: Duration = Duration::from_secs(10);
+
+/// Which of a host's two reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Read {
+    Catalog,
+    Registry,
+}
+
+/// Where one read is.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum Lane {
+    /// Nothing out: ask at the next chance.
+    #[default]
+    Idle,
+    /// This request is out.
+    Out(Ticket),
+    /// Answered; the pause numbered here runs before the next ask.
+    Resting(u64),
+    /// Not read again until the host binds again.
+    Stopped,
+}
+
+/// One host's followed state.
+#[derive(Debug)]
+pub(super) struct Follow {
+    pub(super) key: HostKey,
+    connection: ConnectionContext,
+    replica: Replica,
+    pub(super) registry: Assignments,
+    catalog: Lane,
+    registry_lane: Lane,
+    /// The number of the latest pause.
+    rests: u64,
+}
+
+impl Follow {
+    fn lane(&mut self, read: Read) -> &mut Lane {
+        match read {
+            Read::Catalog => &mut self.catalog,
+            Read::Registry => &mut self.registry_lane,
+        }
+    }
+}
+
+impl Shell {
+    /// After a bind: follow every connected, capable host; forget the rest.
+    pub(super) fn labels_follow(&mut self, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.labels;
+        let capable: Vec<(HostKey, ConnectionContext)> = state
+            .hosts
+            .iter()
+            .filter(|host| !matches!(host.state, HostState::Unsupported | HostState::Offline))
+            .filter_map(|host| Some((host.key, host.connection.clone()?)))
+            .collect();
+        state
+            .follows
+            .retain(|follow| capable.iter().any(|(key, _)| *key == follow.key));
+        for (key, connection) in &capable {
+            let (key, connection) = (*key, connection.clone());
+            match state.follows.iter_mut().find(|follow| follow.key == key) {
+                // A new admission: the cache stays (the cursor catches up),
+                // the reads start again on it.
+                Some(follow) if follow.connection != connection => {
+                    follow.connection = connection;
+                    follow.catalog = Lane::Idle;
+                    follow.registry_lane = Lane::Idle;
+                }
+                Some(_same) => {}
+                None => state.follows.push(Follow {
+                    key,
+                    connection,
+                    replica: Replica::default(),
+                    registry: Assignments::default(),
+                    catalog: Lane::Idle,
+                    registry_lane: Lane::Idle,
+                    rests: 0,
+                }),
+            }
+        }
+        for (key, _connection) in capable {
+            self.labels_read(key, Read::Catalog);
+            self.labels_read(key, Read::Registry);
+        }
+        cx.notify();
+    }
+
+    /// Ask `read` of `key` if nothing is out or resting.
+    fn labels_read(&mut self, key: HostKey, read: Read) {
+        let state = &mut self.areas.labels;
+        let Some(follow) = state.follows.iter_mut().find(|follow| follow.key == key) else {
+            return;
+        };
+        if *follow.lane(read) != Lane::Idle {
+            return;
+        }
+        let Ok(ticket) = state.tickets.issue() else {
+            *follow.lane(read) = Lane::Stopped;
+            return;
+        };
+        let ask = match read {
+            Read::Catalog => {
+                let cursor = follow.replica.cursor();
+                Command::List {
+                    cursor,
+                    read: if cursor.is_some() {
+                        CatalogRead::Observe
+                    } else {
+                        CatalogRead::Now
+                    },
+                }
+            }
+            Read::Registry => Command::Registry {
+                changed_from: follow.registry.revision(),
+            },
+        };
+        *follow.lane(read) = Lane::Out(ticket);
+        let context = follow.connection.clone();
+        self.command(vessel_app_link::Command::Labels(Request {
+            context,
+            ticket,
+            ask,
+        }));
+    }
+
+    /// A followed read's answer, or an assignment's committed labels.
+    /// Whether the event was a followed read's (and so taken here).
+    pub(super) fn labels_followed(&mut self, event: &Event, cx: &mut Context<'_, Self>) -> bool {
+        if let Answer::Assigned {
+            workspace,
+            result: Ok(labels),
+            ..
+        } = &event.answer
+        {
+            if let Some(follow) = self.follow_of(&event.context) {
+                follow.registry.assigned(*workspace, labels.clone());
+            }
+            self.labels_picker_refresh(cx);
+            return false;
+        }
+        let read = match &event.answer {
+            Answer::Listed(_) => Read::Catalog,
+            Answer::Registry(_) => Read::Registry,
+            Answer::Assigned { .. }
+            | Answer::Updated(_)
+            | Answer::Inspected(_)
+            | Answer::Deleted(_) => return false,
+        };
+        let Some(follow) = self.follow_of(&event.context) else {
+            return true;
+        };
+        if *follow.lane(read) != Lane::Out(event.ticket) {
+            return true;
+        }
+        let key = follow.key;
+        let pause = match &event.answer {
+            Answer::Listed(Ok(list)) => {
+                let _gap_reads_a_snapshot_next = follow.replica.listed(list);
+                Some(QUIET)
+            }
+            Answer::Registry(Ok(snapshot)) => {
+                follow.registry = Assignments::read(snapshot);
+                Some(QUIET)
+            }
+            Answer::Listed(Err(failure)) | Answer::Registry(Err(failure)) => match failure {
+                Failure::Offline | Failure::Changed | Failure::Unsupported => None,
+                Failure::Pending
+                | Failure::NameTaken
+                | Failure::NotFound
+                | Failure::NoChange
+                | Failure::Load
+                | Failure::Update
+                | Failure::TicketExhausted => {
+                    if read == Read::Catalog {
+                        follow.replica.failed(Failure::Load);
+                    }
+                    Some(AFTER_FAILURE)
+                }
+            },
+            Answer::Assigned { .. }
+            | Answer::Updated(_)
+            | Answer::Inspected(_)
+            | Answer::Deleted(_) => None,
+        };
+        let unsupported = matches!(
+            &event.answer,
+            Answer::Listed(Err(Failure::Unsupported)) | Answer::Registry(Err(Failure::Unsupported))
+        );
+        let catalog = (read == Read::Catalog).then(|| {
+            (
+                follow.replica.catalog().clone(),
+                follow.replica.state(),
+            )
+        });
+        follow.rests = follow.rests.wrapping_add(1);
+        let rest = follow.rests;
+        *follow.lane(read) = match pause {
+            Some(_) => Lane::Resting(rest),
+            None => Lane::Stopped,
+        };
+        if let Some(host) = self
+            .areas
+            .labels
+            .hosts
+            .iter_mut()
+            .find(|host| host.key == key)
+        {
+            if unsupported {
+                host.state = HostState::Unsupported;
+            } else if let Some((catalog, state)) = catalog
+                && pause.is_some()
+            {
+                host.catalog = catalog;
+                host.state = state;
+            }
+        }
+        if let Some(wait) = pause {
+            self.labels_rest(key, read, rest, wait, cx);
+        }
+        if read == Read::Registry {
+            self.labels_picker_refresh(cx);
+        }
+        self.settle_labels(cx);
+        cx.notify();
+        true
+    }
+
+    fn follow_of(&mut self, connection: &ConnectionContext) -> Option<&mut Follow> {
+        self.areas
+            .labels
+            .follows
+            .iter_mut()
+            .find(|follow| &follow.connection == connection)
+    }
+
+    /// After `wait`, `read` of `key` may ask again (if still resting from
+    /// the same answer).
+    fn labels_rest(
+        &mut self,
+        key: HostKey,
+        read: Read,
+        rest: u64,
+        wait: Duration,
+        cx: &mut Context<'_, Self>,
+    ) {
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(wait).await;
+            let _gone = this.update(cx, |shell, _cx| {
+                let follows = &mut shell.areas.labels.follows;
+                if let Some(follow) = follows.iter_mut().find(|follow| follow.key == key)
+                    && *follow.lane(read) == Lane::Resting(rest)
+                {
+                    *follow.lane(read) = Lane::Idle;
+                    shell.labels_read(key, read);
+                }
+            });
+        })
+        .detach();
+    }
+
+    /// The Labels item of `session`'s row menu: the picker for its
+    /// workspace, with the registry's labels.
+    pub(crate) fn labels_row_open(
+        &mut self,
+        machine: &str,
+        session: vessel_proto::SessionId,
+        window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(row) = self.areas.labels.row(machine, session) else {
+            return;
+        };
+        let key = vessel_app_view::layout::LayoutKey::Workspace {
+            node: row.connection.node(),
+            workspace: row.workspace,
+        };
+        let Ok(target) = vessel_app_view::labels::WorkspaceTarget::new(row.connection.clone(), &key)
+        else {
+            return;
+        };
+        let assigned = row.labels.iter().map(|label| label.name.clone()).collect();
+        let access = if row.writable {
+            EditAccess::Editable
+        } else {
+            EditAccess::ReadOnly
+        };
+        self.labels_picker_open(target, assigned, access, window, cx);
+    }
+
+    /// The open picker's assigned labels and access, from its host's
+    /// followed registry.
+    fn labels_picker_refresh(&mut self, cx: &mut Context<'_, Self>) {
+        let Some((target, assigned, access)) = self.areas.labels.picker_view() else {
+            return;
+        };
+        self.labels_picker_sync(&target, assigned, access, cx);
+    }
+}
+
+impl super::Labels {
+    /// The open picker's target with its registry labels and access now.
+    fn picker_view(
+        &self,
+    ) -> Option<(
+        vessel_app_view::labels::WorkspaceTarget,
+        Vec<vessel_app_view::labels::Name>,
+        EditAccess,
+    )> {
+        let target = self.picker_target()?;
+        let follow = self
+            .follows
+            .iter()
+            .find(|follow| &follow.connection == target.connection())?;
+        let assigned = follow.registry.labels(target.workspace()).to_vec();
+        let writable = self
+            .hosts
+            .iter()
+            .find(|host| host.key == follow.key)
+            .is_some_and(|host| host.state.writable().is_ok());
+        let access = if writable {
+            EditAccess::Editable
+        } else {
+            EditAccess::ReadOnly
+        };
+        Some((target, assigned, access))
+    }
+
+    /// A session row's workspace and labels, on `machine`'s host: none
+    /// while the host is not followed or the session has no workspace.
+    pub(crate) fn row(&self, machine: &str, session: vessel_proto::SessionId) -> Option<RowLabels<'_>> {
+        let host = self.hosts.iter().find(|host| host.route.as_str() == machine)?;
+        let connection = host.connection.as_ref()?;
+        let follow = self
+            .follows
+            .iter()
+            .find(|follow| &follow.connection == connection)?;
+        let workspace = follow.registry.workspace(session)?;
+        let labels = follow
+            .registry
+            .labels(workspace)
+            .iter()
+            .map(|name| {
+                // A name the catalog does not hold yet (its read is behind
+                // the registry's) keeps the create colour until it arrives.
+                host.catalog
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| Label {
+                        name: name.clone(),
+                        color: vessel_app_view::labels::Color::default(),
+                    })
+            })
+            .collect();
+        Some(RowLabels {
+            connection,
+            workspace,
+            labels,
+            writable: host.state.writable().is_ok(),
+        })
+    }
+}

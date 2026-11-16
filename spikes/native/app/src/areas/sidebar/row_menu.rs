@@ -23,8 +23,10 @@
 //!   open session does not mark itself read again at once.
 //! - Differences, named: the dots are the kit's horizontal ones (Paseo's
 //!   are vertical; the kit has no vertical mark); no Rename, Copy branch
-//!   name, Labels or Open in file manager (no native seam yet); the menu's
-//!   rows have no leading glyphs (the kit's menu has none).
+//!   name or Open in file manager (no native seam yet); the menu's
+//!   rows have no leading glyphs (the kit's menu has none). Labels opens
+//!   the workspace picker dialog rather than a page inside the menu (the
+//!   kit's menu has no pages).
 
 use std::rc::Rc;
 
@@ -59,6 +61,8 @@ enum RowAct {
     CopyPath,
     /// Change a mark.
     Mark(MarkAction),
+    /// Its workspace's labels (the picker).
+    Labels,
 }
 
 impl RowMenu {
@@ -107,6 +111,13 @@ fn acts(shell: &Shell, card: &Card) -> Vec<RowAct> {
         } else {
             MarkAction::Pin
         }));
+    }
+    // Paseo's order: after Pin, before Archive; only for a session whose
+    // host knows its workspace.
+    if shell.areas.labels.row(&card.machine, card.session).is_some() {
+        acts.push(RowAct::Labels);
+    }
+    if marks_taken {
         acts.push(RowAct::Mark(MarkAction::Archive));
     }
     acts
@@ -164,6 +175,7 @@ impl Shell {
             RowAct::Mark(MarkAction::Pin) => self.act_on_card(&card, Act::Mark(Mark::Pin)),
             RowAct::Mark(MarkAction::Unpin) => self.act_on_card(&card, Act::Mark(Mark::Unpin)),
             RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete) => {}
+            RowAct::Labels => self.labels_row_open(&card.machine, card.session, window, cx),
         }
         cx.notify();
     }
@@ -191,6 +203,7 @@ pub(super) fn render(
                 .map(|act| match act {
                     RowAct::CopyPath => MenuItem::new(words.copy_path),
                     RowAct::Mark(action) => MenuItem::new(said.mark_action(*action)),
+                    RowAct::Labels => MenuItem::new(words.labels),
                 })
                 .collect()
         })

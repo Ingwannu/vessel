@@ -1,11 +1,16 @@
-//! Staged workspace picker using the existing combobox and adaptive dialog.
+//! The workspace picker on the existing combobox and adaptive dialog,
+//! opened from a session row's menu (Paseo's sidebar Labels page).
 //!
 //! [Decision Log]
-//! - Purpose: prepare the whole workflow without inferring a workspace owner.
-//! - Constraint: the reviewed native registry row/header caller is not present.
-//! - Choice: literal cfg(test) registration until that real caller can supply
-//!   `WorkspaceTarget`, ordered names and active/read-only policy. No fake route.
-//! - Tradeoff: tests compile/render this adapter; it is not a shipped entry yet.
+//! - Purpose: assign and create labels for one workspace without inferring
+//!   its owner.
+//! - Constraint: the workspace is the registry's (a session's membership),
+//!   never a directory; the admission is the one the row's host answered.
+//! - Choice: the row menu supplies the `WorkspaceTarget`, the registry's
+//!   ordered names and the host's access; the followed registry keeps them
+//!   current while the picker is open (`follow.rs`).
+//! - Tradeoff: a session with no workspace membership (an older one) has no
+//!   Labels item.
 
 mod create;
 mod draw;
@@ -298,4 +303,11 @@ pub(super) fn overlay(
         });
     }
     draw::overlay(shell, tokens, window, cx)
+}
+
+impl super::Labels {
+    /// The open picker's target, for the followed registry to refresh.
+    pub(super) fn picker_target(&self) -> Option<WorkspaceTarget> {
+        self.picker.as_ref().map(|picker| picker.target.clone())
+    }
 }

@@ -325,7 +325,10 @@ async fn reads_reach_the_node_as_their_calls_and_come_back_typed() {
         calls.first(),
         Some(Call::ListWorkspaceLabels(list)) if list.cursor.is_none() && list.read == CatalogRead::Now
     ));
-    assert!(matches!(calls.get(1), Some(Call::InspectWorkspaceLabelDelete(_))));
+    assert!(matches!(
+        calls.get(1),
+        Some(Call::InspectWorkspaceLabelDelete(_))
+    ));
     node.peer.abort();
 }
 

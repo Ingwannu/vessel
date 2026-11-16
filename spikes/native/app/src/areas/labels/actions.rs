@@ -139,8 +139,7 @@ impl Shell {
     }
 
     pub(crate) fn labels_answer(&mut self, event: Event, cx: &mut Context<'_, Self>) {
-        #[cfg(test)]
-        if self.labels_picker_answer(&event, cx) {
+        if self.labels_followed(&event, cx) || self.labels_picker_answer(&event, cx) {
             return;
         }
         let state = &mut self.areas.labels;

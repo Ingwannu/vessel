@@ -26,6 +26,7 @@ use vessel_proto::workspace_labels::{
     AssignWorkspaceLabel, CatalogRead, DeleteWorkspaceLabel, InspectWorkspaceLabelDelete,
     ListWorkspaceLabels, UpdateWorkspaceLabel, WorkspaceLabelFailure,
 };
+use vessel_proto::registry::GetRegistry;
 use vessel_proto::{ErrorCode, ErrorDetail, WireError};
 
 use super::{Answer, Command, Event, Request};
@@ -53,6 +54,8 @@ impl crate::State {
                 Command::List {
                     read: CatalogRead::Observe,
                     ..
+                } | Command::Registry {
+                    changed_from: Some(_)
                 }
             );
             let deadline = if observing {
@@ -83,6 +86,15 @@ async fn answer(client: &SelectedConnection, ask: &Command) -> Answer {
                     read: *read,
                 })
                 .await
+                .map_err(failure),
+        ),
+        Command::Registry { changed_from } => Answer::Registry(
+            client
+                .call(GetRegistry {
+                    changed_from: *changed_from,
+                })
+                .await
+                .map(Box::new)
                 .map_err(failure),
         ),
         Command::Assign {
@@ -143,7 +155,7 @@ fn update(original: &Name, replacement: &Label) -> UpdateWorkspaceLabel {
 /// No answer in time: a list could not load, a write could not finish.
 const fn late(ask: &Command) -> Failure {
     match ask {
-        Command::List { .. } => Failure::Load,
+        Command::List { .. } | Command::Registry { .. } => Failure::Load,
         Command::Assign { .. }
         | Command::Update { .. }
         | Command::InspectDelete(_)
