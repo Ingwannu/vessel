@@ -1506,3 +1506,8 @@ renderer; source opt-ins add unselected pressed surface3 after hover surface2.
 Existing `segmented`/`segment` remain pointer-sized with their original paint.
 The caller owns the value and refuses disabled/current-value actions. Why and
 pinned lines: `docs/plans/shared-segmented-sizing.md`.
+
+`VirtualList::on_scroll` observes handled scroll input through GPUI's existing
+handler, without exporting its stale visible_range or changing list motion.
+Install once for the list owner; never query/reborrow the list during callback.
+Exact source/real-window proof remains pending in `docs/plans/wp-c3-list-scroll.md`.
