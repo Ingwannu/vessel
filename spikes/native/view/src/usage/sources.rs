@@ -286,7 +286,7 @@ mod tests {
         );
         assert_eq!(
             balance_amount(&balance, CostVisibility::Permitted, words),
-            "123.45 left"
+            "\u{2068}123.45\u{2069} left"
         );
         let allowance = UsageBalance {
             used: None,

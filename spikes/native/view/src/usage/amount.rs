@@ -79,11 +79,11 @@ mod tests {
     fn grouping_currency_and_tokens_follow_paseo_in_both_languages() {
         assert_eq!(
             amount_text(1234.5, UsageBalanceUnit::Usd, en()),
-            "$1,234.50"
+            "$\u{2068}1,234.50\u{2069}"
         );
         assert_eq!(
             amount_text(1234.5, UsageBalanceUnit::Usd, ko()),
-            "US$1,234.50"
+            "US$\u{2068}1,234.50\u{2069}"
         );
         assert_eq!(
             amount_text(12345.678, UsageBalanceUnit::Credits, ko()),
@@ -96,7 +96,10 @@ mod tests {
         // Negative literals parsed, so the test needs no float negation.
         let debt: f64 = "-5".parse().unwrap();
         let dust: f64 = "-0.001".parse().unwrap();
-        assert_eq!(amount_text(debt, UsageBalanceUnit::Usd, en()), "-$5.00");
+        assert_eq!(
+            amount_text(debt, UsageBalanceUnit::Usd, en()),
+            "-$\u{2068}5.00\u{2069}"
+        );
         assert_eq!(amount_text(dust, UsageBalanceUnit::Credits, en()), "0");
     }
 

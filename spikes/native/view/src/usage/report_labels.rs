@@ -130,7 +130,7 @@ mod tests {
                 "Code review · Window duration not reported",
                 ko()
             ),
-            "코드 리뷰 · 한도 기간이 보고되지 않음"
+            "\u{2068}코드 리뷰\u{2069} · \u{2068}한도 기간이 보고되지 않음\u{2069}"
         );
         assert_eq!(
             window_label_text(
@@ -138,7 +138,7 @@ mod tests {
                 "Reported window (3600000 ms)",
                 ko()
             ),
-            "보고된 한도 (3600000ms)"
+            "보고된 한도 (\u{2068}3600000\u{2069}ms)"
         );
         assert_eq!(
             window_label_text("five_hour", "5-hour window", en()),
@@ -192,7 +192,7 @@ mod tests {
         );
         assert_eq!(
             window_short_text("general:five_hour", "5-hour window", ko()).as_deref(),
-            Some("5h")
+            Some(ko().usage().short_five_hour())
         );
         assert_eq!(window_short_text("weekly", "Weekly (Opus)", ko()), None);
     }
