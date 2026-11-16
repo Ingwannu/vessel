@@ -47,6 +47,9 @@ pub enum Problem {
     /// A callback or queued request belongs to a retired admission.
     #[error("the selected machine connection changed")]
     TargetChanged,
+    /// No current node-reported management grant is available to this control.
+    #[error("management access is not confirmed for this connection")]
+    AccessNotConfirmed,
     /// No live connection.
     #[error("the machine is not connected")]
     Offline,
@@ -70,6 +73,7 @@ impl Problem {
     pub const fn notice(self) -> crate::alert::Variant {
         match self {
             Self::TargetChanged
+            | Self::AccessNotConfirmed
             | Self::Offline
             | Self::Refused(_)
             | Self::NoRoute

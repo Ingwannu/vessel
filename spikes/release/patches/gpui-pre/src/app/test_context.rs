@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-16: opt-in real accessibility activation in tests ("gpui-pre", change 11)
 use crate::{
     Action, AnyView, AnyWindowHandle, App, AppCell, AppContext, AsyncApp, AvailableSpace,
     BackgroundExecutor, BorrowAppContext, Bounds, Capslock, ClipboardItem, DisplayId, DrawPhase,
@@ -475,6 +476,15 @@ impl TestAppContext {
     ) {
         self.test_window(window_handle)
             .simulate_visibility_change(visibility);
+    }
+
+    // Vessel patch (change 11): observe the existing real-frame tree in tests.
+    /// Activate the real window accessibility adapter callback for this test.
+    /// False means no accessible adapter was installed; callers must not treat
+    /// an absent tree as a successful accessibility assertion.
+    #[must_use]
+    pub fn simulate_accessibility_activation(&self, window: AnyWindowHandle) -> bool {
+        self.test_window(window).activate_accessibility()
     }
 
     /// Simulates connecting a display.

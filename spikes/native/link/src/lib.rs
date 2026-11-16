@@ -39,9 +39,9 @@ mod event;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 #[cfg(not(target_arch = "wasm32"))]
-mod testing;
+pub mod testing;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod voice;
 // The agents' lists kept between runs (owner word 28); a browser keeps
