@@ -290,7 +290,9 @@ impl Connection {
     }
 
     /// Call a method and wait for its typed answer. Dropping the future
-    /// cancels the call on the node.
+    /// retracts a queued/pre-admission request independently of the Cancel queue.
+    /// After transport admission, cancellation on the node is best-effort;
+    /// committed bytes and side effects cannot be revoked.
     ///
     /// # Errors
     /// The node answered with an error, or the connection closed first.
@@ -309,7 +311,8 @@ impl Connection {
     /// came, for callers that relay calls they did not build (`vessel
     /// ui`'s bridge). The protocol-version gate is the typed calls' own
     /// ([`CallError::NotInProtocol`]); the node checks scopes as for any
-    /// call. Dropping the future cancels the call on the node.
+    /// call. Dropping the future retracts an uncommitted request; once admitted
+    /// to the transport, node cancellation is best-effort.
     ///
     /// # Errors
     /// The node answered with an error, or the connection closed first.
@@ -413,8 +416,8 @@ impl Connection {
     }
 }
 
-/// A call that was sent and not answered yet; cancels it on the node when
-/// dropped unanswered.
+/// A queued or sent call that has not answered. Its receiver closure lets the
+/// writer skip uncommitted work even when this best-effort Cancel cannot queue.
 struct PendingCall<'a> {
     id: RequestId,
     commands: &'a mpsc::Sender<Command>,
@@ -434,8 +437,9 @@ impl Drop for PendingCall<'_> {
         if self.answered {
             return;
         }
-        // Best effort: if the queue is full, the node finishes the call and
-        // its answer is discarded when it arrives.
+        // The receiver also closes when its call future drops: the writer
+        // independently observes it before transport admission. This message
+        // is best-effort for requests that are already committed to the sink.
         if self.commands.try_send(Command::Cancel(self.id)).is_err() {
             tracing::trace!(id = %self.id, "could not send cancel");
         }
