@@ -14,7 +14,9 @@ use vessel_proto::registry::{
 use vessel_proto::{ErrorCode, ProjectId, WorkspaceId};
 
 use crate::agents::code;
-use crate::support::{Fixture, within};
+use crate::support::{Fixture, step, within};
+use futures_util::FutureExt as _;
+use std::panic::{AssertUnwindSafe, resume_unwind};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn registry_metadata_owner_round_trips_all_six_methods_and_exact_refusals() {
@@ -36,13 +38,22 @@ async fn registry_metadata_owner_round_trips_all_six_methods_and_exact_refusals(
             &[first.clone(), blocked.clone(), archived.clone()],
         )
         .await;
-        let node = fixture.start().await;
-        let owner = fixture.connect(&node).await;
-        assert_eq!(owner.protocol(), vessel_proto::PROTOCOL_VERSION);
-        reads(&owner, &[first.clone(), blocked.clone(), archived.clone()]).await;
-        presentation(&owner, &first, &blocked, &archived).await;
-        release(&owner, &blocked, &archived).await;
-        node.stop().await.unwrap();
+        let node = step("registry owner node start", fixture.start()).await;
+        let owner = step("registry owner connect", fixture.connect(&node)).await;
+        let result = AssertUnwindSafe(async {
+            assert_eq!(owner.protocol(), vessel_proto::PROTOCOL_VERSION);
+            reads(&owner, &[first.clone(), blocked.clone(), archived.clone()]).await;
+            presentation(&owner, &first, &blocked, &archived).await;
+            release(&owner, &blocked, &archived).await;
+        })
+        .catch_unwind()
+        .await;
+        step("registry owner node stop/join", node.stop())
+            .await
+            .unwrap();
+        if let Err(panic) = result {
+            resume_unwind(panic);
+        }
     })
     .await;
 }

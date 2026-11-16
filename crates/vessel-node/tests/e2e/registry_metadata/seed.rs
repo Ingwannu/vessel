@@ -7,7 +7,9 @@ use vessel_proto::registry::{
 use vessel_proto::{ProjectId, WorkspaceId};
 use vessel_store::{RegistryRecord, Store, StoreConfig};
 
-use crate::support::Fixture;
+use crate::support::{Fixture, step};
+use futures_util::FutureExt as _;
+use std::panic::{AssertUnwindSafe, resume_unwind};
 
 pub(super) fn source() -> BlockedSource {
     BlockedSource::ChangeRequest {
@@ -37,23 +39,34 @@ pub(super) fn descriptor(project: ProjectId) -> WorkspaceDescriptor {
 }
 
 pub(super) async fn seed(fixture: &Fixture, descriptors: &[WorkspaceDescriptor]) {
-    let opened = Store::open(&fixture.data_dir(), StoreConfig::default())
-        .await
-        .unwrap();
-    for descriptor in descriptors {
-        opened
-            .store
-            .put_registry_workspace(
-                RegistryRecord {
-                    descriptor: descriptor.clone(),
-                    recovery: None,
-                },
-                None,
+    let opened = step(
+        "registry offline Store open/migrations",
+        Store::open(&fixture.data_dir(), StoreConfig::default()),
+    )
+    .await
+    .unwrap();
+    let result = AssertUnwindSafe(async {
+        for descriptor in descriptors {
+            step(
+                "registry offline seed commit ACK",
+                opened.store.put_registry_workspace(
+                    RegistryRecord {
+                        descriptor: descriptor.clone(),
+                        recovery: None,
+                    },
+                    None,
+                ),
             )
             .await
             .unwrap();
+        }
+    })
+    .catch_unwind()
+    .await;
+    step("registry offline seed writer close", opened.store.close()).await;
+    if let Err(panic) = result {
+        resume_unwind(panic);
     }
-    opened.store.close().await;
 }
 
 pub(super) fn requests(workspace: WorkspaceId) -> [vessel_proto::Call; 6] {

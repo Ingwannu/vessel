@@ -1,16 +1,26 @@
 //! Registry metadata admission at an old hop, with a supported negative control.
 
 use super::super::*;
-use futures_util::{SinkExt as _, StreamExt as _};
+use futures_util::{FutureExt as _, SinkExt as _, StreamExt as _};
+use std::future::Future;
+use std::panic::{AssertUnwindSafe, resume_unwind};
 use vessel_proto::registry::{
     BlockedSource, GetRegistry, GetWorkspace, ListWorkspaces, PinWorkspace, RegistryRevision,
     ReleaseWorkspaceAutomation, RenameWorkspace, WorkspacePin,
 };
 use vessel_proto::{
-    Call, ClientFrame, Deliver, Forward, Method, Origin, OriginBy, Outcome, ProtocolVersion,
-    RelayCall, Reply, Request as _, Scope, ServerFrame, Welcome, WorkspaceId,
+    Call, ClientFrame, Deliver, Forward, Method, NodeId, Origin, OriginBy, Outcome,
+    ProtocolVersion, RelayCall, Reply, Request as _, Scope, ServerFrame, Welcome, WorkspaceId,
 };
 use vessel_rpc::{CallError, UnaryCall};
+
+const PHASE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(1);
+
+async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
+    tokio::time::timeout(PHASE_DEADLINE, future)
+        .await
+        .unwrap_or_else(|_elapsed| panic!("registry memory phase: {name}"))
+}
 
 const MEMORY_CAPACITY: usize = 4;
 const CASE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
@@ -117,9 +127,7 @@ async fn registry_metadata_direct_and_every_envelope_send_no_frame_to_an_old_hop
     versions.sort();
     versions.dedup();
     for version in versions {
-        tokio::time::timeout(CASE_DEADLINE, scenario(version, needed))
-            .await
-            .unwrap();
+        scenario(version, needed).await;
     }
 }
 
@@ -128,10 +136,44 @@ async fn scenario(version: ProtocolVersion, needed: ProtocolVersion) {
         vessel_rpc::memory::pair(NonZeroUsize::new(MEMORY_CAPACITY).unwrap());
     let welcomed = node();
     let expected_node = welcomed.id;
-    let peer = tokio::spawn(serve_old(node_end, version, welcomed));
-    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
-        .await
-        .unwrap();
+    let mut peer = tokio::spawn(serve_old(node_end, version, welcomed));
+    // Keep the peer outside the timed/asserting body: even a failed handshake
+    // must abort-and-join its owned task, rather than detach it on unwinding.
+    let result = vessel_testkit::within(
+        CASE_DEADLINE,
+        AssertUnwindSafe(exercise(client_end, version, needed, expected_node)).catch_unwind(),
+    )
+    .await;
+    let joined = tokio::time::timeout(PHASE_DEADLINE, &mut peer).await;
+    let joined = match joined {
+        Ok(joined) => joined,
+        Err(_elapsed) => {
+            peer.abort();
+            let _cancelled = phase("aborted peer join", &mut peer).await;
+            panic!("registry memory phase: peer close/join");
+        }
+    };
+    if let Err(panic) = result.expect("registry memory case deadline") {
+        resume_unwind(panic);
+    }
+    assert!(
+        joined.unwrap().is_none(),
+        "no registry frame reached the old peer"
+    );
+}
+
+async fn exercise(
+    client_end: vessel_rpc::memory::MemoryTransport,
+    version: ProtocolVersion,
+    needed: ProtocolVersion,
+    expected_node: NodeId,
+) {
+    let client = phase(
+        "client Hello/Welcome",
+        NodeClient::over(client_end, client_info(), &ClientConfig::default()),
+    )
+    .await
+    .unwrap();
     assert_eq!(client.protocol(), version);
     let workspace = WorkspaceId::random();
     direct_refusals(&client, workspace, needed, version).await;
@@ -178,10 +220,6 @@ async fn scenario(version: ProtocolVersion, needed: ProtocolVersion) {
     }
     assert_eq!(client.node_info().await.unwrap().id, expected_node);
     drop(client);
-    assert!(
-        peer.await.unwrap().is_none(),
-        "no registry frame reached the old peer"
-    );
 }
 
 async fn serve_old(
@@ -189,32 +227,42 @@ async fn serve_old(
     version: ProtocolVersion,
     welcomed: NodeInfo,
 ) -> Option<Result<String, Disconnected>> {
-    let _hello = node_end.next().await.unwrap().unwrap();
-    node_end
-        .send(
+    let _hello = phase("peer request frame", node_end.next())
+        .await
+        .unwrap()
+        .unwrap();
+    phase(
+        "peer response frame",
+        node_end.send(
             serde_json::to_string(&ServerFrame::Welcome(Welcome {
                 protocol: version,
                 node: welcomed.clone(),
             }))
             .unwrap(),
-        )
-        .await
-        .unwrap();
+        ),
+    )
+    .await
+    .unwrap();
     // The first actual request must be the supported negative control.
-    let text = node_end.next().await.unwrap().unwrap();
+    let text = phase("peer request frame", node_end.next())
+        .await
+        .unwrap()
+        .unwrap();
     let ClientFrame::Request { id, call } = serde_json::from_str(&text).unwrap() else {
         panic!("expected a supported request");
     };
     assert_eq!(call.method(), Method::NodeInfo);
-    node_end
-        .send(
+    phase(
+        "peer response frame",
+        node_end.send(
             serde_json::to_string(&ServerFrame::Response {
                 id,
                 outcome: Outcome::Ok(Reply::NodeInfo(welcomed)),
             })
             .unwrap(),
-        )
-        .await
-        .unwrap();
-    node_end.next().await
+        ),
+    )
+    .await
+    .unwrap();
+    phase("peer close frame", node_end.next()).await
 }

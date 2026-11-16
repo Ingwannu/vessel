@@ -49,3 +49,20 @@ refusals. Their delegated target hops still use the real fleet/relay route.
 No protocol, limits, grants, authority assertions, sleeps or product behavior
 change. This checks authority across actual paired transports while respecting
 the existing relay admission budget. Corrected exact-head execution is owed.
+
+The corrected relay fixture then executed all seven cases successfully: typed
+SDK no-frame (one), real Node authority (four), and raw pre-dispatch/future-field
+compatibility (two). This closes that fixture failure only; review separately
+returned the test lifetime boundary, and that evidence remains predecessor proof.
+
+The lifetime correction uses the canonical prebuilt `within` five-second memory
+case budget and named one-second Hello/Welcome, request/response, dispatch and
+server/peer close waits. An owned task handle remains outside the timed,
+asserting future; on failure it is still joined, with abort-and-join only as a
+bounded cleanup fallback. The original failure is rethrown after cleanup rather
+than being interpreted as success. Real Store seeds and node/fleet ownership
+steps reuse the existing named twenty-second e2e step inside the unchanged
+sixty-second safety net. Seed writers close before assertion rethrow; node and
+relay handles remain outside authority assertions and drain on that failure path.
+No product timeout, grant, quota, assertion or policy is relaxed. Exact corrected
+strict and functional checks remain owed.
