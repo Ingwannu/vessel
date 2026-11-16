@@ -152,3 +152,10 @@ remains None. Native takes only the lead's announced base and has no real label
 consumer-ready adoption from this unreviewed adapter. Session metadata remains
 the lifecycle owner's separate contract. No capture or production parity is
 claimed.
+
+
+Current verification: the real-wiring source171d passed six-package all-target
+strict and38 scoped runtime tests (Node14, Proto7, Store unit12/integration4,
+Client1). It does not establish whole-gate or native acceptance. The newer
+announced node base moves only the canonical migration-array registration path;
+A6 follows that path and retains the same Store/actor/registry boundaries.

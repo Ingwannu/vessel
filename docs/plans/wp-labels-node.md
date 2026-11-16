@@ -230,3 +230,29 @@ includes web-ci and nested fixture binaries before Cargo. Runtime counts,
 TS generation, final whole gate and V3 review are still pending. No parallel
 or duplicate test request was submitted. This checkpoint changes documentation
 only; the test's Rust source remains byte-identical.
+
+
+## Resume point after the interrupted build window
+
+The exact-source runtime run
+`wp-labels-node-narrow-20261115T182754Z-171d8036` completed all selected steps
+with rc0: web preparation, nested fixture binaries and the filtered Cargo suite.
+Actual tests were38 passed/0 failed/0 ignored: Node14, Proto7, Store12 unit plus
+4 real integration cases, Client1. The actual guarded handlers, Store reopen,
+failed-revision rollback/watch silence and SDK no-frame refusal all executed.
+Zero-test filtered binaries are not counted. This supplements the earlier
+six-package all-target strict pass on that same immutable source.
+
+Merged announced node `ed4cd137`, preserving all new file/skills method rows,
+classifiers, typed ids and service slots alongside A6. Its canonical migration
+array moved to `schema/migrations/sequence.rs`; append the label SQL there after
+listing while retaining the relative index in the schema entry module. No old
+SQL, size allowance or protocol number was changed. The accepted base has the
+named open intermittent startSession routing e2e defect; this is not a completed
+A6 whole gate or permission to edit/waive that unrelated test.
+
+Next: remote TS generation on this merged source, inspect/adopt its artifact,
+then final whole-root verification and V3 packet. The prior38-test success is
+scoped to171d, not a claim that the new union has executed. Native adopted only
+announced appbase13 through its own line; session LabelsChanged/coverage remains
+a separate unready producer. No speculative session editor or readiness switch.
