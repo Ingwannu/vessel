@@ -872,3 +872,10 @@ contract. This includes the integrator's named e2e intermittent (17/18 counted
 gate), not a new all-green claim. No private notice binding/fence or common
 Settings WIP is adopted by this base merge. Current source and wire freshness
 will be checked on the new union rather than re-running obsolete generation.
+
+
+The d650 runtime wire-generation run passed all five tests and returned rc1
+only for the expected generated proto.ts difference. The exact VM commit and
+every artifact SHA were checked; bridge/calls were byte-identical. Its actual
+proto.ts snapshot is now committed without manual edits or whitespace cleanup.
+Freshness remains required after this receive and the announced next base.
