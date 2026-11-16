@@ -78,3 +78,10 @@ check. The previous F4 strict has terminated; a later Main strict is now green,
 with Main runtime tests still queued separately. This geometry producer changes
 no menu/popover consumer or existing focused root. Native source/runtime checks
 and V1 adoption remain owed; no earlier source-oracle result is a Rust pass.
+
+The first exact058 priority strict reached Kit and returned one unused-results
+diagnostic: child prepaint reports an Option<FocusHandle>. GPUI AnyElement
+already records that focus in Window; bind its report without focusing/blurring
+or adding a focus owner. The geometry and all literal tests remain unchanged.
+This failed run is retained; subsequent strict/tests use ordinary lanes under
+the coordinator's failure rule. No compiler or GPUI runtime pass is inferred.

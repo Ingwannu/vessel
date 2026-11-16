@@ -86,7 +86,10 @@ impl Element for Measured {
                 .as_f32()
                 .mul_add(-1.0, placed.origin.y.as_f32())),
         );
-        window.with_element_offset(translation, |window| self.child.prepaint(window, cx));
+        // AnyElement already records child focus in Window; this transparent
+        // geometry delegate must not focus or blur it. Keep only the report.
+        let _child_focus =
+            window.with_element_offset(translation, |window| self.child.prepaint(window, cx));
     }
     fn paint(
         &mut self,
