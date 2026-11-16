@@ -4,6 +4,7 @@ mod cell;
 mod display;
 mod frame;
 mod geometry;
+mod input;
 mod markers;
 mod model;
 mod modes;
@@ -20,6 +21,10 @@ pub use frame::{
     FrameCells, FrameCursor, FrameOrigin, FrameRows, FrameView, ViewportAdjustment, ViewportRequest,
 };
 pub use geometry::{MAX_SCREEN_CELLS, MIN_COLUMNS, ScrollbackLines, Size};
+pub use input::{
+    InputBudget, InputBytes, InputError, Key, Modifier, Modifiers, encode_key, encode_paste,
+    encode_text,
+};
 pub use markers::{
     AnchorProjection, AnchorRelease, AnchorState, BufferEpoch, BufferPresence,
     MAX_VIEWPORT_MARKERS, ViewportAnchor,
