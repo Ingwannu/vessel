@@ -8,8 +8,10 @@
 use super::DialogContent;
 use crate::assets::Glyph;
 use crate::theme::{icon, spacing};
-use gpui::prelude::*;
-use gpui::{AnyElement, Div, Hsla, div, px};
+use gpui::{
+    AnyElement, Div, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, Styled as _,
+    div, px,
+};
 
 /// Content plus an optional trailing title-row action element and an optional
 /// header search row, on one renderer.
