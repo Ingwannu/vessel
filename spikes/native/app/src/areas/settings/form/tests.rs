@@ -47,7 +47,7 @@ fn a_narrow_desktop_clicks_section_then_back_to_list_and_prior_workspace(cx: &mu
     language_tests::init(cx);
     let (shell, cx) = setup(cx, 800.0, Route::Draft);
     shell.update_in(cx, |shell, window, cx| {
-        shell.open_settings(None, window, cx)
+        shell.open_settings(None, window, cx);
     });
     settled(cx);
     let row = cx
@@ -155,21 +155,48 @@ fn changing_form_closes_the_old_popup_anchor_without_applying_a_choice(cx: &mut 
     language_tests::init(cx);
     let (shell, cx) = setup(cx, 1280.0, Route::Draft);
     shell.update_in(cx, |shell, window, cx| {
-        shell.open_settings(Some(Section::General), window, cx)
+        shell.open_settings(Some(Section::General), window, cx);
     });
     settled(cx);
     let kept = shell.read_with(cx, |shell, _| shell.prefs.settings.composer.delivery);
     shell.update_in(cx, |shell, window, cx| {
-        shell.open_list(List::Delivery, window, cx)
+        shell.open_list(List::Delivery, window, cx);
     });
     settled(cx);
     shell.read_with(cx, |shell, _| {
-        assert_eq!(shell.areas.settings.showing(), Some(List::Delivery))
+        assert_eq!(shell.areas.settings.showing(), Some(List::Delivery));
     });
     cx.simulate_resize(size(px(800.0), px(600.0)));
     settled(cx);
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.areas.settings.showing(), None);
         assert_eq!(shell.prefs.settings.composer.delivery, kept);
+    });
+}
+
+#[gpui::test]
+fn changing_form_closes_language_without_selecting_another_preference(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = setup(cx, 1280.0, Route::Draft);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.open_settings(Some(Section::General), window, cx);
+    });
+    settled(cx);
+    let kept = shell.read_with(cx, |shell, _| shell.prefs.settings.language);
+    let trigger = cx
+        .debug_bounds("settings-language-trigger")
+        .expect("actual language trigger");
+    cx.simulate_click(trigger.center(), Modifiers::none());
+    settled(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let tokens = vessel_app_kit::tokens(cx);
+        assert!(super::super::language::picker(shell, &tokens, window, cx).is_some());
+    });
+    cx.simulate_resize(size(px(800.0), px(600.0)));
+    settled(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let tokens = vessel_app_kit::tokens(cx);
+        assert!(super::super::language::picker(shell, &tokens, window, cx).is_none());
+        assert_eq!(shell.prefs.settings.language, kept);
     });
 }

@@ -60,6 +60,7 @@ pub(crate) fn row(
         compact,
         tokens,
     )
+    .debug_selector(|| "settings-language-trigger".to_owned())
     .on_click(cx.listener(|shell, _event, window, cx| {
         shell.areas.settings.list.close();
         let state = &mut shell.areas.settings.language;

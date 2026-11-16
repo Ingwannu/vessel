@@ -266,6 +266,11 @@ the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
 section registers its renderer once, in `settings::sections::page`; a
 section without one is not listed (no placeholder pages), so the list and
 the pages cannot disagree. State and event slots are added only when needed.
+The shared sidebar arrangement also chooses Settings' split or list/back form:
+a fitting dock shows both columns, while a sheet, hidden preference or insufficient
+room uses the existing push/back flow. Body control density keeps the global
+phone policy. A form change closes existing choice/language popups, preserving
+preferences and the selected section; there is no second width threshold.
 Overview and Connections share one read of the machine book
 (`settings/book.rs`, asked while either is shown); a route reaches the
 screen as its endpoint only (`view::connections`).

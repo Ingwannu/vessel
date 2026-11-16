@@ -50,6 +50,7 @@ impl Shell {
         if state.last_form.replace(next).is_some_and(|old| old != next) {
             state.open = None;
             state.list.close();
+            state.language.close();
         }
     }
 }

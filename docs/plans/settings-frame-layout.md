@@ -51,3 +51,16 @@ none new (one obsolete settings/mod.rs px-step record removed), diff whitespace0
 These checks do not compile. Strict checks, all four new runtime cases, final
 native gate/export, inspected captures and receiving review remain unverified.
 No file/account permission or service changes were made.
+
+## First strict result and popup completion
+
+Exact933fe96e remote settings2-narrow-20261116T011543Z-933fe96e compiled
+View/Kit/Link/App but failed strict101 on four authored test closure statements
+missing final semicolons. The raw result remains in frame-strict-933; no runtime
+or strict PASS is inferred. Those four punctuation fixes leave expectations and
+product behavior unchanged. A separate source audit also found that the existing
+Language popup needs the same form-transition retirement as the shared choices.
+The controller now invokes its existing close method, and one new real-root
+click/resize case verifies the actual picker closes without changing language.
+No new language state, choice, callback or word is introduced. Five receiving
+runtime cases, corrected strict, final whole/export/captures/review remain owed.
