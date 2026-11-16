@@ -182,3 +182,48 @@ tracker's separate Kitty/Win32 stack behavior through the same decoded owner;
 primary/alternate saved attributes remain buffer-local. W17 makes no compensating
 tracker or coordinate repair and keeps the source dependency hold. A successful
 frozen2d5 whole alone cannot settle these additional measured semantic failures.
+
+## Continuous-output gesture progress (design correction, no API frozen)
+
+C2 identified that requiring every ordinary scroll Pin to match ScreenRevision
+can starve scrolling forever while output grows. The strict absolute-Pin proposal
+is therefore limited to explicit absolute row selection. It is not the normal
+wheel/page navigation path, and no DTO or call is registered by this correction.
+
+The proposed relative path is owned by the same authenticated connection,
+effective principal, typed target, actor incarnation and viewport slot. It checks
+the expected ViewRevision and buffer/epoch, not an unchanged ScreenRevision.
+The actor derives the relative selection from the CURRENT pure marker/frame
+projection in its ordered turn, then performs the bounded marker replacement.
+Live output/reflow never discards a queued gesture solely because screen bytes
+advanced. Existing pinned text stays anchored; actual eviction clamps with the
+engine's explicit reason. Reset or inactive-buffer intent has an explicit no-apply
+refusal or declared clamp; no implicit retargeting or coordinate reconstruction.
+
+C2's opening controller must retain a bounded wheel/page intent while a read is
+outstanding, coalescing only unsent compatible intent. Sent intent is immutable.
+A view admits one mutation at a time through the existing bounded actor control
+path, without an unbounded enqueue waiter; a full path refuses before mutation.
+A mutation is immediate, takes no second pending-read share, and wakes the existing
+read through ViewRevision. All original identity, view-slot and Waits limits remain.
+
+No mutating transport loss authorizes automatic retry. A bounded per-view last
+operation identity, payload fingerprint and acknowledged outcome prevents duplicate
+application. A repeated known identity reports its recorded outcome; a mismatched
+payload or identity older than retained history refuses/returns OutcomeUnknown,
+never applies again. A later full frame can have a newer screen cut while its
+operation receipt still identifies the original applied view revision. Closed or
+reopened views do not replay an old opening's unknown intent into a new actor.
+These are contract requirements, not an implemented receipt service.
+
+Frame serialization/allocation refusal must not disguise a committed view change
+as no mutation: distinguish refused-before-apply from applied-without-frame, and
+retain its operation outcome before returning any full-frame budget failure.
+No clipped full frame, rollback by guessed coordinates or replayed delta is allowed.
+
+Required actual tests add continuous output between gesture and admission, a read
+outstanding during scroll, trimming/reflow on the retained marker, epoch/buffer
+transitions, lost reply and duplicate operation identity, and applied view mutation
+whose frame exceeds byte/cell admission. Ordinary output alone must not prevent
+one bounded owned gesture from making progress. Producer qualification and V3
+interface review remain required before any wire/API implementation.
