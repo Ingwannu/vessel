@@ -72,6 +72,7 @@ pub mod devices;
 pub mod history;
 pub mod node_settings;
 pub mod search;
+pub mod session_marks;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -205,6 +206,7 @@ impl Link {
             admissions: ConnectionEpochs::default(),
             device_calls: devices::Hub::default(),
             history_calls: history::Hub::default(),
+            session_mark_calls: session_marks::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -273,6 +275,7 @@ struct State {
     admissions: ConnectionEpochs,
     device_calls: devices::Hub,
     history_calls: history::Hub,
+    session_mark_calls: session_marks::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

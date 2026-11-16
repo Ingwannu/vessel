@@ -12,6 +12,7 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::SessionMarked(answer) => self.session_mark_answer(answer, cx),
             Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {

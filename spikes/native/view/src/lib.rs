@@ -47,6 +47,7 @@ pub mod prefs;
 pub mod rewind;
 pub mod search;
 pub mod session;
+pub mod session_marks;
 pub mod settings;
 pub mod shortcuts;
 pub mod sidebar;

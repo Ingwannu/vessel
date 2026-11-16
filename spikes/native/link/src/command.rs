@@ -22,6 +22,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Directory metadata intent bound to its original rendered admission.
+    SessionMark(crate::session_marks::Ask),
     /// Scoped own-history discovery and import.
     History(crate::history::Ask),
     /// A request for one machine’s Agents settings.
