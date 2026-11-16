@@ -349,6 +349,11 @@ A dialog can carry Paseo's sheet-header search row under its title:
 one-line engine and `DialogContent::with_header_search` places it
 ([`shared-dialog-header-search.md`](../../docs/plans/shared-dialog-header-search.md)).
 
+`settings::selectable_code_row` is `code_row` with a value the pointer can
+select and copy (Paseo's `DetailRow` values are `selectable`), drawn by the
+kit's `plain_text`
+([`shared-settings-selectable-code-row.md`](../../docs/plans/shared-settings-selectable-code-row.md)).
+
 `kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
 profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
 the sidebar package owns the Footer wrapper. The lower frame grants no input or
