@@ -387,3 +387,9 @@ The read-only kernel-mount test calls the SAME low-level resolver directly so
 it does not bypass or claim root policy. Existing bounds/guards/assertions stay.
 Prior tests, if completed, remain prior-source evidence; changed-source strict
 and execution are required. This remains descriptor facts, not CandidateStore.
+
+The corrected817 strict receipt reached Node and found only a missing unit
+statement terminator in the new regression closure. Adding that semicolon does
+not change its call, assertion or guard. The817 functional job remains the exact
+semantic-source test; the later style-only head requires its own strict result.
+No failed receipt is discarded or represented as a pass.

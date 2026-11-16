@@ -172,7 +172,7 @@ fn unqualified_root_policy_and_all_error_chains_stay_explicit() {
     let opened = Cell::new(false);
     assert!(matches!(
         probe.open_file_with_gate(&package_path("shared/child/value").expect("path"), || {
-            opened.set(true)
+            opened.set(true);
         }),
         Err(Failure::Directory(tree::Failure::Policy))
     ));
