@@ -19,7 +19,7 @@ use crate::{
 
 const ADMISSION_CASE_BUDGET: Duration = Duration::from_secs(30);
 
-async fn phase<F: std::future::Future>(name: &str, future: F) -> F::Output {
+async fn phase<F: Future>(name: &str, future: F) -> F::Output {
     tokio::time::timeout(ADMISSION_CASE_BUDGET, future)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))

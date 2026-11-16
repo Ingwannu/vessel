@@ -44,3 +44,8 @@ actual admission tests are the scoped prerequisite check set; no prior common
 Settings/SQL result is used as proof. Recovery and kept-version-work consumers
 remain unqualified. Real agents, other operating systems and service-account
 behavior are not exercised by these isolated fixtures.
+
+The first changed-source strict check found the factory move's now-unused
+PathBuf import and an unnecessarily qualified prelude Future bound in the new
+phase fixture. Both are removed without changing behavior or assertions. Its
+red log is retained; corrected-source ordinary checks are still owed.
