@@ -53,7 +53,9 @@ async fn temporary_view_returns_a_prepared_session_with_its_original_claim() {
             Err(crate::SessionError::ConversationTaken(owner)) if owner == id
         ));
         let Reopening {
-            created: Created { handle, durable },
+            created: Created {
+                handle, durable, ..
+            },
             gate,
         } = prepared.start().unwrap();
         assert_eq!(handle.id(), id);

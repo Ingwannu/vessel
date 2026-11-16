@@ -22,7 +22,7 @@ async fn resumed_create_refuses_a_duplicate_between_preparation_and_registration
         let duplicate = tokio::time::timeout(STEP, runtime.create(spec)).await.unwrap();
         assert!(matches!(duplicate, Err(crate::SessionError::ConversationTaken(id)) if id == first_id));
         drop(held);
-        let Created { handle, mut durable } = tokio::time::timeout(STEP, starting).await.unwrap().unwrap().unwrap();
+        let Created { handle, mut durable, .. } = tokio::time::timeout(STEP, starting).await.unwrap().unwrap().unwrap();
         assert_eq!(handle.id(), first_id);
         assert!(runtime.get(first_id).is_some());
         let draining = tokio::spawn(async move { while durable.recv().await.is_some() {} });
