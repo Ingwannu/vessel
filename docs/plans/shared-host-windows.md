@@ -104,6 +104,13 @@ Kit204/0/0 and the new complete-enumeration test plus all prior five host tests.
 The logs show actual changed App checking/compilation. Review and receiving
 consumer checks remain required; earlier row273 does not approve this extension.
 
+V1 row284 accepted the exact e262 staged source and selected checks, independently
+verifying all five pins, the new case and unchanged prior cases. Lead-first
+adoption is required; only the real W15/global-fence caller removes the module
+and reexport staging. Zero actual windows may legitimately return Available with
+an empty vector. This verdict grants no document/node/context authority and does
+not approve the separate receiving E3 move, lifetime guard or global quit policy.
+
 Availability uses LiveShells::{Available,Unavailable}, not an ad hoc Result error
 or another App dependency. The complete-list test preserves typed refusal; real
 callers must match Unavailable to refusal, never convert it into an empty list.
