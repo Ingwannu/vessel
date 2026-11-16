@@ -1811,3 +1811,15 @@ only those new test modules cfg(test), use a descriptive test panic for invalid
 fixture mode, quote the type in docs, and borrow the parsed discovery in the
 query/list/caller chain. No lint allowance, RPC, output or fallback policy change.
 Tests have not executed. Retain the immutable red log and check this changed source.
+
+### Exact3a3b test-helper classification correction
+
+Run wp-cli-narrow-20261116T003952Z-3a3b15c5 returned Cargo101 after52s:
+all11 diagnostics again concern ordinary PTY backpressure helpers. The earlier
+claim that cfg(all(test,unix)) settled Clippy classification was incorrect.
+Use separate cfg(test)/cfg(unix) annotations and remove reliance on helper panic
+exceptions entirely: fill/control/tick/release/output observation now return
+standard I/O errors, preserving original I/O and join failures. Only the actual
+Tokio test unwraps/asserts results. No lint allowance or queued-byte/cancellation
+behavior changes; no source failure is called infrastructure or test PASS.
+Latest runtime execution remains owed after this changed-source strict.
