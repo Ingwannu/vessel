@@ -285,3 +285,5 @@ fn deferred_open_refuses_changed_membership_before_allocating_a_tab(cx: &mut Tes
         assert!(shell.areas.session_residents.entries.is_empty());
     });
 }
+
+mod scoped_composer;
