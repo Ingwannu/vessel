@@ -28,14 +28,9 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        Write::Create { info, done } => {
-            let applied = isolated(transaction, |connection| {
-                with_clock(connection, info.id, |connection| {
-                    log::create_session(connection, &info)
-                })
-            });
-            Answer::Session(done, applied)
-        }
+        Write::Create { info, done } => session_answer(transaction, info.id, done, |connection| {
+            log::create_session(connection, &info)
+        }),
         Write::Append {
             session,
             records,
@@ -48,37 +43,23 @@ pub(super) fn apply(
             device,
             credential,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                devices::insert(connection, &device, &credential)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::DeviceSeen { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::seen(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::RevokeDevice { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::revoke(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
+        } => write_answer(transaction, done, |connection| {
+            devices::insert(connection, &device, &credential)
+        }),
+        Write::DeviceSeen { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::seen(connection, device, at)
+        }),
+        Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::revoke(connection, device, at)
+        }),
         Write::Mark {
             session,
             mark,
             at,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                with_clock(connection, session, |connection| {
-                    marks::mark(connection, session, mark, at)
-                })
-            });
-            Answer::Marked(done, applied)
-        }
+        } => marks_answer(transaction, session, done, |connection| {
+            marks::mark(connection, session, mark, at)
+        }),
         Write::Detach { session, at, done } => {
             let applied = isolated(transaction, |connection| {
                 crate::subagents::detach(connection, session, at)
@@ -96,27 +77,16 @@ pub(super) fn apply(
             session,
             next,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                with_clock(connection, session, |connection| {
-                    again::reopen(connection, session, next)
-                })
-            });
-            Answer::Marked(done, applied)
-        }
-        Write::Attach { kept, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                attachments::insert(connection, &kept, time_to_sql(at)?)
-            });
-            Answer::Done(done, applied)
-        }
+        } => marks_answer(transaction, session, done, |connection| {
+            again::reopen(connection, session, next)
+        }),
+        Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
+            attachments::insert(connection, &kept, time_to_sql(at)?)
+        }),
         Write::Inbox { mark, done } => {
-            let applied = isolated(transaction, |connection| {
-                with_clock(connection, mark.key.session, |connection| {
-                    crate::inbox::mark(connection, &mark)
-                })
-            });
-            Answer::Session(done, applied)
+            session_answer(transaction, mark.key.session, done, |connection| {
+                crate::inbox::mark(connection, &mark)
+            })
         }
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
@@ -128,14 +98,11 @@ pub(super) fn apply(
         Write::Forge { write, done } => write_answer(transaction, done, |connection| {
             crate::forge::apply(connection, &write)
         }),
-        Write::Automation { writes, done } => {
-            let applied = isolated(transaction, |connection| {
-                writes
-                    .iter()
-                    .try_for_each(|write| crate::automation::apply(connection, write))
-            });
-            Answer::Done(done, applied)
-        }
+        Write::Automation { writes, done } => write_answer(transaction, done, |connection| {
+            writes
+                .iter()
+                .try_for_each(|write| crate::automation::apply(connection, write))
+        }),
     }
 }
 
@@ -216,4 +183,30 @@ fn with_clock<T>(
     let value = operation(connection)?;
     let updated_at = crate::mutation_time::read(connection, session)?;
     Ok(SessionCommit::new(value, updated_at))
+}
+
+// These typed answer constructors share the same savepoint/clock routine;
+// only their result variants differ. Neither changes commit-before-reply.
+fn session_answer(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done<SessionCommit<()>>,
+    operation: impl FnOnce(&Connection) -> Result<(), StoreError>,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        with_clock(connection, session, operation)
+    });
+    Answer::Session(done, applied)
+}
+
+fn marks_answer(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done<SessionCommit<vessel_proto::KeptMarks>>,
+    operation: impl FnOnce(&Connection) -> Result<vessel_proto::KeptMarks, StoreError>,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        with_clock(connection, session, operation)
+    });
+    Answer::Marked(done, applied)
 }

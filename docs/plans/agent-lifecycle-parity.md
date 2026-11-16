@@ -515,8 +515,12 @@ feature constant, and an unassigned constant makes the whole call None.
 
 Current preparation: integrated discovery is merged; nonempty patches and the
 metadata queue refactor have narrow evidence. Mutation-clock and label-coverage
-contracts below have passed source review. Their implementation and execution
-checks are in progress. No new event or mutation RPC is registered. Historical checkpoint text follows.
+contracts below have passed source review. The nullable clock, transactional acknowledgements, optional Info projection and
+live acknowledgement publication are implemented; their current-head strict,
+runtime and generated-wire checks remain pending. The latest shared node head
+is merged with its migration sequence preserved. The dispatcher refactor keeps
+the same savepoints and commit boundary. Label coverage is still only a
+contract. No new event or mutation RPC is registered. Historical checkpoint text follows.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
@@ -1466,3 +1470,13 @@ The next changed-crate strict run stopped at a missing code span in the new
 SessionUpdatedAt alias comment. That comment now uses code markup; the original
 red result is retained. No validator, writer, projection, test expectation or
 deadline changed. Latest-head strict and execution checks are still owed.
+
+
+### Typed dispatcher answers after the next strict check
+
+The dispatcher exceeded its function budget after adding clock acknowledgements.
+Typed session/marks answer constructors now call the same savepoint/clock helper;
+ordinary device/attachment/automation branches reuse the existing unit-answer
+helper. Operation order, closures, errors, effects and commit-before-reply are
+unchanged. This separate refactor shrinks dispatch without an exemption, numeric
+budget change or modified test expectation. The original failure is retained.
