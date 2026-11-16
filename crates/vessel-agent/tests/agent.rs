@@ -136,6 +136,11 @@ mod support {
                         self.events.push(event.clone());
                         return Some(event);
                     }
+                    AgentOutput::InputEcho(echo) => {
+                        let event = echo.into_event();
+                        self.events.push(event.clone());
+                        return Some(event);
+                    }
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect);
                     }
@@ -175,6 +180,7 @@ mod support {
                     }
                     AgentOutput::Introduced(_) | AgentOutput::PlanProposal(_) => {}
                     AgentOutput::Event(event) => self.events.push(event),
+                    AgentOutput::InputEcho(echo) => self.events.push(echo.into_event()),
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect.clone());
                         return disconnect;

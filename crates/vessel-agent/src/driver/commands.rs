@@ -27,6 +27,7 @@ impl Driver {
                 crate::input::native_command::unsupported(intent, reply);
             }
             Command::Prompt {
+                provenance,
                 content,
                 attachments,
                 context: prefix,
@@ -34,7 +35,14 @@ impl Driver {
                 reply,
             } => {
                 let result = self
-                    .prompt(cx, content, attachments, prefix, client_message_id)
+                    .prompt(
+                        cx,
+                        content,
+                        attachments,
+                        prefix,
+                        client_message_id,
+                        provenance,
+                    )
                     .await;
                 answer(reply, result);
             }
@@ -43,11 +51,19 @@ impl Driver {
                 answer(reply, result);
             }
             Command::Steer {
+                provenance,
                 content,
                 attachments,
                 client_message_id,
                 reply,
-            } => self.steer(cx, content, attachments, client_message_id, reply),
+            } => self.steer(
+                cx,
+                content,
+                attachments,
+                client_message_id,
+                provenance,
+                reply,
+            ),
             Command::Answer { id, outcome, reply } => {
                 let result = self.permissions.answer(id, &outcome);
                 if result.is_ok() {
@@ -115,6 +131,7 @@ impl Driver {
         mut attachments: Attachments,
         prefix: Option<crate::PromptContext>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
     ) -> Result<(), InputError> {
         if self.turn {
             return Err(InputError::TurnInProgress);
@@ -155,11 +172,11 @@ impl Driver {
         self.turn = true;
         self.cancelling = false;
         self.tail.reset();
-        self.emit(AgentEvent::TurnStarted {
-            provenance: None,
+        self.echo(crate::InputEcho::started(
             content,
             client_message_id,
-        })
+            provenance,
+        ))
         .await;
         Ok(())
     }

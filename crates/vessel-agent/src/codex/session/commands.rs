@@ -29,9 +29,13 @@ impl Session {
             Command::Prompt {
                 content,
                 client_message_id,
+                provenance,
                 reply,
                 ..
-            } => self.prompt(content, client_message_id, reply).await,
+            } => {
+                self.prompt(content, client_message_id, provenance, reply)
+                    .await
+            }
             Command::CancelTurn { reply } => {
                 self.cancel().await;
                 answer(reply, Ok(()));
@@ -39,9 +43,13 @@ impl Session {
             Command::Steer {
                 content,
                 client_message_id,
+                provenance,
                 reply,
                 ..
-            } => self.steer(content, client_message_id, reply).await,
+            } => {
+                self.steer(content, client_message_id, provenance, reply)
+                    .await
+            }
             Command::Answer { id, outcome, reply } => {
                 let result = match self.approvals.answer(id, &outcome) {
                     Ok(settled) => {
@@ -103,6 +111,7 @@ impl Session {
         &mut self,
         content: Vec<ContentBlock>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         reply: Reply,
     ) {
         if self.turn != TurnState::Idle {
@@ -139,11 +148,11 @@ impl Session {
         self.announced.clear();
         self.cancelling = false;
         self.before = self.total;
-        self.emit(AgentEvent::TurnStarted {
-            provenance: None,
+        self.output(AgentOutput::InputEcho(crate::InputEcho::started(
             content,
             client_message_id,
-        })
+            provenance,
+        )))
         .await;
         answer(reply, Ok(()));
     }
@@ -180,6 +189,7 @@ impl Session {
         &mut self,
         content: Vec<ContentBlock>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         reply: SteerReply,
     ) {
         let (thread, turn) = match (&self.thread, &self.turn) {
@@ -216,6 +226,7 @@ impl Session {
             let _none = self.pending.insert(
                 id,
                 Pending::Steer {
+                    provenance,
                     content,
                     client_message_id,
                     reply,

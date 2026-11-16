@@ -50,6 +50,7 @@ pub(crate) enum Command {
         reply: native_command::NativeCommandReply,
     },
     Prompt {
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         attachments: Attachments,
@@ -60,6 +61,7 @@ pub(crate) enum Command {
         reply: Reply,
     },
     Steer {
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         attachments: Attachments,
@@ -130,6 +132,7 @@ impl AgentInput {
         attachments: Attachments,
     ) -> Result<(), InputError> {
         self.call(|reply| Command::Prompt {
+            provenance: None,
             client_message_id: None,
             content,
             attachments,
@@ -156,6 +159,7 @@ impl AgentInput {
             text: question.as_str().to_owned(),
         }];
         self.call(|reply| Command::Prompt {
+            provenance: None,
             client_message_id: None,
             content,
             attachments: Attachments::new(),
@@ -200,6 +204,7 @@ impl AgentInput {
     ) -> Result<SteerOutcome, InputError> {
         let (reply, result) = oneshot::channel();
         let steer = Command::Steer {
+            provenance: None,
             client_message_id: None,
             content,
             attachments,

@@ -139,6 +139,7 @@ impl Running {
         let (reply, answer) = oneshot::channel();
         self.commands
             .send(Command::Prompt {
+                provenance: None,
                 client_message_id: None,
                 content,
                 attachments: Attachments::new(),
@@ -163,23 +164,23 @@ impl Running {
     async fn turn(&mut self) -> Vec<AgentEvent> {
         let mut events = Vec::new();
         loop {
-            match self.next().await {
-                AgentOutput::Event(event) => {
-                    let end = matches!(
-                        event,
-                        AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. }
-                    );
-                    events.push(event);
-                    if end {
-                        return events;
-                    }
-                }
+            let event = match self.next().await {
+                AgentOutput::Event(event) => event,
+                AgentOutput::InputEcho(echo) => echo.into_event(),
                 AgentOutput::Disconnected(end) => panic!("disconnected in a turn: {end:?}"),
                 AgentOutput::Options(_)
                 | AgentOutput::Commands(_)
                 | AgentOutput::Usage(_)
                 | AgentOutput::Introduced(_)
-                | AgentOutput::PlanProposal(_) => {}
+                | AgentOutput::PlanProposal(_) => continue,
+            };
+            let end = matches!(
+                event,
+                AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. }
+            );
+            events.push(event);
+            if end {
+                return events;
             }
         }
     }
@@ -569,6 +570,7 @@ async fn what_this_slice_does_not_offer_is_answered_as_such() {
         session
             .commands
             .send(Command::Steer {
+                provenance: None,
                 client_message_id: None,
                 content: text("also"),
                 attachments: Attachments::new(),

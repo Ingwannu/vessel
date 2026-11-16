@@ -87,18 +87,20 @@ impl Queue {
         content: Vec<ContentBlock>,
         by: Creator,
     ) -> Result<QueueEntryId, QueueError> {
-        self.push_identified(content, by, None)
+        self.push_admitted(content, by, None, None)
     }
 
-    /// Append a prompt; the new entry's id.
-    pub(crate) fn push_identified(
+    /// Preserve an already-admitted entry's exact local presentation link.
+    /// This private constructor performs no permission or receipt admission.
+    pub(crate) fn push_admitted(
         &mut self,
         content: Vec<ContentBlock>,
         by: Creator,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
     ) -> Result<QueueEntryId, QueueError> {
         let entry = QueuedPrompt {
-            provenance: None,
+            provenance,
             id: QueueEntryId::random(),
             content,
             queued_at: Utc::now(),
@@ -118,8 +120,9 @@ impl Queue {
         content: Vec<ContentBlock>,
         by: Creator,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
     ) -> Result<QueueEntryId, QueueError> {
-        let id = self.push_identified(content, by, client_message_id)?;
+        let id = self.push_admitted(content, by, client_message_id, provenance)?;
         let _first = self.relocate(id, self.0.entries.first().map(|first| first.id))?;
         Ok(id)
     }

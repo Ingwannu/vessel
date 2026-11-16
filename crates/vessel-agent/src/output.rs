@@ -9,6 +9,9 @@ use crate::introduction::Introduction;
 /// One output of an agent session.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AgentOutput {
+    /// Exact locally accepted Prompt/Steer input, distinct from foreign events.
+    /// Only driver acceptance constructs this non-serialized closed carrier.
+    InputEcho(crate::InputEcho),
     /// A provider-owned, bounded plan proposal, distinct from a tool label.
     /// Only its owning session actor may offer correlated human decisions.
     PlanProposal(Box<vessel_proto::timeline::PlanProposal>),

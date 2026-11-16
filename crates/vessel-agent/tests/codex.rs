@@ -76,6 +76,11 @@ mod support {
     ) -> Vec<AgentOutput> {
         let mut seen = Vec::new();
         while let Some(output) = outputs.next().await {
+            let output = if let AgentOutput::InputEcho(echo) = output {
+                AgentOutput::Event(echo.into_event())
+            } else {
+                output
+            };
             let last = done(&output);
             seen.push(output);
             if last {
@@ -92,6 +97,8 @@ mod support {
             .filter_map(|output| {
                 if let AgentOutput::Event(event) = output {
                     Some(event)
+                } else if let AgentOutput::InputEcho(echo) = output {
+                    Some(echo.into_event())
                 } else {
                     None
                 }

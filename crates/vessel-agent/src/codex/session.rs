@@ -91,6 +91,7 @@ enum Pending {
     TurnStart,
     Interrupt,
     Steer {
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         reply: SteerReply,
@@ -303,17 +304,18 @@ impl Session {
                 }
             }
             Pending::Steer {
+                provenance,
                 content,
                 client_message_id,
                 reply,
             } => {
                 let outcome = match answer {
                     Ok(_) => {
-                        self.emit(AgentEvent::Steered {
-                            provenance: None,
+                        self.output(AgentOutput::InputEcho(crate::InputEcho::steered(
                             content,
                             client_message_id,
-                        })
+                            provenance,
+                        )))
                         .await;
                         Ok(SteerOutcome::Injected)
                     }

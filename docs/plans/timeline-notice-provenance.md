@@ -241,3 +241,33 @@ reply first), including queued delivery. A missing/closed echo stays uncertain;
 no history scan, latest-sequence guess, synthetic event or resend repairs it.
 This is an implementation obligation of the existing keyed pipeline, not a new
 receipt store, wire method or provider acceptance claim.
+
+## Trusted carrier and delivery-source checkpoint
+
+The agent crate now carries local Prompt/Steer acceptance in one closed,
+non-serialized InputEcho. Only Started and Steered constructors exist; the driver
+uses the exact accepted content, optional client identity and supplied local
+origin at its existing acceptance point. ACP, native Codex and native Claude
+prompt acceptance retain their prior provider/refusal semantics. Claude steering
+remains refused. No configuration, handshake, plan or native-command mailbox is
+replaced and no provider capability is newly offered.
+
+Legacy prompt/steer/context and identified wrappers supply None. The dedicated
+embedding methods carry only a previously admitted presentation association;
+they grant no input or private notice authority. Queue advancement, send-now and
+steering-to-prompt fallback preserve that entry's exact association. Human edit
+and foreign ingress retain their existing clear-on-acceptance rules.
+
+The session actor consumes InputEcho separately from ordinary Event; the latter
+is still unconditionally scrubbed. Probe consumers explicitly ignore the closed
+carrier because probes send no input and cannot gain local receipt authority.
+Legacy driver tests compare the same timeline shapes, while the identified
+regression now requires actual local input to arrive through InputEcho. A pure
+closed-carrier fixture covers exact content/id/origin and ordinary None.
+
+This is staged source, not checked provider/runtime adoption. The original
+bounded receipt ticket must still be registered before dispatch and wait for
+this exact echo watermark separately from its original turn binding. That
+remaining join, both-order/queue/refusal/closure tests, changed-source strict,
+real fake-driver execution and receiving review are owed. Private notice
+admission stays Unsupported and the feature constant stays None.

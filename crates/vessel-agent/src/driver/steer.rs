@@ -21,7 +21,7 @@ use agent_client_protocol::v1::ConnectionTo;
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::{Agent, Error, ErrorCode, UntypedMessage};
 use serde::{Deserialize, Serialize};
-use vessel_proto::{AgentEvent, ContentBlock};
+use vessel_proto::ContentBlock;
 
 use super::{Driver, Inbound, describe, forward};
 use crate::attached::Attachments;
@@ -79,6 +79,7 @@ impl Driver {
         content: Vec<ContentBlock>,
         mut attachments: Attachments,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         reply: SteerReply,
     ) {
         if !self.abilities.steer {
@@ -131,6 +132,7 @@ impl Driver {
             forward(
                 &inbound,
                 Inbound::Steered {
+                    provenance,
                     content,
                     client_message_id,
                     result,
@@ -153,17 +155,18 @@ impl Driver {
         content: Vec<ContentBlock>,
         result: Result<serde_json::Value, Error>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         reply: SteerReply,
     ) {
         let answer = match result.map(serde_json::from_value::<Answer>) {
             Ok(Ok(Answer {
                 outcome: Outcome::Injected,
             })) => {
-                self.emit(AgentEvent::Steered {
-                    provenance: None,
+                self.echo(crate::InputEcho::steered(
                     content,
                     client_message_id,
-                })
+                    provenance,
+                ))
                 .await;
                 Ok(SteerOutcome::Injected)
             }

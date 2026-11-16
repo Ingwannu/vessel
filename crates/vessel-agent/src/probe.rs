@@ -148,6 +148,7 @@ pub async fn probe_with(
                 }
                 AgentOutput::Event(AgentEvent::HarnessLog { line }) => keep(&mut log, line),
                 AgentOutput::Event(_)
+                | AgentOutput::InputEcho(_)
                 | AgentOutput::Commands(_)
                 | AgentOutput::PlanProposal(_)
                 | AgentOutput::Usage(_) => {}

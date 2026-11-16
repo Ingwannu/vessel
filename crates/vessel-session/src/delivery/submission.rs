@@ -173,7 +173,7 @@ impl StructuredActor {
                 vessel_proto::Delivery::Steer
             }
         };
-        match self.send_as(content, legacy, by, Some(message)).await {
+        match self.send_as(content, legacy, by, Some(message), None).await {
             Ok(delivered) => accepted(disposition(delivered)),
             Err(error) => known_or_uncertain(&error),
         }

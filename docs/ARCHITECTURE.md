@@ -2031,3 +2031,11 @@ by final structured/terminal spawn and external preparation observers; it grants
 no permission or current-run authority. The Node factory lives beside setup so
 this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
 this standalone prerequisite (ADR 0064 and launch-admission plan).
+
+The staged agent input-echo boundary distinguishes accepted local Prompt/Steer
+inputs from foreign events and history. One closed non-serialized InputEcho keeps
+that exact input's presentation origin through the existing driver/mailbox;
+the session actor still scrubs ordinary events at ingress. This adds no caller
+selector or permission. Receipt settlement must separately observe the accepted
+input's actual echo persistence and original turn binding; private production
+remains unavailable until the authority, transaction and reader joins qualify.

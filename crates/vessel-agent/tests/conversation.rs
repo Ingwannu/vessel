@@ -40,6 +40,13 @@ mod support {
     ) -> Vec<AgentOutput> {
         let mut seen = Vec::new();
         while let Some(output) = outputs.next().await {
+            // This legacy assertion view compares timeline shapes; the dedicated
+            // identified tests separately require the trusted carrier itself.
+            let output = if let AgentOutput::InputEcho(echo) = output {
+                AgentOutput::Event(echo.into_event())
+            } else {
+                output
+            };
             let stop = done(&output);
             seen.push(output);
             if stop {

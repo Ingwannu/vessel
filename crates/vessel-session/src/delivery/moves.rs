@@ -69,6 +69,7 @@ impl StructuredActor {
                         delivery,
                         entry.by.clone(),
                         entry.client_message_id.clone(),
+                        entry.provenance,
                     )
                     .await;
                 match sent {
@@ -108,7 +109,11 @@ impl StructuredActor {
         let id = entry.id;
         let ticket = self.desk.tickets.take(id);
         match self
-            .start(entry.content.clone(), entry.client_message_id.clone())
+            .start_admitted(
+                entry.content.clone(),
+                entry.client_message_id.clone(),
+                entry.provenance,
+            )
             .await
         {
             Ok(()) => {

@@ -2,7 +2,7 @@
 //! offer yet, and the requests the driver itself sends (the session
 //! loop's other half is `agent`).
 
-use vessel_proto::{AgentEvent, ContentBlock, OptionChoice};
+use vessel_proto::{ContentBlock, OptionChoice};
 
 use super::super::wire::{HostAnswer, HostRequest, Outgoing, OutgoingBlock, OutgoingMessage};
 use super::{Session, Turn};
@@ -23,12 +23,16 @@ impl Session {
                 crate::input::native_command::unsupported(intent, reply);
             }
             Command::Prompt {
+                provenance,
                 content,
                 context: side,
                 client_message_id,
                 reply,
                 ..
-            } => self.prompt(content, side, client_message_id, reply).await,
+            } => {
+                self.prompt(content, side, client_message_id, provenance, reply)
+                    .await
+            }
             Command::CancelTurn { reply } => {
                 self.cancel().await;
                 answer(reply, Ok(()));
@@ -67,6 +71,7 @@ impl Session {
         content: Vec<ContentBlock>,
         side: Option<crate::PromptContext>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         reply: Reply,
     ) {
         if self.turn != Turn::Idle {
@@ -120,11 +125,11 @@ impl Session {
             cancelled: false,
             failure: None,
         };
-        self.emit(AgentEvent::TurnStarted {
-            provenance: None,
+        self.output(crate::AgentOutput::InputEcho(crate::InputEcho::started(
             content,
             client_message_id,
-        })
+            provenance,
+        )))
         .await;
         answer(reply, Ok(()));
     }

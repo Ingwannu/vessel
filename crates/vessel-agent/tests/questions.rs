@@ -84,6 +84,13 @@ mod support {
                             return event;
                         }
                     }
+                    Some(AgentOutput::InputEcho(echo)) => {
+                        let event = echo.into_event();
+                        self.events.push(event.clone());
+                        if wanted(&event) {
+                            return event;
+                        }
+                    }
                     Some(_) => {}
                     None => panic!("outputs ended first: {:?}", self.events),
                 }

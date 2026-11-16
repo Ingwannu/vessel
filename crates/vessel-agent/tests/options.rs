@@ -122,6 +122,7 @@ mod support {
                     | AgentOutput::Introduced(_)
                     | AgentOutput::PlanProposal(_) => continue,
                     AgentOutput::Event(event) => Seen::Event(event),
+                    AgentOutput::InputEcho(echo) => Seen::Event(echo.into_event()),
                     AgentOutput::Options(options) => Seen::Options(options),
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect);

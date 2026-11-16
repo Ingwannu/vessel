@@ -61,6 +61,7 @@ mod error;
 mod handshake;
 mod history;
 mod input;
+mod input_echo;
 mod introduction;
 mod mapper;
 mod mcp;
@@ -93,6 +94,7 @@ pub use input::{
     AgentInput, NativeCommandDispatch, NativeCommandOffers, PermissionDispatch, SteerOutcome,
     permission_response_refusal,
 };
+pub use input_echo::InputEcho;
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};

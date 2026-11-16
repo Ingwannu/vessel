@@ -241,7 +241,8 @@ impl StructuredActor {
     pub(crate) async fn output(&mut self, mut output: AgentOutput) {
         // All driver/history outputs are foreign to the local receipt owner,
         // including replay after session/memory import or a fleet transfer.
-        // Only the future local queue owner may attach a committed association.
+        // Accepted local echoes use the closed carrier below; ordinary events
+        // can never recover an association from their words or metadata.
         if let AgentOutput::Event(event) = &mut output {
             event.clear_foreign_prompt_provenance();
         }
@@ -262,6 +263,7 @@ impl StructuredActor {
             self.move_state.replaying = false;
         }
         match output {
+            AgentOutput::InputEcho(echo) => self.publish_agent_output(echo.into_event()).await,
             AgentOutput::PlanProposal(proposal) => self.offer_plan(*proposal).await,
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.

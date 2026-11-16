@@ -109,6 +109,7 @@ enum Inbound {
     },
     /// The agent answered a steer (protocol 10).
     Steered {
+        provenance: Option<vessel_proto::timeline::PromptProvenance>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         result: Result<serde_json::Value, Error>,
@@ -306,12 +307,13 @@ impl Driver {
                 }
             }
             Inbound::Steered {
+                provenance,
                 client_message_id,
                 content,
                 result,
                 reply,
             } => {
-                self.steered(content, result, client_message_id, reply)
+                self.steered(content, result, client_message_id, provenance, reply)
                     .await;
             }
         }
@@ -367,6 +369,17 @@ impl Driver {
     async fn emit(&mut self, event: AgentEvent) {
         if self.outputs.send(AgentOutput::Event(event)).await.is_err() {
             tracing::debug!("agent outputs dropped");
+        }
+    }
+
+    async fn echo(&mut self, echo: crate::InputEcho) {
+        if self
+            .outputs
+            .send(AgentOutput::InputEcho(echo))
+            .await
+            .is_err()
+        {
+            tracing::debug!("agent accepted input outputs dropped");
         }
     }
 }
