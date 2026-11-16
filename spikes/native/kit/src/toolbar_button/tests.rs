@@ -257,3 +257,53 @@ fn loading_has_canonical_numeric_points_ink_and_disabled_opacity() {
         tokens.neutral.foreground_extra_muted
     );
 }
+
+struct ViewportProbe {
+    presence: crate::icon_chrome::Presence,
+    clicks: usize,
+}
+impl Render for ViewportProbe {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        let mut button = ToolbarButton::viewport(
+            "reset",
+            "Reset zoom",
+            Glyph::Scan,
+            ToolbarConfig::new(ControlSizing::Pointer, ButtonState::Enabled),
+            self.presence,
+            &tokens,
+        );
+        button.element = button
+            .element
+            .debug_selector(|| "viewport-chrome".to_owned());
+        div()
+            .size_full()
+            .child(button.on_click(cx.listener(|this, _, _, _| {
+                this.clicks = this.clicks.saturating_add(1);
+            })))
+    }
+}
+#[gpui::test]
+fn a_hidden_viewport_action_takes_no_click_until_its_owner_shows_it(cx: &mut TestAppContext) {
+    use crate::icon_chrome::Presence;
+    cx.update(|cx| crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap());
+    let (view, cx) = cx.add_window_view(|_, _| ViewportProbe {
+        presence: Presence::Hidden,
+        clicks: 0,
+    });
+    cx.run_until_parked();
+    let bounds = cx.debug_bounds("viewport-chrome").unwrap();
+    assert_eq!(bounds.size, gpui::size(px(20.0), px(20.0)));
+    cx.simulate_click(bounds.center(), Modifiers::none());
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| assert_eq!(probe.clicks, 0));
+    view.update(cx, |probe, cx| {
+        probe.presence = Presence::Shown;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    assert_eq!(cx.debug_bounds("viewport-chrome").unwrap(), bounds);
+    cx.simulate_click(bounds.center(), Modifiers::none());
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| assert_eq!(probe.clicks, 1));
+}

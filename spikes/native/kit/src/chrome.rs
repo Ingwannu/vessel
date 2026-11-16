@@ -61,6 +61,41 @@ const WINDOWS_CONTROL: f32 = 46.0;
 /// A window control's width on Linux (Paseo's).
 const LINUX_CONTROL: f32 = 36.0;
 
+/// How many controls the app draws at the bar's right end (minimise,
+/// maximise or restore, close).
+const CONTROLS: f32 = 3.0;
+
+/// The app's own bar above the window's content: [`HEIGHT`], or nothing
+/// with [`system_titlebar`] (the system's bar is outside the content then).
+#[must_use]
+pub fn bar_height() -> Pixels {
+    if system_titlebar() {
+        Pixels::ZERO
+    } else {
+        px(HEIGHT)
+    }
+}
+
+/// The corner the window's own controls take at the bar's right end, as
+/// Paseo's top-right window-chrome obstruction
+/// (`resolveWindowChromeObstruction`, `desktop-window.tsx`): a full-window
+/// overlay leaves it uncovered so the controls stay visible and usable.
+/// Empty on macOS (the system's traffic lights sit at the left, above the
+/// app's content) and with [`system_titlebar`].
+#[must_use]
+pub fn controls_corner() -> gpui::Size<Pixels> {
+    if system_titlebar() || cfg!(target_os = "macos") {
+        return gpui::Size::default();
+    }
+    let control = if cfg!(any(target_os = "linux", target_os = "freebsd")) {
+        LINUX_CONTROL
+    } else {
+        WINDOWS_CONTROL
+    };
+    // `mul_add`: the product without an arithmetic operator (the lints).
+    gpui::size(px(control.mul_add(CONTROLS, 0.0)), px(HEIGHT))
+}
+
 /// Whether the system draws the title bar after all:
 /// `VESSEL_APP_TITLEBAR=system`. The way out while the app's own bar is
 /// new on a platform (it had never run on Windows when it was made): the
@@ -454,5 +489,21 @@ mod tests {
                 "over {what} the bar's drag area is in the hit test: Windows reads it as the caption"
             );
         }
+    }
+
+    /// The three controls `OVER` crosses, side by side: 3 x 36 on Linux.
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    const CORNER: f32 = 108.0;
+    /// The same with Windows' 46 px cells.
+    #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+    const CORNER: f32 = 138.0;
+
+    /// The corner an overlay leaves uncovered is exactly the three controls
+    /// the bar draws, the bar's height tall; the bar above the content is
+    /// the bar's height.
+    #[test]
+    fn the_controls_corner_is_the_three_drawn_controls_under_the_bar() {
+        assert_eq!(controls_corner(), gpui::size(px(CORNER), px(HEIGHT)));
+        assert_eq!(bar_height(), px(HEIGHT));
     }
 }
