@@ -68,4 +68,6 @@ mod enumeration;
 #[cfg(test)]
 pub(crate) use enumeration::{LiveShells, shells};
 #[cfg(test)]
+mod context_menu;
+#[cfg(test)]
 mod tests;
