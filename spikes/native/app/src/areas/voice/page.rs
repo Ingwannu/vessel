@@ -373,7 +373,7 @@ fn message(text: &str, tokens: &Tokens) -> Div {
 // existing spacing tokens rather than introduce another control renderer.
 const LOADING_SPINNER_SIZE: f32 = spacing::S6 + spacing::S3;
 fn loading(words: &Translator, tokens: &Tokens) -> Div {
-    div()
+    let progress = div()
         .id("voice-settings-loading-panel")
         .role(gpui::Role::ProgressIndicator)
         .aria_label(words.voice().settings_loading().to_owned())
@@ -385,7 +385,8 @@ fn loading(words: &Translator, tokens: &Tokens) -> Div {
             "voice-settings-loading",
             LOADING_SPINNER_SIZE,
             tokens.neutral.foreground_muted,
-        ))
+        ));
+    div().child(progress)
 }
 
 #[cfg(test)]
