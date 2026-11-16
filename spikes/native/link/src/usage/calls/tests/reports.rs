@@ -50,18 +50,18 @@ async fn reports_are_read_cached_and_refreshed_only_by_refresh_all() {
 async fn one_report_refresh_inspects_it_then_reads_the_list_cached() {
     let order = Arc::new(Mutex::new(Vec::new()));
     let seen = Arc::clone(&order);
-    let peer = peer::connect(move |call| match call {
-        Call::InspectUsageReport(ask) => {
+    let peer = peer::connect(move |call| {
+        if let Call::InspectUsageReport(ask) = call {
             seen.lock().unwrap().push(("inspect", ask.refresh));
-            Outcome::Ok(Reply::InspectUsageReport(UsageReportLookup::NotFound {
+            return Outcome::Ok(Reply::InspectUsageReport(UsageReportLookup::NotFound {
                 id: ask.id,
-            }))
+            }));
         }
-        Call::ListUsageReports(ask) => {
-            seen.lock().unwrap().push(("list", ask.refresh));
-            Outcome::Ok(Reply::ListUsageReports(reports()))
-        }
-        _ => panic!("a reports node is asked for report methods only"),
+        let Call::ListUsageReports(ask) = call else {
+            panic!("a reports node is asked for report methods only");
+        };
+        seen.lock().unwrap().push(("list", ask.refresh));
+        Outcome::Ok(Reply::ListUsageReports(reports()))
     })
     .await;
     let id: UsageReportId = "cursor:fixture".parse().unwrap();
@@ -90,24 +90,22 @@ async fn one_report_refresh_inspects_it_then_reads_the_list_cached() {
 async fn an_older_node_falls_back_without_being_asked_for_reports() {
     let asked = Arc::new(Mutex::new(Vec::new()));
     let seen = Arc::clone(&asked);
-    let peer = peer::connect_at(super::before_reports(), move |call| {
+    let peer = peer::connect_at(before_reports(), move |call| {
         let reports_call = matches!(
             call,
             Call::ListUsageReports(_) | Call::InspectUsageReport(_)
         );
         seen.lock().unwrap().push(reports_call);
-        match call {
-            Call::ListProfiles(_) => {
-                Outcome::Ok(Reply::ListProfiles(vec![super::profile("first")]))
-            }
-            Call::GetUsageLimits(ask) => {
-                let LimitsScope::Account { account } = ask.scope else {
-                    panic!("account only");
-                };
-                Outcome::Ok(Reply::GetUsageLimits(super::limits(account)))
-            }
-            _ => panic!("an older node is asked for its saved-login methods only"),
+        if matches!(call, Call::ListProfiles(_)) {
+            return Outcome::Ok(Reply::ListProfiles(vec![profile("first")]));
         }
+        let Call::GetUsageLimits(ask) = call else {
+            panic!("an older node is asked for its saved-login methods only");
+        };
+        let LimitsScope::Account { account } = ask.scope else {
+            panic!("account only");
+        };
+        Outcome::Ok(Reply::GetUsageLimits(limits(account)))
     })
     .await;
     let answer = inventory(&peer.client, &InventoryRefresh::Cached)
