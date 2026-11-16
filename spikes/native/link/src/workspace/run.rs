@@ -164,6 +164,10 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
                 .map_err(|error| file_problem(&error)),
             ask,
         },
+        FileAsk::Download(download) => Answer::Downloaded {
+            result: super::download::fetch(client, &download).await,
+            download,
+        },
     }
 }
 

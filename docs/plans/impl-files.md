@@ -1,7 +1,7 @@
 # File panels callers (ADR 0105)
 
-Status: A1 (live watch of the shown file) and A2 (Explorer Duplicate)
-implemented on package base 14.9; A3 (Explorer Download) follows. The node packet
+Status: A1 (live watch of the shown file), A2 (Explorer Duplicate) and A3
+(Explorer Download) implemented on package base 14.9. The node packet
 assigns ADR 0083's five methods one protocol number (drafted as 26) at its
 node-line merge; until that number reaches this line every caller here keeps
 its earlier behaviour (`view::workspace::file_panels::offered` is false
@@ -52,6 +52,33 @@ while `FILE_PANELS_PROTOCOL` is None or the machine is older).
   Words: Duplicate / 복제 (Paseo's `fileActions.duplicate`).
 - Difference: this tree has no selected row, so the copy is not selected.
 
+## A3: Explorer Download
+
+- Paseo: `components/file-actions-menu.tsx:187-196` puts Download in the
+  reference group (after Copy relative path and Reveal, before Add to
+  chat) for an existing file; `stores/download-store.ts:356-376` hands the
+  bytes to the browser's download (Electron asks where to save);
+  `components/download-toast.tsx:20-21` says `downloadComplete`, or the
+  call's message, else `downloadFailed`.
+- Built: `Action::Download` for a file, in the menu only when the root's
+  machine has the file panels' calls; the platform save dialog starts in
+  the Downloads folder with the file's name; `FileAsk::Download` runs the
+  client SDK's `fetch_workspace_file` (pages of `file.read_bytes`, each
+  checked against the first page's version) into
+  `link::workspace::download::Output`: a hidden partial file in the chosen
+  folder, hashed while written, renamed over the chosen path only when its
+  SHA-256 is the version's, removed otherwise (an error, a changed file, a
+  dropped transfer). A toast says Download complete / 다운로드 완료, the
+  machine's reason, a changed file, or Download failed / 다운로드 실패 with
+  the system's reason (also when the platform cannot show its save dialog,
+  as under a bare X server with no desktop portal).
+- Dependency: `sha2 0.11` for the link, already in the native lock through
+  the client's crates (no new package; the root workspace's version). About
+  lists it (MIT OR Apache-2.0) with the role "Checking downloaded files" /
+  "다운로드한 파일 확인".
+- Differences: no progress toast while the pages arrive; a partial file
+  needs room beside the chosen one.
+
 ## Differences from Paseo
 
 - The node's observation is a finite call, not a pushed stream (ADR 0083):
@@ -72,5 +99,10 @@ while `FILE_PANELS_PROTOCOL` is None or the machine is older).
   every failure stopping the watch.
 - App GPUI test over the framed test link: a changed revision for the
   shown, clean editor sends `file.read` for that file.
+- Menu order tests: Download before Add to chat in the reference group,
+  Duplicate after Rename in the manage group, both only with the calls.
+- Link sink tests: the whole version replaces an old file at the chosen
+  path; other bytes or an unfinished download leave nothing; a partial name
+  in use takes the next; a hash refusal is an inconsistent download.
 - Live observation against a node at the assigned number is owed to the
   captures after the node packet merges.

@@ -28,6 +28,7 @@ mod actions_view;
 mod appear;
 mod change_rows;
 mod changes;
+mod download;
 mod editing;
 mod editing_view;
 mod editor_status;

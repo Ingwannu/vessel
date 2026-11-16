@@ -146,6 +146,10 @@ bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
 hostname = "0.4"
+# The download sink's whole-file check (link/src/workspace/download.rs,
+# ADR 0105): the root workspace's SHA-256, already in this lock through
+# the client's crates; no new package.
+sha2 = "0.11"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The system's language, for the text table (already in the tree through

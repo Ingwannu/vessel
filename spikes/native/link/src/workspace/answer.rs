@@ -1,6 +1,7 @@
 //! What the node answered a workspace ask, with what was asked, and the
 //! answer an ask gets when it could not be sent at all.
 
+use vessel_app_view::workspace::file_panels::DownloadFailure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
 use vessel_proto::workspace::panel_files::{
@@ -17,7 +18,8 @@ use vessel_proto::workspace::{
 use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
 use super::{
-    Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey, WorktreeAsk,
+    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey,
+    WorktreeAsk,
 };
 
 /// What a git write answered.
@@ -215,6 +217,13 @@ pub enum Answer {
         /// The copy, or why not.
         result: Result<DuplicatedFileEntry, Problem>,
     },
+    /// A download ended.
+    Downloaded {
+        /// What was asked.
+        download: Download,
+        /// Kept at its path, or why not.
+        result: Result<(), DownloadFailure>,
+    },
     /// A step of a start.
     Start {
         /// Which start.
@@ -404,6 +413,10 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
         FileAsk::Duplicate(ask) => Answer::Duplicated {
             ask,
             result: no(problem),
+        },
+        FileAsk::Download(download) => Answer::Downloaded {
+            download,
+            result: Err(DownloadFailure::Call(problem.clone())),
         },
     }
 }

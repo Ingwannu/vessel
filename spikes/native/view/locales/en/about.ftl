@@ -68,6 +68,9 @@ about-role-logs = Logs
 # Under a bundled software name: its qr codes role. Keep short.
 about-role-qr-codes = Pairing QR codes
 
+# Under a bundled software name: its checksums role (a downloaded file checked whole). Keep short.
+about-role-checksums = Checking downloaded files
+
 # Under a bundled software name: its terminal role. Keep short.
 about-role-terminal = Reading a terminal program's output
 

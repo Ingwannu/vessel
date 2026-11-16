@@ -105,6 +105,7 @@ pub(super) fn overlays(
                     Action::NewFolder => labels.new_folder,
                     Action::CopyPath => labels.copy_path,
                     Action::CopyRelativePath => labels.copy_relative_path,
+                    Action::Download => labels.download,
                     Action::AddToChat => labels.add_to_chat,
                     Action::Rename => labels.rename,
                     Action::Duplicate => labels.duplicate,

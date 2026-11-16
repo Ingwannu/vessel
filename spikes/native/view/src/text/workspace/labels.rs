@@ -152,6 +152,14 @@ pub struct Labels {
     pub copy_path: &'static str,
     /// A tree entry's menu.
     pub copy_relative_path: &'static str,
+    /// A tree entry's menu: the file kept on this computer (Paseo's `fileActions.download`).
+    pub download: &'static str,
+    /// The toast when a download kept the file (Paseo's `downloadComplete`).
+    pub download_complete: &'static str,
+    /// The toast's start when a download could not be written here (Paseo's `downloadFailed`); the system's reason follows.
+    pub download_failed: &'static str,
+    /// The toast when what arrived was not one whole version of the file.
+    pub download_changed: &'static str,
     /// A tree entry's menu: the path into the session's draft.
     pub add_to_chat: &'static str,
     /// A tree entry's menu.

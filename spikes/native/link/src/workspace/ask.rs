@@ -1,6 +1,8 @@
 //! What a workspace screen asks: one enum per subject, each variant
 //! holding the wire's own request.
 
+use std::path::PathBuf;
+
 use vessel_proto::workspace::panel_files::{DuplicateFileEntry, ObserveFile};
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateDir, DeletePath, Discard, DropSnapshot, Fetch,
@@ -105,6 +107,20 @@ pub enum FileAsk {
     Observe(ObserveFile),
     /// `file.duplicate` (protocol 26, ADR 0105): a copy beside an entry.
     Duplicate(DuplicateFileEntry),
+    /// `file.read_bytes`, page by page (protocol 26, ADR 0105): a file kept
+    /// on this computer.
+    Download(Download),
+}
+
+/// A file of a root to keep on this computer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Download {
+    /// The root.
+    pub root: WorkspaceRoot,
+    /// The file.
+    pub path: RelPath,
+    /// Where it goes: the path the person chose.
+    pub to: PathBuf,
 }
 
 /// A git write (`git.stage` to `git.stash`).

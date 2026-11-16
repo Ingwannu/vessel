@@ -180,6 +180,7 @@ impl Shell {
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             Answer::Observed { ask, result } => self.file_observed(&ask, result, cx),
             Answer::Duplicated { ask, result } => self.entry_duplicated(&ask, result),
+            Answer::Downloaded { result, .. } => self.file_downloaded(result, cx),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
                 // An unchanged status asks for no frame (track G1's
