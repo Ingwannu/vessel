@@ -7,6 +7,12 @@ use tokio::sync::watch;
 use vessel_proto::timeline::ExecutionInvalidation;
 use vessel_proto::{ExecutionIncarnationId, SessionId};
 
+// Observation-only until a concrete target admission capsule is qualified.
+#[cfg(test)]
+mod capture;
+#[cfg(test)]
+pub(crate) use capture::{CaptureRefusal, CapturedParentExecution, ExecutionObservation};
+
 #[derive(Debug, Clone, Copy)]
 struct Change {
     incarnation: ExecutionIncarnationId,

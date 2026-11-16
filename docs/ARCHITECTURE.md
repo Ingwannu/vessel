@@ -1918,3 +1918,9 @@ or protocol capability. This carrier adds no node settings field, persistence,
 RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
 through a typed fake until the real node field/adapter lands. See
 `docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
+
+
+The staged execution-capture observer is test-only and shares Agents' actual
+incarnation/watch owner. It supplies no production admission API: concrete
+creation/queue insertion and grant validation remain separate joins. See
+plans/timeline-execution-capture.md for scope and source provenance.
