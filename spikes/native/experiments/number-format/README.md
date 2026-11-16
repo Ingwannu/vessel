@@ -14,13 +14,14 @@ runner, not a selector already installed or a runnable worker-side recipe.
 `fluent-bundle` 0.16.0 archive named by `fluent-hook-manifest.json`.
 The archive checksum matches the existing native lock entry. The original
 crate remains MIT OR Apache-2.0; this patch does not replace its notices.
-The patch touches four existing files: 55 added lines and two removed lines.
+The patch touches five existing files: 56 added lines and three removed lines.
 It adds no dependency, parser, numeric algorithm or plural-rule table.
 
 - Custom values may return a typed value with NUMBER options applied,
   without the caller downcasting its representation.
-- Literal/keyword matching may delegate to an opt-in custom value, through
-  the corresponding ordinary/concurrent memoizer. Defaults remain false.
+- The resolver admits a custom value to the selector loop. Literal/keyword
+  matching may then delegate to an opt-in custom value, through the
+  corresponding ordinary/concurrent memoizer. Defaults remain false.
 - Existing String/Number comparisons and the native float/plural path remain
   unchanged. The patch alone supplies neither exact arithmetic nor a formatter.
 
@@ -31,11 +32,11 @@ is not evidence that this patch compiled.
 
 ### Upgrade cost
 
-This is a standing four-file upstream patch, not a one-time free adapter.
+This is a standing five-file upstream patch, not a one-time free adapter.
 At each Fluent upgrade:
 
 1. Verify the new archive, notices and dependency graph before any override.
-2. Re-apply/check the four contexts. Review custom-value object safety,
+2. Re-apply/check the five contexts. Review custom-value object safety,
    selector operand order, resolver matching order and both memoizer kinds;
    a context match alone does not prove semantics.
 3. Re-run stock numeric/text/custom controls and actual exact-count tests,
@@ -70,3 +71,8 @@ This comparison is not an implemented alternative or a recommendation yet.
 The numeric kernel, actual hook tests, exact alternative, dependency graph,
 release/wasm bytes and compile-time deltas remain to be evaluated before the
 coordinator chooses a product design.
+
+The first source-only artifact omitted the resolver's earlier String/Number
+eligibility gate, so adding a match hook alone could never dispatch it. The
+corrected artifact includes that fifth file. Neither artifact has compiled;
+preserve that correction when citing the source-context apply result.

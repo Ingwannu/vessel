@@ -116,3 +116,14 @@
      fn stringify_value(
          &self,
          value: &dyn crate::types::FluentType,
+--- a/src/resolver/expression.rs
++++ b/src/resolver/expression.rs
+@@ -27,7 +27,7 @@
+             Self::Select { selector, variants } => {
+                 let selector = selector.resolve(scope);
+                 match selector {
+-                    FluentValue::String(_) | FluentValue::Number(_) => {
++                    FluentValue::String(_) | FluentValue::Number(_) | FluentValue::Custom(_) => {
+                         for variant in variants {
+                             let key = match variant.key {
+                                 ast::VariantKey::Identifier { name } => name.into(),

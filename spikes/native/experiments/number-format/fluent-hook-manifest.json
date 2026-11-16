@@ -3,7 +3,7 @@
   "version": "0.16.0",
   "license": "MIT OR Apache-2.0",
   "archive_sha256": "01203cb8918f5711e73891b347816d932046f95f54207710bda99beaeb423bf4",
-  "patch_sha256": "a21ee3d1a1e35e8b10b2c6697cd5cce99b4edefdd2e20832c30636c6523fbdb1",
+  "patch_sha256": "8ab7a67fd7dac42194f8a24d9f2389c49a8f06b276feb7a867cd7c88eee843fe",
   "files": [
     {
       "file": "src/types/mod.rs",
@@ -24,6 +24,11 @@
       "file": "src/bundle.rs",
       "original_sha256": "969dd827fa39078455e8b10635d64cf8d9f0ad1f75a6b3dc988710e093c8c5b3",
       "patched_sha256": "d46b473656e1dc8f6e3fd96c86b76459d8c48acd1fcbf97f32cde43b22f083c3"
+    },
+    {
+      "file": "src/resolver/expression.rs",
+      "original_sha256": "750c6d450d8dd21a0cb7d43c2c1abee3a4d21980e01a4a701946e574097f9354",
+      "patched_sha256": "fd3c6d96131887bf81f1fa29b5c12ac37b99de84f4601958ca21717657822f54"
     }
   ],
   "scope": "scratch-only hooks, no manifest/lock/path override; no compilation or numeric-conformance claim"
