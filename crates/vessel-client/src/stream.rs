@@ -154,6 +154,20 @@ pub type SessionStream = LogStream<SessionLog>;
 /// [`NodeClient::follow_terminal`]: crate::NodeClient::follow_terminal
 pub type TerminalStream = LogStream<TerminalLog>;
 
+/// Why this exact log stopped yielding records, independent of connection state.
+/// Only `SessionEnded` observes the peer's typed normal subscription end.
+/// The wire uses that name for both session and terminal logs; this is not
+/// evidence that a provider stopped, a terminal is quiescent or a write committed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogEnd {
+    /// The ordered subscription delivered its typed normal end.
+    SessionEnded,
+    /// The stream already yielded its original fatal error.
+    FatalError,
+    /// The last accepted sequence has no successor; no normal end was observed.
+    SequenceExhausted,
+}
+
 /// Records asked for per page while catching up. The node caps it further
 /// by its own page limits.
 const CATCH_UP_PAGE: u32 = 500;
@@ -174,7 +188,7 @@ enum Source<I> {
         at_end: bool,
     },
     /// The session ended, or a fatal error was reported.
-    Done,
+    Done(LogEnd),
 }
 
 /// What to do after looking at the source.
@@ -260,6 +274,17 @@ impl<L: Log> LogStream<L> {
         self.cursor
     }
 
+    /// The observed terminal cause, or `None` while receiving/catching up.
+    /// Generic `next() == None` alone does not establish a normal stream end.
+    /// This observation grants no lifecycle acknowledgement or lease authority.
+    #[must_use]
+    pub const fn end_reason(&self) -> Option<LogEnd> {
+        match &self.source {
+            Source::Done(reason) => Some(*reason),
+            Source::Live(_) | Source::Paging { .. } => None,
+        }
+    }
+
     /// The next record. `None` once the log has ended (after its final
     /// status record) or after a fatal error. A
     /// [`StreamError::Missing`] is not fatal; keep calling.
@@ -269,7 +294,7 @@ impl<L: Log> LogStream<L> {
         }
         loop {
             let step = match &mut self.source {
-                Source::Done => return None,
+                Source::Done(_) => return None,
                 Source::Live(subscription) => match subscription.next().await {
                     SubscriptionItem::Record(record) => Step::Record(record),
                     SubscriptionItem::Ended(SubscriptionEnd::SessionEnded) => Step::Finish,
@@ -314,7 +339,7 @@ impl<L: Log> LogStream<L> {
                     }
                 }
                 Step::Finish => {
-                    self.source = Source::Done;
+                    self.source = Source::Done(LogEnd::SessionEnded);
                     return None;
                 }
                 Step::Fail(error) => return Some(Err(self.fail(error))),
@@ -352,14 +377,14 @@ impl<L: Log> LogStream<L> {
         match record.seq.next() {
             Some(next) => self.cursor = next,
             // The log is full; nothing can follow this record.
-            None => self.source = Source::Done,
+            None => self.source = Source::Done(LogEnd::SequenceExhausted),
         }
         Some(Ok(record))
     }
 
     /// End the stream after reporting `error`.
     fn fail(&mut self, error: StreamError) -> StreamError {
-        self.source = Source::Done;
+        self.source = Source::Done(LogEnd::FatalError);
         error
     }
 }
