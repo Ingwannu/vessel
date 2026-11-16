@@ -49,6 +49,9 @@ use gpui::{
 mod compact_tests;
 #[cfg(test)]
 mod configuration_tests;
+mod header_back;
+#[cfg(test)]
+mod header_back_tests;
 mod header_content;
 mod header_search;
 #[cfg(test)]
@@ -59,6 +62,7 @@ mod sheet;
 #[cfg(test)]
 mod title_wrap_tests;
 
+pub use header_back::HeaderBack;
 pub use header_content::DialogInput;
 pub use header_search::HeaderSearch;
 pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
@@ -322,8 +326,9 @@ fn handle(color: gpui::Hsla) -> gpui::Div {
         .child(div().w(px(32.0)).h(px(4.0)).rounded(px(2.0)).bg(color))
 }
 
-/// The title and the close button, over a rule; with a search, Paseo's search
-/// row sits under the title inside the same rule (`headerContainer`).
+/// The title and the close button, over a rule; with a way back, Paseo's back
+/// arrow leads the title; with a search, Paseo's search row sits under the
+/// title inside the same rule (`headerContainer`).
 fn header<V: 'static>(
     title: SharedString,
     parts: header_content::HeaderParts,
@@ -332,10 +337,16 @@ fn header<V: 'static>(
     close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
     cx: &mut Context<'_, V>,
 ) -> gpui::Div {
-    let header_content::HeaderParts { actions, search } = parts;
+    let header_content::HeaderParts {
+        back,
+        actions,
+        search,
+    } = parts;
     let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
     let hover = surfaces.surface2;
+    let back =
+        back.map(|back| header_back::button(back, surfaces.foreground_muted, surfaces.foreground));
     let row = div()
         .debug_selector(|| "dialog-header".to_owned())
         .flex()
@@ -344,6 +355,7 @@ fn header<V: 'static>(
         .gap(px(8.0))
         .px(px(INSIDE))
         .py(px(16.0))
+        .children(back)
         .child(
             div()
                 .debug_selector(|| "dialog-title".to_owned())

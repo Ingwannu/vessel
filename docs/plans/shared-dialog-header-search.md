@@ -45,3 +45,21 @@ Results (2026-11-16, build VM; nothing compiled locally):
   into `header_content` reached that module through `use super::*`. The search
   type and row now live in `dialog/header_search.rs`, and `header_content`
   keeps its original imports.
+
+## Header back
+
+Paseo's label manager edit view goes back from the sheet header
+(`SheetHeader.back`, adaptive-modal-sheet.tsx 409-424): a bare 18-point
+`ArrowLeft` in `foregroundMuted`, `foreground` while pressed, radius 8, before
+the title in the same row, with the close button kept. `HeaderBack::new(handler)`
+plus `DialogContent::with_header_back` / `DialogInput::with_header_back` hand it
+to the one dialog header (`dialog/header_back.rs`); the owner keeps what going
+back means and checks its own context in the handler. The pressed ink is a
+second, foreground glyph shown while the group is pressed (GPUI's pressed style
+needs a stateful element; an SVG is not one). Paseo's 8-point `hitSlop` is not
+reproduced (its web build has none). Dialogs without a way back are unchanged.
+
+Tests (`dialog::header_back_tests`): the 18-point box at the 24 inset, 8 before
+the title, centred in the row, the close button still 24 from the end, on the
+compact sheet and the desktop dialog; a click runs the owner's handler and does
+not close.
