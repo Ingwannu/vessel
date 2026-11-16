@@ -76,3 +76,10 @@ missing from this extraction. Only that visibility is widened to pub(crate);
 the predicate body, Query matching, scoring and marks remain unchanged. Both
 failed logs are retained as compile failures, not executed test evidence.
 The receiving tree now includes announced base13 before its next checks.
+
+The next receiving strict run reached App and found the existing Areas factory
+still passed the old listener constructor signature; the real Window is now
+forwarded there. The new desktop stand-in fixture also now uses the existing
+Ordinary capture role rather than a nonexistent variant. Neither correction
+changes the callback contract or feature policy. The failed strict log is not
+an App pass and the immutable earlier test job is retained until completion.

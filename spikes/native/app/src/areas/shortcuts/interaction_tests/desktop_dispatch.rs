@@ -47,7 +47,7 @@ fn desktop_owner_uses_canonical_binding_and_recorder_keeps_the_key(cx: &mut Test
         shell.open_settings(Some(Section::Shortcuts), window, cx);
         shell.areas.shortcuts.page.capture = Some(SequenceCapture::new(
             binding_id(Action::Palette, default_context(Platform::native())).unwrap(),
-            CaptureRole::Replace,
+            CaptureRole::Ordinary,
         ));
         window.blur(cx);
     });
