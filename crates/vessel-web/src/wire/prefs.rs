@@ -37,6 +37,7 @@ mod bounded;
 mod change;
 mod drafts;
 mod keys;
+mod usage;
 
 use std::collections::BTreeMap;
 
@@ -50,6 +51,7 @@ pub use bounded::{
 pub use change::{PreferenceChange, ShortcutEdit, ShortcutTarget};
 pub use drafts::{Draft, DraftKey, DraftText, DraftTooLong, DraftsState, MAX_DRAFT};
 pub use keys::{ActionId, InvalidActionId, InvalidKeyBinding, KeyBinding};
+pub use usage::{MAX_USAGE_PINS, UsageDisplay, UsagePin, UsagePins, UsagePreferences};
 
 /// The most keys bound to one action.
 pub const MAX_BINDINGS: usize = 2;
@@ -176,6 +178,8 @@ pub struct Preferences {
     pub notifications: Notifications,
     /// How the sidebar lists sessions.
     pub sidebar: SidebarView,
+    /// The usage cards, summary and modal (ADR 0107).
+    pub usage: UsagePreferences,
     /// What new sessions start with, by machine. At most [`MAX_MACHINES`].
     pub defaults: BTreeMap<NodeId, MachineDefaults>,
 }
@@ -364,6 +368,9 @@ pub struct SidebarView {
     pub sort: SessionSort,
     /// Whether ended sessions are listed.
     pub ended: bool,
+    /// Whether the footer shows the usage summary (Paseo's footer item,
+    /// off by default; ADR 0107).
+    pub usage: bool,
 }
 
 impl Default for SidebarView {
@@ -374,6 +381,7 @@ impl Default for SidebarView {
             group: Grouping::default(),
             sort: SessionSort::default(),
             ended: true,
+            usage: false,
         }
     }
 }

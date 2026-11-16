@@ -35,10 +35,10 @@ pub use prefs::{
     ChoiceKeyTooLong, Choices, ChoicesError, CodeSize, Composer, ContentWidth, ConversationDisplay,
     Draft, DraftKey, DraftText, DraftTooLong, DraftsState, Grouping, InterfaceSize,
     InvalidActionId, InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, Layout, MAX_ACTIONS,
-    MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS, MAX_MACHINES,
+    MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS, MAX_MACHINES, MAX_USAGE_PINS,
     MachineDefaults, Notifications, OutOfRange, Panel, PreferenceChange, Preferences,
     PreferencesState, Revision, SendKey, SessionSort, ShortcutEdit, ShortcutEdits, ShortcutTarget,
-    SidebarView, Theme, TooMany, TurnDelivery,
+    SidebarView, Theme, TooMany, TurnDelivery, UsageDisplay, UsagePin, UsagePins, UsagePreferences,
 };
 
 use std::fmt;
