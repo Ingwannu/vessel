@@ -13,7 +13,7 @@ impl Render for Probe {
     fn render(
         &mut self,
         _window: &mut gpui::Window,
-        _cx: &mut gpui::Context<'_, Self>,
+        _cx: &mut Context<'_, Self>,
     ) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let pending = ButtonConfig::new(
