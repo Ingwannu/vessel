@@ -81,3 +81,13 @@ so the visual lane is the temporary writer on package base 14.13.
 Tests: the view projection test now checks the kinds in both languages and the
 bare endpoints, and that no URL canary reaches either; the kit leaf has its own
 rail and wrapping tests (`settings::selectable_tests`).
+
+Checks (2026-11-16, build VM): strict offer-visual-20261116T084824Z-1c5d8196 (fonts, fmt,
+quality, whole native clippy 0); tests offer-visual-narrow-20261116T085148Z-1c5d8196
+(view, link with `testing`, kit: pairing, offer, settings, overview, connections,
+dialog, plain_text) 165/0; the App wasm32 check owed at receiving,
+offer-visual-wasm-20261116T083122Z-e7da0cda (`check --target wasm32-unknown-unknown -p
+vessel-app-link -p vessel-app`), rc 0; export
+offer-visual-export-20261116T084617Z-b2e373c8. The union with package base 14.13 is merge
+bcf59fb46 (no conflicts); no whole native gate ran on this branch. Captures (inert in-memory
+fixture offer, G4's controller with a selection drag added) went to the coordinator.
