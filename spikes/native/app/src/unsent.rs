@@ -61,10 +61,7 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
-        Command::Usage(ask) => Event::Usage(ask.refused(match unsent.why {
-            Rejected::Full => vessel_app_view::usage::RequestFailure::Busy,
-            Rejected::Closed => vessel_app_view::usage::RequestFailure::Offline,
-        })),
+        Command::Usage(ask) => usage_refused(ask, unsent.why),
         Command::SessionAccess(access) => access.refused(ActFailed {
             code: None,
             message: words.to_owned(),
@@ -166,6 +163,16 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// As the devices page: a full queue is the usage page's "busy", a stopped
+/// link its machine offline. Kept out of `settle` so that match stays one
+/// line per command under the length lint.
+fn usage_refused(ask: vessel_app_link::usage::Ask, why: Rejected) -> Event {
+    Event::Usage(ask.refused(match why {
+        Rejected::Full => vessel_app_view::usage::RequestFailure::Busy,
+        Rejected::Closed => vessel_app_view::usage::RequestFailure::Offline,
+    }))
 }
 
 /// The commands the link gave back, into the shell, until it closes.
