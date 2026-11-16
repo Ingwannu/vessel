@@ -256,3 +256,14 @@ then final whole-root verification and V3 packet. The prior38-test success is
 scoped to171d, not a claim that the new union has executed. Native adopted only
 announced appbase13 through its own line; session LabelsChanged/coverage remains
 a separate unready producer. No speculative session editor or readiness switch.
+
+
+Remote generation `wp-labels-node-ts-20261116T002758Z-85ac4ecf` compiled the
+current union and passed5 TS tests (Proto3/Web2,0 failures). The step returned1
+because proto.ts differed, with an exported generator patch and byte manifest.
+Verified every artifact hash and the generating commit, then adopted the exact
+proto.ts bytes. It adds the five call/reply shapes, catalog/assignment values,
+ids and optional non-null registry label projection; no declaration was hand
+edited. A subsequent whole gate must confirm zero generator diff. Native
+workspace row/header entry remains staged: both owners confirm no checked
+runtime context/active/assignment projection is available yet.
