@@ -129,7 +129,8 @@ impl Drop for FixtureOwner {
 #[cfg(test)]
 mod tests {
     use super::super::{Fixture, SERVICE_TEST_BUDGET, SetupPhase};
-    use super::*;
+    use super::FixtureOwner;
+    use futures_util::FutureExt as _;
     const FAILURE_POINT: &str = "original usage fixture failure cleanup control";
     #[derive(Clone, Copy)]
     enum Failure {
