@@ -19,6 +19,21 @@ pub(crate) enum WorkspaceError {
     /// The node found no usable git.
     #[error("this machine has no usable git (2.25 or newer)")]
     NoGit,
+    #[cfg(target_os = "linux")]
+    #[error("workspace is stopping")]
+    Stopping,
+    #[cfg(target_os = "linux")]
+    #[error("workspace task reply unavailable: {0}")]
+    ReplyGone(#[source] tokio::sync::oneshot::error::RecvError),
+    #[cfg(target_os = "linux")]
+    #[error("workspace root access failed: {0}")]
+    Directory(#[source] std::io::Error),
+    #[cfg(target_os = "linux")]
+    #[error("workspace root metadata workers are busy")]
+    MetadataBusy,
+    #[cfg(target_os = "linux")]
+    #[error(transparent)]
+    RootAdmission(#[from] super::exclusion::RootRefusal),
     /// The project is a folder without git.
     #[error("this project is not a git repository")]
     NotGit,
@@ -126,6 +141,16 @@ impl WorkspaceError {
     /// The wire's form: a code a client branches on, and a message.
     pub(crate) fn wire(&self) -> WireError {
         let code = match self {
+            #[cfg(target_os = "linux")]
+            Self::Directory(_) | Self::ReplyGone(_) => ErrorCode::Internal,
+            #[cfg(target_os = "linux")]
+            Self::MetadataBusy | Self::Stopping => ErrorCode::Unavailable,
+            #[cfg(target_os = "linux")]
+            Self::RootAdmission(super::exclusion::RootRefusal::Busy) => ErrorCode::Conflict,
+            #[cfg(target_os = "linux")]
+            Self::RootAdmission(
+                super::exclusion::RootRefusal::TimedOut | super::exclusion::RootRefusal::Closed,
+            ) => ErrorCode::Unavailable,
             Self::NoGit | Self::NotGit => ErrorCode::Unsupported,
             Self::UnknownProject(_)
             | Self::UnknownWorktree(_)

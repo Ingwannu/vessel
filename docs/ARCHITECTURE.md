@@ -1877,3 +1877,15 @@ ordering is preserved without canceled unsent registrations. Public client
 APIs and frame/protocol shapes stay unchanged. Already admitted transport
 bytes and remote side effects remain outside retraction; post-admission
 Cancel is still best-effort. This adds no crate dependency or voice activation.
+
+## Physical-root borrow producer (pending validation)
+
+The root lease leaf adds only a BlobHash-backed PhysicalRoot value and a Linux
+opened-FD mechanism using existing dependencies. One workspace::exclusion owner
+issues opaque leases; StartGuard pins cwd plus the nearest managed ancestor and
+borrows its exact RootLease. The retained metadata pool and ordinary file.write
+consumer preserve admission through physical completion and caller loss.
+This is source awaiting exact-leaf validation and V3, not a restore, terminal
+quiescence or lifecycle capability. No store schema, protocol, checkpoint RPC or
+event is introduced. Other writer/cleanup consumers remain pending on the same
+producer. See docs/plans/root-lease-seam.md for scope and validation obligations.

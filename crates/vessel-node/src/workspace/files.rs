@@ -62,14 +62,25 @@ impl Workspaces {
     /// # Errors
     /// `conflict` when `expect` does not hold.
     pub(crate) async fn write_file(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
         text: String,
         expect: WriteExpect,
     ) -> Result<FileVersion, WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::write(&resolved.root, path, text, expect).await?)
+        #[cfg(target_os = "linux")]
+        {
+            let path = path.clone();
+            self.run_file_write(root, move |resolved| async move {
+                Ok(files::write(&resolved.root, &path, text, expect).await?)
+            })
+            .await
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let resolved = self.resolve(root).await?;
+            Ok(files::write(&resolved.root, path, text, expect).await?)
+        }
     }
 
     /// `file.create_dir`.

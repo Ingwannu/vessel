@@ -22,17 +22,27 @@
 //!   any folder holding the node's data folder (a read-only device could
 //!   otherwise read the node's token and become its owner).
 
+#[cfg(target_os = "linux")]
+mod admission;
 mod error;
+#[cfg(target_os = "linux")]
+pub(crate) mod exclusion;
 mod file_panels;
 mod files;
 mod forge;
 mod git;
+#[cfg(target_os = "linux")]
+mod metadata;
 mod policy;
 mod projects;
 mod roots;
 mod scripts;
 mod setup;
+#[cfg(target_os = "linux")]
+mod starting;
 mod worktrees;
+#[cfg(target_os = "linux")]
+mod writing;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsString;
@@ -57,6 +67,8 @@ pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
 pub(crate) use projects::Occupant;
 pub(crate) use scripts::{DirError, ScriptRoot};
+#[cfg(target_os = "linux")]
+pub(crate) use starting::StartGuard;
 pub(crate) use worktrees::{Placed, Starting, TidyScope};
 
 /// The most projects, and the most worktrees, one node keeps.
@@ -159,6 +171,10 @@ pub(super) struct State {
 #[derive(Debug)]
 pub(crate) struct Workspaces {
     git: Option<Git>,
+    #[cfg(target_os = "linux")]
+    root_reads: Arc<tokio::sync::Semaphore>,
+    #[cfg(target_os = "linux")]
+    exclusion: exclusion::RootGate,
     support: GitSupport,
     store: Store,
     dirs: Dirs,
@@ -232,8 +248,20 @@ impl Workspaces {
         tracing::info!(git = ?found.support, "workspace calls ready");
         let stored = store.workspace().await?;
         store.recover_registry_reservations().await?;
+        #[cfg(target_os = "linux")]
+        let (exclusion, owner) = exclusion::RootGate::start(stop.child_token());
+        #[cfg(target_os = "linux")]
+        let _owner = tasks.spawn(async move {
+            if let Err(error) = owner.await {
+                tracing::error!(%error, "physical root admission owner stopped unexpectedly");
+            }
+        });
         let workspaces = Arc::new(Self {
             git: found.git,
+            #[cfg(target_os = "linux")]
+            root_reads: Arc::new(tokio::sync::Semaphore::new(metadata::ROOT_METADATA_WORKERS)),
+            #[cfg(target_os = "linux")]
+            exclusion,
             support: found.support,
             store,
             dirs,
