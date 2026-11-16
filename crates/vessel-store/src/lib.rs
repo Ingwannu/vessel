@@ -54,7 +54,7 @@ mod attachments;
 mod automation;
 mod codec;
 mod committed;
-pub use committed::SessionCommit;
+pub use committed::{Residence, SessionCommit};
 mod config;
 mod cursor_sign_in;
 mod data_dir;

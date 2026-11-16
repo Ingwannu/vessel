@@ -5,6 +5,7 @@ use super::Sessions;
 use crate::error::ServiceError;
 use std::sync::Arc;
 use vessel_proto::inbox::MarkInbox;
+use vessel_store::Residence;
 
 impl Sessions {
     /// Keep an admitted mark's committed clock publication despite caller loss.
@@ -18,8 +19,19 @@ impl Sessions {
                 // Reopen/detach share this order. Once the write starts, the task
                 // retains its committed clock publication despite RPC cancellation.
                 let _order = order;
-                let committed = sessions.store.mark_inbox_committed(mark.clone()).await?;
-                if let Some(handle) = sessions.runtime_handle(mark.key.session) {
+                // Read under the order a reopen also takes: a stored session
+                // stays stored until this write commits (TRACKER 775).
+                let handle = sessions.runtime_handle(mark.key.session);
+                let residence = if handle.is_some() {
+                    Residence::Loaded
+                } else {
+                    Residence::Stored
+                };
+                let committed = sessions
+                    .store
+                    .mark_inbox_committed(mark, residence)
+                    .await?;
+                if let Some(handle) = handle {
                     handle.acknowledge_time(committed.updated_at());
                 }
                 Ok(())
