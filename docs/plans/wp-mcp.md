@@ -1009,3 +1009,17 @@ The same merge retains the canonical transferable marking lease, registry
 cleanup fence and current-parent SQL scalar. No conflicts needed resolution.
 Changed receiving-union strict and Node execution are still owed; earlier
 node345/MCP36/source/freshness receipts keep their original exact scope.
+
+
+### Executed gate60 receiving slice and quota pause
+
+Exact `b9c0cf0ec` completed five-crate plus proto/ts all-target strict0/153s
+in `wp-mcp-runtime-narrow-20261116T033539Z-b9c0cf0e` and Node library
+352/0/0 in `wp-mcp-response-tests-20261116T033539Z-b9c0cf0e` (225-second
+test step, all four steps zero). All five recorded raw step hashes were
+independently recomputed. The Node-only selection does not exercise the
+upstream named vessel-proc774 test. No whole-package acceptance follows.
+
+The quota warning stops new slices, merges and long checks. Coherent source
+and the exact pending/native and remaining integration boundaries are saved
+in the committed resume. No new feature number, fence or runtime is enabled.

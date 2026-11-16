@@ -32,18 +32,21 @@ feature, control, merge or long build is authorized during this warning.
 - Parser seam b4fbe10a and policy/browser/Skills values carrier a30dd87e
   are already integrated on the official node line. Do not replay their jobs.
 
-## Current accepted VM runs
+## Completed current receiving-union VM runs
 
 Both runs target exact b9c0cf0ec8ff79ecef93b2c1908bdf451c06d420 and were
-registered once, normal short lane. At the warning they were executing:
+registered once, normal short lane. Both completed after the warning:
 
 - wp-mcp-runtime-narrow-20261116T033539Z-b9c0cf0e — five crates plus
-  proto/ts all-target strict. Evidence folder: runtime-gate60-strict.
+  proto/ts all-target strict: rc0/153s, raw SHA3c921fceee1d0605.
+  Evidence folder: runtime-gate60-strict.
 - wp-mcp-response-tests-20261116T033539Z-b9c0cf0e — Node library tests
-  with real fixture/node prebuilds. Evidence folder: runtime-gate60-node-libs.
+  with real fixture/node prebuilds: all four steps0, Node352/0/0, test225s,
+  raw SHA2fe80e5b78abe2a6. Evidence folder: runtime-gate60-node-libs.
 
-Read their final state/logs and independently verify the recorded step hashes.
-Do not claim those current union checks passed from the preceding345 receipt.
+All five recorded step hashes were independently recomputed. These are actual
+current union results, separate from the preceding345 receipt. No unchanged
+rerun is needed. The named upstream774 Proc test is outside this Node-only suite.
 
 ## Reviews and blocked integration
 
@@ -81,7 +84,9 @@ run remains pending; no app-line adoption, full UI or finalV4 claim.
 
 ## Next step after results / quota reset
 
-Record current union results without broadening the older scoped receipts.
+Current union results are recorded. Keep their scope distinct from a whole
+package gate. The only still-queued run is the native App binary run recorded
+in the companion resume; retrieve it first after the quota reset.
 Continue only after the qualified shared Settings/fence producers or native
 lead's shared-slot receiving head arrives. App trees take the official app
 line, never a whole node head. Preserve every immutable red/143 log.
