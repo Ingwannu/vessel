@@ -1223,3 +1223,20 @@ and Clippy remain pending; the older413 control result is not relabeled.
   keyboard selection/copy/readonly input, View eviction key regression and
   whole EN/KO notices. Control selection-focus query has its real-window test.
   One meaningful changed-source remote batch follows; older passes stay scoped.
+
+## Body source audit while9c waits: release engines on admission retirement
+
+Static tracing found that the existing retire(entry) clears PanelReads files
+but the new document map also needs clearing. Without that join, removing stale
+residency-index entries could leave uncounted old engine buffers. Clear both at
+the same synchronous retirement boundary. This is a source finding, not an
+observed runtime failure. The mounted keyboard/copy test now asserts actual
+selection ownership, seeds a sentinel clipboard and checks that retiring the
+original context releases both payload and document. Its fixture uses the same
+location key as its entry incarnation. Extract only the authored FileDiff
+fixture to keep the behavior test within100 body lines; assertions stay intact.
+
+Exact9c strict/Git/Kit-owner runs remain queued and are not cancelled or
+resubmitted. They do not contain these new retirement assertions. Wait for their
+actual results and group any source returns into one meaningful successor batch.
+No body/source/consumer/capture approval is claimed for either snapshot.

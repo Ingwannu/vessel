@@ -268,6 +268,9 @@ fn retire(entry: &mut Entry) {
         reads.retire();
     }
     entry.context = None;
+    // A retired read store and its engines must be released together; pruning
+    // only the residency index would leave uncounted old document buffers.
+    entry.documents.clear();
     entry.problem = Some(ReadFailure::DestinationChanged);
     entry.path_places.clear();
     entry.tips = vessel_app_kit::Tooltips::new();

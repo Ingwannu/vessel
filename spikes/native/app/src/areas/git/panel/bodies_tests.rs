@@ -31,13 +31,11 @@ fn prepare(
         .collect::<Vec<_>>();
     let git = &mut shell.areas.git;
     let entry = git.panels.entries.get_mut(&old.address).unwrap();
+    let location_key = git.keys.issue().unwrap();
+    entry.instance = Some(location_key);
     let location = entry
         .binding
-        .begin(
-            old.address.clone(),
-            old.context.clone(),
-            git.keys.issue().unwrap(),
-        )
+        .begin(old.address.clone(), old.context.clone(), location_key)
         .unwrap();
     let mut session = SessionInfo::new(
         location.session(),
@@ -294,6 +292,37 @@ impl Render for Mounted {
     }
 }
 
+fn changed_file(path: RelPath) -> FileDiff {
+    FileDiff {
+        path,
+        old_path: None,
+        status: ChangeStatus::Modified,
+        mode: None,
+        more_from: None,
+        content: DiffContent::Hunks {
+            hunks: vec![vessel_proto::workspace::Hunk {
+                old_start: 1,
+                old_lines: 1,
+                new_start: 1,
+                new_lines: 1,
+                section: None,
+                lines: vec![
+                    vessel_proto::workspace::DiffLine {
+                        kind: vessel_proto::workspace::LineKind::Removed,
+                        text: "old value".to_owned(),
+                        cut: false,
+                    },
+                    vessel_proto::workspace::DiffLine {
+                        kind: vessel_proto::workspace::LineKind::Added,
+                        text: "새 값".to_owned(),
+                        cut: false,
+                    },
+                ],
+            }],
+        },
+    }
+}
+
 #[gpui::test]
 fn the_actual_mounted_unified_body_copies_original_rows_and_refuses_typing(
     cx: &mut TestAppContext,
@@ -312,37 +341,7 @@ fn the_actual_mounted_unified_body_copies_original_rows_and_refuses_typing(
                 Answer {
                     address: panel.clone(),
                     context: captured.context.clone(),
-                    outcome: Outcome::File(
-                        ticket,
-                        Ok(FileDiff {
-                            path: paths[0].clone(),
-                            old_path: None,
-                            status: ChangeStatus::Modified,
-                            mode: None,
-                            more_from: None,
-                            content: DiffContent::Hunks {
-                                hunks: vec![vessel_proto::workspace::Hunk {
-                                    old_start: 1,
-                                    old_lines: 1,
-                                    new_start: 1,
-                                    new_lines: 1,
-                                    section: None,
-                                    lines: vec![
-                                        vessel_proto::workspace::DiffLine {
-                                            kind: vessel_proto::workspace::LineKind::Removed,
-                                            text: "old value".to_owned(),
-                                            cut: false,
-                                        },
-                                        vessel_proto::workspace::DiffLine {
-                                            kind: vessel_proto::workspace::LineKind::Added,
-                                            text: "새 값".to_owned(),
-                                            cut: false,
-                                        },
-                                    ],
-                                }],
-                            },
-                        }),
-                    ),
+                    outcome: Outcome::File(ticket, Ok(changed_file(paths[0].clone()))),
                 },
                 cx,
             );
@@ -370,6 +369,17 @@ fn the_actual_mounted_unified_body_copies_original_rows_and_refuses_typing(
         let entry = &view.shell.read(cx).areas.git.panels.entries[&view.address];
         assert_eq!(entry.documents.len(), 1);
     });
+    cx.update(|window, cx| {
+        let view = view.read(cx);
+        let entry = &view.shell.read(cx).areas.git.panels.entries[&view.address];
+        assert!(
+            entry
+                .documents
+                .values()
+                .any(|document| document.selection_focused(window, cx))
+        );
+        cx.write_to_clipboard(gpui::ClipboardItem::new_string("sentinel".to_owned()));
+    });
     cx.simulate_keystrokes(if cfg!(target_os = "macos") {
         "cmd-a"
     } else {
@@ -387,5 +397,25 @@ fn the_actual_mounted_unified_body_copies_original_rows_and_refuses_typing(
             cx.read_from_clipboard().and_then(|item| item.text()),
             Some("@@ -1,1 +1,1 @@\nold value\n새 값".to_owned())
         );
+    });
+    view.update_in(cx, |view, _window, cx| {
+        view.shell.update(cx, |shell, _cx| {
+            let tag = shell.areas.git.panels.entries[&view.address]
+                .context
+                .as_ref()
+                .unwrap()
+                .tag();
+            assert!(shell.git_panels_retired(&tag));
+            let entry = &shell.areas.git.panels.entries[&view.address];
+            assert!(entry.documents.is_empty());
+            assert!(
+                entry
+                    .reads
+                    .as_ref()
+                    .unwrap()
+                    .file(&"source/0.rs".parse().unwrap())
+                    .is_none()
+            );
+        });
     });
 }
