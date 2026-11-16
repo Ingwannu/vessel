@@ -3,7 +3,8 @@
 ## Status
 
 This receiving branch starts at node `ed4cd13776cc32a2da0ffeb4ffa67e2e2548461e`.
-It adds this plan only. Automatic recovery is not activated here. The common
+It has merged node `bc9cacc67dba6cc8d3fb4f71fa10c31e5de4565a` without
+conflicts and adds this plan only. Automatic recovery is not activated here. The common
 settings producer and the prepared-runtime API require their own exact source
 and execution qualification before their consumer is assembled.
 
