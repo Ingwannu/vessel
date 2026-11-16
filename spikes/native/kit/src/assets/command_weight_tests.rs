@@ -37,16 +37,18 @@ fn every_line_glyph_has_a_command_weight_asset_with_the_same_vectors_at_2_2() {
         lines = lines.saturating_add(1);
         let path = glyph.command_weight_path();
         let file = glyph.path().strip_prefix("kit/").unwrap();
-        assert_eq!(path.as_ref(), format!("{COMMAND_WEIGHT}{file}"), "{glyph:?}");
+        assert_eq!(
+            path.as_ref(),
+            format!("{COMMAND_WEIGHT}{file}"),
+            "{glyph:?}"
+        );
         let data = Assets.load(&path).unwrap().unwrap();
         // Only the root's stroke differs from the shared drawing.
         assert_eq!(
             String::from_utf8(data.to_vec()).unwrap(),
-            glyph.svg().replacen(
-                r#"stroke-width="1.5""#,
-                r#"stroke-width="2.2""#,
-                1
-            ),
+            glyph
+                .svg()
+                .replacen(r#"stroke-width="1.5""#, r#"stroke-width="2.2""#, 1),
             "{glyph:?}"
         );
         let base = Assets.load(glyph.path()).unwrap().unwrap();
@@ -65,7 +67,11 @@ fn other_drawings_keep_their_own_path() {
         if glyph.svg().starts_with(LINE_ROOT) {
             continue;
         }
-        assert_eq!(glyph.command_weight_path().as_ref(), glyph.path(), "{glyph:?}");
+        assert_eq!(
+            glyph.command_weight_path().as_ref(),
+            glyph.path(),
+            "{glyph:?}"
+        );
         let file = glyph.path().strip_prefix("kit/").unwrap();
         assert!(
             Assets

@@ -103,7 +103,8 @@ impl AssetSource for Assets {
         // embedded drawings at the display's pixels.
         if let Some(file) = path.strip_prefix(COMMAND_WEIGHT) {
             let line = ALL.into_iter().find(|glyph| {
-                glyph.path().strip_prefix("kit/") == Some(file) && glyph.svg().starts_with(LINE_ROOT)
+                glyph.path().strip_prefix("kit/") == Some(file)
+                    && glyph.svg().starts_with(LINE_ROOT)
             });
             return Ok(line.map(|glyph| {
                 Cow::Owned(
