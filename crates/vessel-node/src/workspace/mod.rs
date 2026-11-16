@@ -127,6 +127,8 @@ struct WorktreeEntry {
     info: WorktreeInfo,
     /// Structured setup facts of this node process; never rebuilt from log text.
     observation: Option<setup::Observation>,
+    /// Structured events have a different progress cursor from legacy log bytes.
+    observed: watch::Sender<()>,
     /// The setup log's length, for `worktree.output` to wait on.
     written: Arc<watch::Sender<u64>>,
     /// Stops its setup or teardown, while one runs.
@@ -139,9 +141,11 @@ struct WorktreeEntry {
 impl WorktreeEntry {
     fn new(info: WorktreeInfo) -> Self {
         let (written, _) = watch::channel(0);
+        let (observed, _) = watch::channel(());
         Self {
             info,
             observation: None,
+            observed,
             written: Arc::new(written),
             running: None,
             starting: 0,

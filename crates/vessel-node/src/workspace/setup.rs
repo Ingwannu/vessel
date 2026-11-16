@@ -134,6 +134,7 @@ impl Workspaces {
                     entry.info.setup = setup;
                     if let Some(observation) = &mut entry.observation {
                         observation.finish(succeeded);
+                        entry.observed.send_modify(|_| {});
                     }
                     entry.info.clone()
                 })

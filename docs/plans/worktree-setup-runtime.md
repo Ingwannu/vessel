@@ -259,3 +259,22 @@ root gate on the combined immutable candidate is required before V3 submission.
 The TS run `wp-scripts-node-narrow-20261115T173851Z-ddc701a4` passed all five
 generator/inventory tests and reported the expected generated-file difference;
 that difference was retained byte-for-byte, not described as wire freshness.
+
+
+## Legacy long-poll regression correction
+
+The first final gate on b46aac11 passed strict/TS/web/E2E/forge but failed one
+comparison continuation case (Rust2597/1/12). Investigation identified an owned
+regression: structured start/output/finish events notified the legacy log's
+watch. That could release worktree.output without byte or terminal-state progress;
+the comparison client's documented no-progress cadence then returned WaitingSetup.
+This is not dismissed as a base timing defect.
+
+The correction gives structured observations a separate unit watch in the same
+WorktreeEntry owner. Legacy output still wakes only for its existing log writes
+and overall completion. Actual runner callbacks verify both channels without
+sleep-based timing assertions; existing comparison integration is rerun unchanged.
+Current announced node ed4cd137 is merged before this correction; its head tests,
+pending rows and exports are retained. Generated wire starts from its exact
+baseline and is regenerated on the VM, never hand-combined. Native ed272f83 is
+a separate frozen/green handoff and receives no node merge.

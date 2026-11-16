@@ -24,7 +24,7 @@ impl Workspaces {
             && observation.snapshot.cursor.run == generation
         {
             observation.event(event);
-            entry.written.send_modify(|_| {});
+            entry.observed.send_modify(|_| {});
         }
     }
 
@@ -46,7 +46,7 @@ impl Workspaces {
                         && observation.snapshot.state == SetupRunState::Running
                 })
             });
-            (entry.written.subscribe(), wait)
+            (entry.observed.subscribe(), wait)
         };
         if let Some(duration) = request.wait_ms.filter(|_| wait) {
             let limit = duration
