@@ -820,3 +820,14 @@ resource/Seat/body staging is promoted and no node head is merged directly.
 The selected primitive producer and caller companion remain separate, frozen
 artifacts. Fresh combined A8 narrow checking is required; old730 runtime and
 base13's own totals do not certify this source union.
+
+
+## Exact base13 combined strict result
+
+Executable00081a39b passes run wp-side-narrow-20261116T002837Z-00081a39:
+locked View/Kit/Link/App all-target Clippy with warnings denied, native-fonts0
+and native-cargo0. The raw log shows fresh View build-script compilation and
+Kit/Link/App Checking; this is not merely a copied baseline result. No tests or
+whole native gate ran in this check. Prior730 runtime1492/0/2 stays prior-source
+evidence. Rich response/presentation contracts, guarded resource transport,
+checked body and Clone Seat consumer union, captures and V4 remain pending.
