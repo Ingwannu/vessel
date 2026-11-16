@@ -36,3 +36,8 @@ native strict/tests and wasm checks run only through the build VM. No actual
 invitation, network, book write or live service is used for these checks.
 Changed confirmation drawing still needs final consumer capture comparison;
 source/check results do not imply full E2, QR, consent or SDK readiness.
+
+First exact source30670442 strict run failed only clone_on_ref_ptr in the new
+row composition. Use explicit Arc::clone; retain that red result. Related
+runtime/wasm/quality steps had not run when the suite stopped. The corrected
+source needs its own narrow results before any pass or capture claim.

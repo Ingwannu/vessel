@@ -111,7 +111,13 @@ fn confirm_step(
             tokens,
         ))
         .children(offer.routes.rows().iter().map(|route| {
-            settings::row(route.words(shell.t.lang).clone(), None, None, false, tokens)
+            settings::row(
+                std::sync::Arc::clone(route.words(shell.t.lang)),
+                None,
+                None,
+                false,
+                tokens,
+            )
         }));
     let body = div()
         .flex()
