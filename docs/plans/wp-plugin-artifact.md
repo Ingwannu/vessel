@@ -266,3 +266,31 @@ permission relaxation is used. UID/mode and all policy assertions remain. The
 same run's three strict failures (doc backticks, temporary diagnostic printing,
 open enum wildcard) are corrected without allowances. Original26/6 runtime and
 strict-red logs remain separate from the next corrected-source proof.
+
+## Owned blocking observation join
+
+The synchronous tree observer cannot make caller-loss lifetime claims by itself.
+Its next private adapter accepts the caller's actual OwnedSemaphorePermit and
+existing TaskTracker; it creates no semaphore, independent queue or settings
+writer. One tracked spawn_blocking closure owns that permit, local child
+cancellation and the real full observation until the filesystem work returns.
+Dropping a result waiter requests child cancellation but cannot release the
+permit or detach ownership before actual settlement. The parent/node token is
+not cancelled by waiter disposal. The result is published only after synchronous
+I/O settles and its permit is released; errors stay typed and input-free.
+
+TaskTracker.close is NOT admission authority (it still allows tracking work).
+The actual future plugin manager must acquire its permit under its serialized
+node/lifecycle admission fence before calling this private adapter, and retain
+its qualified candidate/root lease as well. This adapter neither supplies that
+fence nor proves candidate acquisition ownership. No startup, settings apply,
+helper launch or new cross-crate API is added. Runtime shutdown must drain the
+same existing tracker before candidate/store teardown; a blocked kernel call
+still cannot be forcibly cancelled by this observer's between-read checks.
+
+Actual tests will hold one blocking worker before real observation, drop only
+its waiter, and prove the real permit and tracker remain occupied until the
+held worker is released and settles. A separate success case runs both actual
+filesystem passes through that same adapter. No fake observation result or
+second filesystem path is kept beside the production function. These are
+planned lifetime checks, not executed evidence or a real NodeHost admission test.
