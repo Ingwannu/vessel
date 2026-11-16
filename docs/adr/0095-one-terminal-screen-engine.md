@@ -224,7 +224,53 @@ is necessary while preserving the approved unchanged legacy span; tickets
 alone cannot constrain old clients that never send a settlement acknowledgement.
 NodeAuthority remains off until the reviewed responder contract and whole pass.
 
-## Proposed CLI display serializer
+## Program cursor and physical row endings
+
+Authoritative frames expose independent optional shape/blink overrides and
+outgoing hard/soft row endings from the same borrowed engine cut. Unset cursor
+presentation belongs to each renderer's configured defaults; metadata is never
+inferred from text, a raw scanner, event sequence or a reconstructed decoder.
+Recorded pinned-headless controls exposed lost blink-only state, wrong1049
+alternate entry coordinates, and restore retaining a pending-wrap column.
+Minimal numbered engine patches preserve decoded u32 parameters, reset cursor
+presentation/modes on soft reset without erasing/moving cells, inherit physical
+alternate coordinates, and clamp an explicit cursor restore. The actual34-case
+metadata/cell oracle supplements the unchanged original cell/mode/marker corpus.
+This remains a pure producer extension; actor/transport/native/CLI renderer
+adoption and enclosing consumer qualification are separate. NodeAuthority stays
+off; no universal Unicode or malformed-stream parity is inferred.
+
+### DECSTR mode sources and redundant alternate activation
+
+DECSTR resets VT application-cursor and bracketed-paste switches in the same
+decoded mode owner as the borrowed frame. Pinned headless InputHandler2817-2835
+calls CoreService.reset68-72, whose defaults disable those switches. Kitty and
+Win32 flags and the saved keyboard stack retain the actual server tracker
+contract: protocol/terminal-input-mode.ts regex20-25/feed85-124 does not match
+CSI ! p or RIS; terminal/terminal.ts1041 feeds that tracker, and1017 resets it
+at lifecycle restart. The optional headless keyboard extensions have different
+reset state; they are not substituted for this server negotiation contract.
+Both original reference traces are retained, with no second scanner or flipped
+accepted239-step expectations. This is an explicit split between the two
+reference responsibilities, including the already stated RIS behavior.
+
+Repeated1049 still saves the active buffer cursor, as InputHandler2017-2018
+does, but BufferSet103-105 leaves an already active alternate grid intact.
+The same engine now preserves its cells and marker epoch on that no-op.
+Cursor attributes are saved independently per buffer, matching the reference's
+buffer-local savedCurAttrData, so an alternate save cannot replace primary ink.
+DECSTR resets the active buffer's saved presentation only. No synthesized Home,
+replay, new parser or authority change is involved.
+
+The same BufferSet80-112 transition owns47/1047/1049. Physical coordinates
+carry on both entry and exit;1049 alone adds save/restore. Actual alternate
+exit clears its rows and disposes its markers immediately, matching the
+reference, while a readonly earlier snapshot keeps its own cut. This replaces
+the previous delayed alternate invalidation at the next entry. Repeated entry
+and exit do not create an extra transition or copy coordinates from an inactive
+buffer. The recorded oracle supplements rather than replaces earlier fixtures.
+
+## Staged CLI display serializer
 
 A pure bounded ANSI display serializer consumes typed readonly cells from a
 borrowed engine frame or a future validated wire-frame adapter. Upstream's
@@ -235,6 +281,6 @@ CLI stdout, raw-mode lifecycle and transport remain outside the library.
 Readonly cell construction rejects control injection, storage overflow and
 width-span mismatch using the same engine's Unicode width table. It does not
 restore mutable state. Wide cells cropped at the physical right edge use a
-blank span rather than wrapping/scrolling the display. Program cursor shape
-is not yet projected; the host's chosen shape is left untouched in this step.
+blank span rather than wrapping/scrolling the display. Independent program cursor overrides resolve against explicit typed renderer
+defaults; unset program state is never presented as a guessed node value.
 This amendment is staged and has no runtime attach cutover or approval yet.

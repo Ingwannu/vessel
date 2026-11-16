@@ -52,20 +52,33 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
    preserves marker coordinates as the pinned reference does; row contents may
    change. Marker creation/replacement validates before retiring prior state.
 
-9. Expose the existing cell-content capacity and Unicode width measurement as
-   readonly facade metadata. Why: validated wire/display cells must use the
-   same table, one positive-width base plus combining marks invariant and
-   ceiling without another dependency, parser or mutable grid restoration.
-   No terminal interpretation or stored cell layout changes.
-
-10. Expose retained-row outgoing wrap metadata. Why: authoritative frames must
+9. Expose retained-row outgoing wrap metadata. Why: authoritative frames must
     preserve hard/soft line boundaries for selection and reflow without a second
     row tracker, mutable reads or synthesized ANSI restoration.
 
-11. Preserve independent program cursor blink overrides from the same decoded
+10. Preserve independent program cursor blink overrides from the same decoded
     DECSCUSR callback (including explicit u32 parameters), clear overrides on
     DECSTR, and inherit the primary cursor on1049 alternate entry. Why: the
     pinned headless metadata oracle exposed lost blink-only state and a wrong
     alternate starting position. Soft reset resets modes/saved presentation
     without erasing live cells. Cursor restore clamps pending wrap like the
     reference's explicit cursor move. No raw scanner or second interpretation added.
+
+11. Make redundant1049 activation non-destructive while retaining DECSC on
+    the active buffer. Save cursor attributes separately for primary/alternate
+    buffers, including active-buffer-only DECSTR save reset. Why: the pinned
+    BufferSet refuses to clear an already active alternate screen and saves
+    cursor attributes per buffer. Re-entry must retain text/markers and cannot
+    overwrite the primary's saved ink before its later restore.
+
+12. Share actual buffer transitions for47/1047/1049, carrying physical cursor
+    coordinates in both directions. Only1049 performs cursor save/restore.
+    Why: the reference implements all three through BufferSet transitions;
+   47 lacked cursor carry,1047 was absent, and alternate exit must immediately
+    dispose its markers instead of retaining them until a later re-entry.
+
+13. Expose the existing cell-content capacity and Unicode width measurement as
+   readonly facade metadata. Why: validated wire/display cells must use the
+   same table, one positive-width base plus combining marks invariant and
+   ceiling without another dependency, parser or mutable grid restoration.
+   No terminal interpretation or stored cell layout changes.

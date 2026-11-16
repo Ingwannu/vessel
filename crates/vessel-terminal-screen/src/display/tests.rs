@@ -28,6 +28,12 @@ enum ProgramName {
     PhysicalWraps,
     SoftResetRetainsCells,
     AlternatePendingWrap,
+    RepeatedAlternate,
+    SoftResetNegotiation,
+    #[serde(rename = "alternate-47")]
+    Alternate47,
+    #[serde(rename = "alternate-1047")]
+    Alternate1047,
 }
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -55,6 +61,31 @@ struct Expected {
     cursor: ExpectedCursor,
     lines: Vec<String>,
     foreground: Vec<Vec<Option<u8>>>,
+    input_modes: ExpectedModes,
+}
+#[derive(Deserialize)]
+struct ExpectedModes {
+    kitty: u32,
+    win32: bool,
+    application_cursor: bool,
+    bracketed_paste: bool,
+}
+impl ExpectedModes {
+    fn modes(&self) -> crate::InputModes {
+        fn state(enabled: bool) -> crate::ModeState {
+            if enabled {
+                crate::ModeState::Enabled
+            } else {
+                crate::ModeState::Disabled
+            }
+        }
+        crate::InputModes {
+            kitty: self.kitty.into(),
+            win32: state(self.win32),
+            application_cursor: state(self.application_cursor),
+            bracketed_paste: state(self.bracketed_paste),
+        }
+    }
 }
 #[derive(Deserialize)]
 struct ExpectedCursor {
@@ -81,6 +112,12 @@ impl Expected {
     }
 }
 fn check_frame(frame: &crate::FrameView<'_>, expected: &Expected) {
+    assert_eq!(
+        frame.input_modes(),
+        expected.input_modes.modes(),
+        "{}",
+        expected.checkpoint
+    );
     assert_eq!(frame.columns(), expected.cols, "{}", expected.checkpoint);
     assert_eq!(frame.rows().get(), expected.rows, "{}", expected.checkpoint);
     assert_eq!(
@@ -161,6 +198,7 @@ fn check(program: &Program) {
     )
     .unwrap();
     let mut snapshots = program.snapshots.iter();
+    let mut retained = Vec::new();
     for event in &program.events {
         match event {
             Event::Output { output } => {
@@ -188,6 +226,7 @@ fn check(program: &Program) {
                     &snapshot.frame(ViewportRequest::FollowLive, rows).unwrap(),
                     expected,
                 );
+                retained.push((snapshot, expected));
                 if expected.history > 0 {
                     let pin = engine.create_marker(LineIndex(0)).unwrap();
                     check_frame(
@@ -200,6 +239,17 @@ fn check(program: &Program) {
         }
     }
     assert!(snapshots.next().is_none());
+    for (snapshot, expected) in retained {
+        check_frame(
+            &snapshot
+                .frame(
+                    ViewportRequest::FollowLive,
+                    FrameRows::new(expected.rows).unwrap(),
+                )
+                .unwrap(),
+            expected,
+        );
+    }
 }
 #[test]
 fn cursor_overrides_match_pinned_headless_controls() {
@@ -216,6 +266,72 @@ fn soft_reset_retains_cells_and_resets_saved_presentation_like_paseo() {
 #[test]
 fn alternate_entry_inherits_the_pending_wrap_column_and_restores_primary() {
     check(&program(ProgramName::AlternatePendingWrap));
+}
+#[test]
+fn repeated_alternate_entry_retains_cells_and_primary_saved_cursor_and_ink() {
+    check(&program(ProgramName::RepeatedAlternate));
+}
+#[test]
+fn soft_reset_clears_vt_negotiation_but_preserves_server_keyboard_tracker_stack() {
+    check(&program(ProgramName::SoftResetNegotiation));
+}
+#[test]
+fn alternate_47_matches_entry_reentry_exit_and_cursor_carry() {
+    check(&program(ProgramName::Alternate47));
+}
+#[test]
+fn alternate_1047_matches_entry_reentry_exit_and_cursor_carry() {
+    check(&program(ProgramName::Alternate1047));
+}
+#[test]
+fn redundant_alternate_activation_does_not_reset_retained_marker_identity() {
+    let mut engine = Screen::new(Size::new(8, 3).unwrap(), ScrollbackLines::default()).unwrap();
+    assert!(
+        engine
+            .feed(b"\x1b[?1049hA")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
+    let marker = engine.create_marker(LineIndex(0)).unwrap();
+    let before = engine.resolve_marker(&marker).unwrap();
+    let retained = engine.snapshot();
+    assert!(
+        engine
+            .feed(b"\x1b[?1049hB")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
+    assert_eq!(engine.resolve_marker(&marker).unwrap(), before);
+    assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
+    assert!(
+        engine
+            .feed(b"\x1b[?1049l")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
+    assert_eq!(
+        engine.resolve_marker(&marker).unwrap().state,
+        crate::AnchorState::Reset
+    );
+    assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
+    assert!(
+        engine
+            .feed(b"\x1b[?1049h")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
+    assert_eq!(
+        engine.resolve_marker(&marker).unwrap().state,
+        crate::AnchorState::Reset
+    );
 }
 fn program(name: ProgramName) -> Program {
     let corpus: Corpus = serde_json::from_str(include_str!("oracle.json")).unwrap();
