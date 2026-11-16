@@ -356,3 +356,35 @@ Release-capable child integration, durable process identity and the actual
 service/Preview consumers remain separate work. This carrier cannot prove
 OS death, persistent ownership or socket/workspace authority. Windows and
 native execution are outside this checkpoint's evidence.
+
+## Current values-package integration boundary
+
+The staged service values and SDK are now based on the announced node gate-61
+head. Incoming method rows, projections and protocol/schema facts take
+precedence; the eight service rows follow the incoming usage rows. The
+forwarding-policy extraction keeps the head's complete decisions in its child
+module and adds only the eight explicit service refusals. No service runtime
+or private settings writer is activated.
+
+The previous immutable revision passed four-crate strict Clippy, 30 selected
+proto/client tests and three web admission tests. Its five TS generation tests
+passed, but freshness failed on the uncommitted generated service declarations.
+That old snapshot is retained as evidence and will not overwrite the incoming
+wire. The merged composition requires its own official regeneration, followed
+by committed generated output, freshness and the enclosing package gate.
+
+The official generator on the merged values source passed all six generation
+tests. Its exact tracked patch and full snapshot were verified against that
+source commit and applied without manual edits, preserving incoming wire
+declarations. The generation run's stale-file failure is retained. Freshness
+of the committed artifact and all enclosing checks remain for the one values
+package gate; generated DTOs do not activate the staged methods or a service
+consumer.
+
+The first enclosing values gate failed its pinned Admin-method list: the
+three service-settings methods already declared as Admin were omitted from
+that test's expected set. The correction appends exactly those three names,
+retaining every existing entry and the full equality assertion. No method
+scope or admission policy changes. The original failed gate remains recorded;
+it passed committed-wire freshness, all web checks and every other Rust case.
+A narrow proto check precedes the changed-source enclosing gate correction.

@@ -63,6 +63,9 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "skills.save_selection",
             "skills.import_selection",
             "usage.source_lookup",
+            "service.settings",
+            "service.set_gateway",
+            "service.set_exposure",
         ]
     );
     assert_eq!(

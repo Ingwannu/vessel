@@ -442,6 +442,23 @@ macro_rules! method_table {
             InspectWorkspaceLabelDelete / inspect_workspace_label_delete / "workspace.label.inspect_delete" [Read, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::InspectWorkspaceLabelDelete => $crate::workspace_labels::WorkspaceLabelDeleted;
             /// Delete a definition and every assignment in one commit.
             DeleteWorkspaceLabel / delete_workspace_label / "workspace.label.delete" [Operate, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::DeleteWorkspaceLabel => $crate::workspace_labels::WorkspaceLabelDeleted;
+
+            /// Workspace service observations only; unavailable until the qualified runtime wiring.
+            ListWorkspaceScripts / workspace_scripts / "workspace.script.list" [Read, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::WorkspaceScriptQuery => $crate::workspace_services::WorkspaceScriptQueryResult;
+            /// A person's exact workspace script start; no default runtime implementation.
+            StartWorkspaceScript / start_workspace_script / "workspace.script.start" [Operate, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::StartWorkspaceScript => $crate::workspace_services::WorkspaceScriptOutcome;
+            /// Stop requires qualified actual cleanup, not a metadata acknowledgement.
+            StopWorkspaceScript / stop_workspace_script / "workspace.script.stop" [Operate, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::StopWorkspaceScript => $crate::workspace_services::WorkspaceScriptOutcome;
+            /// Restart requires the canonical predecessor lease and actual joined run.
+            RestartWorkspaceScript / restart_workspace_script / "workspace.script.restart" [Operate, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::RestartWorkspaceScript => $crate::workspace_services::WorkspaceScriptOutcome;
+            /// Read only a cached committed generated environment plan; never prepare it.
+            GetWorkspaceServiceEnv / workspace_service_env / "workspace.service.env" [Read, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::GetWorkspaceServiceEnv => $crate::workspace_services::ServiceEnvPlan;
+            /// Private service settings are direct Admin data, never generic node Read.
+            GetServiceSettings / service_settings / "service.settings" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::GetServiceSettings => $crate::workspace_services::ServicesAdminSettings;
+            /// Gateway choice grants no per-service publication consent.
+            SetServiceGateway / set_service_gateway / "service.set_gateway" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::SetServiceGateway => $crate::workspace_services::ServiceSettingsOutcome;
+            /// Explicit anonymous consent still needs canonical incarnation before any write.
+            SetServiceExposure / set_service_exposure / "service.set_exposure" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::SetServiceExposure => $crate::workspace_services::ServiceSettingsOutcome;
         }
     };
 }

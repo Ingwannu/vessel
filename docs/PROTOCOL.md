@@ -1983,3 +1983,22 @@ closed resource-refusal detail; it never carries raw logs or environment.
 ## Unassigned command-kind metadata values (ADR0085)
 
 AgentCommand.kind optionally carries command, skill or unknown. Absence remains root-only; unknown future kinds do not enable inline completion. COMPOSER_COMMANDS is None in this values carrier. Every peer-visible conversation/event path strips kind until assignment, including forwarded replies and legacy event projections. No method, RPC row or protocol number is introduced, and actual discovery/classification remains separate.
+
+### Staged workspace service contract (ADR 0066)
+
+The workspace script/service and dedicated service-settings rows are staged
+values under `workspace_services::WORKSPACE_SERVICES`, still unassigned.
+They use unary responses and the existing typed client admission; a staged
+Handler answers Unsupported and compile-time checks forbid assigning its
+number before wiring. Every new row is explicitly nonforwardable. Private
+settings Read and writes require direct Admin at the future real boundary;
+agents and delegated principals cannot gain it from a claimed origin/scope.
+No generic node-settings Read/write carries the private services document.
+
+Snapshot, planned port, health, generated environment and proxy URL values
+are observations, not process/socket/incarnation or publication authority.
+Compact configuration summaries and nested NeedsApproval replies retain
+the complete project approval display gate. The detailed DTO/cursor/bounds,
+permission and activation prerequisites are in
+`plans/workspace-services-api.md`. No runtime handler, private consent schema,
+service listener or browser capability is enabled by the staged rows.

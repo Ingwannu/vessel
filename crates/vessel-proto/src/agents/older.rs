@@ -252,6 +252,16 @@ impl Reply {
             | Self::ListScripts(_)
             | Self::RunScript(_)
             | Self::RestartScript(_)
+            // Service observations carry terminal/session ids, not an agent
+            // spec. Their staged methods are refused before any dispatch.
+            | Self::ListWorkspaceScripts(_)
+            | Self::StartWorkspaceScript(_)
+            | Self::StopWorkspaceScript(_)
+            | Self::RestartWorkspaceScript(_)
+            | Self::GetWorkspaceServiceEnv(_)
+            | Self::GetServiceSettings(_)
+            | Self::SetServiceGateway(_)
+            | Self::SetServiceExposure(_)
             | Self::ListPorts(_)
             | Self::ListAgents(_)
             | Self::AddAgent(_)

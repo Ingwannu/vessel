@@ -84,6 +84,7 @@ pub mod usage_reports;
 pub mod voice;
 pub mod workspace;
 pub mod workspace_labels;
+pub mod workspace_services;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
