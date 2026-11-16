@@ -215,3 +215,13 @@ that turn's action slot. This does not erase the node's durable boundary/image.
 Dispatch must still resolve the captured EntryKey/source under the same bound
 owner before using any current numeric position. These are future state tests,
 not a promise that the current renderer already has the registration contract.
+
+A7 is preparing conversation_settle_if_scoped as the staged owner-check wrapper,
+not a checkpoint implementation approval. It receives the original binding and
+opaque Timeline ticket plus an immutable owner validator. A mismatched W9 pending
+correlation returns no result and leaves both ticket and state untouched. A match
+consumes once before applying the mutable owner callback in the same synchronous
+UI update. Its owner tests will cover wrong-correlation retention, single consume
+and hidden binding isolation. W9 will supply its exact concrete state/readiness
+API only after canonical checked producer references exist; do not consume this
+proposed wrapper before A7 announces its checked packet.
