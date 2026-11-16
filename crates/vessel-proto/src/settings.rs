@@ -41,6 +41,15 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
+    /// Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
+    /// `None` means this peer cannot generate.
+    #[serde(
+        default,
+        deserialize_with = "MetadataSettings::deserialize_optional_view",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[cfg_attr(feature = "ts", ts(as = "Option<MetadataSettings>", optional))]
+    pub metadata: Option<MetadataSettings>,
 }
 
 impl NodeSettings {
@@ -48,7 +57,13 @@ impl NodeSettings {
     /// response. Unassigned fields stay hidden even from current peers.
     #[must_use]
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL)
+        let recovery =
+            self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
+        let base = recovery.as_ref().unwrap_or(self);
+        match base.for_protocol_with_names(protocol, crate::GENERATED_NAMES) {
+            Some(projected) => Some(projected),
+            None => recovery,
+        }
     }
 
     fn for_recovery_protocol(
@@ -61,6 +76,19 @@ impl NodeSettings {
             let mut settings = self.clone();
             settings.restart_recovery = RestartRecovery::default();
             settings
+        })
+    }
+
+    fn for_protocol_with_names(
+        &self,
+        protocol: crate::ProtocolVersion,
+        names: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let readable = names.is_some_and(|version| protocol >= version);
+        (!readable && self.metadata.is_some()).then(|| {
+            let mut older = self.clone();
+            older.metadata = None;
+            older
         })
     }
 }
@@ -173,7 +201,7 @@ pub struct GetNodeSettings {}
 /// build wrote must still parse after a downgrade, keeping what this build
 /// knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
 /// holds the rule.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -185,6 +213,10 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Strict generated-name patch; an empty list resets automatic selection.
+    /// Refused until `GENERATED_NAMES` is assigned at integration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<MetadataSettings>,
 }
 
 #[cfg(test)]
@@ -200,6 +232,7 @@ mod tests {
                 enabled: true,
                 prompt: "custom boundary prompt".parse().unwrap(),
             },
+            metadata: None,
         };
         let required = crate::PROTOCOL_VERSION;
         let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
@@ -266,3 +299,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod names_tests;

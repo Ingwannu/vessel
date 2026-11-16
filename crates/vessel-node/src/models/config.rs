@@ -205,6 +205,12 @@ impl Routes {
         Some((route, provider))
     }
 
+    /// Borrow for staged metadata selection without cloning client views.
+    /// Wiring removes this test-only attribute with the staged selector.
+    pub(super) fn entries(&self) -> impl Iterator<Item = &Route> {
+        self.routes.values()
+    }
+
     /// Every route as clients see it: no URL, header or secret name.
     pub(crate) fn list(&self) -> Vec<ModelRoute> {
         self.routes

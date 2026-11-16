@@ -9,7 +9,7 @@ crates/vessel-agent/src/codex/asks.rs 612
 crates/vessel-agent/src/codex/session.rs 1036
 crates/vessel-client/src/client.rs 723
 crates/vessel-fleet/src/plan.rs 524
-crates/vessel-llm/src/client.rs 786
+crates/vessel-llm/src/client.rs 747
 crates/vessel-llm/src/front/anthropic.rs 818
 crates/vessel-llm/src/front/responses.rs 945
 crates/vessel-llm/src/ir.rs 743
@@ -19,8 +19,8 @@ crates/vessel-llm/src/wire/anthropic.rs 646
 crates/vessel-llm/src/wire/responses.rs 882
 crates/vessel-lsp/src/manager.rs 576
 crates/vessel-node/src/fleet/links.rs 1192
-crates/vessel-node/src/models/proxy.rs 1592
-crates/vessel-node/src/node.rs 651
+crates/vessel-node/src/models/proxy.rs 1521
+crates/vessel-node/src/node.rs 644
 crates/vessel-node/src/transfers/mod.rs 515
 crates/vessel-proto/src/fleet.rs 663
 crates/vessel-relay/src/server/mod.rs 907

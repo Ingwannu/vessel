@@ -5,6 +5,8 @@
 //! this file maps each [`Write`] to its store operation, in its own
 //! savepoint (`isolated`), and records what the batch must do after it.
 
+mod workspace_labels;
+
 use std::sync::Arc;
 
 use rusqlite::{Connection, Transaction};
@@ -28,6 +30,7 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::WorkspaceLabels(write) => workspace_labels::apply(transaction, *write, effects),
         Write::Create { info, done } => session_answer(transaction, info.id, done, |connection| {
             log::create_session(connection, &info)
         }),

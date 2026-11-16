@@ -297,6 +297,16 @@ counter_id! {
     RequestId
 }
 
+uuid_id! {
+    /// One workspace-label observer generation; a restart invalidates cursors.
+    WorkspaceLabelGeneration
+}
+
+counter_id! {
+    /// Position of a committed catalog update within one label generation.
+    WorkspaceLabelSeq
+}
+
 counter_id! {
     /// Node-assigned id of one event subscription; unique per connection.
     SubscriptionId

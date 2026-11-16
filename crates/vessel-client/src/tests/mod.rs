@@ -11,6 +11,7 @@ mod skills;
 mod stream;
 mod unserved;
 mod websocket;
+mod workspace_labels;
 
 use std::num::NonZeroUsize;
 use std::path::PathBuf;

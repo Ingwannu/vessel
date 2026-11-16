@@ -57,6 +57,11 @@ pub struct WireError {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ErrorDetail {
+    /// A catalog or assignment mutation was refused without echoing its input.
+    WorkspaceLabel {
+        /// Stable label reason; clients never parse the diagnostic message.
+        reason: crate::workspace_labels::WorkspaceLabelFailure,
+    },
     /// Content-free diagnostic collection admission.
     Diagnostics {
         /// Resource refusal, never a source error message.

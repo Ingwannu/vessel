@@ -104,11 +104,10 @@ use vessel_llm::client::{Answer, Api, Endpoint, Redactor};
 use vessel_llm::sse::{SseDecoder, SseEvent, SseFrame, encode_comment, encode_event};
 use vessel_llm::wire::{anthropic, responses};
 use vessel_llm::{front, ir, passthrough, upstream};
-use vessel_proto::{
-    DurationMs, ModelCall, ModelFailure, ModelId, ModelStop, TokenCount, TokenUsage,
-};
+use vessel_proto::{DurationMs, ModelCall, ModelFailure, ModelId, ModelStop};
 
 use super::Models;
+use super::accounting::{failure_class, stop_of, usage};
 use super::config::{Flavor, Provider, Route, model_api};
 use super::token::Holder;
 
@@ -330,7 +329,7 @@ fn admit(models: &Models, parts: &Parts, front: Front) -> Result<Admitted, Box<R
             ),
         )));
     };
-    let Some(slots) = models.slot(holder.session.id()) else {
+    let Some(slots) = models.slot(&holder.session) else {
         tracing::info!(session = %holder.session.id(), "refused a model call past the limits");
         return Err(Box::new(refuse(
             front,
@@ -749,42 +748,8 @@ impl Record {
     }
 }
 
-const fn failure_class(class: ir::FailureClass) -> ModelFailure {
-    match class {
-        ir::FailureClass::RateLimited => ModelFailure::RateLimited,
-        ir::FailureClass::Overloaded => ModelFailure::Overloaded,
-        ir::FailureClass::UpstreamError => ModelFailure::UpstreamError,
-        ir::FailureClass::RefusedRequest => ModelFailure::RefusedRequest,
-        ir::FailureClass::ContextTooLong => ModelFailure::ContextTooLong,
-        ir::FailureClass::Timeout => ModelFailure::Timeout,
-        ir::FailureClass::Truncated => ModelFailure::Truncated,
-        ir::FailureClass::Unauthorized => ModelFailure::Unauthorized,
-    }
-}
-
-const fn stop_of(stop: ir::StopReason) -> ModelStop {
-    match stop {
-        ir::StopReason::EndTurn => ModelStop::EndTurn,
-        ir::StopReason::ToolUse => ModelStop::ToolUse,
-        ir::StopReason::MaxTokens => ModelStop::MaxTokens,
-        ir::StopReason::StopSequence => ModelStop::StopSequence,
-        ir::StopReason::Refusal => ModelStop::Refusal,
-        ir::StopReason::PauseTurn => ModelStop::Pause,
-    }
-}
-
-const fn usage(usage: &ir::Usage) -> TokenUsage {
-    TokenUsage {
-        input: TokenCount::new(usage.input),
-        cache_read: TokenCount::new(usage.cache_read),
-        cache_write: TokenCount::new(usage.cache_write),
-        output: TokenCount::new(usage.output),
-        reasoning: TokenCount::new(usage.reasoning),
-    }
-}
-
 /// The call's endpoint, with its key read now.
-async fn endpoint(models: &Models, provider: &Provider) -> Result<Endpoint, String> {
+async fn endpoint(models: &Models, provider: &Provider) -> Result<Endpoint, super::KeyError> {
     Ok(Endpoint {
         api: provider.flavor.api(),
         base_url: provider.base_url.clone(),
@@ -912,7 +877,7 @@ async fn pass(
         Ok(endpoint) => endpoint,
         Err(message) => {
             record.finish(&Outcome::failed(ir::FailureClass::Unauthorized));
-            return refuse(front, Refusal::Forbidden, &message);
+            return refuse(front, Refusal::Forbidden, &message.to_string());
         }
     };
     let answer = match models.client().send(&endpoint, passed.body, &headers).await {
@@ -1246,7 +1211,7 @@ async fn translate(
         Ok(endpoint) => endpoint,
         Err(message) => {
             record.finish(&Outcome::failed(ir::FailureClass::Unauthorized));
-            return refuse(front, Refusal::Forbidden, &message);
+            return refuse(front, Refusal::Forbidden, &message.to_string());
         }
     };
     let answer = match models.client().send(&endpoint, body, &[]).await {
@@ -1295,43 +1260,7 @@ fn upstream_body(
     provider: &Provider,
     neutral: &ir::Request,
 ) -> Result<Bytes, vessel_llm::error::TranslateError> {
-    let source = provider.name.to_string();
-    let bytes = match &provider.flavor {
-        Flavor::Anthropic {
-            adaptive_thinking,
-            default_max_tokens,
-        } => serde_json::to_vec(&upstream::anthropic::request(
-            neutral,
-            &upstream::anthropic::Options {
-                provider: source,
-                default_max_tokens: *default_max_tokens,
-                adaptive_thinking: *adaptive_thinking,
-            },
-        )?)?,
-        Flavor::Responses { sampling } => serde_json::to_vec(&upstream::responses::request(
-            neutral,
-            &upstream::responses::Options {
-                provider: source,
-                sampling: *sampling,
-            },
-        )?)?,
-        Flavor::Chat {
-            parallel_tool_calls,
-            max_tokens_field,
-            reasoning,
-            replay_reasoning,
-        } => serde_json::to_vec(&upstream::chat::request(
-            neutral,
-            &upstream::chat::Options {
-                provider: source,
-                parallel_tool_calls: *parallel_tool_calls,
-                max_tokens_field: *max_tokens_field,
-                reasoning: *reasoning,
-                replay_reasoning: *replay_reasoning,
-            },
-        )?)?,
-    };
-    Ok(Bytes::from(bytes))
+    provider.upstream_options().streamed(neutral)
 }
 
 enum Decoder {

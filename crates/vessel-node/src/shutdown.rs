@@ -16,6 +16,7 @@ const FORWARDER_GRACE: Duration = Duration::from_secs(2);
 
 /// Everything that must be stopped, in [`Teardown::run`]'s order.
 pub(crate) struct Teardown {
+    pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) runtime: Arc<SessionRuntime>,
     /// Admitted settings writes must finish I/O and apply before stop returns.
     pub(crate) settings: Arc<crate::settings::Settings>,
@@ -40,7 +41,8 @@ impl Teardown {
     /// 4. Close connections; each flushes what it already queued (bounded by
     ///    the RPC close timeout).
     /// 5. Join settings writers after every RPC caller has finished.
-    /// 6. Close the store, folding its WAL into the database file.
+    /// 6. Drain accepted label commits and their catalog publication.
+    /// 7. Close the store, folding its WAL into the database file.
     pub(crate) async fn run(self) {
         tracing::info!("stopping sessions");
         self.runtime.shutdown().await;
@@ -58,6 +60,9 @@ impl Teardown {
         let _first_close = self.connections.close();
         self.connections.wait().await;
         self.settings.shutdown().await;
+        if self.workspace_labels.close().await.is_err() {
+            tracing::warn!("label publication actor stopped before shutdown drain");
+        }
         self.store.close().await;
         tracing::info!("node stopped");
     }

@@ -44,6 +44,8 @@ pub(crate) enum RegistryChange {
 /// One snapshot read transaction returns placement and ownership together.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredRegistry {
+    /// Ordered label names hydrated in the same read transaction; never persisted here.
+    pub labels: Vec<vessel_proto::workspace_labels::WorkspaceLabelAssignments>,
     /// Global ordering token changes in the transaction that mutates any registry row.
     pub revision: RegistryRevision,
     /// Empty workspaces are retained independently of session membership.
