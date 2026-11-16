@@ -65,8 +65,9 @@ mod limits;
 mod login_status;
 mod lookup;
 pub use limits::{
+    AccountSourceAccess, AccountUsageIdentity, AccountUsageObservation, AccountUsageProbe,
     LimitBinding, LimitContext, LimitEnvironment, LimitLoginIdentity, LimitProbe, LimitProbeResult,
-    limits_binding,
+    RecordedUsageFormat, limits_binding,
 };
 mod mcp;
 mod memory;
@@ -103,5 +104,11 @@ pub use sessions::{
 pub use setup::{
     AccountHome, AddProfileError, Install, InstallPart, account_homes, add_profile, binary,
     home_variable, installs, login_command, missing,
+};
+
+mod account_usage;
+pub use account_usage::{
+    AccountUsageDecodeFailure, AccountUsageError, AccountUsageOutcome, MAX_USAGE_VENDOR_BYTES,
+    decode_account_usage,
 };
 pub use system_prompt::{SystemPromptSupport, system_prompt_support};

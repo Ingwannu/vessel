@@ -79,6 +79,7 @@ mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
 pub mod usage;
+pub mod usage_reports;
 pub mod voice;
 pub mod workspace;
 pub mod workspace_labels;

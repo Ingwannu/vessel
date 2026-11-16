@@ -114,18 +114,39 @@ pub(super) type Admission = Arc<OwnedSemaphorePermit>;
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct TokenKey([u8; 32]);
 impl TokenKey {
-    pub(super) fn new(source: vessel_proto::limits::LimitLoginStore, token: &str) -> Self {
-        use sha2::{Digest, Sha256};
+    pub(super) fn account(
+        source: vessel_proto::usage_reports::BuiltinUsageSource,
+        token: &str,
+    ) -> Self {
+        use vessel_proto::usage_reports::BuiltinUsageSource;
         let vendor = match source {
-            vessel_proto::limits::LimitLoginStore::ClaudeCode => "anthropic",
-            vessel_proto::limits::LimitLoginStore::Codex
-            | vessel_proto::limits::LimitLoginStore::OpenCode => "chatgpt",
+            BuiltinUsageSource::Claude => "anthropic",
+            BuiltinUsageSource::Codex => "chatgpt",
+            BuiltinUsageSource::Copilot => "copilot",
+            BuiltinUsageSource::Cursor => "cursor",
+            BuiltinUsageSource::Grok => "grok",
+            BuiltinUsageSource::Kimi => "kimi",
+            BuiltinUsageSource::MiniMax => "minimax",
+            BuiltinUsageSource::OpenCodeGo => "opencode-go",
+            BuiltinUsageSource::Zai => "zai",
         };
+        Self::vendor(vendor, token)
+    }
+    fn vendor(vendor: &str, token: &str) -> Self {
+        use sha2::{Digest, Sha256};
         let mut hash = Sha256::new();
         hash.update(vendor.as_bytes());
         hash.update([0]);
         hash.update(token.as_bytes());
         Self(hash.finalize().into())
+    }
+    pub(super) fn new(source: vessel_proto::limits::LimitLoginStore, token: &str) -> Self {
+        let vendor = match source {
+            vessel_proto::limits::LimitLoginStore::ClaudeCode => "anthropic",
+            vessel_proto::limits::LimitLoginStore::Codex
+            | vessel_proto::limits::LimitLoginStore::OpenCode => "chatgpt",
+        };
+        Self::vendor(vendor, token)
     }
 }
 enum Entry {

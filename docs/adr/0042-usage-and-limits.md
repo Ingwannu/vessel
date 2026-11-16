@@ -312,3 +312,282 @@ named usage protocol boundary in `vessel-proto::usage`. The final number is
 given at merge. The method table accepts constant expressions so changing
 that one boundary cannot accidentally leave replay provenance behind. This
 changes no wire shape or supported behavior at the current boundary.
+
+## Addendum: source account reports for all usage surfaces
+
+Status: proposed. Existing protocol-21 accounting and protocol-23 saved-login
+limits remain authoritative and unchanged. The new report family has no assigned
+protocol number and must not be advertised or called before its consumers and
+method-table row are reviewed.
+
+### Purpose and intent
+
+A profile's saved-login quota is not the full report model used by Paseo's
+Usage cards, sidebar pins, host-filtered modal, per-agent details and CLI.
+Those surfaces need stable source/account report identities, independent
+windows, balances, details, source tone and successful-observation provenance.
+
+### Existing implementation and constraints
+
+`usage.query` is the retained reported ledger; `usage.limits` reads one bound
+saved account with immutable launch association. `usage.lookup` controls saved
+sign-in use. Do not reconstruct a generic report by treating ledger totals as
+quota, identifying an account by its label, or discarding failed refresh state.
+The current built-in probes support Claude and OpenAI saved sign-ins through
+Claude Code, Codex and OpenCode. The plugin helper contract (ADR 0079) is an
+open extension point, not permission to introduce a second report schema.
+
+### Alternatives considered
+
+1. Extend `UsageLimits` into an unbounded source/plugin payload: would conflate
+   its saved-profile association with source-account discovery and break clients.
+2. Fetch vendors from each UI: would move credentials off the owning machine,
+   duplicate policy/cache semantics and exclude the CLI.
+3. Add a typed report family, reuse the reviewed limits engine where applicable,
+   and supply one open source registry shared with the plugin helper adapter.
+
+### Choice and reasons
+
+Choose the third. Define one `usage_reports` contract with validated source,
+account and report identifiers; a report id is opaque to clients and can be
+resolved by the same discovery path used for listing. Typed scope distinguishes
+all/report-id selection from a session's launch association, so combining a
+session selector with report ids is unrepresentable.
+
+A report entry carries source/account metadata and an exhaustive attempt state:
+not requested, refreshing, available, unavailable, or failed. Only successful
+observations own values and their timestamp. Failed or pending attempts may
+retain a same-binding success, visibly marked retained. Windows preserve used
+and remaining percentages separately, source-provided tone, default-summary
+metadata, reset instant, optional run-out forecast and shortfall. Balances keep
+reported units and values; no prices or estimates. Details declare visibility.
+All lists and identifiers are bounded at decoding and construction edges; an
+oversized or duplicate identity refuses the response instead of silently losing
+an account. Bounds and serialization tests live beside the types.
+
+The registry owns discovery, cache identity, per-source admission,
+identical-fetch coalescing, immutable generation and successful history. Paseo's
+five-minute source freshness was the reference design; Vessel's executable Read
+is strictly cache-only, including an old observation or a miss. Expiry does not
+initiate credential discovery or a vendor fetch; an explicit authorized Refresh
+is required. Source adapters own provider schemas, fixed network destinations and
+local login reading; the registry never inspects opaque plugin-owned inputs.
+A source-local opaque login reference keeps those inputs in its adapter. Plugin
+Ready/discover/fetch uses these same report types, with the plugin generation
+fence and cancellation from ADR 0079. No helper is claimed available before
+its actual adapter is wired.
+
+### Credential use and authorization
+
+Preserve the existing floor: lookup defaults off; Admin changes it; Read is
+cache-only and cannot read a credential, invoke discovery that reads a login,
+or reach a vendor. Explicit Refresh additionally requires Operate and may
+perform bounded source discovery/fetch on the owning machine. A cached miss is
+not an invitation to perform I/O. The session scope uses the reviewed immutable
+launch binding and current provider proof before and after awaiting work.
+Read-only callers receive no monetary balances or Operate-only details.
+Off cancels admitted discovery/fetch, invalidates its publishing generation,
+forgets snapshots, and acknowledges only after the persisted policy applies.
+
+Built-in HTTP calls keep fixed vendor origins, no redirects, no proxy/header
+inheritance, bounded bodies and existing deadlines. Adapters never refresh or
+write the agent's saved login. Safe typed failures replace raw HTTP/credential
+messages. No credential, fingerprint, opaque helper input or private path is
+serialized in the public report, logged or written to diagnostics. Test sources
+and recorded logins are test-only or under the existing fakes isolation; they
+cannot supply a production report.
+
+### Advantages, costs and effects
+
+One report/cache model serves the native UI, page, CLI and plugin source
+adapter, while the existing accounting/limit calls remain compatible. Source
+identity is distinct from account and from presentation. Added costs are a new
+bounded report family, source adapters and lifecycle tests. Streaming individual
+updates requires the reviewed method-table/observation contract; it must not be
+improvised as a second protocol table. Any initially unsupported source or
+transport path stays explicit in the package tracker and cannot count as parity.
+
+### Captured identity read (F3 review correction)
+
+An after-check cannot exclude selector ABA: outer A, inner resolution B, final A.
+The generic saved-report path therefore sends the captured canonical account and
+resolved LimitBinding directly to the existing limits actor, never through a
+service that resolves the profile again. It still verifies current session/provider
+association, account equality and policy generation before publication. No global
+profile generation is needed to distinguish the actual read's provenance.
+
+SourceReportEntry serializes distinct validated source/account fields as well as
+its opaque handle. One constructor derives all three atomically; deserialization
+rejects disagreement. Consumers group by those typed fields and inspect by the
+opaque handle. Labels and client-side handle parsing cannot define identity.
+
+### Additional-source consent does not inherit the legacy grant
+
+[Decision Log]
+- Purpose: the old global lookup choice disclosed three saved-login stores.
+  Reusing On as permission for seven additional stores would exceed that consent.
+- Reuse: preserve the global default-Off Admin floor and its three existing
+  adapters. Add bounded source metadata and explicit revisioned source grants;
+  use the store's existing owner-only atomic replacement rather than a database
+  containing report snapshots or credentials.
+- Choice: known store and fixed-recipient enums provide translated disclosure
+  without actual paths/endpoints. InheritedGlobal is only for the three existing
+  projections. New sources start Off; unsupported adapters cannot appear Enabled.
+  Admin usage.source_lookup accepts an exact registered id/current revision and
+  never fetches. Explicit Refresh still additionally requires Operate and global On.
+- Failure rules: missing/invalid source grants fail Off; duplicate/oversized
+  policies refuse as a whole. Changed disclosure requires fresh consent; source
+  revocation invalidates pending publication and snapshots before acknowledging
+  persisted policy. The plugin runtime must supply its own real disclosure and
+  provenance before any plugin source becomes supported.
+- Costs: a separate consent control for newly supported sources; it avoids silently
+  changing credential-use authority when a node gains a provider adapter.
+
+The new setter's pending protocol remains None. Its skeleton refuses Unsupported
+until the actual owner/adapters are connected; values and persistence tests alone
+are not executable source or consumer parity.
+
+### F3 executable source ownership and refresh presentation
+
+The additional fixed adapters and source actor now live in the modules documented
+in ARCHITECTURE's source/account usage section; protocol assignment remains pending.
+The actor owns the consent write even if its requesting RPC disappears. Source Off
+invalidates current work and copied snapshots before acknowledging the persisted
+choice; global Off remains the floor. Fixed known vendor store/recipient metadata
+lets clients translate exact disclosures without credential paths or endpoints.
+
+An explicit Refreshing state records the immediately preceding attempt's typed
+Available/Unavailable origin. Only an actually current success remains summary-
+eligible while pending; a failed/unavailable retained observation stays card-only
+and keeps its original success time. Legacy refresh states with no such proof
+project Unavailable. No percentage or forecast diagnoses a stopped turn.
+
+The separate feature-gated recorded node executable exercises production policy,
+cache and projection with scratch-only synthetic inputs. It does not establish
+successful live vendor support, assigned wire admission, plugin execution or
+additional-source immutable launch association. Those remain separate acceptance
+conditions; no local Cargo or manual VM binary copy is a validation substitute.
+
+### F3 final node verification freeze
+
+The two adapter families share the same configured admission context, rather than
+minting separate permits for saved-login and additional-source jobs. Actual work
+keeps its permit until it stops. The additional HTTP adapter now selects policy
+cancellation around the actual request future; precancelled work never polls the
+request, and cancellation after admission drops it. Network-free barrier tests
+exercise those two production paths without credentials or vendor endpoints.
+
+Exact `9bd4a9c86` passed the five changed crates' all-target strict Clippy check,
+including TypeScript and the required usage-fixture feature, in run
+`wp-usage-consent-values-20261115T142252Z-9bd4a9c8`. The two HTTP cancellation
+regressions passed in `wp-usage-source-tests-20261115T142251Z-9bd4a9c8`. Earlier
+four-crate library coverage passed 746 tests at `05b7a342`; the later real mixed-
+family admission regression passed at `d5f1804b`. Those are distinct snapshots.
+Generated declarations recovered from the latter source are committed unchanged;
+current freshness and the complete root gate remain owed at this freeze.
+
+The recorded fixture's earlier managed export passed independent source, recipe,
+feature and byte checks. Its isolated UID/GID-1000 boot, same-source CLI status,
+normal stop and scratch permissions were checked separately. That older binary
+is not evidence for this frozen runtime, assigned report calls or UI acceptance.
+No production service, credential, vendor or permission change was performed.
+
+### Global revocation reaches admitted source work
+
+[Decision Log]
+- Purpose: committed global Off must stop credential results from beginning vendor
+  HTTP and must drop active HTTP even if the settings caller disappears.
+- Constraint: the legacy policy actor already cancels its canonical observation
+  generation independently of its RPC. Caller-owned registry cleanup and Clear
+  cannot be the enforcement boundary. Node/source cancellation and physical
+  reader permits must remain intact.
+- Choice: each independent source job observes that captured global generation,
+  cancels its existing probe token and awaits the same actual work. The source
+  owner separately observes the canonical generation to invalidate entries and
+  its copied-snapshot generation without a follow-up RPC command. No new policy
+  store, authority, generation allocator or detached cancellation task is added.
+- Compatibility: source grants survive global Off; On does not fetch. Existing
+  source Off, node shutdown, bounds, cooldowns, coalescing and physical draining
+  remain. Stale global observations are refused before they can prune current work.
+- Regression: real guarded service/actors warm a success, hold credential work or
+  a network-free HTTP future, commit durable Off, block the setter's registry
+  cleanup and drop its future before Clear. Tests require independent cache
+  invalidation, zero late HTTP polls or active HTTP drop, and fresh Off/On ids.
+  Fakes-only recorded HTTP is an explicit format-boundary capability; it never
+  selects an arbitrary endpoint or appears in installed node arguments.
+
+The original frozen whole run `wp-usage-source-tests-20261115T145906Z-5421d793`
+is retained RED: web installation passed; fmt stopped on this package's harness
+re-export ordering before any later gate step. Corrected source, strict/runtime
+checks, current generated freshness and the eventual changed-source whole gate
+remain owed. No vulnerability fix or package acceptance is claimed from inspection.
+
+The first correction library run at `ad82f001` passed 347 tests and failed the
+two new regressions at their recovery assertion. All preceding revocation/drain
+assertions executed, but the tests incorrectly required the entire cached list
+to be empty after Off/On: legacy configured-account metadata may legitimately
+remain as NotRequested or unavailable entries without successful observations.
+The corrected assertion requires no Cursor source account/id and no successful
+or retained values in any returned entry. It preserves the no-fetch check and
+new-id/Available explicit-refresh control. This remains a failed run, with the
+corrected exact execution and strict check still owed; production code is unchanged.
+
+### Saved report admission retains the captured policy
+
+[Decision Log]
+- Purpose: an old generic report request must not start saved-login work by
+  borrowing a later On after an intervening Off.
+- Constraint: identity registration and actual legacy actor admission have an
+  await between them. A final publication check prevents a result escaping but
+  cannot undo a credential read or vendor operation already admitted.
+- Choice: the internal generic-report read carries the existing policy
+  Observation into the serialized limits actor. It refuses a revoked observation
+  before consulting the cache or starting work. Direct legacy `usage.limits`
+  keeps admission-time policy semantics; no wire or new policy generation exists.
+- Alternative: another service-side precheck leaves the same queueing race.
+- Regression: pause the real pipeline after identity registration, complete
+  Off/On in the actual actor, then release admission. The stale request must
+  conflict and leave the cache NotRequested; a new request must read the same
+  synthetic recorded sign-in/body successfully. No real sign-in or HTTP is used.
+
+The earlier A/B fixture incorrectly supplied CODEX_HOME to the route-fact reader,
+which does not capture harness-home variables. It now uses HarnessEnv's existing
+home reader and asserts that A and B proofs differ while their account identity
+is equal. Earlier passing executions did not prove distinct resolved homes;
+stronger corrected execution is owed.
+
+### Explicit refresh completion is source-specific
+
+Additional-source Refresh requests await/join their bounded source job. A cached
+Read may immediately expose a Refreshing attempt admitted elsewhere. The three
+legacy saved-login limits retain their existing behavior: the first Refresh
+awaits its actual probe, but a read/Refresh arriving while that binding is already
+Refreshing immediately returns that state, including through reports/inspect.
+The complete list/inspect budget bounds the request; it is not a universal promise
+that every returned report is terminal. Consumers own their local request pending
+state separately from the cached attempt phase, so a foreign Refreshing snapshot
+cannot permanently disable an explicit refresh or a cache-only retry.
+
+### Account HTTP activation waits for tracked native DNS (ADR 0104)
+
+The usage client in `vessel-harness/src/limits/http.rs::Http::new`, also used by
+`AccountUsageProbe::Local`'s body reader, is a known third consumer of the shared
+tracked DNS resolution primitive (after NodeLink relay and dictation endpoints).
+Its current reqwest builder uses the default resolver. Cancelling the async body
+future does not establish that an already-started native resolver closure ended;
+the two-request admission limit must not be presented as a physical DNS drain
+witness. This is a source-derived limitation, not an executed DNS or vendor probe.
+
+[Decision Log]
+- Purpose and intent: keep actual native DNS work owned through completion using
+  the one shared ADR 0104 primitive and reqwest's `dns_resolver` hook.
+- Existing constraints: recorded fixture tests bypass native resolution; successful
+  request cancellation, credential drain and the product whole do not prove it.
+- Alternatives considered: a private usage resolver, a fork and interpreting async
+  cancellation as physical completion would duplicate ownership or misstate proof.
+- Choice and reason: bounded backend preparation may be reviewed with an explicit
+  activation hold. Both new feature constants and all three new account method
+  rows stay unassigned (`None`) until the reviewed shared resolver is wired.
+- Impact: no active-readiness or physical-DNS-drain claim. No new worker whole is
+  requested for this documentation; the eventual receiving integration owns the
+  shared consumer checks and whole gate. Existing legacy behavior is unchanged.
