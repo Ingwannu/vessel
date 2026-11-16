@@ -223,7 +223,7 @@ fn the_toolbar_shows_on_hover_or_keys_and_the_shaded_bar_dismisses(cx: &mut Test
 
 #[gpui::test]
 fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAppContext) {
-    use gpui::{Modifiers, ScrollDelta, ScrollEvent, point, px};
+    use gpui::{Modifiers, ScrollDelta, ScrollEvent};
     use vessel_app_view::composer::viewer::{Extent, MIN_SCALE, Viewport};
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
@@ -244,7 +244,7 @@ fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAp
     // (20-point actions 4 apart, or 32 apart 4 in the compact layout).
     let gap = if phone { 42.0 } else { 30.0 };
     for (x, y) in [(190.0, 20.0), (60.0, 2.0), (4.0, 20.0), (gap, 18.0)] {
-        cx.simulate_click(point(px(width - x), px(top + y)), Modifiers::none());
+        cx.simulate_click(from_right(width, top, x, y), Modifiers::none());
         cx.run_until_parked();
         shell.read_with(cx, |shell, _| {
             assert!(shell.areas.composer.lightbox.preview.is_some(), "{x},{y}");
@@ -256,7 +256,7 @@ fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAp
         shell.areas.composer.lightbox.viewport = Some(Viewport::new(canvas, canvas));
     });
     cx.simulate_event(ScrollEvent {
-        position: point(px(width - 190.0), px(top + 20.0)),
+        position: from_right(width, top, 190.0, 20.0),
         delta: ScrollDelta::Lines(point(0.0, 2.0)),
         ..Default::default()
     });
@@ -266,9 +266,15 @@ fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAp
         assert_eq!(scale.to_bits(), MIN_SCALE.to_bits());
     });
     // Outside the box, a press beside the image is the backdrop's.
-    cx.simulate_click(point(px(width - 190.0), px(top + 120.0)), Modifiers::none());
+    cx.simulate_click(from_right(width, top, 190.0, 120.0), Modifiers::none());
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
         assert!(shell.areas.composer.lightbox.preview.is_none());
     });
+}
+
+/// A point measured from the viewport's top right (`mul_add`: no arithmetic
+/// operator, as the lints ask).
+fn from_right(width: f32, top: f32, x: f32, y: f32) -> gpui::Point<gpui::Pixels> {
+    gpui::point(gpui::px(x.mul_add(-1.0, width)), gpui::px(y.mul_add(1.0, top)))
 }
