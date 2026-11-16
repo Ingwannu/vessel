@@ -36,10 +36,10 @@ pub use prefs::{
     Draft, DraftKey, DraftText, DraftTooLong, DraftsState, Grouping, InterfaceSize,
     InvalidActionId, InvalidKeyBinding, Kept, KeyBinding, LabelPick, LabelPickTooLong, LabelPicks,
     LaunchOnly, Layout, MAX_ACTIONS, MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT,
-    MAX_EDITS, MAX_LABEL_PICK_BYTES, MAX_LABEL_PICKS, MAX_MACHINES,
-    MachineDefaults, Notifications, OutOfRange, Panel, PreferenceChange, Preferences,
-    PreferencesState, Revision, SendKey, SessionSort, ShortcutEdit, ShortcutEdits, ShortcutTarget,
-    SidebarView, Theme, TooMany, TurnDelivery,
+    MAX_EDITS, MAX_LABEL_PICK_BYTES, MAX_LABEL_PICKS, MAX_MACHINES, MachineDefaults, Notifications,
+    OutOfRange, Panel, PreferenceChange, Preferences, PreferencesState, Revision, SendKey,
+    SessionSort, ShortcutEdit, ShortcutEdits, ShortcutTarget, SidebarView, Theme, TooMany,
+    TurnDelivery,
 };
 
 use std::fmt;

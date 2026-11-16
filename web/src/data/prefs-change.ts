@@ -24,7 +24,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   composer: { send: "enter", delivery: "queue" },
   shortcuts: {},
   notifications: { alerts: "off", title: true },
-  sidebar: { group: "machine", sort: "created", ended: true },
+  sidebar: { group: "machine", sort: "created", ended: true, labels: [] },
   defaults: {},
 };
 
@@ -103,6 +103,11 @@ export function applyChange(
       return { ...prefs, sidebar: { ...prefs.sidebar, sort: change.value } };
     case "sidebar_ended":
       return { ...prefs, sidebar: { ...prefs.sidebar, ended: change.value } };
+    case "sidebar_labels":
+      return {
+        ...prefs,
+        sidebar: { ...prefs.sidebar, labels: change.value.picks },
+      };
     case "shortcuts":
       return {
         ...prefs,

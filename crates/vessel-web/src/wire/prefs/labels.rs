@@ -65,7 +65,7 @@ impl<'de> Deserialize<'de> for LabelPick {
 
 /// No picks: every workspace is listed.
 #[must_use]
-pub const fn no_picks() -> LabelPicks {
+pub(super) const fn no_picks() -> LabelPicks {
     Bounded::empty()
 }
 

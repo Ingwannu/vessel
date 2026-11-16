@@ -51,9 +51,8 @@ pub use bounded::{
 pub use change::{PreferenceChange, ShortcutEdit, ShortcutTarget};
 pub use drafts::{Draft, DraftKey, DraftText, DraftTooLong, DraftsState, MAX_DRAFT};
 pub use keys::{ActionId, InvalidActionId, InvalidKeyBinding, KeyBinding};
-pub use labels::{
-    LabelPick, LabelPickTooLong, LabelPicks, MAX_LABEL_PICK_BYTES, MAX_LABEL_PICKS, no_picks,
-};
+use labels::no_picks;
+pub use labels::{LabelPick, LabelPickTooLong, LabelPicks, MAX_LABEL_PICK_BYTES, MAX_LABEL_PICKS};
 
 /// The most keys bound to one action.
 pub const MAX_BINDINGS: usize = 2;
