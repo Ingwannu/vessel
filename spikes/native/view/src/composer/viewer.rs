@@ -176,7 +176,7 @@ impl Viewport {
         );
     }
 
-    /// Modifier-wheel zoom uses Paseo's bounded exponential step.
+    /// Wheel zoom uses Paseo's bounded exponential step.
     pub fn wheel(&mut self, delta: f32, focal: Position) {
         if delta.is_finite() {
             self.zoom((-delta * WHEEL_RATE).exp().clamp(ZOOM_OUT, ZOOM_IN), focal);

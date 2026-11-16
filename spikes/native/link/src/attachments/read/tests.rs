@@ -59,13 +59,15 @@ async fn the_real_client_reads_chunks_from_an_in_memory_peer_and_delivers_one_an
     };
     let (events, mut incoming) = mpsc::channel(1);
     spawn(Ok(selected), sent.clone(), events);
-    let event = incoming.recv().await.expect("read completed");
+    let event = peer::bounded(incoming.recv())
+        .await
+        .expect("read completed");
     assert!(
         matches!(event, Event::Files(Answer::Read { sent: ref actual, bytes: Some(ref bytes) })
         if actual == &sent && bytes.as_ref() == b"abcde")
     );
     drop(state);
-    let calls = task.await.unwrap();
+    let calls = task.finish().await;
     assert_eq!(calls.len(), 2);
     assert!(calls.iter().zip([0, 3]).all(|(call, offset)| matches!(call,
         vessel_proto::Call::ReadAttachment(ask) if ask.session == sent.session && ask.attachment == sent.attachment && ask.offset == offset)));
@@ -81,12 +83,12 @@ async fn a_malformed_peer_finishes_as_a_failed_picture_instead_of_running_foreve
         attachment: "00000000-0000-4000-8000-000000000002".parse().unwrap(),
     };
     assert!(matches!(
-        read(&selected, &sent).await,
+        peer::bounded(read(&selected, &sent)).await,
         Err(LinkError::AttachmentRead(ReadProblem::Stopped))
     ));
     drop(selected);
     drop(state);
-    assert_eq!(task.await.unwrap().len(), 2);
+    assert_eq!(task.finish().await.len(), 2);
 }
 
 #[tokio::test]
@@ -100,14 +102,14 @@ async fn retired_admission_cannot_send_even_to_the_same_original_node() {
     };
     state.clients["fixture"].retire();
     assert!(matches!(
-        read(&selected, &sent).await,
+        peer::bounded(read(&selected, &sent)).await,
         Err(LinkError::AttachmentRead(ReadProblem::Request(
             super::super::RequestProblem::Retired(_)
         )))
     ));
     drop(selected);
     drop(state);
-    assert!(task.await.unwrap().is_empty());
+    assert!(task.finish().await.is_empty());
 }
 
 #[tokio::test]
@@ -135,12 +137,12 @@ async fn a_same_node_reconnect_does_not_reauthorize_an_old_preview() {
         attachment: vessel_proto::AttachmentId::random(),
     };
     assert!(matches!(
-        read(&selected, &sent).await,
+        peer::bounded(read(&selected, &sent)).await,
         Err(LinkError::AttachmentRead(ReadProblem::Request(
             super::super::RequestProblem::Retired(_)
         )))
     ));
     drop(selected);
     drop(state);
-    assert!(peer.await.unwrap().is_empty());
+    assert!(peer.finish().await.is_empty());
 }

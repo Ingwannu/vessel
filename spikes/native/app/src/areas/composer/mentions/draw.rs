@@ -16,6 +16,45 @@ const ROWS: Motion = Motion {
     length: motion::QUICK,
 };
 
+/// The callback and list survive an exit animation together. Neither may
+/// resolve its old index against a newer response before the next repaint.
+#[derive(Debug, Clone)]
+pub(super) struct Drawn {
+    listing: Listing,
+    chosen: Option<usize>,
+    choice: Choice,
+}
+#[derive(Debug, Clone)]
+struct Choice {
+    request: Option<super::mentions::Request>,
+    rows: Vec<super::mentions::Suggestion>,
+}
+fn choice(shell: &Shell, target: DraftKey) -> Choice {
+    let owner = shell.file_menu(target);
+    let state = owner.borrow();
+    Choice {
+        request: state.model.request().cloned(),
+        rows: state.model.rows().iter().rev().cloned().collect(),
+    }
+}
+fn callback(
+    target: DraftKey,
+    choice: Choice,
+) -> impl Fn(&mut Shell, usize, &mut Window, &mut Context<'_, Shell>) + Clone + 'static {
+    move |shell, index, window, cx| {
+        let Some((request, row)) = choice.request.as_ref().zip(choice.rows.get(index)) else {
+            return;
+        };
+        let owner = shell.file_menu(target);
+        let state = owner.borrow();
+        if state.model.request() != Some(request) || state.model.row(index) != Some(row) {
+            return;
+        }
+        drop(state);
+        shell.commit_mention(target, request, &row.path, window, cx);
+    }
+}
+
 pub(in crate::areas::composer) fn menu(
     shell: &Shell,
     target: DraftKey,
@@ -26,7 +65,11 @@ pub(in crate::areas::composer) fn menu(
     shell.observe_file_menu(target, cx);
     let owner = shell.file_menu(target);
     let state = owner.borrow();
-    let current = listing(shell, target, cx);
+    let current = listing(shell, target, cx).map(|(listing, chosen)| Drawn {
+        listing,
+        chosen,
+        choice: choice(shell, target),
+    });
     let now = shell.areas.composer.now();
     let mut reveal = state.reveal.borrow_mut();
     reveal.follow(
@@ -46,16 +89,13 @@ pub(in crate::areas::composer) fn menu(
         window.request_animation_frame();
     }
     drop(reveal);
-    let (listing, chosen) = if let Some(current) = current {
+    let drawn = if let Some(current) = current {
         *state.last.borrow_mut() = Some(current.clone());
         current
     } else {
         state.last.borrow().clone()?
     };
-    let on_choose =
-        move |shell: &mut Shell, index, window: &mut Window, cx: &mut Context<'_, Shell>| {
-            shell.choose_mention(target, index, window, cx);
-        };
+    let on_choose = callback(target, drawn.choice);
     let id = match target {
         DraftKey::New => "draft-files",
         DraftKey::Session { .. } => "session-files",
@@ -63,8 +103,8 @@ pub(in crate::areas::composer) fn menu(
     };
     let list = autocomplete(
         id,
-        &listing,
-        chosen,
+        &drawn.listing,
+        drawn.chosen,
         &state.list,
         on_choose,
         ROWS,
@@ -169,3 +209,6 @@ fn listing(
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

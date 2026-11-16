@@ -68,6 +68,11 @@ impl std::fmt::Debug for Lightbox {
 }
 
 impl Lightbox {
+    #[cfg(test)]
+    pub(super) fn is_open(&self) -> bool {
+        self.preview.is_some()
+    }
+
     pub(super) fn new(cx: &mut App) -> Self {
         Self {
             preview: None,
@@ -170,8 +175,7 @@ impl Shell {
     }
 
     fn image_scrolled(&mut self, event: &ScrollEvent, cx: &mut Context<'_, Self>) {
-        if (event.modifiers.control || event.modifiers.platform)
-            && let Some(at) = pointer(event.position)
+        if let Some(at) = pointer(event.position)
             && let Some(viewport) = &mut self.areas.composer.lightbox.viewport
         {
             let delta = match event.delta {

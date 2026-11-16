@@ -1,5 +1,5 @@
 //! A bounded validated manifest stores keys and metadata, never arbitrary paths.
-use super::{LocalFailure, Store, create, private_entry};
+use super::{EntryKind, LocalFailure, Store, create, private_entry};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
@@ -87,7 +87,7 @@ impl Store {
     /// Preserves malformed state on disk and returns a typed manifest/I/O error.
     pub fn load_manifest(&self) -> Result<Manifest, LocalFailure> {
         let inner = self.0.lock().map_err(|_poisoned| LocalFailure::Barrier)?;
-        private_entry(&inner.root, true)?;
+        private_entry(&inner.root, EntryKind::Directory)?;
         read(&inner.root)
     }
 
@@ -98,7 +98,7 @@ impl Store {
     /// A serialization or disk failure retains the previous committed manifest.
     pub fn save_manifest(&self, manifest: &Manifest) -> Result<(), LocalFailure> {
         let inner = self.0.lock().map_err(|_poisoned| LocalFailure::Barrier)?;
-        private_entry(&inner.root, true)?;
+        private_entry(&inner.root, EntryKind::Directory)?;
         let _previous = read(&inner.root)?;
         let bytes = serde_json::to_vec(&Stored {
             version: VERSION,
@@ -127,7 +127,7 @@ pub(super) fn read(root: &std::path::Path) -> Result<Manifest, LocalFailure> {
     if !path.try_exists()? {
         return Ok(Manifest::default());
     }
-    private_entry(&path, false)?;
+    private_entry(&path, EntryKind::File)?;
     let file = std::fs::File::open(path)?;
     if file.metadata()?.len() > MAX_BYTES {
         return Err(LocalFailure::Manifest);
