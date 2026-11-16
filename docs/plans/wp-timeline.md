@@ -4,22 +4,28 @@ Current integration boundaries and exact evidence are indexed in
 [the acceptance map](wp-timeline-readiness.md); the sections below retain the
 source survey, implementation rationale and earlier scoped execution history.
 
-Status: A7 source includes announced app base9 `db42d9c5` (native1510/0/2).
-Actual4b591 pacing/source/Markdown-call App126 + Kit215 =341/0/2; later diff
-metadata/failure-prose changes and base9 remain outside that source. Exact6d8c0cd8
-View all-target strict passed and all-target tests1173/0/0 passed after the About
-registry fix. S2's canonical inventory
-is adopted; A7 appends its four rows after the unchanged95, with original vectors
-and license metadata preserved. Current full App/Kit strict is still owed.
-W23 rich fields/echo/receipts,
-W12 live resident cutover, K syntax and scoped Markdown host actions remain held.
+Status at 2026-11-16T01:23Z: A7 includes the announced app base13 `2ebeedf9`.
+Exact e66d658b App/Kit all-target tests passed410/0/2 (App155, Kit255), run
+`wp-timeline-models-20261116T003003Z-e66d658b`. This is current source execution,
+not a final whole native gate, capture set or V4 package pass. Earlier strict
+and View-only evidence remains bounded to the hashes in the acceptance map.
 
-Current base9 strict evidence: run
-`wp-timeline-state-tests-20261115T180046Z-5e7c1a14` completed View/Kit/App
-all-target Clippy with warnings denied and rc0. It includes the canonical glyph
-inventory append and cached diff truncation metadata. It precedes6729c607's
-borrowed failure-prose signature; App/Kit execution on5e7c1a14 remains queued.
-This is neither the final whole native gate nor UI/V4 acceptance.
+The separate native-only borrowed body packet8737a401d is executable-tree
+identical to tested289cf10a except its why-doc: View/Kit/App all-target strict0
+and full tests1530/0/2. Both V1 row276 P2 regressions execute and pass; bounded
+source recheck remains pending. Its modules stay literal cfg(test). The actual
+W4 caller and legacy diff delegation must activate atomically.
+
+Separate base13 preparations keep feature adoption explicit: Clone row Seat
+f264918c includes W4's exact companion, with strict/resident tests queued; the
+View-only exact-membership/user-stream prerequisite2d008494 has strict/tests
+queued; syntax output65c505f7 composes K's exact minimal resolver with the same
+virtual output engine and is also unverified. None is a moving-branch handoff.
+
+S2's published glyph prefix100 is preserved and A7 appends its four rows after
+it. W23 rich fields/events/receipts, W12 live resources and guarded transport,
+the shared HTML prompt range engine and scoped Markdown host actions remain
+held for their checked owners. Product optimistic Tail is still the legacy one.
 
 [Decision Log — ordered normal End]
 - Purpose: retain the final same-binding records before lifecycle seals ingress.
@@ -36,8 +42,8 @@ This is neither the final whole native gate nor UI/V4 acceptance.
 - Effects: no new carrier, API, buffer or product cutover is introduced here.
   W12/W21 still own the exact guarded flush/install union and its execution proof.
 A8 approvals/questions belong to W4. Minimal resident preparation has V1 row252
-bounded staged source/narrow PASS; its line merge9652a72b is not yet green.
-No whole gate, captures or V4 package pass. Updated 2026-11-15T18:08Z.
+bounded staged source/narrow PASS; its line merge is contained in the announced base13.
+No whole gate, captures or V4 package pass. The remaining sections preserve earlier source history.
 
 ## Reference and asset check
 

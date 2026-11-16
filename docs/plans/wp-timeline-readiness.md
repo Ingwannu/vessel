@@ -23,7 +23,7 @@ Copy/find retain full canonical assistant text; pacing changes its shown prefix.
 | Canonical sequence membership | `view/src/timeline/{entry,source,fold,append,user_stream}.rs` | Product legacy events; Entry.through is an exclusive upper bound, ExtraSources gives exact membership. Neither is a request delivery revision. |
 | Tool display and typed sections | `view/src/timeline/{tool_source,tool_display,tool_sections,tool_status}.rs` | ToolView supplies legacy state; its detail/failure/provenance methods intentionally return None until W23's field/scope union. Canonical fixtures prove model behavior only. |
 | One tool body | `app/src/areas/conversation/{tool_body,tool_detail}.rs` | Main A7 uses one kernel; portable A8 facade stays staged until its real caller and legacy delegation are enabled together. |
-| Diffs | `view/src/timeline/diff/`, `kit/src/output{.rs,/}`, `tool_body.rs` | Existing virtual output/copy with bounded line and intraline changes. K's single syntax resolver is still absent. |
+| Diffs | `view/src/timeline/diff/`, `kit/src/output{.rs,/}`, `tool_body.rs` | Existing virtual output/copy with bounded line and intraline changes. K's checked minimal syntax resolver is composed only in a separate unverified syntax preparation, not this main tree. |
 | Plan and tasks | `plan_card.rs`, `plan.rs`, `view/src/timeline/plan*` | Shared Markdown card; W4 owns pending approval actions. Stable task id/active_form await W23. |
 | Turn/tool/reasoning disclosure | `view/src/timeline/{turns,runs,disclosures}.rs`, conversation `{turns,disclosures,tool_sheet}.rs` | Consumed by the existing Chat preferences and rows; full followed log remains available to W1. |
 | Footer and context | `turn_footer.rs`, conversation `{footer,meter}.rs` | Known-range duration, failure suppression and full reply copy; exact context danger boundary is >90 percent. W5 owns account limits and additive usage children. |
@@ -56,7 +56,9 @@ Kit attribution/About registries must list both direct dependencies.
 
 | Immutable source | Execution | Limit |
 |---|---|---|
-| Portable body5c9636a0 | Exact View/Kit/App all-target strict0; actual App `tool_body` tests3/0/0, runs `wp-timeline-narrow-20261115T180704Z-5c9636a0` and `wp-timeline-state-tests-20261115T182140Z-5c9636a0` | V1 row276 returned two static P2s beyond these tests: equal-byte format cache alias and empty-patch precedence. Successor fixes/tests remain unexecuted; full ordinary tests and adoption are held. |
+| Main e66d658b, base13 | App155/0/2 + Kit255/0/0 =410/0/2, run `wp-timeline-models-20261116T003003Z-e66d658b` | Actual current-source App/Kit execution; no current all-crate strict, View-only rerun, whole gate or UI/V4 inferred. |
+| Portable body8737a401d | Executable tree equals tested289cf10a except why-doc; strict View/Kit/App0 and full tests1530/0/2, runs `wp-timeline-narrow-20261116T003002Z-289cf10a` and `wp-timeline-state-tests-20261116T003002Z-289cf10a` | Actual same-byte format/warm-cache and empty-patch regressions pass. V1 row276 bounded successor recheck pending; literal staging remains and no A8 activation is claimed. |
+| Portable body5c9636a0 | Exact View/Kit/App all-target strict0; actual App `tool_body` tests3/0/0, runs `wp-timeline-narrow-20261115T180704Z-5c9636a0` and `wp-timeline-state-tests-20261115T182140Z-5c9636a0` | V1 row276 returned two static P2s beyond these tests: equal-byte format cache alias and empty-patch precedence. This is historical returned source; the base13 successor execution is listed above and adoption still awaits its bounded recheck. |
 | 5e7c1a14 | View/Kit/App all-target strict rc0, run `wp-timeline-state-tests-20261115T180046Z-5e7c1a14` | Base9 union including glyph inventory and diff metadata cache compiles strictly. Later borrowed-failure signature6729c607 is excluded; App/Kit execution remains queued. |
 | 4b591a90 | Run `wp-timeline-state-tests-20261115T165618Z-4b591a90`: App126/0/2 + Kit215/0/0 =341/0/2 | Real scoped pacing, borrowed-body and f4 Markdown-call source; excludes later diff metadata/failure-prose changes and base9 merge. |
 | 6d8c0cd8 | View all-target strict run `wp-timeline-narrow-20261115T165011Z-6d8c0cd8` rc0 | Includes About and spoken presentation. Base9 and later app-only kernel/source changes require their own union checks. |
@@ -64,19 +66,20 @@ Kit attribution/About registries must list both direct dependencies.
 | 2b806402..99646e29 resident packet | V1 row252 bounded STAGED source/requested narrow PASS | Exact4b8 all-target App strict0; prior7ae GPUI3/0/0, same predicate/test bodies with declaration moves only. Not exact4b8 runtime or full A7/product proof. |
 | f4c01f61 Markdown helper | Owner standalone Kit all-target strict0; all17 owned Rust blobs equal actuald068 Kit212/0/0 | Shared helper execution; not A7 host actions, root/image authority, UI or V1 package approval. |
 
-Current in-progress feature execution is corrected base9 App/Kit tests
-on5e7c1a14; its all-target strict finished successfully. Main3a strict returned own import/test idiom diagnostics, now
-corrected without suppressions or weakened assertions; its red log remains.
-Portable body strictf839/ae256 stopped before tests on omitted closure adapters;
-corrected5c9636a0 strict and the three focused tests passed but missed V1's two
-source findings. Its queued full run was cancelled before acquisition (143).
-The successor separates structural format identities, retains full formatting
-inputs, and falls back from empty unified text without inventing a deletion.
-Actual facade admission/warm-cache regressions are added but unexecuted; their
-private test trace exposes no Kit bypass or product cache. Fresh strict and full
-three-crate ordinary tests are owed, with no whole native pass inferred.
-An older still-queued View74 run was explicitly superseded, confirmed terminal143
-before its one ordinary replacement; its retained logs are not a failure/PASS.
+Current owner preparations are separate receiving unions on base13. Clone row
+Seat f264918c includes W4's exact clean companion; ordinary strict and populated
+resident tests are queued. View-only source2d008494 carries exact membership,
+canonical human chunk continuity and the borrowed prompt helper while keeping
+baseline search raw until the body renderer switches too. Syntax65c505f7 uses
+K's minimal shared adapter and CodeStyles with semantic output metadata; its
+strict/runtime are queued. No preparation is advertised as consumer-ready.
+
+Historical failed and canceled runs remain evidence of their exact sources.
+The body5c focused pass missed two static findings; current289 corrects both,
+with actual retained facade regressions through the same Kit factories, no
+public bypass or new product cache. The current all-three-crate ordinary run
+completed. Only the bounded review and actual consumer join remain for that
+minimal packet; the complete A7 renderer still needs its final gate/captures/V4.
 
 ## Required atomic joins
 
@@ -158,3 +161,15 @@ producer duplicated four earlier snapshot_busy helpers. The duplicate predicates
 were verified pairwise identical and the earlier copies removed, keeping one
 canonical definition before the test module. No protection predicate or staging
 attribute was weakened. Current base13 narrow/runtime checks remain owed.
+
+## Nested checkpoint ownership
+
+W9's future concrete checkpoint state belongs inside Timeline ownership, not a
+new registry or seventh resource vote. Its loading, confirmation, pending and
+uncertain states must contribute to A7 readiness before a Ready result is issued;
+the actual state moves with the same Area snapshot. Each checkpoint operation
+uses a distinct canonical Timeline OperationTicket. W9 must verify its exact
+pending binding/ticket and checkpoint/prompt/turn correlation before canonical
+consume, then mutate its nested owner only after consume. Full current context
+admits local confirmation; queued replies retain original guard/context/binding.
+There is no implemented checkpoint state or default Ready placeholder here.
