@@ -312,3 +312,11 @@ root, and both suites assert the exact returned directory in addition to every
 existing assertion. Product parsing, deadlines, account scoping and protocol
 remain unchanged. Fresh receiving checks are owed; Linux fake-process success
 alone will still not be reported as Windows execution proof.
+
+
+Exactb48ff686 portable-fixture receiving checks passed: strict all-target
+agent+testkit in wp-transfer-drivers-narrow-20261116T010943Z-b48ff686; actual
+agent library120/0/2 and codex_history2/0/0 in
+wp-transfer-history-current-20261116T010943Z-b48ff686. Both A5 prebuilds and
+the web prerequisite passed. This is Linux execution with portable inputs,
+not a Windows runtime claim. The corrected whole gate now follows this source.
