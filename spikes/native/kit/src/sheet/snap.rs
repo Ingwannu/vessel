@@ -173,8 +173,11 @@ impl State {
         let current = self.position(now, false);
         let old_fraction = self.points.compact_fraction();
         let new_fraction = points.compact_fraction();
-        let openness =
-            (current.position_in(self.points).mul_add(-1.0, 1.0) / old_fraction).clamp(0.0, 1.0);
+        let openness = current
+            .position_in(self.points)
+            .mul_add(-1.0, 1.0)
+            .mul_add(old_fraction.recip(), 0.0)
+            .clamp(0.0, 1.0);
         let position = openness.mul_add(-new_fraction, 1.0);
         self.points = points;
         self.height = viewport.as_f32();
@@ -186,7 +189,10 @@ impl State {
         } else {
             self.settle(
                 position,
-                current.velocity() * new_fraction / old_fraction,
+                current
+                    .velocity()
+                    .mul_add(new_fraction, 0.0)
+                    .mul_add(old_fraction.recip(), 0.0),
                 target,
                 now,
             );
