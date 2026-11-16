@@ -1,4 +1,5 @@
-// The existing toast host stays clear while an actual agent question waits.
+// The existing toast host stays clear while an actual agent question waits,
+// and stays above a dialog opened while a toast is up (Paseo's planes).
 import { expect, test } from "@playwright/test";
 import {
   clearToastBounds,
@@ -81,3 +82,39 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   });
 }
+
+test("a toast stays above a dialog opened while it is up", async ({ page }) => {
+  const origin = await openUi(page);
+  await page.context().grantPermissions(["clipboard-write"], { origin });
+  await startSession(page, "laptop", "Structured", "ask claude");
+  await copyToast(page);
+  const toast = page
+    .locator(".toast")
+    .filter({ hasText: "Copied the session id" });
+  await expect(toast).toBeVisible();
+  // Hold the success toast's 4 s while the Kill dialog opens over it.
+  await page.clock.pauseAt(
+    (await page.evaluate(() => Date.now())) + HOLD_AFTER_STACK_MS,
+  );
+  await page
+    .getByRole("button", { name: "Session actions" })
+    .click({ force: true });
+  await page.clock.runFor(FOCUS_FRAME_MS);
+  await page
+    .getByRole("menuitem", { name: "Kill", exact: true })
+    .click({ force: true });
+  await page.clock.runFor(FOCUS_FRAME_MS * 2);
+  await expect(page.getByRole("dialog", { name: /^Kill / })).toBeVisible();
+  // The toast's middle is the toast, not the dialog's scrim over it.
+  expect(
+    await toast.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        rect.x + rect.width / 2,
+        rect.y + rect.height / 2,
+      );
+      return hit !== null && element.contains(hit);
+    }),
+  ).toBe(true);
+  await page.clock.resume();
+});

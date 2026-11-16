@@ -161,6 +161,18 @@
   --s-6: 32px;
   --s-7: 48px;
 
+  /* The planes over the page, low to high, in Paseo's order
+     (overlay-root.ts: floating < modal < toast < tooltip): a sheet's
+     scrim, the sheet, a dialog (opened from a sheet too), the popups (a
+     menu or select inside a dialog), the toasts (a notice raised while a
+     dialog is open stays readable), the tooltips. */
+  --z-sheet-scrim: 50;
+  --z-sheet: 51;
+  --z-dialog: 52;
+  --z-popup: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+
   /* Their radii: 4 and 6 for small things, 8 for controls, 10 for rows
      and cards, 12 for the framed page. */
   --r-1: 4px;

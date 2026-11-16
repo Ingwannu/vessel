@@ -21,9 +21,15 @@ export async function copyToast(
     .getByRole("button", { name: "Session actions" })
     .click({ force: timing === "paused" });
   if (timing === "paused") await page.clock.runFor(FOCUS_FRAME_MS);
-  await page
-    .getByRole("menuitem", { name: "Copy session id" })
-    .click({ force: timing === "paused" });
+  const copy = page.getByRole("menuitem", { name: "Copy session id" });
+  if (timing === "paused") {
+    // Toasts sit above menus (Paseo's planes, tokens.css): on a phone the
+    // stack this fixture builds covers the menu's rows, so the row is
+    // chosen without a pointer aimed through the stack.
+    await copy.dispatchEvent("click");
+  } else {
+    await copy.click();
+  }
 }
 
 export async function clearToastBounds(page: Page): Promise<Locator> {

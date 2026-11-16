@@ -87,7 +87,7 @@ html {
   position: absolute;
   left: 12px;
   top: -40px;
-  z-index: 80;
+  z-index: var(--z-tooltip);
   padding: 6px 10px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
