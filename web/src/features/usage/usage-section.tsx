@@ -29,6 +29,7 @@ import {
   SettingsPage,
   SettingsSection,
 } from "../settings/settings-page";
+import { PlanUsage } from "./plan-usage";
 import { UsageScopePicker } from "./scope-picker";
 import { useUsage } from "./use-usage";
 
@@ -80,6 +81,7 @@ function MachineUsage({ node, label }: { node: NodeKey; label: string }) {
     read.kind === "loading";
   return (
     <div className="usage-report">
+      <PlanUsage node={node} label={label} />
       <SettingsSection
         title={`Reported usage on ${label}`}
         action={<MachinePicker section="usage" machine={node} />}
