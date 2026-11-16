@@ -49,8 +49,8 @@ other owners; never merge this private App ancestry wholesale.
 Branch backend/m12-b1-b2-input-packet has a committed resume at
 `docs/plans/b1-b2-input-packet.md` on that branch, and its own b1-b2-input-resume.md. It uses the
 announced14.2 c6d8df49, exact official root, with the B2/A1/B1 receiving adapters.
-Its latest current-slice correction is WIP0f38108fc after actual strict57 red.
-Only one final short current-slice strict60 was submitted at the quota warning;
+Its latest current-slice correction is WIP9f16a720a after actual strict57/60/61 failures.
+The final App-only current-slice strict62 was submitted for binding-only fixture cleanup;
 inspect its actual run-id/state before doing anything. Common runtime and wasm
 were NEVER submitted and remain owed. Do not borrow Main's1404 or old bag tests.
 

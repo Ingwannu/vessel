@@ -70,7 +70,7 @@ source-owner integration or product-resident authority is promoted by it.
 
 The attachment candidate is frozen on package base c3429952. Its concrete App scope is byte-file/image intake, the managed local store, correlated prepare/upload/final-payload retention, context trays, file/directory fallback mentions, sent-image reads and the shared lightbox. Workspace draft keys and editors retain their own payloads; no Workspace-to-New fallback is added. The earlier sections below are a chronological design/checkpoint record, not current acceptance receipts.
 
-The receiving common input packet separately uses the official App base13.1 root. It preserves B2's one field/paste/key/fullscreen implementation and W3's scoped editor, but waits for the canonical CommandKind metadata route before its one combined check. Its source, gates and product activation must not be inferred from this older candidate's gate.
+The receiving common input packet separately uses the official App base14.2 root. It preserves B2's one field/paste/key/fullscreen implementation and W3's scoped editor, but waits for the canonical CommandKind metadata route before its one combined check. Its source, gates and product activation must not be inferred from this older candidate's gate.
 
 ### Concrete differences and incomplete integrations
 
