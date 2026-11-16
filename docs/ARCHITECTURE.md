@@ -1877,3 +1877,10 @@ ordering is preserved without canceled unsent registrations. Public client
 APIs and frame/protocol shapes stay unchanged. Already admitted transport
 bytes and remote side effects remain outside retraction; post-admission
 Cancel is still best-effort. This adds no crate dependency or voice activation.
+
+Standalone timeline recovery/presentation values extend the already adopted body
+and notice vocabulary without attaching fields or calls. Private consumers can
+retain the exact original typed request and actor binding, and test generic
+approval/question presentation. No DTO constructs runtime authority, admission,
+provider offers or delivery; those remain with the existing session/receipt
+owner. See timeline-recovery-values.md for the exact portable boundary and proof.
