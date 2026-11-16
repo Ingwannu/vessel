@@ -897,3 +897,14 @@ phases use a named twenty-second bound so a stalled phase identifies itself
 before the outer clock expires. All canary, last-valid-catalog and native skill
 invocation assertions are retained. Product handshake/discovery waits are
 unchanged; this is a test diagnostic correction, not new runtime evidence.
+
+
+Actual c170 strict returned one no_effect_underscore_binding diagnostic in the
+uncertain-root path: a bare local WaitError is not a significant-drop owner for
+that lint. A private UnobservedRoot now retains that concrete evidence and logs
+only the closed retirement fact if the uncertainty owner itself is dropped.
+Retirement is explicitly not an observed exit, completion, drain ACK or signal
+permission. The same parent Child and original caller/tracker remain held by the
+existing pending operation. No raw cause is formatted, no retry or alternate
+process owner is introduced, and the pending behavior is unchanged. Corrected
+combined strict and runtime evidence remain owed.

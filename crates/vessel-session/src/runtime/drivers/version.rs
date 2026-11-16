@@ -79,12 +79,28 @@ async fn unobserved<T>(
 ) -> Result<T, CheckedWaitError> {
     // Outside the version timeout: uncertainty must never become permission
     // to signal a delayed numeric id or to release the original physical owner.
-    let _private_evidence = error;
+    let _private_evidence = UnobservedRoot { _cause: error };
     tracing::error!(
         class = "root_wait",
         "native version exit unobserved; preparation ownership retained"
     );
     std::future::pending().await
+}
+
+/// Keep the concrete wait evidence private for the entire uncertainty owner.
+/// Retirement is reported separately from a root exit: it cannot acknowledge
+/// physical settlement or justify a delayed signal.
+struct UnobservedRoot {
+    _cause: vessel_proc::WaitError,
+}
+
+impl Drop for UnobservedRoot {
+    fn drop(&mut self) {
+        tracing::error!(
+            class = "root_wait",
+            "native version uncertainty owner retired without an observed root exit"
+        );
+    }
 }
 
 #[cfg(test)]
