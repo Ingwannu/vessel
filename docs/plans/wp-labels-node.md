@@ -292,3 +292,20 @@ that test-only rollback before the existing predecessor cleanup. Production SQL,
 old schema steps, backfill outcomes/assertions and migration strictness remain
 unchanged. A focused lifecycle fixture run and corrected whole acceptance remain
 owed; retain the original red evidence and same frozen base.
+
+
+## Frozen final whole result
+
+Exact `dbecc82d3` passed all18 steps of
+`wp-labels-node-ts-20261116T035848Z-dbecc82d`: Rust2740/0/12, TS5 tests and
+zero generated diff, web465, E2E80 and forge4. Default/TS/forge strict Clippy,
+format/size/boundaries, builds and font checks passed. The two inbox rollback
+fixtures and the CLI safe-display regression explicitly passed. Full raw log
+hashes and exact source are retained with the review packet; the earlier two
+red whole results remain separate evidence, with owned corrections recorded.
+
+This result-only update changes no Rust, SQL or generated wire bytes. Source
+review, protocol/schema assignment and integrator receiving acceptance are still
+owed; all five methods remain pending WORKSPACE_LABELS None. Native catalog
+transport, canonical row/header caller, current-session ordering, full native
+gate/captures and V4 feature acceptance are not established by this node gate.
