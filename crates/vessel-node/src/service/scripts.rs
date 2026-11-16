@@ -103,6 +103,11 @@ impl NodeService {
         if !self.workspaces.is_approved(root.project, &digest) {
             return Ok(ScriptRunOutcome::NeedsApproval { commands });
         }
+        if let ScriptPlace::Project { project } = &request.place {
+            // ADR 0106: work starting at a project root opens its workspace;
+            // a session place was registered when the session was.
+            self.workspaces.register_root(*project).await;
+        }
         let place = match request.place {
             ScriptPlace::Session { session } => TerminalPlace::Session { session },
             ScriptPlace::Project { project } => TerminalPlace::Project {

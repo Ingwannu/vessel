@@ -69,8 +69,12 @@ pub enum ApprovalChange {
 pub(crate) enum WorkspaceWrite {
     /// Insert or replace a project.
     Project(Box<ProjectInfo>),
-    /// Delete a project and its approvals.
-    ForgetProject(ProjectId),
+    /// Delete a project and its approvals, archiving the `Local` Active
+    /// registry workspaces that stood for it (ADR 0106) at `at`.
+    ForgetProject {
+        project: ProjectId,
+        at: DateTime<Utc>,
+    },
     /// Insert or replace a worktree.
     Worktree(Box<WorktreeInfo>),
     /// Delete a worktree.
@@ -83,8 +87,13 @@ pub(crate) enum WorkspaceWrite {
     },
 }
 
-/// Apply one change. Writer side.
-pub(crate) fn apply(connection: &Connection, write: &WorkspaceWrite) -> Result<(), StoreError> {
+/// Apply one change. Writer side. Whether the registry changed, so its
+/// observers wake once the batch commits.
+pub(crate) fn apply(
+    connection: &Connection,
+    write: &WorkspaceWrite,
+) -> Result<crate::registry::RegistryChange, StoreError> {
+    let mut registry = crate::registry::RegistryChange::Unchanged;
     let changed = match write {
         WorkspaceWrite::Project(project) => connection
             .prepare_cached(
@@ -96,13 +105,14 @@ pub(crate) fn apply(connection: &Connection, write: &WorkspaceWrite) -> Result<(
                 time_to_sql(project.created_at)?,
                 encode(project)?
             ])?,
-        WorkspaceWrite::ForgetProject(id) => {
+        WorkspaceWrite::ForgetProject { project, at } => {
+            registry = crate::registry::archive_stranded(connection, *project, *at)?;
             let _approvals = connection
                 .prepare_cached("DELETE FROM approvals WHERE project = ?1")?
-                .execute([id.to_string()])?;
+                .execute([project.to_string()])?;
             connection
                 .prepare_cached("DELETE FROM projects WHERE id = ?1")?
-                .execute([id.to_string()])?
+                .execute([project.to_string()])?
         }
         WorkspaceWrite::Worktree(worktree) => connection
             .prepare_cached(
@@ -132,7 +142,7 @@ pub(crate) fn apply(connection: &Connection, write: &WorkspaceWrite) -> Result<(
             .execute(params![project.to_string(), digest.as_str()])?,
     };
     tracing::trace!(rows = changed, "workspace record written");
-    Ok(())
+    Ok(registry)
 }
 
 /// Approve `digest` for `project` at `at`, with the set it covers when
@@ -349,13 +359,13 @@ mod tests {
                 },
             },
         ] {
-            apply(&connection, &write).unwrap();
+            let _change = apply(&connection, &write).unwrap();
         }
         let renamed = ProjectInfo {
             name: "renamed".parse().unwrap(),
             ..app.clone()
         };
-        apply(
+        let _change = apply(
             &connection,
             &WorkspaceWrite::Project(Box::new(renamed.clone())),
         )
@@ -376,7 +386,7 @@ mod tests {
             )]
         );
 
-        apply(
+        let _change = apply(
             &connection,
             &WorkspaceWrite::Approval {
                 project: app.id,
@@ -385,8 +395,15 @@ mod tests {
             },
         )
         .unwrap();
-        apply(&connection, &WorkspaceWrite::ForgetWorktree(tree.id)).unwrap();
-        apply(&connection, &WorkspaceWrite::ForgetProject(app.id)).unwrap();
+        let _change = apply(&connection, &WorkspaceWrite::ForgetWorktree(tree.id)).unwrap();
+        let _change = apply(
+            &connection,
+            &WorkspaceWrite::ForgetProject {
+                project: app.id,
+                at: Utc::now(),
+            },
+        )
+        .unwrap();
         let empty = load(&connection).unwrap();
         assert!(
             empty.projects.is_empty() && empty.worktrees.is_empty() && empty.approvals.is_empty()
@@ -402,10 +419,10 @@ mod tests {
         let mut connection = Connection::open_in_memory().unwrap();
         crate::schema::migrate(&mut connection).unwrap();
         let app = project();
-        apply(&connection, &WorkspaceWrite::Project(Box::new(app.clone()))).unwrap();
+        let _change = apply(&connection, &WorkspaceWrite::Project(Box::new(app.clone()))).unwrap();
         for second in 0..6_i64 {
             let digest: CommandsDigest = format!("{second:064}").parse().unwrap();
-            apply(
+            let _change = apply(
                 &connection,
                 &WorkspaceWrite::Approval {
                     project: app.id,

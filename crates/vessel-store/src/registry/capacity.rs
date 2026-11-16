@@ -5,9 +5,11 @@ use rusqlite::{Connection, params};
 use vessel_proto::WorkspaceId;
 use vessel_proto::registry::WorkspaceResource;
 
-/// Lifetime workspace/backing identity slots, including interrupted reservations.
+/// Live workspace/backing identity slots: every record not archived, and every
+/// reservation. Archived records do not count (ADR 0082 amendment, ADR 0106).
 pub const MAX_WORKSPACES: usize = 256;
-/// Lifetime resource ownership slots, including failed and ended starts.
+/// Resource ownership slots of workspaces that are not archived, including
+/// failed and ended starts there (ADR 0082 amendment).
 pub const MAX_RESOURCES: usize = 4096;
 /// Public descriptor JSON remains bounded so complete snapshots fit one RPC frame.
 pub const MAX_DESCRIPTOR_BYTES: usize = 8 * 1024;
@@ -23,8 +25,10 @@ pub const WORKSPACE_KEY_BYTES: usize = 1024;
 pub const RESERVED_BYTES_PER_WORKSPACE: usize =
     MAX_DESCRIPTOR_BYTES + MAX_RECOVERY_BYTES + MAX_INTENT_BYTES + WORKSPACE_KEY_BYTES;
 /// Logical retained payload bound; `SQLite` pages, indexes and WAL are separately managed.
-pub const MAX_RETAINED_BYTES: usize =
-    MAX_WORKSPACES * RESERVED_BYTES_PER_WORKSPACE + MAX_RESOURCES * RESERVED_BYTES_PER_RESOURCE;
+/// Archived `Local` records are pruned beyond their own bound, so they add one term.
+pub const MAX_RETAINED_BYTES: usize = (MAX_WORKSPACES + super::MAX_ARCHIVED_WORKSPACES)
+    * RESERVED_BYTES_PER_WORKSPACE
+    + MAX_RESOURCES * RESERVED_BYTES_PER_RESOURCE;
 
 pub(super) fn workspace(connection: &Connection, id: WorkspaceId) -> Result<(), StoreError> {
     // Existing identities reconcile at capacity; this never allocates a replacement identity.
@@ -34,7 +38,7 @@ pub(super) fn workspace(connection: &Connection, id: WorkspaceId) -> Result<(), 
     )?;
     if !exists {
         let count: i64 = connection.query_row(
-            "SELECT COUNT(*) FROM (SELECT id FROM workspace_registry UNION SELECT id FROM workspace_registry_reservations)",
+            "SELECT COUNT(*) FROM (SELECT id FROM workspace_registry WHERE json_extract(descriptor,'$.lifecycle.kind')!='archived' UNION SELECT id FROM workspace_registry_reservations)",
             [], |row| row.get(0),
         )?;
         if count >= i64::try_from(MAX_WORKSPACES).map_err(StoreError::RegistryRevisionRange)? {
@@ -56,7 +60,7 @@ pub(super) fn resource(
     )?;
     if !exists {
         let count: i64 = connection.query_row(
-            "SELECT COUNT(*) FROM workspace_registry_resources",
+            "SELECT COUNT(*) FROM workspace_registry_resources r JOIN workspace_registry w ON w.id=r.workspace WHERE json_extract(w.descriptor,'$.lifecycle.kind')!='archived'",
             [],
             |row| row.get(0),
         )?;

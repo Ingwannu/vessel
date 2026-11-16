@@ -76,6 +76,9 @@ impl NodeService {
             .resolve_terminal_place(principal, &request.place)
             .await
             .map_err(wire)?;
+        if let TerminalPlace::Project { project, .. } = &request.place {
+            self.workspaces.register_root(*project).await;
+        }
         // Before the reservation and the spawn, so nothing starts under a
         // removal's teardown; given back once the terminal is registered.
         let hold = self.hold_folder(&folder).map_err(wire)?;
