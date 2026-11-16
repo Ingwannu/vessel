@@ -614,3 +614,20 @@ The correction extracts named live/offline and retired-input assertion phases,
 keeps every assertion and ordering, and applies the three equivalent style
 changes. No guard, target, UI geometry or fake opener expectation is weakened.
 This remains selected execution on827 plus changed-source strict/runtime owed.
+
+### Announced package-base13 join
+
+The canonical plugin catalog/helper producer now reaches this tree through the
+announced node-containing app base2ebeedf9, instead of the earlier private
+values-carrier exception. No product host or RPC is inferred from that adoption.
+The base's plain-cache generator and its actual compiler negative/positive
+fixtures are retained. Its new api/plain emitter and complete Paths::projection
+are joined with F6's checked Fluent Contract, typed Name map, variables() getter
+and explicit as_str conversion before writing Rust key/choice string literals.
+This reuses both owners' implementations and changes no formatting policy or
+core Locale/Translator. Actual combined checks remain owed after this join.
+
+The final selected popup strict run at9f0db0b6 completed fonts and App/View
+all-target Clippy successfully. Its paired44-case execution remains the exact
+827 predecessor whose moved assertion phases were source-reviewed, not44 cases
+claimed on9f or on this later base. It does not replace the full F6 package gate.

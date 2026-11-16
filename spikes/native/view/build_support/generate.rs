@@ -66,7 +66,7 @@ fn area(
         {
             continue;
         }
-        for (name, kind) in &shape.variables {
+        for (name, kind) in shape.variables() {
             if let Kind::Choice(choices) = kind {
                 let enum_name = format!("{}{}", pascal(key), pascal(name));
                 writeln!(
@@ -81,9 +81,10 @@ fn area(
         }
     }
     for (key, shape) in contracts {
-        if english.messages.get(key).is_some_and(|m| m.area == area) && shape.variables.len() > 5 {
+        if english.messages.get(key).is_some_and(|m| m.area == area) && shape.variables().len() > 5
+        {
             let lifetime = if shape
-                .variables
+                .variables()
                 .values()
                 .any(|k| matches!(k, Kind::Text | Kind::Date))
             {
@@ -96,7 +97,7 @@ fn area(
                 "/// Typed parts of {key}; all fields are required.\n#[derive(Debug, Clone)]\npub struct {}Args{lifetime} {{",
                 pascal(key)
             )?;
-            for (name, kind) in &shape.variables {
+            for (name, kind) in shape.variables() {
                 let ty = argument_type(key, name, kind, "&'a str");
                 writeln!(
                     output,
@@ -158,7 +159,7 @@ fn emit_message(
             "///\n/// # Errors\n/// Returns a formatting failure if both the translation and English fail.\npub fn r#{}(self,",
             snake(method)
         )?;
-        arguments(output, key, &shape.variables)?;
+        arguments(output, key, shape.variables())?;
         writeln!(output, "self.translator.format({key:?}, &arguments)\n}}")?;
     }
     Ok(())
@@ -167,7 +168,7 @@ fn emit_message(
 fn arguments(
     output: &mut String,
     key: &str,
-    variables: &BTreeMap<String, Kind>,
+    variables: &BTreeMap<super::contract::Name, Kind>,
 ) -> Result<(), BuildError> {
     let grouped = variables.len() > 5;
     if grouped {
@@ -192,6 +193,7 @@ fn arguments(
     )?;
     for (name, kind) in variables {
         let argument = format!("{}r#{}", if grouped { "parts." } else { "" }, snake(name));
+        let name = name.as_str();
         match kind {
             Kind::Text => writeln!(output, "arguments.set({name:?}, {argument});")?,
             Kind::Number => {
@@ -209,6 +211,7 @@ fn arguments(
                 let enum_name = format!("{}{}", pascal(key), pascal(name));
                 writeln!(output, "arguments.set({name:?}, match {argument} {{")?;
                 for choice in choices {
+                    let choice = choice.as_str();
                     writeln!(output, "{enum_name}::{} => {choice:?},", pascal(choice))?;
                 }
                 writeln!(output, "}});")?;
