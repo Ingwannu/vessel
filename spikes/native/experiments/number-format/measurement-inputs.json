@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "contract_sha256": "8a20b0da559f2f01e3bda1dc639fed120884af8df094de83b77caf94bea8d8b0",
+  "phase2_ready": true,
+  "variant": "existing",
+  "immutable_source": "62e00d20252b45053a7c4448b76b8d97e5d53a61",
+  "inputs": [
+    {
+      "path": "spikes/native/experiments/number-format/measurement-wasm-entry.rs",
+      "sha256": "dc98eb44650082a3caf742eae07acee75a1ae7923ca1aa25c014621e13a84caf"
+    }
+  ],
+  "overlays": [
+    {
+      "path": "spikes/native/experiments/number-format/measurement-existing.patch",
+      "sha256": "b0608031372da827ed706adc433f5acf4e75377ddd2097553ffb2f97ab539568"
+    }
+  ],
+  "fluent_hook": false,
+  "reachability_evidence": {
+    "path": "spikes/native/experiments/number-format/reachability-existing.json",
+    "sha256": "f452ace85e013eb8160649427dd1f5c80edbe689d58abaa66cfa5d848e7a94e4"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "variant": "existing",
+  "owner_source_evidence_only": true,
+  "independent_source_review": false,
+  "source_commit": "62e00d20252b45053a7c4448b76b8d97e5d53a61",
+  "runtime_baseline": "2ebeedf964ead0b490f9a0dc4af1f29d88a2252e",
+  "native": {
+    "product_changes": [],
+    "entry": "spikes/native/app/src/main.rs",
+    "flow": [
+      "app event/preparation caller supplies Number::count",
+      "generated getter binds Number::fluent",
+      "Translator::format -> runtime::resolve -> format_one",
+      "embedded NUMBER -> localization::number::fluent; formatter -> number::display"
+    ],
+    "limitations": [
+      "baseline count onlyu32; decimal constructor still bounded",
+      "does not qualify full-finite/exact-u64 candidate behavior",
+      "actual linked data markers and first frame are not source-only findings"
+    ]
+  },
+  "wasm": {
+    "package": "vessel-app-view",
+    "example": "number_format_probe",
+    "source_input": "measurement-wasm-entry.rs",
+    "generated_call": "Translator::get(locale)?.examples().grouped(Number::count(count))",
+    "input": "u32 from args; default4; original API",
+    "claim": "standalone View artifact only; no full browser runtime or pixel evidence"
+  },
+  "callback_sources": [
+    "spikes/native/view/build_support/generate.rs",
+    "spikes/native/view/src/text/localization/mod.rs",
+    "spikes/native/view/src/text/localization/runtime.rs",
+    "spikes/native/view/src/text/localization/number.rs"
+  ],
+  "new_dependency_adoption": false,
+  "runtime_or_correctness_approval": false,
+  "native_profile": "shipping release thinLTO/default16CGU/line-tables-only; separate strip/debuglink",
+  "font_provenance": "T pinned15face/license manifest; no download"
+}
