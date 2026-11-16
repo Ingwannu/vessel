@@ -34,6 +34,8 @@ pub(crate) use code::FileSearchRequest;
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
 pub(crate) use code::{ExplorerKind, render_explorer, show_layout_explorer};
+#[cfg(test)]
+pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;

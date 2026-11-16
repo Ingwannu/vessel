@@ -1296,3 +1296,24 @@ before W15/lead consumption.
   await the checked owner carrier. Existing SharedString imports remain product
   imports because this receiving body uses them in result IDs and messages too.
   Current receiving strict checks are owed; this is not full A3 acceptance.
+
+
+## Announced base14.3 and C5 shown-source receiving boundary
+
+Before the next remote check, merge announced67637eb6 (14.3, superseding14.2).
+The canonical C5 follow/session-read functions now live in source_follow; their
+old inline duplicates are removed. Preserve its RootReceipt, single ticket
+allocator, conservative legacy-viewer hold and code_tab source invalidation.
+Retain both the W12 Explorer exports and C5's literal test-staged shown-context
+exports, with pure FileQuery/Explorer modules alongside canonical file_scope.
+W13 explicitly confirmed this bounded resolution. No alias flush/retarget is
+restored, moving C5 branch imported or F4 Files/opener effect enabled. The old
+IO fixture adds receipt=None explicitly; it gains no original-context receipt.
+The incoming CodeSource web arm stays exactly as announced rather than taking
+an unannounced formatting predecessor. Receiving checks remain owed.
+
+V4 row312 separately passed only the portable book fact/global UI gate source
+c7eb3b1f1 on base14.1; native bytes equal executed159f6856. R37 App strict0 and
+R29 actual AppBIN19/0/0 were independently verified. That shared source is handed
+to the lead; consumer adoption waits an announced receiving green. This is not
+final F4, W15 chrome or live node/OS/persistence approval.

@@ -16,6 +16,7 @@ pub mod editor;
 pub mod explorer;
 pub mod explorer_memory;
 pub mod file_query;
+pub mod file_scope;
 pub mod file_ticket;
 pub mod file_tree;
 pub mod find;

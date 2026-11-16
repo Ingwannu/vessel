@@ -19,6 +19,7 @@ pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
         session: SessionId::random(),
         place: Place::Root(root),
         cwd: Some("/fixture".into()),
+        receipt: None,
     });
 }
 
