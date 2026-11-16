@@ -223,3 +223,21 @@ a queue-row fixture and a static renderer fixture pin these joins. They are
 written, not yet executed on this changed blob. They add no private producer or
 RPC and do not qualify title/inbox/push/MCP/export/native readers or full private
 admission. Existing named-reader union and trusted InputEcho remain required.
+
+## Accepted-input watermark obligation
+
+The runtime receipt join must persist the accepted input echo as well as retain
+its actual turn binding. In particular a steer joins an earlier turn: waiting
+only through that turn's start record does not prove that the new steered words
+or ClientMessageId survived persistence. The current staged receipt barrier is
+not qualified for positive adoption on that basis.
+
+The trusted InputEcho join must provide the actual canonical echo record from
+this exact accepted input to the existing submission/ticket owner. Acceptance
+waits through that echo; the original turn start remains a separate binding and
+must not be replaced with the echo sequence. Registering before dispatch and
+retaining the original ticket must cover both orders (echo first and dispatch
+reply first), including queued delivery. A missing/closed echo stays uncertain;
+no history scan, latest-sequence guess, synthetic event or resend repairs it.
+This is an implementation obligation of the existing keyed pipeline, not a new
+receipt store, wire method or provider acceptance claim.
