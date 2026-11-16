@@ -10,7 +10,7 @@ use std::process::ExitCode;
 
 const MAX_FIXTURE_BYTES: u64 = 64 * 1024;
 
-fn connected(mut control: impl std::io::Read + std::io::Write) -> std::io::Result<()> {
+fn synthetic(mut control: impl std::io::Read + std::io::Write) -> std::io::Result<()> {
     control.write_all(b"started\n")?;
     control.flush()?;
     if let Some(path) = std::env::var_os("FAKE_LOCAL_READY_FILE") {
@@ -45,6 +45,21 @@ fn connected(mut control: impl std::io::Read + std::io::Write) -> std::io::Resul
             Err(error) => return Err(error),
         }
     }
+}
+
+fn connected(control: impl std::io::Read + std::io::Write) -> std::io::Result<()> {
+    #[cfg(unix)]
+    if std::env::var_os("FAKE_LOCAL_IGNORE_TERMINATE").is_some() {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let _entered = runtime.enter();
+        // Install before the started ACK without running blocking std I/O on
+        // an async worker. Notifications are deliberately never consumed.
+        let _ignored = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        return synthetic(control);
+    }
+    synthetic(control)
 }
 
 fn run() -> std::io::Result<()> {

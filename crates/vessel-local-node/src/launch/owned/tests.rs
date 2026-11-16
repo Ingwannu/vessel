@@ -54,6 +54,7 @@ async fn refused_keep_preserves_the_live_owner_until_explicit_drop() {
         let owned = Owned {
             child,
             logs: LogReader::collect(stderr),
+            witness: Default::default(),
         };
         let mut output = BufReader::new(stdout);
         loop {
@@ -110,6 +111,7 @@ async fn peer_qualification_requires_the_exact_unreaped_owner() {
         let mut owned = Owned {
             child,
             logs: LogReader::collect(stderr),
+            witness: Default::default(),
         };
         let mut stdout = BufReader::new(stdout);
         step("owned fixture readiness", async {

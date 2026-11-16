@@ -3,7 +3,9 @@
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt as _, AsyncRead, AsyncReadExt as _, BufReader};
 use vessel_proc::{Child, Detached, Spawned, spawn_releasable};
-use vessel_proto::local_launch::{MAX_READY_BYTES, Ready};
+#[cfg(any(unix, test))]
+use vessel_proto::local_launch::MAX_READY_BYTES;
+use vessel_proto::local_launch::Ready;
 
 use super::{Launch, LaunchError};
 use crate::logs::LogReader;
@@ -11,22 +13,61 @@ use crate::logs::LogReader;
 #[cfg(windows)]
 mod bootstrap;
 #[cfg(test)]
+pub(crate) mod cleanup_witness;
+#[cfg(test)]
 mod tests;
 
 pub(crate) struct Owned {
     child: Child,
     logs: LogReader,
+    #[cfg(test)]
+    witness: cleanup_witness::Dropped,
 }
 
-/// Windows carries the proven preopened connection; Unix qualifies its kernel
-/// peer after reading the private home. No optional connection can bypass proof.
+/// The caller owns the child outside the cancelable readiness future.
 pub(crate) struct Started {
     pub(crate) child: Owned,
-    pub(crate) ready: Ready,
+    pub(crate) reader: Readiness,
     #[cfg(unix)]
     pub(crate) reaping: tokio::signal::unix::Signal,
+}
+
+pub(crate) struct Readiness {
+    stdin: tokio::process::ChildStdin,
+    stdout: tokio::process::ChildStdout,
+    #[cfg(windows)]
+    pipe: vessel_proto::local_launch::BootstrapPipe,
+}
+
+pub(crate) struct Proof {
+    pub(crate) ready: Ready,
     #[cfg(windows)]
     pub(crate) connection: vessel_client::LocalConnection,
+}
+
+impl Readiness {
+    #[cfg(unix)]
+    pub(crate) async fn read(self, _child: &Owned) -> Result<Proof, LaunchError> {
+        drop(self.stdin);
+        let line = record(self.stdout, MAX_READY_BYTES).await?;
+        Ok(Proof {
+            ready: Ready::decode(&line).map_err(LaunchError::Ready)?,
+        })
+    }
+
+    #[cfg(windows)]
+    pub(crate) async fn read(self, child: &Owned) -> Result<Proof, LaunchError> {
+        let (connection, challenge) = bootstrap::connect(self.pipe, self.stdin).await?;
+        let line = record(
+            self.stdout,
+            vessel_proto::local_launch::MAX_BOOTSTRAP_READY_BYTES,
+        )
+        .await?;
+        Ok(Proof {
+            ready: bootstrap::verify(child, &line, &challenge)?,
+            connection,
+        })
+    }
 }
 
 /// Observation-only handle after an explicit keep-running choice.
@@ -62,10 +103,7 @@ impl KeptNode {
 }
 
 impl Owned {
-    pub(crate) async fn start(
-        launch: &Launch,
-        on_logs: impl FnOnce(LogReader),
-    ) -> Result<Started, LaunchError> {
+    pub(crate) fn start(launch: &Launch) -> Result<Started, LaunchError> {
         #[cfg(unix)]
         let reaping = register_reaping()?;
         #[cfg(windows)]
@@ -76,37 +114,39 @@ impl Owned {
             stdout,
             stderr,
         } = spawn_releasable(&launch.command).map_err(LaunchError::Spawn)?;
-        let owned = Self {
-            child,
-            logs: LogReader::collect(stderr),
-        };
-        on_logs(owned.logs());
-        #[cfg(unix)]
-        {
-            drop(stdin);
-            let line = record(stdout, MAX_READY_BYTES).await?;
-            let ready = Ready::decode(&line).map_err(LaunchError::Ready)?;
-            Ok(Started {
-                child: owned,
-                ready,
-                reaping,
-            })
-        }
-        #[cfg(windows)]
-        {
-            let (connection, challenge) = bootstrap::connect(pipe, stdin).await?;
-            let line = record(
+        Ok(Started {
+            child: Self {
+                child,
+                logs: LogReader::collect(stderr),
+                #[cfg(test)]
+                witness: cleanup_witness::dropped(),
+            },
+            reader: Readiness {
+                stdin,
                 stdout,
-                vessel_proto::local_launch::MAX_BOOTSTRAP_READY_BYTES,
-            )
-            .await?;
-            let ready = bootstrap::verify(&owned, &line, &challenge)?;
-            Ok(Started {
-                child: owned,
-                ready,
-                connection,
-            })
-        }
+                #[cfg(windows)]
+                pipe,
+            },
+            #[cfg(unix)]
+            reaping,
+        })
+    }
+
+    /// Failed launch cleanup must have an owner-observed checked settlement.
+    /// Fire-and-forget Drop cannot provide that evidence to the original caller.
+    /// Cancellation or an unconfirmed deadline still drops this exact owner,
+    /// requesting the ordinary hard-kill fallback, never a replacement-peer RPC.
+    pub(crate) async fn cleanup(&mut self) -> Result<ProcessExit, LaunchError> {
+        let result = match self.child.signal(vessel_proc::Signal::Terminate) {
+            Ok(()) => tokio::time::timeout(CLEANUP_DEADLINE, self.wait())
+                .await
+                .map_err(LaunchError::CleanupDeadline)
+                .and_then(std::convert::identity),
+            Err(error) => Err(LaunchError::CleanupRequest(error)),
+        };
+        #[cfg(test)]
+        cleanup_witness::settled(&result);
+        result
     }
 
     /// The observer proves only retained runner authority, not OS liveness.
@@ -139,7 +179,10 @@ impl Owned {
     }
 
     pub(crate) fn keep(self) -> Result<KeptNode, Box<Self>> {
-        let Self { child, logs } = self;
+        let child = self.child;
+        let logs = self.logs;
+        #[cfg(test)]
+        let witness = self.witness;
         let detached = match child.detach() {
             Ok(detached) => detached,
             Err(refused) => {
@@ -148,6 +191,8 @@ impl Owned {
                 return Err(Box::new(Self {
                     child: refused.into_child(),
                     logs,
+                    #[cfg(test)]
+                    witness,
                 }));
             }
         };
@@ -192,3 +237,6 @@ async fn record(source: impl AsyncRead + Unpin, bound: usize) -> Result<String, 
 pub(crate) const START_DEADLINE: Duration = Duration::from_secs(30);
 /// Stop acknowledgement does not substitute for this real-exit wait.
 pub(crate) const STOP_DEADLINE: Duration = Duration::from_secs(15);
+
+/// Failed startup gets its own bounded original-child settlement phase.
+const CLEANUP_DEADLINE: Duration = Duration::from_secs(5);

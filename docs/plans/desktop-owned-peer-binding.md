@@ -258,3 +258,36 @@ or repeated proc scan orders this control. The self-reexec is isolated in an
 owned outer process group, with a positive stdout ACK; output/handshake futures
 remain scoped and are not detached on an assertion or deadline failure. This
 source correction is unexecuted and does not qualify other fixture ancestry.
+
+## Failed-start cleanup is observed by its existing owner
+
+A failed proof previously dropped its exact Child and relied on Tokio's orphan
+queue. That requested cleanup, but supplied no owner-observed completion. The
+controller now keeps the original owned child outside the cancelable readiness
+and authentication future. Its existing thirty-second start budget still covers
+preflight plus proof; success adds no cleanup phase. A failed owned launch sends
+SIGTERM through that retained handle and awaits the same checked wait within a
+separate named five-second cleanup bound. No replacement RPC or numeric-PID signal
+is used. Confirmed cleanup returns the unchanged original startup error.
+
+An unconfirmed request, wait or cleanup deadline adds CleanupUnconfirmed around
+the unchanged original start cause and concrete cleanup cause. The original
+owned Child is dropped immediately before this error returns: its hard-kill
+fallback was requested but its settlement is not claimed. No owner is leaked or
+kept after this result. Cancellation drops the same retained owner as the final
+fallback. A previously reaped child's first sweep is never retried by numeric
+process-group ID.
+
+The cfg(test)-only, task-scoped witness observes the SAME cleanup owner's checked
+wait result. A separate field-drop witness runs after the original Child's drop
+path; it is not OS-exit evidence. Neither witness adds a waiter, process owner,
+public Proc/Child API or release-build state. The real fixture's installed
+SIGTERM listener is acknowledged before malformed readiness; it cannot ignore
+SIGKILL. Tests require original-error preservation, checked reap on the ordinary
+case, and cleanup-deadline uncertainty plus immediate owner drop on the ignored
+SIGTERM case. They are authored source, not executed proof.
+
+The same-home integration regression can now audit one immediate proc absence
+snapshot after confirmed cleanup, without polling for completion. Its exited-child
+barrier uses an actual SIGCHLD event before the known-child zombie snapshot.
+The separately requested local-node unit causal/witness join remains pending.

@@ -7,8 +7,10 @@ use vessel_proto::ClientInfo;
 use crate::NodeHome;
 
 mod owned;
+#[cfg(test)]
+pub(crate) use owned::cleanup_witness;
 pub use owned::{KeptNode, ProcessExit};
-pub(crate) use owned::{Owned, START_DEADLINE, STOP_DEADLINE, Started};
+pub(crate) use owned::{Owned, Readiness, START_DEADLINE, STOP_DEADLINE, Started};
 
 /// A validated launch recipe, with caller-resolved environment applied to the child only.
 #[derive(Debug, Clone)]
@@ -54,6 +56,12 @@ pub enum LaunchError {
     /// Platform range cannot represent the named protocol limit.
     #[error("local readiness read bound is unsupported")]
     ReadLimit,
+    /// The owned graceful cleanup request failed before checked observation.
+    #[error("original child cleanup request failed")]
+    CleanupRequest(#[source] vessel_proc::SignalError),
+    /// The original child did not settle in its named cleanup phase.
+    #[error("original child checked cleanup timed out")]
+    CleanupDeadline(#[source] tokio::time::error::Elapsed),
     /// Leader exit or the first original-group cleanup request was not confirmed.
     #[error("local node owned cleanup was not confirmed")]
     Wait(#[source] vessel_proc::CheckedWaitError),

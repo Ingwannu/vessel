@@ -23,19 +23,29 @@ async fn refuses_before_credential() {
     }
     let wrong_peer = tokio::net::UnixListener::bind(endpoint).unwrap();
     release.send(()).unwrap();
-    let (mut connection, _) = wrong_peer.accept().await.unwrap();
+    let (mut connection, _) = support::step("wrong peer connection", wrong_peer.accept())
+        .await
+        .unwrap();
     let mut first = [0_u8; 1];
     assert_eq!(
-        connection.read(&mut first).await.unwrap(),
+        support::step(
+            "wrong peer zero credential EOF",
+            connection.read(&mut first)
+        )
+        .await
+        .unwrap(),
         0,
         "an unqualified peer must receive zero credential or Hello bytes"
     );
-    let refusal = starting.await.unwrap().unwrap_err();
+    let refusal = support::step("failed startup after original checked cleanup", starting)
+        .await
+        .unwrap()
+        .unwrap_err();
     assert!(matches!(
         refusal,
         vessel_local_node::LocalNodeError::Launch(vessel_local_node::LaunchError::PeerUnverified)
     ));
-    support::reaped(process).await;
+    support::reaped(process);
     drop(fixture);
 }
 

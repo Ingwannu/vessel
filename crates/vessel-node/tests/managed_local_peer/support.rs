@@ -12,7 +12,13 @@ use super::control;
 use futures_util::{SinkExt as _, StreamExt as _};
 
 pub(super) const SAFETY_NET: Duration = Duration::from_secs(60);
-const OBSERVE_PAUSE: Duration = Duration::from_millis(10);
+const PHASE: Duration = Duration::from_secs(5);
+
+pub(super) async fn step<F: Future>(name: &str, operation: F) -> F::Output {
+    tokio::time::timeout(PHASE, operation)
+        .await
+        .unwrap_or_else(|error| panic!("{name} timed out: {error}"))
+}
 
 type Socket = tokio::net::TcpStream;
 pub(super) type Fixture =
@@ -21,7 +27,9 @@ pub(super) type Fixture =
 // Kept separate from the framing type so every connection still uses the same
 // bounded codec, without exporting any fixture API from the controller crate.
 pub(super) async fn accept(listener: &tokio::net::TcpListener) -> Fixture {
-    let (stream, _) = listener.accept().await.unwrap();
+    let (stream, _) = step("original fixture control accept", listener.accept())
+        .await
+        .unwrap();
     let (reader, writer) = tokio::io::split(stream);
     Fixture::new(reader, writer, control::FRAME_LIMIT)
 }
@@ -74,13 +82,39 @@ pub(super) fn recipe(root: &Path, control: SocketAddr) -> Launch {
 /// The sole blocking worker holds the post-Ready identity read until release.
 /// Every scenario uses the real child and its real stopped-server barrier.
 pub(super) struct HeldLaunch {
-    pub(super) starting: tokio::task::JoinHandle<
-        Result<vessel_local_node::LocalNode, vessel_local_node::LocalNodeError>,
-    >,
+    pub(super) starting: Pending,
     pub(super) release: std::sync::mpsc::SyncSender<()>,
     pub(super) fixture: Fixture,
     pub(super) process: ProcessId,
     pub(super) expected: NodeId,
+}
+
+/// A failed assertion cancels the original startup future and its RAII owner,
+/// instead of leaving a detached start task alive until its outer deadline.
+pub(super) struct Pending(
+    tokio::task::JoinHandle<
+        Result<vessel_local_node::LocalNode, vessel_local_node::LocalNodeError>,
+    >,
+);
+
+impl Future for Pending {
+    type Output = Result<
+        Result<vessel_local_node::LocalNode, vessel_local_node::LocalNodeError>,
+        tokio::task::JoinError,
+    >;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        std::pin::Pin::new(&mut self.0).poll(cx)
+    }
+}
+
+impl Drop for Pending {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
 }
 
 pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
@@ -88,7 +122,7 @@ pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
     let launch = recipe(root, listener.local_addr().unwrap());
     let (release, held) = std::sync::mpsc::sync_channel(1);
     let (entered, waiting) = tokio::sync::oneshot::channel();
-    let starting = tokio::spawn(async move {
+    let starting = Pending(tokio::spawn(async move {
         vessel_local_node::LocalNode::start_observed(launch, move |_logs| {
             // Reserve before Ready, so no timing guess or controller hook is
             // needed to install the replacement before identity/authentication.
@@ -98,10 +132,15 @@ pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
             }));
         })
         .await
-    });
-    waiting.await.unwrap();
+    }));
+    step("original startup file worker entered", waiting)
+        .await
+        .unwrap();
     let mut fixture = accept(&listener).await;
-    let frame = fixture.next().await.unwrap().unwrap();
+    let frame = step("original fixture ready notice", fixture.next())
+        .await
+        .unwrap()
+        .unwrap();
     let (process, expected) = match serde_json::from_str(&frame).unwrap() {
         control::Notice::Ready { process, node } => (process, node),
         control::Notice::Stopped { .. } => panic!("stop preceded readiness"),
@@ -110,7 +149,10 @@ pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
         .send(serde_json::to_string(&control::Command::Stop).unwrap())
         .await
         .unwrap();
-    let stopped = fixture.next().await.unwrap().unwrap();
+    let stopped = step("original fixture stopped notice", fixture.next())
+        .await
+        .unwrap()
+        .unwrap();
     assert!(
         matches!(serde_json::from_str(&stopped).unwrap(), control::Notice::Stopped { process: found } if process == found)
     );
@@ -144,7 +186,9 @@ pub(super) async fn replacement(root: &Path) -> Child {
     let limit = u64::try_from(vessel_proto::local_launch::MAX_READY_BYTES + 1).unwrap();
     let mut stdout = tokio::io::BufReader::new(stdout.take(limit));
     let mut line = String::new();
-    let _read = stdout.read_line(&mut line).await.unwrap();
+    let _read = step("real successor readiness", stdout.read_line(&mut line))
+        .await
+        .unwrap();
     let _ready = Ready::decode(&line).unwrap();
     child
 }
@@ -164,21 +208,28 @@ pub(super) async fn client(root: &Path, node: NodeId) -> vessel_client::NodeClie
     client
 }
 
-pub(super) async fn zombie(process: ProcessId) {
+pub(super) async fn zombie(process: ProcessId, exited: &mut tokio::signal::unix::Signal) {
     let path = format!("/proc/{process}/stat");
-    loop {
-        let stat = std::fs::read_to_string(&path).unwrap();
-        let (_, fields) = stat.rsplit_once(')').unwrap();
-        if fields.split_whitespace().next() == Some("Z") {
-            return;
-        }
-        tokio::time::sleep(OBSERVE_PAUSE).await;
-    }
+    step(
+        "original fixture exit notification and zombie snapshot",
+        async {
+            loop {
+                let stat = std::fs::read_to_string(&path).unwrap();
+                let (_, fields) = stat.rsplit_once(')').unwrap();
+                if fields.split_whitespace().next() == Some("Z") {
+                    return;
+                }
+                // Other parallel child exits are possible; only an actual signal
+                // permits another snapshot of this exact known original child.
+                exited.recv().await.expect("child signal listener ended");
+            }
+        },
+    )
+    .await;
 }
 
-pub(super) async fn reaped(process: ProcessId) {
-    let path = format!("/proc/{process}");
-    while std::fs::exists(&path).unwrap() {
-        tokio::time::sleep(OBSERVE_PAUSE).await;
-    }
+pub(super) fn reaped(process: ProcessId) {
+    // A non-CleanupUnconfirmed failure now returns AFTER the original owner's
+    // checked wait. One absence snapshot audits that receipt; no clock orders it.
+    assert!(!std::fs::exists(format!("/proc/{process}")).unwrap());
 }

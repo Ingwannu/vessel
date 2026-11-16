@@ -34,11 +34,13 @@ async fn refuses_replacement(original: Original) {
     let peer = client(root.path(), expected).await;
     assert_eq!(peer.node_info().await.unwrap().state, NodeState::Serving);
     if matches!(original, Original::Exited) {
+        let mut exited =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::child()).unwrap();
         fixture
             .send(serde_json::to_string(&control::Command::Exit).unwrap())
             .await
             .unwrap();
-        managed_local_peer_support::zombie(process).await;
+        managed_local_peer_support::zombie(process, &mut exited).await;
     }
     release.send(()).unwrap();
     let result = starting.await.unwrap();
@@ -55,7 +57,7 @@ async fn refuses_replacement(original: Original) {
         "same-identity replacement must fail the actual peer proof before child-exit selection"
     );
     assert_eq!(peer.node_info().await.unwrap().state, NodeState::Serving);
-    managed_local_peer_support::reaped(process).await;
+    managed_local_peer_support::reaped(process);
     let mut attached = LocalNode::start(managed_local_peer_support::ordinary_recipe(root.path()))
         .await
         .unwrap();
