@@ -36,8 +36,8 @@ pub(super) enum Command {
 }
 
 mod pid {
-    use vessel_proc::ProcessId;
     use serde::{Deserialize as _, Deserializer, Serializer};
+    use vessel_proc::ProcessId;
 
     pub(super) fn serialize<S: Serializer>(
         value: impl std::borrow::Borrow<ProcessId>,
