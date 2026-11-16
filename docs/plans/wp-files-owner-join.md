@@ -73,3 +73,13 @@ the shared fixture and Devices8 workers, not a claimed generic C5 task drain.
 All of this receiving source is uncompiled/unexecuted pending the announced
 prerequisite line and its own targeted checks; standalone340 evidence is not
 relabelled as proof for this assembly.
+
+## Announced base14.1 preparation
+
+The lead announced b54abbdc green (native1755/0/2, wasm0), including G4 final51.
+This owner preparation now incorporates that line through the primary C5
+base merge, preserving the canonical field/IME/shortcut split and new field
+defaults. Root crates and locks match the announced base. G4 selected/delivery
+files are unchanged. The receiving owner assembly still needs its own checks;
+the separately reviewed small shown-source producer remains the G1 handoff
+path and does not carry this full file-owner join.
