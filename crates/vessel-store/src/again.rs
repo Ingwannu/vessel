@@ -162,6 +162,7 @@ pub(crate) fn reopen(
         )
         .optional()?;
     if let Some(marks) = reopened {
+        let _updated = crate::mutation_time::advance(connection, session)?;
         let _rows = connection.execute("DELETE FROM inbox WHERE session=?1", [&id])?;
         tracing::debug!(%session, next = %next, "reopened a session's row to start it again");
         return marks.kept();

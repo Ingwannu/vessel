@@ -84,6 +84,7 @@ pub(crate) fn mark(
         }
         Mark::Pin | Mark::Unpin | Mark::Unarchive => {}
     }
+    let _updated = crate::mutation_time::advance(connection, session)?;
     Ok(kept)
 }
 

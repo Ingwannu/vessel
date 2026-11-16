@@ -108,8 +108,9 @@ impl Sessions {
                     let _final = handle.ended().await;
                 }
                 let _order = sessions.marking.lock().await;
-                let kept = sessions.store.mark(id, mark, Utc::now()).await?;
-                handle.set_marks(kept);
+                let committed = sessions.store.mark_committed(id, mark, Utc::now()).await?;
+                let (kept, updated_at) = committed.into_parts();
+                handle.set_committed_marks(kept, updated_at);
                 Ok(handle.info())
             })
             .await

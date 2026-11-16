@@ -147,8 +147,8 @@ impl StructuredActor {
                 Some(call) = self.life.model_calls.recv() => {
                     self.life.publish(&mut self.agent, SessionEvent::ModelCall(call)).await;
                 }
-                Some(rename) = self.life.renames.recv() => {
-                    self.life.renamed(&mut self.agent, rename).await;
+                Some(change) = self.life.metadata.recv() => {
+                    self.life.metadata_changed(&mut self.agent, change).await;
                 }
                 Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
                 // The node's setting changed: the timer follows it.

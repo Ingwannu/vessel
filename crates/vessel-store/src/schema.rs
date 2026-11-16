@@ -12,6 +12,7 @@ mod background;
 mod labels;
 mod listing;
 mod migrations;
+mod mutation_time;
 mod workspace_registry;
 
 // Diagnostic schema projection reads the canonical migration list only.

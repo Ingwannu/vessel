@@ -66,6 +66,7 @@ pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
+mod session_updated_at;
 pub mod settings;
 pub mod side_questions;
 pub mod skills;
@@ -130,7 +131,7 @@ pub use id::{
 };
 pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
-pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use labels::{InvalidLabel, LabelKey, LabelPatch, LabelValue, SessionLabels};
 pub use listing::{ListingScope, SessionListing, SessionSelection};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
@@ -161,14 +162,15 @@ pub use relay::{
 pub use rpc::{
     Ack, Call, ClientFrame, ClientInfo, CreateSession, EventPage, GetNode, GetSession, Handler,
     Hello, KillSession, ListHarnesses, ListSessions, Method, MethodShape, Outcome, ReadEvents,
-    RenameSession, Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe,
-    Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
+    RenameSession, Reply, Request, SendInput, ServerFrame, SetLabels, StopNode, StopWhen,
+    Subscribe, Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
 };
 pub use secret::{CopySecret, DeleteSecret, ListSecrets, SecretValue, SetSecret};
 pub use session::{
     RemoteCreator, SessionInfo, SessionInput, SessionMode, SessionOrigin, SessionSpec,
     SessionStatus,
 };
+pub use session_updated_at::{InvalidSessionUpdatedAt, SESSION_MUTATIONS, SessionUpdatedAt};
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
 pub use title::{
     GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,

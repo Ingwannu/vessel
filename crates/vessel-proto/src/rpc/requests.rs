@@ -85,6 +85,17 @@ pub struct RenameSession {
     pub title: SessionTitle,
 }
 
+/// A validated nonempty patch for current labels (ADR 0063), prepared before
+/// registration of `session.labels`. This payload alone sends no request.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct SetLabels {
+    /// Exact session; discovery filters cannot retarget a metadata mutation.
+    pub session: SessionId,
+    /// Named keys to set, retaining every unmentioned current key.
+    pub labels: crate::LabelPatch,
+}
+
 /// `session.read`: a page of a session's log. The authoritative way to fill
 /// gaps; live subscriptions are an optimisation on top of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -199,3 +210,6 @@ pub struct StopNode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Ack;
+
+#[cfg(test)]
+mod labels_tests;
