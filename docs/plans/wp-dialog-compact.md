@@ -41,7 +41,14 @@ passed fonts, formatting and quality, then stopped at Clippy's panic-in-result-f
 rule in all three new tests. No tests ran. The correction uses ordinary unit
 test returns and the workspace's existing permitted unwrap-in-tests policy;
 all product logic and assertions stay unchanged, with no new allowance. The
-receiving source also includes announced base13.1. A corrected ordinary selected
-run, V1 review and lead adoption are required before consumer use. F1 must own
+receiving source also includes announced base13.1. Corrected ordinary selected run
+`wp-desktop-dialog-compact-20261116T021420Z-e1dba79c` passed all five selected
+steps (fonts, fmt, quality, all-target Clippy, tests) on exact source
+`e1dba79c5e7972a1e55fa081a0c93669e467710e`. The actual test totals were
+1620 passed, 0 failed, 2 ignored; Kit was 248/0/0 and all three new compact
+cases passed. The raw test log SHA256 is
+`bd4c6b49811bb9967412e8a9f8edcf9c963ec25bb13425e74a904454923d6d8b`.
+This records selected source evidence; V1 review and lead adoption are still
+required before consumer use. F1 must own
 its actual sheet captures and source comparison; this builder does not qualify
 consumer focus, native OS behavior or visual parity.
