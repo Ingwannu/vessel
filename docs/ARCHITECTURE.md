@@ -1998,7 +1998,10 @@ owner. See timeline-recovery-values.md for the exact portable boundary and proof
 
 The session mutation clock (ADR 0063) is a nullable column in the canonical
 session row. The existing store writer advances it with append, mark and direct
-metadata changes inside their current savepoints. A helper takes that same
+metadata changes inside their current savepoints. Read/Unread session marks and
+inbox entry marks follow Paseo: they leave the clock of a session the runtime
+has, and tick a stored session's only when they change its attention or the
+entry; the node says which with `vessel_store::Residence` (TRACKER 775). A helper takes that same
 connection so future transactional workspace selection can reuse the clock
 without a second read engine. Reads, retention and index maintenance do not
 advance it. It describes committed local mutation order; it is neither actor
