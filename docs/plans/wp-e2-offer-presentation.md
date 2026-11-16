@@ -41,3 +41,10 @@ First exact source30670442 strict run failed only clone_on_ref_ptr in the new
 row composition. Use explicit Arc::clone; retain that red result. Related
 runtime/wasm/quality steps had not run when the suite stopped. The corrected
 source needs its own narrow results before any pass or capture claim.
+
+Quota-stop checkpoint: corrected88ab has strict0, related64/0/0, wasm0,
+VMquality0 and normal App build/export0. The changed-state capture packet has
+24 main plus8 phone lower-view originals and1 blank-link prerequisite, all
+personally opened. Reviewer/receiving/owning-whole and complete E2 journey
+remain unverified; exact runs, safety/cleanup and restart steps are recorded
+in wp-e2-resume.md. No new long run or merge starts during this warning.
