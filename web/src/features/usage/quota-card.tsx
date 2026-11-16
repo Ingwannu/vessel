@@ -11,9 +11,8 @@ import type {
   QuotaCardWindow,
 } from "../../data/account-usage/cards";
 import type { QuotaClock } from "../../data/account-usage/clock";
-import { quotaDurationText } from "../../data/account-usage/duration";
-import { quotaAge, QuotaInstant } from "../../data/account-usage/clock";
-import { quotaResetClock } from "../../data/account-usage/format";
+import { freshnessText, resetText } from "./quota-text";
+import type { QuotaInstant } from "../../data/account-usage/clock";
 import type { QuotaDisplay } from "../../data/account-usage/values";
 import {
   Badge,
@@ -23,63 +22,6 @@ import {
   QuotaMeter,
   Tooltip,
 } from "../../ui/kit";
-
-/** Paseo reset-line.tsx: the countdown and its exact time, or the forecast. */
-export function resetText(
-  clock: QuotaClock,
-  locale: string,
-  deviceClock: Intl.DateTimeFormat,
-): { text: string; atRisk: boolean } | null {
-  switch (clock.kind) {
-    case "unreported":
-      return null;
-    case "resetting":
-    case "reset_passed":
-      return {
-        text: "Reported reset has passed; refresh to check again.",
-        atRisk: false,
-      };
-    case "reset": {
-      const duration = quotaDurationText(clock.parts, locale);
-      const at = quotaResetClock(clock, locale, deviceClock);
-      const time =
-        at === null
-          ? null
-          : at.kind === "time"
-            ? at.time
-            : `${at.day} ${at.time}`;
-      return {
-        text:
-          time === null
-            ? `Resets in ${duration}`
-            : `Resets in ${duration} · ${time}`,
-        atRisk: false,
-      };
-    }
-    case "risk_now":
-      return {
-        text: `Source forecast: runs out now · Source forecast shortfall: ${clock.shortfall.format(locale)}`,
-        atRisk: true,
-      };
-    case "risk":
-      return {
-        text: `Source forecast: runs out in ${quotaDurationText(clock.parts, locale)} · Source forecast shortfall: ${clock.shortfall.format(locale)}`,
-        atRisk: true,
-      };
-  }
-}
-
-/** "Updated 10m ago": the shown success, never a failed attempt. */
-export function freshnessText(
-  at: QuotaInstant | null,
-  now: QuotaInstant,
-): string {
-  const age = quotaAge(at, now);
-  if (age === null) return "No successful update";
-  if (age.kind === "now") return "Updated just now";
-  const unit = age.unit === "days" ? "d" : age.unit === "hours" ? "h" : "m";
-  return `Updated ${String(age.count)}${unit} ago`;
-}
 
 function ResetLine({
   clock,
@@ -99,26 +41,41 @@ function ResetLine({
   );
 }
 
+/** While the sidebar summary is on, a window row toggles its pin
+ * (Paseo window-bar.tsx: the row is a checkbox, the glyph shows its state). */
+export interface WindowPins {
+  isPinned: (window: string) => boolean;
+  toggle: (window: string) => void;
+}
+
 function WindowBar({
   window,
   display,
   locale,
   deviceClock,
+  pins,
 }: {
   window: QuotaCardWindow;
   display: QuotaDisplay;
   locale: string;
   deviceClock: Intl.DateTimeFormat;
+  pins: WindowPins | undefined;
 }) {
   const value =
     window.percent === null
       ? "Not reported"
       : `${window.percent.format(locale)} ${display === "used" ? "used" : "remaining"}`;
-  return (
-    <div className="quota-bar">
+  const pinned = pins?.isPinned(window.key) ?? false;
+  const body = (
+    <>
       <div className="quota-bar-label">
         <span className="quota-bar-name">{window.label}</span>
         <span className="quota-bar-value">{value}</span>
+        {pins === undefined ? null : (
+          <span className={pinned ? "quota-pin pinned" : "quota-pin"}>
+            <Icon name="pin" size={12} />
+          </span>
+        )}
       </div>
       {window.percent === null ? null : (
         <QuotaMeter
@@ -133,7 +90,22 @@ function WindowBar({
         locale={locale}
         deviceClock={deviceClock}
       />
-    </div>
+    </>
+  );
+  if (pins === undefined) return <div className="quota-bar">{body}</div>;
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={pinned}
+      aria-label={`Pin ${window.label}, ${value}`}
+      className="quota-bar pinnable"
+      onClick={() => {
+        pins.toggle(window.key);
+      }}
+    >
+      {body}
+    </button>
   );
 }
 
@@ -177,6 +149,7 @@ export function QuotaCardView({
   deviceClock,
   onRefresh,
   compact = false,
+  pins,
 }: {
   card: QuotaCard;
   display: QuotaDisplay;
@@ -190,6 +163,8 @@ export function QuotaCardView({
    * `showsFreshnessInline`): on the card only where there is no hover or
    * nothing to refresh, else in the Refresh tooltip. */
   compact?: boolean;
+  /** Window rows pin to the sidebar summary while it is on. */
+  pins?: WindowPins;
 }) {
   const freshness = freshnessText(card.fetchedAt, now);
   return (
@@ -254,6 +229,7 @@ export function QuotaCardView({
               display={display}
               locale={locale}
               deviceClock={deviceClock}
+              pins={pins}
             />
           ))}
           {card.balances.map((balance) => (

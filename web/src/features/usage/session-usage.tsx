@@ -20,6 +20,7 @@ import type { NodeKey } from "../../wire/bridge";
 import type { SessionId } from "../../wire/proto";
 import { QuotaCardView } from "./quota-card";
 import { useAccountReader, useQuotaClock } from "./use-account-usage";
+import { useUsagePrefs } from "./use-usage-prefs";
 
 export function SessionUsage({
   node,
@@ -32,6 +33,7 @@ export function SessionUsage({
   const serves = servesAccountReports(status);
   const { reader, read } = useAccountReader(node, serves, session);
   const { now, locale, deviceClock } = useQuotaClock();
+  const display = useUsagePrefs().usage.display;
   if (!serves) return null;
   if (read.kind === "failed") {
     return (
@@ -50,7 +52,7 @@ export function SessionUsage({
     );
   }
   if (read.reports.policy === "off") return null;
-  const cards = quotaCards(read.reports, "used", locale, now);
+  const cards = quotaCards(read.reports, display, locale, now);
   if (cards.length === 0) return null;
   return (
     <div className="session-usage">
@@ -63,7 +65,7 @@ export function SessionUsage({
         <QuotaCardView
           key={card.key}
           card={card}
-          display="used"
+          display={display}
           locale={locale}
           now={now}
           deviceClock={deviceClock}
