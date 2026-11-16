@@ -537,7 +537,7 @@ fn owner_correlation_is_checked_before_ticket_consume_and_hidden_mutation_stays_
                     entry.key == vessel_app_view::timeline::EntryKey::Record(EventSeq::new(99))
                 })
             },
-            |_| panic!("wrong owner correlation must never mutate"),
+            |_| -> () { panic!("wrong owner correlation must never mutate") },
         );
         assert!(refused.unwrap().is_none());
         let accepted = shell.conversation_settle_if_scoped(
@@ -575,7 +575,7 @@ fn owner_correlation_is_checked_before_ticket_consume_and_hidden_mutation_stays_
                     binding_a,
                     ticket,
                     |_| true,
-                    |_| panic!("spent ticket must never mutate")
+                    |_| -> () { panic!("spent ticket must never mutate") }
                 )
                 .is_err()
         );
