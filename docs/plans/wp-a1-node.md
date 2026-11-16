@@ -488,3 +488,13 @@ The common fence still owes its current-parent check and concrete capsule
 insertion in that same critical section. Five regressions cover pre-Begin and
 single-use construction, foreign registry, replacement/connection, consumed
 admission and stale relation after known refusal. New execution is owed.
+
+Credential entropy acquisition is now explicitly outside the registry guard.
+An initial duplicate check avoids minting for an already reserved identity;
+a concurrent winner may cause an unpublished prepared credential to be discarded
+at the authoritative second check. Current grant/depth/count validation and
+insertion stay under one guard. The concrete common fence can reuse the fixed
+reserve_prepared insertion with that same guard and no nested lock, callback,
+I/O or SQL. A deterministic race test requires the incumbent credential hashes
+to remain unchanged. This refines the earlier shorthand "before minting";
+no credential is published or replaces an entry during the race.

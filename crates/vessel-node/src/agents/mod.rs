@@ -98,6 +98,21 @@ struct Entry {
     session: Option<SessionHandle>,
 }
 
+/// Unpublished credential material prepared outside the registry guard.
+struct PreparedReservation {
+    id: SessionId,
+    secret: Option<AgentSecret>,
+    credentials: Vec<CredentialHash>,
+}
+
+impl std::fmt::Debug for PreparedReservation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreparedReservation")
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
+}
+
 impl Entry {
     /// The session's end is visible (`SessionHandle::has_ended`, set before
     /// the final status is published), even if `retire` has not run yet.
@@ -151,11 +166,20 @@ impl Agents {
         principal: &Principal,
         with_credential: bool,
     ) -> Result<AgentReservation<'_>, ServiceError> {
+        let prepared = self.prepare_reservation(id, with_credential)?;
         let mut sessions = self.lock();
-        // Receipt continuation reuses an id; it must never replace a restored
-        // entry, its credential or its counted owner. Check before minting and
-        // keep the same lock through count admission and insertion.
-        if sessions.contains_key(&id) {
+        self.reserve_prepared(&mut sessions, principal, prepared)
+    }
+
+    /// This duplicate precheck is not authorization. Entropy acquisition stays
+    /// outside the lock; the authoritative duplicate/grant/count check below
+    /// may discard an unpublished credential if another reservation wins.
+    fn prepare_reservation(
+        &self,
+        id: SessionId,
+        with_credential: bool,
+    ) -> Result<PreparedReservation, ServiceError> {
+        if self.lock().contains_key(&id) {
             return Err(ServiceError::AgentReserved(id));
         }
         let (secret, credentials) = if with_credential {
@@ -165,6 +189,25 @@ impl Agents {
         } else {
             (None, Vec::new())
         };
+        Ok(PreparedReservation {
+            id,
+            secret,
+            credentials,
+        })
+    }
+
+    /// The common execution fence can reuse this exact insertion while its
+    /// SAME registry guard is held. No entropy/I/O, callback or nested lock.
+    fn reserve_prepared<'a>(
+        &'a self,
+        sessions: &mut HashMap<SessionId, Entry>,
+        principal: &Principal,
+        prepared: PreparedReservation,
+    ) -> Result<AgentReservation<'a>, ServiceError> {
+        let id = prepared.id;
+        if sessions.contains_key(&id) {
+            return Err(ServiceError::AgentReserved(id));
+        }
         let (scopes, depth, parent) = match principal {
             Principal::Owner => (AGENT_SCOPES.to_vec(), 0, None),
             Principal::Agent {
@@ -178,7 +221,7 @@ impl Agents {
                     .ok_or(ServiceError::AgentGone(*session))?;
                 let parent = (*node, *session);
                 let depth = deeper(creator.depth)?;
-                owns_fewer_than_the_limit(&sessions, parent)?;
+                owns_fewer_than_the_limit(sessions, parent)?;
                 (scopes.clone(), depth, Some(parent))
             }
             // Another node's agent: its depth comes with the call (its own
@@ -196,13 +239,18 @@ impl Agents {
             } => {
                 let parent = (*node, *session);
                 let depth = deeper(*depth)?;
-                owns_fewer_than_the_limit(&sessions, parent)?;
+                owns_fewer_than_the_limit(sessions, parent)?;
                 (within_agent_scopes(scopes), depth, Some(parent))
             }
             Principal::Device { scopes, .. } | Principal::Delegated { scopes, .. } => {
                 (within_agent_scopes(scopes), 0, None)
             }
         };
+        let PreparedReservation {
+            secret,
+            credentials,
+            ..
+        } = prepared;
         let reservation = Arc::new(());
         let _previous = sessions.insert(
             id,
