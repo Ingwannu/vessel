@@ -14,6 +14,14 @@ use vessel_store::{ByteCount, RestartEligibility, Retention, Store, StoreConfig}
 // SQL-only cases previously had no finite safety net. Preparation is kept
 // outside this clock by the shared testkit, just like process-level cases.
 const STORE_CASE_BUDGET: std::time::Duration = std::time::Duration::from_secs(30);
+const STORE_PHASE_BUDGET: std::time::Duration = std::time::Duration::from_secs(10);
+
+async fn phase<F: Future>(name: &str, future: F) -> F::Output {
+    assert!(STORE_PHASE_BUDGET < STORE_CASE_BUDGET);
+    tokio::time::timeout(STORE_PHASE_BUDGET, future)
+        .await
+        .unwrap_or_else(|error| panic!("{name}: {error}"))
+}
 
 async fn case<F: std::future::Future<Output = ()>>(future: F) {
     vessel_testkit::within(STORE_CASE_BUDGET, Box::pin(future))
@@ -56,22 +64,22 @@ fn started(seq: u64) -> Arc<vessel_proto::EventRecord> {
 }
 async fn working(store: &Store) -> SessionInfo {
     let session = info();
-    store
-        .create_session_with_restart(session.clone(), RestartEligibility::Person)
+    phase("Store create_session_with_restart", store
+        .create_session_with_restart(session.clone(), RestartEligibility::Person))
         .await
         .unwrap();
-    store
+    phase("Store append", store
         .append(
             session.id,
             vec![status(0, SessionStatus::Running), started(1)],
-        )
+        ))
         .await
         .unwrap();
     session
 }
 async fn snapshot(store: &Store, session: SessionId) {
     assert!(
-        store
+        phase("Store checkpoint_restart", store
             .checkpoint_restart(
                 session,
                 Vec::new(),
@@ -80,7 +88,7 @@ async fn snapshot(store: &Store, session: SessionId) {
                     turn: Some(EventSeq::new(1)),
                     parked: false,
                 }
-            )
+            ))
             .await
             .unwrap()
     );
@@ -97,11 +105,11 @@ async fn committed_active_turn_survives_retention_and_startup_status_normalizati
             },
             ..StoreConfig::default()
         };
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let session = working(&store).await;
+        let session = phase("Store working", working(&store)).await;
         let logs = (2..150)
             .map(|seq| {
                 record(
@@ -114,35 +122,35 @@ async fn committed_active_turn_survives_retention_and_startup_status_normalizati
                 )
             })
             .collect();
-        store.append(session.id, logs).await.unwrap();
+        phase("Store append", store.append(session.id, logs)).await.unwrap();
         assert!(
-            store
-                .read_events(session.id, EventSeq::ZERO, 10)
+            phase("Store read_events", store
+                .read_events(session.id, EventSeq::ZERO, 10))
                 .await
                 .unwrap()
                 .records
                 .iter()
                 .all(|record| record.seq > EventSeq::new(1))
         );
-        store.close().await;
-        let opened = Store::open_with_restart_policy(&dir, config, true)
+        phase("Store close", store.close()).await;
+        let opened = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap();
         assert_eq!(opened.interrupted.len(), 1);
-        let candidate = opened.store.next_restart().await.unwrap().unwrap();
+        let candidate = phase("Store next_restart", opened.store.next_restart()).await.unwrap().unwrap();
         assert_eq!(candidate.session, session.id);
         assert_eq!(candidate.turn, EventSeq::new(1));
         assert_eq!(
-            opened
+            phase("Store session", opened
                 .store
-                .session(session.id)
+                .session(session.id))
                 .await
                 .unwrap()
                 .unwrap()
                 .status,
             SessionStatus::Interrupted
         );
-        opened.store.close().await;
+        phase("Store close", opened.store.close()).await;
     })
     .await;
 }
@@ -152,13 +160,13 @@ async fn clean_shutdown_capture_survives_the_cancelled_turn_and_final_status() {
     case(async {
         let (_temp, dir) = data_dir();
         let config = StoreConfig::default();
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let session = working(&store).await;
-        snapshot(&store, session.id).await;
-        store
+        let session = phase("Store working", working(&store)).await;
+        phase("Store snapshot", snapshot(&store, session.id)).await;
+        phase("Store append", store
             .append(
                 session.id,
                 vec![
@@ -174,19 +182,19 @@ async fn clean_shutdown_capture_survives_the_cancelled_turn_and_final_status() {
                     ),
                     status(3, SessionStatus::Interrupted),
                 ],
-            )
+            ))
             .await
             .unwrap();
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
         assert_eq!(
-            store.next_restart().await.unwrap().unwrap().session,
+            phase("Store next_restart", store.next_restart()).await.unwrap().unwrap().session,
             session.id
         );
-        store.close().await;
+        phase("Store close", store.close()).await;
     })
     .await;
 }
@@ -196,14 +204,14 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
     case(async {
         let (_temp, dir) = data_dir();
         let config = StoreConfig::default();
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let session = working(&store).await;
+        let session = phase("Store working", working(&store)).await;
         let next = RestartGeneration::ZERO.next().unwrap();
         assert!(
-            store
+            phase("Store checkpoint_restart", store
                 .checkpoint_restart(
                     session.id,
                     Vec::new(),
@@ -211,13 +219,13 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
                         generation: next,
                         turn: Some(EventSeq::new(1))
                     }
-                )
+                ))
                 .await
                 .unwrap()
         );
-        store.append(session.id, vec![started(2)]).await.unwrap();
+        phase("Store append", store.append(session.id, vec![started(2)])).await.unwrap();
         assert!(
-            !store
+            !phase("Store checkpoint_restart", store
                 .checkpoint_restart(
                     session.id,
                     Vec::new(),
@@ -225,22 +233,22 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
                         generation: RestartGeneration::ZERO,
                         turn: EventSeq::new(2)
                     }
-                )
+                ))
                 .await
                 .unwrap()
         );
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        assert_eq!(store.next_restart().await.unwrap(), None);
-        let ended = store.session(session.id).await.unwrap().unwrap();
-        let _marks = store.reopen(session.id, ended.next_seq).await.unwrap();
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None);
+        let ended = phase("Store session", store.session(session.id)).await.unwrap().unwrap();
+        let _marks = phase("Store reopen", store.reopen(session.id, ended.next_seq)).await.unwrap();
         // Reopen enters Starting. A real actor publishes Running before a new
         // turn; Starting alone must never qualify for automatic startup work.
         let seq = ended.next_seq.next().unwrap();
-        store
+        phase("Store append", store
             .append(
                 session.id,
                 vec![
@@ -256,11 +264,11 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
                         },
                     ),
                 ],
-            )
+            ))
             .await
             .unwrap();
         assert!(
-            store
+            phase("Store checkpoint_restart", store
                 .checkpoint_restart(
                     session.id,
                     Vec::new(),
@@ -268,12 +276,12 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
                         generation: next,
                         turn: seq
                     }
-                )
+                ))
                 .await
                 .unwrap()
         );
         assert!(
-            !store
+            !phase("Store checkpoint_restart", store
                 .checkpoint_restart(
                     session.id,
                     Vec::new(),
@@ -281,17 +289,17 @@ async fn stop_generation_rejects_late_start_and_ack_but_accepts_a_new_turn() {
                         generation: next.next().unwrap(),
                         turn: Some(EventSeq::new(1))
                     }
-                )
+                ))
                 .await
                 .unwrap()
         );
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        assert_eq!(store.next_restart().await.unwrap().unwrap().turn, seq);
-        store.close().await;
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap().unwrap().turn, seq);
+        phase("Store close", store.close()).await;
     })
     .await;
 }
@@ -301,43 +309,43 @@ async fn disabled_startup_consumes_intent_and_a_consumed_claim_is_not_retried() 
     case(async {
         let (_temp, dir) = data_dir();
         let config = StoreConfig::default();
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let session = working(&store).await;
-        snapshot(&store, session.id).await;
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, false)
+        let session = phase("Store working", working(&store)).await;
+        phase("Store snapshot", snapshot(&store, session.id)).await;
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, false))
             .await
             .unwrap()
             .store;
-        assert_eq!(store.next_restart().await.unwrap(), None);
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None);
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        assert_eq!(store.next_restart().await.unwrap(), None);
-        let other = working(&store).await;
-        snapshot(&store, other.id).await;
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None);
+        let other = phase("Store working", working(&store)).await;
+        phase("Store snapshot", snapshot(&store, other.id)).await;
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let candidate = store.next_restart().await.unwrap().unwrap();
+        let candidate = phase("Store next_restart", store.next_restart()).await.unwrap().unwrap();
         assert_eq!(candidate.session, other.id);
-        assert!(store.claim_restart(candidate).await.unwrap());
-        assert!(!store.claim_restart(candidate).await.unwrap());
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        assert!(phase("Store claim_restart", store.claim_restart(candidate)).await.unwrap());
+        assert!(!phase("Store claim_restart", store.claim_restart(candidate)).await.unwrap());
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
         // The consumed launch had not started another committed turn.
-        assert_eq!(store.next_restart().await.unwrap(), None);
-        store.close().await;
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None);
+        phase("Store close", store.close()).await;
     })
     .await;
 }
@@ -353,31 +361,31 @@ async fn pending_and_claimed_rows_are_protected_until_the_attempt_settles() {
             },
             ..StoreConfig::default()
         };
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let session = working(&store).await;
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        let session = phase("Store working", working(&store)).await;
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        let candidate = store.next_restart().await.unwrap().unwrap();
-        assert!(store.claim_restart(candidate).await.unwrap());
+        let candidate = phase("Store next_restart", store.next_restart()).await.unwrap().unwrap();
+        assert!(phase("Store claim_restart", store.claim_restart(candidate)).await.unwrap());
         let other = info();
-        store.create_session(other.clone()).await.unwrap();
-        store
+        phase("Store create_session", store.create_session(other.clone())).await.unwrap();
+        phase("Store append", store
             .append(
                 other.id,
                 vec![status(0, SessionStatus::Exited { code: Some(0) })],
-            )
+            ))
             .await
             .unwrap();
-        assert!(store.session(session.id).await.unwrap().is_some());
-        store.finish_restart(session.id).await.unwrap();
-        assert_eq!(store.session(session.id).await.unwrap(), None);
-        store.close().await;
+        assert!(phase("Store session", store.session(session.id)).await.unwrap().is_some());
+        phase("Store finish_restart", store.finish_restart(session.id)).await.unwrap();
+        assert_eq!(phase("Store session", store.session(session.id)).await.unwrap(), None);
+        phase("Store close", store.close()).await;
     })
     .await;
 }
@@ -387,16 +395,16 @@ async fn checkpoints_do_not_add_public_records_and_terminal_output_is_not_an_act
     case(async {
         let (_temp, dir) = data_dir();
         let config = StoreConfig::default();
-        let store = fixtures::open(&dir, config).await;
+        let store = phase("Store open", fixtures::open(&dir, config)).await;
         let session = fixtures::new_session(0);
-        store
-            .create_session_with_restart(session.clone(), RestartEligibility::Person)
+        phase("Store create_session_with_restart", store
+            .create_session_with_restart(session.clone(), RestartEligibility::Person))
             .await
             .unwrap();
         let records = vec![fixtures::output(0, 32)];
-        store.append(session.id, records.clone()).await.unwrap();
+        phase("Store append", store.append(session.id, records.clone())).await.unwrap();
         assert!(
-            store
+            phase("Store checkpoint_restart", store
                 .checkpoint_restart(
                     session.id,
                     Vec::new(),
@@ -404,23 +412,23 @@ async fn checkpoints_do_not_add_public_records_and_terminal_output_is_not_an_act
                         generation: RestartGeneration::ZERO.next().unwrap(),
                         turn: None,
                     }
-                )
+                ))
                 .await
                 .unwrap()
         );
-        let page = store
-            .read_events(session.id, EventSeq::ZERO, 10)
+        let page = phase("Store read_events", store
+            .read_events(session.id, EventSeq::ZERO, 10))
             .await
             .unwrap();
         assert_eq!(page.records, fixtures::plain(&records));
         assert_eq!(page.next, EventSeq::new(1));
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, config, true)
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, config, true))
             .await
             .unwrap()
             .store;
-        assert_eq!(store.next_restart().await.unwrap(), None);
-        store.close().await;
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None);
+        phase("Store close", store.close()).await;
     })
     .await;
 }

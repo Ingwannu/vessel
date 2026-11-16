@@ -32,7 +32,7 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
             Exclusion::Deleted,
         ] {
             let (_temp, dir) = data_dir();
-            let store = Store::open_with_restart_policy(&dir, StoreConfig::default(), true)
+            let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
                 .await
                 .unwrap()
                 .store;
@@ -65,8 +65,8 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
             } else {
                 RestartEligibility::Person
             };
-            store
-                .create_session_with_restart(session, eligibility)
+            phase("Store create_session_with_restart", store
+                .create_session_with_restart(session, eligibility))
                 .await
                 .unwrap();
             let status_now = if matches!(case, Exclusion::Starting) {
@@ -86,27 +86,27 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
                     },
                 ));
             }
-            store.append(id, events).await.unwrap();
+            phase("Store append", store.append(id, events)).await.unwrap();
             if matches!(case, Exclusion::Archived) {
-                let _marks = store
-                    .mark(id, vessel_proto::Mark::Archive, at(3))
+                let _marks = phase("Store mark", store
+                    .mark(id, vessel_proto::Mark::Archive, at(3)))
                     .await
                     .unwrap();
             }
             if matches!(case, Exclusion::Deleted) {
-                store
-                    .append(id, vec![status(2, SessionStatus::Interrupted)])
+                phase("Store append", store
+                    .append(id, vec![status(2, SessionStatus::Interrupted)]))
                     .await
                     .unwrap();
-                store.delete_session(id).await.unwrap();
+                phase("Store delete_session", store.delete_session(id)).await.unwrap();
             }
-            store.close().await;
-            let store = Store::open_with_restart_policy(&dir, StoreConfig::default(), true)
+            phase("Store close", store.close()).await;
+            let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
                 .await
                 .unwrap()
                 .store;
-            assert_eq!(store.next_restart().await.unwrap(), None, "{case:?}");
-            store.close().await;
+            assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap(), None, "{case:?}");
+            phase("Store close", store.close()).await;
         }
     })
     .await;
@@ -116,7 +116,7 @@ async fn exclusions_remain_manual_even_with_committed_activity() {
 async fn a_local_turn_after_import_keeps_its_local_creator_eligibility() {
     case(async {
         let (_temp, dir) = data_dir();
-        let store = Store::open_with_restart_policy(&dir, StoreConfig::default(), true)
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
             .await
             .unwrap()
             .store;
@@ -126,21 +126,21 @@ async fn a_local_turn_after_import_keeps_its_local_creator_eligibility() {
             session: SessionId::random(),
         });
         let id = session.id;
-        store
-            .create_session_with_restart(session, RestartEligibility::Person)
+        phase("Store create_session_with_restart", store
+            .create_session_with_restart(session, RestartEligibility::Person))
             .await
             .unwrap();
-        store
-            .append(id, vec![status(0, SessionStatus::Running), started(1)])
+        phase("Store append", store
+            .append(id, vec![status(0, SessionStatus::Running), started(1)]))
             .await
             .unwrap();
-        store.close().await;
-        let store = Store::open_with_restart_policy(&dir, StoreConfig::default(), true)
+        phase("Store close", store.close()).await;
+        let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
             .await
             .unwrap()
             .store;
-        assert_eq!(store.next_restart().await.unwrap().unwrap().session, id);
-        store.close().await;
+        assert_eq!(phase("Store next_restart", store.next_restart()).await.unwrap().unwrap().session, id);
+        phase("Store close", store.close()).await;
     })
     .await;
 }
@@ -149,32 +149,32 @@ async fn a_local_turn_after_import_keeps_its_local_creator_eligibility() {
 async fn an_exhausted_stop_generation_is_an_error_not_a_successful_acknowledgement() {
     case(async {
     let (_temp, dir) = data_dir();
-    let store = Store::open_with_restart_policy(&dir, StoreConfig::default(), true)
+    let store = phase("Store open_with_restart_policy", Store::open_with_restart_policy(&dir, StoreConfig::default(), true))
         .await
         .unwrap()
         .store;
-    let session = working(&store).await;
-    snapshot(&store, session.id).await;
-    store
-        .append(session.id, vec![status(2, SessionStatus::Interrupted)])
+    let session = phase("Store working", working(&store)).await;
+    phase("Store snapshot", snapshot(&store, session.id)).await;
+    phase("Store append", store
+        .append(session.id, vec![status(2, SessionStatus::Interrupted)]))
         .await
         .unwrap();
     let database = rusqlite::Connection::open(dir.database_path()).unwrap();
     assert_eq!(database.execute("UPDATE restart_state SET state=json_set(state,'$.generation',?1) WHERE session_id=?2", rusqlite::params![i64::MAX, session.id.to_string()]).unwrap(), 1);
-    let result = store
-        .suppress_ended_restart(session.id, EventSeq::new(3))
+    let result = phase("Store suppress_ended_restart", store
+        .suppress_ended_restart(session.id, EventSeq::new(3)))
         .await;
     assert!(
         matches!(result, Err(vessel_store::StoreError::RestartGenerationExhausted(id)) if id == session.id)
     );
     assert_eq!(
-        store.restart_generation(session.id).await.unwrap().get(),
+        phase("Store restart_generation", store.restart_generation(session.id)).await.unwrap().get(),
         u64::try_from(i64::MAX).unwrap()
     );
     assert!(
-        store.next_restart().await.unwrap().is_some(),
+        phase("Store next_restart", store.next_restart()).await.unwrap().is_some(),
         "a failed stop cannot claim it durably consumed intent"
     );
-    store.close().await;
+    phase("Store close", store.close()).await;
     }).await;
 }
