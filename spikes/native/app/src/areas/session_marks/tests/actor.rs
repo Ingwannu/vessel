@@ -73,33 +73,50 @@ fn real_queued_ack_retains_input_and_worker_hold_refuses_new_ingress(cx: &mut Te
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     let outcome = catch_unwind(AssertUnwindSafe(|| {
         shell.update_in(cx, |shell, window, cx| {
-        let (machine, mut info) = rendered(&context);
-        let target = CapturedSessionTarget::capture(&machine, &machine.sessions[0]).unwrap();
-        let protected = protect_other_session(shell, &context, "keep original 한글", window, cx);
-        shell.fleet.machines = vec![machine];
-        shell.mark_session_target(target.clone(), Mark::Pin, cx);
-        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::MarkSession(request) if request.session == info.id && request.mark == Mark::Pin));
-        info.marks.pinned = true;
-        scene.reply(shell.fixture_link(), Outcome::Ok(vessel_proto::Reply::MarkSession(info))).unwrap();
-        let answer = marked(&mut scene, shell.fixture_link());
-        let hold = shell.fixture_link().drain_session_marks().unwrap();
-        // A second local request may reuse a page ticket, but has another mark.
-        // Holding the real hub rejects ingress without issuing a second RPC.
-        let other = vessel_app_view::session_marks::Requests::default().begin(target, Mark::Unpin).unwrap();
-        shell.fixture_link().submit(Command::SessionMark(other)).unwrap();
-        let rejected = marked(&mut scene, shell.fixture_link());
-        shell.session_mark_answer(rejected, cx);
-        assert!(shell.areas.session_marks.is_pending());
-        shell.session_mark_answer(answer, cx);
-        assert!(!shell.areas.session_marks.is_pending());
-        assert_eq!(shell.areas.session.composer.text(cx), "keep original 한글");
-        assert_eq!(shell.route, Route::Session);
-        assert_eq!(shell.areas.session.open.as_ref().unwrap().session, protected);
-        assert_eq!(shell.areas.conversation.info.as_ref().unwrap().id, protected);
-        assert!(!shell.fleet.machines[0].sessions[0].detail.marks.pinned, "ACK never installs a unary snapshot into Fleet");
-        assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 1);
-        drop(hold);
-    })
+            let (machine, mut info) = rendered(&context);
+            let target = CapturedSessionTarget::capture(&machine, &machine.sessions[0]).unwrap();
+            let protected =
+                protect_other_session(shell, &context, "keep original 한글", window, cx);
+            shell.fleet.machines = vec![machine];
+            shell.mark_session_target(target.clone(), Mark::Pin, cx);
+            let call = scene.request(shell.fixture_link()).unwrap();
+            assert!(matches!(call, Call::MarkSession(request)
+                if request.session == info.id && request.mark == Mark::Pin));
+            info.marks.pinned = true;
+            let reply = Outcome::Ok(vessel_proto::Reply::MarkSession(info));
+            scene.reply(shell.fixture_link(), reply).unwrap();
+            let answer = marked(&mut scene, shell.fixture_link());
+            let hold = shell.fixture_link().drain_session_marks().unwrap();
+            // Same page ticket, different mark: the exact original stays pending.
+            // The real hub hold refuses new ingress before a second RPC.
+            let other = vessel_app_view::session_marks::Requests::default()
+                .begin(target, Mark::Unpin)
+                .unwrap();
+            shell
+                .fixture_link()
+                .submit(Command::SessionMark(other))
+                .unwrap();
+            shell.session_mark_answer(marked(&mut scene, shell.fixture_link()), cx);
+            assert!(shell.areas.session_marks.is_pending());
+            shell.session_mark_answer(answer, cx);
+            assert!(!shell.areas.session_marks.is_pending());
+            assert_eq!(shell.areas.session.composer.text(cx), "keep original 한글");
+            assert_eq!(shell.route, Route::Session);
+            assert_eq!(
+                shell.areas.session.open.as_ref().unwrap().session,
+                protected
+            );
+            assert_eq!(
+                shell.areas.conversation.info.as_ref().unwrap().id,
+                protected
+            );
+            assert!(
+                !shell.fleet.machines[0].sessions[0].detail.marks.pinned,
+                "ACK never installs a unary snapshot into Fleet"
+            );
+            assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 1);
+            drop(hold);
+        });
     }));
     shell.update_in(cx, |shell, _, _| {
         close_workers(shell, &mut scene, outcome.is_err());
