@@ -99,14 +99,23 @@ fn app_facts(shell: &Shell, window: &Window) -> AppFacts {
             .kept_why(&shell.prefs.kept)
             .unwrap_or_default(),
     };
+    // A browser has no log file and no home folder (`vessel-app-log` and
+    // `dirs` are the desktop's): the report leaves both out.
+    #[cfg(not(target_arch = "wasm32"))]
+    let (log, home) = (
+        vessel_app_log::dir().map(|dir| dir.display().to_string()),
+        dirs::home_dir().map(|home| home.display().to_string()),
+    );
+    #[cfg(target_arch = "wasm32")]
+    let (log, home) = (None, None);
     AppFacts {
         collected_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
         label: crate::LABEL.to_owned(),
         platform: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
         renderer,
         preferences,
-        log: vessel_app_log::dir().map(|dir| dir.display().to_string()),
-        home: dirs::home_dir().map(|home| home.display().to_string()),
+        log,
+        home,
     }
 }
 
