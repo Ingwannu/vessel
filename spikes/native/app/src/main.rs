@@ -229,12 +229,12 @@ impl Probe {
     }
     fn record(&self) -> std::io::Result<()> {
         let mut options = std::fs::OpenOptions::new();
-        options.write(true).create(true).truncate(true);
+        let options = options.write(true).create(true).truncate(true);
         #[cfg(unix)]
-        {
+        let options = {
             use std::os::unix::fs::OpenOptionsExt as _;
-            options.mode(0o600);
-        }
+            options.mode(0o600)
+        };
         let mut out = options.open(&self.output)?;
         for (name, value) in [
             ("replacement", self.metrics.replaced),

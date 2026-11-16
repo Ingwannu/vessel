@@ -42,3 +42,17 @@ proof. Real PasswordInput/no-value is tested separately through change11.
 Current status: prepared source, no compile/export/run/pixel/clipboard PASS.
 No actual key, production service, deployment, consumer acceptance or receiving
 line gate is claimed.
+
+## Required receiving baseline
+
+The first29f5c1a6 native build/export succeeded0 in the one authorized priority
+run after its queued-only143 predecessor. Its two unused OpenOptions builder
+return warnings are corrected by using the same mutable builder fluently;
+permissions, paths and observations do not change. No old binary was launched.
+
+Lead then announced b54abbdc base14.1 and required actual secure proof there.
+This audit merges the receiving secure producer b69703e8 (including b54),
+preserving its exact Kit/GPUI/manifest/lock source. The App main remains solely
+the explicit audit scaffolding. Prior7bfe Kit252 and old29f5 export are retained
+as PRIOR-source evidence; current receiving Kit checks and a NEW same-source
+export/capture are owed. No allowance, new dependency, painter or whole gate.
