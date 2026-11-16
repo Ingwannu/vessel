@@ -76,3 +76,19 @@ provider, agent, OS opener or live checkout is needed for these tests.
 The decoder installs no watcher, RPC, protocol number, default
 handler, polling loop or fetch. It does not extend the V3 values-only approval
 or borrow the announced node gate as proof of the current C3 runtime.
+
+## Pure decoder exact94e narrow results
+
+The pure metadata decoder has actual selected test5/0/0 (144filtered) on
+94eebf2975cdf1fb045dc8e95aed7e53b1077423, with fresh Workspace compilation.
+All four prescribed preparation/cargo stages returned0; specs, immutable
+source pins and every step log prefix/artifact hash were verified. The same
+exact source also passed Workspace all-target strict and Node/Proto/Client
+all-target strict. The external metadata-94e-result.json retains these scopes.
+
+These five cases cover ordered lock/pruning rules, common vs worktree scope,
+namespace events without invented refs, malformed ref error sources and native
+separator/Unicode/remote identity. They do not install or execute a watcher,
+subscription, cache callback, recovery loop or fetch. This decoder is excluded
+from the separate bounded comparison/history runtime producer, and no new
+protocol number, source-adoption or full C3 approval follows.
