@@ -158,12 +158,12 @@ impl Node {
             Change::Dictation(change) => {
                 self.dictation = change
                     .over(self.dictation.clone())
-                    .map_err(|_| Problem::Refused(ErrorCode::InvalidRequest))?
+                    .map_err(|_private| Problem::Refused(ErrorCode::InvalidRequest))?;
             }
             Change::Conversation(change) => {
                 self.conversation = change
                     .over(self.conversation.clone())
-                    .map_err(|_| Problem::Refused(ErrorCode::InvalidRequest))?
+                    .map_err(|_private| Problem::Refused(ErrorCode::InvalidRequest))?;
             }
         }
         Ok(self.snapshot())

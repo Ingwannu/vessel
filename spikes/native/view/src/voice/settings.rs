@@ -73,7 +73,7 @@ pub struct Write {
     pub node: NodeId,
     /// The owning page checks it again when the reply arrives.
     pub ticket: Ticket,
-    /// Existing canonical values, without a speculative NodeSettings field.
+    /// Existing canonical values, without a speculative `NodeSettings` field.
     pub change: Change,
 }
 
