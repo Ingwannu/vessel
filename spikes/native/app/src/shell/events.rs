@@ -47,6 +47,7 @@ impl Shell {
                         self.pairing_opened(cx);
                     }
                 }
+                crate::areas::shortcuts::book_changed(self);
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();

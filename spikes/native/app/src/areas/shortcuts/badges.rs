@@ -24,7 +24,8 @@ fn context(shell: &Shell, window: &Window) -> ShortcutContext {
     context
 }
 fn eligible(shell: &Shell, window: &mut Window, cx: &mut App) -> bool {
-    super::available(window)
+    shell.global_shortcuts_enabled()
+        && super::available(window)
         && window.is_visible()
         && window.is_window_active()
         && !window
