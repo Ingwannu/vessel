@@ -48,3 +48,12 @@ mutation closure. There is no await or selected-context refresh between checks.
 A generic concrete-entry regression exercises hidden ingress without inventing
 checkpoint state or identifiers. Actual W9 correlation and its nested readiness
 vote remain required with its checked producer; this is not their approval.
+
+Caller cache audit found that assistant Markdown used only (revision, visible
+length) as the retained TextView version. A new source or rebuilt projection may
+reuse both with different equal-length bytes. The existing helper honors that
+version and would not replace text. The caller now hashes (revision, visible
+text), still using the same Markdown/selection engine. This is a static source
+correction, not an executed failure or source-identity/selection authority proof.
+Full resident/claim/origin scoping remains mandatory for all mounted controls;
+W12's canonical token-display producer is still pending.
