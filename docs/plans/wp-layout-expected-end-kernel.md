@@ -84,7 +84,8 @@ Exact `b9df6b605c37539544732878974758faada7a611` completed requested locked
 View/Kit/App all-target strict run `wp-layout-core-union-20261116T003646Z-b9df6b60`
 with fonts/cargo0 (actual Kit/App Checking; View cached). Same-head runtime
 `wp-layout-core-union-20261116T005309Z-b9df6b60` compiled View/Kit/Link/App and
-passed1527/0/2 ignored: App133, Kit252, View1000 and example142. All nine pure stop
+passed 1527/0/2 ignored: App 133, Kit 252, View 1000 and integration and example
+tests 142 (integration 131 plus example 11). All nine pure stop
 cases and the staged GPUI full-retirement/empty-ticket/input marker case passed
 explicitly. All nine kernel Rust blobs equal the executed source; the selected
 portable native tree equals that union, without a new-commit execution claim.

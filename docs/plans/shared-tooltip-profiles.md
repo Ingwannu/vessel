@@ -88,7 +88,8 @@ Exact `b9df6b605c37539544732878974758faada7a611` on package base13 completed
 `wp-layout-core-union-20261116T003646Z-b9df6b60`: requested locked View/Kit/App
 all-target strict Clippy passed (actual Kit/App Checking; View cached).
 Same-head `wp-layout-core-union-20261116T005309Z-b9df6b60` compiled View/Kit/Link/App
-and passed App133, Kit252, View1000 and example142 tests:1527/0/2 ignored total.
+and passed App 133, Kit 252, View 1000 and integration and example tests 142:
+1527/0/2 ignored total. Those extra tests are integration 131 plus example 11.
 Every Tooltip profile fixture, including pending and shown stationary redraw,
 passed explicitly. This is not isolated-leaf execution, native-quality, captures,
 OS/a11y/focus parity or a feature package approval. The selected portable native
