@@ -57,6 +57,42 @@ macro_rules! glyph_inventory {
 
 include!("assets/inventory.rs");
 
+/// Where a line glyph is served at the command centre's row stroke.
+const COMMAND_WEIGHT: &str = "kit/command-weight/";
+/// The root every `line_glyph!` drawing starts with: Lucide's grid at the
+/// provider's 1.5.
+const LINE_ROOT: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#;
+const PROVIDER_STROKE: &str = r#"stroke-width="1.5""#;
+const COMMAND_STROKE: &str = r#"stroke-width="2.2""#;
+
+impl Glyph {
+    /// This glyph as a command-centre row draws it.
+    ///
+    /// [Decision Log]
+    /// - Purpose: every glyph in Paseo's command centre is drawn at stroke
+    ///   2.2 (its Plus at 2.4; `root-registration.tsx` 65-107); Vessel's
+    ///   command centre lists more rows than Paseo's (machines, the board,
+    ///   each settings section, sessions, themes), and they must match
+    ///   (coordinator, TRACKER 778, 2026-11-16).
+    /// - Alternatives: a `Command*` role per glyph (two dozen copies of the
+    ///   same paths that would drift from their shared roles); restroking the
+    ///   shared roles (every other surface would turn heavy).
+    /// - Choice: a line glyph (drawn by `line_glyph!` at 1.5) is also served
+    ///   under `kit/command-weight/` with its root stroke at 2.2; the kit's
+    ///   command row asks for this path. The `Command*` roles (Paseo's own root
+    ///   shapes, already at their stroke) and glyphs that are not 1.5 line
+    ///   drawings keep their own path.
+    #[must_use]
+    pub fn command_weight_path(self) -> SharedString {
+        match self.path().strip_prefix("kit/") {
+            Some(file) if self.svg().starts_with(LINE_ROOT) => {
+                SharedString::from(format!("{COMMAND_WEIGHT}{file}"))
+            }
+            Some(_) | None => SharedString::new_static(self.path()),
+        }
+    }
+}
+
 /// The kit's assets, for `Application::with_assets`.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Assets;
@@ -65,6 +101,19 @@ impl AssetSource for Assets {
     fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
         // The agents' marks are not here: `agent_mark` rasterises its own
         // embedded drawings at the display's pixels.
+        if let Some(file) = path.strip_prefix(COMMAND_WEIGHT) {
+            let line = ALL.into_iter().find(|glyph| {
+                glyph.path().strip_prefix("kit/") == Some(file) && glyph.svg().starts_with(LINE_ROOT)
+            });
+            return Ok(line.map(|glyph| {
+                Cow::Owned(
+                    glyph
+                        .svg()
+                        .replacen(PROVIDER_STROKE, COMMAND_STROKE, 1)
+                        .into_bytes(),
+                )
+            }));
+        }
         let glyph = ALL.into_iter().find(|glyph| glyph.path() == path);
         Ok(glyph.map(|glyph| Cow::Borrowed(glyph.svg().as_bytes())))
     }
@@ -423,5 +472,7 @@ mod import_role_tests;
 
 #[cfg(test)]
 mod command_role_tests;
+#[cfg(test)]
+mod command_weight_tests;
 #[cfg(test)]
 mod viewport_role_tests;
