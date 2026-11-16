@@ -1,62 +1,75 @@
-//! The page's `data/terminal-sender.test.ts` and `data/links.test.ts`, and
-//! the terminal view's resize rule and frame.
-
+//! Terminal transport ordering and the existing resize/frame rules.
+use crate::support::{EN, Log};
 use vessel_app_view::is_web_url;
 use vessel_app_view::terminal::{
-    MAX_PENDING, Outgoing, ResizeRule, Taken, TerminalLog, TerminalSender,
+    GridSize, MAX_PENDING, Outgoing, ResizeRule, SendReceipt, SendSettlement, Taken, TerminalLog,
+    TerminalSender,
 };
-
-use crate::support::{EN, Log};
+use vessel_proto::terminals::SendTerminal;
 
 fn keys(text: &str) -> Outgoing {
     Outgoing::Keys(text.to_owned())
+}
+fn next(sender: &mut TerminalSender) -> (SendReceipt, Outgoing) {
+    sender
+        .take()
+        .expect("bounded preparation")
+        .expect("queued dispatch")
+        .into_parts()
+}
+fn size(cols: u16, rows: u16) -> GridSize {
+    GridSize::new(cols, rows).expect("valid size")
 }
 
 #[test]
 fn is_sent_one_call_at_a_time_in_the_order_typed() {
     let mut sender = TerminalSender::default();
-    sender.resize(120, 40);
+    assert_eq!(sender.resize(size(120, 40)), Taken::Queued);
+    let (resize, outgoing) = next(&mut sender);
     assert_eq!(
-        sender.take(),
-        Some(Outgoing::Resize {
+        outgoing,
+        Outgoing::Resize {
             cols: 120,
             rows: 40
-        })
+        }
     );
-    let _ = sender.keys("pasted line");
-    let _ = sender.keys("\r");
-    assert_eq!(sender.take(), None, "one in flight");
-    sender.answered();
-    // Keys typed during the resize go out together, Enter last.
-    assert_eq!(sender.take(), Some(keys("pasted line\r")));
-    sender.answered();
-    assert_eq!(sender.take(), None);
+    assert_eq!(sender.keys("pasted line"), Taken::Queued);
+    assert_eq!(sender.keys("\r"), Taken::Queued);
+    assert_eq!(sender.take().expect("lane"), None, "one in flight");
+    assert_eq!(sender.answered(&resize), SendSettlement::Settled);
+    let (input, outgoing) = next(&mut sender);
+    assert_eq!(outgoing, keys("pasted line\r"));
+    assert_eq!(sender.answered(&input), SendSettlement::Settled);
+    assert_eq!(sender.take().expect("drained"), None);
     assert!(!sender.busy());
 }
 
 #[test]
 fn keeps_keys_and_sizes_in_order_the_latest_size_only() {
     let mut sender = TerminalSender::default();
-    let _ = sender.keys("a");
-    let mut sent = vec![sender.take()];
-    let _ = sender.keys("b");
-    sender.resize(80, 24);
-    sender.resize(100, 30);
-    let _ = sender.keys("c");
+    assert_eq!(sender.keys("a"), Taken::Queued);
+    let (mut receipt, first) = next(&mut sender);
+    let mut sent = vec![first];
+    assert_eq!(sender.keys("b"), Taken::Queued);
+    assert_eq!(sender.resize(size(80, 24)), Taken::Queued);
+    assert_eq!(sender.resize(size(100, 30)), Taken::Queued);
+    assert_eq!(sender.keys("c"), Taken::Queued);
     for _ in 0..3 {
-        sender.answered();
-        sent.push(sender.take());
+        assert_eq!(sender.answered(&receipt), SendSettlement::Settled);
+        let (next_receipt, outgoing) = next(&mut sender);
+        receipt = next_receipt;
+        sent.push(outgoing);
     }
     assert_eq!(
         sent,
         [
-            Some(keys("a")),
-            Some(keys("b")),
-            Some(Outgoing::Resize {
+            keys("a"),
+            keys("b"),
+            Outgoing::Resize {
                 cols: 100,
                 rows: 30
-            }),
-            Some(keys("c"))
+            },
+            keys("c")
         ]
     );
 }
@@ -64,45 +77,53 @@ fn keeps_keys_and_sizes_in_order_the_latest_size_only() {
 #[test]
 fn goes_on_after_a_failed_send_without_repeating_it() {
     let mut sender = TerminalSender::default();
-    let _ = sender.keys("one");
-    let first = sender.take();
-    let _ = sender.keys("two");
-    sender.answered(); // failed: not repeated
-    assert_eq!(
-        (first, sender.take()),
-        (Some(keys("one")), Some(keys("two")))
-    );
+    assert_eq!(sender.keys("one"), Taken::Queued);
+    let (receipt, first) = next(&mut sender);
+    assert_eq!(sender.keys("two"), Taken::Queued);
+    assert_eq!(sender.answered(&receipt), SendSettlement::Settled); // failure is never retried
+    assert_eq!((first, next(&mut sender).1), (keys("one"), keys("two")));
 }
 
 #[test]
 fn drops_keys_past_its_bound_and_says_so_once() {
     let mut sender = TerminalSender::default();
     assert_eq!(sender.keys("x"), Taken::Queued);
-    assert_eq!(sender.take(), Some(keys("x")));
+    let (first, outgoing) = next(&mut sender);
+    assert_eq!(outgoing, keys("x"));
     assert_eq!(sender.keys(&"y".repeat(MAX_PENDING)), Taken::Queued);
     assert_eq!(sender.keys("z"), Taken::DroppedFirst);
     assert_eq!(sender.keys("w"), Taken::Dropped);
-    sender.answered();
-    let Some(Outgoing::Keys(long)) = sender.take() else {
+    assert_eq!(sender.answered(&first), SendSettlement::Settled);
+    let (receipt, Outgoing::Keys(long)) = next(&mut sender) else {
         panic!("the long keys next");
     };
-    assert_eq!(long.len(), MAX_PENDING);
-    // Room again: keys are taken.
+    assert_eq!(long.len(), SendTerminal::MAX_BYTES);
+    // The original million-character stream remains exact; only each RPC is bounded.
+    let mut combined = long;
     assert_eq!(sender.keys("v"), Taken::Queued);
-    sender.answered();
-    assert_eq!(sender.take(), Some(keys("v")));
+    assert_eq!(sender.answered(&receipt), SendSettlement::Settled);
+    while let Some(dispatch) = sender.take().expect("bounded stream") {
+        let (receipt, Outgoing::Keys(part)) = dispatch.into_parts() else {
+            panic!("keys only");
+        };
+        assert!(part.len() <= SendTerminal::MAX_BYTES);
+        combined.push_str(&part);
+        assert_eq!(sender.answered(&receipt), SendSettlement::Settled);
+    }
+    assert_eq!(combined, "y".repeat(MAX_PENDING) + "v");
 }
 
 #[test]
 fn sends_nothing_after_close() {
     let mut sender = TerminalSender::default();
-    let _ = sender.keys("a");
-    let first = sender.take();
-    let _ = sender.keys("b");
-    sender.close();
-    sender.answered();
-    let _ = sender.keys("c");
-    assert_eq!((first, sender.take()), (Some(keys("a")), None));
+    assert_eq!(sender.keys("a"), Taken::Queued);
+    let (receipt, first) = next(&mut sender);
+    assert_eq!(sender.keys("b"), Taken::Queued);
+    assert_eq!(sender.close(), Some(receipt.clone()));
+    assert_eq!(sender.answered(&receipt), SendSettlement::Stale);
+    assert_eq!(sender.keys("c"), Taken::Closed);
+    assert_eq!(sender.resize(size(80, 24)), Taken::Closed);
+    assert_eq!((first, sender.take().expect("closed")), (keys("a"), None));
 }
 
 #[test]

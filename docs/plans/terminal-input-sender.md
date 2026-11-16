@@ -38,3 +38,30 @@ result rather than the legacy silent successful no-op.
 Next: real baseline regressions for oversized coalescing and closed admission,
 then same-queue correction and owned settlement tests. No source/runtime or
 native whole result from other terminal work is borrowed for this leaf.
+
+
+Baseline9cd4f631 executed the two new regressions:0 passed/2 failed,
+respectively oversized serial call and closed admission returning Queued.
+This is semantic red after successful compilation, not a timeout or harness
+failure. Its original raw log and assertions are preserved.
+
+The correction retains one queue and each pending UTF8 blob with a typed
+consumed prefix. Preparing the next call copies/scans only its64KiB prefix,
+not the entire remaining backlog. New text never appends to a partially consumed
+blob, preventing retained consumed prefixes from growing indefinitely. Quota
+still counts the original bounded pending scalar values; only the taken prefix
+releases quota. Adjacent untouched keys/resize behavior and full logical stream
+remain unchanged. Resize now takes the existing validated GridSize and reports
+closed/allocation refusal explicitly, rather than accepting bare dimensions.
+
+Each take returns one opaque SendReceipt plus the same Outgoing wire payload.
+Settlement checks allocation identity once; old same-owner, duplicate and
+replaced-owner receipts are Stale without opening the current lane. Close keeps
+its explicit discard-unsent meaning and returns the retired in-flight identity
+for the actual caller's uncertainty handling, never cancellation or auto-retry.
+No sent task or payload is owned by this pure queue. The old aggregate-million-
+character test now asserts the same complete million-character stream plus its
+final key across individually bounded calls, instead of requiring one invalid
+oversized call. Existing resize/key order/failure/no-retry assertions remain.
+New receipt and retained-prefix allocation regressions are added; actual changed-
+source checks and receiving integration remain owed.
