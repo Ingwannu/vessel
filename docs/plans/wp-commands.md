@@ -441,7 +441,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
 | Terminal composition admission | C2 actual terminal IME/preedit owner | No production EntityInputHandler/marked-text query yet; keep existing InputPreference + shared Kit guard, no composing=false proof |
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Shared keyboard producer1d908fa8 has V4 row295 bounded source PASS and waits lead announced receiving green. E3 adapter/receipt consumer remains unadopted; no second writer or duplicate failure toast |
-| Git/PR command effects | G1 captured owner target, row policy and physical admission | Existing47e compiled adapter is explicitly unpassed; checked original-connection/root/ticket admission correction still pending |
+| Git/PR command effects | G1 captured owner target, row policy and physical admission | F4 registration is staged under cfg(test) only; existing47e toolbar dependency remains separately unpassed. Original-connection/root/ticket write-owner packet is pending |
 | Messages mode | W1 existing Searching controller + W12 session-open admission | Base8b window lifetime adopted; prepared selection is UI-only; checked original-connection opening carrier absent, activation acceptance blocked |
 
 These rows distinguish adopted local behavior from unavailable owner effects.
@@ -1135,3 +1135,21 @@ root fleet. Export preparation found that the shared exporter still selects
 the older protocol23 root set despite returning success. That common-tool
 boundary is held with its owner; no old-root export or first-use capture is
 reported as current evidence.
+
+
+[Decision Log: stage Git contribution until owned effect admission]
+- Purpose: a new palette entry must not broaden an inherited, unpassed Git write
+  path into a claim of current original-connection/root/ticket authority.
+- Constraint: the old captured UI generation/session/PullEntry snapshot and live
+  selectable item check are presentation fences; G1 confirms no checked write
+  owner packet is available on the announced line.
+- Alternatives: infer readiness from alias/status equality, duplicate a lease or
+  write policy in the palette, or leave a live row with a source-only caveat.
+- Choice: stage only the F4 Git module, retained state and six registration/use
+  sites under cfg(test). The existing contribution preparation stays compilable
+  with its tests; normal product builds do not install workspace-git.
+- Why: G1 explicitly approved this exact boundary. Existing toolbar/menu callers
+  still consume its adapter, so staging requires no owner edits or lint allowance.
+- Effects: no new palette Git effects until G1 supplies the checked scoped-write
+  producer and the receiving union passes. Existing inherited Git consumers remain
+  a separately unpassed dependency; no copied RPC, identity cache or policy.

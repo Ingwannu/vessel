@@ -132,6 +132,7 @@ pub(super) fn install_help(shell: &mut Shell, _window: &Window, cx: &mut Context
 
 /// Reuse feature projections; every key/click rechecks the actual live window.
 pub(super) fn refresh_dynamic(shell: &mut Shell, window: &Window) {
+    #[cfg(test)]
     super::git_source::refresh(shell);
     super::layout_source::refresh(shell, window);
 }

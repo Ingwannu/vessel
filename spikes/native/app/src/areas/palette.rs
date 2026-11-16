@@ -7,6 +7,7 @@
 
 mod commands;
 mod entry;
+#[cfg(test)]
 mod git_source;
 mod import_source;
 mod layout_source;
@@ -70,6 +71,7 @@ pub(crate) struct PaletteArea {
     root_help: Option<vessel_app_view::palette::registration::Owner>,
     root_import: Option<vessel_app_view::palette::registration::Owner>,
     keyboard_available: bool,
+    #[cfg(test)]
     git: git_source::State,
     layout: layout_source::State,
     /// Message selection has record identity rather than a command id.
@@ -109,6 +111,7 @@ impl PaletteArea {
             root_help: None,
             root_import: None,
             keyboard_available: false,
+            #[cfg(test)]
             git: git_source::State::default(),
             layout: layout_source::State::default(),
             messages: MessageCursor::default(),
@@ -174,6 +177,7 @@ impl Shell {
 
     /// Close the palette; the keys go back where they were.
     pub(crate) fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        #[cfg(test)]
         git_source::close(self);
         layout_source::close(self);
         if let Some(owner) = self.areas.palette.root_help.take() {
@@ -221,6 +225,7 @@ impl Shell {
         }
         // A query reveals its highest-ranked row once. The next render/key
         // refreshes owner sources with the actual current Window.
+        #[cfg(test)]
         git_source::refresh(self);
         let snapshot = snapshot::project(self);
         let palette = &mut self.areas.palette;
