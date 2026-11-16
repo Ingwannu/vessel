@@ -133,6 +133,6 @@ fn feedback_belongs_to_the_edited_field_without_hiding_save_validation() {
     fields.set_prompt("Check the build".into());
     assert!(fields.feedback(Field::Prompt).is_none());
     assert!(fields.values().is_err());
-    fields.set_limit("".into());
+    fields.set_limit(String::new());
     assert!(fields.values().is_ok());
 }

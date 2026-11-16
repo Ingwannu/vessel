@@ -90,7 +90,7 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
         assert_eq!(form.submission, Submission::Ready);
     }
     assert!(model.cadence(opened.visit, |draft| {
-        draft.preset(super::super::cadence::Preset::Daily)
+        draft.preset(super::super::cadence::Preset::Daily);
     }));
     for (catalog, _) in catalogs() {
         let form = prepare(&model, &crate::Fleet::default(), &clock, catalog)

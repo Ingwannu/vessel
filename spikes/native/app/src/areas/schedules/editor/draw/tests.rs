@@ -1,7 +1,7 @@
 //! Real ready form: Enter has no write shortcut; its actual footer still saves.
 use super::*;
 use crate::shell::language_tests;
-use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
+use gpui::{AppContext as _, IntoElement, Modifiers, Render, TestAppContext};
 use tokio::sync::mpsc::error::TryRecvError;
 use vessel_app_link::{Command, schedules::Request};
 use vessel_app_view::{

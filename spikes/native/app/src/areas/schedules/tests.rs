@@ -229,7 +229,7 @@ fn an_unsent_history_lookup_settles_only_the_original_read_family() {
             "../../../../view/tests/fixtures/schedules/info.json"
         ))
         .unwrap();
-        let key = vessel_app_view::schedules::page::RowKey {
+        let key = RowKey {
             machine: list.machine().clone(),
             schedule: info.id,
         };

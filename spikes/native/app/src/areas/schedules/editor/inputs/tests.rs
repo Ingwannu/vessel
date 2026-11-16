@@ -4,7 +4,7 @@ use crate::shell::{Shell, language_tests};
 use gpui::{AppContext as _, Entity, Render, TestAppContext, VisualTestContext};
 use vessel_app_kit::{
     Scheme, TextField, Tokens,
-    ui::{Context, IntoElement as _, Window, div},
+    ui::{Context, IntoElement, Window, div},
 };
 use vessel_app_view::schedules::editor::cadence;
 use vessel_proto::automation::TimeZoneName;

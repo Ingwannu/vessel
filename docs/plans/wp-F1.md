@@ -1953,3 +1953,17 @@ fixture helpers. No allow/expect, lint setting, assertion or deadline changes.
 The saturation test first checks the Schedules envelope, then exhaustively handles
 its own message variants. Corrected-source remote strict/tests are still owed.
 The later guarded delivery and segmented consumer are separate from the2d2 result.
+
+### Next exact consumer strict batch
+
+schedules-20261116T004118Z-6f4987d0 ended fonts0/cargo101/helper1, no tests.
+The previous Link product/helper diagnostics did not recur; no isolated Link
+PASS is inferred from the multi-crate red command. Remaining reported batch:
+two missing named IntoElement test imports, one redundant RowKey qualification,
+empty String construction, a unit preset-closure semicolon and the incoming
+sidebar context match missing this area's Route::Schedules. All six are fixed.
+Schedules joins the existing ordinary workspace-context branch; code_placement
+is None outside Session, so this introduces no settings/sidebar policy or pane.
+No lint allowance, test assertion or deadline is relaxed. Corrected execution
+still owed; full raw prior red stays preserved. The isolated Code/MD Kit suite
+runs next as the shared-field dependency, then the corrected F1 consumer suite.
