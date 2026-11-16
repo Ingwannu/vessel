@@ -74,6 +74,7 @@ pub(crate) fn configure(connection: &Connection) -> Result<(), StoreError> {
     // migrations ever hold one long.
     connection.busy_timeout(std::time::Duration::from_secs(5))?;
     connection.pragma_update(None, "foreign_keys", true)?;
+    crate::subagents::configure(connection)?;
     Ok(())
 }
 

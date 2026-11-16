@@ -57,6 +57,7 @@ mod reservation;
 pub(crate) use reservation::AgentReservation;
 #[cfg(test)]
 pub(crate) use reservation::CreationCountCorrelation;
+mod execution;
 
 /// Live sessions an agent may own (that it created itself) at once.
 pub(crate) const MAX_OWNED: usize = 8;
@@ -82,6 +83,8 @@ struct Entry {
     reservation: Arc<()>,
     #[cfg(test)]
     creation_launch: reservation::CountLaunchState,
+    /// The existing registry owns one bounded current execution/watch value.
+    execution: execution::Execution,
     /// Accepted credentials: one, or two while a profile move runs.
     credentials: Vec<CredentialHash>,
     /// What the session's agent may do.
@@ -258,6 +261,7 @@ impl Agents {
                 reservation: Arc::clone(&reservation),
                 #[cfg(test)]
                 creation_launch: reservation::CountLaunchState::Reserved,
+                execution: execution::Execution::new(),
                 credentials,
                 scopes,
                 depth,
@@ -310,15 +314,7 @@ impl Agents {
     /// The session ended: its credential is refused from now on, and its
     /// agent's open connections close.
     pub(crate) fn retire(&self, id: SessionId) {
-        let Some(entry) = self.lock().remove(&id) else {
-            return;
-        };
-        for closing in entry.connections.values() {
-            closing.cancel();
-        }
-        if !entry.connections.is_empty() {
-            tracing::info!(session = %id, connections = entry.connections.len(), "the session ended; closed its agent's connections");
-        }
+        self.invalidate_execution(id, vessel_proto::timeline::ExecutionInvalidation::Ended);
     }
 
     /// Check a presented credential. Admitted, the connection is

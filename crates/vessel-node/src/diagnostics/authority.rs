@@ -213,7 +213,7 @@ pub(super) async fn transport(node: &Node) -> Transport {
     }
 }
 
-async fn node() -> (tempfile::TempDir, Node) {
+pub(super) async fn node() -> (tempfile::TempDir, Node) {
     let temp = tempfile::tempdir().unwrap();
     let mut config = Config::new(
         DataDir::new(temp.path().join("data")),
