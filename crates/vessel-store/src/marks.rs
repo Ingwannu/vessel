@@ -25,6 +25,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, Row, params};
 use vessel_proto::{EventSeq, KeptMarks, Mark, SessionId};
 
+use crate::Residence;
 use crate::codec::{seq_from_sql, seq_to_sql, time_from_sql, time_to_sql};
 use crate::error::StoreError;
 
@@ -33,12 +34,22 @@ use crate::error::StoreError;
 pub(crate) const MARK_COLUMNS: &str = "pinned, archived_at, read_seq, marked_unread";
 
 /// Apply `mark` (made at `at`) to `session`'s row; returns its marks after.
+/// The session clock advances as [`Residence`] says for Read and Unread, and
+/// for every other accepted mark.
 pub(crate) fn mark(
     connection: &Connection,
     session: SessionId,
     mark: Mark,
     at: DateTime<Utc>,
+    residence: Residence,
 ) -> Result<KeptMarks, StoreError> {
+    let tick = match (mark, residence) {
+        (Mark::Read { .. } | Mark::Unread, Residence::Loaded) => Tick::Never,
+        (Mark::Read { .. } | Mark::Unread, Residence::Stored) => {
+            Tick::IfAttentionChanges(attention(connection, session)?)
+        }
+        (Mark::Pin | Mark::Unpin | Mark::Archive | Mark::Unarchive, _) => Tick::Always,
+    };
     // What the mark sets, and the value bound to `?2` where it takes one.
     let (set, value) = match mark {
         Mark::Pin => ("pinned = 1", None),
@@ -84,8 +95,57 @@ pub(crate) fn mark(
         }
         Mark::Pin | Mark::Unpin | Mark::Unarchive => {}
     }
-    let _updated = crate::mutation_time::advance(connection, session)?;
+    let advance = match tick {
+        Tick::Always => true,
+        Tick::Never => false,
+        Tick::IfAttentionChanges(before) => {
+            before.is_some_and(|before| before.unread != kept.marks(before.point).unread)
+        }
+    };
+    if advance {
+        let _updated = crate::mutation_time::advance(connection, session)?;
+    }
     Ok(kept)
+}
+
+/// Whether one mark advances the session clock.
+enum Tick {
+    Always,
+    Never,
+    /// `None` for an unknown row, which the mark's own update refuses.
+    IfAttentionChanges(Option<Attention>),
+}
+
+/// A row's attention before a mark.
+#[derive(Clone, Copy)]
+struct Attention {
+    unread: bool,
+    /// The last record asking for attention; a mark does not change it.
+    point: Option<EventSeq>,
+}
+
+/// `session`'s attention as stored, read in the mark's own savepoint.
+fn attention(connection: &Connection, session: SessionId) -> Result<Option<Attention>, StoreError> {
+    let stored = connection
+        .prepare_cached(&format!(
+            "SELECT {MARK_COLUMNS}, attention_seq FROM sessions WHERE id = ?1"
+        ))?
+        .query_row([session.to_string()], |row| {
+            Ok((
+                StoredMarks::from_row(row, 0)?,
+                row.get::<_, Option<i64>>(4)?,
+            ))
+        })
+        .optional()?;
+    stored
+        .map(|(marks, point)| {
+            let point = attention_from_sql(point)?;
+            Ok(Attention {
+                unread: marks.kept()?.marks(point).unread,
+                point,
+            })
+        })
+        .transpose()
 }
 
 /// Delete an ended session with its log, its marks, its queue and its
