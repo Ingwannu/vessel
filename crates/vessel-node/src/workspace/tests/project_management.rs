@@ -285,7 +285,8 @@ async fn directory_capacity_refuses_before_detaching_or_mkdir() {
             name: name.to_owned().try_into().unwrap(),
         })
         .await;
-    assert_eq!(result.unwrap_err().code, ErrorCode::Conflict);
+    // Saturation uses the existing admission Busy/Unavailable contract.
+    assert_eq!(result.unwrap_err().code, ErrorCode::Unavailable);
     assert_eq!(fixture.tasks.len(), baseline);
     assert!(!fixture.path().join(name).exists());
     drop(pending);
