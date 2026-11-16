@@ -45,6 +45,8 @@ use crate::shell::Shell;
 pub(crate) struct Starting {
     /// Which start the answers belong to.
     pub(crate) key: StartKey,
+    /// Correlation shared with attachments and resource registration.
+    pub(crate) ticket: vessel_app_view::creation::Ticket,
     /// Where.
     pub(crate) machine: String,
     /// The project's name.
@@ -92,24 +94,53 @@ impl Shell {
             return;
         };
         match ended {
-            StartEnded::Started(mut card) => {
-                // Renamed in the book while it started: the session is the
-                // machine's under its new name.
-                if card.machine != start.machine {
-                    card.machine.clone_from(&start.machine);
-                }
-                self.started(&card, cx);
-                self.command(vessel_app_link::Command::Reload);
+            StartEnded::Prepared => {
+                let _transition = self
+                    .areas
+                    .draft
+                    .creation
+                    .flow
+                    .progress(start.ticket, vessel_app_view::creation::Stage::Resource);
+            }
+            StartEnded::Refused(failure) => {
+                self.creation_answer(
+                    vessel_app_link::creation::Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
+                        ticket: start.ticket,
+                        stage: vessel_app_view::creation::Stage::Workspace,
+                        failure,
+                    },
+                    cx,
+                );
             }
             StartEnded::Stopped => {
                 if let Step::Refused(refusal) = &start.step {
                     self.areas.draft.error = Some(self.words().start_refusal(refusal));
                 }
-                self.start_failed();
+                self.creation_answer(
+                    vessel_app_link::creation::Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
+                        ticket: start.ticket,
+                        stage: vessel_app_view::creation::Stage::Workspace,
+                        failure: vessel_app_view::creation::Failure::Refused(
+                            vessel_proto::ErrorCode::Conflict,
+                        ),
+                    },
+                    cx,
+                );
             }
             StartEnded::Failed(problem) => {
+                let failure = vessel_app_view::creation::Failure::placement(&problem);
                 self.areas.draft.error = Some(self.words().problem(&problem));
-                self.start_failed();
+                self.creation_answer(
+                    vessel_app_link::creation::Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
+                        ticket: start.ticket,
+                        stage: vessel_app_view::creation::Stage::Workspace,
+                        failure,
+                    },
+                    cx,
+                );
             }
         }
     }

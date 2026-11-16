@@ -4,6 +4,7 @@
 //! renames and forgets.
 
 use vessel_app_kit::ui::Context;
+use vessel_app_link::sessions::{Access, Read};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::prefs::ConversationDisplay;
@@ -17,26 +18,32 @@ use crate::areas::session::Open;
 use crate::shell::Shell;
 
 impl Shell {
-    /// The session area opened a session: start again from its first
-    /// record, and read what the node says of it. A terminal session has
-    /// no conversation state (the node refuses `Act::Conversation` for one
-    /// and the refusal showed as the screen's notice), so only its info is
-    /// read.
+    /// Read only the projections the presentation supports, retaining the
+    /// authenticated owner for metadata hydration after a resolved open.
     pub(crate) fn conversation_opened(&mut self, open: &Open, cx: &mut Context<'_, Self>) {
         self.hear_find(cx);
         self.areas.conversation.open(&open.machine, open.session);
-        // Opened again: a fork's origin that could not be read is read.
         self.origin_read();
-        let mut acts = vec![Act::Info];
-        if open.structured {
-            acts.push(Act::Conversation);
-        }
-        for act in acts {
-            self.command(Command::Act {
-                machine: open.machine.clone(),
-                session: open.session,
-                act,
-            });
+        for (act, read) in [
+            (Act::Info, Read::Info),
+            (Act::Conversation, Read::Conversation),
+        ] {
+            if !open.structured && matches!(read, Read::Conversation) {
+                continue;
+            }
+            self.command(open.binding.as_ref().map_or_else(
+                || Command::Act {
+                    machine: open.machine.clone(),
+                    session: open.session,
+                    act,
+                },
+                |binding| {
+                    Command::SessionAccess(Access::Read {
+                        binding: binding.clone(),
+                        read,
+                    })
+                },
+            ));
         }
     }
 

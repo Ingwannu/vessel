@@ -13,6 +13,9 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::CodeSource(answer) => self.code_source_answer(*answer),
+            Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
+            Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
+            Event::Creation(answer) => self.creation_answer(answer, cx),
             Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
@@ -52,6 +55,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                self.sessions_fleet_changed();
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);
@@ -90,7 +94,7 @@ impl Shell {
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
             Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
-            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
+            Event::Files(answer) => self.composer_answered(answer, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);

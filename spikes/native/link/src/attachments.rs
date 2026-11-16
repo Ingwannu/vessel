@@ -1,7 +1,8 @@
 //! A composer's file sent to its session (track P's row c): begun, written
 //! a piece at a time from what the node says it has, finished, and each
-//! step told to the app (`Event::Upload`). Runs beside the link's other
-//! commands, as a 50 MiB file takes a while.
+//! step told to the app (`Event::Files`, `Answer::Upload`). Runs beside the
+//! link's other commands, as a 50 MiB file takes a while. A sent image is
+//! read back the same way, a piece at a time (`read`, `Answer::Read`).
 //!
 //! [Decision Log]
 //! - Purpose: the composer's attached files reach the node before the
@@ -20,14 +21,37 @@
 //!   be tried again (`Again`).
 //! - Cost: one round trip a piece.
 
+use std::sync::Arc;
+
+pub use vessel_app_view::composer::attach::TargetProblem;
+use vessel_app_view::composer::sent::Sent;
 use vessel_app_view::composer::tray::{Again, Begun, ItemKey, Origin, Problem};
+use vessel_app_view::machine_book::Name;
 use vessel_proto::conversation::MimeType;
 use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionChoice, SessionId};
 
-// The task needs tokio's files and the node's connection, which a browser
+// The tasks need tokio's files and the node's connection, which a browser
 // has not.
 #[cfg(not(target_arch = "wasm32"))]
+mod capabilities;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod local;
+#[cfg(not(target_arch = "wasm32"))]
+mod read;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod selected;
+#[cfg(not(target_arch = "wasm32"))]
+mod submit;
+#[cfg(all(not(target_arch = "wasm32"), test))]
+mod target;
+#[cfg(all(not(target_arch = "wasm32"), test))]
+mod testing;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use capabilities::spawn as spawn_capabilities;
+#[cfg(not(target_arch = "wasm32"))]
 mod send;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use read::spawn as spawn_read;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use send::{content, spawn};
 
@@ -35,14 +59,74 @@ pub(crate) use send::{content, spawn};
 /// command loop stays one screen of dispatch).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Files {
+    /// File/root suggestions share this feature's single transport registration.
+    Suggest(crate::mentions::Ask),
+    /// Read this created session's own abilities and limits without selecting it.
+    Capabilities(CapabilityAsk),
     /// Send a file to its session beside the other commands; each step
-    /// answered `Event::Upload`.
+    /// answered `Answer::Upload`.
     Send(Attach),
     /// Start a conversation without its first prompt, which follows once
     /// its files are in; answered `Event::Started` (or `Event::Failed`).
     Create(Create),
     /// A prompt with the files already sent for it.
-    Prompt(WithFiles),
+    Prompt(Arc<WithFiles>),
+    /// Read a sent image back from its node beside the other commands;
+    /// answered `Answer::Read`.
+    Read(Sent),
+    /// Resume an ended session without sending its pending attachment prompt yet.
+    Wake(Wake),
+}
+
+/// What the link says of the files (`Event::Files`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Answer {
+    /// Suggestions for a captured composer/token.
+    Suggestions(crate::mentions::Answer),
+    /// An existing session's registered root, with captured identity.
+    Root(crate::mentions::RootAnswer),
+    /// Capabilities belong to the captured creation ticket and session.
+    Capabilities {
+        /// Original destination.
+        ask: CapabilityAsk,
+        /// Authoritative conversation facts or a typed refusal.
+        result: Result<vessel_app_view::composer::tray::Target, CapabilityFailure>,
+    },
+    /// A final immutable payload remains retained until this exact completion.
+    Submitted {
+        /// The same local ownership handle, not a wire idempotency identity.
+        prompt: Arc<WithFiles>,
+        /// The existing prompt result; uncertainty never authorizes replay.
+        result: Result<vessel_proto::Delivered, SubmitFailure>,
+    },
+    /// A session resumed before its files upload; failure is translated by the area.
+    Woke {
+        /// Original immutable submission owner, before asynchronous resume.
+        message: vessel_proto::timeline::ClientMessageId,
+        /// The session whose composer waits.
+        session: SessionId,
+        /// The node accepted the resume or the files remain in the tray.
+        outcome: WakeOutcome,
+    },
+    /// A step of a composer's file on its way to its session.
+    Upload {
+        /// An old tray operation cannot settle a newer submission.
+        message: vessel_proto::timeline::ClientMessageId,
+        /// The session.
+        session: SessionId,
+        /// The file's place in the composer's tray.
+        key: ItemKey,
+        /// What happened.
+        step: Step,
+    },
+    /// A sent image read back: its bytes, or `None` when it could not be
+    /// read (the log says why).
+    Read {
+        /// Which image.
+        sent: Sent,
+        /// Its bytes.
+        bytes: Option<Arc<[u8]>>,
+    },
 }
 
 /// A conversation to start whose first prompt waits for its files.
@@ -61,8 +145,14 @@ pub struct Create {
 /// One file to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attach {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
+    /// Same local submission identity retained through upload and retry.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// The machine.
-    pub machine: String,
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
     /// The session it goes to.
     pub session: SessionId,
     /// Its place in the composer's tray.
@@ -99,14 +189,144 @@ pub enum Step {
 /// its text, then each file, as the CLI sends them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WithFiles {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
+    /// Allocated once before preparation; retained through every upload/result.
+    /// This becomes the canonical wire key only after identified RPC activation.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// The machine.
-    pub machine: String,
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
     /// The session.
     pub session: SessionId,
     /// What was typed (may be empty when files go alone).
     pub text: String,
+    /// The immutable context captured before asynchronous preparation.
+    pub context: Option<vessel_app_view::composer::context::Submission>,
     /// The files, as `attachment.finish` returned them.
     pub attachments: Vec<AttachmentRef>,
     /// What it does while a turn runs.
     pub delivery: Delivery,
+}
+
+/// Why an image download was refused before its bytes reached the UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadProblem {
+    /// The connected peer did not finish within the named operation deadline.
+    TimedOut,
+    /// Zero bytes cannot decode as an image.
+    Empty,
+    /// The source reports an image above the node's bound.
+    TooLarge,
+    /// The total changed between chunks.
+    Changed,
+    /// A chunk crosses the reported total.
+    Overrun,
+    /// No progress before the end of the image.
+    Stopped,
+    /// Structured transport refusal without raw peer diagnostics.
+    Request(RequestProblem),
+}
+
+/// An existing session must be live before the node will accept files.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Wake {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
+    /// Same local submission identity retained while resume is asynchronous.
+    pub message: vessel_proto::timeline::ClientMessageId,
+    /// Validated book identity, rather than a display label.
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
+    /// The original conversation, whose log continues after resume.
+    pub session: SessionId,
+}
+
+/// No prompt is sent during resume; a refusal leaves the tray recoverable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WakeOutcome {
+    /// Resume may have taken effect; retain input and never repeat it automatically.
+    Unknown,
+    /// Resume succeeded; follow the session before validating file capabilities.
+    Ready,
+    /// The node or link refused the resume.
+    Refused,
+}
+
+/// Creation correlation remains independent of the selected conversation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapabilityAsk {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
+    /// The validated node book key.
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
+    /// The actual created session, even when it is not selected.
+    pub session: SessionId,
+    /// The local creation which retained the files.
+    pub ticket: vessel_app_view::creation::Ticket,
+}
+/// Read failures do not fabricate an agent capability or erase retained files.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum CapabilityFailure {
+    /// The captured address no longer reaches the admitted peer.
+    #[error(transparent)]
+    Target(#[from] TargetProblem),
+    /// All bounded preparation slots are retained by other submissions.
+    #[error("attachment preparation capacity reached")]
+    Capacity,
+    /// No connected peer accepted the read.
+    #[error("attachment capability peer is offline")]
+    Offline,
+    /// The handshake/read did not finish within its bound.
+    #[error("attachment capability read timed out")]
+    TimedOut,
+    /// Preserve the node/transport cause; no message-string dispatch.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Call(RequestProblem),
+}
+
+/// Closed projection of a selected attachment RPC failure; no raw peer text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum RequestProblem {
+    /// Admission retired before the guarded result could be observed.
+    #[error(transparent)]
+    Retired(vessel_app_view::connection::Refusal),
+    /// Preserve only the peer's closed refusal code.
+    #[error("attachment request refused: {0:?}")]
+    Refused(vessel_proto::ErrorCode),
+    /// Missing/pending protocol capability sends no invented fallback.
+    #[error("attachment request is not supported")]
+    Unsupported,
+    /// A malformed response does not expose its raw payload.
+    #[error("invalid attachment response")]
+    InvalidReply,
+    /// The actor's request identity space is exhausted.
+    #[error("attachment request identities exhausted")]
+    Exhausted,
+    /// Original transport disconnected.
+    #[error("attachment connection closed")]
+    Closed,
+}
+
+/// A refused local dispatch is distinct from a call with an unknown outcome.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum SubmitFailure {
+    /// No request was admitted by the local link.
+    #[error("the attachment prompt was not sent")]
+    NotSent,
+    /// The captured peer changed before the call; no request was sent.
+    #[error(transparent)]
+    Target(#[from] TargetProblem),
+    /// The call reached transport but its final result is not known.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Uncertain(RequestProblem),
+    /// A transport deadline cannot prove whether the node accepted the input.
+    #[error("the attachment prompt outcome is unknown after its deadline")]
+    TimedOut,
 }

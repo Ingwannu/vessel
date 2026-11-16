@@ -19,7 +19,7 @@ fn borrowed_request_sections_preserve_structural_parent_identity() {
 }
 
 use crate::areas::conversation::{Seat, entries::Paint, look::Look, origin::Above, tool_detail};
-use gpui::{Context, Render, TestAppContext, Window};
+use gpui::{AppContext as _, Context, Render, TestAppContext, Window};
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -108,6 +108,7 @@ impl Drop for Watch {
 }
 
 struct ProposedBody {
+    shell: gpui::Entity<crate::shell::Shell>,
     detail: ToolCallDetail,
     state: tool_detail::DetailContentState,
     headers: Headers,
@@ -120,31 +121,34 @@ impl Render for ProposedBody {
         cx: &mut Context<'_, Self>,
     ) -> impl gpui::IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
-        let paint = Paint {
-            catalog: Translator::get(ENGLISH).unwrap(),
-            words: Lang::En.conversation(),
-            tokens: &tokens,
-            look: Look::of(&tokens),
-            find: None,
-            seat: Seat::SESSION,
-            entries: &[],
-            agent: None,
-            rewinds: None,
-            forks: None,
-            fork_headers: &self.headers,
-            above: Above::Nothing,
-        };
-        let body = tool_detail::borrowed_body(
-            &paint,
-            &vessel_app_kit::ui::ElementId::NamedInteger("proposed-body".into(), 1),
-            tool_detail::BorrowedDetail {
-                detail: &self.detail,
-                state: self.state,
-                failure: None,
-            },
-            window,
-            cx,
-        );
+        let body = self.shell.update(cx, |shell, cx| {
+            let paint = Paint {
+                catalog: Translator::get(ENGLISH).unwrap(),
+                words: Lang::En.conversation(),
+                tokens: &tokens,
+                look: Look::of(&tokens),
+                find: None,
+                seat: Seat::SESSION,
+                entries: &[],
+                agent: None,
+                rewinds: None,
+                forks: None,
+                fork_headers: &self.headers,
+                above: Above::Nothing,
+                files: crate::areas::composer::SentFiles::new(shell, None),
+            };
+            tool_detail::borrowed_body(
+                &paint,
+                &vessel_app_kit::ui::ElementId::NamedInteger("proposed-body".into(), 1),
+                tool_detail::BorrowedDetail {
+                    detail: &self.detail,
+                    state: self.state,
+                    failure: None,
+                },
+                window,
+                cx,
+            )
+        });
         self.painted.set(self.painted.get().saturating_add(1));
         div().w_full().h_full().child(body).into_any_element()
     }
@@ -157,7 +161,8 @@ fn proposed_material_draws_through_the_borrowed_api_without_tool_or_log_objects(
     crate::shell::language_tests::init(cx);
     let painted = Rc::new(Cell::new(0));
     let observed = Rc::clone(&painted);
-    let (view, cx) = cx.add_window_view(move |_, _| ProposedBody {
+    let (view, cx) = cx.add_window_view(move |window, cx| ProposedBody {
+        shell: cx.new(|cx| crate::shell::Shell::without_io(window, cx)),
         detail: ToolCallDetail::Shell(ShellDetail {
             command: "echo proposed".to_owned(),
             cwd: None,
@@ -235,7 +240,8 @@ fn equal_bytes_change_format_in_both_directions_through_the_retained_borrowed_ap
 ) {
     crate::shell::language_tests::init(cx);
     let watch = Watch::begin();
-    let (view, cx) = cx.add_window_view(|_, _| ProposedBody {
+    let (view, cx) = cx.add_window_view(|window, cx| ProposedBody {
+        shell: cx.new(|cx| crate::shell::Shell::without_io(window, cx)),
         detail: ToolCallDetail::Unknown(UnknownToolDetail {
             input: None,
             output: None,
@@ -294,7 +300,8 @@ fn equal_bytes_change_format_in_both_directions_through_the_retained_borrowed_ap
 fn empty_patch_uses_reported_replacement_or_deletion_in_the_real_body(cx: &mut TestAppContext) {
     crate::shell::language_tests::init(cx);
     let watch = Watch::begin();
-    let (view, cx) = cx.add_window_view(|_, _| ProposedBody {
+    let (view, cx) = cx.add_window_view(|window, cx| ProposedBody {
+        shell: cx.new(|cx| crate::shell::Shell::without_io(window, cx)),
         detail: edit(Some("new"), Some("")),
         state: tool_detail::DetailContentState::Ready,
         headers: Headers::default(),

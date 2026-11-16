@@ -128,6 +128,7 @@ fn paint<'a>(
             .then_some((&area.timeline, &area.forking)),
         fork_headers: &shell.areas.conversation.forking.headers,
         above: area.above(),
+        files: area.sent_files(shell),
     }
 }
 
@@ -155,7 +156,7 @@ fn row_element(
     };
     let paint = paint(shell, area, seat, tokens, window);
     if let Some(tail) = area.tail_row(row) {
-        return lane(tail_element(&paint, area, tail));
+        return lane(tail_element(&paint, area, tail, cx));
     }
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
@@ -195,12 +196,17 @@ fn row_element(
 
 /// A row after the log's own: the person's message still on its way
 /// (settling in when fresh), or the working footer.
-fn tail_element(paint: &Paint<'_>, area: &ConversationArea, tail: TailRow) -> AnyElement {
+fn tail_element(
+    paint: &Paint<'_>,
+    area: &ConversationArea,
+    tail: TailRow,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     match tail {
         TailRow::Pending(text) => {
             let index = area.timeline.entries().len();
             area.pending_drawn();
-            let row = super::bubbles::pending(paint, index, &text);
+            let row = super::bubbles::pending(paint, index, &text, cx);
             if area.pending_fresh() {
                 super::motion::settle(
                     ElementId::NamedInteger("pending-arrive".into(), id(index)),

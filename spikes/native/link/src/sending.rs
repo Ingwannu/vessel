@@ -66,6 +66,15 @@ impl State {
     /// What a composer's files ask (track P's row c).
     pub(super) async fn files(&mut self, files: attachments::Files) {
         match files {
+            attachments::Files::Suggest(ask) => self.mention(ask),
+            attachments::Files::Capabilities(ask) => {
+                let client = self.selected_connection(&ask.connection).map_err(|why| {
+                    attachments::CapabilityFailure::Target(attachments::TargetProblem::Admission(
+                        why,
+                    ))
+                });
+                attachments::spawn_capabilities(client, ask, self.events.clone());
+            }
             attachments::Files::Send(attach) => self.attach(attach),
             attachments::Files::Create(create) => {
                 let attachments::Create {
@@ -77,6 +86,13 @@ impl State {
                 self.start(&machine, harness, folder, None, options).await;
             }
             attachments::Files::Prompt(prompt) => self.prompt_files(prompt).await,
+            attachments::Files::Wake(wake) => self.wake_files(wake).await,
+            attachments::Files::Read(sent) => {
+                let client = self.selected_connection(&sent.connection).map_err(|why| {
+                    LinkError::AttachmentTarget(attachments::TargetProblem::Admission(why))
+                });
+                attachments::spawn_read(client, sent, self.events.clone());
+            }
         }
     }
 
@@ -84,10 +100,50 @@ impl State {
     /// (`attachments::spawn`).
     fn attach(&self, attach: attachments::Attach) {
         let client = self
-            .client(&attach.machine)
-            .cloned()
-            .map_err(|error| error.to_string());
+            .selected_connection(&attach.connection)
+            .map_err(|why| LinkError::AttachmentTarget(attachments::TargetProblem::Admission(why)));
         attachments::spawn(client, attach, self.events.clone());
+    }
+
+    /// The attachment prompt follows only once capability records are read.
+    async fn wake_files(&mut self, wake: attachments::Wake) {
+        let result = async {
+            let client = self.selected_connection(&wake.connection).map_err(|why| {
+                LinkError::AttachmentTarget(attachments::TargetProblem::Admission(why))
+            })?;
+            tokio::time::timeout(
+                WAKE_FILES_DEADLINE,
+                client.call(vessel_proto::conversation::ResumeSession {
+                    session: wake.session,
+                }),
+            )
+            .await
+            .map_err(|_elapsed| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
+            .map_err(|error| {
+                LinkError::AttachmentRead(attachments::ReadProblem::Request(
+                    attachments::selected::problem(&error),
+                ))
+            })
+        }
+        .await;
+        let outcome = match result {
+            Ok(_) => attachments::WakeOutcome::Ready,
+            Err(why) => {
+                tracing::info!(%why, session = %wake.session, "a session could not resume for attachments");
+                if matches!(&why, LinkError::AttachmentTarget(_)) {
+                    attachments::WakeOutcome::Refused
+                } else {
+                    attachments::WakeOutcome::Unknown
+                }
+            }
+        };
+        self.emit(Event::Files(attachments::Answer::Woke {
+            message: wake.message,
+            session: wake.session,
+            outcome,
+        }))
+        .await;
+        self.refresh().await;
     }
 
     /// Start `session` again, then send it `text`, and list the fleet
@@ -130,13 +186,7 @@ impl State {
         delivery: Delivery,
     ) {
         let content = vec![ContentBlock::Text { text }];
-        self.deliver(machine, session, content, delivery).await;
-    }
-
-    /// A prompt with its files (track P's row c).
-    async fn prompt_files(&self, prompt: attachments::WithFiles) {
-        let content = attachments::content(prompt.text, prompt.attachments);
-        self.deliver(&prompt.machine, prompt.session, content, prompt.delivery)
+        self.deliver(machine, session, content, delivery, None)
             .await;
     }
 
@@ -146,12 +196,27 @@ impl State {
         session: SessionId,
         content: Vec<ContentBlock>,
         delivery: Delivery,
+        expected_node: Option<vessel_proto::NodeId>,
     ) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             let why = LinkError::NotConnected(machine.to_owned()).to_string();
             self.emit(Event::SessionLost { session, why }).await;
             return;
         };
+        if let Some(expected) = expected_node {
+            let actual = client.node().id;
+            if actual != expected {
+                self.emit(Event::Failed(
+                    LinkError::AttachmentTarget(attachments::TargetProblem::Changed {
+                        expected,
+                        actual,
+                    })
+                    .to_string(),
+                ))
+                .await;
+                return;
+            }
+        }
         match client.prompt(session, content, delivery).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
@@ -176,3 +241,6 @@ impl State {
         }
     }
 }
+
+/// A resume that never replies cannot keep the composer waiting forever.
+const WAKE_FILES_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);

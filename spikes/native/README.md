@@ -108,10 +108,19 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
-The kit field keeps its editor factories, weak IME registry and events in
-`field.rs`; `field/presentation.rs` draws the existing form/composer shells
-and `field/styles.rs` projects tokens onto the same engines. Original public
+The kit field keeps its editor factories and weak IME registry in
+`field.rs`; the shared `field/events.rs` owns its original subscription,
+`field/editability.rs` its one editability API, `field/presentation.rs` the
+form/composer shells, and `field/styles.rs` token projection. Original public
 entry points are re-exported unchanged; composer hooks retain their contract.
+
+Machine presentation policy lives in pure `view::hosts`: an explicit badge
+choice takes precedence while the managed-local-machine lookup is pending;
+only the automatic choice waits, then hides local or names remote. These
+values own no credentials, persistence or UI paint and never replace the
+client's authenticated identity. E1 wires their consumer separately. The
+separate `hosts::Label` validates Unicode display text using the source's
+outer-whitespace rules; it is never parsed as a CLI alias or authority.
 
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
@@ -133,6 +142,17 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+Draft creation has a correlated local state machine in `view::creation`.
+Its ticket also identifies the attachment owner's prepared payload. The
+`link::creation` boundary keeps resource registration separate from the first
+message, so a delivery failure cannot imply that no session exists. Route
+ownership is relinquished when the person leaves; a late completion may
+update the registry but cannot take another route. New creation labels live
+in the English/Korean `creation.ftl` catalogs; screens compose the kit's alert.
+This local boundary adds no node RPC. Durable workspace receipts and terminal
+profiles are the additive contract of ADR 0091 and depend on ADR 0082's sole
+workspace registry.
+
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with
@@ -153,6 +173,23 @@ words, and produces the existing wire requests for `link::workspace`.
 The node remains authoritative; preparation never runs a local git
 command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
 repository root.
+
+## Durable session history and lifecycle
+
+`view::sessions` selects chronological metadata history, date buckets, local page
+windows and correlated lifecycle/navigation requests. History opts into the
+shared matcher's bounded typo mode; command and catalog defaults remain exact. `link::sessions` resolves
+an authenticated node ID to a saved connection and reads `session.get` without
+starting an agent. Its lifecycle worker reuses the existing session RPC dispatcher
+and adds a correlation ID and finite outer deadline. An uncertain mutation result
+never causes automatic retry or local tab removal.
+
+`app/areas/sessions` owns the Sessions screen, host selector and lifecycle
+confirmation. Existing board archive and pin actions retain their owner. Manual
+navigation invalidates pending deep-link and post-archive navigation, while a
+successful acknowledgement still updates the target's fleet metadata. Composer
+exit/fresh operations archive before changing screens. Package validation uses the native gate and an isolated fake fleet; current
+package evidence is recorded in `docs/plans/wp-sessions.md`.
 
 ## The app's layout
 
@@ -180,7 +217,9 @@ app/src/
                    view's parser/grid to the kit's single terminal_grid renderer
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
-                   the `/` menu (slash.rs), drafts and recall (drafts.rs)
+                   the `/` menu (slash.rs), drafts and recall (drafts.rs), files
+                   attached and sent (attach.rs, files.rs), sent images' pictures
+                   in the conversation (sent.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update
@@ -1294,6 +1333,40 @@ button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
 
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.
+
+### Composer shell policy
+
+`view::composer_shell` owns pure mode/access/fullscreen policy, ordered command sources, file-reference values and gesture projection (ADR0085). The current input wrappers retain one TextField Entity and delegate early client commands to the existing lifecycle. Attachments/mentions and the lightbox stay with their owner. Scoped resident construction/retention remains test-only until the sole registry cutover. Validation, unavailable contracts and supported source paths are recorded in `docs/plans/wp-composer-shell.md`; no complete package/UI pass is claimed.
+### Attachment previews
+
+Click an image in either the composer tray or a sent message to open the
+window lightbox. Its toolbar zooms in/out, resets fit, and closes; a
+ordinary wheel (also with modifiers) or a platform pinch zooms at the pointer, and dragging
+pans within the image bounds. Escape, the close action, and a tap outside
+the image dismiss it and restore the previous field's focus. Failed
+image reads and decodes show a translated failure rather than staying in
+a loading state. The overlay uses the shared surface transition, held
+still by the existing reduced-motion setting.
+
+The image viewport starts below the app's own title bar: the bar beside
+the window controls is shaded (a press there dismisses, as Paseo's backdrop
+does) and the controls' corner (`kit::chrome::controls_corner`) is left
+uncovered, so minimise, maximise and close stay usable. The toolbar is the
+kit's `ToolbarButton::viewport` cluster (ZoomIn, ZoomOut, Scan, X) at the
+viewport's top right, shown while the pointer is over the viewport, after
+Tab or a zoom key, and always in the compact layout
+(`docs/plans/wp-b1.md`, "Lightbox toolbar correction").
+
+An ended session resumes before its attachments upload; no text-only
+prompt is sent first. The same upload, progress and retry tray is used
+for new, running and resumed conversations. System file selection and
+file-manager clipboard/drop delivery depend on the platform integration;
+virtual-display captures cannot prove a desktop portal or URI-list paste.
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control

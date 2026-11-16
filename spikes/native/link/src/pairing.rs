@@ -14,6 +14,9 @@ use vessel_app_view::pairing::PairProblem;
 
 pub(crate) fn problem(error: &LinkError) -> PairProblem {
     match error {
+        #[cfg(not(target_arch = "wasm32"))]
+        LinkError::AttachmentCall(_) => PairProblem::Connection,
+        LinkError::AttachmentTarget(_) | LinkError::AttachmentRead(_) => PairProblem::Connection,
         LinkError::BookFault(fault) => PairProblem::Book(fault.clone()),
         LinkError::Name(_) => PairProblem::Name,
         LinkError::NoHome | LinkError::Book(_) | LinkError::Credential(_) | LinkError::Io(_) => {

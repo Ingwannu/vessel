@@ -54,6 +54,7 @@ pub(super) fn render_body(
         ))
         .child(body)
         .children(resume_note(shell, open, tokens))
+        .children(crate::areas::sessions::lifecycle_error(shell, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
@@ -76,4 +77,7 @@ pub(super) fn render_body(
                 .children(over.into_iter().flatten())
         })
         .children(conversation::overlays(shell, tokens, window, cx))
+        .children(crate::areas::sessions::lifecycle_overlay(
+            shell, tokens, window, cx,
+        ))
 }

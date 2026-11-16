@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: optional inferred links retain source selection and find mapping.
 use std::{collections::BTreeMap, ops::Range, sync::Arc};
 
 use gpui::SharedString;
@@ -329,6 +330,7 @@ fn push_merged(
     } else {
         node.marks.push((0..len, new_mark));
     }
+    node.marks = crate::text::inline_links::source_marks(node.marks);
     paragraph.push(node);
 }
 
@@ -346,6 +348,10 @@ fn merge_children_with_mark(
     mark: TextMark,
     cx: &mut NodeContext,
 ) -> String {
+    let previous_scope = cx.inline_link_scope;
+    if mark.link.is_some() {
+        cx.inline_link_scope = crate::text::inline_links::InlineLinkScope::ExplicitLink;
+    }
     let mut text = String::new();
     let mut merged_text = String::new();
     let mut merged_marks = Vec::new();
@@ -420,6 +426,7 @@ fn merge_children_with_mark(
         merged_source_segments,
         mark,
     );
+    cx.inline_link_scope = previous_scope;
     text
 }
 
@@ -745,6 +752,19 @@ fn append_inline_html_blocks(paragraph: &mut Paragraph, blocks: Vec<BlockNode>) 
     Some(text)
 }
 
+fn recognized_marks(
+    cx: &NodeContext,
+    text: &str,
+    kind: crate::text::InlineLinkKind,
+) -> Vec<(std::ops::Range<usize>, TextMark)> {
+    match cx.inline_link_scope {
+        crate::text::inline_links::InlineLinkScope::Recognize => {
+            cx.markdown_extensions.recognized_links(text, kind)
+        }
+        crate::text::inline_links::InlineLinkScope::ExplicitLink => Vec::new(),
+    }
+}
+
 fn parse_paragraph(
     source: &str,
     paragraph: &mut Paragraph,
@@ -787,7 +807,8 @@ fn parse_paragraph(
             // the CR with the newline: dropping only the newline would strand
             // the CR in the middle of the reflowed line.
             text = val.value.replace("\r\n", " ").replace(['\n', '\r'], " ");
-            paragraph.push(mapped_inline(source, text.clone(), node, cx))
+            let marks = recognized_marks(cx, &text, crate::text::InlineLinkKind::Text);
+            paragraph.push(mapped_inline(source, text.clone(), node, cx).marks(marks))
         }
         Node::Emphasis(val) => {
             text = merge_children_with_mark(
@@ -822,10 +843,16 @@ fn parse_paragraph(
                 start: cx.offset + position.start.offset,
                 end: cx.offset + position.end.offset,
             });
+            let mut marks = vec![(0..text.len(), TextMark::default().code())];
+            marks.extend(recognized_marks(
+                cx,
+                &text,
+                crate::text::InlineLinkKind::Code,
+            ));
             paragraph.push(
                 InlineNode::new(text.clone())
                     .source_segments(code_source_segments(source, &text, span, cx.offset))
-                    .marks(vec![(0..text.len(), TextMark::default().code())]),
+                    .marks(crate::text::inline_links::source_marks(marks)),
             );
         }
         Node::Link(val) => {
@@ -925,6 +952,7 @@ fn parse_paragraph(
                 url: "".into(),
                 title: link.label.clone().map(Into::into),
                 identifier: Some(link.identifier.clone().into()),
+                ..Default::default()
             };
 
             text = merge_children_with_mark(
@@ -1145,6 +1173,7 @@ fn ast_to_node(source: &str, value: mdast::Node, cx: &mut NodeContext) -> BlockN
                     url: def.url.clone().into(),
                     identifier: Some(def.identifier.clone().into()),
                     title: def.title.clone().map(Into::into),
+                    ..Default::default()
                 },
             );
 

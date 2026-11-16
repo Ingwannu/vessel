@@ -23,30 +23,38 @@ use super::tray::Tray;
 
 /// Every composer's tray, each with when it was last used.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Trays {
-    trays: HashMap<DraftKey, (u64, Tray)>,
+pub struct DraftTrays<T> {
+    trays: HashMap<DraftKey, (u64, T)>,
     clock: u64,
 }
 
-impl Trays {
+/// File trays retain their API while context uses the same bounded draft LRU.
+pub type Trays = DraftTrays<Tray>;
+
+impl<T: Default> DraftTrays<T> {
     /// The most trays kept.
     pub const MAX: usize = 16;
 
     /// `key`'s tray, if it has one.
     #[must_use]
-    pub fn get(&self, key: DraftKey) -> Option<&Tray> {
+    pub fn get(&self, key: DraftKey) -> Option<&T> {
         self.trays.get(&key).map(|(_, tray)| tray)
+    }
+
+    /// Snapshot enumeration for persistence; it grants no new eviction authority.
+    pub fn entries(&self) -> impl Iterator<Item = (DraftKey, &T)> {
+        self.trays.iter().map(|(key, (_, tray))| (*key, tray))
     }
 
     /// `key`'s tray to change, if it has one (an upload's answer for a
     /// tray that was dropped finds none).
-    pub fn get_mut(&mut self, key: DraftKey) -> Option<&mut Tray> {
+    pub fn get_mut(&mut self, key: DraftKey) -> Option<&mut T> {
         self.trays.get_mut(&key).map(|(_, tray)| tray)
     }
 
     /// `key`'s tray, made when it has none, and now the most recently used
     /// (the least recently used goes when a new one passes [`Self::MAX`]).
-    pub fn tray(&mut self, key: DraftKey) -> &mut Tray {
+    pub fn tray(&mut self, key: DraftKey) -> &mut T {
         if !self.trays.contains_key(&key) && self.trays.len() >= Self::MAX {
             let oldest = self
                 .trays
@@ -61,6 +69,11 @@ impl Trays {
         let (used, tray) = self.trays.entry(key).or_default();
         *used = self.clock;
         tray
+    }
+
+    /// Release an owner-confirmed empty slot; retained content is the caller's responsibility.
+    pub fn remove(&mut self, key: DraftKey) -> Option<T> {
+        self.trays.remove(&key).map(|(_, tray)| tray)
     }
 
     /// `from`'s tray is now `to`'s (the new chat's, once its session

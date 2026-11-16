@@ -182,6 +182,17 @@ fn first_submit(harness: &Entity<Harness>, window: &mut gpui::VisualTestContext)
                 .resources(&current)
                 .unwrap()
                 .session
+                .composer_retention
+                .surface,
+            vessel_app_view::composer_shell::surface::Surface::default()
+        );
+        assert_eq!(
+            shell
+                .areas
+                .session_residents
+                .resources(&current)
+                .unwrap()
+                .session
                 .composer
                 .id(),
             harness.field.id()
@@ -298,4 +309,46 @@ fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut T
         );
     });
     release_original(&harness, window);
+}
+
+#[gpui::test]
+fn opened_address_requires_the_retained_binding_and_exact_original_target(cx: &mut TestAppContext) {
+    use vessel_app_view::{machine_book::Name, sessions::SessionAddress as OpenAddress};
+
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _, _| {
+        let host = Name::parse("fixture").unwrap();
+        let address = OpenAddress {
+            node: NodeId::random(),
+            session: SessionId::random(),
+        };
+        shell.areas.session.open = Some(Open {
+            machine: host.as_str().to_owned(),
+            session: address.session,
+            title: String::new(),
+            agent: "fake".to_owned(),
+            structured: true,
+            live: true,
+            archived_at: None,
+            binding: Some(vessel_app_link::sessions::Binding {
+                host: host.clone(),
+                address,
+            }),
+        });
+        assert_eq!(
+            shell.opened_session_address(&host, address.session),
+            Some(address)
+        );
+        assert_eq!(
+            shell.opened_session_address(&Name::parse("other").unwrap(), address.session),
+            None
+        );
+        assert_eq!(
+            shell.opened_session_address(&host, SessionId::random()),
+            None
+        );
+        shell.areas.session.open.as_mut().unwrap().binding = None;
+        assert_eq!(shell.opened_session_address(&host, address.session), None);
+    });
 }

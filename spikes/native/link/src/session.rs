@@ -18,6 +18,10 @@
 //!   (a pin and an archive clicked in one breath); each answers with the
 //!   session as it then stands, and the list's next read settles it.
 
+#[cfg(not(target_arch = "wasm32"))]
+mod stream;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use stream::follow;
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::timeline::Until;
 use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
@@ -321,7 +325,11 @@ async fn read_until(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted, ActFailed> {
+pub(crate) async fn run(
+    client: &NodeClient,
+    session: SessionId,
+    act: Act,
+) -> Result<Acted, ActFailed> {
     let boxed = |info: SessionInfo| Acted::Session(Box::new(info));
     let done = match act {
         Act::Info => client.session(session).await.map(boxed),

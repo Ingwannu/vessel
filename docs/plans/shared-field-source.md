@@ -23,3 +23,5 @@ multiline source-aware opt-in is reserved to G2 after this minimal producer's
 handoff: it must reuse events::Callbacks::Identified/listen and the existing
 TextareaState, preserve FormMinimum::Default in every initializer and retain
 Enter/Mod+Enter behavior. Do not add another callback or field-identity system.
+
+B2 base7 union: the checked FieldId/with_source source is retained exactly, including the identified callback signatures and engine source-id path. Only the plain submit extension point accepts an immutable captured Fn boxed once; the same existing listener wraps its single Callbacks::submit invocation in the field-local SubmitPress scope. No extra subscription or replacement identity is introduced. Composer height, retained Entity, Editability and IME registry remain shared. The canonical source-identity GPUI test is unchanged byte for byte. This combined source still needs its own VM check; the base gate is not proof of this union.

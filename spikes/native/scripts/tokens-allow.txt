@@ -33,11 +33,10 @@ px-other spikes/native/app/src/areas/conversation/permission.rs 4
 px-other spikes/native/app/src/areas/conversation/question/card.rs 4
 px-other spikes/native/app/src/areas/conversation/queue/rows.rs 1
 px-other spikes/native/app/src/areas/conversation/search.rs 3
+px-other spikes/native/app/src/areas/draft/draw.rs 2
 px-other spikes/native/app/src/areas/draft/effort_card.rs 1
-px-other spikes/native/app/src/areas/draft/mod.rs 2
 px-other spikes/native/app/src/areas/draft/pickers.rs 1
 px-other spikes/native/app/src/areas/session.rs 2
-px-other spikes/native/app/src/areas/session/resource.rs 1
 px-other spikes/native/app/src/areas/settings/agents/rows.rs 3
 px-other spikes/native/app/src/areas/settings/appearance.rs 6
 px-other spikes/native/app/src/areas/workspace/code/changes.rs 1
@@ -58,7 +57,7 @@ px-step spikes/native/app/src/areas/board/card.rs 19
 px-step spikes/native/app/src/areas/board/mod.rs 19
 px-step spikes/native/app/src/areas/common.rs 4
 px-step spikes/native/app/src/areas/conversation/bar.rs 15
-px-step spikes/native/app/src/areas/conversation/bubbles.rs 12
+px-step spikes/native/app/src/areas/conversation/bubbles.rs 8
 px-step spikes/native/app/src/areas/conversation/dock.rs 2
 px-step spikes/native/app/src/areas/conversation/ended.rs 5
 px-step spikes/native/app/src/areas/conversation/entries.rs 14
@@ -73,9 +72,9 @@ px-step spikes/native/app/src/areas/conversation/queue/rows.rs 20
 px-step spikes/native/app/src/areas/conversation/search.rs 24
 px-step spikes/native/app/src/areas/conversation/timeline.rs 8
 px-step spikes/native/app/src/areas/conversation/tool.rs 5
+px-step spikes/native/app/src/areas/draft/draw.rs 2
 px-step spikes/native/app/src/areas/draft/effort_card.rs 9
 px-step spikes/native/app/src/areas/draft/features.rs 1
-px-step spikes/native/app/src/areas/draft/mod.rs 2
 px-step spikes/native/app/src/areas/draft/pickers.rs 2
 px-step spikes/native/app/src/areas/pair/render.rs 6
 px-step spikes/native/app/src/areas/palette.rs 3

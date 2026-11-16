@@ -29,6 +29,15 @@ use vessel_proto::SessionId;
 pub enum DraftKey {
     /// The new chat's.
     New,
+    /// An independent draft tab in one canonical workspace on one node.
+    Workspace {
+        /// Authenticated node identity; an alias cannot redirect this draft.
+        node: vessel_proto::NodeId,
+        /// Canonical workspace registry identity, never a cwd-derived id.
+        workspace: vessel_proto::WorkspaceId,
+        /// The pane owner's existing draft identity, not a new allocation here.
+        draft: crate::layout::DraftId,
+    },
     /// A session's (session ids are unique across machines).
     Session {
         /// The session.

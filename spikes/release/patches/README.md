@@ -215,6 +215,69 @@ Changed: `src/input/base/blink_cursor.rs` (change 4),
 under change 7, marked `MODIFIED by Vessel` at the top and `Vessel patch`
 at each change.
 
+### Optional image activation in the existing text engine
+
+- Purpose: Paseo opens an unlinked assistant markdown image in its image viewer.
+  The pinned TextView only handled images already wrapped in hyperlinks.
+- Choice: add optional `TextView::on_image_click` and the matching editor-host
+  setter, copied through TextViewState into NodeContext. Existing plain-image
+  and mixed inline-flow elements share `text/image_activation.rs`; image layout,
+  source selection, retained parsing, find highlighting and resource resolution
+  are unchanged. A host handler owns image activation, including linked images;
+  without one, existing linked-image behavior remains.
+- Why: a second renderer or rewriting image markdown into links would change
+  source ranges and selection. The callback lets the app use its authorized
+  acquisition and shared lightbox while the same image element keeps its atom.
+- Changed files: `text/{mod,text_view,state,node,inline_flow,editor_host}.rs` and
+  the new private `text/image_activation.rs`. No default URL or file opening is
+  added for unlinked images.
+- Check: kit `chat_markdown::actions::image_tests` covers plain images, mixed
+  inline-flow images and linked images with a host handler, plus absence of a
+  handler. These tests passed in Kit run `wp-composer-copy-diagnostic-20261115T141044Z-40aaab5d` (195/0 overall); no visual approval is implied.
+
+### Optional inferred text links without source rewriting
+
+- Purpose: Paseo `components/markdown/source.ts:12-55` recognizes file tokens in
+  prose and complete inline code, then `assistant-file-links/parse.ts:598-646`
+  classifies the target. A custom Markdown inline atom would remove ordinary
+  partial selection from those tokens.
+- Choice: a typed `InlineLinkRecognizer` function produces validated UTF-8
+  ranges which become existing paragraph link marks. It skips explicit links
+  (including reference/inline-HTML groups) and fenced code. Equivalent function
+  registrations keep the existing parsed document. No text or source segment is
+  rewritten; inferred marks do not generate new link syntax during source copy.
+- Provenance: the optional `on_link_activate` callback distinguishes authored
+  hrefs from inferred Text/Code, preserving literal percent bytes in filenames.
+  Existing `on_link_click` signatures remain compatible and receive the same URL.
+- Changed files: private `text/inline_links.rs`, extension configuration, Markdown
+  parsing, existing link marks/copy, and existing inline/image activation adapters.
+  The native kit tests partial selection across a recognized token, source-to-find
+  offsets, authored-link priority, and fenced-code exclusion. They passed in the same exact40aa Kit run; strict and later source checks remain separate.
+- Compatibility: the kit calls the same Base TextView directly because the pinned
+  Component facade does not forward these optional callbacks. The existing
+  `TextViewDefaults::style` accessor is public so kit refinements start from the
+  exact Component-installed theme, preserving its colors and table geometry.
+  This adds no renderer, state owner, theme adapter, or dependency.
+- Recognized marks are made disjoint with the renderer's existing highlight
+  sweep before source selection walks them. Otherwise a code/emphasis mark and
+  its overlapping inferred link copy the same bytes twice. The highlight sweep
+  is extracted generically with its body unchanged; marks without inferred
+  links keep the original parser path and original source segments.
+
+- Code-aware copy queries the same parsed selection through
+  `TextViewState::selected_code_text()`. Inline code and fenced code use their
+  existing marks/blocks; mixed prose and multiple code regions retain Markdown.
+  This avoids a second fence scanner disagreeing with the renderer (including
+  longer fences containing shorter backtick runs). The kit's window aggregator
+  still owns selections across messages. Regression coverage is in
+  `chat_markdown::actions::link_tests::code_copy_uses_parsed_inline_and_fenced_regions`.
+  `text::trim_code_line_breaks` is the one shared LF/CRLF+ASCII-indentation
+  cleanup for this query and the kit's existing code-copy button. It implements
+  Paseo `assistant-selection-copy/markup.ts:12-19` and
+  `components/highlighted-code-block.tsx:95`: keep leading indentation, interior
+  newlines and trailing spaces on a nonempty line; remove only final line breaks
+  and indentation after them. No regular-expression dependency is introduced.
+
 ### 4. A steady caret while motion is held
 
 - Purpose: a focused text field costs nothing while nothing changes.
