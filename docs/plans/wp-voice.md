@@ -634,3 +634,17 @@ hashes/source pin and three current wire files were verified. This qualifies
 these joined types/diagnostics, not a voice actor, model, provider or device.
 The app consumes only the selected values carrier under A8, with product
 registration still withheld.
+
+### d5 node-base compile checkpoint
+
+The staged node package merged announced d5bfde87 without conflict. Exact
+`a488bd2f3dab0839d1038a3bea0129094c0060a6` then passed locked/offline
+Node/Proto/Web/CLI all-target Clippy with Proto TS and warnings denied, run
+`wp-voice-node-narrow-20261116T025258Z-a488bd2f`, cargo234s/exit0. Full cargo
+log SHA256: `f3a7a8a5e1b0bbe60e590dd17074bed6549fa5142378602a6f755545828c93b4`.
+The actual spec and log bind this compile proof to that immutable source.
+The existing Proto467/runtime/TS receipts retain their earlier f13 source scope;
+this check is not a new execution of those suites or a final whole voice gate.
+This main tree has no ort dependency. The separate dev candidate still awaits
+its cache/resolve/lock/feature receipt and subsequent compile approval. No
+fixture transfer, native/model API or product voice activation follows.
