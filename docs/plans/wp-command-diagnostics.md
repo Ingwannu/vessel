@@ -1,0 +1,128 @@
+# Private command diagnostics
+
+Purpose: terminal profiles may substitute a private prompt into both executable
+text and argv. Plugins also pass private paths/arguments. The existing process
+description hides environment values but intentionally shows program/argv;
+proc and PTY launch logs/errors can therefore reveal a private launch.
+
+Modify/reuse the existing CommandSpec and process/PTY error boundaries. A node
+wrapper alone cannot hide a lower-level spawn log. Globally redacting every
+command would remove existing diagnostics unnecessarily. A typed opt-in
+CommandDiagnostics policy keeps current callers unchanged and redacts a private
+spec's Debug, executable log label and returned spawn error payload/source.
+No shell quoting, program resolution, execution, group/identity, stream or
+reaping behavior changes. Standard-library formatting/error-kind projection
+and existing tracing suffice; no wire type is added. The existing tracing-core
+package is a direct PTY dependency solely to preserve the parent subscriber's
+public span context while filtering private backend records.
+
+The actual execution fields remain intact. Diagnostic labels must never be
+used to execute a command. Private error projection keeps a safe variant and
+I/O kind while privately owning the original I/O cause and sealing public
+backend text/chains that may contain command content;
+default errors retain their original source. PTY projection covers every error
+variant, including setup/attach/thread failures. Child program output and the
+OS-visible command are execution data, outside this diagnostic policy.
+
+Validate default diagnostics, unchanged execution fields, sentinel absence in
+private Debug and complete error chains, and actual proc/PTY spawn log events.
+Use the existing fake binary only; no real provider, credentials or environment
+mutation. Tests and strict checks run on the build VM against the isolated
+announced-head leaf. Source review and integrator adoption are still owed.
+
+
+[Decision Log]
+- Purpose: portable-pty 0.9.0's Windows command builder traces inherited system
+  and user environment values; these may be credentials even for ordinary specs.
+- Existing constraint: the daemon installs the log-to-tracing bridge through
+  tracing-subscriber's initializer. An unrestricted RUST_LOG=trace admits those
+  upstream records independently of CommandSpec's opt-in policy.
+- Alternatives: patching the backend or suppressing all trace diagnostics would
+  broaden this change and affect unrelated callers. An appended EnvFilter
+  directive alone can be overridden by a more specific user target directive.
+- Choice: after the user's filter, apply one independent fixed Targets directive
+  portable_pty=warn with trace as the default for other targets. The two filters
+  intersect, so a user directive cannot lower the portable-pty ceiling.
+- Why: tracing-log checks the record's original target before forwarding it;
+  a child-process regression exercises that real bridge and binary initializer
+  with RUST_LOG=trace and an explicit more-specific trace override. Warn remains
+  available and unrelated trace events remain available.
+- Impact: portable-pty debug/info/trace diagnostics are suppressed on every
+  platform, including ordinary commands. Child output, OS process visibility,
+  other embedded consumers' logging setup and unrelated backend warnings remain
+  outside this cap and must not be described as globally secret-free.
+
+The test-only log dependency already exists transitively; it lets the fixture
+emit actual log records without adding a production dependency or a second
+logger. The initial strict run found only two format_push_string test lints;
+those fixtures now write into the existing buffer without an extra allocation.
+
+
+[Decision Log]
+- Purpose: portable-pty 0.9.0 win/psuedocon.rs constructs a failed CreateProcessW
+  message from the complete command line and cwd and emits it with log::error
+  before returning the error. Returned-error projection and a warn ceiling
+  cannot hide that earlier record.
+- Choice: a Redacted PTY spawn uses a scoped subscriber which drops only targets
+  portable_pty and portable_pty:: descendants at every level. It forwards other
+  events, callsite registration, span lifecycle and current-span context to the
+  original dispatcher. Standard calls use the original path directly.
+- Constraint: the backend spawn remains synchronous on the same thread while
+  the scoped default is installed. No detached task or thread may perform it.
+  A test-only probe immediately at the actual backend call asserts its thread,
+  emits an ERROR sentinel through the real log bridge, and checks parent-span
+  context. A subprocess exercises both Standard and Redacted real failed spawns,
+  unrelated events, and restoration of the parent after the scope returns.
+- Tradeoff: private portable-pty backend warnings are also unavailable during
+  that short call. The caller still receives the projected typed error; this
+  does not mute unrelated targets or change exec/cleanup behavior.
+- Limits: pinned Windows backend source was inspected, but Windows execution
+  has not been performed. The Linux bridge regression proves the shared scoped
+  boundary, not Windows process/group behavior. Child output, OS-visible argv,
+  unscoped later backend diagnostics and another embedding's logger are not a
+  whole-process confidentiality guarantee.
+
+
+The private-error subprocess fixture also installs the daemon's independent
+portable-pty warn ceiling for both modes. Otherwise a future Windows execution
+of the Standard control could itself trace real inherited registry environment
+values. This fixture ceiling still admits ERROR: Standard must expose the error
+canary and only the private scope may suppress it. The checked production95
+bodies are unchanged; this is a test-harness privacy correction before Windows
+execution, not Windows runtime evidence.
+
+
+V3 row265 returned one A6 finding: the first I/O projection kept only ErrorKind
+and destroyed the original io::Error. The correction reuses concrete retained
+cause ownership: io::Error owns a private wrapper which owns the actual original
+io::Error. Public Display/Debug are fixed input-free strings, and Error::source
+terminates. No raw accessor, shared global store or text sanitizer is added.
+Standard returns its original error unchanged. Private tests verify the actual
+typed cause's unique Arc identity/lifetime and original OS evidence; public
+get_ref/into_inner formatting also remains sealed. A Node test follows the
+actual proc-to-agent-to-session and PTY-to-session ServiceError paths through
+the existing wire projection and JSON serialization. Newly authored correction
+execution is still owed; prior95 strict/quality and5a cap evidence remain prior
+source, not proof of this changed implementation.
+
+
+The first A6 correction strict run returned three redundant fmt qualifications
+and two used_underscore_binding test lints. The qualifiers are removed. Two
+specific private retention tests have a scoped expectation because inspecting
+the deliberately opaque owned field is their purpose; product field ownership,
+public formatting/source behavior and every identity/lifetime/OS/wire assertion
+remain unchanged. No product lint is suppressed or raw accessor introduced.
+
+
+The corrected strict run then reached the Node wire fixture and found its
+missing direct test dependency on vessel-pty. Node production reaches PTY errors
+through vessel-session; Rust intentionally does not expose that transitive crate
+for constructing the concrete Thread case. A test-only direct edge now names the
+already-present workspace crate. No production crate edge, package/version,
+error mapping or assertion changes; the manifest/lock addition is test wiring.
+
+The current isolated strict run reached the Node test and returned one
+needless_pass_by_value lint in the public-edge assertion helper. The helper
+now borrows the same ServiceError; its formatting, source traversal, wire and
+JSON assertions are unchanged. This is a test-only correction, not a privacy
+or execution-policy change. Current corrected strict validation remains owed.

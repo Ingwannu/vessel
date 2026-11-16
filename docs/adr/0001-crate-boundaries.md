@@ -30,6 +30,7 @@ Option 2, with this map and only these dependency edges:
 vessel-proto    (wire contract; no I/O, no tokio)
 vessel-rpc      -> proto
 vessel-proc     (process spawning, process groups, kill tree)
+vessel-plugin   -> proto, proc             (milestone 12, ADR 0079)
 vessel-harness  -> proto, proc
 vessel-pty      -> proc
 vessel-agent    -> proto, harness, proc   (harness: milestone 12)
@@ -366,3 +367,20 @@ cleanup request, not observed death of every descendant or account process.
 ProcessLifetime revocation and durable PID identity do not mint it. No crate
 edge, dependency, wire field or management caller is added by this mechanism.
 The source/validation record is docs/plans/checked-process-cleanup.md.
+
+The standalone plugin helper API reuses proto declaration/private-frame values
+and proc owned cleanup. It owns bounded framing, logs, correlation/cancellation
+and helper supervision. No node/product manifest depends on it in this slice;
+there is no installer, source acquisition, caller authorization or broker. Its
+public library API is the explicitly approved exception for actual own fixtures,
+not permission to add a callerless Node service or advertise incomplete providers.
+
+## Private command diagnostic boundaries
+
+The PTY crate directly uses the already-present tracing-core package to forward
+parent span context inside its private synchronous spawn diagnostic scope. This
+subscriber extension filters upstream command-bearing records only; it grants
+no process authority. Test-only log and tracing-subscriber dependencies exercise
+the real bridge. The daemon separately caps portable-pty's inherited environment
+trace output. See docs/plans/wp-command-diagnostics.md for the opt-in/default
+boundaries, why two filters are needed, and remaining Windows execution limits.

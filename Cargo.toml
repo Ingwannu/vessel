@@ -92,6 +92,7 @@ vessel-lsp = { path = "crates/vessel-lsp" }
 vessel-mcp = { path = "crates/vessel-mcp" }
 vessel-node = { path = "crates/vessel-node" }
 vessel-proc = { path = "crates/vessel-proc" }
+vessel-plugin = { path = "crates/vessel-plugin" }
 vessel-proto = { path = "crates/vessel-proto" }
 vessel-pty = { path = "crates/vessel-pty" }
 vessel-relay = { path = "crates/vessel-relay" }
@@ -176,7 +177,7 @@ qrcode = { version = "0.14", default-features = false }
 # schemars and five small helpers to the tree.
 rmcp = { version = "3.9", default-features = false, features = ["server", "transport-io"] }
 # SQLite event log with the library compiled in (vessel-store, ADR 0004).
-rusqlite = { version = "0.41", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled", "functions"] }
 # Whether two paths are one file (vessel-harness `link_session`, ADR 0011):
 # device and inode on Unix, the volume serial and file index on Windows,
 # which `std` exposes only on nightly there. It replaces "on Windows every
@@ -233,6 +234,10 @@ tokio-util = "0.7"
 # keep the user's comments and layout (`vessel nodes add`, pinned ids).
 toml_edit = { version = "0.25", features = ["serde"] }
 tracing = "0.1"
+# Forward the parent subscriber's span context in the scoped private PTY filter.
+tracing-core = "0.1"
+# Test the daemon's real log-to-tracing bridge against private backend records.
+log = "0.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # TypeScript declarations of the wire types for the web UI (vessel-proto's
 # and vessel-web's `ts` feature, ADR 0017): derives only, behind a feature

@@ -18,6 +18,7 @@ mod base64_bytes;
 mod board;
 mod book_route;
 pub mod book_values;
+pub mod browser;
 pub mod composer_commands;
 pub mod conversation;
 mod device;
@@ -42,6 +43,7 @@ pub mod lifecycle_version;
 pub mod limits;
 mod listing;
 pub mod lsp;
+pub mod mcp;
 mod model;
 mod name;
 pub mod native_commands;
@@ -66,6 +68,7 @@ mod secret;
 mod session;
 pub mod settings;
 pub mod side_questions;
+pub mod skills;
 pub mod subagents;
 mod terminal;
 pub mod terminal_profiles;
@@ -76,6 +79,7 @@ mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
 pub mod usage;
+pub mod voice;
 pub mod workspace;
 
 pub use agent::{
@@ -117,10 +121,11 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
-    NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
-    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, ExecutionIncarnationId, FinishIntentId,
+    HarnessSessionId, HookId, InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
+    PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId,
+    SessionId, SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
+    WorkspaceOperationId, WorktreeId,
 };
 pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};

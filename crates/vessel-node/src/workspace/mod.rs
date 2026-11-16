@@ -23,11 +23,13 @@
 //!   otherwise read the node's token and become its owner).
 
 mod error;
+mod file_panels;
 mod files;
 mod forge;
 mod git;
 mod policy;
 mod projects;
+mod registry_fence;
 mod roots;
 mod scripts;
 mod setup;

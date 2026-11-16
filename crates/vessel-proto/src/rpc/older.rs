@@ -113,7 +113,8 @@ impl Reply {
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
             Self::GetConversation(conversation) => conversation
-                .composer_for_protocol(protocol).map(Self::GetConversation),
+                .composer_for_protocol(protocol)
+                .map(Self::GetConversation),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
@@ -246,6 +247,11 @@ impl Reply {
             | Self::GitRenameBranch(_)
             | Self::GitStash(_)
             | Self::ListDir(_)
+            | Self::InspectDirectory(_)
+            | Self::ReadFileBytes(_)
+            | Self::DuplicateFileEntry(_)
+            | Self::ObserveFile(_)
+            | Self::SuggestEntries(_)
             | Self::ReadFile(_)
             | Self::WriteFile(_)
             | Self::CreateDir(_)
@@ -282,6 +288,11 @@ impl Reply {
             | Self::SyncFleet(_)
             | Self::GetFleetStatus(_)
             | Self::GetPublished(_)
+            | Self::GetSkillsStatus(_)
+            | Self::ReconcileSkills(_)
+            | Self::UninstallSkills(_)
+            | Self::SaveSkillsSelection(_)
+            | Self::ImportSkillsSelection(_)
             | Self::PreviewSchedule(_)
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)

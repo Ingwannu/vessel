@@ -3885,6 +3885,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "jiff",
+ "log",
  "reqwest",
  "rusqlite",
  "rustls",
@@ -3914,6 +3915,7 @@ dependencies = [
  "vessel-mcp",
  "vessel-proc",
  "vessel-proto",
+ "vessel-pty",
  "vessel-relay",
  "vessel-rpc",
  "vessel-secure",
@@ -3923,6 +3925,21 @@ dependencies = [
  "vessel-workspace",
  "web-push-native",
  "which",
+]
+
+[[package]]
+name = "vessel-plugin"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "vessel-proc",
+ "vessel-proto",
 ]
 
 [[package]]
@@ -3959,11 +3976,14 @@ name = "vessel-pty"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "log",
  "nix 0.31.3",
  "portable-pty",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
+ "tracing-core",
+ "tracing-subscriber",
  "vessel-proc",
  "vessel-testkit",
 ]
@@ -4163,6 +4183,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "nix 0.31.3",
+ "notify",
  "serde",
  "sha2 0.11.1",
  "tempfile",

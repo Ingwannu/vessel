@@ -25,6 +25,9 @@ pub(crate) enum WorkspaceError {
     /// No such project.
     #[error("no project {0} on this machine")]
     UnknownProject(ProjectId),
+    /// A retained workspace or interrupted backing reservation owns this project.
+    #[error("project {0} has retained workspace ownership; use workspace lifecycle actions")]
+    RegistryProjectOwned(ProjectId),
     /// No such worktree.
     #[error("no worktree {0} on this machine")]
     UnknownWorktree(WorktreeId),
@@ -102,7 +105,12 @@ impl From<FileError> for WorkspaceError {
     fn from(error: FileError) -> Self {
         match error {
             FileError::Path(path) => path.into(),
-            FileError::Kind(..) | FileError::TooLarge => Self::Invalid(error.to_string()),
+            FileError::Kind(..)
+            | FileError::TooLarge
+            | FileError::TransferTooLarge
+            | FileError::Offset
+            | FileError::CopyLimit
+            | FileError::InvalidEntry(_) => Self::Invalid(error.to_string()),
             FileError::Changed(_) | FileError::Exists(_) | FileError::NotEmpty(_) => {
                 Self::Conflict(error.to_string())
             }
@@ -127,7 +135,7 @@ impl WorkspaceError {
             | Self::UnknownSnapshot(_)
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
-            Self::Conflict(_) => ErrorCode::Conflict,
+            Self::Conflict(_) | Self::RegistryProjectOwned(_) => ErrorCode::Conflict,
             Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
             Self::Git(_) | Self::Store(_) | Self::Io(_) | Self::ProjectTask(_) => {
                 ErrorCode::Internal
