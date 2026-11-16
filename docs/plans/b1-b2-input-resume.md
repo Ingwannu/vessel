@@ -75,3 +75,8 @@ match, even though the outer dispatcher still intercepted them. The correction
 moves those exact existing refusal projections into the same helper and removes
 the duplicate outer cases. No wildcard, panic, new event, ID or transport is
 introduced. Common runtime and wasm remain unverified and unsubmitted.
+
+App-only strict61 wp-composer-common-20261116T035009Z-e7d03a4e reached App
+and failed only two existing slash fixture TabId results left unused. The
+binding-only correction retains every call/assertion. Final corrected App
+strict receipt must be inspected; common runtime/wasm remain unsubmitted.

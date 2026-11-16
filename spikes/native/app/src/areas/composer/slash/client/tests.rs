@@ -29,7 +29,7 @@ fn retained_files_and_context_prevent_client_archive_and_plain_commands_use_life
                 archived_at: None,
                 binding: None,
             });
-            shell
+            let _mounted_tab = shell
                 .layout_open_target(
                     &vessel_app_view::layout::LayoutKey::Session {
                         machine: vessel_app_view::layout::HostAlias::parse("fixture").unwrap(),

@@ -24,7 +24,7 @@ fn menu_keys_are_scoped_and_querying_never_changes_input_or_selection(cx: &mut T
             archived_at: None,
             binding: None,
         });
-        shell
+        let _mounted_tab = shell
             .layout_open_target(
                 &vessel_app_view::layout::LayoutKey::Session {
                     machine: vessel_app_view::layout::HostAlias::parse("fixture").unwrap(),
