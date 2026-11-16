@@ -2,6 +2,7 @@
 //! Offline seeds do not provision directories or attest physical resource state.
 mod authority;
 mod fleet;
+mod lifetime;
 mod seed;
 
 use chrono::DateTime;
@@ -14,48 +15,39 @@ use vessel_proto::registry::{
 use vessel_proto::{ErrorCode, ProjectId, WorkspaceId};
 
 use crate::agents::code;
-use crate::support::{Fixture, step, within};
-use futures_util::FutureExt as _;
-use std::panic::{AssertUnwindSafe, resume_unwind};
+use crate::support::{Fixture, step};
+use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn registry_metadata_owner_round_trips_all_six_methods_and_exact_refusals() {
-    within(async {
-        let fixture = Fixture::new();
-        let project = ProjectId::random();
-        let first = seed::descriptor(project);
-        let mut blocked = seed::descriptor(project);
-        blocked.visibility = WorkspaceVisibility::Background;
-        blocked.automation = WorkspaceAutomation::Blocked {
-            source: seed::source(),
-        };
-        let mut archived = seed::descriptor(ProjectId::random());
-        archived.lifecycle = WorkspaceLifecycle::Archived {
-            at: DateTime::UNIX_EPOCH,
-        };
-        seed::seed(
-            &fixture,
-            &[first.clone(), blocked.clone(), archived.clone()],
+    lifetime::run(lifetime::Case::Owner).await;
+}
+
+async fn owner(resources: &mut lifetime::Resources) {
+    let fixture = Arc::new(Fixture::new());
+    let project = ProjectId::random();
+    let first = seed::descriptor(project);
+    let mut blocked = seed::descriptor(project);
+    blocked.visibility = WorkspaceVisibility::Background;
+    blocked.automation = WorkspaceAutomation::Blocked {
+        source: seed::source(),
+    };
+    let mut archived = seed::descriptor(ProjectId::random());
+    archived.lifecycle = WorkspaceLifecycle::Archived {
+        at: DateTime::UNIX_EPOCH,
+    };
+    resources
+        .seed(
+            Arc::clone(&fixture),
+            vec![first.clone(), blocked.clone(), archived.clone()],
         )
         .await;
-        let node = step("registry owner node start", fixture.start()).await;
-        let owner = step("registry owner connect", fixture.connect(&node)).await;
-        let result = AssertUnwindSafe(async {
-            assert_eq!(owner.protocol(), vessel_proto::PROTOCOL_VERSION);
-            reads(&owner, &[first.clone(), blocked.clone(), archived.clone()]).await;
-            presentation(&owner, &first, &blocked, &archived).await;
-            release(&owner, &blocked, &archived).await;
-        })
-        .catch_unwind()
-        .await;
-        step("registry owner node stop/join", node.stop())
-            .await
-            .unwrap();
-        if let Err(panic) = result {
-            resume_unwind(panic);
-        }
-    })
-    .await;
+    let node = resources.node(Arc::clone(&fixture), |_| {}).await;
+    let owner = step("registry owner connect", fixture.connect(&node)).await;
+    assert_eq!(owner.protocol(), vessel_proto::PROTOCOL_VERSION);
+    reads(&owner, &[first.clone(), blocked.clone(), archived.clone()]).await;
+    presentation(&owner, &first, &blocked, &archived).await;
+    release(&owner, &blocked, &archived).await;
 }
 
 async fn reads(client: &NodeClient, expected: &[WorkspaceDescriptor]) {

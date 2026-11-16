@@ -93,9 +93,9 @@ async fn sync_device(
 }
 
 /// A device on `home` with `scopes`, connected.
-pub(crate) async fn device_with(
+pub(crate) async fn device_with<N, F>(
     relay: &Relay,
-    home: &Member,
+    home: &Member<N, F>,
     scopes: Vec<Scope>,
 ) -> std::sync::Arc<impl vessel_client::Connector> {
     let offer = home

@@ -3,44 +3,17 @@ use vessel_client::{Connector as _, NodeClient};
 use vessel_node::fleet::DEFAULT_GRANT;
 use vessel_proto::registry::{
     GetRegistry, GetWorkspace, ListWorkspaces, PinWorkspace, ReleaseWorkspaceAutomation,
-    RenameWorkspace, WorkspaceAutomation, WorkspaceDescriptor, WorkspacePin,
+    RenameWorkspace, WorkspaceAutomation, WorkspacePin,
 };
-use vessel_proto::{ErrorCode, HarnessKind, Scope, WorkspaceId};
+use vessel_proto::{ErrorCode, Scope, WorkspaceId};
 
-use super::seed;
-use crate::across::{Member, home, member_granting, member_joined};
-use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
-use crate::fleet::fleet_config;
+use super::{lifetime, seed};
+mod setup;
+use crate::agents::{as_agent, code, credential, structured};
 use crate::grants::device_with;
-use crate::secure::{Relay, relayed_with};
-use crate::support::{Fixture, client, step, within};
-use futures_util::FutureExt as _;
-use std::panic::{AssertUnwindSafe, resume_unwind};
-
-async fn seeded_member(
-    relay: &Relay,
-    home: &Member,
-    descriptor: &WorkspaceDescriptor,
-    label: &str,
-    grant: Vec<Scope>,
-) -> Member {
-    let fixture = Fixture::new();
-    seed::seed(&fixture, std::slice::from_ref(descriptor)).await;
-    let node = step(
-        "registry seeded member relay registration",
-        relayed_with(&fixture, &[&relay.url], |config| {
-            config.name = Some(label.to_owned());
-            config.fleet = fleet_config(HarnessKind::Codex, fixture.cwd().join("member-profile"));
-            config.vessel_mcp = Some(vessel_mcp(&fixture));
-        }),
-    )
-    .await;
-    step(
-        "registry seeded member fleet join",
-        member_joined(home, fixture, node, label, vec![Scope::Sync], grant),
-    )
-    .await
-}
+use crate::secure::Relay;
+use crate::support::{client, step};
+use setup::Member;
 
 async fn read(client: &NodeClient, member: &Member, workspace: WorkspaceId) {
     let snapshot = client
@@ -85,97 +58,69 @@ async fn write(client: &NodeClient, member: &Member, workspace: WorkspaceId) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn registry_metadata_forward_relay_deliver_keep_person_origin_and_intersected_scopes() {
-    within(async {
-        let relay = step("registry relay listen/start", Relay::start()).await;
-        let sources = tempfile::tempdir().unwrap();
-        let home = step(
-            "registry home relay/fleet start",
-            home(&relay, sources.path()),
-        )
-        .await;
-        let mut descriptor = seed::descriptor(vessel_proto::ProjectId::random());
-        descriptor.automation = WorkspaceAutomation::Blocked {
-            source: seed::source(),
-        };
-        let target = seeded_member(
-            &relay,
-            &home,
-            &descriptor,
-            "registry-target",
-            DEFAULT_GRANT.to_vec(),
-        )
-        .await;
-        let readonly = seeded_member(
-            &relay,
-            &home,
-            &descriptor,
-            "registry-readonly",
-            vec![Scope::Read],
-        )
-        .await;
-        let relaying = step(
-            "registry relaying member join",
-            member_granting(
-                &relay,
-                &home,
-                "registry-relaying",
-                vec![Scope::Sync, Scope::Read, Scope::Operate, Scope::Relay],
-                DEFAULT_GRANT.to_vec(),
-            ),
-        )
-        .await;
-        let result = AssertUnwindSafe(async {
-            read(&home.owner, &target, descriptor.id).await;
-            write(&home.owner, &target, descriptor.id).await;
-            read(&relaying.owner, &target, descriptor.id).await;
-            write(&relaying.owner, &target, descriptor.id).await;
-            read(&home.owner, &readonly, descriptor.id).await;
-            assert_eq!(
-                code(
-                    home.owner
-                        .call_on(
-                            readonly.id(),
-                            RenameWorkspace {
-                                workspace: descriptor.id,
-                                title: None
-                            }
-                        )
-                        .await
-                ),
-                ErrorCode::Forbidden
-            );
-            devices(&relay, &home, &target, descriptor.id).await;
-            agent(&home, &target, descriptor.id).await;
-            remaining(&home.owner, &target, descriptor.id).await;
-        })
-        .catch_unwind()
-        .await;
-        // Keep real node/relay handles outside assertions, and drain all of
-        // them even if one close fails before rethrowing the original failure.
-        let readonly_stop =
-            AssertUnwindSafe(step("registry readonly stop/join", readonly.node.stop()))
-                .catch_unwind();
-        let relaying_stop =
-            AssertUnwindSafe(step("registry relaying stop/join", relaying.node.stop()))
-                .catch_unwind();
-        let target_stop =
-            AssertUnwindSafe(step("registry target stop/join", target.node.stop())).catch_unwind();
-        let home_stop =
-            AssertUnwindSafe(step("registry home stop/join", home.node.stop())).catch_unwind();
-        let (readonly_stop, relaying_stop, target_stop, home_stop) =
-            tokio::join!(readonly_stop, relaying_stop, target_stop, home_stop);
-        step("registry relay stop/join", relay.stop()).await;
-        if let Err(panic) = result {
-            resume_unwind(panic);
-        }
-        for stopped in [readonly_stop, relaying_stop, target_stop, home_stop] {
-            match stopped {
-                Ok(stopped) => stopped.unwrap(),
-                Err(panic) => resume_unwind(panic),
-            }
-        }
-    })
+    lifetime::run(lifetime::Case::Fleet).await;
+}
+
+pub(super) async fn check(resources: &mut lifetime::Resources) {
+    let relay = resources.relay().await;
+    let sources = resources.sources();
+    let home = setup::home(resources, &relay, &sources).await;
+    let mut descriptor = seed::descriptor(vessel_proto::ProjectId::random());
+    descriptor.automation = WorkspaceAutomation::Blocked {
+        source: seed::source(),
+    };
+    let target = setup::member(
+        resources,
+        &relay,
+        &home,
+        Some(&descriptor),
+        "registry-target",
+        vec![Scope::Sync],
+        DEFAULT_GRANT.to_vec(),
+    )
     .await;
+    let readonly = setup::member(
+        resources,
+        &relay,
+        &home,
+        Some(&descriptor),
+        "registry-readonly",
+        vec![Scope::Sync],
+        vec![Scope::Read],
+    )
+    .await;
+    let relaying = setup::member(
+        resources,
+        &relay,
+        &home,
+        None,
+        "registry-relaying",
+        vec![Scope::Sync, Scope::Read, Scope::Operate, Scope::Relay],
+        DEFAULT_GRANT.to_vec(),
+    )
+    .await;
+    read(&home.owner, &target, descriptor.id).await;
+    write(&home.owner, &target, descriptor.id).await;
+    read(&relaying.owner, &target, descriptor.id).await;
+    write(&relaying.owner, &target, descriptor.id).await;
+    read(&home.owner, &readonly, descriptor.id).await;
+    assert_eq!(
+        code(
+            home.owner
+                .call_on(
+                    readonly.id(),
+                    RenameWorkspace {
+                        workspace: descriptor.id,
+                        title: None
+                    }
+                )
+                .await
+        ),
+        ErrorCode::Forbidden
+    );
+    devices(&relay, &home, &target, descriptor.id).await;
+    agent(&home, &target, descriptor.id).await;
+    remaining(&home.owner, &target, descriptor.id).await;
 }
 
 async fn devices(relay: &Relay, home: &Member, target: &Member, workspace: WorkspaceId) {

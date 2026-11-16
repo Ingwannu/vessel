@@ -39,12 +39,10 @@ pub(super) fn descriptor(project: ProjectId) -> WorkspaceDescriptor {
 }
 
 pub(super) async fn seed(fixture: &Fixture, descriptors: &[WorkspaceDescriptor]) {
-    let opened = step(
-        "registry offline Store open/migrations",
-        Store::open(&fixture.data_dir(), StoreConfig::default()),
-    )
-    .await
-    .unwrap();
+    tracing::info!(phase = "registry offline Store open/migrations");
+    let opened = Store::open(&fixture.data_dir(), StoreConfig::default())
+        .await
+        .unwrap();
     let result = AssertUnwindSafe(async {
         for descriptor in descriptors {
             step(
@@ -63,7 +61,8 @@ pub(super) async fn seed(fixture: &Fixture, descriptors: &[WorkspaceDescriptor])
     })
     .catch_unwind()
     .await;
-    step("registry offline seed writer close", opened.store.close()).await;
+    tracing::info!(phase = "registry offline seed writer close");
+    opened.store.close().await;
     if let Err(panic) = result {
         resume_unwind(panic);
     }

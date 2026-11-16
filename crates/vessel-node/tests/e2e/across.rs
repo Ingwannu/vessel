@@ -5,7 +5,7 @@
 //! runs them as the delivering device cut down to the origin, with
 //! ownership and the agent limits applied to the origin.
 
-use std::time::Duration;
+use std::{borrow::Borrow, time::Duration};
 
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _, BufReader, DuplexStream};
@@ -23,16 +23,17 @@ use crate::fleet::{fleet_config, write};
 use crate::secure::{Relay, relayed_with};
 use crate::support::{Fixture, prompt, read_until, status_of, structured_spec, within};
 
-/// One node of the test fleet.
-pub(crate) struct Member {
-    pub(crate) fixture: Fixture,
-    pub(crate) node: Node,
+/// One node of the test fleet. Retained validation drivers may lend Arc
+/// carriers; the default types keep existing owning fixtures unchanged.
+pub(crate) struct Member<N = Node, F = Fixture> {
+    pub(crate) fixture: F,
+    pub(crate) node: N,
     pub(crate) owner: NodeClient,
 }
 
-impl Member {
+impl<N: Borrow<Node>, F> Member<N, F> {
     pub(crate) fn id(&self) -> NodeId {
-        self.node.info().id
+        self.node.borrow().info().id
     }
 }
 
@@ -118,14 +119,14 @@ pub(crate) async fn member_started(
 
 /// `node` (of `fixture`) invited into `home`'s fleet with `scopes` and
 /// joined, granting `grant`; once both sides recorded the grant.
-pub(crate) async fn member_joined(
-    home: &Member,
-    fixture: Fixture,
-    node: Node,
+pub(crate) async fn member_joined<N: Borrow<Node>, H, F: Borrow<Fixture>, G>(
+    home: &Member<H, G>,
+    fixture: F,
+    node: N,
     label: &str,
     scopes: Vec<Scope>,
     grant: Vec<Scope>,
-) -> Member {
+) -> Member<N, F> {
     let offer = home
         .owner
         .invite_with_scopes(Some(label.to_owned()), 600, scopes)
@@ -134,22 +135,27 @@ pub(crate) async fn member_joined(
         .link
         .decode()
         .unwrap();
-    let _joined = fleet::join(&FleetFiles::new(&fixture.data_dir()), &offer, label, grant)
-        .await
-        .unwrap();
-    let id = node.info().id;
+    let _joined = fleet::join(
+        &FleetFiles::new(&fixture.borrow().data_dir()),
+        &offer,
+        label,
+        grant,
+    )
+    .await
+    .unwrap();
+    let id = node.borrow().info().id;
     // Usable once both sides recorded the grant: the home lists it, and the
     // member wrote down which device is its home's (it takes deliveries
     // only from that one). The member records after the home does, so
     // the home's list alone was not enough (CI saw a delivered call
     // refused in between).
-    let granted = FleetFiles::new(&fixture.data_dir())
+    let granted = FleetFiles::new(&fixture.borrow().data_dir())
         .dir()
         .join("granted.json");
     for _ in 0..800 {
         let peers = home.owner.call(ListPeers).await.unwrap();
         if peers.iter().any(|peer| peer.node == id) && granted.is_file() {
-            let owner = fixture.connect(&node).await;
+            let owner = fixture.borrow().connect(node.borrow()).await;
             return Member {
                 fixture,
                 node,

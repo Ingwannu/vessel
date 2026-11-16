@@ -77,3 +77,26 @@ This is scoped execution evidence, with the original fixture and lint failures
 retained. It does not supply a new whole-line, platform, provisioning, backing,
 resource-lifetime or full C1 approval. Review and receiving integration remain
 separate conditions.
+
+
+A subsequent lifetime review retained the normal seven passing cases but found
+that setup and outer observer expiry could still drop running real fixtures.
+The new test-local owner driver registers each startup job before observing it,
+retains fixture homes and original Node/Relay handles independently, and gives
+validation only borrowed Arc handles. Body expiry or observer drop cancels the
+validation future, then the driver awaits actual Node::stop/Relay::stop and the
+retained offline Store seed/close operation. Thirty seconds are reserved for the
+body, twenty for Node/Store cleanup and five for the relay, within the unchanged
+sixty-second safety net. A late drain stays owned and is a test failure, never a
+normal-close acknowledgement. Setup/assertion failure and observer-drop controls
+check actual joins and original local endpoints refusing new connections.
+
+The existing fleet Member and join helper accept borrowed Node/Fixture carriers
+with their original owned types as defaults; policy, readiness predicate and
+existing inherited waits are unchanged. The paired-device helper accepts that
+same retained member without a second pairing implementation. New registry setup
+retains the Node before relay-registration or fleet-join observation; it reuses
+the existing canonical fake relay credential. These are narrow test-fixture
+adaptations, with no product runner, new grant, quota or authority change. The
+previous seven normal results remain predecessor evidence until the corrected
+owner paths receive their own source and execution review.

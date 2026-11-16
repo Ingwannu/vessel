@@ -30,7 +30,7 @@ use crate::support::{
     Fixture, STEP, client, keys, output_of, seqs, step, tail, terminal_spec, within,
 };
 
-const TOKEN: &str = "e2e-relay-token";
+pub(crate) const TOKEN: &str = "e2e-relay-token";
 
 /// A relay on a loopback port until stopped.
 pub(crate) struct Relay {
