@@ -16,6 +16,7 @@ impl Shell {
             Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
+                self.history_retired(&context, cx);
                 let git_changed = self.git_panels_retired(&context);
                 if !self.devices_retired(&context) && !git_changed {
                     return;
@@ -36,6 +37,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.history_fleet(&earlier);
                 self.git_panels_fleet();
                 self.devices_fleet();
                 self.offers_fleet(&earlier);
@@ -106,3 +108,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod import_retire_tests;

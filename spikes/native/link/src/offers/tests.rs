@@ -284,6 +284,7 @@ fn commands_are_kept_beside_options_and_neither_undoes_the_other() {
         name: "review".parse().unwrap(),
         description: "Review the change".to_owned(),
         hint: None,
+        kind: None,
     }];
     // Commands first (a session reported them before any options).
     assert!(store.keep(
