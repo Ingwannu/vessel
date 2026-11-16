@@ -67,3 +67,19 @@ scope, focus, no-RPC or positive-B assertion is removed. The paired strict
 reported two test coordinate arithmetic operators and a borrowed fixture
 argument; these are corrected as one test-only class. Neither old result is
 counted as completed popup runtime proof.
+
+
+## Exact consumer narrow results
+
+Exact85087851 passed App all-target strict with warnings denied in
+wp-transfer-popup-strict-20261116T013507Z-85087851, and actual App binary
+areas::import::tests3/0/0 in
+wp-transfer-popup-tests-20261116T013506Z-85087851. The new test completed all50
+combinations (desktop/compact, five replacement classes, five retained inputs),
+as well as the current-B positive selection. Both existing R223 import cases
+also passed. Fonts and actual fresh App compilation completed in both runs.
+
+These are bounded consumer results, not a whole A4, OS capture, actual provider,
+permission or resident authority claim. Shared engine tests are not substituted
+for this App execution. V1 and the receiving lead gate still decide adoption.
+Root, web, Cargo, kit, link and selected/delivery sources are unchanged.
