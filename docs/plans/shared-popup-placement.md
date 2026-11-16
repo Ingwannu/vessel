@@ -85,3 +85,13 @@ already records that focus in Window; bind its report without focusing/blurring
 or adding a focus owner. The geometry and all literal tests remain unchanged.
 This failed run is retained; subsequent strict/tests use ordinary lanes under
 the coordinator's failure rule. No compiler or GPUI runtime pass is inferred.
+
+The corrected exact1b2552e6 Kit all-target strict completed in
+shell2-narrow-20261116T013211Z-1b2552e6: fonts0/cargo0, with actual Kit Checking.
+The queue wait is not compilation time; native-cargo itself took10 seconds.
+The next natural boundary merges announced base14.1 b54abbdc before runtime.
+All three placement source/test files remain byte-identical to1b; the popup
+module registration is retained alongside the receiving base's exports.
+This prior-head strict is not relabelled as exact receiving-union strict or
+runtime proof. Actual placement GPUI tests on that receiving source are next;
+V1/consumer adoption, consumer images and full F4 remain separate and owed.
