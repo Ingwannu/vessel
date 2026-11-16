@@ -12,7 +12,9 @@ use vessel_app_kit::ui::{
     AnyElement, Context, Div, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, glyph};
+use vessel_app_kit::{
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, glyph, outline_button,
+};
 use vessel_app_view::workspace::editor::{ConflictKind, EditorStatus};
 use vessel_app_view::workspace::size::size_word;
 
@@ -141,10 +143,12 @@ fn toolbar(shell: &Shell, editing: &Editing, tokens: &Tokens) -> Div {
         .children(editing.status.clone())
 }
 
-/// Paseo's conflict bar: amber hairline under it, the triangle, the title
-/// and what to do, Overwrite (a modified buffer over a changed file) and
-/// Reload. It arrives as a surface (`STANDARD`), once per conflict: its
-/// id does not change as Overwrite comes and goes.
+/// Paseo's conflict bar (`file-panels/source/conflict-alert.tsx`): amber
+/// hairline under it, the triangle, the title and what to do, Overwrite (a
+/// modified buffer over a changed file) and Reload, both Paseo's outline
+/// buttons (`variant="outline"`: no fill, a `borderAccent` hairline). It
+/// arrives as a surface (`STANDARD`), once per conflict: its id does not
+/// change as Overwrite comes and goes.
 fn conflict_bar(
     shell: &Shell,
     editing: &Editing,
@@ -172,16 +176,16 @@ fn conflict_bar(
             .flex_row()
             .gap(px(spacing::S2))
             .children(overwrite.then(|| {
-                button(
+                outline_button(
                     "code-editor-overwrite",
                     labels.editor_overwrite,
-                    false,
+                    true,
                     tokens,
                 )
                 .on_click(cx.listener(|this, _event, _window, cx| this.editor_overwrite(cx)))
             }))
             .child(
-                button("code-editor-reload", labels.editor_reload, false, tokens).on_click(
+                outline_button("code-editor-reload", labels.editor_reload, true, tokens).on_click(
                     cx.listener(|this, _event, window, cx| this.editor_reload(window, cx)),
                 ),
             )
