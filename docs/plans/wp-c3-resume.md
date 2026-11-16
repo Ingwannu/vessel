@@ -873,3 +873,12 @@ main C3 read queue still need original guarded acquisition/installation joins,
 and actual UI visit/dialog/sent-uncertain ownership remains mandatory. Details
 and Decision Log: wp-c3-source-command.md. Do not count C5 source identity as
 physical write authority or a new source lookup as the old callback's intent.
+
+The current source-receipt projection is cbb4f400f (unexecuted). A post-submit
+manual doc audit found one missing inline code span in the new same_source
+documentation; the successor changes that comment only, no Rust behavior or
+assertion. AppBIN execution on cbb stays valid for its exact old source. Strict
+submission must use the corrected comment after the live submit receives a
+receipt, queued-only cancellation is terminal and its evidence is retained.
+Do not interrupt/resubmit a still-registering wrapper. Both new App submissions
+currently wait before receipt at the shared submit lock; tool owner notified.

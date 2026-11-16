@@ -48,7 +48,7 @@ impl ShownChangesContext {
     }
     /// Compare only immutable acquisition identity, never admission or UI visit.
     /// Retired clones can remain equal: callbacks still require the original
-    /// shown_changes_is_current check and their own intent/visibility preflight.
+    /// `shown_changes_is_current` check and their own intent/visibility preflight.
     pub(crate) fn same_source(&self, other: &Self) -> bool {
         self.root.context == other.root.context
             && self.root.session == other.root.session
