@@ -1897,3 +1897,17 @@ RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
 through a typed fake until the real node field/adapter lands. See
 `docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
 
+
+
+### Host Voice presentation over the values carrier
+
+The pure view::voice::settings page binds canonical presence-only dictation and
+conversation snapshots to NodeId and the existing operation Ticket. It owns
+loading/failed/confirmed presentation, one pending write, consumed-reply fences
+and displayed-snapshot action identity; it owns no settings or secret store.
+Switch actions produce only canonical switch patches. The unregistered
+app::areas::voice renderer composes kit cards/rows/switches/alerts and Fluent
+EN/KO summaries. Its test-only fake exercises the actual composition without
+a Shell command, device, provider or guessed node field. Actual editor/credential
+controllers and node adapter remain separate prerequisites; this adds no crate
+edge or runtime availability.
