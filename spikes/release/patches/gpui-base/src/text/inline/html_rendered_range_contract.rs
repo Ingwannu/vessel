@@ -57,6 +57,11 @@ fn html_rendered_range_contract_literal_utf8_and_plain_copy_are_addressable(
             Ok(()),
             "the opted-in literal body must actually accept the current rendered range"
         );
+        assert_eq!(
+            state.reveal_range(start..start + "한글🙂".len(), cx),
+            Ok(()),
+            "range acceptance alone must not hide an Unsupported reveal"
+        );
         assert_eq!(state.selected_text(), expected);
         assert_eq!(
             state.set_range_highlights([highlight(start + 1..start + 3)], cx),
