@@ -210,3 +210,26 @@ package/capture/review. The page remains unregistered. Secure-field receiving
 source/narrow evidence is not its final privacy/handoff release; no such field
 is adopted here. Actual sheet composition, draft save/partial credential
 controller, real node field/adapter and voice activation are still owed.
+
+## Joining a non-secret form save
+
+[Decision Log]
+- Purpose: a retained form, machine change or delayed answer must never send a candidate through another opening or dismiss its successor.
+- Existing assets: Page's node-bound write ticket and single pending operation, the fresh Editor token, canonical Draft/Change DTOs and the existing bounded Tickets generator. The same fake node overlay used by switch tests applies candidates; no duplicate settings writer is introduced.
+- Choice: bind Draft to its private Editor token. Page::submit_editor rechecks that token, current node, operation state and known save outcome before freezing inputs and returning one typed Write. Only the matching form/operation answer unlocks refusal or marks success terminal. Successful answers close only the submitted opening.
+- Why: a form candidate alone carries no transport authority. A provider-sheet opening is distinct from each save attempt, so its identity must survive a refused write while each retry receives a fresh operation ticket. Keeping those identities separate avoids both stale-form admission and accidental draft loss after refusal.
+- Impact: duplicate submission and field edits during a held save are refused; a known refusal preserves the exact draft for retry. An Unconfirmed outcome preserves only last-confirmed presentation and requires a fresh read before another write; it never claims rollback, even if the fake server actually applied the change. A local dismiss during a held operation does not undo that operation, reopen the sheet or permit another write before settlement. Old answers cannot close a later opening.
+
+The ordinary UI disables Cancel and editing while saving, following the
+reference form. Page's local dismiss edge also handles forced teardown safely:
+it removes only that form while retaining the pending node outcome. Stored
+keys and new credentials remain absent from this controller. The existing
+secret owner/two-step partial-result contract still requires the announced
+secure-field producer and a separate credential controller. No field is
+adopted solely from the producer's isolated tests; lead-first receiving and
+announcement remain binding.
+
+The new held/refused/lost/dismissed save regressions are source-only until the
+next exact-head VM check. They reuse the existing test node; no real node,
+secret, provider, model or microphone is contacted. New EN/KO refusal copy is
+distinct from the existing unconfirmed-save message, without foreign errors.

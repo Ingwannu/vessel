@@ -55,3 +55,6 @@ voice-settings-site-label = { $site }, { $summary }
 
 # 새 버전의 스위치 값을 끔으로 표시하지 않고 읽기 전용으로 설명합니다.
 voice-settings-unknown-switch = 알 수 없는 설정
+
+# Explicit save refusal; distinguish it from a lost reply and show confirmed metadata only.
+voice-settings-save-refused = 변경 요청이 거부되었습니다. 마지막으로 확인한 설정을 표시합니다.

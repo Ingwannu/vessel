@@ -137,20 +137,20 @@ fn replacing_a_page_fences_an_old_save_even_if_the_host_is_the_same() {
 }
 
 /// The fake owns canonical patches, not a second production settings store.
-struct Node {
-    id: NodeId,
-    dictation: SetDictation,
-    conversation: SetVoice,
+pub(super) struct Node {
+    pub(super) id: NodeId,
+    pub(super) dictation: SetDictation,
+    pub(super) conversation: SetVoice,
 }
 impl Node {
-    fn snapshot(&self) -> Snapshot {
+    pub(super) fn snapshot(&self) -> Snapshot {
         use vessel_proto::dictation::KeyPresence::Absent;
         Snapshot {
             dictation: self.dictation.resolve(Absent),
             conversation: self.conversation.resolve(Absent, Absent),
         }
     }
-    fn apply(&mut self, request: Write) -> Result<Snapshot, Problem> {
+    pub(super) fn apply(&mut self, request: Write) -> Result<Snapshot, Problem> {
         if request.node != self.id {
             return Err(Problem::Offline);
         }

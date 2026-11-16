@@ -5,6 +5,7 @@
 //! A missing or failed read never becomes a default configuration.
 
 pub mod draft;
+mod editor;
 
 use crate::devices::{Ticket, Tickets};
 use vessel_proto::dictation::{
@@ -57,14 +58,16 @@ pub enum Problem {
     Unsupported,
     /// A failed call is distinct from an absent setting.
     Refused(ErrorCode),
+    /// A timeout/lost reply does not establish whether the write was applied.
+    Unconfirmed,
 }
 
 /// A canonical change offered to an adapter, not a fabricated node RPC.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Change {
-    /// Only dictation's switch is changed.
+    /// A dictation switch or one dictation-site candidate.
     Dictation(SetDictation),
-    /// Only conversation's switch is changed.
+    /// A conversation switch or one independent speech-site candidate.
     Conversation(SetVoice),
 }
 
@@ -157,7 +160,8 @@ pub struct Page {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pending {
     Read,
-    Write,
+    SwitchWrite,
+    EditorWrite(Editor),
     Settled,
 }
 
@@ -190,7 +194,7 @@ impl Page {
             Some(Err(problem)) => Status::Failed(*problem),
             Some(Ok(snapshot)) => Status::Ready(
                 snapshot,
-                if self.pending == Pending::Write {
+                if matches!(self.pending, Pending::SwitchWrite | Pending::EditorWrite(_)) {
                     Editing::Saving
                 } else {
                     Editing::Idle
@@ -211,11 +215,20 @@ impl Page {
         if node != self.node || ticket != self.ticket || self.pending == Pending::Settled {
             return super::Applied::Stale;
         }
-        if self.pending == Pending::Write {
+        let editor = match self.pending {
+            Pending::EditorWrite(editor) => Some(editor),
+            Pending::Read | Pending::SwitchWrite | Pending::Settled => None,
+        };
+        if matches!(self.pending, Pending::SwitchWrite | Pending::EditorWrite(_)) {
             match reply {
                 Ok(snapshot) => {
                     self.read = Some(Ok(snapshot));
                     self.failure = None;
+                    // Only the submitted opening may close. A dismissed form is
+                    // never recreated by its late successful answer.
+                    if editor.is_some() && self.editor == editor {
+                        self.editor = None;
+                    }
                 }
                 Err(problem) => self.failure = Some(problem),
             }
@@ -275,7 +288,7 @@ impl Page {
             }),
         };
         self.ticket = ticket;
-        self.pending = Pending::Write;
+        self.pending = Pending::SwitchWrite;
         self.failure = None;
         Some(Write {
             node: self.node,
@@ -318,65 +331,26 @@ impl Page {
         (self.edit_action(action.site) == Some(action)).then_some(action.site)
     }
 
-    /// Open only the displayed site, giving each form a fresh existing ticket.
-    /// The shared dialog remains the sole owner of focus and modal layers.
-    ///
-    /// # Errors
-    /// Exhausting the ticket source refuses a new form instead of reusing one.
-    pub fn open_editor(&mut self, action: Edit) -> Result<Option<Editor>, crate::devices::Problem> {
-        let Some(site) = self.edit(action) else {
-            return Ok(None);
-        };
-        let editor = Editor {
-            node: self.node,
-            source: self.ticket,
-            opening: self.editor_tickets.next_ticket()?,
-            site,
-        };
-        self.editor = Some(editor);
-        Ok(Some(editor))
-    }
-
-    /// Read only the confirmed metadata for this still-current opening.
-    /// Stored key values and reference names are absent from the snapshot.
-    #[must_use]
-    pub fn editor_values(&self, editor: Editor) -> Option<&Snapshot> {
-        if self.editor != Some(editor) || editor.node != self.node || editor.source != self.ticket {
-            return None;
-        }
-        self.read.as_ref()?.as_ref().ok()
-    }
-
-    /// Create a non-secret form model only for this current editor opening.
-    #[must_use]
-    pub fn editor_draft(&self, editor: Editor) -> Option<draft::Draft> {
-        draft::Draft::new(editor.site, self.editor_values(editor)?)
-    }
-
-    /// An old close/cancel callback must not dismiss the next form.
-    pub fn close_editor(&mut self, editor: Editor) -> super::Applied {
-        if self.editor_values(editor).is_none() {
-            return super::Applied::Stale;
-        }
-        self.editor = None;
-        super::Applied::Current
-    }
-
     fn writable(&self) -> bool {
-        self.editor.is_none()
-            && self.pending == Pending::Settled
-            && !matches!(
-                self.failure,
-                Some(
-                    Problem::Offline
-                        | Problem::Unsupported
-                        | Problem::Refused(ErrorCode::Forbidden)
-                )
+        self.editor.is_none() && self.pending == Pending::Settled && !self.save_blocked()
+    }
+
+    fn save_blocked(&self) -> bool {
+        matches!(
+            self.failure,
+            Some(
+                Problem::Offline
+                    | Problem::Unconfirmed
+                    | Problem::Unsupported
+                    | Problem::Refused(ErrorCode::Forbidden)
             )
+        )
     }
 }
 
 #[cfg(test)]
 mod editor_tests;
+#[cfg(test)]
+mod save_tests;
 #[cfg(test)]
 mod tests;

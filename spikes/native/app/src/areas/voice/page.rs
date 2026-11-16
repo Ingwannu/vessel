@@ -75,8 +75,8 @@ where
             conversation,
             tokens,
         ));
-    if failure.is_some() {
-        body = body.child(message(words.voice().settings_save_error(), tokens));
+    if let Some(problem) = failure {
+        body = body.child(message(save_message(problem, words), tokens));
     }
     body
 }
@@ -345,12 +345,22 @@ fn summary(snapshot: &Snapshot, site: Site, words: &Translator) -> String {
     }
 }
 
+fn save_message(problem: Problem, words: &'static Translator) -> &'static str {
+    match problem {
+        Problem::Refused(_) => words.voice().settings_save_refused(),
+        Problem::Offline | Problem::Unsupported | Problem::Unconfirmed => {
+            words.voice().settings_save_error()
+        }
+    }
+}
+
 fn notice(problem: Problem, words: &Translator, tokens: &Tokens) -> Div {
     use vessel_app_kit::alert::{self, Content, Size, Variant};
     let text = match problem {
         Problem::Offline => words.voice().settings_offline(),
         Problem::Unsupported => words.voice().settings_unsupported(),
         Problem::Refused(_) => words.voice().settings_read_error(),
+        Problem::Unconfirmed => words.voice().settings_save_error(),
     };
     alert::alert(
         Content {

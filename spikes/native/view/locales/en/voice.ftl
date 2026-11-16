@@ -55,3 +55,6 @@ voice-settings-site-label = { $site }, { $summary }
 
 # Read-only label for a newer switch value; do not render it as Off.
 voice-settings-unknown-switch = Unknown setting
+
+# Explicit save refusal; distinguish it from a lost reply and show confirmed metadata only.
+voice-settings-save-refused = The change was refused. Your last confirmed settings are still shown.

@@ -181,3 +181,15 @@ fn summaries_and_unavailability_are_complete_localized_messages() {
         );
     }
 }
+
+#[test]
+fn a_refusal_and_an_unknown_save_outcome_have_distinct_complete_localized_messages() {
+    for tag in ["en", "ko"] {
+        let words = Translator::get(Locale::from_tag(tag).unwrap()).unwrap();
+        let refused = save_message(Problem::Refused(vessel_proto::ErrorCode::Forbidden), words);
+        let unconfirmed = save_message(Problem::Unconfirmed, words);
+        assert_ne!(refused, unconfirmed);
+        assert_eq!(refused, words.voice().settings_save_refused());
+        assert_eq!(unconfirmed, words.voice().settings_save_error());
+    }
+}

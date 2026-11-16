@@ -4,7 +4,8 @@
 //! this boundary. The draft never receives an API key or saved reference name.
 //! It produces a candidate patch, not permission to send a node request.
 
-use super::{Change, Site, Snapshot};
+use super::{Change, Editor, Site, Snapshot};
+use crate::devices::Ticket;
 use vessel_proto::dictation::{
     DictationChange, DictationProvider, EndpointBase, EndpointModel, KeyPresence, Language,
     LocalModelId, SetDictation,
@@ -74,13 +75,26 @@ pub enum Problem {
     /// Future model metadata may be displayed, never newly selected.
     #[error("this local model is not known by this build")]
     UnknownModel,
+    /// Inputs are frozen while a save is outstanding.
+    #[error("this form is waiting for its save result")]
+    Saving,
+    /// A successful form cannot be submitted or edited again.
+    #[error("this form has already been saved")]
+    Saved,
 }
 
 /// One opening's metadata draft; the Page/editor token owns its lifetime.
 pub struct Draft {
-    site: Site,
+    editor: Editor,
+    phase: Phase,
     provider: Provider,
     fields: Fields,
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    Editing,
+    Saving(Ticket),
+    Saved,
 }
 enum Fields {
     Recognition(VoiceSttSettings, SetVoiceStt),
@@ -89,13 +103,13 @@ enum Fields {
 impl std::fmt::Debug for Draft {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SpeechFormDraft")
-            .field("site", &self.site)
+            .field("site", &self.editor.site())
             .finish_non_exhaustive()
     }
 }
 impl Draft {
-    pub(super) fn new(site: Site, snapshot: &Snapshot) -> Option<Self> {
-        let fields = match site {
+    pub(super) fn new(editor: Editor, snapshot: &Snapshot) -> Option<Self> {
+        let fields = match editor.site() {
             Site::Dictation => {
                 let value = &snapshot.dictation;
                 Fields::Recognition(
@@ -122,7 +136,8 @@ impl Draft {
             Fields::Synthesis(value, _) => value.provider,
         };
         Some(Self {
-            site,
+            editor,
+            phase: Phase::Editing,
             provider: Provider::from_wire(original)?,
             fields,
         })
@@ -152,8 +167,13 @@ impl Draft {
     /// Retain valid edits within this form; inactive fields are filtered at build.
     ///
     /// # Errors
-    /// Wrong-role fields and unknown newly selected local models are refused.
+    /// Wrong-role fields, unknown newly selected local models and frozen forms are refused.
     pub fn edit(&mut self, input: Input) -> Result<(), Problem> {
+        match self.phase {
+            Phase::Editing => {}
+            Phase::Saving(_) => return Err(Problem::Saving),
+            Phase::Saved => return Err(Problem::Saved),
+        }
         if let Input::Provider(provider) = input {
             self.provider = provider;
             return Ok(());
@@ -164,6 +184,35 @@ impl Draft {
         }
     }
 
+    /// The caller combines this form fact with Page::can_submit_editor.
+    #[must_use]
+    pub fn can_save(&self) -> bool {
+        self.phase == Phase::Editing && self.change().is_some()
+    }
+
+    /// Fields and cancel controls may reflect the actual held operation.
+    #[must_use]
+    pub const fn saving(&self) -> bool {
+        matches!(self.phase, Phase::Saving(_))
+    }
+
+    pub(super) const fn editor(&self) -> Editor {
+        self.editor
+    }
+    pub(super) fn begin(&mut self, ticket: Ticket) {
+        self.phase = Phase::Saving(ticket);
+    }
+    pub(super) fn pending(&self, ticket: Ticket) -> bool {
+        self.phase == Phase::Saving(ticket)
+    }
+    pub(super) fn finished(&mut self, accepted: bool) {
+        self.phase = if accepted {
+            Phase::Saved
+        } else {
+            Phase::Editing
+        };
+    }
+
     /// A candidate touches exactly this site and never a feature switch or key.
     /// A caller must still recheck the Page's current editor and write admission.
     #[must_use]
@@ -171,7 +220,7 @@ impl Draft {
         match &self.fields {
             Fields::Recognition(initial, patch) => {
                 let patch = recognition_patch(self.provider, initial, patch)?;
-                Some(match self.site {
+                Some(match self.editor.site() {
                     Site::Dictation => Change::Dictation(SetDictation {
                         provider: patch.provider,
                         language: patch.language,
