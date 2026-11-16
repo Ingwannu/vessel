@@ -113,7 +113,14 @@ fn ready_form_enter_never_writes_but_the_actual_footer_sends_one_original_update
         cx.run_until_parked();
         assert!(matches!(commands.try_recv(), Err(TryRecvError::Empty)));
         view.read_with(cx, |probe, cx| {
-            let model = &probe.shell.read(cx).areas.schedules.data.editor;
+            let shell = probe.shell.read(cx);
+            let model = &shell.areas.schedules.data.editor;
+            let inputs = shell.areas.schedules.ui.editor.inputs.as_ref().unwrap();
+            assert_eq!(
+                inputs.rule.text(cx),
+                model.draft().unwrap().cadence.text(),
+                "Enter must retain the original cadence text",
+            );
             assert!(!model.pending_save());
             assert!(matches!(model.prepare_save(), Ok(Some(_))));
         });

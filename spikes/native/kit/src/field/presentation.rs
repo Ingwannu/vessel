@@ -97,6 +97,12 @@ impl TextField {
                 project(state, tokens, neutral.foreground_muted, cx);
                 self.form_text
                     .apply(form_shell(self.focused.get(), tokens, narrow))
+                    // The shared listener already submitted this form line.
+                    // Contain native fallback just as the form textarea does;
+                    // it must not emit a second edit and invalidate its preview.
+                    .on_action(|_: &gpui_base::input::Enter, _window, cx| {
+                        cx.stop_propagation();
+                    })
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
             }

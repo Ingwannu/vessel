@@ -2086,3 +2086,31 @@ paths remain. The profile keeps a14-point layout and paint-only0.7 scale through
 the same private indicator renderer. Existing ordinary test bodies are unchanged.
 No area spinner, new asset, size allowance or dependency is introduced. All
 reported compile diagnostics were scanned before a new ordinary receiving suite.
+
+### First actual App-bin result and form-line Enter repair
+
+Exact40e4 strict0 and libraries Kit293/0/0, Link145/0/0, View1212/0/0 passed.
+The explicit App-bin run schedules-20261116T033311Z-40e4ce38 actually executed
+198/1/2. Its one failure is the ready-form test AFTER Enter: the unchanged
+assertion that prepare_save stays ready fails before the footer click. Initial
+readiness and no emitted command already passed. All raw evidence is retained.
+
+[Decision Log]
+- Purpose: Enter must neither write nor invalidate a ready schedule form.
+- Existing assets: the same TextField form shell, single InputEvent listener,
+  and form-textarea Enter containment already present in the shared renderer.
+- Constraint: a line input emits PressEnter and propagates its action; a later
+  native fallback can emit an extra edit and reset the matching preview.
+- Choice: the existing one-line FORM shell consumes that already-handled Enter,
+  just as the textarea does. Bare/input wrappers and their parent shortcuts,
+  engine callbacks, data validation and footer/save guards remain unchanged.
+- Why: a second area key handler or ignoring equal cadence edits would hide the
+  shared dispatch fault and could incorrectly accept genuine user edits.
+- Verification: the existing real Enter/footer/no-double-save assertions stay;
+  an additional literal engine/model text assertion makes the failure boundary
+  visible. Corrected Kit/App narrow execution remains owed.
+
+Quota-warning boundary: finish only this current correction/checkpoint, no new
+IME/control/branch merge. The secure field has final bounded V1/coordinator
+approval and lead receiving9d7b11bd in gate; C2 change13 stays unstarted until a
+later session's announced canonical base and writer boundary.
