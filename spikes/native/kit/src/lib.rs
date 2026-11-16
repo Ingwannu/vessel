@@ -235,3 +235,6 @@ pub fn root<V: 'static + gpui::Render>(
 
 mod root_owner;
 pub use root_owner::root_contains_view;
+
+#[cfg(test)]
+mod html_rendered_range_contract;
