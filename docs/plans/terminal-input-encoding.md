@@ -84,3 +84,23 @@ or typed InputError. Budget is explicit caller byte admission, not another
 transport limit. This remains a proposed pure producer for the later D1 union:
 no enclosing package gate/review, actual native/CLI caller, clipboard/IME/OS,
 PTY delivery or NodeAuthority activation is claimed.
+
+
+## Real IME admission dependency
+
+The checked Kit with_events producer supplies actual Window callbacks, but
+notifications-only current text is not a commit identity. Existing Identified
+callbacks carry FieldId without Window; Windowed callbacks do not carry origin.
+Read actual gpui-base input/base/state.rs4499-4502/4508-4743/4747-4885:
+replace commits and emits Change, marking notifies only, unmark clears marked
+state without Change. The pure byte encoder must not infer commits from string
+diffs or a false composition flag.
+
+Coordinator ruling11c8cd75 assigns the sole real producer to G2 after secure
+field landing, preserving the existing one subscription and FieldId. Replace
+produces an engine-owned committed-text payload; marked is notify-only and
+unmark-only produces NO commit. Equal-text repeat, programmatic clear and stale
+opening remain distinct. No new listener/cache is authorized. Actual handler
+regressions and V1/lead adoption precede C2 consumption. Focused composing uses
+the existing Kit registry once the real terminal input field is mounted; there
+is no current terminal IME or OS-input qualification from this dependency.
