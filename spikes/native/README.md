@@ -1465,3 +1465,10 @@ fields. Rename consumes the shared typed `Editability` at dispatch/answer;
 its `rename_element` profile wraps the same bare editor. The kit-internal
 `field::settings_frame` shares only the inset-focus bridge with Appearance
 profiles, leaving chrome to each profile and all events in the one engine.
+
+`kit::segmented::segmented_at` and `segment_at` take the shared `ControlSizing`
+for source MD32/44 (inner28/40), with unchanged SM28/24. They share the legacy
+renderer; source opt-ins add unselected pressed surface3 after hover surface2.
+Existing `segmented`/`segment` remain pointer-sized with their original paint.
+The caller owns the value and refuses disabled/current-value actions. Why and
+pinned lines: `docs/plans/shared-segmented-sizing.md`.
