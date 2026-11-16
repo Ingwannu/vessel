@@ -641,6 +641,23 @@ lit at 6% and a bottom edge shaded at 10%. No outer shadow, no glow.
 `--overlay` (a dialog's scrim): the ink at 45% light, the page's own
 black at 85% dark: the reference's. No blur behind it.
 
+### 4.6a Planes
+
+| Token | Value | Layer |
+| --- | --- | --- |
+| `--z-sheet-scrim` | 50 | a sheet's scrim |
+| `--z-sheet` | 51 | the sheet (the narrow sidebar, the narrow session panel) |
+| `--z-dialog` | 52 | a dialog and its scrim, the command palette |
+| `--z-popup` | 60 | menus, selects, popovers, comboboxes |
+| `--z-toast` | 70 | the toast stack |
+| `--z-tooltip` | 80 | tooltips |
+
+Paseo's order (`overlay-root.ts`: floating < modal < toast < tooltip):
+a dialog opened from a sheet comes over it, a menu inside a dialog over
+the dialog, a toast raised while a dialog is open stays readable, and a
+tooltip is always on top. Every overlay names its token; no other
+`z-index` above 40 is set.
+
 ### 4.7 Motion
 
 | Token | Value |
