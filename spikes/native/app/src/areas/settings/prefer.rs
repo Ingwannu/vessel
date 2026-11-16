@@ -54,7 +54,12 @@ impl Shell {
                         self.conversation_display(*display);
                     }
                     PreferenceChange::Animations(animations) => {
+                        // `motion` (the reduced-motion switch) is the
+                        // desktop's; a browser only redraws.
+                        #[cfg(not(target_arch = "wasm32"))]
                         crate::motion::animations(animations.on(), cx);
+                        #[cfg(target_arch = "wasm32")]
+                        let _ = animations;
                         window.refresh();
                     }
                     PreferenceChange::ChatOutline(_) => self.conversation_outline_changed(),
