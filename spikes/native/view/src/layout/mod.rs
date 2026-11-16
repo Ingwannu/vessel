@@ -38,12 +38,14 @@ pub use close::{CloseApproval, CloseEffect, ClosePlan, Modified};
 pub use movement::{CloseScope, Direction, LayoutAction, TabIndex, TabInsertion};
 pub use reconcile::{EntitySnapshot, Hydration, SessionTab};
 pub use state::{
-    AgentRole, ExplorerVisibility, Layout, LayoutMode, OpenIntent, Placement, Sheet,
-    SheetPromotion, Tab,
+    ExplorerVisibility, Layout, LayoutMode, OpenIntent, Placement, Sheet, SheetPromotion, Tab,
 };
 pub use target::{PaneHost, Target};
 pub use tree::{Axis, Pane, Position, SplitNode};
 pub use values::{GroupId, HostAlias, LayoutKey, PaneId, ResourceId, TabId, WorkspaceId};
+/// Compatibility name for the canonical workspace-relative metadata role. This
+/// adds no membership lookup, freshness or permission to close a resource.
+pub use vessel_proto::subagents::WorkspaceRole as AgentRole;
 
 /// Includes the Explorer bookkeeping level, as Paseo's layout store does.
 pub const MAX_TREE_DEPTH: usize = 5;
@@ -89,3 +91,6 @@ pub enum LayoutError {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod canonical_role_tests;
