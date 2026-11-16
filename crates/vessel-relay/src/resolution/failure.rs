@@ -39,7 +39,7 @@ impl fmt::Display for FailureKind {
 }
 
 /// A safe error chain. Original native/worker causes remain private; formatting
-/// or following source() cannot expose a host, panic payload or OS diagnostic.
+/// or following `source()` cannot expose a host, panic payload or OS diagnostic.
 #[derive(Clone, thiserror::Error)]
 #[error("{kind}")]
 pub struct Failure {

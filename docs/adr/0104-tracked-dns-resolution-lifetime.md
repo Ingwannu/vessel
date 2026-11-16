@@ -2,8 +2,9 @@
 
 Status: contract source accepted by V3 on 2026-11-16, exact f2779ab90.
 Shared implementation and consumer source/runtime checks remain separate.
-This is a separate prerequisite for relay consent (ADR0096) and native
-HTTP dictation endpoints (ADR0067). It does not extend either package's
+This is a separate prerequisite for relay consent (ADR0096), native
+HTTP dictation endpoints (ADR0067), and W5's account-usage HTTP client.
+It does not extend these packages'
 existing source/runtime verdict or activate an unassigned method.
 
 ## Intent, existing assets and alternatives
@@ -16,12 +17,12 @@ existing source/runtime verdict or activate an unassigned method.
 - Existing assets: Tokio's blocking pool and standard `ToSocketAddrs`, relay
   socket/Reach/TLS stages, node lifecycle ownership, and reqwest's resolver hook.
 - Choice: one tracked native-resolution primitive in `vessel-relay::resolution`,
-  with thin consumers for NodeLink and reqwest. The node already depends on
+  with thin consumers for NodeLink and the dictation/usage reqwest clients. The node already depends on
   vessel-relay; no crate edge or external dependency is required.
 - Rejected: a second DNS implementation/cache, an independent resolver actor,
   one pool per HTTP request, or a lease held only by a cancellable async wrapper.
 - Why: the existing native dial crate is the lower shared boundary for these
-  two consumers. Process helpers and pure proto/view types do not own DNS.
+  three consumers. Process helpers and pure proto/view types do not own DNS.
 - Cost: stop may remain uncertain until the OS resolver returns. Explicit
   resource refusal replaces unbounded lookup admission. This is not a promise
   of cancellable DNS, a timeout on getaddrinfo, or bounded libc-internal memory.
@@ -189,6 +190,24 @@ No HTTP or dictation activation is part of this contract-only change.
 
 ## Verification and explicit limits
 
+### Account-usage HTTP consumer (W5 activation hold)
+
+The coordinator adds W5's `limits/http.rs` `Http::new` and the
+`AccountUsageProbe` Local body as the third consumer. It must use the SAME
+tracked primitive through reqwest's `ClientBuilder::dns_resolver` hook, with
+host-only/port0 results, the stable node-root budget and its own existing
+resource bound/permits-only hold. No private resolver, cache, fork, credential
+or configuration capture is introduced. HTTP cancellation/timeouts are not
+physical DNS completion; the actual probe/lifecycle owner must close and drain
+its scope before releasing its admitted operation or replacing its generation.
+W5 records its known gap and keeps new account methods at SINCE=None until
+this consumer wiring and receiving proof exist. Bounded backend preparation
+may have a qualified pass with this explicit activation hold; neither that
+pass nor the shared primitive claims active readiness or physical DNS drain.
+This documentation addition does not request another W5 whole gate.
+
+### Shared and receiving proofs
+
 Before code, V3 reviews this shared contract and ADR0096's reference. Afterwards
 prove admission-before-spawn, close-vs-start, queued-skip, physical lease through
 waiter cancellation, retained joins after drain-waiter cancellation, full quota,
@@ -217,4 +236,4 @@ Source review, narrow checks, the owning package gate and consumer integration
 are separate evidence. No implementation, timing, DNS termination, supported
 platform, resolver-internal memory bound, service-account behavior or full
 consent claim follows from this ADR. Other unmigrated native DNS call sites
-(such as push/client paths) are not silently covered by these two consumers.
+(such as push/client paths) are not silently covered by these three consumers.

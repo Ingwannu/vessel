@@ -1,6 +1,8 @@
 //! Deterministic holds use the actual blocking closure and join owner. Only
 //! numeric standard-native resolution runs; no external DNS is contacted.
 
+mod queued;
+
 use super::super::{MAX_HOST_BYTES, MAX_RESOLVED_ADDRESSES};
 use super::*;
 use futures_util::FutureExt as _;
@@ -18,12 +20,12 @@ const SINGLE_SLOT: usize = 1;
 const ZERO_PORT: ResolutionPort = ResolutionPort(0);
 const CANARY: &str = "private-host.invalid/private-home/private-token";
 
-async fn within(future: impl std::future::Future<Output = ()>) {
+async fn within(future: impl Future<Output = ()>) {
     vessel_testkit::within(OUTER, Box::pin(future))
         .await
         .expect("resolution outer safety");
 }
-async fn phase<T>(name: &str, future: impl std::future::Future<Output = T>) -> T {
+async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
     tokio::time::timeout(PHASE, Box::pin(future))
         .await
         .unwrap_or_else(|_| panic!("resolution phase: {name}"))
@@ -174,8 +176,8 @@ async fn numeric_standard_native_work_and_repeatable_drain_are_real() {
             vec!["127.0.0.1:0".parse().unwrap()]
         );
         assert!(!format!("{result:?}").contains("127.0.0.1"));
-        phase("normal physical drain", scope.drain()).await.unwrap();
-        phase("repeat normal physical drain", scope.drain())
+        let _first_receipt = phase("normal physical drain", scope.drain()).await.unwrap();
+        let _repeat_receipt = phase("repeat normal physical drain", scope.drain())
             .await
             .unwrap();
         assert_eq!(scope.state(), ScopeState::Drained);
@@ -224,7 +226,7 @@ async fn caller_abort_and_cancelled_drain_waiter_do_not_release_physical_work() 
             FailureKind::Closed
         );
         held.release.0.release();
-        phase(
+        let _resumed_receipt = phase(
             "native join after lost caller and drain waiter",
             scope.drain(),
         )
@@ -251,7 +253,7 @@ async fn close_covers_admitted_work_before_the_native_start_gate() {
             FailureKind::Closed
         );
         assert!(!held.entered.load(Ordering::SeqCst));
-        phase("skipped admitted worker joined", scope.drain())
+        let _skipped_receipt = phase("skipped admitted worker joined", scope.drain())
             .await
             .unwrap();
     })
@@ -272,14 +274,14 @@ async fn original_consumer_hold_survives_scope_and_caller_loss_inside_native_wor
     within(async {
         let budget = ResolutionBudget::default();
         let (dropped, mut drop_notice) = oneshot::channel();
-        let hold = Arc::new(ConsumerHold(Some(dropped)));
+        let consumer = Arc::new(ConsumerHold(Some(dropped)));
         let scope = budget.scope(
             ResolutionQuota::new(SINGLE_SLOT).unwrap(),
-            Arc::clone(&hold),
+            Arc::clone(&consumer),
         );
         let handle = scope.handle();
-        let weak_hold = Arc::downgrade(&hold);
-        drop(hold);
+        let weak_hold = Arc::downgrade(&consumer);
+        drop(consumer);
         let (mut held, probes) = Held::probes(Stage::AfterStart, SINGLE_SLOT);
         let mut task = start(&scope, probes.into_iter().next().unwrap());
         held.entered(SINGLE_SLOT).await;
@@ -340,10 +342,10 @@ async fn root_quota_survives_other_scopes_and_refuses_before_another_spawn() {
         assert!(drain.as_mut().now_or_never().is_none());
         held.release.0.release();
         for task in &mut tasks {
-            task.joined().await.unwrap().unwrap();
+            let _addresses = task.joined().await.unwrap().unwrap();
         }
-        phase("root work drained", drain).await.unwrap();
-        phase("other scope closes normally", other.drain())
+        let _root_receipt = phase("root work drained", drain).await.unwrap();
+        let _other_receipt = phase("other scope closes normally", other.drain())
             .await
             .unwrap();
         assert_eq!(budget.0.available_permits(), MAX_NATIVE_RESOLUTIONS);

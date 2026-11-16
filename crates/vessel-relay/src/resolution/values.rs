@@ -41,7 +41,7 @@ impl ResolutionQuota {
     /// Admit between one slot and the root's fixed maximum.
     ///
     /// # Errors
-    /// Zero and values above MAX_NATIVE_RESOLUTIONS are refused.
+    /// Zero and values above `MAX_NATIVE_RESOLUTIONS` are refused.
     pub fn new(count: usize) -> Result<Self, Failure> {
         match NonZeroUsize::new(count) {
             Some(count) if count.get() <= MAX_NATIVE_RESOLUTIONS => Ok(Self(count)),

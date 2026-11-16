@@ -1,7 +1,8 @@
-# Shared native DNS lifetime: contract item
+# Shared native DNS lifetime: shared primitive item
 
 Base: announced node bc9cacc6 (gate57). Contract: ADR0104; relay consumer ADR0096.
-No product source, manifest, lock, method, version, schema or service change.
+The initial f277 contract changed documentation only; the later source checkpoint
+is below. No manifest, lock, method, version, schema or service change.
 
 Existing assets inspected: relay socket/NodeLink/DataOpens and public Reach,
 Tokio1.54.1 standard native-resolution implementation, reqwest0.13.5 resolver
@@ -9,6 +10,12 @@ hook, hyper-util0.1.21 Gai lifetime, and dictation's endpoint/jobs/quota model.
 Choice is a shared typed lifetime wrapper in the existing native dial crate,
 with thin NodeLink/HTTP consumers. It does not introduce a DNS implementation,
 cache, library, runtime or separate registration/resolution manager.
+
+The coordinator subsequently names W5 account-usage HTTP (`limits/http.rs`
+`Http::new`, `AccountUsageProbe` Local) as the third consumer. It must reuse
+the same reqwest hook/primitive, with activation held and new account methods
+SINCE=None until wired. This is a consumer-list correction, not a private
+resolver, readiness claim or another W5 whole-gate request.
 
 The crucial capacity lease lives inside the actual Tokio blocking closure
 which calls standard ToSocketAddrs, not merely the async lookup waiter. The
@@ -31,9 +38,10 @@ settings/HTTP consumer lifetime and integration. Every compile/test/gate runs
 on the approved build VM, detached, once per meaningful frozen source. Final
 package and consumer evidence never borrow an unchanged predecessor gate.
 
-Current deliverable is documentation only. No DNS lookup, HTTP/provider,
-real relay, account, permission, process or production action was performed.
-If work pauses before V3 answers, resume at that pending contract review.
+The initial f277 deliverable was documentation only: no DNS lookup, provider,
+real relay, account, permission, process or production action. V3 subsequently
+accepted that contract; the implementation checkpoint below has its own source
+and VM evidence requirements.
 
 Consumer direction confirmed by GKS before code: per-stream original
 Arc<dictation quota Lease> is permits-only, quota constructor uses the existing

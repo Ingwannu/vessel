@@ -21,7 +21,7 @@ impl Default for ResolutionBudget {
 impl ResolutionBudget {
     /// Create a generation scope using an original permits-only consumer hold.
     /// Hold must not capture configuration, credentials, body/audio, a registry
-    /// or ConnectionLife. Handles cannot mint another budget or scope.
+    /// or `ConnectionLife`. Handles cannot mint another budget or scope.
     #[must_use]
     pub fn scope<Hold: Send + Sync + 'static>(
         &self,
@@ -264,13 +264,12 @@ impl<Hold> Inner<Hold> {
     }
     fn completed(&self, failure: Option<&Failure>) {
         let mut state = self.state();
-        match state.active.checked_sub(1) {
-            Some(remaining) => state.active = remaining,
-            None => {
-                // An impossible duplicate completion is not a zero-work proof.
-                state.closed = true;
-                state.failed = Some(Failure::new(FailureKind::Worker));
-            }
+        if let Some(remaining) = state.active.checked_sub(1) {
+            state.active = remaining;
+        } else {
+            // An impossible duplicate completion is not a zero-work proof.
+            state.closed = true;
+            state.failed = Some(Failure::new(FailureKind::Worker));
         }
         if let Some(error) = failure
             && error.kind() == FailureKind::Worker
