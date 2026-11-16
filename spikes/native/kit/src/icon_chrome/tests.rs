@@ -98,8 +98,12 @@ fn viewport_profile_is_the_small_frame_on_surface2_with_muted_ink_and_hidden_pre
         for (sizing, edge) in [(ControlSizing::Pointer, 20.0), (ControlSizing::Touch, 32.0)] {
             for availability in [ButtonState::Enabled, ButtonState::Disabled] {
                 let config = ToolbarConfig::new(sizing, availability);
+                let hidden = match availability {
+                    ButtonState::Enabled => 0.0,
+                    ButtonState::Disabled => 0.5,
+                };
                 for (presence, opacity) in
-                    [(Presence::Shown, config.opacity()), (Presence::Hidden, 0.0)]
+                    [(Presence::Shown, config.opacity()), (Presence::Hidden, hidden)]
                 {
                     let mut outer = render(
                         "zoom-in",
@@ -130,6 +134,83 @@ fn viewport_profile_is_the_small_frame_on_surface2_with_muted_ink_and_hidden_pre
                     viewport_fill(config, phase, &tokens),
                     tokens.neutral.interaction_highlight
                 );
+            }
+        }
+    }
+}
+
+#[test]
+fn only_an_enabled_shown_viewport_action_answers_the_pointer() {
+    for sizing in [ControlSizing::Pointer, ControlSizing::Touch] {
+        for availability in [ButtonState::Enabled, ButtonState::Disabled] {
+            for presence in [Presence::Shown, Presence::Hidden] {
+                let config = ToolbarConfig::new(sizing, availability);
+                assert_eq!(
+                    viewport_responds(config, presence),
+                    availability == ButtonState::Enabled && presence == Presence::Shown
+                );
+            }
+        }
+    }
+}
+
+struct ViewportHover {
+    availability: ButtonState,
+}
+impl Render for ViewportHover {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        div().size_full().p(px(16.0)).child(
+            render(
+                "reset",
+                "Reset zoom",
+                Profile::Viewport {
+                    config: ToolbarConfig::new(ControlSizing::Pointer, self.availability),
+                    glyph: Glyph::Scan,
+                    presence: Presence::Shown,
+                },
+                &tokens,
+            )
+            .debug_selector(|| "viewport-hover".to_owned()),
+        )
+    }
+}
+fn backgrounds(cx: &mut gpui::VisualTestContext) -> Vec<gpui::Background> {
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+        window
+            .painted_quads()
+            .iter()
+            .map(|quad| quad.background)
+            .collect()
+    })
+}
+#[gpui::test]
+fn a_disabled_viewport_action_paints_the_same_under_hover_and_press(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap();
+    });
+    let highlight = gpui::solid_background(Tokens::of(Scheme::Dark).neutral.interaction_highlight);
+    for availability in [ButtonState::Enabled, ButtonState::Disabled] {
+        let (_view, cx) = cx.add_window_view(move |_, _| ViewportHover { availability });
+        cx.run_until_parked();
+        let bounds = cx.debug_bounds("viewport-hover").unwrap();
+        cx.simulate_mouse_move(point(px(600.0), px(500.0)), None, Modifiers::none());
+        let rest = backgrounds(cx);
+        cx.simulate_mouse_move(bounds.center(), None, Modifiers::none());
+        let hovered = backgrounds(cx);
+        cx.simulate_mouse_down(bounds.center(), gpui::MouseButton::Left, Modifiers::none());
+        let pressed = backgrounds(cx);
+        cx.simulate_mouse_up(bounds.center(), gpui::MouseButton::Left, Modifiers::none());
+        match availability {
+            ButtonState::Enabled => {
+                assert!(!rest.contains(&highlight));
+                assert!(hovered.contains(&highlight));
+                assert!(pressed.contains(&highlight));
+            }
+            ButtonState::Disabled => {
+                assert_eq!(hovered, rest);
+                assert_eq!(pressed, rest);
             }
         }
     }
