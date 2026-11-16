@@ -41,12 +41,12 @@ impl Page {
     }
 
     /// An old close/cancel callback must not dismiss the next form.
-    pub fn close_editor(&mut self, editor: Editor) -> super::Applied {
+    pub fn close_editor(&mut self, editor: Editor) -> Applied {
         if self.editor_values(editor).is_none() {
-            return super::Applied::Stale;
+            return Applied::Stale;
         }
         self.editor = None;
-        super::Applied::Current
+        Applied::Current
     }
 
     /// Recheck the original form, node, pending state and known outcome.
