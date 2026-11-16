@@ -3,6 +3,7 @@
 use crate::{ProtocolVersion, SessionInfo};
 
 impl SessionInfo {
+    /// Apply this optional feature after all existing metadata projections.
     pub(crate) fn for_protocol_with_mutation_time(
         &self,
         protocol: ProtocolVersion,

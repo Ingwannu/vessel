@@ -7,6 +7,7 @@ use std::sync::Arc;
 use vessel_proto::inbox::MarkInbox;
 
 impl Sessions {
+    /// Keep an admitted mark's committed clock publication despite caller loss.
     pub(crate) async fn mark_inbox(self: &Arc<Self>, mark: MarkInbox) -> Result<(), ServiceError> {
         // Cancelled callers awaiting admission retain no detached task. Once
         // admitted, exactly this owned order survives with commit/publication.

@@ -13,6 +13,7 @@ pub struct SessionCommit<T> {
 }
 
 impl<T> SessionCommit<T> {
+    /// Capture this result before the writer advances to another queued operation.
     pub(crate) const fn new(value: T, updated_at: Option<SessionUpdatedAt>) -> Self {
         Self { value, updated_at }
     }

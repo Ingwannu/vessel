@@ -1574,3 +1574,9 @@ now uses ContentBlock's existing Text variant with the identical prompt bytes.
 Only test construction changes; no assertion, product behavior or deadline is
 altered. The actual frozen-seed integration test passed independently on the
 same pre-fix executable source; Node/session runtime execution remains owed.
+
+
+The new crate-private clock/acknowledgement boundaries and test-only fixture
+functions now each state their reason locally: same-connection snapshot, exact
+queued-operation result, projection order and retained publication. Only docs
+change; no executable or test body, input, declaration or deadline changes.

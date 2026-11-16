@@ -291,6 +291,7 @@ async fn corrupt_precision_refuses_reads_and_rolls_back_a_metadata_write() {
 mod clock_fixture {
     use super::*;
 
+    /// Inspect the canonical row without adding a production timestamp setter.
     pub(super) fn clock(dir: &DataDir, id: SessionId) -> Option<SessionUpdatedAt> {
         let connection = Connection::open(dir.database_path()).unwrap();
         let raw: Option<i64> = connection
@@ -303,8 +304,8 @@ mod clock_fixture {
         raw.map(|nanos| SessionUpdatedAt::try_from(DateTime::from_timestamp_nanos(nanos)).unwrap())
     }
 
-    // Test-only corruption/future-time injection, after an acknowledged write.
-    // No production setter accepts a caller's timestamp.
+    /// Force corruption or clock exhaustion only after an acknowledged test write.
+    /// No production setter accepts a caller's timestamp.
     pub(super) fn inject(dir: &DataDir, id: SessionId, time: DateTime<Utc>) {
         let connection = Connection::open(dir.database_path()).unwrap();
         let _rows = connection
@@ -315,6 +316,7 @@ mod clock_fixture {
             .unwrap();
     }
 
+    /// Calculate one expected writer tick independently of the wall-clock sample.
     pub(super) fn next(previous: SessionUpdatedAt) -> SessionUpdatedAt {
         SessionUpdatedAt::try_from(
             previous

@@ -9,6 +9,7 @@ use chrono::Utc;
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{SessionId, SessionUpdatedAt};
 
+/// Read on the operation's own connection so selection and mutation share a snapshot.
 pub(crate) fn read(
     connection: &Connection,
     session: SessionId,
