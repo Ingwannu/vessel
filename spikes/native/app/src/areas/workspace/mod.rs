@@ -30,10 +30,10 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
-#[cfg(test)]
-pub(crate) use code::FileCloseRequest;
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
+#[cfg(test)]
+pub(crate) use code::{ExplorerHost, FileCloseRequest, code_beside_at};
 pub(crate) use code::{ExplorerKind, render_explorer, show_layout_explorer};
 pub(crate) use code::{FileSearchRequest, render_file_panel};
 pub(crate) use code::{code_beside, code_toggle, frame_row};

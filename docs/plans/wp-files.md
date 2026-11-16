@@ -1289,3 +1289,34 @@ owner/root-guard join, typed product open/close, UI captures or full C5 acceptan
   and exercise superseded callbacks and each silent-edit activation separately.
   They are unexecuted and make no wire, server, painted-callback or UI proof.
   Receiving compilation/tests remain owed with the next owner correction batch.
+
+## Staged typed Explorer reuses the existing dock
+
+[Decision Log]
+- Purpose: join the sole layout Explorer projection without creating another
+  dock, selected-tab cache, header or filesystem resolver.
+- Existing assets: layout_with_explorer supplies a borrowed actual PanelContext
+  after releasing the layout book; the code frame already owns width, compact
+  scrim, resize and its one tab rail. The legacy wrapper remains its caller.
+- Choice: staged code_beside_at accepts ExplorerHost containing that same
+  borrowed context and layout-owned captured select/hide callbacks. Presence
+  selects the typed branch: the header reads only target, the common frame uses
+  projected visibility, and it skips legacy open/tab/session-follow inference.
+  Both Close and scrim invoke the same captured hide callback. The body receives
+  the exact context synchronously; the context is never stored.
+- Responsibility: W12 prepares callback currentness, captured key/tab/target,
+  open/update/hide operations and localized refusal. C5 retains dock sizing and
+  actual root-receipt admission. Neither the header nor PanelContext grants
+  node/workspace ownership. Unsupported workspace roots remain unavailable.
+- Alternatives: a parallel dock/header would duplicate presentation state; a
+  body-only callback leaves legacy tab and visibility authoritative. Shared
+  optional host controls avoid both while retaining the legacy entry point.
+- Cost: small callback Rc clones per header construction; no new persistent
+  registry, counter, task, filesystem effect or text engine. Common rail drawing
+  moves into frame_host to stay below the existing file-size bound.
+- Validation: authored no-I/O GPUI construction uses the actual layout book's
+  returned Explorer tab while legacy open/tab flags disagree, passes the exact
+  borrowed context to the body once and checks hidden projection skips it.
+  It is unexecuted, not painted selection/click or live-root proof. The typed
+  entry/export stays cfg(test) until the real sole-registry/dock/visibility and
+  original file-receipt union is checked; no product promotion is claimed.
