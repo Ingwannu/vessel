@@ -279,3 +279,16 @@ and private peer-text omission. No labels are interpreted as diagnostic Busy or
 Stopping, and no unknown catch-all or allowance was added. Stay on the same
 announced base for the corrected package; do not hide this owned error behind a
 new base or the unrelated routing intermittent.
+
+
+Corrected whole run `wp-labels-node-ts-20261116T020953Z-db4bbb4d` executed all18
+steps: strict/default+TS+forge, generator diff0, builds and web checks passed;
+Rust2738/2/12, web465, E2E80 and forge4. The CLI safe-display regression passed.
+The two Rust failures were inbox migration backfill fixtures: the fixture
+rewound to its predecessor but left A6's later catalog tables, so replay correctly
+refused an already-existing catalog. This is an owned fixture omission, not the
+parent routing intermittent. Remove only A6's assignment then catalog tables in
+that test-only rollback before the existing predecessor cleanup. Production SQL,
+old schema steps, backfill outcomes/assertions and migration strictness remain
+unchanged. A focused lifecycle fixture run and corrected whole acceptance remain
+owed; retain the original red evidence and same frozen base.
