@@ -257,7 +257,7 @@ fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAp
     });
     cx.simulate_event(ScrollEvent {
         position: from_right(width, top, 190.0, 20.0),
-        delta: ScrollDelta::Lines(point(0.0, 2.0)),
+        delta: ScrollDelta::Lines(gpui::point(0.0, 2.0)),
         ..Default::default()
     });
     cx.run_until_parked();
@@ -276,5 +276,8 @@ fn presses_and_wheel_in_the_toolbar_box_neither_dismiss_nor_zoom(cx: &mut TestAp
 /// A point measured from the viewport's top right (`mul_add`: no arithmetic
 /// operator, as the lints ask).
 fn from_right(width: f32, top: f32, x: f32, y: f32) -> gpui::Point<gpui::Pixels> {
-    gpui::point(gpui::px(x.mul_add(-1.0, width)), gpui::px(y.mul_add(1.0, top)))
+    gpui::point(
+        gpui::px(x.mul_add(-1.0, width)),
+        gpui::px(y.mul_add(1.0, top)),
+    )
 }
