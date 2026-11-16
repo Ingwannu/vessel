@@ -25,8 +25,8 @@ use gpui::prelude::*;
 use std::time::Duration;
 
 use gpui::{
-    Animation, AnimationExt as _, AnyElement, BoxShadow, Div, ElementId, SharedString, Stateful,
-    div, ease_in_out, point, px, rgba,
+    Animation, AnimationExt as _, AnyElement, App, BoxShadow, Div, ElementId, SharedString,
+    Stateful, Window, div, ease_in_out, point, px, rgba,
 };
 
 use crate::fonts::Type;
@@ -244,6 +244,65 @@ pub fn code_row(
     )
 }
 
+/// [`code_row`] whose value can be selected and copied: Paseo marks every
+/// `DetailRow` value `selectable` (`hosts/host-confirmation-sheet.tsx`
+/// 69-90), as a machine's id, a key's fingerprint or an endpoint.
+///
+/// [Decision Log]
+/// - Purpose: a value a person may need to compare or paste elsewhere is
+///   selected with the pointer, as Paseo's is; a copy button is not the
+///   reference (the coordinator's verdict on the pairing offer, 2026-11-16).
+/// - Existing asset: [`crate::plain_text`], the selectable literal text on
+///   the shared text engine (selection, copy, no Markdown).
+/// - Choice: the same row and words as [`code_row`] (title 14 in the
+///   foreground, the value 12 in the code face, muted, 4 under it), with the
+///   value drawn by `plain_text` under the caller's stable `id`; additive, so
+///   `code_row` and its callers are unchanged.
+/// - Cost: the value is one engine view per row, kept by `id` across frames;
+///   it wraps inside the row's width and never widens the card.
+#[must_use]
+pub fn selectable_code_row(
+    id: impl Into<ElementId>,
+    title: impl Into<SharedString>,
+    value: &str,
+    first: bool,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut App,
+) -> Div {
+    let value = hint_line(Type::Mono, tokens)
+        .debug_selector(|| "settings-row-value".to_owned())
+        .min_w_0()
+        .child(crate::plain_text(id, value, 0, window, cx))
+        .into_any_element();
+    row_of_parts(
+        title_of(title, tokens),
+        Some(value),
+        None,
+        None,
+        first,
+        false,
+        tokens,
+    )
+}
+
+/// A row's title: 14 in the foreground.
+fn title_of(title: impl Into<SharedString>, tokens: &Tokens) -> AnyElement {
+    div()
+        .type_(Type::Body)
+        .text_color(tokens.neutral.foreground)
+        .child(title.into())
+        .into_any_element()
+}
+
+/// The line under a row's title: 4 below it, muted, in `face`.
+fn hint_line(face: Type, tokens: &Tokens) -> Div {
+    div()
+        .mt(px(4.0))
+        .type_(face)
+        .text_color(tokens.neutral.foreground_muted)
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "row_at's arguments and the face of its hint, one private body"
@@ -258,13 +317,15 @@ fn row_faced(
     compact: bool,
     tokens: &Tokens,
 ) -> Div {
-    let title = div()
-        .type_(Type::Body)
-        .text_color(tokens.neutral.foreground)
-        .child(title.into())
-        .into_any_element();
     row_of(
-        title, hint, hint_face, error, control, first, compact, tokens,
+        title_of(title, tokens),
+        hint,
+        hint_face,
+        error,
+        control,
+        first,
+        compact,
+        tokens,
     )
 }
 
@@ -310,32 +371,37 @@ fn row_of(
     compact: bool,
     tokens: &Tokens,
 ) -> Div {
+    let hint = hint.map(|hint| hint_line(hint_face, tokens).child(hint).into_any_element());
+    row_of_parts(title, hint, error, control, first, compact, tokens)
+}
+
+/// The words (title, the line under it, an error) and the control, in the
+/// shared row frame.
+fn row_of_parts(
+    title: AnyElement,
+    hint: Option<AnyElement>,
+    error: Option<SharedString>,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
     let neutral = tokens.neutral;
-    let mut words = div()
+    let words = div()
         .flex_1()
         .min_w_0()
         .when(compact, |words| words.flex_basis(px(160.0)))
         .flex()
         .flex_col()
-        .child(title);
-    if let Some(hint) = hint {
-        words = words.child(
-            div()
-                .mt(px(4.0))
-                .type_(hint_face)
-                .text_color(neutral.foreground_muted)
-                .child(hint),
-        );
-    }
-    if let Some(error) = error {
-        words = words.child(
+        .child(title)
+        .children(hint)
+        .children(error.map(|error| {
             div()
                 .mt(px(4.0))
                 .type_(Type::Meta)
                 .text_color(neutral.destructive)
-                .child(error),
-        );
-    }
+                .child(error)
+        }));
     row_with_content(words.into_any_element(), control, first, compact, tokens)
 }
 
@@ -379,5 +445,7 @@ pub fn row_with_content(
         .children(control)
 }
 
+#[cfg(test)]
+mod selectable_tests;
 #[cfg(test)]
 mod tests;
