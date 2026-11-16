@@ -57,7 +57,7 @@ use gpui_base::input::{Input, Textarea};
 
 use super::form_shell;
 use super::styles::project;
-use super::{COMPOSER_MIN, FORM_INSET_X, FORM_INSET_Y, FORM_MAX, Kind, MultilineStyle, TextField};
+use super::{COMPOSER_MIN, Kind, MultilineStyle, TextField};
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
@@ -72,12 +72,14 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, tokens.neutral.foreground_muted, cx);
-                div()
+                let text = div()
                     .flex_1()
                     .min_w(px(0.0))
                     .type_(Type::Body)
                     .line_height(px(fonts::ui(20.0)))
-                    .text_color(tokens.neutral.foreground)
+                    .text_color(tokens.neutral.foreground);
+                self.form_text
+                    .apply(text)
                     .child(Input::new(state))
                     .into_any_element()
             }
@@ -93,19 +95,14 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                form_shell(self.focused.get(), tokens, narrow)
+                self.form_text
+                    .apply(form_shell(self.focused.get(), tokens, narrow))
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
             }
             Kind::Lines(state, MultilineStyle::Form) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                form_shell(self.focused.get(), tokens, narrow)
-                    .flex_col()
-                    .items_stretch()
-                    .px(px(FORM_INSET_X))
-                    .py(px(FORM_INSET_Y))
-                    .min_h(px(self.form_minimum.height(narrow)))
-                    .max_h(px(FORM_MAX))
+                self.form_textarea.frame(self.focused.get(), tokens, narrow, self.form_minimum)
                     // The engine emits Enter and propagates the action.
                     // This form already inserted a line or submitted in
                     // its callback; native fallback must not insert again.
@@ -141,6 +138,7 @@ impl TextField {
             .type_(Type::Body)
             .line_height(px(fonts::ui(20.0)))
             .text_color(neutral.foreground);
+        let text = self.form_text.apply(text);
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);
