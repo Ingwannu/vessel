@@ -66,7 +66,7 @@ impl FollowSeal {
     pub const fn binding(&self) -> FollowBinding {
         self.binding
     }
-    /// Other operations retire; the prearmed stop or ACKed Window work survives.
+    /// Other operations retire; the prearmed stop or acknowledged Window work survives.
     #[must_use]
     pub fn operations(&self) -> &[RetiredOperation] {
         &self.operations
