@@ -54,7 +54,12 @@ impl Shell {
                         self.conversation_display(*display);
                     }
                     PreferenceChange::Animations(animations) => {
+                        // `motion` (the reduced-motion switch) is the
+                        // desktop's; a browser only redraws.
+                        #[cfg(not(target_arch = "wasm32"))]
                         crate::motion::animations(animations.on(), cx);
+                        #[cfg(target_arch = "wasm32")]
+                        let _ = animations;
                         window.refresh();
                     }
                     // Read where they are drawn, on the next frame.
@@ -74,8 +79,8 @@ impl Shell {
                 }
             }
             Err(refused) => {
-                let words = self.t.lang.settings();
-                self.areas.settings.refused = Some(format!("{}: {refused}", words.refused));
+                self.areas.settings.refused =
+                    Some(super::PreparedRefusal::new(self.words, refused));
             }
         }
         cx.notify();

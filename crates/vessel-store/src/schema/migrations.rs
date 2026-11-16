@@ -461,25 +461,16 @@ const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
-/// Every migration, oldest first. Index `n` takes the schema from version
-/// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-    V7,
-    V8,
-    V9,
-    V10,
-    V11,
-    V12,
-    V13,
-    SIDE_CONTEXT,
-    USAGE_LEDGER,
-    INBOX,
-    LABELS,
-    TITLE_ORIGIN,
-];
+/// One provisional append follows the head; the integrator alone rebinds it.
+pub(super) const SUBAGENT_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+/// Current delegation is metadata, never a rewrite of creation provenance.
+const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt TEXT;";
+
+/// Provisional next migration; integration re-points this one constant.
+const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
+
+/// Schema 21 (`super::listing`), appended after the registry at the node-line merge.
+pub(super) const BACKGROUND_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
+
+mod sequence;
+pub(super) use sequence::MIGRATIONS;

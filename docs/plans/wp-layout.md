@@ -2,6 +2,10 @@
 
 Status: implementation in progress.
 
+Close owners route from `ClosePlan::target()`, the immutable original snapshot,
+never a later selected tab. Keyed completion still checks current identity and
+modified state; reading the snapshot grants no close or transport authority.
+
 ## Decision Log
 
 - Purpose and intent: one typed pane contract for files, terminals, browser
@@ -59,12 +63,18 @@ pane. Composer destination capture must match a current explicit Draft/Agent
 target and workspace; a hidden draft is never a global fallback.
 
 Feature polling uses read-only `layout_tab_exists` and `layout_panel_visible`.
+Resource-specific callbacks additionally use `layout_tab_matches(key, tab,
+captured_target)`: a retarget keeps the tab id but revokes the old resource's UI
+actions. The registry uses that same predicate for its actual PanelContext.
+This reads an existing layout only and grants no connection/resource authority.
 They never insert a layout, and visibility requires the displayed workspace,
 selected tab and compact/maximized/top-sheet projection. The window argument is
 required to apply the current breakpoint; OS window visibility remains with the
 caller. Typed Explorer rendering is not installed yet and is not reported visible
 through this adapter. Sidebar actions use idempotent `layout_exit_focus`, rather
 than toggling into focus mode on an already ordinary layout.
+The separate [Explorer host plan](wp-layout-explorer.md) records the staged
+actual-tab projection and the remaining dock/renderer owner integration.
 Drawing and visibility queries share the effective pane projection. A stale
 maximized pane id, including after closing an empty pane, falls back to the
 surviving tree; it cannot suppress every resource renderer or poller.
@@ -156,6 +166,26 @@ resource snapshots, keyed renderers, follow handles and keyboard/composer adapte
 must land together before multi-session panes can be claimed. Existing frame can
 consume only the current legacy agent screen once; other unregistered targets
 retain a localized unavailable placeholder and are omitted from launchers.
+
+The bounded lazy-body foundation gives the registry a
+function pointer, rather than constructing timeline, composer and overlays before
+the pane projection is known. The registry invokes it once only for the matching
+visible legacy Agent tab. Missing/invalid layout projection builds no agent body;
+pending session startup retains its original separate branch. This avoids hidden
+builders scheduling local work, without treating the selected-global body as an
+authenticated scoped resident renderer. The source-level deferred-builder/painted
+marker fixture is not actual network read-marking or multi-session authority proof.
+
+V1 accepted this selected foundation after exact App strict
+`wp-layout-core-union-20261115T180251Z-e4d844e1` and actual all-target App
+`wp-layout-core-union-20261115T183427Z-e4d844e1`: 117 passed, zero failed,
+two capture fixtures intentionally ignored, fonts/cargo succeeded and App
+compiled. The hidden/non-Agent/File-sheet negative and current-Agent compact
+top-sheet builder/paint-ONCE cases passed. The same mutable renderer option is
+threaded through frame and sheet registry; no second/eager body is constructed.
+Prior bad fixture defer syntax remains a failed historical check. This is a
+scoped integration result for unchanged owned source, not isolated portable-leaf
+execution, real scoped resource factory, lease authority, read tracking or IME.
 
 Remaining package evidence: narrow tests, feature-owner registrations, single-owner
 resident cutover, compact picker/explorer integration, isolated fixture captures,

@@ -54,7 +54,14 @@ impl Shell {
             fleet: Fleet::default(),
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
-            areas: Areas::new(window, cx),
+            areas: Areas::new(
+                areas::settings::PreparedGeneral::new(
+                    Translator::get(ENGLISH).unwrap(),
+                    &Prefs::default().kept,
+                ),
+                window,
+                cx,
+            ),
             prefs: Prefs::default(),
             notice: None,
             notice_detail: None,

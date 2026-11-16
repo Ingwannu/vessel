@@ -11,6 +11,7 @@
 //! - Cost: the caller supplies elapsed time and height and owns pointer
 //!   routing. This module cannot steal focus or run a screen's action.
 
+use super::SnapPoints;
 use std::time::Duration;
 
 /// A sheet's available stops, in the reference's tie-breaking order.
@@ -27,6 +28,14 @@ pub enum Stop {
 impl Stop {
     pub(crate) const ALL: [Self; 3] = [Self::Closed, Self::Compact, Self::Expanded];
 
+    pub(crate) fn position_in(self, points: SnapPoints) -> f32 {
+        if points == SnapPoints::DEFAULT {
+            self.position()
+        } else {
+            points.position(self)
+        }
+    }
+
     pub(crate) const fn position(self) -> f32 {
         match self {
             Self::Closed => 1.0,
@@ -39,11 +48,23 @@ impl Stop {
 /// Closest reference stop to the projected point (200 ms of velocity).
 /// Equal distances retain reference order, including Closed before 60%.
 pub(crate) fn destination(position: f32, velocity: f32) -> Stop {
+    nearest(position, velocity, SnapPoints::DEFAULT)
+}
+
+pub(crate) fn destination_in(position: f32, velocity: f32, points: SnapPoints) -> Stop {
+    if points == SnapPoints::DEFAULT {
+        destination(position, velocity)
+    } else {
+        nearest(position, velocity, points)
+    }
+}
+
+fn nearest(position: f32, velocity: f32, points: SnapPoints) -> Stop {
     let projected = velocity.mul_add(0.2, position);
     let mut chosen = Stop::Closed;
-    let mut distance = chosen.position().mul_add(-1.0, projected).abs();
+    let mut distance = chosen.position_in(points).mul_add(-1.0, projected).abs();
     for stop in Stop::ALL {
-        let next = stop.position().mul_add(-1.0, projected).abs();
+        let next = stop.position_in(points).mul_add(-1.0, projected).abs();
         if next < distance {
             chosen = stop;
             distance = next;
@@ -60,6 +81,15 @@ pub(crate) enum SpringValue {
 }
 
 impl SpringValue {
+    pub(crate) fn position_in(self, points: SnapPoints) -> f32 {
+        if points == SnapPoints::DEFAULT {
+            return self.position();
+        }
+        match self {
+            Self::Moving { position, .. } => position,
+            Self::Resting(stop) => stop.position_in(points),
+        }
+    }
     pub(crate) const fn position(self) -> f32 {
         match self {
             Self::Moving { position, .. } => position,
@@ -82,18 +112,31 @@ pub(crate) struct Spring {
     from: f32,
     velocity: f32,
     to: Stop,
+    points: SnapPoints,
 }
 
 impl Spring {
     pub(crate) const fn new(from: f32, velocity: f32, to: Stop) -> Self {
-        Self { from, velocity, to }
+        Self {
+            from,
+            velocity,
+            to,
+            points: SnapPoints::DEFAULT,
+        }
+    }
+
+    pub(crate) fn with_points(from: f32, velocity: f32, to: Stop, points: SnapPoints) -> Self {
+        Self {
+            points,
+            ..Self::new(from, velocity, to)
+        }
     }
 
     pub(crate) fn sample(self, elapsed: Duration, height: f32, reduced: bool) -> SpringValue {
         if reduced || !height.is_finite() || height <= 0.0 {
             return SpringValue::Resting(self.to);
         }
-        let target = self.to.position();
+        let target = self.to.position_in(self.points);
         let displacement = target.mul_add(-1.0, self.from);
         // Reanimated clips inherited velocity that initially moves away
         // from the new target. Its initial energy still uses the supplied

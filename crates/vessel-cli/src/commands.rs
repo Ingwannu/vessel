@@ -111,6 +111,14 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
         NodeCommand::Install(install) => remote::install(target, install).await,
         NodeCommand::Update(update) => remote::update(target, update).await,
         NodeCommand::Stop(args) => crate::node_ctl::stop(target, args).await,
+        NodeCommand::Diagnostics { json } => {
+            let output = if json {
+                crate::diagnostics::Output::Json
+            } else {
+                crate::diagnostics::Output::Text
+            };
+            Ok(crate::diagnostics::command(target, output).await?)
+        }
         NodeCommand::Status => {
             let client = connect(target).await?.client;
             let node = client.node_info().await?;
@@ -330,6 +338,12 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     spec.profile = run.profile;
     spec.title = run.title;
     let connected = connect_to(target, &resolved, &book).await?;
+    // Pending metadata must refuse before placement can create a worktree.
+    connected
+        .client
+        .check_call(&vessel_proto::Call::CreateSession(
+            vessel_proto::CreateSession { spec: spec.clone() },
+        ))?;
     // A place (protocol 10): the node fills `cwd` with its folder.
     spec.place = workspace::place(
         &connected.client,
