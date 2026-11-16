@@ -1,5 +1,17 @@
 # A5: existing node inbox and push boundary
 
+## Resume status (2026-11-16)
+
+Current APP receiving source41ac1706 is on announced package base13 2ebeedf9.
+The owned full-list call now uses ListSessions::default(). Its native strict,
+View/Link/App tests and wasm check are queued; prior native1361 and root740
+remain exact earlier-source evidence. W2 relation values and the reviewed sole
+host registry are now on the announced base. Safe response/navigation owners,
+same-writer membership integration and the canonical lifecycle clock still gate
+remaining A5 work. Five feature methods stay unassigned; no whole/final verdict.
+
+Earlier checkpoints below are retained as source-specific history.
+
 ## Current receiving-union status
 
 The APP source36d5caa4 provisionally consumes the V1 row273 shared host slice.
