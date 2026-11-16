@@ -68,3 +68,9 @@ revocation, and owner/dehydration holds. They do not execute actual transport,
 real input, concrete lifecycle state, window close, IME or effects. Source has
 not yet been compiled or run. Actual framed SDK typed-end and original guard,
 carrier, owner and originating Window integration remain separate required proof.
+
+The first combined strict check, `wp-layout-core-union-20261115T185314Z-bdfdde62`,
+rejected one documentation spelling and test-only map access lint in this kernel;
+it did not execute tests. The correction changes those two lines only. The same
+run's independent Tooltip compile errors and its correction remain separately
+scoped; no kernel or UI runtime success is claimed.
