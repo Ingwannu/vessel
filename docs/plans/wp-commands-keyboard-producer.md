@@ -68,3 +68,11 @@ token checks are separate from compiled evidence.
 Receiving checks are pending. No standalone compilation, package review,
 physical keyboard/OS, hidden-retained-opener visibility, terminal IME or live
 feature authority approval is claimed by this document.
+
+
+The first isolated receiving checks stopped before tests: help query trimming
+uses the existing ECMAScript whitespace predicate, whose crate visibility was
+missing from this extraction. Only that visibility is widened to pub(crate);
+the predicate body, Query matching, scoring and marks remain unchanged. Both
+failed logs are retained as compile failures, not executed test evidence.
+The receiving tree now includes announced base13 before its next checks.
