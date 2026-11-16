@@ -67,3 +67,14 @@ No fake fleet, display or live service was started by this slice. Only
 read-only local attach followers may remain; stop verified owned follower
 PIDs at the quota stop without cancelling accepted remote jobs or shared
 SSH masters. Scratch STATE records their exact run IDs and process files.
+
+
+## Final warning snapshot
+
+At 03:47 UTC the corrected App run was independently queried as QUEUED
+(not an execution result). The only source after61cab is resume documentation
+ce9056063 and this snapshot; actual strict/129/quality/wasm source is unchanged.
+The separate node receiving slice finished five-crate strict0 and Node352/0/0;
+those are not native UI proof. No new run or merge follows the warning.
+A local attach reader may be stopped at the pause; the accepted VM job must
+continue and be retrieved with attach rather than resubmitted.
