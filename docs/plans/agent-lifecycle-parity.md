@@ -519,12 +519,14 @@ owning gate: eighteen stages passed, Rust 2862/0/12, web unit 465, browser e2e
 is appended after listing. SESSION_MUTATIONS remains unassigned. This qualifies
 the producer boundary, not label mutation, coverage, reload or consumer policy.
 
-Next: attention-mark parity. Loaded Read/Unread preserve the clock; stored
-attention/seen transitions tick, while repeated marks and watermark-only reads
-preserve it. The existing Node residency branches decide under the same marking
-lease as reopen. No SQL live/status inference or second clock is introduced.
-The workspace selection consumer waits for this correction. Quiescence code
-follows this package; its accepted contract alone is not a native proof.
+Work is paused. The attention-mark correction is owned by a separate integration
+carrier; the local test-first draft and implementation must not be landed in
+parallel. Await that carrier's reviewed, announced correction before workspace
+selection consumes the clock. Its rules remain: loaded Read/Unread preserve time,
+stored attention/seen transitions tick, and repeats or watermark-only changes
+preserve it. No SQL live/status inference or second clock is introduced.
+See agent-lifecycle-resume.md for the exact local evidence and resume boundary.
+Quiescence code has not started; its accepted contract is not a native proof.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
