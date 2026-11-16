@@ -247,3 +247,6 @@ fn draw(
         cx,
     )
 }
+
+#[cfg(test)]
+mod tests;
