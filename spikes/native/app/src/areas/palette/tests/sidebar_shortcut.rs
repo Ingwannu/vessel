@@ -65,7 +65,7 @@ fn root_aliases_find_their_real_owner_actions(cx: &mut TestAppContext) {
         ("workspaces", "toggle-left-sidebar"),
     ] {
         update(&view, cx, |shell, _, cx| {
-            shell.palette_searched(query.to_owned(), cx)
+            shell.palette_searched(query.to_owned(), cx);
         });
         ready(cx);
         update(&view, cx, |shell, _, _| {
