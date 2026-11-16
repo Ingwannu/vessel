@@ -1,25 +1,22 @@
 //! The file view tolerates later nested keys; the RPC patch remains strict.
 
-use serde::Deserialize;
-use vessel_proto::settings::{MetadataSettings, SetNodeSettings};
+use serde::{Deserialize, Deserializer};
+use vessel_proto::settings::SetNodeSettings;
 
-#[derive(Deserialize)]
-struct Stored {
-    #[serde(flatten)]
-    known: SetNodeSettings,
-    #[serde(
-        default,
-        deserialize_with = "MetadataSettings::deserialize_optional_view"
-    )]
-    metadata: Option<MetadataSettings>,
+mod view;
+
+struct Stored(SetNodeSettings);
+
+impl<'de> Deserialize<'de> for Stored {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        view::read(deserializer).map(Self)
+    }
 }
 
 pub(super) fn decode(bytes: &[u8]) -> Result<SetNodeSettings, super::SettingsDecodeFailure> {
     // Keep the file-only view inside the common sealed diagnostic boundary.
     let stored: Stored = super::decode::settings(bytes)?;
-    let mut known = stored.known;
-    known.metadata = stored.metadata;
-    Ok(known)
+    Ok(stored.0)
 }
 
 #[cfg(test)]
@@ -86,5 +83,30 @@ mod diagnostic_tests {
         let cause = error.source().unwrap();
         assert!(!format!("{cause} {cause:?}").contains(marker));
         assert!(cause.source().is_none());
+    }
+
+    #[test]
+    fn ordinary_field_failures_keep_the_common_masked_path_in_either_order() {
+        for bytes in [
+            br#"{"drivers":"private-wrong-type"}"#.as_slice(),
+            br#"{"metadata":{"providers":[]},"drivers":"private-wrong-type"}"#,
+            br#"{"drivers":"private-wrong-type","metadata":{"providers":[]}}"#,
+        ] {
+            let error = decode(bytes).unwrap_err();
+            assert_eq!(error.to_string(), "invalid field at $.<field>");
+            assert!(error.source().is_none());
+        }
+    }
+
+    #[test]
+    fn a_root_type_failure_stays_at_the_root_and_duplicate_metadata_is_refused() {
+        let error = decode(br#"[]"#).unwrap_err();
+        assert_eq!(error.to_string(), "invalid field at $");
+        for bytes in [
+            br#"{"metadata":null,"metadata":null}"#.as_slice(),
+            br#"{"metadata":{"providers":[]},"metadata":null}"#,
+        ] {
+            assert!(decode(bytes).is_err());
+        }
     }
 }
