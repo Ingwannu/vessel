@@ -1,4 +1,5 @@
 //! Actual shell controls and source callbacks, with no link or external I/O.
+mod rebinding_menu;
 mod sidebar_dispatch;
 
 use crate::shell::{Shell, language_tests};

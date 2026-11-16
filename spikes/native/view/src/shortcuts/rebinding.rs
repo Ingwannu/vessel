@@ -12,6 +12,17 @@ use super::sequence_capture::sequences_overlap;
 use super::{Action, migrated_overrides};
 use crate::prefs::{ActionId, Bindings, InvalidKeyBinding, ShortcutEdit, ShortcutTarget, TooMany};
 
+/// One complete operation; reset and a replacement cannot coexist.
+#[derive(Debug, Clone, Copy)]
+pub enum Edit<'a> {
+    /// Keep this explicit sequence instead of the default binding.
+    Replace(&'a KeySequence),
+    /// Persist an explicit unassignment, distinct from restoring the default.
+    Clear,
+    /// Remove the override after legacy aliases have been migrated.
+    Reset,
+}
+
 /// A valid capture can still exceed a preference transaction's bound.
 #[derive(Debug, thiserror::Error)]
 pub enum RebindError {
@@ -31,14 +42,19 @@ pub fn edit(
     raw: &BTreeMap<ActionId, Bindings>,
     context: ShortcutContext,
     id: &ActionId,
-    target: Option<&KeySequence>,
-    reset: bool,
+    operation: Edit<'_>,
 ) -> Result<Vec<ShortcutEdit>, RebindError> {
     let mut next = migrated_overrides(raw, context);
-    if reset {
-        drop(next.remove(id));
-    } else {
-        drop(next.insert(id.clone(), saved(target.into_iter())?));
+    match operation {
+        Edit::Replace(keys) => {
+            drop(next.insert(id.clone(), saved(std::iter::once(keys))?));
+        }
+        Edit::Clear => {
+            drop(next.insert(id.clone(), saved(std::iter::empty())?));
+        }
+        Edit::Reset => {
+            drop(next.remove(id));
+        }
     }
     Ok(difference(raw, &next))
 }
@@ -128,10 +144,47 @@ mod tests {
             "palette".parse().unwrap(),
             Bindings::try_from(vec!["Mod+J".parse().unwrap()]).unwrap(),
         )]);
-        let next = apply(raw.clone(), edit(&raw, context, &id, None, true).unwrap());
+        let next = apply(raw.clone(), edit(&raw, context, &id, Edit::Reset).unwrap());
         assert!(next.is_empty());
         assert_eq!(
             primary_keys(Action::Palette, &next, context)
+                .unwrap()
+                .unwrap()
+                .text(),
+            "Ctrl+K"
+        );
+    }
+
+    #[test]
+    fn clear_replace_and_reset_keep_their_distinct_preference_meaning() {
+        let context = default_context(Platform::Other);
+        let id = binding_id(Action::Palette, context).unwrap();
+        let legacy: ActionId = "palette".parse().unwrap();
+        let raw = BTreeMap::from([(
+            legacy.clone(),
+            Bindings::try_from(vec!["Mod+J".parse().unwrap()]).unwrap(),
+        )]);
+        let cleared = apply(raw.clone(), edit(&raw, context, &id, Edit::Clear).unwrap());
+        assert!(!cleared.contains_key(&legacy));
+        assert!(cleared[&id].keys().is_empty());
+        assert!(
+            primary_keys(Action::Palette, &cleared, context)
+                .unwrap()
+                .is_none()
+        );
+        let keys = KeySequence::parse("Mod+L").unwrap();
+        let replaced = apply(
+            cleared.clone(),
+            edit(&cleared, context, &id, Edit::Replace(&keys)).unwrap(),
+        );
+        assert_eq!(replaced[&id].keys()[0].as_str(), "Mod+L");
+        let reset = apply(
+            replaced.clone(),
+            edit(&replaced, context, &id, Edit::Reset).unwrap(),
+        );
+        assert!(reset.is_empty());
+        assert_eq!(
+            primary_keys(Action::Palette, &reset, context)
                 .unwrap()
                 .unwrap()
                 .text(),

@@ -1076,3 +1076,17 @@ roles retain published1.5 vectors. The shared glyph owner recorded this future
 role decision separately from the isolated new Import role. This package does
 not modify shared vectors, add an arbitrary stroke API or claim those icons'
 first-use parity before the owner/V1 decision and actual native verification.
+
+
+[Decision Log: typed rebinding operation]
+- Purpose: close V4 row295's T1/T9 finding without changing preference behavior.
+- Constraint: the public reset boolean and independent optional replacement
+  permitted a contradictory Reset-plus-keys state that silently ignored keys.
+- Choice: one closed Edit::{Replace(&KeySequence),Clear,Reset} value crosses the
+  view/app boundary; menu RowAct variants map directly to named operations.
+- Why: impossible combinations cannot be constructed, and the existing shared
+  migration/difference transaction still owns all preference mutations.
+- Effects: preserve legacy alias migration, unassignment/default reset semantics,
+  alternatives, bounds and every prior assertion. A pure sequential operation
+  case and real menu Clear/Reset regression check the behavioral distinction.
+  Changed View/App narrow checks are recorded with the same-row correction.

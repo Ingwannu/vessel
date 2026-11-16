@@ -97,20 +97,25 @@ impl Shell {
                 self.areas.shortcuts.page.capture = Some(SequenceCapture::new(id, role));
                 window.blur(cx);
             }
-            RowAct::Clear | RowAct::Reset => match rebinding::edit(
-                &self.prefs.settings.shortcuts,
-                context(),
-                &id,
-                None,
-                act == RowAct::Reset,
-            ) {
-                Ok(edits) => {
-                    let _saved = self.shortcut_edits(edits, window, cx);
-                }
-                Err(error) => tracing::warn!(%error, "shortcut edit refused"),
-            },
+            RowAct::Clear => self.shortcut_edit(&id, rebinding::Edit::Clear, window, cx),
+            RowAct::Reset => self.shortcut_edit(&id, rebinding::Edit::Reset, window, cx),
         }
         cx.notify();
+    }
+
+    fn shortcut_edit(
+        &mut self,
+        id: &ActionId,
+        operation: rebinding::Edit<'_>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        match rebinding::edit(&self.prefs.settings.shortcuts, context(), id, operation) {
+            Ok(edits) => {
+                let _saved = self.shortcut_edits(edits, window, cx);
+            }
+            Err(error) => tracing::warn!(%error, "shortcut edit refused"),
+        }
     }
 
     pub(super) fn shortcut_done(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
