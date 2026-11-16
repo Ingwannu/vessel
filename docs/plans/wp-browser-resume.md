@@ -140,6 +140,6 @@ Chrome needed a signal; no VM build/run or other worker process was stopped.
 
 No anchored-source or element-resolver code was started after the quota warning.
 The worktrees are coherent and committed, with the unverified tests and engine
-activation debts above intentionally preserved. The current active slice cannot
-complete its lib-test gate before the warning boundary's long ordinary queue;
-no additional build, merge, runtime attempt or review/adoption request was made.
+activation debts above intentionally preserved. The lib-test gate remains unexecuted in a long ordinary queue and is not
+counted as complete at this pause boundary. No additional build, merge, runtime
+attempt or review/adoption request was made.
