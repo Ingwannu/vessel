@@ -337,3 +337,41 @@ the staged adapter only; the earlier38-case receipt remains predecessor history.
 No real host admission, candidate lease, mount/ACL or installation authority is
 supplied by those tests. The next proposed ownership boundary is specified in
 [wp-plugin-candidate](wp-plugin-candidate.md), separately from this observer.
+
+## Staged Linux descriptor-relative read facts
+
+While the candidate ownership/bootstrap contract stays frozen for review, a
+separate private Linux probe prepares the existing reader's descriptor edge.
+It opens an existing selected directory without following its final component,
+verifies that actual descriptor with the SAME tree directory policy, then opens
+descendants with the already-owned nix openat2 API. It uses BENEATH, NO_XDEV,
+NO_MAGICLINKS and NO_SYMLINKS, plus close-on-exec/no-follow and nonblocking file
+opens. Unsupported syscall/flag errors remain typed; no weaker retry exists.
+No dependency/feature edge is added beyond the existing Unix dev fs/user edge.
+
+This is NOT CandidateStore, root ancestry verification, exclusive acquisition,
+directory creation/deletion, a complete new observer or a positive managed
+candidate producer. The current full file/tree observer is not switched over;
+its successful staged result does not borrow these descriptor checks. There is
+still one hash/budget policy. Existing file and directory policy functions gain
+only artifact-private visibility so these checks do not drift into copies.
+
+For file opens, first resolve the parent under the held descriptor, then use
+no-follow metadata to refuse a special kind before the content-open gate. Check
+the actual opened descriptor with the shared regular-file policy and compare its
+device/inode to the immediately preceding entry. A renamed original directory
+remains the same held descriptor; reopening its old absolute pathname is absent.
+That property is not a claim that a future saved candidate may ignore replacement
+at its parent/name boundary. Full candidate/apply admission remains absent.
+
+Five synchronous real-filesystem cases are authored: retained-root rename versus
+a replacement tree; internal ancestor/leaf symlink and FIFO refusal before open;
+actual NONBLOCK/CLOEXEC descriptor flags and held-old-inode replacement; a real
+read-only cross-device /proc mount yielding EXDEV before directory policy; and
+actual nonprivate selected-directory refusal plus sealed missing-path errors.
+The mount case uses an explicitly unqualified test-only filesystem-root handle,
+not a private root certificate. No mount is created/changed, and no same-device
+bind-mount proof or NodeHost/root bootstrap/ACL authority is claimed. Fixtures
+request permissions at initial creation without chmod/chown repair; the negative
+mode case checks its actual ambient-umask precondition. New source/strict/actual
+execution remain owed. All code stays beneath the literal node plugin cfg(test).

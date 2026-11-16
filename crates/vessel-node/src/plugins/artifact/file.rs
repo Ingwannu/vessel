@@ -163,7 +163,7 @@ impl Probe {
     }
 }
 
-fn regular(metadata: &Metadata, device: u64) -> Result<(), Failure> {
+pub(super) fn regular(metadata: &Metadata, device: u64) -> Result<(), Failure> {
     // Refuse a special file before a potentially blocking open, then repeat on
     // the actual opened descriptor. Device equality is not bind-mount proof.
     if !metadata.is_file()

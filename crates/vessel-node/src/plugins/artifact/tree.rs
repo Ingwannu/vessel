@@ -124,7 +124,7 @@ impl Scope {
     }
 }
 
-fn directory(metadata: &fs::Metadata, device: u64) -> Result<(), Failure> {
+pub(super) fn directory(metadata: &fs::Metadata, device: u64) -> Result<(), Failure> {
     if !metadata.is_dir()
         || metadata.uid() != nix::unistd::geteuid().as_raw()
         || metadata.mode() & 0o077 != 0
