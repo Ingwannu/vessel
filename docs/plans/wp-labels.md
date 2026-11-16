@@ -573,3 +573,35 @@ single-line normalization path, with product behavior unchanged. Corrected leaf
 `790a5f84` on base 13.1 passed Kit all-target strict; focused runtime is pending.
 It is not adopted here. V1 and lead acceptance precede the separate manager
 consumer switch, which retains its opening/source callback regression.
+
+
+## Shared manager search consumer
+
+[Decision Log]
+- Purpose: the label-manager filter needs Paseo's standalone Search/X surface
+  while retaining the real editor identity used to reject stale callbacks.
+- Existing assets and constraints: SearchField delegates to the same TextField
+  engine; identified methods passed V1 row304 and are on green package base14.1
+  `b54abbdc`. The existing manager opening/Listing/FieldId fence must remain.
+- Alternatives: keep ordinary form chrome, draw a private search wrapper, or
+  adopt another input library. Each duplicates existing shared behavior or loses
+  the source search surface; no external API or dependency is needed.
+- Choice: change only the manager search constructor/type and shared element
+  call. Use the engine FieldId to namespace its element. Keep the name editor,
+  localized placeholder, focus, silent query restoration/reset and callback
+  admission unchanged. The shared control owns its clear target.
+- Impact: one shared Search/X renderer with the source maximum width and clear
+  behavior. Picker/workspace authority and current-session metadata remain
+  staged/held. This consumer change is uncompiled until its remote narrow checks
+  run; producer4-test/V1 acceptance is separate from manager or A6 acceptance.
+
+Merged only announced app base14.1, retaining new execution incarnation IDs and
+own label IDs in the proto root export union. This app merge does not advance
+the separately frozen node package, whose corrected whole gate remains queued.
+
+
+Consumer regression uses a fake Shell with a visible manager and fixture catalog,
+types through the real shared engine, then clicks its actual X hit target and
+requires both the manager query and engine text to clear. The earlier deferred
+old-opening/source rejection test remains unchanged. These are UI fixtures only,
+not evidence of an authoritative workspace projection or a connected node.

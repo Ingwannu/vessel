@@ -13,7 +13,9 @@ mod picker;
 mod surface;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
-use vessel_app_kit::{ButtonKind, ButtonState, DialogState, TextField, Tokens, button_with_kind};
+use vessel_app_kit::{
+    ButtonKind, ButtonState, DialogState, SearchField, TextField, Tokens, button_with_kind,
+};
 use vessel_app_view::labels::{EditAccess, Failure, Host, HostState, Manager};
 
 use crate::shell::Shell;
@@ -32,7 +34,7 @@ pub(crate) struct Labels {
         vessel_app_view::connection::ConnectionContext,
         vessel_app_view::labels::Ticket,
     )>,
-    search: TextField,
+    search: SearchField,
     name: TextField,
     dialog: DialogState,
     error: Option<Failure>,

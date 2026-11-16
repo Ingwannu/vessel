@@ -119,7 +119,11 @@ fn list(
         .flex()
         .flex_col()
         .gap(px(S3))
-        .child(state.search.element(tokens, false, cx));
+        .child(state.search.element(
+            state.search.id().element_id("label-manager-search"),
+            tokens,
+            cx,
+        ));
     let labels = state.manager.filtered(&host.catalog);
     if labels.is_empty() && host.state == HostState::Online {
         body = body.child(if state.manager.has_query() {
