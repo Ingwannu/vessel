@@ -910,3 +910,16 @@ one redundant method closure and one test get/unwrap. Keep the same callbacks
 and literal assertion, use the existing Styled method directly and direct
 test indexing. No geometry, policy, expected value or lint exemption changes.
 The completed44 failure remains retained; its successor still needs checking.
+
+Exact10bd649e all-target Kit/View/Link/App strict completed with fonts0/cargo0
+in shell2-narrow-20261116T010256Z-10bd649e. Kit and App actually compiled;
+the unchanged View/Link source reused the preceding run's artifacts. This is
+strict source evidence only. The queued Main runtime was cancelled before
+execution, terminal143, under the coordinator's serialized placement-first
+sequence. It is not a runtime pass or failure. One ordinary runtime replacement
+follows the placement checks; final F4 whole/input/visual review remains owed.
+
+Announced base13.1 ad14f5f6 is merged at the next natural Main boundary before
+that runtime replacement. Its staged window enumeration and additive segmented
+control remain owner/base changes; no unpublished Sidebar row, hierarchy,
+settings or canonical workspace behavior becomes passed through this merge.
