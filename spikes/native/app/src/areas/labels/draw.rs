@@ -238,7 +238,7 @@ fn listing(
         list = list.child(muted(words.empty(), tokens));
     }
     for label in labels {
-        list = list.child(row(shell, host, label, enabled, narrow, tokens, cx));
+        list = list.child(row(host, label, enabled, narrow, tokens, cx));
     }
     body.when(super::host_filter::shown(state), |body| {
         body.child(super::host_filter::trigger(shell, tokens, cx))
@@ -256,7 +256,6 @@ fn listing(
 /// One label: its colour, its name, and the pencil that opens it. The row
 /// is a fixed rail so the pencil fading in cannot move it.
 fn row(
-    shell: &Shell,
     host: &Host,
     label: &Label,
     enabled: bool,

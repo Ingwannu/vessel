@@ -18,7 +18,10 @@ fn label(name: &str, color: Color) -> Label {
 }
 
 /// An open manager on `hosts` online hosts, the first one shown.
-fn open(cx: &mut TestAppContext, hosts: &[&str]) -> (gpui::Entity<Shell>, &mut VisualTestContext) {
+fn open<'a>(
+    cx: &'a mut TestAppContext,
+    hosts: &[&str],
+) -> (gpui::Entity<Shell>, &'a mut VisualTestContext) {
     crate::shell::language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     cx.update(|window, _| window.activate_window());
@@ -63,15 +66,12 @@ fn apart(from: gpui::Pixels, to: gpui::Pixels) -> u32 {
 #[gpui::test]
 fn rows_hold_one_rail_and_the_search_takes_no_focus_on_open(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, &["fixture"]);
-    shell.update_in(cx, |shell, window, cx| {
-        assert!(
-            !shell
-                .areas
-                .labels
-                .search
-                .focus_handle(cx)
-                .is_focused(window)
-        );
+    // Paseo passes no `autoFocus`: typing before a click reaches no field.
+    cx.simulate_input("Rea");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, cx| {
+        assert!(shell.areas.labels.manager.query().is_empty());
+        assert_eq!(shell.areas.labels.search.text(cx), "");
     });
     // One host: no filter (Paseo's `hosts.length > 1`).
     assert!(cx.debug_bounds("labels-host-filter").is_none());
@@ -107,7 +107,7 @@ fn the_host_filter_shows_with_several_hosts_and_opens_the_host_list(cx: &mut Tes
         assert!(shell.areas.labels.host_list.is_open());
         let state = &shell.areas.labels;
         let dismissal =
-            super::surface::Dismiss::capture(state.opening.unwrap(), state.manager.state());
+            surface::Dismiss::capture(state.opening.unwrap(), state.manager.state());
         shell.labels_close(dismissal, window, cx);
         assert!(!shell.areas.labels.host_list.is_open());
     });
