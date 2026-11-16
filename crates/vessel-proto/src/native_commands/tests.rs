@@ -145,3 +145,12 @@ fn wire_decode_validates_objectives_and_rejects_extra_operation_fields() {
         );
     }
 }
+
+#[test]
+fn native_original_text_is_bounded_before_a_receipt_or_echo_is_admitted() {
+    let text = format!(
+        "{} /compact",
+        " ".repeat(crate::native_commands::MAX_NATIVE_COMMAND_ORIGINAL_BYTES)
+    );
+    assert!(!NativeCommandIntent::Compact.matches_content(&[crate::ContentBlock::Text { text }]));
+}

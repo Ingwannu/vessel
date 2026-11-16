@@ -40,11 +40,3 @@ fn command_acceptance_echo_is_not_a_turn_and_keeps_one_client_identity() {
         }])
     );
 }
-#[test]
-fn native_original_text_is_bounded_before_a_receipt_or_echo_is_admitted() {
-    let text = format!(
-        "{} /compact",
-        " ".repeat(crate::native_commands::MAX_NATIVE_COMMAND_ORIGINAL_BYTES)
-    );
-    assert!(!NativeCommandIntent::Compact.matches_content(&[ContentBlock::Text { text }]));
-}
