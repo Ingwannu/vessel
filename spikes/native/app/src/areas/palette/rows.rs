@@ -36,12 +36,16 @@ pub(super) fn child_at(groups: &[(PaletteGroup, Vec<&Entry>)], id: &str) -> Opti
     None
 }
 
-/// An entry's glyph (the page's `iconOf`).
+/// An entry's glyph (the page's `iconOf`). The rows Paseo registers as
+/// command-centre root actions use its explicit heavier strokes
+/// (`root-registration.tsx` 65-107: New at 2.4, Settings at 2.2); the other
+/// rows keep the shared provider-weight glyphs.
 pub(super) const fn glyph_of(target: &Target) -> Glyph {
     match target {
-        PaletteTarget::NewSession(_) => Glyph::Plus,
+        PaletteTarget::NewSession(_) => Glyph::CommandPlus,
         PaletteTarget::AddMachine | PaletteTarget::Machine(_) => Glyph::Machine,
         PaletteTarget::Board => Glyph::Board,
+        PaletteTarget::Settings(Section::General) => Glyph::CommandSettings,
         PaletteTarget::Settings(section) => settings::section_glyph(*section),
         PaletteTarget::Session { structured, .. } => {
             if *structured {
@@ -142,5 +146,26 @@ pub(super) fn subtitle(
             prefix: Some(text(prefix)),
             path: text(path),
         },
+    }
+}
+
+#[cfg(test)]
+mod stroke_tests {
+    use super::*;
+
+    /// Paseo's command-centre root actions draw New at 2.4 and Settings at
+    /// 2.2; other rows keep the shared glyphs.
+    #[test]
+    fn root_action_rows_use_the_command_stroke_roles() {
+        assert_eq!(glyph_of(&PaletteTarget::NewSession(None)), Glyph::CommandPlus);
+        assert_eq!(
+            glyph_of(&PaletteTarget::Settings(Section::General)),
+            Glyph::CommandSettings
+        );
+        assert_eq!(
+            glyph_of(&PaletteTarget::Settings(Section::Appearance)),
+            settings::section_glyph(Section::Appearance)
+        );
+        assert_eq!(glyph_of(&PaletteTarget::Board), Glyph::Board);
     }
 }
