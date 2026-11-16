@@ -1,8 +1,12 @@
 //! What the node answered a workspace ask, with what was asked, and the
 //! answer an ask gets when it could not be sent at all.
 
+use vessel_app_view::workspace::file_panels::DownloadFailure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
+use vessel_proto::workspace::panel_files::{
+    DuplicateFileEntry, DuplicatedFileEntry, ObserveFile, ObservedFile,
+};
 use vessel_proto::workspace::{
     BranchList, CommandsDigest, CommitOutcome, CommitPage, DiffSummary, DirListing, DropSnapshot,
     FetchOutcome, FileDiff, FileRead, FindFiles, FoundFiles, GetChanges, GetFileDiff, GitStatus,
@@ -14,7 +18,8 @@ use vessel_proto::workspace::{
 use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
 use super::{
-    Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey, WorktreeAsk,
+    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey,
+    WorktreeAsk,
 };
 
 /// What a git write answered.
@@ -198,6 +203,27 @@ pub enum Answer {
         /// Done, or why not.
         result: Result<(), Problem>,
     },
+    /// A shown file's state, after a change or the node's heartbeat.
+    Observed {
+        /// What was asked.
+        ask: ObserveFile,
+        /// The state, or why not.
+        result: Result<ObservedFile, Problem>,
+    },
+    /// An entry duplicated.
+    Duplicated {
+        /// What was asked.
+        ask: DuplicateFileEntry,
+        /// The copy, or why not.
+        result: Result<DuplicatedFileEntry, Problem>,
+    },
+    /// A download ended.
+    Downloaded {
+        /// What was asked.
+        download: Download,
+        /// Kept at its path, or why not.
+        result: Result<(), DownloadFailure>,
+    },
     /// A step of a start.
     Start {
         /// Which start.
@@ -379,6 +405,18 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
         FileAsk::Path(change) => Answer::PathChanged {
             change,
             result: no(problem),
+        },
+        FileAsk::Observe(ask) => Answer::Observed {
+            ask,
+            result: no(problem),
+        },
+        FileAsk::Duplicate(ask) => Answer::Duplicated {
+            ask,
+            result: no(problem),
+        },
+        FileAsk::Download(download) => Answer::Downloaded {
+            download,
+            result: Err(DownloadFailure::Call(problem.clone())),
         },
     }
 }

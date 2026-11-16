@@ -165,10 +165,20 @@ impl Shell {
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
-            Answer::Read { ask, result } => self.file_read(&ask, result, cx),
+            Answer::Read { ask, result } => {
+                let seen = result
+                    .as_ref()
+                    .ok()
+                    .and_then(|read| read.version.hash.clone());
+                self.file_read(&ask, result, cx);
+                self.code_file_seen(&ask, seen);
+            }
             Answer::Found { ask, result } => self.files_found(&ask, result),
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
+            Answer::Observed { ask, result } => self.file_observed(&ask, result, cx),
+            Answer::Duplicated { ask, result } => self.entry_duplicated(&ask, result),
+            Answer::Downloaded { result, .. } => self.file_downloaded(result, cx),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
                 // An unchanged status asks for no frame (track G1's

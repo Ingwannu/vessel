@@ -68,6 +68,9 @@ about-role-logs = 로그
 # Under a bundled software name: its qr codes role. Keep short.
 about-role-qr-codes = 페어링 QR 코드
 
+# Under a bundled software name: its checksums role (a downloaded file checked whole). Keep short.
+about-role-checksums = 다운로드한 파일 확인
+
 # Under a bundled software name: its terminal role. Keep short.
 about-role-terminal = 터미널 프로그램의 출력 읽기
 

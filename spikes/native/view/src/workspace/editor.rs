@@ -7,12 +7,13 @@
 //! - Purpose: edit a file of the session's project in place, saving as
 //!   Paseo does (800 ms after the last keystroke), and never write over a
 //!   change made on disk that this editor did not see.
-//! - Constraint: the node has no watch of a file; a change on disk shows
-//!   when a save is refused (`file.write` is guarded by the hash of what
-//!   the edit started from, `save.rs`) or when the panel reads the file
-//!   again (after a git write, `code_git_changed`). Answers come back in
-//!   any order, so each write and read carries a number and a stale one is
-//!   dropped, as Paseo's sequences do.
+//! - Constraint: a change on disk shows when a save is refused
+//!   (`file.write` is guarded by the hash of what the edit started from,
+//!   `save.rs`) or when the panel reads the file again (after a git write,
+//!   `code_git_changed`, or when its watch sees a change on a machine with
+//!   `file.observe`, `watch.rs`, ADR 0105). Answers come back in any order,
+//!   so each write and read carries a number and a stale one is dropped, as
+//!   Paseo's sequences do.
 //! - Alternatives: a timer polling the file (a read every few seconds for
 //!   every open file, and still a window for a lost write); saving only on
 //!   a key press (Paseo saves by itself; a person expects it).
@@ -20,8 +21,9 @@
 //!   what the panel must do (`Step`): write, read, start or stop the
 //!   autosave. A clean buffer follows the disk; a modified one meets a
 //!   change as a conflict, and the person overwrites or reloads.
-//! - Cost: a change on disk while nothing is saved or re-read is seen only
-//!   at the next save (Paseo sees it at once through its watch).
+//! - Cost: on a machine without `file.observe` (before protocol 26), a
+//!   change on disk while nothing is saved or re-read is seen only at the
+//!   next save (Paseo sees it at once through its watch).
 
 use vessel_proto::workspace::FileVersion;
 

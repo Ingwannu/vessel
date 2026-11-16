@@ -12,11 +12,15 @@
 //!   never over an existing path (`file.rename`, `file.delete`); a new
 //!   file is a write that expects nothing there.
 //! - Choice: Paseo's menu items that the node can do; Paseo's "Open in
-//!   editor", "Reveal in", "Download", "Duplicate" and "Open to side" are
-//!   left out (no editor or file manager on the machine is reachable
-//!   from here, and there is no second pane). "Add to chat" puts the
-//!   path, as `@path`, at the end of the session's draft (Paseo attaches
-//!   a chip; the draft here is text).
+//!   editor", "Reveal in" and "Open to side" are left out (no editor or
+//!   file manager on the machine is reachable from here, and there is no
+//!   second pane). "Duplicate" (`file.duplicate`) and a file's "Download"
+//!   (`file.read_bytes`, `download.rs`) are offered only by a machine with
+//!   the file panels' calls (ADR 0105), as Paseo hides Duplicate without
+//!   `fsEntryDuplicateEnabled`; a duplicate's folder is listed again
+//!   (Paseo also selects the copy; this tree has no selected row). "Add to
+//!   chat" puts the path, as `@path`, at the end of the session's draft
+//!   (Paseo attaches a chip; the draft here is text).
 //! - Cost: a rename or a new entry is typed in the tree, so the tree's
 //!   rows carry one extra row while it is typed.
 
@@ -24,8 +28,10 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
 use vessel_app_link::workspace::{Ask, FileAsk, PathChange};
+use vessel_app_view::workspace::file_panels::offered;
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
+use vessel_proto::workspace::panel_files::{DuplicateFileEntry, DuplicatedFileEntry};
 use vessel_proto::workspace::{CreateDir, DeletePath, RelPath, RenamePath};
 
 use crate::shell::Shell;
@@ -53,6 +59,8 @@ pub(super) struct Target {
     pub(super) path: RelPath,
     pub(super) folder: bool,
     pub(super) open: bool,
+    /// Its machine has the file panels' calls (`file.duplicate`).
+    pub(super) panels: bool,
 }
 
 /// One action of the menu.
@@ -64,8 +72,10 @@ pub(super) enum Action {
     NewFolder,
     CopyPath,
     CopyRelativePath,
+    Download,
     AddToChat,
     Rename,
+    Duplicate,
     Delete,
 }
 
@@ -130,13 +140,15 @@ pub(super) fn items_for(target: &Target) -> Vec<Action> {
     } else {
         items.push(Action::OpenFile);
     }
-    items.extend([
-        Action::CopyPath,
-        Action::CopyRelativePath,
-        Action::AddToChat,
-        Action::Rename,
-        Action::Delete,
-    ]);
+    items.extend([Action::CopyPath, Action::CopyRelativePath]);
+    if target.panels && !target.folder {
+        items.push(Action::Download);
+    }
+    items.extend([Action::AddToChat, Action::Rename]);
+    if target.panels {
+        items.push(Action::Duplicate);
+    }
+    items.push(Action::Delete);
     items
 }
 
@@ -145,8 +157,8 @@ pub(super) const fn group(action: Action) -> u8 {
     match action {
         Action::OpenFile | Action::CollapseFolder => 0,
         Action::NewFile | Action::NewFolder => 1,
-        Action::CopyPath | Action::CopyRelativePath | Action::AddToChat => 2,
-        Action::Rename => 3,
+        Action::CopyPath | Action::CopyRelativePath | Action::Download | Action::AddToChat => 2,
+        Action::Rename | Action::Duplicate => 3,
         Action::Delete => 4,
     }
 }
@@ -162,8 +174,27 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        let panels = self
+            .areas
+            .workspace
+            .code
+            .root()
+            .is_some_and(|(machine, _)| {
+                offered(
+                    self.fleet
+                        .machines
+                        .iter()
+                        .find(|known| known.name == machine)
+                        .and_then(|known| known.protocol),
+                )
+            });
         let actions = &mut self.areas.workspace.code.files.actions;
-        actions.target = Some(Target { path, folder, open });
+        actions.target = Some(Target {
+            path,
+            folder,
+            open,
+            panels,
+        });
         actions.menu.open(at, window, cx);
         cx.notify();
     }
@@ -191,7 +222,9 @@ impl Shell {
                     | Action::CollapseFolder
                     | Action::CopyPath
                     | Action::CopyRelativePath
+                    | Action::Download
                     | Action::AddToChat
+                    | Action::Duplicate
                     | Action::Delete => EditKind::Rename(target.path.clone()),
                 };
                 if !matches!(kind, EditKind::Rename(_)) && !target.open {
@@ -232,6 +265,22 @@ impl Shell {
                 composer.set_text(&text, window, cx);
                 composer.focus(window, cx);
                 self.code_handed_to_composer(window);
+            }
+            Action::Download => self.choose_download(target.path, cx),
+            Action::Duplicate => {
+                let root = self
+                    .areas
+                    .workspace
+                    .code
+                    .root()
+                    .map(|(machine, root)| (machine.to_owned(), *root));
+                if let Some((machine, root)) = root {
+                    let ask = DuplicateFileEntry {
+                        root,
+                        path: target.path,
+                    };
+                    self.ask(&machine, Ask::File(FileAsk::Duplicate(ask)));
+                }
             }
             Action::Delete => {
                 let actions = &mut self.areas.workspace.code.files.actions;
@@ -348,6 +397,76 @@ impl Shell {
         }
         if let PathChange::CreateFile { path, .. } = change {
             self.open_file_at_quietly(path.clone());
+        }
+    }
+
+    /// A duplicate answered: the copy's folder is listed again, or the
+    /// machine's reason is shown over the tree.
+    pub(in crate::areas::workspace) fn entry_duplicated(
+        &mut self,
+        ask: &DuplicateFileEntry,
+        result: Result<DuplicatedFileEntry, Problem>,
+    ) {
+        let words = self.words();
+        let panel = &mut self.areas.workspace.code;
+        if panel.root().map(|(_, root)| root) != Some(&ask.root) {
+            return;
+        }
+        let actions = &mut panel.files.actions;
+        let copy = match result {
+            Ok(copy) => copy,
+            Err(problem) => {
+                actions.refused = Some(words.problem(&problem));
+                return;
+            }
+        };
+        actions.refused = None;
+        let dir = copy.path.parent().unwrap_or_else(RelPath::root);
+        let _was = panel.files.listings.remove(&dir);
+        self.read_folder(&dir);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn target(folder: bool, panels: bool) -> Target {
+        Target {
+            path: "src/main.rs".parse().unwrap(),
+            folder,
+            open: false,
+            panels,
+        }
+    }
+
+    #[test]
+    fn a_file_s_download_comes_before_add_to_chat_in_the_reference_group() {
+        let items = items_for(&target(false, true));
+        let relative = items
+            .iter()
+            .position(|item| *item == Action::CopyRelativePath);
+        let download = items.iter().position(|item| *item == Action::Download);
+        assert_eq!(download, relative.map(|at| at.saturating_add(1)));
+        assert_eq!(
+            items.get(download.unwrap_or_default().saturating_add(1)),
+            Some(&Action::AddToChat)
+        );
+        assert_eq!(group(Action::Download), group(Action::CopyPath));
+        assert!(!items_for(&target(true, true)).contains(&Action::Download));
+        assert!(!items_for(&target(false, false)).contains(&Action::Download));
+    }
+
+    #[test]
+    fn duplicate_follows_rename_in_paseo_s_manage_group_on_a_machine_with_it() {
+        for folder in [false, true] {
+            let items = items_for(&target(folder, true));
+            let rename = items.iter().position(|item| *item == Action::Rename);
+            let duplicate = items.iter().position(|item| *item == Action::Duplicate);
+            assert_eq!(duplicate, rename.map(|at| at.saturating_add(1)));
+            assert_eq!(items.last(), Some(&Action::Delete));
+            assert_eq!(group(Action::Duplicate), group(Action::Rename));
+            assert!(!items_for(&target(folder, false)).contains(&Action::Duplicate));
         }
     }
 }
