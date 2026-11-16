@@ -5,6 +5,7 @@ mod automation;
 mod capacity;
 mod lease_read;
 mod leases;
+mod placement;
 mod project_reference;
 mod read;
 #[cfg(test)]
@@ -27,6 +28,8 @@ pub use capacity::{
 };
 
 pub(crate) use lease_read::{current as resource_run, pending as pending_starts};
+pub use placement::{MAX_ARCHIVED_WORKSPACES, Placement};
+pub(crate) use placement::{Register, archive_stranded, register, unregistered_placed};
 pub(crate) use project_reference::read as project_reference;
 pub(crate) use read::{
     load, memberships as workspace_memberships, reservation, resource_owner, workspace,
@@ -50,7 +53,9 @@ pub struct StoredRegistry {
     pub revision: RegistryRevision,
     /// Empty workspaces are retained independently of session membership.
     pub workspaces: Vec<WorkspaceDescriptor>,
-    /// Explicit ownership never follows from a shared cwd.
+    /// Explicit rows, then each placed session's membership derived from its
+    /// stored project place (ADR 0106). Derived members are not revisioned: a
+    /// session start or archive changes them without a registry write.
     pub memberships: Vec<WorkspaceMembership>,
 }
 

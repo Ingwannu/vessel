@@ -1,33 +1,46 @@
-//! Legacy deletion accounts for empty descriptors AND every retained reservation stage.
+//! Legacy deletion accounts for owned backings, transitions AND every reservation stage.
 use super::{apply, db, put, record};
 use crate::registry::{RegistryWrite, project_reference};
 use crate::{RegistryReservation, ReservationStage, WorkspaceProvision};
 use vessel_proto::registry::{
-    RegistryRevision, WorkspaceAutomation, WorkspaceIsolation, WorkspaceLifecycle,
-    WorkspaceVisibility,
+    WorkspaceAutomation, WorkspaceIsolation, WorkspaceLifecycle, WorkspaceVisibility,
 };
 use vessel_proto::{ProjectId, WorkspaceId};
 
+// ADR 0106 narrows W11's fence: a `Local` record that is Active or Archived
+// owns no directory (removal archives it), while `Managed` backings and a
+// `Local` record mid-transition still fence.
 #[test]
-fn legacy_project_reference_covers_active_and_archived_descriptors() {
+fn legacy_project_reference_covers_owned_backings_and_transitions_only() {
     let mut connection = db();
     let mut item = record(WorkspaceId::random());
     let project = item.descriptor.project;
     assert_eq!(project_reference(&connection, project).unwrap(), None);
     put(&mut connection, item.clone(), None).unwrap();
-    assert_eq!(
-        project_reference(&connection, project).unwrap(),
-        Some(item.descriptor.id)
-    );
-    item.descriptor.revision = RegistryRevision::ZERO.next().unwrap();
-    item.descriptor.lifecycle = WorkspaceLifecycle::Archived {
-        at: chrono::DateTime::UNIX_EPOCH,
+    assert_eq!(project_reference(&connection, project).unwrap(), None);
+    let at = chrono::DateTime::UNIX_EPOCH;
+    let steps = [
+        (WorkspaceLifecycle::Archiving { at }, true),
+        (WorkspaceLifecycle::Archived { at }, false),
+        (WorkspaceLifecycle::Restoring { at }, true),
+    ];
+    for (lifecycle, fences) in steps {
+        let expected = item.descriptor.revision;
+        item.descriptor.revision = expected.next().unwrap();
+        item.descriptor.lifecycle = lifecycle;
+        put(&mut connection, item.clone(), Some(expected)).unwrap();
+        assert_eq!(
+            project_reference(&connection, project).unwrap(),
+            fences.then_some(item.descriptor.id)
+        );
+    }
+    let mut managed = record(WorkspaceId::random());
+    managed.descriptor.project = project;
+    managed.descriptor.backing = vessel_proto::registry::WorkspaceBacking::Managed {
+        worktree: vessel_proto::WorktreeId::random(),
     };
-    put(&mut connection, item.clone(), Some(RegistryRevision::ZERO)).unwrap();
-    assert_eq!(
-        project_reference(&connection, project).unwrap(),
-        Some(item.descriptor.id)
-    );
+    put(&mut connection, managed.clone(), None).unwrap();
+    assert!(project_reference(&connection, project).unwrap().is_some());
     assert_eq!(
         project_reference(&connection, ProjectId::random()).unwrap(),
         None
