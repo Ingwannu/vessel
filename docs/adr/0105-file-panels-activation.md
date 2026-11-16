@@ -45,9 +45,14 @@ the node-line merge: 27 (account usage reports took 26 just before). The native 
   protocol keeps old nodes working without a refusal shown to the person.
 - Advantages, costs and effects: PROTOCOL_VERSION moves to the assigned
   number; MIN stays 2 and the store schema does not change. An observation
-  holds one node observer slot and one wait share per shown file. A watch
-  error stops the watch until the file is opened again (no retry loop).
-  The page watch (`web/`, `use-file.ts`) is a later packet; the page's
-  file action menu, the Modified sort (`file.inspect`) and directory
-  suggestions (`file.suggest`) in Add project are later work with no caller
-  in this ADR's packets.
+  holds one node observer slot and one wait share per shown file; a
+  watch starts once the file's first read has landed. Leaving the file
+  ignores its call (the bridge has no cancel), which holds both until the
+  node's 30 s heartbeat. The node's `unavailable` (observers busy) is
+  asked again after the quiet time; any other watch error stops the watch
+  until the file is opened again (the native watch takes the same rules
+  on the app line). The page watch and Paseo's conflict alert are
+  `docs/plans/impl-files-page.md`; the page's file action menu, the
+  Modified sort (`file.inspect`) and directory suggestions
+  (`file.suggest`) in Add project are later work with no caller in this
+  ADR's packets.

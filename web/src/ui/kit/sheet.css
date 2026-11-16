@@ -3,6 +3,12 @@
    sidebar's own surface; it slides in over 200ms (none with reduced
    motion). */
 
+/* Under the sheet; a dialog opened from the sheet comes above both
+   (kit/dialog.css). */
+.dialog-backdrop.sheet-backdrop {
+  z-index: 50;
+}
+
 .sheet {
   position: fixed;
   inset: 0 auto 0 0;

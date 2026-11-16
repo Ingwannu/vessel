@@ -38,6 +38,30 @@ export function changed(
   return !sameObserved(before, now);
 }
 
+/** The disk against what the page shows: the same, moved on, or gone
+ * (Paseo's `changed` and `deleted` conflicts). */
+export type Disk = "same" | "changed" | "deleted";
+
+/** The disk after the answer `now`: `was` before it, `before` the last
+ * answer, `shown` the hash of what the page shows. A version the page
+ * shows is the same disk again (a file deleted and put back as shown, or
+ * the page's own save over a change); a change is `deleted` when the file
+ * is missing; a quiet answer leaves the disk as it was. */
+export function diskAfter(
+  was: Disk,
+  before: ObservedFile | null,
+  now: ObservedFile,
+  shown: ContentHash | null,
+): Disk {
+  if (now.kind === "ready" && shown !== null && now.revision.hash === shown) {
+    return "same";
+  }
+  if (changed(before, now, shown)) {
+    return now.kind === "missing" ? "deleted" : "changed";
+  }
+  return was;
+}
+
 /** Two answers of one state. */
 export function sameObserved(a: ObservedFile, b: ObservedFile): boolean {
   if (a.kind === "missing" || b.kind === "missing") {
