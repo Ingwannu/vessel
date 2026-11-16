@@ -34,6 +34,19 @@ pub struct ResidentToken {
     /// Incarnation fences released/recreated resource callbacks.
     pub epoch: ResidentEpoch,
 }
+/// Lossless presentation-incarnation key for a mounted renderer. The app caches
+/// this at capture and adds its existing claim/origin path for each presentation.
+/// This is neither a wire address nor permission to access or mutate a resident;
+/// only the canonical context/binding/ticket checks can grant that access.
+impl std::fmt::Display for ResidentToken {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "resident/{}/{}/{}/{}",
+            self.registry.0, self.address.node, self.address.session, self.epoch.0,
+        )
+    }
+}
 /// Stable presentation claim; moving panes keeps it unchanged.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PanelClaim {
@@ -201,3 +214,6 @@ pub enum ResidentProblem {
     Held,
 }
 pub(super) type Admissions = BTreeSet<(OperationKind, u64)>;
+
+#[cfg(test)]
+mod tests;
