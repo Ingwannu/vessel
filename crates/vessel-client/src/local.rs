@@ -74,7 +74,7 @@ pub enum LocalConnectError {
 ///
 /// Owning launchers qualify this retained peer before calling authenticate.
 /// Opening alone grants no process authority. Canonical Attached callers keep
-/// their existing token-first policy through NodeClient::connect_local.
+/// their existing token-first policy through `NodeClient::connect_local`.
 #[derive(Debug)]
 pub struct LocalConnection {
     transport: vessel_rpc::LocalTransport,
@@ -112,7 +112,7 @@ impl LocalConnection {
     /// Consume this SAME preopened handle into authentication and RPC serving.
     ///
     /// Owning launchers must finish their peer proof first. Closure is terminal;
-    /// neither authentication nor NodeClient transparently redials an endpoint.
+    /// neither authentication nor `NodeClient` transparently redials an endpoint.
     ///
     /// # Errors
     /// Credential encoding/output or protocol handshake failure.
