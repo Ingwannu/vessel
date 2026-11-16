@@ -95,3 +95,27 @@ module registration is retained alongside the receiving base's exports.
 This prior-head strict is not relabelled as exact receiving-union strict or
 runtime proof. Actual placement GPUI tests on that receiving source are next;
 V1/consumer adoption, consumer images and full F4 remain separate and owed.
+
+## Exact runtime result and quota-stop handoff
+
+Receiving source3958ad382480d75657c7527e26d234b5590fd73f completed ordinary
+shell2-narrow-20261116T025223Z-3958ad38: fonts0/cargo0, actual fresh GPUI and
+Kit Compiling, three passed/zero failed/zero ignored (271 filtered out).
+The policy tests execute nine literal cases plus the shifted viewport; the
+actual GPUI case executes both alignments, heights80/120, parent inset20 and
+caller-local offset4, checks native prepaint bounds, hits the translated child
+and rejects the old origin/unflipped edge. This is not a full Kit lib run.
+
+Prior exact1b strict remains prior-head evidence; all three placement source
+and test blobs are identical in395, while the announced receiving base changed.
+Do not label it exact395 Clippy. No consumer menu/popover was migrated, and
+this module owns no focus, lease, action or new surface. V1 bounded shared
+review and lead receiving gate remain separate; actual consumer images are
+still owed by G1/W19 after integration. No Linux F5/OS/full F4 claim follows.
+
+Quota stop: no new Cargo/merge/control is started. This result document changes
+no native source; source395 is the actual runtime snapshot. The final shared
+packet includes the qualified strict/result logs and source identity. Resume
+from Main docs/plans/wp-f4-sidebar-resume.md on backend/m12-wp-sidebar and
+inspect completed025223 before submitting anything; do not replay it. Main
+changed receiving strict/runtime and all other WIP controls remain deferred.
