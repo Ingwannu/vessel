@@ -1292,3 +1292,33 @@ current-range field is forwarded because pinned GPUI constructs a stale range.
 One external notification plus post-dispatch actual top is the bounded contract.
 Current-visible-cache fairness/scroll invalidation is not yet fixed or proved
 in the body consumer; the static concern is kept distinct from a runtime claim.
+
+## Current body resource pressure successor (unverified)
+
+[Decision Log]
+- Purpose: keep the existing global32 retained-file/engine cap without repeatedly
+  evicting sections that are simultaneously visible. This is a static risk in
+  the initial pending/focused-only LRU, not a reproduced runtime finding yet.
+- Existing asset: the actual list prepaints clipped file sections; the canonical
+  layout answers whether their pane is visible. Keep those as the only geometry
+  and pane models. No new dependency, renderer, scroll state or read authority.
+- Choice: current prepaint observations veto cache eviction. Only retained
+  paths are marked; actual newly admitted requests reserve their own veto.
+  A frame clears previous observations before loading/failure/summary drawing.
+  Programmatic owner reveal, context retirement and comparison change clear
+  them too. Hidden panes' old markers never veto eviction.
+- Tradeoff: if32 visible/focused/pending resources exhaust the budget, additional
+  sections remain lazy until one leaves the viewport or loses its protection.
+  The cap is not raised, and no read is aborted or replayed.
+- Remaining join: the separately reviewed VirtualList notification must clear
+  markers during actual outer scrolling, including a retained/cached owner.
+  That shared leaf is still awaiting its selected window test and V1 review;
+  it is NOT adopted here. Cached-owner, resize, keyboard reveal and real scroll
+  invalidation are not established by these source changes.
+
+A new unexecuted real-Shell fixture uses the ONE layout registry and80 file
+sections in a large viewport, preserves a background Agent tab so layout does
+not replace the chosen WorkingDiff, and bounds response/frame iterations. It
+requires32 initial reads then quiescence, actual native outer-wheel movement,
+new visible reads without exceeding32 slots, and renewed quiescence. It does
+not prove OS input, final UI parity, cross-file copy or the whole C3 package.

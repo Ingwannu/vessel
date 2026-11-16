@@ -28,6 +28,10 @@ pub(crate) fn render_panel(
         tab: panel.tab,
     };
     let entry = shell.areas.git.panels.entries.get(&address);
+    // Even a loading/failure frame must release the previous frame's vetoes.
+    if let Some(entry) = entry {
+        entry.visible_bodies.clear();
+    }
     if entry.is_none_or(|entry| entry.target != target) {
         cx.defer_in(window, move |shell, window, cx| {
             shell.git_panel_open(address, target, window, cx);

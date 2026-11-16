@@ -80,8 +80,13 @@ pub(super) fn row(
         tokens,
         cx,
     );
+    let visible_bodies = entry.visible_bodies.clone();
+    let retained = entry
+        .reads
+        .as_ref()
+        .is_some_and(|reads| reads.file(&path).is_some());
     let owner = cx.entity().downgrade();
-    div()
+    let section = div()
         .w_full()
         .child(
             div()
@@ -93,9 +98,6 @@ pub(super) fn row(
                 .children(action),
         )
         .on_children_prepainted(move |children, window, cx| {
-            let Some(captured) = captured.clone() else {
-                return;
-            };
             let Some(bounds) = children.first() else {
                 return;
             };
@@ -103,14 +105,23 @@ pub(super) fn row(
             if visible.size.width <= Pixels::default() || visible.size.height <= Pixels::default() {
                 return;
             }
+            // Ready rows have no new activation but still veto their eviction.
+            if retained {
+                visible_bodies.mark(&path);
+            }
+            let Some(captured) = captured.clone() else {
+                return;
+            };
             let owner = owner.clone();
             window.defer(cx, move |window, cx| {
                 let _updated =
                     owner.update(cx, |shell, cx| shell.git_panel_file(&captured, window, cx));
             });
         })
-        .id(("git-file-section", index))
-        .into_any_element()
+        .id(("git-file-section", index));
+    #[cfg(test)]
+    let section = section.debug_selector(move || format!("git-file-section-{index}"));
+    section.into_any_element()
 }
 
 fn document(

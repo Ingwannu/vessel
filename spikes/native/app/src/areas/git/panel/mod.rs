@@ -15,6 +15,7 @@ mod document;
 mod draw;
 mod file;
 mod lifecycle;
+mod visibility;
 
 use std::collections::{HashMap, VecDeque};
 use vessel_app_kit::VirtualList;
@@ -45,6 +46,7 @@ struct Entry {
     tips: vessel_app_kit::Tooltips,
     path_places: HashMap<vessel_proto::workspace::RelPath, vessel_app_kit::tooltip::Place>,
     documents: HashMap<vessel_proto::workspace::RelPath, document::Document>,
+    visible_bodies: visibility::VisibleBodies,
 }
 impl Entry {
     fn new(target: PanelTarget, context: Option<ConnectionContext>) -> Self {
@@ -67,6 +69,7 @@ impl Entry {
             tips: vessel_app_kit::Tooltips::new(),
             path_places: HashMap::new(),
             documents: HashMap::new(),
+            visible_bodies: visibility::VisibleBodies::default(),
         }
     }
     // A manual refresh rediscovers authority, but must not reset the person's

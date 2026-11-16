@@ -7,11 +7,13 @@
 //! - Retain at most32 file payloads/engines globally, each already capped by
 //!   `FilePages`, with at most4 locally pending reads. This bounds retained
 //!   payloads, not total process/transport memory. Evict complete LRU entries,
-//!   never a pending entry or the engine owning keyboard selection.
+//!   never a pending entry, a currently visible cached section or the engine
+//!   owning keyboard selection. Hidden panes cannot retain viewport vetoes.
 //! - Reuse the Link's tracked calls. Eviction neither aborts nor replays work;
 //!   missing read slots cannot be recreated by late replies.
 use super::{Entry, Panels};
 use crate::shell::Shell;
+use std::collections::HashSet;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::git_panel::Ask;
 use vessel_app_view::connection::ConnectionContext;
@@ -128,7 +130,13 @@ impl Panels {
             .count()
     }
 
-    fn admit_body(&mut self, key: &BodyAddress, window: &Window, cx: &Context<'_, Shell>) -> bool {
+    fn admit_body(
+        &mut self,
+        key: &BodyAddress,
+        visible_panels: &HashSet<PanelAddress>,
+        window: &Window,
+        cx: &Context<'_, Shell>,
+    ) -> bool {
         self.body_order.retain(|key| {
             self.entries
                 .get(&key.panel)
@@ -152,7 +160,9 @@ impl Panels {
                         .documents
                         .get(&key.path)
                         .is_some_and(|document| document.selection_focused(window, cx));
-                    !pending && !focused
+                    let visible = visible_panels.contains(&key.panel)
+                        && entry.visible_bodies.contains(&key.path);
+                    !pending && !focused && !visible
                 })
             });
             let Some(victim) = victim.and_then(|index| self.body_order.remove(index)) else {
@@ -163,6 +173,7 @@ impl Panels {
                     let _forgotten = reads.forget_file(&victim.path);
                 }
                 let _released = entry.documents.remove(&victim.path);
+                entry.visible_bodies.remove(&victim.path);
                 // Re-measure after the old body becomes a lazy placeholder.
                 entry.files.changed(0..entry.files.rows());
             }
@@ -211,6 +222,7 @@ impl Shell {
         }
         // Notify the actual owner and invalidate its cached row, not merely the
         // child editor. The one outer list owns keyboard caret reveal.
+        entry.visible_bodies.clear();
         entry
             .files
             .reveal_bounds(bounds, vessel_app_kit::ui::Pixels::default());
@@ -248,11 +260,22 @@ impl Shell {
         {
             return;
         }
+        // Query the sole layout before borrowing feature state mutably. This
+        // local snapshot is presentation only; the original admission stays above.
+        let visible_panels = self
+            .areas
+            .git
+            .panels
+            .entries
+            .keys()
+            .filter(|address| self.layout_panel_visible(&address.workspace, address.tab, window))
+            .cloned()
+            .collect();
         if !self
             .areas
             .git
             .panels
-            .admit_body(&captured.address, window, cx)
+            .admit_body(&captured.address, &visible_panels, window, cx)
         {
             return;
         }
@@ -278,6 +301,7 @@ impl Shell {
         let Some(ticket) = reads.begin_captured_file(&captured.file, key) else {
             return;
         };
+        entry.visible_bodies.mark(&captured.address.path);
         self.command(vessel_app_link::Command::GitPanel(Ask::File {
             address: address.clone(),
             context: captured.context.clone(),
@@ -290,3 +314,7 @@ impl Shell {
 #[cfg(test)]
 #[path = "bodies_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "visibility_tests.rs"]
+mod visibility_tests;

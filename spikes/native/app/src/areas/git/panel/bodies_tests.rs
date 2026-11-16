@@ -13,7 +13,7 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{HarnessKind, SessionInfo, SessionMode, SessionSpec};
 
-fn prepare(
+pub(super) fn prepare(
     shell: &mut Shell,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -231,6 +231,11 @@ fn global_body_slots_release_old_payloads_and_reject_their_late_reply(cx: &mut T
         );
         let mut first = None;
         for path in &paths {
+            // This counterfactual has no mounted viewport: explicitly release
+            // its preceding synthetic visibility observation before each call.
+            shell.areas.git.panels.entries[&address]
+                .visible_bodies
+                .clear();
             let captured = captured(shell, &address, path);
             shell.git_panel_file(&captured, window, cx);
             let ticket = next_file(&mut inbox, &captured);

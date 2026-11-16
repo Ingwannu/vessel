@@ -642,3 +642,25 @@ seven-kind mapper and syntax_for. W13 shown-Changes context/root projection stay
 pending; old toolbar writes remain refused. C3 still incomplete, C4 unstarted.
 No local fleets/displays/app processes started; project=vessel was confirmed in
 actual own-agent metadata without changing runtime/account settings.
+
+## 2026-11-16 01:2x source/results
+
+Exact760 App-only all-target strict is GREEN (fonts0/cargo0, actual Kit/Link/App
+checking); no current body functional test has finished. The wasm check is
+registered once as wp-git-narrow-20261116T012329Z-760ed4a0, ordinary/priority0,
+OUT body-760-wasm-check. Its run-id survived the interrupted tool output; do
+not resubmit. Existing006 Git,9c Kit-owner andb243 list-wheel tests stay queued.
+The isolatedb243 Kit strict is GREEN; no V1 adoption or wheel/runtime pass yet.
+
+The separate NODE tree merged announcedbc9cacc6 as c57a914a0, preserving own
+pending history/comparison and physical file-lifetime source. New node union
+is UNVERIFIED; prior exact22ab strict/workspace/TS results stay prior-source.
+Do not merge a whole node head into this App tree.
+
+Current App source adds a visible retained-resource eviction veto and actual
+Shell/registry pressure test. It uses no unreviewed VirtualList API. The shared
+scroll-notification join remains pending; do not call this complete cache
+fairness or reuse760 strict as proof of this successor. See the plan's Decision
+Log and actual test source. Old direct LRU fixture now explicitly clears its
+synthetic preceding visibility observation because it has no mounted viewport;
+its eviction and late-answer assertions remain. No new remote source batch yet.

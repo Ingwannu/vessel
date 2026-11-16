@@ -87,6 +87,7 @@ impl Shell {
         entry.files.reset(0);
         entry.path_places.clear();
         entry.documents.clear();
+        entry.visible_bodies.clear();
         entry.tips = vessel_app_kit::Tooltips::new();
         entry.problem = None;
         self.command(vessel_app_link::Command::GitPanel(Ask::Summary {
