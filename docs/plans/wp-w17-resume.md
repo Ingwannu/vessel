@@ -7,7 +7,7 @@ This is a WIP checkpoint, not full-package completion.
 ## Main CLI branch
 
 Branch backend/m12-wp-cli. Current product/test source is
-0680b033ed79ec10f90419283a91b4416976ca1d. It includes announced node
+db9f214b0bcea6f80f7e2528bc852293ca430cad. It includes announced node
  ee8e345013d6756dfc55b1ed008a352db32786c7 through merge e555300bf. No app base
 is relevant to this node-only tree. The startup RuntimeServices move retains
 Push-before-Limits-before-host ordering and node.rs648 with a lowered648 record.
@@ -27,27 +27,31 @@ Committed work since the prior executed136c source:
 
 ## Active VM run — inspect, never duplicate
 
-wp-cli-narrow-20261116T033453Z-0680b033 is the current only owned Cargo run.
-It checks exact0680 source: locked Clippy for CLI/proto/rpc/client/store/session/
-terminal-screen/node/web/PTY/testkit, alltargets, proto+web TS features, -Dwarnings.
-It is a normal short run, priority0. It finished Cargo101 after125s on one unused-qualifications error in the
-native metadata fixture: ProjectId was already imported. The one-line source
-correction uses that import; corrected exact-source verification remains owed. Attach/status must be read before further submission.
-The local task STATE records private evidence locations; do not copy them here.
+wp-cli-narrow-20261116T034217Z-db9f214b is the current only owned Cargo run.
+It tests exactdb9f: locked CLI/session/PTY/testkit default test targets with
+proto+web TS features, no benchmark/alltargets repeat. Normal short, priority0.
+At the checkpoint it is running its same-source preparations; no final runtime
+result yet. It was submitted once and its receipt was retained after a bounded
+submission delay; never replay it because a local poll was initially empty.
 
-If it passes within the quota window, finish only the current CLI regression
-slice on the same product source. Use selected-package default test targets,
-not --all-targets: the earlier invocation unnecessarily ran benchmark harnesses.
-If the queue/run cannot finish, retain its exact ID/result state in this file and
-leave a WIP commit; do not start a full root gate, new feature or another merge.
+Exactdb9f strict034046 passed26s: all11selected crates/alltargets/TS/-Dwarnings,
+with actual Checking CLI/node/web and Finished. Original0680 strict033453
+returned Cargo101 after125s on one unused qualification in the native metadata
+fixture; the single-line correction consistently uses imported ProjectId.
+No test body or product behavior changed to make that strict pass.
+
+If the current run cannot finish within the quota window, retain its exact ID
+and result state in this committed WIP file. Start no full root gate, new feature
+or another merge. The local task STATE records private evidence locations;
+do not copy them here. No further Cargo run is planned before this quota stop.
 
 ## Executed evidence that must not be widened
 
 Prior exact136c strict004534 passed11selected crates. Its actual suite005236
 finished425passed/3failed/1ignored: CLIbin155/0, CLIprocess84/3. The failed cases
 were invalid project-root/default-branch controls, not a passing metadata
-preparation test. The later fixture fixes and explicit label regression still
-owe current-head execution. Earlier real full-queue admission cancellation,
+preparation test. The later fixture fixes and explicit label regression are in the current
+runtime034217; their final execution result is not yet retained here. Earlier real full-queue admission cancellation,
 common TUI fairness/sealed EOF/final-ring and workspace rename modes/reset passed
 on136c only. No current-main whole/TS/export/otherOS/service proof is implied.
 
@@ -79,7 +83,9 @@ part of this leaf. No production restore is unlocked. Receiving-head gate owed.
 ## After this slice, on the next authorized session
 
 1. Recover current run and any V3 reply; finish the reservation receiving path.
-2. Verify current CLI fixture corrections/metadata and explicit-label refusal.
+2. Recover current CLI fixture/metadata/explicit-label results. Before the final
+   package gate, check the remaining pure async screen units for canonical
+   safety nets and scoped task ownership; do not infer that from actor tests.
 3. Then common node D1 adapter/rows, only against the accepted pure engine.
 4. Then contract-first root-bound terminal/debt composition, not before its
    actual dependencies exist. Finish named TS export and one full package A12,
@@ -92,7 +98,9 @@ shape guesses. Existing frame/responder plans are contracts, not activated RPCs.
 
 W9 RootLease remains unadoptable: corrected1aef strict passed but seven setup
 fixtures failed before their bodies;646a577c2 on ee8 has test-only phase fixes and
-queued strict. No project counterexample runtime pass or V3 revision yet.
+queued strict. It later stopped at the quota warning: latest minimal source
+WIP515318c1d/resume12e8e8a4a; its queued ordinary request was cancelled143 before
+current-source build. No project counterexample runtime pass or V3 revision yet.
 W21 cleanup producer remains held on its A7 correction/review. GKS lifecycle
 owns agent-run/forgotten-agent evidence; W17 receives those inputs alongside
 terminal/debt evidence under the reviewed canonical RootLease. Never infer proof
