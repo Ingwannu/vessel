@@ -81,4 +81,10 @@ host cases prove generic callback routing, not a real shortcut recorder or menu
 consumer. Source/remote tests/V1/lead adoption, actual E3 field opt-ins, captures,
 OS behavior and final package review are all separate obligations.
 
-Validation status: source only. No scratch compilation or runtime result yet.
+The first ordinary scratch run
+`wp-desktop-host-narrow-20261116T021145Z-62812fcd`, with the hookup applied,
+passed fonts/fmt/quality, then stopped in Kit Clippy at eleven missing public
+variant/field documentation diagnostics. Tests did not run. The correction adds
+those descriptions without weakening lints. A later source addition also exposes
+the admitted-close selection release and tests it; neither change inherits a
+passing runtime result. The next scratch check must include both changes.

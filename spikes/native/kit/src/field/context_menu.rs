@@ -8,30 +8,40 @@ use std::rc::Rc;
 /// Whether the original editor currently permits copying its selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CopyPermission {
+    /// The enabled, unmasked input has a selection that it may copy.
     Available,
+    /// There is no copyable selection, or the input is protected/disabled.
     Unavailable,
 }
 
 /// Whether the original editor currently permits pasting text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PastePermission {
+    /// The existing input engine currently accepts text changes.
     Available,
+    /// Read-only or disabled input must not advertise a paste operation.
     Unavailable,
 }
 
 /// Editing facts come from the existing input engine, including masked values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Editing {
+    /// User edits use the ordinary input/IME engine.
     Editable,
+    /// Selection and copy remain usable while writes are held.
     ReadOnly,
+    /// The input cannot admit a context request.
     Disabled,
 }
 
 /// No selection text or clipboard contents cross the host boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Facts {
+    /// Permission for the original input's current selection.
     pub copy: CopyPermission,
+    /// Permission to change the original input's text.
     pub paste: PastePermission,
+    /// The input engine's live editing mode.
     pub editing: Editing,
 }
 
@@ -68,6 +78,7 @@ type SelectionFocus = Rc<dyn Fn(Option<FocusHandle>, &mut App)>;
 /// Original focus and a weak live fact probe survive deferred host delivery.
 #[derive(Clone)]
 pub struct Request {
+    /// Captured logical position in the original window's layout space.
     pub position: Point<Pixels>,
     original: WeakFocusHandle,
     probe: Probe,
