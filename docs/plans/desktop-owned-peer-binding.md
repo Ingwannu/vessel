@@ -181,14 +181,22 @@ new crate edge or test-only controller API. It runs the real Node with explicit
 scratch home/programs and no TCP listener. A bounded loopback control stream
 reports public process facts and requests only that fixture's orderly stop.
 
-The Linux regression holds a blocking-file-read barrier after owned spawn, lets
-the real original child emit Ready and exit, then starts a real same-home node
-with the same persisted identity/token. Read-only zombie observation of the known
-fixture PID witnesses actual exit without reaping it behind the controller.
-The replacement's Serving reply is ready before the original exit receipt is
-observed. Releasing the barrier must yield the specific peer refusal, account
-for original-child cleanup/reaping, and leave the replacement Serving. Subsequent
-reuse is Attached and its stop/restart must refuse.
+The Linux regressions share one actual stopped-server barrier: the original
+child emits Ready, its server stops and releases the home, while the retained
+child process remains alive. A real same-home successor then answers Serving
+with the same persisted identity/token. One case leaves the original alive;
+another exits it and observes its known zombie without reaping it behind the
+controller. In both cases, the successor is ready before the original exit
+receipt can win. Releasing the file-read barrier must yield the specific peer
+refusal, account for original-child cleanup/reaping, and leave the successor
+Serving. Subsequent reuse is Attached and stop/restart must refuse.
+
+A third case replaces the stopped endpoint with an actual listener in the test
+process. That wrong peer must observe EOF with zero credential or Hello bytes,
+while startup returns PeerUnverified and reaps only the original child. It uses
+the same real child and held file-read barrier; no controller test hook or fake
+peer-credential result can hide token output before proof. These authored cases
+remain unexecuted until the feature test run records their actual results.
 
 Also retain normal Owned/Attached, malformed readiness, cancellation, deadlines,
 uncertain cleanup, release and keep tests. Windows tests must cover precreation,
@@ -196,8 +204,12 @@ post-exit takeover, attempted second-instance relay, stale/wrong stdout echo,
 token-not-sent-before-proof and same-handle post-proof closure. Fake/Linux cases
 do not prove Windows instance or DACL semantics.
 
-The fixed feature build/test step belongs to T's gate tooling, as test-forge does.
-No current default gate result is claimed to execute this staged feature.
+The supported remote Cargo feature test command selects managed_local_peer and
+managed_local_node with local-node-fixture enabled. Cargo's integration-test
+binary targets supply the fixture and real vesseld paths from that same build;
+there is no nested Cargo invocation or borrowed shared binary. No default gate
+result is claimed to execute this feature, and the actual run must confirm both
+the binary compilation and named test execution.
 
 ## Windows API probe scope
 

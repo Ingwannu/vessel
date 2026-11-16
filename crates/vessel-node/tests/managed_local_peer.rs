@@ -5,11 +5,13 @@
 
 #[path = "../src/bin/local_node_fixture/control.rs"]
 mod control;
+#[path = "managed_local_peer/credential.rs"]
+mod credential;
 #[path = "managed_local_peer/support.rs"]
 mod managed_local_peer_support;
 
 use futures_util::{SinkExt as _, StreamExt as _};
-use managed_local_peer_support::{SAFETY_NET, client, recipe, replacement};
+use managed_local_peer_support::{SAFETY_NET, client, replacement};
 use vessel_local_node::{LocalNode, LocalNodeError, LocalStatus, StopPolicy};
 use vessel_proto::NodeState;
 
@@ -21,36 +23,13 @@ enum Original {
 
 async fn refuses_replacement(original: Original) {
     let root = tempfile::tempdir().unwrap();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let launch = recipe(root.path(), listener.local_addr().unwrap());
-    let (release, held) = std::sync::mpsc::sync_channel(1);
-    let (entered, waiting) = tokio::sync::oneshot::channel();
-    let starting = tokio::spawn(async move {
-        LocalNode::start_observed(launch, move |_logs| {
-            // Own the runtime's sole blocking worker before the post-Ready
-            // identity read. No product hook or source timing guess is needed.
-            drop(tokio::task::spawn_blocking(move || {
-                let _delivered = entered.send(());
-                let _released = held.recv_timeout(SAFETY_NET);
-            }));
-        })
-        .await
-    });
-    waiting.await.unwrap();
-    let mut fixture = managed_local_peer_support::accept(&listener).await;
-    let frame = fixture.next().await.unwrap().unwrap();
-    let (process, expected) = match serde_json::from_str(&frame).unwrap() {
-        control::Notice::Ready { process, node } => (process, node),
-        control::Notice::Stopped { .. } => panic!("stop preceded readiness"),
-    };
-    fixture
-        .send(serde_json::to_string(&control::Command::Stop).unwrap())
-        .await
-        .unwrap();
-    let stopped = fixture.next().await.unwrap().unwrap();
-    assert!(
-        matches!(serde_json::from_str(&stopped).unwrap(), control::Notice::Stopped { process: found } if process == found)
-    );
+    let managed_local_peer_support::HeldLaunch {
+        starting,
+        release,
+        mut fixture,
+        process,
+        expected,
+    } = managed_local_peer_support::held_launch(root.path()).await;
     let mut successor = replacement(root.path()).await;
     let peer = client(root.path(), expected).await;
     assert_eq!(peer.node_info().await.unwrap().state, NodeState::Serving);

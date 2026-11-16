@@ -9,6 +9,7 @@ use vessel_proc::{Child, CommandSpec, ProcessId};
 use vessel_proto::{ClientInfo, NodeId, local_launch::Ready};
 
 use super::control;
+use futures_util::{SinkExt as _, StreamExt as _};
 
 pub(super) const SAFETY_NET: Duration = Duration::from_secs(60);
 const OBSERVE_PAUSE: Duration = Duration::from_millis(10);
@@ -68,6 +69,58 @@ pub(super) fn recipe(root: &Path, control: SocketAddr) -> Launch {
             .env(control::PROGRAMS_ENV, root.join("programs"))
     })
     .unwrap()
+}
+
+/// The sole blocking worker holds the post-Ready identity read until release.
+/// Every scenario uses the real child and its real stopped-server barrier.
+pub(super) struct HeldLaunch {
+    pub(super) starting: tokio::task::JoinHandle<
+        Result<vessel_local_node::LocalNode, vessel_local_node::LocalNodeError>,
+    >,
+    pub(super) release: std::sync::mpsc::SyncSender<()>,
+    pub(super) fixture: Fixture,
+    pub(super) process: ProcessId,
+    pub(super) expected: NodeId,
+}
+
+pub(super) async fn held_launch(root: &Path) -> HeldLaunch {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let launch = recipe(root, listener.local_addr().unwrap());
+    let (release, held) = std::sync::mpsc::sync_channel(1);
+    let (entered, waiting) = tokio::sync::oneshot::channel();
+    let starting = tokio::spawn(async move {
+        vessel_local_node::LocalNode::start_observed(launch, move |_logs| {
+            // Reserve before Ready, so no timing guess or controller hook is
+            // needed to install the replacement before identity/authentication.
+            drop(tokio::task::spawn_blocking(move || {
+                let _delivered = entered.send(());
+                let _released = held.recv_timeout(SAFETY_NET);
+            }));
+        })
+        .await
+    });
+    waiting.await.unwrap();
+    let mut fixture = accept(&listener).await;
+    let frame = fixture.next().await.unwrap().unwrap();
+    let (process, expected) = match serde_json::from_str(&frame).unwrap() {
+        control::Notice::Ready { process, node } => (process, node),
+        control::Notice::Stopped { .. } => panic!("stop preceded readiness"),
+    };
+    fixture
+        .send(serde_json::to_string(&control::Command::Stop).unwrap())
+        .await
+        .unwrap();
+    let stopped = fixture.next().await.unwrap().unwrap();
+    assert!(
+        matches!(serde_json::from_str(&stopped).unwrap(), control::Notice::Stopped { process: found } if process == found)
+    );
+    HeldLaunch {
+        starting,
+        release,
+        fixture,
+        process,
+        expected,
+    }
 }
 
 pub(super) async fn replacement(root: &Path) -> Child {
