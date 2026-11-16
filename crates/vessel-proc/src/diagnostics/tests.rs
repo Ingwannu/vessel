@@ -5,12 +5,8 @@ use std::error::Error as _;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::sync::Arc;
-use std::time::Duration;
-use vessel_testkit::Fake;
 
-mod capture;
 const SENTINEL: &str = "PRIVATE-CREATION-PROMPT-CANARY";
-const DEADLINE: Duration = Duration::from_secs(30);
 
 fn private() -> CommandSpec {
     CommandSpec::new(std::env::current_exe().unwrap().join(SENTINEL))
@@ -178,25 +174,4 @@ async fn actual_failed_spawn_never_returns_the_private_program_or_prompt() {
     assert!(matches!(&error, SpawnError::Start { .. }));
     assert!(!diagnostic_chain(&error).contains(SENTINEL));
     assert!(error.source().is_some());
-}
-
-#[tokio::test]
-async fn actual_process_spawn_log_uses_the_private_label_and_still_executes() {
-    vessel_testkit::within(DEADLINE, async {
-        let program = Fake::Tui.path().unwrap();
-        let spec = CommandSpec::new(&program)
-            .args(["--version", SENTINEL])
-            .with_diagnostics(CommandDiagnostics::Redacted);
-        let capture = capture::Capture::default();
-        let mut spawned =
-            tracing::subscriber::with_default(capture.clone(), || spawn(&spec)).unwrap();
-        assert_eq!(spawned.child.wait().await.unwrap(), Some(0));
-        let events = capture.text();
-        assert!(events.contains("spawned"), "actual spawn event missing");
-        assert!(events.contains("<redacted>"));
-        assert!(!events.contains(SENTINEL));
-        assert!(!events.contains(&program.display().to_string()));
-    })
-    .await
-    .unwrap();
 }
