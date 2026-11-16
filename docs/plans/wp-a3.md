@@ -506,3 +506,15 @@ and asserts no address installation. Genuine positive metadata receive remains
 unverified until canonical protocol assignment reaches the announced app line;
 component fixtures are not evidence for that wire or admission boundary. All
 existing navigation/rail assertions remain in place.
+
+
+## Native adapter test lifetime audit
+
+The owned Search and prompt-index adapter tests reuse the Link's existing
+memory-only `testing::within` and named `phase` safety helpers. No shared
+fixture, dependency or deadline is introduced: the current five-second phase
+and 30-second outer bounds remain. A missing local refusal, welcome frame,
+no-frame EOF or task join must fail at its named wait instead of hanging the
+runner. Existing no-frame, original-target/ticket and retirement assertions are
+preserved. This closes the native counterpart found while auditing the root
+row267 test correction; native strict/runtime qualification is still pending.

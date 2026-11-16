@@ -1,6 +1,7 @@
 //! A real typed client talks to an in-memory framed peer; it must send no
 //! pending/new method before admission. No network, config, credentials or agent.
 use super::*;
+use crate::testing::{phase, within};
 use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::sync::mpsc;
@@ -27,20 +28,29 @@ fn ask() -> IndexAsk {
 
 #[tokio::test]
 async fn disconnected_and_full_queues_settle_through_the_typed_failure_boundary() {
-    let hub = Hub::default();
-    let (events, mut answers) = mpsc::channel(1);
-    hub.ask(
-        Err(vessel_app_view::connection::Refusal::Changed),
-        ask(),
-        events,
-    )
+    within(async {
+        let hub = Hub::default();
+        let (events, mut answers) = mpsc::channel(1);
+        phase(
+            "local prompt refusal",
+            hub.ask(
+                Err(vessel_app_view::connection::Refusal::Changed),
+                ask(),
+                events,
+            ),
+        )
+        .await;
+        let crate::Event::PromptIndex(answer) = phase("prompt metadata answer", answers.recv())
+            .await
+            .unwrap()
+        else {
+            panic!("wrong reply");
+        };
+        assert_eq!(answer.result, Err(IndexProblem::Connection));
+        assert_eq!(rejected(crate::Rejected::Full), IndexProblem::Busy);
+        assert_eq!(rejected(crate::Rejected::Closed), IndexProblem::Connection);
+    })
     .await;
-    let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
-        panic!("wrong reply");
-    };
-    assert_eq!(answer.result, Err(IndexProblem::Connection));
-    assert_eq!(rejected(crate::Rejected::Full), IndexProblem::Busy);
-    assert_eq!(rejected(crate::Rejected::Closed), IndexProblem::Connection);
 }
 
 // The framing handshake is fixture setup; the test below owns admission and
@@ -52,10 +62,20 @@ async fn unadmitted_peer() -> (NodeClient, tokio::task::JoinHandle<std::io::Resu
             ProtocolVersion::new(version.get().checked_sub(1).unwrap())
         });
     let peer = tokio::spawn(async move {
-        let size = usize::try_from(remote.read_u32().await.unwrap()).unwrap();
+        let size = usize::try_from(
+            phase("prompt peer hello length", remote.read_u32())
+                .await
+                .unwrap(),
+        )
+        .unwrap();
         assert!(size < 65_536);
         let mut hello = vec![0; size];
-        assert_eq!(remote.read_exact(&mut hello).await.unwrap(), hello.len());
+        assert_eq!(
+            phase("prompt peer hello body", remote.read_exact(&mut hello))
+                .await
+                .unwrap(),
+            hello.len()
+        );
         assert!(matches!(
             serde_json::from_slice::<vessel_proto::ClientFrame>(&hello).unwrap(),
             vessel_proto::ClientFrame::Hello(_)
@@ -77,21 +97,28 @@ async fn unadmitted_peer() -> (NodeClient, tokio::task::JoinHandle<std::io::Resu
             },
         });
         let bytes = serde_json::to_vec(&frame).unwrap();
-        remote
-            .write_u32(u32::try_from(bytes.len()).unwrap())
+        phase(
+            "prompt peer welcome length",
+            remote.write_u32(u32::try_from(bytes.len()).unwrap()),
+        )
+        .await
+        .unwrap();
+        phase("prompt peer welcome body", remote.write_all(&bytes))
             .await
             .unwrap();
-        remote.write_all(&bytes).await.unwrap();
-        remote.read_u32().await
+        phase("prompt peer closed without a call", remote.read_u32()).await
     });
     let (reader, writer) = tokio::io::split(local);
-    let client = NodeClient::over(
-        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(65_536).unwrap()),
-        ClientInfo {
-            name: "prompt-index-tests".to_owned(),
-            version: "0".to_owned(),
-        },
-        &ClientConfig::default(),
+    let client = phase(
+        "prompt client handshake",
+        NodeClient::over(
+            vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(65_536).unwrap()),
+            ClientInfo {
+                name: "prompt-index-tests".to_owned(),
+                version: "0".to_owned(),
+            },
+            &ClientConfig::default(),
+        ),
     )
     .await
     .unwrap();
@@ -100,67 +127,86 @@ async fn unadmitted_peer() -> (NodeClient, tokio::task::JoinHandle<std::io::Resu
 
 #[tokio::test]
 async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_ticket() {
-    let (client, peer) = unadmitted_peer().await;
-    let home = crate::testing::Home::new();
-    std::fs::write(
-        home.book(),
-        "[nodes.fixture]\nurl = \"ws://127.0.0.1:0/rpc\"\n",
-    )
-    .unwrap();
-    let (mut state, mut answers) = crate::testing::state(&home);
-    let key = MachineKey::from_book("fixture");
-    let node = client.node().id;
-    let context = state.admissions.admit(key.clone(), node).unwrap();
-    let binding = state
-        .saved_entries()
-        .await
-        .unwrap()
-        .into_iter()
-        .find(|(name, _)| name.as_str() == "fixture")
-        .unwrap()
-        .1;
-    assert!(
-        state
-            .clients
-            .insert(
-                "fixture".to_owned(),
-                crate::Connected::new(client, Vec::new(), binding, context.clone())
-            )
-            .is_none()
-    );
-    let mut request = ask();
-    request.target.connection = Some(context.clone());
-    let other_node = state
-        .admissions
-        .admit(key.clone(), NodeId::random())
+    within(async {
+        let (client, peer) = unadmitted_peer().await;
+        let home = crate::testing::Home::new();
+        std::fs::write(
+            home.book(),
+            "[nodes.fixture]\nurl = \"ws://127.0.0.1:0/rpc\"\n",
+        )
         .unwrap();
-    let stale_epoch = state.admissions.admit(key, node).unwrap();
-    for connection in [None, Some(other_node), Some(stale_epoch)] {
-        let mut wrong = request.clone();
-        wrong.target.connection = connection;
-        state.prompt_index(wrong).await;
-        let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
+        let (mut state, mut answers) = crate::testing::state(&home);
+        let key = MachineKey::from_book("fixture");
+        let node = client.node().id;
+        let context = state.admissions.admit(key.clone(), node).unwrap();
+        let binding = phase("prompt fixture binding", state.saved_entries())
+            .await
+            .unwrap()
+            .into_iter()
+            .find(|(name, _)| name.as_str() == "fixture")
+            .unwrap()
+            .1;
+        assert!(
+            state
+                .clients
+                .insert(
+                    "fixture".to_owned(),
+                    crate::Connected::new(client, Vec::new(), binding, context.clone())
+                )
+                .is_none()
+        );
+        let mut request = ask();
+        request.target.connection = Some(context.clone());
+        let other_node = state
+            .admissions
+            .admit(key.clone(), NodeId::random())
+            .unwrap();
+        let stale_epoch = state.admissions.admit(key, node).unwrap();
+        for connection in [None, Some(other_node), Some(stale_epoch)] {
+            let mut wrong = request.clone();
+            wrong.target.connection = connection;
+            phase("wrong admission refusal", state.prompt_index(wrong)).await;
+            let crate::Event::PromptIndex(answer) = phase("prompt metadata answer", answers.recv())
+                .await
+                .unwrap()
+            else {
+                panic!("wrong reply");
+            };
+            assert_eq!(answer.result, Err(IndexProblem::Connection));
+        }
+        let mut wrong_alias = request.clone();
+        wrong_alias.target.machine = MachineKey::from_book("another-alias");
+        phase("wrong alias refusal", state.prompt_index(wrong_alias)).await;
+        let crate::Event::PromptIndex(answer) = phase("prompt metadata answer", answers.recv())
+            .await
+            .unwrap()
+        else {
             panic!("wrong reply");
         };
         assert_eq!(answer.result, Err(IndexProblem::Connection));
-    }
-    let mut wrong_alias = request.clone();
-    wrong_alias.target.machine = MachineKey::from_book("another-alias");
-    state.prompt_index(wrong_alias).await;
-    let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
-        panic!("wrong reply");
-    };
-    assert_eq!(answer.result, Err(IndexProblem::Connection));
-    state.prompt_index(request.clone()).await;
-    let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
-        panic!("wrong reply");
-    };
-    assert_eq!(answer.ask.ticket, request.ticket);
-    assert_eq!(answer.ask.target, request.target);
-    assert_eq!(answer.result, Err(IndexProblem::Unsupported));
-    drop(state);
-    assert_eq!(
-        peer.await.unwrap().unwrap_err().kind(),
-        std::io::ErrorKind::UnexpectedEof
-    );
+        phase(
+            "protocol admission refusal",
+            state.prompt_index(request.clone()),
+        )
+        .await;
+        let crate::Event::PromptIndex(answer) = phase("prompt metadata answer", answers.recv())
+            .await
+            .unwrap()
+        else {
+            panic!("wrong reply");
+        };
+        assert_eq!(answer.ask.ticket, request.ticket);
+        assert_eq!(answer.ask.target, request.target);
+        assert_eq!(answer.result, Err(IndexProblem::Unsupported));
+        drop(state);
+        assert_eq!(
+            phase("unadmitted peer joined", peer)
+                .await
+                .unwrap()
+                .unwrap_err()
+                .kind(),
+            std::io::ErrorKind::UnexpectedEof
+        );
+    })
+    .await;
 }

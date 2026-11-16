@@ -1,9 +1,13 @@
 use super::*;
+use crate::testing::{phase, within};
 
 #[tokio::test]
 async fn a_silent_machine_settles_as_a_typed_timeout() {
-    let result = bounded(std::future::pending(), std::time::Duration::ZERO).await;
-    assert_eq!(result, Err(Refusal::TimedOut));
+    within(async {
+        let result = bounded(std::future::pending(), std::time::Duration::ZERO).await;
+        assert_eq!(result, Err(Refusal::TimedOut));
+    })
+    .await;
 }
 
 #[test]
@@ -23,25 +27,31 @@ fn peer_error_text_cannot_enter_the_palette_failure() {
 
 #[tokio::test]
 async fn unknown_admission_settles_the_original_query_without_a_client() {
-    let home = crate::testing::Home::new();
-    let (state, mut events) = crate::testing::state(&home);
-    state.search(Ask {
-        machine: "fixture".to_owned(),
-        connection: None,
-        ticket: 19,
-        request: SearchMessages {
-            query: "needle".parse().unwrap(),
-            session: None,
-            before: None,
-            limit: None,
-        },
-    });
-    let Event::Searched(answer) = events.recv().await.unwrap() else {
-        panic!("wrong event");
-    };
-    assert_eq!(answer.machine, "fixture");
-    assert_eq!(answer.ticket, 19);
-    assert_eq!(answer.result, Err(Refusal::NotConnected));
+    within(async {
+        let home = crate::testing::Home::new();
+        let (state, mut events) = crate::testing::state(&home);
+        state.search(Ask {
+            machine: "fixture".to_owned(),
+            connection: None,
+            ticket: 19,
+            request: SearchMessages {
+                query: "needle".parse().unwrap(),
+                session: None,
+                before: None,
+                limit: None,
+            },
+        });
+        let Event::Searched(answer) = phase("unadmitted search result", events.recv())
+            .await
+            .unwrap()
+        else {
+            panic!("wrong event");
+        };
+        assert_eq!(answer.machine, "fixture");
+        assert_eq!(answer.ticket, 19);
+        assert_eq!(answer.result, Err(Refusal::NotConnected));
+    })
+    .await;
 }
 
 fn request(context: ConnectionContext) -> Ask {
@@ -82,7 +92,7 @@ fn admit(state: &mut State, client: vessel_client::NodeClient) -> crate::Connect
 
 #[tokio::test]
 async fn retiring_before_first_poll_sends_no_search_frame() {
-    use crate::testing::{Home, peer, phase, state, within};
+    use crate::testing::{Home, peer, state};
     within(async {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
@@ -103,7 +113,7 @@ async fn retiring_before_first_poll_sends_no_search_frame() {
 
 #[tokio::test]
 async fn retirement_fences_an_in_flight_search_reply() {
-    use crate::testing::{Home, peer, phase, state, within};
+    use crate::testing::{Home, peer, state};
     within(async {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
