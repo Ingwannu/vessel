@@ -380,3 +380,11 @@ declarations. The generation run's stale-file failure is retained. Freshness
 of the committed artifact and all enclosing checks remain for the one values
 package gate; generated DTOs do not activate the staged methods or a service
 consumer.
+
+The first enclosing values gate failed its pinned Admin-method list: the
+three service-settings methods already declared as Admin were omitted from
+that test's expected set. The correction appends exactly those three names,
+retaining every existing entry and the full equality assertion. No method
+scope or admission policy changes. The original failed gate remains recorded;
+it passed committed-wire freshness, all web checks and every other Rust case.
+A narrow proto check precedes the changed-source enclosing gate correction.
