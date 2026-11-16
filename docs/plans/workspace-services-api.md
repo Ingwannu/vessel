@@ -471,3 +471,18 @@ method rows precede the service rows, which remain staged and unassigned.
 Client module registration and the browser refusal test retain the incoming
 entries and add only the service entries. No whole gate was running during
 the merge; earlier narrow runs retain their exact commits and scopes.
+
+### Forwarding policy module boundary
+
+[Decision Log]
+- Purpose: preserve a readable envelope model and the file budget as new
+  methods are classified, without changing forwarding policy.
+- Existing assets: `Method::forwardable` is already the exhaustive shared
+  policy used by callers; a second registry or wrapper would duplicate it.
+- Alternatives: increasing the file exception or creating a service-only
+  policy would hide growth or split one admission decision across owners.
+- Choice: move the existing implementation byte for byte into
+  `forward/policy.rs`, preserving its public method and every branch.
+- Reason: envelope values and per-method admission have different reasons
+  to change. The original wire types stay in `forward.rs`.
+- Effects: no new dependency, behavior, expectation, field or protocol number.
