@@ -1900,3 +1900,14 @@ caps portable_pty at warn after its user filter to suppress inherited Windows
 environment trace records. See `plans/wp-command-diagnostics.md` for why both
 boundaries are required and their execution limits. The test-only log and
 tracing-subscriber edges exercise the actual bridge without a second logger.
+
+## Voice settings values carrier
+
+vessel-proto::voice contains only the canonical VoiceSettings/SetVoice metadata
+and bounded independent recognition/synthesis options. It reuses dictation's
+existing omission/reset visitor, validated metadata and secret references;
+readers receive key presence only. The pending None constant grants no runtime
+or protocol capability. This carrier adds no node settings field, persistence,
+RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
+through a typed fake until the real node field/adapter lands. See
+`docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
