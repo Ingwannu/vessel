@@ -31,7 +31,7 @@ Copy/find retain full canonical assistant text; pacing changes its shown prefix.
 | Mounted text reveal | `view/src/timeline/text_reveal.rs`, conversation `pacing.rs` | Product assistant/open-reasoning prefix, first-sight hydration, grapheme safety, reduced-motion/find bypass and weak bounded frame wake. Source-scoping regression executed at4b591a90; later changes remain separately bounded. |
 | Spoken prompt display | `prompt_presentation.rs`, `searchable.rs`, conversation `{bubbles,timeline}.rs` | Product source uses one borrowed display slice for user bubble, local search, copy and rewind text. View strict/tests executed at6d8c0cd8; canonical body is untouched. |
 | Submission ledger | `view/src/timeline/pending_messages.rs` | Pure cap32 typed preparation only. Legacy Tail is still the sole product optimistic path. |
-| Resident ownership | conversation `resident{.rs,/}` | Literal cfg(test) preparation over W12's sole registry, actual Area snapshot move and Clone context Seat. Product Copy Seat/Place/globals still require coordinated conversion. |
+| Resident ownership | conversation `resident{.rs,/}` | Literal cfg(test) preparation over W12's sole registry and actual Area snapshot move. The isolated Clone row producer has exact narrow proof; this full receiving consumer adds separate scoped control identity. Product admission/storage/follow/global removal still require W12's coordinated cutover. |
 
 Paths in the table are relative to `spikes/native/` unless a full prefix appears.
 Words use existing Fluent EN/KO catalogs, including approved Chat reasoning and
@@ -56,7 +56,7 @@ Kit attribution/About registries must list both direct dependencies.
 
 | Immutable source | Execution | Limit |
 |---|---|---|
-| Main e66d658b, base13 | App155/0/2 + Kit255/0/0 =410/0/2, run `wp-timeline-models-20261116T003003Z-e66d658b` | Actual current-source App/Kit execution; no current all-crate strict, View-only rerun, whole gate or UI/V4 inferred. |
+| Main e66d658b, base13 | App155/0/2 + Kit255/0/0 =410/0/2, run `wp-timeline-models-20261116T003003Z-e66d658b` | Historical exact-source App/Kit execution; newer base, scope and refusal-policy changes are excluded. No current all-crate strict, whole gate or UI/V4 inferred. |
 | Portable body8737a401d | Executable tree equals tested289cf10a except why-doc; strict View/Kit/App0 and full tests1530/0/2, runs `wp-timeline-narrow-20261116T003002Z-289cf10a` and `wp-timeline-state-tests-20261116T003002Z-289cf10a` | Actual same-byte format/warm-cache and empty-patch regressions pass. V1 row276 FINAL bounded STAGED SOURCE/requested3crate NARROW PASS; lead-first handoff. Literal staging remains and no A8 activation is claimed. |
 | Portable body5c9636a0 | Exact View/Kit/App all-target strict0; actual App `tool_body` tests3/0/0, runs `wp-timeline-narrow-20261115T180704Z-5c9636a0` and `wp-timeline-state-tests-20261115T182140Z-5c9636a0` | V1 row276 returned two static P2s beyond these tests: equal-byte format cache alias and empty-patch precedence. This is historical returned source; the base13 successor execution is listed above and adoption still awaits its bounded recheck. |
 | 5e7c1a14 | View/Kit/App all-target strict rc0, run `wp-timeline-state-tests-20261115T180046Z-5e7c1a14` | Base9 union including glyph inventory and diff metadata cache compiles strictly. Later borrowed-failure signature6729c607 is excluded; App/Kit execution remains queued. |
@@ -66,13 +66,16 @@ Kit attribution/About registries must list both direct dependencies.
 | 2b806402..99646e29 resident packet | V1 row252 bounded STAGED source/requested narrow PASS | Exact4b8 all-target App strict0; prior7ae GPUI3/0/0, same predicate/test bodies with declaration moves only. Not exact4b8 runtime or full A7/product proof. |
 | f4c01f61 Markdown helper | Owner standalone Kit all-target strict0; all17 owned Rust blobs equal actuald068 Kit212/0/0 | Shared helper execution; not A7 host actions, root/image authority, UI or V1 package approval. |
 
-Current owner preparations are separate receiving unions on base13. Clone row
-Seat f264918c includes W4's exact clean companion; ordinary strict and populated
-resident tests are queued. View-only source2d008494 carries exact membership,
-canonical human chunk continuity and the borrowed prompt helper while keeping
-baseline search raw until the body renderer switches too. Syntax65c505f7 uses
-K's minimal shared adapter and CodeStyles with semantic output metadata; its
-strict/runtime are queued. No preparation is advertised as consumer-ready.
+Current receiving preparations use announced base14.3. The isolated Clone row
+Seat ec940634 includes W4's exact clean companion and executed locked App strict0
+and full App tests134/0/2. Its documentation-only successor a93b0e360 awaits V1
+row307 final review; those results do not cover this full A7 consumer. View-only
+source ebbee781 executed full View tests1144/0/0; two equivalent-arm strict lints
+are corrected in source6d23f2e9, whose current-base strict/tests are queued.
+Syntax072c19b9 executed App141/0/2 + Kit256/0/0; three mechanical strict lints are
+corrected in current-base f40bff00, awaiting its own strict/tests. The full A7
+Clone/scope/refusal-policy consumer9768aee2 has separate ordinary App strict and
+App/Kit execution queued. No source-only join is advertised as consumer-ready.
 
 Historical failed and canceled runs remain evidence of their exact sources.
 The body5c focused pass missed two static findings; current289 corrects both,
@@ -133,8 +136,9 @@ minimal packet; the complete A7 renderer still needs its final gate/captures/V4.
 ## Closing procedure
 
 Use the currently announced app line; preserve whole-gate freeze once started.
-Announced app base9 db42d9c5 includes the canonical standalone body vocabulary and
-S2 glyph inventory. Later published S2 rows make the preserved prefix100;
+Announced app base14.3 67637eb6 includes the canonical standalone body vocabulary,
+S2 glyph inventory and staged Core receiving producer. The preserved published
+glyph prefix is101, including Import;
 A7 appends only Wrench/Eye/MicVocal/Scissors after that prefix;
 the exhaustive drawing, license metadata and frozen prefix test remain intact.
 Local checks are rustfmt, static size/tokens/diff/import/doc scans and test-module
