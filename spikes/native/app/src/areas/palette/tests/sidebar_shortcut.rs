@@ -33,3 +33,24 @@ fn query_sidebar_action_uses_the_existing_keyboard_owner(cx: &mut TestAppContext
         assert_ne!((shell.sidebar_open, shell.sidebar_shown), before);
     });
 }
+
+#[gpui::test]
+fn root_help_tracks_actual_viewport_without_losing_pointer_palette(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    for (width, offered) in [(600.0, true), (599.0, false), (390.0, false), (600.0, true)] {
+        cx.simulate_resize(gpui::size(gpui::px(width), gpui::px(844.0)));
+        ready(cx);
+        update(&view, cx, |shell, _, _| {
+            assert!(
+                shell.areas.palette.is_open(),
+                "pointer center remains usable"
+            );
+            let shown = snapshot::project(shell)
+                .sections
+                .iter()
+                .flat_map(|section| &section.rows)
+                .any(|row| row.shortcut == Some(vessel_app_view::shortcuts::Action::Help));
+            assert_eq!(shown, offered, "help at actual viewport width {width}");
+        });
+    }
+}

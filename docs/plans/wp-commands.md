@@ -1044,3 +1044,10 @@ not an independently checked producer or a full F4 package handoff.
 A real-frame query/Enter regression and the actual-menu/capture fixture exercise
 this typed route. They are written but not executed yet; in particular they do
 not establish retained-hidden-opener visibility or OS input behavior.
+
+
+Availability re-audit confirms that the existing snapshot projection already
+filters the registered Help item using the actual keyboard-availability value.
+No second registration predicate is added. A real resize regression now checks
+600,599,390,600 widths while the pointer-opened palette stays open: Help must
+follow the shared boundary and return when wide again. Execution remains owed.
