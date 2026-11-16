@@ -98,6 +98,7 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
                         let page = &mut shell.areas.settings.devices.page;
                         page.target(Target::Online(first.machine().clone()));
                         let _change = page.bind(Some(first.clone()));
+                        grant(page, &first);
                         page.listing = Listing::Ready(vec![device()]);
                         page.choose_bound(&first, device().id).unwrap();
                         shell.areas.settings.devices.dialog.focus(window, cx);
@@ -120,6 +121,7 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
                     let old_intent = page.revoke_intent().unwrap();
                     page.cancel_revoke(&first, old_intent);
                     let _change = page.bind(Some(next.clone()));
+                    grant(page, &next);
                     page.listing = Listing::Ready(vec![device()]);
                     page.choose_bound(&next, device().id).unwrap();
                     page.revoke_intent().unwrap()
