@@ -31,9 +31,11 @@ impl Render for Probe {
         cx: &mut Context<'_, Self>,
     ) -> impl gpui::IntoElement {
         self.shell.update(cx, |shell, cx| {
+            let tokens = Tokens::of(Scheme::Dark);
             div()
                 .size_full()
-                .children(render(shell, &Tokens::of(Scheme::Dark), window, cx))
+                .children(render(shell, &tokens, window, cx))
+                .children(crate::areas::import::render(shell, &tokens, window, cx))
                 .into_any_element()
         })
     }
@@ -468,25 +470,30 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
 }
 
 #[gpui::test]
-fn first_root_enter_opens_settings_without_an_unowned_creation_row(cx: &mut TestAppContext) {
+fn first_root_enter_opens_owned_import_without_an_unowned_creation_row(cx: &mut TestAppContext) {
     let (view, cx) = harness(cx);
-    update(&view, cx, |shell, window, cx| {
+    let machine = update(&view, cx, |shell, window, cx| {
         shell.route = Route::Draft;
         shell
             .areas
             .draft
             .composer
             .set_text("unsent draft", window, cx);
+        shell.areas.draft.machine.clone()
     });
     cx.run_until_parked();
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     update(&view, cx, |shell, _window, cx| {
         assert!(!shell.areas.palette.is_open());
-        assert_eq!(shell.route, Route::Settings);
-        assert_eq!(shell.areas.settings.section, Section::General);
+        assert_eq!(shell.route, Route::Draft);
+        assert_eq!(shell.areas.draft.machine, machine);
         assert_eq!(shell.areas.draft.composer.text(cx), "unsent draft");
     });
+    assert!(
+        cx.debug_bounds("history-cancel").is_some(),
+        "the real owner modal is drawn"
+    );
 }
 
 #[gpui::test]

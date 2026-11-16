@@ -8,6 +8,7 @@
 mod commands;
 mod entry;
 mod git_source;
+mod import_source;
 mod layout_source;
 mod messages;
 mod navigation;
@@ -67,6 +68,7 @@ pub(crate) struct PaletteArea {
     sources: vessel_app_view::palette::registration::Registry<source::Command>,
     page: Option<vessel_app_view::palette::pages::ChoiceLocation>,
     root_help: Option<vessel_app_view::palette::registration::Owner>,
+    root_import: Option<vessel_app_view::palette::registration::Owner>,
     keyboard_available: bool,
     git: git_source::State,
     layout: layout_source::State,
@@ -105,6 +107,7 @@ impl PaletteArea {
             sources: vessel_app_view::palette::registration::Registry::default(),
             page: None,
             root_help: None,
+            root_import: None,
             keyboard_available: false,
             git: git_source::State::default(),
             layout: layout_source::State::default(),
@@ -127,6 +130,7 @@ impl Shell {
             self.areas.palette.cursor.reset();
         }
         source::install_help(self, window, cx);
+        import_source::install(self, cx);
     }
 
     /// The toggle uses the same focus-restoring close path as Escape.
@@ -164,6 +168,7 @@ impl Shell {
         }
         palette.search.focus(window, cx);
         source::install_help(self, window, cx);
+        import_source::install(self, cx);
         cx.notify();
     }
 
@@ -172,6 +177,9 @@ impl Shell {
         git_source::close(self);
         layout_source::close(self);
         if let Some(owner) = self.areas.palette.root_help.take() {
+            self.remove_command_source(&owner, cx);
+        }
+        if let Some(owner) = self.areas.palette.root_import.take() {
             self.remove_command_source(&owner, cx);
         }
         let palette = &mut self.areas.palette;

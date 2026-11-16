@@ -1090,3 +1090,25 @@ first-use parity before the owner/V1 decision and actual native verification.
   alternatives, bounds and every prior assertion. A pure sequential operation
   case and real menu Clear/Reset regression check the behavioral distinction.
   Changed View/App narrow checks are recorded with the same-row correction.
+
+
+## Owned Import root contribution
+
+W2's checked opener arrived in the announced line. The isolated shared Import
+role96e14842 plus docs0e8e6a17 then received V1 source/Kit narrow and coordinator
+source-sheet comparison approval. Only those five owned paths are merged here,
+retaining the complete receiving inventory prefix and all existing vectors.
+
+The import-session source uses group0/rank2 and import/session/terminal aliases,
+with words.history().title(), Glyph::Import and no keyboard binding. It shares
+open/close/language registration and generation cleanup with root Help. The
+existing callback dispatcher closes the center before calling open_import; it
+adds no host resolver, import operation, popup or automatic session opener.
+The shared command row already paints leading vectors in foreground_muted,
+independent of its parent hover foreground; no local color override is added.
+
+An actual owner-modal regression replaces the obsolete first-root Settings
+expectation: once the rank2 Import action exists, first Enter must open that
+owned modal while preserving draft route, host selection and unsent input.
+Native first-use capture and the receiving source checks remain separate owed
+evidence; library/source-sheet agreement alone is not native UI/OS approval.
