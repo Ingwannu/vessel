@@ -53,3 +53,9 @@ Local format, native size, tokens and diff checks pass. VM compilation/runtime
 and source review remain required before a consumer handoff. No native Footer
 capture, hover/pressed pixel parity, tooltip, focus or accessibility approval is
 claimed by these model and hitbox fixtures.
+
+The first exact receiving strict run,
+`wp-layout-core-union-20261116T011730Z-4bce2bd5`, reached Kit library/test checking
+and failed one documentation lint: `ActivityIndicator` needed backticks. The
+correction changes that comment only; no tests ran and no renderer, handler or
+assertion is changed. A successful corrected check is still owed.
