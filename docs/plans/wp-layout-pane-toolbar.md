@@ -43,9 +43,28 @@ The new/close controls retain their existing behavior. A single-pane layout no
 longer offers a meaningless pane maximize control; two-pane maximize displays
 the shared selected highlight and switches to the panel restore glyph/label.
 
-The authored GPUI cases exercise actual header paint bounds/click dispatch and
-retained original-selection refusal against the same real layout book. They
-have not executed. Receiving App strict/runtime are owed, followed by source
-review and the lead's receiving gate. No native screenshots, source tab-rail
-parity, shortcut badges, accessibility, OS/IME, resource or effect proof follows
-from existing shared-control checks.
+The GPUI cases exercise actual header paint bounds/click dispatch and direct
+invocation of a captured `PaneAction` after the original selection changed,
+against the same real layout book. The latter is not an actual retained UI
+callback/visit proof. The pinned UI X example is exit-focus, not source evidence
+of the existing empty-pane close behavior. No native screenshots, source
+tab-rail parity, shortcut badges, accessibility, OS/IME, resource or effect proof
+follows from shared-control checks.
+
+## Executed affected checks
+
+Exact `bf2a52e6f4eefedb5f4fa85a705fc7ed1b81e91f` completed requested locked
+App all-target Clippy `-D warnings` in
+`wp-layout-core-union-20261116T031857Z-bf2a52e6`, fonts/cargo0; actual Kit/App
+Checking, View/Link cached. Same-head run
+`wp-layout-core-union-20261116T032318Z-bf2a52e6` compiled View/Kit/Link/App and
+passed all 40 selected App BIN `areas::layout::` cases, 0 failed/ignored, 146
+filtered out. All three new header cases passed explicitly. The compact case
+measures the actual one-button row and also asserts that compact Tooltips install
+no anchor; the pointer case uses its actual shared trigger measurement.
+
+The earlier `f0f59a05` strict run also passed, but its compact fixture had not
+been corrected or executed. The new test marker/measurement changes no product
+header geometry or action. This docs-only receipt adds no native delta and is
+not a new-commit execution claim. Final review and lead receiving gate remain
+separate, with the direct split/order/menu/badges and full-rail gaps above.
