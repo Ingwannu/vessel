@@ -61,6 +61,10 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
+            ask,
+            vessel_app_view::history::Problem::Unsent,
+        )),
         Command::RetireConnection(_tag) => return Settle::Ignore,
 
         Command::PromptIndex(ask) => {

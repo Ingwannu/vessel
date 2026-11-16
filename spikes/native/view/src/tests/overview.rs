@@ -74,3 +74,30 @@ fn a_version_badge_has_one_v_and_none_when_blank() {
     assert_eq!(NodeVersion::new(" v2.3 ").label().as_deref(), Some("v2.3"));
     assert_eq!(NodeVersion::new("  ").label(), None);
 }
+
+#[test]
+fn rename_button_waits_for_a_nonblank_change_and_reenables_after_refusal() {
+    let mut dialog = Editing::open(name("laptop"));
+    for typed in ["", " \t\n", "laptop", " laptop "] {
+        assert!(!dialog.rename_enabled(typed), "idle draft {typed:?}");
+    }
+    assert!(dialog.rename_enabled("studio"));
+    let edit = Edit::Rename {
+        from: name("laptop"),
+        to: name("studio"),
+    };
+    dialog.sent(edit.clone());
+    assert!(
+        !dialog.rename_enabled("studio"),
+        "waiting cannot submit twice"
+    );
+    assert!(!dialog.answered(&edit, &Err(Failure::Write)));
+    assert!(
+        dialog.rename_enabled("studio"),
+        "failed draft can be retried"
+    );
+    assert!(
+        !dialog.rename_enabled(""),
+        "refusal does not enable an empty draft"
+    );
+}

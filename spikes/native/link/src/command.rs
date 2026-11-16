@@ -14,7 +14,6 @@
 use super::{
     Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::Delivery;
 use vessel_proto::{
     AgentCommand, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
@@ -23,6 +22,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Scoped own-history discovery and import.
+    History(crate::history::Ask),
     /// Read one consistent prompt-metadata page for the outline.
     PromptIndex(vessel_app_view::prompt_index::IndexAsk),
     /// A request for one machine’s Agents settings.
