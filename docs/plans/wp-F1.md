@@ -8,23 +8,24 @@ node schedule/store/CLI contract remains the base; a catalog entry is not a clai
 that its native screen is built. Native View decides, Link calls, App draws, and
 Kit owns shared controls. The screen must never contain fixture schedules.
 
-Current announced app base10 3e7820e3 is merged at4cbf09d32. It includes
-base9b dialog actions, protocol25 registry and the announced resident/diff seams. The source includes canonical FieldId,
-SearchField, multiline identity/minimum and picker admission through their
-announced line; later Code/MD textarea/Form/select/Empty and ordered preference
-save extensions remain F1-owned unreviewed source. No final F1 whole gate,
-export or first-use captures have run. The private evidence record retains
-older-source red checks and narrowly scoped successful producer results.
+Current announced app base13 2ebeedf9 is merged atece222dd7. Canonical L
+plain-cache tuple generation replaces the older known-red Shape adapter; all
+five producer paths match the announced line. Field rendering lives in the
+lead's presentation/styles children, with F1's additive Code/MD textarea opt-ins
+on that one renderer. FieldId, SearchField, identified multiline/minimum and
+picker admission remain canonical. Form/select/Empty and ordered preference
+save extensions are still unreviewed F1 source. No final F1 whole gate, export
+or first-use captures have run. Private evidence retains old red checks and
+narrowly scoped successful producer results.
 
-The separate node known-Ended edit producer d26b0b775 has V3 bounded
-SOURCE/NARROW PASS (strict0,41/0/0). Receipt059f1dab is in integrator batch17
-trial b68ae267b; the combined gate/head is not announced green. App Ended edit
-permission stays refused until that qualified combined contract arrives.
+The separate known-Ended node producer d26b0b775 has V3 bounded SOURCE/NARROW
+PASS (strict0,41/0/0) and is now included through nodeed4cd137 in App base13.
+The separate App adaptation5451345f4 offers known Ended Edit/Delete without
+reactivation and suppresses future-execution preview claims; its new-source
+consumer checks remain owed. Node gate56b retains the named intermittent
+startSession/new-route case; its scope is not rewritten as wholly green.
 Per-run isolation remains a separate unimplemented dependency on canonical
 provision/receipt/archive runtime; no protocol/schema number is claimed here.
-The shared translation generator currently blocks combined View/App checks:
-L confirmed the generated Root child-prefix lint and owns its correction.
-No local generator workaround or borrowed producer pass is used.
 
 The list uses the existing pure Page model and correlated, bounded Link hub.
 PreparedRow/Clock format authoritative node facts outside painting. UI state
@@ -64,10 +65,13 @@ an explicitly assigned extension changes them.
 - Existing source, final package verification still owed: View cadence/authority/
   history/editor rules; aggregate list model;
   bounded correlated list/pause/resume/run/delete calls; reconnect notice.
-- Prepared but not yet a product screen: relative/calendar metadata and target
-  presentation, list drawing and route/sidebar delegation.
-- Next frame: editor/preview/history states and typed requests, fixture cases
-  only in tests, then actual calls and a screen for every supported state.
+- Implemented source, not accepted product proof: relative/calendar metadata,
+  target presentation, list route/sidebar delegation, editor/preview/history
+  models and drawing, node calls, authority/correlation and preference ordering.
+- Next verification: corrected base13 changed-crate strict/tests, then final
+  package gate/export and actual screens for each supported state. History's
+  session lookup candidate remains unopened until the canonical admitted opener
+  and delivery contract can be consumed with original context/visit/run identity.
 - Node gap assigned to F1: per-run local/worktree isolation, using W11 workspace
   identity/provision and W21 archive contracts. App option is hidden until that
   node implementation exists. Quality B's field requirement gates it with one
