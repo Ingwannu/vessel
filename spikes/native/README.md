@@ -66,7 +66,7 @@ resolved-graph proof and lock invariance are in
 
 | Names | Crate | Where | Why |
 | --- | --- | --- | --- |
-| `vessel_rpc` | `vessel-app-link` | only `src/testing/peer.rs` | Explicit-testing framing belongs to the one fixture peer, never production device calls. |
+| `vessel_rpc` | `vessel-app-link` | only `src/testing/peer.rs`, `src/history/peer.rs` | Scenario framing uses the shared testing peer; the existing History unit peer remains allowed. Neither is a production connection path. |
 | `gpui_platform` | `vessel-app` | only `src/main.rs`, `src/web.rs` | The desktop's and the browser's entry points pick the platform; screens draw through GPUI and the kit. |
 | `std::fs`, `std::net`, `std::process`, `std::env`, `std::thread`, `tokio` | `vessel-app-view` | only `build.rs`, `build_support/` | What a screen means is computed, not fetched; the build script reads the catalogs at compile time. |
 
