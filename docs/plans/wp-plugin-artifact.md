@@ -393,3 +393,12 @@ statement terminator in the new regression closure. Adding that semicolon does
 not change its call, assertion or guard. The817 functional job remains the exact
 semantic-source test; the later style-only head requires its own strict result.
 No failed receipt is discarded or represented as a pass.
+
+Before the quota stop, exact817 functional execution completed43/0/0 with334
+filtered, including the new intermediate-parent regression in its named case;
+all four prerequisite/cargo steps pass. Exactbbb674155 all-target locked/offline
+strict then passes. The sole Rust delta817-to-bbb is that unit semicolon; the
+functional result is817 evidence, not a claim that43 cases ran onbbb. Raw/spec/
+step hashes are checked. This completes the current slice's narrow obligations
+only. Its source review is pending, all code remains staged, and none of the
+candidate/root/installation/platform limitations is removed.
