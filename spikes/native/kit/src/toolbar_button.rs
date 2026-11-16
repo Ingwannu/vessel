@@ -83,14 +83,8 @@ impl ToolbarButton {
         tokens: &crate::Tokens,
     ) -> Self {
         let label = label.into();
-        let element = crate::icon_chrome::viewport_frame(
-            id,
-            label.clone(),
-            glyph,
-            config,
-            presence,
-            tokens,
-        );
+        let element =
+            crate::icon_chrome::viewport_frame(id, label.clone(), glyph, config, presence, tokens);
         let config = match presence {
             crate::icon_chrome::Presence::Shown => config,
             crate::icon_chrome::Presence::Hidden => config.disabled(),
