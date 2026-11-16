@@ -120,3 +120,10 @@ clear, A-B-A, rejected stale async commit, actual enclosing-list reveal, native
 partial/multiblock literal selection, and actual retained run overlap/update/
 clear under both appearance settings. They are authored assertions, not passed
 execution evidence. Product A7 remains unchanged and its caller adoption held.
+
+
+The component compatibility facade selectively re-exports existing text types.
+The kit imports the additive stamp/support types directly from its already
+owned gpui-base dependency, while its existing TextView/State facade remains
+unchanged. No new dependency or facade patch is needed. This import boundary was
+corrected during source preflight before any engine/candidate job.

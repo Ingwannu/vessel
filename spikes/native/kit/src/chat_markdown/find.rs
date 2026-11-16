@@ -1,6 +1,7 @@
 //! Cache actual range acceptance for the exact retained text owner and palette.
 use super::{FindMarks, FindPalette};
-use gpui_component::text::{RangeHighlightStamp, TextViewState};
+use gpui_base::text::RangeHighlightStamp;
+use gpui_component::text::TextViewState;
 
 /// A successful complete set, rather than an external request key alone.
 #[derive(Clone)]
@@ -43,7 +44,7 @@ impl AppliedMark {
 mod tests {
     use super::*;
     use gpui::{AppContext as _, TestAppContext, px};
-    use gpui_component::text::RenderedRangeSupport;
+    use gpui_base::text::RenderedRangeSupport;
 
     #[gpui::test]
     fn refused_marks_retry_and_equal_keys_do_not_survive_reparse_or_palette_changes(
