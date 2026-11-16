@@ -727,3 +727,14 @@ opening the host list, closed with the manager; the pencil opening the edit
 view with the header back and the footer and without the header search, ten
 20-point swatches, a swatch recolouring the draft, and the header back
 returning to the list.
+
+Checks (2026-11-16, build VM; nothing compiled locally): Kit leaf
+backend/m12-dialog-header-back-kit strict header-back-20261116T074804Z-4f3f0968 all 0,
+its tests (`-- dialog::`) 20/0; consumer head df5ab068 strict
+label-body-2-20261116T075415Z-df5ab068 (fonts, fmt, quality, whole native clippy 0),
+tests label-body-narrow-20261116T075416Z-df5ab068 (`-p vessel-app -p vessel-app-kit
+-p vessel-app-view -- areas::labels dialog:: localization`) 63/0, export
+label-header-search-export-20261116T075419Z-df5ab068 on the shared root fleet base12.
+The host filter's dot follows the connection (Paseo's `HostStatusDot`), so a host
+without the label contract still shows connected. Captures went to the
+coordinator; the listing, filter, editing views came from the capture-only build.
