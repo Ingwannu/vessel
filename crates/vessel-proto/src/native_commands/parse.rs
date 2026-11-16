@@ -1,10 +1,10 @@
-use crate::text::ecmascript_space as space;
 //! Reference codex-app-server-agent.ts:226-242,4125-4141,5166-5189.
 //! An advertised typed kind is required; parsing alone grants no capability.
 
 use super::{
     GoalIntent, GoalObjective, GoalObjectiveError, NativeCommandIntent, NativeCommandKind,
 };
+use crate::text::ecmascript_space as space;
 
 /// Invalid or mismatched intent must not fall back to sending a model prompt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -64,4 +64,3 @@ impl NativeCommandIntent {
 pub(super) fn trim(text: &str) -> &str {
     crate::trim_ecmascript(text)
 }
-
