@@ -301,11 +301,11 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = setup::runtime(config, loader, setup.private_dir.clone());
+    let stop = CancellationToken::new();
+    let runtime = setup::runtime(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
-    let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();

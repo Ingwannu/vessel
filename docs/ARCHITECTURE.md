@@ -1877,3 +1877,10 @@ ordering is preserved without canceled unsent registrations. Public client
 APIs and frame/protocol shapes stay unchanged. Already admitted transport
 bytes and remote side effects remain outside retraction; post-admission
 Cancel is still best-effort. This adds no crate dependency or voice activation.
+
+`vessel-session::LaunchAdmission` is a read-only clone of the runtime's existing
+shutdown token and Node's original early-stop token. Its one predicate is shared
+by final structured/terminal spawn and external preparation observers; it grants
+no permission or current-run authority. The Node factory lives beside setup so
+this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
+this standalone prerequisite (ADR 0064 and launch-admission plan).

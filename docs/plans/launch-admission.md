@@ -26,3 +26,21 @@ ownership order, not claims that Paseo has the same API.
 
 Resume point: factory relocation is source-only; admission implementation,
 actual held-lookup regressions, remote strict/runtime checks and review follow.
+
+The implemented API is `vessel_session::LaunchAdmission` with private source
+fields, `check() -> Result<(), SessionError>` and `cancelled().await`.
+`SessionRuntime::launch_admission()` clones the actual sources; Node's runtime
+factory supplies the original early-stop token through `with_admission`.
+The factory token regression is synchronous and starts no task or process.
+Both real held-lookup modes and the positive-control fake case use the same
+unchanged `ADMISSION_CASE_BUDGET`, preparation-aware `within` and named phase
+waits. Failure closes the existing owners; abandoning the lookup gate refuses
+before any fake spawn. Normal and unexpected-success paths still settle the
+owned durable stream and runtime. No new task/reader quota or physical-capacity
+receipt is introduced.
+
+Resume point: implementation is source-only. Remote Session/Node strict and
+actual admission tests are the scoped prerequisite check set; no prior common
+Settings/SQL result is used as proof. Recovery and kept-version-work consumers
+remain unqualified. Real agents, other operating systems and service-account
+behavior are not exercised by these isolated fixtures.
