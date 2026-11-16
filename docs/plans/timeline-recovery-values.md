@@ -38,11 +38,13 @@ Full rich fields/ACK/receipts/notice/creation/native transport and UI activation
 remain held. Moved command-echo event tests stay on the full owner branch and
 cannot be claimed from this values-only test set.
 
-## Complete source-blob manifest
+## Original complete source-blob manifest (3f checkpoint)
 
 Source owner checkpoint: 84cde8e58, with the unused-qualification correction
 shared with the owner branch. Each complete file below is copied unchanged,
-including its remaining pure tests. Export/UUID wiring is receiving-only.
+including its remaining pure tests at that checkpoint. Export/UUID wiring is
+receiving-only. Later generic whitespace consolidation is separately documented
+in timeline-text-values.md and does not rewrite this historical manifest.
 
 | Path | SHA-256 |
 | --- | --- |

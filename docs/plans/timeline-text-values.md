@@ -29,3 +29,11 @@ Before consumption: exact changed-source strict, pure tests and root vesseld
 build, bounded source review and checked integrator adoption. No priority is
 requested. This adds no wire type/field/method, status, Store/schema, runtime,
 configuration, positive action or app dependency.
+
+## Consolidated complete-source manifest
+
+| Path | SHA-256 |
+| --- | --- |
+| crates/vessel-proto/src/text.rs | e1ad4341a33c9b9e3cf550d286f51c1fd6fdfd29e253679b7861218857890d27 |
+| crates/vessel-proto/src/native_commands/parse.rs | 8e57cef5ddda0f61dc8272854feb96648161a33fbd061d24ef857417543a92e0 |
+| crates/vessel-proto/src/workspace/project_text.rs | 2ab304418af5427b43b96c0822dbdce57ed2253c36dc36d7e5ce04bd23172cab |
