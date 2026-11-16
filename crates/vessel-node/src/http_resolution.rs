@@ -15,7 +15,7 @@
 //!   quota, cache, retry or fallback of its own.
 //! - Cost: the boxed future and iterator are reqwest's, not ours; a copy of
 //!   the bounded result (at most `MAX_RESOLVED_ADDRESSES`) is made per lookup.
-//! - Consumers: the usage client (limits/dns.rs). Dictation and NodeLink wire
+//! - Consumers: the usage client (`limits/dns.rs`). Dictation and `NodeLink` wire
 //!   their own scopes on the same node-root budget when their owners land.
 use std::net::SocketAddr;
 use vessel_relay::resolution::{HostName, ResolutionHandle, ResolutionPort};
