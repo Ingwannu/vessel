@@ -110,6 +110,19 @@ impl VirtualList {
         }
     }
 
+    /// Observe handled scroll input on the existing list. Replaces its prior
+    /// handler; install once for the owning view instance. This notification
+    /// does not promise that a clamped list moved.
+    ///
+    /// GPUI borrows the list state during this callback. Do not query or mutate
+    /// this `VirtualList` inside it; defer such work to the owner instead.
+    /// No row geometry or feature capability is inferred from the notification.
+    pub fn on_scroll(&self, mut handler: impl FnMut(&mut Window, &mut App) + 'static) {
+        self.state.set_scroll_handler(move |_event, window, cx| {
+            handler(window, cx);
+        });
+    }
+
     /// How many rows the list has.
     #[must_use]
     pub fn rows(&self) -> usize {
@@ -186,3 +199,7 @@ impl VirtualList {
         list(self.state.clone(), row).size_full()
     }
 }
+
+#[cfg(test)]
+#[path = "virtual_list_scroll_tests.rs"]
+mod scroll_tests;

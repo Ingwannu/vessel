@@ -36,6 +36,8 @@ pub enum Event {
 
     /// A saved-machine operation completed.
     Machines(machines::Answer),
+    /// Correlated code-source result with original weak delivery validity.
+    CodeSource(Box<workspace::code_source::Answer>),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
