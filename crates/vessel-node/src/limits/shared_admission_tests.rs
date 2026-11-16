@@ -1,5 +1,6 @@
 //! A source and saved-login reads must share the actual configured node's work floor.
 use super::*;
+use crate::limits::test_support::PhaseWait;
 use std::{
     path::Path,
     sync::{Arc, Condvar, Mutex},
@@ -74,12 +75,22 @@ async fn configured(
         format: RecordedUsageFormat::Vendor,
     };
     // Only configured actors are started: no default TCP listener, daemon or real login.
-    let limits = Limits::configured(&config, stop, tasks).await;
+    let limits = Limits::configured(&config, stop, tasks)
+        .phase("usage phase: Limits::configured")
+        .await;
     assert_eq!(
-        limits.policy(ExternalLookup::On).await.unwrap(),
+        limits
+            .policy(ExternalLookup::On)
+            .phase("usage assertion: limits.policy")
+            .await
+            .unwrap(),
         ExternalLookup::On
     );
-    let global = limits.observation().await.unwrap();
+    let global = limits
+        .observation()
+        .phase("usage phase: limits.observation")
+        .await
+        .unwrap();
     let _consent = limits
         .sources
         .set(
@@ -90,6 +101,7 @@ async fn configured(
             },
             &global,
         )
+        .phase("usage phase: limits .sources .set")
         .await
         .unwrap();
     limits
@@ -108,6 +120,7 @@ async fn queue(
             observed: None,
             reply,
         })
+        .phase("usage phase: limits .commands .send")
         .await
         .unwrap();
     response
@@ -140,27 +153,42 @@ fn configured_sources_and_saved_logins_cannot_admit_a_third_actual_reader() {
         .build()
         .unwrap();
     runtime.block_on(async {
-        tokio::time::timeout(MIXED_ADMISSION_BUDGET, async {
+        vessel_testkit::within(MIXED_ADMISSION_BUDGET, async {
             let root = tempfile::tempdir().unwrap();
             let gate = Arc::new(Gate::new());
             let _release = Release(Arc::clone(&gate));
             let stop = CancellationToken::new();
             let tasks = TaskTracker::new();
-            let limits = configured(root.path(), Arc::clone(&gate), stop.clone(), &tasks).await;
-            let global = limits.observation().await.unwrap();
+            let limits = configured(root.path(), Arc::clone(&gate), stop.clone(), &tasks)
+                .phase("usage phase: configured")
+                .await;
+            let global = limits
+                .observation()
+                .phase("usage phase: limits.observation")
+                .await
+                .unwrap();
             let sources = limits.sources.clone();
             let source = tokio::spawn(async move { sources.refresh_all(&global).await });
-            let entered = gate.entered.acquire().await.unwrap();
+            let entered = gate
+                .entered
+                .acquire()
+                .phase("usage phase: gate.entered.acquire")
+                .await
+                .unwrap();
             entered.forget();
             // The sole blocking worker is occupied by the real source callback.
             // One saved reader can queue with the other permit; another must refuse.
             let [a, b] = bindings(root.path());
-            let mut first = queue(&limits, a).await;
-            let mut second = queue(&limits, b).await;
-            let (first_finished, refused) = tokio::select! {
-                result = &mut first => (true, result.unwrap().unwrap()),
-                result = &mut second => (false, result.unwrap().unwrap()),
-            };
+            let mut first = queue(&limits, a).phase("usage phase: queue").await;
+            let mut second = queue(&limits, b).phase("usage phase: queue").await;
+            let (first_finished, refused) = async {
+                tokio::select! {
+                    result = &mut first => (true, result.unwrap().unwrap()),
+                    result = &mut second => (false, result.unwrap().unwrap()),
+                }
+            }
+            .phase("saved reader refusal while the physical source occupies capacity")
+            .await;
             assert!(matches!(
                 refused.state,
                 AccountLimitState::Failed {
@@ -170,16 +198,16 @@ fn configured_sources_and_saved_logins_cannot_admit_a_third_actual_reader() {
             ));
             gate.release();
             let _remaining = if first_finished {
-                second.await
+                second.phase("usage phase: second").await
             } else {
-                first.await
+                first.phase("usage phase: first").await
             }
             .unwrap()
             .unwrap();
-            let _source = source.await.unwrap();
+            let _source = source.phase("usage phase: source").await.unwrap();
             stop.cancel();
             let _closed = tasks.close();
-            tasks.wait().await;
+            tasks.wait().phase("usage phase: tasks.wait").await;
         })
         .await
         .expect("mixed source and saved-login work did not drain");

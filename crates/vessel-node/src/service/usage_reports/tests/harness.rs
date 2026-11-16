@@ -1,5 +1,6 @@
 //! Real NodeService/Guarded/actor with a real framed handshake, without assigning a pending RPC.
 use super::*;
+use crate::limits::test_support::PhaseWait;
 use std::{
     num::NonZeroUsize,
     sync::{
@@ -22,13 +23,16 @@ pub(super) struct Fixture {
     pub(super) reader: Connection,
     pub(super) reads: Arc<AtomicUsize>,
     _client: vessel_client::NodeClient,
-    server: tokio::task::JoinHandle<()>,
+    server: Option<tokio::task::JoinHandle<()>>,
     stop: CancellationToken,
+    _cancel: tokio_util::sync::DropGuard,
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
         self.stop.cancel();
-        self.server.abort();
+        if let Some(server) = &self.server {
+            server.abort();
+        }
         if let Some(node) = &self.node {
             node.secure.lifecycle.stop(vessel_proto::StopWhen::Now);
         }
@@ -42,6 +46,7 @@ impl Fixture {
                 (name == "CURSOR_ACCESS_TOKEN").then(|| "synthetic-service-source".into())
             })
         })
+        .phase("usage phase: Self::with_access")
         .await
     }
     pub(super) async fn with_access(
@@ -68,8 +73,12 @@ impl Fixture {
             retry_after: None,
             format: RecordedUsageFormat::Report,
         };
-        let node = crate::Node::start(config).await.unwrap();
+        let node = crate::Node::start(config)
+            .phase("usage phase: crate::Node::start")
+            .await
+            .unwrap();
         let stop = CancellationToken::new();
+        let cancel = stop.clone().drop_guard();
         let server = Server::new(
             Arc::clone(&node.secure.service),
             node.secure.lifecycle.watch_info(),
@@ -104,9 +113,10 @@ impl Fixture {
             },
             &vessel_client::ClientConfig::default(),
         )
+        .phase("usage phase: vessel_client::NodeClient::over")
         .await
         .unwrap();
-        let owner = connection.await.unwrap();
+        let owner = connection.phase("usage phase: connection").await.unwrap();
         let reader = owner.acting_as(crate::principal::Principal::Device {
             id: DeviceId::random(),
             scopes: vec![Scope::Read],
@@ -118,8 +128,9 @@ impl Fixture {
             reader,
             reads,
             _client: client,
-            server,
+            server: Some(server),
             stop,
+            _cancel: cancel,
         }
     }
     pub(super) fn service(&self) -> &crate::guard::Guarded {
@@ -130,7 +141,19 @@ impl Fixture {
     }
     pub(super) async fn finish(mut self) {
         self.stop.cancel();
-        self.node.take().unwrap().stop().await.unwrap();
+        self.node
+            .take()
+            .unwrap()
+            .stop()
+            .phase("usage phase: self.node.take.unwrap.stop")
+            .await
+            .unwrap();
+        self.server
+            .take()
+            .unwrap()
+            .phase("framed server drain")
+            .await
+            .unwrap();
     }
     pub(super) fn reads(&self) -> usize {
         self.reads.load(Ordering::SeqCst)
@@ -151,6 +174,7 @@ impl Fixture {
                     refresh,
                 },
             )
+            .phase("usage phase: self.service .list_usage_reports")
             .await
             .unwrap()
     }
@@ -163,11 +187,13 @@ impl Fixture {
                     policy: ExternalLookup::On,
                 },
             )
+            .phase("usage phase: self .service .set_usage_lookup")
             .await
             .unwrap();
         let _source = self
             .service()
             .set_usage_source_lookup(&self.owner, Self::source_request(ExternalLookup::On))
+            .phase("usage phase: self .service .set_usage_source_lookup")
             .await
             .unwrap();
     }

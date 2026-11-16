@@ -1,6 +1,6 @@
 //! Fileless actor fixture for the report binding barrier regression.
 use super::*;
-use std::{ffi::OsString, path::Path};
+use std::{ffi::OsString, future::Future, path::Path, time::Duration};
 use vessel_harness::{HarnessEnv, LimitEnvironment, Profile};
 use vessel_proto::HarnessKind;
 pub(crate) struct Cached {
@@ -101,3 +101,19 @@ impl Cached {
         self.tasks.wait().await;
     }
 }
+
+// New usage fixtures name their phase waits within the canonical case safety net.
+
+pub(crate) const PHASE_BUDGET: Duration = Duration::from_secs(10);
+
+pub(crate) trait PhaseWait: Future + Sized {
+    async fn phase(self, name: &'static str) -> Self::Output {
+        self.phase_for(name, PHASE_BUDGET).await
+    }
+    async fn phase_for(self, name: &'static str, budget: Duration) -> Self::Output {
+        tokio::time::timeout(budget, self)
+            .await
+            .unwrap_or_else(|cause| panic!("{name}: {cause}"))
+    }
+}
+impl<F: Future> PhaseWait for F {}

@@ -1,5 +1,6 @@
 //! Forces outer A / current metadata B at the actor read / final A, without timers.
 use super::*;
+use crate::limits::test_support::PhaseWait;
 use crate::limits::test_support::{Cached, snapshot};
 use std::sync::{
     Arc,
@@ -25,9 +26,22 @@ impl Bindings for Fake {
     async fn capture(&self, _scope: LimitsScope) -> Result<(Binding, HarnessRef), WireError> {
         let phase = self.captures.fetch_add(1, Ordering::SeqCst);
         if phase == 0 {
-            let captured = self.current.read().await.clone();
-            let _barrier = self.outer.wait().await;
-            let _barrier = self.before_read.wait().await;
+            let captured = self
+                .current
+                .read()
+                .phase("usage phase: self.current.read")
+                .await
+                .clone();
+            let _barrier = self
+                .outer
+                .wait()
+                .phase("usage phase: self.outer.wait")
+                .await;
+            let _barrier = self
+                .before_read
+                .wait()
+                .phase("usage phase: self.before_read.wait")
+                .await;
             let harness = captured.account.harness.clone();
             Ok((captured, harness))
         } else {
@@ -35,9 +49,22 @@ impl Bindings for Fake {
                 phase, 1,
                 "no hidden selector re-resolution may be introduced"
             );
-            let _barrier = self.inner_done.wait().await;
-            let _barrier = self.before_final.wait().await;
-            let captured = self.current.read().await.clone();
+            let _barrier = self
+                .inner_done
+                .wait()
+                .phase("usage phase: self.inner_done.wait")
+                .await;
+            let _barrier = self
+                .before_final
+                .wait()
+                .phase("usage phase: self.before_final.wait")
+                .await;
+            let captured = self
+                .current
+                .read()
+                .phase("usage phase: self.current.read")
+                .await
+                .clone();
             let harness = captured.account.harness.clone();
             Ok((captured, harness))
         }
@@ -52,6 +79,18 @@ impl Bindings for Fake {
         CostVisibility::Permitted
     }
 }
+fn binding(
+    account: &vessel_proto::limits::LimitAccount,
+    proof: &vessel_harness::LimitBinding,
+) -> Binding {
+    Binding {
+        account: account.clone(),
+        scope: LimitsScope::Account {
+            account: account.clone(),
+        },
+        proof: Ok(proof.clone()),
+    }
+}
 #[tokio::test]
 async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
     for state in [
@@ -64,25 +103,14 @@ async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
             retry_at: None,
         },
     ] {
-        tokio::time::timeout(BINDING_REGRESSION_BUDGET, async {
+        vessel_testkit::within(BINDING_REGRESSION_BUDGET, async {
             let root = tempfile::Builder::new()
                 .prefix("vessel-test-usage-captured-")
                 .tempdir()
                 .unwrap();
             let cached = Cached::start(root.path(), state);
-            let account = cached.a.account().clone();
-            let a = Binding {
-                account: account.clone(),
-                scope: LimitsScope::Account {
-                    account: account.clone(),
-                },
-                proof: Ok(cached.a.clone()),
-            };
-            let b = Binding {
-                account: account.clone(),
-                scope: LimitsScope::Account { account },
-                proof: Ok(cached.b.clone()),
-            };
+            let a = binding(cached.a.account(), &cached.a);
+            let b = binding(cached.a.account(), &cached.b);
             let fake = Arc::new(Fake {
                 current: RwLock::new(a.clone()),
                 registry: Registry::default(),
@@ -96,24 +124,51 @@ async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
             let changing = Arc::clone(&fake);
             let original = a.clone();
             let controller = tokio::spawn(async move {
-                let _barrier = changing.outer.wait().await;
+                let _barrier = changing
+                    .outer
+                    .wait()
+                    .phase("usage phase: changing.outer.wait")
+                    .await;
                 *changing.current.write().await = b;
-                let _barrier = changing.before_read.wait().await;
-                let _barrier = changing.inner_done.wait().await;
+                let _barrier = changing
+                    .before_read
+                    .wait()
+                    .phase("usage phase: changing.before_read.wait")
+                    .await;
+                let _barrier = changing
+                    .inner_done
+                    .wait()
+                    .phase("usage phase: changing.inner_done.wait")
+                    .await;
                 *changing.current.write().await = original;
-                let _barrier = changing.before_final.wait().await;
+                let _barrier = changing
+                    .before_final
+                    .wait()
+                    .phase("usage phase: changing.before_final.wait")
+                    .await;
             });
-            let policy = cached.limits.observation().await.unwrap();
+            let policy = cached
+                .limits
+                .observation()
+                .phase("usage phase: cached.limits.observation")
+                .await
+                .unwrap();
             let report = saved_report(
                 fake.as_ref(),
                 a.scope.clone(),
                 LimitRefresh::Cached,
                 &policy,
             )
+            .phase("usage phase: saved_report")
             .await
             .unwrap();
-            controller.await.unwrap();
-            let known = fake.registry.resolve(report.id()).await.unwrap();
+            controller.phase("usage phase: controller").await.unwrap();
+            let known = fake
+                .registry
+                .resolve(report.id())
+                .phase("usage phase: fake.registry.resolve")
+                .await
+                .unwrap();
             assert_eq!(known, a);
             let success = match report.state {
                 SourceReportState::Available { observed } => observed,
@@ -127,7 +182,7 @@ async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
             assert_eq!(success.report.plan.unwrap().as_str(), "A");
             assert_eq!(success.at, chrono::DateTime::UNIX_EPOCH);
             assert_eq!(fake.captures.load(Ordering::SeqCst), 2);
-            cached.finish().await;
+            cached.finish().phase("usage phase: cached.finish").await;
         })
         .await
         .expect("capture barriers did not settle");

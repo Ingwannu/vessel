@@ -144,6 +144,7 @@ fn endpoint(source: BuiltinUsageSource, region: Region) -> Option<Endpoint> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::tests::support::PhaseWait;
     use super::*;
     use std::sync::{
         Arc,
@@ -158,16 +159,21 @@ mod tests {
     }
     #[tokio::test]
     async fn revoked_http_capability_does_not_poll_the_request() {
-        let stop = CancellationToken::new();
-        stop.cancel();
-        let polled = AtomicBool::new(false);
-        let result = cancellable(&stop, async {
-            polled.store(true, Ordering::SeqCst);
-            Ok(())
+        vessel_testkit::within(CANCELLATION_TEST_BUDGET, async {
+            let stop = CancellationToken::new();
+            stop.cancel();
+            let polled = AtomicBool::new(false);
+            let result = cancellable(&stop, async {
+                polled.store(true, Ordering::SeqCst);
+                Ok(())
+            })
+            .phase("usage phase: cancellable")
+            .await;
+            assert_eq!(result, Err((LimitFailure::Unsupported, None)));
+            assert!(!polled.load(Ordering::SeqCst));
         })
-        .await;
-        assert_eq!(result, Err((LimitFailure::Unsupported, None)));
-        assert!(!polled.load(Ordering::SeqCst));
+        .await
+        .unwrap();
     }
     #[tokio::test]
     async fn revocation_drops_an_already_polled_http_operation() {
@@ -181,11 +187,14 @@ mod tests {
             std::future::pending::<Result<(), (LimitFailure, Option<DateTime<Utc>>)>>().await
         };
         let revoke = async {
-            ready.await.unwrap();
+            ready.phase("usage phase: ready").await.unwrap();
             stop.cancel();
         };
-        let (result, ()) = tokio::time::timeout(CANCELLATION_TEST_BUDGET, async {
-            tokio::join!(cancellable(&stop, reading), revoke)
+        let (result, ()) = vessel_testkit::within(CANCELLATION_TEST_BUDGET, async {
+            tokio::join!(
+                cancellable(&stop, reading).phase("active HTTP cancellation"),
+                revoke
+            )
         })
         .await
         .unwrap();

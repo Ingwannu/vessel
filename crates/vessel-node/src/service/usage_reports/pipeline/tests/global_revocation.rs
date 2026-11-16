@@ -1,5 +1,6 @@
 //! Hold the real report after registry identity and before actual actor admission.
 use super::*;
+use crate::limits::test_support::{PHASE_BUDGET, PhaseWait};
 use std::sync::{Condvar, Mutex, atomic::AtomicBool};
 use tokio::sync::Semaphore;
 use vessel_harness::LimitProbe;
@@ -21,11 +22,9 @@ impl Gate {
             self.entered.add_permits(1);
             let (_guard, deadline) = self
                 .wake
-                .wait_timeout_while(
-                    self.released.lock().unwrap(),
-                    BINDING_REGRESSION_BUDGET,
-                    |released| !*released,
-                )
+                .wait_timeout_while(self.released.lock().unwrap(), PHASE_BUDGET, |released| {
+                    !*released
+                })
                 .unwrap();
             assert!(
                 !deadline.timed_out(),
@@ -80,7 +79,7 @@ fn recorded(root: &std::path::Path) -> Cached {
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_old_report_cannot_start_a_probe_after_off_on_before_actor_admission() {
-    tokio::time::timeout(BINDING_REGRESSION_BUDGET, check_revocation())
+    vessel_testkit::within(BINDING_REGRESSION_BUDGET, check_revocation())
         .await
         .expect("saved report policy admission did not settle");
 }
@@ -108,7 +107,12 @@ async fn check_revocation() {
         limits: cached.limits.clone(),
         gate: Arc::clone(&gate),
     });
-    let old = cached.limits.observation().await.unwrap();
+    let old = cached
+        .limits
+        .observation()
+        .phase("usage phase: cached.limits.observation")
+        .await
+        .unwrap();
     let pending_reader = Arc::clone(&reader);
     let pending_scope = scope.clone();
     let pending = tokio::spawn(async move {
@@ -120,18 +124,38 @@ async fn check_revocation() {
         )
         .await
     });
-    gate.entered.acquire().await.unwrap().forget();
+    gate.entered
+        .acquire()
+        .phase("usage phase: gate.entered.acquire")
+        .await
+        .unwrap()
+        .forget();
     assert_eq!(
-        cached.limits.policy(ExternalLookup::Off).await.unwrap(),
+        cached
+            .limits
+            .policy(ExternalLookup::Off)
+            .phase("usage assertion: cached.limits.policy")
+            .await
+            .unwrap(),
         ExternalLookup::Off
     );
     assert_eq!(
-        cached.limits.policy(ExternalLookup::On).await.unwrap(),
+        cached
+            .limits
+            .policy(ExternalLookup::On)
+            .phase("usage assertion: cached.limits.policy")
+            .await
+            .unwrap(),
         ExternalLookup::On
     );
     gate.release();
     assert_eq!(
-        pending.await.unwrap().unwrap_err().code,
+        pending
+            .phase("usage assertion: pending")
+            .await
+            .unwrap()
+            .unwrap_err()
+            .code,
         ErrorCode::Conflict
     );
     // Final publication refusal alone is insufficient: the legacy cache would
@@ -139,13 +163,20 @@ async fn check_revocation() {
     let idle = cached
         .limits
         .read(account, Ok(cached.a.clone()), LimitRefresh::Cached)
+        .phase("usage phase: cached .limits .read")
         .await
         .unwrap();
     assert_eq!(idle.state, AccountLimitState::NotRequested);
-    let current = cached.limits.observation().await.unwrap();
+    let current = cached
+        .limits
+        .observation()
+        .phase("usage phase: cached.limits.observation")
+        .await
+        .unwrap();
     let report = saved_report(reader.as_ref(), scope, LimitRefresh::Refresh, &current)
+        .phase("usage phase: saved_report")
         .await
         .unwrap();
     assert!(matches!(report.state, SourceReportState::Available { .. }));
-    cached.finish().await;
+    cached.finish().phase("usage phase: cached.finish").await;
 }

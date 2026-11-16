@@ -1,5 +1,6 @@
 //! Actual global actor revocation survives a dropped setter blocked before Clear.
 use super::*;
+use crate::limits::test_support::PhaseWait;
 use std::sync::{
     Arc, Condvar, Mutex,
     atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -92,7 +93,12 @@ impl Drop for Dropped {
 }
 
 async fn acquired(semaphore: &Semaphore) {
-    semaphore.acquire().await.unwrap().forget();
+    semaphore
+        .acquire()
+        .phase("usage phase: semaphore.acquire")
+        .await
+        .unwrap()
+        .forget();
 }
 
 async fn revoked_without_setter_continuation(held: Held) {
@@ -105,12 +111,19 @@ async fn revoked_without_setter_continuation(held: Held) {
     let original_id = cursor(&original).id().clone();
     assert_eq!(control.polls.load(Ordering::SeqCst), 1);
     let service = fixture.handler();
-    let old_global = service.0.limits.observation().await.unwrap();
+    let old_global = service
+        .0
+        .limits
+        .observation()
+        .phase("usage phase: service.0.limits.observation")
+        .await
+        .unwrap();
     let old_snapshot = service
         .0
         .limits
         .sources
         .snapshot(&old_global)
+        .phase("usage phase: service .0 .limits .sources .snapshot")
         .await
         .unwrap();
     match held {
@@ -131,29 +144,64 @@ async fn revoked_without_setter_continuation(held: Held) {
             .await
     });
     match held {
-        Held::Credential => acquired(&control.entered).await,
-        Held::Http => acquired(&control.http_started).await,
+        Held::Credential => {
+            acquired(&control.entered)
+                .phase("usage phase: acquired")
+                .await
+        }
+        Held::Http => {
+            acquired(&control.http_started)
+                .phase("usage phase: acquired")
+                .await
+        }
     }
-    cancel_setter_after_durable_off(&fixture).await;
+    cancel_setter_after_durable_off(&fixture)
+        .phase("usage phase: cancel_setter_after_durable_off")
+        .await;
     // This test query never prunes or reads snapshots: the owner must have
     // observed canonical revocation independently of the abandoned RPC.
-    assert_eq!(service.0.limits.sources.cached_entries().await, 0);
+    assert_eq!(
+        service
+            .0
+            .limits
+            .sources
+            .cached_entries()
+            .phase("usage assertion: service.0.limits.sources.cached_entries")
+            .await,
+        0
+    );
     assert!(!old_snapshot.still_current());
     if matches!(held, Held::Http) {
-        acquired(&control.http_dropped).await;
+        acquired(&control.http_dropped)
+            .phase("usage phase: acquired")
+            .await;
     }
     control.release();
-    assert!(refreshing.await.unwrap().is_err());
+    assert!(
+        refreshing
+            .phase("usage assertion: refreshing")
+            .await
+            .unwrap()
+            .is_err()
+    );
     // A revoked waiter may end before its physical credential worker. Observe
     // the actual job's completion before proving it never began HTTP.
-    service.0.limits.sources.drained().await;
+    service
+        .0
+        .limits
+        .sources
+        .drained()
+        .phase("usage phase: service.0.limits.sources.drained")
+        .await;
     let expected: usize = if matches!(held, Held::Credential) {
         1
     } else {
         2
     };
     assert_eq!(control.polls.load(Ordering::SeqCst), expected);
-    recover_after_revocation(&fixture, &control, &original_id, expected).await;
+    recover_after_revocation(&fixture, &control, &original_id, expected)
+        .phase("usage phase: recover_after_revocation")
+        .await;
     fixture.finish().await;
 }
 
@@ -173,6 +221,7 @@ async fn recover_after_revocation(
                 policy: ExternalLookup::On,
             },
         )
+        .phase("usage phase: service .set_usage_lookup")
         .await
         .unwrap();
     let cached = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
@@ -229,7 +278,7 @@ async fn cancel_setter_after_durable_off(fixture: &Fixture) {
             .hold_cleanup(entered, released)
             .await;
     });
-    ready.await.unwrap();
+    ready.phase("usage phase: ready").await.unwrap();
     let mut setter = Box::pin(service.set_usage_lookup(
         &fixture.owner,
         vessel_proto::limits::SetUsageLookup {
@@ -239,7 +288,13 @@ async fn cancel_setter_after_durable_off(fixture: &Fixture) {
     assert!(futures_util::poll!(setter.as_mut()).is_pending());
     // Observe is queued after Policy: its answer establishes that the policy
     // actor finished persistence, before the blocked service cleanup can run.
-    let off = service.0.limits.observation().await.unwrap();
+    let off = service
+        .0
+        .limits
+        .observation()
+        .phase("usage phase: service.0.limits.observation")
+        .await
+        .unwrap();
     assert_eq!(off.policy, ExternalLookup::Off);
     assert_eq!(
         vessel_store::DataDir::new(fixture.root.path().join("data"))
@@ -250,12 +305,12 @@ async fn cancel_setter_after_durable_off(fixture: &Fixture) {
     assert!(futures_util::poll!(setter.as_mut()).is_pending());
     drop(setter); // No caller continuation may submit Sources::clear.
     release.send(()).unwrap();
-    holder.await.unwrap();
+    holder.phase("usage phase: holder").await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn committed_global_off_cancels_held_credentials_after_the_setter_is_dropped() {
-    tokio::time::timeout(
+    vessel_testkit::within(
         REVOCATION_TEST_BUDGET,
         revoked_without_setter_continuation(Held::Credential),
     )
@@ -264,7 +319,7 @@ async fn committed_global_off_cancels_held_credentials_after_the_setter_is_dropp
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn committed_global_off_drops_active_http_after_the_setter_is_dropped() {
-    tokio::time::timeout(
+    vessel_testkit::within(
         REVOCATION_TEST_BUDGET,
         revoked_without_setter_continuation(Held::Http),
     )

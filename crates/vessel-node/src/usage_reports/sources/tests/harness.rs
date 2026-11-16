@@ -1,4 +1,5 @@
 use super::*;
+use crate::limits::test_support::PhaseWait;
 use std::ffi::OsString;
 pub(super) const TEST_BUDGET: Duration = Duration::from_secs(30);
 pub(super) struct Fixture {
@@ -35,7 +36,9 @@ impl Fixture {
             retry_after: None,
             format: vessel_harness::RecordedUsageFormat::Vendor,
         };
-        let sources = Sources::start(&config, stop.clone(), &tasks, LimitContext::new()).await;
+        let sources = Sources::start(&config, stop.clone(), &tasks, LimitContext::new())
+            .phase("usage phase: Sources::start")
+            .await;
         Self {
             sources,
             global: Observation::fixture(CancellationToken::new()),
@@ -43,6 +46,18 @@ impl Fixture {
             stop,
             tasks,
         }
+    }
+    pub(super) async fn snapshot(&self) -> Result<Snapshot, WireError> {
+        self.sources
+            .snapshot(&self.global)
+            .phase("source snapshot reply")
+            .await
+    }
+    pub(super) async fn refresh_all(&self) -> Vec<UsageSourceFailure> {
+        self.sources
+            .refresh_all(&self.global)
+            .phase("source refresh replies")
+            .await
     }
     pub(super) fn request(policy: ExternalLookup) -> SetUsageSourceLookup {
         SetUsageSourceLookup {
@@ -54,6 +69,7 @@ impl Fixture {
     pub(super) async fn allow(&self, policy: ExternalLookup) -> UsageSourceDescriptor {
         self.sources
             .set(Self::request(policy), &self.global)
+            .phase("usage phase: self.sources .set")
             .await
             .unwrap()
     }
@@ -66,8 +82,6 @@ impl Fixture {
     pub(super) async fn finish(&self) {
         self.stop.cancel();
         let _closed = self.tasks.close();
-        tokio::time::timeout(TEST_BUDGET, self.tasks.wait())
-            .await
-            .unwrap();
+        self.tasks.wait().phase("source owner drain").await;
     }
 }
