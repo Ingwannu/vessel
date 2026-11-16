@@ -73,3 +73,11 @@ using the deterministic test clock.
 They have not run; delayed delivery/unmount behavior remains unverified until
 actual checks, review and the lead's consumer union gate. No runtime claim is
 borrowed from the earlier Toolbar geometry tests.
+
+The first combined strict check, `wp-layout-core-union-20261115T185314Z-bdfdde62`,
+failed before tests: three internal methods needed parent-only visibility, and
+the fixture used an unavailable direct visual-context clock method plus a
+non-static debug selector. The correction uses the existing native
+`executor().advance_clock` API followed by deterministic task draining, preserves
+all deadlines/assertions, and narrows internal visibility. No timer/render policy
+or successful runtime result is inferred from that failed check.

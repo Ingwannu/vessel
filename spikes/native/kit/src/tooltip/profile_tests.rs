@@ -101,7 +101,7 @@ impl Render for Probe {
         &mut self,
         _window: &mut gpui::Window,
         _cx: &mut Context<'_, Self>,
-    ) -> impl gpui::IntoElement {
+    ) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         div()
             .size_full()
@@ -131,9 +131,13 @@ fn setup(
         words: Words::Initial,
     })
 }
-fn hover(cx: &mut gpui::VisualTestContext, id: &str) {
+fn hover(cx: &mut gpui::VisualTestContext, id: &'static str) {
     let position = cx.debug_bounds(id).unwrap().center();
     cx.simulate_mouse_move(position, None, Modifiers::none());
+    cx.run_until_parked();
+}
+fn advance(cx: &gpui::VisualTestContext, duration: Duration) {
+    cx.executor().advance_clock(duration);
     cx.run_until_parked();
 }
 #[gpui::test]
@@ -150,9 +154,9 @@ fn existing_legacy_hover_is_immediate_and_toolbar_waits_exactly_its_delay(cx: &m
     });
     cx.run_until_parked();
     hover(cx, "B");
-    cx.advance_clock(Duration::from_millis(299));
+    advance(cx, Duration::from_millis(299));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
-    cx.advance_clock(Duration::from_millis(1));
+    advance(cx, Duration::from_millis(1));
     view.read_with(cx, |probe, _| {
         assert_eq!(probe.shown().as_deref(), Some("B"));
     });
@@ -161,19 +165,19 @@ fn existing_legacy_hover_is_immediate_and_toolbar_waits_exactly_its_delay(cx: &m
 fn pending_hover_aba_and_press_cannot_publish_old_or_cancelled_tips(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, Profile::Toolbar, ControlSizing::Pointer);
     hover(cx, "A");
-    cx.advance_clock(Duration::from_millis(100));
+    advance(cx, Duration::from_millis(100));
     hover(cx, "B");
-    cx.advance_clock(Duration::from_millis(100));
+    advance(cx, Duration::from_millis(100));
     hover(cx, "A");
-    cx.advance_clock(Duration::from_millis(299));
+    advance(cx, Duration::from_millis(299));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
-    cx.advance_clock(Duration::from_millis(1));
+    advance(cx, Duration::from_millis(1));
     view.read_with(cx, |probe, _| {
         assert_eq!(probe.shown().as_deref(), Some("A"));
     });
     let position = cx.debug_bounds("A").unwrap().center();
     cx.simulate_mouse_down(position, MouseButton::Left, Modifiers::none());
-    cx.advance_clock(Duration::from_millis(300));
+    advance(cx, Duration::from_millis(300));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
 }
 #[gpui::test]
@@ -185,7 +189,7 @@ fn hidden_trigger_and_replaced_controller_do_not_deliver_pending_hover(cx: &mut 
         cx.notify();
     });
     cx.run_until_parked();
-    cx.advance_clock(Duration::from_millis(300));
+    advance(cx, Duration::from_millis(300));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
     let old = view.read_with(cx, |probe, _| Rc::downgrade(&probe.tips.state));
     view.update(cx, |probe, cx| {
@@ -202,7 +206,7 @@ fn hidden_trigger_and_replaced_controller_do_not_deliver_pending_hover(cx: &mut 
 fn compact_touch_profile_installs_no_tooltip_or_timer(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, Profile::Toolbar, ControlSizing::Touch);
     hover(cx, "A");
-    cx.advance_clock(Duration::from_millis(300));
+    advance(cx, Duration::from_millis(300));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
 }
 
@@ -219,15 +223,15 @@ fn stationary_pending_hover_updates_words_and_side_without_restarting_original_t
 ) {
     let (view, cx) = setup(cx, Profile::Toolbar, ControlSizing::Pointer);
     hover(cx, "A");
-    cx.advance_clock(Duration::from_millis(100));
+    advance(cx, Duration::from_millis(100));
     view.update(cx, |probe, cx| {
         probe.words = Words::Updated;
         cx.notify();
     });
     cx.run_until_parked();
-    cx.advance_clock(Duration::from_millis(199));
+    advance(cx, Duration::from_millis(199));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
-    cx.advance_clock(Duration::from_millis(1));
+    advance(cx, Duration::from_millis(1));
     view.read_with(cx, |probe, _| {
         assert_eq!(probe.shown().as_deref(), Some("updated A"));
         assert_eq!(
@@ -249,7 +253,7 @@ fn stationary_shown_hover_updates_current_words_and_side_in_the_same_render(
 ) {
     let (view, cx) = setup(cx, Profile::Toolbar, ControlSizing::Pointer);
     hover(cx, "A");
-    cx.advance_clock(Duration::from_millis(300));
+    advance(cx, Duration::from_millis(300));
     view.read_with(cx, |probe, _| {
         assert_eq!(probe.shown().as_deref(), Some("A"));
     });
