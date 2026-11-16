@@ -64,3 +64,8 @@ The controller now invokes its existing close method, and one new real-root
 click/resize case verifies the actual picker closes without changing language.
 No new language state, choice, callback or word is introduced. Five receiving
 runtime cases, corrected strict, final whole/export/captures/review remain owed.
+
+The corrected c722 run settings2-narrow-20261116T012159Z-c722ab0d
+stopped at compile101: the new Language debug selector required the existing
+InteractiveElement trait import. This source correction adds only that import;
+raw logs remain in frame-strict-c722. It does not supply runtime proof.

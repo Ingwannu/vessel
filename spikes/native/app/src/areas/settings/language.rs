@@ -14,7 +14,8 @@ use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::select::Anchor;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, SharedString, StatefulInteractiveElement as _, Window,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, SharedString,
+    StatefulInteractiveElement as _, Window,
 };
 use vessel_app_kit::{ComboHandlers, ComboRow, ComboboxState, Tokens, combobox, select, settings};
 use vessel_app_view::localization::LanguagePreference;
