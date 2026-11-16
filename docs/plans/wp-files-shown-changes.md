@@ -172,3 +172,22 @@ dependency boundary or check its actual receiving assembly. Scenario cleanup
 drains its Devices workers; these cases do not prove a generic C5 worker drain.
 The opaque shown-source consumer accessors remain staged until a real G1 caller
 joins, with its own action admission and changed-source review.
+
+## Bounded review verdict
+
+V1 independently accepted the C5-owned source and requested scoped narrow
+checks on exact340f92ede and docs5714f87f7. All22 owned Rust blobs match the
+prior strict source; raw checkout, log hashes and eight case names were checked.
+The nine Scenario/helper/native-RPC manifest paths match the separately reviewed
+G4 final51f64421 producer. This is a conditional source/evidence result.
+
+The prerequisite and receiving assembly remain on HOLD: wait for the lead's
+announced G4 green line, form a straight C5-only producer there, and check that
+receiving assembly. Never merge the whole preparation or promote partial G4
+exports. The page case covers parent invalidation rather than full multi-page
+runtime. These tests invoke owner handlers over a real framed Scenario; they do
+not exercise the private product event dispatch, painted UI or OS input. The
+stamp supplies no UI-visit ABA protection, mutation approval or compare-and-swap.
+G1 received the exact hash and this verdict; its real caller must preserve its
+own action/visibility lifetimes and original preflight. No unchanged rerun was
+requested by the reviewer.
