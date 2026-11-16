@@ -853,3 +853,26 @@ SearchField/DiffEditor, own menu-description and the single glyph-inventory
 paragraph. No pending730 panel-role/Toolbar source is consumed before its
 line announcement. Incoming root/protocol changes are base evidence; this
 F4 union and its own controls remain unverified until changed-head checks.
+
+
+## Resume on package base13
+
+The prior exact18d ordinary strict finished with a source return, not a pass:
+two own raw sidebar-limit Strings no longer match the shared PreparedRefusal,
+and two own GPUI test mouse moves omit the newly required modifiers argument.
+Its completed run remains retained; it is not resubmitted unchanged.
+
+Merge announced2ebeedf9 before the next check. Preserve own callout module
+registration and the full published100 glyph prefix, then the five unpublished
+F4 rows. Their declaration/iteration positions move only after that shared
+prefix; names, paths, vectors and rendering are unchanged. The static expected
+prefix is assembled from the published base plus the already frozen five,
+never from current inventory output at test time. The original before100-order
+artifact remains immutable. No size record is raised.
+
+Corrected portable sidebar source6d00 +docs12c39 has bounded V1 source/narrow
+and all-eight inspected policy-visual PASS. Coordinator source comparison
+approved adoption; lead merged de800 and announced base12 green. This is
+ordinary-sidebar policy evidence only: the inherited600 Hidden composer can
+extend beyond the right edge, and full F4/body responsiveness is not approved.
+The main controls, hierarchy and settings remain a separate unchecked union.

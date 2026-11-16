@@ -2,8 +2,10 @@
 
 Current status: exact4133964f69ff87edcc6e6af37d3cb47f35ea3019 has V1 bounded
 SOURCE and requested Kit strict Clippy/diff19 NARROW clearance. The requested
-ordinary syntax selection163829 has now passed1/0/0; V1 final adoption receipt
-is pending on that same review row.
+ordinary syntax selection163829 has now passed1/0/0. V1's same-row FINAL bounded
+shared-control SOURCE and requested Kit NARROW PASS permits adoption of only
+e1b73c9e..413, preserving newer shared unions. It does not approve a full Kit
+gate, App consumer or actual screen.
 The19 passing tests comprise11 GPUI window tests and8 ordinary unit tests;
 they are not19 real-window tests or a full Kit/package gate. No consumer/UI/OS
 acceptance is claimed. Earlier unchecked/red sections below retain their
@@ -247,7 +249,7 @@ node runtime. App15a full4crate Clippy is separately RED on own fixture/import/
 semicolon/collapsible-if issues, so this is not App integration acceptance.
 
 V1 has cleared the exact bounded source and requested Clippy/diff19 selection;
-the same-row final adoption receipt is pending after the ordinary result. No
-new run is requested by that review. Real header alignment/selection path
+the same-row final bounded adoption receipt closes the ordinary-syntax hold.
+No new run is requested by that review. Real header alignment/selection path
 visibility/touch/OS and actual C3 fake-fleet first-use captures remain owed; the
 audit example is unbuilt/unrun and the split full-width-header/copy gap remains.
