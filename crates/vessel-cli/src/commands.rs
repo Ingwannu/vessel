@@ -30,7 +30,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
         Command::Permit { command } => {
-            crate::permit::run(target, cli.output.presentation(), command).await
+            crate::permit::run(target, cli.output.presentation(), &command).await
         }
         Command::Inbox { command } => crate::inbox::command(target, command).await,
         Command::Node { command } => node(target, command).await,

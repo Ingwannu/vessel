@@ -40,7 +40,12 @@ pub(crate) struct Row {
 
 impl Row {
     pub(crate) fn permission(session: SessionId, request: &PermissionRequest) -> Self {
-        Self::pending(session, PendingId::Permission(request.id), "Permission", "")
+        Self::pending(
+            session,
+            PendingId::Permission(request.id),
+            "Permission",
+            "-",
+        )
     }
     pub(crate) fn question(session: SessionId, question: &Question) -> Self {
         Self::pending(

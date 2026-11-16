@@ -140,7 +140,7 @@ pub(crate) use source::SourceError as ListError;
 pub(crate) async fn run(
     target: &crate::args::Target,
     presentation: crate::args::parity::Presentation,
-    command: Command,
+    command: &Command,
 ) -> Result<(), crate::error::CliError> {
     match command {
         Command::Ls => {

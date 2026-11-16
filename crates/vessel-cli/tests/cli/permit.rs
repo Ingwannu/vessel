@@ -51,7 +51,19 @@ async fn pending(fixture: &Fixture, prompt: &str) -> (SessionId, String) {
                     AgentEvent::QuestionAsked(question) => break question.id.to_string(),
                     AgentEvent::PermissionRequested(request) => break request.id.to_string(),
                     AgentEvent::TurnEnded { .. } => panic!("fake turn ended before a request"),
-                    _ => {}
+                    AgentEvent::Ready { .. }
+                    | AgentEvent::TurnStarted { .. }
+                    | AgentEvent::UserMessageChunk { .. }
+                    | AgentEvent::MessageChunk { .. }
+                    | AgentEvent::ThoughtChunk { .. }
+                    | AgentEvent::ToolCall(_)
+                    | AgentEvent::ToolCallUpdate(_)
+                    | AgentEvent::Plan { .. }
+                    | AgentEvent::PermissionResolved { .. }
+                    | AgentEvent::TurnFailed { .. }
+                    | AgentEvent::HarnessLog { .. }
+                    | AgentEvent::Steered { .. }
+                    | AgentEvent::QuestionResolved { .. } => {}
                 }
             }
         }

@@ -263,6 +263,10 @@ fn preflight_retains_typed_peer_failure_without_printing_its_private_message() {
     assert!(!error.to_string().contains(canary));
     assert!(!format!("{error:?}").contains(canary));
     assert!(std::error::Error::source(&error).is_none());
+    let public: crate::error::CliError = error.into();
+    assert!(!public.to_string().contains(canary));
+    assert!(!format!("{public:?}").contains(canary));
+    assert!(std::error::Error::source(&public).is_none());
 }
 
 #[test]

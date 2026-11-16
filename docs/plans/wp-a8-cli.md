@@ -354,3 +354,21 @@ A separate case covers the empty result and product help. Existing source-unit
 fixtures cover archived/background sessions and failed/duplicate/bounded traversal;
 these are separate from actual durable archived-question runtime acceptance.
 The new process tests are authored but unexecuted until the recorded VM result.
+
+
+## First public-edge check correction
+
+Run wp-side-node-narrow-20261116T004442Z-e6311b8a failed strict on the new
+process fixture's wildcard AgentEvent match. No unit/process tests ran; the
+serial driver stopped. Every ignored event is now explicit, so a new wire
+variant forces this waiter to be reviewed. The query handler borrows its decoded
+command because it only inspects the variant. No response or selection behavior
+changes. A queued-only cancel raced slot admission and was refused; the running
+check completed normally and its negative record is retained.
+
+At the next natural point the node tree merges announced bc9cacc6 (gate57 all
+steps green). No node head enters the app tree. The corrected source also uses
+Paseo permit/ls.ts:35-37's `-` for an absent permission description, retaining the
+explicit generic name difference until actual operation metadata exists. A row
+regression and the public error wrapper's private-peer diagnostic assertions
+cover those boundaries. Current combined strict and runtime proof remain owed.

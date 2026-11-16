@@ -41,3 +41,18 @@ fn permit_rows_use_the_reviewed_formatter_with_correct_identity_fidelity() {
         assert!(!structured.contains("source") && !structured.contains("seq"));
     }
 }
+
+#[test]
+fn missing_permission_description_uses_the_reference_dash_without_fabricating_tool_metadata() {
+    let session = SessionId::random();
+    let request = PermissionRequest {
+        id: PermissionId::random(),
+        tool_call: vessel_proto::ToolCallId::new("actual-provider-call").unwrap(),
+        options: Vec::new(),
+    };
+    let row = Row::permission(session, &request);
+    assert_eq!(row.id, PendingId::Permission(request.id));
+    assert_eq!(row.agent_id, session);
+    assert_eq!(row.name, "Permission");
+    assert_eq!(row.description, "-");
+}
