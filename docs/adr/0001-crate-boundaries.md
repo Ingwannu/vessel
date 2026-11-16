@@ -379,7 +379,9 @@ not permission to add a callerless Node service or advertise incomplete provider
 
 Add `vessel-terminal-screen` as a pure root leaf with no Vessel dependency,
 Tokio, PTY, harness or toolkit. It alone owns vt100 and translates engine cells
-and bounded capture rows. The exact MIT vt100 0.18.1 archive is vendored with
+and bounded capture rows. Typed key/paste encoding also consumes that same
+explicit input-mode state; it grants no focus, IME or write admission and adds
+no dependency. The exact MIT vt100 0.18.1 archive is vendored with
 its checksum/license and a numbered minimal parity patch list. This follows
 both-candidate measurement against Paseo's actual server engine, not dependency
 preference. `vessel-session` remains actor/channel/PTY ownership; its dependency
