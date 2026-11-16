@@ -97,6 +97,7 @@ pub(crate) fn arrive(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    areas::shortcuts::navigation_changed(shell);
     shell.conversation_arrived(route, window, cx);
     match route {
         Route::Draft => areas::draft::arrive(shell, window, cx),

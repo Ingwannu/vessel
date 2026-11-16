@@ -16,6 +16,7 @@ impl Shell {
             Event::PromptIndex(answer) => self.prompt_index_answered(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
+                self.history_retired(&context, cx);
                 if !self.devices_retired(&context) {
                     return;
                 }
@@ -35,6 +36,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.history_fleet(&earlier);
                 self.devices_fleet();
 
                 self.prompt_index_fleet_changed();
@@ -107,3 +109,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod import_retire_tests;

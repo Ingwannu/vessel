@@ -47,9 +47,9 @@ use std::rc::Rc;
 
 use gpui::prelude::FluentBuilder as _;
 use gpui::{
-    AnyElement, App, Axis, ElementId, Hsla, InteractiveElement as _, IntoElement as _,
-    ListHorizontalSizingBehavior, ParentElement as _, ScrollStrategy, SharedString, Styled,
-    UniformListScrollHandle, Window, div, px, uniform_list,
+    AnyElement, App, Axis, ElementId, HighlightStyle, Hsla, InteractiveElement as _,
+    IntoElement as _, ListHorizontalSizingBehavior, ParentElement as _, ScrollStrategy,
+    SharedString, Styled, StyledText, UniformListScrollHandle, Window, div, px, uniform_list,
 };
 use gpui_component::scroll::ScrollableMask;
 
@@ -85,68 +85,14 @@ const BAR: f32 = 2.0;
 /// How strongly a diff's line is washed in its colour.
 const WASH: f32 = 0.08;
 
-/// Where a text opens.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Start {
-    /// At its top (a call's input, a diff).
-    Top,
-    /// At its end, following it while it grows (a command's output).
-    End,
-}
-
-/// What a line is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tone {
-    /// Text.
-    Plain,
-    /// A diff's added line.
-    Added,
-    /// A diff's removed line.
-    Removed,
-}
-
-/// One line of a box.
-#[derive(Debug, Clone)]
-pub struct Line {
-    /// Its text.
-    pub text: SharedString,
-    /// What it is.
-    pub tone: Tone,
-    /// Its number, in a diff.
-    pub number: Option<usize>,
-}
-
-/// What a box shows: its lines and what its copy button copies.
-#[derive(Debug, Clone)]
-pub struct Lines {
-    /// The lines.
-    pub lines: Vec<Line>,
-    /// The text put on the clipboard; no copy button without one.
-    pub copy: Option<SharedString>,
-}
-
-impl Lines {
-    /// `text`'s lines, plain, the whole text to copy.
-    #[must_use]
-    pub fn text(text: &str) -> Self {
-        Self {
-            lines: text
-                .lines()
-                .map(|line| Line {
-                    text: line.to_owned().into(),
-                    tone: Tone::Plain,
-                    number: None,
-                })
-                .collect(),
-            copy: Some(text.to_owned().into()),
-        }
-    }
-}
+mod model;
+pub use model::{AnnotatedLines, Line, Lines, Start, Tone};
 
 /// What the box keeps between frames.
 struct Kept {
     version: u64,
     lines: Rc<[Line]>,
+    emphasis: Rc<[Vec<Range<usize>>]>,
     copy: Option<SharedString>,
     /// The widest line, which sets the box's scrolled width.
     widest: usize,
@@ -157,12 +103,26 @@ struct Kept {
 }
 
 impl Kept {
-    fn take(&mut self, version: u64, made: Lines) {
+    fn take(&mut self, version: u64, mut made: AnnotatedLines) {
         self.version = version;
-        self.widest = widest(&made.lines);
-        self.numbered = made.lines.iter().any(|line| line.number.is_some());
-        self.lines = made.lines.into();
-        self.copy = made.copy;
+        self.widest = widest(&made.lines.lines);
+        self.numbered = made.lines.lines.iter().any(|line| line.number.is_some());
+        self.emphasis = made
+            .lines
+            .lines
+            .iter()
+            .enumerate()
+            .map(|(index, line)| {
+                let ranges = made
+                    .emphasis
+                    .get_mut(index)
+                    .map_or_else(Vec::new, std::mem::take);
+                crate::text_ranges::valid(&line.text, ranges)
+            })
+            .collect::<Vec<_>>()
+            .into();
+        self.lines = made.lines.lines.into();
+        self.copy = made.lines.copy;
     }
 }
 
@@ -186,6 +146,20 @@ pub fn lines_box(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    annotated_lines_box(id, version, || make().into(), start, tokens, window, cx)
+}
+
+/// The same output control with optional changed byte ranges. The version must
+/// change when text or ranges change; colors always follow current theme tokens.
+pub fn annotated_lines_box(
+    id: impl Into<ElementId>,
+    version: u64,
+    make: impl FnOnce() -> AnnotatedLines,
+    start: Start,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
     let id: ElementId = id.into();
     let paint = Paint {
         look: Look::of(tokens),
@@ -197,6 +171,7 @@ pub fn lines_box(
         let mut kept = Kept {
             version,
             lines: Rc::new([]),
+            emphasis: Rc::new([]),
             copy: None,
             widest: 0,
             numbered: false,
@@ -208,7 +183,7 @@ pub fn lines_box(
         }
         kept
     });
-    let (lines, copy, widest, numbered, handle, place) = state.update(cx, |kept, _| {
+    let (lines, emphasis, copy, widest, numbered, handle, place) = state.update(cx, |kept, _| {
         if kept.version != version
             && let Some(make) = make.take()
         {
@@ -223,6 +198,7 @@ pub fn lines_box(
         kept.placed = true;
         (
             Rc::clone(&kept.lines),
+            Rc::clone(&kept.emphasis),
             kept.copy.clone(),
             kept.widest,
             kept.numbered,
@@ -239,8 +215,15 @@ pub fn lines_box(
         count,
         move |range: Range<usize>, _: &mut Window, _: &mut App| {
             range
-                .filter_map(|line| lines.get(line))
-                .map(|line| row(line, numbered, paint))
+                .filter_map(|index| {
+                    let line = lines.get(index)?;
+                    Some(row(
+                        line,
+                        emphasis.get(index).map_or(&[], Vec::as_slice),
+                        numbered,
+                        paint,
+                    ))
+                })
                 .collect::<Vec<_>>()
         },
     )
@@ -307,9 +290,11 @@ pub fn output_box(
 /// texts of one length shown one after the other (two errors, two tool
 /// outputs) left the first on screen. Hashing reads the text each frame:
 /// about a tenth of a millisecond for 100 KB.
+/// Typed formatting inputs may be included in a tuple: missing numbering and
+/// an explicitly reported line zero must not reuse the same cached rows.
 #[must_use]
-pub fn version_of(text: &str) -> u64 {
-    use std::hash::{DefaultHasher, Hash as _, Hasher as _};
+pub fn version_of<T: std::hash::Hash + ?Sized>(text: &T) -> u64 {
+    use std::hash::{DefaultHasher, Hasher as _};
     let mut hasher = DefaultHasher::new();
     text.hash(&mut hasher);
     hasher.finish()
@@ -332,16 +317,22 @@ pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
         .text_size(px(crate::fonts::code(SIZE)))
         .line_height(px(crate::fonts::code(LINE)))
         .text_color(paint.look.text.opacity(0.8))
-        .child(row_of(line, true, wrap, paint))
+        .child(row_of(line, &[], true, wrap, paint))
         .into_any_element()
 }
 
 /// One line: a diff's bar and number, then the text, unwrapped.
-fn row(line: &Line, numbered: bool, paint: Paint) -> AnyElement {
-    row_of(line, numbered, false, paint)
+fn row(line: &Line, emphasis: &[Range<usize>], numbered: bool, paint: Paint) -> AnyElement {
+    row_of(line, emphasis, numbered, false, paint)
 }
 
-fn row_of(line: &Line, numbered: bool, wrap: bool, paint: Paint) -> AnyElement {
+fn row_of(
+    line: &Line,
+    emphasis: &[Range<usize>],
+    numbered: bool,
+    wrap: bool,
+    paint: Paint,
+) -> AnyElement {
     let ink = match line.tone {
         Tone::Plain => None,
         Tone::Added => Some(paint.added),
@@ -374,11 +365,19 @@ fn row_of(line: &Line, numbered: bool, wrap: bool, paint: Paint) -> AnyElement {
     } else {
         row = row.pl(px(PAD));
     }
+    let mut text = StyledText::new(line.text.clone());
+    if let Some(ink) = ink {
+        let style = HighlightStyle {
+            background_color: Some(ink.opacity(WASH)),
+            ..HighlightStyle::default()
+        };
+        text = text.with_highlights(emphasis.iter().cloned().map(|range| (range, style)));
+    }
     row.child(
         div()
             .when(wrap, |text| text.flex_1().min_w_0())
             .when_some(ink, Styled::text_color)
-            .child(line.text.clone()),
+            .child(text),
     )
     .into_any_element()
 }
@@ -394,7 +393,43 @@ fn widest(lines: &[Line]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{Lines, Tone, version_of, widest};
+    use super::{AnnotatedLines, Kept, Lines, Tone, version_of, widest};
+    use gpui::UniformListScrollHandle;
+    use std::rc::Rc;
+
+    #[test]
+    fn cache_validates_emphasis_against_each_line_without_changing_text_or_copy() {
+        let mut kept = Kept {
+            version: 0,
+            lines: Rc::new([]),
+            emphasis: Rc::new([]),
+            copy: None,
+            widest: 0,
+            numbered: false,
+            handle: UniformListScrollHandle::new(),
+            placed: false,
+        };
+        kept.take(
+            1,
+            AnnotatedLines {
+                lines: Lines::text("보드\nplain"),
+                emphasis: vec![vec![1..3, 0..3, 0..99], vec![0..2, 1..4]],
+            },
+        );
+        assert_eq!(
+            kept.emphasis.first().unwrap().as_slice(),
+            std::slice::from_ref(&(0..3))
+        );
+        assert_eq!(
+            kept.emphasis.get(1).unwrap().as_slice(),
+            std::slice::from_ref(&(0..4))
+        );
+        assert_eq!(kept.lines.first().unwrap().text.as_ref(), "보드");
+        assert_eq!(kept.copy.as_deref(), Some("보드\nplain"));
+        kept.take(2, Lines::text("바뀜").into());
+        assert!(kept.emphasis.first().unwrap().is_empty());
+        assert_eq!(kept.copy.as_deref(), Some("바뀜"));
+    }
 
     // Two texts of one length, one after the other (two errors): each is
     // a version of its own, so the box splits the second again; the same
@@ -424,5 +459,14 @@ mod tests {
         let lines = Lines::text("가나다라마바\nabcdefghij\nabc");
         assert_eq!(widest(&lines.lines), 1);
         assert_eq!(widest(&[]), 0);
+    }
+
+    #[test]
+    fn typed_numbering_inputs_invalidate_equal_text() {
+        let text = "same body";
+        assert_ne!(
+            version_of(&(text, None::<u64>)),
+            version_of(&(text, Some(0_u64)))
+        );
     }
 }

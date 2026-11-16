@@ -25,7 +25,7 @@ fn claim(session: SessionId) -> PanelClaim {
         tab,
     }
 }
-fn fixture() -> (Residents, ResidentToken, PanelClaim) {
+pub(super) fn fixture() -> (Residents, ResidentToken, PanelClaim) {
     let mut residents = Residents::new();
     let address = SessionAddress {
         node: NodeId::random(),
