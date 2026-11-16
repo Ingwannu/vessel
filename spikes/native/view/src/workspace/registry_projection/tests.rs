@@ -245,6 +245,10 @@ fn host_and_content_capacity_never_evict_another_hosts_current_snapshot() {
     );
     assert_eq!(cache.phase(&original), Some(RegistryPhase::Ready));
     let mut oversized = data(node);
+    // Advance the snapshot so the independent equal-revision conflict fence
+    // does not reject this fixture before its byte-cap assertion is reached.
+    oversized.registry.revision = RegistryRevision::from(1);
+    oversized.registry.workspaces[0].revision = RegistryRevision::from(1);
     oversized.registry.workspaces[0].path =
         format!("/{}", "x".repeat(MAX_REGISTRY_CACHE_BYTES)).into();
     let key = cache.begin(original.clone()).unwrap();
