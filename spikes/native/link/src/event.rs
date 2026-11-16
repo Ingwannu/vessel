@@ -28,6 +28,8 @@ pub enum Event {
     Creation(super::creation::Answer),
     /// An original-admission guarded history result or correlated refusal.
     History(crate::history::Answer),
+    /// A correlated host-local workspace catalog result.
+    Labels(super::labels::Event),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

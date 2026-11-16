@@ -71,6 +71,7 @@ pub mod creation;
 mod demo;
 pub mod devices;
 pub mod history;
+pub mod labels;
 pub mod mentions;
 pub mod node_settings;
 pub mod search;

@@ -35,6 +35,7 @@ pub mod fork;
 pub mod history;
 pub mod hosts;
 pub mod idle_release;
+pub mod labels;
 mod links;
 pub mod machine_book;
 pub mod machines;
