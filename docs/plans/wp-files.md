@@ -1233,3 +1233,19 @@ replayed after the two View corrections. The standalone shown-source packet
 also received bounded V1 source/requested narrow approval with its prerequisite
 and receiving assembly held. Neither result qualifies the isolated retained
 owner/root-guard join, typed product open/close, UI captures or full C5 acceptance.
+
+## Markdown column follows existing appearance preferences
+
+[Decision Log]
+- Purpose: the same saved content-width setting should govern Markdown file
+  prose without requiring the future typography/value producer.
+- Existing assets: ContentWidth::points already returns the gated optional point
+  width; the kit renders Markdown and the file frame owns full-height scrolling.
+- Choice: project prefs.settings.appearance.content_width.points into a full-width
+  centered document column, applying max width only for Some. Full(None) remains
+  unrestricted; the existing scroll frame, padding and renderer are unchanged.
+- Why: no second width parser, state, renderer or synchronization path is needed.
+  Future validated numeric values can flow through that same points signature.
+- Validation limit: source formatting/static checks only for this reversible
+  layout projection; receiving compile and inspected responsive captures are
+  still owed. No typography/F5 or finished Markdown-file UI approval is claimed.
