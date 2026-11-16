@@ -4,7 +4,7 @@ use crate::{routes::Route, shell::Shell};
 
 impl Shell {
     /// Whether a successful client-book snapshot has been installed at least
-    /// once. Fleet refresh publishes only after saved_entries succeeds; offline
+    /// once. Fleet refresh publishes only after `saved_entries` succeeds; offline
     /// entries remain in that snapshot. This grants no connection authority.
     pub(crate) const fn client_book_read(&self) -> bool {
         self.loaded
