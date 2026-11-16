@@ -99,13 +99,7 @@ fn window_body(
         .and_then(|value| FiniteNumber::new(value.get()));
     let percent =
         DisplayPercent::from_reported(used, remaining, shell.prefs.settings.usage.display);
-    let mut body = div()
-        .w_full()
-        .min_w_0()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S2))
-        .p(px(spacing::S3))
+    let mut body = super::card::bar()
         .child(
             div()
                 .flex()
@@ -127,25 +121,25 @@ fn window_body(
     match vessel_app_view::usage::source_window_timing(window, retained, now) {
         vessel_app_view::usage::SourceWindowTiming::Reset(at) => {
             if at.is_some() {
-                body = body.child(super::rows::message(
+                body = body.child(super::card::reset_line(
                     reset_label(at, shell.areas.usage.offset, now, shell.words),
+                    false,
                     tokens,
                 ));
             }
         }
+        // Paseo shows a runs-out warning in the reset line's place, in danger
+        // ink; Vessel keeps the source's shortfall after it on the same line.
         vessel_app_view::usage::SourceWindowTiming::Risk { at, shortfall } => {
             let percent = format!("{}%", shortfall.get());
             let text = shell.words.usage();
-            body = body
-                .child(super::rows::notice(
-                    vessel_app_view::usage::source_risk_label(at, now, shell.words),
-                    vessel_app_kit::alert::Variant::Warning,
-                    tokens,
-                ))
-                .child(super::rows::message(
-                    text.shortfall(&percent).unwrap_or(percent),
-                    tokens,
-                ));
+            let risk = vessel_app_view::usage::source_risk_label(at, now, shell.words);
+            let shortfall = text.shortfall(&percent).unwrap_or(percent);
+            body = body.child(super::card::reset_line(
+                format!("{risk} · {shortfall}"),
+                true,
+                tokens,
+            ));
         }
     }
     body

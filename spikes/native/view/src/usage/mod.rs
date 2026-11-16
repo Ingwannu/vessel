@@ -54,8 +54,8 @@ pub use source_values::{
 mod summary;
 pub use source_summary::{builtin_source_mark, saved_source, source_mark, summary_candidates};
 pub use sources::{
-    SourceView, balance_facts, source_availability, source_disclosure, source_failure,
-    source_problem, source_view, source_window_tone,
+    SourceView, balance_amount, balance_facts, source_availability, source_disclosure,
+    source_failure, source_problem, source_view, source_window_tone,
 };
 pub use summary::{
     PinnedWindow, SummaryAccount, SummaryGroup, SummaryWindow, default_pins, pinned_windows,

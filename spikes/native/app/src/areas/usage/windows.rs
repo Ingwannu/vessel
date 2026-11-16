@@ -103,13 +103,7 @@ fn meter(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> vessel_app_kit
         vessel_app_view::usage::Tone::Warning => usage_meter::Tone::Warning,
         vessel_app_view::usage::Tone::Danger => usage_meter::Tone::Danger,
     };
-    div()
-        .w_full()
-        .min_w_0()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S2))
-        .p(px(spacing::S3))
+    super::card::bar()
         .child(
             div()
                 .flex()
@@ -127,15 +121,14 @@ fn meter(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> vessel_app_kit
                 tokens,
             )
         }))
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(reset_label(
-                    window.resets_at,
-                    state.offset,
-                    chrono::Utc::now(),
-                    shell.words,
-                )),
-        )
+        .child(super::card::reset_line(
+            reset_label(
+                window.resets_at,
+                state.offset,
+                chrono::Utc::now(),
+                shell.words,
+            ),
+            false,
+            tokens,
+        ))
 }

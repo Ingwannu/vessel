@@ -34,6 +34,11 @@ pub(super) fn render(
         .flex_col()
         .gap(px(spacing::S2));
     for source in reports.sources.as_slice() {
+        // A source this machine cannot read has no choice to make: like
+        // Paseo, which lists only installed sources, it is left out.
+        if source.availability == UsageSourceAvailability::Unsupported {
+            continue;
+        }
         let next = match source.consent {
             UsageSourceConsent::InheritedGlobal => continue,
             UsageSourceConsent::Off => ExternalLookup::On,

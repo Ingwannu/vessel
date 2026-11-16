@@ -371,3 +371,5 @@ usage-off-on = Usage is off on { $host }.
 usage-turn-on = Turn on
 # Muted card when the machine reports no account usage at all.
 usage-plan-empty = No usage data
+# A balance's remaining amount beside its label, Paseo providerUsage.values.remaining; $amount includes its unit.
+usage-amount-left = { $amount } left
