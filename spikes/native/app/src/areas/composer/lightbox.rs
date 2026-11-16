@@ -254,8 +254,8 @@ impl Shell {
 /// A window position in the image viewport's own space: the viewport starts
 /// below the app's own title bar (`draw::Region`).
 fn pointer(point: Point<Pixels>) -> Option<Position> {
-    let top = vessel_app_kit::chrome::bar_height();
-    Position::new(f32::from(point.x), f32::from(point.y - top))
+    let top = f32::from(vessel_app_kit::chrome::bar_height());
+    Position::new(f32::from(point.x), top.mul_add(-1.0, f32::from(point.y)))
 }
 
 /// Loading and refusal remain distinct so a failed read cannot spin forever.

@@ -11,8 +11,8 @@ use vessel_app_kit::icon_chrome::Presence;
 use vessel_app_kit::theme::{IMAGE_SCRIM, spacing};
 use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    MouseButton, ParentElement as _, Styled as _, Window, div, point, px, rgba,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, MouseButton,
+    ParentElement as _, Styled as _, Window, div, point, px, rgba,
 };
 use vessel_app_kit::{ButtonState, ControlSizing, Tokens, Type, TypeExt as _, motion};
 use vessel_app_view::composer::viewer::{
@@ -103,10 +103,12 @@ struct Region {
 
 impl Region {
     fn of(size: gpui::Size<gpui::Pixels>) -> Self {
-        let top = vessel_app_kit::chrome::bar_height().min(size.height);
+        let height = f32::from(size.height);
+        let top = f32::from(vessel_app_kit::chrome::bar_height()).min(height);
+        // `mul_add`: the difference without an arithmetic operator (the lints).
         Self {
-            top,
-            viewport_height: size.height - top,
+            top: px(top),
+            viewport_height: px(top.mul_add(-1.0, height)),
             controls: vessel_app_kit::chrome::controls_corner().width,
         }
     }
@@ -117,13 +119,16 @@ fn bar_shade(
     width: gpui::Pixels,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    let shaded = f32::from(region.controls)
+        .mul_add(-1.0, f32::from(width))
+        .max(0.0);
     (region.top > gpui::Pixels::ZERO).then(|| {
         div()
             .id("attachment-lightbox-bar")
             .absolute()
             .left_0()
             .top_0()
-            .w((width - region.controls).max(gpui::Pixels::ZERO))
+            .w(px(shaded))
             .h(region.top)
             .occlude()
             .on_click(cx.listener(|shell, _event, window, cx| shell.close_image(window, cx)))
