@@ -488,3 +488,15 @@ its own Search and prompt-metadata workers before close, using actual correlated
 events and bounded phase waits. No generic worker-drain claim is borrowed from
 that fixture. The later two-peer extension remains a separate lead-owned writer
 slot and must preserve one State and canonical admissions.
+
+
+## Native adapter test lifetime audit
+
+The owned Search and prompt-index adapter tests reuse the Link's existing
+memory-only `testing::within` and named `phase` safety helpers. No shared
+fixture, dependency or deadline is introduced: the current five-second phase
+and 30-second outer bounds remain. A missing local refusal, welcome frame,
+no-frame EOF or task join must fail at its named wait instead of hanging the
+runner. Existing no-frame, original-target/ticket and retirement assertions are
+preserved. This closes the native counterpart found while auditing the root
+row267 test correction; native strict/runtime qualification is still pending.
