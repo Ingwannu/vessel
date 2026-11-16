@@ -8,6 +8,46 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Ordinary-page function evaluation (staged)
+
+[Decision Log]
+- Purpose: the tool must call the supplied function and return its observed JSON,
+  rather than exposing the low-level expression API or echoing its input.
+- Existing assets: reuse Page's sealed Runtime.evaluate request, finite command
+  owner, pre-await uncertain-delivery state, loader fence and redacted content.
+- Alternatives: a caller-selected private world or an untyped result tree would
+  cross the snapshot boundary or lose the result's explicit byte/truncation rule.
+- Choice: an independently written ordinary-page async wrapper with serialized
+  configuration, typed tagged result and opaque JSON syntax validation. No
+  reference source/assets are copied, adapted or vendored.
+- Effect: invalidate old action refs before execution, even on exceptions or
+  cancellation; navigation cannot publish an old-loader result. Missing element
+  resolution remains an unsupported path, never an ignored requested reference.
+
+Reference behavior: desktop browser-automation/service.ts:824–881 resolves an
+optional element, invokes the function, awaits promises and returns resultJson
+plus truncated. Lines1499–1588 specify non-functions/errors, undefined as null,
+JSON serialization and the80000/79000 result/preview caps. We implement that
+behavior independently. Vessel measures both caps in UTF-8 bytes and also caps
+the JSON-escaped preview itself; multibyte/control-heavy output can truncate
+earlier. Returned previews remain valid JSON strings. Returned JSON is validated
+without inspecting arbitrary user fields. The existing input cap also applies
+to the complete encoded wrapper, so extreme escaping/overhead can refuse an
+otherwise individually valid function before CDP delivery. Exceptions currently
+return typed generic failures; page-supplied error text is not copied into host
+diagnostics (a deliberate stricter privacy difference).
+
+The main world and its prototypes are page-controlled; this result is content,
+not authority, and does not qualify an engine. No element argument, bridge, file
+access, host secret or user-gesture grant is introduced. New result validation
+fixtures and a controlled protocol-controller extension are prepared. An actual
+Node execution of the independently authored script passed14 behavior cases
+(sync/async/undefined/NaN/escaping, non-functions, exceptions/cycles/BigInt and
+UTF-8/escaped/emoji truncation). This is JavaScript-only evidence; Rust tests,
+CDP execution of this new path and receiving-source strict checks are still owed.
+The older a21 artifact is retained for its unchanged Page/wait/snapshot/PNG scope;
+it does not contain this function implementation. NoEngine remains in force.
+
 ## Real-controller fixture style follow-through
 
 Exact99d46dad8 fixture Clippy reached the new helper and returned four style

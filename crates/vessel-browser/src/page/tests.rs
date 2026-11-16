@@ -87,6 +87,15 @@ async fn actual_target_requests_check_history_surface_and_uncertain_delivery() {
             .await
             .unwrap();
         assert_eq!(value.remote_object::<EvaluatedValue>().unwrap().value, 3);
+        let before = page.revision();
+        let function = RequiredInput::try_from("async () => ({owned: 7})".to_owned()).unwrap();
+        let observed = page.evaluate_function(&function).await.unwrap();
+        assert_eq!(observed.text.as_str(), r#"{"owned":7}"#);
+        assert_eq!(
+            observed.completeness,
+            vessel_proto::browser::TextCompleteness::Whole
+        );
+        assert!(page.revision() > before);
         assert!(page.revision() > BrowserRevision::ZERO);
         assert!(!format!("{page:?}").contains("private-target"));
         assert!(matches!(page.capture().await, Err(PageError::Cdp(_))));
@@ -132,7 +141,20 @@ async fn peer(listener: TcpListener) {
                 serde_json::json!({"executionContextId":7})
             }
             "Runtime.callFunctionOn" => snapshot_result(&call),
-            "Runtime.evaluate" => serde_json::json!({"result":{"value":3}}),
+            "Runtime.evaluate" => {
+                assert_eq!(call["params"]["userGesture"], false);
+                if call["params"]["expression"] == "1+2" {
+                    serde_json::json!({"result":{"value":3}})
+                } else {
+                    assert!(
+                        call["params"]["expression"]
+                            .as_str()
+                            .unwrap()
+                            .contains("async () => ({owned: 7})")
+                    );
+                    serde_json::json!({"result":{"value":{"kind":"value","text":"{\"owned\":7}","completeness":"whole"}}})
+                }
+            }
             "Page.captureScreenshot" => serde_json::json!({"data":"bm90LXBuZw=="}),
             "Input.dispatchKeyEvent"
             | "Input.dispatchMouseEvent"

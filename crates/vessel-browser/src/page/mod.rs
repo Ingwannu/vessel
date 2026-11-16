@@ -5,6 +5,7 @@
 //! Mutable access serializes target operations. After a lost/failed CDP command,
 //! only close is allowed: an uncertain mutation must not be silently replayed.
 
+mod evaluation;
 mod input;
 mod snapshot;
 mod wait;
@@ -45,6 +46,8 @@ pub(crate) enum PageError {
     WaitTimeout(#[source] tokio::time::error::Elapsed),
     #[error("browser condition result could not be read")]
     Evaluation(#[source] requests::EvaluationError),
+    #[error("page function evaluation failed")]
+    Function(#[from] crate::evaluation::EvaluationError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
