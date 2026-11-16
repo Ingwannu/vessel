@@ -204,7 +204,7 @@ fn cadence_is_parsed_once_without_rounding_or_resetting_phase_on_save() {
 }
 
 #[test]
-fn unknown_definition_variants_and_ended_states_cannot_be_overwritten() {
+fn unknown_definition_states_and_reasons_cannot_be_overwritten() {
     let schedule = info();
     let mut variants = Vec::new();
     let mut definition = schedule.definition.clone();
@@ -243,14 +243,18 @@ fn unknown_definition_variants_and_ended_states_cannot_be_overwritten() {
         ScheduleState::Unknown,
         ScheduleState::Ended {
             at: schedule.created_at,
-            reason: EndReason::MaxRuns,
+            reason: EndReason::Unknown,
         },
     ] {
         let ended = ScheduleInfo {
             state,
             ..schedule.clone()
         };
-        assert!(editor::replacement(&ended, ended.definition.clone()).is_err());
+        assert_eq!(
+            editor::replacement(&ended, ended.definition.clone()),
+            Err(editor::EditError::Unknown)
+        );
+        assert!(!actions(&ended, &Authority::Scopes(vec![Scope::Operate])).contains(&Action::Edit));
     }
 }
 

@@ -115,6 +115,7 @@ pub const BUNDLED: &[Bundled] = &[
     krate("gpui-base", "Apache-2.0", Role::Editing),
     krate("bytes", "MIT", Role::Bytes),
     krate("chrono", "MIT OR Apache-2.0", Role::Dates),
+    krate("jiff", "Unlicense OR MIT", Role::Dates),
     krate("dirs", "MIT OR Apache-2.0", Role::Folders),
     krate("hostname", "MIT", Role::ComputerName),
     krate("serde", "MIT OR Apache-2.0", Role::Data),

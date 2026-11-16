@@ -2016,3 +2016,23 @@ placement, order, glyph or renderer policy changes. Test model-change results
 are named deliberately because the fixture asserts the page state itself.
 No lint allowance, test weakening or result from the failed source is reused.
 Corrected receiving checks remain owed; no secure/change11 proof is inferred.
+
+### Executed library fixture/inventory correction
+
+Exact689390da all-four-crate strict passed0. Its locked library run
+`schedules-20261116T020844Z-689390da` executed Kit267/0/0 and Link136/0/0,
+then View1129/2/0. App binary tests did not run. The two failures are retained:
+- About's unchanged inventory check correctly detected F1's jiff runtime edge
+  missing from BUNDLED. Coordinator1a2130b2 delegates exactly one attribution
+  entry after chrono, using existing Role::Dates and the resolved jiff0.2.39
+  manifest's Unlicense OR MIT. No inventory-test filter or allowance changes.
+- An older schedule fixture still refused known Ended MaxRuns, contradicting
+  the approved edit contract. It now requires exact Unknown refusal for unknown
+  state/reason, keeps unsupported-definition assertions and explicitly checks
+  no Edit action. The separate four-known-reason/two-target update test and
+  completed-preview test already executed ok; their assertions stay unchanged.
+
+This correction changes no scheduler, revision/authority rule, wire, schema,
+manifest, locale or dependency version. About remains W20-owned except the
+explicitly delegated one line. Receiving View strict/lib and the previously
+unexecuted App binary tests remain owed; the prior red is not a current pass.
