@@ -434,3 +434,50 @@ consent, physical phones, real GPU/OS, customer permissions and latest-base
 union are not approved by these captures. Coordinator comparison and the
 receiving-line changed-source narrow/V1 review still gate adoption; no old
 whole run is relabelled as that receiving union's result.
+
+### Base13 receiving union and the boundary-row correction
+
+The coordinator accepted the exact9878 changed-frame comparison for adoption;
+this was a selected-frame comparison, not independent inspection of all90.
+The orphan question mark is a separately routed shared text-wrap defect,
+TRACKER772, and is outside this packet's edits.
+
+The receiving union is compiled `c7d7bc4dd252c2873e067c056bf676deca132fa2`,
+a merge of gated App base13 `2ebeedf9`. W2's selected.rs, DeliveryGuard and
+unit actor9bb are byte-identical to that base, including the protocol getter
+and existing guard/queue exposure. The one fallible fixture State factory
+initializes W2's History hub. Tuple ListSessions calls use default(). Root,
+TS/web, both locks and the App manifest have no delta against the receiving
+base. The owned Devices App/View/text/catalog paths have no delta from the
+captured9878; captures remain explicitly identified as that older source.
+
+Changed-source ordinary short-lane VM checks, each submitted once:
+
+- `devices-narrow-20261116T005048Z-c7d7bc4d`: locked three-crate all-target
+  Clippy with Link/testing, fonts/cargo0, no warning diagnostics. The raw log
+  says Compiling View and Checking Link/Kit/App; those verbs are retained.
+- `devices-narrow-20261116T005608Z-c7d7bc4d`: locked View/Link/App tests with
+  Link/testing, fonts/cargo0. All8 raw summaries sum to1401/0/2; all8 actual
+  App Devices actor cases occur once as passed. View/Link/Kit/App have actual
+  Compiling lines. This is framed Unary/GPUI test evidence, not live TLS,
+  customer-principal, physical-phone or stream proof.
+- `devices-narrow-20261116T010341Z-c7d7bc4d`: actual locked wasm32 View+Link
+  check with Link/testing, fonts/cargo0 and no warnings. This new receiving
+  source passes; the earlier9878/82ca red records are not relabelled green.
+  No wasm App execution or browser UI claim is made.
+
+The first VM quality run `devices-narrow-20261116T010718Z-c7d7bc4d` is
+retained RED: the packet's new vessel_rpc names-only row omitted W2's
+pre-existing unit-only history/peer.rs. Correction4518499fa changes only
+one README row to allow that existing path beside testing/peer.rs. No Rust,
+manifest, lock, allocator, guard, peer or production path changed. This
+preserves the incoming owner rather than adding a second fixture to Devices.
+
+`devices-narrow-20261116T011043Z-4518499f` then ran VM native-quality once:
+all0,721 native Rust files with13 existing size entries,4 crate boundaries,
+7 external owners/3 name rules, and no new tokens. Its raw quality log SHA256
+is `97d2edaf8fe2f7b7e47d7ef9a85e60226ea0ee96a8403a2f187282fdd336f454`.
+The prior compilation/test records remain exactc7 evidence; the README-only
+correction is proved separately. No unchanged whole or compilation rerun
+was requested for that documentation correction. V1 source adoption and
+lead receiving integration are the next gates; full E2 remains incomplete.
