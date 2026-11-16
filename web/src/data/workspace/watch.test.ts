@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { fixtureId } from "../../testing/ids";
 import type { ObservedFile } from "../../wire/proto";
-import { changed, sameObserved } from "./watch";
+import { changed, diskAfter, sameObserved } from "./watch";
 
 const hash = (digit: string) => fixtureId("ContentHash", digit.repeat(64));
 const ready = (digit: string, size = 3): ObservedFile => ({
@@ -34,6 +34,24 @@ describe("the shown file's watch", () => {
   it("reports a deletion once", () => {
     expect(changed(ready("a"), missing, hash("a"))).toBe(true);
     expect(changed(missing, missing, hash("a"))).toBe(false);
+  });
+
+  it("says the disk is gone, back, or moved on", () => {
+    expect(diskAfter("same", ready("a"), missing, hash("a"))).toBe("deleted");
+    expect(diskAfter("deleted", missing, missing, hash("a"))).toBe("deleted");
+    // Put back as shown: the same disk again, though the anchor moved.
+    expect(diskAfter("deleted", missing, ready("a"), hash("a"))).toBe("same");
+    expect(diskAfter("deleted", missing, ready("b"), hash("a"))).toBe(
+      "changed",
+    );
+    // A heartbeat keeps a change the view has not read yet.
+    expect(diskAfter("changed", ready("b"), ready("b"), hash("a"))).toBe(
+      "changed",
+    );
+    // The page's own save over a change shows the disk again.
+    expect(diskAfter("changed", ready("b"), ready("c"), hash("c"))).toBe(
+      "same",
+    );
   });
 
   it("tells states apart by kind, hash and size", () => {

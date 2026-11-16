@@ -1,8 +1,9 @@
 /* Button and IconButton (kit/button.tsx, DESIGN.md §6.1).
-   agent-orchestrator's: filled, not outlined; 32, 28 and 24px tall,
-   radius 8, gap 6. The secondary is a quiet grey fill; the primary is the
-   ink, with an inset lit top edge and shaded bottom edge as its only
-   depth. Pressing deepens the fill; nothing moves or scales. */
+   agent-orchestrator's: filled, not outlined (bar Paseo's `outline`); 32,
+   28 and 24px tall, radius 8, gap 6. The secondary is a quiet grey fill;
+   the primary is the ink, with an inset lit top edge and shaded bottom
+   edge as its only depth. Pressing deepens the fill; nothing moves or
+   scales. */
 
 .btn {
   position: relative;
@@ -70,6 +71,22 @@
 
 .btn.danger.solid:hover {
   background: color-mix(in srgb, var(--danger) 88%, black);
+}
+
+/* An outline (Paseo's) has no fill and a strong border; hovering and
+   pressing fill it as a ghost's pill does. For the choices inside a
+   callout with its own fill (kit/button.tsx). */
+.btn.edged {
+  background: transparent;
+  border-color: var(--border-strong);
+}
+
+.btn.edged:hover {
+  background: var(--bg-hover);
+}
+
+.btn.edged:active {
+  background: var(--bg-active);
 }
 
 /* A ghost has no fill at rest; on hover or keyboard focus the sidebar's
