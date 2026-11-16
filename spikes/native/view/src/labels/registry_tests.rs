@@ -73,3 +73,30 @@ fn a_committed_assignment_shows_at_once_and_the_next_snapshot_replaces_it() {
     assert!(next.labels(workspace).is_empty());
     assert_eq!(next.revision().map(RegistryRevision::get), Some(2));
 }
+
+#[test]
+fn an_assignment_outlives_a_snapshot_read_before_its_commit() {
+    let workspace = WorkspaceId::random();
+    let labelled = |labels: Vec<Name>| {
+        vec![WorkspaceLabelAssignments { workspace, labels }]
+    };
+    let mut assignments = Assignments::read(&snapshot(4, Vec::new(), Vec::new()));
+    assignments.assigned(workspace, vec![name("Ready")]);
+    // Read before the commit (no newer than the revision held): kept.
+    assignments.refreshed(&snapshot(4, Vec::new(), Vec::new()));
+    assert_eq!(assignments.labels(workspace), [name("Ready")]);
+    // One newer snapshot still without it: kept once more.
+    assignments.refreshed(&snapshot(5, Vec::new(), Vec::new()));
+    assert_eq!(assignments.labels(workspace), [name("Ready")]);
+    // Another newer one without it: the registry wins (someone else
+    // changed it since).
+    assignments.refreshed(&snapshot(6, Vec::new(), Vec::new()));
+    assert!(assignments.labels(workspace).is_empty());
+    // A snapshot carrying the commit confirms it and ends the override.
+    assignments.assigned(workspace, vec![name("Blocked")]);
+    assignments.refreshed(&snapshot(7, Vec::new(), labelled(vec![name("Blocked")])));
+    assert_eq!(assignments.labels(workspace), [name("Blocked")]);
+    assignments.refreshed(&snapshot(8, Vec::new(), Vec::new()));
+    assert!(assignments.labels(workspace).is_empty());
+}
+

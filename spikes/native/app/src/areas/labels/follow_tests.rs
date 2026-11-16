@@ -241,3 +241,117 @@ fn a_row_s_labels_item_opens_the_picker_on_its_registry_workspace(cx: &mut TestA
         assert_eq!(names, [name("Ready"), name("Blocked")]);
     });
 }
+
+/// The host loaded (a snapshot at `cursor`) and its catalog read asked
+/// again, waiting from `cursor`; the registry read left out.
+fn loaded(
+    shell: &gpui::Entity<Shell>,
+    cx: &mut gpui::VisualTestContext,
+    commands: &mut tokio::sync::mpsc::Receiver<vessel_app_link::Command>,
+    cursor: CatalogCursor,
+) -> (ConnectionContext, Request) {
+    let connection = shell.update_in(cx, |shell, _window, cx| {
+        let connection = install(shell);
+        shell.labels_follow(cx);
+        let list = sent(commands);
+        let _registry = sent(commands);
+        shell.labels_answer(
+            Event {
+                context: connection.clone(),
+                ticket: list.ticket,
+                answer: Answer::Listed(Ok(CatalogList {
+                    data: CatalogMode::Snapshot {
+                        labels: vec![ready()],
+                    },
+                    head: cursor,
+                })),
+            },
+            cx,
+        );
+        connection
+    });
+    cx.executor().advance_clock(Duration::from_secs(2));
+    cx.run_until_parked();
+    (connection, sent(commands))
+}
+
+#[gpui::test]
+fn a_gap_in_the_catalog_reads_a_snapshot_at_once_and_stays_loading(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (link, mut commands) = Link::detached(COMMAND_CAPACITY).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    let cursor = head();
+    let (connection, waiting) = loaded(&shell, cx, &mut commands, cursor);
+    shell.update_in(cx, |shell, _window, cx| {
+        // Changes from another cursor than the host's: a gap.
+        let elsewhere = CatalogCursor {
+            generation: WorkspaceLabelGeneration::random(),
+            after: WorkspaceLabelSeq::new(7),
+        };
+        shell.labels_answer(
+            Event {
+                context: connection,
+                ticket: waiting.ticket,
+                answer: Answer::Listed(Ok(CatalogList {
+                    data: CatalogMode::Changes {
+                        from: elsewhere,
+                        updates: Vec::new(),
+                    },
+                    head: elsewhere,
+                })),
+            },
+            cx,
+        );
+        assert_eq!(shell.areas.labels.hosts[0].state, HostState::Loading);
+    });
+    // At once: no quiet pause before the snapshot.
+    cx.executor().advance_clock(Duration::from_millis(1));
+    cx.run_until_parked();
+    assert!(matches!(
+        sent(&mut commands).ask,
+        Command::List {
+            cursor: None,
+            read: CatalogRead::Now
+        }
+    ));
+}
+
+#[gpui::test]
+fn reads_that_come_back_at_once_with_nothing_back_off(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (link, mut commands) = Link::detached(COMMAND_CAPACITY).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    let cursor = head();
+    let (connection, waiting) = loaded(&shell, cx, &mut commands, cursor);
+    shell.update_in(cx, |shell, _window, cx| {
+        // No wait share: the waiting read answers at once, unchanged.
+        shell.labels_answer(
+            Event {
+                context: connection,
+                ticket: waiting.ticket,
+                answer: Answer::Listed(Ok(CatalogList {
+                    data: CatalogMode::Changes {
+                        from: cursor,
+                        updates: Vec::new(),
+                    },
+                    head: cursor,
+                })),
+            },
+            cx,
+        );
+    });
+    // Not after the quiet second: the pause doubled.
+    cx.executor().advance_clock(Duration::from_millis(1500));
+    cx.run_until_parked();
+    assert!(commands.try_recv().is_err());
+    cx.executor().advance_clock(Duration::from_secs(1));
+    cx.run_until_parked();
+    assert!(matches!(
+        sent(&mut commands).ask,
+        Command::List {
+            cursor: Some(_),
+            read: CatalogRead::Observe
+        }
+    ));
+}
+

@@ -10,8 +10,11 @@
 //!   its directory. The snapshot is replaced whole, by revision.
 //! - Choice: keep only those two maps from each snapshot, with its
 //!   revision for the next `changed_from` read; a committed assignment
-//!   answer updates its workspace at once, and the next snapshot (which
-//!   carries the same) replaces it.
+//!   answer updates its workspace at once. A snapshot read before that
+//!   commit can arrive after its answer: the assignment is kept over a
+//!   snapshot no newer than the revision held when it was answered, and
+//!   over one newer snapshot that still disagrees (the commit's own
+//!   snapshot follows it), then the registry wins again.
 //! - Cost: a session without a membership (an older one) has no
 //!   workspace, so no labels and no Labels page.
 
@@ -28,6 +31,18 @@ pub struct Assignments {
     revision: Option<RegistryRevision>,
     sessions: BTreeMap<SessionId, WorkspaceId>,
     labels: BTreeMap<WorkspaceId, Vec<Name>>,
+    /// Committed assignments the registry may not show yet.
+    committed: BTreeMap<WorkspaceId, Committed>,
+}
+
+/// A committed assignment awaiting the snapshot that carries it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Committed {
+    labels: Vec<Name>,
+    /// The revision held when its answer came.
+    held: Option<RegistryRevision>,
+    /// Whether one newer snapshot without it was already passed over.
+    passed: bool,
 }
 
 impl Assignments {
@@ -51,7 +66,34 @@ impl Assignments {
             revision: Some(snapshot.revision),
             sessions,
             labels,
+            committed: BTreeMap::new(),
         }
+    }
+
+    /// `snapshot` replaces what was read, keeping a committed assignment
+    /// over a snapshot that may predate its commit.
+    pub fn refreshed(&mut self, snapshot: &RegistrySnapshot) {
+        let mut next = Self::read(snapshot);
+        for (workspace, committed) in std::mem::take(&mut self.committed) {
+            if next.labels(workspace) == committed.labels.as_slice() {
+                continue;
+            }
+            let older = committed
+                .held
+                .is_some_and(|held| snapshot.revision <= held);
+            if !older && committed.passed {
+                continue;
+            }
+            next.set(workspace, committed.labels.clone());
+            let _kept = next.committed.insert(
+                workspace,
+                Committed {
+                    passed: committed.passed || !older,
+                    ..committed
+                },
+            );
+        }
+        *self = next;
     }
 
     /// The snapshot's revision, for the next read that waits for a change.
@@ -74,6 +116,18 @@ impl Assignments {
 
     /// A committed assignment: `workspace`'s labels are now `labels`.
     pub fn assigned(&mut self, workspace: WorkspaceId, labels: Vec<Name>) {
+        self.set(workspace, labels.clone());
+        let _previous = self.committed.insert(
+            workspace,
+            Committed {
+                labels,
+                held: self.revision,
+                passed: false,
+            },
+        );
+    }
+
+    fn set(&mut self, workspace: WorkspaceId, labels: Vec<Name>) {
         if labels.is_empty() {
             let _unlabelled = self.labels.remove(&workspace);
         } else {

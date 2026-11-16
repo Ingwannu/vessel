@@ -16,10 +16,15 @@
 //!   `Assignments`. Each answer is followed by the file watch's quiet
 //!   pause, a failed read by a longer one; an older peer, a closed or
 //!   replaced admission stops the host's reads until it binds again.
+//! - A sequence gap in the catalog reads a snapshot at once, the host
+//!   staying Loading. A read that comes back at once with nothing new
+//!   (the node had no wait share left, or the caller is delegated) backs
+//!   off, doubling the pause up to 30 s, until something changes; an
+//!   answer that changes nothing redraws nothing.
 //! - Cost: two waiting calls per connected host (each holds one of the
 //!   node's wait shares); answers to a host that went away are dropped.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use vessel_app_kit::ui::Context;
 use vessel_app_link::labels::{Answer, Command, Event, Request};
@@ -28,7 +33,7 @@ use vessel_app_view::labels::{
     Assignments, EditAccess, Failure, HostKey, HostState, Label, Replica, Ticket,
 };
 use vessel_app_view::workspace::pace::QUIET;
-use vessel_proto::workspace_labels::CatalogRead;
+use vessel_proto::workspace_labels::{CatalogMode, CatalogRead};
 
 use crate::shell::Shell;
 
@@ -44,6 +49,10 @@ pub(crate) struct RowLabels<'a> {
 
 /// The pause after a failed read, before the host is read again.
 const AFTER_FAILURE: Duration = Duration::from_secs(10);
+/// An answer sooner than this did not wait (no wait share left).
+const QUICK: Duration = Duration::from_secs(2);
+/// The longest pause after answers that came back at once with nothing.
+const LONGEST: Duration = Duration::from_secs(30);
 
 /// Which of a host's two reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,8 +67,8 @@ enum Lane {
     /// Nothing out: ask at the next chance.
     #[default]
     Idle,
-    /// This request is out.
-    Out(Ticket),
+    /// This request is out since `at`.
+    Out { ticket: Ticket, at: Instant },
     /// Answered; the pause numbered here runs before the next ask.
     Resting(u64),
     /// Not read again until the host binds again.
@@ -77,6 +86,8 @@ pub(super) struct Follow {
     registry_lane: Lane,
     /// The number of the latest pause.
     rests: u64,
+    /// Answers in a row that came back at once with nothing new, per read.
+    idle: [u32; 2],
     /// The admission answered that it has no label calls: a bind of the
     /// same admission keeps the host Unsupported (it would say Loading,
     /// with no read left to settle it).
@@ -88,6 +99,14 @@ impl Follow {
         match read {
             Read::Catalog => &mut self.catalog,
             Read::Registry => &mut self.registry_lane,
+        }
+    }
+
+    fn idle(&mut self, read: Read) -> &mut u32 {
+        let [catalog, registry] = &mut self.idle;
+        match read {
+            Read::Catalog => catalog,
+            Read::Registry => registry,
         }
     }
 }
@@ -125,6 +144,7 @@ impl Shell {
                     catalog: Lane::Idle,
                     registry_lane: Lane::Idle,
                     rests: 0,
+                    idle: [0, 0],
                     unsupported: false,
                 }),
             }
@@ -170,7 +190,10 @@ impl Shell {
                 changed_from: follow.registry.revision(),
             },
         };
-        *follow.lane(read) = Lane::Out(ticket);
+        *follow.lane(read) = Lane::Out {
+            ticket,
+            at: Instant::now(),
+        };
         let context = follow.connection.clone();
         self.command(vessel_app_link::Command::Labels(Request {
             context,
@@ -205,52 +228,25 @@ impl Shell {
         let Some(follow) = self.follow_of(&event.context) else {
             return true;
         };
-        if *follow.lane(read) != Lane::Out(event.ticket) {
+        let Lane::Out { ticket, at } = *follow.lane(read) else {
+            return true;
+        };
+        if ticket != event.ticket {
             return true;
         }
         let key = follow.key;
-        let pause = match &event.answer {
-            Answer::Listed(Ok(list)) => {
-                let _gap_reads_a_snapshot_next = follow.replica.listed(list);
-                Some(QUIET)
-            }
-            Answer::Registry(Ok(snapshot)) => {
-                follow.registry = Assignments::read(snapshot);
-                Some(QUIET)
-            }
-            Answer::Listed(Err(failure)) | Answer::Registry(Err(failure)) => match failure {
-                Failure::Offline | Failure::Changed | Failure::Unsupported => None,
-                Failure::Pending
-                | Failure::NameTaken
-                | Failure::NotFound
-                | Failure::NoChange
-                | Failure::Load
-                | Failure::Update
-                | Failure::TicketExhausted => {
-                    if read == Read::Catalog {
-                        follow.replica.failed(Failure::Load);
-                    }
-                    Some(AFTER_FAILURE)
-                }
-            },
-            Answer::Assigned { .. }
-            | Answer::Updated(_)
-            | Answer::Inspected(_)
-            | Answer::Deleted(_) => None,
-        };
-        let unsupported = matches!(
-            &event.answer,
-            Answer::Listed(Err(Failure::Unsupported)) | Answer::Registry(Err(Failure::Unsupported))
-        );
-        let catalog = (read == Read::Catalog)
-            .then(|| (follow.replica.catalog().clone(), follow.replica.state()));
-        follow.unsupported |= unsupported;
+        let quick = at.elapsed() < QUICK;
+        let outcome = settle(follow, read, &event.answer, quick);
+        follow.unsupported |= outcome.unsupported;
         follow.rests = follow.rests.wrapping_add(1);
         let rest = follow.rests;
-        *follow.lane(read) = match pause {
+        *follow.lane(read) = match outcome.pause {
             Some(_) => Lane::Resting(rest),
             None => Lane::Stopped,
         };
+        let catalog = (read == Read::Catalog)
+            .then(|| (follow.replica.catalog().clone(), follow.replica.state()));
+        let mut redraw = outcome.changed;
         if let Some(host) = self
             .areas
             .labels
@@ -258,23 +254,28 @@ impl Shell {
             .iter_mut()
             .find(|host| host.key == key)
         {
-            if unsupported {
+            if outcome.unsupported {
+                redraw |= host.state != HostState::Unsupported;
                 host.state = HostState::Unsupported;
             } else if let Some((catalog, state)) = catalog
-                && pause.is_some()
+                && outcome.pause.is_some()
+                && (host.catalog != catalog || host.state != state)
             {
                 host.catalog = catalog;
                 host.state = state;
+                redraw = true;
             }
         }
-        if let Some(wait) = pause {
+        if let Some(wait) = outcome.pause {
             rest_then_read(key, read, rest, wait, cx);
         }
-        if read == Read::Registry {
-            self.labels_picker_refresh(cx);
+        if redraw {
+            if read == Read::Registry {
+                self.labels_picker_refresh(cx);
+            }
+            self.settle_labels(cx);
+            cx.notify();
         }
-        self.settle_labels(cx);
-        cx.notify();
         true
     }
 
@@ -391,6 +392,82 @@ impl super::Labels {
             writable: host.state.writable().is_ok(),
         })
     }
+}
+
+/// What an answer did to a host's followed state.
+struct Outcome {
+    /// The pause before the next read; none stops the reads.
+    pause: Option<Duration>,
+    /// Whether the catalog or the registry changed (something to redraw).
+    changed: bool,
+    /// Whether the admission has no label calls.
+    unsupported: bool,
+}
+
+/// Apply `answer` to `follow`'s `read`; `quick`: it came back without
+/// waiting.
+fn settle(follow: &mut Follow, read: Read, answer: &Answer, quick: bool) -> Outcome {
+    let (pause, changed) = match answer {
+        Answer::Listed(Ok(list)) => {
+            let before = (follow.replica.cursor(), follow.replica.state());
+            let gap = follow.replica.listed(list).is_err();
+            if gap && matches!(list.data, CatalogMode::Changes { .. }) {
+                // Read the whole catalog again at once, still Loading.
+                follow.replica.reconnecting();
+                (Some(Duration::ZERO), false)
+            } else if gap {
+                (Some(AFTER_FAILURE), true)
+            } else {
+                let changed = before != (follow.replica.cursor(), follow.replica.state());
+                (Some(pace(follow.idle(read), changed, quick)), changed)
+            }
+        }
+        Answer::Registry(Ok(snapshot)) => {
+            // By value, not revision: a snapshot of the same revision can
+            // end an assignment kept over it, which the rows must show.
+            let before = follow.registry.clone();
+            follow.registry.refreshed(snapshot);
+            let changed = follow.registry != before;
+            (Some(pace(follow.idle(read), changed, quick)), changed)
+        }
+        Answer::Listed(Err(failure)) | Answer::Registry(Err(failure)) => match failure {
+            Failure::Offline | Failure::Changed | Failure::Unsupported => (None, false),
+            Failure::Pending
+            | Failure::NameTaken
+            | Failure::NotFound
+            | Failure::NoChange
+            | Failure::Load
+            | Failure::Update
+            | Failure::TicketExhausted => {
+                if read == Read::Catalog {
+                    follow.replica.failed(Failure::Load);
+                }
+                (Some(AFTER_FAILURE), true)
+            }
+        },
+        Answer::Assigned { .. } | Answer::Updated(_) | Answer::Inspected(_) | Answer::Deleted(_) => {
+            (None, false)
+        }
+    };
+    Outcome {
+        pause,
+        changed,
+        unsupported: matches!(
+            answer,
+            Answer::Listed(Err(Failure::Unsupported)) | Answer::Registry(Err(Failure::Unsupported))
+        ),
+    }
+}
+
+/// The pause after an answer: the quiet one, doubled for each answer in a
+/// row that came back at once with nothing new (up to `LONGEST`).
+fn pace(idle: &mut u32, changed: bool, quick: bool) -> Duration {
+    if changed || !quick {
+        *idle = 0;
+        return QUIET;
+    }
+    *idle = idle.saturating_add(1).min(5);
+    QUIET.saturating_mul(2_u32.saturating_pow(*idle)).min(LONGEST)
 }
 
 /// After `wait`, `read` of `key` may ask again (if still resting from the
