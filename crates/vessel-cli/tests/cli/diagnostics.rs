@@ -23,3 +23,5 @@ async fn node_diagnostics_uses_the_selected_node_and_suppresses_private_debug_ou
     })
     .await;
 }
+
+mod selection;

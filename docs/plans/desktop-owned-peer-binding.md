@@ -303,3 +303,14 @@ The testkit locator builds the exact feature-only node fixture before the case
 clock through its established nested-build owner, errors on unavailable binaries,
 and adds no normal crate edge. T's runner still owes its fixed prebuild step.
 These moved tests and locator are unexecuted until changed-source checks run.
+
+## Announced node gate60 receiving base
+
+The separate node worktree merges announced ee8e3450 over bc9/d5 with no rebase.
+The incoming runtime-assembly extraction and transferable marking lease are kept;
+the already extracted handle observations continue to return the canonical local
+endpoint path. The old assembly-only path import is removed and its file budget
+shrinks from621 to599, with no exception raised. The named base diagnostics test
+issue774 remains the integrator's test-only follow-up; this merge does not call
+that case or this controller's corrected runtime green. All changed-source and
+combined qualification still belong to the final frozen receiving head.

@@ -91,7 +91,7 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | Crate | Who may depend on it | Why |
 | --- | --- | --- |
 | `agent-client-protocol` | only `vessel-agent`, `vessel-testkit` | ACP types never leave the client (ADR 0003); the fake agent speaks it. |
-| `rusqlite` | only `vessel-store` | The event log's schema and its migrations have one owner. |
+| `rusqlite` | only `vessel-store` | The event log's schema and migrations have one owner. Its existing `functions` feature keeps canonical parentage filtering inside one SQL snapshot (see `docs/plans/parentage-sql.md`). |
 | `snow` | only `vessel-secure` | The Noise handshake and the record layer (ADR 0009). |
 | `portable-pty` | only `vessel-pty` | Terminals behind one seam, with its Windows answers. |
 | `process-wrap` | only `vessel-proc` | Process groups and kill-on-close jobs in one place. |
@@ -1827,6 +1827,12 @@ callers retain `require_active`, current role/attention checks and the write in
 one existing writer transaction; this reader supplies no authorization or exit
 proof. No new protocol, schema, cache or dependency accompanies the seam.
 
+Execution incarnation/invalidation has one owner in the existing Agents registry.
+Each live entry owns a UUID and latest-change watch; natural retirement invalidates
+then closes it. Transition owners use invalidate_execution before their effects.
+The proto stamp/ceiling are correlation values only. This first producer implements
+no runtime capture, parentage lease, actor queue policy or private notice admission;
+see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
 
 ## Page feedback and modal ownership
 
@@ -1882,6 +1888,17 @@ Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
 
+### Legacy workspace cleanup fence
+
+Existing project/worktree destructive routes consult canonical registry descriptor
+and backing-reservation ownership under retained project metadata admission.
+`Store::registry_project_reference` reads both sources in one transaction; no
+cwd-derived registry is built. Removal retains its bounded hold through the
+actual tracked teardown/Git/Store operation. Every retained lifecycle/stage blocks
+legacy cleanup; dedicated workspace cleanup still requires its independent
+lifecycle/generation/resource/physical-root proofs. This safety prerequisite adds
+no method, protocol or schema. See `docs/plans/workspace-legacy-removal-fence.md`
+for the conservative project scope, serialization tradeoff and owed tests.
 
 ## RPC caller-drop admission (ADR0080 prerequisite)
 
@@ -1915,3 +1932,17 @@ or protocol capability. This carrier adds no node settings field, persistence,
 RPC, handler, model, provider or audio engine. Host Voice UI may consume it only
 through a typed fake until the real node field/adapter lands. See
 `docs/plans/wp-voice-values.md` and the broader ADR0080 voice package.
+
+`vessel-session::LaunchAdmission` is a read-only clone of the runtime's existing
+shutdown token and Node's original early-stop token. Its one predicate is shared
+by final structured/terminal spawn and external preparation observers; it grants
+no permission or current-run authority. The Node factory lives beside setup so
+this wiring adds no size debt. Settings/SQL/recovery consumer changes are outside
+this standalone prerequisite (ADR 0064 and launch-admission plan).
+
+Standalone timeline recovery/presentation values extend the already adopted body
+and notice vocabulary without attaching fields or calls. Private consumers can
+retain the exact original typed request and actor binding, and test generic
+approval/question presentation. No DTO constructs runtime authority, admission,
+provider offers or delivery; those remain with the existing session/receipt
+owner. See timeline-recovery-values.md for the exact portable boundary and proof.
