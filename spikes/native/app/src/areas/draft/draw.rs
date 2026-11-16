@@ -85,7 +85,8 @@ pub(crate) fn render(
                 .child(t.welcome),
         )
         .child(card)
-        .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
+        .child(pickers::place(shell, &online, touch, tokens, cx).self_start())
+        .child(crate::areas::import::entry(shell, tokens, cx));
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
     }

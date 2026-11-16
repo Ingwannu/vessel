@@ -15,8 +15,7 @@ use gpui::{Context, Entity, Window};
 use gpui_base::input::InputEvent;
 use std::{cell::Cell, rc::Rc};
 
-// Captures belong only to the plain callback extension point; identified forms
-// retain their canonical engine FieldId and function-pointer ownership contract.
+// Captures are retained only by Plain; Identified keeps its engine FieldId contract.
 pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
 
 /// Follow a field's events: Enter, edits, and whether it holds the keys.

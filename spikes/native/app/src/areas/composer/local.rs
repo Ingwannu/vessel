@@ -1,15 +1,15 @@
 //! Byte persistence is separate from transport; recovered uncertain inputs stay
 //! locked until the canonical receipt owner can reconcile their delivery.
 use crate::{areas::Areas, shell::Shell};
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Duration;
 use vessel_app_kit::ui::Context;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_app_link::attachments::local::{KeptFile, LocalFailure, Manifest, Store};
 use vessel_app_view::composer::{drafts::DraftKey, tray::Origin};
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Default)]
 enum Writing {
     #[default]
@@ -28,8 +28,10 @@ pub(super) struct LocalState {
     pub(super) production: bool,
     pending: HashMap<DraftKey, usize>,
     recovered: HashSet<DraftKey>,
+    #[cfg(not(target_arch = "wasm32"))]
     writing: Writing,
 }
+#[cfg(not(target_arch = "wasm32"))]
 const SAVE_DELAY: Duration = Duration::from_millis(200);
 
 /// Only the real startup calls this; `with_drafts` remains isolated for tests.

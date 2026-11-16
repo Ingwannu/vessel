@@ -312,7 +312,6 @@ pub(super) fn tray(
             let (open, remove) = intents::callbacks(target, item, intent);
             let words = shell.words.composer();
             let (icon, subtitle) = match item {
-                ContextAttachment::Plugin(_) => (Glyph::Boxes, words.context_plugin().to_owned()),
                 ContextAttachment::WorkspaceFile(file) => {
                     (Glyph::FileText, file.path.as_str().to_owned())
                 }

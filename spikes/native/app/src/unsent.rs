@@ -27,7 +27,7 @@
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
 use vessel_app_link::agents::AgentsError;
-use vessel_app_link::attachments::{Answer, Files, Step, WithFiles};
+use vessel_app_link::attachments::{Answer, Files, Step};
 use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
 use vessel_app_view::composer::tray::{self, Again};
 use vessel_app_view::idle_release;
@@ -160,12 +160,16 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
-        Command::Prompt { session, text, .. }
-        | Command::Files(Files::Prompt(WithFiles { session, text, .. })) => {
-            return Settle::Prompt { session, text };
+        Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
+        Command::Files(Files::Prompt(prompt)) => {
+            return Settle::Prompt {
+                session: prompt.session,
+                text: prompt.text.clone(),
+            };
         }
         // A file the link never took: failed, to be tried again.
         Command::Files(Files::Send(attach)) => Event::Files(Answer::Upload {
+            message: attach.message,
             session: attach.session,
             key: attach.key,
             step: Step::Failed {
@@ -179,6 +183,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             result: Err(vessel_app_link::attachments::CapabilityFailure::Offline),
         }),
         Command::Files(Files::Wake(wake)) => Event::Files(Answer::Woke {
+            message: wake.message,
             session: wake.session,
             outcome: vessel_app_link::attachments::WakeOutcome::Refused,
         }),

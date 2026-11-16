@@ -51,8 +51,8 @@ fn build(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> SessionResources {
-    SessionResources {
-        session: SessionView::new_scoped(
+    SessionResources::new(
+        SessionView::new_scoped(
             context.clone(),
             move |shell, current, text, _, cx| {
                 shell
@@ -70,8 +70,8 @@ fn build(
             window,
             cx,
         ),
-        conversation: ConversationArea::new(cx),
-    }
+        ConversationArea::new(cx),
+    )
 }
 
 fn new_harness(window: &mut Window, cx: &mut Context<'_, Harness>) -> Harness {
@@ -185,6 +185,17 @@ fn first_submit(harness: &Entity<Harness>, window: &mut gpui::VisualTestContext)
                 .composer_retention
                 .surface,
             vessel_app_view::composer_shell::surface::Surface::default()
+        );
+        assert_eq!(
+            shell
+                .areas
+                .session_residents
+                .resources(&current)
+                .unwrap()
+                .session
+                .composer
+                .id(),
+            harness.field.id()
         );
     });
 }

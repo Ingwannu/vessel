@@ -167,6 +167,7 @@ impl SessionResidents {
         for entry in self.entries.values_mut() {
             if entry.connection.as_ref() == Some(connection) {
                 if let Some(notice) = self.admission.retire_current(entry.token)? {
+                    entry.resources.follow_retired(&notice);
                     retired(&mut entry.resources, &notice);
                 }
                 entry.connection = None;

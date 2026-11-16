@@ -158,6 +158,7 @@ impl Shell {
         records: &[EventRecord],
     ) -> Result<bool, ResidentProblem> {
         self.areas.session_residents.receive(binding, |resources| {
+            resources.requests.observed(binding, records);
             resources.conversation.fold_records(records)
         })
     }

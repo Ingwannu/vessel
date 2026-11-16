@@ -22,6 +22,9 @@ pub(super) fn menu_fixture(
         agent: "Fixture".into(),
         structured: true,
         live: true,
+
+        archived_at: None,
+        binding: None,
     });
     let _tab = shell
         .layout_open_target(

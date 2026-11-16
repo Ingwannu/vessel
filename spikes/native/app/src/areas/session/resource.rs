@@ -6,11 +6,15 @@ use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{Context, ListAlignment, ListState, Window, px};
 use vessel_app_view::Conversation;
 
-/// All per-session UI resources remain in the bundle owned by the resident registry.
+/// The session area's state.
 pub(crate) struct SessionView {
     pub(crate) open: Option<Open>,
+    /// An ended session being started again: the prompt that will be sent
+    /// (shown under the conversation while it starts).
     pub(crate) resuming: Option<String>,
+    /// Why starting it again failed, under the composer.
     pub(crate) resume_error: Option<String>,
+    /// A failed resume's text, put back in the composer on the next frame.
     pub(super) restore: std::cell::RefCell<Option<String>>,
     pub(crate) pending: Option<Pending>,
     pub(crate) conversation: Conversation,
@@ -19,6 +23,7 @@ pub(crate) struct SessionView {
     #[cfg(test)]
     pub(crate) composer_retention: crate::areas::composer_shell::ResidentComposer,
 }
+
 impl SessionView {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self::with_composer(TextField::composer(

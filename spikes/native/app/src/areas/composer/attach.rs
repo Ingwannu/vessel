@@ -54,6 +54,7 @@ impl Incoming {
     }
 
     /// Restore or acquire a private immutable byte snapshot.
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn stored(file: Arc<vessel_app_view::composer::local::LocalFile>) -> Self {
         Self {
             name: file.record.name.as_str().to_owned(),

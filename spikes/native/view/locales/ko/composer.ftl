@@ -116,3 +116,51 @@ composer-image-clipboard-empty = 클립보드에 이미지가 없습니다
 
 # Native attachment menu action or clipboard acquisition failure; a complete label.
 composer-image-format-unsupported = 아직 붙여넣을 수 없는 이미지 형식입니다. PNG, JPEG, GIF 또는 WebP 이미지를 선택하세요.
+
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-busy = 첨부 전송이 이미 진행 중입니다
+
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-capacity = 문맥 첨부가 너무 많습니다
+
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-invalid = 문맥 첨부가 올바르지 않거나 너무 큽니다
+
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-scope = 다른 작업 공간의 첨부입니다
+
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-unavailable = 지금 문맥 첨부를 사용할 수 없습니다
+
+
+# Failed local immutable-byte acquisition or durable manifest write.
+composer-file-local-failed = 이 기기에 첨부를 저장하지 못했습니다. 원본은 변경하지 않았습니다.
+
+
+# Recovered pending-byte retention never authorizes automatic replay.
+composer-file-local-recovered = 보관된 첨부는 재시작 전에 보낸 메시지에 속할 수 있습니다. 전달 여부를 확인할 때까지 전송을 막습니다.
+
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-not-sent = 메시지를 보내지 못했습니다. 준비한 첨부는 보관됩니다.
+
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-preparing = 첨부를 준비하는 중…
+
+
+# Retained attachment delivery status; uncertainty never authorizes automatic retry.
+composer-file-submission-retained = 첨부 메시지의 전달을 확인하지 못해 보관 중입니다. 자동으로 다시 보내지 않습니다.
+
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-retry = 이 메시지 다시 보내기
+
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-sending = 보관된 첨부 메시지를 보내는 중…

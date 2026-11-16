@@ -16,7 +16,10 @@ fn hidden_or_differently_selected_session_input_cannot_dispatch_or_clear_text(
         shell.areas.session.open = Some(Open {
             machine: "fixture".into(), session, title: String::new(), agent: String::new(),
             structured: true, live: true,
-        });
+
+ archived_at: None,
+ binding: None,
+ });
         shell.areas.session.composer.set_text("retained input", window, cx);
         let key = LayoutKey::Session { machine: HostAlias::parse("fixture").unwrap(), session };
         shell.submit_prompt("retained input".into(), window, cx);

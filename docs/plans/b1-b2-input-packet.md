@@ -80,3 +80,43 @@ The frozen Main correction's strict result does not qualify this different
 receiving packet. One common quality/strict and meaningful owner execution is
 still owed; W6 remains the only submission owner. All root/crates/Cargo/web/script
 bytes match the official line. No common job has been submitted yet.
+
+## Official base14.2 and first receiving diagnostics
+
+The first actual95d receiving quality check passed; App compilation then
+reported missing portable composer translations, a function-pointer-only kit
+callback adapter, stale fixtures and settlement fields. No owner execution was
+submitted on that red result. The correction takes the announced c6d8df49 Core
+fields/constructor at this natural checkpoint and preserves its canonical bodies.
+
+[Decision Log]
+- Existing assets: the already-tested captured callback extension of the same
+  kit autocomplete is used, not another list. Only actual missing EN/KO composer
+  keys and their translator comments are added. The minimal context vocabulary
+  still excludes the unready plugin producer, so its accidental tray branch is
+  removed rather than inventing that producer.
+- Settlement: an unaccepted Arc payload retains its original text/session; upload
+  and wake refusal answers carry the request's existing message identity. No new
+  ID, receipt, wire method or automatic retry is introduced.
+- Official UI: W2's import entry is restored at the exact existing position in
+  the relocated draft renderer. New Open fields in isolated fixtures are None;
+  a real isolated Shell supplies Paint's existing attachment boundary in the
+  borrowed-tool renderer test, retaining the real factory and its assertions.
+- Namespace composition: W12 directed removal of only the two compatibility shim
+  files that conflict with A2's existing sessions directories. The app's resident
+  reexport lives under cfg(test) in its existing directory; staged lifecycle tests
+  import canonical view::session_lifecycle directly. Canonical lifecycle bodies
+  and Core imports are unchanged. Legacy A2 remains the sole product path until
+  coordinated conversion; no new LifecycleResources or registry is introduced.
+- Scoped constructor: its existing retention assertions/address regression stay;
+  the bundle uses the official SessionResources::new and also retains the
+  incoming same-editor-ID assertion. Presentation still delegates to one
+  composer renderer, which already stops the engine's consumed Enter fallback.
+- Wasm: the native-only persistence state is now gated by its existing target
+  boundary, following the actual four A1 compiler warnings. No suppression or
+  browser persistence claim is added.
+
+All of these receiving corrections remain unverified until the next immutable
+quality/strict, owner execution and wasm diagnostics checks. The frozen Main
+correction has a separate native strict receipt and still owes execution. None
+of those receipts may be inferred for this different packet.
