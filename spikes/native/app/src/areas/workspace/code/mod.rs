@@ -46,6 +46,7 @@ mod source_follow;
 mod source_tests;
 mod tree;
 mod viewer;
+mod watch;
 
 use std::collections::{HashMap, HashSet};
 
@@ -128,6 +129,8 @@ struct Viewer {
     /// The file edited in place (a desktop's width, at most 1 MiB of
     /// text); `None`: shown read-only by the lines above.
     edit: Option<editing::Editing>,
+    /// Its watch while shown (protocol 26, ADR 0105).
+    watch: vessel_app_view::workspace::watch::Watch,
 }
 
 /// What a file shows.
@@ -358,6 +361,7 @@ impl Shell {
             self.search_words(window, cx);
             self.code_follow();
             let _asked = self.code_reread_shown();
+            self.code_watch();
         }
         cx.notify();
     }
@@ -443,5 +447,6 @@ impl Shell {
             // A root never listed is not among the folders read again.
             Tab::Files => self.read_folder(&RelPath::root()),
         }
+        self.code_watch();
     }
 }

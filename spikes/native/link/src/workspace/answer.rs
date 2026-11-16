@@ -3,6 +3,7 @@
 
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
+use vessel_proto::workspace::panel_files::{ObserveFile, ObservedFile};
 use vessel_proto::workspace::{
     BranchList, CommandsDigest, CommitOutcome, CommitPage, DiffSummary, DirListing, DropSnapshot,
     FetchOutcome, FileDiff, FileRead, FindFiles, FoundFiles, GetChanges, GetFileDiff, GitStatus,
@@ -198,6 +199,13 @@ pub enum Answer {
         /// Done, or why not.
         result: Result<(), Problem>,
     },
+    /// A shown file's state, after a change or the node's heartbeat.
+    Observed {
+        /// What was asked.
+        ask: ObserveFile,
+        /// The state, or why not.
+        result: Result<ObservedFile, Problem>,
+    },
     /// A step of a start.
     Start {
         /// Which start.
@@ -378,6 +386,10 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
         },
         FileAsk::Path(change) => Answer::PathChanged {
             change,
+            result: no(problem),
+        },
+        FileAsk::Observe(ask) => Answer::Observed {
+            ask,
             result: no(problem),
         },
     }

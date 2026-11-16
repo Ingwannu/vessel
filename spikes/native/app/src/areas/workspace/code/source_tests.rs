@@ -387,6 +387,7 @@ fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
             goto: None,
             chosen: None,
             edit: Some(edit),
+            watch: vessel_app_view::workspace::watch::Watch::default(),
         });
         let replacement = scene
             .reconnect(
@@ -418,6 +419,56 @@ fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
                 .unwrap()
                 .iter()
                 .all(|call| !matches!(call, Call::WriteFile(_)))
+        );
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+#[gpui::test]
+fn a_change_the_watch_sees_reads_the_shown_file_again(cx: &mut TestAppContext) {
+    use vessel_app_view::workspace::editor::Read;
+    use vessel_app_view::workspace::watch::Watch;
+    use vessel_proto::workspace::FileVersion;
+    use vessel_proto::workspace::panel_files::{FileRevision, FileSize, ObservedFile};
+
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, _, cx| {
+        let original = scene.context();
+        let (session, project) = prepare(shell, &original);
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let root = WorkspaceRoot::Project { project };
+        let path: RelPath = "a.rs".parse().unwrap();
+        let mut edit = editing::Editing::new();
+        let first = edit.model.first_read();
+        let version = FileVersion {
+            size: 3,
+            modified: 0,
+            hash: Some("a".repeat(64).parse().unwrap()),
+        };
+        let _step = edit.model.read(first, Read::Text("old".to_owned(), version));
+        let mut watch = Watch::default();
+        let ask = watch
+            .ask(root, path.clone(), std::time::Instant::now())
+            .unwrap();
+        shell.areas.workspace.code.files.viewer = Some(Viewer {
+            path: path.clone(),
+            text: Shown::Loading,
+            list: VirtualList::new(false),
+            goto: None,
+            chosen: None,
+            edit: Some(edit),
+            watch,
+        });
+        let changed = ObservedFile::Ready {
+            revision: FileRevision {
+                size: FileSize(3),
+                hash: "b".repeat(64).parse().unwrap(),
+            },
+        };
+        shell.file_observed(&ask, Ok(changed), cx);
+        assert!(
+            matches!(scene.request(shell.fixture_link()).unwrap(), Call::ReadFile(read) if read.root == root && read.path == path)
         );
         scene.close(shell.fixture_link()).unwrap();
     });

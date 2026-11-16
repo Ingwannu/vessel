@@ -8,9 +8,11 @@ use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, VirtualList};
+use vessel_app_view::workspace::editor::Step;
 use vessel_app_view::workspace::file_tree::Listing;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::syntax::{language_of, line_states};
+use vessel_app_view::workspace::watch::Watch;
 use vessel_proto::workspace::{
     DirListing, FileContent, FileRead, ListDir, ReadFile, RelPath, WorkspaceRoot,
 };
@@ -58,11 +60,6 @@ impl Shell {
             return;
         };
         let folders: Vec<RelPath> = panel.files.listings.keys().cloned().collect();
-        let shown = panel
-            .files
-            .viewer
-            .as_ref()
-            .map(|viewer| viewer.path.clone());
         for dir in folders {
             self.ask(
                 &machine,
@@ -73,20 +70,27 @@ impl Shell {
                 })),
             );
         }
-        let edited = self
-            .areas
-            .workspace
-            .code
-            .files
-            .viewer
-            .as_mut()
-            .and_then(|viewer| viewer.edit.as_mut());
-        if let Some(editing) = edited {
-            // The editor meets the disk: a clean buffer follows it, a
-            // modified one shows the conflict (Paseo's `reconcile`).
-            if let vessel_app_view::workspace::editor::Step::Read { .. } = editing.model.reconcile()
-                && let Some(path) = shown
-            {
+        self.reread_shown_file();
+    }
+
+    /// Ask again for the file shown (a git write, or its watch saw a
+    /// change): the editor meets the disk, a clean buffer following it and
+    /// a modified one showing the conflict (Paseo's `reconcile`); a file
+    /// shown read-only is read again.
+    pub(super) fn reread_shown_file(&mut self) {
+        let panel = &mut self.areas.workspace.code;
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
+        else {
+            return;
+        };
+        let Some(viewer) = panel.files.viewer.as_mut() else {
+            return;
+        };
+        let path = viewer.path.clone();
+        if let Some(editing) = viewer.edit.as_mut() {
+            if let Step::Read { .. } = editing.model.reconcile() {
                 self.ask(
                     &machine,
                     Ask::File(FileAsk::Read(super::editing::whole_read(root, path))),
@@ -94,17 +98,15 @@ impl Shell {
             }
             return;
         }
-        if let Some(path) = shown {
-            self.ask(
-                &machine,
-                Ask::File(FileAsk::Read(ReadFile {
-                    root,
-                    path,
-                    offset: 0,
-                    limit: None,
-                })),
-            );
-        }
+        self.ask(
+            &machine,
+            Ask::File(FileAsk::Read(ReadFile {
+                root,
+                path,
+                offset: 0,
+                limit: None,
+            })),
+        );
     }
 
     /// A folder's entries arrived.
@@ -188,6 +190,7 @@ impl Shell {
             goto: line,
             chosen: None,
             edit: editable.then(super::editing::Editing::new),
+            watch: Watch::default(),
         });
         let read = if editable {
             super::editing::whole_read(root, path)
