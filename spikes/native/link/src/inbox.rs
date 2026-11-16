@@ -166,6 +166,7 @@ pub enum Answer {
     Detail(Source, Key, Request, Result<Option<Entry>, Problem>),
 }
 impl Ask {
+    #[cfg(not(target_arch = "wasm32"))]
     fn validate(&self) -> Result<(), Problem> {
         match self {
             Self::Claim(pending) => {

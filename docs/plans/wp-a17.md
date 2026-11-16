@@ -503,3 +503,12 @@ it enters this APP only through an announced package base after the node
 integrator; no provisional helper or unreviewed clock ancestry is imported.
 The Node consumer and its actual cancellation regressions are checked there
 first. The current APP ingress remains disabled by its unassigned feature.
+
+
+The actual wasm32 receiving check also found that generic notification fallback
+referenced the desktop-only host registry. Browser fallback now returns the
+existing explicit GenericUnavailable outcome; it creates no alternate registry
+or success claim. Exact original-recipient routing remains unchanged. The
+Link request validator is gated with its sole native actor caller, avoiding an
+unused browser-only method. The source run failed on these own diagnostics and
+the separately corrected Inbox sidebar arm; the corrected wasm check is owed.

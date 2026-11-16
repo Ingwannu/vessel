@@ -26,6 +26,7 @@ impl Global for Routes {}
 enum Opened {
     Original,
     /// A current host receives only generic Inbox activation, never this source.
+    #[cfg(not(target_arch = "wasm32"))]
     Generic,
     GenericUnavailable,
     OtherNotification,
@@ -128,6 +129,7 @@ fn open(tag: &str, cx: &mut App) -> Opened {
 
 // The host registry owns window selection. No notice source or destination is
 // passed through this boundary, so a successor cannot inherit its authority.
+#[cfg(not(target_arch = "wasm32"))]
 fn generic(cx: &mut App) -> Opened {
     use crate::host_windows::{Delivery, open_additional, with_focused_shell};
     if with_focused_shell(cx, show_inbox) == Delivery::Delivered {
@@ -142,6 +144,14 @@ fn generic(cx: &mut App) -> Opened {
     }
 }
 
+// The browser has no desktop host registry or additional-window factory.
+// Preserve an explicit unavailable fallback instead of selecting another owner.
+#[cfg(target_arch = "wasm32")]
+fn generic(_: &mut App) -> Opened {
+    Opened::GenericUnavailable
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn show_inbox(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     shell.route_to(Route::Inbox);
     cx.notify();
