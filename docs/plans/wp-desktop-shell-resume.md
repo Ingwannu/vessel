@@ -91,3 +91,13 @@ All owned source is committed; no runtime processes or fleets were started.
 
 No live service/account/permission change. Source remains the existing service
 account's files; no root-generated artifacts or chmod/chown were introduced.
+
+Latest announcements DURING closeout, deliberately NOT merged: base14.4
+`935569d5` is green1801/0/2 and contains canonical
+`Shell::client_book_read() -> bool` plus the one global-shortcut admission
+predicate (W22 row312). W15 owns the chrome presentation gate consuming it;
+E3 must not add a parallel ready/online cache. Compact builder is merged into
+the lead line at `f3c05727`, with the 14.5 gate pending. G2 still waits that
+announced green result. The local read-only field-run attach watcher was stopped
+by its verified process group; the registered remote run is deliberately kept,
+not cancelled. Retrieve it afresh on resume.
