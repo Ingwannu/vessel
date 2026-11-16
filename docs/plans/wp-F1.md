@@ -1873,3 +1873,21 @@ Local size/token checks pass; native changed-source checks remain owed. Incoming
 generated wire whitespace is preserved as published, not rewritten for this merge.
 The line includes the V3-checked known-Ended node correction; the prepared App
 adaptation is still a separate follow-up, not proof from this merge.
+
+### Known Ended definition edits on the announced node line
+
+[Decision Log]
+- Purpose: pinned Paseo service458–509, schedule-row209–250 and form-model545–565
+  permit editing a completed definition without reactivating it.
+- Existing constraint: the checked node correction is now on announced base13;
+  App must retain original revision, authority and pending/current-visit guards.
+- Choice: share a known-state admission between row actions and replacement.
+  Four known completion reasons offer Edit/Delete; unknown state/reason remains
+  refused and never gains Pause/Resume/Run now. Legacy EditError words remain
+  unchanged for their existing API/localization ownership.
+- Why: reconstructing state in the form could silently resume a completed rule.
+  The complete original definition and revision remain the update source.
+- Impact: cadence preview still validates and supplies the canonical anchor,
+  while completed edit presentation suppresses future execution claims. Tests
+  cover known reasons, identity/revision/hidden data and EN/KO no-next-runs.
+  Corrected-source execution is owed; no node protocol/schema change here.

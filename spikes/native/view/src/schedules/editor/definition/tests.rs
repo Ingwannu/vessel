@@ -81,7 +81,7 @@ fn create_requires_valid_fields_and_target_and_uses_archive_by_default() {
     assert_eq!(saved.definition.target, target().wire());
 }
 #[test]
-fn ended_unknown_or_unsupported_forms_never_become_editable() {
+fn unknown_states_reasons_and_unsupported_forms_never_become_editable() {
     let mut original = info();
     original.state = ScheduleState::Unknown;
     assert!(matches!(
@@ -91,11 +91,11 @@ fn ended_unknown_or_unsupported_forms_never_become_editable() {
     let mut ended = info();
     ended.state = ScheduleState::Ended {
         at: ended.updated_at,
-        reason: vessel_proto::automation::EndReason::MaxRuns,
+        reason: vessel_proto::automation::EndReason::Unknown,
     };
     assert!(matches!(
         Draft::open(ended, TimeZoneName::utc()),
-        Err(EditError::Ended)
+        Err(EditError::Unknown)
     ));
     let spec = serde_json::from_str(r#"{"harness":"claude-code","mode":"terminal"}"#).unwrap();
     assert!(matches!(
@@ -164,4 +164,33 @@ fn borrowed_validation_keeps_the_original_typed_error_source() {
         .unwrap();
     assert!(std::ptr::eq(source, error));
     assert!(matches!(source, FieldError::Prompt(_)));
+}
+
+#[test]
+fn known_completed_definitions_keep_identity_revision_state_and_hidden_values() {
+    use vessel_proto::automation::EndReason;
+    for reason in [
+        EndReason::MaxRuns,
+        EndReason::Expired,
+        EndReason::CreatorGone,
+        EndReason::TargetGone,
+    ] {
+        for target in [info().definition.target, target().wire()] {
+            let mut ended = info();
+            ended.definition.target = target;
+            ended.state = ScheduleState::Ended {
+                at: ended.updated_at,
+                reason,
+            };
+            ended.definition.ends_at = Some(ended.updated_at);
+            let draft = Draft::open(ended.clone(), TimeZoneName::utc()).unwrap();
+            assert_eq!(draft.opened(), Some(&ended));
+            let Save::Update(saved) = draft.save().unwrap() else {
+                panic!("not update");
+            };
+            assert_eq!(saved.schedule, ended.id);
+            assert_eq!(saved.revision, ended.revision);
+            assert_eq!(saved.definition, ended.definition);
+        }
+    }
 }

@@ -111,3 +111,48 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
         assert!(form.blocked);
     }
 }
+
+#[test]
+fn completed_edit_keeps_preview_admission_without_claiming_next_execution() {
+    use vessel_proto::automation::{EndReason, ScheduleState};
+    let mut model = Model::default();
+    let mut info = crate::schedules::tests::info();
+    info.definition.cadence = super::super::cadence::initial(TimeZoneName::utc()).unwrap();
+    info.state = ScheduleState::Ended {
+        at: info.updated_at,
+        reason: EndReason::MaxRuns,
+    };
+    let opened = model
+        .edit(info, context(&key("laptop")), TimeZoneName::utc())
+        .unwrap()
+        .unwrap();
+    let after = "2026-11-15T00:00:00Z".parse().unwrap();
+    let request = model.preview(opened.visit, after).unwrap().unwrap();
+    let io::Operation::Preview(input) = request.operation() else {
+        panic!("preview")
+    };
+    assert!(matches!(
+        model.received(
+            &request,
+            Ok(io::Value::Preview(SchedulePreview {
+                cadence: input.cadence.clone(),
+                after,
+                runs: [
+                    "2026-11-15T01:00:00Z",
+                    "2026-11-15T02:00:00Z",
+                    "2026-11-15T03:00:00Z"
+                ]
+                .map(|at| at.parse().unwrap())
+                .to_vec(),
+            }))
+        ),
+        super::super::session::Received::Changed
+    ));
+    for (catalog, _) in catalogs() {
+        let form = prepare(&model, &crate::Fleet::default(), &Clock::unknown(), catalog)
+            .unwrap()
+            .unwrap();
+        assert!(form.next_runs.is_empty());
+        assert_eq!(form.submission, Submission::Ready);
+    }
+}

@@ -117,6 +117,21 @@ impl Status {
         }
     }
 
+    // Shared admission for the row and definition editor. Editing a known
+    // completion changes only its definition, never resumes execution.
+    const fn permits_definition_edit(self) -> bool {
+        match self {
+            Self::Active | Self::Paused => true,
+            Self::Ended(reason) => match reason {
+                EndReason::MaxRuns
+                | EndReason::Expired
+                | EndReason::CreatorGone
+                | EndReason::TargetGone => true,
+                EndReason::Unknown => false,
+            },
+            Self::Unknown => false,
+        }
+    }
     /// Which filter contains this row.
     #[must_use]
     pub const fn bucket(self) -> Bucket {
@@ -182,17 +197,22 @@ pub fn actions(schedule: &ScheduleInfo, authority: &authority::Authority) -> Vec
     if !authority.allows_actions() {
         return Vec::new();
     }
-    let cadence_action = match Status::of(&schedule.state) {
-        Status::Active => Action::Pause,
-        Status::Paused => Action::Resume,
-        Status::Ended(_) | Status::Unknown => return vec![Action::Delete],
-    };
+    let state = Status::of(&schedule.state);
     let mut actions = Vec::with_capacity(4);
-    if editable(&schedule.definition) {
+    if state.permits_definition_edit() && editable(&schedule.definition) {
         actions.push(Action::Edit);
     }
-    actions.push(cadence_action);
-    actions.push(Action::RunNow);
+    match state {
+        Status::Active => {
+            actions.push(Action::Pause);
+            actions.push(Action::RunNow);
+        }
+        Status::Paused => {
+            actions.push(Action::Resume);
+            actions.push(Action::RunNow);
+        }
+        Status::Ended(_) | Status::Unknown => {}
+    }
     actions.push(Action::Delete);
     actions
 }

@@ -177,7 +177,7 @@ impl Draft {
             cadence: cadence::Draft::open(initial, viewer)?,
         })
     }
-    /// An unknown/ended definition is refused before drawing editable controls.
+    /// Unknown state/reason/definition is refused before editable controls.
     /// # Errors
     /// Refuses unknown state/target/policy or an unsupported automatic session.
     pub fn open(opened: ScheduleInfo, viewer: TimeZoneName) -> Result<Self, EditError> {

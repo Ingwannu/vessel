@@ -12,9 +12,7 @@ pub mod zones;
 
 use thiserror::Error;
 use vessel_proto::SessionMode;
-use vessel_proto::automation::{
-    ScheduleDefinition, ScheduleInfo, ScheduleState, ScheduleTarget, UpdateSchedule,
-};
+use vessel_proto::automation::{ScheduleDefinition, ScheduleInfo, ScheduleTarget, UpdateSchedule};
 
 pub use super::cadence::{CadenceError, CadenceInput, IntervalParts, IntervalUnit};
 
@@ -24,7 +22,7 @@ pub enum EditError {
     /// At least one field is a newer node's variant.
     #[error("unknown schedule state or definition")]
     Unknown,
-    /// The node has ended it; updates would conflict.
+    /// Legacy local refusal, retained for API and the accepted localized table.
     #[error("an ended schedule cannot be edited")]
     Ended,
     /// Automatic runs only support structured sessions without resume.
@@ -59,15 +57,13 @@ pub fn check_definition(definition: &ScheduleDefinition) -> Result<(), EditError
 /// from a background refresh: a concurrent edit must produce a visible conflict.
 ///
 /// # Errors
-/// Ended or unknown state, or an unsupported definition.
+/// Unknown state/completion reason, or an unsupported definition.
 pub fn replacement(
     opened: &ScheduleInfo,
     definition: ScheduleDefinition,
 ) -> Result<UpdateSchedule, EditError> {
-    match opened.state {
-        ScheduleState::Active { .. } | ScheduleState::Paused { .. } => {}
-        ScheduleState::Ended { .. } => return Err(EditError::Ended),
-        ScheduleState::Unknown => return Err(EditError::Unknown),
+    if !super::Status::of(&opened.state).permits_definition_edit() {
+        return Err(EditError::Unknown);
     }
     check_definition(&opened.definition)?;
     check_definition(&definition)?;

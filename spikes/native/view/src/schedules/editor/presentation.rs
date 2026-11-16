@@ -149,18 +149,29 @@ pub fn prepare(
         Ok(value) => (Some(lang.schedule_cadence(value).into()), None),
         Err(error) => (None, Some(lang.cadence_error(error).into())),
     };
-    let next_runs = model.projected().map_or_else(
-        || Ok(Vec::new()),
-        |value| {
-            value
-                .runs
-                .iter()
-                .map(|at| -> Result<Arc<str>, ClockError> {
-                    Ok(words.form_next_at(&clock.at(*at)?)?.into())
-                })
-                .collect::<Result<Vec<_>, _>>()
-        },
-    )?;
+    // A completed edit validates its cadence without promising resumed runs.
+    let next_runs = model
+        .projected()
+        .filter(|_| {
+            !draft.opened().is_some_and(|opened| {
+                matches!(
+                    opened.state,
+                    vessel_proto::automation::ScheduleState::Ended { .. }
+                )
+            })
+        })
+        .map_or_else(
+            || Ok(Vec::new()),
+            |value| {
+                value
+                    .runs
+                    .iter()
+                    .map(|at| -> Result<Arc<str>, ClockError> {
+                        Ok(words.form_next_at(&clock.at(*at)?)?.into())
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            },
+        )?;
     let problems = model
         .operations()
         .filter_map(|slot| {
