@@ -8,7 +8,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+use tokio_util::sync::CancellationToken;
 use vessel_proto::NodeId;
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 
 use crate::config::Config;
 use crate::fleet::FleetMcp;
@@ -173,6 +175,33 @@ impl Startup {
     }
 }
 
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+pub(super) fn runtime(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+    admission: CancellationToken,
+) -> Arc<SessionRuntime> {
+    Arc::new(
+        SessionRuntime::new(
+            RuntimeConfig {
+                harness_lookup: config.harness_lookup.clone(),
+                harness_env: config.harness_env.clone(),
+                ring_capacity: config.ring_capacity,
+                durable_capacity: config.durable_capacity,
+                agent_handshake_timeout: config.agent_handshake_timeout,
+                park_after: config.park_after,
+                private_dir: Some(private_dir),
+            },
+            CancellationToken::new(),
+        )
+        .with_attachments(loader)
+        .with_admission(admission),
+    )
+}
+
 /// Startup services share the node's task and cancellation handles. Keeping
 /// these initializers together preserves push's store failure before limits I/O.
 pub(super) struct RuntimeServices {
@@ -185,7 +214,7 @@ pub(super) async fn runtime_services(
     config: &Config,
     store: &vessel_store::Store,
     tasks: tokio_util::task::TaskTracker,
-    stop: tokio_util::sync::CancellationToken,
+    stop: CancellationToken,
 ) -> Result<RuntimeServices, NodeError> {
     let push = crate::push::Push::started(config, store.clone(), &tasks, stop.clone())
         .await
@@ -202,7 +231,7 @@ pub(super) async fn runtime_services(
 /// A failed registry never resets saved data or prevents unrelated node operations.
 pub(super) async fn host_registry(
     config: &Config,
-    stop: tokio_util::sync::CancellationToken,
+    stop: CancellationToken,
     tasks: &tokio_util::task::TaskTracker,
 ) -> Option<crate::host_registry::HostRegistry> {
     #[cfg(test)]
@@ -216,5 +245,31 @@ pub(super) async fn host_registry(
             tracing::warn!("host registry is unavailable; saved data is retained");
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+
+    const ATTACHMENT_CAPACITY: usize = 1;
+
+    #[test]
+    fn the_actual_node_factory_observes_the_original_early_stop_token() {
+        let root = tempfile::tempdir().unwrap();
+        let config = Config::new(
+            vessel_store::DataDir::new(root.path()),
+            vessel_harness::HarnessEnv::new(root.path().to_owned()),
+        );
+        let (loader, _loads) = AttachmentLoader::channel(ATTACHMENT_CAPACITY);
+        let stop = CancellationToken::new();
+        let runtime = runtime(&config, loader, root.path().to_owned(), stop.clone());
+        let observed = runtime.launch_admission();
+        assert!(observed.check().is_ok());
+        stop.cancel();
+        assert!(matches!(
+            observed.check(),
+            Err(vessel_session::SessionError::ShuttingDown)
+        ));
     }
 }
