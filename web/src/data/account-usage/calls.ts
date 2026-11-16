@@ -21,6 +21,7 @@ import type {
   UsageDisclosureVersion,
   UsageReportId,
   UsageReportLookup,
+  UsageReportScope,
   UsageReports,
   UsageSourceDescriptor,
   UsageSourceId,
@@ -38,17 +39,16 @@ export function servesAccountReports(status: NodeStatus | undefined): boolean {
   );
 }
 
-/** The machine's reports. `cached` never discovers logins or contacts a source. */
+/** The machine's reports, or one session's account (Paseo's agent usage).
+ * `cached` never discovers logins or contacts a source. */
 export function readAccountReports(
   fleet: Fleet,
   node: NodeKey,
   refresh: LimitRefresh,
+  scope: UsageReportScope,
 ): Promise<Outcome<UsageReports>> {
   return attempt(() =>
-    fleet.bridge.call(node, "usage.reports", {
-      scope: { kind: "machine" },
-      refresh,
-    }),
+    fleet.bridge.call(node, "usage.reports", { scope, refresh }),
   );
 }
 

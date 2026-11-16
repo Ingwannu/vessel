@@ -5,25 +5,18 @@
 // The reported-usage ledger stays below, as on the native app.
 import "./quota-card.css";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useState } from "react";
 
-import { useFleet, useFleetState } from "../../context";
-import {
-  readAccountReports,
-  refreshAccountReport,
-  servesAccountReports,
-  setAccountLookup,
-  setSourceLookup,
-} from "../../data/account-usage/calls";
+import { useFleetState } from "../../context";
+import { servesAccountReports } from "../../data/account-usage/calls";
 import { quotaCards } from "../../data/account-usage/cards";
-import { QuotaInstant } from "../../data/account-usage/clock";
+import type { QuotaInstant } from "../../data/account-usage/clock";
 import { consentRows } from "../../data/account-usage/consent";
-import {
+import type {
   AccountReader,
-  type AccountRead,
+  AccountRead,
 } from "../../data/account-usage/reader";
 import type { QuotaDisplay } from "../../data/account-usage/values";
-import { useStore } from "../../data/store";
 import {
   Banner,
   Button,
@@ -37,6 +30,7 @@ import {
 import type { NodeKey } from "../../wire/bridge";
 import { SettingsSection } from "../settings/settings-page";
 import { QuotaCardView } from "./quota-card";
+import { useAccountReader, useQuotaClock } from "./use-account-usage";
 
 const TITLE = "Plan usage";
 const CAVEAT =
@@ -45,57 +39,6 @@ const DISPLAY: readonly Choice<QuotaDisplay>[] = [
   { value: "used", label: "Used" },
   { value: "remaining", label: "Remaining" },
 ];
-
-/** Date.now() is always a safe integer; anything else is a broken clock. */
-function instantNow(): QuotaInstant {
-  const now = QuotaInstant.fromMilliseconds(Date.now());
-  if (now === null) throw new Error("The device clock is out of range");
-  return now;
-}
-
-/** Paseo's relative-time tick: once a minute while cards show times. */
-function useNow(): QuotaInstant {
-  const [now, setNow] = useState(instantNow);
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNow(instantNow());
-    }, 60_000);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
-  return now;
-}
-
-function useAccountReader(
-  node: NodeKey,
-  serves: boolean,
-): {
-  reader: AccountReader;
-  read: AccountRead;
-} {
-  const fleet = useFleet();
-  const reader = useMemo(
-    () =>
-      new AccountReader({
-        read: (key, refresh) => readAccountReports(fleet, key, refresh),
-        inspect: (key, id) => refreshAccountReport(fleet, key, id),
-        lookup: (key, policy) => setAccountLookup(fleet, key, policy),
-        source: (key, source, policy, version) =>
-          setSourceLookup(fleet, key, source, policy, version),
-      }),
-    [fleet],
-  );
-  const read = useStore(reader.store, (value) => value);
-  useEffect(() => {
-    if (serves) reader.open(node);
-    else reader.stop();
-    return () => {
-      reader.stop();
-    };
-  }, [reader, node, serves]);
-  return { reader, read };
-}
 
 /** Paseo usage-section.tsx `UsageMessage`. */
 function Message({ text, children }: { text: string; children?: ReactNode }) {
@@ -110,15 +53,9 @@ function Message({ text, children }: { text: string; children?: ReactNode }) {
 export function PlanUsage({ node, label }: { node: NodeKey; label: string }) {
   const status = useFleetState((state) => state.statuses[node]);
   const serves = servesAccountReports(status);
-  const { reader, read } = useAccountReader(node, serves);
+  const { reader, read } = useAccountReader(node, serves, null);
   const [display, setDisplay] = useState<QuotaDisplay>("used");
-  const now = useNow();
-  const locale = navigator.language;
-  const deviceClock = useMemo(
-    () =>
-      new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }),
-    [locale],
-  );
+  const { now, locale, deviceClock } = useQuotaClock();
 
   if (status?.state !== "connected") return null;
   if (!serves) {

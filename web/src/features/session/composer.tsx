@@ -265,7 +265,11 @@ export const Composer = memo(function Composer({
       controls={
         <>
           {modern && live ? <AttachButton tray={tray} limits={limits} /> : null}
-          <ContextRing usage={conversation.usage} />
+          <ContextRing
+            usage={conversation.usage}
+            node={node}
+            session={session.id}
+          />
           <AgentControls
             node={node}
             session={session.id}

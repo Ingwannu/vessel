@@ -209,3 +209,23 @@
 .quota-consent .quota-card-name {
   font-weight: 500;
 }
+
+.quota-card.compact .quota-card-fresh {
+  display: inline;
+}
+
+/* The session's hover card (session-usage.tsx): the context figures, a
+   divider, then the account's compact cards with no surface of their own. */
+.session-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.session-usage .quota-card {
+  padding: 8px 0;
+  background: none;
+}

@@ -33,8 +33,20 @@ pinned-layout; kit QuotaMeter f876a23a), copying pinned Paseo (packages/app/src/
   follow the browser language through N2's Intl helpers (so tokens are compact here, unlike the native
   interim formatter, which waits for ADR 0101).
 
+## P3: the session's account in the context hover card
+
+Paseo's context window hover card (components/context-window-details.tsx, usage/agent-usage.tsx) shows the
+session's plan usage below the context figures. The page's context ring turns from a tooltip into a kit
+`HoverCard` (Base UI PreviewCard, the popover surface; same 400 ms delay): the figures as before, then
+`features/usage/session-usage.tsx`, which opens the same reader with `{ kind: "session", session }` when the
+card mounts (cached only; hovering never contacts a vendor) and draws compact cards (freshness on the card,
+Refresh per card, no pins). Nothing on machines below protocol 26, with lookup off, or when the session has no
+account; a failed read shows Paseo's one line ("Unable to load usage: …").
+`features/usage/use-account-usage.ts` holds the reader and clock hooks both views share.
+
 ## Next
 
-- P2: sidebar summary (pins, N2's quotaPinnedLayout), the usage modal, persisted display/pins (bridge
-  preference), page captures 1280/390 dark/light with the recorded fixture node.
-- P3: the per-session limit notice.
+- P2 (ADR 0107, coordinator approved): the bridge preference document gains a `usage` section shaped like the
+  native view/src/prefs/usage.rs (display, host, pins) plus PreferenceChange UsageDisplay/UsageHost/UsagePins
+  and the sidebar visibility flag; old documents load with Used, no host, no pins. Then the sidebar summary
+  (pins, N2's quotaPinnedLayout) and the usage modal on the page.
