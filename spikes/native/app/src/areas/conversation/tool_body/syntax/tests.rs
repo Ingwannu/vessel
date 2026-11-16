@@ -25,6 +25,11 @@ fn file_syntax_uses_shared_lexer_state_and_preserves_copy() {
             .iter()
             .any(|(_, kind)| *kind == Some(SyntaxKind::Keyword))
     );
+    assert!(
+        colored.syntax[2]
+            .iter()
+            .any(|(_, kind)| *kind == Some(SyntaxKind::Variable))
+    );
     assert_eq!(colored.output.lines.copy.as_deref(), Some(text));
     assert_eq!(
         colored.output.lines.lines[1].text.as_ref(),

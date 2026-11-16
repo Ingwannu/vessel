@@ -106,3 +106,13 @@ fn actual_virtualized_output_reuses_semantic_rows_across_theme_changes(
     cx.update(|window, cx| window.draw(cx).clear(cx));
     assert_eq!(observed.get(), 2);
 }
+
+#[test]
+fn plain_file_tokens_use_the_same_independent_palette_as_the_existing_preview() {
+    for scheme in [Scheme::Dark, Scheme::Light] {
+        assert_eq!(
+            CodeStyles::of(scheme).highlight(SyntaxKind::Variable).color,
+            Some(crate::code::CodeTokens::of(scheme).plain)
+        );
+    }
+}

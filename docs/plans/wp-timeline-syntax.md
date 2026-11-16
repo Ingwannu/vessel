@@ -41,3 +41,8 @@ and overlapping UTF-8 spans, current-theme colors with preserved word emphasis,
 and actual virtualized warm draws reusing one factory across theme changes.
 These are model/control evidence only until executed. No screenshot, UI, V1,
 whole A7 or product resource/transport claim follows from this preparation.
+
+Plain file tokens map to the existing Variable syntax role, matching CodeTokens'
+preview foreground in the same independent palette. They do not fall back to UI
+foreground while keywords alone follow a code palette. This is one existing role
+selection, not another lexer-kind table; a cross-resolver regression pins it.

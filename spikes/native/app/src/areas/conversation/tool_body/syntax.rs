@@ -1,5 +1,6 @@
 //! File syntax decorates existing output lines without file I/O or another lexer.
 use std::path::Path;
+use vessel_app_kit::code_editor::SyntaxKind;
 use vessel_app_kit::output::{AnnotatedLines, SyntaxLines};
 use vessel_app_view::workspace::syntax::{LineState, language_of, tokenize};
 
@@ -45,7 +46,16 @@ pub(super) fn decorate(
             state = next;
             tokens
                 .into_iter()
-                .map(|token| (token.range, token.kind.map(crate::syntax_kind::of)))
+                .map(|token| {
+                    (
+                        token.range,
+                        Some(
+                            token
+                                .kind
+                                .map_or(SyntaxKind::Variable, crate::syntax_kind::of),
+                        ),
+                    )
+                })
                 .collect()
         })
         .collect();
