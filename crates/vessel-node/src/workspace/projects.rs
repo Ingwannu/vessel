@@ -191,7 +191,12 @@ impl Workspaces {
         if let Some(cancel) = cancel {
             cancel.cancel();
         }
-        self.store.forget_project(project).await.map_err(Into::into)
+        // Its `Local` registry workspaces become Archived in the same write
+        // (ADR 0106, as Paseo's project removal archives its workspaces).
+        self.store
+            .forget_project(project, chrono::Utc::now())
+            .await
+            .map_err(Into::into)
     }
 
     /// Whether the node has `project` (protocol 11: a terminal placed in

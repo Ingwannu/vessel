@@ -141,6 +141,11 @@ pub(crate) enum Write {
         mutation: crate::registry::RegistryWrite,
         done: Done,
     },
+    /// Find or create a project root's registry workspace (ADR 0106).
+    Placement {
+        register: Box<crate::registry::Register>,
+        done: Done<vessel_proto::WorkspaceId>,
+    },
     /// Change the record of projects and worktrees (protocol 10).
     Workspace {
         write: crate::workspace::WorkspaceWrite,
@@ -219,6 +224,10 @@ enum Answer {
         Done<vessel_proto::subagents::DetachedSession>,
         Result<vessel_proto::subagents::DetachedSession, StoreError>,
     ),
+    Placed(
+        Done<vessel_proto::WorkspaceId>,
+        Result<vessel_proto::WorkspaceId, StoreError>,
+    ),
 }
 
 impl Answer {
@@ -232,6 +241,7 @@ impl Answer {
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Session(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Placed(done, result) => done.send(after(failed, result)).is_ok(),
         };
         if !sent {
             tracing::trace!("store caller went away before its write committed");

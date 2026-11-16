@@ -95,9 +95,24 @@ pub(super) fn apply(
             crate::push::apply(connection, &write)
         }),
         Write::Registry { mutation, done } => registry(transaction, &mutation, done, effects),
-        Write::Workspace { write, done } => write_answer(transaction, done, |connection| {
-            crate::workspace::apply(connection, &write)
-        }),
+        Write::Workspace { write, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::workspace::apply(connection, &write)
+            });
+            if matches!(applied, Ok(crate::registry::RegistryChange::Changed)) {
+                effects.registry = crate::registry::RegistryChange::Changed;
+            }
+            Answer::Done(done, applied.map(drop))
+        }
+        Write::Placement { register, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::registry::register(connection, &register)
+            });
+            if matches!(applied, Ok((_, crate::registry::RegistryChange::Changed))) {
+                effects.registry = crate::registry::RegistryChange::Changed;
+            }
+            Answer::Placed(done, applied.map(|(workspace, _)| workspace))
+        }
         Write::Forge { write, done } => write_answer(transaction, done, |connection| {
             crate::forge::apply(connection, &write)
         }),
