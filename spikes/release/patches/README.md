@@ -393,8 +393,9 @@ the app's workspace (`spikes/native`) uses it; the release workspace's
 small programs keep the published crate.
 
 Changed: `src/elements/div.rs` (change 5), `src/window.rs` and
-`src/platform.rs` (change 8), each marked `MODIFIED by Vessel` at the top
-and `Vessel patch` at each change.
+`src/platform.rs` (change 8), `src/text_system/line_wrapper.rs` (change
+10), each marked `MODIFIED by Vessel` at the top and `Vessel patch` at
+each change.
 
 ### 5. A drag starts at the distance an element names
 
@@ -481,3 +482,34 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   menu reach the platform only in a real session and are not checked yet:
   an IME's candidate window and the window menu at a zoom other than 1 are
   still to be looked at in the app on Linux.
+
+### 10. A wrapped line never starts with `?`
+
+- Purpose: an English confirmation title ("Remove this device?") wrapped
+  with its `?` alone on the next line (TRACKER 772, the G4 Devices
+  captures). Text wrapping must never break before `?` (UAX #14 class EX,
+  rule LB13).
+- Upstream's constraint: `LineWrapper::wrap_line` places a break
+  opportunity before every character `is_word_char` leaves out, CJK
+  included. `!`, `)`, `]` and the closing quotes are word characters, so
+  they stay on their word. `?` and `/` are left out on purpose, so a long
+  path or a URL's query (`foo?b=2`) can wrap.
+- Alternatives:
+  1. Make `?` a word character. Then `foo?b=2` could no longer wrap at
+     all, which is the case upstream kept `?` out for.
+  2. Put a no-break joiner before `?` in every title. Every caller would
+     carry it, and copied text would keep the joiner.
+  3. **This change**: `wrap_line` places no break before a `?` and one
+     after it, before the next word character, as it does after a space.
+     `is_word_char` is unchanged.
+- Why 3: one rule in the one wrapper every text element uses. The word
+  before a `?` moves down with it, and a query in a URL still wraps after
+  its `?`.
+- Cost: `line_wrapper.rs` joins the diff to re-apply at each GPUI pin. A
+  single word longer than the line still breaks wherever it must, `?`
+  included.
+- Checked: `spikes/native/kit/src/dialog/title_wrap_tests.rs`, through the
+  test text system's wrapper (8 points a character). "Remove this
+  device?" at 148 points starts its second line at "device?", not at the
+  `?`, and "aaaaaa?bbbbbb" at 84 points wraps after its `?`. Not checked
+  yet: a title in the app's own dialog with the real fonts.

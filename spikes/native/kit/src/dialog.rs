@@ -52,6 +52,8 @@ mod header_content;
 mod layout;
 mod return_focus;
 mod sheet;
+#[cfg(test)]
+mod title_wrap_tests;
 
 pub use header_content::DialogInput;
 pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
