@@ -82,14 +82,18 @@ function LabelManager({ onClose }: { onClose: () => void }) {
     count: number;
     answer: (yes: boolean) => void;
   } | null>(null);
+  // Which button started the operation under way: only it draws busy.
+  const [pressed, setPressed] = useState<"save" | "delete" | null>(null);
   const editable = view.machine?.state === "online";
   const editing = view.draft !== null && view.editing !== null;
   const footer = editing ? (
     <>
       <Button
         variant="danger"
-        disabled={view.pending || !editable}
+        disabled={(view.pending && pressed !== "delete") || !editable}
+        busy={view.pending && pressed === "delete" && asking === null}
         onClick={() => {
+          setPressed("delete");
           void model.delete(
             (count) =>
               new Promise<boolean>((answer) => {
@@ -111,9 +115,12 @@ function LabelManager({ onClose }: { onClose: () => void }) {
       </Button>
       <Button
         variant="primary"
-        disabled={!view.dirty || !editable}
-        busy={view.pending}
+        disabled={
+          !view.dirty || !editable || (view.pending && pressed !== "save")
+        }
+        busy={view.pending && pressed === "save"}
         onClick={() => {
+          setPressed("save");
           void model.save();
         }}
       >
