@@ -6,6 +6,28 @@ use vessel_app_view::{Fleet, labels::bind_hosts};
 pub(super) fn bind(state: &mut Labels, fleet: &Fleet) {
     let bindings = bind_hosts(&state.hosts, fleet);
     state.hosts = bindings.hosts;
+    // SCRATCH, capture-only and never for adoption: the node does not serve
+    // label catalogs yet, so the visual lane seeds a fixed catalog to show the
+    // manager's listing, filtering and editing on a fake fleet.
+    if std::env::var_os("VESSEL_APP_CAPTURE_LABEL_FIXTURE").is_some() {
+        use vessel_app_view::labels::{Catalog, Color, HostState, Label};
+        let fixture = [
+            ("Ready", Color::Violet),
+            ("Blocked", Color::Orange),
+            ("Needs review", Color::Sky),
+            ("Design", Color::Pink),
+            ("Backend", Color::Emerald),
+            ("Release candidate", Color::Indigo),
+            ("검토 필요", Color::Teal),
+        ];
+        for host in &mut state.hosts {
+            host.state = HostState::Online;
+            host.catalog = Catalog::snapshot(fixture.iter().map(|(name, color)| Label {
+                name: name.parse().unwrap(),
+                color: *color,
+            }));
+        }
+    }
     state.unresolved = bindings.unresolved;
     if !state.manager.state().busy()
         && state.manager.state().draft().is_none()
