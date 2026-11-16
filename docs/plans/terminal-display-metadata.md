@@ -97,3 +97,23 @@ One meaningful changed-source whole on this final producer is still required;
 its result and source recheck must precede any consumer qualification. No node
 responder, actor, EOF sealed owner, wire/frame DTO, native/CLI renderer or OS
 evidence is borrowed from the pure producer tests. NodeAuthority remains off.
+
+Resume after that whole: run termscreen-20261115T190339Z-28e33735 executed
+all18 steps,16 zero. Rust2594/4/12 failed four CLI remote installs with literal
+ENOSPC; the48 pure producer tests passed. Web464/forge4 passed; E2E78/2 failed
+the short-phone feedback controls in both themes. This is a RED whole, with
+the infrastructure error and page-geometry assertions retained separately.
+
+Merge85c77342 aligns only the announced ed4cd137 baseline. The pure crate and
+both vendors remain byte-identical to28e; node/client/proto/web/native match
+the announced baseline. Every existing lock record is unchanged, with only the
+same four pure-package records added. ADR0001 retains the incoming plugin
+boundary text plus the unchanged terminal section. No unrelated branch enters.
+
+Attribution requested the same full feedback-toast spec on both trees, ordinary
+lane: termscreen-20261116T002940Z-85c77342 and
+termscreen-control-20261116T002940Z-ed4cd137 each passed all8 cases. Actual test
+step loads were35.48→39.24 and37.74→31.37 respectively; every raw step hash
+matches its receipt. Neither reproduced the prior geometry failure. No page
+layout change or claim that the old failures passed is made. One enclosing
+whole on this aligned source follows; consumer qualification remains owed.
