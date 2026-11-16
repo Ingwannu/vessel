@@ -371,5 +371,11 @@ usage-off-on = Usage is off on { $host }.
 usage-turn-on = Turn on
 # Muted card when the machine reports no account usage at all.
 usage-plan-empty = No usage data
-# A balance's remaining amount beside its label, Paseo providerUsage.values.remaining; $amount includes its unit.
+# A balance's remaining amount beside its label, Paseo providerUsage.values.remaining; $amount is an amount below.
 usage-amount-left = { $amount } left
+# A balance amount in credits or requests (Paseo formatAmount: the label names the unit; at most two decimals).
+usage-amount = { NUMBER($amount, maximumFractionDigits: 2) }
+# A balance amount in US dollars (Paseo formatAmount: currency with two decimals).
+usage-amount-usd = ${ NUMBER($amount, minimumFractionDigits: 2, maximumFractionDigits: 2) }
+# A balance amount in tokens, whole and grouped (Paseo writes it compact; that waits for ADR 0101).
+usage-amount-tokens = { NUMBER($amount, maximumFractionDigits: 0) }

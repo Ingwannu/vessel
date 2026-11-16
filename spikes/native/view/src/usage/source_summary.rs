@@ -14,6 +14,32 @@ use vessel_proto::{
 pub fn saved_source(harness: &vessel_proto::HarnessRef) -> Option<UsageSourceId> {
     SavedUsageSource::for_harness(harness).and_then(|source| source.id().ok())
 }
+/// One reported window as the summary reads it, its standard label in the
+/// viewer's language. The source's own short label wins; a standard window
+/// it left without one reads "5h"/"wk" as on the saved-login path.
+fn report_window(
+    window: &vessel_proto::usage_reports::UsageWindow,
+    words: &'static Translator,
+) -> SummaryWindow<LimitKey> {
+    let (id, label) = (window.id.as_str(), window.label.as_str());
+    SummaryWindow {
+        id: window.id.clone(),
+        label: super::window_label_text(id, label, words),
+        short_label: window
+            .short_label
+            .as_ref()
+            .map(|short| match short {
+                UsageShortLabel::Hidden => String::new(),
+                UsageShortLabel::Text(text) => text.as_str().to_owned(),
+            })
+            .or_else(|| super::window_short_text(id, label, words)),
+        summary: window.summary == UsageSummary::Included,
+        used: window.used.and_then(|value| FiniteNumber::new(value.get())),
+        remaining: window
+            .remaining
+            .and_then(|value| FiniteNumber::new(value.get())),
+    }
+}
 /// Source defaults and independent explicit used/remaining values remain pure view data.
 #[must_use]
 pub fn summary_candidates(
@@ -60,19 +86,7 @@ pub fn summary_candidates(
                         .windows
                         .as_slice()
                         .iter()
-                        .map(|window| SummaryWindow {
-                            id: window.id.clone(),
-                            label: window.label.as_str().to_owned(),
-                            short_label: window.short_label.as_ref().map(|label| match label {
-                                UsageShortLabel::Hidden => String::new(),
-                                UsageShortLabel::Text(text) => text.as_str().to_owned(),
-                            }),
-                            summary: window.summary == UsageSummary::Included,
-                            used: window.used.and_then(|value| FiniteNumber::new(value.get())),
-                            remaining: window
-                                .remaining
-                                .and_then(|value| FiniteNumber::new(value.get())),
-                        })
+                        .map(|window| report_window(window, words))
                         .collect(),
                 })
             })

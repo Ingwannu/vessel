@@ -44,6 +44,10 @@ pub use quota::{quota_details, quota_facts, reset_label, window_label};
 mod freshness;
 mod source_errors;
 pub use freshness::{freshness, source_freshness};
+mod amount;
+pub use amount::amount_text;
+mod report_labels;
+pub use report_labels::{balance_label_text, detail_text, window_label_text, window_short_text};
 mod source_summary;
 mod source_values;
 mod sources;
@@ -54,8 +58,8 @@ pub use source_values::{
 mod summary;
 pub use source_summary::{builtin_source_mark, saved_source, source_mark, summary_candidates};
 pub use sources::{
-    SourceView, balance_amount, balance_facts, source_availability, source_disclosure,
-    source_failure, source_problem, source_view, source_window_tone,
+    SourceView, balance_amount, source_availability, source_disclosure, source_failure,
+    source_problem, source_view, source_window_tone,
 };
 pub use summary::{
     PinnedWindow, SummaryAccount, SummaryGroup, SummaryWindow, default_pins, pinned_windows,

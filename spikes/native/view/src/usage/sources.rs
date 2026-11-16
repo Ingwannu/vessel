@@ -1,13 +1,13 @@
 //! Presentation projections borrow the authoritative generic DTO; no provider schema lives here.
-use super::{ReportFact, limit_failure};
+use super::limit_failure;
 use crate::localization::Translator;
 use chrono::{DateTime, Utc};
 use vessel_proto::{
     usage::CostVisibility,
     usage_reports::{
-        SourceReportState, SuccessfulUsageReport, UsageBalance, UsageBalanceUnit,
-        UsageCredentialStore, UsageFetchFailure, UsageProblem, UsageRecipient,
-        UsageSourceAvailability, UsageSourceDisclosure,
+        SourceReportState, SuccessfulUsageReport, UsageBalance, UsageCredentialStore,
+        UsageFetchFailure, UsageProblem, UsageRecipient, UsageSourceAvailability,
+        UsageSourceDisclosure,
     },
 };
 /// Current attempt status is independent of an immutable successful observation.
@@ -151,44 +151,12 @@ pub fn source_disclosure(disclosure: &UsageSourceDisclosure, words: &'static Tra
     text.source_disclosure(login, recipient)
         .unwrap_or_else(|_| text.account_disclosure().to_owned())
 }
-/// Visibility wins over even a mistakenly populated balance; absent is distinct from reported zero.
-#[must_use]
-pub fn balance_facts(
-    balance: &UsageBalance,
-    visibility: CostVisibility,
-    words: &'static Translator,
-) -> Vec<ReportFact> {
-    let text = words.usage();
-    let unit = match balance.unit {
-        UsageBalanceUnit::Usd => text.unit_usd(),
-        UsageBalanceUnit::Credits => text.unit_credits(),
-        UsageBalanceUnit::Requests => text.unit_requests(),
-        UsageBalanceUnit::Tokens => text.unit_tokens(),
-    };
-    [
-        (text.used(), balance.used),
-        (text.remaining(), balance.remaining),
-        (text.allowance(), balance.limit),
-    ]
-    .into_iter()
-    .map(|(label, value)| ReportFact {
-        label: label.to_owned(),
-        value: if visibility == CostVisibility::Withheld {
-            text.withheld().to_owned()
-        } else {
-            value.map_or_else(
-                || text.none().to_owned(),
-                |value| format!("{} {unit}", value.get()),
-            )
-        },
-        detail: None,
-    })
-    .collect()
-}
 /// Paseo balance-bar.tsx `resolveBalance`, as one line beside the label:
-/// "used / allowance unit" when a positive allowance is reported, else
-/// "amount left", else the used amount. Hidden values stay hidden, and an
-/// unknown used amount under an allowance shows Paseo's dash.
+/// "used / allowance" when a positive allowance is reported, else "amount
+/// left", else the used amount; the label names the unit, as in Paseo, and
+/// each amount is written by `amount_text` (Paseo `formatAmount`). Hidden
+/// values stay hidden (visibility wins over a mistakenly populated balance),
+/// and an unknown used amount under an allowance shows Paseo's dash.
 #[must_use]
 #[expect(
     clippy::float_arithmetic,
@@ -205,12 +173,7 @@ pub fn balance_amount(
     if visibility == CostVisibility::Withheld {
         return text.withheld().to_owned();
     }
-    let unit = match balance.unit {
-        UsageBalanceUnit::Usd => text.unit_usd(),
-        UsageBalanceUnit::Credits => text.unit_credits(),
-        UsageBalanceUnit::Requests => text.unit_requests(),
-        UsageBalanceUnit::Tokens => text.unit_tokens(),
-    };
+    let amount = |value: f64| super::amount_text(value, balance.unit, words);
     let limit = balance
         .limit
         .map(vessel_proto::conversation::FiniteNumber::get)
@@ -220,17 +183,16 @@ pub fn balance_amount(
             .used
             .map(vessel_proto::conversation::FiniteNumber::get)
             .or_else(|| balance.remaining.map(|remaining| limit - remaining.get()))
-            .map_or_else(|| UNKNOWN.to_owned(), |used| used.to_string());
-        return format!("{used} / {limit} {unit}");
+            .map_or_else(|| UNKNOWN.to_owned(), amount);
+        return format!("{used} / {}", amount(limit));
     }
     if let Some(remaining) = balance.remaining {
-        let amount = format!("{} {unit}", remaining.get());
-        return text.amount_left(&amount).unwrap_or(amount);
+        let left = amount(remaining.get());
+        return text.amount_left(&left).unwrap_or(left);
     }
-    balance.used.map_or_else(
-        || UNKNOWN.to_owned(),
-        |used| format!("{} {unit}", used.get()),
-    )
+    balance
+        .used
+        .map_or_else(|| UNKNOWN.to_owned(), |used| amount(used.get()))
 }
 /// Source tone wins; otherwise explicit remaining can establish used share for the threshold fallback.
 #[must_use]
@@ -260,7 +222,10 @@ pub fn source_window_tone(window: &vessel_proto::usage_reports::UsageWindow) -> 
 mod tests {
     use super::*;
     use crate::localization::ENGLISH;
-    use vessel_proto::{conversation::FiniteNumber, usage_reports::AvailableUsageReport};
+    use vessel_proto::{
+        conversation::FiniteNumber,
+        usage_reports::{AvailableUsageReport, UsageBalanceUnit},
+    };
     #[test]
     fn retained_observation_time_is_never_replaced_by_attempt_or_query_time() {
         let original = SuccessfulUsageReport {
@@ -315,14 +280,24 @@ mod tests {
             resets_at: None,
             tone: None,
         };
-        assert!(
-            balance_facts(&balance, CostVisibility::Withheld, words)
-                .iter()
-                .all(|fact| fact.value == words.usage().withheld())
+        assert_eq!(
+            balance_amount(&balance, CostVisibility::Withheld, words),
+            words.usage().withheld()
         );
-        let visible = balance_facts(&balance, CostVisibility::Permitted, words);
-        assert!(visible[0].value.starts_with('0'));
-        assert_eq!(visible[2].value, words.usage().none());
+        assert_eq!(
+            balance_amount(&balance, CostVisibility::Permitted, words),
+            "123.45 left"
+        );
+        let allowance = UsageBalance {
+            used: None,
+            remaining: FiniteNumber::new(7.5),
+            limit: FiniteNumber::new(10.0),
+            ..balance
+        };
+        assert_eq!(
+            balance_amount(&allowance, CostVisibility::Permitted, words),
+            "2.5 / 10"
+        );
     }
     #[test]
     fn remaining_only_threshold_fallback_and_explicit_neutral_tone_stay_independent() {
