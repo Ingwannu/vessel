@@ -66,6 +66,9 @@ mod native {
                 return;
             };
             let Ok(permit) = Arc::clone(&self.0).try_acquire_owned() else {
+                // A busy refusal has no selected work; queue pressure must not
+                // retain the rejected connection while its notice waits.
+                drop(client);
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {
                         ask,

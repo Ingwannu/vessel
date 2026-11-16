@@ -488,3 +488,11 @@ its own Search and prompt-metadata workers before close, using actual correlated
 events and bounded phase waits. No generic worker-drain claim is borrowed from
 that fixture. The later two-peer extension remains a separate lead-owned writer
 slot and must preserve one State and canonical admissions.
+
+
+The prepared metadata adapter drops its selected connection before awaiting a
+local Busy notice when its own two-scan admission is full. That refusal starts
+no request, so retaining the connection while the app queue is full would make
+an unrelated notice extend the old transport lifetime. Successful/in-flight
+work retains the existing guarded-send policy. This is prepared source only;
+actual saturation/retirement and close/drain tests still qualify its adoption.
