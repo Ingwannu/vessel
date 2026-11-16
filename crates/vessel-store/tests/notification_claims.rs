@@ -252,61 +252,6 @@ async fn read_and_exact_resolution_after_commit_suppress_notification_delivery()
 }
 
 #[tokio::test]
-async fn internal_first_page_cannot_hide_a_later_root_notification() {
-    let (_temp, dir) = data_dir();
-    let store = open(&dir, StoreConfig::default()).await;
-    let mut visible = None;
-    for index in 0..66 {
-        let mut info = new_session(index);
-        if index < 65 {
-            info.created_by = vessel_proto::Creator::Agent {
-                node: vessel_proto::NodeId::random(),
-                session: vessel_proto::SessionId::random(),
-            };
-        } else {
-            visible = Some(info.id);
-        }
-        store.create_session(info.clone()).await.unwrap();
-        store
-            .append(
-                info.id,
-                vec![record(
-                    0,
-                    SessionEvent::Agent {
-                        event: AgentEvent::TurnEnded {
-                            reason: StopReason::EndTurn,
-                            usage: None,
-                            point: None,
-                        },
-                    },
-                )],
-            )
-            .await
-            .unwrap();
-    }
-    let candidates = store
-        .pending_push(
-            vessel_proto::inbox::InboxCursor::new(0),
-            store.inbox_head().await.unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(candidates.len(), 1);
-    assert_eq!(Some(candidates[0].key.session), visible);
-    assert_eq!(
-        store
-            .inbox(ListInbox::default())
-            .await
-            .unwrap()
-            .counts
-            .total
-            .get(),
-        66
-    );
-    store.close().await;
-}
-
-#[tokio::test]
 async fn failed_attention_can_claim_local_delivery_but_never_enters_web_push_candidates() {
     let (_temp, dir) = data_dir();
     let store = open(&dir, StoreConfig::default()).await;

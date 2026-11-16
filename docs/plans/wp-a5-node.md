@@ -584,3 +584,26 @@ original source scope. The transferable marking lease now has scoped V3 and
 Rust-gate acceptance; its normal integrator receiving gate and announcement
 remain required before import. The read-admission lifetime return remains open
 pending that receiving head, the consumer fix and its actual regression results.
+
+
+## Actual notification consumer regression preparation
+
+[Decision Log]
+- Purpose: the canonical scalar tests do not execute A5's actual asynchronous
+  candidate, local claim/current-source and final push-lease consumers.
+- Existing assets: use public Store methods with a real temporary database and
+  its configured writer/pooled readers; no copied SQL or new auth producer.
+- Choice: draft consumer regressions beside store/inbox.rs so the page case
+  derives attached-row counts from the private PUSH_CANDIDATE_PAGE policy.
+  The existing root-after-attached-page regression is moved there unchanged in
+  purpose and extended with a valid Detached source; no public test-only policy
+  API or duplicated page bound is introduced.
+- Coverage: the same exact source is excluded while Attached, admitted after
+  actual durable detach with Creator unchanged, suppressed after Seen, and
+  restored after Unread without reopening the once-only claim. Actual device
+  revocation still vetoes its final push lease and person-device source check.
+- Limits: these tests are authored but unexecuted. The production SESSION
+  predicate still has its known conservative suppression until the checked
+  scalar's receiving head is announced and the consumer is changed. This is
+  Store mechanism coverage, not assigned RPC, encrypted delivery or real-device
+  proof. No external network or mobile service is invoked.
