@@ -760,3 +760,37 @@ The joint release integration must test both cases: refused release keeps
 the owned observation live, and successful release revokes while the child
 continues until its independently observed exit. The assigned carrier base
 has no release operation; those joint tests remain with that integration.
+
+
+## Workspace service consumer values
+
+[Decision Log]
+- Purpose: a workspace-scoped status/environment view and dedicated anonymous
+  service publication controls need one wire contract for every client.
+- Existing assets: canonical WorkspaceId, ScriptName, ScriptEntry, terminal
+  lifecycle observations, validated ports/digests, the method table and
+  NodeClient::call. Preserve their owners and legacy placement semantics.
+- Alternatives: changing legacy script call semantics, duplicating a native
+  DTO, or publishing inherited environment maps would blur ownership or
+  expose private data. None is used.
+- Choice: `../plans/workspace-services-api.md` pins the typed consumer
+  records, bounded metadata, cached-only Read and eight nonforwardable
+  staged methods. A number is assigned only with qualified runtime wiring.
+- Reason: staged Unsupported and direct-principal policy are separate;
+  neither a URL/health observation nor a client snapshot grants authority.
+- Effects: settings require direct Owner/Admin Device and explicit anonymous
+  exposure acknowledgement. The sole settings writer retains its private
+  envelope; no second file/model is introduced here. Missing canonical
+  physical incarnation keeps public enable Unavailable before grant write.
+
+The consumer contract also records the differences from Paseo with their
+reasons, required cache/wait ownership bounds, all-client approval display,
+failed-write preservation and actual route revocation prerequisites. These
+values do not qualify allocator/helper/health/proxy/Preview execution. A
+separate real-handler review and enclosing feature gate are still required.
+
+The legacy web bridge also refuses every staged service method before it
+obtains a node client. This conservative staging boundary does not remove
+an existing service feature: no qualified browser consumer exists for these
+new methods. Its later admission needs a separate reviewed decision and
+complete display; native/CLI admission is not inherited implicitly.

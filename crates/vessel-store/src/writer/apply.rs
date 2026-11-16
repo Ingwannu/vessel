@@ -59,9 +59,10 @@ pub(super) fn apply(
             session,
             mark,
             at,
+            residence,
             done,
         } => marks_answer(transaction, session, done, |connection| {
-            marks::mark(connection, session, mark, at)
+            marks::mark(connection, session, mark, at, residence)
         }),
         Write::Detach { session, at, done } => {
             let applied = isolated(transaction, |connection| {
@@ -86,18 +87,19 @@ pub(super) fn apply(
         Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
             attachments::insert(connection, &kept, time_to_sql(at)?)
         }),
-        Write::Inbox { mark, done } => {
-            session_answer(transaction, mark.key.session, done, |connection| {
-                crate::inbox::mark(connection, &mark)
-            })
-        }
+        Write::Inbox {
+            mark,
+            residence,
+            done,
+        } => session_answer(transaction, mark.key.session, done, |connection| {
+            crate::inbox::mark(connection, &mark, residence)
+        }),
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
         Write::Registry { mutation, done } => registry(transaction, &mutation, done, effects),
-        Write::Workspace { write, done } => write_answer(transaction, done, |connection| {
-            crate::workspace::apply(connection, &write)
-        }),
+        Write::Workspace { write, done } => workspace(transaction, &write, done, effects),
+        Write::Placement { register, done } => placement(transaction, &register, done, effects),
         Write::Forge { write, done } => write_answer(transaction, done, |connection| {
             crate::forge::apply(connection, &write)
         }),
@@ -107,6 +109,46 @@ pub(super) fn apply(
                 .try_for_each(|write| crate::automation::apply(connection, write))
         }),
     }
+}
+
+/// Projects and worktrees; legacy project removal archives the project's
+/// `Local` workspaces in the same savepoint (ADR 0106), so observers wake.
+fn workspace(
+    transaction: &mut Transaction<'_>,
+    write: &crate::workspace::WorkspaceWrite,
+    done: Done,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        crate::workspace::apply(connection, write)
+    });
+    if matches!(applied, Ok(crate::registry::RegistryChange::Changed)) {
+        effects.registry = crate::registry::RegistryChange::Changed;
+    }
+    Answer::Done(done, applied.map(drop))
+}
+
+/// Find or create a project root's workspace (ADR 0106); observers wake when
+/// it is new.
+fn placement(
+    transaction: &mut Transaction<'_>,
+    register: &crate::registry::Register,
+    done: Done<Option<vessel_proto::WorkspaceId>>,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        crate::registry::register(connection, register)
+    });
+    if matches!(
+        applied,
+        Ok(Some((_, crate::registry::RegistryChange::Changed)))
+    ) {
+        effects.registry = crate::registry::RegistryChange::Changed;
+    }
+    Answer::Placed(
+        done,
+        applied.map(|placed| placed.map(|(workspace, _)| workspace)),
+    )
 }
 
 // State-only writes keep the same savepoint and acknowledgement boundary,

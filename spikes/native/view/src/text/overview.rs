@@ -110,13 +110,20 @@ impl OverviewText {
     /// endpoint in Korean.
     #[must_use]
     pub fn route(&self, route: &Route) -> String {
-        let kind = match (route, self.lang) {
+        format!("{} ({})", self.route_kind(route), route.endpoint().as_str())
+    }
+
+    /// A route's kind alone, for a row whose endpoint is its value under the
+    /// title (Paseo's host confirmation: `relayLabel` as the `DetailRow`
+    /// label, the endpoint as its value).
+    #[must_use]
+    pub const fn route_kind(&self, route: &Route) -> &'static str {
+        match (route, self.lang) {
             (Route::Tcp(_) | Route::Direct(_), _) => "TCP",
             (Route::Relay(_), Lang::En) => "Relay",
             (Route::Relay(_), Lang::Ko) => "릴레이",
             (Route::Ssh(_), Lang::En) => "Remote SSH",
             (Route::Ssh(_), Lang::Ko) => "원격 SSH",
-        };
-        format!("{kind} ({})", route.endpoint().as_str())
+        }
     }
 }

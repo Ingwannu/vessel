@@ -211,3 +211,43 @@ its public project_file::MAX_BYTES name as a re-export, with the workspace owner
 agreement (message24bb3bd8). Existing parser/editor checks, errors and tests derive
 from that one definition. No limit or MAX_COMMANDS ownership changes. This avoids
 future editor/parser divergence without introducing a new dependency edge.
+
+## Amendment: archived records and the live cap (ADR 0106, 2026-11-16)
+
+Coordinator ruling for runtime workspace registration. It replaces the lifetime
+budget above where the two disagree.
+
+[Decision Log]
+- Purpose: registration (ADR 0106) creates a workspace each time a project root is
+  first opened, and legacy removal archives it. Under a lifetime cap, enough
+  open/remove cycles would refuse every later create for good, so a live create
+  would fail because of history.
+- Choice:
+  - `MAX_WORKSPACES` counts live identities only: records that are not Archived,
+    plus every reservation.
+  - `MAX_RESOURCES` counts only the ownership rows of workspaces that are not
+    Archived.
+  - Archived records are kept, but they do not count toward either cap.
+  - Archived `Local` records beyond `MAX_ARCHIVED_WORKSPACES` (equal to
+    `MAX_WORKSPACES`) are pruned oldest first (archive time, then id), in the
+    same savepoint as the archive that exceeded the bound. Their ownership rows
+    and label assignments cascade. A record with a reservation is never pruned.
+  - A live create is never refused because of archived records.
+  - `MAX_RETAINED_BYTES` adds one `RESERVED_BYTES_PER_WORKSPACE` term for each
+    retained archived slot.
+- Why `Local` only: an archived `Managed` record may still describe a worktree
+  that the registry must remove after its last reference. Only W21's archive path
+  creates archived `Managed` records, and that path brings its own bound with it.
+- Snapshot size:
+  - live and archived descriptors are at most 512 × 8 KiB = 4 MiB;
+  - explicit memberships are at most 4096 rows;
+  - derived memberships (ADR 0106) add one small entry for each placed session
+    that is not archived;
+  - all of this stays below the 16 MiB `MAX_FRAME` until about 90,000 such
+    sessions. A session count of that size needs paging, which is a follow-up and
+    not decided here.
+- Effects:
+  - existing identities still reconcile at capacity;
+  - archive is not an eviction of live state;
+  - pruning removes archived history beyond the bound (a declared difference:
+    Paseo keeps archived workspace records without a count limit).

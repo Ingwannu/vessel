@@ -76,6 +76,13 @@ pub(crate) struct Descriptor {
     /// `None` if it cannot be yet, and its profiles with a `model` route
     /// are refused when `profiles.toml` is read.
     pub(crate) model_proxy: Option<Routing>,
+    /// Fallback for a provider whose catalog has no structured kind metadata.
+    /// Explicit driver metadata, including an unknown kind, always wins.
+    pub(crate) command_kind: Option<
+        fn(
+            &vessel_proto::conversation::CommandName,
+        ) -> vessel_proto::composer_commands::CommandKind,
+    >,
 }
 
 /// Find a session's files: `(home, working directory, session id)`, the

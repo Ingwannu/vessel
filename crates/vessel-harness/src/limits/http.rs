@@ -96,6 +96,8 @@ pub(super) enum HttpError {
     Transport(#[source] reqwest::Error),
     #[error("the provider status connection could not be configured")]
     Tls(#[source] rustls::Error),
+    #[error("this node has no tracked name resolution for provider status checks")]
+    Unresolved,
     #[error("the provider rejected the saved sign-in")]
     Rejected,
     #[error("the provider is limiting status checks")]
@@ -125,7 +127,8 @@ pub(super) struct Http {
 impl Http {
     /// Called only by the explicitly enabled live source. Recorded test
     /// sources never construct a client or read platform certificates.
-    pub(super) fn new() -> Result<Self, HttpError> {
+    /// Every name goes through the node's tracked `resolver` (ADR 0104).
+    pub(super) fn new(resolver: Arc<dyn reqwest::dns::Resolve>) -> Result<Self, HttpError> {
         let found = rustls_native_certs::load_native_certs();
         let mut roots = rustls::RootCertStore::empty();
         let (_added, _ignored) = roots.add_parsable_certificates(found.certs);
@@ -144,6 +147,7 @@ impl Http {
             .connect_timeout(Duration::from_secs(10))
             .timeout(Duration::from_secs(15))
             .user_agent("vessel")
+            .dns_resolver(resolver)
             .build()
             .map_err(HttpError::Transport)?;
         Ok(Self { client })
@@ -231,6 +235,7 @@ pub(super) fn safe(
         HttpError::Transport(_) | HttpError::Tls(_) | HttpError::Task(_) => {
             (LimitFailure::Unreachable, None)
         }
+        HttpError::Unresolved => (LimitFailure::Unsupported, None),
         HttpError::Rejected => (LimitFailure::Rejected, None),
         HttpError::RateLimited { retry_at } => (LimitFailure::RateLimited, *retry_at),
         HttpError::ChangedResponse => (LimitFailure::ChangedResponse, None),

@@ -38,6 +38,8 @@ mod ask;
 mod calls;
 pub mod code_source;
 #[cfg(not(target_arch = "wasm32"))]
+mod download;
+#[cfg(not(target_arch = "wasm32"))]
 mod entry;
 #[cfg(not(target_arch = "wasm32"))]
 mod follow;
@@ -66,7 +68,9 @@ use vessel_client::NodeClient;
 use vessel_proto::ProjectId;
 
 pub use answer::{Answer, Form, GitWritten};
-pub use ask::{Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk};
+pub use ask::{
+    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk,
+};
 pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 

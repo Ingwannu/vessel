@@ -28,6 +28,7 @@ impl<'a> About<'a> {
             Role::Network => self.role_network(),
             Role::Logs => self.role_logs(),
             Role::QrCodes => self.role_qr_codes(),
+            Role::Checksums => self.role_checksums(),
             Role::Terminal => self.role_terminal(),
             Role::Accents => self.role_accents(),
             Role::Face => self.role_face(),

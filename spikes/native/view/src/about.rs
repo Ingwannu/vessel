@@ -57,6 +57,8 @@ pub enum Role {
     Accents,
     /// Pairing links as QR codes.
     QrCodes,
+    /// Checking that a downloaded file is whole.
+    Checksums,
     /// Reading a terminal program's output.
     Terminal,
     /// The face of everything.
@@ -118,6 +120,7 @@ pub const BUNDLED: &[Bundled] = &[
     krate("chrono", "MIT OR Apache-2.0", Role::Dates),
     krate("dirs", "MIT OR Apache-2.0", Role::Folders),
     krate("hostname", "MIT", Role::ComputerName),
+    krate("sha2", "MIT OR Apache-2.0", Role::Checksums),
     krate("serde", "MIT OR Apache-2.0", Role::Data),
     krate("serde_json", "MIT OR Apache-2.0", Role::Data),
     krate("sys-locale", "MIT OR Apache-2.0", Role::Language),

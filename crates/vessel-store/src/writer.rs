@@ -102,6 +102,7 @@ pub(crate) enum Write {
         session: SessionId,
         mark: Mark,
         at: DateTime<Utc>,
+        residence: crate::Residence,
         done: Done<SessionCommit<KeptMarks>>,
     },
     /// Atomic first/repeated detach, replied only after commit.
@@ -129,6 +130,7 @@ pub(crate) enum Write {
     /// Mark one exact inbox entry; a read never answers a request.
     Inbox {
         mark: vessel_proto::inbox::MarkInbox,
+        residence: crate::Residence,
         done: Done<SessionCommit<()>>,
     },
     /// Device-scoped subscription changes; lease and scope checked atomically.
@@ -140,6 +142,11 @@ pub(crate) enum Write {
     Registry {
         mutation: crate::registry::RegistryWrite,
         done: Done,
+    },
+    /// Find or create a project root's registry workspace (ADR 0106).
+    Placement {
+        register: Box<crate::registry::Register>,
+        done: Done<Option<vessel_proto::WorkspaceId>>,
     },
     /// Change the record of projects and worktrees (protocol 10).
     Workspace {
@@ -219,6 +226,10 @@ enum Answer {
         Done<vessel_proto::subagents::DetachedSession>,
         Result<vessel_proto::subagents::DetachedSession, StoreError>,
     ),
+    Placed(
+        Done<Option<vessel_proto::WorkspaceId>>,
+        Result<Option<vessel_proto::WorkspaceId>, StoreError>,
+    ),
 }
 
 impl Answer {
@@ -232,6 +243,7 @@ impl Answer {
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Session(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Placed(done, result) => done.send(after(failed, result)).is_ok(),
         };
         if !sent {
             tracing::trace!("store caller went away before its write committed");

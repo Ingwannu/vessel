@@ -19,6 +19,19 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
     let definition =
         json!({"cadence":cadence,"target":{"kind":"session","session":id},"prompt":"sample"});
     let params = match method {
+        Method::ListWorkspaceScripts => {
+            json!({"workspace":crate::WorkspaceId::random(),"query":{"kind":"initial"}})
+        }
+        Method::StartWorkspaceScript | Method::RestartWorkspaceScript => {
+            json!({"target":{"workspace":crate::WorkspaceId::random(),"script":"sample"},"snapshot":crate::workspace_services::ServiceSnapshotId::random(),"definition":hash})
+        }
+        Method::StopWorkspaceScript | Method::GetWorkspaceServiceEnv => {
+            json!({"target":{"workspace":crate::WorkspaceId::random(),"script":"sample"},"snapshot":crate::workspace_services::ServiceSnapshotId::random()})
+        }
+        Method::SetServiceGateway => json!({"expected":null,"gateway":{"kind":"local_only"}}),
+        Method::SetServiceExposure => {
+            json!({"target":{"workspace":crate::WorkspaceId::random(),"script":"sample"},"expected":null,"change":{"kind":"private"}})
+        }
         Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
@@ -56,6 +69,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::StopNode => json!({"when":"now"}),
         Method::InviteDevice => json!({"ttl_secs":1}),
         Method::GetDeviceSelf
+        | Method::GetServiceSettings
         | Method::ListProfiles
         | Method::LeaveFleet
         | Method::SyncFleet

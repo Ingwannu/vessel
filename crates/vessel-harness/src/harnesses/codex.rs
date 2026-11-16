@@ -38,6 +38,7 @@ use crate::routing::{ModelProxy, Routed, Routing};
 use crate::sessions::{SessionFiles, SessionFilesError, entry};
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
+    command_kind: None,
     binary: "codex",
     profile: "codex",
     structured: Structured::Adapter {

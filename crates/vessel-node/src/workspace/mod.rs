@@ -29,6 +29,7 @@ mod forge;
 mod git;
 mod policy;
 mod projects;
+mod registration;
 mod registry_fence;
 mod roots;
 mod scripts;
@@ -252,6 +253,8 @@ impl Workspaces {
             stop,
         });
         workspaces.restore(stored).await;
+        // ADR 0106: the roots existing sessions were placed in, one shot each.
+        workspaces.register_placed_projects().await;
         Ok(workspaces)
     }
 
