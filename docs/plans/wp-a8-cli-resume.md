@@ -13,9 +13,9 @@ root dispatch. No new RPC, provider startup or mutation was implemented.
   evidence; unit/process tests did not run. The attempted queued-only cancel
   raced admission and was refused. The actual build completed normally.
 - Corrected2c strict ACTUAL PASS, run
-  wp-side-node-narrow-20261116T014541Z-2c566664: locked CLI all-target Clippy0,
+  wp-side-node-narrow-20261116T014541Z-2c566664: CLI all-target Clippy0 (this custom root invocation had no --locked flag),
   fresh Client/CLI Checking, steps cargo0, raw SHA256
-  aa46152bba57a7428452eb78b233c45d996b247713bd61c0d226ef8dcf472fb65.
+  aa46152bba57a7429542dea6b86456ce8ef86933ea5cd4d162505c8fed9f0aed.
   Inspect the collected spec/checkout/steps/raw log before reusing proof.
 - ONE EXISTING runtime job, not a new submission to make:
   wp-side-node-narrow-20261116T030014Z-2c566664. Ordinary lane; currently queued.
@@ -49,3 +49,9 @@ NoSend/Uncertain packet; real failure wrapper and rich wire adapter stay held.
 Use the existing nodes/selectors/formatter. Do not infer actual tool names from
 tool titles, fabricate events or downgrade unsupported edits/message/interrupt
 to legacy writes. Later completion output must require exact durable receipts.
+
+
+Evidence qualification: the custom root strict/runtime argv does not include
+--locked. The runner uses those exact root arguments; native custom runs have a
+separate locking rule. No frozen-lock validation is claimed for this root
+narrow suite. A final package gate and actual runtime results remain owed.
