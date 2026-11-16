@@ -91,6 +91,9 @@ impl Link {
             Command::CodeSource(request) => {
                 self.emit(Event::CodeSource(Box::new(request.refused(Problem::Older))))
             }
+            Command::Usage(ask) => self.emit(Event::Usage(
+                ask.refused(vessel_app_view::usage::RequestFailure::Unsupported),
+            )),
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
                 vessel_app_view::history::Problem::Unsupported,

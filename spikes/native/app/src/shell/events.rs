@@ -13,6 +13,7 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::CodeSource(answer) => self.code_source_answer(*answer),
+            Event::Usage(answer) => self.usage_answer(answer, cx),
             Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
@@ -63,6 +64,7 @@ impl Shell {
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => {
+                self.usage_records(session, &records);
                 if self.link_records(&session, &records, cx) == crate::areas::Redraw::GridAlone {
                     return;
                 }

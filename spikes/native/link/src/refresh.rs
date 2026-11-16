@@ -38,14 +38,14 @@ impl State {
         };
         self.reconcile_connections(&book).await;
         let mut machines = Vec::with_capacity(book.len());
-        for (name, entry) in book {
-            let name = name.as_str().to_owned();
+        for (book_name, entry) in book {
+            let name = book_name.as_str().to_owned();
             let reach = if let Some(connected) = self.clients.get(&name) {
                 Ok(connected.clone())
             } else {
                 let reach = self.connect(&name, &entry).await;
                 if let Ok(connected) = &reach {
-                    self.hand_kept(&name, &connected.client).await;
+                    self.connection_ready(&book_name, &connected.client).await;
                 }
                 reach
             };

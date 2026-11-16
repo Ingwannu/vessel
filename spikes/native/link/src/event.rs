@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Correlated usage facts or safe failures.
+    Usage(crate::usage::Answer),
     /// An original-admission guarded history result or correlated refusal.
     History(crate::history::Answer),
     /// An Agents response, including background install progress.

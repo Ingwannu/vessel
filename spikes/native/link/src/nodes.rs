@@ -327,6 +327,29 @@ pub(crate) async fn pair(
     Ok((shown, via, address))
 }
 
+// One typed list of area lifecycle notices. Consumers add their own Event
+// here, never another connection hook. The empty producer preserves behaviour.
+const CONNECTION_NOTICE_COUNT: usize = 1;
+fn connection_notices(
+    name: &NodeName,
+    node: vessel_proto::NodeId,
+) -> [crate::Event; CONNECTION_NOTICE_COUNT] {
+    [crate::Event::Usage(crate::usage::Answer::Connected {
+        machine: vessel_app_view::devices::MachineKey::from_book(name.as_str()),
+        node,
+    })]
+}
+impl crate::State {
+    /// Existing kept offers arrive first. A later area notice is tied to the
+    /// real connection, independent of whether its Fleet snapshot changes.
+    pub(super) async fn connection_ready(&self, name: &NodeName, client: &NodeClient) {
+        self.hand_kept(name.as_str(), client).await;
+        for event in connection_notices(name, client.node().id) {
+            self.emit(event).await;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{LinkError, book_name, read_book_at};

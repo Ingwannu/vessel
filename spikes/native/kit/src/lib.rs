@@ -77,6 +77,7 @@ pub mod toast;
 pub mod toolbar_button;
 pub mod toolbar_label;
 pub mod tooltip;
+pub mod usage_meter;
 pub mod vector;
 pub mod virtual_list;
 mod widgets;

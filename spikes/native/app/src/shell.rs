@@ -394,6 +394,7 @@ impl Render for Shell {
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
             .children(areas::palette::render(self, &tokens, window, cx))
+            .children(areas::usage::dialogs(self, &tokens, window, cx))
             .children(areas::shortcuts::help_dialog::render(self, &tokens, window, cx))
             .children(areas::import::render(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
