@@ -87,12 +87,12 @@ async fn direct_operations(client: &NodeClient) -> Vec<Call> {
 async fn direct_admin(client: &NodeClient) -> Vec<Call> {
     let gateway = SetServiceGateway {
         expected: None,
-        gateway: ServiceGateway::LocalOnly,
+        gateway: ServiceGateway::LocalOnly {},
     };
     let exposure = SetServiceExposure {
         target: target(),
         expected: None,
-        change: ServiceExposureChange::Private,
+        change: ServiceExposureChange::Private {},
     };
     unassigned(
         &client.service_settings().await.unwrap_err(),
@@ -274,7 +274,7 @@ async fn default_admin(fake: &FakeNode, context: &Context) {
             context,
             SetServiceGateway {
                 expected: None,
-                gateway: ServiceGateway::LocalOnly,
+                gateway: ServiceGateway::LocalOnly {},
             },
         )
         .await,
@@ -285,7 +285,7 @@ async fn default_admin(fake: &FakeNode, context: &Context) {
             SetServiceExposure {
                 target: target(),
                 expected: None,
-                change: ServiceExposureChange::Private,
+                change: ServiceExposureChange::Private {},
             },
         )
         .await,

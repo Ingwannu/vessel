@@ -486,3 +486,17 @@ the merge; earlier narrow runs retain their exact commits and scopes.
 - Reason: envelope values and per-method admission have different reasons
   to change. The original wire types stay in `forward.rs`.
 - Effects: no new dependency, behavior, expectation, field or protocol number.
+
+### Strict empty mutation choices
+
+The first executed value suite caught a decoder defect: Serde's internally
+tagged unit variant accepted extra fields despite the enum's unknown-field
+refusal. `Private` and gateway `LocalOnly` are now zero-field struct choices,
+so all variant inputs pass through the strict field decoder. Their valid JSON
+remains exactly the existing kind-only object, and gateway default remains
+local-only. No raw binding/incarnation field is accepted or stored.
+
+The original failing assertion remains intact. Added direct/nested request
+cases reject unexpected fields for both empty and nonempty choices. This
+changes only previously unintended input acceptance; no method is activated,
+and the sole settings writer and missing-incarnation refusal still apply.

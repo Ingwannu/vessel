@@ -99,13 +99,13 @@ impl fmt::Display for PublicServiceBase {
 crate::key::serde_via_text!(PublicServiceBase);
 
 /// Choosing a gateway alone grants no service anonymous reachability.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ServiceGateway {
     /// The dedicated service front door defaults to node loopback only.
-    #[default]
-    LocalOnly,
+    // Empty struct choices enforce unknown-field refusal at the serde edge.
+    LocalOnly {},
     /// Every published service still needs separate explicit Admin consent.
     Public {
         /// Literal bind choice, independent of the node-control listener.
@@ -115,9 +115,16 @@ pub enum ServiceGateway {
     },
 }
 
+impl Default for ServiceGateway {
+    fn default() -> Self {
+        Self::LocalOnly {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::workspace_services::SetServiceGateway;
     use std::error::Error as _;
 
     #[test]
@@ -155,7 +162,7 @@ mod tests {
     fn public_base_is_dns_metadata_and_default_gateway_does_not_publish() {
         let base: PublicServiceBase = "https://apps.example.test:8443/".parse().unwrap();
         assert_eq!(base.origin().as_str(), "https://apps.example.test:8443/");
-        assert_eq!(ServiceGateway::default(), ServiceGateway::LocalOnly);
+        assert_eq!(ServiceGateway::default(), ServiceGateway::LocalOnly {});
         let public = ServiceGateway::Public {
             listener: "0.0.0.0:8081".parse().unwrap(),
             public_base: base,
@@ -183,5 +190,30 @@ mod tests {
         assert!(error.source().is_some());
         assert!(!format!("{error:?}").contains("synthetic-secret"));
         assert!(serde_json::from_str::<ServiceGateway>(r#"{"kind":"future"}"#).is_err());
+    }
+
+    #[test]
+    fn both_gateway_choices_refuse_extra_fields_before_admin_write() {
+        let local = ServiceGateway::default();
+        assert_eq!(
+            serde_json::to_string(&local).unwrap(),
+            r#"{"kind":"local_only"}"#
+        );
+        let public = ServiceGateway::Public {
+            listener: "0.0.0.0:8081".parse().unwrap(),
+            public_base: "https://apps.example.test/".parse().unwrap(),
+        };
+        for gateway in [local, public] {
+            let json = serde_json::to_string(&gateway).unwrap();
+            assert_eq!(
+                serde_json::from_str::<ServiceGateway>(&json).unwrap(),
+                gateway
+            );
+            let fields = json.strip_suffix('}').unwrap();
+            let extra = format!(r#"{fields},"consent":"synthetic"}}"#);
+            assert!(serde_json::from_str::<ServiceGateway>(&extra).is_err());
+            let request = format!(r#"{{"expected":null,"gateway":{extra}}}"#);
+            assert!(serde_json::from_str::<SetServiceGateway>(&request).is_err());
+        }
     }
 }

@@ -183,7 +183,7 @@ pub enum PublicServiceAcknowledgement {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ServiceExposureChange {
     /// Remove the private consent record; drain old HTTP/WS owners.
-    Private,
+    Private {},
     /// The node derives the mandatory canonical binding itself before any write.
     AnonymousPublic {
         /// A metadata fence, never an actual-run token.

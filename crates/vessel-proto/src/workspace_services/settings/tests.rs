@@ -21,7 +21,7 @@ fn admin_choice_count_and_unique_targets_hold_at_constructor_and_decode() {
         .map(|index| exposure(workspace, index))
         .collect();
     let settings =
-        ServicesAdminSettings::new(None, ServiceGateway::LocalOnly, entries.clone()).unwrap();
+        ServicesAdminSettings::new(None, ServiceGateway::LocalOnly {}, entries.clone()).unwrap();
     let text = serde_json::to_string(&settings).unwrap();
     assert_eq!(
         serde_json::from_str::<ServicesAdminSettings>(&text).unwrap(),
@@ -34,7 +34,8 @@ fn admin_choice_count_and_unique_targets_hold_at_constructor_and_decode() {
         serde_json::to_string(&too_many).unwrap()
     );
     assert!(serde_json::from_str::<ServicesAdminSettings>(&oversized).is_err());
-    let error = ServicesAdminSettings::new(None, ServiceGateway::LocalOnly, too_many).unwrap_err();
+    let error =
+        ServicesAdminSettings::new(None, ServiceGateway::LocalOnly {}, too_many).unwrap_err();
     assert_eq!(error, InvalidServicesAdminSettings::TooMany);
     assert!(
         error
@@ -45,7 +46,7 @@ fn admin_choice_count_and_unique_targets_hold_at_constructor_and_decode() {
     assert_eq!(
         ServicesAdminSettings::new(
             None,
-            ServiceGateway::LocalOnly,
+            ServiceGateway::LocalOnly {},
             vec![entry.clone(), entry.clone()]
         ),
         Err(InvalidServicesAdminSettings::Duplicate)
@@ -61,7 +62,7 @@ fn admin_choice_count_and_unique_targets_hold_at_constructor_and_decode() {
         exposures,
     } = settings.view();
     assert_eq!(revision, None);
-    assert_eq!(gateway, &ServiceGateway::LocalOnly);
+    assert_eq!(gateway, &ServiceGateway::LocalOnly {});
     assert_eq!(exposures.len(), MAX_PUBLIC_SERVICE_CHOICES);
 }
 
@@ -111,13 +112,43 @@ fn anonymous_enable_requires_explicit_warning_and_contains_no_binding_authority(
 }
 
 #[test]
+fn private_and_public_changes_refuse_unknown_binding_fields_in_requests() {
+    let private = ServiceExposureChange::Private {};
+    let public = ServiceExposureChange::AnonymousPublic {
+        snapshot: ServiceSnapshotId::random(),
+        definition: CommandsDigest::from_sha256(Default::default()),
+        acknowledgement: PublicServiceAcknowledgement::ReachableWithoutVesselAuthentication,
+    };
+    let target = exposure(WorkspaceId::random(), 0).target;
+    let target = serde_json::to_string(&target).unwrap();
+    assert_eq!(
+        serde_json::to_string(&private).unwrap(),
+        r#"{"kind":"private"}"#
+    );
+    for choice in [private, public] {
+        let json = serde_json::to_string(&choice).unwrap();
+        assert_eq!(
+            serde_json::from_str::<ServiceExposureChange>(&json).unwrap(),
+            choice
+        );
+        let fields = json.strip_suffix('}').unwrap();
+        for field in ["incarnation", "pid", "url", "run", "token"] {
+            let extra = format!(r#"{fields},"{field}":"synthetic"}}"#);
+            assert!(serde_json::from_str::<ServiceExposureChange>(&extra).is_err());
+            let request = format!(r#"{{"target":{target},"expected":null,"change":{extra}}}"#);
+            assert!(serde_json::from_str::<SetServiceExposure>(&request).is_err());
+        }
+    }
+}
+
+#[test]
 fn requested_effective_and_application_states_are_not_collapsed() {
     let revision = ServicesSettingsRevision::random();
     let settings =
-        ServicesAdminSettings::new(Some(revision), ServiceGateway::LocalOnly, vec![]).unwrap();
+        ServicesAdminSettings::new(Some(revision), ServiceGateway::LocalOnly {}, vec![]).unwrap();
     let request = SetServiceGateway {
         expected: Some(revision),
-        gateway: ServiceGateway::LocalOnly,
+        gateway: ServiceGateway::LocalOnly {},
     };
     let text = serde_json::to_string(&request).unwrap();
     assert_eq!(

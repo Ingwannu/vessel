@@ -90,7 +90,8 @@ mod tests {
 
     #[test]
     fn committed_applying_is_distinct_from_applied_or_refused() {
-        let settings = ServicesAdminSettings::new(None, ServiceGateway::LocalOnly, vec![]).unwrap();
+        let settings =
+            ServicesAdminSettings::new(None, ServiceGateway::LocalOnly {}, vec![]).unwrap();
         let saved = ServiceSettingsOutcome::Saved {
             settings: settings.clone(),
             application: ServiceSettingsApplication::Applying,
