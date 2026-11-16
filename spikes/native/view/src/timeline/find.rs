@@ -47,28 +47,7 @@ pub const MAX_QUERY: usize = 512;
 /// Entries searched per slice.
 pub const SLICE: usize = 200;
 
-/// The text a find looks in, for the kinds it looks in.
-#[must_use]
-pub fn searchable(entry: &Entry) -> Option<&str> {
-    match &entry.kind {
-        EntryKind::Prompt(prompt) => Some(&prompt.text),
-        EntryKind::Message { text } | EntryKind::Steer { text, .. } => Some(text),
-        EntryKind::Question { question, .. } => Some(&question.message),
-        EntryKind::Ready { .. }
-        | EntryKind::Thought { .. }
-        | EntryKind::Tool(_)
-        | EntryKind::Plan { .. }
-        | EntryKind::Permission(_)
-        | EntryKind::TurnEnded { .. }
-        | EntryKind::TurnFailed { .. }
-        | EntryKind::Log { .. }
-        | EntryKind::Status { .. }
-        | EntryKind::Parking(_)
-        | EntryKind::Forked { .. }
-        | EntryKind::Profile { .. }
-        | EntryKind::Model(_) => None,
-    }
-}
+pub use super::searchable::searchable;
 
 /// White space as the page's `\s` reads it (ECMAScript's set), so a fold
 /// here and one in the page agree on what a run of space is.
@@ -431,9 +410,8 @@ pub fn start_at(
     if next <= at {
         return None;
     }
-    let entry = entries
-        .iter()
-        .rposition(|entry| entry.seq <= at)
+    let entry = super::entry_at_source(entries, at)
+        .or_else(|| entries.iter().rposition(|entry| entry.seq <= at))
         .unwrap_or(0);
     Some(
         matches

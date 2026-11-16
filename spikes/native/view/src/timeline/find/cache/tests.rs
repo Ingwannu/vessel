@@ -18,6 +18,8 @@ fn entries() -> Vec<Entry> {
             Entry {
                 key: EntryKey::Record(seq),
                 seq,
+                through: EventSeq::new(seq.get().saturating_add(1)),
+                extra_sources: crate::timeline::ExtraSources::default(),
                 at: chrono::DateTime::UNIX_EPOCH,
                 kind: if index % 2 == 0 {
                     EntryKind::Prompt(Prompt {

@@ -45,6 +45,10 @@ pub struct Entry {
     pub key: EntryKey,
     /// The record that made it.
     pub seq: EventSeq,
+    /// Exclusive last contributing record bound; gaps are not membership.
+    pub through: EventSeq,
+    /// Exact later records contributing to this row.
+    pub extra_sources: super::source::ExtraSources,
     /// When that record was written.
     pub at: DateTime<Utc>,
     /// What it is.
@@ -282,6 +286,7 @@ impl EntryKind {
     pub(crate) const fn text_mut(&mut self, kind: TextKind) -> Option<&mut String> {
         match (self, kind) {
             (Self::Prompt(prompt), TextKind::Prompt) => Some(&mut prompt.text),
+            (Self::Steer { text, .. }, TextKind::Prompt) => Some(text),
             (Self::Message { text }, TextKind::Message)
             | (Self::Thought { text }, TextKind::Thought) => Some(text),
             (

@@ -31,6 +31,7 @@
 //!   the session screen moves to this one when its area is drawn.
 
 mod agent;
+mod append;
 mod approval;
 mod diff;
 mod entry;
@@ -45,12 +46,16 @@ mod origin;
 mod outline;
 mod permission;
 mod plan;
+mod prompt_presentation;
 mod question;
 mod question_step;
 mod rewind;
 mod rows;
 mod runs;
+mod searchable;
+mod source;
 mod usage;
+mod user_stream;
 mod window;
 
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
@@ -87,3 +92,9 @@ pub use usage::ModelUsage;
 pub use window::{
     Align, FOLLOW, INSET, MARGIN, Span, at_end, covers, guess, off_by, offsets, scroll_for, span,
 };
+
+pub use prompt_presentation::presented_prompt;
+pub use source::{ExtraSources, entry_at_source};
+
+#[cfg(test)]
+mod bounds_tests;
