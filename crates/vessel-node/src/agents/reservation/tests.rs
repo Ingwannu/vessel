@@ -258,3 +258,20 @@ fn an_earlier_retry_failure_cannot_release_a_newer_begin_for_the_same_operation(
     drop(lease);
     assert!(!agents.is_live(id));
 }
+
+#[test]
+fn credential_preparation_does_not_skip_the_authoritative_duplicate_recheck() {
+    let agents = Agents::new(NodeId::random());
+    let id = SessionId::random();
+    let prepared = agents.prepare_reservation(id, true).unwrap();
+    let _winner = agents
+        .reserve_creation(id, &Principal::Owner, true)
+        .unwrap();
+    let mut entries = agents.lock();
+    let winner = entries.get(&id).unwrap().credentials.clone();
+    assert!(matches!(
+        agents.reserve_prepared(&mut entries, &Principal::Owner, prepared),
+        Err(crate::error::ServiceError::AgentReserved(found)) if found == id
+    ));
+    assert_eq!(entries.get(&id).unwrap().credentials, winner);
+}
