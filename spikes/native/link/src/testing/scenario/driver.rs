@@ -4,7 +4,7 @@ use super::{
     failure, peer,
 };
 use crate::{Command, Event, State};
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, watch};
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::machine_book::Name;
 use vessel_proto::NodeId;
