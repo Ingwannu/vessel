@@ -134,61 +134,63 @@ fn mode(state: ModeState) -> bool {
         ModeState::Disabled => false,
     }
 }
+type DisplayScene = (&'static str, u16, u16, &'static str, Option<u32>);
+const SCENES: &[DisplayScene] = &[
+    ("plain", 12, 4, "hello\r\nworld", None),
+    (
+        "styled-wide",
+        16,
+        4,
+        "\x1b[31;48;5;17;1;2;3;4;7me\u{301} 한글🙂\x1b[0m\r\nplain\x1b[>7u\x1b[?1;2004;9001h",
+        None,
+    ),
+    ("history", 8, 3, "0\r\n1\r\n2\r\n3\r\n4", Some(1)),
+    ("pending-wrap", 8, 3, "12345678", None),
+    ("cursor-default", 8, 3, "default", None),
+    ("cursor-1", 8, 3, "\x1b[1 qone", None),
+    ("cursor-2", 8, 3, "\x1b[2 qtwo", None),
+    ("cursor-3", 8, 3, "\x1b[3 qthree", None),
+    ("cursor-4", 8, 3, "\x1b[4 qfour", None),
+    ("cursor-5", 8, 3, "\x1b[5 qfive", None),
+    ("cursor-6", 8, 3, "\x1b[6 qsix", None),
+    ("cursor-0-reset", 8, 3, "\x1b[1 q\x1b[0 qzero", None),
+    ("cursor-7-blink", 8, 3, "\x1b[7 qseven", None),
+    ("cursor-8-steady", 8, 3, "\x1b[8 qeight", None),
+    ("cursor-soft-reset", 8, 3, "\x1b[1 qkept\x1b[!pX", None),
+    ("cursor-ris", 8, 3, "\x1b[1 qbefore\x1bcafter", None),
+    (
+        "mode-soft-reset",
+        8,
+        3,
+        "\x1b[>3u\x1b[>7u\x1b[?1;2004;9001h\x1b[!pX",
+        None,
+    ),
+    (
+        "alternate-reentry",
+        8,
+        3,
+        "main\x1b[2;3H\x1b[?1049hA\x1b[?1049hB",
+        None,
+    ),
+    (
+        "alternate-47-carry",
+        8,
+        3,
+        "main\x1b[2;3H\x1b[?47hA\x1b[3;4H\x1b[?47lX",
+        None,
+    ),
+    (
+        "alternate-1047-carry",
+        8,
+        3,
+        "main\x1b[2;3H\x1b[?1047hA\x1b[3;4H\x1b[?1047lX",
+        None,
+    ),
+];
 #[test]
 fn physical_display_fixture_export() {
     let mut probes = Vec::new();
-    for (name, cols, rows, input, pin) in [
-        ("plain", 12, 4, "hello\r\nworld", None),
-        (
-            "styled-wide",
-            16,
-            4,
-            "\x1b[31;48;5;17;1;2;3;4;7me\u{301} 한글🙂\x1b[0m\r\nplain\x1b[>7u\x1b[?1;2004;9001h",
-            None,
-        ),
-        ("history", 8, 3, "0\r\n1\r\n2\r\n3\r\n4", Some(1)),
-        ("pending-wrap", 8, 3, "12345678", None),
-        ("cursor-default", 8, 3, "default", None),
-        ("cursor-1", 8, 3, "\x1b[1 qone", None),
-        ("cursor-2", 8, 3, "\x1b[2 qtwo", None),
-        ("cursor-3", 8, 3, "\x1b[3 qthree", None),
-        ("cursor-4", 8, 3, "\x1b[4 qfour", None),
-        ("cursor-5", 8, 3, "\x1b[5 qfive", None),
-        ("cursor-6", 8, 3, "\x1b[6 qsix", None),
-        ("cursor-0-reset", 8, 3, "\x1b[1 q\x1b[0 qzero", None),
-        ("cursor-7-blink", 8, 3, "\x1b[7 qseven", None),
-        ("cursor-8-steady", 8, 3, "\x1b[8 qeight", None),
-        ("cursor-soft-reset", 8, 3, "\x1b[1 qkept\x1b[!pX", None),
-        ("cursor-ris", 8, 3, "\x1b[1 qbefore\x1bcafter", None),
-        (
-            "mode-soft-reset",
-            8,
-            3,
-            "\x1b[>3u\x1b[>7u\x1b[?1;2004;9001h\x1b[!pX",
-            None,
-        ),
-        (
-            "alternate-reentry",
-            8,
-            3,
-            "main\x1b[2;3H\x1b[?1049hA\x1b[?1049hB",
-            None,
-        ),
-        (
-            "alternate-47-carry",
-            8,
-            3,
-            "main\x1b[2;3H\x1b[?47hA\x1b[3;4H\x1b[?47lX",
-            None,
-        ),
-        (
-            "alternate-1047-carry",
-            8,
-            3,
-            "main\x1b[2;3H\x1b[?1047hA\x1b[3;4H\x1b[?1047lX",
-            None,
-        ),
-    ] {
+    for &(name, cols, rows, input, pin) in SCENES {
         let mut engine =
             Screen::new(Size::new(cols, rows).unwrap(), ScrollbackLines::default()).unwrap();
         assert!(
