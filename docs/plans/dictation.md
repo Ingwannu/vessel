@@ -28,7 +28,12 @@ The first whole gate stopped at Clippy: the client test FakeNode lacked the
 five new Handler items. Its existing unserved macro now supplies exactly those
 Unsupported methods. Client strict and library tests precede the final corrected
 whole gate; no runtime result is claimed from the first stopped run. The combined
-source range is submitted for review, with the original red evidence retained. Narrow evidence is not a package
+source range is submitted for review, with the original red evidence retained.
+The second whole also stopped before tests because the RPC test Fake lacked the
+same five items. Both manual fake lists are now complete; the node guard and
+connection fixture are generated from the table. The next preflight checks every
+workspace target, followed by the existing RPC library tests, before the
+corrected whole gate. Neither stopped whole is runtime proof. Narrow evidence is not a package
 or integration pass. No real ASR, HTTPS credential, other-platform deployment,
 service-account or microphone behavior is claimed. Earlier resume paragraphs
 below are historical checkpoints.
@@ -1142,3 +1147,14 @@ policy without changing any existing handler, assertion or branch. No product
 implementation, method behavior or generated declaration changes here. The
 original whole gate stops before tests and remains red; focused client strict
 and library checks must pass before the corrected package whole gate.
+
+### RPC test Handler compatibility completion
+
+The second whole-workspace Clippy run exposed the other manual test Handler
+implementation. Its existing unserved macro records a call and answers
+Unsupported. Exactly the five dictation rows are appended to that invocation;
+no existing handler body, assertion, branch or product implementation changes.
+The previous client-only strict check could not compile this RPC test target.
+The corrected preflight is therefore workspace-wide and all-target, followed
+by the existing RPC library tests, before the corrected whole package gate.
+Both original compile failures are retained separately from execution evidence.
