@@ -25,7 +25,7 @@ fn directory_at(path: &Path) {
         .create(path)
         .expect("private child directory");
 }
-fn observe(path: &Path) -> Result<TreeDigest, Failure> {
+fn observe(path: &Path) -> Result<Observed, Failure> {
     Pending::begin(path, &CancellationToken::new())?.finish()
 }
 
@@ -51,8 +51,11 @@ fn two_actual_passes_are_order_independent_and_cover_internal_link_targets() {
     let a = observe(first.path()).expect("complete first candidate");
     let b = observe(second.path()).expect("same facts in different creation order");
     assert_eq!(a, b);
-    assert_eq!(a.budget.entries, 5, "link alias adds no traversed copies");
-    assert_eq!(a.budget.file_bytes, 10);
+    assert_eq!(
+        a.digest.budget.entries, 5,
+        "link alias adds no traversed copies"
+    );
+    assert_eq!(a.digest.budget.file_bytes, 10);
 }
 
 #[test]

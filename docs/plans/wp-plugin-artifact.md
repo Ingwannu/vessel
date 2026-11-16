@@ -241,3 +241,7 @@ has new execution proof yet. The paired strict62 run also refused unchecked
 Instant addition, a64KiB stack buffer and an unconsumed seek result. The extension
 uses checked deadline construction, a bounded heap buffer and asserts the actual
 seek receipt; those changes preserve refusal and the named budgets.
+The successful two-pass result is a distinct privately constructed Observed
+wrapper. Supplied-record TreeDigest values cannot construct it; only Pending's
+complete re-observation does. This is a filesystem observation distinction,
+not installation/source provenance or executable authority.

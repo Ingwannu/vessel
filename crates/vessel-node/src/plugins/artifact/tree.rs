@@ -132,6 +132,13 @@ struct Pending {
     scope: Scope,
     first: Pass,
 }
+
+/// Only both actual passes can construct this observation. The supplied-record
+/// digest remains a different type, and neither is managed source authority.
+#[derive(Debug, PartialEq, Eq)]
+struct Observed {
+    digest: TreeDigest,
+}
 impl Pending {
     fn begin(path: &Path, cancellation: &CancellationToken) -> Result<Self, Failure> {
         let scope = Scope::new(path, cancellation)?;
@@ -139,13 +146,15 @@ impl Pending {
         Ok(Self { scope, first })
     }
 
-    fn finish(self) -> Result<TreeDigest, Failure> {
+    fn finish(self) -> Result<Observed, Failure> {
         let second = Pass::read(&self.scope)?;
         if self.first != second {
             return Err(Failure::Changed);
         }
         self.scope.check_root()?;
-        Ok(second.digest)
+        Ok(Observed {
+            digest: second.digest,
+        })
     }
 }
 
