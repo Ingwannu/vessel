@@ -4,33 +4,30 @@ Node-side speech to text, following Paseo's composer dictation. ADR 0067
 is the contract. The protocol number is `dictation::SINCE`, given at
 merge. This plan does not change `PROTOCOL_VERSION`.
 
-## Current resume point (2026-11-15)
+## Current resume point (2026-11-16)
 
-The designated head 82ae7c91 and source-reviewed file-diagnostic prerequisite are
-on the feature branch. Product wiring now connects the real bounded registry,
-provider, canonical ConnectionLife accessor and shared codec, with five pending
-method-table rows. The protocol constant remains None. The generated guard checks
-Operate and the domain context refuses agents. Those are implementation drafts,
-not a product test or merge pass. The CLI now connects its validated file reader
-to a serial acknowledged sender and concurrent next consumer, with bounded
-finish/cleanup waits and final-only stdout. Those new cases are unexecuted.
+The designated files/shared-values head is merged. Product wiring connects the
+bounded registry, endpoint provider, canonical ConnectionLife and speech codec,
+with five pending method-table rows. The protocol constant remains None, so the
+wire refuses activation before a number is assigned. The CLI file reader and
+concurrent sender/result consumer are implemented; local engines, app capture
+and TTS remain deferred.
 
-Settings now validate the whole merged candidate, resolve explicitly selected
-keys even on a no-op, and use the existing single-lock atomic writer/apply order.
-Hidden old/unassigned responses skip presence I/O. Actual-write failure, deletion
-race through start, typed historical downgrade, scope/agent checks on all five
-assembled handlers, real connection close, stop-tracker joins and private wire
-causes have new unexecuted regressions. A real-provider loopback service case
-checks a short capture tail, partial and final.
+The latest five-crate all-target strict check passes. The corrected focused
+Node/Store library suite passes 26 cases, including startup diagnostics, empty
+file overrides, selection/deletion races, provider-switch refusals, retained
+settings writers and buffered-start retirement. The earlier broad focused run
+remains red with its four findings; the original later-file node e2e was not in
+the library selection and must pass the final whole gate.
 
-Next: narrow strict checks and focused tests on this committed wiring, fix
-actual failures in the backend and file command/driver. Regenerate declarations
-for the final registered surface and run one whole product/package gate. The
-previous generated snapshot passed four tests but was stale; it excludes later
-ErrorDetail/registration additions and is only an interim generated artifact.
-Earlier resume paragraphs below are historical checkpoints. Local engines,
-app capture and TTS remain deferred. No real ASR, HTTPS credential, platform
-service-account or microphone behavior is claimed.
+The generated declarations now match the verified generator snapshot for this
+combined source: five generator/inventory tests passed, and the freshness
+failure identified the exact patch applied here. Next: merge the next designated
+node head, retain its definitions, then run the one whole product/package gate
+and submit the combined source range for review. Narrow evidence is not a package
+or integration pass. No real ASR, HTTPS credential, other-platform deployment,
+service-account or microphone behavior is claimed. Earlier resume paragraphs
+below are historical checkpoints.
 
 ## What Paseo does
 
@@ -1104,3 +1101,18 @@ Its table and sample entries stay in their original order; the owned dictation
 rows follow skills.import_selection, and its samples follow the added skills
 cases. All feature numbers remain as the head defines them, with dictation
 unassigned. Its generated wire snapshot is retained until combined regeneration.
+
+### Combined generated snapshot and corrected narrow evidence
+
+The regenerated complete wire snapshot restores dictation declarations after
+adopting the listing and skills definitions. All six artifact checksums and the
+source commit were verified before applying the generator's exact tracked patch;
+none of the declarations were hand-edited. Five generator/inventory tests pass;
+the retained freshness result is red until this generated update is committed
+and checked in the final gate.
+
+The current strict check passes across Node, Store, Proto, Web and CLI, all
+targets. The corrected focused library selection passes 26 cases. It includes
+the three original library failures, the new empty-file and provider-switch
+cases, the shared writer tests and buffered-start retirement. It excludes the
+original later-file node e2e; that case is still an explicit whole-gate obligation.
