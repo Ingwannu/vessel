@@ -1,5 +1,6 @@
 //! Isolated actor inputs and the one framed test peer, shared by book and
 //! device-binding regressions. No live node, global HOME edit or credentials.
+pub(crate) mod actor;
 mod deadline;
 pub(crate) mod peer;
 use crate::{Event, State};
@@ -47,6 +48,7 @@ pub(crate) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             mentions: crate::mentions::Hub::default(),
             admissions: vessel_app_view::connection::ConnectionEpochs::default(),
             device_calls: crate::devices::Hub::default(),
+            history_calls: crate::history::Hub::default(),
             sync_calls: crate::sync::Hub::default(),
             offers: std::sync::Arc::default(),
         },

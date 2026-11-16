@@ -405,3 +405,19 @@ additional unactivated timeline values. No pending feature is activated by this
 merge. Prior74 strict/App118/Link117 evidence remains predecessor scope; a fresh
 receiving-union check is required. The line's generated wire whitespace is kept
 byte-for-byte rather than manually editing generated declarations.
+
+### Package base 13 integration
+
+The receiving app merges the announced shared line with canonical plugin,
+history, timeline admission and browser cfg updates. The original creation
+context and selected-connection path are retained; the duplicate inline
+send/render implementation stays extracted. History import remains mounted in
+the shared draft renderer and root overlay. Decoded draft injection for tests
+is retained, with desktop loading and an empty browser state at the constructor.
+The shared session extraction lowers its size record; no allowance is raised.
+
+Previous-source execution at 51c2c7d1 passed the fifteen actual draft tests,
+including busy-before-intake, canonical history plus exact scoped text,
+independent sibling edits, bounded retention and original-admission retry.
+Those are state/GPUI test-platform cases, not a live minter/root authority or
+end-to-end creation proof. New receiving-union strict/browser checks remain owed.

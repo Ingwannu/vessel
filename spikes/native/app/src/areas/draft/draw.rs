@@ -60,7 +60,8 @@ pub(crate) fn render(
                 .child(shell.draft_heading()),
         )
         .child(card)
-        .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
+        .child(pickers::place(shell, &online, touch, tokens, cx).self_start())
+        .child(crate::areas::import::entry(shell, tokens, cx));
     if let Some(launch) = form::launch(shell, tokens, cx) {
         column = column.child(launch);
     }

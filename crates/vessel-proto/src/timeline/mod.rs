@@ -6,6 +6,7 @@ mod detail;
 mod identity;
 mod item;
 mod measure;
+mod notice;
 mod permission;
 mod question;
 mod receipt;
@@ -14,6 +15,7 @@ pub use detail::*;
 pub use identity::*;
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
+pub use notice::{NoticeCheckpoint, NoticeKey, NoticeRequest};
 pub use permission::{
     PermissionAction, PermissionActionIntent, PermissionActionVariant, PermissionBehavior,
     PermissionKind, PermissionPresentation,

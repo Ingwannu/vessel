@@ -31,6 +31,10 @@
 
 mod answer;
 mod ask;
+// The calls run on the desktop's runtime through `vessel-client`; a browser
+// has neither (its demo refuses each ask, `web.rs`), so only the asks' and
+// answers' types build for wasm32.
+#[cfg(not(target_arch = "wasm32"))]
 mod calls;
 #[cfg(not(target_arch = "wasm32"))]
 mod entry;
@@ -38,17 +42,26 @@ mod follow;
 mod intelligence;
 pub mod layout;
 mod pulls;
+#[cfg(not(target_arch = "wasm32"))]
 mod run;
 mod start;
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Arc, Mutex};
 
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::task::AbortHandle;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::machine_book::Edit;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::workspace::problem::Problem;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::ProjectId;
 
 pub use answer::{Answer, Form, GitWritten};
@@ -57,10 +70,12 @@ pub use intelligence::{IntelligenceAsk, IntelligenceResult};
 pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::Event;
 
 /// The workspace's long-lived part of the link: the clones followed, so a
 /// project is followed once however often the list is read.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
     /// Each clone followed, by machine and project, with its task (each
@@ -68,6 +83,7 @@ pub(crate) struct Hub {
     following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Hub {
     /// The node book was edited (track E2's Settings › Machines, called in
     /// the link's own task right after the book file was written): a
@@ -126,12 +142,14 @@ impl Hub {
 }
 
 /// Where answers go, for one machine.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
 pub(crate) struct Reply {
     machine: String,
     events: mpsc::Sender<Event>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Reply {
     /// Send `answer`; the receiver is gone only when the app is closing.
     pub(crate) async fn send(&self, answer: Answer) {
