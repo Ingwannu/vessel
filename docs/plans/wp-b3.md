@@ -158,3 +158,21 @@ one agreed owner change, not a second menu or renderer. Dispatch captures the
 canonical accepted prompt/turn/checkpoint references and full original context,
 then resolves EntryKey/source before any numeric index. No route/context type is
 invented locally, and shared timeline/rewind files remain untouched meanwhile.
+
+### Package base13 and scoped checkpoint ownership (preparation only)
+
+The app consumes announced2ebeedf9 through app-only merge22f2e6df. The canonical
+view/residents SessionContext carries registry/resource incarnation, layout claim,
+pane, visibility and focus. A7's ResidentSeat is explicitly staged: the current
+product timeline still renders through legacy Seat function pointers. The new
+checkpoint action cannot claim this cutover happened just because the types exist.
+
+W12 owns OperationKind/ResourceOwner admission. A checkpoint operation needs its
+own correlated pending state and confirmation/reconnect holds; it cannot settle a
+timeline read, fork or conversation rewind ticket by borrowing a generic kind.
+The owner is asked to identify the canonical namespace before adoption. No local
+context/route/registry, selected-session fallback, public signature or registration
+line is invented. W10's optional entry/footer element remains the owned hook, after
+the checked node boundary/reference contract and product scoped cutover exist.
+The node is still under independent validation; no unreviewed values producer or
+node branch is merged into the app. There is no checkpoint UI or capture proof yet.
