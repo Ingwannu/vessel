@@ -735,3 +735,8 @@ comparison None admission, physical file constructors/tracked cleanup and all
 new command-kind/membership/diagnostic/voice values. No conflict or rebase.
 Prior exact22ab strict/workspace/TS evidence stays prior-source; no duplicate
 run submitted. Next meaningful runtime batch must check this new union.
+
+The remaining observation design is recorded in wp-c3-observation.md. It reuses
+existing notify/root/cache/tracked owners, records the actual reference timers
+and distinguishes C5's finite file watcher from a checkout lifecycle. No new
+observer/classifier/subscription/fetch source or gate was installed by the note.
