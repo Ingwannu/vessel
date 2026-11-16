@@ -152,6 +152,7 @@ pub fn dialog<V: 'static>(
     let card = div()
         .id("dialog")
         .track_focus(&state.focus)
+        .key_context(popup::KEY_CONTEXT)
         .on_key_down(
             cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
