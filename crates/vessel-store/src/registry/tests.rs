@@ -313,46 +313,7 @@ fn descriptor_and_ready_stage_commit_or_roll_back_together() {
 
 #[tokio::test]
 async fn watchers_only_wake_after_a_committed_registry_change() {
-    const WAIT: std::time::Duration = std::time::Duration::from_secs(10);
-    tokio::time::timeout(WAIT, async {
-        let temp = tempfile::tempdir().unwrap();
-        let data = crate::DataDir::new(temp.path().join("data"));
-        data.prepare().unwrap();
-        let store = crate::Store::open(&data, crate::StoreConfig::default())
-            .await
-            .unwrap()
-            .store;
-        let mut changes = store.registry_changes();
-        assert!(!changes.has_changed().unwrap());
-        store.recover_registry_reservations().await.unwrap();
-        assert!(!changes.has_changed().unwrap());
-        let record = record(WorkspaceId::random());
-        store
-            .put_registry_workspace(record.clone(), None)
-            .await
-            .unwrap();
-        changes.changed().await.unwrap();
-        let fresh = store.registry_changes();
-        assert!(
-            !fresh.has_changed().unwrap(),
-            "a fresh subscriber must not inherit historical invalidations"
-        );
-        assert_eq!(
-            store
-                .registry_workspace(record.descriptor.id)
-                .await
-                .unwrap(),
-            Some(record.clone())
-        );
-        assert!(matches!(
-            store.put_registry_workspace(record, None).await,
-            Err(StoreError::RegistryConflict)
-        ));
-        assert!(!changes.has_changed().unwrap());
-        store.close().await;
-    })
-    .await
-    .expect("bounded store invalidation test");
+    watch_phases::check().await;
 }
 
 #[test]
@@ -535,3 +496,5 @@ fn admission_distinguishes_missing_inactive_and_active_without_changing_state() 
     );
     assert_eq!(load(&db).unwrap(), before);
 }
+
+mod watch_phases;
