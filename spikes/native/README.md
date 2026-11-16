@@ -75,10 +75,14 @@ single items and imports where a file mixes both (`session.rs`,
 `workspace/{mod, start, pulls}.rs`). `web.rs` answers every `Command`
 from the demo fleet or refuses it the way a node refuses something it does
 not support. In a browser, `NodeName` is a twin of the desktop's over the
-view's `machine_book::Name`. The native gate does not build wasm32, so a
-change to the link's commands or modules is checked with
-`cargo check --locked -p vessel-app-link --target wasm32-unknown-unknown`
-as well.
+view's `machine_book::Name`. The app follows the same rule. The updater's
+twin (`update_off.rs`) stands in for `update.rs`. Where a screen reads a
+desktop-only crate or module (`vessel-app-log`, `dirs`, `motion`, link's
+`drafts`), a `let` or statement carries the cfg and the browser gets an
+empty value or nothing. The native gate does not build wasm32, so a change
+to the link's commands or modules, or to a screen's use of desktop-only
+crates, is also checked with `cargo check --locked -p vessel-app-link -p
+vessel-app --target wasm32-unknown-unknown`.
 
 Settings' agent discovery remains in `view::agent_status` (the page's
 fixtures). `agent_status::readiness` separately describes the node's
