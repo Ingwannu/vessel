@@ -1593,3 +1593,13 @@ weekday/month-day in that same time zone, and suppression for forecasts or
 elapsed/missing resets. Both typechecks, full web lint and 36 tests in eight
 files pass. The ledger's complete observation timestamp is retained for its
 own purpose; no live clock, preference reader or account caller is added.
+
+
+F3 activation has a further explicit dependency: backend preparation may
+pass while ADR 0104's tracked-DNS activation hold remains open. The usage
+HTTP owner must use the shared resolver through reqwest's `dns_resolver`;
+a private resolver, parser tests or earlier green whole do not prove the
+physical lookup work is drained. All three new account methods and both
+feature constants remain unassigned until that dependency is resolved.
+Keep the generic web consumer inactive until the actual reviewed, assigned
+and merged source and its managed same-source fixture recipe are handed off.

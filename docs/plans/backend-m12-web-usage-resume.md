@@ -47,6 +47,15 @@ payloads in the browser. Wait for the exact reviewed, assigned, merged node
 head and the managed same-source fixture/CLI recipe. Existing calls remain
 `usage.query` 21 and `usage.limits`/`usage.lookup` 23.
 
+Backend preparation can be accepted while activation remains held on the
+shared tracked DNS resolver (ADR 0104). Usage HTTP must consume that owner
+through reqwest's `dns_resolver`; a private resolver or passing parser/HTTP
+fixtures cannot discharge physical DNS work. All three new account methods
+and both feature constants remain unassigned. A preparation pass therefore
+provides no callable or merged consumer contract, fixture-export readiness or
+permission to enable the web surfaces. Wait for the source owner's explicit
+reviewed, assigned and merged handoff after that hold clears.
+
 Then add the typed adapter through the shared accessor, a bounded
 selection-owned reader, consent/disclosure controls, account cards, sidebar
 summary/modal and proved per-session account presentation. Use shared kit
