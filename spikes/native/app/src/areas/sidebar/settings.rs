@@ -212,7 +212,7 @@ fn row(
             Direction::Down => shell.words.sidebar().move_down(),
         })
         .on_click(cx.listener(move |shell, _, window, cx| {
-            shell.sidebar_move_item(section, &key, direction, window, cx)
+            shell.sidebar_move_item(section, &key, direction, window, cx);
         }));
         actions = actions.child(button);
     }
@@ -238,7 +238,7 @@ fn row(
             },
             window,
             cx,
-        )
+        );
     }));
     actions = actions.child(switch);
     settings::row_with_content_profile(

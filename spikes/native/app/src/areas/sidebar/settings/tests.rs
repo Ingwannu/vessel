@@ -171,10 +171,7 @@ fn actual_reorder_buttons_obey_boundaries_and_source_row_density(cx: &mut TestAp
                     let items =
                         super::super::navigation::items(probe.shell.read(cx), Section::Header);
                     assert_eq!(items.first().unwrap().key.builtin(), Some(Builtin::History));
-                    assert_eq!(
-                        items.get(1).unwrap().key.builtin(),
-                        Some(Builtin::NewWorkspace)
-                    );
+                    assert_eq!(items[1].key.builtin(), Some(Builtin::NewWorkspace));
                 });
             }
         }

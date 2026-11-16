@@ -903,3 +903,10 @@ changed-head strict/runtime tests remain owed, no prior pass is promoted.
 Source preflight additionally found four unit assertion tails without semicolons
 in own sidebar tests. Add only the terminators; retain every assertion, fixture
 and input sequence before the next remote check.
+
+The corrected44 all-target strict compiled the typed refusal adaptation and
+returned only four owning style diagnostics: two unit callback terminators,
+one redundant method closure and one test get/unwrap. Keep the same callbacks
+and literal assertion, use the existing Styled method directly and direct
+test indexing. No geometry, policy, expected value or lint exemption changes.
+The completed44 failure remains retained; its successor still needs checking.

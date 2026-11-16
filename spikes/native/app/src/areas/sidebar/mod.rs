@@ -223,7 +223,7 @@ pub(crate) fn render(
                         .child(status)
                 }),
         )
-        .children(callouts::render(shell, tokens, cx).map(|strip| strip.flex_none()))
+        .children(callouts::render(shell, tokens, cx).map(vessel_app_kit::ui::Styled::flex_none))
         .child(
             div()
                 .flex_none()
