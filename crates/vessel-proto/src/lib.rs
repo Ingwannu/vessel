@@ -19,6 +19,7 @@ mod board;
 mod book_route;
 pub mod book_values;
 pub mod browser;
+pub mod composer_commands;
 pub mod conversation;
 pub mod creation;
 mod device;
@@ -78,6 +79,7 @@ mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
 pub mod usage;
+pub mod voice;
 pub mod workspace;
 
 pub use agent::{
