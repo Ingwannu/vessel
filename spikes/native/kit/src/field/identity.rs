@@ -98,3 +98,6 @@ pub(super) fn source(id: EntityId) -> FieldId {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod submit_tests;
