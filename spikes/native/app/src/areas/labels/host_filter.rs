@@ -33,8 +33,8 @@ use vessel_app_kit::ui::{
     Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    ComboHandlers, ComboHeader, ComboRow, Leading, Side, Tokens, Type, TypeExt as _,
-    anchor_probe, combobox, dot, glyph, select,
+    ComboHandlers, ComboHeader, ComboRow, Leading, Side, Tokens, Type, TypeExt as _, anchor_probe,
+    combobox, dot, glyph, select,
 };
 
 use super::Labels;
@@ -53,14 +53,20 @@ pub(super) fn shown(state: &Labels) -> bool {
 }
 
 /// The pill that names the host shown and opens the host list.
-pub(super) fn trigger(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
+pub(super) fn trigger(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Stateful<Div> {
     let state = &shell.areas.labels;
     let neutral = tokens.neutral;
-    let label = state
-        .route
-        .as_ref()
-        .map_or_else(|| shell.words.labels().host().to_owned(), |route| route.as_str().to_owned());
-    let online = state.selected_host().is_some_and(|host| host.state.connected());
+    let label = state.route.as_ref().map_or_else(
+        || shell.words.labels().host().to_owned(),
+        |route| route.as_str().to_owned(),
+    );
+    let online = state
+        .selected_host()
+        .is_some_and(|host| host.state.connected());
     let enabled = !state.manager.state().busy();
     div()
         .id("labels-host-filter")
@@ -183,5 +189,9 @@ pub(super) fn list(
 
 /// Paseo's host status dot: `statusSuccess` online, `statusDanger` otherwise.
 fn status(online: bool, tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
-    if online { tokens.st_ready } else { tokens.danger }
+    if online {
+        tokens.st_ready
+    } else {
+        tokens.danger
+    }
 }

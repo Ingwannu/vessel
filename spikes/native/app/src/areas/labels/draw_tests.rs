@@ -64,7 +64,14 @@ fn apart(from: gpui::Pixels, to: gpui::Pixels) -> u32 {
 fn rows_hold_one_rail_and_the_search_takes_no_focus_on_open(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, &["fixture"]);
     shell.update_in(cx, |shell, window, cx| {
-        assert!(!shell.areas.labels.search.focus_handle(cx).is_focused(window));
+        assert!(
+            !shell
+                .areas
+                .labels
+                .search
+                .focus_handle(cx)
+                .is_focused(window)
+        );
     });
     // One host: no filter (Paseo's `hosts.length > 1`).
     assert!(cx.debug_bounds("labels-host-filter").is_none());

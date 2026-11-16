@@ -83,7 +83,9 @@ pub(super) fn footer(
         );
     match manager.state() {
         ManagerState::Listing | ManagerState::Deleting { .. } => Vec::new(),
-        ManagerState::Editing(_) | ManagerState::Saving { .. } | ManagerState::Inspecting { .. } => {
+        ManagerState::Editing(_)
+        | ManagerState::Saving { .. }
+        | ManagerState::Inspecting { .. } => {
             let (can_save, can_delete) = match manager.state() {
                 ManagerState::Editing(draft) => {
                     let current = host.catalog.get(&draft.original().name);

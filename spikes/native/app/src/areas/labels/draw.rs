@@ -29,8 +29,8 @@ use vessel_app_kit::dialog::{DialogContent, DialogInput, DialogSize, HeaderBack,
 use vessel_app_kit::theme::spacing::{S1, S2, S4};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, SharedString, Stateful,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::labels::{Failure, Host, HostState, Label, ManagerState};
@@ -76,7 +76,9 @@ pub(crate) fn overlay(
             content.with_header_search(state.search.header_search(tokens, cx))
         }
         (
-            ManagerState::Editing(_) | ManagerState::Saving { .. } | ManagerState::Inspecting { .. },
+            ManagerState::Editing(_)
+            | ManagerState::Saving { .. }
+            | ManagerState::Inspecting { .. },
             Some(target),
         ) => content.with_header_back(back(target, cx)),
         (
@@ -373,12 +375,16 @@ fn changed(shell: &Shell, host: &Host, tokens: &Tokens) -> Option<Div> {
 /// Paseo's error line: the operation's error, else the host's load error.
 fn errors(shell: &Shell, host: &Host, tokens: &Tokens) -> Option<Div> {
     let state = &shell.areas.labels;
-    let failure = state.error.or_else(|| state.manager.error()).or(match host.state {
-        HostState::Failed(failure) => Some(failure),
-        HostState::Online | HostState::Offline | HostState::Loading | HostState::Unsupported => {
-            None
-        }
-    })?;
+    let failure = state
+        .error
+        .or_else(|| state.manager.error())
+        .or(match host.state {
+            HostState::Failed(failure) => Some(failure),
+            HostState::Online
+            | HostState::Offline
+            | HostState::Loading
+            | HostState::Unsupported => None,
+        })?;
     Some(error(failure_text(failure, shell), tokens))
 }
 
