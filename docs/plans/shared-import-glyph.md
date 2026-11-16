@@ -42,3 +42,25 @@ Independent source proof confirms the complete old100 inventory prefix and all
 old drawings byte-identical after removing only the new arm; XML children match
 all three canonical paths. Both800x330 source-only comparison sheets were
 personally opened. These are not native first-use captures or executed Rust tests.
+
+## Exact native check result
+
+The source was merged onto announced package base13 before checking. Its
+asset inventory/drawing base is byte-identical to the original base11 source;
+the owned product delta remains one appended Import after the full100 prefix.
+Exact checked source is96e14842ac44311c0e59fedbbcd482feaa0afcb3.
+
+Run shell2-narrow-20261116T004012Z-96e14842 passed fonts and Kit all-target
+strict Clippy, both0, with actual Kit Checking. Then the SAME source ran
+shell2-narrow-20261116T004402Z-96e14842, fonts0/cargo0, actual Kit Compiling
+and full Kit lib245/0/0. Both new Import cases and the frozen inventory-prefix
+case are explicitly successful. The coordinator-authorized priority sequence
+was strictly serial; the original ordinary queued run was supported-cancelled
+before acquisition, terminal143, and its records remain separate from passes.
+
+Both800x330 source-only light/dark glyph sheets were personally opened; they
+show the canonical source and actual inline asset at logical14/16/20 and
+scales1/1.25/1.5/2 with effective2.2 ink. V1 source/narrow disposition and the
+coordinator's source-sheet comparison remain separate before lead adoption.
+W22's actual command-center first-use and receiving-union checks are still
+owed. No App/full F4/native consumer/OS/AA approval follows from these tests.
