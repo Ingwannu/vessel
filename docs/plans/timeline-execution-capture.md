@@ -25,7 +25,9 @@ under the same mutex. `invalidated(&mut self)` awaits only that original receive
 `observation()` re-reads that same registry. Neither recaptures or enlarges a grant.
 
 The complete capture.rs and execution_capture.rs files are byte-identical to
-owner checkpoint26b69327d. The real-fake test encloses setup, observation waits,
+owner checkpoint26b69327d, followed by the same unused-import and doc-markdown
+correction after the first exact strict feedback. Assertions and behavior remain
+unchanged. The real-fake test encloses setup, observation waits,
 runtime shutdown, task settlement and Store close in one named 120-second bound.
 It covers all principal kinds, unregistered/ended handles, both grant ceilings,
 rotation, original versus new capture, retirement and original watch closure.

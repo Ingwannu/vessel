@@ -1,4 +1,4 @@
-//! Staged capture tests use actual registered fake SessionHandles. They do not
+//! Staged capture tests use actual registered fake `SessionHandle`s. They do not
 //! qualify parentage, queue insertion, persistence or a private notice capability.
 use super::*;
 use crate::agents::{Agents, CaptureRefusal, CapturedParentExecution, ExecutionObservation};
