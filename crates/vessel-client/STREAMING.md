@@ -30,3 +30,9 @@ The SDK and its node/CLI consumer adapters are merged onto announced node head
 `1c762ccf` (after the `9c150c6e` merge) for current integration checks. Earlier 84 unit tests and two
 documentation tests passed on the original SDK source; merged-head checks remain
 separate evidence. No native dependency is advanced outside its shared base.
+
+The identity correction's framed tests use canonical `vessel_testkit::within`
+and named shorter waits for authentication, subscribe, record/catch-up and
+post-refusal connection use. This test-only A7 correction preserves the five
+identity cases and all SDK behaviour; the receiving union must execute the
+corrected fixtures rather than borrow the predecessor's passing run.
