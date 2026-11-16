@@ -830,3 +830,22 @@ It cannot replace revision 6 Ready with revision 3 Cloning merely because the
 registration RPC completed later. The focused regression keeps both late reply
 and late list paths; this is ordering within one explicit admission, not a guard
 substitute or a claim that an old peer's cache is current.
+
+## Pure vessel.toml editing state
+
+The editor state reuses canonical ConfigDocument/ConfigRevision/ConfigText,
+including the single parser byte budget and redacted text Debug. It does not
+introduce a TOML parser, normalize unknown keys/comments or infer a disk revision.
+Read/save keys bind the original ConnectionContext and ProjectId with one
+monotonic local serial. Explicit dirty reload, conflict/uncertain-save fences,
+late-reply rejection and editing during an outstanding save are modeled before
+any configuration I/O is connected. Successful save receipts must match the
+submitted source and a new present revision; later unsaved edits remain intact.
+
+Five authored pure cases cover those races, same-target reopen and same-node
+reconnect, invalid-but-editable source, missing-file revision, text rejection,
+redacted diagnostics and serial exhaustion. These are not a transport/guard or
+settings-screen test. The project-management node feature remains unassigned;
+this source model registers no new RPC and performs no filesystem/approval work.
+The actual settings form and its guarded runtime still require the checked node
+continuation, physical-I/O admission and the shared App actor fixture.
