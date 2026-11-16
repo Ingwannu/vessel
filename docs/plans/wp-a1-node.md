@@ -453,3 +453,20 @@ companion now renders the id through its existing as_str accessor; the test
 pins the same within(DEADLINE, ...) future. The deadline, actual Node resolver
 call, cleanup and no-effect assertions are unchanged. No product lint allowance
 or Id formatting trait is introduced. Corrected combined validation is owed.
+
+### Qualified interpretation for the common launch fence
+
+The coordinator selected a post-Begin synchronous concrete launch-admission
+insertion under the same Agents guard, after a second exact incarnation/current
+grant check. Count insertion alone does not satisfy ADR0091. Spawn/I/O stay
+outside the lock, with the original capture/watch/ceiling and command retained
+by the tracked owner through settlement. A racing invalidation marks the launch;
+its eventual child is stopped normally and reported RevokedAfterAdmission,
+never as a replayable no-spawn refusal. The ADR records all three required
+invalidation orders and the reason a new global transition lease was rejected.
+
+W23 owns the common guarded validation; W3 owns the concrete capsule and tracked
+creation command. Canonical CapturedParentExecution is still staged cfg(test),
+not a qualified production API. No private stamp, receiver clone or generic
+callback substitutes for it. The current lower actor join remains staged until
+the actual owner/capture composition is implemented and reviewed together.

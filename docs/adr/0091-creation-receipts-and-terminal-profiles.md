@@ -254,9 +254,11 @@ The receipt writer then reserves ids, count/bytes and claims atomically.
 The background driver owns that count lease across startup; it uses the same
 parentage/count/runtime registration path as authorized legacy creation.
 
-Before a new spawn or a known-refusal retry, recheck current parent authority,
-count admission and ADR0082's Active registry start lease. A parent archive,
-revocation or workspace archive cannot be bypassed by an older receipt.
+Before a new launch or a known-refusal retry, recheck current parent authority,
+count admission and ADR0082's Active registry start lease. The post-Begin
+launch-admission boundary below defines the exact revocation order; a check
+before count reservation alone is insufficient. A parent archive, revocation
+or workspace archive cannot be bypassed by an older receipt.
 Only exact reserved child registration settles the lease; a count/refusal or
 proven no-spawn releases it. A restart/in-flight ambiguity remains unknown
 and never grants a replay/count lease. Existing registered or completed keys
@@ -433,3 +435,57 @@ until an end-to-end caller-capability contract is qualified; it is not a claim
 that a hop version proves origin capability or that new metadata can be mapped
 to a fabricated legacy project/session. A pure route regression exercises the
 two new shapes independently from the pending feature-version gate.
+
+### Post-Begin launch admission and revocation ordering
+
+The coordinator's 2026-11-16 ruling defines launch admission as a concrete owner
+insertion, not a promise to revoke an operating-system spawn at an arbitrary
+instruction. Initial count reservation still occurs under the same Agents
+registry guard. After the durable Resource Begin commit ACK, a second check
+under that same guard validates the original captured execution incarnation and
+current grant. In that synchronous no-await section it inserts the prepared
+command into the concrete creation owner's single-use launch-admission capsule.
+That insertion is the linearization point against parent invalidation. It is
+not a callback, a serialized stamp, an unlocked permission token or a new global
+registry. Process spawn and I/O occur outside the guard.
+
+The tracked owner retains the admitted command and the ORIGINAL execution
+capture/watch/ceiling through spawn settlement. Parent invalidation after the
+insertion marks the admitted launch; it cannot disappear when a caller stops
+waiting. The owner continues to own the pending spawn until it settles, then
+stops any resulting child through the normal stop path and reports
+RevokedAfterAdmission. It never drops the pending spawn to infer no effect,
+starts another child, or turns revocation into a known no-spawn refusal. A
+successful stop does not make that admitted operation replayable. Cleanup
+failure remains retained uncertainty rather than an orphan hidden by a reply.
+
+The required executable orders are:
+1. Invalidation before the admission insertion: refusal and no spawn.
+2. Invalidation between insertion and spawn settlement: the admitted spawn
+   settles, its child is stopped, and RevokedAfterAdmission is reported.
+3. Invalidation after settlement: the normal lifecycle handles the child.
+
+[Decision Log]
+- Purpose: close the real parent-authority race after durable Begin without
+  abandoning an already admitted asynchronous launch.
+- Existing constraint: metadata marking does not block every synchronous Agents
+  invalidation/reconfiguration path; Store placement writes are independent.
+  Count admission or a historical captured watch alone cannot authorize spawn.
+- Alternatives: check only at count insertion; hold a new global authority lease
+  across process I/O and join it to every parent transition; or order a second
+  current check and concrete launch insertion under the existing Agents guard.
+- Choice and reason: the concrete owner insertion plus tracked post-admission
+  revocation closes this gap. A global lease would have to join all transition
+  owners beyond the existing execution-fence contract, while retained cleanup
+  already prevents an admitted child from escaping a racing invalidation.
+- Impact: literal physical-spawn revocation is outside scope. The three orders,
+  no-orphan tracking and truthful post-admission result are mandatory before
+  activation. Legacy and delegated creation paths remain unchanged.
+
+W11 independently qualifies resource-to-workspace association as lifetime
+retained, with no production removal/reassignment path; descriptor project,
+path, backing and creation time are immutable. That establishes historical
+placement only. Active/revision start admission and Pending/Uncertain drain are
+separate registry guarantees. A cloned WorkspaceStartLease is exact settlement
+metadata, not a current parent/launch guard. The concrete cross-owner join and
+any required physical/backing/generation authority still need their own checks.
