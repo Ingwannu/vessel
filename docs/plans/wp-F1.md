@@ -1929,3 +1929,11 @@ actual compact F1 geometry and receiving checks remain owed.
   applied and no replacement RPC. Existing framed tests consume the same guard
   before inspecting payloads. This later source is outside the running2d2 suite;
   no production opener/follow/navigation readiness is inferred.
+
+### Assigned secure-field follow-up boundary
+
+Coordinator ed1d assigns ADR0102 after the Code/MD source submission. Isolated
+Code/MD c81ab50a is with V1 for source precheck, execution still owed. ADR0102
+reserves the single masked-field producer and privacy policy for W19; no masked
+implementation or Host Voice input is enabled by this plan. SearchField-only
+identity wrapper is separately lead-assigned to W10b; G2 does not edit that file.
