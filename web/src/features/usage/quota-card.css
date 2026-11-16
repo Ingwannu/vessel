@@ -229,3 +229,36 @@
   padding: 8px 0;
   background: none;
 }
+
+/* A pinnable window row (Paseo window-bar.tsx): the whole row toggles the
+   pin; the glyph is foreground when pinned, muted otherwise. */
+.quota-bar.pinnable {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: var(--r-1);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quota-bar.pinnable:hover {
+  background: var(--bg-hover);
+}
+
+.quota-bar.pinnable:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.quota-pin {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.quota-pin.pinned {
+  color: var(--text-primary);
+}

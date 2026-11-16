@@ -5,40 +5,30 @@
 // The reported-usage ledger stays below, as on the native app.
 import "./quota-card.css";
 
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 
 import { useFleetState } from "../../context";
 import { servesAccountReports } from "../../data/account-usage/calls";
-import { quotaCards } from "../../data/account-usage/cards";
+import { type QuotaCard, quotaCards } from "../../data/account-usage/cards";
 import type { QuotaInstant } from "../../data/account-usage/clock";
 import { consentRows } from "../../data/account-usage/consent";
+import { isPinned, togglePin } from "../../data/account-usage/pins";
 import type {
   AccountReader,
   AccountRead,
 } from "../../data/account-usage/reader";
 import type { QuotaDisplay } from "../../data/account-usage/values";
-import {
-  Banner,
-  Button,
-  type Choice,
-  IconButton,
-  Popover,
-  Segmented,
-  Switch,
-  Tooltip,
-} from "../../ui/kit";
+import { Banner, Button, IconButton, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import { SettingsSection } from "../settings/settings-page";
-import { QuotaCardView } from "./quota-card";
+import { QuotaCardView, type WindowPins } from "./quota-card";
 import { useAccountReader, useQuotaClock } from "./use-account-usage";
+import { useUsagePrefs } from "./use-usage-prefs";
+import { UsageOptions } from "./usage-options";
 
 const TITLE = "Plan usage";
 const CAVEAT =
   "These are the configured saved account’s limits, not proof of the login held by a running agent.";
-const DISPLAY: readonly Choice<QuotaDisplay>[] = [
-  { value: "used", label: "Used" },
-  { value: "remaining", label: "Remaining" },
-];
 
 /** Paseo usage-section.tsx `UsageMessage`. */
 function Message({ text, children }: { text: string; children?: ReactNode }) {
@@ -54,7 +44,7 @@ export function PlanUsage({ node, label }: { node: NodeKey; label: string }) {
   const status = useFleetState((state) => state.statuses[node]);
   const serves = servesAccountReports(status);
   const { reader, read } = useAccountReader(node, serves, null);
-  const [display, setDisplay] = useState<QuotaDisplay>("used");
+  const display = useUsagePrefs().usage.display;
   const { now, locale, deviceClock } = useQuotaClock();
 
   if (status?.state !== "connected") return null;
@@ -68,35 +58,20 @@ export function PlanUsage({ node, label }: { node: NodeKey; label: string }) {
   const ready = read.kind === "ready" && read.node === node ? read : null;
   const on = ready?.reports.policy === "on";
   const options = (
-    <Popover
-      title="Usage options"
-      align="end"
-      trigger={<IconButton icon="settings" label="Usage options" />}
-    >
-      <div className="quota-options">
-        <Switch
-          label="Check account limits"
-          showLabel
-          checked={on}
-          disabled={ready === null}
-          onChange={(checked) => {
-            reader.setLookup(checked ? "on" : "off");
-          }}
-        />
-        <p className="quota-card-quiet">
-          Allow this machine to read configured agents’ saved sign-ins and send
-          them only to their vendors to check account limits. Only an
-          administrator can change this setting.
-        </p>
-        <Segmented
-          label="Display as"
-          value={display}
-          options={DISPLAY}
-          onChange={setDisplay}
-        />
-      </div>
-    </Popover>
+    <UsageOptions
+      lookup={
+        ready === null
+          ? null
+          : {
+              on,
+              set: (next) => {
+                reader.setLookup(next ? "on" : "off");
+              },
+            }
+      }
+    />
   );
+
   const trailing = (
     <>
       {ready !== null && on ? (
@@ -154,6 +129,7 @@ function PlanBody({
   deviceClock: Intl.DateTimeFormat;
   reader: AccountReader;
 }) {
+  const prefsOf = useUsagePrefs();
   const problem =
     ready.problem === null ? null : (
       <Banner tone="error">{ready.problem.message}</Banner>
@@ -175,6 +151,30 @@ function PlanBody({
       </>
     );
   }
+  const { usage, inSidebar, change } = prefsOf;
+  const pinsFor = (card: QuotaCard): WindowPins | undefined =>
+    inSidebar
+      ? {
+          isPinned: (window) =>
+            isPinned(
+              usage.pins,
+              { source: card.source, window },
+              ready.reports,
+              display,
+            ),
+          toggle: (window) => {
+            change({
+              set: "usage_pins",
+              value: togglePin(
+                usage.pins,
+                { source: card.source, window },
+                ready.reports,
+                display,
+              ),
+            });
+          },
+        }
+      : undefined;
   const cards = quotaCards(ready.reports, display, locale, now);
   const consent = consentRows(ready.reports);
   return (
@@ -200,6 +200,7 @@ function PlanBody({
                     }
                   : undefined
               }
+              pins={pinsFor(card)}
             />
           ))}
         </div>
