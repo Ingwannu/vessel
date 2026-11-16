@@ -256,7 +256,7 @@ pub struct Offer {
     /// The node's id.
     pub node: String,
     /// Its routes, direct ones first.
-    pub routes: Vec<String>,
+    pub routes: vessel_app_view::pairing::OfferRoutes,
     /// When the link stops working, UTC.
     pub expires: String,
 }
@@ -273,12 +273,7 @@ pub fn read_link(text: &str) -> Result<Offer, vessel_proto::LinkError> {
     Ok(Offer {
         key: "(not computed in the browser build)".to_owned(),
         node: offer.node.to_string(),
-        routes: offer
-            .direct
-            .iter()
-            .chain(&offer.relays)
-            .map(ToString::to_string)
-            .collect(),
+        routes: vessel_app_view::pairing::OfferRoutes::of(&offer),
         expires: offer.expires.format("%Y-%m-%d %H:%M UTC").to_string(),
     })
 }

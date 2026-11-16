@@ -1887,6 +1887,15 @@ preserves debounce, query tickets and merged cross-machine replies. The isolated
 prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
 
 
+## Native invitation confirmation
+
+Invitation confirmation uses view::pairing::OfferRoutes to project the existing
+Endpoint/Route types and prepare bilingual labels outside Render. Native and
+browser decoders share this pure projection; only the native Link retains the
+private decoded effect input. Public presentation/Debug cannot carry raw route
+userinfo, paths, query or fragments. This adds no crate edge or pairing effect;
+it is not the ADR0097 authenticated receipt or book upsert producer.
+
 ## Native Devices regression transport boundary
 
 The native Link's existing nondefault testing feature conditionally enables a

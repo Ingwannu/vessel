@@ -12,6 +12,13 @@ channel; SSH routes come later).
 This is a workspace of its own, outside Vessel's: Vessel's gate does not
 build it, and its tree (GPUI's) stays out of the main lock file.
 
+Invitation confirmation projects each route through the existing safe Endpoint
+and Route view types. Prepared bilingual rows expose only endpoint and kind;
+the Link's private decoded offer remains the unchanged effect input and never
+enters Offer Debug output. This presentation is not authenticated identity
+evidence or the pending ADR0097 secure receipt/book writer. See
+`docs/plans/wp-e2-offer-presentation.md` for the reference and remaining scope.
+
 The native process registers its first Shell in the one `app::host_windows`
 registry. This keeps OS callback routing independent of desktop persistence and
 node startup; callbacks must still validate their own source/context. The staged
