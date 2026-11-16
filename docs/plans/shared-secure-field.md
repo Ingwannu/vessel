@@ -90,3 +90,54 @@ return warnings in audit-only OpenOptions setup. No pixels or native clipboard
 were collected. Keep that old source/export evidence; it is NOT the new-base
 privacy proof. The revised audit must use this receiving union and consume the
 builder results correctly, without allowances or duplicate source painters.
+
+## Receiving checks and native proof submitted for final review
+
+Exact b69703e8 on announced b54abbdc has locked Kit all-target Clippy0 and
+full Kit lib276/0/0 in schedules-20261116T024942Z-b69703e8 and
+schedules-20261116T025302Z-b69703e8. V1 independently accepted the bounded
+receiving source and requested narrow results (01945c30); the final privacy
+handoff remained held for native proof. The five secure cases include observed
+same-frame PasswordInput/label/no-value and whole-snapshot canary absence with
+an ordinary exposed-value positive reference. No old252 result is relabelled.
+
+The separate control-only audit derivative76d67699 uses exactly this Kit,
+GPUI subtree, manifests and locks. Its only source differences are temporary
+App main and its audit plan; that main MUST NEVER merge into the product.
+Authorized schedules-20261116T030431Z-76d67699 completed fonts/build/export0,
+without compiler warnings. The exported App SHA256 is
+5c473b8a96f6608b975155ef741ead5007d183b97e5c6b4b4bc6f0e0be833fb0.
+It initializes no book, node, updater, credential store or consumer route.
+
+The first native attempt failed before input or PNG at window focus. The next
+showed correct masking/actions but its requested1280 width was clipped to1278
+by the virtual screen. Both records are retained; neither substitutes for the
+final dimensions. The corrected authenticated-display run uses a larger
+virtual screen and asserts actual PNG dimensions. The author opened all28
+original phase PNGs: light/dark at exactly1280x780 and390x780, each with empty/
+Set, masked replacement, copy/cut, read-only, erased and Set-replacement states.
+Four additional nonsecret startup-frame witnesses are retained. No PNG is
+painted, composited or edited by the audit driver.
+
+All four actual native clipboard sequences report ordinary-copy success as a
+positive control, masked Copy and Cut preserving an unrelated sentinel, Paste
+and submit of the exact synthetic replacement, zero read-only edit callbacks,
+retained replacement after read-only release, redacted Debug and Unchanged on
+erase. Only closed observations reach the evidence file. Synthetic data alone
+is used; original capture/log files omit the canary. A real stored key is never
+loaded. This is Linux/Xvfb native clipboard evidence, not other-OS clipboard or
+physical input/IME evidence.
+
+The App and authenticated Xvfb run as the development account; authority files
+are0600, evidence parents0700 and files0600, executable0500. A client without
+the cookie is refused. PID/executable/start identities are recorded, all owned
+App/display processes are verified stopped and both authority files removed.
+No service permission or deployment changes occur. A nonsecret custody JSON
+created with a wider mode inside the private parent was narrowed to0600 before
+packet verification; the helper now uses a private creation mask.
+
+The immutable private review packet pins source, build/export, binary, driver,
+all original PNG/log/observation hashes and cleanup metadata. This section
+records author inspection and submission, NOT V1 final privacy acceptance.
+No Host Voice consumer, secret.set integration, authority, OS accessibility,
+physical IME, zeroization, full F1 or receiving-line gate approval is claimed.
