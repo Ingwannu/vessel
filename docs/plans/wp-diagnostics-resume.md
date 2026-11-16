@@ -128,14 +128,14 @@ Missing/nested-unsupported memory remains partial, never healthy zero.
 
 The lead still owns selected.rs slot order; W18 check_call is next. W20 reported
 that selected-source editing is complete, with no additional edits planned.
-The only pending production delta from base14.3 is method staging removal tied
-to the real E4 consumer. Do not promote that unused method on the line alone.
+The only pending production delta in selected.rs from base14.3 is method
+staging removal tied to the real E4 consumer. Do not promote that unused method on the line alone.
 Future workers preserve the original context, weak guard, History handler,
 CodeSource registration, G4 canonical make_state and the single connection-ready
 fanout. The new node head announcement is not an APP merge authorization.
 
-No owned fake fleet, APP or Xvfb is running at the quota checkpoint. Only the
-verified local APP attach observer needs termination; keep the remote queued
-run intact and inspect it on resume. Do not kill other workers' displays,
-SSH master or builds. No production/service/permission change or public push
+No owned fake fleet, APP or Xvfb is running at the quota checkpoint. The
+verified local APP attach observer was terminated; its child wait process also
+exited. The remote APP run remained QUEUED afterward and is retained for resume.
+Other workers' displays, SSH master and builds were untouched. No production/service/permission change or public push
 was made. All task-owned source and private backups remain under UID1000.
