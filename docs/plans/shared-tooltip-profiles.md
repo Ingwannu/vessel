@@ -70,9 +70,9 @@ invalid offsets, and explicit top variant. Real GPUI fixtures exercise immediate
 legacy hover, delayed toolbar hover, A/B/A, press cancellation, unmounted trigger,
 controller drop, compact suppression and both pending/shown stationary redraw
 using the deterministic test clock.
-They have not run; delayed delivery/unmount behavior remains unverified until
-actual checks, review and the lead's consumer union gate. No runtime claim is
-borrowed from the earlier Toolbar geometry tests.
+They now pass in the receiving union recorded below. This is bounded model/GPUI
+controller evidence; the lead's consumer union gate and actual surface behavior
+remain separate. No runtime claim is borrowed from earlier Toolbar geometry tests.
 
 The first combined strict check, `wp-layout-core-union-20261115T185314Z-bdfdde62`,
 failed before tests: three internal methods needed parent-only visibility, and
@@ -81,3 +81,16 @@ non-static debug selector. The correction uses the existing native
 `executor().advance_clock` API followed by deterministic task draining, preserves
 all deadlines/assertions, and narrows internal visibility. No timer/render policy
 or successful runtime result is inferred from that failed check.
+
+## Executed receiving union
+
+Exact `b9df6b605c37539544732878974758faada7a611` on package base13 completed
+`wp-layout-core-union-20261116T003646Z-b9df6b60`: requested locked View/Kit/App
+all-target strict Clippy passed (actual Kit/App Checking; View cached).
+Same-head `wp-layout-core-union-20261116T005309Z-b9df6b60` compiled View/Kit/Link/App
+and passed App133, Kit252, View1000 and example142 tests:1527/0/2 ignored total.
+Every Tooltip profile fixture, including pending and shown stationary redraw,
+passed explicitly. This is not isolated-leaf execution, native-quality, captures,
+OS/a11y/focus parity or a feature package approval. The selected portable native
+tree equals this executed union; its new commit ids were not separately executed.
+Earlier compile failures and queued-only cancellations remain separate history.

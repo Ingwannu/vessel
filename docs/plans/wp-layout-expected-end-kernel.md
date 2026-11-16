@@ -65,8 +65,8 @@ Authored model cases exercise both End/ACK orders for all three allowed actions,
 wrong/generic/duplicate tickets, single expectation, full retirement before ACK
 and after ACK with an empty operation list, same-node successor refusal, local
 revocation, and owner/dehydration holds. They do not execute actual transport,
-real input, concrete lifecycle state, window close, IME or effects. Source has
-not yet been compiled or run. Actual framed SDK typed-end and original guard,
+real input, concrete lifecycle state, window close, IME or effects. They now pass
+in the receiving union below. Actual framed SDK typed-end and original guard,
 carrier, owner and originating Window integration remain separate required proof.
 
 The first combined strict check, `wp-layout-core-union-20261115T185314Z-bdfdde62`,
@@ -77,3 +77,17 @@ scoped; no kernel or UI runtime success is claimed. Corrected base-13 union run
 `wp-layout-core-union-20261116T002833Z-dcb0d416` then reached App test compilation
 and found missing `Window`/`Context` imports in the new fixture. Only those imports
 are added; no assertion or policy changes follow from this compile correction.
+
+## Executed receiving union
+
+Exact `b9df6b605c37539544732878974758faada7a611` completed requested locked
+View/Kit/App all-target strict run `wp-layout-core-union-20261116T003646Z-b9df6b60`
+with fonts/cargo0 (actual Kit/App Checking; View cached). Same-head runtime
+`wp-layout-core-union-20261116T005309Z-b9df6b60` compiled View/Kit/Link/App and
+passed1527/0/2 ignored: App133, Kit252, View1000 and example142. All nine pure stop
+cases and the staged GPUI full-retirement/empty-ticket/input marker case passed
+explicitly. All nine kernel Rust blobs equal the executed source; the selected
+portable native tree equals that union, without a new-commit execution claim.
+The App parent stays literally test-gated. Real original Guard, ordered typed
+SDK End, concrete Lifecycle ACK-held state and originating Window commit proof
+remain owed; no live follow/stop/close/IME/native-quality/feature approval follows.

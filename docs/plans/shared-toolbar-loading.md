@@ -36,7 +36,20 @@ uses the same chrome around its Gear menu action, without a loading state.
 
 Authored literal and real GPUI cases cover numeric points, extra-muted ink,
 disabled opacity, identical frame bounds across Busy/Ready and actual no-click
-while busy even if a caller supplied an enabled configuration. These are not run.
+while busy even if a caller supplied an enabled configuration. Both cases now
+pass in the exact receiving union recorded below.
 The existing geometry/input assertions remain. Actual Usage data, header-island
 round chrome, menu behavior, keyboard/focus/a11y and rendered native/OS parity are
 outside this source candidate; no test or visual result is borrowed from G2/F1.
+
+## Executed receiving union
+
+Exact `b9df6b605c37539544732878974758faada7a611` completed strict run
+`wp-layout-core-union-20261116T003646Z-b9df6b60` and same-head runtime
+`wp-layout-core-union-20261116T005309Z-b9df6b60`, fonts/cargo0 for both.
+Runtime compiled View/Kit/Link/App and passed1527/0/2 ignored in total, including
+the explicit numeric-points/ink/disabled-opacity and Busy/Ready no-click cases.
+All four owned loading Rust blobs equal that executed source; Toolbar also
+contains the selected Tooltip methods. The selected portable native tree equals
+the executed union. This is receiving integration evidence, not a new-commit or
+isolated-leaf runtime claim, native-quality/capture, Usage or Header approval.
