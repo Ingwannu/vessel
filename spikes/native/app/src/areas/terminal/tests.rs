@@ -12,12 +12,12 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut gpui::VisualTestContex
 }
 
 fn open(shell: &mut Shell, session: SessionId, cx: &mut Context<'_, Shell>) {
-    shell.terminal_opened(
+    assert!(shell.terminal_opened(
         "laptop".parse().unwrap(),
         session,
         TerminalSize::default(),
         cx,
-    );
+    ));
     shell.route = crate::routes::Route::Session;
     shell.areas.session.open = Some(crate::areas::session::Open {
         machine: "laptop".into(),

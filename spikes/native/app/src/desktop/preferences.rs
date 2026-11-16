@@ -10,6 +10,9 @@ use vessel_app_link::{Command, Prefs};
 
 const RECENT_FAILURE_CAPACITY: usize = 64;
 
+mod scrollback;
+pub(crate) use scrollback::drain_terminal;
+
 #[cfg(test)]
 mod tests;
 
@@ -183,6 +186,9 @@ fn apply_with_layouts(
     if shell.prefs != *next {
         apply_preferences(shell, (*next).clone(), window, cx);
     }
+    // A failed watch snapshot can follow coalesced successful terminal writes.
+    // Drain the writer's Saved aggregate, never this optimistic projection.
+    let _delivery = drain_terminal(shell, cx);
     report_failure(shell, snapshot);
     cx.notify();
 }

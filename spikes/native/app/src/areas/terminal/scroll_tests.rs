@@ -39,12 +39,12 @@ fn terminal_body_scrolls_back_and_returns_to_live_for_pointer_and_touch(cx: &mut
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, cx| {
             cx.set_reduce_motion(true);
-            shell.terminal_opened(
+            assert!(shell.terminal_opened(
                 "laptop".parse().unwrap(),
                 SessionId::random(),
                 TerminalSize::default(),
                 cx,
-            );
+            ));
             let bytes = (0..300).fold(String::new(), |mut s, n| {
                 write!(s, "row-{n:03}\r\n").unwrap();
                 s
@@ -94,12 +94,12 @@ fn replay_keeps_pointer_and_touch_intent_in_both_directions(cx: &mut TestAppCont
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     for source in [ScrollSource::Pointer, ScrollSource::Touch] {
         shell.update(cx, |shell, cx| {
-            shell.terminal_opened(
+            assert!(shell.terminal_opened(
                 "laptop".parse().unwrap(),
                 SessionId::random(),
                 TerminalSize::default(),
                 cx,
-            );
+            ));
             let bytes = (0..300).fold(String::new(), |mut s, n| {
                 writeln!(s, "row-{n:03}\r").unwrap();
                 s
@@ -170,12 +170,12 @@ fn replacing_an_opening_discards_its_inflight_scroll_intent(cx: &mut TestAppCont
     crate::shell::language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update(cx, |shell, cx| {
-        shell.terminal_opened(
+        assert!(shell.terminal_opened(
             "laptop".parse().unwrap(),
             SessionId::random(),
             TerminalSize::default(),
             cx,
-        );
+        ));
         replay_all(
             shell.areas.terminal.model.as_mut().unwrap(),
             b"old\r\n".repeat(300).as_slice(),
@@ -202,12 +202,12 @@ fn replacing_an_opening_discards_its_inflight_scroll_intent(cx: &mut TestAppCont
             cell,
             cx,
         );
-        shell.terminal_opened(
+        assert!(shell.terminal_opened(
             "laptop".parse().unwrap(),
             SessionId::random(),
             TerminalSize::default(),
             cx,
-        );
+        ));
         replay_all(shell.areas.terminal.model.as_mut().unwrap(), b"new opening");
         shell.areas.terminal.phase = Phase::Ready;
         shell.terminal_draw(cx);

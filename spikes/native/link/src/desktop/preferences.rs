@@ -1,6 +1,10 @@
 //! One canonical preference actor applies typed deltas and broadcasts committed snapshots.
 
 mod merge;
+mod scrollback;
+mod writer;
+
+pub use scrollback::{CommittedScrollback, ScrollbackBatch};
 
 use super::DesktopError;
 use crate::Prefs;
@@ -34,6 +38,7 @@ pub struct Snapshot {
     revision: Revision,
     prefs: Arc<Prefs>,
     outcome: Outcome,
+    scrollback: Option<CommittedScrollback>,
 }
 
 impl Snapshot {
@@ -51,6 +56,11 @@ impl Snapshot {
     #[must_use]
     pub const fn outcome(&self) -> &Outcome {
         &self.outcome
+    }
+    /// Saved-only terminal state survives failed or launch-only projections.
+    #[must_use]
+    pub const fn committed_scrollback(&self) -> Option<CommittedScrollback> {
+        self.scrollback
     }
 }
 
@@ -135,6 +145,7 @@ pub struct Coordinator {
     commands: mpsc::SyncSender<Command>,
     current: watch::Receiver<Snapshot>,
     publication: watch::Sender<Publication>,
+    scrollback: scrollback::Hub,
 }
 
 /// UI-thread client tracks its own optimistic baseline between acknowledgements.
@@ -150,6 +161,8 @@ pub struct Client {
     acknowledgements: watch::Receiver<Acknowledged>,
     refused: std::cell::Cell<Option<crate::Rejected>>,
     publication: watch::Sender<Publication>,
+    scrollback: scrollback::Subscription,
+    applied_scrollback: std::cell::Cell<Option<CommittedScrollback>>,
 }
 
 impl Coordinator {
@@ -173,28 +186,37 @@ impl Coordinator {
         } else {
             Outcome::LaunchOnly
         };
+        let scrollback = path.as_ref().map(|_| {
+            CommittedScrollback::new(initial.settings.terminal_scrollback, Revision::default())
+        });
         let snapshot = Snapshot {
             revision: Revision::default(),
             prefs: Arc::new(initial),
             outcome,
+            scrollback,
         };
         let (published, current) = watch::channel(snapshot.clone());
         let (commands, receiver) = mpsc::sync_channel(QUEUE_CAPACITY);
+        let scrollback = scrollback::Hub::default();
+        let delivery = scrollback.clone();
         let _worker = std::thread::Builder::new()
             .name("vessel-preferences".into())
-            .spawn(move || run(snapshot, path.as_deref(), &published, &receiver))?;
+            .spawn(move || {
+                writer::run(snapshot, path.as_deref(), &published, &receiver, &delivery)
+            })?;
         let (publication, _initial) = watch::channel(Publication(Arc::new(())));
         Ok(Self {
             commands,
             current,
             publication,
+            scrollback,
         })
     }
 
     /// A new window starts from the latest committed snapshot, including launch-only edits.
     #[must_use]
     pub fn client(&self) -> (Client, watch::Receiver<Snapshot>) {
-        let snapshot = self.current.borrow().clone();
+        let (snapshot, scrollback) = self.scrollback.subscribe(&self.current);
         let (acknowledged, acknowledgements) = watch::channel(Acknowledged::default());
         (
             Client {
@@ -208,6 +230,8 @@ impl Coordinator {
                 acknowledgements,
                 refused: std::cell::Cell::new(None),
                 publication: self.publication.clone(),
+                scrollback,
+                applied_scrollback: std::cell::Cell::new(None),
             },
             self.current.clone(),
         )
@@ -250,7 +274,8 @@ impl Coordinator {
     /// on the same UI executor that publishes through this coordinator's Clients.
     #[must_use]
     pub fn is_current(&self, checkpoint: &Checkpoint) -> bool {
-        Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
+        self.scrollback.healthy()
+            && Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
             && self.current.borrow().revision() == checkpoint.snapshot.revision()
     }
 
@@ -260,7 +285,11 @@ impl Coordinator {
     /// Returns worker startup or closure failures; save errors remain in outcomes.
     pub fn flush(&self) -> impl Future<Output = Result<(), DesktopError>> + 'static + use<> {
         let commands = self.commands.clone();
+        let delivery = self.scrollback.clone();
         async move {
+            if !delivery.healthy() {
+                return Err(DesktopError::Closed);
+            }
             let (done, wait) = oneshot::channel();
             let _sender = std::thread::Builder::new()
                 .name("vessel-preferences-flush".into())
@@ -271,6 +300,27 @@ impl Coordinator {
 }
 
 impl Client {
+    /// Drain once before applying to the current owner, outside every hub lock.
+    /// The caller must invoke its model callbacks synchronously without awaiting.
+    ///
+    /// # Errors
+    /// Unavailable delivery refuses effects and must refuse owner replacement.
+    pub fn drain_scrollback(&self) -> Result<Option<ScrollbackBatch>, DesktopError> {
+        let drained = self.scrollback.drain()?;
+        self.applied_scrollback.set(drained.latest);
+        Ok(drained.batch)
+    }
+
+    /// Reuse this exact UI-applied value for a successor after the drain; do not
+    /// perform a separate newer global read across the ownership boundary.
+    #[must_use]
+    pub fn applied_scrollback(&self) -> vessel_app_view::terminal::ScrollbackLines {
+        self.applied_scrollback.get().map_or(
+            vessel_app_view::terminal::ScrollbackLines::DEFAULT,
+            CommittedScrollback::limit,
+        )
+    }
+
     /// The last observed canonical value excludes this window's optimistic edits.
     #[must_use]
     pub fn canonical_preferences(&self) -> Arc<Prefs> {
@@ -302,6 +352,10 @@ impl Client {
         prefs: &Prefs,
         receipt: Option<oneshot::Sender<Snapshot>>,
     ) -> Result<(), crate::Rejected> {
+        if !self.scrollback.healthy() {
+            self.refused.set(Some(crate::Rejected::Closed));
+            return Err(crate::Rejected::Closed);
+        }
         if let Some(why) = self.refused.get() {
             return Err(why);
         }
@@ -363,6 +417,7 @@ impl Client {
             && acknowledged.sequence == self.sequence.get()
             && acknowledged.revision <= checkpoint.snapshot.revision()
             && Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
+            && self.scrollback.settled(self.applied_scrollback.get())
     }
 
     /// Rebase pending intent; an old failure cannot roll back a newer committed edit.
@@ -394,67 +449,6 @@ impl Client {
         match refused {
             Some(failure) => Observation::Refused { prefs, failure },
             None => Observation::Applied(prefs),
-        }
-    }
-}
-
-fn run(
-    mut snapshot: Snapshot,
-    path: Option<&std::path::Path>,
-    published: &watch::Sender<Snapshot>,
-    receiver: &mpsc::Receiver<Command>,
-) {
-    while let Ok(command) = receiver.recv() {
-        match command {
-            Command::Flush(done) => drop(done.send(())),
-            Command::Change {
-                before,
-                after,
-                sequence,
-                acknowledged,
-                receipt,
-            } => {
-                let Some(revision) = snapshot.revision.0.checked_add(1) else {
-                    snapshot.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
-                    let _previous = acknowledged.send_replace(Acknowledged {
-                        sequence,
-                        revision: snapshot.revision,
-                    });
-                    if let Some(done) = receipt {
-                        drop(done.send(snapshot.clone()));
-                    }
-                    let _previous = published.send_replace(snapshot);
-                    break;
-                };
-                let next = merge::apply(&snapshot.prefs, &before, &after)
-                    .map_err(DesktopError::from)
-                    .and_then(|next| {
-                        if let Some(path) = &path {
-                            next.save_at(path).map_err(DesktopError::PreferencesWrite)?;
-                        }
-                        Ok(next)
-                    });
-                snapshot.revision = Revision(revision);
-                snapshot.outcome = match next {
-                    Ok(next) => {
-                        snapshot.prefs = Arc::new(next);
-                        if path.is_some() {
-                            Outcome::Saved
-                        } else {
-                            Outcome::LaunchOnly
-                        }
-                    }
-                    Err(error) => Outcome::Failed(Arc::new(error)),
-                };
-                let _previous = acknowledged.send_replace(Acknowledged {
-                    sequence,
-                    revision: snapshot.revision,
-                });
-                let _previous = published.send_replace(snapshot.clone());
-                if let Some(done) = receipt {
-                    drop(done.send(snapshot.clone()));
-                }
-            }
         }
     }
 }

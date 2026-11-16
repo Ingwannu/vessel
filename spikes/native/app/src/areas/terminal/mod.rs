@@ -16,7 +16,6 @@ mod replay;
 mod scroll;
 #[cfg(test)]
 mod scroll_tests;
-#[cfg(test)]
 mod settings;
 #[cfg(test)]
 mod settings_tests;
@@ -157,7 +156,7 @@ impl Shell {
                 self.notice = Some(self.t.terminal_unread.to_owned());
                 return false;
             };
-            self.terminal_opened(machine, open.session, TerminalSize::default(), cx);
+            return self.terminal_opened(machine, open.session, TerminalSize::default(), cx);
         }
         true
     }
@@ -170,8 +169,20 @@ impl Shell {
         session: SessionId,
         size: TerminalSize,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
+        let applied = match crate::areas::desktop::preferences::prepare_terminal_opening(self, cx) {
+            crate::areas::desktop::preferences::TerminalPreferenceState::Unmanaged => None,
+            crate::areas::desktop::preferences::TerminalPreferenceState::Applied(limit) => {
+                Some(limit)
+            }
+            crate::areas::desktop::preferences::TerminalPreferenceState::Unavailable => {
+                return false;
+            }
+        };
         let area = &mut self.areas.terminal;
+        if let Some(applied) = applied {
+            area.scrollback = applied;
+        }
         let size = area
             .fit
             .unwrap_or_else(|| GridSize::within(size.cols, size.rows).unwrap_or_default());
@@ -198,6 +209,7 @@ impl Shell {
             },
         });
         self.terminal_draw(cx);
+        true
     }
 
     /// Closing invalidates outstanding ownership before discarding any data.

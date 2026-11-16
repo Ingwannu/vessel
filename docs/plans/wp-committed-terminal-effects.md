@@ -2,8 +2,8 @@
 
 Status: provisional receiving source/design. E2 field source9d1427e6 and C2
 owner sourcecd3e9805 are consumed under their explicit conditional authorization.
-The field source was not compiled by its owner. C2's staged callback is not yet
-promoted here. No ordered effect, current-context terminal, multiwindow, resident
+The field source was not compiled by its owner. The real receiving caller and its native staging-guard removal are drafted
+here but UNCOMPILED and NOT reviewed. They are not eligible for shipping. No ordered effect, current-context terminal, multiwindow, resident
 terminal or UI/settings completion is claimed.
 
 [Decision Log]
@@ -57,3 +57,35 @@ Required proof: real file success/failure and launch-only, slow/coalesced two-
 Client delivery, late subscription, unavailable delivery refusal, minimum/final
 ordering, actual App two-window/model and opening/replay union tests. Remove the
 literal terminal settings staging guard only with the real caller and checks.
+
+## Quota-stop checkpoint (2026-11-16)
+
+This is an explicitly unverified WIP, isolated from the desktop package. The
+provisional field-chain merge is `aa84e164`; scalar merge/design checkpoint is
+`c55ac590`. Parent desktop source is `46cf2585` on announced base13.1. No newer
+base is merged during the quota-stop window.
+
+Draft implementation extends the existing writer with a Saved record and one
+weak fixed-size delivery slot per existing Client, moves the serial worker into
+a private child, and adds five unexecuted link regression cases. The App's real
+canonical observer drains minimum then final and terminal opening uses that exact
+captured final value; the terminal API returns bool on delivery refusal. Direct
+terminal fixtures bind/assert that bool. No second preference writer or window
+list is introduced.
+
+Exactly unverified: compilation/Clippy/test execution of ALL new actor and App
+code; E2's field source; C2's serde/min-trim/replay/stale-opening receiving union;
+actual two-window model effects and new-opening ownership; poisoned delivery and
+Saved/Failed/LaunchOnly cases; target cfg correctness; final package gate/review.
+There is a KNOWN remaining receiving-order issue: session follow/open currently
+resets conversation/composer/pending state before terminal admission. W21 has
+approved moving those existing effects behind one successful terminal admission;
+this is NOT implemented here yet, so refusal is not an end-to-end safe navigation
+path. OS session/project handlers remain unavailable.
+
+Next session must first finish that approved ordering/refusal regression on the
+main desktop source, port only the bounded change here, and merge the current
+announced App line at a natural point BEFORE any new remote check. The App
+callback's source-only staging promotion may not be claimed as C2 approval or
+ordered-effect evidence. All checks must be VM-only. No VM run was submitted
+for this WIP before the quota warning.
