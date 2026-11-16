@@ -4,7 +4,7 @@ use std::rc::Rc;
 use vessel_app_kit::{
     self as kit, ComboHandlers, ComboHeader, ComboRow, ComboboxContent, ComboboxWidth, Leading,
     Tokens,
-    segmented::{SegmentSize, segment, segmented},
+    segmented::{SegmentSize, segment_at, segmented_at},
     theme::spacing,
     ui::{
         AnyElement, Context, Div, IntoElement as _, ParentElement as _,
@@ -70,7 +70,8 @@ pub(super) fn toolbar(
             })),
         );
     }
-    let mut status = segmented(SegmentSize::Medium);
+    let sizing = kit::ControlSizing::from_compact(touch);
+    let mut status = segmented_at(SegmentSize::Medium, sizing);
     for (index, bucket) in page.buckets().into_iter().enumerate() {
         let words = shell.t.lang.schedules();
         let label = match bucket {
@@ -79,15 +80,19 @@ pub(super) fn toolbar(
             Bucket::Unknown => words.unknown_filter,
         };
         status = status.child(
-            segment(
+            segment_at(
                 ("schedule-filter", index),
                 label,
                 page.bucket == bucket,
                 true,
                 SegmentSize::Medium,
+                sizing,
                 tokens,
             )
             .on_click(cx.listener(move |shell, _, window, cx| {
+                if shell.areas.schedules.data.page.bucket == bucket {
+                    return;
+                }
                 shell.areas.schedules.ui.menu.close_and_restore(window, cx);
                 shell.areas.schedules.data.page.bucket = bucket;
                 let _changed = shell.schedules_changed(cx);

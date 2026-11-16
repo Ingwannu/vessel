@@ -1895,3 +1895,13 @@ adaptation is still a separate follow-up, not proof from this merge.
   while completed edit presentation suppresses future execution claims. Tests
   cover known reasons, identity/revision/hidden data and EN/KO no-next-runs.
   Corrected-source execution is owed; no node protocol/schema change here.
+
+### Checked segmented opt-in
+
+V1 same-row577 execution condition closed: bounded SOURCE/requested Kit strict0
+and235/0/0, both literal and actual scene cases executed. Selected producer577
+and docs f31 are merged without replacing newer Kit/README content. F1's MD
+filter now passes ControlSizing::from_compact to segmented_at/segment_at, and
+the current bucket returns before closing menus or changing state. This is
+consumer source only: the still-running2d2 narrow excludes this later opt-in;
+actual compact F1 geometry and receiving checks remain owed.
