@@ -84,6 +84,10 @@ pub(super) enum Callbacks<V: 'static> {
         on_submit: Submit<V>,
         on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
     },
+    Secure {
+        on_submit: fn(&mut V, FieldId, super::SecretEdit, &mut Window, &mut Context<'_, V>),
+        on_change: fn(&mut V, FieldId, super::SecretEdit, &mut Context<'_, V>),
+    },
     Identified {
         on_submit: fn(&mut V, FieldId, String, &mut Window, &mut Context<'_, V>),
         on_change: fn(&mut V, FieldId, String, &mut Context<'_, V>),
@@ -94,7 +98,7 @@ impl<V: 'static> Callbacks<V> {
     fn changes(&self) -> bool {
         match self {
             Self::Plain { on_change, .. } => on_change.is_some(),
-            Self::Identified { .. } => true,
+            Self::Identified { .. } | Self::Secure { .. } => true,
         }
     }
 
@@ -109,6 +113,9 @@ impl<V: 'static> Callbacks<V> {
         match self {
             Self::Plain { on_submit, .. } => on_submit(owner, text, window, cx),
             Self::Identified { on_submit, .. } => on_submit(owner, id, text, window, cx),
+            Self::Secure { on_submit, .. } => {
+                on_submit(owner, id, super::SecretEdit::from_text(text), window, cx);
+            }
         }
     }
     fn change(&self, owner: &mut V, id: FieldId, text: String, cx: &mut Context<'_, V>) {
@@ -119,6 +126,9 @@ impl<V: 'static> Callbacks<V> {
                 }
             }
             Self::Identified { on_change, .. } => on_change(owner, id, text, cx),
+            Self::Secure { on_change, .. } => {
+                on_change(owner, id, super::SecretEdit::from_text(text), cx);
+            }
         }
     }
 }
