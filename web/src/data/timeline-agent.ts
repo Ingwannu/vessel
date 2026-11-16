@@ -44,6 +44,10 @@ export function applyAgent(
     return;
   }
   switch (event.event) {
+    case "provider_child":
+      // Child activity belongs to its own projection. Work still advances the
+      // parent log cursor, without treating child turns or attention as its own.
+      return;
     case "ready":
       work.entries.push({
         ...base,

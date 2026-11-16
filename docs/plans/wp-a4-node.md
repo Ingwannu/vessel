@@ -261,3 +261,35 @@ its proto.ts bytes match the recovered snapshot SHA256
 dbed8f1c7af0e02c58ba791f3d54383ece769a6d52c4b24711c676431eed4f73.
 The generated whitespace is retained unchanged. Current-head freshness and all
 shared consumers remain the final whole root gate's responsibility.
+
+
+## Whole-gate correction and current node union
+
+The first package whole gate, wp-transfer-drivers-20261115T172627Z-cc7374c1,
+finished with Rust2592/0/12, web464, E2E80/0 and forge4/0. Its sole failure
+was the web reducer's exhaustive switch missing ProviderChild. This is a
+package defect, not the separately recorded base E2E intermittent.
+
+[Decision Log]
+- Purpose: preserve the managed parent's timeline while retaining separate
+  provider activity in its durable log.
+- Existing assets: the web reducer already advances the parent cursor before
+  applying an AgentEvent; native projection and node status/search already
+  isolate child observations.
+- Alternatives: flatten child content into the parent (incorrect ownership), or
+  add a second web timeline (outside this package's native child UI contract).
+- Choice: explicitly ignore ProviderChild in the existing parent reducer.
+  A reducer regression covers support/descriptor/activity/gap, unchanged
+  parent conversation/plan/attention/turn, cursor advancement, replay and the
+  parent's own subsequent turn completion. No new dependency is needed.
+- Test safety: the two new Codex history suites reuse vessel_testkit::within
+  after fake prebuild, plus named exchange/process phases. The original
+  five-second exchange and product probe limits remain unchanged. A separate
+  process phase includes both existing bounded cleanup waits; the outer
+  safety net does not stand in for that phase or loosen a product limit.
+
+The ed4cd137 merge retains the head's schema21, migration sequence module,
+listing projection, event-page masking and existing method rows. Only the two
+pending provider read rows are appended. The generated wire snapshot is taken
+from the head until the receiving union's generator supplies its exact bytes;
+it is never manually merged. SUBAGENT_RELATIONS stays unassigned.

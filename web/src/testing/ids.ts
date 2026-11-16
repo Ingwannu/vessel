@@ -21,6 +21,7 @@ import type {
   PermissionId,
   PermissionOptionId,
   ProjectId,
+  ProviderChildId,
   QuestionId,
   QueueEntryId,
   SessionId,
@@ -49,6 +50,7 @@ interface Handles {
   PermissionId: PermissionId;
   PermissionOptionId: PermissionOptionId;
   ProjectId: ProjectId;
+  ProviderChildId: ProviderChildId;
   QuestionId: QuestionId;
   QueueEntryId: QueueEntryId;
   SessionId: SessionId;

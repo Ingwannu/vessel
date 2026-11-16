@@ -3,7 +3,8 @@ use super::*;
 use crate::HistoryTimestamp;
 use crate::codex::wire::{Incoming, RpcError};
 use serde_json::{Value, json};
-const SAFETY_NET: Duration = Duration::from_secs(5);
+const TEST_DEADLINE: Duration = Duration::from_secs(30);
+const EXCHANGE_DEADLINE: Duration = Duration::from_secs(5);
 
 async fn exchange(
     pages: Vec<Value>,
@@ -38,88 +39,100 @@ async fn exchange(
                 .unwrap();
         }
     };
-    tokio::time::timeout(SAFETY_NET, async {
+    tokio::time::timeout(EXCHANGE_DEADLINE, async {
         let (result, ()) = tokio::join!(read(transaction, cwd, HistoryFrom::default()), peer);
         result
     })
     .await
-    .unwrap()
+    .expect("native history exchange phase timed out")
 }
 #[tokio::test]
 async fn actual_native_metadata_and_empty_filter_paging_are_preserved() {
-    let page = exchange(vec![
-        json!({"data":[{"id":"outside","cwd":"/elsewhere"}],"nextCursor":"page-two"}),
-        json!({"data":[{"id":"native","cwd":"/work","name":"title","updatedAt":123},{"id":"unknown-time","cwd":"/work","preview":"preview"},{"id":"missing-folder"}]})
-    ], Some(Path::new("/work"))).await.unwrap().unwrap();
-    assert_eq!(page.entries.len(), 2);
-    assert_eq!(page.entries.first().unwrap().session.as_str(), "native");
-    assert_eq!(
-        page.entries.first().unwrap().updated_at,
-        Some(HistoryTimestamp::UnixSeconds(123))
-    );
-    assert_eq!(page.entries[1].updated_at, None);
-    assert_eq!(page.entries[1].title.as_deref(), Some("preview"));
-    assert_eq!(page.next, None);
+    vessel_testkit::within(TEST_DEADLINE, async {
+        let page = exchange(vec![
+            json!({"data":[{"id":"outside","cwd":"/elsewhere"}],"nextCursor":"page-two"}),
+            json!({"data":[{"id":"native","cwd":"/work","name":"title","updatedAt":123},{"id":"unknown-time","cwd":"/work","preview":"preview"},{"id":"missing-folder"}]})
+        ], Some(Path::new("/work"))).await.unwrap().unwrap();
+        assert_eq!(page.entries.len(), 2);
+        assert_eq!(page.entries.first().unwrap().session.as_str(), "native");
+        assert_eq!(
+            page.entries.first().unwrap().updated_at,
+            Some(HistoryTimestamp::UnixSeconds(123))
+        );
+        assert_eq!(page.entries[1].updated_at, None);
+        assert_eq!(page.entries[1].title.as_deref(), Some("preview"));
+        assert_eq!(page.next, None);
+    })
+    .await
+    .expect("native history test safety net elapsed");
 }
 #[tokio::test]
 async fn cursor_cycles_and_invalid_native_ids_refuse_instead_of_empty_success() {
-    assert!(matches!(
-        exchange(
-            vec![
-                json!({"data":[],"nextCursor":"same"}),
-                json!({"data":[{"id":"real","cwd":"/work"}],"nextCursor":"same"})
-            ],
-            None
-        )
-        .await,
-        Err(ProbeError::Invalid)
-    ));
-    assert!(matches!(
-        exchange(vec![json!({"data":[{"id":"","cwd":"/work"}]})], None).await,
-        Err(ProbeError::Invalid)
-    ));
+    vessel_testkit::within(TEST_DEADLINE, async {
+        assert!(matches!(
+            exchange(
+                vec![
+                    json!({"data":[],"nextCursor":"same"}),
+                    json!({"data":[{"id":"real","cwd":"/work"}],"nextCursor":"same"})
+                ],
+                None
+            )
+            .await,
+            Err(ProbeError::Invalid)
+        ));
+        assert!(matches!(
+            exchange(vec![json!({"data":[{"id":"","cwd":"/work"}]})], None).await,
+            Err(ProbeError::Invalid)
+        ));
+    })
+    .await
+    .expect("native history test safety net elapsed");
 }
 #[tokio::test]
 async fn only_method_not_found_is_unsupported_and_server_requests_are_refused() {
-    for unsupported in [true, false] {
-        let (mut transaction, mut requests, responses) = Transaction::in_memory();
-        let peer = async {
-            let _request = requests.recv().await.unwrap();
-            let message = if unsupported {
-                Incoming::Failure {
-                    id: 1,
-                    error: RpcError {
-                        code: -32601,
-                        message: "not found".into(),
-                    },
-                }
-            } else {
-                Incoming::Request {
-                    id: json!("approval"),
-                    method: "item/commandExecution/requestApproval".into(),
-                    params: json!({}),
-                }
+    vessel_testkit::within(TEST_DEADLINE, async {
+        for unsupported in [true, false] {
+            let (mut transaction, mut requests, responses) = Transaction::in_memory();
+            let peer = async {
+                let _request = requests.recv().await.unwrap();
+                let message = if unsupported {
+                    Incoming::Failure {
+                        id: 1,
+                        error: RpcError {
+                            code: -32601,
+                            message: "not found".into(),
+                        },
+                    }
+                } else {
+                    Incoming::Request {
+                        id: json!("approval"),
+                        method: "item/commandExecution/requestApproval".into(),
+                        params: json!({}),
+                    }
+                };
+                responses.send(Ok(message)).await.unwrap();
             };
-            responses.send(Ok(message)).await.unwrap();
-        };
-        let request = data::ListThreads {
-            cursor: None,
-            limit: MAX_ENTRIES,
-            sort_key: data::SortKey::Updated,
-            cwd: None,
-        };
-        let (result, ()) = tokio::time::timeout(SAFETY_NET, async {
-            tokio::join!(transaction.request(&request), peer)
-        })
-        .await
-        .unwrap();
-        if unsupported {
-            assert!(result.unwrap().is_none());
-        } else {
-            assert!(matches!(result, Err(ProbeError::Protocol)));
+            let request = data::ListThreads {
+                cursor: None,
+                limit: MAX_ENTRIES,
+                sort_key: data::SortKey::Updated,
+                cwd: None,
+            };
+            let (result, ()) = tokio::time::timeout(EXCHANGE_DEADLINE, async {
+                tokio::join!(transaction.request(&request), peer)
+            })
+            .await
+            .expect("native history refusal exchange phase timed out");
+            if unsupported {
+                assert!(result.unwrap().is_none());
+            } else {
+                assert!(matches!(result, Err(ProbeError::Protocol)));
+            }
+            assert!(requests.try_recv().is_err());
         }
-        assert!(requests.try_recv().is_err());
-    }
+    })
+    .await
+    .expect("native history test safety net elapsed");
 }
 #[test]
 fn missing_or_relative_directory_never_falls_back_to_process_directory() {
