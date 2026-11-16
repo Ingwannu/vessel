@@ -1,9 +1,10 @@
 # Private saved node settings envelope
 
-Status: proposed. This package does not define a service consent schema or a
-service activation engine. The reviewed shared tracked settings writer is the prerequisite for this model
-change. The implementation below is prepared on that repair and the announced
-base; changed-tree checks and review are still required before publication.
+Status: implemented in the common settings producer; verification and complete
+source review remain in progress. This package defines no service/plugin consent
+schema or activation engine. The opaque record composes with the single accepted
+operation lane and the reviewed private-cause decoder, rather than adding a
+second saved-state or persistence owner.
 
 ## Existing assets and choice
 
@@ -55,7 +56,7 @@ at its reviewed merge; this proposal does not adopt its schema. The private
 stored record must own that complete namespace, with an explicit typed generic
 projection/merge. Naively flattening both a wire patch and another private record
 with the same key would create duplicate ownership or discard private fields.
-The initial P2 does not freeze that representation or promise a callback API.
+The initial P2 did not freeze that representation or promise a callback API.
 
 The envelope therefore remains opaque outside its disk edge. New typed private
 namespaces join the existing mutation owner under their owning contracts, without
@@ -96,12 +97,14 @@ remains unavailable and this package invents no substitute identifier or payload
 
 ## Resume point
 
-Prepared: Store now exposes a private-field non-Copy SavedNodeSettings envelope,
+Store exposes a private-field non-Copy SavedNodeSettings envelope,
 without public serde/TS implementation. public_settings projects the existing
 complete generic snapshot; consuming with_public_settings builds a candidate
-without granting live mutation authority. The internal transparent document
-preserves the current typed generic codec. Store's disk methods and Node's
-retained mutex use the envelope; wire requests/replies remain unchanged.
+without granting live mutation authority. The common producer's internal
+Document now owns parking, drivers and the optional typed recovery patch
+explicitly, preserving canonical field order and previous bytes when recovery
+is absent. Store's disk methods and Node's retained mutex use the envelope;
+request/reply recovery fields retain their separate unassigned protocol boundary.
 
 The actual blocking writer returns its owned candidate with the set-aside result
 so it can publish that same value after I/O without an extra document clone. The
@@ -109,9 +112,12 @@ existing validation, token/lock lifetime, set-aside/write/apply order and I/O
 causes remain. Existing assertions need only typed envelope/projection adapters.
 New fixtures compare current canonical bytes and semantics, prove the opaque
 envelope cannot be wire-serialized, and keep a no-op's original bytes/future
-fields without creating a set-aside copy. These are not executed evidence yet.
+fields without creating a set-aside copy. The current focused Store settings
+suite and Node settings suite have executed successfully. That scoped evidence
+does not replace the opaque-envelope compile-fail doctest, SQL integration,
+generated declarations or the enclosing gate.
 
-Pending: exact changed-source strict/tests/whole review, later combined-base
+Pending: remaining changed-source checks and whole review, later combined-base
 checks, and the concrete private schema/canonical incarnation contract. No
 private slot, consent setter or service/plugin activation has been implemented.
 The separate config reload owner join also needs adaptation and verification

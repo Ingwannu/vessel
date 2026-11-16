@@ -1,9 +1,9 @@
 # Recovery settlement hook for the shared settings owner
 
-Source-only handoff on the agreed shared-owner contract. This leaf adds no
-module registration or active settings behavior and has not compiled by itself.
-The recovery runtime and Store projection remain a separate unmerged package;
-the joint assembly and changed-tree checks must precede any runtime claim.
+The concrete hook is assembled into the common settings producer. Focused Node
+settings cases execute the actual Store settlement and failure paths; complete
+source review and the enclosing gate remain owed. Recovery engine/runtime
+activation is a separate unqualified consumer and remains unwired.
 
 [Decision Log]
 - Purpose: preserve durable Off cleanup, same-value retry and a shutdown effect
@@ -27,7 +27,7 @@ after publication, including the unchanged-value path.
 `crates/vessel-node/src/recovery/policy.rs` is the recovery-owned policy port.
 Its shutdown seal shares the same short mutex as actual effect enqueue and
 is irreversible across later apply, cleaned and write_failed calls. The
-recovery runtime registers this module; a policy default or hidden wire field
+common producer registers this core; a policy default or hidden wire field
 must never be interpreted as a capability acknowledgement or confirmed Off.
 
 The hook requires the recovery package's existing
@@ -39,18 +39,19 @@ queue, Opening adapter or shutdown orchestration.
 
 The hook tests cover real Store closure failures, retained cleanup/apply debt,
 unchanged-value failure, provisional Off rollback and irreversible final effect
-closure. They are currently unregistered source; they require the joint Store
-and recovery assembly before strict checks or execution. Held real file I/O,
-FIFO saturation/caller loss, actual startup snapshot and shutdown sequencing
-remain tests of the common owner and the final joint package.
+closure. The registered producer hook tests execute real Store ACK/failure/debt
+paths; engine-only admission assertions stay with the later consumer extension.
+Held real file I/O, lane saturation/caller loss, startup snapshot and shutdown
+sequencing also pass in the focused common-owner settings suite. These scoped
+tests do not substitute for SQL integration or the final joint package gate.
 
 ## Resume point
 
-Port the recovery runtime and Store projection into the agreed joint assembly
-without its old parallel settings model. Register this hook there. Consume the
-reviewed common safe decoder edge and qualified physical preparation seam;
-then run one combined narrow set and enclosing package gate. No standalone
-source leaf, old green gate or unassigned protocol field proves that join.
+The real Policy and passive Store projection are assembled without the old
+parallel settings model. The canonical safe decoder is reused. Finish the common
+producer's remaining checks and enclosing gate before publishing its seam.
+The later recovery runtime must separately consume qualified physical
+preparation; no producer result or unassigned protocol field proves that join.
 
 
 ## SQL and optional request-field port
@@ -61,7 +62,7 @@ the old saved model, settings lane and Opening. The SQL operation remains inside
 the existing Store writer; checkpoint, creation provenance, reopen fencing and
 indexed startup intent reads share its transaction and post-commit notifications.
 
-The migration follows the joint base's registry migration through the one named
+The migration follows the current base's background/listing migration through the one named
 RESTART_SCHEMA constant. Existing migration order and version facts remain.
 Mechanical port conflicts retain registry, subagent and diagnostic registrations,
 all writer Answer variants, and head rollback statements. The inbox rollback and
@@ -75,4 +76,4 @@ feature constant; there is no local version or new method. Existing response
 projection for both Get and Set remains the joint base's implementation. The
 explicit request fields and all forwarding wrappers remain refused while the
 feature is unassigned. Existing callers/literals must be completed during joint
-assembly; this source leaf alone is not a compilable runtime handoff.
+assembly; those mechanical adapters are now present in the common producer.

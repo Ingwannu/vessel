@@ -1,9 +1,9 @@
 # One retained settings operation owner
 
-Status: proposed contract only. This leaf adds no Rust/API implementation,
-recovery policy, disk field, quota or activation. It extends ADR 0064's opaque
-saved model and retained writer; the existing model package remains separate
-until this shape is reviewed and the joint producer is named.
+Status: the accepted contract is implemented in the common producer; complete
+source review and enclosing qualification remain owed. The single lane, opaque
+document, one-read Opening and concrete Policy/SQL settlement are assembled.
+Recovery engine activation and protected services/plugins remain excluded.
 
 ## Responsibility and alternatives
 
@@ -92,7 +92,7 @@ and the existing `vessel_store::Store` handle. It performs no settings file I/O,
 launch, prompt, secret read, independent task/queue or alternate persistence.
 There is no callback trait or dynamic extension mechanism.
 
-Proposed signatures (contract notation, no facade exists yet):
+Concrete crate-private signatures:
 
 ```text
 RecoveryApply::new(policy: Arc<Policy>, store: Store) -> RecoveryApply
@@ -142,7 +142,7 @@ recovery arbiter path.
 ## Boot snapshot and shutdown
 
 `settings::Opening` is the one startup adapter, not another settings engine.
-Its proposed `read(&Config) -> Opening` consumes the canonical Store file edge
+Its `read(&Config) -> Opening` consumes the canonical Store file edge
 before Store startup interruption/retention. An internal `recovery_policy(&self)`
 projects that same validated opaque snapshot for candidate capture. Later
 `Settings::from_opening(opening, runtime, recovery_apply)` consumes the original
@@ -195,7 +195,7 @@ strict/tests and one joint enclosing gate. A prior branch's green gate or a
 source-only verdict does not qualify the new producer. Existing source-returned
 recovery behavior stays out until its independent findings are corrected.
 
-## Implementation resume point
+## Current implementation and scoped evidence
 
 The opaque model is now composed with the canonical private-cause decoder.
 The initial operation lane is implemented for the existing generic patch: one
@@ -209,17 +209,18 @@ Fixtures hold the real blocking writer to pin overflow, cancelled queued
 replies, ordered preparation, shutdown-waiter cancellation and last-handle
 drain without a sender cycle. The original cancellation regressions retain
 their assertions and budget, with only the private state path adapted. A sealed
-concrete task failure reuses the separately reviewed diagnostic policy. These
-fixtures have not yet compiled or executed on this source.
+concrete task failure reuses the separately reviewed diagnostic policy. The
+current Node settings suite executed these cases, including both original
+writer lifetime regressions, successfully.
 
-This is not the completed joint producer: RecoveryApply, the typed recovery
-field, same-value cleanup, one-read Opening and the changed effect/shutdown
-order remain to be joined and checked. The initial lane does not authorize any
+RecoveryApply, the typed recovery field, same-value cleanup, one-read Opening
+and the changed effect/shutdown order are now joined. They still require the
+remaining source audit and enclosing gate. The lane does not authorize any
 recovery, MCP or plugin activation and does not replace a consumer's temporary
 quota until the qualified joint head is announced. Explicit reset/reload intents
 join this same lane with their actual callers rather than unused variants here.
 
-The boot snapshot adapter is now drafted as Store's `SettingsFileSnapshot`
+The boot snapshot adapter is Store's `SettingsFileSnapshot`
 and Node's `settings::Opening`. Store derives typed content and conservative
 future-field disposition from the same physical bytes. Both the normal parse
 and compatibility coverage path use the canonical sealed diagnostic wrapper.
@@ -231,20 +232,21 @@ its operations. The node file's size allowance shrinks with that move.
 New fixtures replace the file between snapshot admission and owner construction
 and check that the original typed settings/preservation decision still apply,
 without a second read or set-aside. Missing/null/current/future and complete
-diagnostic-chain cases exercise the shared disk edge. These tests remain
-uncompiled and unexecuted. Recovery projection/candidate capture, the actual
-Policy/Store hook and the shutdown/effect seal are not yet wired. The existing
+diagnostic-chain cases exercise the shared disk edge. These cases pass in the
+focused Node/Store settings run. The actual Policy/Store hook and shutdown seal
+are wired, while recovery engine candidate dispatch remains absent. The existing
 startup read has no newly claimed universal byte or filesystem-time boundary.
 
-The recovery field/settlement join is in progress on the named portable hook
+The recovery field/settlement join uses the portable hook
 and Store projection leaves, without the returned package's old saved model
 or queue. The disk Document now owns each typed field explicitly; its safe
 generic projection is exhaustive, and canonical field order/bytes when recovery
 is absent remain pinned. Recovery omission preserves the stored partial patch.
 A changed save marks the Off barrier, restores admission on file failure,
 publishes before Policy.apply and awaits real SQL settlement. The unchanged
-path settles existing debt without another replacement. Full assembly, lifecycle
-sealing and execution remain owed; this checkpoint has not compiled.
+path settles existing debt without another replacement. Focused settings cases
+cover actual cleanup/apply failures, same-value retry and lifecycle sealing.
+The SQL integration suite and whole producer gate remain separate obligations.
 
 Shared request literals are mechanically completed with defaults for the new
 optional recovery field. Ordinary Get uses its default capability selection.
@@ -284,7 +286,8 @@ mutations. Canonical codec fixtures include enabled/disabled/null recovery.
 The raw legacy wire matrix and full public diagnostic-chain fixtures are
 ported without Recovery.start; their whole-case and RPC-step budgets retain
 their prior values. The RPC-step budget is independent of the physical writer
-budget: changing one must not silently change the other. All remain unexecuted.
+budget: changing one must not silently change the other. The focused settings
+run executes these producer cases; it does not qualify the recovery consumer.
 
 ## Generic launch admission prerequisite
 
@@ -316,8 +319,10 @@ real fake-program invocation log and an open-admission positive control. The
 node-stop token is cancelled while the actor-stop token remains open. Tests
 assert typed refusal, no registered session and no fake invocation. Standalone
 and configured observer wake cases use the original cancellation sources. These
-are authored, not executed, and do not qualify the later recovery/version-helper
-consumer. No Recovery, Journal or engine start is registered by this seam.
+pass in the separately reviewed admission prerequisite, including both held
+lookup paths and the actual open-admission control. That scoped result does not
+qualify the later recovery/version-helper consumer. No Recovery, Journal or
+engine start is registered by this seam.
 
 ### New-fixture deadline correction
 

@@ -1749,11 +1749,13 @@ Those have no method row; protocol 25 covers the six metadata methods only.
 
 ### Settings writer lifetime
 
-The node settings owner retains an owned serialization guard in a tracked task
-through atomic file replacement and runtime application. RPC cancellation drops
-only the waiter. After connections finish, teardown closes settings mutation
-admission and joins admitted writers before the store closes (ADR 0064). This
-adds no crate edge, setting, format or wire method.
+The node settings owner transfers each accepted intent to one tracked consumer
+before waiting for its owned serialization guard. The consumer retains ownership
+through atomic file replacement, runtime publication and real policy SQL
+settlement; RPC cancellation drops only the reply waiter. Stop seals admission,
+then teardown drains accepted work before shutting down the session runtime.
+Connections and Store close afterward (ADR 0064). Generic runtime launch checks
+observe the same early node-stop token while actors remain alive for settlement.
 
 ## Bounded node diagnostics (ADR 0074)
 
@@ -1919,13 +1921,17 @@ through a typed fake until the real node field/adapter lands. See
 
 
 
+## Canonical settings operation owner
+
 The saved settings disk API and Node's saved mutex carry Store's opaque
 `SavedNodeSettings` (ADR 0064). Disk serialization remains internal to Store;
 only the typed generic saved projection and an owned candidate update cross the
 boundary. Generic wire requests and Read replies keep their existing types.
-The retained settings task still owns validation/persistence/publication order,
+The retained settings consumer owns validation/persistence/publication order,
 and a non-Copy candidate returns from blocking I/O before publication. No
-private payload, extra writer, file or crate edge is added by this separation.
+service/plugin payload, extra writer, file or crate edge is added by this
+separation. The common producer also owns the typed recovery patch in that same
+document; its optional wire admission and projection remain separate.
 
 
 The settings admission lane transfers an accepted typed patch to its sole
