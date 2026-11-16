@@ -51,6 +51,18 @@ fn directory_refusal_preserves_actual_input_route_and_successor_pending(cx: &mut
             .composer
             .set_text("keep composing 한글", window, cx);
         shell.fleet.machines = vec![machine];
+        shell.mark_session_target(
+            target.clone(),
+            Mark::Read {
+                through: vessel_proto::EventSeq::new(1),
+            },
+            cx,
+        );
+        assert!(!shell.areas.session_marks.is_pending());
+        assert_eq!(
+            shell.notice.as_deref(),
+            Some(shell.words.session_marks().unavailable())
+        );
         shell.mark_session_target(target.clone(), Mark::Archive, cx);
         let first = shell.areas.session_marks.pending().unwrap().clone();
         shell.session_mark_answer(Answer::refused(first.clone(), Failure::Unsent), cx);
