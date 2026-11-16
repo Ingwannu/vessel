@@ -63,8 +63,9 @@ R40 is the four-native-crate all-target strict check at exact93cfde8b3, label
 `wp-commands-narrow`, out `base143-messages-clippy-r40` in task scratch.
 Run `wp-commands-narrow-20261116T034830Z-93cfde8b` passed all four native
 crates' all-target strict checks (R40). App/Link receiving execution is submitted
-once as R30, out `base143-app-link-tests-r30`; read its run-id/terminal result
-before any retry. It was pending when this closeout entry was written. No new branch merge/control/slice during
+once as R30 `wp-commands-narrow-20261116T035107Z-93cfde8b`, out
+`base143-app-link-tests-r30`; read its terminal result before any retry.
+It was running when this closeout entry was written. No new branch merge/control/slice during
 quota closeout; any remaining verification is explicitly unverified.
 
 ## Existing first-use export: do not duplicate
@@ -85,9 +86,11 @@ R2 may establish only its named glyph role, never current whole UI acceptance.
 
 No app, fake fleet, Xvfb or capture image has been started. Private directories
 were prepared UID/GID1000:1000 mode0700, binaries read-only0500; no permissions
-were broadened. The local export watcher must be detached at closeout; the VM
-job and artifact can be retrieved later with attach/export to a fresh out if
-necessary. Detailed PID/state and artifact hashes remain in task scratch.
+were broadened. The local export watcher PID439748 was command/UID-verified and stopped at
+03:51:34 UTC; the VM job remained queued and was not cancelled. Shared SSH
+masters were untouched. The job/artifact can be retrieved later with
+attach/export to a fresh out if necessary. Detailed state/hashes remain in
+task scratch. No local fleet/display/app process exists.
 
 ## Owner boundaries that must stay held
 
