@@ -63,8 +63,9 @@ fleet, so the captures came from a capture-only cherry-pick of these three commi
 - Choice: a derived asset. Each glyph drawn by `line_glyph!` (root stroke 1.5)
   is also served under `kit/command-weight/<file>`, the same SVG with its root
   stroke replaced by 2.2 (`Assets::load`), and `Glyph::command_weight_path`
-  names it. The kit's command row (`command/row.rs`) draws its glyph from that
-  path, so any row of any command list is at 2.2. The `Command*` roles and the
+  names it. The kit's command row (`command/row.rs`, `command_glyph`) draws
+  its leading glyph and the chosen row's check (the theme rows) from that
+  path, so every icon in a command list is at 2.2. The `Command*` roles and the
   drawings that are not 1.5 line glyphs (window controls, activity, the mark,
   `Import`) keep their own path: they are already at their stroke.
 - Impact: no new inventory entries; the shared list (`Assets::list`) is

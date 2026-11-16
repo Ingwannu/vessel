@@ -114,6 +114,8 @@ fn the_vessel_only_rows_are_derived() {
         Glyph::Terminal,
         Glyph::Palette,
         Glyph::Keyboard,
+        // The chosen theme row's check.
+        Glyph::Check,
     ] {
         let path = glyph.command_weight_path();
         let data = Assets.load(&path).unwrap().unwrap();
