@@ -39,3 +39,21 @@ still owed. Loader/library/model execution and packaging remain later reviews.
 Tract remains the documented fallback only if A1 fails a Windows build/load,
 32ms p99 window budget or installer-size gate. It is not provisioned here.
 This leaf does not turn an unmeasured benchmark into an approval or fetch it.
+
+
+## Optional metadata stop and current base
+
+The exact earlier ffc79519 scratch resolve failed offline on absent ndarray
+metadata. Its original and result locks are byte-identical111087 bytes; tree
+was not executed. A generic audit diagnostic about three expected additions
+is not an actual drift result after update failed. Preserve that failed receipt.
+The pinned ort manifest makes ndarray0.17 optional/default-disabled; std uses
+ndarray?/std, and the selected defaults-off std/load-dynamic/api-28 features
+already leave ndarray inactive. The coordinator permits the build-tool owner
+to provision exact pinned optional metadata/source/checksum through the checked
+cache path, without enabling it or adopting other version bumps. Any extra
+unapproved closure stops. The next query uses the announced ed4cd137 base,
+whose Cargo.lock is retained exactly here. No build script, compile, fixture
+transfer, native constructor or model execution is authorized by this source
+merge. Actual lock/tree review and a separate compile checkpoint are still owed;
+the eventual build must leave the accepted lock byte-identical.
