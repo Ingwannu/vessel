@@ -145,7 +145,7 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
         });
     });
     cx.run_until_parked();
-    let new = probe.read_with(cx, |probe, cx| {
+    probe.read_with(cx, |probe, cx| {
         let shell = probe.0.read(cx);
         assert!(
             !shell
@@ -155,8 +155,15 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
                 .borrow()
                 .contains_key(&(PaneId::MAIN, Control::Right))
         );
-        place(shell, Control::New)
+        // Compact tooltips intentionally install no measurement/listener. The
+        // actual row contains only New, so its painted bounds are the hitbox.
+        assert!(
+            shell.areas.layout.tip_places.borrow()[&(PaneId::MAIN, Control::New)]
+                .get()
+                .is_none()
+        );
     });
+    let new = cx.debug_bounds("layout-main-pane-controls").unwrap();
     assert_eq!(new.size, gpui::size(px(32.0), px(32.0)));
     cx.simulate_click(new.center(), Modifiers::none());
     cx.run_until_parked();

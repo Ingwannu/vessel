@@ -5,6 +5,8 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::toolbar_button::{
     Selection, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
 };
+#[cfg(test)]
+use vessel_app_kit::ui::InteractiveElement as _;
 use vessel_app_kit::ui::{Context, Div, ElementId, ParentElement as _, Window, div};
 use vessel_app_kit::{ButtonState, ControlSizing, Tokens};
 use vessel_app_view::layout::{
@@ -110,6 +112,14 @@ pub(super) fn controls(
         );
         row = row.child(button.tooltip(&shell.areas.layout.tips, &place));
     }
+    #[cfg(test)]
+    let row = row.debug_selector(move || {
+        if pane_id == PaneId::MAIN {
+            "layout-main-pane-controls".to_owned()
+        } else {
+            format!("layout-pane-controls-{}", pane_id.get())
+        }
+    });
     row
 }
 
