@@ -164,7 +164,7 @@ export function QuotaCardView({
    * nothing to refresh, else in the Refresh tooltip. */
   compact?: boolean;
   /** Window rows pin to the sidebar summary while it is on. */
-  pins?: WindowPins;
+  pins?: WindowPins | undefined;
 }) {
   const freshness = freshnessText(card.fetchedAt, now);
   return (
