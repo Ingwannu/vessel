@@ -1645,3 +1645,10 @@ The savepoint compares actual before/after derived unread or exact seen state;
 watermark-only propagation still commits. Four actual SQLite unit cases cover
 loaded/stored transitions, repeats, Pin/Archive, and legacy Unknown. Current
 changed-code Clippy and functional results remain unexecuted.
+
+
+The first strict run found three unconsumed affected-row counts in the new
+SQLite setup. Those fixture writes now assert exactly one row, strengthening
+setup evidence without changing inputs, product code, existing expectations or
+budgets. The original strict failure is retained; the functional run on that
+immutable predecessor continues unchanged.

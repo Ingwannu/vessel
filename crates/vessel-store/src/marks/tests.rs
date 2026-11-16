@@ -25,11 +25,14 @@ fn database() -> (Connection, SessionId) {
         Utc::now(),
     );
     log::create_session(&db, &info).unwrap();
-    db.execute(
-        "UPDATE sessions SET attention_seq=1, next_seq=3 WHERE id=?1",
-        [info.id.to_string()],
-    )
-    .unwrap();
+    assert_eq!(
+        db.execute(
+            "UPDATE sessions SET attention_seq=1, next_seq=3 WHERE id=?1",
+            [info.id.to_string()],
+        )
+        .unwrap(),
+        1
+    );
     (db, info.id)
 }
 
@@ -42,11 +45,14 @@ fn entry(db: &Connection, id: SessionId) -> InboxKey {
         session: id,
         seq: EventSeq::new(1),
     };
-    db.execute(
-        "INSERT INTO inbox(session,seq,at,item,waiting,seen) VALUES(?1,1,0,?2,0,0)",
-        params![id.to_string(), r#"{"kind":"finished"}"#],
-    )
-    .unwrap();
+    assert_eq!(
+        db.execute(
+            "INSERT INTO inbox(session,seq,at,item,waiting,seen) VALUES(?1,1,0,?2,0,0)",
+            params![id.to_string(), r#"{"kind":"finished"}"#],
+        )
+        .unwrap(),
+        1
+    );
     key
 }
 
@@ -176,11 +182,14 @@ fn exact_inbox_seen_changes_tick_only_in_stored_residency() {
 fn a_watermark_only_read_propagates_seen_and_legacy_unknown_stays_unknown() {
     let (db, id) = database();
     let key = entry(&db, id);
-    db.execute(
-        "UPDATE sessions SET updated_at=NULL, read_seq=2 WHERE id=?1",
-        [id.to_string()],
-    )
-    .unwrap();
+    assert_eq!(
+        db.execute(
+            "UPDATE sessions SET updated_at=NULL, read_seq=2 WHERE id=?1",
+            [id.to_string()],
+        )
+        .unwrap(),
+        1
+    );
     let kept = super::mark(
         &db,
         id,
