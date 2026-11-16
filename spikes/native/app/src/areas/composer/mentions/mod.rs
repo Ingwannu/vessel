@@ -28,7 +28,7 @@ pub(super) struct FileMenu {
         std::cell::Cell<Option<vessel_app_kit::ui::Bounds<vessel_app_kit::ui::Pixels>>>,
     >,
     reveal: RefCell<vessel_app_view::composer::reveal::Reveal>,
-    last: RefCell<Option<(vessel_app_kit::autocomplete::Listing, Option<usize>)>>,
+    last: RefCell<Option<draw::Drawn>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -418,8 +418,19 @@ impl Shell {
         let Some((request, path)) = choice else {
             return;
         };
-        if self.attachment_context(&request.scope.machine).as_ref()
-            != Some(&request.scope.connection)
+        self.commit_mention(target, &request, &path, window, cx);
+    }
+    fn commit_mention(
+        &mut self,
+        target: DraftKey,
+        request: &mentions::Request,
+        path: &vessel_proto::workspace::RelPath,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.composer_destination() != Some(target)
+            || self.attachment_context(&request.scope.machine).as_ref()
+                != Some(&request.scope.connection)
         {
             return;
         }
@@ -441,12 +452,7 @@ impl Shell {
         {
             return;
         }
-        field.replace_range(
-            request.mention.range(),
-            &mentions::quoted(&path),
-            window,
-            cx,
-        );
+        field.replace_range(request.mention.range(), &mentions::quoted(path), window, cx);
         field.focus(window, cx);
         let current = field.text(cx);
         if matches!(target, DraftKey::Workspace { .. }) {

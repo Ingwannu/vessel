@@ -11,9 +11,7 @@
 
 use gpui::ExternalPaths;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::attachment::{
-    Body, ScopedPillClick, Standing, attachment_pill_scoped, attachment_tray,
-};
+use vessel_app_kit::attachment::{Body, Standing, attachment_pill_scoped, attachment_tray};
 use vessel_app_kit::breakpoint::TOUCH_TARGET;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
@@ -24,9 +22,10 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{MenuHandlers, MenuItem, Tokens, composer_card, menu};
 use vessel_app_view::composer::attach::Refusal;
 use vessel_app_view::composer::drafts::DraftKey;
-use vessel_app_view::composer::tray::{Again, Item, ItemState, Problem};
+use vessel_app_view::composer::tray::{Item, ItemState, Problem};
 use vessel_proto::AttachmentKind;
 
+mod intents;
 mod select;
 
 use super::pictures::picture;
@@ -278,69 +277,6 @@ pub(super) fn attach_menu(
     )
 }
 
-impl Shell {
-    // The kit's pill takes a plain function per click; one per composer.
-    fn composer_retry(&mut self, key: DraftKey, index: usize, cx: &mut Context<'_, Self>) {
-        let DraftKey::Session { session } = key else {
-            return;
-        };
-        let tray = self.areas.composer.trays.tray(key);
-        if let Some(item) = tray.items().get(index).map(|item| item.key) {
-            let _retried = tray.retry(item);
-        }
-        self.retry_creation_capabilities(session, cx);
-        self.composer_pump(session, cx);
-    }
-
-    fn tray_image_opened(
-        &mut self,
-        key: DraftKey,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(item) = self
-            .areas
-            .composer
-            .trays
-            .get(key)
-            .and_then(|tray| tray.items().get(index))
-        else {
-            return;
-        };
-        if item.kind == AttachmentKind::Image {
-            if let vessel_app_view::composer::tray::Origin::Stored(file) = &item.origin {
-                self.open_stored_image(std::sync::Arc::clone(file), window, cx);
-            } else {
-                let source = picture(self, &item.origin, &item.mime);
-                self.open_local_image(source, window, cx);
-            }
-        }
-    }
-
-    fn composer_remove(&mut self, key: DraftKey, index: usize, cx: &mut Context<'_, Self>) {
-        if let DraftKey::Session { session } = key
-            && self
-                .areas
-                .composer
-                .sends
-                .get(&session)
-                .is_some_and(|waiting| waiting.phase != super::transmission::Phase::Preparing)
-        {
-            return;
-        }
-        let tray = self.areas.composer.trays.tray(key);
-        if let Some(item) = tray.items().get(index).map(|item| item.key) {
-            let _removed = tray.remove(item);
-        }
-        self.local_files_changed(cx);
-        match key {
-            DraftKey::Session { session } => self.composer_pump(session, cx),
-            DraftKey::New | DraftKey::Workspace { .. } => cx.notify(),
-        }
-    }
-}
-
 /// `key`'s tray, when it holds files.
 pub(super) fn tray(
     shell: &Shell,
@@ -354,29 +290,7 @@ pub(super) fn tray(
         return None;
     }
     let pills = tray.items().iter().enumerate().map(|(index, item)| {
-        let retry = matches!(
-            item.state,
-            ItemState::Failed {
-                again: Again::Resume(_) | Again::Restart,
-                ..
-            }
-        ) && matches!(key, DraftKey::Session { .. });
-        let open: Option<ScopedPillClick<Shell>> = if retry {
-            Some(std::rc::Rc::new(move |shell, index, _window, cx| {
-                shell.composer_retry(key, index, cx);
-            }))
-        } else if item.kind == AttachmentKind::Image {
-            Some(std::rc::Rc::new(move |shell, index, window, cx| {
-                shell.tray_image_opened(key, index, window, cx);
-            }))
-        } else {
-            None
-        };
-        let remove = std::rc::Rc::new(
-            move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
-                shell.composer_remove(key, index, cx);
-            },
-        );
+        let (open, remove) = intents::callbacks(key, item);
         let body = body(shell, item);
         attachment_pill_scoped(
             "composer-file",

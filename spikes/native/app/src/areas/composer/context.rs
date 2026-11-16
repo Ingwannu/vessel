@@ -1,6 +1,7 @@
 //! All producers share this validated intake and the kit's attachment pills.
 //! Source snapshots stay with their composer; replacing or suppressing one
 //! does not mutate another panel's registry or fetch its URL during send.
+mod intents;
 use crate::shell::Shell;
 use gpui::FocusHandle;
 use vessel_app_kit::attachment::{Body, Standing, attachment_pill_scoped, attachment_tray};
@@ -11,7 +12,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, assets::Glyph};
 use vessel_app_view::composer::{
-    context::{ContextAttachment, ContextKind, ContextProblem, ContextScope},
+    context::{ContextAttachment, ContextIntent, ContextKind, ContextProblem, ContextScope},
     drafts::DraftKey,
 };
 
@@ -257,9 +258,14 @@ impl Shell {
             .get(target)
             .is_some_and(|tray| !tray.is_empty())
     }
-    fn context_removed(&mut self, target: DraftKey, index: usize, cx: &mut Context<'_, Self>) {
+    fn context_removed(
+        &mut self,
+        target: DraftKey,
+        intent: &ContextIntent,
+        cx: &mut Context<'_, Self>,
+    ) {
         if let Some(tray) = self.areas.composer.contexts.get_mut(target) {
-            let item = tray.visible().nth(index).cloned();
+            let item = tray.resolve(intent).cloned();
             if let Some(item) = item {
                 tray.remove(&item);
             }
@@ -269,7 +275,7 @@ impl Shell {
     fn context_opened(
         &mut self,
         target: DraftKey,
-        index: usize,
+        intent: &ContextIntent,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -278,7 +284,7 @@ impl Shell {
             .composer
             .contexts
             .get(target)
-            .and_then(|tray| tray.visible().nth(index))
+            .and_then(|tray| tray.resolve(intent))
             .cloned();
         let Some(item) = item else {
             return;
@@ -337,59 +343,50 @@ pub(super) fn tray(
         return None;
     }
     let tray = shell.areas.composer.contexts.get(target)?;
-    let pills = tray.visible().enumerate().map(|(index, item)| {
-        let open = (!matches!(item, ContextAttachment::WorkspaceFile(_))).then(
-            || -> vessel_app_kit::attachment::ScopedPillClick<Shell> {
-                std::rc::Rc::new(
-                    move |shell: &mut Shell,
-                          index,
-                          window: &mut Window,
-                          cx: &mut Context<'_, Shell>| {
-                        shell.context_opened(target, index, window, cx);
-                    },
-                )
-            },
-        );
-        let remove = std::rc::Rc::new(
-            move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
-                shell.context_removed(target, index, cx);
-            },
-        );
-        let words = shell.words.composer();
-        let (icon, subtitle) = match item {
-            ContextAttachment::Plugin(_) => (Glyph::Boxes, words.context_plugin().to_owned()),
-            ContextAttachment::WorkspaceFile(file) => {
-                (Glyph::FileText, file.path.as_str().to_owned())
-            }
-            ContextAttachment::Snapshot { kind, .. } => match kind {
-                ContextKind::BrowserElement => (Glyph::Monitor, words.context_browser().to_owned()),
-                ContextKind::Review => (Glyph::FileText, words.context_review().to_owned()),
-                ContextKind::ChatHistory => (Glyph::Message, words.context_history().to_owned()),
-                ContextKind::PullComment
-                | ContextKind::PullReview
-                | ContextKind::PullCheck
-                | ContextKind::ForgeChangeRequest => {
-                    (Glyph::PullRequest, words.context_pull().to_owned())
+    let pills = tray
+        .visible_intents()
+        .enumerate()
+        .map(|(index, (intent, item))| {
+            let (open, remove) = intents::callbacks(target, item, intent);
+            let words = shell.words.composer();
+            let (icon, subtitle) = match item {
+                ContextAttachment::Plugin(_) => (Glyph::Boxes, words.context_plugin().to_owned()),
+                ContextAttachment::WorkspaceFile(file) => {
+                    (Glyph::FileText, file.path.as_str().to_owned())
                 }
-                ContextKind::ForgeIssue => (Glyph::CircleDot, words.context_issue().to_owned()),
-            },
-        };
-        attachment_pill_scoped(
-            "composer-context",
-            index,
-            &Body::Label {
-                icon,
-                title: SharedString::from(item.title().to_owned()),
-                subtitle: subtitle.into(),
-            },
-            Standing::Quiet,
-            open,
-            remove,
-            touch,
-            tokens,
-            cx,
-        )
-    });
+                ContextAttachment::Snapshot { kind, .. } => match kind {
+                    ContextKind::BrowserElement => {
+                        (Glyph::Monitor, words.context_browser().to_owned())
+                    }
+                    ContextKind::Review => (Glyph::FileText, words.context_review().to_owned()),
+                    ContextKind::ChatHistory => {
+                        (Glyph::Message, words.context_history().to_owned())
+                    }
+                    ContextKind::PullComment
+                    | ContextKind::PullReview
+                    | ContextKind::PullCheck
+                    | ContextKind::ForgeChangeRequest => {
+                        (Glyph::PullRequest, words.context_pull().to_owned())
+                    }
+                    ContextKind::ForgeIssue => (Glyph::CircleDot, words.context_issue().to_owned()),
+                },
+            };
+            attachment_pill_scoped(
+                "composer-context",
+                index,
+                &Body::Label {
+                    icon,
+                    title: SharedString::from(item.title().to_owned()),
+                    subtitle: subtitle.into(),
+                },
+                Standing::Quiet,
+                open,
+                remove,
+                touch,
+                tokens,
+                cx,
+            )
+        });
     Some(attachment_tray().children(pills).into_any_element())
 }
 

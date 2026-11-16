@@ -68,13 +68,13 @@ mod tests {
         };
         state.clients["fixture"].retire();
         assert!(matches!(
-            read(&selected, &ask).await,
+            super::super::read::tests::peer::bounded(read(&selected, &ask)).await,
             Err(CapabilityFailure::Call(
                 super::super::RequestProblem::Retired(_)
             ))
         ));
         drop(selected);
         drop(state);
-        assert!(peer.await.unwrap().is_empty());
+        assert!(peer.finish().await.is_empty());
     }
 }

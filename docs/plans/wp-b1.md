@@ -1,6 +1,39 @@
 # Composer attachment parity
 
-Status: available attachment/mention core gated and captured; dependent integrations incomplete; V4 review pending.
+Status: available attachment/mention core gated and captured; dependent integrations incomplete; V4 row290 returned four bounded findings; corrections await changed-source verification.
+
+## V4 row290 corrections (2026-11-16)
+
+[Decision Log]
+- Purpose: deliver the exact rendered option or attachment despite a reply,
+  removal or replacement arriving before repaint.
+- Constraint: draft/root/connection checks do not identify a row within the
+  same live composer. Re-reading a mutable numeric index can select its successor.
+- Alternatives: repaint synchronization or value-only equality would still
+  permit a late event or a removed-and-recreated resource with identical metadata.
+- Choice: autocomplete retains its drawn request and row together and revalidates
+  both. File pills retain an opaque `Arc` incarnation; context pills retain an
+  incarnation plus the source revision. The renderer and regression tests use
+  the same callback constructors. These are resource leases, not a new registry
+  or network authority. Keyboard selection continues using the current choice.
+- Impact: removing/replacing/recreating a resource invalidates its old actions;
+  upload progress alone does not change its identity. Captured contexts/files
+  retain their existing byte/source ownership, and no payload is reuploaded.
+
+The lightbox now routes ordinary wheel events as Paseo's default `always`
+activation does; control/platform-wheel share the same focal transform and
+bounds. Actual Shell/ScrollEvent regressions cover all three and both limits.
+Managed storage validation now takes closed `EntryKind::{Directory,File}`;
+symlink, type and permission refusal conditions are unchanged.
+The real framed-peer tests use a named45-second safety bound for handshake,
+frames, event/result waits and joining. An owned abort-on-drop peer guard cleans
+up on assertion/timeout, and explicit join timeout aborts then reaps that task.
+The product30-second read deadline and real RPC/malformed/retirement assertions
+are unchanged. A stalled-script regression verifies owned cancellation.
+
+Existing whole42 and capture receipts below remain exact predecessor evidence;
+this correction has not yet earned its changed-source receipt. No dependency,
+source-owner integration or product-resident authority is promoted by it.
 
 ## Current verification boundary (supersedes historical checkpoints below)
 

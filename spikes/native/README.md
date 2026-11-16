@@ -1233,7 +1233,7 @@ written to the fixture report.
 
 Click an image in either the composer tray or a sent message to open the
 window lightbox. Its toolbar zooms in/out, resets fit, and closes; a
-modifier-wheel or a platform pinch zooms at the pointer, and dragging
+ordinary wheel (also with modifiers) or a platform pinch zooms at the pointer, and dragging
 pans within the image bounds. Escape, the close action, and a tap outside
 the image dismiss it and restore the previous field's focus. Failed
 image reads and decodes show a translated failure rather than staying in

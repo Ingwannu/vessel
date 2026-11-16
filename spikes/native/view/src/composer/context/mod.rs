@@ -6,7 +6,7 @@ mod store;
 mod value;
 use crate::machine_book::Name;
 use std::num::NonZeroU32;
-pub use store::{ContextTray, ContextVisibility, Submission, SubmissionOutcome};
+pub use store::{ContextIntent, ContextTray, ContextVisibility, Submission, SubmissionOutcome};
 pub use value::{ContextId, ContextProblem, ContextText, ContextTitle, ContextUrl};
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 

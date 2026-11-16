@@ -3,7 +3,7 @@ use crate::{areas::session::Open, routes::Route, shell::language_tests};
 use gpui::TestAppContext;
 use vessel_proto::{ProjectId, SessionId};
 
-fn menu_fixture(
+pub(super) fn menu_fixture(
     shell: &mut Shell,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
