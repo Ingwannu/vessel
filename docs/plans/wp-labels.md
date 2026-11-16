@@ -544,9 +544,9 @@ or establishes a typed watermark/causal-read contract. W10/W12/C2 share this
 hold, and no native compile leaf has been installed.
 
 
-## Current resume point after base 14.1
+## Current resume point after base 14.5
 
-Merged only announced app base 14.1 `b54abbdc`, retaining history and label
+Merged only announced app base 14.5 `f3c05727`, retaining history and label
 registrations and the shared preference-save implementation. Local source size,
 token and diff checks pass; current native compilation/runtime/captures remain
 owed after the older scoped 45-test result. No whole node head entered this app.
@@ -607,3 +607,12 @@ types through the real shared engine, then clicks its actual X hit target and
 requires both the manager query and engine text to clear. The earlier deferred
 old-opening/source rejection test remains unchanged. These are UI fixtures only,
 not evidence of an authoritative workspace projection or a connected node.
+
+
+The separately frozen node whole2 ran all18 steps:17 passed, while Rust returned
+2738/2/12. Both failures were the inbox predecessor-replay fixture retaining the
+new A6 catalog tables; no product SQL/assertion was changed. The corrected
+fixture focused suite passed5/0/0 on the same frozen node base, and whole3 is
+pending. CLI regression, TSdiff0, web465/E2E80/forge4 were green on whole2; this
+is scoped evidence, not node acceptance. The app independently adopted announced
+base14.5 before its still-owed remote strict and label consumer tests.
