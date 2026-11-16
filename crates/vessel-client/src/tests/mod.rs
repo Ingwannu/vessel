@@ -10,6 +10,7 @@ mod secure;
 mod skills;
 mod stream;
 mod stream_end;
+mod stream_identity_end;
 mod stream_metadata;
 mod websocket;
 
