@@ -94,7 +94,7 @@ fn observe_entry(entry: &mut WorktreeEntry, generation: SetupRunId, event: Comma
         && observation.snapshot.cursor.run == generation
     {
         observation.event(event);
-        entry.observed.send_modify(|_| {});
+        entry.observed.send_modify(|()| {});
     }
 }
 
