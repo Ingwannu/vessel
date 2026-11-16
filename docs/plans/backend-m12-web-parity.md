@@ -1538,3 +1538,11 @@ web status/muted palette adaptation remains explicit. This packet does not
 approve the full F3 feature, account reports, live vendors/credentials, general
 accessibility/security, native UI or deployment; report methods remain inactive
 until their reviewed, assigned and merged node contract is available.
+
+
+Inactive duration text now localizes the semantic clock's already-floored
+parts through standard Intl units. Four additional pure cases check English
+and Korean, two-unit day/hour output, an omitted zero minor unit and the final
+positive partial minute (0m/0분, not elapsed or raw seconds). The combined suite
+passes 25 tests in six files, both typechecks and full web lint. It adds no
+clock computation, translation dependency, active surface or pending call.

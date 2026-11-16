@@ -312,3 +312,12 @@ a device's chosen host is persistent routing preference, not a historical
 profile or a saved account association. The pure chooser accepts existing
 branded NodeKeys and an explicit capability/connection state; it sends no call,
 reads no policy and does not enable a pending method or external lookup.
+
+
+Inactive countdown formatting consumes the view's floored two-part duration
+rather than re-reading a raw timestamp. It uses standard Intl narrow units
+and viewer-localized numbers, joined as in the reference's duration pair;
+English/Korean expectations match `format.ts` and their timing resources.
+Sentence copy remains a surface responsibility. This adds neither a second
+clock calculation nor a new localization dependency, and it never renders raw
+seconds/ISO text or infers a reset from a missing report.
