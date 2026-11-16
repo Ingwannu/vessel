@@ -279,10 +279,10 @@ pub(super) async fn setup(
             if let Err(cleanup) = primary.close().await {
                 tracing::debug!(%cleanup, "fixture setup cleanup failed");
             }
-            if let Some(peer) = &mut secondary {
-                if let Err(cleanup) = peer.close().await {
-                    tracing::debug!(%cleanup, "fixture setup cleanup failed");
-                }
+            if let Some(peer) = &mut secondary
+                && let Err(cleanup) = peer.close().await
+            {
+                tracing::debug!(%cleanup, "fixture setup cleanup failed");
             }
             Err(error)
         }

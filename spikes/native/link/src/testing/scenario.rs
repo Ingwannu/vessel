@@ -170,9 +170,14 @@ impl Scenario {
         }
     }
     fn require_peer(&self, peer: PeerSlot) -> Result<(), FixtureError> {
-        self.context_of(peer)
-            .map(|_facts| ())
-            .ok_or(FixtureError::Protocol)
+        match peer {
+            PeerSlot::Primary => Ok(()),
+            PeerSlot::Secondary => self
+                .secondary
+                .as_ref()
+                .map(|_facts| ())
+                .ok_or(FixtureError::Protocol),
+        }
     }
 
     fn action(
