@@ -21,6 +21,7 @@ use gpui::{div, px};
 use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
+pub mod context_menu;
 pub(crate) mod composition;
 mod frame;
 mod presentation;
