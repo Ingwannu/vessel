@@ -607,3 +607,20 @@ pending that receiving head, the consumer fix and its actual regression results.
   scalar's receiving head is announced and the consumer is changed. This is
   Store mechanism coverage, not assigned RPC, encrypted delivery or real-device
   proof. No external network or mobile service is invoked.
+
+
+## V3 local final-check snapshot return
+
+V3 independently confirmed that notification_current previously ran the
+authority SELECT and source SELECT without an encompassing read transaction.
+A revoke plus Seen-to-Unread interleaving could combine incompatible views.
+The narrow correction uses the same borrowed pooled connection's unchecked
+read transaction around the unchanged canonical admissible function, commits
+the read, then returns. No new SQL policy, async hold or grant is introduced.
+Actual two-order SQLite regressions, positive/Owner controls and changed-source
+checks remain owed. The separate pre-lock retained-task return stays open.
+
+Reviewing the new consumer fixture also corrected its drafted expectation:
+a revoked device gets false from notification_current and NotificationDenied
+from claim_notification. These existing API semantics are preserved; neither
+draft test was previously executed or claimed green.

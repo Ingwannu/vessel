@@ -230,10 +230,17 @@ async fn detached_source_uses_actual_candidate_claim_and_final_lease_consumers()
             .await
             .unwrap()
     );
+    assert!(
+        !fixture
+            .store
+            .notification_current(NotificationAuthority::Device(lease.device), source)
+            .await
+            .unwrap()
+    );
     assert!(matches!(
         fixture
             .store
-            .notification_current(NotificationAuthority::Device(lease.device), source)
+            .claim_notification(NotificationAuthority::Device(lease.device), source)
             .await,
         Err(StoreError::NotificationDenied)
     ));

@@ -240,3 +240,18 @@ Failed while retaining the source in Inbox and failed badges. Generic OS text
 and focus suppression do not change. A real-store regression checks the server
 local once-only admission, shared read suppression and actual Web Push query;
 separate native tests check error suppression. No new wire or scope is added.
+
+
+## Local final-check snapshot consistency
+
+The pooled-reader local notification recheck must observe current person
+authority and the exact source in one read transaction. Two independent
+auto-commit SELECTs could accept old device Read authority while the source is
+Seen, then accept Unread source state after revocation; those facts need not
+have been eligible together. The same borrowed SQLite connection now encloses
+the existing canonical admissible function in a read transaction and commits
+the read before returning. No async wait spans that transaction, no policy is
+duplicated, and no new authority is granted. A later revoke cannot recall an
+already admitted notification; this is one consistent snapshot, not transport
+linearizability or retroactive recall. Actual two-order regressions and changed
+source checks remain owed before claiming the correction is verified.

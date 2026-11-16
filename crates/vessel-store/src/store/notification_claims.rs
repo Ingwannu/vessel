@@ -37,7 +37,14 @@ impl Store {
     ) -> Result<bool, StoreError> {
         self.read(move |reader| {
             reader.with(|connection| {
-                crate::notification_claims::admissible(connection, authority, source)
+                // Authority and source must describe one database snapshot.
+                // A revoke/read toggle between separate auto-commit SELECTs
+                // must not combine two states that were never jointly eligible.
+                let transaction = connection.unchecked_transaction()?;
+                let admitted =
+                    crate::notification_claims::admissible(&transaction, authority, source)?;
+                transaction.commit()?;
+                Ok(admitted)
             })
         })
         .await
