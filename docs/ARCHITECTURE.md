@@ -2040,3 +2040,34 @@ log coverage nor an execution authorization fact. Typed write acknowledgements c
 queued writes; runtime kept metadata applies that known clock monotonically.
 The raw actor watch omits it and normal Info reads overlay it. Public protocol
 availability remains pending, and this does not establish label-map coverage.
+
+## Shared runtime preparation view
+
+Runtime executable preparation (`vessel-session::runtime::preparation`) shares
+its existing session drain tracker with actual blocking lookups. Each closure
+retains the caller's existing admission/claim owner through physical settlement;
+caller cancellation does not imply filesystem completion. Draft discovery
+(`probe_with_choices_owned`) uses this path and keeps the caller's owner (for
+example a listing permit) until the lookup settles. The fakes-only harness
+lookup barrier observes this boundary without granting quota or changing lookup
+results (see `docs/plans/prepared-session-relaunch.md`).
+
+`PreparationGate` is a non-wire library host boundary: an existing caller token
+plus a synchronous fresh admission callback, with temporary Wait on the host's
+existing watch channel. `SessionRuntime::with_preparation` returns one
+`PreparedRuntime` view that captures this runtime's own `LaunchAdmission`, so a
+host gate cannot replace the shutdown fence; `start_again`, `prepare_again`,
+`probe` and `probe_with_choices_owned` delegate through it, and the default
+routes use the same view with the runtime's own gate. Each newly admitted
+lookup/version effect retains its original caller guard and runtime tracker.
+Native version execution has one tracked owner through bounded output, any kill
+request and actual root wait; root uncertainty withholds completion, and cleanup
+receipts do not attest all descendants. `PreparedAgain` keeps the original
+conversation claim until live registration. Recovery's final session/device
+grant remains a separate boundary.
+
+This view has no node consumer yet: the node's draft command listing, recovery
+(N5) and the provider registry and catalogue (ADR 0081, PROVIDERS pending) are
+separate packages. `vessel-agent::probe_catalog_with` waits for both Ready and
+a command report; the native Codex driver does not report its catalogue in this
+stage, so a Codex catalogue probe ends `CatalogTimedOut` at its deadline.

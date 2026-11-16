@@ -9,12 +9,23 @@
 mod admission;
 pub use admission::LaunchAdmission;
 mod agent;
+pub use agent::ProbeChoices;
 mod claims;
 mod drivers;
 mod launch;
 mod parts;
+mod prepared;
+pub use prepared::PreparedRuntime;
+mod preparation;
+mod preparation_gate;
+pub use preparation_gate::{
+    PreparationAdmission, PreparationCancellation, PreparationEffect, PreparationGate,
+    PreparationRefusal,
+};
 #[cfg(test)]
 mod private_dir;
+#[cfg(test)]
+mod registration;
 
 mod diagnostics;
 
@@ -29,6 +40,7 @@ use tokio_util::task::TaskTracker;
 use vessel_proto::{EventRecord, SessionId, SessionInfo};
 
 pub(crate) use agent::AgentCommand;
+pub(crate) use claims::Claim;
 pub use launch::{ForkStart, LaunchOptions};
 pub(crate) use parts::{ActorStart, Begin};
 
@@ -72,10 +84,14 @@ pub struct SessionRuntime {
     /// follows it, so a change applies to live sessions at once.
     park_after: watch::Sender<Option<Duration>>,
     /// Conversations sessions are starting on (protocol 17, `claims`).
-    claims: claims::Claims,
+    claims: Arc<claims::Claims>,
     /// Which protocol drives each agent's new sessions (protocol 18,
     /// `drivers`).
     drivers: drivers::Drivers,
+    #[cfg(test)]
+    before_registration: registration::RegistrationGate,
+    #[cfg(test)]
+    version_control: Arc<drivers::version::VersionControl>,
 }
 
 /// A session that was just started.
@@ -110,8 +126,12 @@ impl SessionRuntime {
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
             park_after,
-            claims: claims::Claims::default(),
+            claims: Arc::new(claims::Claims::default()),
             drivers: drivers::Drivers::default(),
+            #[cfg(test)]
+            before_registration: registration::RegistrationGate::default(),
+            #[cfg(test)]
+            version_control: Arc::new(drivers::version::VersionControl::default()),
         }
     }
 
@@ -164,11 +184,6 @@ impl SessionRuntime {
     /// session is being started.
     pub(crate) fn tasks_token(&self) -> tokio_util::task::task_tracker::TaskTrackerToken {
         self.tasks.token()
-    }
-
-    /// Whether shutdown began: no session starts any more.
-    pub(crate) fn is_shutting_down(&self) -> bool {
-        self.shutdown.is_cancelled()
     }
 
     /// How long an agent's handshake may take.

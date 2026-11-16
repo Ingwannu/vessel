@@ -291,3 +291,11 @@ fn a_probe_carries_none() {
 }
 
 mod stop_failure;
+
+mod preparation;
+
+mod registration;
+
+mod version_admission;
+
+mod prepared_view;

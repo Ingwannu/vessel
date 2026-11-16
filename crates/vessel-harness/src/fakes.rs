@@ -79,3 +79,6 @@ fn place(fake: &Path, dir: &Path, name: &str) -> io::Result<PathBuf> {
 pub fn claude_project(home: &Path, cwd: &Path) -> Option<PathBuf> {
     crate::harnesses::claude_slug(cwd).map(|slug| home.join("projects").join(slug))
 }
+
+pub(crate) mod lookup_gate;
+pub use lookup_gate::{LookupArrival, LookupBarrier, LookupCount, hold_lookup};

@@ -38,6 +38,7 @@
 //!   `starting`, then `failed` with the reason, as a new session does.
 
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use chrono::Utc;
 use tokio::sync::oneshot;
@@ -129,6 +130,53 @@ impl Gate {
     }
 }
 
+/// An ended session prepared without starting its restored session process.
+/// Command resolution may execute a bounded native-version helper under the
+/// shared preparation gate; this is not a claim that preparation starts no process.
+/// The original conversation claim stays owned through actual registration.
+pub struct PreparedAgain<'a> {
+    runtime: &'a SessionRuntime,
+    claim: Arc<crate::runtime::Claim>,
+    launch: Launch,
+    begin: Begin,
+    notices: Vec<String>,
+    actor: ActorStart,
+    gate: Gate,
+    admission: crate::LaunchAdmission,
+}
+impl std::fmt::Debug for PreparedAgain<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreparedAgain")
+            .field("session", &self.begin.info.id)
+            .finish_non_exhaustive()
+    }
+}
+impl PreparedAgain<'_> {
+    /// The node adds its fresh, grant-bounded tools only at final admission.
+    pub fn mcp_servers(&mut self) -> &mut ResolvedMcpServers {
+        &mut self.launch.setup.mcp_servers
+    }
+
+    /// Start under the caller's final session admission, without an await.
+    /// Preparation admission alone is not session launch authority.
+    ///
+    /// # Errors
+    /// Runtime shutdown, a duplicate session, or the ordinary spawn failure.
+    pub fn start(self) -> Result<Reopening, SessionError> {
+        let _in_flight = self.runtime.tasks_token();
+        self.admission.check()?;
+        let created =
+            self.runtime
+                .run_structured(self.launch, self.begin, self.notices, self.actor)?;
+        // Keep this original Arc until register returns, even on another thread.
+        self.claim.keep();
+        Ok(Reopening {
+            created,
+            gate: self.gate,
+        })
+    }
+}
+
 /// Why an ended session cannot start again.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum NotResumable {
@@ -185,11 +233,43 @@ impl SessionRuntime {
         ended: Ended,
         launch: Relaunch,
     ) -> Result<Reopening, SessionError> {
+        self.prepare_again(ended, launch).await?.start()
+    }
+
+    /// Resolve an ended structured session without spawning its restored run.
+    /// The same claims and physically retained preparation path are used.
+    /// A native-version helper can run under its own fresh preparation admission.
+    ///
+    /// # Errors
+    /// As [`Self::start_again`], except actual session spawn failures.
+    pub async fn prepare_again(
+        &self,
+        ended: Ended,
+        launch: Relaunch,
+    ) -> Result<PreparedAgain<'_>, SessionError> {
+        self.default_preparation_view()
+            .prepare_again(ended, launch)
+            .await
+    }
+
+    pub(crate) async fn prepare_again_with<'r, F>(
+        &'r self,
+        ended: Ended,
+        launch: Relaunch,
+        preparation: &crate::PreparedRuntime<'r, F>,
+    ) -> Result<PreparedAgain<'r>, SessionError>
+    where
+        F: for<'a> Fn(
+                crate::PreparationEffect,
+                crate::PreparationCancellation<'a>,
+            ) -> crate::PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
         // Counts as a running task, as a creation does.
         let _in_flight = self.tasks_token();
-        if self.is_shutting_down() {
-            return Err(SessionError::ShuttingDown);
-        }
+        preparation.admission().check()?;
         let Ended {
             mut info,
             choices,
@@ -209,7 +289,8 @@ impl SessionRuntime {
         let mut profiles = moved_through;
         let _created = profiles.insert(info.spec.profile.clone());
         let _current = profiles.insert(info.profile.clone());
-        let claim = self.claim(info.id, &info.spec.harness, profiles, &harness_session)?;
+        let claim =
+            Arc::new(self.claim(info.id, &info.spec.harness, profiles, &harness_session)?);
         let Relaunch {
             profile,
             limits,
@@ -229,7 +310,14 @@ impl SessionRuntime {
             cwd,
             driver,
             notices: chosen,
-        } = self.agent_command(spec, profile, model_proxy).await?;
+        } = self
+            .agent_command_owned(
+                spec,
+                profile,
+                model_proxy,
+                preparation.retain(Arc::clone(&claim)),
+            )
+            .await?;
         notices.extend(chosen);
         // The model it asked for at creation, as a move passes it on.
         let model = match &info.spec.mode {
@@ -274,11 +362,15 @@ impl SessionRuntime {
             setup,
             driver,
         };
-        let created = self.run_structured(launch, begin, notices, actor)?;
-        claim.keep();
-        Ok(Reopening {
-            created,
+        Ok(PreparedAgain {
+            runtime: self,
+            claim,
+            launch,
+            begin,
+            notices,
+            actor,
             gate: Gate(gate),
+            admission: preparation.admission(),
         })
     }
 }
