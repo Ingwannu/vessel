@@ -162,6 +162,9 @@ impl NodeService {
         // worktree, `_starting` keeps a removal out until the session is
         // live, or failed to start (ADR 0030); it is dropped on return.
         let (notices, _starting) = self.place(principal, &mut spec).await?;
+        if let Some(SessionPlace::Project { project, .. }) = spec.place.as_deref() {
+            self.workspaces.register_root(*project).await;
+        }
         let mut options = self
             .launcher
             .options(&self.profiles, &spec, principal)

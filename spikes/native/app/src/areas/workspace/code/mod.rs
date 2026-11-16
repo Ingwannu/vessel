@@ -130,7 +130,7 @@ struct Viewer {
     /// The file edited in place (a desktop's width, at most 1 MiB of
     /// text); `None`: shown read-only by the lines above.
     edit: Option<editing::Editing>,
-    /// Its watch while shown (protocol 26, ADR 0105).
+    /// Its watch while shown (protocol 27, ADR 0105).
     watch: vessel_app_view::workspace::watch::Watch,
 }
 

@@ -94,6 +94,8 @@ mod profiles;
 #[cfg(test)]
 mod prompts;
 #[cfg(test)]
+mod registration;
+#[cfg(test)]
 #[cfg(unix)]
 mod remote;
 #[cfg(test)]
