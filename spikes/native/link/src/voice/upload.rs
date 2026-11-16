@@ -1,5 +1,7 @@
 //! Stop gates immediately, disposes local devices, then awaits remote cleanup.
 
+mod payload;
+
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;

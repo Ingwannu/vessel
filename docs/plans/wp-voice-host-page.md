@@ -62,3 +62,11 @@ credential ownership, permission and transport behavior remain separate checks.
 - The local model catalogue is selection metadata. LocalNotBuilt remains unavailable, with no automatic model download, fake progress or readiness inferred from a selected identifier. Model/runtime distribution and node model inventory/actions are later reviewed work.
 - Provider reset and unknown-site behavior follow the checked DTOs. Unknown choices remain readable; an unrelated disable may preserve them, but editing that site requires an explicit known provider/model or reset.
 - The fake UI uses typed data and effects only. No guessed `node.settings.voice`, new RPC, field, storage, actor/reload adapter or runtime is activated before its owning producer exists.
+
+
+Shared key-field checkpoint: source inventory found no checked secret-entry
+profile in the current kit. G3 confirmed its SearchField is not a substitute;
+G2 owns the current TextField writer slot. The coordinator assigned G2 the
+masked profile after its textarea slice, with ADR then V1 review. Keep key
+entry plan-only until that checked hash arrives. Masking alone does not prove
+clipboard, diagnostic, input-method or accessibility privacy.
