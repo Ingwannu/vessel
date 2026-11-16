@@ -258,6 +258,19 @@ describe("the manager", () => {
     expect(model.snapshot().node).toBe(gpu);
   });
 
+  test("it prefers the chosen machine, then one with labels", () => {
+    const model = new ManagerModel({
+      update: () => Promise.resolve(ok),
+      inspect: () => Promise.resolve({ ok: true, value: 0 }),
+      remove: () => Promise.resolve(ok),
+    });
+    const empty = { ...machine, node: gpu, name: "gpu-box", labels: [] };
+    model.syncMachines([empty, machine]);
+    expect(model.snapshot().node).toBe(laptop);
+    model.syncMachines([empty, machine], gpu);
+    expect(model.snapshot().node).toBe(gpu);
+  });
+
   test("search narrows the list", () => {
     const model = new ManagerModel({
       update: () => Promise.resolve(ok),

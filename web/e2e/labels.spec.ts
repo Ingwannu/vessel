@@ -120,6 +120,11 @@ test("a label made on a workspace row shows as its chip, filters it, and goes wh
   await display(page);
   await page.getByRole("menuitem", { name: "Manage labels…" }).click();
   const manager = page.getByRole("dialog", { name: "Manage labels" });
+  await choose(
+    page,
+    manager.getByRole("combobox", { name: "Machine" }),
+    /^laptop$/,
+  );
   await manager.getByRole("button", { name: "Needs review" }).click();
   await page
     .getByRole("dialog", { name: "Edit label" })

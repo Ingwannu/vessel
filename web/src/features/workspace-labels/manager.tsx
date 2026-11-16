@@ -52,6 +52,7 @@ function LabelManager({ onClose }: { onClose: () => void }) {
   const { hub, state } = useLabels();
   const book = useFleetState((value) => value.book);
   const statuses = useFleetState((value) => value.statuses);
+  const selected = useFleetState((value) => value.selected);
   const model = useMemo(
     () =>
       new ManagerModel({
@@ -74,8 +75,8 @@ function LabelManager({ onClose }: { onClose: () => void }) {
         labels: catalog?.labels ?? [],
       };
     });
-    model.syncMachines(machines);
-  }, [model, book, statuses, state.catalogs]);
+    model.syncMachines(machines, selected);
+  }, [model, book, statuses, state.catalogs, selected]);
   const view = useSyncExternalStore(model.subscribe, model.snapshot);
   const [asking, setAsking] = useState<{
     name: string;

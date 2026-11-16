@@ -78,15 +78,25 @@ export class ManagerModel extends Observed<ManagerSnapshot> {
   }
 
   /** The machines and their catalogs now. Until the person picks one, the
-   * first machine that answers is shown (a book often starts with one that
-   * is off); a machine that went away is replaced the same way, unless an
-   * operation is under way. */
-  syncMachines(machines: readonly ManagedMachine[]): void {
+   * manager shows `preferred` (the machine they last chose) when it
+   * answers, else the first that answers with labels, else the first that
+   * answers (a book often starts with one that is off); a machine that
+   * went away is replaced the same way, unless an operation is under way. */
+  syncMachines(
+    machines: readonly ManagedMachine[],
+    preferred: NodeKey | null = null,
+  ): void {
     this.#machines = machines;
     const known = machines.some((machine) => machine.node === this.#node);
     if (this.#running === null && (!known || !this.#picked)) {
-      const online = machines.find((machine) => machine.state === "online");
-      const next = (online ?? machines[0])?.node ?? null;
+      const online = machines.filter((machine) => machine.state === "online");
+      const next =
+        (
+          online.find((machine) => machine.node === preferred) ??
+          online.find((machine) => machine.labels.length > 0) ??
+          online[0] ??
+          machines[0]
+        )?.node ?? null;
       if (next !== this.#node) {
         this.#node = next;
         this.#draft = null;
