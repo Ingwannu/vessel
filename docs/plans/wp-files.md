@@ -1,65 +1,60 @@
 # Workspace files, editor and document panels
 
 Status: C5/C6 implementation remains incomplete; no native package acceptance.
-The app includes announced base10 3e7820e3, canonical pane/query/close values,
-G4 selected-connection preflight and the shared field/IME controls. Retained
-buffers use NodeId/root/path, original serialized write tickets, and sticky
+The app includes announced base13.1 ad14f5f6 and the canonical node file package.
+Root crates, root Cargo.lock and generated wire files have no difference from
+that base. Only the native owner delta is intended for the app handoff. Retained
+buffers use NodeId/root/path, serialized original write tickets and sticky
 uncertain effects. Existing-engine input is mirrored before admission and
-projection, including input whose owner notification is queued.
+projection, including accepted input whose owner notification is queued.
 
-The current owner source includes the base10 union and the later toolbar and
-engine-revision corrections below. Strict28 on earlier4fbbe4d8 passed
-all-target locked Clippy for Kit/View/Link/App with warnings denied. Actual
-four-package tests10 stopped after App149 passed,2 failed,2 ignored; later
-package suites were not executed. Both failures were fixture assumptions:
-the tree lacked an observable test selector, and Explorer is a valid file
-placement. The correction adds observable tree/legacy-Back controls and tests
-a genuinely removed pane, preserving the owner-restoration assertions.
+Latest owned strict33 on682e0186 passed all-target locked Clippy for
+Kit/View/Link/App with warnings denied (wp-files-narrow-20261116T011243Z-682e0186).
+That proof precedes the base-only ad14f5f6 merge; it is not a whole native gate.
+Actual tests14 on95ab8b89 passed App184/0/2, then failed one old Markdown
+prototype fixture in Kit249/1/0 and stopped before View/Link runtime. The
+canonical B2 Markdown producer now replaces the independent fence scanner;
+receiving runtime tests15 remain queued. The new wasm boundary check is also
+queued. Neither has a result yet, and the earlier failed evidence is retained.
 
-Strict29 run wp-files-narrow-20261115T181725Z-9305a08d passed all four
-crates' all-target locked Clippy on the earlier base9b readiness source.
-Strict30 on the later toolbar union failed App compilation because the tree
-selector lacked its existing InteractiveElement trait import; that import is
-corrected. Queued tests11 and the known-red tests12 were cancelled before
-execution (143), with their records retained. Tests13 checks the latest owner
-union, including the equal-text revision and toolbar cases; no result is
-claimed. Prior strict results do not qualify this latest union or live admission.
+The existing-engine revision regression distinguishes A→X→A even when text
+equals the old snapshot. The standalone vendor/Kit producer passed bounded
+V1 source and requested strict/runtime review and was cherry-picked by the
+lead; its new line gate is not yet announced. Its vendor-private test remains
+explicitly unexecuted because the supported recipe lacks that test lock. The
+actual Kit case and C5 App equal-text case are separate executed evidence.
 
-Actual-engine readiness now receives the same readonly App reference: a
-cached Clean model cannot hide accepted editor text whose mirror is queued.
-Context-free cache eviction conservatively retains every instantiated editor;
-explicit close may release a mirrored settled snapshot. This costs cache
-capacity and avoids dropping silent input. Quit registration remains staged
-until its shared real caller is checked; no forced-exit recovery is promised.
-The app tree still carries earlier ADR0083 provisional root sources from its
-own package commits. A native-only check does not qualify that root union or
-make it a values-only carrier. Before final native handoff those copies must
-align with the accepted node package after it reaches the announced app line;
-only the final native owner delta is intended for the app handoff.
+Actual-engine readiness receives the same readonly App reference: a cached
+Clean model cannot hide accepted editor text whose mirror is queued. Context-free
+cache eviction conservatively retains every instantiated editor, costing cache
+capacity. Quit registration and the synchronous phase applier remain staged
+until their shared real caller and complete-window traversal are checked. No
+forced-exit recovery is promised.
 
 The node companion is final source/evidence PASS in V3 row171 on exact
 a2b69afec8669b71cc59f257fba31c7c9fbb959f. Whole run
 wp-files-node-20261115T154926Z-a2b69afe executed all18 steps with rc0:
 Rust2414/0/12, web464, e2e68, forge4; current strict, generated declarations
-and freshness passed. Its bounded read-pass pages, exclusive copy, finite
-observation, suggestions, metadata and admitted per-page SDK reader remain
-pending FILE_PANELS_PROTOCOL=None. The integrator accepted this exact frozen
-head for its next combination, not native consumption or feature assignment.
+and freshness passed. It landed as15610d47a in node27502436 (gate54 green)
+and is present in the announced app base. FILE_PANELS_PROTOCOL remains None.
 Whole-hash verification and atomic publication remain the actual ChunkSink
 implementation's contract. Mutable-file atomic snapshots, same-user path-swap
 limitations and real service-account flows are outside that PASS.
 
-Typed File opening/bindings/close requests and quit readiness remain test-staged
-until their real shared callers and guards are checked. The legacy installed
-root scope is request evidence, not an irreversible UI delivery guard. A separate
-shown-Changes producer is being prepared on the exact G4 delivery source and
-announced line; it must replace the root acquisition when joined, not create a
-second resolver. It is not a checked opener or a typed Explorer mount.
+Typed File opening/bindings/close requests remain test-staged until their real
+shared callers and original guards are checked. The installed legacy root
+scope is request evidence, not an irreversible UI delivery guard. The separate
+shown-Changes preparation passed eight real framed cases on340f92ede
+(wp-files-shown-20261116T012821Z-340f92ed) and is under bounded V1 review.
+It carries original acquisition guards, but its preparation contains a separate
+G4 fixture/product dependency and cannot be adopted as a whole branch. When
+joined here it must replace the root acquisition, never create a second
+resolver. It is not a checked file opener or typed Explorer mount.
 
 No whole native gate, inspected captures, PDF/SVG/image/HTML renderer completion,
 actual binary download sink, live quit safety or C5 completion is claimed.
 Historical checkpoints below retain their original evidence and may describe
-superseded identities; this status and the current resume record take precedence.
+superseded identities; this status takes precedence.
 
 ## Reference and existing assets
 
