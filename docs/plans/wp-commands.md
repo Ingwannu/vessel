@@ -1180,3 +1180,20 @@ Git staging exact05fdbeaa6 passed App all-target strict checks in run
 wp-commands-narrow-20261116T021433Z-05fdbeaa. This compiles both the product
 configuration without F4 Git registration and the staged test configuration.
 No new write-owner readiness or inherited toolbar approval follows from it.
+
+
+Layout alias receiving evidence at exact d31181c47754106050a8d4e0fbc311a7bc525f2f:
+run wp-commands-narrow-20261116T021940Z-d31181c4 passed App all-target Clippy
+with warnings denied. Run wp-commands-20261116T021940Z-d31181c4 recompiled the
+actual App binary and passed both layout_actions cases2/0/0,177filtered: Korean
+physical-field input found canonical hidden aliases at1280 and599 widths, and
+a captured close remained refused after the selected workspace changed.
+No missing glyph-role visual approval or new resource authority is inferred.
+
+The common exporter owner has repaired the old-root selection boundary with
+the explicit --shared-root-fleet base12 option. The selected root is protocol25
+and schema21, independently pinned to its own b5b46357 commit and full manifest
+and checksum digests; same_commit remains false relative to the app. One bounded
+native-build app export is submitted on d31181c4 through that approved route.
+Its first-use originals, inspection and coordinator comparison remain owed.
+This bounded build is separate from the final whole F4 gate/capture matrix.
