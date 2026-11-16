@@ -107,6 +107,9 @@ fn platform_variable(name: &str) -> bool {
 mod tests {
     use super::*;
 
+    const SPAWN_CASE_BUDGET: std::time::Duration = std::time::Duration::from_secs(30);
+    const CLEANUP_PHASE_BUDGET: std::time::Duration = std::time::Duration::from_secs(10);
+
     fn command() -> CommandSpec {
         let executable = std::env::current_exe().expect("test executable");
         CommandSpec::new(executable.clone())
@@ -163,36 +166,48 @@ mod tests {
 
     #[tokio::test]
     async fn actual_prepared_spawn_refusal_seals_private_program_and_arguments() {
-        use std::error::Error as _;
-        let directory = tempfile::tempdir().expect("owned fixture directory");
-        let private = "PRIVATE-PREPARED-SPAWN-CANARY";
-        let spec = CommandSpec::new(directory.path().join(private))
-            .env_clear()
-            .cwd(directory.path())
-            .arg(private);
-        let address = vessel_proto::plugins::PluginAddress {
-            node: vessel_proto::NodeId::random(),
-            plugin: "fixture".parse().expect("identity"),
-            generation: vessel_proto::plugins::RuntimeGeneration::random(),
-        };
-        let Err(error) = crate::Supervisor::spawn(
-            PreparedCommand::new(spec).expect("prepared"),
-            address,
-            crate::SharedLogs::default(),
-            &tokio_util::sync::CancellationToken::new(),
-        ) else {
-            panic!("missing fixture program unexpectedly started");
-        };
-        assert!(matches!(&error, crate::RuntimeError::Spawn(_)));
-        let mut source: Option<&(dyn std::error::Error + 'static)> = Some(&error);
-        while let Some(cause) = source {
-            assert!(!format!("{cause:?} {cause}").contains(private));
-            source = cause.source();
-        }
-        assert!(
-            error.source().is_some(),
-            "retain the concrete sealed spawn cause"
-        );
+        vessel_testkit::within(SPAWN_CASE_BUDGET, async {
+            use std::error::Error as _;
+            let directory = tempfile::tempdir().expect("owned fixture directory");
+            let private = "PRIVATE-PREPARED-SPAWN-CANARY";
+            let spec = CommandSpec::new(directory.path().join(private))
+                .env_clear()
+                .cwd(directory.path())
+                .arg(private);
+            let address = vessel_proto::plugins::PluginAddress {
+                node: vessel_proto::NodeId::random(),
+                plugin: "fixture".parse().expect("identity"),
+                generation: vessel_proto::plugins::RuntimeGeneration::random(),
+            };
+            let error = match crate::Supervisor::spawn(
+                PreparedCommand::new(spec).expect("prepared"),
+                address,
+                crate::SharedLogs::default(),
+                &tokio_util::sync::CancellationToken::new(),
+            ) {
+                Err(error) => error,
+                Ok(supervisor) => {
+                    let _cleanup =
+                        tokio::time::timeout(CLEANUP_PHASE_BUDGET, supervisor.shutdown())
+                            .await
+                            .expect("unexpected fixture owned cleanup deadline")
+                            .expect("unexpected fixture owned cleanup");
+                    panic!("missing fixture program unexpectedly started");
+                }
+            };
+            assert!(matches!(&error, crate::RuntimeError::Spawn(_)));
+            let mut source: Option<&(dyn std::error::Error + 'static)> = Some(&error);
+            while let Some(cause) = source {
+                assert!(!format!("{cause:?} {cause}").contains(private));
+                source = cause.source();
+            }
+            assert!(
+                error.source().is_some(),
+                "retain the concrete sealed spawn cause"
+            );
+        })
+        .await
+        .expect("complete prepared-spawn case safety net");
     }
 }
 

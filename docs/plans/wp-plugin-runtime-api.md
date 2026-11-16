@@ -104,3 +104,21 @@ and walks every RuntimeError/SpawnError source Display/Debug level for a canary.
 The existing prepared-launch unit also checks raw-spec privacy and unchanged
 argv. Current-source strict and feature-enabled actual helper fixtures are owed;
 previous portable runtime results are not claimed for this new consumer.
+
+### Canonical case-clock follow-up
+
+The first diagnostic-consumer6c fixture run executed23 library cases plus6 actual
+helper cases successfully, paired with strict success. That is predecessor
+execution only: the newly added async missing-program case still needed the
+repository's canonical whole-case safety net. It now uses a named30s
+vessel_testkit::within clock (shared fake build before clock), retaining every
+canary/source and argv assertion. An unexpected successful spawn must settle
+its same owned supervisor under a named10s cleanup phase before failing the
+case; it never becomes successful evidence.
+
+Only the existing local workspace vessel-testkit dev edge is added, with no
+normal product edge, registry package or public API. The manifest-only candidate
+uses the fixed root-dev-lock offline export recipe; the original root lock is
+preserved until its validated minimal patch is returned. No unlocked build or
+unrelated version/feature resolution is authorized. Corrected-source locked
+strict and the actual fixture suite remain owed after that patch is checked.
