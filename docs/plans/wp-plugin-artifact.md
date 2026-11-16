@@ -245,3 +245,24 @@ The successful two-pass result is a distinct privately constructed Observed
 wrapper. Supplied-record TreeDigest values cannot construct it; only Pending's
 complete re-observation does. This is a filesystem observation distinction,
 not installation/source provenance or executable authority.
+
+The diagnostic e149e7a1 run supplied actual cause evidence: all recorded metadata
+fields before and after the same-size rewrite were identical, including ctime,
+and the prepared probe returned the fresh hash of the replacement bytes. A
+metadata-only preparation has no old content hash to compare; requiring Changed
+in that observed state was an invalid fixture expectation. The corrected case
+requires the new hash when stamps are equal, still requires Changed when they
+actually differ, retains old-versus-new hash inequality, and adds an unconditional
+held size-change refusal. It never permits reuse of an old content hash. The
+whole-tree held-between-passes case independently requires Changed from the two
+actual complete content observations, even if timestamps happen to match.
+
+All five tree cases in that run also failed before their intended boundary:
+TempDir's pinned default is0777 filtered by umask (actual fixture0755), not0700.
+The existing private-directory policy correctly rejected it. Fixtures now request
+0700 at initial creation using the pinned Builder permissions API, whose Unix
+implementation calls DirBuilder.mode before create; no chmod/repair or product
+permission relaxation is used. UID/mode and all policy assertions remain. The
+same run's three strict failures (doc backticks, temporary diagnostic printing,
+open enum wildcard) are corrected without allowances. Original26/6 runtime and
+strict-red logs remain separate from the next corrected-source proof.

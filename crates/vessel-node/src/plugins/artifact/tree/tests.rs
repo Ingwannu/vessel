@@ -1,5 +1,6 @@
 use super::*;
 use nix::{sys::stat::Mode, unistd::mkfifo};
+use std::os::unix::fs::PermissionsExt as _;
 use std::{
     fs::{DirBuilder, File, FileTimes, OpenOptions},
     io::{Seek as _, SeekFrom, Write as _},
@@ -8,6 +9,13 @@ use std::{
         fs::{DirBuilderExt as _, OpenOptionsExt as _, symlink},
     },
 };
+
+fn private_root() -> tempfile::TempDir {
+    tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .expect("initially private owned candidate")
+}
 
 fn write(root: &Path, name: &str, bytes: &[u8], mode: u32) -> File {
     let mut file = OpenOptions::new()
@@ -31,8 +39,8 @@ fn observe(path: &Path) -> Result<Observed, Failure> {
 
 #[test]
 fn two_actual_passes_are_order_independent_and_cover_internal_link_targets() {
-    let first = tempfile::tempdir().expect("first owned candidate");
-    let second = tempfile::tempdir().expect("second owned candidate");
+    let first = private_root();
+    let second = private_root();
     let metadata = fs::metadata(first.path()).expect("actual root metadata");
     assert_eq!(metadata.uid(), nix::unistd::geteuid().as_raw());
     assert_eq!(metadata.mode() & 0o077, 0);
@@ -60,7 +68,7 @@ fn two_actual_passes_are_order_independent_and_cover_internal_link_targets() {
 
 #[test]
 fn same_size_restored_mtime_edit_between_full_passes_never_yields_identity() {
-    let folder = tempfile::tempdir().expect("owned candidate");
+    let folder = private_root();
     let mut file = write(folder.path(), "helper", b"first", 0o700);
     let times = file.metadata().expect("initial descriptor");
     let before = observe(folder.path()).expect("old complete fact");
@@ -78,8 +86,8 @@ fn same_size_restored_mtime_edit_between_full_passes_never_yields_identity() {
 
 #[test]
 fn escape_dangling_cycle_and_fifo_never_become_complete_candidates() {
-    let folder = tempfile::tempdir().expect("owned candidate");
-    let outside = tempfile::tempdir().expect("outside fixture");
+    let folder = private_root();
+    let outside = private_root();
     let _outside = write(outside.path(), "data", b"outside", 0o600);
     let link = folder.path().join("link");
     symlink(outside.path().join("data"), &link).expect("escaping fixture");
@@ -97,7 +105,7 @@ fn escape_dangling_cycle_and_fifo_never_become_complete_candidates() {
 
 #[test]
 fn aggregate_sparse_files_and_real_depth_are_refused_before_hashing() {
-    let folder = tempfile::tempdir().expect("owned candidate");
+    let folder = private_root();
     for name in ["one", "two", "three"] {
         let file = write(folder.path(), name, b"", 0o600);
         file.set_len(super::super::MAX_FILE_BYTES)
@@ -109,7 +117,7 @@ fn aggregate_sparse_files_and_real_depth_are_refused_before_hashing() {
             super::super::Limit::TotalBytes
         )))
     ));
-    let deep = tempfile::tempdir().expect("owned deep candidate");
+    let deep = private_root();
     let mut path = deep.path().to_path_buf();
     for _ in 0..=super::super::MAX_DEPTH {
         path.push("child");
@@ -125,7 +133,7 @@ fn aggregate_sparse_files_and_real_depth_are_refused_before_hashing() {
 
 #[test]
 fn root_link_cancel_and_shared_deadline_refuse_and_all_diagnostics_are_sealed() {
-    let folder = tempfile::tempdir().expect("owned candidate");
+    let folder = private_root();
     let _file = write(folder.path(), "helper", b"helper", 0o700);
     let cancellation = CancellationToken::new();
     let pending = Pending::begin(folder.path(), &cancellation).expect("first full pass");
@@ -140,7 +148,7 @@ fn root_link_cancel_and_shared_deadline_refuse_and_all_diagnostics_are_sealed() 
         pending.finish(),
         Err(Failure::File(file::Failure::Expired))
     ));
-    let holder = tempfile::tempdir().expect("link holder");
+    let holder = private_root();
     let root_link = holder.path().join("root-link");
     symlink(folder.path(), &root_link).expect("root symlink");
     assert!(matches!(observe(&root_link), Err(Failure::Policy)));

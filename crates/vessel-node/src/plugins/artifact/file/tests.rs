@@ -60,12 +60,25 @@ fn actual_descriptor_is_nonblocking_and_same_size_restored_time_changes_hash() {
     );
     let after_stamp = Stamp::from(&file.metadata().expect("rewritten descriptor"));
     let actual = held.read(&cancellation);
-    eprintln!("prepared={prepared_stamp:?}; after={after_stamp:?}; result={actual:?}");
-    assert!(matches!(actual, Err(Failure::Changed)));
     let second = probe(&path)
         .read(&cancellation)
         .expect("second content hash");
     assert_ne!(first, second, "content, not restored mtime, binds bytes");
+    // A metadata-only preparation cannot promise a timestamp changed: the VM
+    // actually observed identical stamps for the synthetic same-size edit.
+    // Such a read must hash current bytes; it cannot reuse the old content hash.
+    if prepared_stamp == after_stamp {
+        assert_eq!(actual.expect("unchanged observed metadata"), second);
+    } else {
+        assert!(matches!(actual, Err(Failure::Changed)));
+    }
+    let held_size = probe(&path);
+    file.set_len(metadata.len().saturating_add(1))
+        .expect("actual size change");
+    assert!(matches!(
+        held_size.read(&cancellation),
+        Err(Failure::Changed)
+    ));
 }
 
 #[test]

@@ -97,7 +97,7 @@ fn collect(
         let kind = classify(scope, &full, &metadata)?;
         let bytes = match kind {
             Unread::File { bytes, .. } => bytes,
-            _ => 0,
+            Unread::Directory { .. } | Unread::Link { .. } => 0,
         };
         budget.admit_shape(&path, bytes)?;
         let descend = matches!(kind, Unread::Directory { .. });

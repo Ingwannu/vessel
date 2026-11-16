@@ -1,5 +1,5 @@
 //! Supplied-record facts and staged Unix tree observations (ADR0079).
-//! TreeDigest alone does not prove complete I/O; the private tree owner performs
+//! `TreeDigest` alone does not prove complete I/O; the private tree owner performs
 //! two real passes. Neither grants source provenance or execution authority.
 //! Async admission, acquisition and non-Unix ACL qualification remain absent.
 #[cfg(unix)]
