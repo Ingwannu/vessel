@@ -12,7 +12,9 @@ use vessel_workspace::commands::CommandEvent;
 use super::super::{MAX_WAIT_SECS, WorkspaceError, Workspaces};
 
 impl Workspaces {
-    pub(super) fn observe_setup(
+    // Kept within the workspace owner, including its real-runner integration
+    // tests; this publication hook is not a service or principal API.
+    pub(in crate::workspace) fn observe_setup(
         &self,
         worktree: WorktreeId,
         generation: SetupRunId,
