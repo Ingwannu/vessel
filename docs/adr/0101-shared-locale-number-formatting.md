@@ -148,6 +148,74 @@ checks immutable and record exact revisions, features and commands.
   building the product on that candidate. No dead experiment feature remains
   in the selected product.
 
+## Dependency experiment and approval boundary
+
+The coordinator requires a yes/no decision on the ADR diff and measured
+numbers **before any product lockfile change**. The build tooling currently
+has no installed selector for this scratch dependency experiment. Its owner
+must provision the exact graph offline from the build cache and preserve a
+separate experiment lock/feature manifest; this is not permission for a
+worker to resolve or download dependencies through the ordinary locked gate.
+Missing measurement cells remain missing, not zero.
+
+The narrow candidate starts with these exact requests, all `Unicode-3.0`:
+
+| Crate | Version | Features, with defaults disabled | Purpose |
+| --- | --- | --- | --- |
+| `fixed_decimal` | `=0.7.3` | `ryu` | Shortest finite decimal, explicit rounding, exact unsigned digits |
+| `icu_plurals` | `=2.4.0` | `compiled_data` | Maintained exact-operand cardinal/ordinal rules |
+| `icu_locale_core` | `=2.4.0` | none | Checked ICU locale input |
+| `icu_provider` | `=2.4.0` | `sync` | Shared prepared data compatible with concurrent bundles |
+
+The ICU decimal/compact comparison additionally requests `icu_decimal`
+`=2.4.0`, defaults disabled, `compiled_data`, `unstable`, `ryu`. It uses
+upstream baked decimal/compact/plural data, with no locale-subset regeneration.
+Both candidates use folder-owned USD patterns; the closed USD-only requirement
+does not require an experimental all-currency runtime. The experimental ICU
+currency API was investigated, but is not in either requested graph. These
+are experiment candidates, **not adopted dependencies**; their full transitive
+versions/features, license inventory, data markers, reachable linked code,
+release-byte deltas on both targets and compile-time deltas are still owed.
+
+| Candidate | Native installed delta | Stripped wasm delta | Compile-time delta |
+| --- | --- | --- | --- |
+| Existing Fluent baseline | not yet measured for this base | not yet measured | not yet measured |
+| Narrow decimal + plural data | not yet measured | not yet measured | not yet measured |
+| ICU decimal/compact + plural data | not yet measured | not yet measured | not yet measured |
+
+The existing Fluent float is rejected as the exact unsigned carrier: adjacent
+integers first collide at `2^53 + 1`, and display hooks cannot recover the
+lost bit or repair native plural matching. This does **not** imply that every
+shipped sentence currently selects a wrong category. English cardinal only
+distinguishes one from other, and Korean cardinal is always other; for exact
+unsigned integers neither changes category above the boundary. No shipped
+catalog currently requests ordinals. However, `NUMBER(type: "ordinal")` is
+already supported by the validator/runtime: English ordinal last digits can
+change immediately at `2^53 + 1` (exact ending 93 is few; rounded ending 92 is
+two). Exact display is required even where categories agree.
+
+The deferred survey locales are `ar`, `es`, `fr`, `ja`, `pt-BR`, `ru`, and
+`zh-CN` alongside shipped `en`/`ko` (`gaps.md`, localization section).
+Russian and Arabic cardinal rules inspect last digits; French and Portuguese
+also have integer-million divisibility conditions in current CLDR rules.
+They require exact operands. This describes the survey, not a decision to
+ship additional languages or copy their translation assets. The maintained
+[CLDR rule chart](https://unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html)
+is the rule reference, not a second hand-written rule engine.
+
+The coordinator permits a **scratch-only** minimal extension of Fluent
+0.16's custom-value numeric options/matching hooks. Stock custom types expose
+display only, while numeric matching is hard-wired to the float variant.
+Any experiment must preserve the parser/resolver and ordinary numeric path,
+avoid downcasts in Vessel code, record touched files/lines, and demonstrate
+how the patch is checked/re-applied on the next Fluent release. Vendoring is
+a continuing upgrade cost, not a free adapter. Compare it with the cheapest
+exact alternative before requesting adoption: an explicit maintained-rule
+plural grammar function plus a typed exact-count boundary, or AST lowering
+using Fluent's existing parser. Neither alternative may smuggle a lossy
+operand into plural selection or require an English-only area formatter.
+No runtime patch is installed in the product by this document.
+
 ## Acceptance and consumer boundary
 
 Compare whole EN/KO outputs against the pinned source's Intl options, with
@@ -171,3 +239,21 @@ integration and captures remain separate from the formatter's pure tests.
 No backend has been measured or adopted for this extension yet. Existing
 generator source/View approval does not approve this formatter. Append the
 measured comparison and resulting choice here before product adoption.
+
+### Reference and rejected-carrier characterization
+
+`scripts/locale-number-oracle.mjs` reproduces the pinned source's three option
+sets, not its app/framework. Its retained `intl-en-ko.json` fixture records
+Node 24.22.1, V8 13.6.233.17-node.58, ICU 78.3, CLDR 48.0 and Unicode 17.0,
+34 finite-amount cases and 13 exact `BigInt` unsigned cases. It retains raw
+binary64 bits (including signed zero), options and resolved defaults.
+Compact grouping resolves to `min2`, and Korean compact includes 천 at 1000,
+not just 만/억/조. This oracle is data for later Rust comparisons; generating
+it is not a formatter or app conformance pass.
+
+`tests/number_carrier_contract.rs` characterizes stock Fluent independently
+of Vessel's future adapter: adjacent unsigned values collapse, Russian
+cardinal selection sees the rounded value, and English ordinal selection
+also loses a last digit. Positive small-integer controls separate this
+numeric limitation from a malformed test bundle. Its changed-source VM
+result is pending; no product numeric capability has been extended yet.

@@ -34,8 +34,15 @@ with documentation leaf `bfc9f6f19`; the lead merged it at `f2169502` and it
 is present in green package base 13 `2ebeedf9`. Its 1086 passing View tests
 are historical generator evidence. No numeric-extension test has run yet.
 
-This package starts on the base-13 tree. The next action is scalar/selector
-feasibility and an immutable dependency-cost experiment, not another run of
-the finished generator checks. All Rust compilation stays on the build VM.
+This package starts on the base-13 tree. The reference oracle now retains
+34 finite-amount and 13 exact unsigned cases; the stock-Fluent carrier
+characterization tests are source ready, VM check owed. ADR 0101 records
+the exact candidate dependency requests and the scratch measurement contract.
+The coordinator requires its yes/no before lock changes; the tool owner is
+preparing the missing offline experiment interface. No dependency, runtime
+patch or product behavior has been adopted. The next action is that narrow
+characterization check and scratch-only runtime adapter comparison, not
+another run of the finished generator checks. All Rust compilation stays
+on the build VM.
 No own fleet/display is active. About dependency rows must preserve the voice
 package's coupled audio entries when that accepted package reaches the line.
