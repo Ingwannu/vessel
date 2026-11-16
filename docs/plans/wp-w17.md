@@ -1789,3 +1789,13 @@ post-ack deletion race correction and announced base. Run the full selected
 strict once, then real CLI/session/PTY/testkit execution, named wire generation
 and eventual package qualification. Keep Screen Silent/NodeAuthority OFF; no
 unreviewed C2 display branch, W21 cleanup or W9 root seam is adopted.
+
+### Resume selected strict import correction
+
+Exact8ae5e805 run wp-cli-narrow-20261116T002744Z-8ae5e805 returned Cargo101
+before tests: new service/host_registry/tests.rs referenced NodeId without
+importing its public proto re-export. The parent service module does not import
+it, so super::* was insufficient. Add explicit vessel_proto::NodeId to that
+test's existing import list; no product, DTO or admission change. The prior
+PTY helper lints were not repeated, but the combined invocation is not a PASS.
+Retain its exact red log and run changed-source strict again before actual tests.

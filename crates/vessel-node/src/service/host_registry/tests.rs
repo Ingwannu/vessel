@@ -1,6 +1,6 @@
 use super::*;
 use vessel_proto::{
-    ProtocolVersion,
+    NodeId, ProtocolVersion,
     host_registry::{HostMetadata, HostRegistrationId, HostRevision},
 };
 
