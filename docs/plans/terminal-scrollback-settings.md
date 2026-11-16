@@ -77,3 +77,18 @@ and Failed keep both current live retention and new-opening applied limit
 unchanged. There is no memory-only trim alternative. A later ordinary retry that
 actually reaches Saved may apply it; a past failure does not permanently lock
 the setting. No product caller for these outcomes exists in this producer yet.
+
+Checked producer: merged announced app baseline2ebeedf9 cleanly as e65342f0.
+The App binary's four actual settings owner fixtures passed in run
+appconv-narrow-20261116T003040Z-e65342f0; View/App all-target strict Clippy
+passed in appconv-20261116T003040Z-e65342f0. The value/model/test files in View
+are unchanged from the earlier f314 source whose two view tests passed. That
+earlier --lib command did not run App binary tests; it is never counted as UI
+evidence. The intermediate-limit regression genuinely failed before repair:
+6ddd09b6 executed0/1, expected zero history but retained four rows.
+
+These are bounded source-consumer checks. There is still no real preferences
+page/canonical Saved effect caller, ordered multiwindow delivery or production
+settings activation in this leaf. Keep the literal test-only module guard until
+the existing canonical owner provides that real caller in its checked union.
+Removing the guard alone is not an activation or an all-resident proof.
