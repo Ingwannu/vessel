@@ -126,3 +126,20 @@ quota warning arrived. Start neither until the existing results are read.
 No worker should adopt this branch as a supported browser or qualified HTML
 renderer. No fake fleet/display/Chrome from this track remains active after the
 last exact-profile observation; check owned process receipts before any cleanup.
+
+## Pause cleanup receipt,03:43 UTC
+
+The two outstanding VM runs remain queued; they were not cancelled. Their local
+read-only attach followers were stopped only after exact PID/UID/command/run-id
+and process-group verification: TS PID246856 and lib-test PID641782. Completed
+app/nine-crate followers had already exited. Resume by attaching these existing
+run IDs to their original evidence folders; this is result recovery, not a new
+VM submission. Last known TS queue6 at03:39; lib-test queue34 at03:41. A read-only
+exact-owned-runtime-nonce process scan observed none. No fake fleet, display or
+Chrome needed a signal; no VM build/run or other worker process was stopped.
+
+No anchored-source or element-resolver code was started after the quota warning.
+The worktrees are coherent and committed, with the unverified tests and engine
+activation debts above intentionally preserved. The current active slice cannot
+complete its lib-test gate before the warning boundary's long ordinary queue;
+no additional build, merge, runtime attempt or review/adoption request was made.
