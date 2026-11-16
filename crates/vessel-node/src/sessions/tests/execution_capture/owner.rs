@@ -28,7 +28,7 @@ pub(super) async fn step<F: Future>(phase: Phase, future: F) -> F::Output {
         .unwrap_or_else(|source| panic!("capture phase {phase:?}: {source}"))
 }
 
-pub(super) struct OwnedFixture {
+pub(in crate::sessions::tests) struct OwnedFixture {
     fixture: Arc<Fixture>,
     finish: oneshot::Sender<()>,
     runtime_done: oneshot::Receiver<()>,
@@ -38,7 +38,7 @@ pub(super) struct OwnedFixture {
 }
 
 impl OwnedFixture {
-    pub(super) async fn new() -> Self {
+    pub(in crate::sessions::tests) async fn new() -> Self {
         let (ready, prepared) = oneshot::channel();
         let (finish, finished) = oneshot::channel();
         let (runtime_sent, runtime_done) = oneshot::channel();
@@ -69,11 +69,16 @@ impl OwnedFixture {
         }
     }
 
-    pub(super) fn get(&self) -> &Fixture {
+    pub(in crate::sessions::tests) fn get(&self) -> &Fixture {
         &self.fixture
     }
 
-    pub(super) async fn finish(mut self) {
+    /// Sibling fixture adapters share this exact retained owner allocation.
+    pub(in crate::sessions::tests) fn shared(&self) -> Arc<Fixture> {
+        Arc::clone(&self.fixture)
+    }
+
+    pub(in crate::sessions::tests) async fn finish(mut self) {
         drop(self.finish);
         let mut failures = Vec::new();
         for (phase, settled) in [
