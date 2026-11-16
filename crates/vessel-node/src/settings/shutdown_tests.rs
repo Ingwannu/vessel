@@ -179,7 +179,7 @@ async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() 
         crate::Config::new(data.clone(), vessel_harness::HarnessEnv::new(home.clone()));
     config.harness_lookup = vessel_harness::Lookup::new([bin]);
     config.bind = Some("127.0.0.1:0".parse().unwrap());
-    let budget = Budget::new(WRITE_TEST_BUDGET, super::writer_tests::WRITE_PHASE_BUDGET);
+    let budget = Budget::new(WRITE_TEST_BUDGET, writer_tests::WRITE_PHASE_BUDGET);
     let running = Running::start(config, budget, move |owned| async move {
         let url = format!("ws://{}/rpc", owned.address.unwrap())
             .parse()

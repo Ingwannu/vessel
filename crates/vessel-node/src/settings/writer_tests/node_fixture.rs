@@ -7,7 +7,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
-use futures_util::{FutureExt as _, SinkExt as _};
+use futures_util::FutureExt as _;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, error::Elapsed};

@@ -36,15 +36,17 @@ observer loss and expired-observer controls are authored but unexecuted.
    Both original Node cases and the named process diagnostic case pass in this
    actual whole. No retry, skipped stage or named-base waiver was used.
 2. `nodectl-narrow-20261116T032045Z-a902c445`: ordinary Node all-target strict,
-   exact test correction above. It was still queued when local following was
-   stopped. The VM run remains registered and detached. Retrieve its result;
-   do not submit it again merely because the local driver no longer follows.
+   exact test correction above. It completed red: cargo 101 after 87 seconds,
+   reporting an unnecessarily qualified test path and an unused SinkExt import.
+   The final checkpoint corrects only those two test spellings. No corrected
+   strict run has been submitted, and further compiler/lint results are unknown.
+   Preserve the original red result; do not replay its unchanged source.
 
 The local conditional driver was stopped after the strict submission receipt.
 It must not automatically launch new tests during the quota stop. The two
 changed fixtures and four failure/observer controls have **not** been submitted
-or executed on the correction. Test-only compilation, actual cleanup behavior
-and the remaining source-review condition are unverified.
+or executed on the correction. Corrected-source compilation, actual cleanup behavior and the remaining
+source-review condition are unverified. No actual fixture/control test ran.
 
 Earlier scoped execution passed 23 Node settings cases, 14 Store settings
 cases, 15 passive SQL cases and the opaque-record compile-fail doctest. Six
@@ -62,9 +64,10 @@ integrator's receiving gate on their union. If either run is red, preserve its
 actual failure, diagnose the named source and obtain the applicable changed
 check sequence; do not replay unchanged work or invent a waiver.
 
-After the existing strict result is green and work may resume, run the following
-selection once through the configured remote gate, on the same correction
-commit in a new evidence folder and the ordinary lane:
+When work may resume, first run Node all-target strict once on the corrected
+checkpoint through the configured remote gate, in a new ordinary-lane evidence
+folder. If it passes, run the following selection once on that same corrected
+commit in another new evidence folder and the ordinary lane:
 
 ```text
 cargo test -p vessel-node --lib --
@@ -105,4 +108,4 @@ The completed gate ran synthetic Linux fixtures as UID/GID 1000 with a private
 0700 temporary directory. It proves no actual service-account deployment,
 permissions change, real provider or other-platform behavior. Local follow and
 conditional driver processes are stopped or have exited; no fake fleet or
-virtual display was created locally. The registered strict VM job is retained.
+virtual display was created locally. The completed strict red and its logs are retained; no managed job is pending.
