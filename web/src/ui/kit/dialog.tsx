@@ -27,7 +27,9 @@
 //   does not focus the search on open, so a sheet with a search takes
 //   focus itself; a field there would hide the first rows on a phone
 //   behind the keyboard. The search is controlled, so the box and the
-//   list it filters always agree.
+//   list it filters always agree. It is a text input with the searchbox
+//   role, not `type="search"`: Chromium's search input clears itself on
+//   Escape, which here belongs to closing the dialog.
 
 import "./dialog.css";
 
@@ -132,7 +134,9 @@ export function Dialog({
                 <Icon name="search" size={16} />
                 <input
                   className="dialog-search-input"
-                  type="search"
+                  type="text"
+                  role="searchbox"
+                  enterKeyHint="search"
                   value={search.value}
                   placeholder={search.placeholder}
                   aria-label={search.placeholder}

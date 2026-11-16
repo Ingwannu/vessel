@@ -140,15 +140,10 @@
   color: var(--text-primary);
   font: var(--t-control);
   outline: none;
-  appearance: none;
 }
 
 .dialog-search-input::placeholder {
   color: var(--text-tertiary);
-}
-
-.dialog-search-input::-webkit-search-cancel-button {
-  display: none;
 }
 
 .dialog.sheet .dialog-b {
