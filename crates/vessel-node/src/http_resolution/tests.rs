@@ -14,6 +14,17 @@ use vessel_relay::resolution::{ResolutionBudget, ResolutionQuota, ScopeState};
 
 const PHASE: Duration = Duration::from_secs(20);
 
+/// The node's explicit TLS provider (the workspace builds reqwest without a
+/// default one), with the resolver under test as the client's only resolver.
+fn client(resolver: Arc<HttpResolver<()>>) -> reqwest::Client {
+    reqwest::Client::builder()
+        .use_preconfigured_tls(crate::http_tls::config().unwrap())
+        .no_proxy()
+        .dns_resolver(resolver)
+        .build()
+        .unwrap()
+}
+
 fn scope() -> vessel_relay::resolution::ResolutionScope<()> {
     ResolutionBudget::default().scope(ResolutionQuota::new(1).unwrap(), Arc::new(()))
 }
@@ -51,11 +62,7 @@ async fn a_closed_scope_refuses_safely_and_reqwest_never_falls_back() {
         };
         assert_eq!(refused.to_string(), "resolution scope is closed");
         assert!(!format!("{refused:?}").contains("localhost"));
-        let client = reqwest::Client::builder()
-            .no_proxy()
-            .dns_resolver(resolver)
-            .build()
-            .unwrap();
+        let client = client(resolver);
         let sent = client.get(format!("http://localhost:{port}/")).send().await;
         assert!(sent.is_err());
         // A default-resolver fallback would have completed a TCP handshake
@@ -89,11 +96,7 @@ async fn a_real_request_connects_through_the_tracked_lookup() {
                 .unwrap();
         });
         let scope = scope();
-        let client = reqwest::Client::builder()
-            .no_proxy()
-            .dns_resolver(Arc::new(HttpResolver::new(scope.handle())))
-            .build()
-            .unwrap();
+        let client = client(Arc::new(HttpResolver::new(scope.handle())));
         let response = client
             .get(format!("http://localhost:{port}/"))
             .send()
