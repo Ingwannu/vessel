@@ -7513,6 +7513,8 @@ dependencies = [
  "gpui-pre-platform",
  "image",
  "resvg 0.46.0",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "tracing",
 ]
@@ -7577,6 +7579,7 @@ dependencies = [
  "qrcode",
  "serde",
  "serde_json",
+ "similar",
  "thiserror 2.0.21",
  "unic-langid",
  "unicode-normalization",

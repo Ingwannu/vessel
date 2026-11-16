@@ -1220,3 +1220,21 @@ This bounded build is separate from the final whole F4 gate/capture matrix.
   offline book, preserving their enabled-input intent. New real-key cases cover
   unread/empty/offline and Settings; direct owner dispatch and book-loss chord
   retirement have their own regressions. They are not yet executed.
+
+
+## Announced base14.1 receiving merge
+
+The lead announced b54abbdc after its1755/0/2 native gate, wasm check and
+coordinator picker comparison. Its shared keyboard producer overlaps this
+full F4 tree. Resolution retains the current single command center, nested
+page Back and Messages lifetime, root Import/source cleanup, typed menu edits,
+sidebar owner/focus-exit caller and new book admission. The producer's older
+palette/keyboard.rs is omitted because its two methods already live in the
+current palette/navigation owners; no duplicate key controller is retained.
+
+Incoming desktop stand-in dispatch regression joins existing rebinding/sidebar
+fixtures. CodeEditor preserves both its existing find module and incoming
+revision tests, with one composition registration. Automatic field merges keep
+FormText, compact textarea presentation, FieldId/captured callbacks, editability
+and FormMinimum alongside one line/lines composition registration. This is
+source resolution only; changed receiving compilation/execution remains owed.

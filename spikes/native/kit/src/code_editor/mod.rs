@@ -26,6 +26,8 @@
 mod composition_tests;
 mod diff;
 mod find;
+#[cfg(test)]
+mod revision_tests;
 mod syntax;
 
 pub use diff::{
@@ -57,6 +59,11 @@ const GUTTER_LEAD: f32 = 5.0;
 pub struct CodeEditor {
     state: Entity<EditorState>,
 }
+
+/// Existing engine edit evidence, comparable only within the same editor.
+/// It wraps; this is neither a disk revision nor a remote-effect fence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EditorRevision(u64);
 
 impl std::fmt::Debug for CodeEditor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -122,6 +129,12 @@ impl CodeEditor {
     #[must_use]
     pub fn text(&self, cx: &App) -> String {
         self.state.read(cx).value().to_string()
+    }
+
+    /// Read existing synchronous edit evidence without waiting for owner events.
+    #[must_use]
+    pub fn revision(&self, cx: &App) -> EditorRevision {
+        EditorRevision(self.state.read(cx).document_revision())
     }
 
     /// Replace the whole text (a reload): no change is reported, and undo
