@@ -66,3 +66,17 @@ negative control. It does NOT prove the child secure field, Linux pixels, OS
 AT/IME, secret store, F1 or Host Voice. Vendor's own tests were not executed.
 Original31ed lint-red evidence stays separate. This docs-only receipt changes
 no Rust; bounded V1 source/narrow disposition and lead line adoption remain owed.
+
+## Bounded disposition and receiving line
+
+V1 same-row final033a1ceb independently verified the eight source pins, whole
+change, existing-version/dev-only lock proof, all30 run hashes and four step
+prefixes. Exact87aadffd +docs51ef593d receives bounded SOURCE/requested Kit
+NARROW PASS. Secure de055 remains separate HOLD pending its own actual proof.
+No unchanged run is requested.
+
+Lead integrated the selected producer as60a08b99, preserving README9/10 before11
+and unioning Changed paths, test-module registration and the exact two lock
+edges. Its receiving gate/announced green line is still pending. The resolved
+README may drop the now-historical isolated-base paragraph. This docs-only
+receipt changes no source or assertion and grants no additional runtime scope.

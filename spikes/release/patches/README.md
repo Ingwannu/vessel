@@ -507,8 +507,9 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   ordinary-editor case executed: inactive/no tree before activation, then real
   TextInput role/label/reference value and no PasswordInput node after a frame.
   All30 run-file hashes and four step digest prefixes were verified. Local
-  rustfmt/source-size/token/diff0. Vendor's own test suite: not executed. V1
-  adoption still owed; no OS accessibility bridge, secure-field producer,
+  rustfmt/source-size/token/diff0. Vendor's own test suite: not executed. Bounded
+  V1 source/requested-Kit-narrow PASS; receiving line gate still owed. No OS
+  accessibility bridge, secure-field producer,
   native pixels or consumer approval is claimed.
 
 This isolated base13 does not contain the lead's later change9/10 README entries;
