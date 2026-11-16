@@ -29,11 +29,15 @@ pub(crate) struct PanelContext<'a> {
     /// Whether it may claim keyboard/view focus.
     pub(crate) focus: PanelFocus,
 }
-/// Existing agent screen is consumed once; other resource renderers register here.
+/// The existing selected-agent body is built only after the host's visibility
+/// check. A function pointer adds no captured context or alternate resource store.
+pub(crate) type AgentRenderer = fn(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> Div;
+
+/// The existing agent renderer is consumed once; other owners register here.
 pub(super) fn render(
     shell: &Shell,
     panel: &PanelContext<'_>,
-    agent: &mut Option<Div>,
+    agent: &mut Option<AgentRenderer>,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -53,7 +57,10 @@ pub(super) fn render(
                     .as_ref()
                     .is_some_and(|open| open.session == *session) =>
         {
-            agent.take().unwrap_or_else(div).into_any_element()
+            agent
+                .take()
+                .map_or_else(div, |render| render(shell, tokens, window, cx))
+                .into_any_element()
         }
         Target::Browser(_) => crate::areas::browser::render_panel(shell, panel, tokens, window, cx),
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
