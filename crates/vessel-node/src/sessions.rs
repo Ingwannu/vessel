@@ -22,6 +22,10 @@
 //! is never listed without being findable, and never found as a stored
 //! (ended) session while it runs.
 
+#[cfg(test)]
+mod creation_placement;
+#[cfg(test)]
+pub(crate) use creation_placement::{BoundCreationPlace, CreationPlacement};
 mod subagents;
 
 use std::collections::HashMap;

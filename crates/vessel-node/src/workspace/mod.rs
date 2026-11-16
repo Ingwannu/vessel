@@ -56,6 +56,8 @@ pub(crate) use error::WorkspaceError;
 pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
 pub(crate) use projects::Occupant;
+#[cfg(test)]
+pub(crate) use projects::admission::ProjectAdmission;
 pub(crate) use scripts::{DirError, ScriptRoot};
 pub(crate) use worktrees::{Placed, Starting, TidyScope};
 

@@ -53,6 +53,8 @@ use vessel_store::CredentialHash;
 use crate::error::ServiceError;
 use crate::principal::Principal;
 
+#[cfg(test)]
+pub(crate) mod creation_launch;
 mod execution;
 #[cfg(test)]
 pub(crate) use execution::{CaptureRefusal, CapturedParentExecution, ExecutionObservation};
