@@ -39,6 +39,11 @@ export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { type OptionRow, OptionList } from "./option-list";
 export { type PanelTab, PanelTabs } from "./panel-tabs";
 export { Popover } from "./popover";
+export {
+  QuotaMeter,
+  type QuotaMeterTone,
+  type QuotaMeterEmphasis,
+} from "./quota-meter";
 export { Row, type RowDetail, RowList, type RowMark } from "./row";
 export { Segmented, type SegmentedOptions } from "./segmented";
 export { Select } from "./select";

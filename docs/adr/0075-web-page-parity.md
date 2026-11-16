@@ -278,3 +278,25 @@ import application data; keeping it inside the kit would force the reverse
 edge. Duplicating the guard would make two facts out of one. This extraction
 changes neither percentage behavior nor existing test expectations. The kit
 performs no second validation/clamp and no controller/slider behavior.
+
+
+The shared web quota meter is a read-only kit control, with 6px height, 3px
+track radius, clipped overflow and a full-radius fill. It accepts only the
+validated percentage value and typed tone/emphasis; zero has zero fill width.
+It imports no data or wire layer and has no slider, keyboard controller or
+minimum context arc. Its isolated `/kit` specimens precede any app usage.
+
+Two missing surface roles are added as named tokens from the pinned default
+Paseo themes: surface3 light/dark `#e4e4e7`/`#434645`, surface4
+`#d4d4d8`/`#595b5b`. Normal muted/success/warning/danger fills use the web
+page's existing `text-tertiary`, `online`, `warn`, `danger` tokens, retaining
+the palette and contrast choices documented by `tokens.css`. No existing
+theme role is replaced. This theme adaptation is explicit; the control's
+geometry and quiet/normal semantics follow `usage/meter.tsx`.
+
+The pure renderer regressions cover names, read-only semantics, 0/50/100,
+overflow/negative clamp and quiet override. The gallery capture cases measure
+actual track/fill bounds and resolved colors, and capture the original
+light/dark specimens at desktop/390 widths in both browser locales. The
+control must pass the reviewer and coordinator's comparison before a Usage
+screen consumes it. These are control captures, not account-report fixtures.

@@ -1477,3 +1477,20 @@ The first refactor check catches one unused moved-test import; removing that
 import yields both typechecks, changed ESLint and all eleven tests passing
 across three files. The original failed check remains recorded. No screen,
 wire adapter or package whole is activated by this structural change.
+
+
+The coordinator assigns N2 sole ownership of the shared web quota meter under
+TRACKER 771, separately from W5's native controls. The kit control is first
+rendered only in its unlinked `/kit` gallery. Before a Usage surface consumes
+it, submit pure tests and original light/dark 0/50/100/overflow specimens to
+the reviewer and coordinator. The capture cases also cover 390px width and
+both browser locales; they assert actual 6px/3px geometry and zero-width zero.
+Use one managed same-source root-fleet export for these local browser checks;
+no local Rust, stale backend/new page mixture or vendor quota mock is needed.
+
+The initial shared-control source passes both typechecks, full web lint
+(including formatting, 132 font stacks, kit-only native controls and size),
+and fifteen pure tests across four files. The added renderer tests cover
+read-only names, clamp/zero width, normal/quiet tone and escaped labels.
+Actual managed-binary captures and their comparison remain pending at this
+source checkpoint; no Usage screen is allowed to consume the meter yet.
