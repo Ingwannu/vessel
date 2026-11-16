@@ -62,7 +62,7 @@ async fn creation_metadata_admission_precedes_real_worktree_preparation() {
             "fixture has no commands to approve"
         );
         let project_id = project.id.to_string();
-        let before = worktree_control(&fixture, &owner, project.id).await;
+        worktree_control(&fixture, &owner, project.id).await;
         for flags in [
             vec!["--listing", "shown"],
             vec!["--listing", "background"],
@@ -121,7 +121,7 @@ async fn worktree_control(
     fixture: &Fixture,
     owner: &vessel_client::NodeClient,
     project: ProjectId,
-) -> Vec<vessel_proto::WorktreeId> {
+) {
     use vessel_proto::workspace::SessionPlace;
     let initial = worktrees(owner, project).await;
     let project_id = project.to_string();
@@ -154,7 +154,6 @@ async fn worktree_control(
         Some(SessionPlace::Worktree { worktree }) => assert!(created.contains(worktree)),
         Some(SessionPlace::Project { .. }) | None => panic!("control did not use its new worktree"),
     }
-    after
 }
 
 #[cfg(unix)]

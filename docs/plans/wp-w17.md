@@ -1927,3 +1927,8 @@ claimed. The separate registry prerequisite stays frozen for its ordinary strict
   cancellation; only the awaited runtime shutdown is reported as tracker drain.
   Prior exact136c screen tests passed, but the modified fixtures and current d5
   consumer union still owe their own strict and runtime execution.
+
+Source follow-up to7ba3: the positive-control helper now returns unit after its
+own worktree-delta and exact session-placement assertions. Its caller has no
+unused baseline binding; each explicit case still captures its fresh pre-call
+sessions/worktrees. This is a fixture-only source correction, not a runtime pass.
