@@ -1375,6 +1375,12 @@ refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
 
+The additive popup::placement primitive measures one native child against a
+captured whole trigger and flips/clamps it in prepaint. Menu and popover owners
+can share its geometry while retaining their own focus, leases and actions;
+legacy point anchors remain. Producer validation and limits are recorded in
+docs/plans/shared-popup-placement.md; no consumer is migrated by the producer.
+
 The shared combobox captures a private identity for each explicit opening.
 Retained frame callbacks admit that opening before keys, outside/scrim, row/back
 or implicit pointer focus; they cannot act on a later opening. Final dismissal

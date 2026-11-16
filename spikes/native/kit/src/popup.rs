@@ -29,6 +29,9 @@ use gpui::{
 
 use crate::theme::{Scheme, Tokens};
 
+/// Whole-trigger placement shared by menus and arbitrary-body popovers.
+pub mod placement;
+
 /// Paseo's surface scale and the colours drawn on it, for one scheme
 /// (Paseo's `theme.ts`: its light theme, and its default dark).
 #[derive(Debug, Clone, Copy, PartialEq)]
