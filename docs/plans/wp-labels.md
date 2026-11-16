@@ -54,50 +54,39 @@ Reference sources read before implementation (relative to the reference source r
 ## Structure and data flow
 
 - `view/src/labels/`: validated display names, color and assignment enums;
-  host-local catalogs and merge projection; picker/manager transitions and
-  correlated operation tickets. No I/O or GPUI.
+  host-local catalogs and merge projection; the catalog `Replica`
+  (contiguous changes, a snapshot after a gap); `Assignments`, a host's
+  registry projection (session -> workspace by membership, workspace ->
+  ordered label names); picker/manager transitions and correlated
+  operation tickets. No I/O or GPUI.
 - `view/locales/{en,ko}/labels.ftl`: every displayed sentence.
-- `link/src/labels.rs`: typed commands/events for the UI seam. Only existing
-  node calls may be invoked. An absent contract is an explicit unsupported
-  result, never a mock success or a newly invented RPC.
-- `app/src/areas/labels/`: existing kit controls draw view state. Shared
-  registries only register this module and screen.
-- Intended flow: UI action -> validated view intent -> link command -> node
-  client -> correlated event -> view transition -> draw. Catalogs belong to
-  one host; connected hosts' cached catalogs enter cross-host projection.
-  Cached offline catalogs remain available for that host's own row colors.
+- `link/src/labels.rs`, `labels/run.rs`: typed commands and answers, and
+  the protocol-28 calls on the request's exact admission: List (snapshot,
+  or changes after a cursor, at once or waiting), the workspace registry
+  read (at once, or waiting past a revision), Assign, Update,
+  InspectDelete, Delete. The node's structured refusals become the view's
+  safe failures; an older peer is `Unsupported`.
+- `app/src/areas/labels/`: existing kit controls draw view state.
+  `follow.rs` keeps each connected, capable host's catalog and registry
+  current (one waiting read of each out at a time, the quiet pause after
+  each answer, a longer one after a failure). `picker.rs` is opened from
+  a session row's menu (`areas/sidebar/row_menu.rs`, Labels after Pin);
+  `colors::chip` draws Paseo's chips on the row's second line
+  (`areas/sidebar/session_row.rs`).
+- Flow: bind (fleet change) -> follow reads -> Replica / Assignments ->
+  host catalog and row labels -> draw. A UI action -> view intent -> link
+  command -> node -> correlated answer -> view transition -> draw; an
+  assignment's committed labels update the row at once, the next registry
+  snapshot confirms them.
 
 ## Node contract dependency
 
-Session metadata and colored workspace labels have separate owners and contracts.
-The lifecycle owner reports reviewed source `c88066f2` with V3 final PASS and
-all 18 whole-gate steps rc 0 (Rust 2404/0/12). It includes borrowed
-ExactSizeIterator `SessionLabels::iter()` returning `(&LabelKey, &LabelValue)`;
-`iter().len()` supplies the count. It is now integrated on announced node
-`93970acb` (gate 53, all 18 steps rc 0, Rust 2577/0/12, listing schema 21).
-The separate A6 node tree adopted it after its narrow run finished. This native
-app still waits for the lead's announced app base bringing that node head;
-it does not merge a whole node head or parse summaries/JSON as a substitute.
-`session.labels` / SetLabels, LabelsChanged and the separate LabelPatch draft are
-not included. The earlier planned merge-only shape is not an adopted request DTO.
-A6 adds no generic session metadata editor or speculative mutation call.
-
-The reviewed source's ListSessions selection preserves null as the legacy
-full list; an explicit selection has required Shown/All scope and AND labels.
-Use `ListSessions::selected` with `SessionSelection::shown()` or
-`SessionSelection::all()`, then `with_labels(...)`, only after the announced head. Its unassigned SINCE gate refuses explicit
-selections. These are producer status
-facts, not permission to adopt unreviewed query or iterator code. Session labels
-already stored at schema 17 do not establish RPC availability. The owner will
-supply an exact reviewed, whole-gated consumer head.
-
-A6 itself owns workspace catalog/colours/ordered assignments and their RPC gap
-under ADR 0086. Its separate node worktree now wires the reviewed W11 transaction
-helpers and existing post-commit watch into the real writer, actor and handlers.
-Those changes still owe their own execution, whole gate and V3 review, so this
-app does not adopt them or claim node-backed behavior. The app base contains
-canonical registry metadata, but no A6 catalog transport. No dummy protocol
-number or successful persistence response stands in for that dependency.
+The five `workspace.label.*` calls are protocol 28 (`WORKSPACE_LABELS`,
+ADR 0086), on the line since package base 14.15; the registry snapshot's
+`labels` projection is there for protocol-28 peers, and runtime workspace
+registration (ADR 0106, base 14.20) gives new sessions a workspace
+membership. The app uses only these; it adds no node call. Session
+metadata (`session.labels`) has a separate owner and is not touched here.
 
 ## Shared identity paint
 
@@ -131,8 +120,15 @@ around reference 20-point swatches. Choosing a color changes the draft only.
 
 ## Differences and limits
 
-- Product refuses unavailable label operations explicitly until the node
-  publishes their contracts. No user-created catalog is fabricated locally.
+- A host older than protocol 28 shows Unsupported; nothing is fabricated
+  locally.
+- Labels open the picker dialog from the row menu (the kit's menu has no
+  pages; Paseo shows a page inside the menu). The row's meta line carries
+  only the labels (Paseo's also shows a change request and checks). A
+  session without a workspace membership (older than ADR 0106) has no
+  Labels item and no chips.
+- Paseo's sidebar filter by label (with Unlabelled) is a later row; the
+  manager's host filter is built.
 - The pure model uses deterministic Unicode lowercase ordering rather than
   platform locale collation. Identity follows the reference whitespace and
   lowercase rules; rendering order is stable across native platforms.
@@ -315,14 +311,15 @@ native baseline as 1404/0/2; A6 has no current-head gate result yet. The native
 lockfile on this base is announced stale, so no --locked invocation or local
 lockfile regeneration is used while awaiting the lead's corrected lock.
 
-### Staged native picker adapter (not a shipped entry)
+### Native picker adapter
 
-The independent picker/create renderer is now literal cfg(test) in
-app/src/areas/labels/picker.rs. It consumes the reviewed WorkspaceTarget, ordered
-assignment names and EditAccess; it never synthesizes a workspace from cwd,
-session or an arbitrary alias. Enabling it requires the real S2/W12 registry
-caller plus reviewed node mutation/observation plumbing. The global manager
-continues to render through its existing production registration.
+The picker/create renderer in app/src/areas/labels/picker.rs consumes the
+reviewed WorkspaceTarget, ordered assignment names and EditAccess; it
+never synthesizes a workspace from cwd, session or an arbitrary alias.
+It was test-only until the receiving union (below) gave it its caller: a
+session row's Labels item, with the registry membership's workspace and
+the followed registry's names. The global manager keeps its existing
+registration.
 
 The picker reuses kit ComboboxState/ComboRow (checked rows, dot leading, pending
 rows disabled, multi-select stays open), DialogState and TextField. Manager and
@@ -756,3 +753,17 @@ coordinator; the listing, filter, editing views came from the capture-only build
 - Tests: `areas::labels::draw_tests::the_pencil_and_the_swatches_are_named_as_paseos`
   (GPUI's real accessibility snapshot) and
   `a_save_under_way_refuses_a_second_save`.
+
+## Receiving union (impl F, 2026-11-16)
+
+On package base 14.20 (b0e0332e), then the line 14.23 (7a05a3b7): W10b's
+baseline (under d84ff70f7) and the visual lane's consumer (f7b7b259a,
+85cf8ba56..6d05c0f69) with the line's own protocol-28 proto (the branch's
+provisional `vessel-proto` workspace_labels and ADR 0086 copy dropped; the
+root equals the line). Built here: the link transport, the follower, the
+registry projection, the row menu's Labels caller and the row chips.
+Tests: request shapes, failure mapping and every command against an
+in-memory node at the current protocol (link); the registry projection
+(view); the follower's reads and answers, an older peer stopping, and the
+row's Labels opening the picker on its registry workspace (app GPUI).
+
