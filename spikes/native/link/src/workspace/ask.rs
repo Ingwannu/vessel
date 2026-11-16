@@ -103,11 +103,11 @@ pub enum FileAsk {
     Grep(SearchFiles),
     /// `file.create_dir`, `file.rename`, `file.delete`, or a new file.
     Path(PathChange),
-    /// `file.observe` (protocol 26, ADR 0105): the shown file's next state.
+    /// `file.observe` (protocol 27, ADR 0105): the shown file's next state.
     Observe(ObserveFile),
-    /// `file.duplicate` (protocol 26, ADR 0105): a copy beside an entry.
+    /// `file.duplicate` (protocol 27, ADR 0105): a copy beside an entry.
     Duplicate(DuplicateFileEntry),
-    /// `file.read_bytes`, page by page (protocol 26, ADR 0105): a file kept
+    /// `file.read_bytes`, page by page (protocol 27, ADR 0105): a file kept
     /// on this computer.
     Download(Download),
 }

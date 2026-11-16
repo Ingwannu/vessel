@@ -31,9 +31,16 @@ fn path() -> RelPath {
     "src/main.rs".parse().unwrap()
 }
 
+/// A watch of a file whose first read landed with content `seen`.
+fn read(seen: Option<ContentHash>) -> Watch {
+    let mut watch = Watch::default();
+    watch.seen(seen);
+    watch
+}
+
 /// A watch that has asked once and been answered `first` (shown: `shown`).
 fn anchored(root: WorkspaceRoot, first: ObservedFile, shown: Option<&ContentHash>) -> Watch {
-    let mut watch = Watch::default();
+    let mut watch = read(None);
     let now = Instant::now();
     let ask = watch.ask(root, path(), now).unwrap();
     let Answered::Quiet { rest, .. } = watch.answered(&ask, Ok(first), shown, now) else {
@@ -44,9 +51,20 @@ fn anchored(root: WorkspaceRoot, first: ObservedFile, shown: Option<&ContentHash
 }
 
 #[test]
+fn nothing_is_asked_before_a_read_of_the_file_landed() {
+    let root = root();
+    let now = Instant::now();
+    let mut watch = Watch::default();
+    // An answer now could anchor a newer disk than the read in flight.
+    assert_eq!(watch.ask(root, path(), now), None);
+    watch.seen(Some(hash(1)));
+    assert!(watch.ask(root, path(), now).is_some());
+}
+
+#[test]
 fn one_observation_at_a_time_sending_back_the_last_answer() {
     let root = root();
-    let mut watch = Watch::default();
+    let mut watch = read(None);
     let now = Instant::now();
     let first = watch.ask(root, path(), now).unwrap();
     assert_eq!(first.after, None);
@@ -65,7 +83,7 @@ fn one_observation_at_a_time_sending_back_the_last_answer() {
 
 #[test]
 fn an_answer_after_the_pause_asks_again_at_once() {
-    let mut watch = Watch::default();
+    let mut watch = read(None);
     let asked = Instant::now();
     let ask = watch.ask(root(), path(), asked).unwrap();
     let later = asked.checked_add(Duration::from_secs(30)).unwrap();
@@ -113,14 +131,13 @@ fn the_editor_s_own_save_is_no_change() {
 fn the_first_answer_differing_from_what_is_shown_is_a_change() {
     let root = root();
     let now = Instant::now();
-    let mut watch = Watch::default();
-    watch.seen(Some(hash(1)));
+    let mut watch = read(Some(hash(1)));
     let ask = watch.ask(root, path(), now).unwrap();
     assert!(matches!(
         watch.answered(&ask, Ok(ready(2)), None, now),
         Answered::Changed { .. }
     ));
-    let mut gone = Watch::default();
+    let mut gone = read(None);
     let ask = gone.ask(root, path(), now).unwrap();
     assert!(matches!(
         gone.answered(&ask, Ok(ObservedFile::Missing), None, now),
@@ -152,9 +169,9 @@ fn a_deleted_file_is_a_change_once() {
 #[test]
 fn a_stale_answer_changes_nothing() {
     let now = Instant::now();
-    let mut earlier = Watch::default();
+    let mut earlier = read(None);
     let old = earlier.ask(root(), path(), now).unwrap();
-    let mut watch = Watch::default();
+    let mut watch = read(None);
     let out = watch
         .ask(old.root, "other.rs".parse().unwrap(), now)
         .unwrap();
@@ -179,17 +196,38 @@ fn a_stale_answer_changes_nothing() {
 }
 
 #[test]
+fn busy_observers_are_asked_again_after_the_pause_from_the_same_anchor() {
+    let root = root();
+    let shown = hash(1);
+    let mut watch = anchored(root, ready(1), Some(&shown));
+    let now = Instant::now();
+    let ask = watch.ask(root, path(), now).unwrap();
+    let busy = Problem::Node {
+        code: ErrorCode::Unavailable,
+        message: "workspace file observers are busy".to_owned(),
+    };
+    let Answered::Quiet { rest, wait } = watch.answered(&ask, Err(busy), Some(&shown), now) else {
+        panic!("busy observers are asked again");
+    };
+    assert_eq!(wait, QUIET);
+    assert!(!watch.stopped());
+    watch.rested(rest);
+    let again = watch.ask(root, path(), now).unwrap();
+    assert_eq!(again.after, Some(ready(1)));
+}
+
+#[test]
 fn a_failed_observation_stops_the_watch() {
     let root = root();
     for problem in [
         Problem::Older,
         Problem::Gone("closed".to_owned()),
         Problem::Node {
-            code: ErrorCode::Unavailable,
-            message: "workspace file observers are busy".to_owned(),
+            code: ErrorCode::Forbidden,
+            message: "not allowed".to_owned(),
         },
     ] {
-        let mut watch = Watch::default();
+        let mut watch = read(None);
         let now = Instant::now();
         let ask = watch.ask(root, path(), now).unwrap();
         assert_eq!(
