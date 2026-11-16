@@ -8,8 +8,7 @@ use super::{Entry, EntryKind};
 pub fn searchable(entry: &Entry) -> Option<&str> {
     match &entry.kind {
         EntryKind::Prompt(prompt) => Some(&prompt.text),
-        EntryKind::Steer { text, .. } => Some(text),
-        EntryKind::Message { text } => Some(text),
+        EntryKind::Steer { text, .. } | EntryKind::Message { text } => Some(text),
         EntryKind::Question { question, .. } => Some(&question.message),
         EntryKind::Ready { .. }
         | EntryKind::Thought { .. }

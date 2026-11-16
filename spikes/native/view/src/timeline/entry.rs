@@ -286,8 +286,8 @@ impl EntryKind {
     pub(crate) const fn text_mut(&mut self, kind: TextKind) -> Option<&mut String> {
         match (self, kind) {
             (Self::Prompt(prompt), TextKind::Prompt) => Some(&mut prompt.text),
-            (Self::Steer { text, .. }, TextKind::Prompt) => Some(text),
-            (Self::Message { text }, TextKind::Message)
+            (Self::Steer { text, .. }, TextKind::Prompt)
+            | (Self::Message { text }, TextKind::Message)
             | (Self::Thought { text }, TextKind::Thought) => Some(text),
             (
                 Self::Ready { .. }
