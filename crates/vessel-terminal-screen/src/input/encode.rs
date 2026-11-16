@@ -7,55 +7,55 @@ use std::fmt::Write as _;
 /// Every supported key sequence fits this fixed allocation, including expanded casing.
 const KEY_BYTES: usize = 32;
 
-pub(super) fn key(key: Key, mods: Modifiers, modes: InputModes) -> Result<String, InputError> {
+pub(super) fn key(key: Key, modifiers: Modifiers, modes: InputModes) -> Result<String, InputError> {
     let mut text = String::new();
     text.try_reserve_exact(KEY_BYTES)
-        .map_err(|_| InputError::Unavailable)?;
+        .map_err(|_encoding| InputError::Unavailable)?;
     match key.kind() {
-        Kind::Character(ch) => character(&mut text, ch, mods)?,
-        Kind::Enter => enter(&mut text, mods, modes)?,
+        Kind::Character(ch) => character(&mut text, ch, modifiers)?,
+        Kind::Enter => enter(&mut text, modifiers, modes)?,
         Kind::Tab => {
-            if mods.shift == Modifier::Pressed && mods.parameter() == 2 {
+            if modifiers.shift == Modifier::Pressed && modifiers.parameter() == 2 {
                 text.push_str("\x1b[Z");
             } else {
-                alt(&mut text, mods);
+                alt(&mut text, modifiers);
                 text.push('\t');
             }
         }
         Kind::Backspace => {
-            alt(&mut text, mods);
+            alt(&mut text, modifiers);
             text.push('\x7f');
         }
         Kind::Escape => text.push('\x1b'),
-        Kind::Up => arrow(&mut text, 'A', mods, modes)?,
-        Kind::Down => arrow(&mut text, 'B', mods, modes)?,
-        Kind::Right => arrow(&mut text, 'C', mods, modes)?,
-        Kind::Left => arrow(&mut text, 'D', mods, modes)?,
-        Kind::Home => csi(&mut text, 'H', mods)?,
-        Kind::End => csi(&mut text, 'F', mods)?,
-        Kind::Insert => tilde(&mut text, 2, mods)?,
-        Kind::Delete => tilde(&mut text, 3, mods)?,
-        Kind::PageUp => tilde(&mut text, 5, mods)?,
-        Kind::PageDown => tilde(&mut text, 6, mods)?,
-        Kind::Function(function) => function_key(&mut text, function, mods)?,
+        Kind::Up => arrow(&mut text, 'A', modifiers, modes)?,
+        Kind::Down => arrow(&mut text, 'B', modifiers, modes)?,
+        Kind::Right => arrow(&mut text, 'C', modifiers, modes)?,
+        Kind::Left => arrow(&mut text, 'D', modifiers, modes)?,
+        Kind::Home => csi(&mut text, 'H', modifiers)?,
+        Kind::End => csi(&mut text, 'F', modifiers)?,
+        Kind::Insert => tilde(&mut text, 2, modifiers)?,
+        Kind::Delete => tilde(&mut text, 3, modifiers)?,
+        Kind::PageUp => tilde(&mut text, 5, modifiers)?,
+        Kind::PageDown => tilde(&mut text, 6, modifiers)?,
+        Kind::Function(function) => function_key(&mut text, function, modifiers)?,
     }
     Ok(text)
 }
 
-fn alt(text: &mut String, mods: Modifiers) {
-    if mods.alt == Modifier::Pressed {
+fn alt(text: &mut String, modifiers: Modifiers) {
+    if modifiers.alt == Modifier::Pressed {
         text.push('\x1b');
     }
 }
 
-fn character(text: &mut String, ch: char, mods: Modifiers) -> Result<(), InputError> {
-    let value = if mods.shift == Modifier::Pressed {
+fn character(text: &mut String, ch: char, modifiers: Modifiers) -> Result<(), InputError> {
+    let value = if modifiers.shift == Modifier::Pressed {
         ch.to_uppercase().collect::<String>()
     } else {
         ch.to_string()
     };
-    alt(text, mods);
-    if mods.control == Modifier::Released {
+    alt(text, modifiers);
+    if modifiers.control == Modifier::Released {
         text.push_str(&value);
         return Ok(());
     }
@@ -65,7 +65,12 @@ fn character(text: &mut String, ch: char, mods: Modifiers) -> Result<(), InputEr
         && uppercase.next().is_none()
         && ch.is_ascii_uppercase()
     {
-        text.push(char::from_u32(u32::from(ch) - u32::from('@')).ok_or(InputError::Unavailable)?);
+        text.push(
+            u32::from(ch)
+                .checked_sub(u32::from('@'))
+                .and_then(char::from_u32)
+                .ok_or(InputError::Unavailable)?,
+        );
         return Ok(());
     }
     if value.encode_utf16().count() != 1 {
@@ -89,73 +94,74 @@ fn character(text: &mut String, ch: char, mods: Modifiers) -> Result<(), InputEr
     Ok(())
 }
 
-fn enter(text: &mut String, mods: Modifiers, modes: InputModes) -> Result<(), InputError> {
-    let parameter = mods.parameter();
-    let win32_modifiers = mods.shift.bit() + mods.control.bit() + mods.alt.bit();
+fn enter(text: &mut String, modifiers: Modifiers, modes: InputModes) -> Result<(), InputError> {
+    let parameter = modifiers.parameter();
+    let win32_modifiers =
+        modifiers.shift.mask(1) | modifiers.control.mask(1) | modifiers.alt.mask(1);
     if parameter > 1 && modes.win32 == ModeState::Enabled && win32_modifiers > 0 {
-        let state = mods.shift.bit() * 16 + mods.control.bit() * 8 + mods.alt.bit() * 2;
-        write!(text, "\x1b[13;28;13;1;{state};1_").map_err(|_| InputError::Unavailable)?;
+        let state = modifiers.shift.mask(16) | modifiers.control.mask(8) | modifiers.alt.mask(2);
+        write!(text, "\x1b[13;28;13;1;{state};1_").map_err(|_encoding| InputError::Unavailable)?;
     } else if parameter > 1 && modes.kitty.get() > 0 {
-        write!(text, "\x1b[13;{parameter}u").map_err(|_| InputError::Unavailable)?;
+        write!(text, "\x1b[13;{parameter}u").map_err(|_encoding| InputError::Unavailable)?;
     } else {
         text.push('\r');
     }
     Ok(())
 }
 
-fn csi(text: &mut String, end: char, mods: Modifiers) -> Result<(), InputError> {
-    let parameter = mods.parameter();
+fn csi(text: &mut String, end: char, modifiers: Modifiers) -> Result<(), InputError> {
+    let parameter = modifiers.parameter();
     if parameter == 1 {
         write!(text, "\x1b[{end}")
     } else {
         write!(text, "\x1b[1;{parameter}{end}")
     }
-    .map_err(|_| InputError::Unavailable)
+    .map_err(|_encoding| InputError::Unavailable)
 }
 
-fn ss3(text: &mut String, end: char, mods: Modifiers) -> Result<(), InputError> {
-    if mods.parameter() == 1 {
-        write!(text, "\x1bO{end}").map_err(|_| InputError::Unavailable)
+fn ss3(text: &mut String, end: char, modifiers: Modifiers) -> Result<(), InputError> {
+    if modifiers.parameter() == 1 {
+        write!(text, "\x1bO{end}").map_err(|_encoding| InputError::Unavailable)
     } else {
-        csi(text, end, mods)
+        csi(text, end, modifiers)
     }
 }
 
 fn arrow(
     text: &mut String,
     end: char,
-    mods: Modifiers,
+    modifiers: Modifiers,
     modes: InputModes,
 ) -> Result<(), InputError> {
     match modes.application_cursor {
-        ModeState::Enabled => ss3(text, end, mods),
-        ModeState::Disabled => csi(text, end, mods),
+        ModeState::Enabled => ss3(text, end, modifiers),
+        ModeState::Disabled => csi(text, end, modifiers),
     }
 }
 
-fn tilde(text: &mut String, code: u8, mods: Modifiers) -> Result<(), InputError> {
-    let parameter = mods.parameter();
+fn tilde(text: &mut String, code: u8, modifiers: Modifiers) -> Result<(), InputError> {
+    let parameter = modifiers.parameter();
     if parameter == 1 {
         write!(text, "\x1b[{code}~")
     } else {
         write!(text, "\x1b[{code};{parameter}~")
     }
-    .map_err(|_| InputError::Unavailable)
+    .map_err(|_encoding| InputError::Unavailable)
 }
 
-fn function_key(text: &mut String, key: Function, mods: Modifiers) -> Result<(), InputError> {
+fn function_key(text: &mut String, key: Function, modifiers: Modifiers) -> Result<(), InputError> {
     match key {
-        Function::One => ss3(text, 'P', mods),
-        Function::Two => ss3(text, 'Q', mods),
-        Function::Three => ss3(text, 'R', mods),
-        Function::Four => ss3(text, 'S', mods),
-        Function::Five => tilde(text, 15, mods),
-        Function::Six => tilde(text, 17, mods),
-        Function::Seven => tilde(text, 18, mods),
-        Function::Eight => tilde(text, 19, mods),
-        Function::Nine => tilde(text, 20, mods),
-        Function::Ten => tilde(text, 21, mods),
-        Function::Eleven => tilde(text, 23, mods),
-        Function::Twelve => tilde(text, 24, mods),
+        Function::One => ss3(text, 'P', modifiers),
+        Function::Two => ss3(text, 'Q', modifiers),
+        Function::Three => ss3(text, 'R', modifiers),
+        Function::Four => ss3(text, 'S', modifiers),
+        Function::Five => tilde(text, 15, modifiers),
+        Function::Six => tilde(text, 17, modifiers),
+        Function::Seven => tilde(text, 18, modifiers),
+        Function::Eight => tilde(text, 19, modifiers),
+        Function::Nine => tilde(text, 20, modifiers),
+        Function::Ten => tilde(text, 21, modifiers),
+        Function::Eleven => tilde(text, 23, modifiers),
+        Function::Twelve => tilde(text, 24, modifiers),
     }
 }

@@ -85,7 +85,11 @@ fn original_bracketed_paste_and_terminator_defusing_match() {
         assert_eq!(actual.as_bytes(), expected);
         if !expected.is_empty() {
             assert_eq!(
-                encode_paste(&case.text, modes, InputBudget::new(expected.len() - 1)),
+                encode_paste(
+                    &case.text,
+                    modes,
+                    InputBudget::new(expected.len().checked_sub(1).expect("nonempty"))
+                ),
                 Err(InputError::Budget)
             );
         }
@@ -100,7 +104,10 @@ fn text_commits_preserve_unicode_and_refusal_keeps_original_intent() {
         text.as_bytes()
     );
     assert_eq!(
-        encode_text(text, InputBudget::new(text.len() - 1)),
+        encode_text(
+            text,
+            InputBudget::new(text.len().checked_sub(1).expect("nonempty"))
+        ),
         Err(InputError::Budget)
     );
     assert_eq!(text, "한글😀e\u{301}\r\n");

@@ -28,14 +28,15 @@ pub struct Modifiers {
 }
 impl Modifiers {
     const fn parameter(self) -> u8 {
-        1 + self.shift.bit() + self.alt.bit() * 2 + self.control.bit() * 4 + self.meta.bit() * 8
+        (self.shift.mask(1) | self.alt.mask(2) | self.control.mask(4) | self.meta.mask(8))
+            .saturating_add(1)
     }
 }
 impl Modifier {
-    const fn bit(self) -> u8 {
+    const fn mask(self, pressed: u8) -> u8 {
         match self {
             Self::Released => 0,
-            Self::Pressed => 1,
+            Self::Pressed => pressed,
         }
     }
 }
@@ -82,6 +83,9 @@ pub enum InputError {
 }
 
 /// Encode one admitted physical key, without inferring or changing input modes.
+///
+/// # Errors
+/// Refuses if the bounded encoding allocation is unavailable.
 pub fn encode_key(
     key: Key,
     modifiers: Modifiers,
@@ -91,6 +95,9 @@ pub fn encode_key(
 }
 
 /// Preserve committed text, including composed/supplementary Unicode, byte-for-byte.
+///
+/// # Errors
+/// Refuses before allocation when the whole text exceeds admission or allocation fails.
 pub fn encode_text(text: &str, budget: InputBudget) -> Result<InputBytes, InputError> {
     let mut bytes = allocate(text.len(), budget)?;
     bytes.extend_from_slice(text.as_bytes());
@@ -102,6 +109,9 @@ const PASTE_END: &str = "\x1b[201~";
 const DEFUSED_END: &str = "[201~";
 
 /// Encode paste under explicit current modes; an embedded end marker cannot escape.
+///
+/// # Errors
+/// Refuses an overflowing length, exceeded byte admission or unavailable allocation.
 pub fn encode_paste(
     text: &str,
     modes: InputModes,
@@ -114,7 +124,8 @@ pub fn encode_paste(
     let length = text
         .len()
         .checked_sub(removed)
-        .and_then(|n| n.checked_add(PASTE_START.len() + PASTE_END.len()))
+        .and_then(|n| n.checked_add(PASTE_START.len()))
+        .and_then(|n| n.checked_add(PASTE_END.len()))
         .ok_or(InputError::Budget)?;
     let mut bytes = allocate(length, budget)?;
     bytes.extend_from_slice(PASTE_START.as_bytes());
@@ -137,7 +148,7 @@ fn allocate(length: usize, budget: InputBudget) -> Result<Vec<u8>, InputError> {
     let mut bytes = Vec::new();
     bytes
         .try_reserve_exact(length)
-        .map_err(|_| InputError::Unavailable)?;
+        .map_err(|_allocation| InputError::Unavailable)?;
     Ok(bytes)
 }
 
