@@ -66,9 +66,26 @@ reset", "No prompt will be sent automatically. Continue when the account is read
 - The e2e fleet has no saved login, so the notice is covered by unit tests (`session-notice.test.ts`,
   `limit-notice.test.tsx`) and by a capture on the recorded usage fixture.
 
+## P2: kept choices, pins, the sidebar summary and the modal (ADR 0107)
+
+- Bridge (vessel-web): `wire/prefs/usage.rs` (UsageDisplay, UsagePin, UsagePins bounded at 32,
+  UsagePreferences), `Preferences.usage`, `SidebarView.usage`, changes SidebarUsage / UsageDisplay /
+  UsageHost / UsagePins; the keeper's `usage` section (keep/prefs_doc/sections.rs) and tests
+  (keep/prefs_doc/usage_tests.rs: an older document reads as the defaults and is not rewritten for them;
+  each change writes only its field; `[]` pins nothing, null follows the defaults; an unreadable field is
+  kept as written). Generated `web/src/wire/bridge.ts` follows.
+- Page: `data/prefs-change.ts` applies the four changes; `features/usage/use-usage-prefs.ts` reads them;
+  `usage-options.tsx` is Paseo's options popover (lookup, Show in sidebar, Display as);
+  `data/account-usage/pins.ts` is Paseo's pin rules (defaults: windows marked for the summary, else each
+  source's first with a percent; the first edit keeps the shown defaults); window rows are pin toggles while
+  the summary is on (`quota-card.tsx`).
+- `sidebar-usage.tsx`: Paseo's sidebar item above the sidebar's foot (marks, meters/percents/short labels,
+  the richest layout that fits, measured off screen with N2's quotaPinnedLayout); it follows the picked host,
+  then the active machine, then the first that reports (N2's quotaSummaryHost). A click opens
+  `usage-modal.tsx`: Paseo's "Usage" dialog with a host picker when more than one machine is connected
+  (picking writes the host preference) and the Plan usage section for that machine.
+
 ## Next
 
-- P2 (ADR 0107, coordinator approved): the bridge preference document gains a `usage` section shaped like the
-  native view/src/prefs/usage.rs (display, host, pins) plus PreferenceChange UsageDisplay/UsageHost/UsagePins
-  and the sidebar visibility flag; old documents load with Used, no host, no pins. Then the sidebar summary
-  (pins, N2's quotaPinnedLayout) and the usage modal on the page.
+- The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).
+- Captures of P2/P3 (summary, modal, pins, session hover card) to the coordinator.
