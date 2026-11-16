@@ -469,3 +469,22 @@ to displayed/local-find/copy/restore text; metadata and outline previews remain
 raw per the reference. No empty helper or second transcript index fills these
 missing consumer contracts. Read-only projection replacement remains Hold while
 navigation is protected and must not advance its installed revision on refusal.
+
+
+## Announced base 13.1 and fixture consumption boundary
+
+The app merges the announced `ad14f5f6` base after base13. The incoming staged
+window enumeration and segmented-control producer remain on their original
+paths and visibility. Shared selected-connection and actor source remains
+byte-identical to that base. The merge is source integration only; the wider
+A3 union still requires its own strict/runtime/native gate and capture review.
+
+G4's frozen Scenario handoff `51f64421c` has a bounded source/narrow disposition,
+but it is not yet an announced receiving line. A3 must consume it through the
+lead's line before any positive actor fixture or extension work. Its synchronous
+facade borrows the original Link outside a Tokio-entered runtime. Normal close
+acknowledges the scenario peer and Devices hub only; A3 must explicitly settle
+its own Search and prompt-metadata workers before close, using actual correlated
+events and bounded phase waits. No generic worker-drain claim is borrowed from
+that fixture. The later two-peer extension remains a separate lead-owned writer
+slot and must preserve one State and canonical admissions.
