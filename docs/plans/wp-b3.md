@@ -225,3 +225,21 @@ UI update. Its owner tests will cover wrong-correlation retention, single consum
 and hidden binding isolation. W9 will supply its exact concrete state/readiness
 API only after canonical checked producer references exist; do not consume this
 proposed wrapper before A7 announces its checked packet.
+
+### Resumed RootLease correction and native base (source, checks pending)
+
+The separate root-borrow producer's first review returned a concrete ordinary
+project-subdirectory exclusion defect and fixture failure-cleanup obligations.
+Its correction includes actual project and managed-worktree roots from the same
+registry observation, retains the nearest opened ancestor, and refuses overlapping
+opened parent/child scopes in either order. It has no accepted/adoptable hash yet;
+this app must not import either that source or the full checkpoint node branch.
+Its old green checks do not verify the revised implementation.
+
+The native tree consumed announced package base 13.1 normally. Checkpoint UI
+remains unimplemented until the checked canonical producer references and A7's
+owned registration/correlation seam exist. The agreement above still applies:
+one concrete nested Timeline field/hold, original full context and opaque ticket,
+validate owner correlation before canonical consume, and no conversation rewind
+or default-Ready shortcut. Agent and terminal cleanup proofs are independent
+node requirements; their absence continues to refuse production restoration.
