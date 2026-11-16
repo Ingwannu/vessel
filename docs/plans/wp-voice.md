@@ -3,10 +3,12 @@
 ## Decision before code
 
 Decision: modify existing settings/secret/session boundaries; add voice-only
-actors and a desktop audio owner because none exists. ADR 0080 is proposed,
-with architecture review required before product code. ADR 0067's owner was
-consulted: only PCM/WAV/TLS/secret primitives are potential shared assets;
-its stream commit/prompt/confidence policy is not a voice API.
+actors and a desktop audio owner because none existed at assignment. ADR0080's
+initial contract and immediate-local-Stop revision passed architecture review;
+its later dependency, loader and integration checkpoints remain separately
+scoped. ADR0067's owner was consulted: shared PCM/WAV/TLS/secret primitives
+are reused, while dictation commit/prompt/confidence policy stays independent.
+The staged sources and individual passing fake suites do not enable voice.
 
 ## Reference behaviour read (Paseo 0.15.4)
 
@@ -596,3 +598,16 @@ full package acceptance. The changed About rows still need their VM check.
 - Why: a naked PCM clone or copied Vec would detach queued raw audio from the device's retained-byte accounting. A second cancellation registry would duplicate the landed RPC owner.
 - Impact: conversion checks the capture-origin mute interval, but cannot revoke already committed bytes. The eventual adapter must still synchronously drop its actual owned RPC future on mute/Stop. Serialized transport buffers remain separately bounded by RPC framing; this change does not claim to account every JSON/kernel buffer as microphone PCM.
 - Validation: two new pure fixture cases check allocation identity, retained permits across byte clones/slices after Stop, final-alias release, and mute/unmute before conversion. VM execution is still owed. These cases exercise the allocation edge only, not a connected voice RPC adapter, device or provider. The staged module stays test-only.
+
+
+### Shared prerequisite landing checkpoint
+
+The accepted RPC caller-drop leaf is now in announced ed4cd137; the app receives
+it through package base13, not by merging a node head directly. Both receiving
+voice trees preserve the full ADR0080 and its isolated transport section. This
+settles the shared-writer prerequisite only. Actual voice adapters still owe
+synchronous owned-future cancellation and generation-bound request accounting.
+The canonical settings values carrier53cf2e95 passed its scoped root vesseld
+build and Proto TS391/0/0 checks; it awaits receiving-union qualification and
+announcement. It adds no node settings field, Copy/persistence conversion,
+service/engine availability or opt-in. Host Voice stays unregistered.
