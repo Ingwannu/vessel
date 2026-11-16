@@ -544,18 +544,20 @@ or establishes a typed watermark/causal-read contract. W10/W12/C2 share this
 hold, and no native compile leaf has been installed.
 
 
-## Current resume point after base13
+## Current resume point after base 13.1
 
-Merged only announced appbase13 `2ebeedf9`, retaining both history and label
+Merged only announced app base 13.1 `ad14f5f6`, retaining history and label
 registrations and the shared preference-save implementation. Local source size,
 token and diff checks pass; current native compilation/runtime/captures remain
-owed after the older scoped45-test result. No whole node head entered this app.
+owed after the older scoped 45-test result. No whole node head entered this app.
 
-The separate label node source now includes announceded4, exact generated TS
-and an in-progress frozen whole gate. Prior171d passed six-package all-target
-strict and38 actual runtime tests, including the real Store and generated guard;
-that scoped evidence is not whole/V3 acceptance or permission to invent an app
-capability. Label methods remain pending None.
+The separate label node source includes announced ed4 and exact generated TS.
+Its first frozen whole gate passed format/size/boundaries, then failed workspace
+Clippy because our new label ErrorDetail was absent from the CLI diagnostic
+fallback. The explicit arm and a safe-display regression are corrected on the
+same base; actual corrected whole verification and V3 acceptance remain owed.
+Prior171d six-package all-target strict and 38 actual runtime tests are scoped
+evidence only. Label methods remain pending None.
 
 Both sidebar and layout owners reaffirm no checked authoritative native
 workspace row/header runtime producer for original context, active fact and
@@ -563,8 +565,11 @@ ordered assignments. Keep the picker staged and unregistered; presentation keys
 are not authority. The current-session label watermark/event producer is also
 separate and unready, so no current-map apply/Ready transition is installed.
 
-A separately assigned additive SearchField leaf is prepared on base13: existing
-engine FieldId callbacks, id/focus/set_text, no new renderer and byte-identical
-plain new/clear/render. It is uncompiled/unreviewed and not adopted here. After
-its remote narrow and V1/lead acceptance, switch only the manager consumer in a
-separate range, preserving the existing opening/source callback regression.
+The separately assigned additive SearchField leaf reuses engine FieldId
+callbacks and id/focus/set_text without changing plain new/clear/render. Original
+focused runtime passed the forced old-editor rejection and both existing tests,
+but its new Enter event-count assertion failed. The test now follows the existing
+single-line normalization path, with product behavior unchanged. Corrected leaf
+`790a5f84` on base 13.1 passed Kit all-target strict; focused runtime is pending.
+It is not adopted here. V1 and lead acceptance precede the separate manager
+consumer switch, which retains its opening/source callback regression.
