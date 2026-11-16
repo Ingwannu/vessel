@@ -309,8 +309,8 @@ impl Reply {
             // A hit names a session; the session itself comes from a list.
             | Self::Diagnostics(_)
             | Self::SearchMessages(_)
-            // Pending file-panel replies cannot reach an older peer: admission
-            // refuses these methods before execution, just like newer families.
+            // File-panel replies (protocol 27) cannot reach an older peer: the
+            // node refuses these calls below 27 before dispatch, like newer families.
             | Self::InspectDirectory(_)
             | Self::ReadFileBytes(_)
             | Self::DuplicateFileEntry(_)
