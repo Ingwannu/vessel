@@ -209,3 +209,21 @@ regressions. Prior340 runtime does not substitute for this new assembly. Consume
 facades remain staged; the standalone producer retains its conservative legacy
 viewer hold. The separate full retained-file owner join is not part of this
 producer or its receiving claim.
+
+## Executed straight receiving checks
+
+Exactd58261648, whose sole parent is announcedb54abbdc, passed View/Link/App
+all-target locked Clippy with warnings denied in
+wp-files-shown-20261116T024454Z-d5826164 (fonts0/Cargo0). The same source
+then passed all8 framed source cases,0 failed/0 ignored in
+wp-files-shown-20261116T025138Z-d5826164 (fonts0/Cargo0). Existing canonical
+delivery/selected/queue/Scenario/fixture helpers, manifests and locks are
+unchanged from the base. All20 non-dispatch owned Rust blobs equal the prior
+bounded reviewed preparation; the shared event dispatcher retains the newer
+base and adds only one CodeSource arm.
+
+These are actual receiving-source narrow checks. The reviewer still supplies
+the final bounded delta disposition before handoff; this documentation update
+changes no Rust. No whole C5, private product event-dispatch/paint/OS, full
+multi-page transfer, mutation authority, UI-visit ABA or generic worker-drain
+claim is added. Consumer entry points remain staged until their real caller.
