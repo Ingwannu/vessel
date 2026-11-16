@@ -141,6 +141,11 @@ uuid_id! {
 }
 
 uuid_id! {
+    /// Correlation for one parent execution; its spelling never grants admission.
+    ExecutionIncarnationId
+}
+
+uuid_id! {
     /// Independent workspace identity; shared cwd never implies shared ownership.
     WorkspaceId
 }
