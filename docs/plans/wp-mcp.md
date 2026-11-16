@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-56b node head `ed4cd137`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-57 node head `bc9cacc6`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -879,3 +879,14 @@ only for the expected generated proto.ts difference. The exact VM commit and
 every artifact SHA were checked; bridge/calls were byte-identical. Its actual
 proto.ts snapshot is now committed without manual edits or whitespace cleanup.
 Freshness remains required after this receive and the announced next base.
+
+
+The announced all-green gate57 head bc9cacc6 is merged after receiving the
+exact d650 VM wire snapshot. Its composer-kind compatibility helper, membership
+reader, private diagnostics and voice values remain their owners' contracts.
+The protocol documentation conflict preserves both independent sections. Git
+merged the two generated wire inputs without a manual edit; exact merged-head
+freshness is still required. Nine MCP rows stay pending and all feature
+constants remain unassigned. The older queued d650 strict may be superseded
+only while queued, preserving its terminal receipt before one same-lane
+replacement.

@@ -90,6 +90,8 @@ mod side_questions;
 mod skills;
 
 #[cfg(test)]
+mod command_diagnostics_tests;
+#[cfg(test)]
 mod connection_life_tests;
 #[cfg(test)]
 mod dispatch_tests;

@@ -2015,3 +2015,7 @@ requires MCP_PARITY. The origin derives the notification parent from a direct
 Agent principal and follows the destination's exact turn-start sequence.
 Receipt storage is finite and ephemeral; no durable delivery guarantee is
 introduced, and no store schema number is needed.
+
+## Unassigned command-kind metadata values (ADR0085)
+
+AgentCommand.kind optionally carries command, skill or unknown. Absence remains root-only; unknown future kinds do not enable inline completion. COMPOSER_COMMANDS is None in this values carrier. Every peer-visible conversation/event path strips kind until assignment, including forwarded replies and legacy event projections. No method, RPC row or protocol number is introduced, and actual discovery/classification remains separate.
