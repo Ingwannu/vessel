@@ -80,13 +80,14 @@ async fn candidate_uses_actual_project_metadata_start_and_committed_begin_owners
                     .unwrap()
                     .unwrap();
                     assert_eq!(stored, begin);
-                    let entries = agents.lock();
-                    assert!(
-                        candidate
-                            .count()
-                            .matches_pending(agents, entries.get(&child).unwrap())
-                    );
-                    drop(entries);
+                    {
+                        let entries = agents.lock();
+                        assert!(
+                            candidate
+                                .count()
+                                .matches_pending(agents, entries.get(&child).unwrap())
+                        );
+                    }
                     fixture.close_runtime().await;
                     assert!(matches!(
                         candidate.check_runtime(),
@@ -120,9 +121,7 @@ async fn assertion_failure_still_closes_actual_parent_and_store_before_resuming(
                     fixture.store().advance_creation(
                         vessel_proto::WorkspaceOperationId::random(),
                         vessel_proto::creation::Revision::INITIAL,
-                        vessel_proto::creation::Advance::Begin(
-                            vessel_proto::creation::Stage::Resource
-                        ),
+                        vessel_proto::creation::Advance::Begin(Stage::Resource),
                     )
                 )
                 .await,

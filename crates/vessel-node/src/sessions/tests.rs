@@ -31,7 +31,7 @@ use crate::error::ServiceError;
 
 struct Fixture {
     data: TempDir,
-    _bin: TempDir,
+    bin: TempDir,
     runtime: Arc<SessionRuntime>,
     store: Store,
     sessions: Arc<Sessions>,
@@ -73,7 +73,7 @@ impl Fixture {
         ));
         Self {
             data,
-            _bin: bin,
+            bin,
             runtime,
             store,
             sessions,

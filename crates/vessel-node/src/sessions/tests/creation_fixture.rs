@@ -46,7 +46,7 @@ impl CreationFixture {
         let inner = owner.shared();
         // The same retained owner keeps this root alive even if the cleanup
         // observer times out; the inherited fake-bin TempDir owns its parent.
-        let root = inner._bin.path().join("creation-project");
+        let root = inner.bin.path().join("creation-project");
         std::fs::create_dir(&root).unwrap();
         let dir = DataDir::new(inner.data.path());
         let home = inner.data.path().join("test-home");
@@ -110,7 +110,7 @@ impl CreationFixture {
     }
 
     /// Lower lifecycle fixture only: this tracked task owns the actual spawn
-    /// future even when its JoinHandle observer is dropped. It bypasses the
+    /// future even when its `JoinHandle` observer is dropped. It bypasses the
     /// unfinished creation controller and supplies no admission qualification.
     pub(crate) fn start_child_custody(
         &self,
@@ -293,7 +293,7 @@ impl CreationFixture {
                 identity: CreationIdentity::for_agent(
                     node,
                     parent,
-                    Key::parse(&format!("child-{child}")).unwrap(),
+                    Key::parse(format!("child-{child}")).unwrap(),
                 ),
                 receipt: Receipt::admitted(
                     Kind::Agent,
