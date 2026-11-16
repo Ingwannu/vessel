@@ -50,7 +50,7 @@ including its remaining pure tests. Export/UUID wiring is receiving-only.
 | crates/vessel-proto/src/native_commands/mod.rs | 2d0439eaf46550eb73e4d755d4f3221606230bc760cfa8372fc3cce672f34cec |
 | crates/vessel-proto/src/native_commands/objective.rs | 45558e52ad5f651bc4483bedba5bc6822c2555a7e407c52d0fe90979ad4e8639 |
 | crates/vessel-proto/src/native_commands/parse.rs | 03c0e3946c789568591416fba60c10e20dc800d484406b8202ad366a9a0be024 |
-| crates/vessel-proto/src/native_commands/tests.rs | b29532004f19c5e39c9ed80a7605c8bb028d0ffdadc20584cdd443edab94ee2d |
+| crates/vessel-proto/src/native_commands/tests.rs | e309993b2861f76d358fa3c13687765d4e8935a58f189d887674a437021103f1 |
 | crates/vessel-proto/src/timeline/execution.rs | 7656eac7ed74b429636105ca4c91a28774608089127e3feeb555656c2d0d91ae |
 | crates/vessel-proto/src/timeline/permission.rs | 47a249f07537b892b7b028cc4a8a3754809d2282dc143d55ccbd26a38444f9d0 |
 | crates/vessel-proto/src/timeline/question.rs | 17c20914b254df586924952fe517dfeae9d1b376a6f74944b116711f35b716d7 |
