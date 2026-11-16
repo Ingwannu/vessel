@@ -56,6 +56,14 @@ named tests. This phase cannot produce native installed-byte deltas: actual
 app callback overlays and a reachable release/wasm entry are a later packet,
 not implied by the test registrations or a passing filtered test count.
 
+`placement_probe.rs` and its child tests prepare the later narrow backend's
+digit placement over `UnsignedDecimal`: injected grouping widths/separators
+and ten digit symbols, ordinary/disabled/compact-minimum-two grouping, and
+full unsigned digits. There is no float conversion, parser, rounding or
+language table in it. It is not registered by the frozen stage-1 descriptor
+and remains uncompiled; its source/tests must be included in a later exact
+candidate check, not credited to stage 1's eight/ten tests.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
