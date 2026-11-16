@@ -877,10 +877,17 @@ Question-kind presentation is not form authority. W23's confirmed producer
 condition requires the typed Question/QuestionAsked schema path; a PermissionRequest
 marked Question stays inert/unsupported without that explicit join. No opaque
 permission input is parsed into fields, companions or a question response.
-The approved standalone value cut also excludes the generic ECMA trim helper;
-future allow-empty/custom readiness waits for its canonical checked producer.
-The existing private workspace trim is not copied into the UI. Current legacy
-readiness has no FEFF/U+0085 conformance claim.
+The approved standalone value cut excludes the generic ECMA trim helper.
+A rescan corrected the earlier resume inventory: native text readiness already
+uses the private TC39 helper from6761865ca and its FEFF/NEL assertions, included
+in prior730 runtime evidence. No new helper was copied during this resume.
+Number/integer readers still use Rust trim and need the canonical semantics.
+The prepared, unapplied consumer patch aliases the public proto helper, removes
+the native production table, preserves its existing assertions and adds numeric
+FEFF-valid/NEL-invalid plus exact-draft retention checks. The two current tables
+are equal after whitespace normalization; this is source evidence, not a new UI
+test result. Applying it waits for910's checked receiving head/official app line;
+new allow-empty/presentation policy and rich runtime remain separate gaps.
 
 
 The shared body prerequisite8737a401d passed V1 row276's final bounded staged
