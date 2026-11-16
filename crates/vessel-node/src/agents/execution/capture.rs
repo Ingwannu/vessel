@@ -6,8 +6,11 @@ use super::{Agents, ExecutionInvalidation};
 use crate::principal::Principal;
 use std::sync::Arc;
 use tokio::sync::watch;
-use vessel_proto::timeline::{FinishGrantCeiling, ParentExecutionStamp};
 use vessel_proto::Scope;
+use vessel_proto::timeline::{FinishGrantCeiling, ParentExecutionStamp};
+
+mod creation;
+pub(crate) use creation::{CreationCredentials, CreationFenceRefusal, RejectedCreation};
 
 /// A runtime-only capture; no serde constructor can manufacture its owner/watch.
 #[derive(Debug)]
