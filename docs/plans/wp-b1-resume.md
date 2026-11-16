@@ -47,7 +47,7 @@ other owners; never merge this private App ancestry wholesale.
 ## Common input is a separate WIP
 
 Branch backend/m12-b1-b2-input-packet has a committed resume at
-[its plan](b1-b2-input-packet.md), and its own b1-b2-input-resume.md. It uses the
+`docs/plans/b1-b2-input-packet.md` on that branch, and its own b1-b2-input-resume.md. It uses the
 announced14.2 c6d8df49, exact official root, with the B2/A1/B1 receiving adapters.
 Its latest current-slice correction is WIP0f38108fc after actual strict57 red.
 Only one final short current-slice strict60 was submitted at the quota warning;
