@@ -50,6 +50,7 @@ mod file_search;
 mod files;
 mod found;
 mod frame;
+mod frame_host;
 mod intelligence;
 mod intelligence_view;
 #[cfg(test)]
@@ -95,7 +96,11 @@ use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 
 pub(crate) use elsewhere::FindRefused;
 pub(crate) use file_search::FileSearchRequest;
+#[cfg(test)]
+pub(crate) use frame::code_beside_at;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
+#[cfg(test)]
+pub(crate) use frame_host::ExplorerHost;
 pub(crate) use layout_adapter::{ExplorerKind, render_explorer, show_layout_explorer};
 #[cfg(test)]
 pub(crate) use shown_source::{ShownChangesContext, ShownDiffContext};

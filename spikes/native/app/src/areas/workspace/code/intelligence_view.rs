@@ -8,6 +8,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_link::workspace::IntelligenceResult;
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::intelligence::{
     IntelligenceAction, IntelligenceFailure, language_for,
 };
@@ -66,8 +67,8 @@ pub(super) fn panel(
                 }
             });
         }
-        State::Ready { result, .. } => {
-            body = body.child(result_body(shell, &key, result, tokens, cx));
+        State::Ready { ask, result } => {
+            body = body.child(result_body(shell, &key, ask.ticket, result, tokens, cx));
         }
     }
     Some(
@@ -91,6 +92,7 @@ fn failure(shell: &Shell, failure: &IntelligenceFailure) -> String {
 fn result_body(
     shell: &Shell,
     key: &FileKey,
+    ticket: FileTicket,
     result: &IntelligenceResult,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -113,7 +115,15 @@ fn result_body(
                 body = body.child(labels.language_no_locations);
             }
             for (index, location) in page.items.iter().enumerate() {
-                body = body.child(location_row(key.clone(), index, location, None, tokens, cx));
+                body = body.child(location_row(
+                    key.clone(),
+                    ticket,
+                    index,
+                    location,
+                    None,
+                    tokens,
+                    cx,
+                ));
             }
             (page.context.freshness, page.next, page.truncated)
         }
@@ -124,6 +134,7 @@ fn result_body(
             for (index, diagnostic) in page.items.iter().enumerate() {
                 body = body.child(location_row(
                     key.clone(),
+                    ticket,
                     index,
                     &diagnostic.location,
                     Some(&diagnostic.message),
@@ -150,9 +161,9 @@ fn result_body(
     if let Some(offset) = next {
         let key = key.clone();
         body = body.child(
-            button("file-language-more", labels.show_rest, false, tokens).on_click(
-                cx.listener(move |shell, _, _, cx| shell.language_next_for(&key, offset, cx)),
-            ),
+            button("file-language-more", labels.show_rest, false, tokens).on_click(cx.listener(
+                move |shell, _, _, cx| shell.language_next_for(&key, ticket, offset, cx),
+            )),
         );
     }
     body.into_any_element()
@@ -160,6 +171,7 @@ fn result_body(
 
 fn location_row(
     key: FileKey,
+    ticket: FileTicket,
     index: usize,
     location: &Location,
     message: Option<&str>,
@@ -175,8 +187,8 @@ fn location_row(
         |message| format!("{path}:{line}:{column} {message}"),
     );
     button(("file-language-location", index), text, false, tokens)
-        .on_click(
-            cx.listener(move |shell, _, _, cx| shell.language_location_for(&key, &target, cx)),
-        )
+        .on_click(cx.listener(move |shell, _, _, cx| {
+            shell.language_location_for(&key, ticket, &target, cx)
+        }))
         .into_any_element()
 }

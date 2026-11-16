@@ -6,6 +6,7 @@ use std::num::NonZeroU32;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::workspace::{FileAsk, IntelligenceAsk, IntelligenceResult};
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::intelligence::{IntelligenceAction, language_for};
 use vessel_proto::lsp::{AtPosition, FilePath, Offset, PageRequest, Position, Workspace};
 
@@ -37,6 +38,7 @@ impl Shell {
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.mirror_editor_for(key, cx);
         let request = self.language_request(key, cx);
         match request {
             Ok(at) => self.send_language_query(key, at, action),
@@ -65,7 +67,7 @@ impl Shell {
         let file = FilePath::try_from(std::path::PathBuf::from(key.path.as_str()))
             .map_err(|_invalid| Refusal::Path)?;
         let (line, column) = if let Some(editing) = &viewer.edit {
-            if editing.model.modified() || editing.model.writing().is_some() {
+            if editing.stale || editing.model.modified() || editing.model.writing().is_some() {
                 return Err(Refusal::Unsaved);
             }
             editing
@@ -131,29 +133,57 @@ impl Shell {
     pub(super) fn language_next_for(
         &mut self,
         key: &FileKey,
+        ticket: FileTicket,
         offset: Offset,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
+        let Some(ask) = self.language_ready_for(key, ticket, cx) else {
             return;
         };
-        let State::Ready { ask, .. } = &viewer.intelligence else {
-            return;
-        };
-        let mut at = ask.at.clone();
+        let mut at = ask.at;
         at.page.offset = offset;
         let action = ask.action;
         self.send_language_query(key, at, action);
         cx.notify();
     }
 
+    // Result controls retain the original request, rather than borrowing a
+    // replacement query's cursor or accepting an edit whose mirror is queued.
+    fn language_ready_for(
+        &mut self,
+        key: &FileKey,
+        ticket: FileTicket,
+        cx: &mut Context<'_, Self>,
+    ) -> Option<IntelligenceAsk> {
+        self.mirror_editor_for(key, cx);
+        let viewer = self.areas.workspace.code.viewer_for(key)?;
+        let State::Ready { ask, .. } = &viewer.intelligence else {
+            return None;
+        };
+        if ask.ticket != ticket {
+            return None;
+        }
+        let ask = ask.clone();
+        if let Err(refusal) = self.language_request(key, cx) {
+            if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
+                viewer.intelligence = State::Refused(refusal);
+            }
+            cx.notify();
+            return None;
+        }
+        Some(ask)
+    }
+
     pub(super) fn language_location_for(
         &mut self,
         key: &FileKey,
+        ticket: FileTicket,
         location: &vessel_proto::lsp::Location,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.workspace.code.file_key().as_ref() != Some(key) {
+        if self.areas.workspace.code.file_key().as_ref() != Some(key)
+            || self.language_ready_for(key, ticket, cx).is_none()
+        {
             return;
         }
         let path = location

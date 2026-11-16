@@ -31,7 +31,6 @@
 use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::tabs::{tab, tab_head};
 use vessel_app_kit::theme::COMMAND_SCRIM;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
@@ -42,7 +41,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph, popup};
 use vessel_app_view::panels::{CODE_PANEL, Placement, SIDEBAR, code_placement, over_width};
 
-use super::Tab;
+use super::frame_host::{self, ExplorerHost};
 use crate::areas::edge::Panel;
 use crate::shell::Shell;
 
@@ -121,6 +120,9 @@ impl Shell {
         let out = self.areas.workspace.code.open
             && self.route == crate::routes::Route::Session
             && self.areas.session.open.is_some();
+        self.code_placement_when(out, window)
+    }
+    fn code_placement_when(&self, out: bool, window: &Window) -> Option<Placement> {
         if !out || breakpoint::phone(window) {
             return None;
         }
@@ -151,6 +153,7 @@ pub(crate) fn code_beside(
         tokens,
         window,
         cx,
+        None,
         crate::areas::workspace::render_explorer,
     )
 }
@@ -166,7 +169,37 @@ pub(crate) fn code_beside_with_explorer(
     cx: &mut Context<'_, Shell>,
     render: impl FnOnce(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> AnyElement,
 ) -> Div {
-    code_beside_using(shell, screen, tokens, window, cx, render)
+    code_beside_using(shell, screen, tokens, window, cx, None, render)
+}
+
+/// Staged typed host: the caller supplies the actual projected Explorer and
+/// captured controls. No borrowed PanelContext survives this synchronous call.
+#[cfg(test)]
+pub(crate) fn code_beside_at(
+    shell: &Shell,
+    screen: Div,
+    host: &ExplorerHost<'_>,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+    render: impl FnOnce(
+        &Shell,
+        &crate::areas::layout::registry::PanelContext<'_>,
+        &Tokens,
+        &mut Window,
+        &mut Context<'_, Shell>,
+    ) -> AnyElement,
+) -> Div {
+    let panel = host.panel;
+    code_beside_using(
+        shell,
+        screen,
+        tokens,
+        window,
+        cx,
+        Some(host),
+        |shell, tokens, window, cx| render(shell, panel, tokens, window, cx),
+    )
 }
 
 fn code_beside_using(
@@ -175,9 +208,10 @@ fn code_beside_using(
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
+    host: Option<&ExplorerHost<'_>>,
     render: impl FnOnce(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> AnyElement,
 ) -> Div {
-    let Some(panel) = code_panel(shell, tokens, window, cx, render) else {
+    let Some(panel) = code_panel(shell, tokens, window, cx, host, render) else {
         return screen;
     };
     let row = Rc::clone(&shell.areas.workspace.code.row);
@@ -186,7 +220,8 @@ fn code_beside_using(
     // compact layout (`mobile-panels/presentation.tsx`, black at 50 %,
     // `onPress={showMobileAgent}`). A panel as wide as the row covers it
     // all, as Paseo's does; its close button is then the way back.
-    let over = shell.code_placement(window) == Some(Placement::Over);
+    let over = placement(shell, host, window) == Some(Placement::Over);
+    let hide = frame_host::hide(host);
     let scrim = over.then(|| {
         div()
             .absolute()
@@ -195,7 +230,7 @@ fn code_beside_using(
             .cursor_pointer()
             .on_mouse_down(
                 MouseButton::Left,
-                cx.listener(|this, _event, window, cx| this.toggle_code(window, cx)),
+                cx.listener(move |this, _event, window, cx| hide(this, window, cx)),
             )
     });
     div()
@@ -230,76 +265,33 @@ fn code_panel(
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
+    host: Option<&ExplorerHost<'_>>,
     render: impl FnOnce(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> AnyElement,
 ) -> Option<AnyElement> {
     let panel = &shell.areas.workspace.code;
-    if !panel.open || shell.areas.session.open.is_none() {
+    if let Some(host) = host {
+        host.selected()?;
+    } else if !panel.open || shell.areas.session.open.is_none() {
         return None;
     }
     // The open session changed while the panel was out: read the new
     // one's place after this frame.
-    if shell.code_session().is_some_and(|(machine, session)| {
-        panel
-            .target
-            .as_ref()
-            .is_none_or(|target| target.machine != machine || target.session != session)
-    }) {
+    if host.is_none()
+        && shell.code_session().is_some_and(|(machine, session)| {
+            panel
+                .target
+                .as_ref()
+                .is_none_or(|target| target.machine != machine || target.session != session)
+        })
+    {
         cx.defer_in(window, |this, _window, cx| {
             this.code_follow();
             cx.notify();
         });
     }
     let neutral = tokens.neutral;
-    let labels = shell.words().labels();
     let phone = breakpoint::phone(window);
-    let tabs = div()
-        .child(
-            tab(
-                "code-tab-changes",
-                labels.panel_changes,
-                panel.tab == Tab::Changes,
-                None,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                crate::areas::workspace::show_layout_explorer(
-                    this,
-                    crate::areas::workspace::ExplorerKind::Changes,
-                    window,
-                    cx,
-                );
-            })),
-        )
-        .child(
-            tab(
-                "code-tab-files",
-                labels.panel_files,
-                panel.tab == Tab::Files,
-                None,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                crate::areas::workspace::show_layout_explorer(
-                    this,
-                    crate::areas::workspace::ExplorerKind::Files,
-                    window,
-                    cx,
-                );
-            })),
-        );
-    let close = div().child(
-        div()
-            .id("code-close")
-            .size(px(if phone { 44.0 } else { 28.0 }))
-            .flex()
-            .items_center()
-            .justify_center()
-            .rounded(px(popup::MENU_RADIUS))
-            .cursor_pointer()
-            .hover(move |style| style.bg(neutral.surface2))
-            .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted))
-            .on_click(cx.listener(|this, _event, window, cx| this.toggle_code(window, cx))),
-    );
+    let header = frame_host::rail(shell, host, tokens, window, cx);
     let body = render(shell, tokens, window, cx);
     let frame = div()
         .flex()
@@ -307,7 +299,7 @@ fn code_panel(
         .h_full()
         .min_h(px(0.0))
         .bg(neutral.surface0)
-        .child(tab_head(tabs, Some(close), tokens))
+        .child(header)
         .child(div().flex_1().min_h(px(0.0)).flex().flex_col().child(body));
     Some(if phone {
         frame.absolute().inset_0().size_full().into_any_element()
@@ -315,7 +307,7 @@ fn code_panel(
         // Before the row is first measured, no room limit: the row's flex
         // keeps the conversation's least width for that frame.
         let room = panel.row.get().unwrap_or(f32::INFINITY);
-        let frame = match shell.code_placement(window) {
+        let frame = match placement(shell, host, window) {
             // Too narrow for both: over the conversation, which keeps
             // the whole row under it (`panels::code_placement`).
             Some(Placement::Over) => over(frame, over_width(PANEL.asked(shell), room), tokens),
@@ -325,6 +317,14 @@ fn code_panel(
             .children(PANEL.handle("code-edge", shell, tokens, window, cx))
             .into_any_element()
     })
+}
+
+fn placement(shell: &Shell, host: Option<&ExplorerHost<'_>>, window: &Window) -> Option<Placement> {
+    if host.is_some() {
+        shell.code_placement_when(true, window)
+    } else {
+        shell.code_placement(window)
+    }
 }
 
 /// The panel beside the conversation: its hairline and its width (the

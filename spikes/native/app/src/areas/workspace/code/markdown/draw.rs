@@ -139,7 +139,9 @@ fn document_element(
             .child(div().flex_1().child(row.key.clone()))
             .child(div().flex_1().child(row.value.clone()))
     });
-    div()
+    let column = div()
+        .w_full()
+        .mx_auto()
         .flex()
         .flex_col()
         .gap(px(spacing::S3))
@@ -156,8 +158,11 @@ fn document_element(
             tokens,
             window,
             cx,
-        ))
-        .into_any_element()
+        ));
+    match shell.prefs.settings.appearance.content_width.points() {
+        Some(width) => column.max_w(px(f32::from(width))).into_any_element(),
+        None => column.into_any_element(),
+    }
 }
 
 fn stage_element(

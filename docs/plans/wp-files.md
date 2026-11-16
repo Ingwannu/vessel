@@ -1233,3 +1233,90 @@ replayed after the two View corrections. The standalone shown-source packet
 also received bounded V1 source/requested narrow approval with its prerequisite
 and receiving assembly held. Neither result qualifies the isolated retained
 owner/root-guard join, typed product open/close, UI captures or full C5 acceptance.
+
+## Markdown column follows existing appearance preferences
+
+[Decision Log]
+- Purpose: the same saved content-width setting should govern Markdown file
+  prose without requiring the future typography/value producer.
+- Existing assets: ContentWidth::points already returns the gated optional point
+  width; the kit renders Markdown and the file frame owns full-height scrolling.
+- Choice: project prefs.settings.appearance.content_width.points into a full-width
+  centered document column, applying max width only for Some. Full(None) remains
+  unrestricted; the existing scroll frame, padding and renderer are unchanged.
+- Why: no second width parser, state, renderer or synchronization path is needed.
+  Future validated numeric values can flow through that same points signature.
+- Validation limit: source formatting/static checks only for this reversible
+  layout projection; receiving compile and inspected responsive captures are
+  still owed. No typography/F5 or finished Markdown-file UI approval is claimed.
+
+## Saved-source language admission observes the actual control
+
+[Decision Log]
+- Purpose: Hover, Definition and Diagnostics must not label a query as saved
+  source while an accepted engine replacement is still awaiting its owner mirror.
+- Existing assets: the same retained CodeEditor snapshot/mirror and saved-only
+  language_request admission; the replacement engine intentionally emits no
+  change event. No new language server, request or editor model is needed.
+- Choice: synchronously mirror the existing engine before language admission,
+  then refuse an unprojected disk update as well as modified/original-writing
+  state. Existing saved-only refusal copy is reused while the display catches up.
+- Why: an event subscription or a cached Clean bit cannot establish that the
+  caret and displayed source correspond to the saved document.
+- Validation: authored real-engine/no-I/O barriers cover silent replacement
+  after a valid baseline request and a newer disk model awaiting projection.
+  They retain both accepted and saved text and require Refused(Unsaved). The
+  new cases are unexecuted; queued owner strict37 predates this primary-only
+  correction. No real LSP process, wire, cursor-unit or product acceptance proof
+  is inferred. Merge with the next receiving correction batch before checking.
+
+### Result actions retain the original language query
+
+- Purpose: an old result's next-page or definition callback must not borrow a
+  replacement query's ticket or navigate after silent accepted source input.
+- Existing assets: the retained language request ticket and actual-control
+  mirror above; no new query identity, server, cache or navigation controller.
+- Choice: capture that same FileTicket in result controls; mirror the actual
+  editor and require the exact still-Ready ticket plus saved-source admission
+  before paging or opening a definition. A superseded callback leaves the
+  replacement results unchanged. An edit invalidates the original results.
+- Why: root/path identity alone cannot distinguish two queries in one buffer,
+  and a queued mirror is not evidence that the displayed source is still saved.
+- Units: source inspection confirms the existing rope cursor counts Unicode
+  scalars, matching the protocol's one-based scalar columns. No conversion or
+  vendor edit is needed; this is not an executed Unicode cursor test.
+- Validation: authored real-control tests inject typed definition pages locally
+  and exercise superseded callbacks and each silent-edit activation separately.
+  They are unexecuted and make no wire, server, painted-callback or UI proof.
+  Receiving compilation/tests remain owed with the next owner correction batch.
+
+## Staged typed Explorer reuses the existing dock
+
+[Decision Log]
+- Purpose: join the sole layout Explorer projection without creating another
+  dock, selected-tab cache, header or filesystem resolver.
+- Existing assets: layout_with_explorer supplies a borrowed actual PanelContext
+  after releasing the layout book; the code frame already owns width, compact
+  scrim, resize and its one tab rail. The legacy wrapper remains its caller.
+- Choice: staged code_beside_at accepts ExplorerHost containing that same
+  borrowed context and layout-owned captured select/hide callbacks. Presence
+  selects the typed branch: the header reads only target, the common frame uses
+  projected visibility, and it skips legacy open/tab/session-follow inference.
+  Both Close and scrim invoke the same captured hide callback. The body receives
+  the exact context synchronously; the context is never stored.
+- Responsibility: W12 prepares callback currentness, captured key/tab/target,
+  open/update/hide operations and localized refusal. C5 retains dock sizing and
+  actual root-receipt admission. Neither the header nor PanelContext grants
+  node/workspace ownership. Unsupported workspace roots remain unavailable.
+- Alternatives: a parallel dock/header would duplicate presentation state; a
+  body-only callback leaves legacy tab and visibility authoritative. Shared
+  optional host controls avoid both while retaining the legacy entry point.
+- Cost: small callback Rc clones per header construction; no new persistent
+  registry, counter, task, filesystem effect or text engine. Common rail drawing
+  moves into frame_host to stay below the existing file-size bound.
+- Validation: authored no-I/O GPUI construction uses the actual layout book's
+  returned Explorer tab while legacy open/tab flags disagree, passes the exact
+  borrowed context to the body once and checks hidden projection skips it.
+  It is unexecuted, not painted selection/click or live-root proof. The typed
+  entry/export stays cfg(test) until the real sole-registry/dock/visibility and
+  original file-receipt union is checked; no product promotion is claimed.
