@@ -60,19 +60,29 @@ struct Tip {
 enum Content {
     Text(SharedString),
     Code(SharedString),
+    /// Words and the bound shortcut's chords after them (Paseo's
+    /// `ToolbarButton` tooltip: the label, then `<Shortcut chord>`, gap 8).
+    Keyed(SharedString, Rc<[SharedString]>),
 }
 
 impl Content {
     const fn face(&self) -> Type {
         match self {
-            Self::Text(_) => Type::Body,
+            Self::Text(_) | Self::Keyed(..) => Type::Body,
             Self::Code(_) => Type::Mono,
         }
     }
 
     const fn text(&self) -> &SharedString {
         match self {
-            Self::Text(text) | Self::Code(text) => text,
+            Self::Text(text) | Self::Code(text) | Self::Keyed(text, _) => text,
+        }
+    }
+
+    fn keys(&self) -> Option<&[SharedString]> {
+        match self {
+            Self::Keyed(_, keys) if !keys.is_empty() => Some(keys),
+            Self::Text(_) | Self::Code(_) | Self::Keyed(..) => None,
         }
     }
 }
@@ -94,7 +104,7 @@ impl Content {
     // without changing the process-wide font settings of parallel tests.
     fn metrics_with(&self, interface: fn(f32) -> f32, code: fn(f32) -> f32) -> Metrics {
         match self {
-            Self::Text(_) => Metrics {
+            Self::Text(_) | Self::Keyed(..) => Metrics {
                 face: self.face(),
                 size: interface(14.0),
                 line: interface(LINE),
@@ -160,6 +170,28 @@ impl Tooltips {
             trigger,
             place,
             Content::Text(text.into()),
+            configuration,
+            sizing,
+        )
+    }
+
+    /// `on_configured` with the bound shortcut's chords after the words, as
+    /// Paseo's `ToolbarButton` tooltip shows them; no chords draws the words
+    /// alone.
+    #[must_use]
+    pub fn on_configured_keyed(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        text: impl Into<SharedString>,
+        keys: Rc<[SharedString]>,
+        configuration: Configuration,
+        sizing: crate::ControlSizing,
+    ) -> Stateful<gpui::Div> {
+        self.attach(
+            trigger,
+            place,
+            Content::Keyed(text.into(), keys),
             configuration,
             sizing,
         )
@@ -259,7 +291,19 @@ impl Tooltips {
             .text_size(px(metrics.size))
             .line_height(px(metrics.line))
             .text_color(neutral.foreground)
-            .children(lines(tip.content.text(), neutral.foreground));
+            .map(|card| match tip.content.keys() {
+                // Paseo's `tooltipRow`: the words, then the chords, gap 8.
+                Some(keys) => card.child(
+                    div()
+                        .flex()
+                        .flex_row()
+                        .items_center()
+                        .gap(px(8.0))
+                        .child(div().children(lines(tip.content.text(), neutral.foreground)))
+                        .child(crate::command::key_badges(keys, tokens)),
+                ),
+                None => card.children(lines(tip.content.text(), neutral.foreground)),
+            });
         // Word 39: a tooltip arrives quickly (keyed by its words, so the
         // next trigger's plays again) and goes at once.
         let card = popup::appear(
@@ -311,6 +355,18 @@ const CODE_LINE: f32 = 17.875;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn keyed_words_keep_the_body_face_and_show_chords_only_when_bound() {
+        let keys: Rc<[SharedString]> = Rc::from(vec![SharedString::from("Ctrl+T")]);
+        let keyed = Content::Keyed("New tab".into(), keys);
+        assert_eq!(keyed.metrics(), Content::Text("New tab".into()).metrics());
+        assert_eq!(keyed.keys().map(<[SharedString]>::len), Some(1));
+        assert_eq!(keyed.text().as_ref(), "New tab");
+        let unbound = Content::Keyed("New tab".into(), Rc::from(Vec::new()));
+        assert!(unbound.keys().is_none());
+        assert!(Content::Text("New tab".into()).keys().is_none());
+    }
 
     #[test]
     fn a_code_tooltip_changes_only_the_face_of_its_exact_content() {

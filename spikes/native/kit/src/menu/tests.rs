@@ -193,6 +193,22 @@ fn end_alignment_uses_actual_trigger_bounds_not_the_click_location() {
         Placement::Pointer(point(px(5.0), px(8.0))).geometry(gpui::Anchor::TopLeft),
         (point(px(5.0), px(8.0)), gpui::Anchor::TopLeft)
     );
+    // Paseo's `align="start"` (the new-tab menu): left edges together,
+    // whatever the caller's pointer corner.
+    assert_eq!(
+        Placement::Start(bounds).geometry(gpui::Anchor::TopRight),
+        (point(px(100.0), px(64.0)), gpui::Anchor::TopLeft)
+    );
+}
+
+#[test]
+fn a_minimum_width_sizes_to_content_from_that_minimum() {
+    let at_least = Content::new("new-tab", &[]).with_min_width(px(200.0));
+    assert_eq!(at_least.width, Width::AtLeast(px(200.0)));
+    assert_eq!(at_least.width.minimum(), px(200.0));
+    assert_eq!(at_least.width.fixed(), None);
+    assert_eq!(Width::Content.minimum(), draw::MIN_WIDTH);
+    assert_eq!(Width::Fixed(px(220.0)).fixed(), Some(px(220.0)));
 }
 
 #[test]
