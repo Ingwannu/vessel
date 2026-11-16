@@ -1,8 +1,8 @@
 //! Native metadata requests preserve explicit intent and precede preparatory work.
 use crate::support::{Fixture, within};
-#[cfg(unix)]
-use vessel_proto::SessionId;
 use vessel_proto::lifecycle_version;
+#[cfg(unix)]
+use vessel_proto::{ProjectId, SessionId};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn native_discovery_falls_back_only_for_its_implicit_default() {
@@ -62,28 +62,7 @@ async fn creation_metadata_admission_precedes_real_worktree_preparation() {
             "fixture has no commands to approve"
         );
         let project_id = project.id.to_string();
-        let control = fixture
-            .vessel(
-                &[
-                    "run",
-                    "claude",
-                    "--structured",
-                    "--detach",
-                    "--project",
-                    &project_id,
-                    "--new-worktree",
-                ],
-                b"",
-            )
-            .await;
-        assert!(control.ok, "{}", control.stderr);
-        let _control_id: SessionId = control.stdout.trim().parse().unwrap();
-        let before = worktrees(&owner, project.id).await;
-        assert_eq!(
-            before.len(),
-            1,
-            "the preparation path must really create a worktree"
-        );
+        let before = worktree_control(&fixture, &owner, project.id).await;
         for flags in [
             vec!["--listing", "shown"],
             vec!["--listing", "background"],
@@ -138,44 +117,83 @@ async fn creation_metadata_admission_precedes_real_worktree_preparation() {
     .await;
 }
 #[cfg(unix)]
+async fn worktree_control(
+    fixture: &Fixture,
+    owner: &vessel_client::NodeClient,
+    project: ProjectId,
+) -> Vec<vessel_proto::WorktreeId> {
+    use vessel_proto::workspace::SessionPlace;
+    let initial = worktrees(owner, project).await;
+    let project_id = project.to_string();
+    let control = fixture
+        .vessel(
+            &[
+                "run",
+                "claude",
+                "--structured",
+                "--detach",
+                "--project",
+                &project_id,
+                "--new-worktree",
+            ],
+            b"",
+        )
+        .await;
+    assert!(control.ok, "{}", control.stderr);
+    let control_id: SessionId = control.stdout.trim().parse().unwrap();
+    let after = worktrees(owner, project).await;
+    assert_eq!(after.len(), initial.len().checked_add(1).unwrap());
+    let created = after
+        .iter()
+        .filter(|id| !initial.contains(id))
+        .copied()
+        .collect::<Vec<_>>();
+    assert_eq!(created.len(), 1, "control must really create one worktree");
+    let session = owner.session(control_id).await.unwrap();
+    match session.spec.place.as_deref() {
+        Some(SessionPlace::Worktree { worktree }) => assert!(created.contains(worktree)),
+        Some(SessionPlace::Project { .. }) | None => panic!("control did not use its new worktree"),
+    }
+    after
+}
+
+#[cfg(unix)]
 async fn commit(path: &std::path::Path) {
     let git = which::which("git").unwrap();
     let no_hooks = path.join("fixture-no-hooks");
     std::fs::create_dir(&no_hooks).unwrap();
-    for args in [
-        vec!["symbolic-ref", "HEAD", "refs/heads/main"],
-        vec![
-            "-c",
-            "user.name=Fixture",
-            "-c",
-            "user.email=fixture@example.invalid",
-            "-c",
-            "commit.gpgsign=false",
-            "commit",
-            "--allow-empty",
-            "-q",
-            "-m",
-            "fixture",
-        ],
-    ] {
-        let result = tokio::process::Command::new(&git)
-            .arg("-c")
-            .arg(format!("core.hooksPath={}", no_hooks.display()))
-            .args(args)
-            .current_dir(path)
-            .env_clear()
-            .env("HOME", path)
-            .env("XDG_CONFIG_HOME", path)
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .output()
-            .await
-            .unwrap();
-        assert!(
-            result.status.success(),
-            "{}",
-            String::from_utf8_lossy(&result.stderr)
-        );
-    }
+    // InitProject already recorded its default branch. Keep that branch so
+    // worktree creation tests admission, rather than an external branch rename.
+    let args = [
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+        "--allow-empty",
+        "-q",
+        "-m",
+        "fixture",
+    ];
+    let result = tokio::process::Command::new(&git)
+        .arg("-c")
+        .arg(format!("core.hooksPath={}", no_hooks.display()))
+        .args(args)
+        .current_dir(path)
+        .env_clear()
+        .env("HOME", path)
+        .env("XDG_CONFIG_HOME", path)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .output()
+        .await
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
 }
 #[cfg(unix)]
 async fn worktrees(

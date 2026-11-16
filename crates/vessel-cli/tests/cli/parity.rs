@@ -134,13 +134,14 @@ async fn project_creation_consumes_table_headers_json_and_quiet_on_actual_acknow
     within(async {
         let fixture = Fixture::start().await;
         let owner = fixture.owner().await;
+        let project_root = tempfile::tempdir().unwrap();
         for (name, flags) in [
             ("table", vec![]),
             ("headerless", vec!["--no-headers"]),
             ("json", vec!["--json"]),
             ("quiet", vec!["--quiet"]),
         ] {
-            let path = fixture.data().join(name);
+            let path = project_root.path().join(name);
             std::fs::create_dir(&path).unwrap();
             let mut args = vec!["project", "create", path.to_str().unwrap()];
             args.extend(flags);
@@ -484,7 +485,8 @@ async fn image_send_reuses_chunk_upload_and_delivers_the_acknowledged_attachment
 async fn selected_loopback_destination_never_borrows_cli_project_cwd() {
     within(async {
         let fixture = Fixture::start().await;
-        let repo = fixture.data().join("selected-destination-repo");
+        let project_root = tempfile::tempdir().unwrap();
+        let repo = project_root.path().join("selected-destination-repo");
         std::fs::create_dir(&repo).unwrap();
         let initialized = tokio::process::Command::new("git")
             .arg("init")

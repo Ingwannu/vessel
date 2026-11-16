@@ -1854,3 +1854,24 @@ wait/descendant/drain proof and forgotten-agent debt. W17 receives those inputs
 and composes them with its terminal/forgotten-terminal proof under W9's canonical
 RootLease; it does not manufacture agent evidence from status, Ready, PID or
 OwnedGroupExit. Neither producer is consumed here; production restore stays Busy.
+
+### Actual136c suite result and fixture corrections
+
+wp-cli-narrow-20261116T005236Z-136c1395 finished Cargo101/516s after all three
+preparation steps0:425passed,3failed,1ignored. CLIbin155/0; actualCLI84/3; PTY
+queue cancellation and common TUI fairness/sealedEOF/final-ring cases passed.
+The ignored bridge measurement is inherited/on-demand. Workspace rename actual
+table/headerless/JSON/YAML/quiet/reset and native implicit/explicit discovery cases
+passed. This does not qualify NodeAuthority, descendant/root proof or C2 parity.
+
+All three failures are new fixture setup/control defects. Two project cases put
+their repositories inside the node's protected data directory and were correctly
+refused; move only those fixture paths into independent temporary project roots.
+The metadata guard control renamed HEAD to main AFTER InitProject recorded its
+default branch; worktree.choose then resolved the recorded unborn branch and
+returned NoCommit. Keep the node-chosen branch when committing. The positive
+control now compares actual before/after worktree ids and requires its session
+to use the newly created worktree, rather than assuming an absolute total count.
+The explicit metadata no-preparation policy is STILL UNVERIFIED: the prior failure
+occurred in its positive control before those assertions. No product guard,
+authority or branch-default behavior is weakened. Fresh focused execution owed.
