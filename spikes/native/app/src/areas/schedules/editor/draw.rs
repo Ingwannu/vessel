@@ -148,7 +148,7 @@ fn footer(
     )
     .flex_1()
     .on_click(cx.listener(move |shell, _, window, cx| {
-        close(shell, visit, close_bootstrap.clone(), window, cx)
+        close(shell, visit, close_bootstrap.clone(), window, cx);
     }));
     let config = ButtonConfig::new(
         ButtonKind::Primary,
@@ -272,7 +272,7 @@ pub(super) fn select(
         trigger
     } else {
         trigger.on_click(cx.listener(move |shell, _, window, cx| {
-            choices::open(shell, picker, visit, bootstrap.clone(), window, cx)
+            choices::open(shell, picker, visit, bootstrap.as_ref(), window, cx);
         }))
     };
     if matches!(picker, Picker::Cadence | Picker::Unit) {

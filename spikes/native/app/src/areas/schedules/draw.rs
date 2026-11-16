@@ -299,10 +299,8 @@ pub(super) fn new_action(
         ),
         tokens,
     )
-    .on_click(
-        cx.listener(move |shell, _, window, cx| {
-            super::editor::open_new(shell, expected, window, cx)
-        }),
-    )
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        super::editor::open_new(shell, expected, window, cx);
+    }))
     .into_any_element()
 }

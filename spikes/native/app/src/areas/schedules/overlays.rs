@@ -99,10 +99,10 @@ pub(super) fn menu(
             if let Some(action) = actions.get(index) {
                 match *action {
                     Choice::Write(Action::Edit) => {
-                        super::editor::open_edit(shell, &selected, window, cx)
+                        super::editor::open_edit(shell, &selected, window, cx);
                     }
                     Choice::Write(Action::Delete) => {
-                        shell.schedule_delete_prompt(&selected, window, cx)
+                        shell.schedule_delete_prompt(&selected, window, cx);
                     }
                     Choice::Write(action) => shell.schedule_act(&selected, action, cx),
                     Choice::History => super::history::open(shell, &selected, window, cx),

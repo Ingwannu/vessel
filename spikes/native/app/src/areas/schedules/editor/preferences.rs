@@ -116,8 +116,13 @@ mod tests {
             },
         };
         let kept = choice("offered-model".into());
-        let snapshot =
-            kept_snapshot(&before, "selected-book-entry", &harness, &[kept.clone()]).unwrap();
+        let snapshot = kept_snapshot(
+            &before,
+            "selected-book-entry",
+            &harness,
+            std::slice::from_ref(&kept),
+        )
+        .unwrap();
         assert_eq!(snapshot.machine, before.machine);
         assert_eq!(snapshot.settings, before.settings);
         assert_eq!(snapshot.folders, before.folders);

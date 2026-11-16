@@ -74,11 +74,11 @@ pub(super) fn open(
     shell: &mut Shell,
     picker: Picker,
     visit: Option<Visit>,
-    bootstrap: Option<Weak<()>>,
+    bootstrap: Option<&Weak<()>>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
-    if !current(shell, visit, bootstrap.as_ref()) {
+    if !current(shell, visit, bootstrap) {
         return;
     }
     if bootstrap.is_none() && shell.areas.schedules.data.editor.blocked() {

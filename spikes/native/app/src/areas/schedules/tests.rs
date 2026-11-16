@@ -95,7 +95,7 @@ fn a_connected_notice_resets_old_refusal_without_needing_changed_fleet_data() {
         ))),
     );
     assert!(area.page.row(&row).unwrap().actions().is_empty());
-    area.message(Message::Connected(row.machine.clone()));
+    let _model_changed = area.message(Message::Connected(row.machine.clone()));
     assert!(area.page.row(&row).unwrap().actions().is_empty());
     let original = request.connection();
     let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
@@ -108,7 +108,7 @@ fn a_connected_notice_resets_old_refusal_without_needing_changed_fleet_data() {
     let _changed = area.page.admitted(fresh);
     assert!(!area.page.row(&row).unwrap().actions().is_empty());
     // A delayed error from the old connection must not undo that reset.
-    area.message(Message::Replied(Answer {
+    let _model_changed = area.message(Message::Replied(Answer {
         request: pause,
         result: Err(ScheduleError::Offline),
     }));

@@ -2000,3 +2000,19 @@ binary tests; they never supplied App runtime evidence. The next meaningful
 consumer suite must run Kit/View/Link --lib, then App --bin vessel-app explicitly,
 after all-target strict. This selection change preserves every assertion and
 prevents a passing library-only command from being reported as App verification.
+
+### Base13 App strict correction batch
+
+Exactc7c3907c schedules-20261116T015643Z-c7c3907c ended fonts0/cargo101
+(helper1), before any tests. The compiler reported eight App product and three
+App-test lints: five unit semicolons, two needless owned parameters, the
+installed navigation-slot Option wrapper, a cloned reference slice and two
+unused model-change results. The complete batch preserves authority/visit/
+context checks and all prior assertions. The owned harness now computes its
+non-owning header projection before moving into browse_agent; the synchronous
+picker opener borrows the already captured Weak. The installed sidebar adapter
+returns its same one row directly, using child instead of children(Some); no
+placement, order, glyph or renderer policy changes. Test model-change results
+are named deliberately because the fixture asserts the page state itself.
+No lint allowance, test weakening or result from the failed source is reused.
+Corrected receiving checks remain owed; no secure/change11 proof is inferred.

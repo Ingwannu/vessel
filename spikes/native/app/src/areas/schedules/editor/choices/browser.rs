@@ -81,19 +81,19 @@ pub(super) fn drill(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    let leading = crate::agent_mark::leading(&harness);
     if let Some(request) = shell
         .areas
         .schedules
         .data
         .editor
-        .browse_agent(visit, harness.clone())
+        .browse_agent(visit, harness)
     {
         shell.command(Command::Schedules(request.into()));
     }
     let ui = &mut shell.areas.schedules.ui.editor;
     ui.browsing = true;
-    ui.picker
-        .set_header_leading(Some(crate::agent_mark::leading(&harness)));
+    ui.picker.set_header_leading(Some(leading));
     ui.picker.reset_query("", window, cx);
 }
 

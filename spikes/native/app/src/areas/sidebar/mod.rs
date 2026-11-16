@@ -175,10 +175,7 @@ pub(crate) fn render(
         .px(px(spacing::S2))
         .pb(px(spacing::S2))
         .gap(px(spacing::S3))
-        .child(
-            nav.flex_none()
-                .children(schedules(shell, tokens, touch, cx)),
-        )
+        .child(nav.flex_none().child(schedules(shell, tokens, touch, cx)))
         .child(layout::body(
             &shell.areas.sidebar.layout,
             projects(shell, tokens, cx),
@@ -309,8 +306,8 @@ pub(crate) fn frame(
 
 /// The slot for Schedules among the navigation rows, where Paseo's
 /// sidebar has it (after its pages, before the projects): the schedules
-/// track's (G2) entry; `None`: nothing. As [`projects`], one owner each
-/// side of the slot.
+/// track's (G2) installed entry. As [`projects`], one owner each side
+/// of the slot; the area still supplies the one shared navigation row.
 /// The row to draw there is [`nav_row`] with `Some(Glyph::CalendarClock)`
 /// and the sidebar's `touch`.
 fn schedules(
@@ -318,8 +315,8 @@ fn schedules(
     tokens: &Tokens,
     touch: bool,
     cx: &mut Context<'_, Shell>,
-) -> Option<vessel_app_kit::ui::AnyElement> {
-    Some(super::schedules::sidebar(shell, tokens, touch, cx))
+) -> vessel_app_kit::ui::AnyElement {
+    super::schedules::sidebar(shell, tokens, touch, cx)
 }
 
 /// The slot between the navigation rows and the machines: the projects
