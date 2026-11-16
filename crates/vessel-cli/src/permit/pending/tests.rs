@@ -47,7 +47,7 @@ fn missing_permission_description_uses_the_reference_dash_without_fabricating_to
     let session = SessionId::random();
     let request = PermissionRequest {
         id: PermissionId::random(),
-        tool_call: vessel_proto::ToolCallId::new("actual-provider-call").unwrap(),
+        tool_call: vessel_proto::ToolCallId::new("actual-provider-call"),
         options: Vec::new(),
     };
     let row = Row::permission(session, &request);
