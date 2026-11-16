@@ -10,6 +10,7 @@ use vessel_proto::skills::{SaveSkillsSelection, SkillNames, SkillSelection};
 
 const QUEUE_CAPACITY: usize = 1;
 
+#[cfg(test)]
 fn task(context: vessel_app_view::connection::ConnectionContext, action: Action) -> Task {
     let mut tickets = Tickets::default();
     Task {
@@ -22,12 +23,14 @@ fn task(context: vessel_app_view::connection::ConnectionContext, action: Action)
         action,
     }
 }
+#[cfg(test)]
 fn save() -> Action {
     Action::Save(SaveSkillsSelection {
         selection: SkillSelection::All,
         confirmed_removals: SkillNames::default(),
     })
 }
+#[cfg(test)]
 fn payload() -> Output {
     Output::Skills(vessel_proto::skills::SkillsSnapshot {
         state: vessel_proto::skills::SkillsState::NotInstalled,
@@ -111,7 +114,10 @@ async fn queued_write_loses_success_after_original_owner_retirement() {
             },
             selected.connection.delivery_guard(),
         );
-        state.clients.get("host").unwrap().retire();
+        let Some(original_owner) = state.clients.get("host") else {
+            panic!("the exact original owner must exist");
+        };
+        original_owner.retire();
         let reply = answer.into_reply();
         assert_eq!(reply, original.refused(Problem::Uncertain));
     })
@@ -163,7 +169,10 @@ async fn full_result_queue_and_retirement_settle_only_the_original_write() {
         let mut publishing = std::pin::pin!(publishing);
         let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
         assert!(publishing.as_mut().poll(&mut cx).is_pending());
-        state.clients.get("host").unwrap().retire();
+        let Some(original_owner) = state.clients.get("host") else {
+            panic!("the exact original owner must exist");
+        };
+        original_owner.retire();
         let _occupied = receive.recv().await.unwrap();
         publishing.await;
         let Event::Orchestration(answer) = receive.recv().await.unwrap() else {
