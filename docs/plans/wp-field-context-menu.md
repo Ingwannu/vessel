@@ -92,3 +92,21 @@ passing runtime result. The next scratch check must include both changes.
 The corrected receiving leaf merges announced package base 14.3 before its next
 scratch run. The unapplied hookup patch is rebased only around the already-landed
 composition module; no field factory or event code is authored by this leaf.
+
+## Quota-stop resume
+
+Corrected leaf source is `b75f0750b` on announced base14.3 `67637eb6`.
+Evidence-only scratch `6eaf813fba1791c1c3c8abdda3a3ea19d516d162` applies the
+exact included hookup patch. The sole corrected ordinary selected run
+`wp-desktop-host-narrow-20261116T033714Z-6eaf813f` was registered before the
+quota warning and is queued; no Clippy/runtime result exists yet. Keep its
+records and retrieve it before resubmitting anything. This docs checkpoint
+changes no native source. The scratch is NEVER delivered or merged.
+
+Next: inspect that result, correct only actual findings, and send V1 a bounded
+leaf plus the unapplied patch and explicitly qualified WITH-HOOKUP-APPLIED
+scratch evidence. Lead applies the patch after G2's field changes and runs the
+receiving narrow. Host product registration, real field opt-ins, stale actual
+menu/recorder/selection-release consumer evidence and E3 captures remain owed.
+No renderer, clipboard engine, authority or all-fields/default behavior was
+changed. No further merge or VM run starts during the quota-stop window.
