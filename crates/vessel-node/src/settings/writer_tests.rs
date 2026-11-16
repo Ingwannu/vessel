@@ -11,7 +11,7 @@ use super::*;
 pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
 
 /// Name the physical phase without inventing a longer budget than its case.
-pub(super) async fn phase<F: std::future::Future>(name: &str, future: F) -> F::Output {
+pub(super) async fn phase<F: Future>(name: &str, future: F) -> F::Output {
     tokio::time::timeout(WRITE_TEST_BUDGET, future)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))
