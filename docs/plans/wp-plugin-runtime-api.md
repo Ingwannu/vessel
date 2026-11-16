@@ -126,3 +126,13 @@ canonical patch. Registry packages/versions/checksums are unchanged; the isolate
 offline recipe compiled nothing and ran no build script or network operation.
 No unlocked build or unrelated resolution was used. Corrected-source locked
 strict and the actual fixture suite remain owed on this canonical lock.
+
+Exact35f3271c now passes locked/offline all-target fixture-enabled strict and
+the unfiltered fixture-enabled package tests. The latter executes23 library
+units plus6 actual helper cases,29/0/0 with0filtered; empty fixture/doc groups
+are not counted. All four prescribed preparation/cargo steps pass. The new
+whole-case failed-spawn canary, held-stderr cleanup/drain and cancellation cases
+ran by name. This closes the changed-source narrow evidence only. The isolated
+dev edge's fast format/size/boundary checks, V3's selected review and normal
+receiving integration remain separate; no full F6/NodeHost/installer or other-OS
+acceptance is claimed.
