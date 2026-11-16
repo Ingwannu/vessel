@@ -211,6 +211,9 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::usage_reports::ListUsageReports,
+    vessel_proto::usage_reports::InspectUsageReport,
+    vessel_proto::usage_reports::SetUsageSourceLookup,
     vessel_proto::GetDeviceSelf,
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,

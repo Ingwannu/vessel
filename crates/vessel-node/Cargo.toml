@@ -18,11 +18,17 @@ path = "src/main.rs"
 # with this feature, vesseld's product arguments/environment stay real.
 [features]
 forge-fixture = ["vessel-forge/fake"]
+usage-fixture = ["vessel-harness/fakes"]
 
 [[bin]]
 name = "vessel-forge-fixture"
 path = "src/bin/forge_fixture.rs"
 required-features = ["forge-fixture"]
+
+[[bin]]
+name = "vessel-usage-fixture"
+path = "src/bin/usage_fixture.rs"
+required-features = ["usage-fixture"]
 
 [dependencies]
 # A member's calls to its fleet's home (`fleet.*` over the secure channel,

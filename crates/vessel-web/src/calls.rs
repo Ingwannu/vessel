@@ -72,7 +72,10 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 )]
 const fn forwardable(method: Method) -> bool {
     match method {
-        Method::GetUsageLimits
+        Method::ListUsageReports
+        | Method::InspectUsageReport
+        | Method::SetUsageSourceLookup
+        | Method::GetUsageLimits
         | Method::SetUsageLookup
         | Method::QueryUsage
         | Method::NodeInfo
