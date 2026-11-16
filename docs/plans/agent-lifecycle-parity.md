@@ -516,7 +516,8 @@ feature constant, and an unassigned constant makes the whole call None.
 Current bounded preparation: make the existing marking order transferable to an
 admitted task. The same mutex and all existing transition boundaries remain.
 No mutation clock, acknowledgement carrier or new runtime behavior is included
-in this prerequisite. Its implementation and execution checks follow below.
+in this prerequisite. The Arc field, constructor and owned-lease accessor are implemented; strict,
+existing-regression and package execution checks remain pending.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
