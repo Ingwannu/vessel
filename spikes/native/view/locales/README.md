@@ -5,6 +5,14 @@ exactly the same variables. Files are embedded at build time. Never edit the
 generated Rust: adding a string or language needs only Fluent files and its
 normal typed caller.
 
+The generator prepares plain messages in typed cache nodes with at most 64
+fields per resolver, including the registry of areas. Larger catalogs recurse
+automatically; keep related messages together rather than splitting a domain
+to satisfy Rust's function-length check. This changes only private storage:
+the same generated getters borrow prepared strings without runtime lookups.
+Split nodes use private typed tuple slots; their fixed field projections are
+compiler-checked, not collection indexes.
+
 ## Add a string
 
 1. Use lowercase words separated by hyphens for the area filename and keys:

@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional line presentation (spikes/release/patches/README.md, "gpui-base", change 7)
 use std::{ops::Range, rc::Rc, sync::Arc};
 
 use gpui::{AnyElement, Context, HighlightStyle, Hsla, SharedString, Window};
@@ -12,6 +13,11 @@ use crate::SemanticThemeTokens;
 /// applications can provide any resolver, independently of their parser.
 pub trait HighlightStyleResolver: Send + Sync {
     fn style(&self, name: &str) -> Option<HighlightStyle>;
+    // Vessel patch: default preserves every existing external resolver.
+    /// Optional drawing metadata, independent of syntax/highlight lookup.
+    fn line_presentation(&self) -> Option<&dyn InputLinePresentation> {
+        None
+    }
 }
 
 #[derive(Default)]
@@ -104,6 +110,40 @@ pub struct DiagnosticColors {
     pub hint: Hsla,
 }
 
+// Vessel patch: applications map immutable diff rows without a second editor.
+/// A zero-based buffer row, independent of soft-wrap/display row positions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BufferRow(usize);
+impl BufferRow {
+    pub(crate) const fn new(index: usize) -> Self {
+        Self(index)
+    }
+    /// Address the caller's immutable row map without a displayed-number guess.
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
+/// Drawing facts only; none changes the editor buffer or clipboard contents.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct InputLinePaint {
+    /// None draws an empty gutter (a split-side filler or a hunk header).
+    pub number: Option<SharedString>,
+    /// Optional semantic number ink, independently of syntax highlighting.
+    pub number_color: Option<Hsla>,
+    /// Whole row, including wrapped fragments and the fixed gutter.
+    pub background: Option<Hsla>,
+}
+/// Pure, O(1), immutable mapping for a fixed buffer version. Unified has one
+/// mapped gutter, split has one
+/// independently mapped editor per side. Selection and copy stay in Base.
+pub trait InputLinePresentation: Send + Sync {
+    /// Widest label for measurement with the actual font, without scanning
+    /// every row each frame. The kit includes its reference's minimum width.
+    fn gutter_sample(&self) -> SharedString;
+    /// Called for visible buffer rows, never for wrapped continuation indices.
+    fn line(&self, row: BufferRow) -> InputLinePaint;
+}
+
 /// Application-owned colors and highlight resolver consumed by editor painting.
 #[derive(Clone)]
 pub struct InputEditorStyle {
@@ -122,6 +162,24 @@ pub struct InputEditorStyle {
 }
 
 impl InputEditorStyle {
+    // Vessel patch: keep the public struct literal shape compatible with
+    // gpui-component. The wrapper delegates all existing syntax lookup.
+    /// Attach or clear immutable drawing facts without changing editor state.
+    /// Build once from a fresh projected base style per render. If deliberately
+    /// nested, the outer provider wins; None clears it while syntax delegates.
+    #[must_use]
+    pub fn with_line_presentation(mut self, lines: Option<Arc<dyn InputLinePresentation>>) -> Self {
+        self.highlight_styles = Arc::new(PresentedHighlights {
+            base: self.highlight_styles,
+            lines,
+        });
+        self
+    }
+    /// None retains the original automatic gutter and painting path.
+    pub fn line_presentation(&self) -> Option<&dyn InputLinePresentation> {
+        self.highlight_styles.line_presentation()
+    }
+
     /// Fills in every colour that was left unset, from the active palette.
     ///
     /// `Hsla::default()` is fully transparent, and every colour on `Default` is
@@ -156,6 +214,20 @@ impl InputEditorStyle {
             caret: or(self.caret, foreground),
             ..self.clone()
         }
+    }
+}
+
+// Vessel patch: exactly one optional provider, no registry or syntax engine.
+struct PresentedHighlights {
+    base: SharedHighlightStyleResolver,
+    lines: Option<Arc<dyn InputLinePresentation>>,
+}
+impl HighlightStyleResolver for PresentedHighlights {
+    fn style(&self, name: &str) -> Option<HighlightStyle> {
+        self.base.style(name)
+    }
+    fn line_presentation(&self) -> Option<&dyn InputLinePresentation> {
+        self.lines.as_deref()
     }
 }
 
