@@ -17,6 +17,12 @@ struct Managed {
     source: Option<super::transport::Source>,
 }
 
+#[derive(Clone, Copy)]
+enum Control {
+    Stop,
+    Restart,
+}
+
 impl Managed {
     fn new(node: LocalNode) -> Self {
         let source = node.client().cloned().map(super::transport::Source::new);
@@ -192,13 +198,27 @@ async fn perform_action(
     });
     let result = match action {
         Action::Start => start(config, node, log_source, history).await,
-        Action::Stop(_lease) => control(node, log_source, StopPolicy::Protect, false).await,
-        Action::Restart(_lease) => control(node, log_source, StopPolicy::Protect, true).await,
+        Action::Stop(_lease) => control(node, log_source, StopPolicy::Protect, Control::Stop).await,
+        Action::Restart(_lease) => {
+            control(node, log_source, StopPolicy::Protect, Control::Restart).await
+        }
         Action::InterruptConfirmed(_confirmation) => {
-            control(node, log_source, StopPolicy::InterruptConfirmed, false).await
+            control(
+                node,
+                log_source,
+                StopPolicy::InterruptConfirmed,
+                Control::Stop,
+            )
+            .await
         }
         Action::RestartInterruptConfirmed(_confirmation) => {
-            control(node, log_source, StopPolicy::InterruptConfirmed, true).await
+            control(
+                node,
+                log_source,
+                StopPolicy::InterruptConfirmed,
+                Control::Restart,
+            )
+            .await
         }
     };
     if node.is_none() && result.is_ok() {
@@ -280,12 +300,12 @@ async fn control(
     node: &mut Option<Managed>,
     log_source: &mut Option<vessel_local_node::LogReader>,
     policy: StopPolicy,
-    restart: bool,
+    operation: Control,
 ) -> Result<(), Arc<LocalNodeError>> {
     let Some(node) = node else {
         return Ok(());
     };
-    if restart {
+    if matches!(operation, Control::Restart) {
         *log_source = None;
         let _status = node
             .node
