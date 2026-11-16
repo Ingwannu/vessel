@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-57 node head `bc9cacc6`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-58b node head `d5bfde87`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -936,3 +936,24 @@ proof, not positive versioned discovery while lifecycle is unassigned, a
 current Settings owner join, durable finish implementation, cross-node receipt
 flow, native UI proof or a whole-package acceptance. The predecessor gate57
 five-crate strict remains its own queued immutable run.
+
+
+## Gate58b node union
+
+Merged the announced `d5bfde87` after the exact discovery slice completed.
+No whole gate was running. The incoming execution invalidation producer is
+retained as correlation/invalidation only; it supplies no private notice
+effect fence or cross-restart authority.
+
+The runtime factory now comes from `node/setup.rs` with the canonical
+LaunchAdmission early-stop token. Conflict resolution retains exactly ONE
+node stop token, created before the runtime and supplied to both that factory
+and the existing tracked Settings owner. Existing cancellation-independent
+Settings opening, MCP watch snapshot and launcher policy are retained. No
+unqualified Opening/Document/RecoveryApply producer is imported. The existing
+preparation module still owns NodeOwner, so its import is not duplicated in
+node.rs; RuntimeConfig moved with the incoming factory.
+
+The size record shrinks from 626 to the measured 605, below the incoming
+head's 651; no allowance is raised. Changed receiving-union strict and execution are still owed. Prior
+08c MCP checks remain exact predecessor evidence.
