@@ -57,7 +57,7 @@ Kit attribution/About registries must list both direct dependencies.
 | Immutable source | Execution | Limit |
 |---|---|---|
 | Main e66d658b, base13 | App155/0/2 + Kit255/0/0 =410/0/2, run `wp-timeline-models-20261116T003003Z-e66d658b` | Actual current-source App/Kit execution; no current all-crate strict, View-only rerun, whole gate or UI/V4 inferred. |
-| Portable body8737a401d | Executable tree equals tested289cf10a except why-doc; strict View/Kit/App0 and full tests1530/0/2, runs `wp-timeline-narrow-20261116T003002Z-289cf10a` and `wp-timeline-state-tests-20261116T003002Z-289cf10a` | Actual same-byte format/warm-cache and empty-patch regressions pass. V1 row276 bounded successor recheck pending; literal staging remains and no A8 activation is claimed. |
+| Portable body8737a401d | Executable tree equals tested289cf10a except why-doc; strict View/Kit/App0 and full tests1530/0/2, runs `wp-timeline-narrow-20261116T003002Z-289cf10a` and `wp-timeline-state-tests-20261116T003002Z-289cf10a` | Actual same-byte format/warm-cache and empty-patch regressions pass. V1 row276 FINAL bounded STAGED SOURCE/requested3crate NARROW PASS; lead-first handoff. Literal staging remains and no A8 activation is claimed. |
 | Portable body5c9636a0 | Exact View/Kit/App all-target strict0; actual App `tool_body` tests3/0/0, runs `wp-timeline-narrow-20261115T180704Z-5c9636a0` and `wp-timeline-state-tests-20261115T182140Z-5c9636a0` | V1 row276 returned two static P2s beyond these tests: equal-byte format cache alias and empty-patch precedence. This is historical returned source; the base13 successor execution is listed above and adoption still awaits its bounded recheck. |
 | 5e7c1a14 | View/Kit/App all-target strict rc0, run `wp-timeline-state-tests-20261115T180046Z-5e7c1a14` | Base9 union including glyph inventory and diff metadata cache compiles strictly. Later borrowed-failure signature6729c607 is excluded; App/Kit execution remains queued. |
 | 4b591a90 | Run `wp-timeline-state-tests-20261115T165618Z-4b591a90`: App126/0/2 + Kit215/0/0 =341/0/2 | Real scoped pacing, borrowed-body and f4 Markdown-call source; excludes later diff metadata/failure-prose changes and base9 merge. |
@@ -78,7 +78,7 @@ Historical failed and canceled runs remain evidence of their exact sources.
 The body5c focused pass missed two static findings; current289 corrects both,
 with actual retained facade regressions through the same Kit factories, no
 public bypass or new product cache. The current all-three-crate ordinary run
-completed. Only the bounded review and actual consumer join remain for that
+completed. The bounded source/narrow review passed; lead line adoption and the actual consumer join remain for that
 minimal packet; the complete A7 renderer still needs its final gate/captures/V4.
 
 ## Required atomic joins

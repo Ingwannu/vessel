@@ -12,8 +12,8 @@ and View-only evidence remains bounded to the hashes in the acceptance map.
 
 The separate native-only borrowed body packet8737a401d is executable-tree
 identical to tested289cf10a except its why-doc: View/Kit/App all-target strict0
-and full tests1530/0/2. Both V1 row276 P2 regressions execute and pass; bounded
-source recheck remains pending. Its modules stay literal cfg(test). The actual
+and full tests1530/0/2. Both V1 row276 P2 regressions execute and pass; V1 row276 FINAL bounded staged source/narrow review passed. Its modules stay
+literal cfg(test); the exact8737 producer was handed to the lead first. The actual
 W4 caller and legacy diff delegation must activate atomically.
 
 Separate base13 preparations keep feature adoption explicit: Clone row Seat
