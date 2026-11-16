@@ -64,6 +64,14 @@ language table in it. It is not registered by the frozen stage-1 descriptor
 and remains uncompiled; its source/tests must be included in a later exact
 candidate check, not credited to stage 1's eight/ten tests.
 
+`patterns/{en,ko}/number-cost.ftl` prepares whole quantity/USD/compact sign
+and unit patterns. It is outside the embedded locale root. Compact scale
+choices and suffixes live in those files; a later candidate must read them
+with the maintained Fluent AST and preserve whole English fallback (including
+the English numeric body/scale). These resources are not yet parsed by a VM
+check or wired to a callback. Do not count source preparation as reachability
+or compare the unlinked files' byte count with an installed binary.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
