@@ -1,7 +1,10 @@
 //! Actual cog clicks and retained intents over one isolated Shell/public snapshot.
 //! No Link, authenticated transport, quota payload or external lookup is fabricated.
 use super::*;
-use gpui::{AppContext as _, Entity, Modifiers, Render, Subscription, TestAppContext};
+use gpui::{
+    AppContext as _, Entity, IntoElement, Modifiers, ParentElement as _, Render, Styled as _,
+    Subscription, TestAppContext,
+};
 use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
 
 struct Probe {

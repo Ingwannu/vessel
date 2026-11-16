@@ -222,3 +222,19 @@ is inferred. New generic RPCs remain pending until canonical node review,
 assignment and receiving integration; current inherited native root ancestry is
 still not a runtime handoff. The S2 footer, locale amount/count and actual applied
 provider/plugin source dependencies remain explicitly incomplete.
+
+
+## Generic account activation hold
+
+Coordinator's bounded backend preparation ruling records Usage HTTP as ADR 0104's
+third tracked native DNS consumer, after NodeLink relay and dictation. The current
+reqwest default resolver is not a physical-DNS-drain witness when an async Local
+source body is cancelled. New account method constants/rows stay None until the
+reviewed shared primitive is wired through dns_resolver; no private resolver or
+fork is added. Native generic consumer readiness, assigned wire and same-source
+fixture export therefore remain held, independently of the passing recorded
+backend tests and scoped native checks. No extra worker whole is requested.
+
+The new actual cog interaction probe first stopped at compilation on an unnamed
+IntoElement import inherited from its parent. Import its rendering traits
+explicitly in the test; the failed check ran no tests and remains recorded.
