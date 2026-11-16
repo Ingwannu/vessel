@@ -15,65 +15,66 @@ use vessel_store::{DataDir, SavedNodeSettings};
 
 const SAVED_PROMPT: &str = "  synthetic saved continuation.\n";
 
-type Socket =
-    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+use super::super::writer_tests::node_fixture::{Budget, Resources, Running, Socket};
 
 #[tokio::test]
 async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire() {
-    Box::pin(within(async {
-        let directory = tempfile::tempdir().unwrap();
-        let data = DataDir::new(directory.path().join("data"));
-        data.prepare().unwrap();
-        let saved = SetRestartRecovery {
-            enabled: Some(true),
-            prompt: Some(SAVED_PROMPT.parse().unwrap()),
-        };
-        data.write_settings(
-            &SavedNodeSettings::default().with_public_settings(SetNodeSettings {
-                restart_recovery: Some(saved.clone()),
-                ..SetNodeSettings::default()
-            }),
-        )
-        .unwrap();
-        let mut config =
-            crate::Config::new(data.clone(), HarnessEnv::new(directory.path().join("home")));
-        config.bind = Some("127.0.0.1:0".parse().unwrap());
-        config.harness_lookup = Lookup::new(Vec::new());
-        let node = step(
-            "node starts from full saved record",
-            crate::Node::start(config),
-        )
-        .await
-        .unwrap();
-        let first = GetNodeSettings::default()
-            .into_call()
-            .since()
-            .expect("ordinary settings reads remain assigned");
-        for version in first.get()..=vessel_proto::PROTOCOL_VERSION.get() {
-            let version = ProtocolVersion::new(version);
-            let mut socket = Box::pin(raw_owner(&data, &node, version)).await;
-            for (id, call) in ordinary_calls() {
-                let required = call
-                    .since()
-                    .expect("ordinary settings calls remain assigned");
-                if required > version {
-                    continue;
+    let directory = tempfile::tempdir().unwrap();
+    let data = DataDir::new(directory.path().join("data"));
+    data.prepare().unwrap();
+    let saved = SetRestartRecovery {
+        enabled: Some(true),
+        prompt: Some(SAVED_PROMPT.parse().unwrap()),
+    };
+    data.write_settings(
+        &SavedNodeSettings::default().with_public_settings(SetNodeSettings {
+            restart_recovery: Some(saved.clone()),
+            ..SetNodeSettings::default()
+        }),
+    )
+    .unwrap();
+    let mut config =
+        crate::Config::new(data.clone(), HarnessEnv::new(directory.path().join("home")));
+    config.bind = Some("127.0.0.1:0".parse().unwrap());
+    config.harness_lookup = Lookup::new(Vec::new());
+    let running = Running::start(
+        config,
+        Budget::new(CASE_DEADLINE, STEP_TIMEOUT),
+        move |owned| async move {
+            let first = GetNodeSettings::default()
+                .into_call()
+                .since()
+                .expect("ordinary settings reads remain assigned");
+            for version in first.get()..=vessel_proto::PROTOCOL_VERSION.get() {
+                let version = ProtocolVersion::new(version);
+                Box::pin(raw_owner(&data, &owned, version)).await;
+                let mut transport = owned.socket.lock().await;
+                let socket = transport.as_mut().unwrap();
+                for (id, call) in ordinary_calls() {
+                    let required = call
+                        .since()
+                        .expect("ordinary settings calls remain assigned");
+                    if required > version {
+                        continue;
+                    }
+                    assert_hidden_reply(socket, id, call).await;
                 }
-                assert_hidden_reply(&mut socket, id, call).await;
+                drop(transport);
+                step("old socket closes", owned.close_socket())
+                    .await
+                    .unwrap();
+                assert_eq!(
+                    data.read_settings()
+                        .unwrap()
+                        .unwrap()
+                        .public_settings()
+                        .restart_recovery,
+                    Some(saved.clone())
+                );
             }
-            step("old socket closes", socket.close(None)).await.unwrap();
-            assert_eq!(
-                data.read_settings()
-                    .unwrap()
-                    .unwrap()
-                    .public_settings()
-                    .restart_recovery,
-                Some(saved.clone())
-            );
-        }
-        step("node stops", node.stop()).await.unwrap();
-    }))
-    .await;
+        },
+    );
+    running.finish().await.assert_success();
 }
 
 fn ordinary_calls() -> [(RequestId, Call); 3] {
@@ -126,8 +127,8 @@ async fn assert_hidden_reply(socket: &mut Socket, id: RequestId, call: Call) {
     assert_eq!(shown.restart_recovery, RestartRecovery::default());
 }
 
-async fn raw_owner(data: &DataDir, node: &crate::Node, version: ProtocolVersion) -> Socket {
-    let mut request = format!("ws://{}/rpc", node.address().unwrap())
+async fn raw_owner(data: &DataDir, owned: &Resources, version: ProtocolVersion) {
+    let mut request = format!("ws://{}/rpc", owned.address.unwrap())
         .into_client_request()
         .unwrap();
     let mut bearer = format!("Bearer {}", data.load_or_create_token().unwrap().expose())
@@ -135,12 +136,15 @@ async fn raw_owner(data: &DataDir, node: &crate::Node, version: ProtocolVersion)
         .unwrap();
     bearer.set_sensitive(true);
     let _old = request.headers_mut().insert("authorization", bearer);
-    let (mut socket, _) = Box::pin(step(
+    let (socket, _) = Box::pin(step(
         "old owner connects",
         tokio_tungstenite::connect_async(request),
     ))
     .await
     .unwrap();
+    let mut transport = owned.socket.lock().await;
+    assert!(transport.replace(socket).is_none());
+    let socket = transport.as_mut().unwrap();
     let hello = ClientFrame::Hello(Hello {
         protocol: ProtocolRange {
             min: version,
@@ -167,17 +171,11 @@ async fn raw_owner(data: &DataDir, node: &crate::Node, version: ProtocolVersion)
         panic!("welcome expected")
     };
     assert_eq!(welcome.protocol, version);
-    socket
 }
 
 const CASE_DEADLINE: Duration = Duration::from_secs(60);
 const STEP_TIMEOUT: Duration = Duration::from_secs(10);
 
-async fn within<F: Future<Output = ()> + Send>(future: F) {
-    vessel_testkit::within(CASE_DEADLINE, Box::pin(future))
-        .await
-        .unwrap();
-}
 async fn step<F: Future>(name: &str, future: F) -> F::Output {
     tokio::time::timeout(STEP_TIMEOUT, future)
         .await
@@ -205,4 +203,38 @@ fn canonical_complete_and_compatibility_decode_chains_hide_private_input() {
         }
         assert_eq!(depth, 2, "file error and safe decoder only, no raw cause");
     }
+}
+
+#[tokio::test]
+async fn failed_legacy_frame_assertion_closes_the_actual_socket_and_original_node() {
+    let directory = tempfile::tempdir().unwrap();
+    let data = DataDir::new(directory.path().join("data"));
+    let mut config =
+        crate::Config::new(data.clone(), HarnessEnv::new(directory.path().join("home")));
+    config.bind = Some("127.0.0.1:0".parse().unwrap());
+    config.harness_lookup = Lookup::new(Vec::new());
+    let running = Running::start(
+        config,
+        Budget::new(CASE_DEADLINE, STEP_TIMEOUT),
+        move |owned| async move {
+            Box::pin(raw_owner(&data, &owned, vessel_proto::PROTOCOL_VERSION)).await;
+            assert!(owned.socket.lock().await.is_some());
+            panic!("deliberate legacy frame assertion");
+        },
+    );
+    let settled = running.finish().await;
+    step(
+        "failed frame's actual node and Store drain",
+        settled.assert_drained(),
+    )
+    .await;
+    settled.assert_observed();
+    assert!(settled.resources.socket.lock().await.is_none());
+    assert!(settled.body.is_err());
+    let original =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| settled.assert_success()));
+    assert!(
+        original.is_err(),
+        "normal cleanup must retain the frame failure"
+    );
 }

@@ -9,7 +9,7 @@ use tokio::sync::oneshot;
 use super::*;
 
 pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
-const WRITE_PHASE_BUDGET: Duration = Duration::from_secs(5);
+pub(super) const WRITE_PHASE_BUDGET: Duration = Duration::from_secs(5);
 
 /// Name the physical phase without inventing a longer budget than its case.
 pub(super) async fn phase<F: Future>(name: &str, future: F) -> F::Output {
@@ -231,3 +231,5 @@ async fn a_noop_keeps_original_file_bytes_and_future_fields_in_place() {
         "saved settings no-op exceeded {WRITE_TEST_BUDGET:?}"
     );
 }
+
+pub(super) mod node_fixture;

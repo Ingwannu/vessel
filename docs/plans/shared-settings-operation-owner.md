@@ -363,3 +363,35 @@ doctest. The official declaration and alias tests also pass; their one-file
 stale output is checksum-verified and committed as generated. Freshness on that
 committed source and the enclosing ordinary gate still remain owed. These
 results qualify neither a recovery engine nor a private service/plugin setter.
+
+### Test-only Node fixture settlement follow-up
+
+[Decision Log]
+- Purpose: a failing connection, frame assertion or case observer must not drop
+  a live test Node or skip the real writer/request/transport cleanup.
+- Existing assets: the actual Node::stop path, existing test gates, TaskTracker,
+  testkit within and the two fixtures' unchanged case and phase budgets.
+- Alternatives: a Drop-only stop token, aborting workers, or treating timeout as
+  completed cleanup. Those request stop or abandon observation without joining
+  the resource owners and were rejected.
+- Choice: one cfg(test)-only setup/body/cleanup driver retains the actual Node
+  from creation. Body panics are caught solely to defer their original unwind;
+  gates, request tasks and transports register before the next assertion/await.
+  Cleanup releases those same gates, closes the raw socket, joins real Node stop
+  and request tasks, and observes the actual client connection closing.
+- Why: the driver survives a failed body observer. The unchanged case clock
+  includes startup and body; half an existing phase is reserved for drain, so
+  the body clock is shorter without increasing either original case budget.
+  Setup and drain deadlines record named failures while retaining the same
+  physical future through completion. They never release capacity or fabricate
+  success. Pathological physical cleanup may delay reporting an already recorded
+  failure; no forced-abort or universal completion deadline is claimed.
+- Consequences: deliberate setup/frame panics, dropped observation and an expired
+  outer observer exercise actual Store closure, writer acknowledgement and task
+  drain before the original failure can escape. These controls are authored,
+  not execution evidence yet. Product blobs, old writer assertions and runtime
+  authority remain unchanged; there is no second product writer or public API.
+
+This correction is separate from the frozen producer whole. It owes ordinary
+Node all-target strict and actual named fixture/control execution, then review
+and the receiving union gate. It does not request a second producer whole.
