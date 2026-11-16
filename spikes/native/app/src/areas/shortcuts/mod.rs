@@ -194,9 +194,9 @@ impl Shell {
             badges::clear(&mut self.areas.shortcuts);
             return;
         }
-        if !self.global_shortcuts_enabled() {
+        let global_enabled = self.global_shortcuts_enabled();
+        if !global_enabled {
             book_changed(self);
-            return;
         }
         let keyboard_available = available(window);
         if !keyboard_available {
@@ -211,7 +211,7 @@ impl Shell {
             badges::clear(&mut self.areas.shortcuts);
             return;
         }
-        if !keyboard_available {
+        if !keyboard_available || !global_enabled {
             if self.command_center_backspace(event, window, cx) {
                 cx.stop_propagation();
             }

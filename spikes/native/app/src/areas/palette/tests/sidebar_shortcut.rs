@@ -81,3 +81,27 @@ fn root_aliases_find_their_real_owner_actions(cx: &mut TestAppContext) {
         });
     }
 }
+
+#[gpui::test]
+fn empty_book_disables_global_keys_without_stealing_local_page_back(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, window, cx| {
+        crate::areas::shortcuts::listen(shell, window, cx);
+        shell.fleet.machines.clear();
+        assert!(!shell.global_shortcuts_enabled());
+        shell.palette_page(
+            vessel_app_view::palette::pages::ChoiceLocation::group("native-Theme".parse().unwrap()),
+            window,
+            cx,
+        );
+        assert!(shell.areas.palette.page.is_some());
+    });
+    ready(cx);
+    cx.simulate_keystrokes("backspace");
+    ready(cx);
+    update(&view, cx, |shell, _, _| {
+        assert!(shell.areas.palette.is_open());
+        assert!(shell.areas.palette.page.is_none());
+        assert!(!shell.global_shortcuts_enabled());
+    });
+}

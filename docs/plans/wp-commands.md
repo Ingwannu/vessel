@@ -1238,3 +1238,12 @@ revision tests, with one composition registration. Automatic field merges keep
 FormText, compact textarea presentation, FieldId/captured callbacks, editability
 and FormMinimum alongside one line/lines composition registration. This is
 source resolution only; changed receiving compilation/execution remains owed.
+
+
+Global book admission must not steal keys owned by a pointer-opened local
+control. The full command center's native empty-query Backspace runs before the
+input toolkit's delete action; disabling global matching now retains that
+local operation after the existing overlay/IME checks, just as compact windows
+do. A real-field regression covers an empty book with a nested Theme page.
+This is a full F4 consumer seam; the smaller shared producer's older palette
+has no nested-page Back operation. Neither adds another global listener.
