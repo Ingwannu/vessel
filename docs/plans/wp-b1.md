@@ -1,6 +1,25 @@
 # Composer attachment parity
 
-Status: available attachment/mention core gated and captured; dependent integrations incomplete; V4 row290 returned four bounded findings; corrections await changed-source verification.
+Status: findings1-4 passed within available B1 core; RETURNED for the lightbox toolbar only. First action after quota reset; full B1/dependency integration is incomplete.
+
+## Quota stop and visual return (2026-11-16)
+
+Read [the committed resume](wp-b1-resume.md) first on restart. The coordinator's
+capture comparison returned only the lightbox toolbar: its full-window top-right
+position and boxed text glyphs overlap native window controls. Use the shared W12
+small icon-chrome producer, S2-reserved ZoomIn/ZoomOut/Scan and existing X; position
+inside the viewport clear of the titlebar, visible on hover/focus/touch. Keep the
+window controls usable as Paseo's WindowChromeRootRegion does. Corrected affected
+captures go to the coordinator before the lead adopts the lightbox. This work is
+explicitly deferred until quota reset; no new control/capture was started now.
+
+V4 withdrew its earlier toolbar visual acceptance and retained PASS for bounded
+findings1-4. Exact7feb693c has native quality/all-target strict50 rc0 and actual
+App/Link/View all-target execution51:1404/0/2, with all six new callback, wheel and
+peer-cancellation cases explicitly passing. Actual App/Link/View compilation is
+recorded. This is not a fresh whole gate, Kit execution, export or capture set at
+7feb; the c3c predecessor evidence below remains separately identified. The
+common input receiving packet and wasm remain unqualified here.
 
 ## V4 row290 corrections (2026-11-16)
 
@@ -42,8 +61,9 @@ Both are corrected without changing the timeout/cleanup contract. No regression
 execution was submitted on that red result; the corrected source still owes its
 quality/strict and three-changed-crate execution receipts.
 
-Existing whole42 and capture receipts below remain exact predecessor evidence;
-this correction has not yet earned its changed-source receipt. No dependency,
+Existing whole42 and capture receipts below remain exact predecessor evidence.
+The changed-source correction earned strict50 and execution51 above; those do not
+close the later toolbar visual return. No dependency,
 source-owner integration or product-resident authority is promoted by it.
 
 ## Current verification boundary (supersedes historical checkpoints below)
