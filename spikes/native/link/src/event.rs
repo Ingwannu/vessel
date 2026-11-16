@@ -22,6 +22,9 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// Correlated response acknowledgement, refusal or uncertainty.
     Responded(crate::responses::Answer),
+    /// An original-admission guarded history result or correlated refusal.
+    History(crate::history::Answer),
+
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

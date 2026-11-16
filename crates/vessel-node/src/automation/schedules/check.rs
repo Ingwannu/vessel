@@ -35,6 +35,30 @@ pub(super) fn settle(
     definition: &mut ScheduleDefinition,
     now: DateTime<Utc>,
 ) -> Result<DateTime<Utc>, AutomationError> {
+    settle_for(zones, definition, now, WindowRequirement::FutureRun)
+}
+
+/// An already completed definition never runs again merely because it is edited.
+/// Preserve a past expiry while retaining all cadence/zone/target-policy checks.
+/// Pinned Paseo schedule/service.ts458–509 keeps completed status on update.
+pub(super) fn settle_completed(
+    zones: &Zones,
+    definition: &mut ScheduleDefinition,
+    now: DateTime<Utc>,
+) -> Result<DateTime<Utc>, AutomationError> {
+    settle_for(zones, definition, now, WindowRequirement::CompletedEdit)
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum WindowRequirement {
+    FutureRun,
+    CompletedEdit,
+}
+fn settle_for(
+    zones: &Zones,
+    definition: &mut ScheduleDefinition,
+    now: DateTime<Utc>,
+    window: WindowRequirement,
+) -> Result<DateTime<Utc>, AutomationError> {
     if let Cadence::Every { anchor, .. } = &mut definition.cadence
         && anchor.is_none()
     {
@@ -76,7 +100,8 @@ pub(super) fn settle(
                 .to_owned(),
         )
     })?;
-    if let Some(ends_at) = definition.ends_at
+    if window == WindowRequirement::FutureRun
+        && let Some(ends_at) = definition.ends_at
         && ends_at < first
     {
         return Err(AutomationError::Invalid(format!(
@@ -182,6 +207,39 @@ mod tests {
         node_anchor(&person, &mut persons);
         let first = settle(&Zones::default(), &mut persons, now).unwrap();
         assert_eq!(first, at("2026-01-01T10:00:01Z"), "the phase asked for");
+    }
+
+    #[test]
+    fn completed_expiry_only_relaxes_the_future_window_not_definition_validation() {
+        let zones = Zones::default();
+        let now = at("2026-01-01T10:00:00Z");
+        let expiry = at("2026-01-01T09:30:00Z");
+        let mut completed = definition(Cadence::Every {
+            seconds: EverySeconds::try_from(600).unwrap(),
+            anchor: None,
+        });
+        completed.ends_at = Some(expiry);
+        assert!(settle(&zones, &mut completed, now).is_err());
+        assert_eq!(
+            settle_completed(&zones, &mut completed, now).unwrap(),
+            at("2026-01-01T10:10:00Z")
+        );
+        assert_eq!(completed.ends_at, Some(expiry));
+        let mut unknown_policy = completed.clone();
+        unknown_policy.catch_up = CatchUp::Unknown;
+        let mut unknown_target = completed.clone();
+        unknown_target.target = ScheduleTarget::Unknown;
+        let mut unknown_zone = completed;
+        unknown_zone.cadence = Cadence::Cron {
+            expr: "0 9 * * *".parse().unwrap(),
+            zone: "Mars/Olympus".parse().unwrap(),
+        };
+        for mut invalid in [unknown_policy, unknown_target, unknown_zone] {
+            assert!(matches!(
+                settle_completed(&zones, &mut invalid, now),
+                Err(AutomationError::Invalid(_))
+            ));
+        }
     }
 
     #[test]

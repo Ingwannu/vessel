@@ -809,3 +809,14 @@ atomic admission/retirement/ingress installation. Main A8's older staged adapter
 has not been promoted or silently substituted. No populated resource lifetime,
 original-lease authority, painting, keyboard/IME, live wire, rich-state admission,
 CLI mutation, captures or complete A8 acceptance follows from the four cases.
+
+## Resume on package base13
+
+Main A8 merges announced2ebeedf9 (baseline native1614/0/2 and app wasm32 clean)
+after all owned earlier narrow runs completed. Three conflicts were adjacent
+registration additions only: preserve A8 Respond/Responded and the line's
+History command/event/handler. Both paths keep their existing bodies; no
+resource/Seat/body staging is promoted and no node head is merged directly.
+The selected primitive producer and caller companion remain separate, frozen
+artifacts. Fresh combined A8 narrow checking is required; old730 runtime and
+base13's own totals do not certify this source union.
