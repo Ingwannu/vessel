@@ -130,6 +130,13 @@ before exit, flush_current checks that identity and canonical revision, latest
 geometry, plus every live window Client has reconciled all accepted writes and has
 no queue refusal. It returns Changed / Saved / LaunchOnly / Failed. LaunchOnly is
 checked only after all currentness/pending checks, never as a refusal bypass.
+The Client must also have observed the checkpoint's canonical revision. An idle
+window has no pending local writes, yet another window can commit before its
+foreground watch runs; the shared publication token by itself does not prove
+that idle window applied the new preferences. The final fence now refuses that
+gap. A pure two-Client case and an actual two-window case reconcile only the
+writer first, require Changed, then admit only after the passive watch applies.
+These new cases await their own execution and are not covered by App29.
 The lifecycle owner performs one bounded retry phase after Changed and no await
 between final document admission, this App-level fence and quit/restart. Node
 finalization is not repeated by desktop. New queue/checkpoint and real App late

@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::shell::{Shell, language_tests};
-use gpui::TestAppContext;
+use gpui::{AppContext as _, TestAppContext};
 use vessel_app_link::desktop::{
     preferences::Coordinator, store::Store, window_writer::WindowWriter,
 };
@@ -158,6 +158,64 @@ fn state_fence_refuses_a_retained_old_root_and_a_successor_without_its_client(
     replacement.update_in(cx, crate::desktop::preferences::start);
     cx.run_until_parked();
     cx.cx.update(|cx| {
+        assert!(matches!(
+            flush_current(&receipt, cx),
+            StateReadiness::LaunchOnly
+        ));
+    });
+}
+
+#[gpui::test]
+fn state_fence_waits_for_a_passive_window_to_apply_the_saved_canonical_revision(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let (_root, _store) = owner(cx);
+    let (first, cx) = cx.add_window_view(Shell::without_io);
+    first.update_in(cx, |shell, window, cx| {
+        crate::desktop::preferences::start(shell, window, cx);
+        crate::host_windows::register(&cx.entity(), window, cx);
+    });
+    let second = cx.cx.update(|cx| {
+        cx.open_window(gpui::WindowOptions::default(), |window, cx| {
+            let shell = cx.new(|cx| Shell::without_io(window, cx));
+            shell.update(cx, |shell, cx| {
+                crate::desktop::preferences::start(shell, window, cx);
+            });
+            crate::host_windows::register(&shell, window, cx);
+            shell
+        })
+        .unwrap()
+    });
+    cx.run_until_parked();
+    first.update_in(cx, |shell, window, cx| {
+        shell.prefer(&PreferenceChange::Theme(Theme::Light), window, cx);
+    });
+    let flushing = cx.cx.update(|cx| flush_state(cx));
+    let receipt = super::super::testing::wait(flushing).unwrap();
+    // Reconcile only the initiating window, without pumping the other watch.
+    let snapshot = receipt.preferences.as_ref().unwrap().snapshot();
+    first.update_in(cx, |shell, window, cx| {
+        crate::desktop::preferences::acknowledge(shell, snapshot, window, cx);
+        assert_eq!(shell.prefs.settings.appearance.theme, Theme::Light);
+    });
+    cx.cx.update(|cx| {
+        assert_eq!(cx.windows().len(), 2);
+        assert_ne!(
+            second.read(cx).unwrap().prefs.settings.appearance.theme,
+            Theme::Light
+        );
+        assert!(matches!(
+            flush_current(&receipt, cx),
+            StateReadiness::Changed
+        ));
+    });
+    cx.run_until_parked();
+    cx.cx.update(|cx| {
+        assert_eq!(
+            second.read(cx).unwrap().prefs.settings.appearance.theme,
+            Theme::Light
+        );
         assert!(matches!(
             flush_current(&receipt, cx),
             StateReadiness::LaunchOnly

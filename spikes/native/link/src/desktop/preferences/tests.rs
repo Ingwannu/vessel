@@ -4,6 +4,36 @@ use super::*;
 use vessel_app_view::prefs::{Grouping, Theme};
 
 #[tokio::test]
+async fn checkpoint_waits_for_a_passive_window_to_observe_another_windows_commit() {
+    let initial = Prefs::default();
+    let coordinator = Coordinator::start(initial.clone()).unwrap();
+    let (writer, _writer_updates) = coordinator.client();
+    let (passive, _passive_updates) = coordinator.client();
+    let mut edited = initial.clone();
+    edited.settings.appearance.theme = Theme::Light;
+    writer.publish(&edited).unwrap();
+    let written = coordinator.checkpoint().await.unwrap();
+    assert!(coordinator.is_current(&written));
+    assert!(matches!(
+        writer.observe(written.snapshot()),
+        Observation::Applied(_)
+    ));
+    assert!(writer.is_settled(&written));
+    assert_eq!(*passive.canonical_preferences(), initial);
+    assert!(
+        !passive.is_settled(&written),
+        "an empty local queue cannot acknowledge another window's canonical edit"
+    );
+    assert!(matches!(
+        passive.observe(written.snapshot()),
+        Observation::Applied(_)
+    ));
+    assert!(passive.is_settled(&written));
+    let (new_window, _updates) = coordinator.client();
+    assert!(new_window.is_settled(&written));
+}
+
+#[tokio::test]
 async fn checkpoint_detects_accepted_edits_and_requires_window_reconciliation() {
     let initial = Prefs::default();
     let coordinator = Coordinator::start(initial.clone()).unwrap();
