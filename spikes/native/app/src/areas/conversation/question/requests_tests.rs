@@ -113,10 +113,7 @@ fn fixture(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) 
                     conversation.shown.is_none(),
                     "Shown is not source authority"
                 );
-                SessionResources {
-                    session: SessionView::new(window, cx),
-                    conversation,
-                }
+                SessionResources::new(SessionView::new(window, cx), conversation)
             },
         )
         .unwrap();

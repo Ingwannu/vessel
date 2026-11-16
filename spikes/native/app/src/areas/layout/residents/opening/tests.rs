@@ -44,10 +44,7 @@ pub(super) fn build(
             LayoutKey::Session { .. } => panic!("rejected work must not execute"),
         }
     );
-    SessionResources {
-        session: SessionView::new(window, cx),
-        conversation: ConversationArea::new(cx),
-    }
+    SessionResources::new(SessionView::new(window, cx), ConversationArea::new(cx))
 }
 
 #[gpui::test]
