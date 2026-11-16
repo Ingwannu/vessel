@@ -146,3 +146,30 @@ Tests use isolated synthetic files and self-test children, not real user
 credentials or a live service. Production permissions were unchanged.
 Next natural point: merge announced node ed4cd137 before new root work;
 retain this checkpoint's exact pre-merge source attribution.
+
+
+## Bounded output before any live transaction
+
+[Decision Log]
+- Purpose: ADR0097 bounds serialized output, including retained comments,
+  before a final output buffer can grow past one MiB.
+- Existing assets: private Text/ByteLimit/safe Error and streaming Display
+  on the existing toml_edit document. Use standard fmt::Write, not a new
+  serializer or a to_string-then-check allocation.
+- Choice: one up-front capped buffer, checked UTF-8 byte length on every
+  append and a sticky sink fault. A formatter cannot swallow that fault
+  and turn a partial value into success. Its own fmt::Error also refuses
+  the partial document and retains its safe typed source.
+- Why: growing by exact chunk sizes can copy quadratically; preallocating
+  the existing rare-worker bound once avoids this without widening it.
+- Scope: private Unix test preparation only, no new live read/write call,
+  file format, lock, worker admission, credential operation or Windows API.
+  The output is text, never a filesystem commit receipt. Encoded byte
+  bounds are not a claim about parser heap or allocator overhead.
+
+Six new regressions cover exact/one-over UTF-8, formatter failure, ignored
+sink failure, complete diagnostic canary chains, a real parsed TOML
+Document with actual keys/comments/Unicode, and real one-MiB comment output.
+Existing route8 and private11 results remain attributed to b9fe only.
+The new output and ed4 receiving context need their own changed-source
+strict/runtime checks; prepared cases are not counted as executed.

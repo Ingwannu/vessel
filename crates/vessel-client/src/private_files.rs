@@ -16,6 +16,7 @@ use std::io::{self, Read};
 use std::path::{Component, Path};
 use std::str::Utf8Error;
 
+mod output;
 mod unix;
 use unix::Directory;
 
@@ -91,6 +92,8 @@ enum Error {
     Allocation(#[source] TryReserveError),
     #[error("private file I/O failed")]
     Io(#[source] io::Error),
+    #[error("private document formatting failed")]
+    Format(#[source] std::fmt::Error),
     #[error("the private file is not UTF-8")]
     Utf8(#[source] Utf8Error),
 }
