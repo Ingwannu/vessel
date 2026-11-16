@@ -68,8 +68,8 @@ Local CLI init export branch backend/m12-wp-plugins-cli-init-export is3f25c0f0d,
 based onbc9cacc6. Five leaf source files match selected reviewed d9144388.
 Canonical whole-case clocks preserve all20 original assertions and add8 actual
 unsupported-management/raw-log-before-effects assertions. Root/CLI manifests
-and lock are unchanged. V3 row238 portable recheck requested; actual current
-receiving integration remain owed. Both executed checks are ordinary, priority0:
+and lock are unchanged. V3 row238 portable recheck and normal receiving
+integration remain owed. Both executed checks are ordinary, priority0:
 
 - wp-plugins-cli-check-20261116T024802Z-3f25c0f0
 - wp-plugins-cli-test-20261116T024802Z-3f25c0f0
@@ -125,3 +125,14 @@ process needs cleanup. The final local UID1000 executable inspection found zero
 readable matches under owned workspace paths, with8 other own executable links
 unreadable; this is not an exhaustive all-process proof. No signal was sent and
 no foreign process was touched. Keep project=vessel; do not push shared history.
+
+## Final stop snapshot,03:55 UTC
+
+The current descriptor slice's narrow checks and all already-running CLI checks
+have completed and their logs are retrieved. No new slice/control/merge or VM
+job is started after this snapshot. All five tracked worktrees are clean. The
+only outstanding owned VM run is the already queued immutable locale resolve
+033225-ed7acb7d; it remains detached and must be inspected, not resubmitted.
+No lock patch has been applied from it. Source reviews remain with V3; no checked
+adoption/handoff or complete F6 result has been announced. Resume from these exact
+facts after the quota resets, not from the older pending-status paragraphs.
