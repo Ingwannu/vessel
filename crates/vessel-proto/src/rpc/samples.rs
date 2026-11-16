@@ -40,6 +40,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::SessionOptions
         | Method::GetConversation
         | Method::ResumeSession
+        | Method::DetachSession
         | Method::DeleteSession
         | Method::GetPullRequest
         | Method::ParkSession
@@ -61,6 +62,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetFleetStatus
         | Method::GetPublished
         | Method::ExportMemory
+        | Method::GetRegistry
+        | Method::ListWorkspaces
         | Method::ListProjects
         | Method::ListWorktrees
         | Method::ForgeStatus
@@ -72,9 +75,16 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetCatalogue
         | Method::ListSchedules
         | Method::ListPrompts
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
         | Method::GetNodeSettings
         | Method::SetNodeSettings
-        | Method::ListInbox => json!({}),
+        | Method::ListInbox
+        | Method::Diagnostics => json!({}),
+        Method::SaveSkillsSelection | Method::ImportSkillsSelection => {
+            json!({"selection":{"mode":"all"}})
+        }
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),
@@ -124,6 +134,11 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::WriteUpload => json!({"upload":id,"offset":0,"data":"eA=="}),
         Method::FinishUpload => json!({"upload":id}),
         Method::ReadAttachment => json!({"session":id,"attachment":id,"offset":0}),
+        Method::GetWorkspace | Method::RenameWorkspace => json!({"workspace":id}),
+        Method::ReleaseWorkspaceAutomation => {
+            json!({"workspace":id,"expected":0,"source":{"kind":"change_request","number":1,"head_repository":{"kind":"github","host":"github.com","path":"sample/project"}}})
+        }
+        Method::PinWorkspace => json!({"workspace":id,"pin":"unpinned"}),
         Method::GetProject
         | Method::RemoveProject
         | Method::ProjectCommands
@@ -164,6 +179,15 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::GitStash => json!({"root":root,"action":{"kind":"save"}}),
         Method::ReadFile | Method::CreateDir | Method::DeletePath => {
             json!({"root":root,"path":"sample.rs"})
+        }
+        Method::ReadFileBytes => {
+            json!({"root":root,"path":"sample.bin","offset":0,"expected":null})
+        }
+        Method::DuplicateFileEntry => json!({"root":root,"path":"sample.rs"}),
+        Method::ObserveFile => json!({"root":root,"path":"sample.rs","after":null}),
+        Method::InspectDirectory => json!({"root":root,"directory":"","ignored":"include"}),
+        Method::SuggestEntries => {
+            json!({"root":root,"directory":"","query":"","kinds":"both","matching":"fuzzy","limit":null})
         }
         Method::WriteFile => {
             json!({"root":root,"path":"sample.rs","text":"sample","expect":{"kind":"any"}})

@@ -392,7 +392,8 @@ Removed from the copy: its `Cargo.lock` (unused for a dependency). Only
 the app's workspace (`spikes/native`) uses it; the release workspace's
 small programs keep the published crate.
 
-Changed: `src/elements/div.rs`, marked `MODIFIED by Vessel` at the top
+Changed: `src/elements/div.rs` (change 5), `src/window.rs` and
+`src/platform.rs` (change 8), each marked `MODIFIED by Vessel` at the top
 and `Vessel patch` at each change.
 
 ### 5. A drag starts at the distance an element names
@@ -428,3 +429,55 @@ and `Vessel patch` at each change.
 The patch7 kit consumer also names Paseo's terminal-blue diff selection and
 muted context-number ink separately from the unchanged ordinary source profile.
 Its real-window readonly/select/reflow fixture is added but not yet executed.
+
+### 8. A user zoom per window
+
+- Purpose: the app zooms its whole content as Paseo's desktop app does
+  (Ctrl+= / Ctrl+- / Ctrl+0): everything larger and still sharp, less of
+  it in the window, and a click landing on what is drawn under it.
+- Upstream's constraint: a window's scale is the platform's (the
+  display's DPI), read in `Window::bounds_changed`; the one call that
+  changes it, `Window::set_scale_factor`, exists for tests only. `rem_size`
+  scales only what is sized in rems, and the kit sizes in points.
+- Alternatives:
+  1. Multiply every size in the kit and the app by a factor. Every token,
+     literal size and size test would carry it, and GPUI's own elements
+     (scroll bars, the input base) would not follow.
+  2. Size everything in rems. A rewrite, with the same gap in GPUI's own
+     elements.
+  3. **This change**: `Window::set_zoom` and `Window::zoom` keep a
+     multiplier on top of the platform's scale. `scale_factor` is the
+     platform's times it and `viewport_size` the content size divided by
+     it, so layout, paint and hit-testing run in the zoomed space. Events
+     from the platform (the window's input callback) arrive with their
+     positions and pixel scroll distances divided by it; GPUI's own
+     synthesized events are in that space already and are left alone.
+     Positions the platform needs leave multiplied by it: the IME's caret
+     and selection rectangles and its point lookups
+     (`PlatformInputHandler`), the window menu's position, the client
+     decorations' inset and the macOS traffic lights. The visual viewport
+     and the platform's insets come in divided by it.
+- Why 3: one field and one conversion at each crossing between GPUI and
+  the platform; text and images rasterize at the zoomed scale, so they
+  stay sharp, and nothing in the kit or the app changes its sizes. At zoom
+  1 every conversion is skipped or exact, so a window nobody zooms
+  behaves as upstream.
+- Kept in the platform's space: what is about the window on the screen
+  (`bounds`, `window_bounds`, `resize`), so saved window sizes do not
+  change with the zoom. `set_zoom` keeps the zoom between
+  `Window::MIN_ZOOM` (0.25) and `Window::MAX_ZOOM` (5) and ignores a value
+  that is not a finite number; it runs the bounds observers, as a resize
+  does.
+- Cost: `window.rs` and `platform.rs` join `div.rs` in the diff to
+  re-apply at each GPUI pin; a new crossing between GPUI and the platform
+  in a later version needs the same conversion.
+- Checked: the kit's tests in `spikes/native/kit/src/zoom/tests.rs`,
+  through the test window's platform callbacks: at zoom 1.25 a window of
+  1000 by 800 points lays out in 800 by 640 and paints at scale 2.5 on a
+  display of scale 2, its size on the screen unchanged; a platform resize
+  keeps the zoom; a press at 150 platform points lands on a 100-point
+  target at zoom 2 and misses it unzoomed; the zoom stays within its
+  bounds and ignores a non-number. The IME's rectangles and the window
+  menu reach the platform only in a real session and are not checked yet:
+  an IME's candidate window and the window menu at a zoom other than 1 are
+  still to be looked at in the app on Linux.

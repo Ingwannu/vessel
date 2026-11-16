@@ -21,13 +21,17 @@
 //!   prompt at a time, so only a stuck screen fills it.
 
 use std::cell::RefCell;
+use std::fmt;
+use std::str::FromStr;
 
 use chrono::Utc;
 use tokio::sync::mpsc;
+use vessel_app_view::machine_book::Name;
+use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::PairingLink;
 
 use crate::demo::Demo;
-use crate::{CHANNEL, Command, Event, LinkError, Rejected, Unsent};
+use crate::{ActAnswer, ActFailed, CHANNEL, Command, Event, Rejected, Unsent};
 
 /// The most events one command is answered with (a start: the fleet and
 /// the card; a prompt: the records and the delivery).
@@ -86,6 +90,10 @@ impl Link {
         match command {
             Command::GitPanel(ask) => self.emit(Event::GitPanel(ask.refused(
                 vessel_app_view::workspace::git::panel::ReadFailure::ComparisonUnavailable,
+            ))),
+            Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
+                ask,
+                vessel_app_view::history::Problem::Unsupported,
             ))),
             Command::Agents {
                 machine, request, ..
@@ -195,6 +203,35 @@ impl Link {
             Command::Pair { .. } => self.emit(Event::PairFailed(
                 vessel_app_view::pairing::PairProblem::Browser,
             )),
+            // The demo's sessions are its own records, not a node's: an act
+            // on one, starting one again or a workspace ask is refused as a
+            // node refuses what it does not support, on the control it is
+            // about.
+            Command::Act {
+                machine,
+                session,
+                act,
+            } => self.emit(Event::Acted(ActAnswer {
+                terminal: act.terminal_opening().cloned(),
+                machine,
+                session,
+                kind: act.kind(),
+                result: Err(ActFailed {
+                    code: Some(vessel_proto::ErrorCode::Unsupported),
+                    message: "The browser's demo takes no session actions".to_owned(),
+                }),
+            })),
+            Command::Resume { session, .. } => self.emit(Event::ResumeFailed {
+                session,
+                why: "The browser's demo cannot start a session again".to_owned(),
+            }),
+            Command::Workspace { machine, ask } => self.emit(Event::Workspace {
+                machine,
+                answer: ask.refused(&Problem::Node {
+                    code: vessel_proto::ErrorCode::Unsupported,
+                    message: "The browser's demo has no projects".to_owned(),
+                }),
+            }),
             // The demo fleet keeps no search index: every machine finds
             // nothing.
             Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
@@ -251,6 +288,38 @@ pub fn read_link(text: &str) -> Result<Offer, vessel_proto::LinkError> {
             .collect(),
         expires: offer.expires.format("%Y-%m-%d %H:%M UTC").to_string(),
     })
+}
+
+/// A machine's name in the book, as a terminal's opening names it.
+///
+/// The desktop's is `vessel-client`'s `NodeName` (the book's own parser);
+/// the browser build cannot link that crate, so this twin holds the view's
+/// validated book name (`machine_book::Name`, the CLI's grammar). Same
+/// methods, `FromStr` and `Display`, so a screen that parses or shows one
+/// builds for both.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NodeName(Name);
+
+impl NodeName {
+    /// The name.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl FromStr for NodeName {
+    type Err = vessel_app_view::machines::NameProblem;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        Name::parse(text).map(Self)
+    }
+}
+
+impl fmt::Display for NodeName {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.0.as_str())
+    }
 }
 
 /// What is wrong with a name typed for a new machine.

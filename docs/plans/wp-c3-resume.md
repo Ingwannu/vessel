@@ -514,3 +514,15 @@ unions and resolve changed shared APIs before one meaningful changed-source
 batch. The node head is counted17/18 with the named open /new e2e intermittent;
 never call it an unqualified wholly green gate. Disk cleanup may have removed
 warm targets. project=vessel label is retained; no parallel agent was started.
+
+## Base13 join at the resumed clean point
+
+APP2ebeedf9 is merged with both History and GitPanel command/event/actor hubs,
+constructors, web refusal arms and Shell dispatch retained. Shared workspace
+call_problem export now has the same non-wasm guard as its calls module; the
+incoming follow guard stays separate. Preserve the new zoom patch8 and all of
+patch7, the ordinary readonly diff engine source byte-exact219, conditional
+retirement callback/startup and old unsent settlement. Standalone rustfmt,
+native size/token and non-generated whitespace checks pass. This is merge
+source verification only; the new union has no compile/runtime/capture pass.
+The tree is authoritative where older notes still describe the prebase API.

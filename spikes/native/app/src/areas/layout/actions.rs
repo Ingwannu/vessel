@@ -178,6 +178,14 @@ impl Shell {
         plans: Vec<ClosePlan>,
         cx: &mut Context<'_, Self>,
     ) -> Result<(), LayoutError> {
+        // Until the concrete File owner joins this dispatcher, refusal must stay
+        // handled even for cached Clean. It must never reach generic completion.
+        if plans
+            .iter()
+            .any(|plan| matches!(plan.target(), Target::File { .. }))
+        {
+            return Err(LayoutError::UnsupportedHost);
+        }
         if plans.iter().any(|plan| plan.effect() != CloseEffect::Local) {
             return Err(LayoutError::UnsupportedHost);
         }
