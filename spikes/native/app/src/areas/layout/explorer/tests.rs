@@ -18,6 +18,8 @@ fn shell(window: &mut gpui::Window, cx: &mut gpui::Context<'_, Shell>) -> Shell 
         agent: "fake".to_owned(),
         structured: true,
         live: true,
+        archived_at: None,
+        binding: None,
     });
     shell
 }

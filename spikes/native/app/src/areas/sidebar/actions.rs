@@ -67,6 +67,8 @@ mod tests {
                     agent: "fixture".to_owned(),
                     structured: false,
                     live: false,
+                    archived_at: None,
+                    binding: None,
                 });
                 shell.prefs.settings.layout.sidebar =
                     if left { Panel::Shown } else { Panel::Hidden };

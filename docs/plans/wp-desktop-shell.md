@@ -562,6 +562,12 @@ can reach its new persistence assertions. The failed Wasm logs remain evidence,
 and a corrected check is required rather than treating the native library pass
 as browser proof.
 
+Exacta81 Windows check6 also stopped at that route and three inherited test
+initializers missing the retained Open's archived_at/binding fields. The Explorer,
+File guard and sidebar-action fixtures now state None for both, like the existing
+query/capture fixtures; no network identity or binding is fabricated. No Windows
+test or typecheck pass follows from this repair until the corrected run executes.
+
 The old read-only protocol23 root binaries were reapproved only through dd13/base6
 for windows/menus/changelog/credential-free navigation, with no same-commit claim.
 They omit service-port/allocation approval, strict decode failure, session.delete

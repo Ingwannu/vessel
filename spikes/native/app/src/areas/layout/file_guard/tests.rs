@@ -21,6 +21,8 @@ fn shell(window: &mut Window, cx: &mut Context<'_, Shell>) -> Shell {
         agent: "fake".to_owned(),
         structured: true,
         live: true,
+        archived_at: None,
+        binding: None,
     });
     shell
 }
