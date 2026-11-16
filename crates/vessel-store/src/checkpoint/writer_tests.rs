@@ -86,15 +86,46 @@ pub(super) async fn read_operation(
         .unwrap()
 }
 
-pub(super) async fn publish_capture(store: &Store, plan: &Plan) {
+pub(super) async fn opened() -> (tempfile::TempDir, DataDir, Store) {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    (temp, dir, store)
+}
+
+pub(super) async fn allocate(
+    store: &Store,
+    plan: &Plan,
+    allocation: super::Allocation,
+) -> Result<(), StoreError> {
     store
-        .checkpoint_write(CheckpointWrite::Reserve {
+        .checkpoint_write(CheckpointWrite::Allocate {
             key: plan.key,
-            bytes: ByteCount::new(1),
+            allocation,
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+}
+
+pub(super) async fn publish_plan(store: &Store, plan: &Plan) {
+    allocate(store, plan, super::Allocation::Preview { plan: plan.id })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Plan {
+            plan: Box::new(plan.clone()),
             at: DateTime::UNIX_EPOCH,
         })
         .await
         .unwrap();
+}
+
+pub(super) async fn activate_candidate(store: &Store, plan: &Plan) {
     store
         .checkpoint_write(CheckpointWrite::Candidate {
             key: plan.key,
@@ -111,15 +142,56 @@ pub(super) async fn publish_capture(store: &Store, plan: &Plan) {
         .unwrap();
 }
 
+pub(super) async fn publish_at(store: &Store, plan: &Plan, at: chrono::DateTime<chrono::Utc>) {
+    store
+        .checkpoint_write(CheckpointWrite::Reserve {
+            key: plan.key,
+            bytes: ByteCount::new(1),
+            at,
+        })
+        .await
+        .unwrap();
+    activate_candidate(store, plan).await;
+}
+
+pub(super) async fn publish_capture(store: &Store, plan: &Plan) {
+    publish_at(store, plan, DateTime::UNIX_EPOCH).await;
+}
+
+async fn reserve_capture(store: &Store, key: CaptureKey) {
+    store
+        .checkpoint_write(CheckpointWrite::ReserveCapture {
+            key,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+}
+
+async fn clean_allocation(
+    store: &Store,
+    plan: &Plan,
+    allocation: super::Allocation,
+    owner: CheckpointOwner,
+) -> Result<(), StoreError> {
+    store
+        .checkpoint_write(CheckpointWrite::AllocationCleaned {
+            key: plan.key,
+            allocation,
+            owner,
+        })
+        .await
+}
+
+async fn settle_capture(store: &Store, key: CaptureKey) -> Result<(), StoreError> {
+    store
+        .checkpoint_write(CheckpointWrite::CaptureSettled { key })
+        .await
+}
+
 #[tokio::test]
 async fn checkpoint_staged_objects_commit_all_paths_or_none_and_survive_a_retry() {
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
+    let (_temp, dir, store) = opened().await;
     let info = info();
     store.create_session(info.clone()).await.unwrap();
     let mut plan = plan(info.id);
@@ -135,22 +207,7 @@ async fn checkpoint_staged_objects_commit_all_paths_or_none_and_survive_a_retry(
         .effective(&plan.current, metadata)
         .unwrap();
     publish_capture(&store, &plan).await;
-    store
-        .checkpoint_write(CheckpointWrite::Allocate {
-            key: plan.key,
-            allocation: super::Allocation::Preview { plan: plan.id },
-            owner: plan.owner,
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
-    store
-        .checkpoint_write(CheckpointWrite::Plan {
-            plan: Box::new(plan.clone()),
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
+    publish_plan(&store, &plan).await;
     let restore = RestoreId::random();
     store
         .checkpoint_write(CheckpointWrite::Admit {
@@ -233,33 +290,12 @@ async fn checkpoint_staged_objects_commit_all_paths_or_none_and_survive_a_retry(
 
 #[tokio::test]
 async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent_result() {
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
+    let (_temp, dir, store) = opened().await;
     let info = info();
     store.create_session(info.clone()).await.unwrap();
     let plan = plan(info.id);
     publish_capture(&store, &plan).await;
-    store
-        .checkpoint_write(CheckpointWrite::Allocate {
-            key: plan.key,
-            allocation: super::Allocation::Preview { plan: plan.id },
-            owner: plan.owner,
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
-    store
-        .checkpoint_write(CheckpointWrite::Plan {
-            plan: Box::new(plan.clone()),
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
+    publish_plan(&store, &plan).await;
     let restore = RestoreId::random();
     for _ in 0..2 {
         store
@@ -563,34 +599,13 @@ async fn checkpoint_shared_writer_commits_verified_recovery_and_idempotent_statu
 #[tokio::test]
 async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_cleaned_ids() {
     use super::allocation::Allocation;
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
+    let (_temp, _dir, store) = opened().await;
     let info = info();
     store.create_session(info.clone()).await.unwrap();
     let plan = plan(info.id);
     publish_capture(&store, &plan).await;
     let preview = Allocation::Preview { plan: plan.id };
-    store
-        .checkpoint_write(CheckpointWrite::Allocate {
-            key: plan.key,
-            allocation: preview,
-            owner: plan.owner,
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
-    store
-        .checkpoint_write(CheckpointWrite::Plan {
-            plan: Box::new(plan.clone()),
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
+    publish_plan(&store, &plan).await;
     store
         .checkpoint_write(CheckpointWrite::AllocationAttached {
             key: plan.key,
@@ -600,13 +615,7 @@ async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_
         .await
         .unwrap();
     assert!(matches!(
-        store
-            .checkpoint_write(CheckpointWrite::AllocationCleaned {
-                key: plan.key,
-                allocation: preview,
-                owner: plan.owner
-            })
-            .await,
+        clean_allocation(&store, &plan, preview, plan.owner).await,
         Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
             CheckpointError::RecoveryPending
         )))
@@ -614,48 +623,28 @@ async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_
     let abandoned = Allocation::Restore {
         restore: RestoreId::random(),
     };
-    store
-        .checkpoint_write(CheckpointWrite::Allocate {
-            key: plan.key,
-            allocation: abandoned,
-            owner: plan.owner,
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
+    allocate(&store, &plan, abandoned).await.unwrap();
     assert!(matches!(
-        store
-            .checkpoint_write(CheckpointWrite::AllocationCleaned {
-                key: plan.key,
-                allocation: abandoned,
-                owner: CheckpointOwner::Device {
-                    device: vessel_proto::DeviceId::random()
-                }
-            })
-            .await,
+        clean_allocation(
+            &store,
+            &plan,
+            abandoned,
+            CheckpointOwner::Device {
+                device: vessel_proto::DeviceId::random(),
+            }
+        )
+        .await,
         Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
             CheckpointError::Forbidden
         )))
     ));
     for _retry in 0..2 {
-        store
-            .checkpoint_write(CheckpointWrite::AllocationCleaned {
-                key: plan.key,
-                allocation: abandoned,
-                owner: plan.owner,
-            })
+        clean_allocation(&store, &plan, abandoned, plan.owner)
             .await
             .unwrap();
     }
     assert!(matches!(
-        store
-            .checkpoint_write(CheckpointWrite::Allocate {
-                key: plan.key,
-                allocation: abandoned,
-                owner: plan.owner,
-                at: DateTime::UNIX_EPOCH
-            })
-            .await,
+        allocate(&store, &plan, abandoned).await,
         Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
             CheckpointError::RestoreIdConflict
         )))
@@ -693,16 +682,14 @@ async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_
         .await
         .unwrap();
     assert!(matches!(
-        store
-            .checkpoint_write(CheckpointWrite::Allocate {
-                key: plan.key,
-                allocation: Allocation::Preview {
-                    plan: RestorePlanId::random()
-                },
-                owner: plan.owner,
-                at: DateTime::UNIX_EPOCH
-            })
-            .await,
+        allocate(
+            &store,
+            &plan,
+            Allocation::Preview {
+                plan: RestorePlanId::random()
+            }
+        )
+        .await,
         Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
             CheckpointError::StorageFull
         )))
@@ -712,13 +699,7 @@ async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_
 
 #[tokio::test]
 async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keeps_ready_bytes() {
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
+    let (_temp, _dir, store) = opened().await;
     let info = info();
     store.create_session(info.clone()).await.unwrap();
     let plan = plan(info.id);
@@ -735,13 +716,7 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
         )
         .await
         .unwrap();
-    store
-        .checkpoint_write(CheckpointWrite::ReserveCapture {
-            key: plan.key,
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
+    reserve_capture(&store, plan.key).await;
     assert!(matches!(
         store
             .checkpoint_write(CheckpointWrite::CaptureSettled { key: plan.key })
@@ -750,24 +725,8 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
             CheckpointError::Busy
         )))
     ));
-    store
-        .checkpoint_write(CheckpointWrite::Candidate {
-            key: plan.key,
-            snapshot: Box::new(super::tests::observed(plan.desired.image().clone())),
-        })
-        .await
-        .unwrap();
-    store
-        .checkpoint_write(CheckpointWrite::Activate {
-            key: plan.key,
-            checkpoint: CheckpointId::random(),
-        })
-        .await
-        .unwrap();
-    store
-        .checkpoint_write(CheckpointWrite::CaptureSettled { key: plan.key })
-        .await
-        .unwrap();
+    activate_candidate(&store, &plan).await;
+    settle_capture(&store, plan.key).await.unwrap();
     let capture = plan.key.capture.to_string();
     let charged: i64 = store
         .read(move |reader| {
@@ -784,19 +743,10 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
     assert!(charged > 0);
     assert!(u64::try_from(charged).unwrap() < super::quota::CAPTURE_BYTES.get());
     // Duplicate cleanup cannot release the retained payload/metadata a second time.
-    store
-        .checkpoint_write(CheckpointWrite::CaptureSettled { key: plan.key })
-        .await
-        .unwrap();
+    settle_capture(&store, plan.key).await.unwrap();
     let mut unavailable = plan.key;
     unavailable.capture = CaptureId::random();
-    store
-        .checkpoint_write(CheckpointWrite::ReserveCapture {
-            key: unavailable,
-            at: DateTime::UNIX_EPOCH,
-        })
-        .await
-        .unwrap();
+    reserve_capture(&store, unavailable).await;
     store
         .checkpoint_write(CheckpointWrite::Unavailable {
             key: unavailable,
@@ -825,10 +775,7 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
     ));
     assert!(store.checkpoint_garbage().await.unwrap().is_empty());
     // This acknowledgement models actual cleanup returning, not actor timeout.
-    store
-        .checkpoint_write(CheckpointWrite::CaptureSettled { key: unavailable })
-        .await
-        .unwrap();
+    settle_capture(&store, unavailable).await.unwrap();
     store.delete_session(info.id).await.unwrap();
     let garbage = store.checkpoint_garbage().await.unwrap();
     assert_eq!(garbage.len(), 2);

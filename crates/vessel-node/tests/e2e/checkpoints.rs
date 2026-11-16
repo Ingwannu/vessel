@@ -8,6 +8,50 @@ use vessel_proto::{
 };
 use vessel_store::{Store, StoreConfig};
 
+async fn assert_images(
+    store: &Store,
+    session: vessel_proto::SessionId,
+    worktree: vessel_proto::WorktreeId,
+    first_ended: EventSeq,
+) {
+    let page = store.checkpoint_page(session, None).await.unwrap();
+    let before = page
+        .marks
+        .iter()
+        .filter(|mark| {
+            matches!(mark.boundary, Boundary::BeforeTurn { .. })
+                && matches!(mark.state, CheckpointState::Ready { .. })
+        })
+        .count();
+    assert_eq!(
+        before, 2,
+        "both delivered prompts keep their own actual before image: {page:?}"
+    );
+    assert!(
+        page.marks.iter().any(
+            |mark| mark.boundary == Boundary::AfterTurn { ended: first_ended }
+                && matches!(mark.state, CheckpointState::Ready { .. })
+        ),
+        "first turn has its after image: {page:?}"
+    );
+    for mark in page.marks {
+        if let CheckpointState::Ready { checkpoint } = mark.state {
+            let selected = store
+                .checkpoint_selected(session, checkpoint)
+                .await
+                .unwrap();
+            assert_eq!(selected.key.worktree, worktree);
+            assert!(
+                selected.snapshot.image().entries().iter().any(|entry| entry
+                    .path
+                    .relative()
+                    .as_str()
+                    == "README.md")
+            );
+        }
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "pending FILE_CHECKPOINTS assignment; run this actual bootstrap fixture after activation"]
 async fn checkpoint_node_turn_hooks_capture_real_managed_files_and_survive_restart() {
@@ -80,41 +124,7 @@ async fn checkpoint_node_turn_hooks_capture_real_managed_files_and_survive_resta
             .await
             .unwrap()
             .store;
-        let page = store.checkpoint_page(session, None).await.unwrap();
-        let before = page
-            .marks
-            .iter()
-            .filter(|mark| {
-                matches!(mark.boundary, Boundary::BeforeTurn { .. })
-                    && matches!(mark.state, CheckpointState::Ready { .. })
-            })
-            .count();
-        assert_eq!(
-            before, 2,
-            "both delivered prompts keep their own actual before image: {page:?}"
-        );
-        assert!(
-            page.marks.iter().any(|mark| mark.boundary
-                == Boundary::AfterTurn { ended: first_ended }
-                && matches!(mark.state, CheckpointState::Ready { .. })),
-            "first turn has its after image: {page:?}"
-        );
-        for mark in page.marks {
-            if let CheckpointState::Ready { checkpoint } = mark.state {
-                let selected = store
-                    .checkpoint_selected(session, checkpoint)
-                    .await
-                    .unwrap();
-                assert_eq!(selected.key.worktree, worktree.id);
-                assert!(
-                    selected.snapshot.image().entries().iter().any(|entry| entry
-                        .path
-                        .relative()
-                        .as_str()
-                        == "README.md")
-                );
-            }
-        }
+        assert_images(&store, session, worktree.id, first_ended).await;
         store.close().await;
     })
     .await;

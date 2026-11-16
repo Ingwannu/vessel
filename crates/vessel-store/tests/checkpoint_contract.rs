@@ -27,15 +27,13 @@ fn evidence(entries: Vec<ObservedEntry>) -> SnapshotEvidence {
     .unwrap()
 }
 
-#[tokio::test]
-async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ended_history() {
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
+struct Sample {
+    snapshot: ObservedSnapshot,
+    metadata: FileMetadata,
+    path: vessel_proto::checkpoint::CheckpointPath,
+}
+
+async fn create_session(store: &Store) -> CaptureKey {
     let info = SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -49,7 +47,7 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         DateTime::UNIX_EPOCH,
     );
     store.create_session(info.clone()).await.unwrap();
-    let key = CaptureKey {
+    CaptureKey {
         capture: CaptureId::random(),
         session: info.id,
         worktree: WorktreeId::random(),
@@ -57,7 +55,10 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         boundary: Boundary::BeforeTurn {
             prompt: EventSeq::ZERO,
         },
-    };
+    }
+}
+
+async fn reserve_after_anchor(store: &Store, key: CaptureKey) {
     assert!(
         store
             .checkpoint_write(CheckpointWrite::ReserveCapture {
@@ -69,7 +70,7 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
     );
     store
         .append(
-            info.id,
+            key.session,
             vec![Arc::new(EventRecord {
                 seq: EventSeq::ZERO,
                 at: DateTime::UNIX_EPOCH,
@@ -87,6 +88,9 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         })
         .await
         .unwrap();
+}
+
+fn sample_image() -> Sample {
     let metadata = FileMetadata {
         owner: OwnerId::new(1000),
         group: GroupId::new(1000),
@@ -103,7 +107,7 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
     }])
     .unwrap();
     let snapshot = ObservedSnapshot::new(
-        image.clone(),
+        image,
         evidence(vec![ObservedEntry {
             path: path.clone(),
             presence: ObservedPresence::Present {
@@ -113,10 +117,18 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         }]),
     )
     .unwrap();
+    Sample {
+        snapshot,
+        metadata,
+        path,
+    }
+}
+
+async fn publish_capture(store: &Store, key: CaptureKey, sample: &Sample) -> CheckpointId {
     store
         .checkpoint_write(CheckpointWrite::Candidate {
             key,
-            snapshot: Box::new(snapshot.clone()),
+            snapshot: Box::new(sample.snapshot.clone()),
         })
         .await
         .unwrap();
@@ -130,11 +142,11 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         .await
         .unwrap();
     let selected = store
-        .checkpoint_selected(info.id, checkpoint)
+        .checkpoint_selected(key.session, checkpoint)
         .await
         .unwrap();
     assert_eq!(selected.key, key);
-    assert_eq!(selected.snapshot, snapshot);
+    assert_eq!(selected.snapshot, sample.snapshot);
     assert!(
         store
             .checkpoint_selected(SessionId::random(), checkpoint)
@@ -143,20 +155,28 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
     );
     assert_eq!(
         store
-            .checkpoint_page(info.id, None)
+            .checkpoint_page(key.session, None)
             .await
             .unwrap()
             .marks
             .len(),
         1
     );
+    checkpoint
+}
+
+async fn preview(store: &Store, key: CaptureKey, sample: &Sample) -> Plan {
     let current = FileImage::new(Vec::new()).unwrap();
     let plan = Plan {
         id: RestorePlanId::random(),
         key,
         owner: CheckpointOwner::LocalOwner,
         evidence: evidence(Vec::new()),
-        desired: image.effective(&current, metadata).unwrap(),
+        desired: sample
+            .snapshot
+            .image()
+            .effective(&current, sample.metadata)
+            .unwrap(),
         current,
         expires: DateTime::from_timestamp(300, 0).unwrap(),
     };
@@ -198,6 +218,14 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
             .len(),
         1
     );
+    plan
+}
+
+async fn restore(
+    store: &Store,
+    plan: &Plan,
+    path: &vessel_proto::checkpoint::CheckpointPath,
+) -> vessel_store::checkpoint::Operation {
     let restore = RestoreId::random();
     for _ in 0..2 {
         store
@@ -210,7 +238,7 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
             .unwrap();
     }
     let operation = store
-        .checkpoint_operation(info.id, restore, plan.owner)
+        .checkpoint_operation(plan.key.session, restore, plan.owner)
         .await
         .unwrap();
     assert_eq!(
@@ -221,6 +249,19 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
             .len(),
         1
     );
+    apply_journal(store, &operation, path).await;
+    assert_eq!(
+        store.checkpoint_event_seq(operation.clone()).await.unwrap(),
+        None
+    );
+    operation
+}
+
+async fn apply_journal(
+    store: &Store,
+    operation: &vessel_store::checkpoint::Operation,
+    path: &vessel_proto::checkpoint::CheckpointPath,
+) {
     store
         .checkpoint_write(CheckpointWrite::Staged {
             operation: Box::new(operation.clone()),
@@ -238,7 +279,7 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
     store
         .checkpoint_write(CheckpointWrite::Advance {
             operation: Box::new(operation.clone()),
-            path,
+            path: path.clone(),
             from: PathPhase::Pending,
             to: PathPhase::Applied,
         })
@@ -253,14 +294,16 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         })
         .await
         .unwrap();
-    assert_eq!(
-        store.checkpoint_event_seq(operation.clone()).await.unwrap(),
-        None
-    );
+}
+
+async fn end_and_publish(
+    store: &Store,
+    operation: &vessel_store::checkpoint::Operation,
+) -> chrono::DateTime<chrono::Utc> {
     let ended_at = DateTime::from_timestamp(1, 0).unwrap();
     store
         .append(
-            info.id,
+            operation.session,
             vec![Arc::new(EventRecord {
                 seq: EventSeq::new(1),
                 at: ended_at,
@@ -282,8 +325,27 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         store.checkpoint_event_seq(operation.clone()).await.unwrap(),
         Some(EventSeq::new(2))
     );
+    ended_at
+}
+
+#[tokio::test]
+async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ended_history() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let key = create_session(&store).await;
+    reserve_after_anchor(&store, key).await;
+    let sample = sample_image();
+    let _checkpoint = publish_capture(&store, key, &sample).await;
+    let plan = preview(&store, key, &sample).await;
+    let operation = restore(&store, &plan, &sample.path).await;
+    let ended_at = end_and_publish(&store, &operation).await;
     let history = store
-        .read_events(info.id, EventSeq::ZERO, 10)
+        .read_events(operation.session, EventSeq::ZERO, 10)
         .await
         .unwrap();
     store.close().await;
@@ -293,19 +355,19 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         .store;
     store
         .checkpoint_write(CheckpointWrite::EndedMetadata {
-            operation: Box::new(operation),
+            operation: Box::new(operation.clone()),
             at: DateTime::from_timestamp(3, 0).unwrap(),
         })
         .await
         .unwrap();
     assert_eq!(
         store
-            .read_events(info.id, EventSeq::ZERO, 10)
+            .read_events(operation.session, EventSeq::ZERO, 10)
             .await
             .unwrap(),
         history
     );
-    let info = store.session(info.id).await.unwrap().unwrap();
+    let info = store.session(operation.session).await.unwrap().unwrap();
     assert_eq!(info.ended_at, Some(ended_at));
     assert_eq!(info.status, SessionStatus::Exited { code: Some(0) });
     store.close().await;

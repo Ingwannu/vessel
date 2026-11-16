@@ -243,19 +243,11 @@ fn checkpoint_pressure_plans_reclamation_but_never_spends_pending_garbage_early(
     assert!(quota::available(&db, ByteCount::new(CHECKPOINT_CAPTURE_RESERVATION_BYTES)).is_ok());
 }
 
-#[tokio::test]
-async fn checkpoint_completed_payload_retirement_keeps_idempotent_results_after_image_expiry_and_restart()
- {
+async fn retire_completed_payloads(
+    store: &crate::Store,
+    operation: &super::Operation,
+) -> super::Plan {
     use super::{Allocation, CheckpointWrite};
-    use crate::{DataDir, Store, StoreConfig};
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
-    let operation = super::metadata_tests::completed(&store).await;
     let (selected, _) = store
         .checkpoint_plan(operation.plan, operation.owner)
         .await
@@ -285,7 +277,13 @@ async fn checkpoint_completed_payload_retirement_keeps_idempotent_results_after_
         store.checkpoint_garbage().await.unwrap().is_empty(),
         "missing result marker pins completed payloads too"
     );
-    let _ended_at = super::metadata_tests::ended(&store, &operation).await;
+    publish_and_collect_payloads(store, operation).await;
+    selected
+}
+
+async fn publish_and_collect_payloads(store: &crate::Store, operation: &super::Operation) {
+    use super::CheckpointWrite;
+    let _ended_at = super::metadata_tests::ended(store, operation).await;
     store
         .checkpoint_write(CheckpointWrite::EndedMetadata {
             operation: Box::new(operation.clone()),
@@ -310,7 +308,7 @@ async fn checkpoint_completed_payload_retirement_keeps_idempotent_results_after_
             .checkpoint_operation(operation.session, operation.id, operation.owner)
             .await
             .unwrap(),
-        operation
+        *operation
     );
     // Accounting-only fixture: physical cleanup is exercised by workspace/node
     // fixtures; these explicit acks model its verified terminal completion.
@@ -322,33 +320,22 @@ async fn checkpoint_completed_payload_retirement_keeps_idempotent_results_after_
             .await
             .unwrap();
     }
+}
+
+#[tokio::test]
+async fn checkpoint_completed_payload_retirement_keeps_idempotent_results_after_image_expiry_and_restart()
+ {
+    use super::CheckpointWrite;
+    use crate::{Store, StoreConfig};
+    let (_temp, dir, store) = super::writer_tests::opened().await;
+    let operation = super::metadata_tests::completed(&store).await;
+    let selected = retire_completed_payloads(&store, &operation).await;
     for index in 1..=CHECKPOINTS_PER_SESSION {
         let newer = plan(operation.session);
         let at = DateTime::UNIX_EPOCH
             .checked_add_signed(TimeDelta::seconds(i64::try_from(index).unwrap()))
             .unwrap();
-        store
-            .checkpoint_write(CheckpointWrite::Reserve {
-                key: newer.key,
-                bytes: ByteCount::new(1),
-                at,
-            })
-            .await
-            .unwrap();
-        store
-            .checkpoint_write(CheckpointWrite::Candidate {
-                key: newer.key,
-                snapshot: Box::new(super::tests::observed(newer.desired.image().clone())),
-            })
-            .await
-            .unwrap();
-        store
-            .checkpoint_write(CheckpointWrite::Activate {
-                key: newer.key,
-                checkpoint: CheckpointId::random(),
-            })
-            .await
-            .unwrap();
+        super::writer_tests::publish_at(&store, &newer, at).await;
     }
     store
         .checkpoint_write(CheckpointWrite::Collect {

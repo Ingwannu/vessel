@@ -7,15 +7,7 @@ use vessel_proto::{
     checkpoint::CheckpointEvent,
 };
 use vessel_store::{DataDir, Store, StoreConfig};
-#[tokio::test]
-async fn checkpoint_metadata_preserves_conversation_identity_and_the_retained_plan() {
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
+async fn conversation_fixture(store: &Store) -> (SessionInfo, Vec<PlanEntry>) {
     let mut session = SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -50,6 +42,19 @@ async fn checkpoint_metadata_preserves_conversation_identity_and_the_retained_pl
         )
         .await
         .unwrap();
+    (session, plan)
+}
+
+#[tokio::test]
+async fn checkpoint_metadata_preserves_conversation_identity_and_the_retained_plan() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let (session, plan) = conversation_fixture(&store).await;
     let before = store.conversation(session.id).await.unwrap();
     let events = [
         CheckpointEvent::PromptAccepted,

@@ -1401,3 +1401,18 @@ This is a SQL-only fixture with metadata-only reservations; it supplies no worke
 filesystem cleanup or process-death proof. It will run in the next meaningful
 checkpoint store suite. The already queued library strict source is unchanged
 outside this cfg(test) addition; it is not a test-compilation result.
+
+### Test fixture phases (source-only refactor)
+
+The resumed source preflight found overlong checkpoint test functions. The shared
+writer fixtures now name opening, fixed capture reservation, candidate activation,
+preview publication and allocation cleanup independently. The completed-payload
+case separates marker publication and retirement from image expiry/restart. The
+public storage contract, managed-worktree bridge and metadata identity tests keep
+their original operation order and assertions in named preparation/verification
+phases. No product path, refusal expectation or ignored activation gate changes.
+This reduces repeated write construction and leaves failed inserts, stale anchors,
+principal refusals, escrow retention and restart deduplication visible at call sites.
+Static assert-macro counts are unchanged in every refactored file; this is an audit
+of the edit, not a runtime equivalence proof. The next checkpoint suite must run
+these exact test sources after the immutable library checks finish.
