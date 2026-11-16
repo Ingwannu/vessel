@@ -12,6 +12,7 @@ enum Listening {
 struct Probe {
     list: VirtualList,
     calls: Rc<Cell<usize>>,
+    observed: Option<(usize, Pixels)>,
 }
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
@@ -39,7 +40,11 @@ fn existing_wheel_motion_is_unchanged_and_notification_never_reborrows_the_list(
                 let seen = Rc::clone(&calls);
                 list.on_scroll(move |_, _| seen.set(seen.get().saturating_add(1)));
             }
-            Probe { list, calls }
+            Probe {
+                list,
+                calls,
+                observed: None,
+            }
         });
         cx.run_until_parked();
         let before = probe.read_with(cx, |probe, _| {
@@ -66,4 +71,48 @@ fn existing_wheel_motion_is_unchanged_and_notification_never_reborrows_the_list(
     }
     assert_eq!(tops.len(), 2);
     assert_eq!(tops.first(), tops.last());
+}
+
+#[gpui::test]
+fn deferred_owner_reads_the_actual_new_list_position_once(cx: &mut TestAppContext) {
+    cx.update(|cx| crate::init(cx, crate::SchemeChoice::Fixed(crate::Scheme::Dark)).unwrap());
+    let (probe, cx) = cx.add_window_view(|_, cx| {
+        let list = VirtualList::new(false);
+        list.reset(200);
+        let owner = cx.entity().downgrade();
+        list.on_scroll(move |window, cx| {
+            // The owner and its ListState are read only after event dispatch
+            // releases the backend's active list borrow.
+            let owner = owner.clone();
+            window.defer(cx, move |_, cx| {
+                let _updated = owner.update(cx, |probe: &mut Probe, cx| {
+                    probe.calls.set(probe.calls.get().saturating_add(1));
+                    probe.observed = Some(probe.list.top());
+                    cx.notify();
+                });
+            });
+        });
+        Probe {
+            list,
+            calls: Rc::new(Cell::new(0)),
+            observed: None,
+        }
+    });
+    let before = probe.read_with(cx, |probe, _| {
+        assert_eq!(probe.calls.get(), 0);
+        assert_eq!(probe.observed, None);
+        probe.list.top()
+    });
+    cx.simulate_event(gpui::ScrollEvent {
+        position: point(px(100.), px(100.)),
+        delta: gpui::ScrollDelta::Pixels(point(px(0.), px(-80.))),
+        touch_phase: gpui::TouchPhase::Moved,
+        ..Default::default()
+    });
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, _| {
+        assert_ne!(probe.list.top(), before);
+        assert_eq!(probe.calls.get(), 1);
+        assert_eq!(probe.observed, Some(probe.list.top()));
+    });
 }
