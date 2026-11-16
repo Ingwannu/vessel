@@ -73,7 +73,6 @@ pub(super) fn footer(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Vec<AnyElement> {
-    let words = shell.words.labels();
     let manager = &shell.areas.labels.manager;
     let online = host.state.connected()
         && target.matches(
@@ -83,103 +82,118 @@ pub(super) fn footer(
         );
     match manager.state() {
         ManagerState::Listing | ManagerState::Deleting { .. } => Vec::new(),
-        ManagerState::Editing(_)
-        | ManagerState::Saving { .. }
-        | ManagerState::Inspecting { .. } => {
-            let (can_save, can_delete) = match manager.state() {
-                ManagerState::Editing(draft) => {
-                    let current = host.catalog.get(&draft.original().name);
-                    (
-                        online && current.is_some_and(|label| draft.replacement(label).is_some()),
-                        online && current.is_some(),
-                    )
-                }
-                ManagerState::Listing
-                | ManagerState::Saving { .. }
-                | ManagerState::Inspecting { .. }
-                | ManagerState::Confirming { .. }
-                | ManagerState::Deleting { .. } => (false, false),
-            };
-            let delete = button_with_kind(
-                "labels-delete",
-                words.delete(),
-                ButtonKind::Outline,
-                enabled(can_delete),
-                tokens,
-            )
-            .when(can_delete, |button| {
-                let action = Action::Inspect(target.clone());
-                button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    shell.label_action(&action, cx);
-                }))
-            });
-            let save = button_with_kind(
-                "labels-save",
-                words.save(),
-                ButtonKind::Primary,
-                enabled(can_save),
-                tokens,
-            )
-            .min_w(px(SAVE_MIN))
-            .when(can_save, |button| {
-                let action = Action::Save(target.clone());
-                button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    shell.label_action(&action, cx);
-                }))
-            });
-            // Paseo's footer content: one row, Delete at the start and Save
-            // at the end (`justifyContent: "space-between"`).
-            vec![
-                div()
-                    .debug_selector(|| "labels-footer".to_owned())
-                    .flex_1()
-                    .flex()
-                    .flex_row()
-                    .items_center()
-                    .justify_between()
-                    .gap(px(S2))
-                    .child(delete)
-                    .child(save)
-                    .into_any_element(),
-            ]
+        ManagerState::Editing(draft) => {
+            let current = host.catalog.get(&draft.original().name);
+            let can_save =
+                online && current.is_some_and(|label| draft.replacement(label).is_some());
+            let can_delete = online && current.is_some();
+            vec![edit_actions(shell, target, can_save, can_delete, tokens, cx)]
+        }
+        ManagerState::Saving { .. } | ManagerState::Inspecting { .. } => {
+            vec![edit_actions(shell, target, false, false, tokens, cx)]
         }
         ManagerState::Confirming { ticket, .. } => {
-            let cancel = super::surface::Dismiss::Confirmation {
-                opening: target.opening(),
-                inspection: *ticket,
-            };
-            let action = Action::Delete {
-                target: target.clone(),
-                inspection: *ticket,
-            };
-            vec![
-                button_with_kind(
-                    "labels-delete-cancel",
-                    words.cancel(),
-                    ButtonKind::Secondary,
-                    ButtonState::Enabled,
-                    tokens,
-                )
-                .on_click(cx.listener(move |shell, _, window, cx| {
-                    shell.labels_close(cancel, window, cx);
-                }))
-                .into_any_element(),
-                button_with_kind(
-                    "labels-delete-confirm",
-                    words.delete(),
-                    ButtonKind::Destructive,
-                    enabled(online),
-                    tokens,
-                )
-                .when(online, |button| {
-                    button.on_click(cx.listener(move |shell, _, _window, cx| {
-                        shell.label_action(&action, cx);
-                    }))
-                })
-                .into_any_element(),
-            ]
+            confirm_actions(shell, target, *ticket, online, tokens, cx)
         }
     }
+}
+
+/// Paseo's edit footer: one row, Delete (outline) at the start and Save at
+/// the end (`justifyContent: "space-between"`).
+fn edit_actions(
+    shell: &Shell,
+    target: &Target,
+    can_save: bool,
+    can_delete: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let words = shell.words.labels();
+    let delete = button_with_kind(
+        "labels-delete",
+        words.delete(),
+        ButtonKind::Outline,
+        enabled(can_delete),
+        tokens,
+    )
+    .when(can_delete, |button| {
+        let action = Action::Inspect(target.clone());
+        button.on_click(cx.listener(move |shell, _, _window, cx| {
+            shell.label_action(&action, cx);
+        }))
+    });
+    let save = button_with_kind(
+        "labels-save",
+        words.save(),
+        ButtonKind::Primary,
+        enabled(can_save),
+        tokens,
+    )
+    .min_w(px(SAVE_MIN))
+    .when(can_save, |button| {
+        let action = Action::Save(target.clone());
+        button.on_click(cx.listener(move |shell, _, _window, cx| {
+            shell.label_action(&action, cx);
+        }))
+    });
+    div()
+        .debug_selector(|| "labels-footer".to_owned())
+        .flex_1()
+        .flex()
+        .flex_row()
+        .items_center()
+        .justify_between()
+        .gap(px(S2))
+        .child(delete)
+        .child(save)
+        .into_any_element()
+}
+
+/// The confirmation's Cancel and Delete (destructive), as Paseo's
+/// `confirmDialog` buttons.
+fn confirm_actions(
+    shell: &Shell,
+    target: &Target,
+    inspection: vessel_app_view::labels::Ticket,
+    online: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
+    let words = shell.words.labels();
+    let cancel = super::surface::Dismiss::Confirmation {
+        opening: target.opening(),
+        inspection,
+    };
+    let action = Action::Delete {
+        target: target.clone(),
+        inspection,
+    };
+    vec![
+        button_with_kind(
+            "labels-delete-cancel",
+            words.cancel(),
+            ButtonKind::Secondary,
+            ButtonState::Enabled,
+            tokens,
+        )
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            shell.labels_close(cancel, window, cx);
+        }))
+        .into_any_element(),
+        button_with_kind(
+            "labels-delete-confirm",
+            words.delete(),
+            ButtonKind::Destructive,
+            enabled(online),
+            tokens,
+        )
+        .when(online, |button| {
+            button.on_click(cx.listener(move |shell, _, _window, cx| {
+                shell.label_action(&action, cx);
+            }))
+        })
+        .into_any_element(),
+    ]
 }
 
 /// Paseo's `confirmDialog` content: the question and the affected count.
