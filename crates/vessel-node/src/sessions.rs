@@ -22,6 +22,7 @@
 //! is never listed without being findable, and never found as a stored
 //! (ended) session while it runs.
 
+mod stop;
 mod subagents;
 
 use std::collections::HashMap;
@@ -475,21 +476,6 @@ impl Sessions {
             .runtime
             .history(harness, launch, dir, folder, from)
             .await?)
-    }
-
-    /// Stop a session. Killing one that already ended is a no-op.
-    pub(crate) async fn kill(&self, id: SessionId) -> Result<(), ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => {
-                self.agents.invalidate_execution(
-                    id,
-                    vessel_proto::timeline::ExecutionInvalidation::PersonStop,
-                );
-                handle.kill();
-            }
-            Found::Stored(_) => {}
-        }
-        Ok(())
     }
 }
 

@@ -21,3 +21,13 @@ Agents invalidation and actual session lifecycle regressions supply narrow owner
 coverage; no common creation capsule/race/current-grant or full lifecycle
 qualification is inferred. Ordinary current Node all-target strict and affected
 existing tests precede V3 and normal receiving integration.
+
+
+The canonical sessions root had too little remaining space for the exact call
+and formatted live arm: the first local source check reported504 lines, then502
+with the ordinary enum import. No size allowance is raised. The SAME existing
+kill method moves to sessions/stop.rs and the root adds one module registration;
+there is no new helper/API/observer or extra policy. This responsibility split
+keeps the explicit-stop slot independently owned while later lifecycle work
+remains separate. The earlier local size failure stays recorded; no Cargo ran
+on that endpoint.
