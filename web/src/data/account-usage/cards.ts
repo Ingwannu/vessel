@@ -13,23 +13,21 @@
 // - Choice: one projection function per report, reused by Settings and,
 //   later, the sidebar summary and modal; words are English as the rest of
 //   the page, numbers and dates follow the browser's language.
-// - Cost: the English failure words are copied from the native usage words
+// - Cost: the English failure words (failures.ts) are copied from the native usage words
 //   (view/locales/en/usage.ftl); a change there is made here too.
 import type {
   CostVisibility,
-  LimitFailure,
   SourceReportEntry,
   SourceReportState,
   SuccessfulUsageReport,
   UsageBalance,
   UsageDetail,
-  UsageFetchFailure,
-  UsageProblem,
   UsageReports,
   UsageSourceDescriptor,
   UsageWindow,
 } from "../../wire/proto";
 import { QuotaInstant, quotaClock, type QuotaClock } from "./clock";
+import { FETCH, problemText } from "./failures";
 import {
   QuotaPercent,
   quotaAmount,
@@ -92,43 +90,6 @@ export interface QuotaCard {
 }
 
 const UNKNOWN = "—";
-
-const LOGIN: Record<LimitFailure, string> = {
-  no_login: "No saved sign-in. Sign in through the agent first.",
-  expired: "The saved sign-in expired. Refresh it through the agent.",
-  rejected:
-    "The vendor rejected the saved sign-in. Sign in through the agent again.",
-  unreachable: "The vendor could not be reached.",
-  changed_response: "The vendor response could not be read safely.",
-  unsupported: "This agent does not support account limit lookup.",
-  unsafe_login_store: "The saved sign-in could not be read safely.",
-  different_route: "This session uses a different provider route.",
-  unassociated: "This session’s original saved account is no longer available.",
-  rate_limited: "The vendor requested a cooldown before checking again.",
-  busy: "A usage request is already in progress. Try again shortly.",
-};
-
-const FETCH: Record<UsageFetchFailure, string> = {
-  timed_out: "The usage request timed out. Try again.",
-  unreachable:
-    "The source could not reach its fixed usage service. Try again later.",
-  changed_response: "The vendor response could not be read safely.",
-  source_removed: "This source is not available on this machine.",
-  busy: "A usage request is already in progress. Try again shortly.",
-  helper_unavailable: "This source is not available on this machine.",
-};
-
-function problemText(problem: UsageProblem): string {
-  if (problem.kind === "login") return LOGIN[problem.reason];
-  switch (problem.reason) {
-    case "no_active_plan":
-      return "No active coding plan was reported.";
-    case "no_allowance":
-      return "This login has no reported allowance.";
-    case "inactive":
-      return "The reported subscription is inactive.";
-  }
-}
 
 /** The success a state shows, and whether it is a retained one. */
 function observedOf(state: SourceReportState): {
