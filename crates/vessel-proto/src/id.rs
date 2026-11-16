@@ -131,11 +131,6 @@ macro_rules! counter_id {
 }
 
 uuid_id! {
-    /// Correlation for one parent execution; its spelling never grants admission.
-    ExecutionIncarnationId
-}
-
-uuid_id! {
     /// Node-minted finish intent identity; never a public submission namespace.
     FinishIntentId
 }
