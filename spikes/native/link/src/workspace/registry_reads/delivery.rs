@@ -12,6 +12,8 @@ pub struct Response {
     result: Result<RegistryData, RegistryReadFailure>,
     #[cfg(not(target_arch = "wasm32"))]
     capacity: Option<std::sync::Arc<tokio::sync::OwnedSemaphorePermit>>,
+    #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+    settlement: Option<super::Settlement>,
 }
 impl Response {
     pub(super) fn refused(key: RegistryReadKey) -> Self {
@@ -24,8 +26,18 @@ impl Response {
             result: Err(why),
             #[cfg(not(target_arch = "wasm32"))]
             capacity: None,
+            #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+            settlement: None,
         }
     }
+    /// Take the real producer's normal-return receipt for bounded fixture drain.
+    /// A pre-spawn refusal has none; it cannot be upgraded into task proof.
+    #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+    #[must_use]
+    pub fn take_settlement(&mut self) -> Option<super::Settlement> {
+        self.settlement.take()
+    }
+
     /// Apply only after the original weak observation is validated. The receiver
     /// retains that same guard and validates it again at every subsequent query.
     /// The queued-response permit remains held until this callback returns.
@@ -60,6 +72,7 @@ pub(super) async fn publish(
     guard: DeliveryGuard,
     result: Result<RegistryData, RegistryReadFailure>,
     capacity: std::sync::Arc<tokio::sync::OwnedSemaphorePermit>,
+    #[cfg(any(test, feature = "testing"))] pending: &mut super::settlement::Pending,
 ) {
     const PUBLICATION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
     let response = Response {
@@ -67,6 +80,8 @@ pub(super) async fn publish(
         guard: Some(guard),
         result,
         capacity: Some(std::sync::Arc::clone(&capacity)),
+        #[cfg(any(test, feature = "testing"))]
+        settlement: Some(pending.guarded()),
     };
     let published = tokio::time::timeout(
         PUBLICATION_DEADLINE,
@@ -81,5 +96,9 @@ pub(super) async fn publish(
     // a dropping timeout here would strand the app's outstanding ticket.
     let mut response = Response::failure(key, RegistryReadFailure::Offline);
     response.capacity = Some(capacity);
+    #[cfg(any(test, feature = "testing"))]
+    {
+        response.settlement = Some(pending.refused());
+    }
     let _closed = events.send(crate::Event::RegistryRead(response)).await;
 }

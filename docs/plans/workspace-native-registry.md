@@ -81,3 +81,16 @@ lead's adoption. No positive cross-App cache freshness, S2/pane/onboarding runti
 visual parity or full C1 completion is claimed before that actual proof. The
 portable packet changes only feature modules and registration lines on base 13;
 shared selected/delivery/fixture attributes and their minters are untouched.
+
+
+The reader's test/testing-feature receipt is an owner-local normal-return
+acknowledgement, not a guard or fixture constructor. It is minted only by actual
+read publication. The outer signalling owner completes after the awaited operation
+future drops its selected connection and senders; panic/cancellation signals
+Abandoned instead. A guarded response and a fallback have at most two one-slot
+channels per admitted read. A discarded receiver never blocks task exit. Queued
+response capacity remains independent through receive. Real actor tests await
+this receipt outside Tokio workers, including retirement during an unanswered
+registry request. The cross-App Scenario's Devices-only close is never treated
+as proof that a workspace read settled. This additive proof still requires its
+own exact checks and does not qualify a shared Scenario before lead adoption.

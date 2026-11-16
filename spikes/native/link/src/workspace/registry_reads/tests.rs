@@ -1,6 +1,7 @@
 //! Real actor commands and framed RPC responses, without a guard constructor.
 use super::{Request, Response};
 use crate::{Command, Event, testing::actor::Actor};
+use std::time::Duration;
 use vessel_app_view::workspace::registry_projection::{
     RegistryProjection, RegistryReadFailure, RegistryReadKey,
 };
@@ -49,6 +50,25 @@ async fn response(actor: &mut Actor) -> Response {
     };
     response
 }
+async fn settled(response: &mut Response) {
+    const SETTLEMENT_DEADLINE: Duration = Duration::from_secs(5);
+    let receipt = response
+        .take_settlement()
+        .expect("actual registry read worker");
+    const JOIN_DEADLINE: Duration = Duration::from_secs(6);
+    let mut joined = tokio::task::spawn_blocking(move || receipt.wait(SETTLEMENT_DEADLINE));
+    match tokio::time::timeout(JOIN_DEADLINE, &mut joined).await {
+        Ok(result) => result.unwrap().expect("registry worker returned normally"),
+        Err(_elapsed) => {
+            joined.abort();
+            let _stopped = tokio::time::timeout(JOIN_DEADLINE, &mut joined)
+                .await
+                .expect("registry settlement waiter cleanup join");
+            panic!("registry worker settlement join deadline");
+        }
+    }
+}
+
 async fn read(actor: &mut Actor, key: RegistryReadKey) -> Response {
     actor
         .dispatch(Command::RegistryRead(Request {
@@ -57,7 +77,9 @@ async fn read(actor: &mut Actor, key: RegistryReadKey) -> Response {
         }))
         .await;
     answer(actor).await;
-    response(actor).await
+    let mut response = response(actor).await;
+    settled(&mut response).await;
+    response
 }
 
 #[tokio::test]
@@ -126,6 +148,32 @@ async fn queued_registry_observations_keep_the_finite_read_budget_until_they_are
             assert!(result.is_ok());
         });
         drop(held);
+        actor.close_peer().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn retiring_an_actual_pending_registry_read_settles_without_a_peer_reply() {
+    crate::testing::within(async {
+        let mut actor = Actor::new("registry-fixture").await;
+        let mut model = RegistryProjection::default();
+        let key = key(&actor, &mut model);
+        actor
+            .dispatch(Command::RegistryRead(Request {
+                key,
+                changed_from: None,
+            }))
+            .await;
+        let pending = actor.request().await;
+        assert!(matches!(pending.call, Call::GetRegistry(_)));
+        actor.retire().await;
+        let mut observed = response(&mut actor).await;
+        settled(&mut observed).await;
+        observed.receive(|_key, _guard, result| {
+            assert_eq!(result, Err(RegistryReadFailure::Offline));
+        });
+        drop(pending);
         actor.close_peer().await;
     })
     .await;

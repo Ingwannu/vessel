@@ -8,7 +8,11 @@
 mod delivery;
 #[cfg(not(target_arch = "wasm32"))]
 mod read;
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+mod settlement;
 pub use delivery::Response;
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+pub use settlement::{Settlement, SettlementError};
 
 use vessel_app_view::workspace::registry_projection::RegistryReadKey;
 use vessel_proto::registry::RegistryRevision;
@@ -65,12 +69,48 @@ impl crate::State {
         };
         let events = self.events.clone();
         drop(tokio::spawn(async move {
-            let permit = std::sync::Arc::new(permit);
-            let guard = selected.delivery_guard();
-            let result = read::bounded(&selected, request.changed_from).await;
-            delivery::publish(&selected, &events, request.key, guard, result, permit).await;
+            #[cfg(any(test, feature = "testing"))]
+            let mut pending = settlement::Pending::default();
+            execute(
+                selected,
+                events,
+                request,
+                permit,
+                #[cfg(any(test, feature = "testing"))]
+                &mut pending,
+            )
+            .await;
+            // The awaited operation future and its selected connection/senders
+            // are gone before normal settlement. A queued response owns its
+            // independent capacity until the App receives it.
+            #[cfg(any(test, feature = "testing"))]
+            pending.complete();
         }));
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn execute(
+    selected: crate::connections::SelectedConnection,
+    events: tokio::sync::mpsc::Sender<crate::Event>,
+    request: Request,
+    permit: tokio::sync::OwnedSemaphorePermit,
+    #[cfg(any(test, feature = "testing"))] pending: &mut settlement::Pending,
+) {
+    let permit = std::sync::Arc::new(permit);
+    let guard = selected.delivery_guard();
+    let result = read::bounded(&selected, request.changed_from).await;
+    delivery::publish(
+        &selected,
+        &events,
+        request.key,
+        guard,
+        result,
+        permit,
+        #[cfg(any(test, feature = "testing"))]
+        pending,
+    )
+    .await;
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
