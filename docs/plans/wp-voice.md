@@ -3,10 +3,12 @@
 ## Decision before code
 
 Decision: modify existing settings/secret/session boundaries; add voice-only
-actors and a desktop audio owner because none exists. ADR 0080 is proposed,
-with architecture review required before product code. ADR 0067's owner was
-consulted: only PCM/WAV/TLS/secret primitives are potential shared assets;
-its stream commit/prompt/confidence policy is not a voice API.
+actors and a desktop audio owner because none existed at assignment. ADR0080's
+initial contract and immediate-local-Stop revision passed architecture review;
+its later dependency, loader and integration checkpoints remain separately
+scoped. ADR0067's owner was consulted: shared PCM/WAV/TLS/secret primitives
+are reused, while dictation commit/prompt/confidence policy stays independent.
+The staged sources and individual passing fake suites do not enable voice.
 
 ## Reference behaviour read (Paseo 0.15.4)
 
@@ -591,3 +593,16 @@ generated-diff check. All six artifact hashes and the source commit were
 verified; the exact generated proto.ts bytes are adopted here, without manual
 edits. The new combined head still owes its generated-diff check and CLI
 exhaustiveness qualification. Voice remains pending and unavailable.
+
+
+### Shared prerequisite landing checkpoint
+
+The accepted RPC caller-drop leaf is now in announced ed4cd137; the app receives
+it through package base13, not by merging a node head directly. Both receiving
+voice trees preserve the full ADR0080 and its isolated transport section. This
+settles the shared-writer prerequisite only. Actual voice adapters still owe
+synchronous owned-future cancellation and generation-bound request accounting.
+The canonical settings values carrier53cf2e95 passed its scoped root vesseld
+build and Proto TS391/0/0 checks; it awaits receiving-union qualification and
+announcement. It adds no node settings field, Copy/persistence conversion,
+service/engine availability or opt-in. Host Voice stays unregistered.
