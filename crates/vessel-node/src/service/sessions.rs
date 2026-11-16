@@ -22,17 +22,18 @@ impl NodeService {
     pub(crate) async fn list_sessions(
         &self,
         _: &Connection,
-        _: ListSessions,
+        request: ListSessions,
     ) -> Result<Vec<SessionInfo>, WireError> {
-        self.sessions
-            .list()
-            .await
-            .map(|list| {
-                list.into_iter()
-                    .map(|info| self.with_workspace(info))
-                    .collect()
-            })
-            .map_err(|error| wire(&error))
+        let list = match request.selection() {
+            Some(selection) => self.sessions.selected(selection).await,
+            None => self.sessions.list().await,
+        };
+        list.map(|list| {
+            list.into_iter()
+                .map(|info| self.with_workspace(info))
+                .collect()
+        })
+        .map_err(|error| wire(&error))
     }
 
     pub(crate) async fn get_session(
@@ -106,11 +107,18 @@ impl NodeService {
             if !spec.labels.is_empty() {
                 return Err(wire(&ServiceError::SideCreationLabels));
             }
+            if spec.listing.is_some() {
+                return Err(wire(&ServiceError::SideCreationListing));
+            }
             if unattended.is_some() {
                 return Err(crate::side_questions::SideError::Template.wire());
             }
             return self.open_side_as(principal, parent).await;
         }
+        self.sessions
+            .inherit_listing(&mut spec, self.local_creator(principal))
+            .await
+            .map_err(|error| wire(&error))?;
         self.create_core_as(principal, spec, origin, unattended, None)
             .await
     }
