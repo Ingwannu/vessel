@@ -12,7 +12,10 @@ fn archive_confirmation_keeps_original_admission_after_replacement(cx: &mut Test
         shell.areas.sessions.lifecycle.after = None;
         let mut original = shell.fleet.machines[0].clone();
         let context = vessel_app_view::connection::ConnectionEpochs::default()
-            .admit(Name::parse("fixture").unwrap(), original.node.unwrap())
+            .admit(
+                vessel_app_view::connection::MachineKey::from_book("fixture"),
+                original.node.unwrap(),
+            )
             .unwrap();
         original.connection_epoch = Some(context.epoch());
         assert_eq!(original.sessions[0].session, info.id);

@@ -151,8 +151,13 @@ impl Shell {
         if self.sessions_lifecycle_busy() {
             return;
         }
+        let Ok(host) = Name::parse(captured.context().machine().as_str()) else {
+            self.notice = Some(self.words.session_marks().unavailable().to_owned());
+            cx.notify();
+            return;
+        };
         let target = LifecycleTarget {
-            host: captured.context().machine().clone(),
+            host,
             session: captured.session(),
             node: Some(captured.context().node()),
         };

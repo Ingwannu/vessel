@@ -3,7 +3,8 @@ use crate::{routes::Route, shell::Shell};
 use gpui::TestAppContext;
 use vessel_app_link::session_marks::{Answer, Failure};
 use vessel_app_view::{
-    Card, Machine, Reach, connection::ConnectionEpochs, machine_book::Name,
+    Card, Machine, Reach,
+    connection::{ConnectionEpochs, MachineKey},
     session_marks::CapturedSessionTarget,
 };
 use vessel_proto::{HarnessKind, Mark, NodeId, SessionId, SessionInfo, SessionMode, SessionSpec};
@@ -21,7 +22,7 @@ fn machine() -> Machine {
         chrono::DateTime::UNIX_EPOCH,
     );
     let context = ConnectionEpochs::default()
-        .admit(Name::parse("fixture").unwrap(), NodeId::random())
+        .admit(MachineKey::from_book("fixture"), NodeId::random())
         .unwrap();
     Machine {
         name: "fixture".to_owned(),

@@ -1,6 +1,9 @@
 //! Local correlation and original-row provenance, with no network capability.
 use super::*;
-use crate::{Reach, connection::ConnectionEpochs, machine_book::Name};
+use crate::{
+    Reach,
+    connection::{ConnectionEpochs, MachineKey},
+};
 use vessel_proto::{HarnessKind, NodeId, SessionInfo, SessionMode, SessionSpec};
 fn fixture() -> (Machine, Card) {
     let info = SessionInfo::new(
@@ -17,7 +20,7 @@ fn fixture() -> (Machine, Card) {
     );
     let card = Card::from_session("fixture", &info);
     let context = ConnectionEpochs::default()
-        .admit(Name::parse("fixture").unwrap(), NodeId::random())
+        .admit(MachineKey::from_book("fixture"), NodeId::random())
         .unwrap();
     let machine = Machine {
         name: "fixture".to_owned(),
