@@ -280,7 +280,7 @@ impl Shell {
         )
     }
     fn send_session_lifecycle(&mut self, prepared: Prepared, cx: &mut Context<'_, Self>) {
-        if let Some(target) = prepared.directory {
+        if let Some(target) = prepared.directory.as_ref() {
             let mark = match prepared.action {
                 LifecycleAction::Archive => vessel_proto::Mark::Archive,
                 LifecycleAction::Unarchive => vessel_proto::Mark::Unarchive,
@@ -289,7 +289,7 @@ impl Shell {
                 | LifecycleAction::Exit
                 | LifecycleAction::Fresh => return,
             };
-            self.mark_session_target(target, mark, cx);
+            self.mark_session_target(target.clone(), mark, cx);
             return;
         }
         let area = &mut self.areas.sessions.lifecycle;
