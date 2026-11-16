@@ -1,0 +1,118 @@
+--- a/src/types/mod.rs
++++ b/src/types/mod.rs
+@@ -24,6 +24,7 @@
+ 
+ use intl_pluralrules::{PluralCategory, PluralRuleType};
+ 
++use crate::args::FluentArgs;
+ use crate::memoizer::MemoizerKind;
+ use crate::resolver::Scope;
+ use crate::resource::FluentResource;
+@@ -34,6 +35,37 @@
+     /// Create a clone of the underlying type.
+     fn duplicate(&self) -> Box<dyn FluentType + Send>;
+ 
++    /// Preserve a custom numeric value when applying NUMBER's named options.
++    ///
++    /// Non-numeric custom values keep the existing unsupported behavior.
++    /// The binding validates options and returns another typed numeric value;
++    /// it need not recover its representation with an Any downcast.
++    fn number_with_options(
++        &self,
++        _options: &FluentArgs<'_>,
++    ) -> Option<Box<dyn FluentType + Send>> {
++        None
++    }
++
++    /// Match a numeric literal or plural keyword without a float conversion.
++    /// This hook is opt-in; the default preserves existing custom-value behavior.
++    fn matches_selector(
++        &self,
++        _selector: &FluentValue<'_>,
++        _intls: &intl_memoizer::IntlLangMemoizer,
++    ) -> bool {
++        false
++    }
++
++    /// Thread-safe equivalent of [`Self::matches_selector`].
++    fn matches_selector_threadsafe(
++        &self,
++        _selector: &FluentValue<'_>,
++        _intls: &intl_memoizer::concurrent::IntlLangMemoizer,
++    ) -> bool {
++        false
++    }
++
+     /// Convert the custom type into a string value, for instance a custom `DateTime`
+     /// type could return "Oct. 27, 2022".
+     fn as_string(&self, intls: &intl_memoizer::IntlLangMemoizer) -> Cow<'static, str>;
+@@ -185,6 +217,9 @@
+         match (self, other) {
+             (FluentValue::String(a), FluentValue::String(b)) => a == b,
+             (FluentValue::Number(a), FluentValue::Number(b)) => a == b,
++            (FluentValue::String(_) | FluentValue::Number(_), FluentValue::Custom(value)) => {
++                scope.bundle.intls.matches_value(value.as_ref(), self)
++            }
+             (FluentValue::String(a), FluentValue::Number(b)) => {
+                 let cat = match a.as_ref() {
+                     "zero" => PluralCategory::ZERO,
+--- a/src/memoizer.rs
++++ b/src/memoizer.rs
+@@ -1,4 +1,4 @@
+-use crate::types::FluentType;
++use crate::types::{FluentType, FluentValue};
+ use intl_memoizer::Memoizable;
+ use unic_langid::LanguageIdentifier;
+ 
+@@ -25,6 +25,12 @@
+         I::Args: Send + Sync + 'static,
+         U: FnOnce(&I) -> R;
+ 
++    /// Dispatch custom numeric selector matching to the matching memoizer kind.
++    /// A default keeps third-party memoizer implementations source compatible.
++    fn matches_value(&self, _value: &dyn FluentType, _selector: &FluentValue<'_>) -> bool {
++        false
++    }
++
+     /// Wires up the `as_string` or `as_string_threadsafe` variants for [`FluentType`].
+     fn stringify_value(&self, value: &dyn FluentType) -> std::borrow::Cow<'static, str>;
+ }
+--- a/src/concurrent.rs
++++ b/src/concurrent.rs
+@@ -3,7 +3,7 @@
+ use unic_langid::LanguageIdentifier;
+ 
+ use crate::memoizer::MemoizerKind;
+-use crate::types::FluentType;
++use crate::types::{FluentType, FluentValue};
+ 
+ /// Specialized [`FluentBundle`](crate::bundle::FluentBundle) over
+ /// concurrent [`IntlLangMemoizer`].
+@@ -61,6 +61,10 @@
+         self.with_try_get(args, cb)
+     }
+ 
++    fn matches_value(&self, value: &dyn FluentType, selector: &FluentValue<'_>) -> bool {
++        value.matches_selector_threadsafe(selector, self)
++    }
++
+     fn stringify_value(&self, value: &dyn FluentType) -> std::borrow::Cow<'static, str> {
+         value.as_string_threadsafe(self)
+     }
+--- a/src/bundle.rs
++++ b/src/bundle.rs
+@@ -663,6 +663,14 @@
+         self.with_try_get(args, cb)
+     }
+ 
++    fn matches_value(
++        &self,
++        value: &dyn crate::types::FluentType,
++        selector: &crate::types::FluentValue<'_>,
++    ) -> bool {
++        value.matches_selector(selector, self)
++    }
++
+     fn stringify_value(
+         &self,
+         value: &dyn crate::types::FluentType,

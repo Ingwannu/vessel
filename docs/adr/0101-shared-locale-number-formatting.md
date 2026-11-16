@@ -216,6 +216,18 @@ using Fluent's existing parser. Neither alternative may smuggle a lossy
 operand into plural selection or require an English-only area formatter.
 No runtime patch is installed in the product by this document.
 
+The scratch hook artifact in `experiments/number-format` currently changes
+four upstream files, adding 55 lines and removing two. Original/resulting
+source hashes and the existing archive checksum are recorded beside it.
+It also applies by source context to upstream main
+`0f87afbbc3fe7d20c61a3fc75cb5d0e123aefdda`, whose bundle manifest still says
+0.16.0. This is not a released-next-version rebase or a compile result.
+Every upgrade owes a four-file semantic recheck, both memoizer paths,
+stock/default behavior controls, exact matching/options tests, portable
+build and changed dependency cost. The artifact README contrasts the
+no-vendor explicit-PLURAL alternative and its generated-contract/plugin
+policy and numeric-literal expressivity costs. Neither is adopted.
+
 ## Acceptance and consumer boundary
 
 Compare whole EN/KO outputs against the pinned source's Intl options, with

@@ -1,0 +1,30 @@
+{
+  "crate": "fluent-bundle",
+  "version": "0.16.0",
+  "license": "MIT OR Apache-2.0",
+  "archive_sha256": "01203cb8918f5711e73891b347816d932046f95f54207710bda99beaeb423bf4",
+  "patch_sha256": "a21ee3d1a1e35e8b10b2c6697cd5cce99b4edefdd2e20832c30636c6523fbdb1",
+  "files": [
+    {
+      "file": "src/types/mod.rs",
+      "original_sha256": "9ae33fe0e005cabe6716bcccf6347fda9850ee211c7d6d9bfcc630bb22a81eef",
+      "patched_sha256": "f76ee07958849e0aa14ac45d61b68d2def015d6e8b2a855b8358c8d5a672d1db"
+    },
+    {
+      "file": "src/memoizer.rs",
+      "original_sha256": "3a85d6de4193f935651210258a4136b41a973a294bcb08814294c1f77b987b6a",
+      "patched_sha256": "c2bc07cafce564511a5b28a44241bccdc4c644444feec504bb13536537ce6d39"
+    },
+    {
+      "file": "src/concurrent.rs",
+      "original_sha256": "2f0ec1c20c5635eb780175bed6c7bded995806e30f60aa42edcdfe1f3a357572",
+      "patched_sha256": "57f309c869141b2edff9f7f104bbbfa5f0799efda8268920b536558bff7c4a92"
+    },
+    {
+      "file": "src/bundle.rs",
+      "original_sha256": "969dd827fa39078455e8b10635d64cf8d9f0ad1f75a6b3dc988710e093c8c5b3",
+      "patched_sha256": "d46b473656e1dc8f6e3fd96c86b76459d8c48acd1fcbf97f32cde43b22f083c3"
+    }
+  ],
+  "scope": "scratch-only hooks, no manifest/lock/path override; no compilation or numeric-conformance claim"
+}
