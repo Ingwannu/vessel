@@ -164,7 +164,7 @@ agent grant expansion, browser engine or voice playback is enabled here.
 | Area | Current source | Remaining boundary |
 | --- | --- | --- |
 | Existing-call MCP facade | get_session with current permissions; cancel_turn; rename_session; set_session_option; get/update_schedule; list_harnesses; account list_profiles; harness_options; list_pending_permissions | Provider catalogue, named launch bundles and lifecycle query/update contracts remain with their owners |
-| Tool edge | Typed ToolId, immutable exact-provider policy for list/direct call, machine alias, selector refusal, revision-compatible structured success and unchanged JSON text | Actual compatibility suite is queued; browser/voice producers must add their own admission and readiness |
+| Tool edge | Typed ToolId, immutable exact-provider policy for list/direct call, machine alias, selector refusal, revision-compatible structured success and unchanged JSON text | Current MCP crate tests passed; browser/voice producers still own admission/readiness and full package integration remains unqualified |
 | Launch | Title, typed bounded options, existing labels; default notify; steer when supported, otherwise interrupt | W3 owns asynchronous creation receipt acknowledgement; no parallel receipt store here |
 | Settings | Partial mcp edits, private fresh/upgrade migration, snapshot before credential creation, cancellation-independent bounded persistence | Pending feature assignment, reviewed consumer handover |
 | Skills | Shipped bundle, safe filesystem sync/recovery, single node writer, typed client calls, selection persistence/import | Pending feature assignment; human-facing confirmation belongs to the client |
@@ -982,3 +982,10 @@ finished zero (110 seconds), as predecessor union evidence only. It does not
 attest later facade/runtime changes. Current wire freshness, shared Settings
 producer join, private-notice execution fence, final package audit, crash/cross-
 node and whole gates remain separate obligations.
+
+
+Receiving wire freshness on exact `99a39f36d` also passed in
+`wp-mcp-values-ts-20261116T024859Z-99a39f36`: six tests (proto four, web two),
+zero generated difference, 207 seconds. The recorded raw log hash was
+independently recomputed. No generated artifact needed copying after this
+merge. This closes that named freshness check, not any remaining owner join.
