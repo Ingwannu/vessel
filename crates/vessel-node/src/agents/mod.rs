@@ -58,6 +58,8 @@ pub(crate) mod creation_launch;
 mod execution;
 #[cfg(test)]
 pub(crate) use execution::{CaptureRefusal, CapturedParentExecution, ExecutionObservation};
+#[cfg(test)]
+pub(crate) use execution::{CreationCredentials, CreationFenceRefusal, RejectedCreation};
 mod reservation;
 pub(crate) use reservation::AgentReservation;
 #[cfg(test)]

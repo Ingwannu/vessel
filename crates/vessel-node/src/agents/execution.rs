@@ -12,6 +12,8 @@ use vessel_proto::{ExecutionIncarnationId, SessionId};
 mod capture;
 #[cfg(test)]
 pub(crate) use capture::{CaptureRefusal, CapturedParentExecution, ExecutionObservation};
+#[cfg(test)]
+pub(crate) use capture::{CreationCredentials, CreationFenceRefusal, RejectedCreation};
 
 #[derive(Debug, Clone, Copy)]
 struct Change {
