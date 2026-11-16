@@ -53,3 +53,8 @@ A deliberate assertion-failure regression starts a real fake handle and proves
 that cleanup ends it. Original principal/grant/stamp/old-vs-new/retire/ended
 assertions and product timeouts are retained. No inherited fixture is rewritten,
 no product fault seam is added and no positive admission is inferred.
+
+The retained assertion probe stores its one actual handle in a single-assignment
+cell. This keeps the handle observable after unwinding without an async diverging
+assignment lint; cleanup and the same typed panic and ended-handle assertions are
+unchanged. The corrected fixture requires its own strict check.
