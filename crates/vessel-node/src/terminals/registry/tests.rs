@@ -6,6 +6,8 @@ use std::{future::Future, time::Duration};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 #[cfg(unix)]
+const SAFETY_NET: Duration = Duration::from_secs(60);
+#[cfg(unix)]
 const OBSERVATION_WAIT: Duration = Duration::from_secs(10);
 #[cfg(unix)]
 const TRACKER_DRAIN_WAIT: Duration = Duration::from_secs(15);
@@ -145,7 +147,7 @@ fn simultaneous_attempts_for_one_id_admit_only_one_guard() {
 #[cfg(unix)]
 #[tokio::test]
 async fn an_existing_id_is_refused_and_the_original_actor_is_untouched() {
-    vessel_testkit::within(Duration::from_secs(60), async {
+    vessel_testkit::within(SAFETY_NET, async {
         let fixture = Fixture::new();
         let id = TerminalId::random();
         let reservation = fixture.reserve(id).unwrap();
@@ -176,7 +178,7 @@ async fn an_existing_id_is_refused_and_the_original_actor_is_untouched() {
 #[cfg(unix)]
 #[tokio::test]
 async fn wrong_id_is_refused_and_the_rejected_actor_is_cleaned_up() {
-    vessel_testkit::within(Duration::from_secs(60), async {
+    vessel_testkit::within(SAFETY_NET, async {
         let fixture = Fixture::new();
         let expected = TerminalId::random();
         let actual = TerminalId::random();
@@ -209,7 +211,7 @@ async fn wrong_id_is_refused_and_the_rejected_actor_is_cleaned_up() {
 #[cfg(unix)]
 #[tokio::test]
 async fn a_foreign_registry_cannot_consume_another_incarnations_guard() {
-    vessel_testkit::within(Duration::from_secs(60), async {
+    vessel_testkit::within(SAFETY_NET, async {
         let fixture = Fixture::new();
         let other = Terminals::new(fixture.terminals.runner.clone());
         let id = TerminalId::random();
@@ -232,7 +234,7 @@ async fn a_foreign_registry_cannot_consume_another_incarnations_guard() {
 #[cfg(unix)]
 #[tokio::test]
 async fn dropping_the_refusal_observer_does_not_drop_its_cleanup_owner() {
-    vessel_testkit::within(Duration::from_secs(60), async {
+    vessel_testkit::within(SAFETY_NET, async {
         let fixture = Fixture::new();
         let expected = TerminalId::random();
         let reservation = fixture.reserve(expected).unwrap();
@@ -253,7 +255,7 @@ async fn dropping_the_refusal_observer_does_not_drop_its_cleanup_owner() {
 #[cfg(unix)]
 #[tokio::test]
 async fn a_misbound_incumbent_is_retained_instead_of_being_killed() {
-    vessel_testkit::within(Duration::from_secs(60), async {
+    vessel_testkit::within(SAFETY_NET, async {
         let fixture = Fixture::new();
         let id = TerminalId::random();
         let reservation = fixture.reserve(id).unwrap();

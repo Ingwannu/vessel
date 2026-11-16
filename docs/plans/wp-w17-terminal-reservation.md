@@ -61,3 +61,10 @@ to end its borrow. No focused runtime units ran. End the entry scope through the
 match result and retain the owned rejected payload outside it before unlocking.
 The vacant-only policy and cleanup ownership are unchanged. Per the approval,
 this failed strict step goes to ordinary; do not repeat priority on this fix.
+
+Source-only fixture budget correction: each independent test module now names
+its canonical outer SAFETY_NET once, instead of repeating the literal at every
+within call. Durations, assertions, actor ownership and all product bytes are
+unchanged from9e3. The already queued9e3 strict remains immutable and is not
+cancelled or duplicated. This newer fixture source still owes exact strict and
+all nine focused cases; earlier/queued source is not a current-head gate.
