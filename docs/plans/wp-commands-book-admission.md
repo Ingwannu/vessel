@@ -1,6 +1,7 @@
 # Shared client-book UI admission (bounded producer)
 
-Status: source preparation on announced package base14.1 b54abbdc. This is not
+Status: changed-source App narrow checks passed on announced package base14.1
+b54abbdc; bounded source review and lead receiving adoption remain owed. This is not
 whole F4, onboarding chrome, node/connection authority or a UI/OS acceptance.
 
 [Decision Log]
@@ -37,7 +38,14 @@ The full F4 command center separately retains native nested-page Back while
 only global keys are disabled. This portable base's older palette has no such
 page operation; no newer palette/controller/renderer is copied into this leaf.
 
-Current evidence: source preflight and source size checks only. Changed-source
-App all-target Clippy and actual binary tests are required before handoff. Take
+At exact159f685660a4d0fc9f4a4ce044811c1d99156f78, source preflight reports no
+findings and the native size check reports769 files/13 inherited oversized
+files, with no budget increase. Run
+wp-commands-narrow-20261116T030513Z-159f6856 passed App all-target Clippy with
+warnings denied. Run wp-commands-narrow-20261116T031122Z-159f6856 recompiled
+the actual App binary and passed19/0/0,148filtered, including all three new
+book cases and the desktop canonical-binding/recorder stand-in. This final
+document-only successor has identical native source; no unchanged suite is
+repeated. These are narrow results, not full F4 or live book-I/O/OS evidence. Take
 only this bounded leaf after review and the lead's announced receiving green;
 never use a moving full F4 branch for this getter.
