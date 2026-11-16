@@ -267,6 +267,7 @@ fn refusal_text(reason: &ScriptRefusal) -> String {
 fn terminal_line(terminal: &TerminalInfo) -> String {
     let kind = match &terminal.kind {
         TerminalKind::Shell { program } => format!("shell {}", program.display()),
+        TerminalKind::Profile { profile, .. } => format!("profile {profile}"),
         TerminalKind::Script { script, .. } => format!("script {script}"),
         TerminalKind::Service { script, .. } => format!("service {script}"),
         TerminalKind::Unknown => "terminal".to_owned(),
@@ -279,6 +280,7 @@ fn terminal_line(terminal: &TerminalInfo) -> String {
     let place = match &terminal.place {
         TerminalPlace::Session { session } => format!("beside {session}"),
         TerminalPlace::Project { project, .. } => format!("in project {project}"),
+        TerminalPlace::Workspace { workspace } => format!("in workspace {workspace}"),
     };
     let title = terminal
         .title
