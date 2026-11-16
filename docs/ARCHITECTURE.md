@@ -1944,10 +1944,12 @@ composition are admission facts; action metadata grants no resource authority.
 ## Native Devices regression transport boundary
 
 The native Link's existing nondefault testing feature conditionally enables a
-direct RPC framing dependency, already used by its unit tests. One fallible
-framed peer and one private State/admission owner supply real RPC envelopes
-for App regressions; the facade exposes no client, State, allocator, lease or
-guard constructor. The App enables testing only as a dev-dependency. Normal
+direct RPC framing dependency, already used by its unit tests. The default
+Scenario has one fallible framed peer; its optional two-peer form keeps both
+physical transports under the SAME private State/admission owner and runtime.
+Typed peer selection never supplies authority. Both forms supply real RPC
+envelopes for App regressions; the facade exposes no client, State, allocator,
+lease or guard constructor. The App enables testing only as a dev-dependency. Normal
 RPC calls still go through vessel-client and wasm excludes this native fixture.
 The root crate graph is unchanged; the native crate map and feature/target
 proof contract are in its README and wp-e2-device-fixtures.md. The real Devices
@@ -1957,3 +1959,10 @@ A sealed actor result cannot expose successful data before this check. Pending
 writes become unconfirmed on retirement and never replay; full old contexts
 cannot retire successors. Resident follow remains test-staged. These are source
 changes, not default-feature, wasm, runtime or UI evidence.
+
+
+The paired fixture preserves the single-peer API as Primary delegates. Its
+bounded peer slots retain separate pending frames/transcripts and share the
+existing actor/event queue. Cleanup invalidates both original admissions before
+awaiting either physical close; worker-drain scope remains Devices only.
+`docs/plans/wp-a3-fixture-pair.md` records the reason and separate consumer proof.

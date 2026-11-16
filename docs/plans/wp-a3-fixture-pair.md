@@ -43,3 +43,10 @@ Secondary/DifferentNode. The latter also uses the original request/reply/context
 transcript methods after replacing Secondary, requiring them to keep selecting
 the unchanged Primary. No test infers a valid guard from exported context facts;
 all successful facts come from the actual Devices receive boundary.
+
+
+DuplicateName is a separate safe fixture category: Full means bounded capacity,
+Protocol means an invalid frame/action, and Admission means canonical reservation
+failed. A duplicate configuration key must instead fail before any allocation.
+The architecture description now distinguishes the compatible default peer from
+the optional paired form; no production registry or dependency edge changes.
