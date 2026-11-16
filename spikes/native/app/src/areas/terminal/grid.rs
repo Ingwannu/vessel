@@ -32,7 +32,7 @@ impl TerminalGrid {
             width: Pixels::ZERO,
             height: Pixels::ZERO,
         };
-        let retained = RetainedGrid::new(Rc::clone(&frame), cell, cx);
+        let retained = RetainedGrid::new(&frame, cell, cx);
         Self {
             frame,
             cell,

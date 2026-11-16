@@ -16,22 +16,31 @@ pub(super) struct Counts {
     pub(super) prepared: DrawCount,
     pub(super) painted: DrawCount,
 }
+#[derive(Debug, Clone, Copy)]
 pub(super) enum Stage {
     Prepare,
     Paint,
+    Cursor,
 }
-#[derive(Default, Clone)]
-pub(super) struct DrawProbe(Rc<Cell<Counts>>);
+#[derive(Debug, Default, Clone)]
+pub(super) struct DrawProbe {
+    rows: Rc<Cell<Counts>>,
+    cursor: Rc<Cell<DrawCount>>,
+}
 impl DrawProbe {
     pub(super) fn note(&self, stage: Stage) {
-        let mut counts = self.0.get();
+        let mut counts = self.rows.get();
         match stage {
             Stage::Prepare => counts.prepared = counts.prepared.next(),
             Stage::Paint => counts.painted = counts.painted.next(),
+            Stage::Cursor => self.cursor.set(self.cursor.get().next()),
         }
-        self.0.set(counts);
+        self.rows.set(counts);
     }
     pub(super) fn counts(&self) -> Counts {
-        self.0.get()
+        self.rows.get()
+    }
+    pub(super) fn cursor(&self) -> DrawCount {
+        self.cursor.get()
     }
 }

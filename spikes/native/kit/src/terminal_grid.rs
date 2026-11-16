@@ -34,7 +34,7 @@ use gpui::{
     UnderlineStyle, Window, canvas, fill, point, px, size,
 };
 
-use crate::fonts::{Typeface, active};
+use crate::fonts::{FontStack, Typeface, active};
 
 mod retained;
 pub use retained::RetainedGrid;
@@ -176,8 +176,7 @@ fn at(origin: Pixels, step: Pixels, cells: u16) -> Pixels {
 const CURSOR_WIDTH: f32 = 2.0;
 
 /// The code face at `weight` and `style`.
-fn face(weight: FontWeight, style: FontStyle) -> Font {
-    let stack = active(Typeface::Code);
+fn face(stack: &FontStack, weight: FontWeight, style: FontStyle) -> Font {
     Font {
         family: stack.family(),
         features: FontFeatures::default(),
@@ -191,7 +190,11 @@ fn face(weight: FontWeight, style: FontStyle) -> Font {
 #[must_use]
 pub fn cell_size(window: &Window, font_size: Pixels) -> CellSize {
     let text = window.text_system();
-    let id = text.resolve_font(&face(FontWeight::NORMAL, FontStyle::Normal));
+    let id = text.resolve_font(&face(
+        &active(Typeface::Code),
+        FontWeight::NORMAL,
+        FontStyle::Normal,
+    ));
     let width = text
         .advance(id, font_size, 'M')
         .map_or(font_size, |advance| advance.width);
@@ -213,6 +216,7 @@ pub fn terminal_grid(frame: Rc<GridFrame>, cell: CellSize) -> impl IntoElement {
     control(
         frame,
         cell,
+        active(Typeface::Code),
         #[cfg(test)]
         None,
     )
@@ -221,6 +225,7 @@ pub fn terminal_grid(frame: Rc<GridFrame>, cell: CellSize) -> impl IntoElement {
 fn control(
     frame: Rc<GridFrame>,
     cell: CellSize,
+    font: FontStack,
     #[cfg(test)] probe: Option<probe::DrawProbe>,
 ) -> impl IntoElement {
     let shaped = Rc::clone(&frame);
@@ -232,7 +237,7 @@ fn control(
             if let Some(probe) = &prepared {
                 probe.note(probe::Stage::Prepare);
             }
-            shape(&shaped, cell, bounds, window)
+            shape(&shaped, cell, &font, bounds, window)
         },
         move |bounds, lines, window, cx| {
             #[cfg(test)]
@@ -249,6 +254,7 @@ fn control(
 fn shape(
     frame: &GridFrame,
     cell: CellSize,
+    font: &FontStack,
     bounds: Bounds<Pixels>,
     window: &Window,
 ) -> Vec<(Point<Pixels>, ShapedLine)> {
@@ -260,7 +266,7 @@ fn shape(
             let x = at(bounds.origin.x, cell.width, run.col);
             let style = TextRun {
                 len: run.text.len(),
-                font: face(run.ink.weight, run.ink.style),
+                font: face(font, run.ink.weight, run.ink.style),
                 color: run.ink.color,
                 background_color: None,
                 underline: underline(run.ink),
