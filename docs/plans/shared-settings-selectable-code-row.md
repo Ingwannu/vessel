@@ -28,3 +28,28 @@ Tests (`settings::selectable_tests`): the value starts 16 in, 41 below the
 row's top (16 padding, the title's 21-point line, 4) and ends 16 from the
 right; a long value in a 200-wide row wraps to more than one 20-point line
 inside the row. The existing row geometry tests stay unchanged.
+
+## Selection inside dialogs
+
+The first captures showed no selection: a drag over the value in the pairing
+dialog selected nothing. The window's text-selection layer is gpui-base's Root
+child, painted under every deferred layer; its bubble-phase mouse-down listener
+runs after the dialog card's, and the card called `stop_propagation` on every
+left press (so a press inside it would not reach the scrim's close). No text in
+any kit dialog could be selected.
+
+[Decision Log]
+- Choice: the card occludes the scrim's hitbox (`occlude()`) in place of
+  stopping the press. The scrim's close is hitbox-gated, so a press inside the
+  card still never closes; the window's raw selection listener now sees it.
+- Alternatives: a flag the card sets and the scrim reads (two places to keep in
+  step); a selection layer inside each dialog (a second layer per window).
+- Impact: element listeners under a dialog stay behind the scrim's own
+  occlusion, as before. Window-level raw bubble listeners (the selection layer)
+  now see presses on a dialog card; capture-phase `on_mouse_down_out` was never
+  affected by the old stop. Controls that own their press (fields) suppress a
+  selection start themselves.
+
+Test (`dialog::selection_tests`): with the selection layer under a dialog, a
+drag over text in the card selects it, and the dialog does not close. The
+existing dismissal tests (scrim, Escape, close glyph) stay unchanged.
