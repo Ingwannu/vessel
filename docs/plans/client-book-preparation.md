@@ -173,3 +173,27 @@ Document with actual keys/comments/Unicode, and real one-MiB comment output.
 Existing route8 and private11 results remain attributed to b9fe only.
 The new output and ed4 receiving context need their own changed-source
 strict/runtime checks; prepared cases are not counted as executed.
+
+## Stop checkpoint (2026-11-16 03:40 UTC)
+
+Executable ba8d58d61117cc02e605b8ad7d5dd9b3698eb7ee (codea40547ebd)
+passed exact all-target client Clippy in
+settings2-narrow-20261116T004443Z-ba8d58d6. Original spec/steps/cargo are in
+/tmp/work/m12-settings4/e1-output-strict; receipt SHA is retained alongside.
+V3 source-stage review7ad6e145 does not promote this literal cfg(test,unix) module.
+
+T302aef58 completed the changed-output recipe audit:
+/tmp/work/gk-build-tools/client-pure-audit-output-ba8d.json, SHA256
+c0c64c4013aa644208fbb47b4280c4e9c86e149ca27fda8f000c951fbd0c4adc.
+The exact private_files selection remains cargo-only. Expected17 tests have NOT
+run on ba8d; old b9 routes8/private11 and strict0 remain prior-source evidence.
+No new run is queued for this Root tree. The sole E2 Cargo is the independent
+Settings export recovery; do not submit this selection in parallel.
+
+The next session first checks existing VM runs, then runs the exact reviewed
+private_files selection once at ba8d in a new output directory, records actual
+results with V3, and merges the then-announced Node head at a natural point.
+Opaque secure pairing evidence, a live version2 parser/writer/lock/admission,
+retained credential outcomes, upsert, Windows and native consumers remain
+UNIMPLEMENTED. G4 is explicitly waiting on the actual receipt/upsert API, not
+this preparation. Do not mint evidence from public Paired/Offer/NodeInfo/Context.
