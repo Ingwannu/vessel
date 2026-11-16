@@ -1501,3 +1501,14 @@ The production runner, migration ordering, inbox cases, assertions and deadlines
 remain unchanged. Both original duplicate-column failures remain in the log.
 An independent unchanged registry-watcher test also timed out under load; that
 result remains separate from this fixture correction and has not been retried.
+
+
+### Generated mutation-time declaration
+
+The named TypeScript step passed its five generator/inventory tests and correctly
+reported stale declarations. Its original generated proto.ts bytes are now
+committed after checking every artifact hash and confirming the TS inputs did
+not change since that generator commit. The only declaration change adds the
+optional mutation-time field and its string type. Generated whitespace is kept
+verbatim; source diff checking is separate from ts-rs formatting. Freshness on
+the final package head is still required by the whole gate.
