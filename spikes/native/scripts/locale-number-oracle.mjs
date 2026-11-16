@@ -11,7 +11,7 @@ const OPTIONS = {
   tokens: { notation: "compact", maximumFractionDigits: 1 },
   decimal: { maximumFractionDigits: 2 },
 };
-const AMOUNTS = [
+const BASIC_AMOUNTS = [
   ["zero", 0], ["negative-zero", -0],
   ["smallest-subnormal", Number.MIN_VALUE],
   ["negative-smallest-subnormal", -Number.MIN_VALUE],
@@ -34,6 +34,38 @@ const AMOUNTS = [
   ["largest-finite", Number.MAX_VALUE],
   ["negative-largest-finite", -Number.MAX_VALUE],
 ];
+// Freeze additional boundary cases before a candidate executes them. The
+// original default output remains byte-identical; --extended is a new corpus.
+assert.ok(process.argv.length <= 3 && (!process.argv[2] || process.argv[2] === "--extended"));
+const EXTENDED = process.argv[2] === "--extended";
+const THRESHOLDS = [
+  ["ko-thousand-to-man-under", 9949.99],
+  ["ko-thousand-to-man-at", 9950],
+  ["ko-thousand-to-man-over", 9950.01],
+  ["ko-negative-thousand-to-man-under", -9949.99],
+  ["ko-negative-thousand-to-man-at", -9950],
+  ["ko-negative-thousand-to-man-over", -9950.01],
+  ["ko-man-to-eok-under", 99999499.99],
+  ["ko-man-to-eok-at", 99999500],
+  ["ko-man-to-eok-over", 99999500.01],
+  ["ko-negative-man-to-eok-under", -99999499.99],
+  ["ko-negative-man-to-eok-at", -99999500],
+  ["ko-negative-man-to-eok-over", -99999500.01],
+  ["negative-compact-under", -999.94],
+  ["negative-compact-carry", -999.95],
+  ["en-negative-million-carry-under", -999949],
+  ["en-negative-million-carry", -999950],
+  ["usd-digit-carry", 9.995],
+  ["usd-negative-digit-carry", -9.995],
+];
+const CORRECTED_NAMES = {
+  "ko-carry-under": "ko-already-above-thousand-to-man-carry-a",
+  "ko-carry": "ko-already-above-thousand-to-man-carry-b",
+  "ko-million-carry": "ko-below-man-to-eok-carry",
+};
+const AMOUNTS = EXTENDED
+  ? [...BASIC_AMOUNTS.map(([name, value]) => [CORRECTED_NAMES[name] ?? name, value]), ...THRESHOLDS]
+  : BASIC_AMOUNTS;
 const COUNTS = [
   0n, 1n, 2n, 11n, 21n,
   4294967295n, 4294967296n,
@@ -66,6 +98,7 @@ process.stdout.write(`${JSON.stringify({
   resolved: Object.fromEntries(LOCALES.map((locale) => [locale, Object.fromEntries(
     Object.entries(OPTIONS).map(([style, options]) => [style, new Intl.NumberFormat(locale, options).resolvedOptions()]),
   )])),
+  ...(EXTENDED ? { corpus_revision: 2, parent_fixture_sha256: "c7ec252d8ad5577a33ba83bb4b8988540821cceef2e07c8689723adfb6544a22", note: "Adds Korean carry boundaries and negative cases; corrects three misleading names, preserving all prior numeric outputs." } : {}),
   amounts: AMOUNTS.map(([name, value]) => ({ name, bits: bits(value), decimal: Object.is(value, -0) ? "-0" : String(value), output: format(value) })),
   counts: COUNTS.map((value) => ({ unsigned: String(value), output: Object.fromEntries(
     LOCALES.map((locale) => [locale, new Intl.NumberFormat(locale).format(value)]),

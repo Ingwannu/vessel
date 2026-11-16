@@ -198,7 +198,7 @@
 +    }
 --- a/spikes/native/view/src/lib.rs
 +++ b/spikes/native/view/src/lib.rs
-@@ -82,3 +82,34 @@
+@@ -82,3 +82,38 @@
  
  pub mod layout;
  pub mod residents;
@@ -233,6 +233,10 @@
 +mod backend_contract_probe;
 +#[path = "../../experiments/number-format/backend_narrow_probe.rs"]
 +mod backend_probe;
++
++#[cfg(test)]
++#[path = "../../experiments/number-format/fluent_hook_probe.rs"]
++mod fluent_hook_probe;
 --- a/spikes/native/view/src/text/localization/mod.rs
 +++ b/spikes/native/view/src/text/localization/mod.rs
 @@ -36,6 +36,8 @@

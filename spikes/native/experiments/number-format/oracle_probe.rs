@@ -15,6 +15,13 @@ impl Oracle {
     pub(in super::super) fn read() -> Result<Self, serde_json::Error> {
         serde_json::from_str(SOURCE)
     }
+
+    pub(in super::super) fn read_extended() -> Result<Self, serde_json::Error> {
+        serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/number-format/intl-en-ko-v2.json"
+        )))
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]

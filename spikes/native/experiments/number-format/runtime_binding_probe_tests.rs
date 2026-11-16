@@ -7,7 +7,7 @@ use vessel_proto::conversation::FiniteNumber;
 
 #[test]
 fn generated_amount_arguments_match_every_whole_intl_sentence() {
-    let oracle = Oracle::read().unwrap();
+    let oracle = Oracle::read_extended().unwrap();
     for row in oracle.amounts {
         let bits = u64::from_str_radix(&row.bits, 16).unwrap();
         let value = FiniteNumber::new(f64::from_bits(bits)).unwrap();
@@ -38,7 +38,7 @@ fn generated_amount_arguments_match_every_whole_intl_sentence() {
 
 #[test]
 fn generated_count_arguments_preserve_every_unsigned_oracle_row() {
-    let oracle = Oracle::read().unwrap();
+    let oracle = Oracle::read_extended().unwrap();
     for row in oracle.counts {
         let count = row.unsigned.parse::<u64>().unwrap();
         for (tag, digits) in [("en", &row.output.en), ("ko", &row.output.ko)] {

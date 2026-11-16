@@ -311,3 +311,11 @@ retains its full scaled amount for a subsequent NUMBER. These are uncompiled
 experiment sources. Partial numeric-pattern failure at this binding boundary,
 actual app reachability, both backend variants, and portable/release costs
 remain open; no public API or runtime adoption follows from this design.
+
+The later v2 reference corpus has52 finite rows and13 exact unsigned rows.
+It adds both sides of Korean compact carry at9950 and99,999,500, including
+negative values. The original34 numeric outputs and all counts remain
+unchanged, and the default generator still reproduces the v1 fixture byte
+for byte. Three misleading v1 case names are corrected only in v2. This
+reference expansion precedes execution of the actual-boundary candidate
+checks and is not itself a Rust conformance result.

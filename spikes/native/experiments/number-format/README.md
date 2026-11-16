@@ -192,7 +192,7 @@ the opt-in hook carrier. Validated NUMBER options operate on a maintained
 decimal; rendering and plural operands share the same rounded value. Source
 and English displays/categories are prepared before binding, and an
 infallible memoized namespace selects between them. Compact preparation
-retains its scaled amount, so nested NUMBER does not turn 10K into 10. Four
+retains its scaled amount, so nested NUMBER does not turn 10K into 10. Five
 carrier integration controls cover exact unsigned digits/categories, English
 ordinal fallback, ordered literal/category matches, nested rounding and
 per-language compact scale. These modules/tests are unlinked and uncompiled.
@@ -233,3 +233,19 @@ They have NOT compiled, run tests, passed source/V3 review or produced release
 artifacts. A readiness packet and every measured value remain separate from
 these prepared patches. The frozen D633 feasibility inputs remain pinned to
 their earlier source commit; none of these additions is counted in its8/10.
+
+The extended oracle is generated with
+`node spikes/native/scripts/locale-number-oracle.mjs --extended` into
+`view/tests/fixtures/number-format/intl-en-ko-v2.json`. It contains52 finite
+rows and13 exact BigInt counts, adds9950/99,999,500 Korean carry neighbors
+and their negative counterparts, and corrects three misleading old row names.
+All previous numeric outputs and unsigned rows are retained; the default
+script still reproduces the original fixture byte for byte. Node24.22.1,
+ICU78.3/CLDR48 are recorded. These remain reference outputs, not Rust passes.
+The new actual-boundary tests consume v2; D633's frozen source consumes v1.
+
+The candidate View overlay can register the unchanged `fluent_hook_probe.rs`
+as a private cfg(test) module, since it imports the Fluent crate externally.
+That checks both memoizer kinds without editing upstream test metadata or
+resolving its development graph. This later registration supersedes the
+initial companion-target suggestion; it is still not an executed result.
