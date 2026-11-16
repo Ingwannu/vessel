@@ -206,3 +206,10 @@ its apply-check; no Cargo command ran locally. Generated lock SHA256 is
 105d6e8f86932abfd3dfe8ce528ff356126e60cf0b05204b5962de57c1dad1c8.
 The receipt records build-VM UID/GID1000, private0600 artifacts, no network,
 compilation or build scripts. Corrected-head strict and exact tests remain owed.
+
+The first corrected-head strict run (284f48689) reached all three changed
+crates and stopped only at a large-future lint in the measurement test. Its
+outer safety future is now boxed, keeping the test task stack bounded without
+changing deadlines, records, assertions, output or product code. The original
+red receipt remains; the changed test source requires the same approved narrow
+strict/runtime qualification rather than a new whole gate.

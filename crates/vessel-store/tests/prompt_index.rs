@@ -209,7 +209,8 @@ async fn prompt_index_retention_invalidates_a_continuation_and_never_returns_pru
 #[tokio::test]
 #[ignore = "measurement of repeated snapshot paging; run explicitly with --ignored --nocapture"]
 async fn prompt_index_measure_metadata_pages_over_twenty_thousand_records() {
-    vessel_testkit::within(SAFETY, async {
+    // Keep the measurement fixture off the test task stack; safety is unchanged.
+    Box::pin(vessel_testkit::within(SAFETY, async {
         use std::io::Write as _;
         use std::time::Instant;
         const TURNS: u64 = 10_000;
@@ -248,5 +249,5 @@ async fn prompt_index_measure_metadata_pages_over_twenty_thousand_records() {
         assert_eq!(u64::try_from(entries).unwrap(), TURNS);
         writeln!(std::io::stdout().lock(), "prompt metadata: {} records, {entries} prompts, {pages} pages, first={first_time:?}, all={:?}, first_reply_bytes={first_bytes}", TURNS.saturating_mul(2).saturating_add(1), started.elapsed()).unwrap();
         phase("close", store.close()).await;
-    }).await.expect("prompt store safety deadline");
+    })).await.expect("prompt store safety deadline");
 }
