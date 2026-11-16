@@ -226,7 +226,7 @@ mod tests {
             reason: UsageFetchFailure::Unreachable,
             retry_at: None,
             retained: Some(original),
-            logins: Default::default(),
+            logins: vessel_proto::usage_reports::ReportLoginFailures::default(),
         };
         let view = source_view(&state, Translator::get(ENGLISH).unwrap());
         assert!(view.retained);
@@ -283,7 +283,7 @@ mod tests {
             id: "window".parse().unwrap(),
             label: "Window".parse().unwrap(),
             short_label: None,
-            summary: Default::default(),
+            summary: vessel_proto::usage_reports::UsageSummary::default(),
             used: None,
             remaining: Some(vessel_proto::limits::LimitPercent::reported(
                 FiniteNumber::new(5.0).unwrap(),

@@ -87,7 +87,7 @@ mod tests {
             reason: UsageFetchFailure::Unreachable,
             retry_at: None,
             retained: Some(observed),
-            logins: Default::default(),
+            logins: vessel_proto::usage_reports::ReportLoginFailures::default(),
         };
         let now = DateTime::from_timestamp(86_400, 0).unwrap();
         assert_eq!(

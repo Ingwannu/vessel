@@ -143,3 +143,10 @@ Older reset-duration/token count Text paths are provisional, not locale-number
 parity. ADR 0101 tracks exact unsigned counts separately from finite amounts.
 Keep original values; do not clamp, drop, add a formatter here or make a lossy
 cast. The accepted numeric fresh-age messages remain a distinct bounded path.
+
+
+The first combined base-13 consumer strict run (`c124a1740`, native strict 12)
+passed font preparation, then stopped on six test-only default-trait-access
+lints in Usage view fixtures. Use the named DTO defaults without altering any
+values or assertions; the same pattern in the card fixture is corrected in the
+same mechanical change. No tests or full native gate ran in this strict check.

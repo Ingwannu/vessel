@@ -283,7 +283,7 @@ mod tests {
                         at: chrono::DateTime::UNIX_EPOCH,
                         report,
                     }),
-                    logins: Default::default(),
+                    logins: vessel_proto::usage_reports::ReportLoginFailures::default(),
                 },
             );
             let view = source_view(&entry.state, words);

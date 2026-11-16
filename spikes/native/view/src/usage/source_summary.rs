@@ -264,16 +264,16 @@ mod tests {
                 reason: vessel_proto::usage_reports::UsageFetchFailure::Unreachable,
                 retry_at: None,
                 retained: Some(observed),
-                logins: Default::default(),
+                logins: vessel_proto::usage_reports::ReportLoginFailures::default(),
             },
         ));
         let mut reports = UsageReports {
             at: chrono::DateTime::UNIX_EPOCH,
             policy: ExternalLookup::On,
             cost_visibility: CostVisibility::Permitted,
-            sources: Default::default(),
+            sources: vessel_proto::usage_reports::ReportSourceDescriptors::default(),
             reports: entries.try_into().unwrap(),
-            source_failures: Default::default(),
+            source_failures: vessel_proto::usage_reports::ReportSourceFailures::default(),
         };
         let words = Translator::get(ENGLISH).unwrap();
         let inventory = Inventory::Sources {
