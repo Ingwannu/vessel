@@ -919,3 +919,20 @@ expects shared unassigned refusal for both explicit all and empty labels,
 invalid-params before resolving an absent destination, and the later unchanged
 legacy full list. Changed strict and actual execution are still owed; previous
 32-test MCP and gate57 strict receipts do not prove this new slice.
+
+
+### Executed discovery slice
+
+Exact `08c545b48` passed MCP all-target strict with warnings denied in run
+`wp-mcp-runtime-narrow-20261116T022737Z-08c545b4` (115 seconds). Run
+`wp-mcp-response-tests-20261116T022302Z-08c545b4` passed all four steps,
+including the actual current `vesseld` build and MCP 36/0/1 (163-second test
+step). All recorded step hashes were independently recomputed. The one
+ignored test remains the existing real rust-analyzer opt-in test.
+
+The three new unit cases and real-memory discovery fixture actually executed;
+no feature number was assigned or overridden. This is the current MCP crate
+proof, not positive versioned discovery while lifecycle is unassigned, a
+current Settings owner join, durable finish implementation, cross-node receipt
+flow, native UI proof or a whole-package acceptance. The predecessor gate57
+five-crate strict remains its own queued immutable run.
