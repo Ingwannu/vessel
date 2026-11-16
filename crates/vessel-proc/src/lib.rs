@@ -50,6 +50,7 @@ mod account;
 mod checked;
 mod child;
 mod detached;
+mod diagnostics;
 mod error;
 #[cfg(unix)]
 mod group;
@@ -66,6 +67,7 @@ pub use account::account_shell;
 pub use checked::{CheckedWaitError, OwnedGroupExit};
 pub use child::{Child, Spawned, spawn, spawn_releasable};
 pub use detached::{DetachRefused, Detached, DetachedError};
+pub use diagnostics::CommandDiagnostics;
 pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 pub use group::{ProcessGroup, REAP_GRACE};

@@ -88,6 +88,9 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::CodeSource(request) => self.emit(Event::CodeSource(Box::new(
+                request.refused(vessel_app_view::workspace::problem::Problem::Older),
+            ))),
             Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
                 ask,
                 vessel_app_view::history::Problem::Unsupported,
@@ -104,15 +107,11 @@ impl Link {
                 context,
                 ticket,
                 ask,
-            } => self.emit(Event::Devices(crate::devices::Answer {
+            } => self.emit(Event::Devices(ask.rejected(
                 context,
-                outcome: ask.refused(
-                    ticket,
-                    vessel_app_view::devices::Problem::Refused(
-                        vessel_proto::ErrorCode::Unsupported,
-                    ),
-                ),
-            })),
+                ticket,
+                vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
+            ))),
             Command::Onboarding(ask) => self.emit(Event::Onboarding(
                 ask.refused(vessel_app_view::onboarding::scope::Problem::Unavailable),
             )),

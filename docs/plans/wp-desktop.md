@@ -434,3 +434,20 @@ join and its empty-book, offline-book, startup and manual-rerun tests are pendin
   transition needs explicit tests, and the checked C1/bootstrap result remains
   a separate producer dependency. The source gate is not implemented by this
   note. Receiving tests and requested bilingual wide/compact captures are owed.
+
+## Package-base 14.3 receiving merge
+
+The announced 67637eb6 app base is merged as the app line, not a direct node
+head. Shared shortcut/CodeSource registrations and G4's opaque device replies
+are preserved; the existing onboarding-control refusal now uses that actor's
+correlated refusal constructor and never fabricates a delivery guard. Testing
+uses the base's one Scenario/actor construction with only the existing onboarding
+scope field initialized. No selected/connections/delivery source is edited.
+
+This branch still contains its early root controller/release drafts and is not
+landable wholesale. The diagnostic privacy merge preserves the binary owner's
+portable_pty upper bound in the old managed Store tee and both releasable and
+ordinary spawn diagnostics. It does not import the corrected peer-fix node
+branch or qualify that separate root implementation. The stale native lock from
+the prior receiving run remains unresolved until a generated-lock export is
+available; old producer or base gates are not this receiving union's proof.

@@ -71,6 +71,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             vessel_app_view::history::Problem::Unsent,
         )),
         Command::RetireConnection(_tag) => return Settle::Ignore,
+        Command::CodeSource(request) => {
+            Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
+        }
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {
@@ -92,10 +95,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             context,
             ticket,
             ask,
-        } => Event::Devices(devices::Answer {
-            context,
-            outcome: ask.refused(ticket, devices::rejected(unsent.why)),
-        }),
+        } => Event::Devices(ask.rejected(context, ticket, devices::rejected(unsent.why))),
         Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,

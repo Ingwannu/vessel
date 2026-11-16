@@ -4,10 +4,14 @@ use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use std::cell::Cell;
 use std::time::Duration;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, Placement, Position, Target,
 };
-use vessel_app_view::residents::{OperationKind, OwnerReadiness, ResourceOwner, Visibility};
+use vessel_app_view::residents::{
+    FollowBinding, OperationKind, OwnerReadiness, ResourceOwner, StopAction, StopCompletion,
+    StopSettlement, StopWindowReceipt, Visibility,
+};
 use vessel_proto::{NodeId, WorkspaceId};
 
 fn claim(layout: &mut Layout, key: &LayoutKey) -> PanelClaim {
@@ -30,6 +34,19 @@ fn key(node: NodeId) -> LayoutKey {
         workspace: WorkspaceId::random(),
     }
 }
+fn assert_unhydrated_owner_retained(residents: &mut SessionResidents, token: ResidentToken) {
+    // A table-only Ready marker cannot replace the installed owner's receipt.
+    assert!(matches!(
+        residents.retire_clean(token),
+        Err(ResidentProblem::Held)
+    ));
+    let resources = &residents.entry(token).unwrap().resources;
+    assert_eq!(
+        resources.lifecycle.readiness(),
+        OwnerReadiness::Hold(vessel_app_view::residents::HoldReason::Loading)
+    );
+    assert_eq!(resources.session.resume_error.as_deref(), Some("fresh"));
+}
 
 #[gpui::test]
 fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppContext) {
@@ -42,9 +59,8 @@ fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppCon
         let key = key(node);
         let (a, b) = (SessionId::random(), SessionId::random());
         let (claim_a, claim_b) = (claim(&mut layout, &key), claim(&mut layout, &key));
-        let mut build = |_: &SessionContext| SessionResources {
-            session: SessionView::new(window, cx),
-            conversation: ConversationArea::new(cx),
+        let mut build = |_: &SessionContext| {
+            SessionResources::new(SessionView::new(window, cx), ConversationArea::new(cx))
         };
         let token_a = residents
             .claim_session(
@@ -123,9 +139,8 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
         };
         let claim = claim(&mut layout, &key(address.node));
         let token = residents
-            .claim_session(address, &claim, PaneId::MAIN, |_| SessionResources {
-                session: SessionView::new(window, cx),
-                conversation: ConversationArea::new(cx),
+            .claim_session(address, &claim, PaneId::MAIN, |_| {
+                SessionResources::new(SessionView::new(window, cx), ConversationArea::new(cx))
             })
             .unwrap();
         let context = residents.context(token, &claim).unwrap();
@@ -205,8 +220,7 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
         residents
             .release_claim(token, &claim, Duration::ZERO)
             .unwrap();
-        let resources = residents.retire_clean(token).unwrap();
-        assert_eq!(resources.session.resume_error.as_deref(), Some("fresh"));
+        assert_unhydrated_owner_retained(residents, token);
         assert!(residents.context(token, &claim).is_err());
         assert!(residents.receive(fresh, |_| applied.set(true)).is_err());
         assert!(!applied.get());
@@ -225,10 +239,7 @@ fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut T
         let allocations = Cell::new(0_usize);
         let mut build = |_: &SessionContext| {
             allocations.set(allocations.get().saturating_add(1));
-            SessionResources {
-                session: SessionView::new(window, cx),
-                conversation: ConversationArea::new(cx),
-            }
+            SessionResources::new(SessionView::new(window, cx), ConversationArea::new(cx))
         };
         let address = SessionAddress {
             node,
@@ -272,5 +283,85 @@ fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut T
             Err(ResidentProblem::Capacity)
         );
         assert_eq!(allocations.get(), before);
+    });
+}
+
+// A local legacy factory proves callback routing/field retention, not guarded
+// transport, the concrete lifecycle owner or originating Window authority.
+fn held_window_fixture(
+    residents: &mut SessionResidents,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> (SessionContext, FollowBinding, StopWindowReceipt) {
+    let address = SessionAddress {
+        node: NodeId::random(),
+        session: SessionId::random(),
+    };
+    let claim = claim(&mut Layout::default(), &key(address.node));
+    let token = residents
+        .claim_session(address, &claim, PaneId::MAIN, |_| {
+            SessionResources::new(SessionView::new(window, cx), ConversationArea::new(cx))
+        })
+        .unwrap();
+    let context = residents.context(token, &claim).unwrap();
+    residents
+        .resources(&context)
+        .unwrap()
+        .session
+        .composer
+        .set_text("protected after ACK", window, cx);
+    let binding = residents.begin_follow(token, |_, _| {}).unwrap();
+    let ticket = residents
+        .admission
+        .admit_stop(binding, StopAction::Exit)
+        .unwrap();
+    let StopSettlement::WindowHeld(receipt) = residents
+        .admission
+        .settle_stop(binding, ticket, StopCompletion::Acknowledged)
+        .unwrap()
+    else {
+        panic!("ACK must retain local Window work")
+    };
+    let _seal = residents.admission.end_follow(binding).unwrap();
+    (context, binding, receipt)
+}
+
+#[gpui::test]
+fn sealed_acknowledged_binding_notifies_full_retirement_even_with_no_wire_tickets(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let residents = &mut shell.areas.session_residents;
+        let (context, binding, receipt) = held_window_fixture(residents, window, cx);
+        let notified = Cell::new(false);
+        residents
+            .retire_follow(binding, |resources, notice| {
+                assert_eq!(notice.binding(), binding);
+                assert!(notice.operations().is_empty());
+                assert_eq!(resources.session.composer.text(cx), "protected after ACK");
+                notified.set(true);
+            })
+            .unwrap();
+        assert!(notified.get());
+        assert_eq!(
+            residents.admission.validate_stop_window(binding, receipt),
+            Err(ResidentProblem::StaleBinding)
+        );
+        assert!(
+            residents
+                .receive(binding, |_| panic!("retired ingress"))
+                .is_err()
+        );
+        assert_eq!(
+            residents
+                .resources(&context)
+                .unwrap()
+                .session
+                .composer
+                .text(cx),
+            "protected after ACK"
+        );
     });
 }

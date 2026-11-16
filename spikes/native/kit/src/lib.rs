@@ -47,10 +47,14 @@ pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod icon_chrome;
 pub mod loading;
 pub mod menu;
 pub mod motion;
 pub mod output;
+mod plain_text;
+mod text_ranges;
+pub use plain_text::plain_text;
 pub mod picker;
 pub mod popover;
 pub mod popup;
@@ -88,7 +92,10 @@ pub use code::CodeTokens;
 pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
-pub use field::{Editability, SearchField, SendOn, TextField, composer_card};
+pub use field::{
+    Editability, FormMinimum, FormText, FormTextareaPresentation, SearchField, SendOn, TextField,
+    composer_card,
+};
 pub use fonts::Type;
 pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
@@ -128,8 +135,8 @@ pub mod ui {
         AnyElement, App, AsyncApp, Bounds, ClickEvent, ClipboardItem, Context, Div, DragMoveEvent,
         ElementId, Entity, HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListState,
         MouseButton, MouseDownEvent, Pixels, Point, SharedString, Stateful, StyledText,
-        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, svg,
-        uniform_list,
+        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, size,
+        svg, uniform_list,
     };
 }
 

@@ -59,6 +59,10 @@ pub(crate) enum Lifetime {
 }
 
 fn spawn_with(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnError> {
+    spawn_command(spec, lifetime).map_err(|error| error.with_diagnostics(spec))
+}
+
+fn spawn_command(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnError> {
     let reaper =
         tokio::runtime::Handle::try_current().map_err(|source| SpawnError::Runtime { source })?;
     let mut command = tokio::process::Command::from(spec.to_command());
@@ -115,7 +119,7 @@ fn spawn_with(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnEr
     let stdin = stdin.ok_or_else(|| missing(Stream::Stdin))?;
     let stdout = stdout.ok_or_else(|| missing(Stream::Stdout))?;
     let stderr = stderr.ok_or_else(|| missing(Stream::Stderr))?;
-    tracing::debug!(pid, program = %spec.program.display(), "spawned");
+    tracing::debug!(pid, program = %spec.diagnostic_program().display(), "spawned");
 
     Ok(Spawned {
         child,
