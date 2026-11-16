@@ -1,8 +1,8 @@
 //! Bounded streaming document formatting, still private test preparation.
 //!
-//! Existing private-file Text/ByteLimit/Error own decoding and safe errors.
+//! Existing private-file `Text`/`ByteLimit`/`Error` own decoding and safe errors.
 //! No live file writer, lock or worker is wired by this module.
-//! Unlike checking a finished String, each chunk is refused before append.
+//! Unlike checking a finished `String`, each chunk is refused before append.
 
 use std::fmt::{self, Write as _};
 
