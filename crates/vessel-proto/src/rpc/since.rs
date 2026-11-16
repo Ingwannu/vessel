@@ -36,6 +36,18 @@ impl Call {
     pub fn since(&self) -> Option<ProtocolVersion> {
         let method = self.method().since()?;
         let fields = match self {
+            Self::CreateTerminal(request) if request.place.workspace().is_some() => {
+                return crate::creation::CREATION_PROTOCOL;
+            }
+            Self::ListTerminals(request)
+                if request
+                    .place
+                    .as_ref()
+                    .and_then(crate::terminals::TerminalPlace::workspace)
+                    .is_some() =>
+            {
+                return crate::creation::CREATION_PROTOCOL;
+            }
             // Every hop decodes the typed inner call. It must know its
             // method and fields too; an older hop could otherwise drop a
             // newer field before the target sees it (ADR 0044), as a

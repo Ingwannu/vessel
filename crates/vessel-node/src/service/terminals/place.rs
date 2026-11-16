@@ -35,6 +35,13 @@ impl NodeService {
         // project too.
         let mut project = place.project();
         let folder = match place {
+            TerminalPlace::Workspace { .. } => {
+                // A plain legacy call has neither the committed creation Begin
+                // nor a registry start lease. A WorkspaceId alone grants none.
+                return Err(TerminalsError::Unsupported(
+                    "workspace terminals require receipted creation admission".to_owned(),
+                ));
+            }
             TerminalPlace::Session { session } => {
                 let info = self
                     .sessions
@@ -172,6 +179,9 @@ impl NodeService {
         place: &TerminalPlace,
     ) -> Result<(), TerminalsError> {
         let refusal = match place {
+            TerminalPlace::Workspace { .. } => Some(TerminalsError::Unsupported(
+                "workspace terminal placement requires registry admission".to_owned(),
+            )),
             // Archived meanwhile, it is put away: its archiving ends what
             // was registered before its mark, this what came after.
             TerminalPlace::Session { session } => match self.sessions.get(*session).await {

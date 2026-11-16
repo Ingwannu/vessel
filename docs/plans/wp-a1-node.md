@@ -418,3 +418,24 @@ Keep the real bound controller unavailable and the adapter behind a typed fake;
 never replace the missing seam with a snapshot, stamp, ProcessLifetime or
 is_live. Send the eventual concrete matrix/join to V3 together. The existing
 lower actor registration/count fixture does not establish this new boundary.
+
+### Explicit terminal placement/profile metadata (staged capability)
+
+Modify/reuse: TerminalPlace gains Workspace with canonical WorkspaceId;
+TerminalKind gains Profile with validated profile Id and settings revision,
+never expanded command/argv. Both metadata shapes are unreadable until the
+single creation feature is assigned and the peer understands it. Legacy
+terminal.create cannot establish receipt/start authority and explicitly refuses
+Workspace placement; new place fields also participate in request-version
+preflight. Public list/access paths apply capability refusal before mutation.
+Existing session/project shell behavior is unchanged.
+
+Four proto regressions exercise exact identity, legacy versus pending field
+requirements, complete metadata keys and independent response capability gates.
+An isolated actual Node resolver test checks refusal with no registry/terminal
+mutation under a finite deadline. These new cases are authored, execution owed.
+W17 retains sole terminal registry ownership and is preparing the exact-id
+reservation prerequisite. Its authorized CLI companion changes only the two
+new exhaustive display arms; it is adopted together with the metadata values,
+never as an independently compiling old-base producer. No actual spawn driver,
+root/cleanup/debt proof or public creation activation is supplied by this cut.

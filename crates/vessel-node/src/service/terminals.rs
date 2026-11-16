@@ -2,6 +2,8 @@
 //! calls; who may open one where is `place`; the terminal itself is
 //! `vessel_session::terminals`'.
 
+#[cfg(test)]
+mod creation_metadata_tests;
 mod place;
 
 pub(super) use place::archived;
@@ -40,6 +42,21 @@ pub(super) fn may_use(principal: &Principal, info: &TerminalInfo) -> bool {
 }
 
 impl NodeService {
+    /// Refuse metadata the caller cannot decode before any terminal mutation.
+    fn terminal_for_connection(
+        &self,
+        connection: &Connection,
+        id: TerminalId,
+    ) -> Result<Entry, TerminalsError> {
+        let entry = self.terminal_for(connection.principal(), id)?;
+        if !entry.handle.info().readable_by(connection.protocol()) {
+            return Err(TerminalsError::Unsupported(
+                "this terminal requires creation protocol support".to_owned(),
+            ));
+        }
+        Ok(entry)
+    }
+
     /// A terminal the caller may use.
     pub(super) fn terminal_for(
         &self,
@@ -159,10 +176,14 @@ impl NodeService {
         let principal = connection.principal();
         let terminals = self.terminals.list(|info| {
             may_use(principal, info)
+                && info.readable_by(connection.protocol())
                 && request.place.as_ref().is_none_or(|place| match place {
                     TerminalPlace::Session { session } => info.place.session() == Some(*session),
                     TerminalPlace::Project { project, .. } => {
                         info.place.project() == Some(*project)
+                    }
+                    TerminalPlace::Workspace { workspace } => {
+                        info.place.workspace() == Some(*workspace)
                     }
                 })
         });
@@ -177,7 +198,7 @@ impl NodeService {
         request: GetTerminal,
     ) -> Result<TerminalInfo, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         let mut wait = request.changed_from.map(|_| MAX_WAIT_SECS);
         let _slot = self.terminal_wait(connection, &mut wait);
@@ -213,7 +234,7 @@ impl NodeService {
         request: ReadTerminal,
     ) -> Result<EventPage, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         let limit = usize::try_from(request.limit.clamp(1, ReadTerminal::MAX_LIMIT)).unwrap_or(1);
         let mut wait = request.wait.map(|seconds| seconds.min(MAX_WAIT_SECS));
@@ -265,7 +286,7 @@ impl NodeService {
         request: SubscribeTerminal,
     ) -> Result<TerminalSubscribed, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         terminals::subscribe(
             entry.handle,
@@ -284,7 +305,7 @@ impl NodeService {
         request: SendTerminal,
     ) -> Result<Ack, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         if let TerminalInput::Data { data } = &request.input
             && data.bytes().len() > SendTerminal::MAX_BYTES
@@ -317,7 +338,7 @@ impl NodeService {
         request: RenameTerminal,
     ) -> Result<TerminalInfo, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         entry.handle.rename(request.title);
         Ok(entry.handle.info())
@@ -334,7 +355,7 @@ impl NodeService {
         request: KillTerminal,
     ) -> Result<Ack, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         entry.handle.kill();
         Ok(Ack)
@@ -347,7 +368,7 @@ impl NodeService {
         request: CloseTerminal,
     ) -> Result<Ack, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for_connection(connection, request.terminal)
             .map_err(wire)?;
         entry.handle.kill();
         if tokio::time::timeout(CLOSE_WAIT, entry.handle.ended())

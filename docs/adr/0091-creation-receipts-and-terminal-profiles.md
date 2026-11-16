@@ -394,3 +394,31 @@ The existing Agents count owner now refuses duplicate ids while holding its
 one lock, before credential minting. This is a prerequisite for a future
 adapter, not proof that the unimplemented creation driver supplies the
 remaining persistence, ownership and startup fencing requirements.
+
+### Independent terminal metadata and legacy capability boundary
+
+[Decision Log]
+- Purpose: preserve registry WorkspaceId and profile snapshot identity without
+  leaking substituted command/argv/prompt content through TerminalInfo.
+- Existing constraint: legacy TerminalPlace names a Session or Project, and
+  TerminalKind::Shell publishes its executable path. Neither describes an
+  independently provisioned workspace or a prompt-bearing command template.
+- Alternatives: label the new resource as a legacy project/session, publish an
+  expanded program as shell metadata, or carry explicit typed identities.
+- Choice and reason: additive Workspace placement and Profile kind carry only
+  WorkspaceId or profile Id plus ProfileRevision. They do not infer membership
+  from a path and do not serialize the expanded command.
+- Impact: these shapes require the single CREATION_PROTOCOL capability, which
+  remains unassigned. Existing calls with a Workspace place require that pending
+  capability; legacy terminal.create always refuses that placement because it
+  has no receipt Begin or registry start lease. Public lists hide new metadata
+  from incapable peers, and direct public access refuses before mutation.
+
+This metadata does not authorize a spawn. Actual reserved-id admission and
+handle registration stay in the existing terminal registry owner. The receipted
+adapter remains staged until that opaque exact-id contract, current caller/root
+admission and lifecycle fences are qualified. Profile command construction must
+opt into the separately reviewed Redacted process/PTY diagnostic boundary.
+Blank-shell initial bytes use a separate durable input boundary; profile argv
+expansion is part of the resource effect and cannot be silently replayed after
+an unknown spawn. This change assigns no protocol number or new create RPC.

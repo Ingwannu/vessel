@@ -24,7 +24,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::id::{EventSeq, ProjectId, SessionId, TerminalId};
+use crate::id::{EventSeq, ProjectId, SessionId, TerminalId, WorkspaceId};
 use crate::profile::Creator;
 use crate::scripts::ScriptName;
 use crate::session::SessionStatus;
@@ -32,6 +32,8 @@ use crate::terminal::TerminalSize;
 use crate::title::SessionTitle;
 use crate::workspace::{ProjectCommand, RelPath};
 
+#[cfg(test)]
+mod creation_tests;
 mod requests;
 
 pub use requests::{
@@ -59,6 +61,11 @@ pub enum TerminalPlace {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         dir: Option<RelPath>,
     },
+    /// Independent registry ownership; legacy terminal.create cannot establish it.
+    Workspace {
+        /// Exact registry identity, never derived from a cwd or session id.
+        workspace: WorkspaceId,
+    },
 }
 
 impl TerminalPlace {
@@ -67,7 +74,7 @@ impl TerminalPlace {
     pub const fn session(&self) -> Option<SessionId> {
         match self {
             Self::Session { session } => Some(*session),
-            Self::Project { .. } => None,
+            Self::Project { .. } | Self::Workspace { .. } => None,
         }
     }
 
@@ -76,7 +83,16 @@ impl TerminalPlace {
     pub const fn project(&self) -> Option<ProjectId> {
         match self {
             Self::Project { project, .. } => Some(*project),
-            Self::Session { .. } => None,
+            Self::Session { .. } | Self::Workspace { .. } => None,
+        }
+    }
+
+    /// Explicit independent owner; this does not grant access or attest lifecycle.
+    #[must_use]
+    pub const fn workspace(&self) -> Option<WorkspaceId> {
+        match self {
+            Self::Workspace { workspace } => Some(*workspace),
+            Self::Session { .. } | Self::Project { .. } => None,
         }
     }
 }
@@ -90,6 +106,13 @@ pub enum TerminalKind {
     Shell {
         /// The program started.
         program: PathBuf,
+    },
+    /// Profile execution metadata omits expanded commands, argv and prompt text.
+    Profile {
+        /// Administrator-defined identity at the captured settings revision.
+        profile: crate::terminal_profiles::Id,
+        /// The exact settings snapshot used for this launch.
+        revision: crate::terminal_profiles::ProfileRevision,
     },
     /// A run of a project's script: one command, to its end. No input.
     Script {
@@ -111,11 +134,11 @@ pub enum TerminalKind {
 }
 
 impl TerminalKind {
-    /// Whether it takes terminal input (only a shell does).
+    /// Whether it takes terminal input (shells and profile processes do).
     #[must_use]
     pub const fn takes_input(&self) -> bool {
         match self {
-            Self::Shell { .. } => true,
+            Self::Shell { .. } | Self::Profile { .. } => true,
             Self::Script { .. } | Self::Service { .. } | Self::Unknown => false,
         }
     }
@@ -125,7 +148,7 @@ impl TerminalKind {
     pub const fn script(&self) -> Option<&ScriptName> {
         match self {
             Self::Script { script, .. } | Self::Service { script, .. } => Some(script),
-            Self::Shell { .. } | Self::Unknown => None,
+            Self::Shell { .. } | Self::Profile { .. } | Self::Unknown => None,
         }
     }
 }
@@ -178,6 +201,17 @@ pub struct TerminalInfo {
 }
 
 impl TerminalInfo {
+    /// Capability projection only: new metadata stays hidden until its feature
+    /// is assigned and the peer understands it. This is not authorization.
+    #[must_use]
+    pub fn readable_by(&self, protocol: crate::ProtocolVersion) -> bool {
+        if self.place.workspace().is_some() || matches!(self.kind, TerminalKind::Profile { .. }) {
+            crate::creation::CREATION_PROTOCOL.is_some_and(|required| protocol >= required)
+        } else {
+            true
+        }
+    }
+
     /// A terminal starting now: running, nothing recorded yet.
     #[must_use]
     pub fn new(
