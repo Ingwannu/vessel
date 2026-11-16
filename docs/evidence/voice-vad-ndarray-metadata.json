@@ -1,0 +1,221 @@
+{
+  "archive_bytes_verified": false,
+  "cargo_resolution_performed": false,
+  "checked_at_utc": "2026-11-16T02:32:28.683652+00:00",
+  "package": {
+    "archive_sha256_expected": "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d",
+    "archive_size": 243631,
+    "license_metadata": "MIT OR Apache-2.0",
+    "name": "ndarray",
+    "rust_version_metadata": "1.64",
+    "sparse_registry_checksum": "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d",
+    "version": "0.17.2",
+    "yanked": false
+  },
+  "scope": "anonymous metadata only; archive not acquired or inspected",
+  "selected_sparse_record": {
+    "cksum": "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d",
+    "deps": [
+      {
+        "default_features": false,
+        "features": [],
+        "kind": "normal",
+        "name": "approx",
+        "optional": true,
+        "req": "^0.5",
+        "target": null
+      },
+      {
+        "default_features": true,
+        "features": [],
+        "kind": "dev",
+        "name": "approx",
+        "optional": false,
+        "req": "^0.5",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [],
+        "kind": "normal",
+        "name": "cblas-sys",
+        "optional": true,
+        "req": "^0.1.4",
+        "target": null
+      },
+      {
+        "default_features": true,
+        "features": [],
+        "kind": "dev",
+        "name": "defmac",
+        "optional": false,
+        "req": "^0.2",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [
+          "use_std"
+        ],
+        "kind": "dev",
+        "name": "itertools",
+        "optional": false,
+        "req": "^0.13.0",
+        "target": null
+      },
+      {
+        "default_features": true,
+        "features": [],
+        "kind": "normal",
+        "name": "libc",
+        "optional": true,
+        "req": "^0.2.82",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [
+          "cgemm"
+        ],
+        "kind": "normal",
+        "name": "matrixmultiply",
+        "optional": false,
+        "req": "^0.3.2",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [],
+        "kind": "normal",
+        "name": "num-complex",
+        "optional": false,
+        "req": "^0.4",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [],
+        "kind": "normal",
+        "name": "num-integer",
+        "optional": false,
+        "req": "^0.1.39",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [],
+        "kind": "normal",
+        "name": "num-traits",
+        "optional": false,
+        "req": "^0.2",
+        "target": null
+      },
+      {
+        "default_features": true,
+        "features": [],
+        "kind": "normal",
+        "name": "portable-atomic",
+        "optional": false,
+        "req": "^1.6.0",
+        "target": "cfg(not(target_has_atomic = \"ptr\"))"
+      },
+      {
+        "default_features": true,
+        "features": [
+          "alloc"
+        ],
+        "kind": "normal",
+        "name": "portable-atomic-util",
+        "optional": false,
+        "req": "^0.2.0",
+        "target": "cfg(not(target_has_atomic = \"ptr\"))"
+      },
+      {
+        "default_features": false,
+        "features": [],
+        "kind": "dev",
+        "name": "quickcheck",
+        "optional": false,
+        "req": "^1.0",
+        "target": null
+      },
+      {
+        "default_features": true,
+        "features": [],
+        "kind": "normal",
+        "name": "rawpointer",
+        "optional": false,
+        "req": "^0.2",
+        "target": null
+      },
+      {
+        "default_features": true,
+        "features": [],
+        "kind": "normal",
+        "name": "rayon",
+        "optional": true,
+        "req": "^1.10.0",
+        "target": null
+      },
+      {
+        "default_features": false,
+        "features": [
+          "alloc"
+        ],
+        "kind": "normal",
+        "name": "serde",
+        "optional": true,
+        "req": "^1.0",
+        "target": null
+      }
+    ],
+    "features": {
+      "default": [
+        "std"
+      ],
+      "matrixmultiply-threading": [
+        "matrixmultiply/threading"
+      ],
+      "portable-atomic-critical-section": [
+        "portable-atomic/critical-section"
+      ],
+      "std": [
+        "num-traits/std",
+        "matrixmultiply/std"
+      ]
+    },
+    "features2": {
+      "blas": [
+        "dep:cblas-sys",
+        "dep:libc"
+      ],
+      "rayon": [
+        "dep:rayon",
+        "std"
+      ],
+      "serde": [
+        "dep:serde"
+      ]
+    },
+    "name": "ndarray",
+    "pubtime": "2026-01-10T23:19:18Z",
+    "rust_version": "1.64",
+    "v": 2,
+    "vers": "0.17.2",
+    "yanked": false
+  },
+  "selected_sparse_record_raw_line_sha256": "64da9b870c86bd59346da48fa2fc22ab38ee2b64ea6f73b23ca4a4b06ab48a2b",
+  "selected_sparse_record_raw_line_size": 2522,
+  "sources": [
+    {
+      "sha256": "fc6f2c161315221458244956d2ce73322efe8a7511d88b076ceeeeb71af6cafa",
+      "size": 126269,
+      "url": "https://index.crates.io/nd/ar/ndarray"
+    },
+    {
+      "sha256": "a1078d3c44aa2efb0fa315b293f446e15a061e66b94fd2630e55e0ae01bee071",
+      "size": 1939,
+      "url": "https://crates.io/api/v1/crates/ndarray/0.17.2"
+    }
+  ]
+}
