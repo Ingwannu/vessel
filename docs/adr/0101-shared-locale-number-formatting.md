@@ -168,7 +168,7 @@ The narrow candidate starts with these exact requests, all `Unicode-3.0`:
 | `icu_provider` | `=2.4.0` | `sync` | Shared prepared data compatible with concurrent bundles |
 
 The ICU decimal/compact comparison additionally requests `icu_decimal`
-`=2.4.0`, defaults disabled, `compiled_data`, `unstable`, `ryu`. It uses
+`=2.4.0`, defaults disabled, `alloc`, `compiled_data`, `unstable`, `ryu`. It uses
 upstream baked decimal/compact/plural data, with no locale-subset regeneration.
 Both candidates use folder-owned USD patterns; the closed USD-only requirement
 does not require an experimental all-currency runtime. The experimental ICU

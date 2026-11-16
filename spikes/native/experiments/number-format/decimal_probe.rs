@@ -62,6 +62,18 @@ impl CompactExponent {
     }
 }
 
+// ICU's compact API returns u8: every possible backend value is inside the
+// finite magnitude bound, without a fallible or truncating integer cast.
+impl From<u8> for CompactExponent {
+    fn from(value: u8) -> Self {
+        Self(i16::from(value))
+    }
+}
+
+pub(super) trait ScaleSource {
+    fn exponent(&self, magnitude: i16) -> CompactExponent;
+}
+
 /// Numeric scale data is injected, never selected by a language branch here.
 /// The eventual folder loader must apply the same validation before caching.
 #[derive(Debug)]
@@ -92,7 +104,9 @@ impl<'a> CompactScales<'a> {
         }
         Ok(Self(values))
     }
+}
 
+impl ScaleSource for CompactScales<'_> {
     fn exponent(&self, magnitude: i16) -> CompactExponent {
         CompactExponent(
             self.0
@@ -123,7 +137,7 @@ impl CompactQuantity {
 
 pub(super) fn compact(
     value: FiniteNumber,
-    scales: &CompactScales<'_>,
+    scales: &impl ScaleSource,
 ) -> Result<CompactQuantity, LimitError> {
     let original = decimal(value)?;
     let exponent = scales.exponent(original.nonzero_magnitude_start());
@@ -154,6 +168,10 @@ fn scaled(value: &Decimal, exponent: CompactExponent) -> Result<Decimal, LimitEr
     value.trim_end();
     Ok(value)
 }
+
+#[cfg(test)]
+#[path = "oracle_probe.rs"]
+pub(super) mod oracle;
 
 #[cfg(test)]
 #[path = "decimal_probe_tests.rs"]

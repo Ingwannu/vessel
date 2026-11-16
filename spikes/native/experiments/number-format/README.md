@@ -38,6 +38,15 @@ categories do not change at large unsigned values. It is uncompiled and
 unregistered; no extra language ships and no native/plugin selector has been
 connected by preparing these tests.
 
+`icu_decimal_probe.rs` is the larger candidate's unlinked grouping/compact
+adapter and has child corpus tests. It uses the same maintained rounding and
+compact-carry code through a typed scale-provider trait; ICU supplies the
+exponent data and actual localized output. Exact unsigned formatting is
+compared to the BigInt oracle. USD tests compare numeric bodies only, with
+currency patterns still owed. The comparison graph explicitly enables
+`icu_decimal/alloc`, required for its string-output API. These sources are
+not native app overlays, reachable-artifact evidence or compiled results.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
