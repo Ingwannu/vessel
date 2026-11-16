@@ -675,3 +675,55 @@ fleet base12. The node does not serve label catalogs yet (`WORKSPACE_LABELS` is
 unset), so on a real fleet every host shows the update hint; listing, filtering
 and editing captures came from a separate capture-only build that seeds a fixed
 catalog and is not part of this branch.
+
+## Manager body as Paseo's (visual lane, 2026-11-16)
+
+The coordinator's verdict on the header-search captures passed the Kit seam and
+returned the rest of the body against Paseo's `workspace-labels/manager-modal.tsx`
+(120-357) and `swatch.tsx`. Rulings applied in the same change: the header search
+takes no focus on open (Paseo passes no `autoFocus`); Back from editing keeps the
+query and the field in agreement (a deliberate difference: Paseo's remounted
+uncontrolled field shows empty over a filtered list, against its own comment);
+one empty line for no labels and no match alike.
+
+[Decision Log]
+- Purpose: the manager looks and works as Paseo's on both presentations.
+- Before (W10b): host-named buttons, centred Ghost rows with the dot after the
+  name, alerts for every status, named colour pills, a body Back and stacked
+  Save/Delete.
+- Choice:
+  - Rows (`draw.rs`): one rail, the 10-point dot, the name in 12 `foreground`
+    on one line, then a 14-point muted pencil that is transparent until the row
+    is hovered (always shown on a phone) and 0.6 while pressed; min height 32,
+    gap 8, rows 4 apart. Only the pencil opens the edit view. It refuses while
+    the host is not online or an operation is under way.
+  - Host filter (`host_filter.rs`): Paseo's `HostFilter` pill only with more than
+    one host (book entries not yet resolved count, as disabled rows), opening
+    the kit combobox under it with each host's status dot and a check; no
+    "All hosts". The trigger is local until a second screen needs it.
+  - Status lines: Paseo's muted 12 lines ("No labels on this host.", "This host
+    is offline.", "Update this host to manage labels.") and its destructive
+    error line; the Korean words follow them.
+  - Edit view (`form.rs`): the Kit header back (`with_header_back`, Kit leaf
+    backend/m12-dialog-header-back-kit) in place of a body Back; a "Name" field
+    and a "Color" field (label 14 muted, 8 above) holding the swatch row
+    (`colors.rs`: ten 20-point circles, gap 12, wrapping, the selection a
+    2-point `foreground` ring inside the circle, no names); Delete (outline)
+    and Save (primary, at least 112 wide, enabled only once the draft differs)
+    side by side in the dialog footer.
+  - Confirmation: Paseo's `confirmDialog` content (the question and the
+    affected count) with Cancel and Delete (destructive) in the footer, in
+    place of the edit view; the kit has no dialog over a dialog.
+- Kept: every opening, host, connection and ticket check of the W10b actions.
+- Differences: the kit button has no loading state, so a pending save or check
+  shows a muted line under the swatches; the pencil's and swatches' `hitSlop` is
+  not reproduced (Paseo's web build has none); the colour names have no
+  accessible place until the kit has an accessibility tree.
+
+Tests (`areas::labels::draw_tests`): the rows' rail (dot at the list's edge,
+pencil at its end, min 32, 4 apart) and no focus on the search after opening;
+the filter only with two hosts, above the rows and sized to its content,
+opening the host list, closed with the manager; the pencil opening the edit
+view with the header back and the footer and without the header search, ten
+20-point swatches, a swatch recolouring the draft, and the header back
+returning to the list.
