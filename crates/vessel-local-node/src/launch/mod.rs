@@ -10,7 +10,7 @@ mod owned;
 #[cfg(test)]
 pub(crate) use owned::cleanup_witness;
 pub use owned::{KeptNode, ProcessExit};
-pub(crate) use owned::{Owned, Readiness, START_DEADLINE, STOP_DEADLINE, Started};
+pub(crate) use owned::{Owned, Readiness, START_DEADLINE, STOP_DEADLINE};
 
 /// A validated launch recipe, with caller-resolved environment applied to the child only.
 #[derive(Debug, Clone)]
