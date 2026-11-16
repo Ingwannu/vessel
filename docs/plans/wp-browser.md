@@ -8,6 +8,15 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Wait fixture correction
+
+The exact8a29290a strict run reached the new fixtures and rejected the held
+oneshot branch: Receiver yields Result<(),RecvError>, not unit. Require the
+actual successful arrival result explicitly before dropping the wait future;
+no barrier, assertion or deadline is removed. The queued functional job has
+not executed this known compiler failure and must be superseded only through
+the queued-only cancellation procedure, retaining the original receipt.
+
 ## Bounded wait controller follow-through
 
 Reference desktop browser-automation/service.ts:68–70,986–1040 polls text or

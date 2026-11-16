@@ -118,7 +118,7 @@ async fn cancelling_an_inflight_probe_cannot_rearm_the_uncertain_page() {
         let text = WaitFor::Text(RequiredInput::try_from("own needle".to_owned()).unwrap());
         let mut pending = Box::pin(fixture.page.wait(text, WaitBudget::Default));
         tokio::select! {
-            () = fixture.arrived => {},
+            arrived = fixture.arrived => { arrived.unwrap(); },
             result = &mut pending => panic!("held probe completed early: {result:?}"),
         }
         drop(pending);
