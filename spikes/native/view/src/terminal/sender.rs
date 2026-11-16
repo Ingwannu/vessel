@@ -132,3 +132,6 @@ impl TerminalSender {
         self.busy
     }
 }
+
+#[cfg(test)]
+mod tests;
