@@ -11,14 +11,14 @@ use serde::{Deserialize, Serialize};
 
 use super::MAX_BINDINGS;
 
-/// One action: 1 to 48 characters of `a-z`, `0-9` and `-`, starting with
+/// One action: 1 to 96 characters of `a-z`, `0-9` and `-`, starting with
 /// a letter.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct ActionId(String);
 
 /// The longest [`ActionId`], in characters (all ASCII).
-const MAX_ACTION: usize = 48;
+const MAX_ACTION: usize = 96;
 
 /// Text that is not an [`ActionId`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -72,59 +72,25 @@ impl fmt::Display for ActionId {
     }
 }
 
-/// The keys that run an action: one chord, or two in sequence (`G S`),
-/// separated by one space, at most 32 bytes. A chord is its modifiers
-/// (`Mod`, `Ctrl`, `Alt`, `Shift`, `Meta`, each at most once, in that
-/// order) then its key, joined by `+`; a key is a physical key as written
-/// on a US keyboard without Shift (`A`–`Z`, `0`–`9`, `` ` - = [ ] \ ; ' ,
-/// . / ``, or a named key), so `?` is `Shift+/`.
+/// The keys that run a binding: up to 16 chords (`G S`) separated by one
+/// space, at most 256 bytes. Each chord joins modifiers and one key with `+`.
+/// The shared grammar canonicalizes Cmd/Meta, arrow names and Digit templates.
+/// Matching prefers logical characters (including `?`); permitted physical
+/// fallbacks belong to `shortcuts::input`, never to persisted preference data.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct KeyBinding(String);
 
-/// The longest [`KeyBinding`], in bytes.
-const MAX_BINDING: usize = 32;
-
-/// The modifiers, in the only order a chord may name them.
-const MODIFIERS: [&str; 5] = ["Mod", "Ctrl", "Alt", "Shift", "Meta"];
-
-/// The keys with a name rather than a character.
-const NAMED_KEYS: [&str; 26] = [
-    "Enter",
-    "Escape",
-    "Tab",
-    "Space",
-    "Backspace",
-    "Delete",
-    "Up",
-    "Down",
-    "Left",
-    "Right",
-    "Home",
-    "End",
-    "PageUp",
-    "PageDown",
-    "F1",
-    "F2",
-    "F3",
-    "F4",
-    "F5",
-    "F6",
-    "F7",
-    "F8",
-    "F9",
-    "F10",
-    "F11",
-    "F12",
-];
-
-/// The punctuation keys of a US keyboard, unshifted.
-const PUNCTUATION: &[u8] = b"`-=[]\\;',./";
+/// The parser and persisted bound are the same as the active shortcut engine.
+const MAX_BINDING: usize = crate::shortcuts::sequence::MAX_SEQUENCE_BYTES;
 
 /// Why text is not a [`KeyBinding`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum InvalidKeyBinding {
-    /// Longer than 32 bytes.
+    /// The shared engine grammar refused this persisted shortcut.
+    #[error(transparent)]
+    Sequence(#[from] crate::shortcuts::sequence::SequenceError),
+    /// Legacy decoding reason retained for callers of older settings formats.
     #[error("a key binding is at most {MAX_BINDING} bytes")]
     TooLong,
     /// Not one chord or two separated by one space.
@@ -156,50 +122,9 @@ impl FromStr for KeyBinding {
     type Err = InvalidKeyBinding;
 
     fn from_str(text: &str) -> Result<Self, InvalidKeyBinding> {
-        if text.len() > MAX_BINDING {
-            return Err(InvalidKeyBinding::TooLong);
-        }
-        let mut chords = 0_usize;
-        for chord in text.split(' ') {
-            chords = chords.saturating_add(1);
-            if chords > 2 {
-                return Err(InvalidKeyBinding::Chords);
-            }
-            check_chord(chord)?;
-        }
-        Ok(Self(text.to_owned()))
-    }
-}
-
-/// One chord: modifiers in order, then a key.
-fn check_chord(chord: &str) -> Result<(), InvalidKeyBinding> {
-    // `+` is not a key (it is `Shift+=`), so splitting on it is exact.
-    let mut parts = chord.split('+').rev();
-    let key = parts.next().unwrap_or_default();
-    if key.is_empty() {
-        return Err(InvalidKeyBinding::NoKey);
-    }
-    if !is_key(key) {
-        return Err(InvalidKeyBinding::Key(key.to_owned()));
-    }
-    let mut after = MODIFIERS.len();
-    for modifier in parts {
-        let rank = MODIFIERS
-            .iter()
-            .position(|known| *known == modifier)
-            .ok_or_else(|| InvalidKeyBinding::Modifier(modifier.to_owned()))?;
-        if rank >= after {
-            return Err(InvalidKeyBinding::Order);
-        }
-        after = rank;
-    }
-    Ok(())
-}
-
-fn is_key(key: &str) -> bool {
-    match key.as_bytes() {
-        [byte] => byte.is_ascii_uppercase() || byte.is_ascii_digit() || PUNCTUATION.contains(byte),
-        _ => NAMED_KEYS.contains(&key),
+        Ok(Self(
+            crate::shortcuts::sequence::KeySequence::parse(text)?.text(),
+        ))
     }
 }
 

@@ -20,7 +20,7 @@ fn theme_cycle_uses_the_primary_modifier_and_alt_on_both_platforms() {
         );
         assert_eq!(
             matched(&chord("Mod+Shift+T"), None, &none, 0, platform),
-            Matched::None
+            run(Action::NewTerminal)
         );
     }
     let option = KeyPress {
@@ -63,10 +63,10 @@ fn rebound_theme_cycle_keeps_its_scope_and_appears_in_general() {
     assert!(!action.enabled(ShortcutScope::Terminal, OTHER));
     assert!(!action.enabled(ShortcutScope::CommandCenter, OTHER));
     assert_eq!(action.group(), ShortcutGroup::General);
-    let row = shortcut_row(action, &changed, OTHER, Lang::En.shortcuts());
+    let row = shortcut_row(action, &changed, OTHER, words(Lang::En));
     assert_eq!(row.words, ["Ctrl+J"]);
-    assert_eq!(Lang::En.shortcuts().label(action), "Cycle theme");
-    assert_eq!(Lang::Ko.shortcuts().label(action), "테마 전환");
+    assert_eq!(words(Lang::En).label(action), "Cycle theme");
+    assert_eq!(words(Lang::Ko).label(action), "테마 전환");
     assert_eq!(
         clash_of(Action::Find, &binding("Mod+J"), &changed, OTHER),
         Some(Clash::Taken(Action::CycleTheme))

@@ -433,3 +433,19 @@ The existing follow implementation is desktop-only again, matching the shared
 line. Native behavior is identical; no browser transport or unsupported facade
 is invented. The failed browser log is retained and a corrected receiving
 browser check is required.
+
+### Receiving base 14.2
+
+The announced c6d8df49 App line is merged with the existing creation caller and
+scoped draft state retained. The incoming shortcut dispatcher replaces the old
+inline dispatcher; NewWorkspace extends only the existing local composer-focus
+and route matches. No legacy NewSession-to-Draft fallback is restored. The
+incoming framed testing extraction is retained and its State initializer gets
+the existing mentions owner exactly once. AttachmentCall preserves the identical
+typed cause through vessel-client's existing CallError re-export, allowing the
+canonical direct RPC edge to remain optional/testing-only. Existing find support
+coexists with incoming revision/composition tests. The session size ratchet falls
+from618 to584; no record is raised. Incoming generated wire whitespace remains
+byte-preserved. Current receiving native checks are owed; prior base13 strict,
+wasm and draft cases keep their original source scope. No new workspace authority,
+registered runtime create API, live minter/follow or root lookup is inferred.

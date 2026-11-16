@@ -108,6 +108,7 @@ pub(crate) fn arrive(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    areas::shortcuts::navigation_changed(shell);
     match route {
         Route::Draft | Route::NewWorkspace => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),

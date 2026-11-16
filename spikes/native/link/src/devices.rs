@@ -17,6 +17,8 @@ use vessel_proto::{DeviceId, DeviceInfo};
 /// What the Devices page asks a node.
 #[derive(Debug)]
 pub enum Ask {
+    /// Inspect only this admitted caller’s effective grant and optional id.
+    Authority,
     /// List all devices, including revoked ones.
     List,
     /// Make a single-use invitation using the page's ten-minute lifetime.
@@ -34,6 +36,10 @@ pub enum Ask {
 /// A response tagged with the outstanding page request's identity.
 #[derive(Debug)]
 pub enum Outcome {
+    /// A sent write hit the local deadline; its remote outcome is unknown.
+    Unconfirmed(Ticket),
+    /// Facts of this exact authenticated caller, never a guessed default grant.
+    Authority(Ticket, Result<vessel_proto::DeviceSelf, Problem>),
     /// The current devices.
     Listed(Ticket, Result<Vec<DeviceInfo>, Problem>),
     /// A credential, initially masked by its view model.
@@ -42,26 +48,31 @@ pub enum Outcome {
     Revoked(Ticket, Result<(), Problem>),
 }
 
-/// A reply cannot migrate to a new physical connection under the same alias.
-#[derive(Debug)]
-pub struct Answer {
-    /// The admission selected before the operation was sent.
-    pub context: ConnectionContext,
-    /// The request identity and safe result, with no raw error text.
-    pub outcome: Outcome,
-}
+mod receipt;
+use receipt::Pending;
+pub use receipt::{Answer, Failed, Received};
 
-#[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy)]
 enum Kind {
+    Authority,
     List,
     Invite,
     Revoke,
 }
-#[cfg(not(target_arch = "wasm32"))]
 impl Kind {
+    #[cfg(not(target_arch = "wasm32"))]
+    fn timed_out(self, ticket: Ticket) -> Outcome {
+        match self {
+            Self::Invite | Self::Revoke => Outcome::Unconfirmed(ticket),
+            Self::Authority | Self::List => self.refused(
+                ticket,
+                Problem::Refused(vessel_proto::ErrorCode::Unavailable),
+            ),
+        }
+    }
     fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
         match self {
+            Self::Authority => Outcome::Authority(ticket, Err(why)),
             Self::List => Outcome::Listed(ticket, Err(why)),
             Self::Invite => Outcome::Invited(ticket, Err(why)),
             Self::Revoke => Outcome::Revoked(ticket, Err(why)),
@@ -70,22 +81,24 @@ impl Kind {
 }
 
 impl Ask {
-    #[cfg(not(target_arch = "wasm32"))]
     fn kind(&self) -> Kind {
         match self {
+            Self::Authority => Kind::Authority,
             Self::List => Kind::List,
             Self::Invite { .. } => Kind::Invite,
             Self::Revoke { .. } => Kind::Revoke,
         }
     }
+    /// Correlate a local refusal without any successful data or guard.
+    /// This is used only when a command was never dispatched.
+    #[must_use]
+    pub fn rejected(self, context: ConnectionContext, ticket: Ticket, why: Problem) -> Answer {
+        Answer::refused(context, Pending::new(&self, ticket), why)
+    }
     /// Refuse without a connection (or on the browser's demo surface).
     #[must_use]
     pub fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
-        match self {
-            Self::List => Outcome::Listed(ticket, Err(why)),
-            Self::Invite { .. } => Outcome::Invited(ticket, Err(why)),
-            Self::Revoke { .. } => Outcome::Revoked(ticket, Err(why)),
-        }
+        self.kind().refused(ticket, why)
     }
 }
 
@@ -152,7 +165,7 @@ const CALL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 /// Calls are bounded even while a person switches machines repeatedly.
 /// A stalled node cannot accumulate one background task per navigation.
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Hub(std::sync::Arc<tokio::sync::Semaphore>);
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -162,38 +175,68 @@ impl Default for Hub {
     }
 }
 
+// Explicit fixtures wait for the existing permits after closing their event
+// receiver. No second task registry or counter is invented for tests.
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+impl Hub {
+    pub(crate) async fn drained(&self) -> Result<(), tokio::sync::AcquireError> {
+        let mut held = Vec::with_capacity(MAX_CALLS);
+        for _ in 0..MAX_CALLS {
+            held.push(self.0.acquire().await?);
+        }
+        drop(held);
+        Ok(())
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) async fn devices(&self, context: &ConnectionContext, ticket: Ticket, ask: Ask) {
+        let pending = Pending::new(&ask, ticket);
         let connected = match self.selected_connection(context) {
             Ok(connected) => connected,
             Err(why) => {
-                self.emit(crate::Event::Devices(Answer {
-                    context: context.clone(),
-                    outcome: ask.refused(ticket, selected_problem(why.into())),
-                }))
+                self.emit(crate::Event::Devices(Answer::refused(
+                    context.clone(),
+                    pending,
+                    receipt::problem(why),
+                )))
                 .await;
                 return;
             }
         };
         let Ok(permit) = std::sync::Arc::clone(&self.device_calls.0).try_acquire_owned() else {
-            self.emit(crate::Event::Devices(Answer {
-                context: context.clone(),
-                outcome: ask.refused(
-                    ticket,
-                    Problem::Refused(vessel_proto::ErrorCode::Unavailable),
-                ),
-            }))
+            self.emit(crate::Event::Devices(Answer::refused(
+                context.clone(),
+                pending,
+                Problem::Refused(vessel_proto::ErrorCode::Unavailable),
+            )))
             .await;
             return;
         };
         let context = context.clone();
         let events = self.events.clone();
         drop(tokio::spawn(async move {
+            let guard = connected.delivery_guard();
             let outcome = bounded_call(&connected, ticket, ask).await;
-            let _closed = events
-                .send(crate::Event::Devices(Answer { context, outcome }))
+            let answer = Answer::completed(context.clone(), pending, guard, outcome);
+            let sent = connected
+                .send_guarded(&events, crate::Event::Devices(answer))
                 .await;
+            // Fallback egress holds only codes/correlation, never an old client.
+            drop(connected);
+            match sent {
+                Ok(()) | Err(crate::connections::SendFailure::ReceiverClosed) => {}
+                Err(crate::connections::SendFailure::Refused(why)) => {
+                    let _closed = events
+                        .send(crate::Event::Devices(Answer::retired(
+                            context,
+                            pending,
+                            receipt::problem(why),
+                        )))
+                        .await;
+                }
+            }
             drop(permit);
         }));
     }
@@ -207,11 +250,8 @@ async fn bounded_call(
 ) -> Outcome {
     // Keep the operation kind to answer a timeout without retaining a
     // credential or cloning a request. A timed-out write may have taken
-    // effect; the page refreshes instead of applying an optimistic edit.
-    let timed_out = ask.kind().refused(
-        ticket,
-        Problem::Refused(vessel_proto::ErrorCode::Unavailable),
-    );
+    // effect; preserve that uncertainty rather than call it a refusal.
+    let timed_out = ask.kind().timed_out(ticket);
     tokio::time::timeout(CALL_DEADLINE, call(client, ticket, ask))
         .await
         .unwrap_or(timed_out)
@@ -224,6 +264,13 @@ async fn call(
     ask: Ask,
 ) -> Outcome {
     match ask {
+        Ask::Authority => Outcome::Authority(
+            ticket,
+            client
+                .call(vessel_proto::GetDeviceSelf {})
+                .await
+                .map_err(selected_problem),
+        ),
         Ask::List => Outcome::Listed(
             ticket,
             client
