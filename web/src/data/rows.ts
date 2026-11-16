@@ -23,6 +23,7 @@
 
 import type { Entry } from "./timeline-model";
 import type { Folds } from "./tool-runs";
+import { isInternalInput } from "./timeline-input";
 
 /** The entries drawn as the window's rows, in order. */
 export function rowsOf(
@@ -30,11 +31,12 @@ export function rowsOf(
   folds: Folds | null,
   open: ReadonlySet<string>,
 ): readonly Entry[] {
-  if (folds === null) {
+  if (folds === null && !entries.some(isInternalInput)) {
     return entries;
   }
   return entries.filter((entry) => {
-    const run = folds.get(entry.key);
+    if (isInternalInput(entry)) return false;
+    const run = folds?.get(entry.key);
     return run === undefined || run.lead === entry.key || open.has(run.lead);
   });
 }

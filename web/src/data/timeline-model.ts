@@ -7,6 +7,7 @@ import type {
   AttachmentRef,
   ClientMessageId,
   ContentBlock,
+  EventSeq,
   ModelCall,
   PermissionOutcome,
   PermissionRequest,
@@ -48,6 +49,8 @@ export type Entry =
       attachments: readonly AttachmentRef[];
       /** Exact keyed echo; absent for legacy/provider-replayed input. */
       clientMessage?: ClientMessageId;
+      /** Hidden presentation, retaining the actual turn boundary and notice link. */
+      internalNotice?: EventSeq;
       /** A new session's first prompt shown before its log has it
        * (data/openings.ts); never set on a record of the log. */
       sending?: true;
@@ -59,6 +62,8 @@ export type Entry =
       attachments: readonly AttachmentRef[];
       /** Display reconciliation only, never an acceptance capability. */
       clientMessage?: ClientMessageId;
+      /** Explicit local notice link, never inferred from words. */
+      internalNotice?: EventSeq;
     })
   /** A question the agent asked, and how it was settled (`null` while it
    * waits); the form itself is docked over the composer. */
@@ -229,7 +234,10 @@ export function appendText(
   turn: number,
 ): void {
   const last = entries.at(-1);
-  if (last?.kind === kind) {
+  if (
+    last?.kind === kind &&
+    (last.kind !== "prompt" || last.internalNotice === undefined)
+  ) {
     entries[entries.length - 1] = { ...last, text: last.text + text };
     return;
   }

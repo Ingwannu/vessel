@@ -12,6 +12,7 @@ import { when } from "../../data/format";
 import { Markdown } from "../../data/markdown";
 import { apiName, callParts } from "../../data/models";
 import type { Entry } from "../../data/timeline-model";
+import { isInternalInput } from "../../data/timeline-input";
 import { Icon, Tooltip } from "../../ui/kit";
 import { PromptFiles } from "./prompt-files";
 import { QuestionEntry } from "./question-entry";
@@ -45,6 +46,7 @@ export const TimelineItem = memo(function TimelineItem({
 });
 
 function Item({ entry }: { entry: Entry }) {
+  if (isInternalInput(entry)) return null;
   switch (entry.kind) {
     case "command":
       return (

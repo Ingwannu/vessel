@@ -203,3 +203,23 @@ same traversal, and the obsolete queue branch is removed from the unrelated
 title-origin helper. The assertion remains unchanged; a new queue snapshot
 fixture also covers GetConversation/ChangeQueue direct and encoded fleet hops.
 The e2c9 run remains RED and does not prove this correction or the newer base.
+
+
+## Web reader join checkpoint
+
+The web reducer clears the ordinary words/files from explicitly associated
+input entries, retaining the original notice sequence and REAL prompt boundary.
+Rows, speech and find omit that input; tool folds still see its boundary. The
+outline closes the previous person's reply at that boundary and does not attach
+a notice-triggered reply to the previous prompt. A later untagged user chunk
+cannot merge into a hidden entry: it stays visible independently. No text/id
+prefix or current-turn inference selects suppression.
+
+Queue rows retain exact entry/revision/order and the notice link but expose no
+internal input as editor text/files. Their visible caption is Agent notification;
+explicit person edits still use the existing canonical queue mutation and clear
+the association at the owner. A pure reducer/fold/outline/search/speech fixture,
+a queue-row fixture and a static renderer fixture pin these joins. They are
+written, not yet executed on this changed blob. They add no private producer or
+RPC and do not qualify title/inbox/push/MCP/export/native readers or full private
+admission. Existing named-reader union and trusted InputEcho remain required.

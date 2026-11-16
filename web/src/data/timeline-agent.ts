@@ -5,6 +5,7 @@
 
 import type { AgentEvent, PlanEntry, ToolCallScope } from "../wire/proto";
 import * as conversation from "./conversation";
+import { inputParts } from "./timeline-input";
 import {
   type Base,
   blockText,
@@ -67,14 +68,12 @@ export function applyAgent(
       work.turns += 1;
       work.inTurn = true;
       work.turn = base.seq;
-      const { text, attachments } = promptParts(event.content);
       work.entries.push({
         ...base,
         kind: "prompt",
-        text,
+        ...inputParts(event),
         replayed: false,
         turn: work.turns,
-        attachments,
         ...(event.client_message_id === undefined ||
         event.client_message_id === null
           ? {}
@@ -83,6 +82,7 @@ export function applyAgent(
       return;
     }
     case "user_message_chunk":
+      if (event.provenance !== undefined && event.provenance !== null) return;
       work.merge(base, "prompt", blockText(event.content));
       return;
     case "message_chunk":
@@ -219,12 +219,10 @@ function conversationEntry(
 ): void {
   switch (event.event) {
     case "steered": {
-      const { text, attachments } = promptParts(event.content);
       work.entries.push({
         ...base,
         kind: "steer",
-        text,
-        attachments,
+        ...inputParts(event),
         ...(event.client_message_id === undefined ||
         event.client_message_id === null
           ? {}

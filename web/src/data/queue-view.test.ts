@@ -44,6 +44,25 @@ test("rows know their neighbours, so a move names the entry to go before", () =>
   expect(queueRows(null)).toEqual([]);
 });
 
+test("a notice queue row keeps exact order identity without exposing input as editor text", () => {
+  const internal = {
+    ...entry("internal", "private instruction"),
+    provenance: { kind: "internal_notice" as const, notice: 8 },
+  };
+  const rows = queueRows({ entries: [internal, entry("person", "Visible")] });
+  expect(rows[0]).toMatchObject({
+    id: internal.id,
+    revision: 1,
+    text: "",
+    attachments: [],
+    internalNotice: 8,
+    first: true,
+  });
+  expect(rows[1]?.before).toBe(internal.id);
+  expect(rows[1]?.text).toBe("Visible");
+  expect(JSON.stringify(rows)).not.toContain("private instruction");
+});
+
 test("an edit replaces the words and keeps the files", () => {
   const content = [
     { type: "text" as const, text: "old" },

@@ -7,6 +7,7 @@
 
 import { readableText } from "./find";
 import type { Entry } from "./timeline-model";
+import { isInternalInput } from "./timeline-input";
 
 /** One prompt in the outline. */
 export interface OutlineItem {
@@ -58,24 +59,27 @@ function previewOf(entry: Entry, max: number, text: () => string): string {
  * turn is read, once per entry object. */
 export function outline(entries: readonly Entry[]): OutlineItem[] {
   const items: OutlineItem[] = [];
+  let current: OutlineItem | null = null;
   let last: Entry | null = null;
   const close = () => {
-    const item = items.at(-1);
-    if (item !== undefined && last !== null && last.kind === "message") {
+    if (current !== null && last !== null && last.kind === "message") {
       const reply = last;
-      item.reply = previewOf(reply, REPLY, () => readableText(reply.text));
+      current.reply = previewOf(reply, REPLY, () => readableText(reply.text));
     }
   };
   for (const entry of entries) {
     if (entry.kind === "prompt") {
       close();
       last = null;
-      items.push({
+      current = null;
+      if (isInternalInput(entry)) continue;
+      current = {
         key: entry.key,
         prompt: previewOf(entry, PREVIEW, () => entry.text),
         reply: null,
-      });
-    } else if (entry.kind === "message" && items.length > 0) {
+      };
+      items.push(current);
+    } else if (entry.kind === "message" && current !== null) {
       last = entry;
     }
   }

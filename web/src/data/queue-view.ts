@@ -10,6 +10,7 @@ import type {
   AttachmentRef,
   ContentBlock,
   Creator,
+  EventSeq,
   PromptQueue,
   QueueEntryId,
   QueueHold,
@@ -21,6 +22,8 @@ export interface QueueRow {
   revision: number;
   /** Its words (text blocks joined), for the row and the editor. */
   text: string;
+  /** Display-only association; editing still requires explicit new words. */
+  internalNotice?: EventSeq;
   /** The files it carries, kept as they are by an edit. */
   attachments: readonly AttachmentRef[];
   /** Who queued it, when not the person at this page's machine. */
@@ -83,8 +86,12 @@ export function queueRows(queue: PromptQueue | null): QueueRow[] {
   return entries.map((entry, index) => ({
     id: entry.id,
     revision: entry.revision,
-    text: promptText(entry.content),
-    attachments: promptAttachments(entry.content),
+    text: entry.provenance == null ? promptText(entry.content) : "",
+    attachments:
+      entry.provenance == null ? promptAttachments(entry.content) : [],
+    ...(entry.provenance == null
+      ? {}
+      : { internalNotice: entry.provenance.notice }),
     by: creatorName(entry.by),
     before: index === 0 ? null : (entries[index - 1]?.id ?? null),
     afterNext: entries[index + 2]?.id ?? null,

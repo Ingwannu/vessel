@@ -133,9 +133,11 @@ export function QueueDock({
               <Icon name="circle" size={12} />
             </span>
             <span className="queue-text">
-              {row.text === ""
-                ? `${String(row.attachments.length)} files`
-                : row.text}
+              {row.internalNotice !== undefined
+                ? "Agent notification"
+                : row.text === ""
+                  ? `${String(row.attachments.length)} files`
+                  : row.text}
             </span>
             {row.attachments.length > 0 && row.text !== "" ? (
               <span className="queue-files">

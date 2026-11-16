@@ -11,9 +11,11 @@ import { commandStatus } from "./native-command";
 import { settled, settledLine } from "./approval";
 import { turnTokens } from "./context-meter";
 import type { Entry } from "./timeline-model";
+import { isInternalInput } from "./timeline-input";
 
 /** `entry` as a line to announce. */
 export function spoken(entry: Entry): string {
+  if (isInternalInput(entry)) return "";
   switch (entry.kind) {
     case "command":
       return `${entry.text} · ${commandStatus(entry.item.status)}`;

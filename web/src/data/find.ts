@@ -27,6 +27,7 @@
 //   entry only, and marks what it finds.
 
 import type { Entry } from "./timeline-model";
+import { isInternalInput } from "./timeline-input";
 
 /** One occurrence: the entry it is in and its index there. */
 export interface Match {
@@ -43,6 +44,7 @@ const SLICE = 200;
 
 /** The kinds of entry a find looks in. */
 export function searchable(entry: Entry): string | null {
+  if (isInternalInput(entry)) return null;
   switch (entry.kind) {
     case "command":
     case "prompt":
