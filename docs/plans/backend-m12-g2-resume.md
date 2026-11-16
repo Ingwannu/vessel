@@ -483,3 +483,36 @@ W19 gets a producer only after V1 passes, no premature key input. W10b separatel
 owns search.rs-only identity wrapper; do not edit that file.
 No own app/fleet/display started. All Cargo remains remote only. Packet directories
 are explicitly0700 and own source manifests0600 under the same UID/GID1000.
+
+### 01:3x UTC shared-proof continuation
+
+- Isolated Code/MDc81 completed exact locked Kit strict0/full lib246/0/0;
+  bounded V1 finalSOURCE/requestedNARROW PASS, receipts60e35e2d9. Lead-first
+  selected handoff sent; main46bbd9a2c preserved its eight identical Rust files.
+  No fontpixels/OSIME/App/F1 or childsecure proof is borrowed.
+- Securede055 strict ended RED before tests: documentation/unit semicolons and
+  test cast/assert-style batch. Complete repaird2a4f757d is committed in its
+  isolated producer; redacted assertion wrappers never print replacement or
+  clipboard content. Corrected execution waits for the real a11y hook.
+- Coordinator assigns GPUI test-support change11 (number reserved by lead),
+  isolated base13. Code31ed5ec0 retains real A11yCallbacks and adds explicit
+  test activation outside the lock; default tests stay inactive, no production
+  backend/renderer/fake node. Kit typed decoder has nonsecret ordinary-value
+  negative control and never prints raw snapshots. Coordinator explicitly
+  approved only two direct dev edges to already-resolved serde/serde_json;
+  native lock changes only those edges, no new package/version/production edge.
+- Exact31ed locked strict ended7test-decoder lints, no tests; corrected87aadffd5
+  changes only the complete lint batch and red receipt. OrdinarySHORTpriority0
+  same schedules suite is queued as schedules-20261116T013649Z-87aadffd.
+  Do not duplicate; check its result, then V1 and lead adoption BEFORE secure
+  counts actual PasswordInput/no-value frame proof. No priority/extra label.
+- Control-only Linux probe source is private preparation, not compiled/run;
+  it will use the approved native-build/export-app path only, with synthetic
+  input and closed observation flags, fresh private authenticated display and
+  no node/store/book initialization. No real-secret/OSAT/UI claim exists.
+- Separate node tree merged announcedbc9cacc6 ase74773371. Own Ended source
+  is already ancestral; no unchanged node recheck. Runtime W3 creation/W21
+  archive and W12 admitted history navigation remain unavailable/hidden.
+- Main F1f295 corrected App/View batch still awaits receiving checks; App is
+  a binary, so use an explicit --bin vessel-app test step, never --lib as App
+  proof. No own process/fleet/display started and all Cargo remains remote.
