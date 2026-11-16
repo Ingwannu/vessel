@@ -34,7 +34,9 @@ pub enum FinishGrantCeiling {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum ExecutionInvalidation {
-    /// Explicit human stop, before its first effect.
+    /// Explicit authorized stop, before its first effect. This diagnostic cause
+    /// also covers already-allowed agent requests; it proves no human principal
+    /// and changes neither authorization nor the stop operation's permissions.
     PersonStop,
     /// Explicit resume never restores old intent authority.
     Resume,
