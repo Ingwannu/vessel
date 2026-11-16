@@ -12,10 +12,6 @@ use crate::logs::LogReader;
 
 #[cfg(windows)]
 mod bootstrap;
-#[cfg(test)]
-pub(crate) mod cleanup_witness;
-#[cfg(test)]
-mod tests;
 
 pub(crate) struct Owned {
     child: Child,
@@ -240,3 +236,8 @@ pub(crate) const STOP_DEADLINE: Duration = Duration::from_secs(15);
 
 /// Failed startup gets its own bounded original-child settlement phase.
 const CLEANUP_DEADLINE: Duration = Duration::from_secs(5);
+
+#[cfg(test)]
+pub(crate) mod cleanup_witness;
+#[cfg(test)]
+mod tests;
