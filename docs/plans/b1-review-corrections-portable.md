@@ -26,3 +26,8 @@ frozen candidate's newer image-acquisition fixture does not enter this packet.
 
 Receiving compilation/runtime and official CommandKind App-base adoption remain
 owed. There is no common job or product activation from this preparation.
+
+The original17f check passed quality and found two bounded-peer fixture lints.
+The corrected Future qualification and if-let join handling match the Main
+follow-up exactly; receiving execution remains owed. No timeout or cleanup
+semantics changed.
