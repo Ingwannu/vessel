@@ -19,6 +19,7 @@ getrandom.workspace = true
 subtle.workspace = true
 
 [dev-dependencies]
+vessel-testkit.workspace = true
 tempfile.workspace = true
 
 [lints]

@@ -236,3 +236,17 @@ bound while adding its existing Store tee; unmanaged modes keep the binary
 owner's stderr path. No broader user filter can reopen private backend logging.
 This merge requires its own combined source/runtime qualification; earlier
 pre-helper checks do not prove it.
+
+## Correction fixture timing and ownership
+
+The correction's local transport, first-record and retained-peer cases use the
+canonical testkit prebuild-before-clock outer bound. Named five-second phases
+bound original accept, credential frame, handshake closure, fixture entry and
+original checked exit separately inside the meaningful thirty-second case bound.
+The ignored-SIGCHLD control waits the original std Child for ECHILD; the positive
+case retains the actual registered SIGCHLD receiver, takes one known-child zombie
+snapshot after its exit notification, then waits/reaps that same child. No sleep
+or repeated proc scan orders this control. The self-reexec is isolated in an
+owned outer process group, with a positive stdout ACK; output/handshake futures
+remain scoped and are not detached on an assertion or deadline failure. This
+source correction is unexecuted and does not qualify other fixture ancestry.

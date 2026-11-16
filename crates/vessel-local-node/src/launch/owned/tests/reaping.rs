@@ -2,13 +2,10 @@
 
 use super::*;
 use std::process::{Command as StdCommand, Stdio};
-use std::time::Instant;
 use tokio::io::AsyncReadExt as _;
 
 const FIXTURE: &str = "VESSEL_IGNORED_CHILD_REAPING_FIXTURE";
 const VERIFIED: &str = "managed-child-reaping-verified";
-const PROBE_DEADLINE: Duration = Duration::from_secs(5);
-const PROBE_PAUSE: Duration = Duration::from_millis(10);
 const MAX_FIXTURE_BYTES: u64 = 8 * 1024;
 const ECHILD: i32 = 10;
 
@@ -22,31 +19,6 @@ fn short_child(root: &std::path::Path) -> std::process::Child {
         .stderr(Stdio::null())
         .spawn()
         .unwrap()
-}
-
-fn observe(process: u32, wanted: Option<&str>) {
-    let path = format!("/proc/{process}/stat");
-    let started = Instant::now();
-    loop {
-        match std::fs::read_to_string(&path) {
-            Ok(stat) if wanted.is_some() => {
-                let (_, fields) = stat.rsplit_once(')').unwrap();
-                if fields.split_whitespace().next() == wanted {
-                    return;
-                }
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound && wanted.is_none() => {
-                return;
-            }
-            Ok(_) => {}
-            Err(error) => panic!("known child observation failed: {error}"),
-        }
-        assert!(
-            started.elapsed() < PROBE_DEADLINE,
-            "known child did not reach expected kernel state"
-        );
-        std::thread::sleep(PROBE_PAUSE);
-    }
 }
 
 #[test]
@@ -63,24 +35,45 @@ fn inherited_ignored_sigchld_fixture() {
         // No explicit child-signal registration yet: prove the inherited ignore
         // really auto-reaps, rather than trusting the shell command's spelling.
         let mut baseline = short_child(root.path());
-        observe(baseline.id(), None);
-        assert_eq!(
-            baseline.try_wait().unwrap_err().raw_os_error(),
-            Some(ECHILD)
-        );
+        let baseline_pid = baseline.id();
+        let baseline_wait = tokio::task::spawn_blocking(move || baseline.wait());
+        let error = step("ignored child original wait", baseline_wait)
+            .await
+            .unwrap()
+            .unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(ECHILD));
+        assert!(!std::fs::exists(format!("/proc/{baseline_pid}")).unwrap());
 
-        let _retained_registration = register_reaping().unwrap();
+        let mut retained_registration = register_reaping().unwrap();
         let mut retained = short_child(root.path());
-        observe(retained.id(), Some("Z"));
-        assert!(retained.wait().unwrap().success());
-        observe(retained.id(), None);
+        step(
+            "registered child exit notification",
+            retained_registration.recv(),
+        )
+        .await
+        .expect("child signal stream ended");
+        // This isolated process has no other child. The actual SIGCHLD event
+        // orders one read-only snapshot; no sleep or polling supplies evidence.
+        let path = format!("/proc/{}/stat", retained.id());
+        let stat = std::fs::read_to_string(&path).unwrap();
+        let (_, fields) = stat.rsplit_once(')').unwrap();
+        assert_eq!(fields.split_whitespace().next(), Some("Z"));
+        let retained_wait = tokio::task::spawn_blocking(move || retained.wait());
+        assert!(
+            step("registered child original wait", retained_wait)
+                .await
+                .unwrap()
+                .unwrap()
+                .success()
+        );
+        assert!(!std::fs::exists(path).unwrap());
         println!("{VERIFIED}");
     });
 }
 
 #[tokio::test]
 async fn ignored_sigchld_is_replaced_before_pid_based_ownership_evidence() {
-    tokio::time::timeout(SAFETY_NET, async {
+    vessel_testkit::within(SAFETY_NET, async {
         let root = tempfile::tempdir().unwrap();
         let command = CommandSpec::new("/bin/sh")
             .args(["-c", "trap '' CHLD; exec \"$@\"", "managed-reaping-fixture"])
@@ -101,7 +94,9 @@ async fn ignored_sigchld_is_replaced_before_pid_based_ownership_evidence() {
             mut stderr,
         } = spawn(&command).unwrap();
         drop(stdin);
-        let output = tokio::spawn(async move {
+        // These futures remain in this scope: failure drops the retained owner
+        // and both readers, rather than detaching output tasks from cleanup.
+        let output = async move {
             let mut bytes = Vec::new();
             let _read = stdout
                 .take(MAX_FIXTURE_BYTES)
@@ -109,15 +104,19 @@ async fn ignored_sigchld_is_replaced_before_pid_based_ownership_evidence() {
                 .await
                 .unwrap();
             bytes
-        });
-        let errors = tokio::spawn(async move {
+        };
+        let errors = async move {
             let _drained = tokio::io::copy(&mut stderr, &mut tokio::io::sink())
                 .await
                 .unwrap();
-        });
-        let exit = child.wait_checked().await.unwrap();
-        let output = String::from_utf8(output.await.unwrap()).unwrap();
-        errors.await.unwrap();
+        };
+        let (exit, output, ()) = tokio::join!(
+            step("ignored-SIGCHLD fixture checked exit", child.wait_checked()),
+            step("ignored-SIGCHLD fixture stdout ACK", output),
+            step("ignored-SIGCHLD fixture stderr EOF", errors),
+        );
+        let exit = exit.unwrap();
+        let output = String::from_utf8(output).unwrap();
         assert_eq!(exit.code(), Some(0));
         assert!(
             output.contains(VERIFIED),

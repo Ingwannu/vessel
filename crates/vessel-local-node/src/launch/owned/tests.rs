@@ -6,6 +6,14 @@ use tokio::io::AsyncWriteExt as _;
 use vessel_proc::{CommandSpec, spawn};
 
 const SAFETY_NET: Duration = Duration::from_secs(30);
+const PHASE_DEADLINE: Duration = Duration::from_secs(5);
+
+async fn step<F: std::future::Future>(name: &str, operation: F) -> F::Output {
+    tokio::time::timeout(PHASE_DEADLINE, operation)
+        .await
+        .unwrap_or_else(|error| panic!("{name} timed out: {error}"))
+}
+
 const READY: &str = "owned fixture ready\n";
 const FIXTURE_ENV: &str = "VESSEL_LOCAL_NODE_KEEP_REFUSAL_FIXTURE";
 
@@ -78,7 +86,7 @@ async fn refused_keep_preserves_the_live_owner_until_explicit_drop() {
 #[cfg(unix)]
 #[tokio::test]
 async fn peer_qualification_requires_the_exact_unreaped_owner() {
-    tokio::time::timeout(SAFETY_NET, async {
+    vessel_testkit::within(SAFETY_NET, async {
         let command = CommandSpec::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
@@ -104,13 +112,16 @@ async fn peer_qualification_requires_the_exact_unreaped_owner() {
             logs: LogReader::collect(stderr),
         };
         let mut stdout = BufReader::new(stdout);
-        loop {
-            let mut line = String::new();
-            assert_ne!(stdout.read_line(&mut line).await.unwrap(), 0);
-            if line.ends_with(READY) {
-                break;
+        step("owned fixture readiness", async {
+            loop {
+                let mut line = String::new();
+                assert_ne!(stdout.read_line(&mut line).await.unwrap(), 0);
+                if line.ends_with(READY) {
+                    break;
+                }
             }
-        }
+        })
+        .await;
         assert!(owned.qualify_peer(Some(process)).is_ok());
         assert!(matches!(
             owned.qualify_peer(None),
@@ -121,7 +132,9 @@ async fn peer_qualification_requires_the_exact_unreaped_owner() {
             Err(LaunchError::PeerUnverified)
         ));
         drop(stdin);
-        let _reaped = owned.wait().await.unwrap();
+        let _reaped = step("original owner checked exit", owned.wait())
+            .await
+            .unwrap();
         assert!(
             matches!(
                 owned.qualify_peer(Some(process)),
@@ -136,12 +149,17 @@ async fn peer_qualification_requires_the_exact_unreaped_owner() {
 
 #[tokio::test]
 async fn first_record_completes_without_eof_and_refuses_prefetched_duplicates() {
-    tokio::time::timeout(SAFETY_NET, async {
+    vessel_testkit::within(SAFETY_NET, async {
         let ready = Ready::new(vessel_proto::NodeId::random());
         let encoded = ready.encode();
         let (reader, mut retained_stdout) = tokio::io::duplex(MAX_READY_BYTES * 2);
         retained_stdout.write_all(encoded.as_bytes()).await.unwrap();
-        let line = record(reader, MAX_READY_BYTES).await.unwrap();
+        let line = step(
+            "first record without daemon EOF",
+            record(reader, MAX_READY_BYTES),
+        )
+        .await
+        .unwrap();
         assert_eq!(Ready::decode(&line).unwrap(), ready);
         // The healthy child stdout writer is deliberately still open here.
         drop(retained_stdout);

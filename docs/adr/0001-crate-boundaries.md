@@ -399,6 +399,10 @@ is claimed for releasable jobs. Shared readiness is in proto::local_launch, so
 there is no reverse node-to-launcher edge.
 
 
+The local-node crate dev-depends on vessel-testkit only so its process fixtures
+use canonical prebuild-before-clock safety bounds; no production graph edge or
+reverse testkit-to-local-node dependency is introduced.
+
 ## Checked owned process cleanup (W16 shared prerequisite)
 
 The additive proc-owned Child::wait_checked retains the first group/job sweep
