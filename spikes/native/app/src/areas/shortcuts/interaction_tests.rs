@@ -1,5 +1,6 @@
 //! Actual shell controls and source callbacks, with no link or external I/O.
 mod desktop_dispatch;
+mod rebinding_menu;
 
 use crate::shell::{Shell, language_tests};
 use gpui::{Entity, TestAppContext, VisualTestContext};
