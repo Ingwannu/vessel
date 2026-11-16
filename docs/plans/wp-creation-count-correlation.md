@@ -44,3 +44,9 @@ winner may cause the prepared unpublished secret to be discarded. That helper
 lets the common fence compose its parent check with the exact insertion without
 nested locking, callbacks, SQL or entropy I/O. The deterministic race test
 retains the incumbent credentials. New receiving checks are still owed.
+
+The first exact strict build found the new race fixture comparing CredentialHash
+values with PartialEq, which the existing constant-time API intentionally does
+not implement. The fixture now checks the original private entry marker,
+credential cardinality and matches_agent(original_secret). No hash formatting,
+new equality trait, product behavior or race ordering changes.
