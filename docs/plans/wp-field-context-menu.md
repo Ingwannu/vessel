@@ -46,6 +46,11 @@ the adapter then acknowledges selection focus through the same engine's weak
 after the engine's automatic synchronous focus capture. A refused open does not
 acknowledge selection focus. A host callback must preserve source/domain guards on body
 actions; the registry grants UI identity only.
+On the menu's admitted matching close/retirement, its owner must call
+`Request::release_selection` before reusing the shared popup focus. Otherwise an
+old editor can remain highlighted when that same focus handle serves a different
+editor's popup. Retained close callbacks must pass the existing menu lease and
+caller guards first; this request is not a second popup generation manager.
 
 Paseo reference: pinned `1c00b365c9e0b74c1580eba33d905d693125ae21`,
 `packages/desktop/src/features/menu.ts:205-228` terminal-context

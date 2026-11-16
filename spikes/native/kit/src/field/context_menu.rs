@@ -122,6 +122,15 @@ impl Request {
             selection(menu, cx);
         }
     }
+
+    /// The menu owner calls this after admitting its matching opening's close
+    /// or retirement, before reusing the popup focus for another editor. A
+    /// retained stale callback must pass that owner's lease guard first.
+    pub fn release_selection(&self, cx: &mut App) {
+        if let Some(selection) = &self.selection {
+            selection(None, cx);
+        }
+    }
 }
 
 impl TextField {

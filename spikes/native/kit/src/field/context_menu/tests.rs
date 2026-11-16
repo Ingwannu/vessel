@@ -106,6 +106,15 @@ fn actual_line_and_multiline_right_clicks_deliver_current_permissions(cx: &mut T
                 highlighted,
                 "the existing editor keeps its selection for the popup"
             );
+            request.release_selection(cx);
+            let highlighted = match &field.input.kind {
+                Kind::Line(input) => input.read(cx).has_selection_focus(window, cx),
+                Kind::Lines(input, _) => input.read(cx).has_selection_focus(window, cx),
+            };
+            assert!(
+                !highlighted,
+                "a closed popup must not retain another editor's highlight"
+            );
             assert_eq!(field.input.text(cx), "alpha beta");
         });
     }
