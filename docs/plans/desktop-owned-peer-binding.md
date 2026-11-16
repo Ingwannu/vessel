@@ -2,8 +2,8 @@
 
 This is the correction contract for V3 row268, not an implementation verdict.
 The frozen implementation4cb3581b remains returned even where its ordinary tests
-pass. Shared RPC changes wait for the announced node head with W19's caller-drop
-fence; preparing the fixture does not bypass that writer order.
+pass. Shared RPC changes start only after the announced node head ed4cd137 with
+W19's caller-drop fence; that exact head is now merged before the split below.
 
 ## Decision log
 
@@ -104,6 +104,39 @@ line limit. Both transports still share those same original resources. These
 extractions do not add another shutdown owner.
 The node-side code is preparation until the launcher split and qualified tests
 join it; it is not a working Windows Owned handoff by itself.
+
+## Open, qualify, then authenticate
+
+`vessel_rpc::LocalTransport` owns one opened OS handle and exposes its qualified
+kernel peer PID where available. It sends nothing on open, has no Clone or
+reconnect operation, and adds no Proc dependency. Windows PID queries explicitly
+refuse rather than invent evidence. `vessel_client::LocalConnection` keeps that
+transport private: `NodeClient::open_local` opens without credential or Hello
+output, `peer_process` observes that same handle, `send_launch_challenge` writes
+the one typed private challenge, and consuming `authenticate` presents the token
+and starts RPC on that same handle. Private open errors do not retain its name.
+Canonical `connect_local` preserves its existing Attached policy by composing
+the same opener and authentication directly.
+
+The controller's Unix path compares kernel peer PID against its retained,
+unreaped direct child before authentication or any child wait. ProcessLifetime
+is used only to exclude already revoked/reaped/released local authority, never
+as a claim that an OS process is alive. Windows Started carries a nonoptional
+preopened connection whose fresh stdout echo matched in constant time; Unix
+Started instead requires the kernel query. The authenticated greeting and
+Serving state still have to match the intended persistent identity. Child wait
+is biased first only after proof; it is additional defense, not the proof.
+Existing getrandom supplies independent 32-byte name/challenge values, and
+subtle supplies constant-time echo comparison, per the integrator's approved
+external-dependency ruling. No rand or hand-written cryptographic compare is
+introduced. Root lock generation and exact-source qualification remain owed.
+
+The managed binary invariant is exactly one managed stdout record, with all
+ordinary logging elsewhere. The reader strictly bounds its first record and
+rejects prefetched extra bytes/duplicate records before admission. It does not
+wait for daemon EOF or claim no future byte can ever be emitted. A later record
+never replaces proof or permits redial. This follows V3's framing clarification;
+stream/API tests and Windows execution remain separate required evidence.
 
 ## Canonical Attached compatibility limit
 

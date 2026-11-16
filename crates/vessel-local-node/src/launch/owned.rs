@@ -1,19 +1,30 @@
 //! RAII retains the exact group/job handle through readiness and every error path.
 
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt as _, AsyncReadExt as _, BufReader};
+use tokio::io::{AsyncBufReadExt as _, AsyncRead, AsyncReadExt as _, BufReader};
 use vessel_proc::{Child, Detached, Spawned, spawn_releasable};
 use vessel_proto::local_launch::{MAX_READY_BYTES, Ready};
 
 use super::{Launch, LaunchError};
 use crate::logs::LogReader;
 
+#[cfg(windows)]
+mod bootstrap;
 #[cfg(test)]
 mod tests;
 
 pub(crate) struct Owned {
     child: Child,
     logs: LogReader,
+}
+
+/// Windows carries the proven preopened connection; Unix qualifies its kernel
+/// peer after reading the private home. No optional connection can bypass proof.
+pub(crate) struct Started {
+    pub(crate) child: Owned,
+    pub(crate) ready: Ready,
+    #[cfg(windows)]
+    pub(crate) connection: vessel_client::LocalConnection,
 }
 
 /// Observation-only handle after an explicit keep-running choice.
@@ -52,31 +63,62 @@ impl Owned {
     pub(crate) async fn start(
         launch: &Launch,
         on_logs: impl FnOnce(LogReader),
-    ) -> Result<(Self, Ready), LaunchError> {
+    ) -> Result<Started, LaunchError> {
+        #[cfg(windows)]
+        let pipe = bootstrap::pipe()?;
         let Spawned {
             child,
             stdin,
             stdout,
             stderr,
         } = spawn_releasable(&launch.command).map_err(LaunchError::Spawn)?;
-        drop(stdin);
         let owned = Self {
             child,
             logs: LogReader::collect(stderr),
         };
         on_logs(owned.logs());
-        // Probe one extra byte, so oversized input cannot look like a valid
-        // truncated record. Reader allocation is capped before line decoding.
-        let limit = u64::try_from(MAX_READY_BYTES.saturating_add(1))
-            .map_err(|_range| LaunchError::ReadLimit)?;
-        let mut reader = BufReader::new(stdout.take(limit));
-        let mut line = String::new();
-        let _read = reader
-            .read_line(&mut line)
-            .await
-            .map_err(LaunchError::Read)?;
-        let ready = Ready::decode(&line).map_err(LaunchError::Ready)?;
-        Ok((owned, ready))
+        #[cfg(unix)]
+        {
+            drop(stdin);
+            let line = record(stdout, MAX_READY_BYTES).await?;
+            let ready = Ready::decode(&line).map_err(LaunchError::Ready)?;
+            Ok(Started {
+                child: owned,
+                ready,
+            })
+        }
+        #[cfg(windows)]
+        {
+            let (connection, challenge) = bootstrap::connect(pipe, stdin).await?;
+            let line = record(
+                stdout,
+                vessel_proto::local_launch::MAX_BOOTSTRAP_READY_BYTES,
+            )
+            .await?;
+            let ready = bootstrap::verify(&owned, &line, &challenge)?;
+            Ok(Started {
+                child: owned,
+                ready,
+                connection,
+            })
+        }
+    }
+
+    /// The observer proves only retained runner authority, not OS liveness.
+    /// Its active state excludes a child already reaped or released here; an
+    /// exited but unreaped direct child still prevents PID reuse.
+    #[cfg(unix)]
+    pub(crate) fn qualify_peer(
+        &self,
+        peer: Option<std::num::NonZeroU32>,
+    ) -> Result<(), LaunchError> {
+        if self.child.lifetime().is_live()
+            && peer.is_some_and(|peer| peer.get() == self.child.pid())
+        {
+            Ok(())
+        } else {
+            Err(LaunchError::PeerUnverified)
+        }
     }
 
     pub(crate) fn logs(&self) -> LogReader {
@@ -113,6 +155,22 @@ impl Owned {
         }));
         Ok(KeptNode { detached })
     }
+}
+
+async fn record(source: impl AsyncRead + Unpin, bound: usize) -> Result<String, LaunchError> {
+    // The trusted managed binary emits exactly one stdout record; ordinary
+    // logging stays elsewhere. Never await daemon EOF or accept a later proof.
+    let limit = u64::try_from(bound.saturating_add(1)).map_err(|_range| LaunchError::ReadLimit)?;
+    let mut reader = BufReader::new(source.take(limit));
+    let mut line = String::new();
+    let _read = reader
+        .read_line(&mut line)
+        .await
+        .map_err(LaunchError::Read)?;
+    if !reader.buffer().is_empty() {
+        return Err(LaunchError::ExtraReadiness);
+    }
+    Ok(line)
 }
 
 /// A finite child startup includes pipe readiness and the authenticated greeting.

@@ -69,8 +69,11 @@ async fn refuses_replacement(original: Original) {
         Ok(controller) => panic!("same-home replacement acquired {:?}", controller.status()),
     };
     assert!(
-        !matches!(refusal, LocalNodeError::Identity { .. }),
-        "replacement deliberately has the same persistent identity"
+        matches!(
+            refusal,
+            LocalNodeError::Launch(vessel_local_node::LaunchError::PeerUnverified)
+        ),
+        "same-identity replacement must fail the actual peer proof before child-exit selection"
     );
     assert_eq!(peer.node_info().await.unwrap().state, NodeState::Serving);
     managed_local_peer_support::reaped(process).await;

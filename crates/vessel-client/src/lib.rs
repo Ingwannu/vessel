@@ -82,7 +82,7 @@ pub use connector::{Connector, WsConnector};
 pub use credential::{CredentialError, CredentialMismatch, CredentialSource, DeviceCredential};
 pub use diagnostics::{DIAGNOSTIC_REQUEST_TIMEOUT, DiagnosticError};
 pub use error::{ConnectError, StreamError};
-pub use local::{LocalConnectError, LocalCredential};
+pub use local::{LocalConnectError, LocalConnection, LocalCredential};
 pub use pinned::{Pinned, PinnedError};
 pub use resume::{Backoff, ResumingStream, follow_resuming, follow_terminal_resuming};
 pub use stream::{Log, LogStream, SessionLog, SessionStream, TerminalLog, TerminalStream};

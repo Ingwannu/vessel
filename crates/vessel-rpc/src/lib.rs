@@ -42,6 +42,7 @@ mod client;
 mod decode;
 mod error;
 mod framed;
+mod local;
 pub mod memory;
 mod server;
 #[cfg(test)]
@@ -55,5 +56,6 @@ pub use client::{
 pub use decode::{DecodeFailure, DecodeKind};
 pub use error::{CallError, ConnectError, OutboundError, ProtocolViolation, ServeError};
 pub use framed::{Framed, FramedError, MAX_FRAME};
+pub use local::LocalTransport;
 pub use server::{Outbound, Peer, Server, ServerConfig, SubscriptionClosed, SubscriptionSink};
 pub use transport::FrameTransport;

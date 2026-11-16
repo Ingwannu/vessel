@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 use vessel_client::{CallError, LocalConnectError, NodeClient};
 use vessel_proto::{NodeId, NodeState, SessionId, StopWhen};
 
-use crate::launch::{Owned, START_DEADLINE, STOP_DEADLINE};
+use crate::launch::{Owned, START_DEADLINE, STOP_DEADLINE, Started};
 use crate::{FilesError, KeptNode, Launch, LaunchError, LogReader, ProcessExit};
 
 /// Named operations make deadline errors meaningful without raw command output.
@@ -293,9 +293,13 @@ async fn connect(
     )
     .await
     .map_err(LocalNodeError::Connect)?;
-    if client.node().id != identity.node {
+    expected_node(client, identity.node)
+}
+
+fn expected_node(client: NodeClient, expected: NodeId) -> Result<NodeClient, LocalNodeError> {
+    if client.node().id != expected {
         return Err(LocalNodeError::Identity {
-            expected: identity.node,
+            expected,
             found: client.node().id,
         });
     }
@@ -335,7 +339,11 @@ async fn open(
             Err(error) => return Err(error),
         }
     }
-    let (mut child, ready) = Owned::start(launch, on_logs).await?;
+    let started: Started = Owned::start(launch, on_logs).await?;
+    let mut child = started.child;
+    let ready = started.ready;
+    #[cfg(windows)]
+    let connection = started.connection;
     let identity = launch
         .home()
         .identity()
@@ -347,8 +355,25 @@ async fn open(
             found: ready.node(),
         });
     }
-    let client = connect(launch, &identity).await?;
+    #[cfg(unix)]
+    let connection = {
+        let opened = NodeClient::open_local(identity.endpoint.path())
+            .await
+            .map_err(LocalNodeError::Connect)?;
+        // Query this retained socket before ANY token output and before any
+        // wait can reap the direct child and make its PID reusable.
+        child.qualify_peer(opened.peer_process().map_err(LocalNodeError::Connect)?)?;
+        opened
+    };
+    let client = expected_node(
+        connection
+            .authenticate(&identity.credential, launch.client().clone())
+            .await
+            .map_err(LocalNodeError::Connect)?,
+        identity.node,
+    )?;
     tokio::select! {
+        biased;
         exit = child.wait() => return Err(LocalNodeError::StartupExit(exit?)),
         result = serving(&client) => result?,
     }

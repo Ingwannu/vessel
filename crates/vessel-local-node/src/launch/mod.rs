@@ -8,7 +8,7 @@ use crate::NodeHome;
 
 mod owned;
 pub use owned::{KeptNode, ProcessExit};
-pub(crate) use owned::{Owned, START_DEADLINE, STOP_DEADLINE};
+pub(crate) use owned::{Owned, START_DEADLINE, STOP_DEADLINE, Started};
 
 /// A validated launch recipe, with caller-resolved environment applied to the child only.
 #[derive(Debug, Clone)]
@@ -21,12 +21,30 @@ pub struct Launch {
 /// Launch validation and owned process failures preserve their original cause.
 #[derive(Debug, thiserror::Error)]
 pub enum LaunchError {
+    /// Persistent identity or a live child alone cannot qualify an RPC peer.
+    #[error("local node peer is not the retained launched process")]
+    PeerUnverified,
+    /// The retained child stdout may contain exactly one managed first record.
+    #[error("local node emitted extra startup output")]
+    ExtraReadiness,
+    /// OS randomness failed; no weaker name or challenge is substituted.
+    #[error("local launch entropy is unavailable")]
+    Entropy(#[source] getrandom::Error),
+    /// The private bootstrap record or stdout echo was malformed.
+    #[error("invalid private launch transcript")]
+    Transcript(#[source] vessel_proto::local_launch::TranscriptError),
+    /// Opening or writing this private handle failed, without retaining its name.
+    #[error("private local launch connection failed")]
+    Bootstrap(#[source] vessel_client::LocalConnectError),
     /// A child could not be started; its process owner retains cleanup.
     #[error("local node process could not start")]
     Spawn(#[source] vessel_proc::SpawnError),
     /// The dedicated readiness pipe failed.
     #[error("local node readiness pipe failed")]
     Read(#[source] std::io::Error),
+    /// The one inherited child bootstrap record could not be written.
+    #[error("local child bootstrap pipe write failed")]
+    Write(#[source] std::io::Error),
     /// The bounded child record was malformed or absent.
     #[error("local node did not emit valid readiness")]
     Ready(#[source] vessel_proto::local_launch::ReadyError),

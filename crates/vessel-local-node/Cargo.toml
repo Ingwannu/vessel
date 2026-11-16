@@ -14,6 +14,9 @@ vessel-store.workspace = true
 vessel-proc.workspace = true
 tokio = { workspace = true, features = ["io-util", "process", "rt", "sync", "time"] }
 thiserror.workspace = true
+# Approved existing primitives: OS entropy and constant-time launch echo matching.
+getrandom.workspace = true
+subtle.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

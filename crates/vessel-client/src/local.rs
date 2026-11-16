@@ -21,6 +21,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use futures_util::SinkExt as _;
+use tokio::io::AsyncWriteExt as _;
 use vessel_proto::{AgentAuth, ClientInfo};
 use vessel_rpc::{ClientConfig, Framed, FramedError, MAX_FRAME};
 
@@ -39,6 +40,15 @@ pub enum LocalCredential {
 /// Why a local connection failed.
 #[derive(Debug, thiserror::Error)]
 pub enum LocalConnectError {
+    /// An explicitly opened transport failed, without retaining its private name.
+    #[error("cannot open the local transport")]
+    Open(#[source] io::Error),
+    /// Kernel process evidence could not be queried on the opened transport.
+    #[error("cannot qualify the local peer process")]
+    Peer(#[source] io::Error),
+    /// The one private pre-auth challenge could not be written.
+    #[error("cannot write the private launch challenge")]
+    Bootstrap(#[source] io::Error),
     /// No node answers at the endpoint.
     #[error("cannot reach the node's local socket {}", path.display())]
     Unreachable {
@@ -60,24 +70,58 @@ pub enum LocalConnectError {
     Handshake(#[source] vessel_rpc::ConnectError<FramedError>),
 }
 
-impl NodeClient {
-    /// Connect to the node whose local endpoint is `endpoint` (a socket
-    /// path, or a pipe name on Windows), as `credential`.
+/// One opened, unauthenticated local connection, with no reconnect operation.
+///
+/// Owning launchers qualify this retained peer before calling authenticate.
+/// Opening alone grants no process authority. Canonical Attached callers keep
+/// their existing token-first policy through NodeClient::connect_local.
+#[derive(Debug)]
+pub struct LocalConnection {
+    transport: vessel_rpc::LocalTransport,
+}
+
+impl LocalConnection {
+    /// Kernel process evidence from this handle; missing evidence is not proof.
     ///
     /// # Errors
-    /// See [`LocalConnectError`].
-    pub async fn connect_local(
-        endpoint: &Path,
+    /// Unsupported platform, failed kernel query or invalid process identity.
+    pub fn peer_process(&self) -> Result<Option<std::num::NonZeroU32>, LocalConnectError> {
+        self.transport
+            .peer_process()
+            .map_err(LocalConnectError::Peer)
+    }
+
+    /// Write exactly one fresh private challenge before any credential.
+    ///
+    /// Use only with an explicitly launched private bootstrap endpoint. The
+    /// canonical endpoint has no challenge path. A successful write is not
+    /// proof: the caller still verifies inherited stdout from its retained child.
+    ///
+    /// # Errors
+    /// The original handle's write fails; this method never reopens it.
+    pub async fn send_launch_challenge(
+        &mut self,
+        challenge: vessel_proto::local_launch::BootstrapChallenge,
+    ) -> Result<(), LocalConnectError> {
+        self.transport
+            .write_all(challenge.encode().as_bytes())
+            .await
+            .map_err(LocalConnectError::Bootstrap)
+    }
+
+    /// Consume this SAME preopened handle into authentication and RPC serving.
+    ///
+    /// Owning launchers must finish their peer proof first. Closure is terminal;
+    /// neither authentication nor NodeClient transparently redials an endpoint.
+    ///
+    /// # Errors
+    /// Credential encoding/output or protocol handshake failure.
+    pub async fn authenticate(
+        self,
         credential: &LocalCredential,
         client: ClientInfo,
-    ) -> Result<Self, LocalConnectError> {
-        let stream = open(endpoint)
-            .await
-            .map_err(|source| LocalConnectError::Unreachable {
-                path: endpoint.to_owned(),
-                source,
-            })?;
-        let (reader, writer) = tokio::io::split(stream);
+    ) -> Result<NodeClient, LocalConnectError> {
+        let (reader, writer) = tokio::io::split(self.transport);
         let mut framed = Framed::new(reader, writer, MAX_FRAME);
         let first = match credential {
             LocalCredential::Token(token) => token.expose().to_owned(),
@@ -89,36 +133,51 @@ impl NodeClient {
             .send(first)
             .await
             .map_err(LocalConnectError::Present)?;
-        Self::over(framed, client, &ClientConfig::default())
+        NodeClient::over(framed, client, &ClientConfig::default())
             .await
             .map_err(LocalConnectError::Handshake)
     }
 }
 
-#[cfg(unix)]
-async fn open(endpoint: &Path) -> io::Result<tokio::net::UnixStream> {
-    tokio::net::UnixStream::connect(endpoint).await
-}
-
-/// Open the pipe, retrying `ERROR_PIPE_BUSY` for about a second: between a
-/// client taking the waiting instance and the node creating the next, every
-/// instance is busy.
-#[cfg(windows)]
-async fn open(endpoint: &Path) -> io::Result<tokio::net::windows::named_pipe::NamedPipeClient> {
-    use std::time::Duration;
-
-    use tokio::net::windows::named_pipe::ClientOptions;
-    /// `winerror.h`; not worth a `windows-sys` dependency for one number.
-    const ERROR_PIPE_BUSY: i32 = 231;
-    const ATTEMPTS: u32 = 50;
-    const PAUSE: Duration = Duration::from_millis(20);
-    for _ in 0..ATTEMPTS {
-        match ClientOptions::new().open(endpoint) {
-            Err(error) if error.raw_os_error() == Some(ERROR_PIPE_BUSY) => {
-                tokio::time::sleep(PAUSE).await;
-            }
-            opened => return opened,
-        }
+impl NodeClient {
+    /// Open a local handle without emitting any credential or Hello bytes.
+    ///
+    /// The endpoint is not retained in errors, so launch-private names stay out
+    /// of logs. Ownership still requires the caller's qualified peer proof.
+    ///
+    /// # Errors
+    /// The platform cannot open the local handle.
+    pub async fn open_local(endpoint: &Path) -> Result<LocalConnection, LocalConnectError> {
+        Ok(LocalConnection {
+            transport: vessel_rpc::LocalTransport::open(endpoint)
+                .await
+                .map_err(LocalConnectError::Open)?,
+        })
     }
-    ClientOptions::new().open(endpoint)
+
+    /// Connect to the node's canonical local endpoint, then present credential.
+    ///
+    /// This retains the existing Attached policy. It never grants child authority.
+    ///
+    /// # Errors
+    /// Local connection, credential output or protocol handshake failure.
+    pub async fn connect_local(
+        endpoint: &Path,
+        credential: &LocalCredential,
+        client: ClientInfo,
+    ) -> Result<Self, LocalConnectError> {
+        let transport = vessel_rpc::LocalTransport::open(endpoint)
+            .await
+            .map_err(|source| LocalConnectError::Unreachable {
+                path: endpoint.to_owned(),
+                source,
+            })?;
+        LocalConnection { transport }
+            .authenticate(credential, client)
+            .await
+    }
 }
+
+#[cfg(test)]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+mod tests;
