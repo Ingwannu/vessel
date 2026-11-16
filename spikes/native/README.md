@@ -23,7 +23,7 @@ live-root dispatcher and optional factory contract are described in
 | Crate | Owns | Must not | Depends on |
 | --- | --- | --- | --- |
 | `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O | `vessel-proto` |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client` |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client`, `vessel-rpc` |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions | - |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-platform` outside its entry points (`main.rs`; `web.rs` in a browser build); depend on `gpui-component` (the kit's); hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) | `vessel-app-kit`, `vessel-app-link`, `vessel-app-view`, `vessel-proto`, `vessel-app-log`, `vessel-app-updater` |
 
@@ -31,6 +31,7 @@ live-root dispatcher and optional factory contract are described in
 app ──> kit ──> GPUI (gpui-pre 0.3.10) + gpui-component 0.8.1 (text field, Markdown only)
  │
  ├──> link ──> view, vessel-client, vessel-proto
+ │        └─(native testing only)─> vessel-rpc (one framed fixture)
  ├──> view ──> vessel-proto
  └──> vessel-proto; on the desktop vessel-app-updater, vessel-app-log (spikes/release)
 ```
@@ -40,6 +41,14 @@ compares the last column with every crate's normal and build dependencies
 on `vessel-*` crates (in both directions), and holds the two tables below;
 it builds nothing (`cargo metadata --no-deps`). A new edge is a change of
 this table, with its reason in the same commit.
+
+The direct Link-to-RPC edge exists only for the nondefault `testing` feature
+(the App selects it only as a dev-dependency). Normal calls still go through
+`vessel-client`; `testing::Scenario` supplies a bounded actual framed actor,
+not a guard constructor or alternate production connection manager. Unit-only
+assertion adapters remain excluded from feature builds. The exact boundary,
+resolved-graph proof and lock invariance are in
+[Devices fixture plan](../../docs/plans/wp-e2-device-fixtures.md).
 
 ### External crates with one owner
 
@@ -57,6 +66,7 @@ this table, with its reason in the same commit.
 
 | Names | Crate | Where | Why |
 | --- | --- | --- | --- |
+| `vessel_rpc` | `vessel-app-link` | only `src/testing/peer.rs`, `src/history/peer.rs` | Scenario framing uses the shared testing peer; the existing History unit peer remains allowed. Neither is a production connection path. |
 | `gpui_platform` | `vessel-app` | only `src/main.rs`, `src/web.rs` | The desktop's and the browser's entry points pick the platform; screens draw through GPUI and the kit. |
 | `std::fs`, `std::net`, `std::process`, `std::env`, `std::thread`, `tokio` | `vessel-app-view` | only `build.rs`, `build_support/` | What a screen means is computed, not fetched; the build script reads the catalogs at compile time. |
 
@@ -254,7 +264,9 @@ Confirmations additionally carry a distinct, non-reused intent. Requests and
 replies keep the same context; neither an alias lookup nor a late reply can
 retarget an operation. The contract and explicit observation limits are in
 `docs/plans/backend-m12-device-targets.md`. Effective scopes remain
-unknown until Devices queries the existing device.self call; a failed session
+queried through the existing device.self call, correlated by Page Context and
+request ticket. Only a validated reported Admin grant exposes management;
+Admin without session Read remains independent. A failed session
 read is no substitute.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
@@ -286,6 +298,13 @@ drawn from `Tokens` and `Type` only, exported from `kit/src/lib.rs`. A
 control another track could need (a menu, a dialog, a sheet, tabs, a
 tooltip, a virtual list) is the lead's to write: ask through the
 coordinator first, so two tracks do not write two.
+
+`kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
+profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
+the sidebar package owns the Footer wrapper. The lower frame grants no input or
+effect admission. Its extraction and Footer profile are source-only until their
+own VM checks and review, as recorded in
+[`shared-icon-chrome.md`](../../docs/plans/shared-icon-chrome.md).
 
 A settings screen (About now, the settings track's sections later) is
 built from `kit::settings`: Paseo's section with its small title, the
@@ -363,6 +382,11 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 `theme/status.rs`; a notice has no focus or click behaviour. Pure logic
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
+`alert::host_errors` is the same frame's named partial-host-error
+presentation, after Paseo's schedules screen: one wrapping message per
+host, neutral border, palette red 300, 12-point type and padding, 4-point
+stack gap, 8-point radius, and no icon. The caller supplies localized messages and decides
+visibility; existing Alert variants and sizes keep their defaults.
 
 
 
@@ -1366,6 +1390,19 @@ decision; this adapter creates none. Authored two-stop sheets and Dialog keep
 their APIs and defaults. Menus pass their source80-percent cap and use the
 existing45-percent sheet backdrop; a fixed percentage is not content fitting.
 
+### Devices queued delivery
+
+Devices result envelopes now consume the canonical weak DeliveryGuard in the
+real App receive handler. The actor seals successful data with its original
+context; App checks after queue delivery before exposing it and retains only
+that same weak proof for later frame/callback validation. A retired result
+cannot install authority, rows or an invitation under copied Fleet facts.
+A pending write becomes an unconfirmed notice, with field input retained and
+no replay; an older full context cannot retire the successor. The guard and
+bounded queue send are product paths; resident follow remains cfg(test)-staged.
+The native package is source preparation until its exact checks/review pass;
+see docs/plans/wp-e2-device-fixtures.md for conditional testing dependencies.
+
 `kit::SearchField` is the shared standalone filter profile over TextField's
 one-line engine and bare renderer. It owns Search14/X14, the source420-point
 maximum,34-point shell and focus palette; areas provide only localized placeholder
@@ -1397,6 +1434,10 @@ spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
 control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
 isolated producer does not include C3 View/Link/app or any root-runtime changes.
 
+Keyboard mechanics and the typed owner callback seam are described in
+[the receiving plan](../../docs/plans/wp-commands-keyboard-producer.md).
+This bounded mechanics cut does not imply a completed command center or feature
+controller; receiving compilation and tests are recorded separately.
 `TextField::select_all` uses the existing engine for line and multiline
 fields. Rename consumes the shared typed `Editability` at dispatch/answer;
 its `rename_element` profile wraps the same bare editor. The kit-internal
