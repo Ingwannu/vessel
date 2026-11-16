@@ -28,6 +28,12 @@ Additive on package base 14.6; no existing profile, glyph, path or drawing chang
     opacity, rest fill `surface2`, muted adaptive glyph turning foreground on
     hover, and `Presence::{Shown, Hidden}` supplied by the owner (Hidden: opacity
     0, no hover style, and the wrapper refuses a handler as for Disabled).
+  - Copies Paseo's pinned style order (icon-button-chrome.ts:79-82: the
+    caller's hidden style, then highlighted, then disabled last): a hidden,
+    disabled action shows at 0.5 and still takes no pointer. Only an enabled,
+    shown action gets the hover/press highlight and the foreground ink, as
+    Paseo's disabled `Pressable` has no hovered or pressed state (app review
+    finding P3; coordinator ruling, 2026-11-16).
   - Three glyphs appended after `Import`: `ZoomIn`, `ZoomOut`, `Scan`, from
     canonical Lucide 1.50.0 XML (`icons/zoom-in.svg`, `zoom-out.svg`,
     `scan.svg`) with the inherited 1.5 stroke (`toolbar.tsx` sets none, so

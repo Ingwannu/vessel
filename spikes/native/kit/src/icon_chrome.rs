@@ -30,7 +30,7 @@ const FOOTER_POINTER_FRAME: gpui::Pixels = px(28.0);
 const FOOTER_COMPACT_FRAME: gpui::Pixels = px(44.0);
 const FOOTER_GROUP: &str = "sidebar-footer-icon-chrome";
 const VIEWPORT_GROUP: &str = "viewport-icon-chrome";
-/// Paseo's `buttonHidden`: the frame stays laid out and named, but unseen.
+/// Paseo's `buttonHidden`: an enabled frame stays laid out and named, unseen.
 const HIDDEN_OPACITY: f32 = 0.0;
 
 /// Whether a viewport's controls are shown: the owner's hover, focus or touch
@@ -39,7 +39,8 @@ const HIDDEN_OPACITY: f32 = 0.0;
 pub enum Presence {
     /// Visible and able to take the pointer.
     Shown,
-    /// Laid out and named but unseen; no hover feedback, no handler.
+    /// Laid out and named; unseen unless disabled (Paseo's style order keeps
+    /// a disabled action at 0.5); no hover feedback, no handler.
     Hidden,
 }
 
@@ -145,6 +146,13 @@ pub(crate) fn viewport_fill(config: ToolbarConfig, phase: Phase, tokens: &Tokens
         tokens.neutral.surface2
     }
 }
+/// Paseo's disabled `Pressable` has no hovered or pressed state
+/// (react-native-web `Pressable`: `useHover` and `usePressEvents` take
+/// `disabled`), and a hidden one takes no pointer: only an enabled, shown
+/// action answers the pointer with highlight and foreground ink.
+pub(crate) fn viewport_responds(config: ToolbarConfig, presence: Presence) -> bool {
+    presence == Presence::Shown && config.availability() == ButtonState::Enabled
+}
 pub(crate) fn viewport_frame(
     id: impl Into<ElementId>,
     label: impl Into<SharedString>,
@@ -157,27 +165,31 @@ pub(crate) fn viewport_frame(
     let icon = ToolbarIcon::new(glyph, ToolbarInk::Muted)
         .adaptive()
         .render(config.sizing(), tokens);
+    // Paseo's style order (icon-button-chrome.ts:79-82): the caller's hidden
+    // style, then highlighted, then disabled last, so a hidden disabled
+    // action still shows at 0.5 (a faint Scan at fit) and takes no pointer.
+    let opacity = if presence == Presence::Hidden && config.availability() == ButtonState::Enabled {
+        HIDDEN_OPACITY
+    } else {
+        config.opacity()
+    };
     let element = frame(id, label)
         .group(VIEWPORT_GROUP)
         .size(config.frame())
         .p(px(crate::theme::spacing::S0))
         .rounded(px(crate::theme::radius::MD))
-        .bg(viewport_fill(config, Phase::Rest, tokens));
-    match presence {
-        Presence::Hidden => element.opacity(HIDDEN_OPACITY).child(icon),
-        Presence::Shown => {
-            let hover = viewport_fill(config, Phase::Hovered, tokens);
-            let pressed = viewport_fill(config, Phase::Pressed, tokens);
-            element
-                .opacity(config.opacity())
-                .hover(move |style| style.bg(hover))
-                .active(move |style| style.bg(pressed))
-                .when(config.availability() == ButtonState::Enabled, |element| {
-                    element.cursor_pointer()
-                })
-                .child(icon.group_hover(VIEWPORT_GROUP, move |style| style.text_color(hover_ink)))
-        }
+        .bg(viewport_fill(config, Phase::Rest, tokens))
+        .opacity(opacity);
+    if !viewport_responds(config, presence) {
+        return element.child(icon);
     }
+    let hover = viewport_fill(config, Phase::Hovered, tokens);
+    let pressed = viewport_fill(config, Phase::Pressed, tokens);
+    element
+        .hover(move |style| style.bg(hover))
+        .active(move |style| style.bg(pressed))
+        .cursor_pointer()
+        .child(icon.group_hover(VIEWPORT_GROUP, move |style| style.text_color(hover_ink)))
 }
 fn frame(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Stateful<Div> {
     div()
