@@ -13,7 +13,7 @@ use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 use vessel_proto::{ClientFrame, ErrorCode, Method, Outcome, ProjectId, WireError};
 
 /// The last protocol without the file-panel methods.
-const OLD: ProtocolVersion = ProtocolVersion::new(25);
+const OLD: ProtocolVersion = ProtocolVersion::new(26);
 /// The protocol that assigned them (ADR 0105).
 const NEEDS: ProtocolVersion = ProtocolVersion::new(27);
 /// A hung framed peer must fail this fixture rather than hold a test worker.
