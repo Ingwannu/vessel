@@ -5,7 +5,7 @@ use vessel_proto::terminals::SendTerminal;
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct Characters(usize);
 impl Characters {
-    pub(super) const fn get(&self) -> usize {
+    pub(super) const fn get(self) -> usize {
         self.0
     }
     pub(super) fn of(text: &str) -> Self {

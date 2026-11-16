@@ -65,3 +65,19 @@ final key across individually bounded calls, instead of requiring one invalid
 oversized call. Existing resize/key order/failure/no-retry assertions remain.
 New receipt and retained-prefix allocation regressions are added; actual changed-
 source checks and receiving integration remain owed.
+
+
+Exactb9b696ec executed the full changed View package:1075 unit,131 integration
+and two doc tests,1208/0/0 total. Both old-code semantic failures now pass;
+all original ordering/no-retry/full-stream assertions and new owned-receipt/
+consumed-prefix tests ran. Strict found only a Copy count getter borrowed by
+reference and an unbound pop_front result. The follow-up passes the Copy unit
+by value and binds the completed item; product decisions, tests and expected
+values are unchanged. A changed-source strict receipt remains owed; unchanged
+runtime assertions are not rerun for those two qualifier-only corrections.
+
+Important caller limit: a local timeout does not itself prove physical operation
+settlement. The eventual guarded transport owner must retain busy/uncertainty
+until its actual operation fence permits settlement or explicitly retires this
+owner. The queue receipt grants neither cancellation nor remote write authority.
+No native input/transport/IME, whole consumer gate or review is implied here.

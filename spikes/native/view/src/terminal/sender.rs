@@ -159,7 +159,7 @@ impl TerminalSender {
         let batch = item.take()?;
         self.chars.remove(batch.chars);
         if batch.remainder == Remainder::Empty {
-            self.items.pop_front();
+            let _completed = self.items.pop_front();
         }
         let receipt = SendReceipt(Arc::new(()));
         self.busy = Some(receipt.clone());
