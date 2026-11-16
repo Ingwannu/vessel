@@ -143,9 +143,6 @@ impl CreationPlacement {
     pub(crate) const fn workspace(&self) -> WorkspaceId {
         self.descriptor.id
     }
-    pub(crate) const fn descriptor(&self) -> &WorkspaceDescriptor {
-        &self.descriptor
-    }
     pub(crate) const fn root(&self) -> &Root {
         &self.root
     }

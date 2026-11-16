@@ -26,3 +26,10 @@ adapter is constructed. A setup assertion cancels workspace tasks before the
 retained owner's drain; CreationFixture::drop cancels before its fields/finish
 sender are dropped as well. A cancellation token's ordinary Drop is not treated
 as cancellation. Successful setup transfers that same token to the adapter.
+
+The concrete constructor's negative case now verifies actual retained input on
+wrong-child preparation: original capture stamp, canonical placement and child
+are unchanged, and correcting only the prepared option can still consume the
+count relation once. It performs no common insertion or spawn. An unused raw
+descriptor accessor is removed until an actual controller needs it; no dead-code
+expectation or fabricated product caller is added.
