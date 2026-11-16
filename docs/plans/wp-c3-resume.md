@@ -749,3 +749,28 @@ body-engines-3ad-test. Exact selection is App all-target
 areas::git::panel::bodies::visibility_tests. This is a DIFFERENT App fixture, not
 a repeat of the3 Kit owner cases. Keep old006 App functional, isolatedb243
 list-wheel and760 wasm runs; no queued/running run was cancelled or duplicated.
+
+## Exact006 selected Git tests GREEN, before visibility successor
+
+wp-git-app-tests-20261116T010439Z-0065dc7b finished226/0/0 = App24+Link6+View196.
+Fonts0/cargo0/no skips; actual View/Kit/Link/App compilation; all step prefixes
+and immutable source/log hashes verified in body-006-git-result.json. The actual
+mounted unified-body Ctrl/Cmd-A +copy, refused typing, selection focus and
+original-context retirement clearing BOTH payload and document map passed.
+This closes that selected runtime question, not UI captures/OS/authority/C3.
+
+Keep evidence exactly attributed:006 includes e55's engine-buffer clearing
+BEHAVIOUR CHANGE, import and Div ordering fixes; later760 only style changes,
+20d/3add add visibility protection/stronger pressure tests. No006 result is
+relabeled as a runtime pass of those later changes. The actual3add pressure
+selection, isolatedb243 wheel and760 wasm remain in the existing queues.
+
+V1 found no competing Header/DiffStat producer; lead AND coordinator assigned
+G1 a NEW separate Kit control with existing hunk decoration unchanged. Both
+VirtualList no-overlap replies/sole-writer conditions are satisfied. S2 alone
+owns the absent square glyphs and has no checked hash yet; keep the Header
+consumer unavailable, no substitute SVG. The literal reference tooltip has
+300ms delay and520 max width/bottom/start/offset6 (assignment's '520 delay'
+was flagged to coordinator before implementation). Header source sketch remains
+external/uninstalled; actual name-first geometry, passive/interactive, tooltip,
+sticky/action and captures are still owed, not approved by writer assignment.
