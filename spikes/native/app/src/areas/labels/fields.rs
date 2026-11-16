@@ -8,9 +8,11 @@
 //!   Search gets a fresh field per opening and accepts input only in its visible
 //!   listing phase, so an old queued edit cannot undo close/reopen query reset.
 //! - Cost: a new form target gets a new input identity, not a second renderer.
-//! - Search surface: the reviewed shared `SearchField` owns Search/X chrome on
-//!   that same identified engine. Replacing the wrapper never replaces the
-//!   opening/source/Listing admission above a retained manager query.
+//! - Search surface: Paseo's manager passes its query to the sheet header
+//!   (manager-modal.tsx 120-138), so the dialog draws the Kit's header search
+//!   row from this same identified `SearchField` engine while listing: no box,
+//!   no X (app review of row 316). The opening/source/Listing admission above a
+//!   retained manager query is unchanged.
 
 use crate::shell::Shell;
 use vessel_app_kit::field::FieldId;
@@ -86,7 +88,7 @@ mod tests {
     use vessel_proto::NodeId;
 
     #[gpui::test]
-    fn shared_search_clear_updates_the_visible_manager_query(cx: &mut TestAppContext) {
+    fn header_search_filters_the_listing_and_a_new_opening_starts_empty(cx: &mut TestAppContext) {
         crate::shell::language_tests::init(cx);
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         cx.update(|window, _| window.activate_window());
@@ -102,35 +104,51 @@ mod tests {
                 route: Name::parse("fixture").unwrap(),
                 connection: Some(context.clone()),
                 state: HostState::Online,
-                catalog: Catalog::snapshot([Label {
-                    name: "Ready".parse().unwrap(),
-                    color: Color::Violet,
-                }]),
+                catalog: Catalog::snapshot([
+                    Label {
+                        name: "Ready".parse().unwrap(),
+                        color: Color::Violet,
+                    },
+                    Label {
+                        name: "Blocked".parse().unwrap(),
+                        color: Color::Violet,
+                    },
+                ]),
             }];
             state.manager.select(context.node()).unwrap();
-            state.search.focus(window, cx);
             cx.notify();
         });
         cx.run_until_parked();
-        cx.simulate_input("Ready");
+        // The query sits in the dialog header (Paseo's sheet search row), not
+        // in the body; clicking it reaches the same identified engine.
+        let input = cx.debug_bounds("dialog-header-search-input").unwrap();
+        cx.simulate_click(input.center(), gpui::Modifiers::none());
+        cx.simulate_input("Rea");
         cx.run_until_parked();
         shell.read_with(cx, |shell, cx| {
-            assert_eq!(shell.areas.labels.manager.query(), "Ready");
-            assert_eq!(shell.areas.labels.search.text(cx), "Ready");
+            let state = &shell.areas.labels;
+            assert_eq!(state.manager.query(), "Rea");
+            assert_eq!(state.search.text(cx), "Rea");
+            let shown = state.manager.filtered(&state.hosts[0].catalog);
+            assert_eq!(shown.len(), 1);
         });
-        // This is the shared control's actual X, not a direct manager callback.
-        let clear = cx.debug_bounds("search-field-clear").unwrap();
-        cx.simulate_click(clear.center(), gpui::Modifiers::none());
+        assert!(cx.debug_bounds("search-field-clear").is_none());
+        // Close and open again: a fresh field and an empty query.
+        shell.update_in(cx, |shell, window, cx| {
+            let state = &shell.areas.labels;
+            let dismissal = super::super::surface::Dismiss::capture(
+                state.opening.unwrap(),
+                state.manager.state(),
+            );
+            shell.labels_close(dismissal, window, cx);
+            shell.labels_open(window, cx);
+        });
         cx.run_until_parked();
         shell.read_with(cx, |shell, cx| {
             assert!(shell.areas.labels.manager.query().is_empty());
             assert_eq!(shell.areas.labels.search.text(cx), "");
-            assert!(matches!(
-                shell.areas.labels.manager.state(),
-                ManagerState::Listing
-            ));
         });
-        assert!(cx.debug_bounds("search-field-clear").is_none());
+        assert!(cx.debug_bounds("dialog-header-search").is_some());
     }
 
     #[gpui::test]

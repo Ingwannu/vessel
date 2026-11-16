@@ -647,3 +647,19 @@ Bounded V1 consumer review is owed. The three changed app files depend on the
 broader A6 source, so their delta is not an independently existing manager on
 the lead line. Pending catalog transport/observation/canonical workspace caller,
 current-session metadata ordering, full native gate/captures and V4 remain owed.
+
+## Header search correction (visual lane, 2026-11-16)
+
+The app review of row 316 returned the manager search for its reference:
+Paseo's label manager passes the query input as the sheet header's `search`
+(workspace-labels/manager-modal.tsx 120-138), which `AdaptiveModalSheet` draws
+under the title inside the header rule (adaptive-modal-sheet.tsx 443-461), not
+the standalone boxed `search-field.tsx` (that is the screen filter rail).
+The consumer now hands `SearchField::header_search` to the dialog through the
+Kit's `DialogContent::with_header_search` (shared-dialog-header-search.md) while
+listing; editing, saving, inspecting and confirming show no search, as Paseo's
+editing header shows only the title and back. The body no longer draws a search
+box. The same per-opening `FieldId`, Listing admission, silent restore/reset
+and focus stay. The X test is replaced by a regression: typing in the header
+row filters the listing, and closing and opening again starts with an empty
+query and a fresh field.

@@ -1,7 +1,7 @@
 //! Draw every manager phase from view state using existing kit furniture.
 
 use vessel_app_kit::alert::{Content, Size, Variant, alert};
-use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
+use vessel_app_kit::dialog::{DialogContent, DialogInput, DialogSize, dialog};
 use vessel_app_kit::theme::spacing::{S2, S3};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
@@ -22,14 +22,25 @@ pub(crate) fn overlay(
     let opening = state.opening?;
     let dismiss = super::surface::Dismiss::capture(opening, state.manager.state());
     let body = body(shell, opening, tokens, cx);
+    let content = DialogContent {
+        title: title(shell).into(),
+        body: body.into_any_element(),
+        footer: Vec::new(),
+        size: DialogSize::Normal,
+    };
+    // Paseo's manager gives its query to the sheet header while listing
+    // (manager-modal.tsx 120-138); editing shows no search.
+    let content: DialogInput = match state.manager.state() {
+        ManagerState::Listing => content.with_header_search(state.search.header_search(tokens, cx)),
+        ManagerState::Editing(_)
+        | ManagerState::Saving { .. }
+        | ManagerState::Inspecting { .. }
+        | ManagerState::Confirming { .. }
+        | ManagerState::Deleting { .. } => content.into(),
+    };
     Some(dialog(
         &state.dialog,
-        DialogContent {
-            title: title(shell).into(),
-            body: body.into_any_element(),
-            footer: Vec::new(),
-            size: DialogSize::Normal,
-        },
+        content,
         tokens,
         window,
         vessel_app_kit::breakpoint::phone(window),
@@ -115,15 +126,7 @@ fn list(
 ) -> Div {
     let state = &shell.areas.labels;
     let words = shell.words.labels();
-    let mut body = div()
-        .flex()
-        .flex_col()
-        .gap(px(S3))
-        .child(state.search.element(
-            state.search.id().element_id("label-manager-search"),
-            tokens,
-            cx,
-        ));
+    let mut body = div().flex().flex_col().gap(px(S3));
     let labels = state.manager.filtered(&host.catalog);
     if labels.is_empty() && host.state == HostState::Online {
         body = body.child(if state.manager.has_query() {
