@@ -23,7 +23,7 @@ function fold(events: AgentEvent[]) {
 
 const provenance = {
   kind: "internal_notice",
-  notice: 3,
+  notice: 2,
 } as const;
 
 function tool(id: string): AgentEvent {
@@ -42,8 +42,8 @@ test("notice input stays a real hidden boundary without joining an earlier tool 
   const model = fold([
     { event: "turn_started", content: [{ type: "text", text: "Person" }] },
     { event: "message_chunk", content: { type: "text", text: "First reply" } },
-    tool("before"),
     { event: "notification", level: "info", message: "Child finished" },
+    tool("before"),
     {
       event: "turn_started",
       content: [{ type: "text", text: "private provider instruction" }],
@@ -84,7 +84,7 @@ test("notice input stays a real hidden boundary without joining an earlier tool 
     model.entries
       .filter((entry) => entry.kind === "notification")
       .map((entry) => entry.seq),
-  ).toEqual([3]);
+  ).toEqual([2]);
 });
 
 test("tagged steer and chunk disappear without hiding later untagged user words", () => {

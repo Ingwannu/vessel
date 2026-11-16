@@ -9,7 +9,7 @@ test("an associated input draws no user bubble while its canonical notice draws 
     key: "r2",
     seq: 2,
     at: "2026-11-16T00:00:00Z",
-    text: "",
+    text: "internal canary",
     turn: 1,
     replayed: false,
     attachments: [],
@@ -24,10 +24,13 @@ test("an associated input draws no user bubble while its canonical notice draws 
     item: {
       event: "notification",
       level: "warning",
-      message: "Child finished",
+      message: "Child <script>finished</script>",
     },
   };
   const html = renderToStaticMarkup(<TimelineItem entry={notice} />);
-  expect(html.split("Child finished")).toHaveLength(2);
+  expect(
+    html.split("Child &lt;script&gt;finished&lt;/script&gt;"),
+  ).toHaveLength(2);
   expect(html).not.toContain('data-kind="prompt"');
+  expect(html).not.toContain("<script>");
 });
