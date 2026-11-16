@@ -371,3 +371,5 @@ mod tests;
 
 #[cfg(test)]
 mod context_tests;
+#[cfg(test)]
+mod resolution_tests;

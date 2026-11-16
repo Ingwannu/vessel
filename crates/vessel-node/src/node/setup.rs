@@ -162,7 +162,11 @@ pub(super) async fn feature_state(
     let push = crate::push::Push::started(config, store.clone(), tasks, stop.clone())
         .await
         .map_err(NodeError::Store)?;
-    let limits = crate::limits::Limits::configured(config, stop.clone(), tasks).await;
+    // The node-root native DNS budget (ADR 0104). The usage client is its
+    // first consumer; NodeLink and dictation must share this one budget when
+    // they are wired (move it up to their common owner then, never a second).
+    let resolution = vessel_relay::resolution::ResolutionBudget::default();
+    let limits = crate::limits::Limits::configured(config, stop.clone(), tasks, &resolution).await;
     let labels = crate::workspace_labels::Labels::open(store.clone())
         .await
         .map_err(NodeError::Store)?;

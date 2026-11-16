@@ -591,3 +591,29 @@ witness. This is a source-derived limitation, not an executed DNS or vendor prob
 - Impact: no active-readiness or physical-DNS-drain claim. No new worker whole is
   requested for this documentation; the eventual receiving integration owns the
   shared consumer checks and whole gate. Existing legacy behavior is unchanged.
+
+### Account HTTP consumes the tracked resolver (2026-11-16)
+
+The hold above is now met in source; activation is still a separate step.
+The node owns one root `ResolutionBudget` (node setup) and, for the one
+persistent `LimitContext` client, one `ResolutionScope` sized from the existing
+read bound (`LimitContext::READ_SLOTS`). Its reqwest adapter
+(`vessel-node::http_resolution`) is injected as an `Arc` of reqwest's `Resolve`
+through `ClientBuilder::dns_resolver`; Harness still depends on no relay crate.
+
+[Decision Log]
+- Purpose and intent: every provider lookup, for the active saved-login read and
+  for the pending account sources alike, is owned until native completion.
+- Existing constraints: one OnceCell client shared by both source owners; a
+  reqwest lookup carries no request identity.
+- Alternatives considered: per-read scopes (no identity to key them on), a
+  default-Gai fallback when nothing is injected (the untracked work again).
+- Choice and reason: the coordinator's client-scoped ruling. Both source owners
+  run on one local task tracker; a retirement task on the node tracker waits
+  for both, then closes and drains the scope, so node stop cannot finish first.
+  A context without a resolver builds no client and answers Unsupported.
+- Impact: the already active `usage.limits` Local read now resolves through the
+  tracked scope too (legacy behaviour changes only in who owns the lookup and
+  in the finite lookup quota: a full or closed scope reads as Unreachable).
+  The three account rows and both feature constants stay `None` until the
+  integrator assigns them at merge.
