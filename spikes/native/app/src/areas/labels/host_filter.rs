@@ -66,7 +66,7 @@ pub(super) fn trigger(
     );
     let online = state
         .selected_host()
-        .is_some_and(|host| host.state.connected());
+        .is_some_and(|host| host.connection.is_some());
     let enabled = !state.manager.state().busy();
     div()
         .id("labels-host-filter")
@@ -134,7 +134,7 @@ pub(super) fn list(
     let mut routes = Vec::new();
     for host in &state.hosts {
         let mut row = ComboRow::new(host.route.as_str().to_owned());
-        row.leading = Some(Leading::Dot(status(host.state.connected(), tokens)));
+        row.leading = Some(Leading::Dot(status(host.connection.is_some(), tokens)));
         row.checked = state.route.as_ref() == Some(&host.route);
         rows.push(row);
         routes.push(Some((host.route.clone(), host.connection.clone())));
@@ -187,7 +187,9 @@ pub(super) fn list(
     )
 }
 
-/// Paseo's host status dot: `statusSuccess` online, `statusDanger` otherwise.
+/// Paseo's host status dot (`HostStatusDot`): the connection's state, not
+/// the label contract's: `statusSuccess` while connected (an Unsupported
+/// host too), `statusDanger` otherwise.
 fn status(online: bool, tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
     if online {
         tokens.st_ready

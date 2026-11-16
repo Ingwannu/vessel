@@ -87,7 +87,9 @@ pub(super) fn footer(
             let can_save =
                 online && current.is_some_and(|label| draft.replacement(label).is_some());
             let can_delete = online && current.is_some();
-            vec![edit_actions(shell, target, can_save, can_delete, tokens, cx)]
+            vec![edit_actions(
+                shell, target, can_save, can_delete, tokens, cx,
+            )]
         }
         ManagerState::Saving { .. } | ManagerState::Inspecting { .. } => {
             vec![edit_actions(shell, target, false, false, tokens, cx)]
