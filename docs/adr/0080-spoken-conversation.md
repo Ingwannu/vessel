@@ -1023,3 +1023,35 @@ other version bumps. Any further unapproved metadata closure stops for a
 separate ruling. No lock delta is adopted here. The fixed offline resolve and
 feature-tree review still precede compilation; the eventual build must leave
 its accepted input lock byte-identical. Native/model loading remains separate.
+
+
+#### Exact inactive ndarray metadata candidate
+
+[Decision Log]
+- Purpose: let the build-tool owner reproduce offline resolution without enabling an unused array adapter.
+- Existing constraints: ort is already defaults-OFF; its optional ndarray requirement is `0.17` with defaults off. `std` contains `ndarray?/std`, which does not enable that optional dependency. The previous offline resolver stopped before producing a lock delta or feature tree.
+- Alternatives: enabling ort defaults or adding ndarray as an active dependency would expand the reviewed compiled closure; neither is selected. Disabling the same defaults again cannot supply missing registry metadata.
+- Selected choice: pin only ndarray0.17.2 as the optional-package metadata/source candidate through the existing build-tool owner's cache path. No new manifest feature, direct dependency, lock entry or crate acquisition is made by this document.
+- Why: the official sparse record and registry version metadata agree on one non-yanked version and archive checksum. Their metadata is independently retained; actual archive verification and offline resolution belong to the cache/resolve receipt.
+- Impact: this may satisfy only the next resolver lookup. The record declares further dependencies; if any additional package/version is absent, stop and request a separate scoped ruling rather than provisioning a closure implicitly. Even a successful resolve does not prove ndarray is compiled; require the actual selected feature tree.
+
+| Metadata candidate | Exact pin |
+| --- | --- |
+| Registry/version | crates.io ndarray0.17.2; non-yanked at metadata inspection |
+| Expected crate archive bytes | 243631 |
+| Expected archive SHA256 and sparse `cksum` | `520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d` |
+| Publisher licence/MSRV metadata | MIT OR Apache-2.0; Rust1.64 |
+| Sparse metadata | https://index.crates.io/nd/ar/ndarray |
+| Version metadata | https://crates.io/api/v1/crates/ndarray/0.17.2 |
+
+The retained `docs/evidence/voice-vad-ndarray-metadata.json` contains the exact
+selected registry record, metadata response hashes and explicit unverified
+archive status. The archive has not been downloaded or inspected by this
+metadata task. Licence metadata is not a notice/archive correspondence audit.
+The cache owner must bind actual archive bytes to the expected checksum before
+any use. Keep the original failed resolve and misleading audit, with their
+append-only correction: no lock drift occurred; resolution failed and feature
+closure was unevaluated. The accepted future lock delta must list every added
+name/version/checksum, and the subsequent offline build must leave that input
+lock byte-identical. Linux/Windows compile approval, fixture transfer, native
+loading, telemetry and model API gates remain separate and unfulfilled.
