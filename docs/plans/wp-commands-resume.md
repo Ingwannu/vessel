@@ -61,9 +61,10 @@ Both red logs are retained. No lint allowance or weakened assertion was used.
 
 R40 is the four-native-crate all-target strict check at exact93cfde8b3, label
 `wp-commands-narrow`, out `base143-messages-clippy-r40` in task scratch.
-Read its run-id/submit log and terminal result; status was pending when these
-notes were first written. App/Link receiving execution is still owed unless a
-later closeout entry below records it. No new branch merge/control/slice during
+Run `wp-commands-narrow-20261116T034830Z-93cfde8b` passed all four native
+crates' all-target strict checks (R40). App/Link receiving execution is submitted
+once as R30, out `base143-app-link-tests-r30`; read its run-id/terminal result
+before any retry. It was pending when this closeout entry was written. No new branch merge/control/slice during
 quota closeout; any remaining verification is explicitly unverified.
 
 ## Existing first-use export: do not duplicate

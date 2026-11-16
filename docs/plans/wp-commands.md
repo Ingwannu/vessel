@@ -1338,3 +1338,11 @@ I/O or lease allocation. Canonical source_follow/source_answer remain unchanged,
 and the old alias flush/retarget path remains removed. No dead-code allowance,
 new controller or Files command registration is introduced. This receiving fix
 is the final active slice under the quota stop; verification remains pending.
+
+
+Quota closeout: exact93cfde8b3 passed four-native-crate all-target strict
+checks in R40 wp-commands-narrow-20261116T034830Z-93cfde8b. One App/Link
+receiving execution R30 is submitted on the same immutable source; its result
+is still pending. No new merge is made after the quota notice, so14.4 is recorded
+for resume even though its shared book source is already announced green.
+The committed resume file is docs/plans/wp-commands-resume.md.
