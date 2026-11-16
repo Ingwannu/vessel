@@ -384,3 +384,25 @@ and its later unknown-owner/passive-client fixes. The producer's V1 row284 and
 older Main tests do not qualify this receiving union. New strict/runtime checks
 are still required; neither actual C5 engine freezing nor Owned node safety is
 claimed from the generic registry and marker fixtures.
+
+## Pinned startup chrome comparison (presentation only)
+
+Paseo reference commit 1c00b365c9e0 uses the host-count fallback at
+app/_layout.tsx:398, but AppWithSidebar:796-812 always supplies an explicit
+store-ready plus route override. Startup/index, welcome and Settings omit the
+workspace sidebar/toggle; explicit new, sessions, schedules, open-project and
+known-host routes can enable it independently of online status. Settings keeps
+keyboard shortcuts through the separate pathname condition at line416. Sidebar
+visibility/toggle/compact gesture admission follows chromeEnabled at444-485;
+DesktopWindowControls at511 and OnboardingHost remain mounted independently.
+
+Native Shell currently mounts its full app titlebar and sidebar on startup.
+Its Draft route is both the initial placeholder and the new-session surface, so
+route alone cannot reproduce the reference distinction. A future presentation
+join must hide workspace navigation during pending bootstrap/initial setup while
+retaining kit drag/minimize/maximize/close, update/error/setup hosts and the
+existing close lifecycle boundary. Explicitly rerunning setup is not itself a
+reason to hide otherwise valid workspace chrome. It must reuse canonical loaded
+book facts and add no second book/authority/viewport inference. This comparison
+changes neither the shared shortcut predicate nor rendering; the exact owner
+join and its empty-book, offline-book, startup and manual-rerun tests are pending.
