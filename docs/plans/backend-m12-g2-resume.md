@@ -2,10 +2,112 @@
 
 Resume on `backend/m12-app-schedules`, in this track's existing worktree.
 The active package is F1 schedules and heartbeats; saved prompts come after it.
-Current base10 3e7820e3 is merged at4cbf09d32. Historical published-base and
-stop checkpoints below are records only. Read current worker/common briefs and
+Current committed App base is14.3 67637eb6, merged5f8639347. Historical
+published-base and stop checkpoints below are records only. Read current worker/common briefs and
 the shared-control ledger before further integration. All Rust/Cargo work,
 including metadata and capture builds, runs through the remote gate only.
+
+## QUOTA WARNING checkpoint — 2026-11-16, active correction only
+
+Read THIS section first; all later dated blocks are historical. The warning
+permits finishing only the current F1 Enter correction. No new control, slice,
+branch merge or IME implementation. Read actual remote status/results before
+resubmitting anything; queued/running/done is never permission for a duplicate.
+All Cargo/rustc/metadata/capture builds remain VM-only and detached.
+
+### Main F1 source and exact checks
+
+- Current product cad14e2edfc9555651011870c3cabec04a8cd58b follows base14.3
+  merge5f8639347 and loading repair40e4ce38e. The two merge conflicts preserve
+  BOTH Schedules and CodeSource arms; incoming field/resident/request staging
+  remains intact. No node head was merged into App.
+- Old071 receiving strict is a retained compile RED: missing owned
+  model_browser_indicator after the incoming loading.rs won.40e4 restores only
+  that named profile/literal regression, preserving masks/alpha/motion/defaults
+  and the canonical FOURTEEN/EIGHTEEN definitions. No second renderer exists.
+- Exact40e4 ordinary short strict passed all4crates0. Library run
+  schedules-20261116T032702Z-40e4ce38 passed Kit293/0/0, Link145/0/0,
+  View1212/0/0. Earlier About jiff inventory and known-Ended fixture failures
+  are corrected; the new known-Ended cases stay. Raw prior failures remain.
+- FIRST actual App-bin run schedules-20261116T033311Z-40e4ce38 executed
+  198/1/2. The ready-form Enter/footer regression loses prepare_save readiness
+  AFTER Enter, not at initial setup. No request was emitted. The fixture and
+  original assertions remain; this is not a full F1 or consumer approval.
+- cad14 repairs the existing FORM-line Enter containment, matching the existing
+  textarea shell. Bare/input parent shortcut behavior and the single listener
+  remain. An additional engine/model-text invariant is added. Static direct
+  rustfmt, size, tokens and diff checks pass. No new control/API/allowance.
+- ONE ordinary-short changed-crate suite is active on exactcad14, same schedules
+  label, priority0: schedules-20261116T033958Z-cad14e2e Kit+App all-target
+  Clippy, then Kit lib, then App explicitly --bin vessel-app. Driver
+  run-f1-enter-quota-close.sh and current-f1-enter-root in private track evidence
+  identify outputs/PID. The latter two run ids are not assigned at this checkpoint.
+  Do NOT duplicate. Append actual outcomes before stopping; if incomplete,
+  commit a wip checkpoint identifying exactly what remains unverified.
+- No final F1 whole gate, feature captures or V1 package approval exists. Own
+  source includes list/form/cadence/history/actions/ordered preferences and
+  original-context queued DeliveryGuard; this is not a published feature.
+
+### Completed secure producer — receiving line awaited
+
+- ADR0102 secure source b54..b69703e829e048fbfc10636fa3305a1da9b02195 plus
+  DOCLEAF1fa30e6a997ec7f08c344cbcc63a8225abb45647 has V1 FINAL7d33547c
+  bounded SOURCE/requested Kit strict0+276/0/0 and CONTROLLED LINUX NATIVE
+  PRIVACY EVIDENCE PASS. Coordinator2f17 separately opened/compared captures.
+  Native/privacy handoff HOLD is CLOSED for that selected control scope only.
+- All32 original hashes/dimensions (28 phases+4 startup) at1280x780/390x780,
+  light/dark, native clipboard positive reference/sentinel preservation/Paste/
+  submit/readOnly/erase/redacted diagnostics, actual framework PasswordInput/
+  no-value proof and private process/cookie/permission custody are qualified.
+  Prior failed setup and1278-width images stay excluded from final dimensions.
+- Lead merged ONLY selected producer as9d7b11bd, no conflicts, preserves the
+  newer Plain boxed submit and adds Secure. Gate
+  spike-20261116T033106Z-9d7b11bd plus wasm verification was in progress at
+  receipt. W19 has the exact API but waits for announced canonical green line.
+- NEVER merge audit76d67699 main. The audit is only a control-only derivative;
+  its export is build/export proof, not a whole test gate. Binary/source/driver/
+  originals and failed-attempt custody are pinned in the private final packet.
+- Own secure docs-only139545e25 records final scope; it is NOT an expansion of
+  the exact1fa handoff. No HostVoice/store/persistence/authority/OS AT/physical
+  IME/hardwareGPU/otherOS/cross-App clipboard/zeroization/F1 approval follows.
+
+### Next session and dependencies
+
+1. Read the current worker/common brief and remote run results first. Finish
+   this correction's actual outcome, then use the next announced App line at
+   a permitted clean point. Never consume a trial node head in App.
+2. AFTER secure lands, the next assigned item is C2 IME commit projection:
+   ADR-light FIRST, same single subscription, originating FieldId plus an
+   engine-owned committed payload. Replace is commit; marked is notify-only;
+   unmark-only is no commit. Equal text repeat, silent clear, stale opening and
+   focus-away are distinguished explicitly, never inferred from string diffs.
+   Required real regressions are in terminal-commit-seam-needed.md. No new
+   listener/IME cache. Lead assigned gpui-base change13 AFTER W12change12;
+   writer boundary will be announced after secure green. NOTHING implemented.
+3. Preserve the Secure callbacks/privacy policy, newer Plain boxed-submit and
+   canonical composition registry. W19desktop owns only its new context-menu
+   child/tests, with root/events hookup patch UNAPPLIED for lead union; W10b
+   owns search.rs wrapper. No parallel edits to those paths.
+4. W19 compact-only DialogSize::with_compact producere1dba79c +docsd3b27f014
+   has V1 source/selected narrow PASS but waits lead receiving announcement.
+   F1 still owes actual65/90 opt-in and sheet/focus/gesture/capture proof. Do
+   not consume it during the quota stop or invent area geometry.
+5. W12 actual admitted session opener remains staged: history candidates retain
+   original context/visit/run/session/ticket and stay UNOPENED. No alias-only
+   fallback/phantom resident. W3 creation/provision and W21 workspace archive
+   runtime are unavailable; isolation is in scope/HIDDEN, After=Keep skips
+   archive explicitly, no cwd inference or parallel provisioner.
+6. Separate node tree has committed3afed4000 overbc9 mergee74773371, with own
+   V3 Ended producerd26/059 already ancestral/integrated. Do not rerun unchanged
+   node tests or start another merge during this stop. Saved prompts are beyond
+   F1. W22/S2 Schedules opener consumption remains parked until checked F1.
+
+No own fake fleet/App/Xvfb remains after native proof; all such PIDs/executables/
+start times and removed cookies were independently verified by V1. Only the
+current remote suite and its detached local follow driver may be active. Stop
+only a verified owned driver after its suite settles; never cancel another job.
+Private STATE records exact paths and current run ids; this public note names
+only relative evidence files/run ids. Finish by committing actual final status.
 
 ## Latest checkpoint (2026-11-15 19:0x UTC)
 
