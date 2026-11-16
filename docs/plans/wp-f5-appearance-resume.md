@@ -145,3 +145,23 @@ stable combined final manifest, then **one** V1 package submission with source,
 gate and capture assignments. Coordinator opens captures, lead integrates and
 owns the later combined gate. Do not announce full F5/Paseo completion before
 that bounded review and integration disposition.
+
+## Final quota-stop disposition
+
+Stopped at 2026-11-16T03:55:31.982063+00:00. No active K VM runs.
+Checkpoint `/tmp/work/gk-k-themes/f5/quota-checkpoint.json`, SHA-256 `245373b0605112a26952be73b33c1495eb4f1b7b1a8e8bf9d006355b34f245ed`: 154 hash/dimension/source/root-verified recorded originals; completed components ['matrix']; 58 partial behavior observations.
+
+The behavior driver successfully covered all eight syntax selections after
+scrolling the existing popup to Solarized; it then covered five named theme
+transitions with overrides retained. The next System tile OCR miss left the
+series incomplete. A deadline-bounded continuation did not complete before
+quota cleanup. No product source fix or new gate was needed. Continue at
+System/Light/Dark transitions and normal-process restart, then remaining
+variant/restart/System/family-boundary/conversation matrices. Do not replay
+the entire fixed-name behavior script or reset evidence implicitly.
+
+Quota cleanup completed03:54 UTC; `quota-final-process-proof.json` independently
+rechecked all recorded app/display identities and found zero matching owned
+processes remaining. `fleet-p25-cleanup.json` and `quota-fleet-cleanup.log`
+record the two private nodes and children. All work remains committed; no push.
+The full F5 package remains unfinished and has NOT been sent to V1 for review.
