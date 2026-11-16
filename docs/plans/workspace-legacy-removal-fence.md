@@ -4,6 +4,19 @@ Status: source prerequisite on announced node head 93970acb; VM checks, V3 revie
 and combined-line proof are owed. Actual provisioning remains unavailable until
 its owning package has this checked prerequisite and its other admission facts.
 
+Narrowed by ADR 0106 (2026-11-16, coordinator ruling "option A narrowed"):
+- A `Local` descriptor that is Active or Archived owns no directory, so it no
+  longer blocks.
+- Legacy project unregister archives the project's own `Local` Active
+  descriptors in the same store write that forgets the project (Paseo TRACKER
+  258), and keeps the records.
+- `Managed` backings, every reservation stage, and descriptors that are
+  Archiving or Restoring still block.
+- W11's pinned test
+  `registry_fence_empty_local_and_archived_workspaces_block_legacy_project_unregister`
+  was rewritten deliberately into the two tests named under "Authored tests"
+  below.
+
 [Decision Log]
 - Purpose: an empty independent workspace or interrupted backing reservation is
   not represented by the legacy live-session/cwd checks. Legacy unregister,
@@ -14,15 +27,16 @@ its owning package has this checked prerequisite and its other admission facts.
 - Alternatives: path-based ownership inference, a snapshot followed by unlocked
   deletion, ignoring unpublished reservations, or a caller-supplied bypass.
 - Choice: one Store read transaction scans canonical typed descriptors AND retained
-  reservation intents for exact ProjectId. Any lifecycle/stage blocks the legacy
-  path. Project unregister checks under its existing metadata lock; worktree
-  remove/retire obtains the same bounded ProjectAdmission before the check,
+  reservation intents for exact ProjectId. Any reservation stage, any `Managed`
+  descriptor and any Archiving/Restoring descriptor blocks the legacy path; a
+  `Local` Active/Archived descriptor does not (ADR 0106). Project unregister
+  checks under its existing metadata lock; worktree remove/retire obtains the same bounded ProjectAdmission before the check,
   rechecks its WorktreeId/project association and moves its own Arc into the
   existing tracked task through teardown, Git removal and Store acknowledgement.
 - Reason: the provisioning driver retains that same admission through descriptor
   finalization, so publication cannot enter the gap between check and cleanup.
-- Impact: this is intentionally conservative at project scope, including Archived
-  descriptors and Reserved/Creating/Uncertain/Ready reservations. An unowned
+- Impact: this is intentionally conservative at project scope for owned backings,
+  transitions and Reserved/Creating/Uncertain/Ready reservations. An unowned
   project still follows the original legacy safety/approval/live-resource path.
   There is no boolean bypass or newly activated create/archive/delete method.
 
@@ -42,8 +56,10 @@ Root exclusion, aliasing, resource quiescence and a dedicated W21 exclusive
 claim-bearing cleanup remain separate incomplete authority; this fence does not
 qualify them or let legacy routes stand in for workspace archive/restore.
 
-Authored tests (not executed): empty Local Active/Archived ownership blocks
-unregister; Managed ownership blocks Discard before an approved marker-writing
+Authored tests (not executed): (ADR 0106) unregister archives Local Active
+descriptors and keeps Local Archived ones, while Local Archiving/Restoring still
+block (`registry_fence_local_workspaces_are_archived_by_legacy_project_unregister`,
+`registry_fence_local_workspace_in_transition_still_blocks_legacy_project_unregister`); Managed ownership blocks Discard before an approved marker-writing
 teardown and retains dirty files; an uncertain pre-publication reservation also
 blocks; actual retained admission orders descriptor publication ahead of removal;
 automatic retire keeps backing while an unrelated unowned worktree still removes;
