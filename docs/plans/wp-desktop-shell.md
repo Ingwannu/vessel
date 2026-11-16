@@ -475,6 +475,7 @@ rustfmt and the size/token scripts are the only local source checks.
 | Shared header actions, run153102Z | dd7ef7ec; all selected steps0, raw1447/0/2, Kit196 including3 header cases; V1 row249 and announced linea7aab9d6 | Caller owns stale-action authority; headless Dark fixtures do not prove both-theme OS visuals. |
 | Unit21, run160356Z | ec90c53f;1420/0/2: App106/0/2, Kit197, Link142, View975 | Delayed writer, state fence, initial preference/cache and edit-recipient tests passed; later two-window and zoom changes excluded. |
 | Library strict26, run173910Z | b5cf516a; all-target Kit/Link/View Clippy0, actual changed Kit/Link checking | App and later enum/base13 source excluded. |
+| Library strict31, run20261116T004229Z | a81d3d7a; fonts0 and locked all-target Kit/Link/View Clippy0, actual View compiling and Kit/Link checking | App, the later passive-Client revision fence and base13.1 excluded. |
 | Library strict22, run160743Z | ec90c53f; all-target Kit/Link/View Clippy0 | App excluded. |
 | App24, run170102Z | 7d70dc15;118/0/2 including real two-window prefer_with_receipt, physical save failure followed by another window's success before observation |13 pending owner API warnings; no App strict or later base9/zoom proof. |
 | Unit25, run173910Z | b5cf516a;1476/0/2: App127/0/2, Kit215, Link143, View991 | Actual production zoom/DPI/bounds, both limits, extra window, queued root replacement and legacy store migration passed; later close-admission hardening excluded. |
@@ -551,12 +552,26 @@ unchanged lifecycle-unsent answer so the shared settle function stays below its
 line limit. Assertions and runtime policies are unchanged; these later style
 edits await the next receiving check and do not expand prior execution evidence.
 
+The exacta81 Wasm32 check32 reached Link and App, then refused an unhandled
+Sessions route in the base13 sidebar layout match. It also reported one redundant
+ActFailed qualification. The receiving correction puts Sessions in the same
+workspace sidebar context as Board/Archive and removes that qualification. It
+adds no session resolver or transport authority. This route match is shared by
+native builds too; the older queued App test source must be replaced before it
+can reach its new persistence assertions. The failed Wasm logs remain evidence,
+and a corrected check is required rather than treating the native library pass
+as browser proof.
+
 The old read-only protocol23 root binaries were reapproved only through dd13/base6
 for windows/menus/changelog/credential-free navigation, with no same-commit claim.
 They omit service-port/allocation approval, strict decode failure, session.delete
-handover and pending-label admission. The current base13 uses protocol25: obtain
-fresh lead approval before any fleet capture. Desktop does not rebuild shared
-root binaries, launch real agents, use live preview ports or open real browsers.
+handover and pending-label admission. The lead supplied a newer protocol25 base12
+root fleet (root27502436, schema21) with ten CLI/node/fake binaries and no usage
+fixture. It predates ed4cd137/bc9cacc6 caller-drop, relay-lifetime, plugin and voice
+behavior; captures cannot prove those later behaviors. Verify its exact manifest
+when used, keep it read-only, and make no same-commit root claim. No fleet or
+capture has started. Desktop does not rebuild shared root binaries, launch real
+agents, use live preview ports or open real browsers.
 
 Availability uses LiveShells::{Available,Unavailable}, not an ad hoc Result error
 or another App dependency. The complete-list test preserves typed refusal; real

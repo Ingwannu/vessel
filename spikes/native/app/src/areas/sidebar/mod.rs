@@ -266,9 +266,12 @@ pub(crate) fn arrangement(
     }
     let context = match shell.route {
         Route::Settings => SidebarContext::Settings,
-        Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
-            SidebarContext::Workspace(shell.code_placement(window))
-        }
+        Route::Draft
+        | Route::Board
+        | Route::Sessions
+        | Route::Archive
+        | Route::Session
+        | Route::Pair => SidebarContext::Workspace(shell.code_placement(window)),
     };
     let viewport = f32::from(window.viewport_size().width);
     sidebar_layout(
