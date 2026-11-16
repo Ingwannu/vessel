@@ -1,7 +1,7 @@
 # 0106: Runtime workspace registration
 
 Status: accepted (node carrier for the paused W11, coordinator rulings 2026-11-16).
-Extends ADR 0082 (independent workspace registry). TRACKER rows 241 and 780.
+Extends ADR 0082 (independent workspace registry). TRACKER rows 241 and 783.
 
 ## Purpose and intent
 
