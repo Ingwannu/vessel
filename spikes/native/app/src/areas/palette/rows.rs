@@ -38,8 +38,10 @@ pub(super) fn child_at(groups: &[(PaletteGroup, Vec<&Entry>)], id: &str) -> Opti
 
 /// An entry's glyph (the page's `iconOf`). The rows Paseo registers as
 /// command-centre root actions use its explicit heavier strokes
-/// (`root-registration.tsx` 65-107: New at 2.4, Settings at 2.2); the other
-/// rows keep the shared provider-weight glyphs.
+/// (`root-registration.tsx` 65-107: New at 2.4, Settings at 2.2); every
+/// other row is a shared line glyph that the kit's command row draws at the
+/// same 2.2 (`Glyph::command_weight_path`), so Vessel's own rows (machines,
+/// the board, themes, sessions, settings sections) match Paseo's.
 pub(super) const fn glyph_of(target: &Target) -> Glyph {
     match target {
         PaletteTarget::NewSession(_) => Glyph::CommandPlus,
@@ -170,5 +172,25 @@ mod stroke_tests {
             settings::section_glyph(Section::Appearance)
         );
         assert_eq!(glyph_of(&PaletteTarget::Board), Glyph::Board);
+    }
+
+    /// Every other row draws at Paseo's 2.2 through the kit's command-weight
+    /// asset: none is left at the provider's 1.5.
+    #[test]
+    fn every_other_row_draws_at_the_command_weight() {
+        let mut targets = vec![PaletteTarget::AddMachine, PaletteTarget::Board];
+        targets.extend(Section::ALL.map(PaletteTarget::Settings));
+        targets.extend(Theme::ALL.map(PaletteTarget::Theme));
+        let mut glyphs: Vec<Glyph> = targets.iter().map(glyph_of).collect();
+        // Session rows (structured and terminal).
+        glyphs.extend([Glyph::Message, Glyph::Terminal]);
+        for glyph in glyphs {
+            let path = glyph.command_weight_path();
+            assert!(
+                matches!(glyph, Glyph::CommandPlus | Glyph::CommandSettings)
+                    || path.starts_with("kit/command-weight/"),
+                "{glyph:?} {path}"
+            );
+        }
     }
 }

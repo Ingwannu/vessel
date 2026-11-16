@@ -5,7 +5,7 @@
 use std::ops::Range;
 
 use gpui::prelude::*;
-use gpui::{Div, ElementId, SharedString, Stateful, div, px};
+use gpui::{Div, ElementId, SharedString, Stateful, div, px, svg};
 
 use crate::assets::Glyph;
 use crate::fonts::{self, Type};
@@ -137,7 +137,14 @@ pub fn command_row_parts(
             .flex()
             .items_center()
             .justify_center()
-            .child(glyph(which, 16.0, neutral.foreground_muted))
+            // Every command-centre glyph at Paseo's row stroke (2.2).
+            .child(
+                svg()
+                    .path(which.command_weight_path())
+                    .size(px(16.0))
+                    .flex_shrink_0()
+                    .text_color(neutral.foreground_muted),
+            )
     });
     let main = div()
         .flex_1()
