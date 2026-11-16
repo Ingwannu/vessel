@@ -461,8 +461,21 @@ at each change.
   comparable within the same live state; it is neither a file revision nor
   durable identity, a terminal remote-effect fence, or write authority.
 - Changed: `src/input/base/state.rs`, accessor and regression only.
-- Checked: pending; the consumer's queued-input and lifecycle regressions are
-  separate from the vendor change and must be qualified on their actual union.
+- Checked: bounded source review and requested Kit checks passed. Exact
+  1d79bf2e ran locked all-target Kit Clippy with warnings denied (run
+  wp-files-narrow-20261115T190015Z-1d79bf2e, fonts and cargo rc0). The same
+  four source blobs on announced base13, exact936d1afd, executed the real
+  CodeEditor A-to-X-to-A case:1 passed/0 failed/0 ignored,243 filtered
+  (run wp-files-narrow-20261116T002923Z-936d1afd, fonts and cargo rc0,
+  fresh gpui-base and Kit code generation). V1 independently checked both
+  receipts and whole-file equality. This is not a whole app, OS-input or
+  C5 queued-input/lifecycle consumer approval.
+- The vendor-private regression remains **UNEXECUTED**: the supported build
+  interface has no separate private-test recipe with its absent development
+  lock. No alternate manifest, dependency or lock was invented. The Kit case
+  exercises the same production engine but is not execution of that private
+  vendor case. Revision comparisons still require the same actual editor
+  instance; equal wrapping values are not cross-editor or disk authority.
 
 ## `gpui-pre` 0.3.10
 
