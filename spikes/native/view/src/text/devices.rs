@@ -1,6 +1,7 @@
 //! Devices' sentences, including safe, localized failures.
 
 use super::Lang;
+mod authority;
 mod details;
 mod row;
 
@@ -226,6 +227,9 @@ impl DevicesWords {
     ) -> &'a str {
         match (self.lang, problem) {
             (Lang::En | Lang::Ko, Problem::TargetChanged) => translations.device_target().changed(),
+            (Lang::En | Lang::Ko, Problem::AccessNotConfirmed) => {
+                translations.device_authority().not_confirmed()
+            }
             (Lang::En, Problem::Offline) => {
                 "The machine is not connected. Reconnect the machine. Then try again."
             }

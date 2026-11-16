@@ -216,6 +216,7 @@ impl Shell {
         self.sidebar_settings_clear_info();
         let listed = sections::listed(section, self);
         self.areas.settings.arrive(section, listed, true);
+        crate::areas::shortcuts::navigation_changed(self);
         self.agent_load(false, cx);
         cx.notify();
     }

@@ -23,14 +23,14 @@ pub enum DictationChange<T> {
 
 impl<T> DictationChange<T> {
     /// A reset resolves through the default instead of becoming a saved value.
-    pub(super) fn value(&self) -> Option<&T> {
+    pub(crate) fn value(&self) -> Option<&T> {
         match self {
             Self::Set(value) => Some(value),
             Self::Reset => None,
         }
     }
     /// Stored settings keep selections, with reset operations normalized away.
-    pub(super) fn overlay(change: Option<Self>, saved: Option<Self>) -> Option<Self> {
+    pub(crate) fn overlay(change: Option<Self>, saved: Option<Self>) -> Option<Self> {
         match change.or(saved) {
             Some(value @ Self::Set(_)) => Some(value),
             Some(Self::Reset) | None => None,

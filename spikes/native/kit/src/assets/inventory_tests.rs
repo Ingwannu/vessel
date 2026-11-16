@@ -1,4 +1,4 @@
-//! Canonical shared100 prefix, followed by five still-unpublished F4 glyphs.
+//! Canonical shared101 prefix, followed by five still-unpublished F4 glyphs.
 //! Their positions moved only in the explicit integration migration; original
 //! pre-refactor100 order remains frozen in commit0d8e8b3d1 and its input artifact.
 //! Never regenerate this snapshot from inventory output during a test.
@@ -105,6 +105,7 @@ const CANONICAL: &[(Glyph, &str)] = &[
     (Glyph::PanelMaximize, "kit/panel-maximize.svg"),
     (Glyph::PanelMinimize, "kit/panel-minimize.svg"),
     (Glyph::X, "kit/x.svg"),
+    (Glyph::Import, "kit/import.svg"),
     (Glyph::History, "kit/history.svg"),
     (Glyph::ArrowDown, "kit/arrow-down.svg"),
     (Glyph::Blocks, "kit/blocks.svg"),

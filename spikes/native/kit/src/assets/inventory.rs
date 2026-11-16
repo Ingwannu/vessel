@@ -213,6 +213,8 @@ glyph_inventory! {
     PanelMinimize => "kit/panel-minimize.svg",
     /// A 24-grid UI close X; the window Close keeps its 10-grid chrome shape.
     X => "kit/x.svg",
+    /// Command-center session import; its source role uses a 2.2-point stroke.
+    Import => "kit/import.svg",
     /// Session history (Paseo's Lucide History alias).
     History => "kit/history.svg",
     /// Move a sidebar preference down one row.

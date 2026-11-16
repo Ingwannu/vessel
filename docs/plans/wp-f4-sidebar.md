@@ -965,3 +965,28 @@ The current native root always mounts its titlebar and has no paired-book
 sidebar gate. That is observed source behavior, not an approved always-on
 shortcut difference. W15 owns the separate onboarding chrome comparison;
 this shortcut ruling changes no root geometry or OS window chrome here.
+
+## Receiving package base14.1
+
+Announced b54abbdc is merged before the next Main check. Preserve its complete
+published101 glyph prefix including Import, then the same five unpublished F4
+roles. The current static expected prefix gains that published Import before
+those five; no older path, vector, test input artifact or public iteration
+position is rewritten. Receiving Import's bounded review remains separate from
+W22 native first-use evidence and this F4 composition.
+
+The Tooltip merge retains W12's ONE pending::State, cancellable hover task,
+weak trigger lifetime, configured side/offset/delay and published Toolbar paths.
+S2's explicit top-start InfoTip/compact press/retained visual probe APIs extend
+that same controller through a small attachment module; clear cancels both
+shown and pending. The same existing surface renderer handles all tips.
+No second shown store, timer, focus, frame or area tooltip is retained. Legacy
+configured touch suppression and Toolbar disabled/loading guards stay intact.
+
+All W12 profile test source is preserved verbatim. S2 InfoTip tests read the
+shared published state, retaining their input sequences and expected values;
+two unit assertion terminators are mechanical. A new actual GPUI/virtual-clock
+case combines delayed Toolbar hover, compact InfoTip press and owner clear,
+requiring one controller to cancel the old task. These tests and this receiving
+composition remain UNEXECUTED. Prior10b strict is prior-source proof only;
+changed receiving strict must precede the one ordinary Main runtime replacement.

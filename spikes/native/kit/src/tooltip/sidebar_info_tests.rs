@@ -1,7 +1,9 @@
 //! Real pointer input through the shared info widget, including its hit slop.
+use super::info::Alignment;
 use super::*;
+use crate::picker::anchor_probe;
 use crate::{Scheme, screen_header::Density};
-use gpui::{Context, Modifiers, Render, TestAppContext, Window};
+use gpui::{Context, Modifiers, Render, TestAppContext, Window, point};
 
 #[derive(Clone, Copy)]
 enum Mode {
@@ -13,6 +15,7 @@ struct Probe {
     mode: Mode,
     tips: Tooltips,
     place: Place,
+    toolbar: Place,
 }
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
@@ -43,6 +46,18 @@ impl Render for Probe {
             )
             .into_any_element(),
         };
+        let toolbar = self.tips.on_configured(
+            div()
+                .id("delayed-toolbar")
+                .absolute()
+                .left_0()
+                .top(px(320.0))
+                .size(px(20.0)),
+            &self.toolbar,
+            "Toolbar delayed",
+            Configuration::toolbar(),
+            crate::ControlSizing::Pointer,
+        );
         div()
             .size_full()
             .child(
@@ -56,6 +71,7 @@ impl Render for Probe {
                         &tokens,
                     )),
             )
+            .child(toolbar)
             .children(self.tips.render(&tokens))
     }
 }
@@ -67,9 +83,48 @@ fn probe(
         mode,
         tips: Tooltips::new(),
         place: Rc::default(),
+        toolbar: Rc::default(),
     });
     cx.run_until_parked();
     (view, cx)
+}
+
+#[gpui::test]
+fn settings_press_and_clear_cancel_the_same_configured_hover_timer(cx: &mut TestAppContext) {
+    use std::time::Duration;
+    let (view, cx) = probe(cx, Mode::Compact);
+    let (toolbar, info) = view.read_with(cx, |probe, _| {
+        (
+            probe.toolbar.get().unwrap().center(),
+            probe.place.get().unwrap().center(),
+        )
+    });
+    cx.simulate_mouse_move(toolbar, None, Modifiers::none());
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(100));
+    cx.simulate_click(info, Modifiers::none());
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(300));
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| {
+        let state = probe.tips.state.borrow();
+        assert_eq!(
+            state.shown.as_ref().unwrap().content.text().as_ref(),
+            "Header explanation"
+        );
+    });
+    cx.simulate_mouse_move(toolbar, None, Modifiers::none());
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(100));
+    view.update(cx, |probe, cx| {
+        probe.tips.clear();
+        cx.notify();
+    });
+    cx.executor().advance_clock(Duration::from_millis(300));
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| {
+        assert!(probe.tips.state.borrow().shown.is_none());
+    });
 }
 #[gpui::test]
 fn sidebar_info_compact_press_uses_expanded_hit_area_and_dismisses_outside(
@@ -86,14 +141,16 @@ fn sidebar_info_compact_press_uses_expanded_hit_area_and_dismisses_outside(
     cx.simulate_click(hit, Modifiers::none());
     cx.run_until_parked();
     view.read_with(cx, |probe, _| {
-        let shown = probe.tips.shown.borrow();
-        let tip = shown.as_ref().unwrap();
+        let state = probe.tips.state.borrow();
+        let tip = state.shown.as_ref().unwrap();
         assert!(matches!(tip.options.alignment, Alignment::Start));
         assert_eq!(tip.options.interaction, InfoInteraction::Press);
     });
     cx.simulate_click(point(px(340.0), px(300.0)), Modifiers::none());
     cx.run_until_parked();
-    view.read_with(cx, |probe, _| assert!(probe.tips.shown.borrow().is_none()));
+    view.read_with(cx, |probe, _| {
+        assert!(probe.tips.state.borrow().shown.is_none());
+    });
 }
 #[gpui::test]
 fn sidebar_info_desktop_hover_and_legacy_touch_keep_distinct_policies(cx: &mut TestAppContext) {
@@ -104,12 +161,14 @@ fn sidebar_info_desktop_hover_and_legacy_touch_keep_distinct_policies(cx: &mut T
         cx.run_until_parked();
         view.read_with(cx, |probe, _| {
             assert_eq!(
-                probe.tips.shown.borrow().is_some(),
+                probe.tips.state.borrow().shown.is_some(),
                 matches!(mode, Mode::Desktop)
             );
         });
         cx.simulate_click(at, Modifiers::none());
         cx.run_until_parked();
-        view.read_with(cx, |probe, _| assert!(probe.tips.shown.borrow().is_none()));
+        view.read_with(cx, |probe, _| {
+            assert!(probe.tips.state.borrow().shown.is_none());
+        });
     }
 }
