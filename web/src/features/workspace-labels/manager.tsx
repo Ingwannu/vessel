@@ -3,14 +3,24 @@
 // recolour or delete it.
 //
 // [Decision Log]
-// - Reference: Paseo's manager lists a host's labels with their colours,
-//   a search over them, and an empty state; opening one shows its name
-//   and colour with Save (only when something changed) and Delete, which
-//   first says how many workspaces carry the label and asks; a host that
-//   is offline or too old says so instead of offering edits.
-// - Choice: the same, with the machine picked from a select when there
-//   are several (Paseo's host filter). The rules live in the model
-//   (data/workspace-labels/manager.ts); this draws it.
+// - Reference: Paseo's manager-modal.tsx. The listing: the search in the
+//   sheet's header (unboxed, under the title, not focused on open), the
+//   HostFilter pill when there is more than one host (no "all"), then
+//   one row per label on a single left rail (the 10px dot, the name, a
+//   pencil that fades in on hover and is always there on touch and
+//   phones), one empty line for no labels and no matches alike, and the
+//   offline / update-host / error lines. Editing: the header title "Edit
+//   label" with a back arrow, the Name field and the ten swatches, and a
+//   footer with Delete (outline: red belongs to the confirmation) at the
+//   left and Save (only for a real change, loading while it runs) at the
+//   right. Delete first says how many workspaces carry the label.
+// - Words: Paseo's, so "host" here where the rest of the page says
+//   "machine".
+// - Choice: the rules live in the model (data/workspace-labels/
+//   manager.ts); this draws it. The kit Dialog's header back and header
+//   search are Paseo's sheet header (kit/dialog.tsx).
+// - Kept from before, a deliberate difference: back from editing keeps
+//   the search, and the box shows it, so the box and the list agree.
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
@@ -20,21 +30,18 @@ import { labelManager } from "../../data/workspace-labels/hub";
 import {
   type ManagedMachine,
   ManagerModel,
+  type ManagerSnapshot,
 } from "../../data/workspace-labels/manager";
 import { labelKey } from "../../data/workspace-labels/names";
 import { nodeLabel } from "../../data/nodes";
-import {
-  Button,
-  Dialog,
-  EmptyState,
-  Field,
-  FieldGroup,
-  Select,
-  TextField,
-} from "../../ui/kit";
-import { LabelDot, LabelSwatches } from "./chip";
+import { Button, Dialog, IconButton } from "../../ui/kit";
+import { LabelDot } from "./chip";
 import { DeleteLabelDialog } from "./delete-dialog";
+import { LabelEditView } from "./edit-view";
+import { HostFilter } from "./host-filter";
 import { useLabels } from "./use-labels";
+
+type Label = ManagedMachine["labels"][number];
 
 /** The manager, drawn by the app's root while it is open. */
 export function LabelManagerHost() {
@@ -73,6 +80,7 @@ function LabelManager({ onClose }: { onClose: () => void }) {
             ? catalog.state
             : "offline",
         labels: catalog?.labels ?? [],
+        error: catalog?.error ?? null,
       };
     });
     model.syncMachines(machines, selected);
@@ -86,105 +94,93 @@ function LabelManager({ onClose }: { onClose: () => void }) {
   // Which button started the operation under way: only it draws busy.
   const [pressed, setPressed] = useState<"save" | "delete" | null>(null);
   const editable = view.machine?.state === "online";
-  const editing = view.draft !== null && view.editing !== null;
-  const footer = editing ? (
-    <>
-      <Button
-        variant="danger"
-        disabled={(view.pending && pressed !== "delete") || !editable}
-        busy={view.pending && pressed === "delete" && asking === null}
-        onClick={() => {
-          setPressed("delete");
-          void model.delete(
-            (count) =>
-              new Promise<boolean>((answer) => {
-                setAsking({ name: view.editing?.name ?? "", count, answer });
-              }),
-          );
-        }}
-      >
-        Delete
-      </Button>
-      <Button
-        variant="ghost"
-        disabled={view.pending}
-        onClick={() => {
-          model.cancelEdit();
-        }}
-      >
-        Back
-      </Button>
-      <Button
-        variant="primary"
-        disabled={
-          !view.dirty || !editable || (view.pending && pressed !== "save")
+  const save = () => {
+    setPressed("save");
+    void model.save();
+  };
+  const sheet =
+    view.draft !== null && view.editing !== null
+      ? {
+          title: "Edit label",
+          back: {
+            label: "Back",
+            onBack: () => {
+              model.cancelEdit();
+            },
+          },
+          footer: (
+            <div className="label-manager-foot">
+              <Button
+                variant="outline"
+                disabled={!editable || (view.pending && pressed !== "delete")}
+                busy={view.pending && pressed === "delete" && asking === null}
+                onClick={() => {
+                  setPressed("delete");
+                  void model.delete(
+                    (count) =>
+                      new Promise<boolean>((answer) => {
+                        setAsking({
+                          name: view.editing?.name ?? "",
+                          count,
+                          answer,
+                        });
+                      }),
+                  );
+                }}
+              >
+                Delete
+              </Button>
+              <Button
+                variant="primary"
+                disabled={
+                  !view.dirty ||
+                  !editable ||
+                  (view.pending && pressed !== "save")
+                }
+                busy={view.pending && pressed === "save"}
+                onClick={save}
+              >
+                Save
+              </Button>
+            </div>
+          ),
         }
-        busy={view.pending && pressed === "save"}
-        onClick={() => {
-          setPressed("save");
-          void model.save();
-        }}
-      >
-        Save
-      </Button>
-    </>
-  ) : undefined;
+      : {
+          title: "Manage labels",
+          search: {
+            value: view.query,
+            onChange: (query: string) => {
+              model.setQuery(query);
+            },
+            placeholder: "Search labels",
+          },
+        };
   return (
     <>
-      <Dialog
-        title={editing ? "Edit label" : "Manage labels"}
-        onClose={onClose}
-        {...(footer === undefined ? {} : { footer })}
-      >
-        {view.machines.length > 1 ? (
-          <Field label="Machine">
-            <Select
-              value={view.node ?? ""}
-              onChange={(node) => {
-                const chosen = view.machines.find((each) => each.node === node);
-                if (chosen !== undefined) {
-                  model.selectMachine(chosen.node);
-                }
-              }}
-              options={view.machines.map((machine) => ({
-                value: machine.node,
-                label: machine.name,
-              }))}
-              disabled={view.pending || editing}
-            />
-          </Field>
-        ) : null}
-        {editing && view.draft !== null ? (
-          <>
-            <Field label="Name" error={view.error}>
-              <TextField
-                value={view.draft.typed}
-                onChange={(typed) => {
-                  model.setName(typed);
-                }}
-                disabled={view.pending || !editable}
-                autoFocus
-              />
-            </Field>
-            <FieldGroup label="Color">
-              <LabelSwatches
-                value={view.draft.color}
-                onChange={(color) => {
-                  model.setColor(color);
-                }}
-                disabled={view.pending || !editable}
-              />
-            </FieldGroup>
-          </>
-        ) : (
-          <LabelList
+      <Dialog onClose={onClose} {...sheet}>
+        {view.draft === null || view.editing === null ? (
+          <LabelListing
             view={view}
-            onSearch={(query) => {
-              model.setQuery(query);
+            disabled={!editable || view.pending}
+            onMachine={(node) => {
+              model.selectMachine(node);
             }}
-            onOpen={(label) => {
+            onEdit={(label) => {
               model.edit(label);
             }}
+          />
+        ) : (
+          <LabelEditView
+            draft={view.draft}
+            disabled={!editable || view.pending}
+            error={view.error}
+            onName={(typed) => {
+              model.setName(typed);
+            }}
+            onColor={(color) => {
+              model.setColor(color);
+            }}
+            onSubmit={save}
           />
         )}
       </Dialog>
@@ -202,61 +198,56 @@ function LabelManager({ onClose }: { onClose: () => void }) {
   );
 }
 
-function LabelList({
+function LabelListing({
   view,
-  onSearch,
-  onOpen,
+  disabled,
+  onMachine,
+  onEdit,
 }: {
-  view: ReturnType<ManagerModel["snapshot"]>;
-  onSearch: (query: string) => void;
-  onOpen: (label: {
-    name: string;
-    color: ManagedMachine["labels"][number]["color"];
-  }) => void;
+  view: ManagerSnapshot;
+  disabled: boolean;
+  onMachine: (node: ManagedMachine["node"]) => void;
+  onEdit: (label: Label) => void;
 }) {
   const machine = view.machine;
-  if (machine === null) {
-    return <EmptyState title="No machines" />;
-  }
-  if (machine.state === "unsupported") {
-    return <p className="label-note">Update this machine to manage labels.</p>;
-  }
-  if (machine.state === "offline") {
-    return <p className="label-note">This machine is offline.</p>;
-  }
+  const error = view.error ?? machine?.error ?? null;
   return (
     <>
-      <TextField
-        value={view.query}
-        onChange={onSearch}
-        placeholder="Search labels"
-        icon="search"
-        aria-label="Search labels"
-        role="searchbox"
-      />
-      {view.labels.length === 0 ? (
-        <p className="label-note">
-          {machine.labels.length === 0
-            ? "No labels on this machine."
-            : "No labels match."}
-        </p>
-      ) : (
-        <div className="label-list">
-          {view.labels.map((label) => (
-            <button
-              key={labelKey(label.name)}
-              type="button"
-              className="label-row"
+      {view.machines.length > 1 && view.node !== null ? (
+        <HostFilter
+          machines={view.machines}
+          value={view.node}
+          onChange={onMachine}
+          disabled={view.pending}
+        />
+      ) : null}
+      <div className="label-list">
+        {view.labels.map((label) => (
+          <div key={labelKey(label.name)} className="label-row">
+            <LabelDot color={label.color} />
+            <span className="label-name">{label.name}</span>
+            <IconButton
+              label={`Edit ${label.name}`}
+              icon="edit"
+              size="xs"
+              disabled={disabled}
               onClick={() => {
-                onOpen(label);
+                onEdit(label);
               }}
-            >
-              <LabelDot color={label.color} />
-              <span className="label-name">{label.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
+            />
+          </div>
+        ))}
+        {view.labels.length === 0 ? (
+          <p className="label-note">No labels on this host.</p>
+        ) : null}
+      </div>
+      {machine?.state === "offline" ? (
+        <p className="label-note">This host is offline.</p>
+      ) : null}
+      {machine?.state === "unsupported" ? (
+        <p className="label-note">Update this host to manage labels.</p>
+      ) : null}
+      {error === null ? null : <p className="label-note error">{error}</p>}
     </>
   );
 }

@@ -24,6 +24,8 @@ export interface ManagedMachine {
   name: string;
   state: "online" | "offline" | "unsupported";
   labels: readonly Label[];
+  /** The last failure reading its catalog, if any. */
+  error?: string | null;
 }
 
 /** The label being edited, as typed so far. */

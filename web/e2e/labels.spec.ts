@@ -2,7 +2,8 @@
 // node: a session started in a project gives its root a workspace (ADR
 // 0106); grouped by workspace, the row's Labels menu creates a label and
 // assigns it, the chip shows it, the view menu's filter keeps or hides the
-// workspace, and the manager deletes the label. The view is put back at
+// workspace, and the manager (Paseo's: header search, host pill, pencil
+// rows, header back) deletes the label. The view is put back at
 // the end: the other specs read the sidebar grouped by machine.
 
 import { expect, type Page, test } from "@playwright/test";
@@ -116,20 +117,27 @@ test("a label made on a workspace row shows as its chip, filters it, and goes wh
   await filterBy(page, "Needs review");
   await expect(shop).toBeVisible();
 
-  // Deleting it in the manager says how many workspaces carry it first.
+  // The manager: the search sits in its header and is not focused on
+  // open; one line for no match; the pencil opens the label, the header's
+  // back arrow leaves it; deleting says how many workspaces carry it.
   await display(page);
   await page.getByRole("menuitem", { name: "Manage labels…" }).click();
   const manager = page.getByRole("dialog", { name: "Manage labels" });
-  await choose(
-    page,
-    manager.getByRole("combobox", { name: "Machine" }),
-    /^laptop$/,
-  );
-  await manager.getByRole("button", { name: "Needs review" }).click();
-  await page
-    .getByRole("dialog", { name: "Edit label" })
-    .getByRole("button", { name: "Delete" })
-    .click();
+  const search = manager.getByRole("searchbox", { name: "Search labels" });
+  await expect(search).toBeVisible();
+  await expect(search).not.toBeFocused();
+  await manager.getByRole("button", { name: /^Filter: / }).click();
+  await page.getByRole("menuitemradio", { name: /^laptop\b/ }).click();
+  await search.fill("no such label");
+  await expect(manager).toContainText("No labels on this host.");
+  await search.fill("review");
+  await manager.getByRole("button", { name: "Edit Needs review" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit label" });
+  await expect(edit.getByRole("searchbox")).toHaveCount(0);
+  await edit.getByRole("button", { name: "Back" }).click();
+  await expect(search).toHaveValue("review");
+  await manager.getByRole("button", { name: "Edit Needs review" }).click();
+  await edit.getByRole("button", { name: "Delete", exact: true }).click();
   const ask = page.getByRole("dialog", { name: "Delete Needs review?" });
   await expect(ask).toContainText("1 workspace on this machine");
   await ask.getByRole("button", { name: "Delete", exact: true }).click();
