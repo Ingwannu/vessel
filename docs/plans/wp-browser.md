@@ -8,6 +8,38 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Actual real Rust Page/wait/snapshot/viewport PNG component
+
+Exacta21d526a5829062f03139c317fd99fd867c89dfa fixed test executable was
+built/exported by wp-browser-runtime-artifact-20261116T022604Z-a21d526a
+at03:24:53 UTC. Binary SHA256
+`dadc73e3deae95fbd9580bd7842a00232e570d8b7b539cb108bd3c000b3e2f32`,
+mode0500, toolchain1.93, default features with no optional features, build/run
+UID/GID1000 and matching Linux x86_64/glibc2.39 were verified. Approved CFT149
+and shell hashes, non-setid/no-file-capability state and enabled sandbox were
+checked before executing the sole fixed ignored fixture.
+
+Actual result:1 passed/0 failed/0 ignored in6.18 seconds, exit0. The real Rust
+private-pipe client opened the synthetic allowlisted HTTP page, waited for its
+final text, decoded the independently implemented DOM snapshot and checked
+observed URL/title/input/button labels and390x844 PNG header geometry. Target
+close was acknowledged; browser close, driver join, checked leader/group receipt
+and retained profile Busy assertions passed. The external fixture observed no
+remaining exact-profile processes and used no forced cleanup signals. Read-only
+post-run metadata inspection covered241 private fixture entries (63 directories,
+178 regular files): all UID/GID1000 with no other-user/group permissions. No
+host permission or runtime installation changed; private files stay quarantined.
+
+The immutable runner receipt retains a legacy negative phrase, "no page capture",
+from its earlier Version-only case. It was not rewritten. Exacta21 source and
+its required assertions establish only viewport PNG transport/header geometry,
+as recorded separately from that old wrapper phrase. No full codec validation,
+first-paint or GPU output is inferred. This fixture uses a synthetic content
+handler, not the product public proxy or a Preview lease. It does not contain
+the later ordinary-function or full-page sources. No all-descendant death,
+profile/capacity release, tool offering, native UI/focus, credential/egress
+isolation, Preview authority, Windows or supported engine is qualified. NoEngine.
+
 ## Full-page screenshot controller (staged)
 
 [Decision Log]
@@ -105,9 +137,10 @@ findings: two redundant parent qualifications, the now-used listener's former
 underscore name, and the HTTP handler's owned request not being consumed.
 Use the imported sibling module, name the listener, and consume request parts/
 body explicitly. Fixed-host/method refusal, content, assertions, cleanup and
-all deadlines remain unchanged. No real controller execution has occurred.
+all deadlines remain unchanged. The later exacta21 execution above settles only
+this fixture scope; later function/full-page implementations remain separate.
 
-## Next real controller fixture (prepared, unexecuted)
+## Real controller fixture scope
 
 The existing ignored fixed-artifact test now additionally starts a synthetic
 allowlisted HTTP fixture on its already-owned proxy listener. After actual child
@@ -121,11 +154,11 @@ raw-CDP escape hatch or new engine grant is introduced.
 
 The synthetic handler is NOT the public resolve/classify/pin proxy or a Preview
 lease. It never forwards a request and serves only fixed independent fixture
-HTML. Normal VM suites continue to ignore actual CFT execution. A new exact
-changed-source narrow check and fixed test-artifact export/runtime execution are
-owed; the old41 Version-only pass does not execute these additions. Even a later
-successful PNG would prove transport/header geometry, not first paint policy,
-complete codec/GPU/native rendering, credentials or network isolation. NoEngine.
+HTML. Normal VM suites continue to ignore actual CFT execution. Exacta21
+source strict analysis and its exported actual fixture now passed as recorded
+above. The old41 Version-only pass remains a separate older scope. The a21 PNG
+proves transport/header geometry, not first paint policy, complete codec/GPU/
+native rendering, credentials or network isolation. NoEngine.
 
 ## Actual exported Rust/CFT child-pipe component
 
