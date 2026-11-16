@@ -1,3 +1,6 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-16: `?` never starts a wrapped
+// line (spikes/release/patches/README.md, "gpui-pre", change 10); see the
+// lines marked "Vessel patch".
 use crate::{FontId, Pixels, SharedString, TextRun, TextSystem, px};
 use collections::HashMap;
 use std::{borrow::Cow, iter, sync::Arc};
@@ -79,13 +82,21 @@ impl LineWrapper {
                         }
 
                         if Self::is_word_char(c) {
-                            if prev_c == ' ' && c != ' ' && first_non_whitespace_ix.is_some() {
+                            // Vessel patch: a word may also start right after a `?`.
+                            if (prev_c == ' ' || Self::breaks_only_after(prev_c))
+                                && c != ' '
+                                && first_non_whitespace_ix.is_some()
+                            {
                                 last_candidate_ix = ix;
                                 last_candidate_width = width;
                             }
                         } else {
                             // CJK may not be space separated, e.g.: `Hello world你好世界`
-                            if c != ' ' && first_non_whitespace_ix.is_some() {
+                            // Vessel patch: never a break before a `?`.
+                            if c != ' '
+                                && !Self::breaks_only_after(c)
+                                && first_non_whitespace_ix.is_some()
+                            {
                                 last_candidate_ix = ix;
                                 last_candidate_width = width;
                             }
@@ -494,6 +505,14 @@ impl LineWrapper {
 
         // Text fits within max_lines without truncation.
         (text, Cow::Borrowed(runs))
+    }
+
+    /// Vessel patch: `?` never starts a line (UAX #14 class EX, rule LB13: no
+    /// break before it), so "Remove this device?" does not leave the mark
+    /// alone on the next line. Unlike `!` it is not a word character: a
+    /// break after it stays, so a query in a URL (`foo?b=2`) can still wrap.
+    const fn breaks_only_after(c: char) -> bool {
+        c == '?'
     }
 
     /// Any character in this list should be treated as a word character,

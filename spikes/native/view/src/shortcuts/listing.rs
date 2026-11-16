@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 
 use super::keys::{Binding, Platform, binding_words, overlaps};
-use super::registry::{Action, ShortcutGroup, bindings_of, jump_shown, modified};
+use super::registry::{Action, ShortcutGroup, bindings_on, jump_shown, modified};
 use crate::prefs::{ActionId, Bindings};
 use crate::text::ShortcutWords;
 
@@ -52,7 +52,7 @@ fn clashes_of(
         .filter(|other| {
             *other != action
                 && !other.fixed()
-                && bindings_of(*other, overrides)
+                && bindings_on(*other, overrides, platform)
                     .iter()
                     .any(|theirs| bindings.iter().any(|ours| overlaps(ours, theirs, platform)))
         })
@@ -71,18 +71,18 @@ pub fn shortcut_row(
     let bindings = if fixed {
         Vec::new()
     } else {
-        bindings_of(action, overrides)
+        bindings_on(action, overrides, platform)
     };
     let shown = if fixed {
         let jump = Binding {
             first: jump_shown(),
             then: None,
         };
-        vec![binding_words(&jump, platform, words.then)]
+        vec![binding_words(&jump, platform, &words.then)]
     } else {
         bindings
             .iter()
-            .map(|binding| binding_words(binding, platform, words.then))
+            .map(|binding| binding_words(binding, platform, &words.then))
             .collect()
     };
     let clashes = if fixed {

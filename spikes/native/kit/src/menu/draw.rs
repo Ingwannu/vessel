@@ -237,6 +237,7 @@ fn draw<V: 'static>(
     let mut panel = div()
         .id(id.clone())
         .track_focus(&state.focus)
+        .key_context(popup::KEY_CONTEXT)
         .capture_any_mouse_down(cx.listener(move |view: &mut V, _event, window, _cx| {
             if !get(view).accepts(&focus_lease) {
                 window.prevent_default();

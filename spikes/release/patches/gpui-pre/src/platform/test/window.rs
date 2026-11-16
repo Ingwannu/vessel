@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-16: opt-in real accessibility activation in tests ("gpui-pre", change 11)
 use crate::{
     AnyWindowHandle, Bounds, DevicePixels, DispatchEventResult, DisplayId, GpuSpecs, HeadlessAtlas,
     Pixels, PlatformAtlas, PlatformDisplay, PlatformHeadlessRenderer, PlatformInput,
@@ -51,6 +52,8 @@ pub(crate) struct TestWindowState {
     frame_scheduled: bool,
     frame_callback_pending: bool,
     input_handler: Option<PlatformInputHandler>,
+    // Vessel patch (change 11): retain the real adapter until explicit test activation.
+    a11y_callbacks: Option<Rc<crate::A11yCallbacks>>,
     text_input_configurations: Vec<TextInputConfiguration>,
     text_input_state_changes: Vec<TextInputStateChange>,
     is_fullscreen: bool,
@@ -125,6 +128,8 @@ impl TestWindow {
             frame_scheduled: false,
             frame_callback_pending: false,
             input_handler: None,
+            // Vessel patch (change 11): tests remain inactive by default.
+            a11y_callbacks: None,
             text_input_configurations: Vec::new(),
             text_input_state_changes: Vec::new(),
             is_fullscreen: false,
@@ -305,7 +310,21 @@ impl TestWindow {
     }
 }
 
+// Vessel patch (change 11): explicit callback, never a fabricated node.
+impl TestWindow {
+    /// Invoke the real adapter callback without holding the test-window lock.
+    pub(crate) fn activate_accessibility(&self) -> bool {
+        let callbacks = self.0.lock().a11y_callbacks.clone();
+        callbacks.is_some_and(|callbacks| (callbacks.activation)().is_some())
+    }
+}
+
 impl PlatformWindow for TestWindow {
+    // Vessel patch (change 11): production PlatformWindow implementations are untouched.
+    fn a11y_init(&self, callbacks: crate::A11yCallbacks) {
+        self.0.lock().a11y_callbacks = Some(Rc::new(callbacks));
+    }
+
     fn visual_viewport_bounds(&self) -> Bounds<Pixels> {
         let state = self.0.lock();
         state

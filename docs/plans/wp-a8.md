@@ -1,6 +1,6 @@
 # A8: permissions, questions and CLI permit
 
-Status: A8 is incomplete. Main now includes package base13.1; its combined
+Status: A8 is incomplete. Main now includes package base14.1; its combined
 source still needs fresh checks. Earlier source00081a39b on package base13 has
 four-crate all-target strict proof; its older730 source has1492/0/2 runtime
 proof. These are different sources. The selected staged Requests kernel has
@@ -911,3 +911,23 @@ head or unannounced base14 candidate is imported. Root CLI's immutable2c run
 continues in its separate tree. The earlier00081 A8 strict result is now
 prior-source proof; the combined13.1 union still needs its own narrow check.
 No incoming baseline total replaces A8 runtime, whole or authority acceptance.
+
+
+## App base14.1 and checked body intake
+
+Merge announced b54abbdc (native baseline1755/0/2), including the checked staged
+body8737a401. The sole conflict is the link testing State constructor's earlier
+A8 responses field against the line's extracted shared test support. Keep the
+canonical make_state/Home/assertions/scenario implementation and initialize A8's
+existing responses Hub once in make_state; remove the superseded duplicate
+constructor/Drop implementation. No actor or fixture bypass is introduced.
+
+Both tool_body/tool_detail module registrations remain cfg(test). The current
+PermissionRequest still contains only id/tool_call/options, with no proposed
+material/presentation field. There is no actual canonical request DTO caller to
+activate yet. The eventual A8 caller and legacy computed-diff delegation therefore
+remain an atomic checked consumer union, with no invented ToolView/log/request
+material. This merge is not that activation or a permission-authority acceptance.
+The combined14.1 A8 source still needs its own strict/runtime checks after the
+current immutable CLI work; the baseline result and body proof stay separately
+qualified. No node head was merged directly into the app tree.
