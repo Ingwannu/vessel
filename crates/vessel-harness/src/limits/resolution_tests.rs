@@ -48,7 +48,8 @@ async fn a_context_without_tracked_resolution_fails_closed_before_any_client() {
 async fn the_one_client_sends_every_vendor_name_through_the_injected_hook() {
     vessel_testkit::within(Duration::from_secs(30), async {
         let witness = Arc::new(Refusing::default());
-        let resolver: Arc<dyn Resolve> = Arc::clone(&witness);
+        let shared = Arc::clone(&witness);
+        let resolver: Arc<dyn Resolve> = shared;
         let context = LimitContext::resolving(resolver);
         let admission = context.admit().unwrap();
         let client = context.client(&admission).await.unwrap();
