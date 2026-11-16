@@ -141,6 +141,21 @@ returned and replaced, see "Lightbox toolbar correction" below.
   viewport's own space. A new test covers hidden/shown presence, the shaded
   bar's dismissal and Tab staying in the modal.
 
+Checks (build VM, receiving tree = the input packet on 14.2 + the viewport chrome
+leaf + this correction): strict lightbox-toolbar-20261116T064040Z-80e0bb24 failed
+native-clippy (one unused import, three Pixels subtractions under
+`arithmetic_side_effects`); after the fix, lightbox-toolbar-20261116T064501Z-fdbadf78
+native-fmt/quality/clippy all 0. Tests lightbox-toolbar-20261116T064712Z-fdbadf78
+(`test --locked -p vessel-app -- areas::composer::lightbox`): 5 passed, 0 failed,
+the new presence/bar test included. Export lightbox-toolbar-export-20261116T064715Z-fdbadf78
+(native-build, app only, shared root fleet base12). No whole native gate ran on
+this tree; the input packet's own runtime remains as its resume note records.
+
+Captures (fake fleet, private display; 12 images, all opened): dark and light at
+1280 (fit with the pointer over the viewport, fit at rest with the toolbar hidden,
+a hovered action, zoomed) and 390 (fit and zoomed, toolbar always shown), plus the
+window's maximise control hovered while the lightbox is open at 390 light.
+
 ## Full attachment package
 
 The package now also covers the reference survey's file/directory
