@@ -1469,3 +1469,11 @@ Initial pure presentation checks: two test files, eleven passing tests; both
 TypeScript configurations and the changed-file ESLint pass. Prettier and the
 diff check pass. These narrow checks compile no Rust and are not the one
 feature-package whole, a screen capture, or a report-consumer runtime test.
+
+The shared value is then extracted to dependency-free `quota-percent`, with
+its unchanged data API re-exported and a leaf import rule. Its constructor
+body is byte-identical; the clamp test and infinity assertion move with it.
+The first refactor check catches one unused moved-test import; removing that
+import yields both typechecks, changed ESLint and all eleven tests passing
+across three files. The original failed check remains recorded. No screen,
+wire adapter or package whole is activated by this structural change.

@@ -1881,9 +1881,10 @@ Cancel is still best-effort. This adds no crate dependency or voice activation.
 
 ### Account quota presentation preparation
 
-The page's `data/account-usage` owns pure finite percentages, independently
-reported balance units, validated instants and reset/exhaustion/freshness view
-states. It is separate from `data/usage`, which presents node-owned historical
+The page's dependency-free `quota-percent` value owns the finite 0–100 paint
+invariant, shared by data projections and the kit without a reverse import.
+`data/account-usage` owns independent reported balance units, validated
+instants and reset/exhaustion/freshness view states. It is separate from `data/usage`, which presents node-owned historical
 ledger totals and coverage, and from the context meter. The preparation has no
 transport or registered surface; its future adapter requires the assigned
 account-report contract. ADR 0075 records the boundary and existing assets.

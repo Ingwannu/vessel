@@ -268,3 +268,13 @@ values and their original successful timestamp. The eventual reader must keep
 these distinctions and its own request lifetime separate from a cached remote
 Refreshing phase. None of these view states diagnoses a stopped turn or enables
 automatic wait/resume or account switching.
+
+
+The shared quota meter consumes the same private-constructor percentage value
+as the account projection. Its implementation lives in the dependency-free
+`quota-percent` module, enforced as a leaf by ESLint; the data module re-exports
+the unchanged value API. Keeping that value inside data would force the kit to
+import application data; keeping it inside the kit would force the reverse
+edge. Duplicating the guard would make two facts out of one. This extraction
+changes neither percentage behavior nor existing test expectations. The kit
+performs no second validation/clamp and no controller/slider behavior.

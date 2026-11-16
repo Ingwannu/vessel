@@ -1,40 +1,13 @@
+import { QuotaPercent } from "../../quota-percent";
+
+export { QuotaPercent };
+
 // Presentation values, independent of account identity and transport. The
 // wire adapter will supply reported fields; this module never aggregates
 // account balances, estimates cost, or decides which account a session uses.
 export type QuotaDisplay = "used" | "remaining";
 export type QuotaTone = "default" | "ok" | "warning" | "danger";
 export type QuotaUnit = "usd" | "credits" | "requests" | "tokens";
-
-/** A finite, clamped percentage for paint and localized display. Unknown
- * is represented by null, never by a known zero. */
-export class QuotaPercent {
-  readonly #value: number;
-
-  private constructor(value: number) {
-    this.#value = value;
-  }
-
-  static from(value: number): QuotaPercent | null {
-    return Number.isFinite(value)
-      ? new QuotaPercent(Math.max(0, Math.min(100, value)))
-      : null;
-  }
-
-  get percent(): number {
-    return this.#value;
-  }
-
-  get fraction(): number {
-    return this.#value / 100;
-  }
-
-  format(locale: string): string {
-    return new Intl.NumberFormat(locale, {
-      style: "percent",
-      maximumFractionDigits: 0,
-    }).format(this.fraction);
-  }
-}
 
 /** Independent vendor observations: a reported side takes precedence
  * over deriving its complement, even when both sides are present. */

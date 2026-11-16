@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { QuotaPercent, quotaAmount, quotaPercent, quotaTone } from "./values";
+import { quotaAmount, quotaPercent, quotaTone } from "./values";
 
 describe("quota presentation values", () => {
   it("keeps independent sides and derives only an absent side", () => {
@@ -24,15 +24,6 @@ describe("quota presentation values", () => {
     expect(
       quotaPercent({ used: Number.NaN, remaining: 20 }, "used"),
     ).toBeNull();
-    expect(QuotaPercent.from(Number.POSITIVE_INFINITY)).toBeNull();
-  });
-
-  it("clamps finite percentages before paint and viewer-locale formatting", () => {
-    expect(QuotaPercent.from(-20)?.format("en-US")).toBe("0%");
-    expect(QuotaPercent.from(120)?.format("en-US")).toBe("100%");
-    expect(QuotaPercent.from(20.5)?.format("en-US")).toBe("21%");
-    expect(QuotaPercent.from(0)?.fraction).toBe(0);
-    expect(QuotaPercent.from(100)?.fraction).toBe(1);
   });
 
   it("preserves a supplied tone and the reference's exact thresholds", () => {
