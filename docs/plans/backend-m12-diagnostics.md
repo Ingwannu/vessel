@@ -1,5 +1,19 @@
 # Milestone 12: diagnostics from each machine
 
+## Current status after protocol assignment
+
+The original product has scoped node review acceptance and is integrated as
+protocol 24. The assigned-wire supplement is gated on frozen node base
+`1c762ccf`, at source `cceb0aaa`: Rust 2,561/0/12, TS five/fresh, forge four;
+all 13 Rust-half steps returned zero. It includes actual paired Read/no-Read
+callers, selected-machine CLI, old-peer/correlation/identity checks and real
+RPC cancellation with queued source retention. Current supplement review and
+the newer parent join remain pending. See `wp-e4-node.md` for exact scope,
+reused same-byte web evidence and the resume point. No native/full-parity or
+live-service claim follows. The checkpoint timeline below preserves its old
+proposed/unassigned/staged states as historical evidence.
+
+
 ADR 0074 is proposed. Base: the supplied wholly green node commit `7f87d41c`.
 The inbox checkpoint is complete and independent; it is not merged into this
 branch. A wire number is assigned only by the integrator. No native files are

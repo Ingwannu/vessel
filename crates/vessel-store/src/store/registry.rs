@@ -6,10 +6,26 @@ use crate::{
     registry::{self, RegistryWrite},
     writer::Write,
 };
-use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{RegistryRevision, WorkspaceResource};
+use vessel_proto::{ProjectId, WorkspaceId};
 
 impl Store {
+    /// Find retained descriptor OR backing-reservation ownership for legacy cleanup.
+    /// This one read transaction never infers ownership from a path or live process.
+    /// The caller must retain canonical project metadata admission through effects;
+    /// None alone grants no deletion, lifecycle, exit or physical-root authority.
+    ///
+    /// # Errors
+    /// Database or typed retained-state decode failure; callers must fail closed.
+    pub async fn registry_project_reference(
+        &self,
+        project: ProjectId,
+    ) -> Result<Option<WorkspaceId>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| registry::project_reference(connection, project))
+        })
+        .await
+    }
     /// Admit a next run for the same actor only after its supervisor proves the previous run joined.
     /// The exact predecessor must still be Ready; this check is not itself proof of process exit.
     ///
