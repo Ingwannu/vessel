@@ -74,18 +74,12 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Sessions(ask) => {
             Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
         }
-        Command::Create(ask) => Event::Creation(ask.refused(match unsent.why {
-            Rejected::Full => vessel_app_view::creation::Failure::QueueFull,
-            Rejected::Closed => vessel_app_view::creation::Failure::Offline,
-        })),
+        Command::Create(ask) => Event::Creation(ask.refused(creation_failure(unsent.why))),
         Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
             ask,
             vessel_app_view::history::Problem::Unsent,
         )),
-        Command::Labels(request) => Event::Labels(request.refused(match unsent.why {
-            Rejected::Full => vessel_app_view::labels::Failure::Update,
-            Rejected::Closed => vessel_app_view::labels::Failure::Offline,
-        })),
+        Command::Labels(request) => Event::Labels(request.refused(labels_failure(unsent.why))),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
@@ -166,6 +160,23 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// A creation the link gave back: a full queue or a stopped link.
+const fn creation_failure(why: Rejected) -> vessel_app_view::creation::Failure {
+    match why {
+        Rejected::Full => vessel_app_view::creation::Failure::QueueFull,
+        Rejected::Closed => vessel_app_view::creation::Failure::Offline,
+    }
+}
+
+/// A labels command the link gave back: a full queue is a failed update
+/// to try again, a stopped link the host offline.
+const fn labels_failure(why: Rejected) -> vessel_app_view::labels::Failure {
+    match why {
+        Rejected::Full => vessel_app_view::labels::Failure::Update,
+        Rejected::Closed => vessel_app_view::labels::Failure::Offline,
+    }
 }
 
 /// The commands the link gave back, into the shell, until it closes.
