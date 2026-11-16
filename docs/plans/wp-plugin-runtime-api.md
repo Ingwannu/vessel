@@ -82,3 +82,25 @@ the blocking refusal. Adding the identical proto/proc row to that actual source
 of truth changes no Rust, manifest or lock bytes. The corrected quality run and
 V3 upgrade plus integrator combined gate remain owed. Old417/strict source hashes
 remain their exact evidence; no complete F6/NodeHost/platform approval follows.
+
+
+## Prepared-helper diagnostic consumer on the announced node line
+
+The reviewed command-diagnostics primitive now reaches this package through the
+announcedbc9cacc6 node head. PreparedCommand always opts into proc's Redacted
+policy after validating its existing absolute/minimal-environment/argv bounds.
+Supervisor still calls the same public decorated vessel_proc::spawn entry; no
+new runner, reaper, subprocess API or authorization bypass is introduced.
+
+Why: a trusted helper's argv, program or cwd may contain private data. Hiding
+only PreparedCommand's outer Debug did not protect proc's actual spawn logs or
+nested spawn-error chains. The one shared policy protects that diagnostic edge,
+while the original executable/argv/environment/cwd remain what the OS receives.
+It does not hide OS argv, sanitize helper output, sandbox code or manufacture
+candidate/source authority. Node product wiring and permissions remain separate.
+
+The added actual failed-spawn case uses only a missing synthetic helper path
+and walks every RuntimeError/SpawnError source Display/Debug level for a canary.
+The existing prepared-launch unit also checks raw-spec privacy and unchanged
+argv. Current-source strict and feature-enabled actual helper fixtures are owed;
+previous portable runtime results are not claimed for this new consumer.

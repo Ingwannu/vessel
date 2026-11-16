@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use vessel_proc::{CommandSpec, EnvValue, Environment};
+use vessel_proc::{CommandDiagnostics, CommandSpec, EnvValue, Environment};
 
 /// Manifest argv cannot make process bookkeeping allocate without limit.
 pub const MAX_HELPER_ARGUMENTS: usize = 64;
@@ -77,7 +77,9 @@ impl PreparedCommand {
                 return Err(LaunchRefusal::Capacity);
             }
         }
-        Ok(Self(spec))
+        // Why (ADR0079): approved helpers may carry private paths/arguments.
+        // Use proc's one diagnostic policy without changing what it executes.
+        Ok(Self(spec.with_diagnostics(CommandDiagnostics::Redacted)))
     }
 
     pub(crate) fn into_spec(self) -> CommandSpec {
@@ -150,6 +152,47 @@ mod tests {
         .expect("explicit");
         assert!(!format!("{prepared:?}").contains("PRIVATE-LAUNCH-CANARY"));
         assert_eq!(prepared.0.environment, Environment::Clear);
+        let spec = prepared.into_spec();
+        assert_eq!(spec.diagnostic_policy(), CommandDiagnostics::Redacted);
+        assert!(!format!("{spec:?}").contains("PRIVATE-LAUNCH-CANARY"));
+        assert_eq!(
+            spec.args,
+            [std::ffi::OsString::from("PRIVATE-LAUNCH-CANARY")]
+        );
+    }
+
+    #[tokio::test]
+    async fn actual_prepared_spawn_refusal_seals_private_program_and_arguments() {
+        use std::error::Error as _;
+        let directory = tempfile::tempdir().expect("owned fixture directory");
+        let private = "PRIVATE-PREPARED-SPAWN-CANARY";
+        let spec = CommandSpec::new(directory.path().join(private))
+            .env_clear()
+            .cwd(directory.path())
+            .arg(private);
+        let address = vessel_proto::plugins::PluginAddress {
+            node: vessel_proto::NodeId::random(),
+            plugin: "fixture".parse().expect("identity"),
+            generation: vessel_proto::plugins::RuntimeGeneration::random(),
+        };
+        let Err(error) = crate::Supervisor::spawn(
+            PreparedCommand::new(spec).expect("prepared"),
+            address,
+            crate::SharedLogs::default(),
+            &tokio_util::sync::CancellationToken::new(),
+        ) else {
+            panic!("missing fixture program unexpectedly started");
+        };
+        assert!(matches!(&error, crate::RuntimeError::Spawn(_)));
+        let mut source: Option<&(dyn std::error::Error + 'static)> = Some(&error);
+        while let Some(cause) = source {
+            assert!(!format!("{cause:?} {cause}").contains(private));
+            source = cause.source();
+        }
+        assert!(
+            error.source().is_some(),
+            "retain the concrete sealed spawn cause"
+        );
     }
 }
 

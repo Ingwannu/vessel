@@ -291,3 +291,12 @@ owns rejected text. Canary tests cover Display, Debug, serde errors and
 the complete source chain. Theme names reuse the existing JavaScript-edge
 `workspace::trim_project_text`, including BOM normalization, before their
 UTF-16 bound and the separately declared control refusal.
+
+
+### Prepared command diagnostic policy join
+
+PreparedCommand consumes the reviewed proc CommandDiagnostics::Redacted policy
+on the announced node line. It preserves real launch fields and the decorated
+spawn/owned cleanup path. This seals actual spawn diagnostics, beyond the outer
+prepared-value Debug; it does not protect OS argv or helper-authored output and
+adds no Node product caller, executable/source authority or sandbox promise.
