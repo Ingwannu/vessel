@@ -60,3 +60,19 @@ positions shift from the earlier source checkpoint. All old public positions,
 names, paths and SVGs remain exact. The original100-prefix proof and sheets
 are retained as prior-source evidence; final source checks use the receiving
 101 prefix. This composition is not yet compiled or runtime-tested.
+
+## Quota-stop resume checkpoint
+
+Current receiving source de3cca679fc3b1f1470a8404ece0d6dc437dfd7b on b54
+is source-only. No Cargo, native first use, V1 source/runtime review or approved
+consumer hash exists. The old full101 prefix, old drawing bytes and canonical
+XML children are independently source-checked; source images are not native
+Header evidence. The current three glyphs are not part of the passed Import
+packet. G1 waits for exact checks/review and receiving-line handoff.
+
+Future ArrowRight/Focus/Move/ArrowDownToLine are a separate coordinator284
+reservation after these three. W22 has a prepared eleven-row consumer snapshot
+7be03b61, NOT applied/compiled. No drawing or build for those four is started.
+Read Main docs/plans/wp-f4-sidebar-resume.md on backend/m12-wp-sidebar and query
+the already-queued placement025223/3958 before any new build. Latest14.4 is
+recorded but no new merge occurs during quota closeout. All source is committed.
