@@ -1416,3 +1416,15 @@ principal refusals, escrow retention and restart deduplication visible at call s
 Static assert-macro counts are unchanged in every refactored file; this is an audit
 of the edit, not a runtime equivalence proof. The next checkpoint suite must run
 these exact test sources after the immutable library checks finish.
+
+### Cleanup proof ownership ruling (production still closed)
+
+The coordinator assigns agent-run cleanup proof to the lifecycle track and
+terminal registry/forgotten-terminal debt to W17. Lifecycle first writes its own
+ADR, then preserves typed wait failures and process/descendant/output-drain facts;
+its current schedule follows the marking leaf and clock package. W17's root-bound
+proof composes that producer with its terminal proof and explicitly receives
+agent runs plus forgotten agent debt. W9 consumes only the exact merged and
+announced proofs under its held canonical RootLease. No status/registry/PID or
+absent runtime substitute is permitted. StartupHooks stays unwired. The root leaf
+continues independently; this ruling is not approval to enable restoration.

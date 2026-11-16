@@ -1984,3 +1984,11 @@ and acknowledges only synced absence. Drop releases no quota and deletes no
 payload. The mechanism reuses resolved rustix for safe FD-relative operations;
 other platforms require typed UnsupportedPlatform. No live permissions change or
 non-root/runtime/platform validation is implied by these source mechanisms.
+
+File-checkpoint activation also requires the lifecycle track's typed agent-run
+quiescence proof. An ended status or registry Ready row cannot supply wait,
+descendant or output-drain completion, including forgotten agent debt. W17's
+future exact-root-lease proof composes that lifecycle evidence with terminal
+registry/cleanup debt. W9 keeps production restore Busy and startup hooks unwired
+until both producers are merged, announced and consumed under that same lease.
+The separate minimal root-borrow leaf is no process cleanup capability.

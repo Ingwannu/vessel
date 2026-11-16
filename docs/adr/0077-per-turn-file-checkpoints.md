@@ -795,3 +795,28 @@ process. Empty XDG falls back to the supplied home's .config; relative defaults
 refuse. In-process fixtures supply temporary values without mutating the process
 environment. This implements the existing isolation rule, adds no setting or
 external dependency, and remains an unrun implementation/test obligation.
+
+## Cleanup-proof producer ownership (implementation gate)
+
+A session's ended status, registry Ready row or absent runtime handle does not
+prove that its agent, descendants and driver I/O quiesced. The current legacy
+AgentProcess::wait can collapse a wait failure to None; stop_agent ignores that
+value and may stop draining output at a deadline. Neither may authorize restore
+or claim_registry_restart. The existing active-session root check is likewise
+only a refusal check, not a positive proof for ended or forgotten agent runs.
+
+The lifecycle track owns a separate contract and typed agent-run cleanup proof:
+retain wait failure, await verified process/descendant exit, record output-drain
+completion, and account for forgotten/unconfirmed agent runs. W17 owns terminal
+registry/root binding and forgotten-terminal debt. Its future root-bound proof
+must compose its terminal proof with the lifecycle producer's agent proof,
+explicitly receiving agent runs and forgotten agent debt rather than inventing
+that evidence. The composed proof must borrow the exact canonical RootLease,
+including its current incarnation and lifetime; workspace identity stays separate.
+
+Production file restoration remains Busy until BOTH producers are merged and
+announced and their checked consumer joins the held canonical lease. StartupHooks
+is not wired using status/registry metadata. The minimal RootLease leaf proceeds
+independently; its checked borrow mechanism is no process cleanup capability.
+Private no-terminal/fake-provider fixtures cannot establish either production
+proof. This gate does not change conversation state or the files-only contract.
