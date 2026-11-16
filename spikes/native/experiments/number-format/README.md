@@ -8,6 +8,18 @@ may materialize the candidate graph for measurements.
 scope and required evidence. It is a specification for the missing controlled
 runner, not a selector already installed or a runnable worker-side recipe.
 
+`decimal_probe.rs` and its child tests are unlinked candidate arithmetic
+sources for that controlled runner. They reuse `FiniteNumber`, maintained
+round-trip decimal conversion/rounding, and an independent exact unsigned
+carrier. Compact scales are validated/injected data, with no language branch
+in the arithmetic. A carry recomputes from the original value to avoid double
+rounding. Tests compare arithmetic against the retained Intl corpus and
+reject malformed scale data. They do **not** yet test grouping, currency
+patterns, plural selection, Fluent integration, artifact reachability or
+startup, and have not compiled. Normal View checks cannot cover unlinked
+experiment files. No production public API or backend choice follows from
+these sources.
+
 ## Custom-number hook candidate
 
 `fluent-0.16.0-custom-number.patch` applies to the unpacked upstream
