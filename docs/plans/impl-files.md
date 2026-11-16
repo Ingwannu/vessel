@@ -5,7 +5,9 @@ Status: A1 (live watch of the shown file), A2 (Explorer Duplicate) and A3
 assigns ADR 0083's five methods one protocol number (drafted as 26) at its
 node-line merge; until that number reaches this line every caller here keeps
 its earlier behaviour (`view::workspace::file_panels::offered` is false
-while `FILE_PANELS_PROTOCOL` is None or the machine is older).
+while `FILE_PANELS_PROTOCOL` is None or the machine is older). The page's
+watch of the shown file is a node-line packet (`web/` stays equal to a
+node head here): `docs/plans/impl-files-page.md` on the node line.
 
 ## Paseo reference (0.15.4)
 
