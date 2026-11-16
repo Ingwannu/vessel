@@ -381,6 +381,34 @@ at the top and `Vessel patch` at the change.
   No capture exists yet, and this example is not a substitute for an exact
   changed-source gate. Builds must use the prescribed remote VM path.
 
+### HTML rendered ranges and highlight foreground (ADR 0100)
+
+- Purpose: the existing selectable HTML TextView must preserve literal prompt
+  text while supporting find/reveal and readable current-match ink.
+- Constraint: HTML has no Markdown source spans; accepting ranges without
+  typed rendered leaves would record no real paint. A background-only range
+  cannot supply current ink, and an external cache key cannot prove acceptance.
+- Choice: an opt-in HtmlAndMarkdown range policy on the same TextViewState,
+  a distinct owner/committed-parse rendered leaf domain assigned by its existing
+  IndexBuilder into existing inline states, and optional foreground on the
+  existing RangeHighlight. The same node paths refine authored runs before
+  fade, preserving selection, code/link styling and background ordering.
+- Why: no second parser, renderer, index or selection controller; no fabricated
+  source positions. HTML replacement and commit revoke old ranges/reveals;
+  Markdown source remapping remains unchanged. The kit caches actual accepted
+  owner/revision receipts, including empty-set acceptance, and relevant palette.
+- Tradeoff: opted-in HTML builds its rendered index at commit so old snapshots
+  have fixed keys. Complete named identity avoids truncating owner/revision/
+  ordinal into a small opaque element ID. Default HTML remains Unsupported.
+- Changed: text/rendered_leaf.rs, range_foreground.rs, range_highlight.rs,
+  stream_fade.rs, inline.rs, node.rs, state.rs and state/rendered_ranges.rs.
+  Engine fixtures use the actual retained TextView/runs, native selection and
+  existing list reveal. The application adds no alternative text control.
+- Verification: contract direction only plus authored baseline/candidate tests.
+  Actual failing-first engine execution and candidate engine/Kit qualification
+  are pending the approved scratch recipe. No engine-runtime or caller pass is
+  inferred from native dependency compilation or this source description.
+
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
@@ -481,32 +509,3 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   menu reach the platform only in a real session and are not checked yet:
   an IME's candidate window and the window menu at a zoom other than 1 are
   still to be looked at in the app on Linux.
-
-
-### HTML rendered ranges and highlight foreground (ADR 0100)
-
-- Purpose: the existing selectable HTML TextView must preserve literal prompt
-  text while supporting find/reveal and readable current-match ink.
-- Constraint: HTML has no Markdown source spans; accepting ranges without
-  typed rendered leaves would record no real paint. A background-only range
-  cannot supply current ink, and an external cache key cannot prove acceptance.
-- Choice: an opt-in HtmlAndMarkdown range policy on the same TextViewState,
-  a distinct owner/committed-parse rendered leaf domain assigned by its existing
-  IndexBuilder into existing inline states, and optional foreground on the
-  existing RangeHighlight. The same node paths refine authored runs before
-  fade, preserving selection, code/link styling and background ordering.
-- Why: no second parser, renderer, index or selection controller; no fabricated
-  source positions. HTML replacement and commit revoke old ranges/reveals;
-  Markdown source remapping remains unchanged. The kit caches actual accepted
-  owner/revision receipts, including empty-set acceptance, and relevant palette.
-- Tradeoff: opted-in HTML builds its rendered index at commit so old snapshots
-  have fixed keys. Complete named identity avoids truncating owner/revision/
-  ordinal into a small opaque element ID. Default HTML remains Unsupported.
-- Changed: text/rendered_leaf.rs, range_foreground.rs, range_highlight.rs,
-  stream_fade.rs, inline.rs, node.rs, state.rs and state/rendered_ranges.rs.
-  Engine fixtures use the actual retained TextView/runs, native selection and
-  existing list reveal. The application adds no alternative text control.
-- Verification: contract direction only plus authored baseline/candidate tests.
-  Actual failing-first engine execution and candidate engine/Kit qualification
-  are pending the approved scratch recipe. No engine-runtime or caller pass is
-  inferred from native dependency compilation or this source description.
