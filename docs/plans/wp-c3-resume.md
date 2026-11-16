@@ -882,3 +882,101 @@ submission must use the corrected comment after the live submit receives a
 receipt, queued-only cancellation is terminal and its evidence is retained.
 Do not interrupt/resubmit a still-registering wrapper. Both new App submissions
 currently wait before receipt at the shared submit lock; tool owner notified.
+
+# Resume checkpoint — quota stop boundary, 2026-11-16
+
+Read this section FIRST next session, then recover existing remote runs before
+any submission. No new implementation, control, branch merge or build run is
+started after the quota warning. Current Rust remains b6d318d76 (only a doc
+code-span correction after functional cbb4f400fe7ac817cd655f242e7ba92da39108bc).
+
+## Committed and bounded results
+
+- App branch backend/wp-c3-git has announced base14.3 via1d8e28026; earlier
+  base14.1 fe510427b/base14.2 7da5c61f7 are preserved merges. Shared C5/source
+  and VirtualList producers are now on that announced line.
+- Existing unified-body source3add5bc109afd26af67cb0ad01b9c77df010b471 passed
+  App strict0 and actual registry pressure1/0/0 (synthetic1280x6000 viewport,
+  32 real engines/128files/wheel4000). Prior006 selected Git226/0/0 and Kit9c
+  owner3/0/0 stay precisely prior source. No new consumer pass is inferred.
+- VirtualList producer94b994be5d992853450b759f1996a19ea742d8f0 has V1 FINAL
+  bounded SOURCE/requested Kit narrow PASS; lead landed it in67637eb6. The
+  standalone producer's later9cecfa49b is result documentation only.
+- C3 actual deferred owner notification is5c951a7452caeaa1fd3078badf20ac19240ee1e0.
+  It retains original pane/target/instance/connection and does not reborrow
+  ListState in its input callback. The new current/Refresh/retired callback
+  case and notification-driven pressure fixture remain unexecuted.
+- The source command prerequisite cbb4f400f captures SAME original C5 receipt
+  at projection and rechecks it at callback. W13 authorized owner-local
+  identity-only same_source; opaque fields/currentness remain unchanged.
+  Only required Changes facade attrs were promoted, no Diff/Explorer/retirement
+  promotion. Legacy status/write owner remains unverified, ALL writes refused,
+  F4 contribution still staged. Pure logical tests do not assert authority.
+
+## Existing VM runs — NEVER duplicate
+
+- wp-git-body-narrow-20261116T033158Z-b6d318d7: ordinary priority0, four native
+  crate all-target strict; source-b6d-strict. Queued/unverified at checkpoint.
+- wp-git-consumer-tests-20261116T032653Z-cbb4f400: ordinary priority0 AppBIN
+  all tests; source-cbb-tests. Queued/unverified, before the one doc-code-span
+  correction only. This includes the new source/command and owner-scroll cases.
+- Bounded node producer backend/wp-c3-runtime-producer source82aec7d14ca687f82a057e1e9fcc91efb9eb1f42:
+  wp-git-runtime-strict-20261116T030827Z-82aec7d1 (runtime-82a-strict),
+  wp-git-runtime-tests-20261116T030831Z-82aec7d1 (runtime-82a-tests), and
+  prior unchanged-wire wp-git-runtime-ts-20261116T025610Z-ce9667ac (runtime-ce9-ts).
+  All ordinary/priority0 and queued/unverified. Its WIP docs head is bba65de2e.
+
+The obsolete ce966 strict/library and5c951 strict/panel runs were queued-only
+cancelled143 and logs retained before one replacement per supersession. The
+cbb strict run032645Z was likewise queued-only143 after one self-found doc
+backtick issue; its AppBIN run is retained. No running build was interrupted.
+The two cbb submissions initially waited at registration lock, then returned
+normal receipts; tool owner was informed CLOSED. No retry/settings change.
+
+## Mandatory next work, NOT a ready handoff
+
+1. Recover terminal run specs/logs/hashes and exact changed crate compilation.
+   App failures are actual findings; correct them together, do not blind replay.
+2. Node producer is SELF-HOLD before V3 even if current runs pass. Its82a root
+   cache-hit revalidation correction has not executed. A later source/real-Git
+   output audit found lossy native filename conversion in the reused summary/
+   raw parser: ff2e747874 and efbfbd2e747874 become the same displayed path.
+   This audit is NOT Vessel execution. Preserve identity or typed source-bearing
+   refusal and add actual native-path regressions within the same bounded scope
+   before meaningful corrected-source narrow and V3. Require all66 old cases,
+   the added root-cache race case and new path cases. Coordinator was notified
+   of HOLD; no V3/runtime adoption or number was requested. GIT_PANEL stays None.
+3. The authorized node path is ordinary narrow +V3, integrator receiving whole
+   on its lane, integrator numbering, then B0/lead announcement. NO worker whole.
+   Observation/subscription/fetch, Models generation, W9 restore, RootLease/CAS,
+   native UI and C4 remain excluded. Never merge that runtime node branch into App.
+4. Main C3 readonly transport still needs canonical DeliveryGuard through queued
+   installation/getters; copied Context alone is not future write authority.
+   Actual UI visit/dialog occurrence and one retained sent/uncertain owner remain
+   mandatory. Do not enable writes over git_follow's disposable pending fields,
+   restamp an old click or create an anonymous operation side map.
+5. After receiving checks, give W13 the exact bounded same_source/identity-test
+   hunk so its later owner union preserves it. No checked hash has been sent.
+   W22 waits for the COMPLETE checked write-owner packet, not this prerequisite;
+   keep F4 held. No available write/callback/PR/C4 approval was supplied.
+6. Header/DiffStat is still external/uninstalled/uncompiled. S2 owns the absent
+   SquarePlus/Minus/Dot vectors, measured placement and mode-menu tuple; no
+   checked glyph hash or fallback. G1 owns a NEW separate file header, hunk
+   decoration unchanged. Tooltip300ms/max520/bottom/start/6, optional unknown
+   counts, UI/code separation; captures go coordinator BEFORE lead adoption.
+
+The development node branch metadata decoder94eebf2975cdf1fb045dc8e95aed7e53b1077423
+passed Workspace and Node/Proto/Client strict0 plus pure decoder5/0/0; later
+b317a1214 is result docs only. It is excluded from the bounded runtime producer
+and installs no observation/subscription/fetch. Full C3 remains incomplete,
+C4 unstarted and W6's canonical forge search/lookup dependency remains pending.
+GKS workspace metadata service remains pending; no fallback-only parity claim.
+
+## Cleanup / permission boundary
+
+No fake fleet, Xvfb/display, app binary, OS opener, real node/provider/forge or
+service was started in this resumed work. The isolated raw Git path-audit
+temporary repository was removed; only small raw-output/audit artifacts remain.
+Submit/attach wrappers have returned; existing detached VM runs remain for
+recovery. No service UID/GID, filesystem ownership/mode, credentials or system
+settings changed. No production/customer flow or physical OS proof is claimed.
