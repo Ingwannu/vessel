@@ -544,9 +544,9 @@ or establishes a typed watermark/causal-read contract. W10/W12/C2 share this
 hold, and no native compile leaf has been installed.
 
 
-## Current resume point after base 14.5
+## Current resume point after base 14.6
 
-Merged only announced app base 14.5 `f3c05727`, retaining history and label
+Merged only announced app base 14.6 `be93a803`, retaining history and label
 registrations and the shared preference-save implementation. Local source size,
 token and diff checks pass; current native compilation/runtime/captures remain
 owed after the older scoped 45-test result. No whole node head entered this app.
@@ -616,3 +616,11 @@ fixture focused suite passed5/0/0 on the same frozen node base, and whole3 is
 pending. CLI regression, TSdiff0, web465/E2E80/forge4 were green on whole2; this
 is scoped evidence, not node acceptance. The app independently adopted announced
 base14.5 before its still-owed remote strict and label consumer tests.
+
+
+The final frozen node whole3 passed all18 steps on `dbecc82d3`: Rust2740/0/12,
+TS5/diff0, web465/E2E80/forge4. Its result-only documentation does not change
+executed source. Node source review/number assignment/receiving acceptance remain
+owed. The app independently adopted announced base14.6; its manager consumer is
+still uncompiled until the following remote native narrow. Shared producer
+V1 row304 is complete and does not substitute for this consumer's verification.
