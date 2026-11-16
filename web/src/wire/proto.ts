@@ -38,6 +38,92 @@ export type Ack = null;
 export type AcpProtocolVersion = number;
 
 /**
+ * Construct only after actual dispatch/selection acknowledgement. These values
+ * describe effects; they grant no input, filesystem or reference authority.
+ */
+export type ActionOutcome = { "action": "click", 
+/**
+ * Current ref resolved by the completed transaction.
+ */
+element: ElementRef, 
+/**
+ * Actual CSS point dispatched to the page.
+ */
+position: CssPoint, } | { "action": "fill", 
+/**
+ * Current editable ref, not a selector echoed before execution.
+ */
+element: ElementRef, } | { "action": "type", 
+/**
+ * Missing means the already-focused target, as requested.
+ */
+element: ElementRef | null, 
+/**
+ * Present only when the executor used an observed point.
+ */
+position: CssPoint | null, } | { "action": "keypress", 
+/**
+ * Supported chord whose dispatch completed; redacted from Debug.
+ */
+key: RequiredInput, 
+/**
+ * Optional current ref used to establish focus.
+ */
+element: ElementRef | null, 
+/**
+ * Present only when the executor used an observed point.
+ */
+position: CssPoint | null, } | { "action": "select", 
+/**
+ * The select control resolved for the completed operation.
+ */
+element: ElementRef, 
+/**
+ * Selected page content, redacted from Debug.
+ */
+value: InputText, } | { "action": "hover", 
+/**
+ * Current hovered element ref.
+ */
+element: ElementRef, 
+/**
+ * Actual CSS destination of the acknowledged move.
+ */
+position: CssPoint, } | { "action": "drag", 
+/**
+ * Current element whose point received the press.
+ */
+source: ElementRef, 
+/**
+ * Current element whose point received the release.
+ */
+target: ElementRef, 
+/**
+ * Actual CSS starting point.
+ */
+source_position: CssPoint, 
+/**
+ * Actual CSS ending point.
+ */
+target_position: CssPoint, } | { "action": "scroll", 
+/**
+ * Missing means the viewport rather than an element.
+ */
+element: ElementRef | null, 
+/**
+ * Horizontal input delta actually dispatched.
+ */
+delta_x: CssDelta, 
+/**
+ * Vertical input delta actually dispatched.
+ */
+delta_y: CssDelta, 
+/**
+ * Actual CSS point used for the input event.
+ */
+position: CssPoint, };
+
+/**
  * The latest state of a session's agent, as the node observed it.
  */
 export type Activity = "active" | "idle" | "waiting_input" | "exited";
@@ -766,6 +852,270 @@ more: boolean, };
 export type BranchName = string;
 
 /**
+ * Agent tools have no caller-controlled workspace, cwd or credential scope.
+ */
+export type BrowserCall = { 
+/**
+ * One of the twenty-two typed operations, still subject to node admission.
+ */
+command: BrowserCommand, };
+
+/**
+ * Domain commands share one catalogue with the MCP name and scope vocabulary.
+ */
+export type BrowserCommand = { "command": "list_tabs", "args": NoBrowserArgs } | { "command": "new_tab", "args": NewTabArgs } | { "command": "snapshot", "args": TabArgs } | { "command": "click", "args": ClickArgs } | { "command": "fill", "args": ValueArgs } | { "command": "wait", "args": WaitArgs } | { "command": "type", "args": TypeArgs } | { "command": "keypress", "args": KeypressArgs } | { "command": "navigate", "args": NavigateArgs } | { "command": "back", "args": TabArgs } | { "command": "forward", "args": TabArgs } | { "command": "reload", "args": TabArgs } | { "command": "screenshot", "args": ScreenshotArgs } | { "command": "upload", "args": UploadArgs } | { "command": "select", "args": ValueArgs } | { "command": "hover", "args": ElementArgs } | { "command": "drag", "args": DragArgs } | { "command": "logs", "args": LogsArgs } | { "command": "evaluate", "args": EvaluateArgs } | { "command": "scroll", "args": ScrollArgs } | { "command": "resize", "args": ResizeArgs } | { "command": "close_tab", "args": TabArgs };
+
+/**
+ * Panel control is direct-human-only, even when the agent-tools switch is off.
+ */
+export type BrowserControl = { 
+/**
+ * Stable registry identity, verified server-side rather than inferred from cwd.
+ */
+workspace: WorkspaceId, 
+/**
+ * Required for Preview and checked against the selected workspace.
+ */
+opening_session?: SessionId | null, 
+/**
+ * Input/selection/control vocabulary is distinct from arbitrary CDP.
+ */
+command: BrowserControlCommand, };
+
+/**
+ * A fixed control vocabulary prevents exposing a general host-debugging tunnel.
+ */
+export type BrowserControlCommand = { "kind": "drive", "args": BrowserCommand } | { "kind": "input", "args": { 
+/**
+ * The same real target watched by the pane.
+ */
+browser_id: BrowserId, 
+/**
+ * Reject stale coordinate events after a resize/navigation/frame replacement.
+ */
+revision: BrowserRevision, 
+/**
+ * Fixed direct-input vocabulary.
+ */
+input: HumanInput, } } | { "kind": "open_preview", "args": PreviewServiceHint } | { "kind": "stop", "args": { 
+/**
+ * The existing target remains bound to its original profile.
+ */
+browser_id: BrowserId, } };
+
+/**
+ * Delivery to the page matters more than a lost response after the deadline.
+ */
+export type BrowserEffect = "not_delivered" | "uncertain";
+
+/**
+ * Typed failure projection, independent of backend/library diagnostic text.
+ */
+export type BrowserFailure = { "reason": "disabled" } | { "reason": "no_workspace" } | { "reason": "scheme" } | { "reason": "no_history", 
+/**
+ * The stack that was empty.
+ */
+direction: HistoryDirection, } | { "reason": "destination" } | { "reason": "no_engine" } | { "reason": "unknown_tab" } | { "reason": "closed" } | { "reason": "stale_ref" } | { "reason": "timed_out", 
+/**
+ * Controls replay guidance; never infer it from a transport error alone.
+ */
+effect: BrowserEffect, } | { "reason": "unsupported" } | { "reason": "no_frame" } | { "reason": "busy" } | { "reason": "launch" } | { "reason": "profile_permissions" } | { "reason": "preview_revoked" } | { "reason": "invalid" } | { "reason": "internal" } | { "reason": "unknown" };
+
+/**
+ * History eligibility is one closed state rather than an ambiguous pair of flags.
+ */
+export type BrowserHistory = "empty" | "back" | "forward" | "both";
+
+/**
+ * A favicon must not make the GPUI app fetch a page-selected URL outside policy.
+ */
+export type BrowserIcon = { "kind": "globe" } | { "kind": "png", "image": ScreenshotPng };
+
+/**
+ * A node browser target, independent of a pane or CDP target identifier.
+ */
+export type BrowserId = string & { readonly __brand: "BrowserId" };
+
+/**
+ * An error is retained as a typed fact rather than shown as a ready page.
+ */
+export type BrowserLoad = { "state": "loading" } | { "state": "ready" } | { "state": "failed", "failure": BrowserFailure };
+
+/**
+ * Only the node can bind a Preview profile; this descriptor grants no capability.
+ */
+export type BrowserProfile = { "kind": "general" } | { "kind": "preview", 
+/**
+ * Other sessions cannot drive this target merely by sharing its workspace.
+ */
+opening_session: SessionId, };
+
+/**
+ * Screenshot/snapshot/evaluation data remain explicit content channels.
+ */
+export type BrowserResult = { "kind": "tabs", 
+/**
+ * Never includes another workspace/session's private Preview target.
+ */
+tabs: BrowserTabs, } | { "kind": "tab", 
+/**
+ * Current descriptor is derived from the engine, not an echoed request.
+ */
+tab: BrowserTab, } | { "kind": "applied", 
+/**
+ * The node verified ownership before sending input.
+ */
+browser_id: BrowserId, 
+/**
+ * Operation-specific completed facts; never copied from an unexecuted request.
+ */
+outcome: ActionOutcome, } | { "kind": "snapshot", 
+/**
+ * The refs belong to this target only.
+ */
+browser_id: BrowserId, 
+/**
+ * A client cannot carry a ref across a later snapshot/navigation.
+ */
+revision: BrowserRevision, 
+/**
+ * Display-only document facts captured by that same traversal.
+ */
+document: SnapshotDocument, 
+/**
+ * Includes the truncation fact, not just a partial text string.
+ */
+content: CappedText, 
+/**
+ * Measured traversal stats do not claim the entire DOM fit.
+ */
+stats: SnapshotStats, } | { "kind": "screenshot", 
+/**
+ * The target is retained even when its pane is hidden.
+ */
+browser_id: BrowserId, 
+/**
+ * Image channel without a duplicated base64 metadata field.
+ */
+image: ScreenshotPng, } | { "kind": "evaluation", 
+/**
+ * The page/profile where the function actually executed.
+ */
+browser_id: BrowserId, 
+/**
+ * Bounded serialized result, potentially containing signed-in data.
+ */
+json: CappedText, } | { "kind": "logs", 
+/**
+ * Only the caller's authorized target.
+ */
+browser_id: BrowserId, 
+/**
+ * Typed console content, redacted from Debug through `PageText`.
+ */
+console: ConsoleEntries, 
+/**
+ * Network metadata obtained from the same browser context.
+ */
+network: NetworkEntries, } | { "kind": "matched", 
+/**
+ * The target whose text/location satisfied the predicate.
+ */
+browser_id: BrowserId, 
+/**
+ * The text/location predicate which actually matched.
+ */
+matched: WaitMatch, } | { "kind": "closed", 
+/**
+ * A later call cannot reuse this resource id.
+ */
+browser_id: BrowserId, };
+
+/**
+ * Document/viewport context revisions cannot wrap into an earlier input generation.
+ * Repeated captures in the same context use separate `BrowserUpdateSeq` ordering.
+ */
+export type BrowserRevision = number;
+
+/**
+ * Inventory facts are scoped by node RPC/workspace checks, not a caller-provided cwd.
+ */
+export type BrowserTab = { 
+/**
+ * Stable node-owned id, independent of a CDP target's lifetime.
+ */
+browser_id: BrowserId, 
+/**
+ * Logical ownership comes from the reviewed workspace identity contract.
+ */
+workspace: WorkspaceId, 
+/**
+ * Current address, never copied into diagnostic fields or persisted app layout.
+ */
+url: BrowserUrl, 
+/**
+ * The panel falls back to hostname while this is empty.
+ */
+title: PageText, 
+/**
+ * One loading/error fact drives panel and toolbar state.
+ */
+load: BrowserLoad, 
+/**
+ * Buttons and shortcuts use the same engine history fact.
+ */
+history: BrowserHistory, 
+/**
+ * CSS viewport; physical image/pane sizes are a separate boundary.
+ */
+viewport: BrowserViewport, 
+/**
+ * Indicates the credential-sharing scope without returning the internal lease id.
+ */
+profile: BrowserProfile, 
+/**
+ * Remote image URLs are never delegated to a client-side image loader.
+ */
+icon: BrowserIcon, };
+
+/**
+ *A complete workspace-filtered inventory, never a silently truncated one.
+ */
+export type BrowserTabs = Array<BrowserTab>;
+
+/**
+ * Unknown saved values stay disabled; only an explicit supported On can offer tools.
+ */
+export type BrowserTools = "off" | "on" | "unknown";
+
+/**
+ * A parsed HTTP(S) URL; Debug never turns a page's URL into a diagnostic leak.
+ */
+export type BrowserUrl = string;
+
+/**
+ * A responsive viewport retains its effective size without becoming a fixed preset.
+ */
+export type BrowserViewport = { "mode": "responsive", "size": ViewportSize } | { "mode": "fixed", "size": ViewportSize };
+
+/**
+ * A stream starts from one current descriptor/revision, not an unrelated cached frame.
+ */
+export type BrowserWatched = { 
+/**
+ * Owned by the authenticated connection that opened the watch.
+ */
+subscription: SubscriptionId, 
+/**
+ * The target state from the same admission boundary.
+ */
+tab: BrowserTab, 
+/**
+ * Later state/frame updates cannot replace it with an older revision.
+ */
+revision: BrowserRevision, };
+
+/**
  * A file in a bundle.
  */
 export type BundleFile = { 
@@ -816,7 +1166,7 @@ zone: TimeZoneName, } | { "kind": "unknown" };
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.side_open", "params": OpenSideQuestion } | { "method": "session.side_prompt", "params": PromptSideQuestion } | { "method": "session.side_reset", "params": ResetSideQuestion } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.self", "params": GetDeviceSelf } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.published", "params": GetPublished } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "usage.query", "params": QueryUsage } | { "method": "push.key", "params": GetPushKey } | { "method": "push.subscribe", "params": SubscribePush } | { "method": "push.unsubscribe", "params": UnsubscribePush } | { "method": "push.presence", "params": ReportPushPresence } | { "method": "inbox.list", "params": ListInbox } | { "method": "inbox.get", "params": GetInboxEntry } | { "method": "inbox.mark", "params": MarkInbox } | { "method": "usage.limits", "params": GetUsageLimits } | { "method": "usage.lookup", "params": SetUsageLookup } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession } | { "method": "agent.history", "params": GetAgentHistory } | { "method": "session.detach", "params": DetachSession } | { "method": "workspace.registry", "params": GetRegistry } | { "method": "workspace.list", "params": ListWorkspaces } | { "method": "workspace.get", "params": GetWorkspace } | { "method": "workspace.rename", "params": RenameWorkspace } | { "method": "workspace.pin", "params": PinWorkspace } | { "method": "workspace.release_automation", "params": ReleaseWorkspaceAutomation } | { "method": "git.compare", "params": CompareGit } | { "method": "git.compare_file", "params": CompareGitFile } | { "method": "node.diagnostics", "params": GetDiagnostics } | { "method": "file.inspect", "params": InspectDirectory } | { "method": "file.read_bytes", "params": ReadFileBytes } | { "method": "file.duplicate", "params": DuplicateFileEntry } | { "method": "file.observe", "params": ObserveFile } | { "method": "file.suggest", "params": SuggestEntries } | { "method": "skills.status", "params": GetSkillsStatus } | { "method": "skills.reconcile", "params": ReconcileSkills } | { "method": "skills.uninstall", "params": UninstallSkills } | { "method": "skills.save_selection", "params": SaveSkillsSelection } | { "method": "skills.import_selection", "params": ImportSkillsSelection };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.side_open", "params": OpenSideQuestion } | { "method": "session.side_prompt", "params": PromptSideQuestion } | { "method": "session.side_reset", "params": ResetSideQuestion } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.self", "params": GetDeviceSelf } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.published", "params": GetPublished } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "usage.query", "params": QueryUsage } | { "method": "push.key", "params": GetPushKey } | { "method": "push.subscribe", "params": SubscribePush } | { "method": "push.unsubscribe", "params": UnsubscribePush } | { "method": "push.presence", "params": ReportPushPresence } | { "method": "inbox.list", "params": ListInbox } | { "method": "inbox.get", "params": GetInboxEntry } | { "method": "inbox.mark", "params": MarkInbox } | { "method": "usage.limits", "params": GetUsageLimits } | { "method": "usage.lookup", "params": SetUsageLookup } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession } | { "method": "agent.history", "params": GetAgentHistory } | { "method": "session.detach", "params": DetachSession } | { "method": "workspace.registry", "params": GetRegistry } | { "method": "workspace.list", "params": ListWorkspaces } | { "method": "workspace.get", "params": GetWorkspace } | { "method": "workspace.rename", "params": RenameWorkspace } | { "method": "workspace.pin", "params": PinWorkspace } | { "method": "workspace.release_automation", "params": ReleaseWorkspaceAutomation } | { "method": "git.compare", "params": CompareGit } | { "method": "git.compare_file", "params": CompareGitFile } | { "method": "node.diagnostics", "params": GetDiagnostics } | { "method": "file.inspect", "params": InspectDirectory } | { "method": "file.read_bytes", "params": ReadFileBytes } | { "method": "file.duplicate", "params": DuplicateFileEntry } | { "method": "file.observe", "params": ObserveFile } | { "method": "file.suggest", "params": SuggestEntries } | { "method": "skills.status", "params": GetSkillsStatus } | { "method": "skills.reconcile", "params": ReconcileSkills } | { "method": "skills.uninstall", "params": UninstallSkills } | { "method": "skills.save_selection", "params": SaveSkillsSelection } | { "method": "skills.import_selection", "params": ImportSkillsSelection } | { "method": "browser.call", "params": BrowserCall } | { "method": "browser.control", "params": BrowserControl } | { "method": "browser.watch", "params": WatchBrowser } | { "method": "browser.clear_profile", "params": ClearBrowserProfile };
 
 /**
  * What `fleet.callback` answers.
@@ -832,6 +1182,19 @@ relays: Array<RouteUrl>,
  * A ticket for the member's key, with `relays`.
  */
 ticket?: RelayTicket | null, };
+
+/**
+ * Text and completeness travel together so callers cannot lose the truncation fact.
+ */
+export type CappedText = { 
+/**
+ * At most the named byte bound, without cutting a character.
+ */
+text: PageText, 
+/**
+ * A partial result is never rendered as a complete page snapshot.
+ */
+completeness: TextCompleteness, };
 
 /**
  * The node's copy of the registry.
@@ -1075,6 +1438,37 @@ title: string,
 description?: string | null, };
 
 /**
+ * Clearing is an Admin/direct-human operation on node-owned profile locations only.
+ */
+export type ClearBrowserProfile = Record<symbol, never>;
+
+/**
+ * A click cannot quietly discard the requested button/count/modifiers.
+ */
+export type ClickArgs = { 
+/**
+ * Resolve both ownership and the reference in this tab.
+ */
+target: ElementArgs, 
+/**
+ * Defaults to the left button at both decoding edges.
+ */
+button: MouseButton, 
+/**
+ * Defaults to one click; never an unexplained boolean on the wire.
+ */
+count: ClickCount, 
+/**
+ * Hold only these known modifiers during trusted input.
+ */
+modifiers: KeyModifiers, };
+
+/**
+ * A boolean at the MCP edge becomes an explicit click-count meaning.
+ */
+export type ClickCount = "single" | "double";
+
+/**
  * Why a clone failed.
  */
 export type CloneFailure = "needs_credential" | "not_found" | "network" | "timed_out" | "other" | "unknown";
@@ -1308,6 +1702,29 @@ export type ConfigKey = string;
  * `{"secret": "NAME"}`.
  */
 export type ConfigValue = string | { secret: SecretName };
+
+/**
+ *A console tail that fits the retained ring before it is decoded.
+ */
+export type ConsoleEntries = Array<ConsoleEntry>;
+
+/**
+ * A console entry is page content, never an automatic host log record.
+ */
+export type ConsoleEntry = { 
+/**
+ * Preserve the browser-provided severity as a typed value.
+ */
+level: ConsoleLevel, 
+/**
+ * Never format this into diagnostics or persisted layout.
+ */
+text: PageText, };
+
+/**
+ * Console levels cannot become free-form tracing categories.
+ */
+export type ConsoleLevel = "log" | "info" | "warning" | "error" | "debug";
 
 /**
  * A piece of message content.
@@ -1593,6 +2010,29 @@ session: SessionId, };
  * space made one.
  */
 export type CronExpr = string;
+
+/**
+ * A finite nonnegative CSS coordinate, bounded before queuing input.
+ */
+export type CssCoordinate = number;
+
+/**
+ * Finite scroll units cannot become `NaN`/Infinity inside input dispatch.
+ */
+export type CssDelta = number;
+
+/**
+ * Pointer position is relative to the page viewport, excluding toolbar/letterboxing.
+ */
+export type CssPoint = { 
+/**
+ * Horizontal CSS coordinate.
+ */
+x: CssCoordinate, 
+/**
+ * Vertical CSS coordinate.
+ */
+y: CssCoordinate, };
 
 /**
  * A custom agent's slot in this report, never its person-chosen name.
@@ -2429,6 +2869,23 @@ file: FilePath,
 page: PageRequest, };
 
 /**
+ * Both drag endpoints are validated before any pointer press is delivered.
+ */
+export type DragArgs = { 
+/**
+ * Both refs must belong to this same target's current generation.
+ */
+browser_id: BrowserId, 
+/**
+ * The press begins at this element.
+ */
+source: ElementRef, 
+/**
+ * The release ends at this element.
+ */
+destination: ElementRef, };
+
+/**
  * `worktree.drop_snapshot`: delete a snapshot's ref.
  */
 export type DropSnapshot = { 
@@ -2467,6 +2924,24 @@ path: RelPath, };
  * A duration in whole milliseconds.
  */
 export type DurationMs = number;
+
+/**
+ * Element actions must resolve a reference from this target's current snapshot.
+ */
+export type ElementArgs = { 
+/**
+ * The tab whose reference map must contain the element.
+ */
+browser_id: BrowserId, 
+/**
+ * The snapshot reference, not an arbitrary JavaScript expression.
+ */
+element: ElementRef, };
+
+/**
+ * A snapshot-local element reference; ownership/generation is checked by the engine.
+ */
+export type ElementRef = string & { readonly __brand: "ElementRef" };
 
 /**
  * Why a schedule ended.
@@ -2520,7 +2995,28 @@ reason: FleetControlError, } | { "kind": "device_invite",
 /**
  * The stable pairing setup reason.
  */
-reason: DeviceInviteError, } | { "kind": "unknown" };
+reason: DeviceInviteError, } | { "kind": "browser", 
+/**
+ * Fixed typed reason, never a page exception or credential.
+ */
+reason: BrowserFailure, } | { "kind": "unknown" };
+
+/**
+ * Page evaluation is not a host process or an arbitrary CDP method.
+ */
+export type EvaluateArgs = { 
+/**
+ * Browser policy and signed-in-data authority apply to this tab.
+ */
+browser_id: BrowserId, 
+/**
+ * The function's source is redacted from diagnostics.
+ */
+function: RequiredInput, 
+/**
+ * Optional element passed to that function, checked before execution.
+ */
+element?: ElementRef | null, };
 
 /**
  * Reply to `session.read`.
@@ -3875,6 +4371,11 @@ export type HarnessSessionId = string & { readonly __brand: "HarnessSessionId" }
 export type HeaderName = string;
 
 /**
+ * History direction is explicit even when there is no entry to navigate to.
+ */
+export type HistoryDirection = "back" | "forward";
+
+/**
  * One conversation an agent keeps. Importing it is `session.create` with
  * `resume: harness_session`, its `cwd`, the `profile` it was listed under
  * (the conversation is in that account's files), and its `title` (an
@@ -3953,6 +4454,11 @@ truncated: boolean,
 context: Context, };
 
 /**
+ * A response status is not an untyped byte count or a false success sentinel.
+ */
+export type HttpStatus = number;
+
+/**
  * An `http://` or `https://` URL with a host and no credentials in it.
  *
  * A URL is public: it travels in manifests and, for some harnesses, on a
@@ -3963,6 +4469,51 @@ context: Context, };
  * enforced: keep secrets out of URLs.
  */
 export type HttpUrl = string;
+
+/**
+ * Fixed human input vocabulary; text Debug is redacted by its shared newtype.
+ */
+export type HumanInput = { "kind": "pointer", 
+/**
+ * Point in the current CSS viewport.
+ */
+position: CssPoint, 
+/**
+ * Movement, press or release.
+ */
+action: PointerAction, 
+/**
+ * Modifiers from the same human input event.
+ */
+modifiers: KeyModifiers, } | { "kind": "wheel", 
+/**
+ * Point under the wheel event.
+ */
+position: CssPoint, 
+/**
+ * Horizontal CSS-pixel delta.
+ */
+delta_x: CssDelta, 
+/**
+ * Vertical CSS-pixel delta.
+ */
+delta_y: CssDelta, } | { "kind": "text", 
+/**
+ * Never persisted into layout, diagnostics or a tool call's raw input.
+ */
+text: InputText, } | { "kind": "key", 
+/**
+ * Bounded by the transport envelope; never included in diagnostic output.
+ */
+key: RequiredInput, 
+/**
+ * Press or release is explicit.
+ */
+action: KeyAction, 
+/**
+ * Current modifiers.
+ */
+modifiers: KeyModifiers, } | { "kind": "release_all" };
 
 /**
  * A run of changed lines and their context.
@@ -4242,6 +4793,11 @@ path: string,
  * What to call it; its folder's name otherwise.
  */
 name?: ProjectName | null, };
+
+/**
+ * Form fill/type can clear a field, so empty text is valid.
+ */
+export type InputText = string;
 
 /**
  * Directory inspection carries the metadata needed by all three sort modes.
@@ -4535,6 +5091,49 @@ commits: number, } | { "kind": "operation",
  * Which.
  */
 operation: GitOperation, } | { "kind": "submodules" } | { "kind": "flagged_files" } | { "kind": "worktree_refs" } | { "kind": "in_use" } | { "kind": "inspection_failed" } | { "kind": "unknown" };
+
+/**
+ * Key-up events cannot accidentally execute another complete key chord.
+ */
+export type KeyAction = "down" | "up";
+
+/**
+ * A fixed keyboard state shared by tool clicks and direct human input.
+ */
+export type KeyModifiers = { 
+/**
+ * Alternate key held.
+ */
+alt: ModifierState, 
+/**
+ * Control key held.
+ */
+control: ModifierState, 
+/**
+ * Meta key held.
+ */
+meta: ModifierState, 
+/**
+ * Shift key held.
+ */
+shift: ModifierState, };
+
+/**
+ * Keys remain separate from text so Enter does not become literal page text.
+ */
+export type KeypressArgs = { 
+/**
+ * The tab receives only a supported parsed chord.
+ */
+browser_id: BrowserId, 
+/**
+ * Optional focus follows the same reference-generation check as typing.
+ */
+element?: ElementRef | null, 
+/**
+ * A chord is parsed by the engine input boundary before any key goes down.
+ */
+key: RequiredInput, };
 
 /**
  * `session.kill`: stop a session's process (and its process group).
@@ -5015,6 +5614,24 @@ file: FilePath,
 range: Range, };
 
 /**
+ *The requested console/network tail, bounded by its retained ring.
+ */
+export type LogCount = number;
+
+/**
+ * Logs are a bounded page-content result, not a side effect on tracing.
+ */
+export type LogsArgs = { 
+/**
+ * Only this authorized target's retained ring is visible.
+ */
+browser_id: BrowserId, 
+/**
+ * Apply the reference's default when omitted.
+ */
+count: LogCount, };
+
+/**
  * A call edge anchored at its caller's source sites.
  */
 export type LspCall = { 
@@ -5229,7 +5846,7 @@ export type MessageRole = "prompt" | "reply";
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "session.detach" | "workspace.registry" | "workspace.list" | "workspace.get" | "workspace.rename" | "workspace.pin" | "workspace.release_automation" | "git.compare" | "git.compare_file" | "node.diagnostics" | "file.inspect" | "file.read_bytes" | "file.duplicate" | "file.observe" | "file.suggest" | "skills.status" | "skills.reconcile" | "skills.uninstall" | "skills.save_selection" | "skills.import_selection";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "session.detach" | "workspace.registry" | "workspace.list" | "workspace.get" | "workspace.rename" | "workspace.pin" | "workspace.release_automation" | "git.compare" | "git.compare_file" | "node.diagnostics" | "file.inspect" | "file.read_bytes" | "file.duplicate" | "file.observe" | "file.suggest" | "skills.status" | "skills.reconcile" | "skills.uninstall" | "skills.save_selection" | "skills.import_selection" | "browser.call" | "browser.control" | "browser.watch" | "browser.clear_profile";
 
 /**
  * A media type without parameters, `type/subtype`, lower case
@@ -5337,6 +5954,16 @@ export type ModelRouteName = string;
 export type ModelStop = "end_turn" | "tool_use" | "max_tokens" | "stop_sequence" | "refusal" | "pause" | "error";
 
 /**
+ * A held modifier is a fact, distinct from an incoming key-down/up event.
+ */
+export type ModifierState = "released" | "held";
+
+/**
+ * Distinguish a mouse button from key modifiers or a click count.
+ */
+export type MouseButton = "left" | "right" | "middle";
+
+/**
  * `session.move_profile` (protocol 5, ADR 0011): restart a structured
  * session's harness under another profile, resuming the same conversation.
  * Refused mid-turn unless `force`, and refused when the target profile is
@@ -5355,6 +5982,65 @@ profile?: ProfileName | null,
  * Move even in the middle of a turn, cancelling it.
  */
 force?: boolean, };
+
+/**
+ * Navigation cannot smuggle an external-handler or credential-bearing URL.
+ */
+export type NavigateArgs = { 
+/**
+ * Navigating a General target does not mint a Preview capability.
+ */
+browser_id: BrowserId, 
+/**
+ * The policy proxy must also admit the resolved destination.
+ */
+url: BrowserUrl, };
+
+/**
+ *A network tail with no arbitrary extra response bodies or headers.
+ */
+export type NetworkEntries = Array<NetworkEntry>;
+
+/**
+ * Network records do not carry cookies, request bodies or authorization headers.
+ */
+export type NetworkEntry = { 
+/**
+ * URL itself can contain secrets; its Debug representation is redacted.
+ */
+url: BrowserUrl, 
+/**
+ * HTTP method is decoded into this closed set at the CDP boundary.
+ */
+method: NetworkMethod, 
+/**
+ * A response status when one exists; a failure is distinct from missing data.
+ */
+outcome: NetworkOutcome, };
+
+/**
+ * Common page request methods; extension methods remain explicit rather than guessed.
+ */
+export type NetworkMethod = "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "UNKNOWN";
+
+/**
+ * A failed/pending request must not appear as status zero or an empty success.
+ */
+export type NetworkOutcome = { "state": "pending" } | { "state": "response", "value": HttpStatus } | { "state": "failed", "value": BrowserFailure };
+
+/**
+ * A new tab uses the documented default URL when no URL is supplied.
+ */
+export type NewTabArgs = { 
+/**
+ * General/public or an explicitly admitted workspace Preview origin.
+ */
+url?: BrowserUrl | null, };
+
+/**
+ * Commands without arguments still have one explicit typed payload.
+ */
+export type NoBrowserArgs = Record<symbol, never>;
 
 /**
  * What `fleet.forget` did.
@@ -5458,7 +6144,12 @@ drivers?: AgentDrivers,
  * Startup policy, hidden until its protocol is assigned (ADR 0059).
  * This value-only field does not enable an engine or register input.
  */
-restart_recovery?: RestartRecovery, };
+restart_recovery?: RestartRecovery, 
+/**
+ * Saved preference only; default-Off and hidden while browser protocol is pending.
+ * On does not qualify an engine or create a session-start offered-tool lease.
+ */
+browser_tools?: BrowserTools, };
 
 /**
  * Whether a node is taking new work.
@@ -5730,6 +6421,11 @@ offset: Offset,
 limit: number, };
 
 /**
+ * Bounded page text can contain signed-in data; Debug is intentionally redacted.
+ */
+export type PageText = string;
+
+/**
  * A pairing link: `vessel://pair#` followed by the base64url JSON of a
  * [`PairingOffer`]. The offer sits after `#` so that, if a link is ever
  * opened through a web page, the fragment never reaches a server.
@@ -5936,6 +6632,11 @@ export type PlanPriority = "high" | "medium" | "low";
 export type PlanStatus = "pending" | "in_progress" | "completed";
 
 /**
+ * Press/release pairing belongs to the target actor, never a global desktop input API.
+ */
+export type PointerAction = { "kind": "move" } | { "kind": "press", "button": MouseButton } | { "kind": "release", "button": MouseButton };
+
+/**
  * `port.list`'s answer.
  */
 export type PortList = { 
@@ -6026,6 +6727,19 @@ after?: string | null,
  * At most ten runs; absent means five.
  */
 count: PreviewCount, };
+
+/**
+ * A hint for the node's service lookup, never an access capability by itself.
+ */
+export type PreviewServiceHint = { 
+/**
+ * Must match a complete current owned-service observation.
+ */
+port: ServicePort, 
+/**
+ * Must be verified by the node for that exact live listener.
+ */
+scheme: ServiceScheme, };
 
 /**
  * What the system calls a process (`comm` on Linux, `lsof`'s command on
@@ -7351,7 +8065,7 @@ title: SessionTitle | null, };
 /**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.side_open", "result": SessionInfo } | { "method": "session.side_prompt", "result": Delivered } | { "method": "session.side_reset", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.self", "result": DeviceSelf } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.published", "result": FleetPublished } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "usage.query", "result": UsageReport } | { "method": "push.key", "result": PushKey } | { "method": "push.subscribe", "result": PushLease } | { "method": "push.unsubscribe", "result": Ack } | { "method": "push.presence", "result": Ack } | { "method": "inbox.list", "result": InboxPage } | { "method": "inbox.get", "result": InboxEntry | null } | { "method": "inbox.mark", "result": Ack } | { "method": "usage.limits", "result": UsageLimits } | { "method": "usage.lookup", "result": ExternalLookup } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo } | { "method": "agent.history", "result": AgentHistoryPage } | { "method": "session.detach", "result": DetachedSession } | { "method": "workspace.registry", "result": RegistrySnapshot } | { "method": "workspace.list", "result": Array<WorkspaceDescriptor> } | { "method": "workspace.get", "result": WorkspaceDescriptor } | { "method": "workspace.rename", "result": WorkspaceDescriptor } | { "method": "workspace.pin", "result": WorkspaceDescriptor } | { "method": "workspace.release_automation", "result": WorkspaceDescriptor } | { "method": "git.compare", "result": GitCompared<DiffSummary> } | { "method": "git.compare_file", "result": GitCompared<FileDiff> } | { "method": "node.diagnostics", "result": DiagnosticReport } | { "method": "file.inspect", "result": InspectedDirectory } | { "method": "file.read_bytes", "result": FileBytePage } | { "method": "file.duplicate", "result": DuplicatedFileEntry } | { "method": "file.observe", "result": ObservedFile } | { "method": "file.suggest", "result": EntrySuggestions } | { "method": "skills.status", "result": SkillsSnapshot } | { "method": "skills.reconcile", "result": SkillsSnapshot } | { "method": "skills.uninstall", "result": SkillsSnapshot } | { "method": "skills.save_selection", "result": SkillsSaved } | { "method": "skills.import_selection", "result": SkillsImported };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.side_open", "result": SessionInfo } | { "method": "session.side_prompt", "result": Delivered } | { "method": "session.side_reset", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.self", "result": DeviceSelf } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.published", "result": FleetPublished } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "usage.query", "result": UsageReport } | { "method": "push.key", "result": PushKey } | { "method": "push.subscribe", "result": PushLease } | { "method": "push.unsubscribe", "result": Ack } | { "method": "push.presence", "result": Ack } | { "method": "inbox.list", "result": InboxPage } | { "method": "inbox.get", "result": InboxEntry | null } | { "method": "inbox.mark", "result": Ack } | { "method": "usage.limits", "result": UsageLimits } | { "method": "usage.lookup", "result": ExternalLookup } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo } | { "method": "agent.history", "result": AgentHistoryPage } | { "method": "session.detach", "result": DetachedSession } | { "method": "workspace.registry", "result": RegistrySnapshot } | { "method": "workspace.list", "result": Array<WorkspaceDescriptor> } | { "method": "workspace.get", "result": WorkspaceDescriptor } | { "method": "workspace.rename", "result": WorkspaceDescriptor } | { "method": "workspace.pin", "result": WorkspaceDescriptor } | { "method": "workspace.release_automation", "result": WorkspaceDescriptor } | { "method": "git.compare", "result": GitCompared<DiffSummary> } | { "method": "git.compare_file", "result": GitCompared<FileDiff> } | { "method": "node.diagnostics", "result": DiagnosticReport } | { "method": "file.inspect", "result": InspectedDirectory } | { "method": "file.read_bytes", "result": FileBytePage } | { "method": "file.duplicate", "result": DuplicatedFileEntry } | { "method": "file.observe", "result": ObservedFile } | { "method": "file.suggest", "result": EntrySuggestions } | { "method": "skills.status", "result": SkillsSnapshot } | { "method": "skills.reconcile", "result": SkillsSnapshot } | { "method": "skills.uninstall", "result": SkillsSnapshot } | { "method": "skills.save_selection", "result": SkillsSaved } | { "method": "skills.import_selection", "result": SkillsImported } | { "method": "browser.call", "result": BrowserResult } | { "method": "browser.control", "result": BrowserResult } | { "method": "browser.watch", "result": BrowserWatched } | { "method": "browser.clear_profile", "result": Ack };
 
 /**
  * A repository's path on its forge: `owner/name`, or GitLab's
@@ -7415,6 +8129,11 @@ activity: PushActivity, };
 export type RepositoryConfigReason = "program" | "layout" | "credential" | "unnamable" | "too_many" | "too_large" | "unknown";
 
 /**
+ * Wait substrings, page functions and keys cannot be absent or empty.
+ */
+export type RequiredInput = string;
+
+/**
  * Replace the expected side under the same creation gate. Deletion and
  * creation are serialized, not a transaction with rollback.
  */
@@ -7427,6 +8146,19 @@ session: SessionId,
  * The side the person saw. A stale id must not delete a newer side.
  */
 side: SessionId, };
+
+/**
+ * Dimensions are checked together before either override or retained state changes.
+ */
+export type ResizeArgs = { 
+/**
+ * The same target supplies the app's frames and the agent's tools.
+ */
+browser_id: BrowserId, 
+/**
+ * The complete new CSS viewport.
+ */
+size: ViewportSize, };
 
 /**
  * Node-level startup continuation policy (ADR 0059).
@@ -7921,6 +8653,29 @@ session: SessionId, } | { "kind": "unknown" };
 export type Scope = "read" | "operate" | "admin" | "sync" | "relay";
 
 /**
+ * A screenshot needs a real target/paint even when the panel is hidden.
+ */
+export type ScreenshotArgs = { 
+/**
+ * The target to capture, in the caller's workspace.
+ */
+browser_id: BrowserId, 
+/**
+ * Full-page is a bounded explicit request.
+ */
+extent: ScreenshotExtent, };
+
+/**
+ * Screenshot scope is an explicit intent, not a boolean with hidden meaning.
+ */
+export type ScreenshotExtent = "viewport" | "page";
+
+/**
+ * Opaque image bytes with bounded geometry; full codec validation remains at display.
+ */
+export type ScreenshotPng = string;
+
+/**
  * One script or service, with construction enforcing its declaration's meaning.
  */
 export type ScriptEntry = { 
@@ -8016,6 +8771,27 @@ commands: ProjectCommands, } | { "outcome": "refused",
  * Why.
  */
 reason: ScriptRefusal, };
+
+/**
+ * Scroll acts on the current tab or a snapshot element, never a global surface.
+ */
+export type ScrollArgs = { 
+/**
+ * The target owns its current focus and reference generation.
+ */
+browser_id: BrowserId, 
+/**
+ * A missing element means the viewport.
+ */
+element?: ElementRef | null, 
+/**
+ * Horizontal CSS-pixel wheel delta.
+ */
+delta_x: CssDelta, 
+/**
+ * Vertical CSS-pixel wheel delta.
+ */
+delta_y: CssDelta, };
 
 /**
  * Where the next page of a search starts: the node's handle, handed back
@@ -8209,6 +8985,11 @@ export type ServicePort = number;
  * A project overrides allocation only by providing at least one valid choice.
  */
 export type ServicePorts = { range?: PortRange, port_script?: PortScript, };
+
+/**
+ * HTTP and HTTPS are distinct service attestations, never guessed from a port.
+ */
+export type ServiceScheme = "http" | "https";
 
 /**
  * What a service is doing (protocol 11). Also a record of its log
@@ -8930,7 +9711,12 @@ park_after?: ParkAfter | null,
  * is refused, and so is `direct` for an agent whose driver this node
  * does not offer yet.
  */
-drivers?: SetAgentDrivers | null, };
+drivers?: SetAgentDrivers | null, 
+/**
+ * A named mutation needs the browser feature even when turning Off.
+ * Raw null is invalid; it must not turn a named field into omission.
+ */
+browser_tools?: BrowserTools, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -9261,6 +10047,19 @@ head: CommitId,
 created_at: string, };
 
 /**
+ * Observed snapshot content, never navigation authority or a later tab lookup.
+ */
+export type SnapshotDocument = { 
+/**
+ * Preserve the exact observed address; do not fetch it or expose it in Debug.
+ */
+address: PageText, 
+/**
+ * The title can be shortened only with the snapshot's truncation fact.
+ */
+title: PageText, };
+
+/**
  * A project's snapshots.
  */
 export type SnapshotList = { 
@@ -9272,6 +10071,32 @@ snapshots: Array<Snapshot>,
  * Whether there were more.
  */
 more: boolean, };
+
+/**
+ * A measurement describes a snapshot without using an untyped numeric field.
+ */
+export type SnapshotMetric = number;
+
+/**
+ * Stats are measurements, never proof that the full DOM fit the snapshot budget.
+ */
+export type SnapshotStats = { 
+/**
+ * Nodes considered by the bounded traversal.
+ */
+nodes: SnapshotMetric, 
+/**
+ * Refs assigned in this snapshot only.
+ */
+references: SnapshotMetric, 
+/**
+ * UTF-8 bytes in the bounded rendered text.
+ */
+text_bytes: TextByteCount, 
+/**
+ * Frames encountered while constructing the snapshot.
+ */
+frames: SnapshotMetric, };
 
 /**
  * A window of a message around its first match: at most
@@ -9657,6 +10482,15 @@ export type SymbolKind = "file" | "module" | "namespace" | "package" | "class" |
 export type SyncFleet = Record<symbol, never>;
 
 /**
+ * Target ownership is checked independently of the operation's arguments.
+ */
+export type TabArgs = { 
+/**
+ * This is a node/browser id, never a CDP target id.
+ */
+browser_id: BrowserId, };
+
+/**
  * Raw bytes to or from a PTY.
  *
  * [Decision Log]
@@ -9855,6 +10689,16 @@ export type TerminalSupport = { "state": "available" } | { "state": "unavailable
  * Human-readable reason.
  */
 reason: string, };
+
+/**
+ * Byte measurements cannot be passed where a DOM/ref count is expected.
+ */
+export type TextByteCount = number;
+
+/**
+ * A limit must never make a partial page look like complete evidence.
+ */
+export type TextCompleteness = "whole" | "truncated";
 
 /**
  * A shape free text must have.
@@ -10184,6 +11028,23 @@ cached_read?: TokenCount | null,
 cached_write?: TokenCount | null, };
 
 /**
+ * An absent reference means current focus, rather than a magic empty ref.
+ */
+export type TypeArgs = { 
+/**
+ * The focus belongs to this tab.
+ */
+browser_id: BrowserId, 
+/**
+ * Optionally establish a validated element focus before typing.
+ */
+element?: ElementRef | null, 
+/**
+ * Text is not a host key/chord or a JavaScript function.
+ */
+text: InputText, };
+
+/**
  * Type definitions at a saved source position.
  */
 export type TypeDefinition = AtPosition;
@@ -10290,10 +11151,33 @@ upload: UploadId,
 chunk: number, };
 
 /**
+ * The actor validates the entire list before the browser can read any file.
+ */
+export type UploadArgs = { 
+/**
+ * The current input element reference belongs to the authorized target.
+ */
+target: ElementArgs, 
+/**
+ * All names remain untrusted, even when lexically under a workspace.
+ */
+files: UploadFiles, };
+
+/**
+ * Nonempty file intent; only the engine may turn these into staged file handles.
+ */
+export type UploadFiles = Array<UploadPath>;
+
+/**
  * An upload in progress (protocol 10). Random, but not a secret: only
  * the caller that began it may write to it or finish it.
  */
 export type UploadId = string & { readonly __brand: "UploadId" };
+
+/**
+ * A file name, still untrusted until workspace confinement/staging succeeds.
+ */
+export type UploadPath = string;
 
 /**
  * One saved account's bounded facts and explicit credential-use policy.
@@ -10476,6 +11360,74 @@ unaccounted_costs: ReportCount,
 optional_reports: OptionalUsageReports, };
 
 /**
+ * Fill/select may legitimately set an empty value.
+ */
+export type ValueArgs = { 
+/**
+ * The current element reference identifies the form control.
+ */
+target: ElementArgs, 
+/**
+ * Intentionally serialized page input, redacted from Debug.
+ */
+value: InputText, };
+
+/**
+ *A positive bounded CSS-pixel dimension, independent of device scaling.
+ */
+export type ViewportSide = number;
+
+/**
+ * Both sides are validated before the browser receives a metrics change.
+ */
+export type ViewportSize = { 
+/**
+ * Horizontal CSS pixels; not scaled image pixels.
+ */
+width: ViewportSide, 
+/**
+ * Vertical CSS pixels; not scaled image pixels.
+ */
+height: ViewportSide, };
+
+/**
+ * Both wait conditions cannot be supplied simultaneously in a typed request.
+ */
+export type WaitArgs = { 
+/**
+ * Ownership is still required for a read-like operation on signed-in data.
+ */
+browser_id: BrowserId, 
+/**
+ * Text or a URL substring, not an arbitrary wait script.
+ */
+condition: WaitFor, 
+/**
+ * The broker's extra response allowance is applied outside this duration.
+ */
+budget: WaitBudget, };
+
+/**
+ * Omitted and explicitly supplied wait budgets have different broker deadlines.
+ */
+export type WaitBudget = { "kind": "default" } | { "kind": "explicit", "timeout": WaitTimeout };
+
+/**
+ * Wait URL is a substring, not a navigable URL (Paseo service.ts:1005).
+ */
+export type WaitFor = { "kind": "text", "value": RequiredInput } | { "kind": "url", "value": RequiredInput };
+
+/**
+ * The successful predicate kind is a fact of the completed wait operation.
+ */
+export type WaitMatch = "text" | "url";
+
+/**
+ *A bounded wait in milliseconds, not an arbitrary transport deadline.
+ */
+export type WaitTimeout = number;
+
+/**
  * `session.wake`: start a parked session's agent again with its
  * conversation, answered once it is ready. Needs `operate`.
  */
@@ -10484,6 +11436,23 @@ export type WakeSession = {
  * Which session.
  */
 session: SessionId, };
+
+/**
+ * Watching a signed-in page needs Operate; Read alone never receives frames.
+ */
+export type WatchBrowser = { 
+/**
+ * The descriptor must resolve to this logical workspace.
+ */
+workspace: WorkspaceId, 
+/**
+ * Required for a session-bound Preview watch.
+ */
+opening_session?: SessionId | null, 
+/**
+ * The node verifies ownership before starting a frame producer.
+ */
+browser_id: BrowserId, };
 
 /**
  * `fleet.watch` (protocol 5): wait for a generation newer than `after`.

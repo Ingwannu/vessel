@@ -1553,3 +1553,16 @@ automation/handler.ts:350: omitted tool new_tab URL selects https://example.com.
 It does not select a private dev-server origin or expose the launcher's internal
 about:blank as an invented tool default. Preview authority remains a separate
 explicit opening; the real creation executor still remains owed.
+
+## Checked generated browser wire declarations
+
+The fixed TS run `wp-browser-ts-20261116T012549Z-3dce01dd` executed all seven
+declaration/alias shape tests successfully. Its step returned 1 solely because
+`web/src/wire/proto.ts` differed after generation. The recovered source commit,
+artifact manifest and each SHA256 were checked before adopting that exact file;
+no generated declaration was edited by hand. Subsequent proto changes before
+adoption affected only a test's checked division, not a declaration or generator.
+The committed output includes the pending browser calls, typed action outcomes,
+wait matches, bounded upload intent and default-off settings. It enables no
+method, engine, tool offering or file authority. A committed-output freshness
+check remains owed on the receiving announced base.
