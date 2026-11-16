@@ -84,7 +84,7 @@ fn decode_text<T: serde::de::DeserializeOwned>(
 /// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then attention and labels.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
      via, origin, model, title, abilities, pinned, archived_at, read_seq, marked_unread, \
-     attention_seq, labels, title_origin, detach_receipt";
+     attention_seq, labels, title_origin, detach_receipt, listing";
 
 /// Where the marks' columns start in [`SESSION_COLUMNS`].
 const FIRST_MARK: usize = 14;
@@ -96,6 +96,9 @@ const LABELS: usize = 19;
 const TITLE_ORIGIN: usize = LABELS.saturating_add(1);
 /// Detach follows the head migration without changing prior column meanings.
 const DETACH_RECEIPT: usize = TITLE_ORIGIN.saturating_add(1);
+
+/// Creation-only discovery follows the detach receipt in the row projection.
+const LISTING: usize = DETACH_RECEIPT.saturating_add(1);
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -168,6 +171,7 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
     let _validated = info
         .parentage()
         .map_err(|_invalid| StoreError::InvalidParentage(id))?;
+    info.listing = decode(id, Column::Listing, &row.get::<_, String>(LISTING)?)?;
     Ok(info)
 }
 

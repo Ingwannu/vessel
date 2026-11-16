@@ -5,12 +5,18 @@ use crate::rpc::samples;
 use crate::{Deliver, Forward, NodeId, RelayCall, Request as _};
 
 #[test]
-fn every_labelled_spec_and_envelope_is_unassigned_at_the_current_protocol() {
+fn every_metadata_spec_and_envelope_is_unassigned_at_the_current_protocol() {
     assert_eq!(crate::lifecycle_version::SINCE, None);
-    let calls: Vec<Call> = serde_json::from_str(include_str!(
+    let mut calls: Vec<Call> = serde_json::from_str(include_str!(
         "../../../../tests/fixtures/labelled-requests.json"
     ))
     .unwrap();
+    calls.extend(
+        serde_json::from_str::<Vec<Call>>(include_str!(
+            "../../../../tests/fixtures/listed-requests.json"
+        ))
+        .unwrap(),
+    );
     for call in calls {
         assert_eq!(call.since(), None);
         let forwarded = Forward {
@@ -48,13 +54,29 @@ fn every_labelled_spec_and_envelope_is_unassigned_at_the_current_protocol() {
 }
 
 #[test]
-fn assignment_combines_with_existing_requirements_and_empty_labels_need_no_assignment() {
-    let labels: SessionLabels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
+fn assignment_combines_with_existing_requirements_and_omitted_metadata_needs_none() {
+    let labels: crate::SessionLabels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
     let old = crate::MIN_PROTOCOL_VERSION;
     let new = crate::PROTOCOL_VERSION;
     assert!(old < new);
-    assert_eq!(required(old, &labels, None), None);
-    assert_eq!(required(old, &labels, Some(new)), Some(new));
-    assert_eq!(required(new, &labels, Some(old)), Some(new));
-    assert_eq!(required(new, &SessionLabels::default(), None), Some(new));
+    let plain = SessionSpec::new(
+        crate::HarnessKind::Codex,
+        crate::SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        },
+    );
+    for spec in [
+        plain.clone().with_labels(labels),
+        plain.clone().with_listing(crate::SessionListing::Shown),
+        plain
+            .clone()
+            .with_listing(crate::SessionListing::Background),
+    ] {
+        assert_eq!(required(old, &spec, None), None);
+        assert_eq!(required(old, &spec, Some(new)), Some(new));
+        assert_eq!(required(new, &spec, Some(old)), Some(new));
+    }
+    assert_eq!(required(new, &plain, None), Some(new));
 }

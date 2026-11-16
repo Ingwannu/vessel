@@ -277,7 +277,7 @@ fn forgotten_alias_retires_ui_even_when_dirty_layout_survives(cx: &mut TestAppCo
 }
 
 #[gpui::test]
-fn dismissing_a_compact_sheet_notifies_the_actual_original_file(cx: &mut TestAppContext) {
+fn completing_a_compact_file_owner_notifies_the_actual_original_target(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, _window, cx| {
@@ -306,7 +306,12 @@ fn dismissing_a_compact_sheet_notifies_the_actual_original_file(cx: &mut TestApp
                 cx,
             )
             .unwrap();
-        shell.layout_dismiss_sheet(&key, tab, cx);
+        let plan =
+            super::super::super::with_layout_at(shell, &key, |layout| layout.request_close(tab))
+                .unwrap();
+        // Mechanism fixture only: the real File owner supplies this completion
+        // after its own buffer admission and disposition, not generic dismissal.
+        shell.layout_close_settled(&key, &plan, Ok(()), cx);
         assert_eq!(
             shell.notice.as_deref(),
             Some(format!("Closed:{target:?}").as_str())
