@@ -17,8 +17,10 @@ existing source/runtime verdict or activate an unassigned method.
 - Existing assets: Tokio's blocking pool and standard `ToSocketAddrs`, relay
   socket/Reach/TLS stages, node lifecycle ownership, and reqwest's resolver hook.
 - Choice: one tracked native-resolution primitive in `vessel-relay::resolution`,
-  with thin consumers for NodeLink and the dictation/usage reqwest clients. The node already depends on
-  vessel-relay; no crate edge or external dependency is required.
+  with thin consumers for NodeLink and the dictation/usage reqwest clients.
+  The primitive and the original two node-owned consumers need no new crate
+  edge: the node already depends on vessel-relay. Usage has the separate
+  injection/ownership boundary described below; no Harness edge is assumed.
 - Rejected: a second DNS implementation/cache, an independent resolver actor,
   one pool per HTTP request, or a lease held only by a cancellable async wrapper.
 - Why: the existing native dial crate is the lower shared boundary for these
@@ -192,7 +194,7 @@ No HTTP or dictation activation is part of this contract-only change.
 
 ### Account-usage HTTP consumer (W5 activation hold)
 
-The coordinator adds W5's `limits/http.rs` `Http::new` and the
+The coordinator adds W5's `vessel-harness/src/limits/http.rs` `Http::new` and the
 `AccountUsageProbe` Local body as the third consumer. It must use the SAME
 tracked primitive through reqwest's `ClientBuilder::dns_resolver` hook, with
 host-only/port0 results, the stable node-root budget and its own existing
@@ -205,6 +207,15 @@ this consumer wiring and receiving proof exist. Bounded backend preparation
 may have a qualified pass with this explicit activation hold; neither that
 pass nor the shared primitive claims active readiness or physical DNS drain.
 This documentation addition does not request another W5 whole gate.
+
+The Harness crate currently depends on proto/proc, not relay. Naming this third
+consumer does not authorize a new Harness-to-relay dependency or relocating the
+primitive. Before wiring, the owners/coordinator/V3 must settle the concrete
+injection and retained-lifetime boundary at reqwest's real resolver extension
+point. An outer lifecycle may supply that canonical resolver while retaining
+the same scope and permits-only hold, but the exact receiving API and drain
+ordering still require source review. No resolver interface of our own, erased
+callback engine, parallel quota or fallback default Gai may fill the gap.
 
 ### Shared and receiving proofs
 
