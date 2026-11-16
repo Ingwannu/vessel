@@ -85,3 +85,33 @@ At warning time, local process inventory showed only the two own gate attach
 wrappers, no fake fleet/display/app/server. Stop only verified own PIDs after
 receipts; never cancel another worker or a running remote build. Record final
 cleanup and any queued run left behind below.
+
+
+## Secure canonical line announced during the quota stop
+
+G2/lead announce checked package base14.4=`935569d5` (native1801/0/2),
+including canonical SecretField receiving compilation. This supersedes only
+the earlier "waiting lead receiving" state: W19 may consume that announced
+line through the normal App A8 merge on the next permitted session. No merge,
+secure-field consumer or new build is started solely from this notice during
+the quota stop. The bounded privacy/authority/OSAT/IME/zeroization limits remain;
+no Host Voice/store flow is approved by the shared control's proof. Never take
+the audit main, isolated producer or fullF1.
+
+## Current-slice correction and final execution run
+
+The original46c strict run completed101/163s on three moved-method Applied
+paths. It did not execute tests. Fixed96619e9f19b4c72a3ef656ce140d7538414b6258
+uses the already-imported result type and includes the earlier doc-backtick fix.
+Exact966 then passed App/Link/Kit/View all-target strict0 in
+`wp-voice-narrow-20261116T034356Z-96619e9f`, fonts18s/cargo26s. Full cargo
+SHA256`ee8f696b309993004ea6ba6beeee643ee3343dec19e781f3f9e8c0eaf1104f12`.
+Old failure logs remain unchanged.
+
+A single remaining App/View lib execution run on exact966 was submitted under
+the same own narrow label (native-runtime-remote-42 receipt). This excludes
+unneeded fresh whole-package/capture work and is limited to the active slice.
+Record its actual run ID and result below. The quota warning freezes this
+slice on base14.3 despite the subsequent14.4 announcement; no new merge or
+secure-field activation follows. If execution cannot finish before the stop,
+leave an explicitly WIP commit and exact pending receipt, not a runtime claim.
