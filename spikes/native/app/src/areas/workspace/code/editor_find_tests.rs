@@ -27,7 +27,7 @@ fn editing(shell: &Shell) -> &super::super::editing::Editing {
 
 struct Probe {
     shell: Entity<Shell>,
-    file: super::super::buffers::FileKey,
+    file: FileKey,
 }
 
 impl Probe {
