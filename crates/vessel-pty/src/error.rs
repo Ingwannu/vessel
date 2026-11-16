@@ -46,6 +46,35 @@ pub enum PtyError {
     Thread(#[source] std::io::Error),
 }
 
+impl PtyError {
+    pub(crate) fn with_diagnostics(self, spec: &vessel_proc::CommandSpec) -> Self {
+        match spec.diagnostic_policy() {
+            vessel_proc::CommandDiagnostics::Standard => self,
+            vessel_proc::CommandDiagnostics::Redacted => {
+                let program = || spec.diagnostic_program().display().to_string();
+                let message = || spec.diagnostic_message(&"backend detail");
+                match self {
+                    Self::Open { .. } => Self::Open { message: message() },
+                    Self::Spawn { .. } => Self::Spawn {
+                        program: program(),
+                        message: message(),
+                    },
+                    Self::NoPid { .. } => Self::NoPid { program: program() },
+                    Self::Group { source, .. } => Self::Group {
+                        program: program(),
+                        source,
+                    },
+                    Self::Attach { .. } => Self::Attach { message: message() },
+                    Self::Thread(source) => Self::Thread(spec.diagnostic_io_error(source)),
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;
+
 /// The PTY no longer accepts input: the program exited and the PTY was
 /// closed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]

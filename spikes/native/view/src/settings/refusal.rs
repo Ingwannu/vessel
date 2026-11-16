@@ -41,11 +41,11 @@ mod tests {
             .settings_notices();
         assert_eq!(
             en.refusal(Refused::Actions).unwrap(),
-            "That change was not kept. Keys can be kept for at most \u{2068}64\u{2069} actions."
+            "That change was not kept. Keys can be kept for at most \u{2068}128\u{2069} actions."
         );
         assert_eq!(
             ko.refusal(Refused::Actions).unwrap(),
-            "그 변경은 보관되지 않았습니다. 단축키는 최대 \u{2068}64\u{2069}개 동작에만 보관할 수 있습니다."
+            "그 변경은 보관되지 않았습니다. 단축키는 최대 \u{2068}128\u{2069}개 동작에만 보관할 수 있습니다."
         );
         assert_eq!(
             en.refusal(Refused::Machines).unwrap(),

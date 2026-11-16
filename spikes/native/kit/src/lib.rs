@@ -47,10 +47,14 @@ pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod icon_chrome;
 pub mod loading;
 pub mod menu;
 pub mod motion;
 pub mod output;
+mod plain_text;
+mod text_ranges;
+pub use plain_text::plain_text;
 pub mod picker;
 pub mod popover;
 pub mod popup;
@@ -127,8 +131,8 @@ pub mod ui {
         AnyElement, App, AsyncApp, Bounds, ClickEvent, ClipboardItem, Context, Div, DragMoveEvent,
         ElementId, Entity, HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListState,
         MouseButton, MouseDownEvent, Pixels, Point, SharedString, Stateful, StyledText,
-        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, svg,
-        uniform_list,
+        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, size,
+        svg, uniform_list,
     };
 }
 

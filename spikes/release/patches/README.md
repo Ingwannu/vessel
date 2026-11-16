@@ -210,8 +210,10 @@ Upstream: gpui-kit's input base (`longbridge/gpui-kit`), Apache-2.0
 `Cargo.lock` (unused for a dependency). Only the app's workspace
 (`spikes/native`) uses it.
 
-Changed: `src/input/base/blink_cursor.rs`, marked `MODIFIED by Vessel`
-at the top and `Vessel patch` at the change.
+Changed: `src/input/base/blink_cursor.rs` (change 4),
+`src/input/base/state.rs` (changes 7 and 9), and the drawing files listed
+under change 7, marked `MODIFIED by Vessel` at the top and `Vessel patch`
+at each change.
 
 ### 4. A steady caret while motion is held
 
@@ -381,6 +383,37 @@ at the top and `Vessel patch` at the change.
   No capture exists yet, and this example is not a substitute for an exact
   changed-source gate. Builds must use the prescribed remote VM path.
 
+### 9. Read the existing document revision before owner projection
+
+- Purpose: distinguish an unchanged old display from accepted A-to-X-to-A
+  edits while an owner's model-to-editor projection is pending. Equal text
+  cannot prove that no input occurred before a queued owner notification.
+- Choice: one readonly `InputBaseState::document_revision()` accessor over
+  the existing counter. No counter, setter, reset, subscription, event, undo
+  or editing-engine behavior is added. A regression edits the real EditorState
+  from A to X to A and retains a changed revision despite identical final text.
+- Why: the engine already advances its revision synchronously with edits;
+  another owner event listener would have the same queued-delivery limitation.
+- Costs: one accessor to preserve at the pin. The counter wraps and is only
+  comparable within the same live state; it is neither a file revision nor
+  durable identity, a terminal remote-effect fence, or write authority.
+- Changed: `src/input/base/state.rs`, accessor and regression only.
+- Checked: bounded source review and requested Kit checks passed. Exact
+  1d79bf2e ran locked all-target Kit Clippy with warnings denied (run
+  wp-files-narrow-20261115T190015Z-1d79bf2e, fonts and cargo rc0). The same
+  four source blobs on announced base13, exact936d1afd, executed the real
+  CodeEditor A-to-X-to-A case:1 passed/0 failed/0 ignored,243 filtered
+  (run wp-files-narrow-20261116T002923Z-936d1afd, fonts and cargo rc0,
+  fresh gpui-base and Kit code generation). V1 independently checked both
+  receipts and whole-file equality. This is not a whole app, OS-input or
+  C5 queued-input/lifecycle consumer approval.
+- The vendor-private regression remains **UNEXECUTED**: the supported build
+  interface has no separate private-test recipe with its absent development
+  lock. No alternate manifest, dependency or lock was invented. The Kit case
+  exercises the same production engine but is not execution of that private
+  vendor case. Revision comparisons still require the same actual editor
+  instance; equal wrapping values are not cross-editor or disk authority.
+
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
@@ -393,9 +426,10 @@ the app's workspace (`spikes/native`) uses it; the release workspace's
 small programs keep the published crate.
 
 Changed: `src/elements/div.rs` (change 5), `src/window.rs` and
-`src/platform.rs` (change 8), `src/platform/test/window.rs` and
-`src/app/test_context.rs` (change 11), each marked `MODIFIED by Vessel` at the top
-and `Vessel patch` at each change.
+`src/platform.rs` (change 8), `src/text_system/line_wrapper.rs` (change
+10), `src/platform/test/window.rs` and `src/app/test_context.rs` (change
+11), each marked `MODIFIED by Vessel` at the top and `Vessel patch` at
+each change.
 
 ### 5. A drag starts at the distance an element names
 
@@ -483,6 +517,36 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   an IME's candidate window and the window menu at a zoom other than 1 are
   still to be looked at in the app on Linux.
 
+### 10. A wrapped line never starts with `?`
+
+- Purpose: an English confirmation title ("Remove this device?") wrapped
+  with its `?` alone on the next line (TRACKER 772, the G4 Devices
+  captures). Text wrapping must never break before `?` (UAX #14 class EX,
+  rule LB13).
+- Upstream's constraint: `LineWrapper::wrap_line` places a break
+  opportunity before every character `is_word_char` leaves out, CJK
+  included. `!`, `)`, `]` and the closing quotes are word characters, so
+  they stay on their word. `?` and `/` are left out on purpose, so a long
+  path or a URL's query (`foo?b=2`) can wrap.
+- Alternatives:
+  1. Make `?` a word character. Then `foo?b=2` could no longer wrap at
+     all, which is the case upstream kept `?` out for.
+  2. Put a no-break joiner before `?` in every title. Every caller would
+     carry it, and copied text would keep the joiner.
+  3. **This change**: `wrap_line` places no break before a `?` and one
+     after it, before the next word character, as it does after a space.
+     `is_word_char` is unchanged.
+- Why 3: one rule in the one wrapper every text element uses. The word
+  before a `?` moves down with it, and a query in a URL still wraps after
+  its `?`.
+- Cost: `line_wrapper.rs` joins the diff to re-apply at each GPUI pin. A
+  single word longer than the line still breaks wherever it must, `?`
+  included.
+- Checked: `spikes/native/kit/src/dialog/title_wrap_tests.rs`, through the
+  test text system's wrapper (8 points a character). "Remove this
+  device?" at 148 points starts its second line at "device?", not at the
+  `?`, and "aaaaaa?bbbbbb" at 84 points wraps after its `?`. Not checked
+  yet: a title in the app's own dialog with the real fonts.
 
 ### 11. Explicit real accessibility activation in test windows
 
@@ -510,7 +574,3 @@ Its real-window readonly/select/reflow fixture is added but not yet executed.
   rustfmt/source-size/token/diff0. Vendor's own test suite: not executed. V1
   adoption still owed; no OS accessibility bridge, secure-field producer,
   native pixels or consumer approval is claimed.
-
-This isolated base13 does not contain the lead's later change9/10 README entries;
-line integration places this additive section after10 and unions Changed paths,
-without replacing either prior entry or borrowing their runtime evidence.
