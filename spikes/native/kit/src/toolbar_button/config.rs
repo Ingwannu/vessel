@@ -62,23 +62,23 @@ impl ToolbarConfig {
     pub const fn availability(self) -> ButtonState {
         self.availability
     }
-    pub(super) const fn sizing(self) -> ControlSizing {
+    pub(crate) const fn sizing(self) -> ControlSizing {
         self.sizing
     }
     pub(super) const fn disabled(mut self) -> Self {
         self.availability = ButtonState::Disabled;
         self
     }
-    pub(super) const fn frame(self) -> Pixels {
+    pub(crate) const fn frame(self) -> Pixels {
         match self.sizing {
             ControlSizing::Pointer => POINTER_FRAME,
             ControlSizing::Touch => COMPACT_FRAME,
         }
     }
-    pub(super) const fn highlighted(self) -> bool {
+    pub(crate) const fn highlighted(self) -> bool {
         matches!(self.selection, Selection::Selected) || matches!(self.disclosure, Disclosure::Open)
     }
-    pub(super) const fn opacity(self) -> f32 {
+    pub(crate) const fn opacity(self) -> f32 {
         match self.availability {
             ButtonState::Enabled => ENABLED_OPACITY,
             ButtonState::Disabled => DISABLED_OPACITY,
@@ -140,7 +140,7 @@ impl ToolbarIcon {
             | (GlyphSizing::Adaptive, ControlSizing::Pointer) => FIXED_GLYPH,
         }
     }
-    pub(super) fn render(self, sizing: ControlSizing, tokens: &Tokens) -> Svg {
+    pub(crate) fn render(self, sizing: ControlSizing, tokens: &Tokens) -> Svg {
         svg()
             .path(self.glyph.path())
             .size(self.size(sizing))
