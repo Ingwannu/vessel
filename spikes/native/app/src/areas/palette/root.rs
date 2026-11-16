@@ -123,7 +123,7 @@ fn contribution(shell: &Shell, entry: &super::Entry, at: usize) -> Option<Contri
         presentation: presentation(shell, entry)?,
         target: if settings {
             Command::callback(
-                Some(Glyph::Settings),
+                Some(super::rows::glyph_of(&entry.target)),
                 Some(Action::Settings),
                 |shell, window, cx| {
                     shell.open_settings(None, window, cx);
