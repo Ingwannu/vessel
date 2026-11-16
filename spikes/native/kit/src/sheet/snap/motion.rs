@@ -135,6 +135,10 @@ impl Spring {
         }
     }
 
+    pub(super) const fn target(self) -> Stop {
+        self.to
+    }
+
     pub(crate) fn sample(self, elapsed: Duration, height: f32, reduced: bool) -> SpringValue {
         if reduced || !height.is_finite() || height <= 0.0 {
             return SpringValue::Resting(self.to);

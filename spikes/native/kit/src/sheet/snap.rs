@@ -22,6 +22,8 @@ mod positions;
 #[cfg(test)]
 mod configuration_tests;
 #[cfg(test)]
+mod fit_motion_tests;
+#[cfg(test)]
 mod fit_tests;
 #[cfg(test)]
 mod tests;
@@ -159,11 +161,36 @@ impl State {
         if self.points == points {
             return Fit::Unchanged;
         }
+        // The first measured layout presents this host. Later measurements
+        // only rebase its existing openness; resizing must not reopen a close
+        // or leave a resting natural-height panel floating above the bottom.
+        let measured = matches!(self.points, Positions::ContentFit(_));
+        let target = match self.pose {
+            Pose::At(stop) => stop,
+            Pose::Settling { spring, .. } => spring.target(),
+            Pose::Held(_) => Stop::Compact,
+        };
         let current = self.position(now, false);
-        let position = current.position_in(self.points);
+        let old_fraction = self.points.compact_fraction();
+        let new_fraction = points.compact_fraction();
+        let openness =
+            (current.position_in(self.points).mul_add(-1.0, 1.0) / old_fraction).clamp(0.0, 1.0);
+        let position = openness.mul_add(-new_fraction, 1.0);
         self.points = points;
+        self.height = viewport.as_f32();
         self.drag = None;
-        self.settle(position, current.velocity(), Stop::Compact, now);
+        if !measured {
+            self.settle(1.0, 0.0, Stop::Compact, now);
+        } else if let SpringValue::Resting(stop) = current {
+            self.pose = Pose::At(stop);
+        } else {
+            self.settle(
+                position,
+                current.velocity() * new_fraction / old_fraction,
+                target,
+                now,
+            );
+        }
         Fit::Updated
     }
 

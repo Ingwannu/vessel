@@ -34,21 +34,24 @@ it will be extracted unchanged in a separate move-only commit first. The
 initial adapter is geometry/input only; Menu's existing surface renderer will
 supply its frame and shared popup::sheet_scrim45 color.
 
-Resume: docs skeleton only, no Rust source installed or check claimed. Work
-on the announced6eb base and keep all compilation on the build machine,
-serialized after the already-queued policy check. Source/narrow/native input
-proof and V1/lead handoff remain owed.
+This source checkpoint is installed but uncompiled. Keep all compilation on
+the build machine, serialized after the already-queued placement check and
+the recorded Main runtime. Source/narrow/native input proof and V1/lead
+handoff remain owed.
 
 Physics source checkpoint: keep public authored SnapPoints validation exactly
 as before; internal Positions::ContentFit is a separate measured configuration.
 Both compact/expanded semantic samples resolve to its one open position, so
 nearest-stop, spring, sampled drag and content-scroll handoff use their existing
 implementations. Existing default positions retain their exact literal branch.
-Retargeting content cancels a pan and settles that same spring from its sampled
-position; unchanged geometry leaves an active gesture untouched. Invalid layout
-retains prior state. New tests drive these actual methods and preserve every
-old authored-configuration test unchanged. No renderer/input adapter yet; all
-new Rust is uncompiled and no checked producer is claimed.
+The first measured layout presents from closed with the actual viewport height.
+Later measurements preserve a resting stop or rebase partial openness and
+velocity onto the new measured height. They preserve a spring's close target:
+layout cannot become a new owner open. A changed measurement cancels a pan and
+settles through that same spring; unchanged geometry leaves an active gesture
+untouched. Invalid layout retains prior state. New tests drive these actual
+methods and preserve every old authored-configuration test unchanged. All new
+Rust remains uncompiled and no checked producer is claimed.
 
 Input source checkpoint: listener_when delegates to the same native gesture
 listener and requires the caller's admission predicate before press, pan,
@@ -118,3 +121,14 @@ that Option<FocusHandle> locally, because child prepaint already updates Window
 and this geometry adapter must not acquire focus. This is a static owning
 compatibility correction, not executed content-fit evidence. Exact native
 strict/input/gesture tests and V1 review remain owed.
+
+Static review before the first check found that preserving viewport-normalized
+position across a natural-height remeasure could temporarily leave a bottom gap,
+and unconditionally targeting Compact could reopen a closing surface. The same
+snap engine now rebases measured openness, retains its existing spring target,
+and keeps resting stops resting. This is a native mapping decision needed for
+menu-surface.tsx:409–416's dynamic sizing and pan-down close to coexist; it does
+not assert Gorhom's complete internal resize algorithm. Three new normal-motion
+regressions cover the initial frame, immediate resting resize, partial openness
+and closing/closed remeasure. They are installed and unexecuted; reduced-motion
+tests alone would hide the transient gap.
