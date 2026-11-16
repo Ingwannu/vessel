@@ -2,9 +2,9 @@
 // real repositories (e2e/repos.ts): where a session runs, the approval
 // of a project's commands (and what changed since the set approved
 // last) and setup's output, the Changes and Files tabs,
-// git's refusals in words, an edit that meets a change on disk, a
-// selection sent to the draft, a worktree that would lose work, and
-// projects added and cloned from Settings.
+// git's refusals in words, an edit that meets a change on disk, a shown
+// file that follows the disk, a selection sent to the draft, a worktree
+// that would lose work, and projects added and cloned from Settings.
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -211,6 +211,45 @@ test("an edit is saved, and one saved after the file changed on disk shows both 
   await expect(editor).toHaveValue("export const RATE = 0.2;\n");
   await page.getByRole("button", { name: "Reload from disk" }).click();
   await expect(page.locator(".f-line").first()).toContainText("from elsewhere");
+});
+
+test("a shown file follows the disk, and an open edit keeps its text under Changed on disk", async ({
+  page,
+}) => {
+  const env = loadEnv();
+  const file = join(env.root, "repos", "shop", "notes", "todo.md");
+  const before = readFileSync(file, "utf8");
+  try {
+    await openUi(page);
+    await startInShop(page, "Local", "Watch a file");
+    await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
+    await tab(page, "Files").click();
+    await page.getByRole("searchbox", { name: "Go to file" }).fill("todo");
+    await page
+      .getByRole("list", { name: "Files found" })
+      .getByRole("button", { name: /todo\.md/ })
+      .click();
+    const first = page.locator(".f-line").first();
+    await expect(first).toContainText("pay with a card");
+    // Changed elsewhere while shown: the view follows, nothing pressed.
+    writeFileSync(file, "- pay by bank transfer\n");
+    await expect(first).toContainText("pay by bank transfer");
+    // An open edit keeps its text; the page says the disk moved.
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    const editor = page.getByRole("textbox", { name: "Edit notes/todo.md" });
+    await editor.fill("- mine\n");
+    writeFileSync(file, "- pay in cash\n");
+    await expect(
+      page.getByRole("status").filter({ hasText: "Changed on disk" }),
+    ).toBeVisible();
+    await expect(editor).toHaveValue("- mine\n");
+    expect(readFileSync(file, "utf8")).toBe("- pay in cash\n");
+    // Leaving the edit shows what is on disk now.
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(first).toContainText("pay in cash");
+  } finally {
+    writeFileSync(file, before);
+  }
 });
 
 test("lines selected in a diff go into the session's draft as a reference", async ({

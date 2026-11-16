@@ -22,6 +22,10 @@
 //   first (at most 1 MiB), and the edit keeps the version it started
 //   from: that, not whatever was read since, is the save's guard.
 // - Cost: a file larger than the write bound can be read, not edited.
+// - The disk (ADR 0105): while the file is shown, `use-disk.ts` follows
+//   it on a node with the file panels' calls; `disk` turns `changed` when
+//   it moved past what is shown, and `refresh` reads it again without
+//   blanking the view.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -31,6 +35,7 @@ import { readFile, writeFile } from "../../data/workspace/files";
 import { type Saved, saveText } from "../../data/workspace/save";
 import type { NodeKey } from "../../wire/bridge";
 import type { FileVersion, RelPath, WorkspaceRoot } from "../../wire/proto";
+import { type Disk, useDisk } from "./use-disk";
 
 /** The most `file.write` takes, in bytes. */
 export const WRITE_LIMIT = 1024 * 1024;
@@ -67,6 +72,11 @@ export interface OpenFile {
   save: (text: string, base: FileVersion | null) => Promise<Saved>;
   /** Read it again from the start. */
   reload: () => void;
+  /** The disk moved past what is shown (`file.observe`): a view follows
+   * it with `refresh` unless an edit is open. */
+  disk: Disk;
+  /** Read it again from the start, what is shown kept until it arrives. */
+  refresh: () => void;
 }
 
 type TextRead = Extract<FileText, { kind: "text" }>;
@@ -195,7 +205,7 @@ export function useFile(
       : null;
   }, [page]);
 
-  const save = useCallback(
+  const write = useCallback(
     async (body: string, base: FileVersion | null): Promise<Saved> => {
       const saved = await saveText(
         {
@@ -215,10 +225,48 @@ export function useFile(
     [fleet, node, root, path],
   );
 
+  // A save in flight: the disk's watch judges an answer only once the
+  // save has set what is shown.
+  const writing = useRef<Promise<Saved> | null>(null);
+  const save = useCallback(
+    async (body: string, base: FileVersion | null): Promise<Saved> => {
+      const saving = write(body, base);
+      writing.current = saving;
+      try {
+        return await saving;
+      } finally {
+        if (writing.current === saving) {
+          writing.current = null;
+        }
+      }
+    },
+    [write],
+  );
+
+  const shown = useCallback(() => {
+    const now = latest.current;
+    return now.kind === "text" || now.kind === "binary"
+      ? (now.version.hash ?? null)
+      : null;
+  }, []);
+  const inFlight = useCallback(() => writing.current, []);
+  const { disk, settled } = useDisk(node, root, path, shown, inFlight);
+
   const reload = useCallback(() => {
+    settled();
     setText({ kind: "loading" });
     setRound((value) => value + 1);
-  }, []);
+  }, [settled]);
 
-  return { text, more, whole, save, reload };
+  const refresh = useCallback(() => {
+    reading.current = true;
+    void page(0).then((first) => {
+      reading.current = false;
+      latest.current = first;
+      setText(first);
+      settled();
+    });
+  }, [page, settled]);
+
+  return { text, more, whole, save, reload, disk, refresh };
 }

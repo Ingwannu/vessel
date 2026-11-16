@@ -7,7 +7,7 @@
 
 import "./files.css";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { splitPath } from "../../data/workspace/changes";
 import { nodeError } from "../../data/workspace/root";
@@ -64,6 +64,15 @@ export function FileView({
   const dirty =
     editing && (text.kind !== "text" || draft !== text.lines.join("\n"));
   const tooBig = text.kind === "text" && text.version.size > WRITE_LIMIT;
+  // The disk moved past what is shown (the file's watch): the view follows
+  // it; an open edit keeps its text and says so (Paseo's "Changed on
+  // disk"), and its save then meets the change as the conflict below.
+  const { disk, refresh } = file;
+  useEffect(() => {
+    if (disk === "changed" && draft === null) {
+      refresh();
+    }
+  }, [disk, draft, refresh]);
 
   const save = (force: boolean) => {
     if (draft === null || saving) {
@@ -198,6 +207,11 @@ export function FileView({
           goTo={goTo}
         />
       )}
+      {disk === "changed" && draft !== null && saved?.kind !== "conflict" ? (
+        <div className="file-strip">
+          <Banner tone="warn">Changed on disk</Banner>
+        </div>
+      ) : null}
       {saved?.kind === "conflict" && draft !== null && base !== null ? (
         <FileConflict
           mine={saved.mine}
