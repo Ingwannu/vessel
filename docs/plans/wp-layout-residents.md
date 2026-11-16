@@ -352,3 +352,27 @@ ids were not separately run. This is staged source and affected App execution,
 not a whole native gate, live multi-pane input, transport/Guard, rich Pending,
 scoped composer factory, expected-stop Window, painting or IME proof. Original
 global ownership and every literal module/constructor test gate remain intact.
+
+### Scoped composer factory receiving preparation
+
+The next isolated union selects only the base13 B2 constructor leaf
+`49f89435c016cb64faefbfd15bfb6989e3b36b2e`. Its own receiving strict and App/Kit
+execution are producer evidence, not this resource-union execution. It moves
+the existing SessionView fields without changing `session/body.rs`, supplies the
+captured Plain callback and retains the bare composer Enter propagation guard.
+Its lower639-line root cap replaces673; the older larger cap is never restored.
+
+The B2 fixture's resource literal now calls the same `SessionResources::new`
+constructor so it includes the actual Requests and Loading Lifecycle fields.
+The separate authored GPUI fixture invokes `admit_session_open` with the real
+scoped SessionView factory and the kept ConversationDisplay initializer. It
+checks actual Enter dispatch to that minter-issued context, the original field
+identity through readmission and hidden-event refusal without swapping the
+legacy global field. WorkspaceLookup and connection values are isolated typed
+fixtures: no delivery guard, RPC or runtime workspace owner is supplied.
+
+This is source preparation, uncompiled and unexecuted until its own receiving
+checks. It draws the retained field directly; it does not prove the product
+pane mount, painted bounds, read tracking, caret/IME, owner effects, snapshots,
+live follow or removal of legacy globals. Every resident constructor/module
+test gate remains in place.

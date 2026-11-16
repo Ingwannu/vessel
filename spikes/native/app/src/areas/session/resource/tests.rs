@@ -51,8 +51,8 @@ fn build(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> SessionResources {
-    SessionResources {
-        session: SessionView::new_scoped(
+    SessionResources::new(
+        SessionView::new_scoped(
             context.clone(),
             move |shell, current, text, _, cx| {
                 shell
@@ -70,8 +70,8 @@ fn build(
             window,
             cx,
         ),
-        conversation: ConversationArea::new(cx),
-    }
+        ConversationArea::new(cx),
+    )
 }
 
 fn new_harness(window: &mut Window, cx: &mut Context<'_, Harness>) -> Harness {
