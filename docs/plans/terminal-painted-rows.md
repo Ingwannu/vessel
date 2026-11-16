@@ -14,10 +14,12 @@
 - Alternatives: manually cache shaped lines (still paints all glyphs), stop
   cursor blinking, or copy scene internals. The toolkit already retains a
   cached child view's prepaint/paint ranges and handles window bounds/masks.
-- Choice: one kit-owned retained row view plus the same renderer's cursor
+- Choice: one active kit-owned retained row view plus the same renderer's cursor
   overlay. The aggregate view must be uncached: a dirty cached parent forces
-  child refresh in this GPUI version. Notify only the row entity when its row
-  identity, cell metrics, font size, background or full typed font stack changes.
+  child refresh in this GPUI version. Replace the immutable row child only when
+  row identity, cell metrics, font size, background or the full typed font stack
+  changes. GPUI then paints the new child in that same frame; the previous child
+  is released through the toolkit's existing entity/scene lifetime.
 - Why: GPUI's existing cache invalidation also checks bounds/content mask/text
   style. Holding the immutable row Rc prevents in-place mutation or pointer
   reuse from defeating row identity.
@@ -45,3 +47,16 @@ full typed code-stack replacement with fixed metrics. The first baseline probe
 had an incorrect test-only Strike variant; the corrected baseline is retained
 as66bd6963. Its original queued compile remains untouched. No semantic failing
 baseline or passing corrected runtime is claimed until the remote logs exist.
+
+The initial base13 checks executed actual terminal App regressions18/0/1 ignored,
+but the new kit fixtures failed two assertions. Updating a child with notify
+inside Render only invalidates its cache on the next draw, leaving one stale
+frame. Immutable child replacement fixes that boundary without another cache
+or renderer. The font key snapshot is now also the font used for shaping,
+instead of rereading a mutable global after choosing its key. Fixtures pass a
+typed font snapshot through that same private path without changing process-wide
+fonts concurrently. The App's existing published-font-API regression remains.
+Cursor tests additionally require actual overlay paint progress on both blink
+directions; equal static-row counters alone could conceal an absent draw.
+Strict-check style/Debug/borrow-only constructor issues are corrected without
+waivers. Actual corrected checks and release measurements remain owed.

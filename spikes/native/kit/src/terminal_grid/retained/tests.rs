@@ -7,6 +7,7 @@ struct Demo {
     frame: Rc<GridFrame>,
     cell: CellSize,
     grid: RetainedGrid,
+    font: FontStack,
 }
 impl Demo {
     fn new(cx: &mut Context<'_, Self>) -> Self {
@@ -21,7 +22,7 @@ impl Demo {
                     col: 0,
                     text: "retained cells".into(),
                     ink: Ink {
-                        color: gpui::rgb(0xffffff).into(),
+                        color: gpui::rgb(0x00ff_ffff).into(),
                         weight: FontWeight::NORMAL,
                         style: FontStyle::Normal,
                         underline: Underline::None,
@@ -30,11 +31,16 @@ impl Demo {
                 }],
             }]),
             cursor: None,
-            background: gpui::rgb(0x000000).into(),
+            background: gpui::rgb(0x0000_0000).into(),
             font_size: px(12.0),
         });
-        let grid = RetainedGrid::new(Rc::clone(&frame), cell, cx);
-        Self { frame, cell, grid }
+        let grid = RetainedGrid::new(&frame, cell, cx);
+        Self {
+            frame,
+            cell,
+            grid,
+            font: active(Typeface::Code),
+        }
     }
 }
 impl Render for Demo {
@@ -43,7 +49,8 @@ impl Render for Demo {
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> impl gpui::IntoElement {
-        self.grid.draw(Rc::clone(&self.frame), self.cell, cx)
+        self.grid
+            .draw_with_font(Rc::clone(&self.frame), self.cell, self.font.clone(), cx)
     }
 }
 
@@ -56,12 +63,15 @@ fn cursor_only_update_reuses_actual_row_preparation_and_paint(cx: &mut TestAppCo
         .update(cx, |demo, _, _| demo.grid.probe.counts())
         .unwrap();
     assert!(before.prepared.get() > 0 && before.painted.get() > 0);
+    let cursor_before = window
+        .update(cx, |demo, _, _| demo.grid.probe.cursor())
+        .unwrap();
     window
         .update(cx, |demo, _, cx| {
             Rc::make_mut(&mut demo.frame).cursor = Some(GridCursor {
                 row: 0,
                 col: 1,
-                color: gpui::rgb(0xffffff).into(),
+                color: gpui::rgb(0x00ff_ffff).into(),
             });
             cx.notify();
         })
@@ -74,6 +84,10 @@ fn cursor_only_update_reuses_actual_row_preparation_and_paint(cx: &mut TestAppCo
         })
         .unwrap();
     assert_eq!(before, after);
+    let cursor_after = window
+        .update(cx, |demo, _, _| demo.grid.probe.cursor())
+        .unwrap();
+    assert!(cursor_after.get() > cursor_before.get());
     window
         .update(cx, |demo, _, cx| {
             Rc::make_mut(&mut demo.frame).cursor = None;
@@ -87,9 +101,16 @@ fn cursor_only_update_reuses_actual_row_preparation_and_paint(cx: &mut TestAppCo
             .update(cx, |demo, _, _| demo.grid.probe.counts())
             .unwrap()
     );
+    assert!(
+        window
+            .update(cx, |demo, _, _| demo.grid.probe.cursor())
+            .unwrap()
+            .get()
+            > cursor_after.get()
+    );
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 enum Change {
     Output,
     Background,
@@ -104,7 +125,7 @@ impl Change {
                 row.first_mut().unwrap().runs.first_mut().unwrap().text = "new output".into();
             }
             Self::Background => {
-                Rc::make_mut(&mut demo.frame).background = gpui::rgb(0xffffff).into()
+                Rc::make_mut(&mut demo.frame).background = gpui::rgb(0x00ff_ffff).into();
             }
             Self::FontSize => Rc::make_mut(&mut demo.frame).font_size = px(14.0),
             Self::Metrics => demo.cell.width = px(9.0),
@@ -136,8 +157,8 @@ fn row_affecting_updates_invalidate_then_quiet_updates_reuse_paint(cx: &mut Test
         let changed = window
             .update(cx, |demo, _, _| demo.grid.probe.counts())
             .unwrap();
-        assert!(changed.prepared.get() > before.prepared.get());
-        assert!(changed.painted.get() > before.painted.get());
+        assert!(changed.prepared.get() > before.prepared.get(), "{change:?}");
+        assert!(changed.painted.get() > before.painted.get(), "{change:?}");
         window.update(cx, |_, _, cx| cx.notify()).unwrap();
         cx.run_until_parked();
         assert_eq!(
@@ -149,26 +170,9 @@ fn row_affecting_updates_invalidate_then_quiet_updates_reuse_paint(cx: &mut Test
     }
 }
 
-struct RestoreFonts {
-    cx: TestAppContext,
-    interface: FontStack,
-    code: FontStack,
-}
-impl Drop for RestoreFonts {
-    fn drop(&mut self) {
-        self.cx
-            .update(|cx| crate::set_font_stacks(cx, self.interface.clone(), self.code.clone()));
-    }
-}
-
 #[gpui::test]
 fn font_stack_changes_replace_retained_paint_even_with_unchanged_metrics(cx: &mut TestAppContext) {
     cx.update(|cx| crate::init(cx, crate::SchemeChoice::Fixed(crate::Scheme::Dark)).unwrap());
-    let _restore = RestoreFonts {
-        cx: cx.clone(),
-        interface: active(Typeface::Interface),
-        code: active(Typeface::Code),
-    };
     let window = cx.open_window(size(px(240.0), px(96.0)), |_, cx| Demo::new(cx));
     cx.run_until_parked();
     let (before, cell, rows) = window
@@ -185,8 +189,12 @@ fn font_stack_changes_replace_retained_paint_even_with_unchanged_metrics(cx: &mu
         Typeface::Code,
     );
     assert_ne!(next, active(Typeface::Code));
-    cx.update(|cx| crate::set_font_stacks(cx, active(Typeface::Interface), next.clone()));
-    window.update(cx, |_, _, cx| cx.notify()).unwrap();
+    window
+        .update(cx, |demo, _, cx| {
+            demo.font = next.clone();
+            cx.notify();
+        })
+        .unwrap();
     cx.run_until_parked();
     window
         .update(cx, |demo, _, cx| {
