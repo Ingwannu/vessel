@@ -1490,3 +1490,14 @@ They now live in a cfg(test) module, and the shared fixture import records why
 its unrelated paging/rollback helpers are unused here, as existing tests do.
 No helper body, input, assertion, deadline or product behavior changes. The
 original strict result remains red; the corrected strict check remains owed.
+
+
+### Inbox rollback fixture after clock test execution
+
+The real proto/store run passed the new clock cases but found the inbox replay
+fixture still retaining the new clock column while rewinding its schema. It now
+drops only this append's updated_at before the head's existing rollback SQL.
+The production runner, migration ordering, inbox cases, assertions and deadlines
+remain unchanged. Both original duplicate-column failures remain in the log.
+An independent unchanged registry-watcher test also timed out under load; that
+result remains separate from this fixture correction and has not been retried.
