@@ -77,3 +77,41 @@ submitted separately. The previous before/after pair demonstrated no speedup.
 One native whole on the current base13 consumer and new same-profile release
 measurement/inspected captures remain owed. No D1 frame/input/IME or whole F5
 settings approval follows from these renderer checks.
+
+
+## Completed enclosing verification and release comparison
+
+Exacte11e2872 passed the one ordinary native whole
+appconv-paint-tests-20261116T011444Z-e11e2872: all six planned steps executed
+with rc0, native tests1621/0/2. Every raw step hash was independently recomputed.
+The two ignored tests are existing explicit display fixtures, not skipped
+retained-paint regressions. Quality checks710 files/13 existing size exceptions,
+four boundaries/seven owned externals/two name rules; token counts417/74/45,
+none new. Root sources/manifests/locks are unchanged by this native slice.
+
+The matching controlled release exportf6400cd5 passed using the same fixed
+recipe/profile/features/toolchain and approved shared-root hashes as6b23a397.
+Its renderer/control/App adapter and GPUI cached-view bytes match the checked
+base13 implementation. Receiver verified full app hash, glibc2.39 requirement,
+UID/GID1000 and mode0500. The common source foundation isolates this change
+from unrelated app-base changes. No signing, feed, push or local Rust build.
+
+Fresh focused sequential trials use one private fake TUI/display at1740x900,
+dark/en/scale1, software Vulkan, sidebar closed and motion enabled. Baseline
+idle30s:59 frames, median3384us/p954842us; corrected60 frames,
+median2218us/p953505us. Flood20s:46 frames each, median3430→2249us,
+p956279→6934us. Median decreases34.46%/34.43% in these samples; the flood
+tail did not improve. Process CPU remains similar (83.16→82.23% idle,
+95.70→96.64% flood of one core), so no general CPU reduction is claimed.
+The measure is root-render-through-paint CPU elapsed, not hardware GPU time,
+input latency or a universal benchmark. The earlier pair with no speedup and
+an initial unfocused zero-idle-draw interval remain preserved and excluded.
+
+All12 new captures were opened personally. Ready/idle/flood static terminal
+ROI(8,114)-(1728,864) has zero changed pixels in each comparison. The cursor
+below that ROI is covered by actual overlay progress tests, not this pixel
+comparison. Both measured apps were stopped only after exact saved PID,
+executable/start-tick/account verification; no live preview/real agent was used.
+Detailed hashes/raw measurements are in the review packet. This final follow-up
+changes documentation only. Native renderer review is owed; D1 transport,
+selection/input/IME, physical OS input and whole F5 UI remain unqualified.
