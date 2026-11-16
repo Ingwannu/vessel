@@ -2,10 +2,10 @@
 
 Status: A1 (live watch of the shown file), A2 (Explorer Duplicate) and A3
 (Explorer Download) implemented on package base 14.9. The node packet
-assigns ADR 0083's five methods one protocol number (drafted as 26) at its
-node-line merge; until that number reaches this line every caller here keeps
-its earlier behaviour (`view::workspace::file_panels::offered` is false
-while `FILE_PANELS_PROTOCOL` is None or the machine is older). The page's
+assigns ADR 0083's five methods protocol 27 (assigned at its node-line
+merge, node head d077aa94); until that number reaches this line every caller
+here keeps its earlier behaviour (`view::workspace::file_panels::offered` is
+false while `FILE_PANELS_PROTOCOL` is None or the machine is older). The page's
 watch of the shown file is a node-line packet (`web/` stays equal to a
 node head here): `docs/plans/impl-files-page.md` on the node line.
 
@@ -28,8 +28,13 @@ node head here): `docs/plans/impl-files-page.md` on the node line.
   content shown (the editor's version, else the last read-only read) is no
   change; on the first answer a revision other than the shown content, or
   Missing, is a change; after that any state other than the anchor is a
-  change. After each answer the rest of `pace::QUIET` (1 s) is waited out.
-  A failed observation stops the watch until the file is opened again.
+  change. Nothing is asked before a read of the file has landed, so the
+  first answer is judged against what is shown. After each answer the rest
+  of `pace::QUIET` (1 s) is waited out. The node's `unavailable` (its 64
+  observers busy) is asked again after the pause from the same anchor; any
+  other failure stops the watch until the file is opened again. The link
+  has no cancel: an observation of a file left is ignored and holds a node
+  observer and a wait share until the node's 30 s heartbeat.
 - `app::areas::workspace::code::watch`: asks while the panel is out on Files
   and the machine speaks the file panels protocol (after the shown file's
   read answers, when the panel opens, when the tab turns to Files, after
@@ -90,15 +95,17 @@ node head here): `docs/plans/impl-files-page.md` on the node line.
   Deleted conflict).
 - Paseo observes every file tab on screen; this panel shows one file at a
   time, so there is one observation.
-- A watch error shows nothing and stops the watch (Paseo shows the error
-  with Retry); the panel then behaves as it did before the watch existed.
+- A watch error other than the node's `unavailable` shows nothing and
+  stops the watch (Paseo shows the error with Retry); the panel then
+  behaves as it did before the watch existed.
 
 ## Validation
 
 - View unit tests (`watch_tests.rs`): protocol gate, one observation at a
   time and the pause, quiet heartbeat versus change, the editor's own save,
   the first answer against the shown content, deletion once, stale answers,
-  every failure stopping the watch.
+  nothing asked before a read landed, busy observers asked again from the
+  same anchor, every other failure stopping the watch.
 - App GPUI test over the framed test link: a changed revision for the
   shown, clean editor sends `file.read` for that file.
 - Menu order tests: Download before Add to chat in the reference group,

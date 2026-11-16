@@ -8,13 +8,15 @@
 //!   (`file-panels/file/handle.ts`, `setObserving`).
 //! - Constraint: one file is shown at a time here; answers come without a
 //!   window and in any order, so each is matched to the observation out.
-//! - Choice: ask after the shown file's read answers, when the panel opens
-//!   on Files or the tab turns to Files, and after each pause; a change runs
+//! - Choice: ask after the shown file's read answers (never before a read
+//!   of it landed), when the panel opens on Files or the tab turns to
+//!   Files, and after each pause; a change runs
 //!   the same re-read a git write does (`reread_shown_file`). Hidden, the
 //!   watch asks nothing more; shown again, its anchor reports what changed
 //!   meanwhile (Paseo: "coming back reports what changed meanwhile").
-//! - Cost: an observation out when the file is left still ends on the node
-//!   at its heartbeat; its answer finds no viewer and is dropped.
+//! - Cost: the link has no cancel: an observation out when the file is
+//!   left is ignored, holding a node observer and a wait share until the
+//!   node's heartbeat; its answer finds no viewer and is dropped.
 
 use std::time::{Duration, Instant};
 

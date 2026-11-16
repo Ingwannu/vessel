@@ -450,6 +450,8 @@ fn a_change_the_watch_sees_reads_the_shown_file_again(cx: &mut TestAppContext) {
         };
         let _step = edit.model.read(first, Read::Text("old".to_owned(), version));
         let mut watch = Watch::default();
+        // The file's read landed (the editor's), so the watch may ask.
+        watch.seen(None);
         let ask = watch
             .ask(root, path.clone(), std::time::Instant::now())
             .unwrap();

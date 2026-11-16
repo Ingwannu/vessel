@@ -21,7 +21,7 @@
 //!   what the panel must do (`Step`): write, read, start or stop the
 //!   autosave. A clean buffer follows the disk; a modified one meets a
 //!   change as a conflict, and the person overwrites or reloads.
-//! - Cost: on a machine without `file.observe` (before protocol 26), a
+//! - Cost: on a machine without `file.observe` (before protocol 27), a
 //!   change on disk while nothing is saved or re-read is seen only at the
 //!   next save (Paseo sees it at once through its watch).
 
