@@ -49,3 +49,9 @@ mount/read tracking and old-global removal remain separate work. The tiny follow
 identity leaf is reserved for the real follow-promotion union; it is not silently
 imported here. No captures, painted bounds, caret/IME, OS/a11y or whole-package
 approval can be inferred from this receiving preparation.
+
+The first combined strict run,
+`wp-layout-core-union-20261116T015118Z-02259699`, checked View/Kit/Link/App but
+failed one App-test lint: cloning the expected context to make a one-element
+slice. The correction borrows that same expected context with `from_ref`; no
+production validation, ordering or test expectation changes. Tests did not run.
