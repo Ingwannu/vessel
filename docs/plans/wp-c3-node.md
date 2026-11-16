@@ -684,3 +684,24 @@ production code is unchanged. The exact a269 workspace tests and TS generation
 remain their original queued runs. Their outcomes are not inferred from Clippy.
 The corrected fixture source still needs its own strict check; no root runtime,
 cache producer review or complete C3 gate is claimed by this correction.
+
+## 2026-11-16 resume: recovered physical-owner evidence and generated wire
+
+Exact9646e055 four-crate all-target strict Clippy returned0. Exact PRIORa269
+workspace runtime returned88/0/0 (all7 new file-mutation cases ran), with two
+unused-version warnings corrected only in964 tests. Production bodies are equal,
+but this is not exact964 runtime. All4 prescribed prerequisite stages returned0;
+actual Node compilation and retained physical-task/refill/root-change/error
+cases are in the logs. The external file-owner-964-result.json pins source and
+logs. No V3 runtime/cache review, full-root/service-wire proof, RootLease or
+checkpoint restore/observer parity is inferred.
+
+Exacta269 TS tests returned6/0/0, including the CommitAbbreviation content
+classification, then the step returned1 because proto.ts changed. All generated
+artifact SHAs and source baseline matched; applying the recorded wire.patch
+reproduced the exported proto.ts byte for byte. Commit this generated history
+surface; do not normalize its generator-owned whitespace or claim freshness
+already passed. No handler/version changed: GIT_PANEL stays None. The old4be
+E0061 attempt stays failed historical evidence. Next merge announceded4cd137
+and regenerate/check the actual merged wire once, preserving incoming plugin,
+relation and caller-drop/relay source. No outstanding old run is resubmitted.
