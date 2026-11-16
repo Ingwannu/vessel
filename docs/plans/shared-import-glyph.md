@@ -64,3 +64,20 @@ scales1/1.25/1.5/2 with effective2.2 ink. V1 source/narrow disposition and the
 coordinator's source-sheet comparison remain separate before lead adoption.
 W22's actual command-center first-use and receiving-union checks are still
 owed. No App/full F4/native consumer/OS/AA approval follows from these tests.
+
+## Bounded review and source-sheet comparison
+
+V1 independently verified the exact96 source and both recorded runs, then
+granted bounded SOURCE/requested KIT NARROW PASS. All five Git pins, the
+frozen100 prefix, three canonical XML paths and unchanged old1.5 drawings were
+checked; both source sheets were personally opened again by the reviewer.
+The coordinator then opened both800x330 originals, compared the pinned Paseo
+ImportIcon role and granted source-sheet comparison PASS/adopt. Its2.2 stroke
+and foregroundMuted role agree with root-registration.tsx:57,94–96,177–191.
+
+The selected producer and prior result document were handed lead-first for
+append-only integration preserving the complete newer inventory. Receiving
+gate/announcement remain separate. W22 must show foregroundMuted in the actual
+native command-center first-use capture for the coordinator to compare; these
+source-librsvg sheets are not that proof. No new source or repeated successful
+run is requested by this review record.
