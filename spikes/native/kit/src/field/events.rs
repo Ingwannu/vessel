@@ -111,7 +111,7 @@ impl<V: 'static> Callbacks<V> {
             Self::Plain { on_submit, .. } => on_submit(owner, text, window, cx),
             Self::Identified { on_submit, .. } => on_submit(owner, id, text, window, cx),
             Self::Secure { on_submit, .. } => {
-                on_submit(owner, id, super::SecretEdit::from_text(text), window, cx)
+                on_submit(owner, id, super::SecretEdit::from_text(text), window, cx);
             }
         }
     }
@@ -124,7 +124,7 @@ impl<V: 'static> Callbacks<V> {
             }
             Self::Identified { on_change, .. } => on_change(owner, id, text, cx),
             Self::Secure { on_change, .. } => {
-                on_change(owner, id, super::SecretEdit::from_text(text), cx)
+                on_change(owner, id, super::SecretEdit::from_text(text), cx);
             }
         }
     }

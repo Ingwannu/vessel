@@ -24,3 +24,20 @@ proof. Actual value-free PasswordInput tree/OS IME and consumer secret.set/curre
 form/context/authority remain explicitly owed. No Host Voice API/route is enabled.
 No extra whole gate or new label/priority is requested. Exact Kit narrow and V1
 source review are required before a bounded producer handoff.
+
+## First exact narrow result and complete lint repair
+
+schedules-20261116T010338Z-de055fdd ended fonts0/cargo101/helper1; tests did
+not run. The reported batch is docs/backticks, Secure callback semicolons,
+explicit cast instead of coercion, and equality assertion style. A test-only
+Hidden<T> equality wrapper keeps exact comparisons while its Debug always
+redacts; failed comparisons cannot print replacement/clipboard contents. No
+assertion or lint is weakened. Product privacy policy remains the same.
+
+Coordinator6bafe9e8 assigns G2 the two GPUI test-support files for change11;
+lead6d5654b4 reserved the number. That producer is an isolated base13 leaf:
+real adapter activation/defaults unchanged, observed debug tree and nonsecret
+ordinary-value control. It must pass V1 and land on the line before this secure
+producer counts actual accessibility proof. A control-only native build/export
+and authenticated isolated display supply masked Linux pixels/clipboard proof;
+no new label, extra whole run, real key or secret-store action is authorized.

@@ -68,7 +68,7 @@ impl SecretEdit {
         }
     }
 }
-/// Secure facade; no raw TextField, text getter, stored-value setter or reveal.
+/// Secure facade; no raw `TextField`, text getter, stored-value setter or reveal.
 #[derive(Clone)]
 pub struct SecretField {
     field: TextField,

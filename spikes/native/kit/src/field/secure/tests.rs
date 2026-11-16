@@ -6,6 +6,18 @@ use gpui_base::input::{Copy, Cut, InputState, Paste};
 const CANARY: &str = "synthetic-secure-entry-canary";
 const SENTINEL: &str = "clipboard-sentinel";
 
+// Equality assertions remain exact without ever formatting the replacement.
+#[derive(PartialEq, Eq)]
+struct Hidden<T>(T);
+impl<T> std::fmt::Debug for Hidden<T> {
+    fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        out.write_str("Hidden(<redacted>)")
+    }
+}
+fn assert_secret(actual: &str, expected: &str) {
+    assert_eq!(Hidden(actual), Hidden(expected));
+}
+
 fn line(field: &SecretField) -> Option<&Entity<InputState>> {
     match &field.field.kind {
         super::super::Kind::Line(state) => Some(state),
@@ -28,7 +40,7 @@ fn secret_carriers_redact_and_empty_never_means_delete() {
         panic!("replacement")
     };
     assert!(!format!("{value:?}").contains(CANARY));
-    assert!(value.into_value() == CANARY);
+    assert_secret(&value.into_value(), CANARY);
     assert!(matches!(
         SecretEdit::from_text(String::new()),
         SecretEdit::Unchanged
@@ -96,27 +108,31 @@ fn actual_masked_copy_cut_paste_and_readonly_use_the_same_engine(cx: &mut TestAp
         });
         cx.run_until_parked();
         view.update_in(cx, |probe, window, cx| {
-            assert!(probe.field.field.text(cx) == CANARY);
+            assert_secret(&probe.field.field.text(cx), CANARY);
             let state = line(&probe.field).unwrap().read(cx);
             assert!(state.context_menu_capabilities().is_masked());
             probe.field.field.select_all(window, cx);
         });
-        for action in [Box::new(Copy) as Box<dyn gpui::Action>, Box::new(Cut)] {
+        // GPUI dispatch is the existing open Action boundary, not a new engine.
+        let copy: Box<dyn gpui::Action> = Box::new(Copy);
+        for action in [copy, Box::new(Cut)] {
             cx.update(|window, cx| {
                 cx.write_to_clipboard(ClipboardItem::new_string(SENTINEL.to_owned()));
                 window.dispatch_action(action, cx);
             });
             cx.run_until_parked();
             cx.update(|_, cx| {
-                assert!(
-                    cx.read_from_clipboard()
-                        .and_then(|item| item.text())
-                        .as_deref()
-                        == Some(SENTINEL)
+                assert_eq!(
+                    Hidden(
+                        cx.read_from_clipboard()
+                            .and_then(|item| item.text())
+                            .as_deref()
+                    ),
+                    Hidden(Some(SENTINEL)),
                 );
             });
             view.update_in(cx, |probe, _, cx| {
-                assert!(probe.field.field.text(cx) == CANARY);
+                assert_secret(&probe.field.field.text(cx), CANARY);
             });
         }
         view.update_in(cx, |probe, _, cx| {
@@ -127,7 +143,7 @@ fn actual_masked_copy_cut_paste_and_readonly_use_the_same_engine(cx: &mut TestAp
         cx.update(|window, cx| window.dispatch_action(Box::new(Paste), cx));
         cx.run_until_parked();
         view.update_in(cx, |probe, _, cx| {
-            assert!(probe.field.field.text(cx) == CANARY);
+            assert_secret(&probe.field.field.text(cx), CANARY);
             assert!(!format!("{:?}", probe.field).contains(CANARY));
             assert!(
                 probe
@@ -179,7 +195,7 @@ fn blank_set_and_erased_replacement_never_load_or_delete_existing_credentials(
                     let SecretEdit::Replace(value) = edit else {
                         panic!("replacement")
                     };
-                    assert!(value.into_value() == CANARY);
+                    assert_secret(&value.into_value(), CANARY);
                     probe.field.field.select_all(window, cx);
                 });
                 cx.simulate_keystrokes("backspace");
