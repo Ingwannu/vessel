@@ -16,9 +16,12 @@ The coordinator subsequently names W5 account-usage HTTP (`limits/http.rs`
 the same reqwest hook/primitive, with activation held and new account methods
 SINCE=None until wired. This is a consumer-list correction, not a private
 resolver, readiness claim or another W5 whole-gate request.
-The usage client lives in Harness, which has no relay dependency. Its concrete
-resolver-injection/retained-owner boundary needs owner/coordinator/V3 agreement
-before wiring; this list addition grants no crate edge or new callback engine.
+The usage client lives in Harness, which gains no relay dependency or new crate.
+The coordinator rules that its HTTP builder receives an Arc of reqwest's real
+Resolve trait; the node constructs that canonical adapter, with the primitive's
+owner retaining scope/budget/original hold through drain. No injected resolver
+means new methods stay None/fail closed, never default Gai. Receiving source and
+lifetime checks are still owed; this adds no private resolver/callback engine.
 
 The crucial capacity lease lives inside the actual Tokio blocking closure
 which calls standard ToSocketAddrs, not merely the async lookup waiter. The

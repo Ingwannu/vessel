@@ -19,8 +19,8 @@ existing source/runtime verdict or activate an unassigned method.
 - Choice: one tracked native-resolution primitive in `vessel-relay::resolution`,
   with thin consumers for NodeLink and the dictation/usage reqwest clients.
   The primitive and the original two node-owned consumers need no new crate
-  edge: the node already depends on vessel-relay. Usage has the separate
-  injection/ownership boundary described below; no Harness edge is assumed.
+  edge: the node already depends on vessel-relay. Usage receives the same
+  primitive by injection as ruled below; Harness gains no relay dependency.
 - Rejected: a second DNS implementation/cache, an independent resolver actor,
   one pool per HTTP request, or a lease held only by a cancellable async wrapper.
 - Why: the existing native dial crate is the lower shared boundary for these
@@ -208,14 +208,19 @@ may have a qualified pass with this explicit activation hold; neither that
 pass nor the shared primitive claims active readiness or physical DNS drain.
 This documentation addition does not request another W5 whole gate.
 
-The Harness crate currently depends on proto/proc, not relay. Naming this third
-consumer does not authorize a new Harness-to-relay dependency or relocating the
-primitive. Before wiring, the owners/coordinator/V3 must settle the concrete
-injection and retained-lifetime boundary at reqwest's real resolver extension
-point. An outer lifecycle may supply that canonical resolver while retaining
-the same scope and permits-only hold, but the exact receiving API and drain
-ordering still require source review. No resolver interface of our own, erased
-callback engine, parallel quota or fallback default Gai may fill the gap.
+The coordinator resolves this boundary as injection with NO new edge or crate.
+Harness keeps proto/proc only. Its HTTP builder accepts an Arc of reqwest's
+real Resolve trait and supplies it to ClientBuilder::dns_resolver. This trait
+object is the external library's actual open extension point, not a resolver
+interface or erased callback engine of our own. The node constructs the
+canonical adapter and harness client while the primitive's lifecycle owner
+retains the same scope, budget and permits-only hold through physical drain.
+The primitive stays in vessel-relay for node consumers; Harness neither imports
+it nor creates a pool. Without the injected resolver, new usage methods remain
+SINCE=None/fail closed: never silently fall back to default Gai. Exact receiving
+source, original admission-hold binding and drain ordering still need their own
+review/checks. No private resolver, parallel quota or activation follows from
+this graph ruling; legacy behavior is not silently expanded.
 
 ### Shared and receiving proofs
 
