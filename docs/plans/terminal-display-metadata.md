@@ -117,3 +117,23 @@ step loads were35.48→39.24 and37.74→31.37 respectively; every raw step hash
 matches its receipt. Neither reproduced the prior geometry failure. No page
 layout change or claim that the old failures passed is made. One enclosing
 whole on this aligned source follows; consumer qualification remains owed.
+
+
+## Final aligned whole disposition
+
+Exactf0cd779b whole termscreen-20261116T005957Z-f0cd779b executed all18
+planned steps:17 rc0, root tests101. All18 raw hashes independently match
+the step receipts. Actual Rust123 summaries total2748/1/12; all48 pure engine
+tests passed. Web465, E2E80/80 and forge4 passed, including the previously
+attributed feedback specification. No geometry assertion is changed or waived.
+
+The sole failure is Store registry::tests::watchers_only_wake_after_a_committed_registry_change,
+registry/tests.rs355: the enclosing10-second timeout reports Elapsed.
+The Store source is byte-identical to the announced ed4 baseline. The
+coordinator's explicit ruling3226d9cb records this as the second intermittent
+registry watcher wake under load, TRACKER773, and counts the whole17/18 with
+that named condition. This is not an18/18 claim or an author load waiver.
+There is no rerun or timeout change. Original28e ENOSPC/geometry and all earlier
+failures remain preserved. Final source/gate disposition goes to the same
+review row246. NodeAuthority remains off pending its separate node contract;
+no renderer, frame wire, PTY ordering, EOF consumer or OS evidence is implied.
