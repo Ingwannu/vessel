@@ -125,3 +125,19 @@ proofs; whole `dictation-20261116T030821Z-b61e91cc` is still queued and
 V3row288 incomplete. Firstfield/Copy is still NOT consumer-ready. Do not import
 mutable main or replay its existing run. Await checked review/integrator
 adoption after an authorized resume.
+
+## Verified View execution and App target correction
+
+Exact96619e9f19b4c72a3ef656ce140d7538414b6258 completed View lib1104/0/0
+in `wp-voice-narrow-20261116T034611Z-96619e9f`, fonts14s/cargo73s.
+Full cargo SHA256`6907fc889c5901d007fed1c89bb43f1f89fa28ed2c2de8d82d20fe1309474f42`.
+All four new held/refused/lost/dismissed save cases executed by name. The
+actual target log has only View: selecting --lib excludes the binary App.
+Do not call this App execution or substitute the previous App evidence.
+
+One exact966 App binary check was therefore submitted, filtering only
+`areas::voice::page::tests` in vessel-app (native-page-runtime-remote-43 receipt).
+It covers the new explicit-refusal/unconfirmed copy plus the existing actual
+Page composition/handler tests. Record its real receipt below; no additional
+slice or wider check is started. All changes since966 are repository docs or
+the module-header wording correction, with no behavior change.
