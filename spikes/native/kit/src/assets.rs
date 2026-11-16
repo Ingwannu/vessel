@@ -422,6 +422,6 @@ mod panel_role_tests;
 mod import_role_tests;
 
 #[cfg(test)]
-mod viewport_role_tests;
-#[cfg(test)]
 mod command_role_tests;
+#[cfg(test)]
+mod viewport_role_tests;

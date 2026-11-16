@@ -354,10 +354,9 @@ impl Glyph {
                 r#"<path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />"#
             ),
             // Paseo root-registration.tsx 65-107: explicit command-centre strokes.
-            Self::CommandPlus => stroked_glyph!(
-                "2.4",
-                r#"<path d="M5 12h14"/><path d="M12 5v14"/>"#
-            ),
+            Self::CommandPlus => {
+                stroked_glyph!("2.4", r#"<path d="M5 12h14"/><path d="M12 5v14"/>"#)
+            }
             Self::CommandAddProject => stroked_glyph!(
                 "2.2",
                 r#"<path d="M12 10v6"/><path d="M9 13h6"/><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>"#
