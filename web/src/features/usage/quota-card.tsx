@@ -214,7 +214,14 @@ export function QuotaCardView({
         </p>
       ) : null}
       {card.notes.map((note) => (
-        <p key={note} className="quota-card-error">
+        // A failed attempt reads in danger ink; an unavailable source's
+        // reason is quiet, as on the native card.
+        <p
+          key={note}
+          className={
+            card.status === "error" ? "quota-card-error" : "quota-card-quiet"
+          }
+        >
           {note}
         </p>
       ))}
