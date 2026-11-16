@@ -76,6 +76,37 @@ impl Agents {
     }
 }
 
+/// Diagnostic subscription to the existing execution watch; never admission.
+#[cfg(test)]
+pub(crate) struct ExecutionTestWatch {
+    changed: watch::Receiver<Change>,
+}
+
+#[cfg(test)]
+impl ExecutionTestWatch {
+    pub(crate) fn current(&self) -> (ExecutionIncarnationId, Option<ExecutionInvalidation>) {
+        let change = *self.changed.borrow();
+        (change.incarnation, change.cause)
+    }
+
+    pub(crate) fn has_changed(&self) -> Result<bool, watch::error::RecvError> {
+        self.changed.has_changed()
+    }
+
+    pub(crate) fn mark_seen(&mut self) {
+        let _seen = self.changed.borrow_and_update();
+    }
+}
+
+#[cfg(test)]
+impl Agents {
+    pub(crate) fn watch_execution_for_test(&self, id: SessionId) -> Option<ExecutionTestWatch> {
+        self.lock().get(&id).map(|entry| ExecutionTestWatch {
+            changed: entry.execution.changed.subscribe(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -6,7 +6,11 @@
 
 use chrono::Utc;
 use std::sync::Arc;
-use vessel_proto::{KeptMarks, SessionInfo, SessionRef, subagents::DetachedSession};
+use vessel_proto::{
+    KeptMarks, SessionInfo, SessionRef,
+    subagents::{DetachedSession, Parentage},
+    timeline::ExecutionInvalidation,
+};
 use vessel_session::SessionHandle;
 use vessel_store::StoreError;
 
@@ -61,6 +65,7 @@ impl Sessions {
                 // Find again under the publication/resume lock. Publication survives
                 // loss of the RPC task, as marks and creation already require.
                 let found = sessions.find(id).await?;
+                sessions.invalidate_detach(id).await?;
                 let mut result = sessions.store.detach(id, Utc::now()).await?;
                 sessions.agents.detach(id);
                 if let Found::Live { handle, .. } = found {
@@ -71,6 +76,28 @@ impl Sessions {
             })
             .await
             .map_err(ServiceError::Task)?
+    }
+
+    /// The marking owner validates durable state before invalidating any old
+    /// execution, then keeps that same order through the first writer effect.
+    /// Repeats repair publication without revoking a fresh execution again.
+    async fn invalidate_detach(&self, id: vessel_proto::SessionId) -> Result<(), ServiceError> {
+        let stored = self
+            .store
+            .session(id)
+            .await?
+            .ok_or(StoreError::UnknownSession(id))?;
+        match stored
+            .parentage()
+            .map_err(|_invalid| StoreError::InvalidParentage(id))?
+        {
+            Parentage::Root => return Err(StoreError::NotChild(id).into()),
+            Parentage::Attached(_) => self
+                .agents
+                .invalidate_execution(id, ExecutionInvalidation::Detach),
+            Parentage::Detached(_) => {}
+        }
+        Ok(())
     }
 
     /// A resume may have prepared its actor from metadata read before detach.

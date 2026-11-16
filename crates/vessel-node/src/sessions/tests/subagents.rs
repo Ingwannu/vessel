@@ -1,5 +1,7 @@
 //! Real fake-backed sessions exercise the same authorization/publication path.
 
+mod execution;
+
 use super::*;
 use vessel_proto::{
     Creator, NodeId, SessionRef,
