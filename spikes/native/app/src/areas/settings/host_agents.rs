@@ -15,7 +15,7 @@
 //!   it read when it is left, so coming back reads again (Paseo's query).
 //! - Not shown, nothing behind them in Vessel yet: Paseo's "Enable Paseo
 //!   tools", "Browser tools", "Append system prompt", "Resume agents after
-//!   restart", skills and agent profiles.
+//!   restart" and agent profiles. Tools and Skills live on Overview.
 //! - Differences: Paseo draws nothing for a node too old for the setting;
 //!   Vessel says so in the row, as nothing shown may mislead and an empty
 //!   section would. The info tip shows on a pointer only (the kit's

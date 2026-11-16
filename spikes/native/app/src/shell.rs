@@ -290,7 +290,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        self.settle_settings(window);
+        self.settle_settings(window, cx);
         self.terminal_present(window, cx);
         let tokens = tokens(cx);
         // Sidebar form is independent of global phone chrome. Navigation
