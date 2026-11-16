@@ -165,3 +165,7 @@ rechecked all recorded app/display identities and found zero matching owned
 processes remaining. `fleet-p25-cleanup.json` and `quota-fleet-cleanup.log`
 record the two private nodes and children. All work remains committed; no push.
 The full F5 package remains unfinished and has NOT been sent to V1 for review.
+
+Exact last recorded original: `behavior-finish2-235309ac/29-5-theme-system-overrides-retained.png`; saved theme is `system`.
+Start by inspecting that record: do not assume the System choice is still
+unselected or require a frame change from clicking the same selected tile.
