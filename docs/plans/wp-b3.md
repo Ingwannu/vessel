@@ -204,3 +204,14 @@ checked checkpoint state/accessors exist: inspect the bound owner through the
 same Residents::receive, match W9 pending/correlation, then consume and apply in
 ONE synchronous UI update, without await or selected-context refresh. There is
 no second ticket/read buffer. The footer/rewind renderer remains untouched.
+
+BeforeTurn names the durable PromptAccepted sequence, not a displayed user-row
+index or provider message id. TurnAssociated supplies the actual TurnStarted
+sequence for that accepted prompt; AfterTurn names its exact TurnEnded sequence.
+The future view must retain those relations and original source identities. A
+Ready before-image without a corresponding association cannot be attached to the
+nearest prompt row or a guessed turn; association remains pending/unavailable at
+that turn's action slot. This does not erase the node's durable boundary/image.
+Dispatch must still resolve the captured EntryKey/source under the same bound
+owner before using any current numeric position. These are future state tests,
+not a promise that the current renderer already has the registration contract.
