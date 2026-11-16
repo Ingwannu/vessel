@@ -52,6 +52,9 @@ impl CreationFixture {
         let home = inner.data.path().join("test-home");
         std::fs::create_dir(&home).unwrap();
         let stop = CancellationToken::new();
+        // Setup panic must cancel workspace tasks before the retained owner
+        // starts its drain; merely dropping a token does not cancel it.
+        let setup_stop = stop.clone().drop_guard();
         let workspaces = phase(
             "workspace owner",
             Workspaces::start(
@@ -73,7 +76,7 @@ impl CreationFixture {
         let project = phase("project registration", workspaces.add_project(root, None))
             .await
             .unwrap();
-        Self {
+        let fixture = Self {
             inner,
             owner: std::sync::Mutex::new(Some(owner)),
             workspaces,
@@ -81,7 +84,9 @@ impl CreationFixture {
             workspace: WorkspaceId::random(),
             parent: SessionId::random(),
             stop,
-        }
+        };
+        let _transferred = setup_stop.disarm();
+        fixture
     }
 
     pub(crate) fn agents(&self) -> &Arc<Agents> {
@@ -296,5 +301,12 @@ impl CreationFixture {
                 std::panic::resume_unwind(panic);
             }
         }
+    }
+}
+
+impl Drop for CreationFixture {
+    fn drop(&mut self) {
+        // Runs before fields/OwnedFixture drop, including outer observer loss.
+        self.stop.cancel();
     }
 }

@@ -20,3 +20,9 @@ The separately queued constructor source remains attributable to its old SHA;
 its result is not correction evidence. No product visibility, control/watch
 accessor, new registry or positive creation authority is added. The shared
 fixture owner remains cfg(test), and joint current checks are still owed.
+
+Workspace setup additionally retains a cancellation drop guard until the whole
+adapter is constructed. A setup assertion cancels workspace tasks before the
+retained owner's drain; CreationFixture::drop cancels before its fields/finish
+sender are dropped as well. A cancellation token's ordinary Drop is not treated
+as cancellation. Successful setup transfers that same token to the adapter.
