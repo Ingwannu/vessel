@@ -255,3 +255,25 @@ duplicated, and no new authority is granted. A later revoke cannot recall an
 already admitted notification; this is one consistent snapshot, not transport
 linearizability or retroactive recall. Actual two-order regressions and changed
 source checks remain owed before claiming the correction is verified.
+
+
+## Passive read admission and current-parent consumption
+
+Passive Read ingress acquires the existing transferable marking lease in the
+caller before retaining a node task. Abandoning a mutex wait therefore creates
+no retained work. Once admitted, the same owned guard travels through the
+existing live/durable pending veto, actual Store commit and live publication,
+so caller loss cannot split those last two states. TaskTracker accounts for
+accepted work; it is not a queue bound. No second lock or lane is introduced,
+and inherited general mark_live behavior is outside this correction.
+
+Notification eligibility uses the canonical configured
+vessel_has_current_parent scalar inside the shared SESSION SQL predicate. It
+uses current global parentage, distinct from immutable Creator audit and from
+workspace-relative display roots. Valid detach can restore eligibility without
+rewriting history; attached or malformed parentage cannot acquire it. Candidate
+filtering stays before LIMIT, and source/lease joins retain their SQL snapshot.
+Fresh final consumer reads follow asynchronous preparation; an old held WAL
+snapshot is not a freshness guarantee across revocation. The feature remains
+unassigned, and direct Store/lease tests do not imply assigned wire or delivery
+proof. Changed-source checks and the actual drafted regressions are pending.

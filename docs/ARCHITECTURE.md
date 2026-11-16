@@ -1625,6 +1625,11 @@ with the writer and bounds them by inbox retention through a cascading foreign
 key. `vessel-session::terminals` owns semantic activity and once-only terminal
 revision admission in the existing info watch. No PTY parser, push sender or
 notification content is duplicated; clients display only a generic local notice.
+Passive read callers acquire the same transferable marking lease before a task
+is retained; accepted work owns it through durable and live publication. Local
+final authority/source checks share one borrowed-connection read transaction.
+The shared notification SQL consumes canonical current Parentage before paging
+and within source/lease admission, without replacing immutable Creator audit.
 The feature's protocol remains unassigned until reviewed integration, so added
 fields are projected away and methods are refused across old and current peers.
 

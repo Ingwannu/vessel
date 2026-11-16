@@ -296,3 +296,5 @@ async fn attached_pages_cannot_hide_a_later_root_or_detached_source() {
         fixture.store.close().await;
     }
 }
+
+mod snapshots;

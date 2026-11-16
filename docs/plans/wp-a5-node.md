@@ -624,3 +624,28 @@ Reviewing the new consumer fixture also corrected its drafted expectation:
 a revoked device gets false from notification_current and NotificationDenied
 from claim_notification. These existing API semantics are preserved; neither
 draft test was previously executed or claimed green.
+
+
+## Announced gate60 receiving union and corrections
+
+Merged announced ee8e34501 through an explicit merge commit. Its gate is
+17/18 plus named TRACKER774, not wholly green. Canonical runtime assembly and
+its early-stop regression remain; the existing A5 single push helper sits
+before the test module. The measured node.rs budget is lowered to646, never
+raised. Canonical same marking Arc/accessor and Parentage scalar are received
+without importing the unreviewed lifecycle clock/SessionCommit branch.
+
+The actual read_attention correction now acquires marking_lease before tracked
+task creation and moves the exact guard through existing veto/Store/live
+settlement. The shared notification predicate now calls the canonical scalar,
+preserving archive/side-question exclusions and every existing before-LIMIT,
+source and final lease join. No method, number, scope or schema is added.
+
+Forced snapshot tests now use actual notification_current with the private
+reader's temporary identity view of main.devices. A bounded observer pauses
+the real authority SELECT while the real writer commits revoke then Unread.
+The original snapshot must remain ineligible; writer-first, fresh Device and
+independent Owner/positive controls are included. No production pause hook or
+SQL authorization copy is introduced. The callback blocks only the existing
+reader blocking thread, with a named deadline. All new cases remain unexecuted
+until the changed-source remote checks run; the two V3 returns stay open.

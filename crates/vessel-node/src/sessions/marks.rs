@@ -117,17 +117,22 @@ impl Sessions {
     }
 
     /// Human-only Read-scoped ingress; it cannot perform any general mark.
-    /// Same ordering/cancellation boundary as `mark_live`, with both live and
-    /// durable pending requests checked before the shared mark transaction.
+    /// Waiting callers retain no node task. Once the common metadata lease is
+    /// acquired, accepted work keeps it through durable and live settlement.
+    /// Both live and durable pending requests veto the shared mark transaction.
     pub(crate) async fn read_attention(
         self: &Arc<Self>,
         id: SessionId,
         through: EventSeq,
     ) -> Result<(), ServiceError> {
+        // Admission stays in the caller: abandoning this wait cannot leave a
+        // retained task. Transfer this SAME lease after admission so a dropped
+        // reply cannot split the Store commit from live publication.
+        let order = self.marking_lease().await;
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
-                let _order = sessions.marking.lock().await;
+                let _order = order;
                 let handle = match sessions.find(id).await? {
                     Found::Live { handle, .. } => {
                         within_log(id, through, handle.log_end())?;
