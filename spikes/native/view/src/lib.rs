@@ -39,6 +39,7 @@ pub mod models;
 pub mod notices;
 pub mod offers;
 mod options;
+pub mod orchestration;
 pub mod overview;
 pub mod pairing;
 pub mod palette;

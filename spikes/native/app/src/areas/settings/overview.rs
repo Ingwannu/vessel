@@ -215,6 +215,7 @@ pub(crate) fn render(
             settings::card(tokens).child(name_row(machine, shell, tokens, cx)),
             tokens,
         ))
+        .child(super::orchestration::render(shell, tokens, compact, cx))
         .child(settings::section(
             words.danger_zone,
             settings::card(tokens).child(remove_row(machine, shell, tokens, compact, cx)),

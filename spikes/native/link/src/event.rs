@@ -12,7 +12,8 @@
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{
-    ActAnswer, agents, attachments, devices, machines, node_settings, search, sync, workspace,
+    ActAnswer, agents, attachments, devices, machines, node_settings, orchestration, search, sync,
+    workspace,
 };
 use vessel_app_view::{Card, Fleet};
 use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOption};
@@ -44,6 +45,8 @@ pub enum Event {
     Sync(sync::Answer),
     /// A machine's settings in force, after a read or a change.
     NodeSettings(node_settings::Answer),
+    /// Fixed-target orchestration acknowledgement.
+    Orchestration(orchestration::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.
