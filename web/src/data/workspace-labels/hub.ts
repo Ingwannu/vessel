@@ -16,11 +16,16 @@
 //   They run only while something holds the hub (`hold`): a tab has 64
 //   calls at once (vessel-web `MAX_CALLS`), and two waiting calls per
 //   machine are not free when nothing draws labels.
+// - Pace: a node answers at once when it cannot wait (a forwarded call is
+//   Delegated there; an origin's waits are shared), so each loop waits out
+//   the rest of `QUIET_MS` after every answer (data/workspace/pace.ts): a
+//   change shows at most a second late, and a fleet link never spins.
 // - A machine older than either call is "unsupported": it is asked once
 //   per connection, not again. Mutations do not patch the replicas: the
 //   node wakes both long polls when it commits (ADR 0086), so the page
 //   shows what the node holds.
 
+import type { Bridge } from "../../bridge/client";
 import type { NodeKey } from "../../wire/bridge";
 import type {
   Label,
@@ -28,10 +33,11 @@ import type {
   RegistrySnapshot,
   WorkspaceId,
 } from "../../wire/proto";
-import type { Fleet } from "../fleet";
+import type { Fleet, FleetState } from "../fleet";
 import { attempt, type Outcome } from "../outcome";
 import { entriesOf } from "../records";
 import { Store } from "../store";
+import { pause, quiet } from "../workspace/pace";
 import { CatalogReplica } from "./catalog";
 
 const RETRY_MS = 5000;
@@ -50,6 +56,16 @@ export interface LabelsState {
 }
 
 const EMPTY: LabelsState = { registries: {}, catalogs: {} };
+
+/** What the hub reads of the fleet: the machines' link states and the
+ * bridge's calls (a `Fleet`, or a test's fake). */
+export interface LabelSource {
+  readonly store: {
+    get: () => Pick<FleetState, "statuses">;
+    subscribe: (listener: () => void) => () => void;
+  };
+  readonly bridge: Pick<Bridge, "call">;
+}
 
 function unsupported(outcome: Outcome<unknown>): boolean {
   return (
@@ -72,19 +88,15 @@ function sameRegistry(
   );
 }
 
-function pause(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export class WorkspaceLabels {
   readonly store = new Store<LabelsState>(EMPTY);
-  readonly #fleet: Fleet;
+  readonly #fleet: LabelSource;
   #holders = 0;
   /** The machines with loops running, by the connection they run for. */
   readonly #running = new Map<NodeKey, symbol>();
   #unsubscribe: (() => void) | null = null;
 
-  constructor(fleet: Fleet) {
+  constructor(fleet: LabelSource) {
     this.#fleet = fleet;
   }
 
@@ -180,6 +192,7 @@ export class WorkspaceLabels {
   async #registryLoop(node: NodeKey, run: symbol): Promise<void> {
     let revision: number | null = null;
     while (this.#alive(node, run)) {
+      const asked = performance.now();
       const outcome = await attempt(() =>
         this.#fleet.bridge.call(node, "workspace.registry", {
           changed_from: revision,
@@ -199,11 +212,12 @@ export class WorkspaceLabels {
                 registries: { ...state.registries, [node]: snapshot },
               },
         );
+        await quiet(asked, null);
       } else if (unsupported(outcome)) {
         return;
       } else {
         revision = null;
-        await pause(RETRY_MS);
+        await pause(RETRY_MS, null);
       }
     }
   }
@@ -213,6 +227,7 @@ export class WorkspaceLabels {
     this.#setCatalog(node, (held) => ({ ...held, state: "loading" }));
     while (this.#alive(node, run)) {
       const head = replica.head;
+      const asked = performance.now();
       const outcome = await attempt(() =>
         this.#fleet.bridge.call(node, "workspace.label.list", {
           cursor: head,
@@ -223,16 +238,17 @@ export class WorkspaceLabels {
         return;
       }
       if (outcome.ok) {
-        if (!replica.apply(outcome.value)) {
+        if (replica.apply(outcome.value)) {
+          const labels = replica.labels();
+          this.#setCatalog(node, () => ({
+            state: "online",
+            labels,
+            error: null,
+          }));
+        } else {
           replica.reset();
-          continue;
         }
-        const labels = replica.labels();
-        this.#setCatalog(node, () => ({
-          state: "online",
-          labels,
-          error: null,
-        }));
+        await quiet(asked, null);
       } else if (unsupported(outcome)) {
         this.#setCatalog(node, () => ({
           state: "unsupported",
@@ -244,7 +260,7 @@ export class WorkspaceLabels {
         const error = outcome.problem.message;
         replica.reset();
         this.#setCatalog(node, (held) => ({ ...held, error }));
-        await pause(RETRY_MS);
+        await pause(RETRY_MS, null);
       }
     }
   }
@@ -279,7 +295,6 @@ export function labelsOf(fleet: Fleet): WorkspaceLabels {
   return hub;
 }
 
-/** Whether the label manager is open. It is opened from the palette and
- * the view menu and drawn once by the app's root, so its state lives
- * here (as the add-machine dialog's does). */
+/** Whether the label manager is open: opened from the palette and the
+ * view menu, drawn once by the app's root (as the add-machine dialog). */
 export const labelManager = new Store<boolean>(false);
