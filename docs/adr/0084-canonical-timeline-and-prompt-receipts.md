@@ -684,3 +684,16 @@ closed/private carrier, no public selector, failure behavior and tests are in th
 notice provenance plan and await the shared input-owner/V3 contract check. Until
 that and the existing authority/transaction/reader joins qualify, private
 admission remains Unsupported; the new output fields alone enable no producer.
+
+
+### Bound creation shares the execution admission owner
+
+ADR0091's bound local same-workspace creation uses a second incarnation/current
+grant check after its durable resource Begin ACK, with synchronous insertion
+into its concrete tracked launch capsule under the same Agents guard. Count
+reservation alone is not launch authority. Revocation after that insertion stays
+visible to the tracked owner: it retains spawn through settlement, stops a child
+through normal lifecycle, and reports admitted revocation rather than no effect.
+This avoids a new authority lease across every parent-transition owner. See the
+exact launch-admission and handoff obligations in timeline-execution-fence.md;
+no creation API, physical-spawn atomicity or positive controller is implied.

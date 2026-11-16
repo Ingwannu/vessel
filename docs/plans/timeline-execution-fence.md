@@ -193,3 +193,96 @@ are authored only. No capture API is exposed in product yet; no metadata lease,
 actor capsule, actual atomic check/insertion, transition qualification or private
 notice capability is inferred from this staged capture. Exact all-target and
 fake runtime evidence plus source review remain owed.
+
+
+## Bound child creation: exact launch admission
+
+The coordinator's bound-creation ruling extends this common owner beyond private
+notice queues. This is a contract checkpoint, not an exposed API or qualified
+creation controller. ADR0091 owns the creation state machine and concrete launch
+capsule; the shared Agents owner supplies current incarnation/grant admission.
+
+[Decision Log]
+- Purpose: close the revocation gap between a child count reservation, the durable
+  resource Begin acknowledgement, and actual launch admission.
+- Existing constraint: count admission cannot hold the synchronous Agents mutex
+  across Store acknowledgement or process startup. The Sessions metadata lease
+  does not exclude synchronous incarnation invalidation or grant retirement.
+- Alternatives: treat a count reservation as permanent launch authority; or add
+  a global authority lease to every parent transition owner. The former races;
+  the latter extends all transition contracts beyond this fence unnecessarily.
+- Choice: after committed Begin, validate again and insert exactly one concrete
+  creation-owner launch command under the same Agents guard. Retain its original
+  invalidation observation through spawn settlement, stopping any child revoked
+  after admission through the normal lifecycle path.
+- Impact: admission is the linearization point, not a promise that a process
+  cannot be created after revocation. The tracked owner prevents such a process
+  from becoming an unobserved child and reports the admitted revocation distinctly.
+
+### Count, placement and the second check
+
+The bound path accepts only the authenticated direct local Agent and its exact
+captured execution. Owner, Device, delegated or foreign principals cannot obtain
+this new path by supplying a serialized stamp. Legacy creation remains unchanged.
+
+1. The existing Agents count owner reserves the preallocated child under its one
+   mutex, including duplicate-before-credential-mint, current parent grant,
+   depth and last-slot checks. This reservation is not the later launch authority.
+2. The creation owner retains its canonical project/root admission and exact
+   child start lease. It waits for the actual durable resource Begin ACK. Lost
+   acknowledgement is reconciled by that retained owner; caller cancellation is
+   not proof of no effect or permission to create another child.
+3. Only after that ACK, the common owner checks the original registry identity,
+   local parent/session/incarnation, actual registered non-ended handle, and
+   saved/authenticated/current ReadOperate intersection under the SAME Agents
+   mutex. The concrete capsule must name the exact reserved child and count
+   marker, owning operation/Begin revision, parent and bounded deadline. No
+   arbitrary closure or unlocked authorized token is returned.
+4. Still under that guard, it consumes the single-use capsule into the concrete
+   creation owner's tracked launch command. Insertion is synchronous and cannot
+   await Store, spawn, logging or another mutex. A stale incarnation, expired
+   command, stopped owner or changed count marker refuses before insertion.
+5. The admitted command retains the ORIGINAL capture/watch and the exact root,
+   start and count ownership through spawn and settlement. It cannot recapture a
+   replacement incarnation or enlarge the saved ceiling. Spawn/I/O occurs outside
+   the synchronous lock. The existing bounded tracked owner retains the command
+   even if its RPC caller disappears; no new unbounded task/waiter registry.
+
+Current qualified Store placement has narrower meaning than execution authority.
+In the announced registry implementation, Session resource membership is retained
+and conflicting owners are refused; there is no production removal/reassignment
+path. Descriptor project/path/backing/created_at are immutable. This establishes
+historical same-workspace placement, not a live parent or current permission.
+The child start claim checks Active/revision atomically and creates Pending;
+archive must drain Pending/Uncertain before removing backing. A cloned
+WorkspaceStartLease is exact settlement metadata, not an authority lease.
+The actual retained physical/backing/generation and start-drain joins remain
+receiving-owner obligations. Sessions::marking does not serialize independent
+registry writes; the implementation must not assert that it does.
+
+### Revocation and settlement
+
+Before capsule insertion, invalidation wins and no launch may occur. After
+insertion but before spawn settlement, the original watch makes revocation
+visible to the tracked owner. That owner keeps the actual spawn future and its
+holds until it settles, then stops a created child through the normal stop path
+and reports RevokedAfterAdmission. It does not discard the future, roll back
+count as though no child existed, return a no-effect Refused outcome, retry, or
+leave an orphan. A failed/uncertain stop remains owned and reported uncertain;
+physical release is never inferred from the caller's deadline.
+
+Once spawn has settled, ordinary lifecycle supervision owns the child and normal
+invalidation/stop behavior. The handoff from pending launch supervision to that
+lifecycle must have no lost-watch gap: a revocation before that handoff is handled
+by the pending owner, one after it by the lifecycle owner. A read/check followed
+by an unobserved transfer is insufficient. W3 owns the concrete capsule, this
+handoff and retained creation result; W23 owns the common incarnation/grant
+check. Neither may use a fresh capture to repair an old command.
+
+Required tests hold each actual boundary: invalidate before insertion (no spawn),
+invalidate after insertion while spawn is held (settle, stop, reported admitted
+revocation), and invalidate after lifecycle handoff (normal stop). Include caller
+loss, deadline while spawn is held, failed stop, exact child/count marker mismatch,
+concurrent last slot, duplicate child id and parent replacement with identical
+SessionId. Existing setup/final supervision remains bounded and retains work
+through settlement. No positive bound creation is enabled by this document.
