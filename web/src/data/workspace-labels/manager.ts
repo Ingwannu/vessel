@@ -69,20 +69,28 @@ export class ManagerModel extends Observed<ManagerSnapshot> {
   #draft: Draft | null = null;
   #error: string | null = null;
   #running: Promise<void> | null = null;
+  /** Whether the person chose the machine (then it stays chosen). */
+  #picked = false;
 
   constructor(calls: ManagerCalls) {
     super(snapshotOf([], null, "", null, null, false));
     this.#calls = calls;
   }
 
-  /** The machines and their catalogs now; a machine that went away is
-   * replaced by the first one, unless an operation is under way. */
+  /** The machines and their catalogs now. Until the person picks one, the
+   * first machine that answers is shown (a book often starts with one that
+   * is off); a machine that went away is replaced the same way, unless an
+   * operation is under way. */
   syncMachines(machines: readonly ManagedMachine[]): void {
     this.#machines = machines;
     const known = machines.some((machine) => machine.node === this.#node);
-    if (this.#running === null && !known) {
-      this.#node = machines[0]?.node ?? null;
-      this.#draft = null;
+    if (this.#running === null && (!known || !this.#picked)) {
+      const online = machines.find((machine) => machine.state === "online");
+      const next = (online ?? machines[0])?.node ?? null;
+      if (next !== this.#node) {
+        this.#node = next;
+        this.#draft = null;
+      }
     }
     this.#commit();
   }
@@ -91,6 +99,7 @@ export class ManagerModel extends Observed<ManagerSnapshot> {
     if (this.#running !== null || node === this.#node) {
       return;
     }
+    this.#picked = true;
     this.#node = node;
     this.#draft = null;
     this.#error = null;

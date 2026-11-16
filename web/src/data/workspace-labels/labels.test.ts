@@ -239,6 +239,25 @@ describe("the manager", () => {
     expect(removed).toEqual(["Docs"]);
   });
 
+  test("it opens on the first machine that answers until one is picked", () => {
+    const model = new ManagerModel({
+      update: () => Promise.resolve(ok),
+      inspect: () => Promise.resolve({ ok: true, value: 0 }),
+      remove: () => Promise.resolve(ok),
+    });
+    const off = {
+      ...machine,
+      node: gpu,
+      name: "gpu-box",
+      state: "offline" as const,
+    };
+    model.syncMachines([off, machine]);
+    expect(model.snapshot().node).toBe(laptop);
+    model.selectMachine(gpu);
+    model.syncMachines([off, machine]);
+    expect(model.snapshot().node).toBe(gpu);
+  });
+
   test("search narrows the list", () => {
     const model = new ManagerModel({
       update: () => Promise.resolve(ok),
