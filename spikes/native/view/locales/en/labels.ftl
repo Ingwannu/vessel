@@ -47,8 +47,6 @@ labels-unsupported = Update this host to manage labels.
 labels-load-failed = Could not load labels. Try again.
 # Label manager pending text; shown inside the adaptive dialog.
 labels-pending = Updating labels…
-# Label manager inspecting text; shown inside the adaptive dialog.
-labels-inspecting = Checking affected workspaces…
 # Label manager confirm text; shown inside the adaptive dialog.
 labels-confirm = Delete this label and remove it from affected workspaces?
 # Advisory deletion inspection count; $count is the numeric workspace count.
