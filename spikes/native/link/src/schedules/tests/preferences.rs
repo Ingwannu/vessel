@@ -69,7 +69,7 @@ async fn answer(events: &mut tokio::sync::mpsc::Receiver<crate::Event>) -> FormA
     let event = phase("preference form receipt", events.recv())
         .await
         .unwrap();
-    let crate::Event::Schedules(Message::FormReplied(answer)) = event else {
+    let crate::Event::Schedules(Message::FormReplied(answer)) = settled(event) else {
         panic!("not a form receipt");
     };
     answer

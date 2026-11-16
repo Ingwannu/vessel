@@ -12,7 +12,7 @@ use vessel_app_view::schedules::{
     load::MAX_IN_FLIGHT,
     page::{Ask, WriteValue},
 };
-const REQUEST_DEADLINE: Duration = Duration::from_secs(30);
+pub(super) const REQUEST_DEADLINE: Duration = Duration::from_secs(30);
 use vessel_proto::{
     automation::ScheduleTarget,
     workspace::{ListProjects, ListWorktrees, SessionPlace},
@@ -42,13 +42,21 @@ impl Hub {
             return;
         };
         drop(tokio::spawn(async move {
-            let message = match client {
-                Ok(client) => tokio::time::timeout(REQUEST_DEADLINE, execute(&client, &request))
-                    .await
-                    .unwrap_or_else(|_| request.clone().refused(ScheduleError::Deadline)),
-                Err(error) => request.refused(error),
-            };
-            let _closed = events.send(crate::Event::Schedules(message)).await;
+            match client {
+                Ok(client) => {
+                    let guard = client.delivery_guard();
+                    let message =
+                        tokio::time::timeout(REQUEST_DEADLINE, execute(&client, &request))
+                            .await
+                            .unwrap_or_else(|_| request.clone().refused(ScheduleError::Deadline));
+                    super::delivery::publish(client, &events, request, message, guard).await;
+                }
+                Err(error) => {
+                    let _closed = events
+                        .send(crate::Event::Schedules(request.refused(error)))
+                        .await;
+                }
+            }
             drop(permit);
         }));
     }

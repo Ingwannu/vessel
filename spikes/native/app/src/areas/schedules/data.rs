@@ -47,6 +47,7 @@ impl Default for Data {
 impl Data {
     pub(crate) fn message(&mut self, message: Message) -> bool {
         match message {
+            Message::Delivered(delivered) => self.message(delivered.settle()),
             Message::Connected(key) => {
                 self.page.connected(&key);
                 let editor = self.editor.connected(&key);

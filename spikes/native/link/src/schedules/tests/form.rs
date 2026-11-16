@@ -19,7 +19,7 @@ fn operation() -> io::Operation {
 }
 async fn form_answer(events: &mut tokio::sync::mpsc::Receiver<crate::Event>) -> FormAnswer {
     let event = phase("form answer", events.recv()).await.unwrap();
-    let crate::Event::Schedules(Message::FormReplied(answer)) = event else {
+    let crate::Event::Schedules(Message::FormReplied(answer)) = settled(event) else {
         panic!("not a form reply")
     };
     answer
@@ -130,7 +130,7 @@ async fn row_editor_and_history_work_share_one_four_request_pool() {
         let mut forms = 0;
         let mut histories = 0;
         for _ in 0..vessel_app_view::schedules::load::MAX_IN_FLIGHT {
-            match phase("settled receipt", events.recv()).await.unwrap() {
+            match settled(phase("settled receipt", events.recv()).await.unwrap()) {
                 crate::Event::Schedules(Message::Replied(answer)) => {
                     assert!(answer.result.is_err());
                     rows += 1;

@@ -7,6 +7,13 @@ use vessel_app_view::schedules::{
 };
 use vessel_proto::{ErrorCode, ScheduleId, WireError};
 const ANSWER_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+fn settled(event: crate::Event) -> crate::Event {
+    if let crate::Event::Schedules(Message::Delivered(delivered)) = event {
+        crate::Event::Schedules(delivered.settle())
+    } else {
+        event
+    }
+}
 #[test]
 fn call_sources_remain_available_and_lost_writes_are_uncertain() {
     let write = Ask::Run(
@@ -64,7 +71,7 @@ async fn a_missing_client_still_answers_the_exact_ticket_without_a_network_call(
         .await
         .unwrap()
         .unwrap();
-    let crate::Event::Schedules(Message::Replied(answer)) = event else {
+    let crate::Event::Schedules(Message::Replied(answer)) = settled(event) else {
         panic!("wrong event")
     };
     assert_eq!(answer.request, expected);
@@ -138,3 +145,5 @@ mod form;
 mod history;
 
 mod preferences;
+
+mod delivery;

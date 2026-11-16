@@ -1905,3 +1905,27 @@ filter now passes ControlSizing::from_compact to segmented_at/segment_at, and
 the current bucket returns before closing menus or changing state. This is
 consumer source only: the still-running2d2 narrow excludes this later opt-in;
 actual compact F1 geometry and receiving checks remain owed.
+
+### Queue-to-application delivery admission
+
+[Decision Log]
+- Purpose: an original-context Unary result can sit in the App queue after its
+  transport retires, before a newer Fleet notice is applied.
+- Existing assets: announced line's production DeliveryGuard and send_guarded
+  from W2; W12 confirms these do not authorize session navigation.
+- Choice: the same schedule Hub mints one weak original guard before each
+  admitted operation and wraps only its observed result. Data.message settles
+  the guard immediately before model application, without an await, retaining
+  the request/context/resource/ticket in a typed refusal on failure.
+- Why: matching the last published Fleet snapshot alone cannot prove physical
+  liveness. No client, transport, lookup, counter or second actor is added.
+- Tradeoff: publication has the existing named deadline and guarded send; after
+  timeout/retirement the same permit retains exactly one terminal refusal until
+  channel delivery or closure. Strong selected transport is dropped before that
+  terminal wait. A lost write remains uncertain, never retried or retargeted.
+  Local unsent/preflight refusals and connection notices need no fake guard.
+- Verification owed: real framed successful RunSchedule receipt, held across
+  active/same-node reconnect/physical-close application, with no Fleet notice
+  applied and no replacement RPC. Existing framed tests consume the same guard
+  before inspecting payloads. This later source is outside the running2d2 suite;
+  no production opener/follow/navigation readiness is inferred.

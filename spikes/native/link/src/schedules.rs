@@ -10,6 +10,8 @@
 //!   delivery, no write retry, and full errors until the presentation edge.
 //! - Why and cost: slow calls cannot stall fleet traffic or grow without a
 //!   limit. Saturation returns an explicit Busy answer instead of a dead click.
+mod delivery;
+pub use delivery::Delivered;
 mod clock;
 pub use clock::ViewerClockError;
 pub use vessel_app_view::schedules::page::Request as RowRequest;
@@ -48,6 +50,8 @@ pub enum Value {
 /// One area notice, distinct from any RPC ticket or optimistic state change.
 #[derive(Debug)]
 pub enum Message {
+    /// An observed reply retaining weak original-transport validity until apply.
+    Delivered(Delivered),
     /// The actor established a fresh connection for this exact book key.
     Connected(vessel_app_view::schedules::load::MachineKey),
     /// A correlated response to a previously issued operation.

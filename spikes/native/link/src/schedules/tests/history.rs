@@ -46,7 +46,7 @@ fn selected(context: ConnectionContext) -> (reader::Reader, reader::Request) {
 }
 async fn answer(events: &mut tokio::sync::mpsc::Receiver<crate::Event>) -> HistoryAnswer {
     let event = phase("history receipt", events.recv()).await.unwrap();
-    let crate::Event::Schedules(Message::HistoryReplied(answer)) = event else {
+    let crate::Event::Schedules(Message::HistoryReplied(answer)) = settled(event) else {
         panic!("wrong receipt")
     };
     answer
@@ -162,11 +162,11 @@ async fn historical_session_metadata_uses_its_original_read_without_a_live_opene
                 info.clone(),
             )))
             .unwrap();
-        let crate::Event::Schedules(Message::SessionReplied(answer)) =
+        let crate::Event::Schedules(Message::SessionReplied(answer)) = settled(
             phase("historical session receipt", events.recv())
                 .await
-                .unwrap()
-        else {
+                .unwrap(),
+        ) else {
             panic!("wrong receipt")
         };
         assert_eq!(answer.request, request);

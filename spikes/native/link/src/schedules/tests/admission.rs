@@ -35,7 +35,7 @@ fn request(context: ConnectionContext) -> Request {
 }
 async fn answer(events: &mut tokio::sync::mpsc::Receiver<crate::Event>) -> Answer {
     let event = phase("schedule answer", events.recv()).await.unwrap();
-    let crate::Event::Schedules(Message::Replied(answer)) = event else {
+    let crate::Event::Schedules(Message::Replied(answer)) = settled(event) else {
         panic!("wrong answer")
     };
     answer
