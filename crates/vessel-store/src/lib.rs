@@ -86,6 +86,7 @@ mod usage_lookup;
 mod usage_sources;
 pub use cursor_sign_in::read_cursor_usage_sign_in;
 mod workspace;
+mod workspace_labels;
 mod writer;
 
 pub use again::EndedSession;
@@ -107,6 +108,7 @@ pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
+pub use workspace_labels::WorkspaceLabelCommit;
 
 /// Explicit workspace registry records shared by create/lifecycle services.
 pub use registry::{

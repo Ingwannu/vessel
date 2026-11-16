@@ -63,12 +63,16 @@ impl NodeService {
                 .await
                 .map_err(|error| wire(&error))?;
         }
-        Ok(RegistrySnapshot {
+        let snapshot = RegistrySnapshot {
+            labels: stored.labels,
             node: here,
             revision: stored.revision,
             workspaces: stored.workspaces,
             memberships: stored.memberships,
-        })
+        };
+        Ok(snapshot
+            .for_protocol(connection.protocol())
+            .unwrap_or(snapshot))
     }
 
     pub(crate) async fn list_workspaces(

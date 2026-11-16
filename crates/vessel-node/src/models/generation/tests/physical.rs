@@ -132,8 +132,12 @@ async fn drain(
         .await
         .unwrap()
         .store;
+    let workspace_labels = crate::workspace_labels::Labels::open(store.clone())
+        .await
+        .unwrap();
     let closing = CancellationToken::new();
     let draining = crate::shutdown::Teardown {
+        workspace_labels,
         runtime: Arc::clone(&fixture.runtime),
         settings,
         tasks: tasks.clone(),

@@ -14,6 +14,7 @@ mod registry;
 mod search;
 mod subagents;
 mod usage;
+mod workspace_labels;
 
 use std::path::Path;
 use std::sync::Arc;

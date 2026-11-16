@@ -78,6 +78,8 @@
 //!   declared (the bridge crate's test, which sees both files, checks).
 //!   A new alias is classified here, by the rule above, in the same
 //!   change that adds it.
+//! - Workspace labels: `LabelName` is chosen text and `LabelCount`/`WorkspaceLabelSeq`
+//!   are quantities. `WorkspaceLabelGeneration` is a node-minted observer identity.
 //! - Alternatives: branding every alias (a person's text would need a
 //!   guard at every form field); branding none (the page's ids stay
 //!   interchangeable); a `#[ts(brand)]` attribute on each type (ts-rs has
@@ -172,6 +174,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),
+    ("LabelCount", Alias::Quantity),
+    ("LabelName", Alias::Named),
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
@@ -256,6 +260,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("UsageReportId", Alias::Handle),
     ("UsageSourceId", Alias::Handle),
     ("WorkspaceId", Alias::Handle),
+    ("WorkspaceLabelGeneration", Alias::Handle),
+    ("WorkspaceLabelSeq", Alias::Quantity),
     ("WorktreeId", Alias::Handle),
 ];
 

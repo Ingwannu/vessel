@@ -83,6 +83,7 @@ pub mod usage;
 pub mod usage_reports;
 pub mod voice;
 pub mod workspace;
+pub mod workspace_labels;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
@@ -127,7 +128,7 @@ pub use id::{
     HarnessSessionId, HookId, InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
     PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId,
     SessionId, SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
-    WorkspaceOperationId, WorktreeId,
+    WorkspaceLabelGeneration, WorkspaceLabelSeq, WorkspaceOperationId, WorktreeId,
 };
 pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};

@@ -684,6 +684,11 @@ const FORWARDABLE: &[&str] = &[
     "usage.reports",
     "usage.inspect",
     "usage.source_lookup",
+    "workspace.label.list",
+    "workspace.label.assign",
+    "workspace.label.update",
+    "workspace.label.inspect_delete",
+    "workspace.label.delete",
 ];
 
 #[test]
