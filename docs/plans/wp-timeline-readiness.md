@@ -185,3 +185,15 @@ text/selection cache. This small caller correction follows the helper's existing
 contract and awaits the next receiving-source checks; no executed failure or
 current-source pass is claimed from earlier e66 tests. Full resident/claim/origin
 structural identity is still required for mounted state and callback authority.
+
+## Published body staging and the full A7 development tree
+
+The announced base14.1 contains the approved8737 body producer with both modules
+literal cfg(test). That exact producer and line state remain the consumer handoff.
+This separate full A7 development tree already had its own legacy diff delegation
+and canonical-header fixture wrapper before that line merge. Those existing
+development sources are retained during merge; this does not authorize shipping
+their activation relative to the published line. The full package cannot be
+handed to the lead until W4's actual caller and legacy delegation join atomically
+in a checked receiving union. No rich wire/event/receipt field is activated by
+this merge or by ToolDetailSource compatibility methods, which still return None.

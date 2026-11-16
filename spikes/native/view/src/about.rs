@@ -105,7 +105,7 @@ const fn face(name: &'static str, role: Role) -> Bundled {
 /// Runtime dependencies in the shared manifest's order, then member-local
 /// external declarations alphabetically, then the faces.
 pub const BUNDLED: &[Bundled] = &[
-    krate("similar", "Apache-2.0", Role::Differences),
+    krate("similar", "Apache-2.0", Role::Editing),
     krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Translations),
     krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Translations),
     krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Translations),
