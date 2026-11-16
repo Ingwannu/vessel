@@ -40,7 +40,7 @@ pub(super) async fn check() {
     let deadline = Instant::now()
         .checked_add(TOTAL_WAIT)
         .expect("bounded registry invalidation deadline");
-    let (_temp, store) = phase(deadline, Phase::Setup, async {
+    let (temp, store) = phase(deadline, Phase::Setup, async {
         let temp = tempfile::tempdir().unwrap();
         let data = crate::DataDir::new(temp.path().join("data"));
         data.prepare().unwrap();
@@ -97,5 +97,12 @@ pub(super) async fn check() {
         Err(crate::StoreError::RegistryConflict)
     ));
     assert!(!changes.has_changed().unwrap());
-    phase(deadline, Phase::Close, store.close()).await;
+    phase(deadline, Phase::Close, async move {
+        store.close().await;
+        // The original timed scope also dropped the Store and temporary tree.
+        // Keep synchronous directory cleanup inside the same closing budget.
+        drop(store);
+        drop(temp);
+    })
+    .await;
 }

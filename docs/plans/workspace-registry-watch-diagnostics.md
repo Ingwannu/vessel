@@ -19,3 +19,7 @@ commit and before the write ACK; a lifecycle-wide timeout is not evidence that
 changed() waited ten seconds after that ACK. The diagnostic change neither
 classifies the original runtime phase nor erases it. Its own source/narrow proof
 is separate from the coordinator-authorized observation of the unchanged case.
+
+The close phase also drops the Store handle and temporary directory, matching
+the original timed scope. Its after-check therefore includes synchronous cleanup
+rather than silently allowing that I/O outside the shared ten-second budget.
