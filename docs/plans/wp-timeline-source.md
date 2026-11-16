@@ -40,3 +40,9 @@ late tool updates, stable Steer identity, actual content/terminal boundaries,
 exclusive bounds, and the borrowed envelope rules with source text retained.
 Existing W1 cache-work assertions and page tests remain intact. Strict and View
 all-target runtime on this receiving source remain required before handoff.
+
+The first receiving strict run on2d008494 stopped at a missing ToolView import
+in fold.rs after moving append methods: the public tool_call query still names
+that type. Its existing import is restored; no query signature, dependency or
+behavior changes. The source classifier and membership tests have not executed
+on the correction yet. The original run remains compiler-failure evidence.

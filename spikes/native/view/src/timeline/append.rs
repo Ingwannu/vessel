@@ -48,9 +48,9 @@ impl Timeline {
         Some(entry)
     }
 
-    /// A chunk of text joined to the last entry when it is of `kind`, else
-    /// a new entry started with it (a user chunk that does not follow a
-    /// prompt is a replayed prompt, of the turns so far).
+    /// Human chunks extend the current canonical user stream across metadata.
+    /// Assistant/reasoning chunks extend only the adjacent entry of their kind.
+    /// Without a current human stream, a user chunk begins a replayed prompt.
     pub(super) fn merge(&mut self, record: &EventRecord, kind: TextKind, chunk: &str) {
         let last = match kind {
             TextKind::Prompt => self.user_stream,

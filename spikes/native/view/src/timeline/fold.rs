@@ -10,7 +10,7 @@ use vessel_proto::{
     ToolLocation, TurnUsage,
 };
 
-use super::entry::{Entry, EntryKey, EntryKind, ParkingChange, Permission};
+use super::entry::{Entry, EntryKey, EntryKind, ParkingChange, Permission, ToolView};
 use super::usage::ModelUsage;
 
 /// What protocol 10's events say beyond the entries, for the composer and
