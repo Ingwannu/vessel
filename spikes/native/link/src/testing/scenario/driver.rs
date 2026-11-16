@@ -1,17 +1,21 @@
 //! Single fixture owner: all controls and App commands use the existing State.
 use super::{
-    Control, FixtureError, Home, Lifetime, Phase, Port, Reconnect, Response, failure, peer,
+    Control, FixtureError, Home, Lifetime, PeerNodes, PeerSlot, Phase, Port, Reconnect, Response,
+    failure, peer,
 };
 use crate::{Command, Event, State};
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_app_view::connection::ConnectionContext;
-use vessel_proto::{NodeId, Outcome};
+use vessel_app_view::machine_book::Name;
+use vessel_proto::NodeId;
+mod slot;
+pub(super) use slot::Slot;
 
 pub(super) struct Seed {
     pub state: State,
-    pub peer: peer::Peer,
+    pub primary: Slot,
+    pub secondary: Option<Slot>,
     pub home: Home,
-    pub context: ConnectionContext,
 }
 pub(super) struct Channels {
     pub commands: mpsc::Receiver<Command>,
@@ -22,26 +26,22 @@ pub(super) struct Channels {
 pub(super) struct Driver {
     // Drop order invalidates admission before aborting the peer or removing home.
     state: Option<State>,
-    peer: peer::Peer,
+    primary: Slot,
+    secondary: Option<Slot>,
     home: Home,
-    context: ConnectionContext,
     channels: Channels,
-    request_wait: Option<Port>,
     event_wait: Option<Port>,
-    pending: Option<oneshot::Sender<Outcome>>,
     stop_ack: Option<Port>,
 }
 impl Driver {
     pub(super) fn new(seed: Seed, channels: Channels) -> Self {
         Self {
             state: Some(seed.state),
-            peer: seed.peer,
+            primary: seed.primary,
+            secondary: seed.secondary,
             home: seed.home,
-            context: seed.context,
             channels,
-            request_wait: None,
             event_wait: None,
-            pending: None,
             stop_ack: None,
         }
     }
@@ -67,9 +67,13 @@ impl Driver {
     }
     async fn drive(&mut self) -> Result<(), FixtureError> {
         loop {
-            prune(&mut self.request_wait);
+            self.primary.prune();
+            if let Some(secondary) = &mut self.secondary {
+                secondary.prune();
+            }
             prune(&mut self.event_wait);
-            let wants_call = self.request_wait.is_some() && self.pending.is_none();
+            let wants_primary = self.primary.wants_call();
+            let wants_secondary = self.secondary.as_ref().is_some_and(Slot::wants_call);
             let wants_event = self.event_wait.is_some();
             tokio::select! {
                 biased;
@@ -82,32 +86,21 @@ impl Driver {
                     let Some(control) = control else { return Ok(()); };
                     if Box::pin(self.control(control)).await? { return Ok(()); }
                 },
+                call = self.primary.next_request(), if wants_primary => self.primary.received_call(call),
                 call = async {
-                    match self.peer.requests.as_mut() {
-                        Some(requests) => requests.recv().await,
+                    match self.secondary.as_mut() {
+                        Some(secondary) => secondary.next_request().await,
                         None => None,
                     }
-                }, if wants_call => self.received_call(call),
+                }, if wants_secondary => {
+                    if let Some(secondary) = &mut self.secondary { secondary.received_call(call); }
+                },
                 event = self.channels.events.recv(), if wants_event => {
                     if let Some(port) = self.event_wait.take() {
                         answer(port, event.map(|event| Response::Event(Box::new(event)))
                             .ok_or(FixtureError::Closed(Phase::Control)));
                     }
                 },
-            }
-        }
-    }
-    fn received_call(&mut self, call: Option<peer::Request>) {
-        if let Some(port) = self.request_wait.take() {
-            match call {
-                Some(peer::Request {
-                    call,
-                    answer: reply,
-                }) => {
-                    self.pending = Some(reply);
-                    answer(port, Ok(Response::Call(Box::new(call))));
-                }
-                None => answer(port, Err(FixtureError::Closed(Phase::Read))),
             }
         }
     }
@@ -120,13 +113,10 @@ impl Driver {
     }
     async fn control(&mut self, control: Control) -> Result<bool, FixtureError> {
         match control {
-            Control::Request(port) => {
-                if self.request_wait.is_some() || self.pending.is_some() {
-                    answer(port, Err(FixtureError::Full));
-                } else {
-                    self.request_wait = Some(port);
-                }
-            }
+            Control::Request(peer, port) => match self.slot_mut(peer) {
+                Ok(slot) => slot.request(port),
+                Err(error) => answer(port, Err(error)),
+            },
             Control::Event(port) => {
                 if self.event_wait.is_some() {
                     answer(port, Err(FixtureError::Full));
@@ -134,42 +124,38 @@ impl Driver {
                     self.event_wait = Some(port);
                 }
             }
-            Control::Reply(outcome, port) => {
-                let result = self
-                    .pending
-                    .take()
-                    .ok_or(FixtureError::NoPendingCall)
-                    .and_then(|pending| {
-                        pending
-                            .send(*outcome)
-                            .map_err(|_discarded| FixtureError::Closed(Phase::Read))
-                    })
-                    .map(|()| Response::Done);
+            Control::Reply(peer, outcome, port) => {
+                let result = self.slot_mut(peer).and_then(|slot| slot.reply(*outcome));
                 answer(port, result);
             }
-            Control::Retire(port) => {
-                let result = Box::pin(self.dispatch(Command::RetireConnection(self.context.tag())))
-                    .await
-                    .map(|()| Response::Done);
+            Control::Retire(peer, port) => {
+                let result = match self.slot_mut(peer) {
+                    Ok(slot) => {
+                        let tag = slot.context().tag();
+                        Box::pin(self.dispatch(Command::RetireConnection(tag)))
+                            .await
+                            .map(|()| Response::Done)
+                    }
+                    Err(error) => Err(error),
+                };
                 answer(port, result);
             }
-            Control::Reconnect(change, port) => {
-                let result = Box::pin(self.reconnect(change))
+            Control::Reconnect(peer, change, port) => {
+                let result = Box::pin(self.reconnect(peer, change))
                     .await
                     .map(Response::Context);
                 answer(port, result);
             }
-            Control::ClosePeer(port) => {
-                answer(port, self.peer.close().await.map(|()| Response::Done));
+            Control::ClosePeer(peer, port) => {
+                let result = match self.slot_mut(peer) {
+                    Ok(slot) => slot.peer.close().await.map(|()| Response::Done),
+                    Err(error) => Err(error),
+                };
+                answer(port, result);
             }
-            Control::Transcript(port) => {
-                let calls = self
-                    .peer
-                    .calls
-                    .lock()
-                    .map_err(|_poison| FixtureError::Worker)?
-                    .clone();
-                answer(port, Ok(Response::Transcript(calls)));
+            Control::Transcript(peer, port) => {
+                let result = self.slot_mut(peer).and_then(|slot| slot.transcript());
+                answer(port, result);
             }
             Control::Stop(port) => {
                 self.stop_ack = Some(port);
@@ -178,35 +164,59 @@ impl Driver {
         }
         Ok(false)
     }
-    async fn reconnect(&mut self, change: Reconnect) -> Result<ConnectionContext, FixtureError> {
+    fn slot_mut(&mut self, peer: PeerSlot) -> Result<&mut Slot, FixtureError> {
+        match peer {
+            PeerSlot::Primary => Ok(&mut self.primary),
+            PeerSlot::Secondary => self.secondary.as_mut().ok_or(FixtureError::Protocol),
+        }
+    }
+    async fn reconnect(
+        &mut self,
+        peer: PeerSlot,
+        change: Reconnect,
+    ) -> Result<ConnectionContext, FixtureError> {
+        let original = self.slot_mut(peer)?.context().clone();
         // Irreversible original retirement precedes every new handshake await.
-        Box::pin(self.dispatch(Command::RetireConnection(self.context.tag()))).await?;
-        drop(self.pending.take());
-        self.peer.close().await?;
+        Box::pin(self.dispatch(Command::RetireConnection(original.tag()))).await?;
+        let slot = self.slot_mut(peer)?;
+        slot.cancel_pending();
+        slot.peer.close().await?;
         let id = match change {
-            Reconnect::SameNode => self.context.node(),
+            Reconnect::SameNode => original.node(),
             Reconnect::DifferentNode => NodeId::random(),
         };
-        let name = self.context.machine().as_str();
+        let name = original.machine().as_str();
         let mut next = peer::try_controlled(name, id).await?;
         let state = self
             .state
             .as_mut()
             .ok_or(FixtureError::Closed(Phase::Dispatch))?;
         let context = admit(state, &mut next, name)?;
-        self.peer = next;
-        self.context = context.clone();
+        *self.slot_mut(peer)? = Slot::new(next, context.clone());
         Ok(context)
     }
     async fn cleanup(&mut self) -> Result<(), FixtureError> {
-        drop(self.pending.take());
+        self.primary.cancel_pending();
+        if let Some(secondary) = &mut self.secondary {
+            secondary.cancel_pending();
+        }
         let device_calls = self.state.as_ref().map(|state| state.device_calls.clone());
+        if let Some(state) = &self.state {
+            // Invalidate BOTH original admissions before either close can await.
+            for connected in state.clients.values() {
+                connected.retire();
+            }
+        }
         drop(self.state.take());
         // Closing the receiver releases bounded reply workers before joining
         // the peer; queued credentials are dropped, never serialized or logged.
         self.channels.events.close();
         while let Ok(_event) = self.channels.events.try_recv() {}
-        let peer = self.peer.close().await;
+        let primary = self.primary.peer.close().await;
+        let secondary = match &mut self.secondary {
+            Some(secondary) => secondary.peer.close().await,
+            None => Ok(()),
+        };
         let workers = if let Some(hub) = device_calls {
             failure::phase(Phase::Workers, hub.drained())
                 .await
@@ -215,7 +225,67 @@ impl Driver {
             Ok(())
         };
         let home = self.home.remove();
-        peer.and(workers).and(home)
+        primary.and(secondary).and(workers).and(home)
+    }
+}
+
+pub(super) async fn setup(
+    state: &mut State,
+    name: &Name,
+    second: Option<(&Name, PeerNodes)>,
+) -> Result<(Slot, Option<Slot>), FixtureError> {
+    let id = NodeId::random();
+    let mut primary = peer::try_controlled(name.as_str(), id).await?;
+    let mut secondary = match second {
+        Some((name, nodes)) => {
+            let id = match nodes {
+                PeerNodes::SameNode => id,
+                PeerNodes::DifferentNodes => NodeId::random(),
+            };
+            match peer::try_controlled(name.as_str(), id).await {
+                Ok(peer) => Some(peer),
+                Err(error) => {
+                    if let Err(cleanup) = primary.close().await {
+                        tracing::debug!(%cleanup, "fixture setup cleanup failed");
+                    }
+                    return Err(error);
+                }
+            }
+        }
+        None => None,
+    };
+    let admitted = (|| {
+        let primary = admit(state, &mut primary, name.as_str())?;
+        let secondary = match (&mut secondary, second) {
+            (Some(peer), Some((name, _))) => Some(admit(state, peer, name.as_str())?),
+            (Some(_), None) | (None, Some(_)) => return Err(FixtureError::Protocol),
+            (None, None) => None,
+        };
+        Ok((primary, secondary))
+    })();
+    match admitted {
+        Ok((context, next)) => {
+            let secondary = match (secondary, next) {
+                (Some(peer), Some(context)) => Some(Slot::new(peer, context)),
+                (None, None) => None,
+                (Some(_), None) | (None, Some(_)) => return Err(FixtureError::Protocol),
+            };
+            Ok((Slot::new(primary, context), secondary))
+        }
+        Err(error) => {
+            for connected in state.clients.values() {
+                connected.retire();
+            }
+            if let Err(cleanup) = primary.close().await {
+                tracing::debug!(%cleanup, "fixture setup cleanup failed");
+            }
+            if let Some(peer) = &mut secondary {
+                if let Err(cleanup) = peer.close().await {
+                    tracing::debug!(%cleanup, "fixture setup cleanup failed");
+                }
+            }
+            Err(error)
+        }
     }
 }
 

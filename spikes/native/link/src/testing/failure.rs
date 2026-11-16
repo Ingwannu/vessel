@@ -69,6 +69,9 @@ pub enum FixtureError {
     /// A scenario action was requested without a matching pending call.
     #[error("fixture has no matching pending call")]
     NoPendingCall,
+    /// Two physical peers cannot occupy the same canonical book key.
+    #[error("fixture peer names must be distinct")]
+    DuplicateName,
     /// Checked fixture identities were exhausted.
     #[error("fixture identities exhausted")]
     Exhausted,

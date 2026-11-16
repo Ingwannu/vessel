@@ -22,6 +22,24 @@ pub enum Reconnect {
     /// A different node under the same explicitly selected alias.
     DifferentNode,
 }
+/// A physical test peer within the same State; this selector grants no authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PeerSlot {
+    /// Original peer used by the compatible single-peer methods.
+    Primary,
+    /// Optional second peer in a paired scenario.
+    Secondary,
+}
+
+/// Whether the two physical fixture peers report the same node identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PeerNodes {
+    /// Two aliases/transports claim the same node, with distinct admissions.
+    SameNode,
+    /// Each transport reports a separately generated node identity.
+    DifferentNodes,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Lifetime {
     Active,
@@ -29,13 +47,13 @@ enum Lifetime {
 }
 type Port = oneshot::Sender<Result<Response, FixtureError>>;
 enum Control {
-    Request(Port),
-    Reply(Box<Outcome>, Port),
+    Request(PeerSlot, Port),
+    Reply(PeerSlot, Box<Outcome>, Port),
     Event(Port),
-    Retire(Port),
-    Reconnect(Reconnect, Port),
-    ClosePeer(Port),
-    Transcript(Port),
+    Retire(PeerSlot, Port),
+    Reconnect(PeerSlot, Reconnect, Port),
+    ClosePeer(PeerSlot, Port),
+    Transcript(PeerSlot, Port),
     Stop(Port),
 }
 enum Response {
@@ -51,6 +69,7 @@ enum Response {
 /// runtime alive. Never use this facade from production UI event handlers.
 pub struct Scenario {
     context: ConnectionContext,
+    secondary: Option<ConnectionContext>,
     controls: mpsc::Sender<Control>,
     original: mpsc::WeakSender<Command>,
     stop: watch::Sender<Lifetime>,
@@ -62,6 +81,27 @@ impl Scenario {
     /// # Errors
     /// Refuses nested runtimes, local setup failure and bounded handshake failure.
     pub fn start(name: &Name) -> Result<(Link, Self), FixtureError> {
+        Self::start_with(name, None)
+    }
+    /// Start two physical peers on the SAME State, admission source and runtime.
+    ///
+    /// # Errors
+    /// Duplicate names are refused before setup; other setup failures are bounded.
+    pub fn start_pair(
+        primary: &Name,
+        secondary: &Name,
+        nodes: PeerNodes,
+    ) -> Result<(Link, Self), FixtureError> {
+        if primary == secondary {
+            return Err(FixtureError::DuplicateName);
+        }
+        Self::start_with(primary, Some((secondary, nodes)))
+    }
+
+    fn start_with(
+        name: &Name,
+        second: Option<(&Name, PeerNodes)>,
+    ) -> Result<(Link, Self), FixtureError> {
         outside_runtime()?;
         // A detached queue intentionally has no I/O/time driver. This is
         // one real enabled Link runtime, with the actual State attached below.
@@ -82,20 +122,18 @@ impl Scenario {
         let home = Home::try_new()?;
         let (events, outbox) = mpsc::channel(crate::CHANNEL);
         let mut state = make_state(&home, link.commands.downgrade(), events);
-        let (peer, context) = owned_runtime(&link).block_on(async {
-            let mut peer =
-                peer::try_controlled(name.as_str(), vessel_proto::NodeId::random()).await?;
-            let context = driver::admit(&mut state, &mut peer, name.as_str())?;
-            Ok::<_, FixtureError>((peer, context))
-        })?;
+        let (primary, secondary) =
+            owned_runtime(&link).block_on(driver::setup(&mut state, name, second))?;
+        let context = primary.context().clone();
+        let second_context = secondary.as_ref().map(|slot| slot.context().clone());
         let (controls, control_inbox) = mpsc::channel(CONTROL_CAPACITY);
         let (stop, stopped) = watch::channel(Lifetime::Active);
         let driver = driver::Driver::new(
             driver::Seed {
                 state,
-                peer,
+                primary,
+                secondary,
                 home,
-                context: context.clone(),
             },
             driver::Channels {
                 commands,
@@ -109,6 +147,7 @@ impl Scenario {
         });
         let scenario = Self {
             context,
+            secondary: second_context,
             controls,
             original: link.commands.downgrade(),
             stop,
@@ -120,6 +159,20 @@ impl Scenario {
     #[must_use]
     pub fn context(&self) -> ConnectionContext {
         self.context.clone()
+    }
+
+    /// Public facts for an existing slot, never proof of current validity.
+    #[must_use]
+    pub fn context_of(&self, peer: PeerSlot) -> Option<ConnectionContext> {
+        match peer {
+            PeerSlot::Primary => Some(self.context.clone()),
+            PeerSlot::Secondary => self.secondary.clone(),
+        }
+    }
+    fn require_peer(&self, peer: PeerSlot) -> Result<(), FixtureError> {
+        self.context_of(peer)
+            .map(|_facts| ())
+            .ok_or(FixtureError::Protocol)
     }
 
     fn action(
@@ -154,7 +207,15 @@ impl Scenario {
     /// # Errors
     /// The bounded peer/actor operation failed or a prior call is pending.
     pub fn request(&mut self, link: &Link) -> Result<Call, FixtureError> {
-        match self.action(link, Control::Request)? {
+        self.request_from(link, PeerSlot::Primary)
+    }
+    /// Wait for a frame from one original physical peer.
+    ///
+    /// # Errors
+    /// The peer is absent, ended, or already has an outstanding call.
+    pub fn request_from(&mut self, link: &Link, peer: PeerSlot) -> Result<Call, FixtureError> {
+        self.require_peer(peer)?;
+        match self.action(link, |port| Control::Request(peer, port))? {
             Response::Call(call) => Ok(*call),
             Response::Context(_)
             | Response::Event(_)
@@ -167,7 +228,20 @@ impl Scenario {
     /// # Errors
     /// No call is pending or its transport has ended.
     pub fn reply(&mut self, link: &Link, outcome: Outcome) -> Result<(), FixtureError> {
-        self.done(link, |port| Control::Reply(Box::new(outcome), port))
+        self.reply_to(link, PeerSlot::Primary, outcome)
+    }
+    /// Answer only the selected peer's actual pending frame.
+    ///
+    /// # Errors
+    /// The peer is absent or has no pending physical request.
+    pub fn reply_to(
+        &mut self,
+        link: &Link,
+        peer: PeerSlot,
+        outcome: Outcome,
+    ) -> Result<(), FixtureError> {
+        self.require_peer(peer)?;
+        self.done(link, |port| Control::Reply(peer, Box::new(outcome), port))
     }
     /// Receive an event produced by the real State/Devices worker.
     ///
@@ -186,7 +260,15 @@ impl Scenario {
     /// # Errors
     /// Dispatch or its bounded publication phase failed.
     pub fn retire(&mut self, link: &Link) -> Result<(), FixtureError> {
-        self.done(link, Control::Retire)
+        self.retire_peer(link, PeerSlot::Primary)
+    }
+    /// Retire one admission without touching the other physical peer.
+    ///
+    /// # Errors
+    /// The peer is absent or bounded actor dispatch failed.
+    pub fn retire_peer(&mut self, link: &Link, peer: PeerSlot) -> Result<(), FixtureError> {
+        self.require_peer(peer)?;
+        self.done(link, |port| Control::Retire(peer, port))
     }
     /// Replace the selected original admission, never search aliases by node.
     ///
@@ -197,9 +279,25 @@ impl Scenario {
         link: &Link,
         change: Reconnect,
     ) -> Result<ConnectionContext, FixtureError> {
-        match self.action(link, |port| Control::Reconnect(change, port))? {
+        self.reconnect_peer(link, PeerSlot::Primary, change)
+    }
+    /// Replace only one original physical peer and its admission.
+    ///
+    /// # Errors
+    /// The peer is absent or its bounded close/handshake/admission failed.
+    pub fn reconnect_peer(
+        &mut self,
+        link: &Link,
+        peer: PeerSlot,
+        change: Reconnect,
+    ) -> Result<ConnectionContext, FixtureError> {
+        self.require_peer(peer)?;
+        match self.action(link, |port| Control::Reconnect(peer, change, port))? {
             Response::Context(context) => {
-                self.context = context.clone();
+                match peer {
+                    PeerSlot::Primary => self.context = context.clone(),
+                    PeerSlot::Secondary => self.secondary = Some(context.clone()),
+                }
                 Ok(context)
             }
             Response::Call(_) | Response::Event(_) | Response::Transcript(_) | Response::Done => {
@@ -212,14 +310,34 @@ impl Scenario {
     /// # Errors
     /// Its bounded cancellation/join phase failed.
     pub fn close_peer(&mut self, link: &Link) -> Result<(), FixtureError> {
-        self.done(link, Control::ClosePeer)
+        self.close_peer_at(link, PeerSlot::Primary)
+    }
+    /// Close only one physical transport; actor retirement stays independent.
+    ///
+    /// # Errors
+    /// The peer is absent or its bounded close/join failed.
+    pub fn close_peer_at(&mut self, link: &Link, peer: PeerSlot) -> Result<(), FixtureError> {
+        self.require_peer(peer)?;
+        self.done(link, |port| Control::ClosePeer(peer, port))
     }
     /// Bounded complete calls, for exact no-replay/no-extra-frame assertions.
     ///
     /// # Errors
     /// The scenario ended or its transcript lock was poisoned.
     pub fn transcript(&mut self, link: &Link) -> Result<Vec<Call>, FixtureError> {
-        match self.action(link, Control::Transcript)? {
+        self.transcript_of(link, PeerSlot::Primary)
+    }
+    /// Read only the selected peer's existing bounded transcript.
+    ///
+    /// # Errors
+    /// The peer is absent or its owner ended.
+    pub fn transcript_of(
+        &mut self,
+        link: &Link,
+        peer: PeerSlot,
+    ) -> Result<Vec<Call>, FixtureError> {
+        self.require_peer(peer)?;
+        match self.action(link, |port| Control::Transcript(peer, port))? {
             Response::Transcript(calls) => Ok(calls),
             Response::Context(_) | Response::Call(_) | Response::Event(_) | Response::Done => {
                 Err(FixtureError::Protocol)
@@ -286,3 +404,6 @@ fn owned_runtime(link: &Link) -> &tokio::runtime::Runtime {
     } = link;
     runtime
 }
+
+#[cfg(test)]
+mod pair_tests;

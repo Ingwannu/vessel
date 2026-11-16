@@ -21,7 +21,7 @@ mod scenario;
 pub(crate) use assertions::{phase, state, within};
 pub use failure::{FixtureError, Phase};
 pub(crate) use home::Home;
-pub use scenario::{Reconnect, Scenario};
+pub use scenario::{PeerNodes, PeerSlot, Reconnect, Scenario};
 
 use crate::{Event, State};
 use std::collections::HashMap;
