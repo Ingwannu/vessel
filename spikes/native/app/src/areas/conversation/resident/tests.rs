@@ -331,6 +331,25 @@ fn thought_area(cx: &mut gpui::App, text: &str) -> ConversationArea {
     area
 }
 
+fn origin_tree(cx: &mut gpui::App, first: &str, deep: &str) -> ConversationArea {
+    let mut area = thought_area(cx, first);
+    area.origin = Origin::Shown(Box::new(thought_area(cx, deep)));
+    area.list.splice(0..0, area.head());
+    area
+}
+
+fn assert_unrelated_origin_closed(shell: &Shell) {
+    assert!(
+        !crate::areas::conversation::Seat::SESSION
+            .origin()
+            .origin()
+            .get(shell)
+            .unwrap()
+            .toggled
+            .contains(&0)
+    );
+}
+
 #[gpui::test]
 fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
     cx: &mut TestAppContext,
@@ -346,9 +365,7 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
             .unwrap()
             .conversation
             .open("fixture", a.resident.address.session);
-        let mut first = thought_area(cx, "A first origin");
-        first.origin = Origin::Shown(Box::new(thought_area(cx, "A deep origin")));
-        first.list.splice(0..0, first.head());
+        let first = origin_tree(cx, "A first origin", "A deep origin");
         shell
             .areas
             .session_residents
@@ -356,9 +373,7 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
             .unwrap()
             .conversation
             .origin = Origin::Shown(Box::new(first));
-        let mut unrelated = thought_area(cx, "selected first origin");
-        unrelated.origin = Origin::Shown(Box::new(thought_area(cx, "selected deep origin")));
-        unrelated.list.splice(0..0, unrelated.head());
+        let unrelated = origin_tree(cx, "selected first origin", "selected deep origin");
         shell.areas.conversation.origin = Origin::Shown(Box::new(unrelated));
         let main = crate::areas::conversation::Seat::admitted_main(a.clone());
         assert!(main.get(shell).unwrap().shown.is_some());
@@ -371,15 +386,7 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
         );
         shell.toggle_entry(&captured, 0, cx);
         assert!(deep.get(shell).unwrap().toggled.contains(&0));
-        assert!(
-            !crate::areas::conversation::Seat::SESSION
-                .origin()
-                .origin()
-                .get(shell)
-                .unwrap()
-                .toggled
-                .contains(&0)
-        );
+        assert_unrelated_origin_closed(shell);
         shell.toggle_entry(&captured, 0, cx);
         assert!(!deep.get(shell).unwrap().toggled.contains(&0));
         shell
@@ -395,15 +402,7 @@ fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
         assert!(captured.get(shell).is_none());
         assert!(captured.get_mut(shell).is_none());
         shell.toggle_entry(&captured, 0, cx);
-        assert!(
-            !crate::areas::conversation::Seat::SESSION
-                .origin()
-                .origin()
-                .get(shell)
-                .unwrap()
-                .toggled
-                .contains(&0)
-        );
+        assert_unrelated_origin_closed(shell);
     });
 }
 
