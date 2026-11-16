@@ -73,4 +73,7 @@ The first combined strict check, `wp-layout-core-union-20261115T185314Z-bdfdde62
 rejected one documentation spelling and test-only map access lint in this kernel;
 it did not execute tests. The correction changes those two lines only. The same
 run's independent Tooltip compile errors and its correction remain separately
-scoped; no kernel or UI runtime success is claimed.
+scoped; no kernel or UI runtime success is claimed. Corrected base-13 union run
+`wp-layout-core-union-20261116T002833Z-dcb0d416` then reached App test compilation
+and found missing `Window`/`Context` imports in the new fixture. Only those imports
+are added; no assertion or policy changes follow from this compile correction.

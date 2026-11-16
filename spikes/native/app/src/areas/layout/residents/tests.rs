@@ -4,6 +4,7 @@ use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use std::cell::Cell;
 use std::time::Duration;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, Placement, Position, Target,
 };
