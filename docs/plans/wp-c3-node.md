@@ -759,3 +759,31 @@ Node handler, watcher registration, callback, process, credential or invalidatio
 change. The root feature remains None. The observation feature remains missing;
 this pure lower part is not a completed watcher or push/cache parity claim.
 Next one changed-workspace strict check and its selected metadata tests remotely.
+
+# Quota resume checkpoint — 2026-11-16
+
+Development Rust remains94eebf2975cdf1fb045dc8e95aed7e53b1077423; b317a1214
+records pure metadata decoder strict0/selected5/0/0 results. This development
+branch is NOT a receiving/adoptable runtime handoff and must not be merged
+wholesale into App. No new source or node-head merge after the quota warning.
+
+The isolated runtime producer lives on backend/wp-c3-runtime-producer, source
+82aec7d14ca687f82a057e1e9fcc91efb9eb1f42, WIP docs bba65de2e. Its exact
+six-crate strict030827Z and library030831Z remain queued, plus prior unchanged
+wire TS025610Z on ce9667ac. Full run ids and mandatory recovery/NO worker whole
+path are in wp-c3-runtime-producer.md on that branch and the App wp-c3-resume.md.
+Do not resubmit queued/running/done work next session; attach terminal results.
+
+That producer is SELF-HOLD before V3: the82a original-root cache-probe correction
+is unexecuted, and existing summary/raw path decoding can conflate non-UTF8
+native filenames with literal replacement-character paths. The raw Git/source
+proxy audit is not Vessel execution; a typed identity/error correction and real
+regression remain unimplemented. Even green existing tests do not close it.
+The coordinator has been told not to adopt or number the producer yet.
+
+Next remains this SAME bounded comparison/history/cache/C5 retained-invalidation
+producer: meaningful correction, ordinary strict/named runtime cases, V3, then
+integrator receiving whole/number assignment/B0 announcement. GIT_PANEL=None.
+Observation/subscription/background fetch, Models workspace generation, W9
+restore hook, RootLease/CAS, native UI and C4 remain excluded. No extra worker
+whole or release/push/real service/provider/fleet was started.
