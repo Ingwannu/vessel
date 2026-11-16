@@ -175,6 +175,8 @@ pub enum Command {
     },
     /// Ask a machine about its projects, worktrees, git or files; answered
     /// by [`Event::Workspace`] (`workspace`'s module says how).
+    /// Canonical metadata read on the exact captured admission.
+    RegistryRead(workspace::registry_reads::Request),
     Workspace {
         /// The machine.
         machine: String,

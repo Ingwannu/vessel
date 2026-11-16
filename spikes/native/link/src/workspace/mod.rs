@@ -40,6 +40,7 @@ mod calls;
 mod follow;
 pub mod layout;
 mod pulls;
+pub mod registry_reads;
 #[cfg(not(target_arch = "wasm32"))]
 mod run;
 mod start;
@@ -75,6 +76,7 @@ use crate::Event;
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
+    registry_calls: registry_reads::Calls,
     /// Each clone followed, by machine and project, with its task (each
     /// task holds a clone of the machine's client until it ends).
     following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,

@@ -222,6 +222,7 @@ impl Link {
                 session,
                 why: "The browser's demo cannot start a session again".to_owned(),
             }),
+            Command::RegistryRead(request) => self.emit(Event::RegistryRead(request.refused())),
             Command::Workspace { machine, ask } => self.emit(Event::Workspace {
                 machine,
                 answer: ask.refused(&Problem::Node {

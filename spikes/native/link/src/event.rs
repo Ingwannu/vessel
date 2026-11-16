@@ -127,6 +127,8 @@ pub enum Event {
     /// a pairing under way stops with the same words).
     BookUnreadable(vessel_app_view::files::FileFault),
     /// A machine answered a workspace ask.
+    /// Complete guarded registry metadata or a correlated refusal.
+    RegistryRead(workspace::registry_reads::Response),
     Workspace {
         /// The machine.
         machine: String,

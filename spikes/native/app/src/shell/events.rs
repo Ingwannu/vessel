@@ -91,6 +91,7 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
+            Event::RegistryRead(response) => self.registry_read_answer(response),
             Event::Workspace { machine, answer } => {
                 // An answer that changed nothing drawn asks for no frame
                 // (an idle git panel refreshes every five seconds).

@@ -15,6 +15,8 @@ mod detail;
 mod place;
 mod place_rows;
 mod projects;
+mod registry_cache;
+mod registry_runtime;
 mod remove;
 mod sidebar;
 mod start_card;
@@ -44,6 +46,8 @@ use crate::shell::Shell;
 pub(crate) struct Workspace {
     /// Each machine's projects as last read, by machine.
     pub(crate) projects: HashMap<String, ProjectsView>,
+    /// Canonical metadata and the exact weak observation for every consumer.
+    pub(crate) registry: registry_cache::RegistryCache,
     /// Settings > Projects.
     pub(crate) page: projects::Page,
     /// The composer tray's place.
@@ -63,6 +67,7 @@ impl Workspace {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             projects: HashMap::new(),
+            registry: registry_cache::RegistryCache::default(),
             page: projects::Page::new(window, cx),
             place: place::DraftPlace::new(window, cx),
             start: None,
@@ -97,6 +102,7 @@ impl Shell {
     /// (the fleet was read again): the sidebar's group and the composer's
     /// tray show them without a visit to Settings first.
     pub(crate) fn workspace_fleet(&mut self) {
+        self.registry_fleet();
         let unread: Vec<String> = self
             .fleet
             .online()

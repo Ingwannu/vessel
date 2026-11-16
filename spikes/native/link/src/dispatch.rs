@@ -106,6 +106,7 @@ impl State {
                 act,
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
+            Command::RegistryRead(request) => self.registry_read(request).await,
             Command::Search(ask) => self.search(ask),
             Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }

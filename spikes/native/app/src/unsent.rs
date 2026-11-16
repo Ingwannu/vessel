@@ -120,6 +120,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             }),
         }),
         Command::Pair { .. } => Event::PairFailed(vessel_app_view::pairing::PairProblem::Unsent),
+        Command::RegistryRead(request) => Event::RegistryRead(request.refused()),
         Command::Workspace { machine, ask } => Event::Workspace {
             machine,
             answer: ask.refused(&Problem::Unsent),

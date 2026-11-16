@@ -24,6 +24,7 @@ pub mod problem;
 pub mod projects;
 pub mod pull;
 pub mod reference;
+pub mod registry_projection;
 pub mod root;
 pub mod save;
 pub mod setup_log;

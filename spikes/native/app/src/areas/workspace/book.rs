@@ -23,7 +23,7 @@ use std::hash::Hash;
 
 use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::{Ask, ProjectAsk};
-use vessel_app_view::machine_book::Edit;
+use vessel_app_view::machine_book::{Edit, Name};
 
 use crate::shell::Shell;
 
@@ -63,14 +63,16 @@ impl Shell {
     pub(crate) fn workspace_book_applied(&mut self, edit: &Edit, cx: &mut Context<'_, Self>) {
         self.layout_book_applied(edit, cx);
         match edit {
-            Edit::Rename { from, to } => self.workspace_renamed(from.as_str(), to.as_str()),
-            Edit::Forget(name) => self.workspace_forgot(name.as_str()),
+            Edit::Rename { from, to } => self.workspace_renamed(from, to),
+            Edit::Forget(name) => self.workspace_forgot(name),
             Edit::MakeDefault(_) => {}
         }
         cx.notify();
     }
 
-    fn workspace_renamed(&mut self, from: &str, to: &str) {
+    fn workspace_renamed(&mut self, from: &Name, to: &Name) {
+        self.areas.workspace.registry.forget(from);
+        let (from, to) = (from.as_str(), to.as_str());
         let workspace = &mut self.areas.workspace;
         let listed = workspace.projects.contains_key(from);
         rekey(&mut workspace.projects, from, to);
@@ -88,7 +90,9 @@ impl Shell {
         }
     }
 
-    fn workspace_forgot(&mut self, name: &str) {
+    fn workspace_forgot(&mut self, name: &Name) {
+        self.areas.workspace.registry.forget(name);
+        let name = name.as_str();
         let workspace = &mut self.areas.workspace;
         let _was = workspace.projects.remove(name);
         workspace.place.machine_forgot(name);
