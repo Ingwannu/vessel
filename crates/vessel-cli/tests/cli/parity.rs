@@ -176,7 +176,7 @@ async fn project_creation_consumes_table_headers_json_and_quiet_on_actual_acknow
                     assert_eq!(decoded.path, path);
                 }
                 "quiet" => assert_eq!(result.stdout, format!("{}\n", created.id)),
-                _ => unreachable!(),
+                _ => panic!("unrecognized fixture presentation mode: {name}"),
             }
         }
         fixture.stop().await;

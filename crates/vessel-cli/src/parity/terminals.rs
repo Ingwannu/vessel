@@ -133,7 +133,7 @@ async fn list(
     output::list(presentation, &rows).await
 }
 
-/// Keep the actual native structured fields until terminal WorkspaceId lands.
+/// Keep the actual native structured fields until terminal `WorkspaceId` lands.
 #[derive(Serialize)]
 #[serde(transparent)]
 struct ListedTerminal(TerminalInfo);

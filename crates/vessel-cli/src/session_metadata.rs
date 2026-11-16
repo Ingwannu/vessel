@@ -18,7 +18,7 @@ struct Query {
     intent: Intent,
 }
 impl Query {
-    fn new(args: Discovery) -> Result<Self, CliError> {
+    fn new(args: &Discovery) -> Result<Self, CliError> {
         let explicit = args.background || !args.label.is_empty();
         let labels = crate::labels::parse(&args.label)?;
         let scope = if args.background {
@@ -47,7 +47,7 @@ impl Query {
         }
     }
 }
-pub(crate) async fn list(target: &Target, args: Discovery) -> Result<(), CliError> {
+pub(crate) async fn list(target: &Target, args: &Discovery) -> Result<(), CliError> {
     let query = Query::new(args)?;
     let client = connect(target).await?.client;
     let sessions = query.read(&client).await?;
@@ -61,7 +61,7 @@ mod tests {
     #[test]
     fn explicit_filters_preserve_their_scope_and_labels_in_the_actual_request() {
         for (background, scope) in [(false, ListingScope::Shown), (true, ListingScope::All)] {
-            let query = Query::new(Discovery {
+            let query = Query::new(&Discovery {
                 background,
                 label: vec!["task=one".to_owned()],
             })
@@ -72,7 +72,7 @@ mod tests {
             assert_eq!(selected.labels.iter().next().unwrap().0.as_str(), "task");
             assert_eq!(selected.labels.iter().next().unwrap().1.as_str(), "one");
         }
-        let implicit = Query::new(Discovery {
+        let implicit = Query::new(&Discovery {
             background: false,
             label: Vec::new(),
         })

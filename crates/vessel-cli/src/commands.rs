@@ -58,7 +58,7 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
             .await
         }
         Command::Models => crate::formatted_models::run(target, cli.output.presentation()).await,
-        Command::Sessions(discovery) => crate::session_metadata::list(target, discovery).await,
+        Command::Sessions(discovery) => crate::session_metadata::list(target, &discovery).await,
         Command::Run(run) => run_session(target, run).await,
         Command::Project { command } => {
             crate::parity::projects::project(target, cli.output.presentation(), command).await

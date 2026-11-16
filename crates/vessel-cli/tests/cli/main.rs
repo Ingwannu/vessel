@@ -373,6 +373,8 @@ async fn sigterm_detaches_cleanly() {
     .await;
 }
 
+#[cfg(test)]
 mod workspace_rename;
 
+#[cfg(test)]
 mod native_metadata;

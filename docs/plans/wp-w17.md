@@ -1799,3 +1799,15 @@ it, so super::* was insufficient. Add explicit vessel_proto::NodeId to that
 test's existing import list; no product, DTO or admission change. The prior
 PTY helper lints were not repeated, but the combined invocation is not a PASS.
 Retain its exact red log and run changed-source strict again before actual tests.
+
+### Exact4336 CLI lint return
+
+Run wp-cli-narrow-20261116T003159Z-43363541 returned Cargo101 after32s.
+The node test import is resolved. Eight CLI diagnostics remain: unconditional
+workspace_rename/native_metadata child-module helper bodies were not classified
+as cfg(test), one unreachable macro is forbidden even in tests, one WorkspaceId
+doc needs backticks, and Query::new needlessly owned Discovery. Explicitly mark
+only those new test modules cfg(test), use a descriptive test panic for invalid
+fixture mode, quote the type in docs, and borrow the parsed discovery in the
+query/list/caller chain. No lint allowance, RPC, output or fallback policy change.
+Tests have not executed. Retain the immutable red log and check this changed source.
