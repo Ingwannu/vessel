@@ -43,8 +43,11 @@ fn actual_descriptor_is_nonblocking_and_same_size_restored_time_changes_hash() {
     let cancellation = CancellationToken::new();
     let first = observation.read(&cancellation).expect("first content hash");
     let held = probe(&path);
-    file.seek(SeekFrom::Start(0))
-        .expect("replace from beginning");
+    assert_eq!(
+        file.seek(SeekFrom::Start(0))
+            .expect("replace from beginning"),
+        0
+    );
     file.write_all(b"other")
         .expect("same-size replacement bytes");
     file.set_times(FileTimes::new().set_modified(metadata.modified().expect("mtime")))

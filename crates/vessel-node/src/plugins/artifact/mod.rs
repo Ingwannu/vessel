@@ -1,12 +1,13 @@
-//! Pure facts for a future complete private candidate observation (ADR0079).
-//! This hashes supplied records; it cannot prove a tree was completely read,
-//! confer source provenance or authorize installation/execution. The filesystem
-//! complete tree reader, root/ACL policy and owned blocking-operation integration
-//! remain absent. The Unix file module is a separately staged regular-file probe.
+//! Supplied-record facts and staged Unix tree observations (ADR0079).
+//! TreeDigest alone does not prove complete I/O; the private tree owner performs
+//! two real passes. Neither grants source provenance or execution authority.
+//! Async admission, acquisition and non-Unix ACL qualification remain absent.
 #[cfg(unix)]
 mod file;
 #[cfg(test)]
 mod tests;
+#[cfg(unix)]
+mod tree;
 
 use super::manifest::paths::{InvalidPackagePath, PackagePath};
 use sha2::{Digest as _, Sha256};
@@ -94,13 +95,17 @@ struct Record {
 }
 impl Record {
     fn new(raw: &str, kind: Kind) -> Result<Self, Problem> {
-        if raw.len() > MAX_NAME_BYTES {
-            return Err(Problem::Capacity(Limit::NameBytes));
-        }
-        let path = PackagePath::try_from(raw.to_owned())
-            .map_err(|cause| Problem::Name(PrivatePath(cause)))?;
-        Ok(Self { path, kind })
+        Ok(Self {
+            path: package_path(raw)?,
+            kind,
+        })
     }
+}
+fn package_path(raw: &str) -> Result<PackagePath, Problem> {
+    if raw.len() > MAX_NAME_BYTES {
+        return Err(Problem::Capacity(Limit::NameBytes));
+    }
+    PackagePath::try_from(raw.to_owned()).map_err(|cause| Problem::Name(PrivatePath(cause)))
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -111,17 +116,21 @@ struct Budget {
 impl Budget {
     /// Refusal leaves every previously admitted counter unchanged.
     fn admit(&mut self, record: &Record) -> Result<(), Problem> {
-        if record.path.as_str().split('/').count() > MAX_DEPTH {
+        let bytes = match record.kind {
+            Kind::File { bytes, .. } => bytes,
+            Kind::Directory { .. } | Kind::Link { .. } => 0,
+        };
+        self.admit_shape(&record.path, bytes)
+    }
+
+    fn admit_shape(&mut self, path: &PackagePath, bytes: u64) -> Result<(), Problem> {
+        if path.as_str().split('/').count() > MAX_DEPTH {
             return Err(Problem::Capacity(Limit::Depth));
         }
         let entries = self.entries.saturating_add(1);
         if entries > MAX_ENTRIES {
             return Err(Problem::Capacity(Limit::Entries));
         }
-        let bytes = match record.kind {
-            Kind::File { bytes, .. } => bytes,
-            Kind::Directory { .. } | Kind::Link { .. } => 0,
-        };
         if bytes > MAX_FILE_BYTES {
             return Err(Problem::Capacity(Limit::FileBytes));
         }

@@ -18,11 +18,11 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use vessel_proto::workspace::ContentHash;
 
-const OBSERVATION_BUDGET: Duration = Duration::from_secs(30);
+pub(super) const OBSERVATION_BUDGET: Duration = Duration::from_secs(30);
 const READ_CHUNK_BYTES: usize = 64 * 1024;
 
 #[derive(Debug, thiserror::Error)]
-enum Failure {
+pub(super) enum Failure {
     #[error("private plugin file I/O failed")]
     Io(#[source] PrivateIo),
     #[error("private plugin file policy refused the observation")]
@@ -38,7 +38,7 @@ enum Failure {
 }
 
 /// Retain the concrete cause, but never publish its input-bearing text/chain.
-struct PrivateIo(io::Error);
+pub(super) struct PrivateIo(io::Error);
 impl fmt::Debug for PrivateIo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("PrivateIo")
@@ -53,12 +53,12 @@ impl fmt::Display for PrivateIo {
     }
 }
 impl Error for PrivateIo {}
-fn io_failure(cause: io::Error) -> Failure {
+pub(super) fn io_failure(cause: io::Error) -> Failure {
     Failure::Io(PrivateIo(cause))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Stamp {
+pub(super) struct Stamp {
     device: u64,
     inode: u64,
     uid: u32,
@@ -85,12 +85,12 @@ impl From<&Metadata> for Stamp {
 
 /// A bounded synchronous probe. A future blocking owner must retain its permit
 /// through settlement; these between-read checks cannot interrupt a syscall.
-struct Probe {
+pub(super) struct Probe {
     path: PathBuf,
     stamp: Stamp,
 }
 impl Probe {
-    fn prepare(path: PathBuf, device: u64) -> Result<Self, Failure> {
+    pub(super) fn prepare(path: PathBuf, device: u64) -> Result<Self, Failure> {
         let metadata = fs::symlink_metadata(&path).map_err(io_failure)?;
         regular(&metadata, device)?;
         Ok(Self {
@@ -100,10 +100,13 @@ impl Probe {
     }
 
     fn read(self, cancellation: &CancellationToken) -> Result<ContentHash, Failure> {
-        self.read_until(cancellation, Instant::now() + OBSERVATION_BUDGET)
+        let deadline = Instant::now()
+            .checked_add(OBSERVATION_BUDGET)
+            .ok_or(Failure::Expired)?;
+        self.read_until(cancellation, deadline)
     }
 
-    fn read_until(
+    pub(super) fn read_until(
         self,
         cancellation: &CancellationToken,
         deadline: Instant,
@@ -111,7 +114,7 @@ impl Probe {
         check(cancellation, deadline)?;
         let mut file = self.open()?;
         let mut hash = Sha256::new();
-        let mut buffer = [0_u8; READ_CHUNK_BYTES];
+        let mut buffer = vec![0_u8; READ_CHUNK_BYTES];
         let mut count = 0_u64;
         loop {
             check(cancellation, deadline)?;
@@ -134,6 +137,10 @@ impl Probe {
             return Err(Failure::Changed);
         }
         Ok(ContentHash::from_sha256(hash.finalize().into()))
+    }
+
+    pub(super) fn stamp(&self) -> Stamp {
+        self.stamp
     }
 
     fn verify(&self, file: &File) -> Result<(), Failure> {
@@ -172,7 +179,7 @@ fn regular(metadata: &Metadata, device: u64) -> Result<(), Failure> {
     Ok(())
 }
 
-fn check(cancellation: &CancellationToken, deadline: Instant) -> Result<(), Failure> {
+pub(super) fn check(cancellation: &CancellationToken, deadline: Instant) -> Result<(), Failure> {
     if cancellation.is_cancelled() {
         return Err(Failure::Cancelled);
     }

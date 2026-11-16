@@ -175,3 +175,57 @@ all test prerequisites succeeded. The classification now names all four fixed
 safe categories and adds a concrete invalid-entry canary through every exposed
 source level. This corrects the receiving-base join, without relaxing the probe,
 changing shared file errors or claiming the new filesystem cases executed.
+
+## Staged synchronous whole-tree observation
+
+[Decision Log]
+- Purpose: replace a supplied-record assumption with two actual bounded tree
+  observations, including helper/assets, private directories and link coverage.
+- Reuse: the existing workspace Root canonicalization, canonical PackagePath,
+  supplied-record hash/budget and the checked regular-file probe above. The
+  budget admits unread shapes without fabricating a placeholder content hash.
+- Choice: private Unix Pending state after a full first pass; finish performs a
+  complete second scan/hash and compares both content facts and private metadata
+  evidence before returning the digest. Pending is never successful identity.
+- Why: hashing just two declarations, trusting mtime, or checking a partial list
+  cannot bind all helper/assets. A same-size edit with restored mtime still changes
+  the content hash; private inode/ctime evidence detects additional observed races.
+- Impact: bounded synchronous blocking I/O, no acquisition, worker, persistence,
+  RPC, caller authorization, host start or executable-loading capability.
+
+One30s deadline and cancellation token span preparation and both full passes;
+file readers receive that same deadline rather than resetting their budgets.
+Each scan admits the complete count/depth/per-file/aggregate logical-byte plan
+before reading file content, so three individually allowed sparse files cannot
+force reading more than the total budget. Special files refuse before any content
+open. Directory links are never traversed. A link's canonical target must remain
+in-root and be covered by a non-link entry or the observed root; the target set
+uses borrowed validated names rather than a quadratic path-joining search.
+
+The actual root and every directory must have the effective runner UID, no
+other-account permission bits, and the root device. Files must have that UID,
+no group/other write and the same device; every opened file repeats descriptor
+checks. Links retain their spelling and must have that UID/device as well.
+The original workspace Root is reused; private wrappers retain its concrete
+PathError and unrepresentable OS names without exposing their text/chain. Final
+path/descriptor/root stamps and the second complete pass must agree. Metadata
+is private comparison evidence, not another persistent artifact/provenance schema.
+
+This detects observed changes but does NOT eliminate same-account pathname/open
+races. Equal st_dev is not proof against same-device bind mounts. There is no
+Windows ACL verifier or advertised generic fallback, and no command/helper is
+executed. The synchronous observer has no detached thread/lane: a future actual
+blocking owner must retain admission through settlement even after caller loss;
+its between-read checks cannot interrupt a kernel syscall. That lifetime join,
+source pin/review/consent, saved namespace, start fence and all product integration
+remain separate obligations before activation.
+
+Five real-FS cases are authored: two roots created in different order with leaf
+and directory aliases; same-size restored-mtime edit held between full passes;
+escape/dangling/cyclic links and FIFO; aggregate sparse-byte and real depth refusal;
+root-link/cancel/shared-expiry and actual invalid OS-name/full-chain canaries.
+Only initial private fixture creation/set_len/FileTimes/remove-owned fixtures is
+used: no chmod/chown, account change or process. Tests do not claim actual
+wrong-account ownership, mounted-device or other-platform qualification. These
+new cases, current strict and the selected security delta remain unexecuted until
+the next meaningful suite; prior regular-file/pure-model evidence is separate.
