@@ -52,10 +52,10 @@ async fn response(actor: &mut Actor) -> Response {
 }
 async fn settled(response: &mut Response) {
     const SETTLEMENT_DEADLINE: Duration = Duration::from_secs(5);
+    const JOIN_DEADLINE: Duration = Duration::from_secs(6);
     let receipt = response
         .take_settlement()
         .expect("actual registry read worker");
-    const JOIN_DEADLINE: Duration = Duration::from_secs(6);
     let mut joined = tokio::task::spawn_blocking(move || receipt.wait(SETTLEMENT_DEADLINE));
     match tokio::time::timeout(JOIN_DEADLINE, &mut joined).await {
         Ok(result) => result.unwrap().expect("registry worker returned normally"),

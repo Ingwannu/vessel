@@ -173,10 +173,10 @@ pub enum Command {
         /// book name.
         prefer_node_name: bool,
     },
-    /// Ask a machine about its projects, worktrees, git or files; answered
-    /// by [`Event::Workspace`] (`workspace`'s module says how).
     /// Canonical metadata read on the exact captured admission.
     RegistryRead(workspace::registry_reads::Request),
+    /// Ask a machine about its projects, worktrees, git or files; answered
+    /// by [`Event::Workspace`] (`workspace`'s module says how).
     Workspace {
         /// The machine.
         machine: String,
