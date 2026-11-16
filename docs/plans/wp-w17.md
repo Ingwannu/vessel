@@ -1875,3 +1875,15 @@ to use the newly created worktree, rather than assuming an absolute total count.
 The explicit metadata no-preparation policy is STILL UNVERIFIED: the prior failure
 occurred in its positive control before those assertions. No product guard,
 authority or branch-default behavior is weakened. Fresh focused execution owed.
+
+### LaunchAdmission union on announced gate58b
+
+Merge announc ed5bfde87 as708612958, retaining setup::runtime with the original
+early stop token and RuntimeServices. Reconstruct only the conflicted setup
+appendix from gated factory plus the existing startup-service block. Push::started
+then Limits::configured keep their exact arguments, await/error path and order;
+host registry startup remains after limits. The new bare CancellationToken import
+allows shortening only redundant own signature qualifications. Admission tests
+remain the final module. Node.rs measures648, so lower the new651 record to648.
+Direct format/size/diff pass; no merged-head Cargo or RuntimeServices V3 pass is
+claimed. The separate registry prerequisite stays frozen for its ordinary strict.

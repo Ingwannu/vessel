@@ -1,8 +1,9 @@
 # W17 current invocation map
 
-Current source includes announced gate57 node head
-`bc9cacc67dba6cc8d3fb4f71fa10c31e5de4565a`, protocol25/schema21, merged at
-`1108b23c7`. The source map is **not a passing parity checklist**. All117 paths
+Current source includes announced gate58b node head
+`d5bfde878598da21fd9ac1abfcb130571c9c1748`, protocol25/schema21, merged at
+`708612958`; the LaunchAdmission and RuntimeServices union measures648 node.rs
+lines, below the new651 base record, which is lowered to648. The source map is **not a passing parity checklist**. All117 paths
 remain listed; complete flags/defaults/reference output/exits and exact pinned
 registration references are in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
 
@@ -17,14 +18,18 @@ Latest executed selected strict: exact136c13952858, run
 wp-cli-narrow-20261116T004534Z-136c1395,11crates/alltargets/TSfeatures/-Dwarnings,
 Cargo0 in9s. This settles earlier test-helper/import/CLI lint returns on that
 immutable ed4-based source; it is not a full gate or a check of the laterbc9 union.
-Actual CLI/session/PTY/testkit run wp-cli-narrow-20261116T005236Z-136c1395 uses
-the SAME136c source and is currently executing after3636s in the ordinary queue.
-No actual new runtime result is claimed until that exact run finishes.
+Actual CLI/session/PTY/testkit run wp-cli-narrow-20261116T005236Z-136c1395 used
+the SAME136c source and finished425passed/3failed/1ignored after3636s queued.
+CLIbin155/0 and CLIprocess84/3 are retained. Real held-queue cancellation, common
+TUI fairness/sealedEOF/final-ring and workspace rename allmodes/reset passed.
+Three new fixture controls failed; source corrections7ba3 use independent project
+roots and preserve the registered default branch. Metadata no-preparation proof
+is still owed because its positive control failed before those assertions.
 
-The independent registry prerequisite branch has source88ed99bd onbc9, outside
-this CLI tree: exact-id/incarnation reservations, vacant-only handoff and retained
-refusal cleanup. Source/Why/tests are prepared, but no leaf Cargo/V3/merge occurred.
-Its approved priority strict then9focused units starts only after005236 finishes.
+The independent registry prerequisite branch has corrected source9e3ce08f onbc9,
+outside this CLI tree: exact-id/incarnation reservations, vacant-only handoff and retained
+refusal cleanup. Priority strict88ed returned one drop_non_drop lint; its lexical-scope correction
+is queued ordinary as021539. No focused9unit/V3/merge pass has occurred.
 It does not produce root/debt/quiescence evidence or activate any new RPC.
 
 Runtime success states use0, failures1, help/version0; ordinary returned wait
