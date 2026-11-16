@@ -210,9 +210,7 @@ impl SessionRuntime {
         // Counts as a running task, so a concurrent `shutdown` waits until
         // this session is either refused or tracked.
         let _in_flight = self.tasks.token();
-        if self.shutdown.is_cancelled() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.launch_admission().check()?;
         let LaunchOptions {
             profile,
             limits,
@@ -308,6 +306,9 @@ impl SessionRuntime {
             cols: size.cols,
             rows: size.rows,
         };
+        let admission = self.launch_admission();
+        #[cfg(test)]
+        let gate = self.lookup_gate.take();
         // Lookup, file writes, `fork`/`exec` and thread creation all block.
         let (pty, output, mcp_file) = tokio::task::spawn_blocking(move || {
             let launch = vessel_harness::launch(
@@ -319,6 +320,11 @@ impl SessionRuntime {
                 &mcp.servers,
                 mcp.dir.as_deref(),
             )?;
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                gate.pause()?;
+            }
+            admission.check()?;
             if !launch.unattached.is_empty() {
                 tracing::warn!(
                     servers = ?launch.unattached,
@@ -333,13 +339,14 @@ impl SessionRuntime {
                 .map(McpFile::write)
                 .transpose()
                 .map_err(SessionError::McpFile)?;
+            admission.check()?;
             let (pty, output) =
                 PtyProcess::spawn(&launch.command, window).map_err(SessionError::Spawn)?;
             Ok::<_, SessionError>((pty, output, mcp_file))
         })
         .await
         .map_err(SessionError::Internal)??;
-        if self.shutdown.is_cancelled() {
+        if self.launch_admission().check().is_err() {
             // Dropping the PTY kills its program.
             drop(pty);
             return Err(SessionError::ShuttingDown);

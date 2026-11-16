@@ -151,8 +151,9 @@ pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use ring::{Follow, FollowError};
 pub use runtime::{
-    Created, ForkStart, LaunchOptions, PreparationAdmission, PreparationCancellation,
-    PreparationEffect, PreparationGate, PreparationRefusal, ProbeChoices, SessionRuntime,
+    Created, ForkStart, LaunchAdmission, LaunchOptions, PreparationAdmission,
+    PreparationCancellation, PreparationEffect, PreparationGate, PreparationRefusal, ProbeChoices,
+    SessionRuntime,
 };
 /// Suggested [`RuntimeConfig::agent_handshake_timeout`].
 pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;

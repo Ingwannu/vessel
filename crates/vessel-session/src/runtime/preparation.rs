@@ -127,8 +127,14 @@ impl SessionRuntime {
         let notices = chosen.notices;
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
+        #[cfg(test)]
+        let gate = self.lookup_gate.take();
         self.prepare_blocking(ownership, gate, move || {
             let command = launch_for(driver, &lookup, &env, &spec, &profile, proxy.as_ref())?;
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                gate.pause()?;
+            }
             let cwd = command
                 .cwd
                 .clone()

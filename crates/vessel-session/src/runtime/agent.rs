@@ -55,11 +55,13 @@ impl SessionRuntime {
         notices: Vec<String>,
         actor: ActorStart,
     ) -> Result<Created, SessionError> {
+        let admission = self.launch_admission();
+        admission.check()?;
         // `fork`/`exec` on this thread, as `tokio::process` does.
         let (agent, input, outputs) =
             AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone())
                 .map_err(SessionError::agent_not_started)?;
-        if self.shutdown.is_cancelled() {
+        if admission.check().is_err() {
             // Dropping the agent kills its process group.
             drop(agent);
             return Err(SessionError::ShuttingDown);
@@ -221,9 +223,7 @@ impl SessionRuntime {
         (choices, purpose): (ProbeChoices, ProbePurpose),
         ownership: std::sync::Arc<T>,
     ) -> Result<vessel_agent::Probed, SessionError> {
-        if self.shutdown.is_cancelled() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.launch_admission().check()?;
         let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
         let spec = draft_spec(harness.clone(), &profile, cwd, &choices);
         let limit = self.config.agent_handshake_timeout;
@@ -248,9 +248,7 @@ impl SessionRuntime {
             limit,
             log: Vec::new(),
         })??;
-        if self.is_shutting_down() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.launch_admission().check()?;
         let remaining = limit.saturating_sub(started.elapsed());
         if remaining.is_zero() {
             return Err(vessel_agent::ProbeError::TimedOut {
@@ -294,9 +292,7 @@ impl SessionRuntime {
         folder: Option<&std::path::Path>,
         from: vessel_agent::HistoryFrom,
     ) -> Result<vessel_agent::HistoryPage, SessionError> {
-        if self.shutdown.is_cancelled() {
-            return Err(SessionError::ShuttingDown);
-        }
+        self.launch_admission().check()?;
         let mode = SessionMode::Structured {
             model: None,
             resume: None,
@@ -311,6 +307,7 @@ impl SessionRuntime {
             command, driver, ..
         } = self.agent_command(spec, profile, proxy).await?;
         let limit = self.config.agent_handshake_timeout;
+        self.launch_admission().check()?;
         Ok(vessel_agent::history_with(driver, &command, folder, from, limit).await?)
     }
 
