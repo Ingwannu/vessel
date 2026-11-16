@@ -33,3 +33,11 @@ Previous prototype App5/Link5/View7 results are older-source receipts. This
 straight packet still needs current-base strict, Link and owner-model tests,
 wasm checks, V1, the shared-slot union and final native gate/captures/review.
 Root files are untouched; no public delivery or production activation is claimed.
+
+
+The first private-packet strict compiled product code and returned four test
+style errors only: the task helper needed an explicit cfg(test), and two
+get().unwrap() fixture lookups needed explicit missing-owner assertions. These
+are corrected without changing a timeout, assertion, guard or effect path;
+the original failed log is retained. Exact corrected strict and actual Link
+execution remain owed.
