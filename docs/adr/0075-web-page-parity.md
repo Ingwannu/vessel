@@ -300,3 +300,15 @@ actual track/fill bounds and resolved colors, and capture the original
 light/dark specimens at desktop/390 widths in both browser locales. The
 control must pass the reviewer and coordinator's comparison before a Usage
 screen consumes it. These are control captures, not account-report fixtures.
+
+
+The inactive host chooser follows `usage/model.ts:189–222` independently of
+account identity: sidebar choice is picked supported host, active supported
+host, then the first supported host; the modal may preserve a connected
+unsupported pick to show why it cannot report. An offline pick falls back
+without rewriting the user's preference and can return when connected.
+This differs deliberately from the ledger's machine-transition scope reset:
+a device's chosen host is persistent routing preference, not a historical
+profile or a saved account association. The pure chooser accepts existing
+branded NodeKeys and an explicit capability/connection state; it sends no call,
+reads no policy and does not enable a pending method or external lookup.

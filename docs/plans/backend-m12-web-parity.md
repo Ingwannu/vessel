@@ -1494,3 +1494,12 @@ and fifteen pure tests across four files. The added renderer tests cover
 read-only names, clamp/zero width, normal/quiet tone and escaped labels.
 Actual managed-binary captures and their comparison remain pending at this
 source checkpoint; no Usage screen is allowed to consume the meter yet.
+
+
+The inactive host-choice model now follows the pinned sidebar/modal fallback
+rules using existing branded NodeKeys. Six pure cases cover picked/active/first,
+offline and removed picks, unsupported connected picks, no reporting host,
+and availability round trips without mutating the explicit preference. Its
+combined narrow suite passes 21 tests in five files, both typechecks and
+changed-file ESLint. This routing choice proves no account association and
+performs no discovery, persistence or RPC; all report methods remain inactive.

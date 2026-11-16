@@ -1888,3 +1888,7 @@ instants and reset/exhaustion/freshness view states. It is separate from `data/u
 ledger totals and coverage, and from the context meter. The preparation has no
 transport or registered surface; its future adapter requires the assigned
 account-report contract. ADR 0075 records the boundary and existing assets.
+
+The inactive account-usage host chooser selects existing branded book keys
+from explicit connection/capability facts. It owns neither lookup policy nor
+account binding; a saved host preference is not a session's saved-login proof.
