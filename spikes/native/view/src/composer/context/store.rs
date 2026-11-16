@@ -3,6 +3,7 @@
 //! a newly attached review cannot be erased by an older request finishing.
 
 use super::{ContextAttachment, ContextKind, ContextProblem};
+use std::sync::Arc;
 
 /// Removing a workspace pill suppresses it rather than deleting source data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,6 +16,7 @@ pub enum ContextVisibility {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Entry {
+    identity: Arc<()>,
     revision: u64,
     attachment: ContextAttachment,
     visibility: ContextVisibility,
@@ -60,7 +62,43 @@ impl Submission {
     }
 }
 
+/// Captured entry incarnation and revision; matching resource keys alone do
+/// not authorize a callback after a producer replaces or reattaches context.
+#[derive(Debug, Clone)]
+pub struct ContextIntent {
+    identity: Arc<()>,
+    revision: u64,
+}
+
 impl ContextTray {
+    /// Drawn actions keep the actual entry, independently of its visible index.
+    pub fn visible_intents(&self) -> impl Iterator<Item = (ContextIntent, &ContextAttachment)> {
+        self.entries
+            .iter()
+            .filter(|entry| entry.visibility == ContextVisibility::Visible)
+            .map(|entry| {
+                (
+                    ContextIntent {
+                        identity: Arc::clone(&entry.identity),
+                        revision: entry.revision,
+                    },
+                    &entry.attachment,
+                )
+            })
+    }
+    /// Resolve only the still-visible original incarnation and source revision.
+    #[must_use]
+    pub fn resolve(&self, intent: &ContextIntent) -> Option<&ContextAttachment> {
+        self.entries
+            .iter()
+            .find(|entry| {
+                entry.visibility == ContextVisibility::Visible
+                    && entry.revision == intent.revision
+                    && Arc::ptr_eq(&entry.identity, &intent.identity)
+            })
+            .map(|entry| &entry.attachment)
+    }
+
     /// Suppressed source data still belongs to this draft and must block seeding.
     #[must_use]
     pub fn has_retained(&self) -> bool {
@@ -121,6 +159,7 @@ impl ContextTray {
             let _previous = self.entries.remove(index);
         }
         self.entries.push(Entry {
+            identity: Arc::new(()),
             revision,
             attachment,
             visibility,
@@ -169,6 +208,7 @@ impl ContextTray {
             let revision = self.next()?;
             let _previous = self.entries.remove(index);
             self.entries.push(Entry {
+                identity: Arc::new(()),
                 revision,
                 attachment,
                 visibility: ContextVisibility::Visible,

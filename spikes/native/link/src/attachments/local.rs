@@ -83,7 +83,7 @@ impl Store {
     /// Refuses shared permissions, symlinks and non-directory roots.
     pub fn at(root: &Path) -> Result<Self, LocalFailure> {
         crate::prefs::private_dir(root)?;
-        private_entry(root, true)?;
+        private_entry(root, EntryKind::Directory)?;
         Ok(Self(Arc::new(Mutex::new(Inner {
             root: root.to_owned(),
             leases: BTreeMap::new(),
@@ -143,7 +143,7 @@ impl Store {
         write: impl FnOnce(&mut std::fs::File) -> Result<(), LocalFailure>,
     ) -> Result<Arc<LocalFile>, LocalFailure> {
         let mut inner = self.0.lock().map_err(|_poisoned| LocalFailure::Barrier)?;
-        private_entry(&inner.root, true)?;
+        private_entry(&inner.root, EntryKind::Directory)?;
         let mut total = size.value();
         let mut count = 0usize;
         for entry in std::fs::read_dir(&inner.root)? {
@@ -191,9 +191,9 @@ impl Store {
     /// Refuses missing, changed or substituted files.
     pub fn get(&self, record: &LocalRecord) -> Result<Arc<LocalFile>, LocalFailure> {
         let mut inner = self.0.lock().map_err(|_poisoned| LocalFailure::Barrier)?;
-        private_entry(&inner.root, true)?;
+        private_entry(&inner.root, EntryKind::Directory)?;
         let path = file_path(&inner.root, &record.key);
-        private_entry(&path, false)?;
+        private_entry(&path, EntryKind::File)?;
         if std::fs::metadata(&path)?.len() != record.size.value() {
             return Err(LocalFailure::Changed);
         }
@@ -222,7 +222,7 @@ impl Store {
     }
     fn collect_at(&self, retained: &Manifest, now: SystemTime) -> Result<usize, LocalFailure> {
         let mut inner = self.0.lock().map_err(|_poisoned| LocalFailure::Barrier)?;
-        private_entry(&inner.root, true)?;
+        private_entry(&inner.root, EntryKind::Directory)?;
         let persisted = manifest::read(&inner.root)?;
         let mut protected: BTreeSet<_> = retained
             .files()
@@ -290,11 +290,19 @@ fn create(root: &Path) -> Result<(LocalKey, PathBuf, std::fs::File), LocalFailur
     }
     Err(LocalFailure::Exhausted)
 }
-fn private_entry(path: &Path, directory: bool) -> Result<(), LocalFailure> {
+#[derive(Clone, Copy)]
+enum EntryKind {
+    Directory,
+    File,
+}
+
+fn private_entry(path: &Path, kind: EntryKind) -> Result<(), LocalFailure> {
     let metadata = std::fs::symlink_metadata(path)?;
     if metadata.file_type().is_symlink()
-        || (directory && !metadata.is_dir())
-        || (!directory && !metadata.is_file())
+        || match kind {
+            EntryKind::Directory => !metadata.is_dir(),
+            EntryKind::File => !metadata.is_file(),
+        }
     {
         return Err(LocalFailure::Boundary);
     }

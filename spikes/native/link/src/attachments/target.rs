@@ -25,6 +25,6 @@ mod tests {
             Err(TargetProblem::Changed { expected, actual })
         );
         drop(client);
-        assert!(peer.await.unwrap().is_empty());
+        assert!(peer.finish().await.is_empty());
     }
 }
