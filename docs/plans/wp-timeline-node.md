@@ -533,3 +533,8 @@ within its shrinking budget (636, formerly651); no channel limit, loader/sweep
 ordering or caller changes beyond qualification. No process-lifetime observation
 is promoted into an execution/grant fence by this join. Exact receiving checks
 remain owed; source movement and predecessor green are not merged-head proof.
+
+The capture assertion probe retains its one actual handle in a single-assignment
+cell so it remains observable after unwinding. The retained fixture still drains
+the actual runtime and checks the original typed panic and ended handle; this
+fixture correction changes no capture or effect-admission semantics.
