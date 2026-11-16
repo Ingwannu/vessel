@@ -159,7 +159,7 @@ fn ready_form_enter_never_writes_but_the_actual_footer_sends_one_original_update
                     .data
                     .editor
                     .pending_save()
-            )
+            );
         });
     }
 }
