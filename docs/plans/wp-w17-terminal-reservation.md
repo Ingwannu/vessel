@@ -1,10 +1,13 @@
 # W17 terminal reservation prerequisite
 
-Status: source/test preparation only, based on announceded4cd137. No new RPC,
-protocol/schema number, root binding, cleanup-debt ledger or quiescence proof.
-Coordinator authorized this independent preparation while immutable CLI test
-run wp-cli-narrow-20261116T005236Z-136c1395 waits; one owned Cargo run at a time.
-No leaf build may start until that run finishes.
+Current source includes the announced gate58b base d5bfde87, merged at b5f47bd9.
+It still changes only the eight prerequisite paths listed in this plan's scope:
+no RPC, protocol/schema number, root binding, debt ledger or quiescence proof.
+The original priority strict on88ed failed one entry-borrow lint and returned to
+ordinary. Corrected9e3 strict is already queued; it remains immutable and must
+not be cancelled or duplicated. Later source adds named fixture safety-net
+constants and the announced base merge. Current-head strict, nine focused cases,
+existing terminal/script regressions and V3 acceptance are all still owed.
 
 Pre-start ownership check: node-line log ed4cd137..backend/m12-node contains no
 registry.rs change; C2 explicitly confirmed no committed or work-in-progress
@@ -66,5 +69,11 @@ Source-only fixture budget correction: each independent test module now names
 its canonical outer SAFETY_NET once, instead of repeating the literal at every
 within call. Durations, assertions, actor ownership and all product bytes are
 unchanged from9e3. The already queued9e3 strict remains immutable and is not
-cancelled or duplicated. This newer fixture source still owes exact strict and
-all nine focused cases; earlier/queued source is not a current-head gate.
+cancelled or duplicated. This newer fixture source and the later announced-base merge still owe exact
+strict and all nine focused cases; earlier/queued source is not a current-head gate.
+
+The d5 union is clean: the node-line log frombc9 throughd5 has no registry.rs
+changes. Own product code is byte-identical9e3; only the two test-module budget
+constant extractions differ, plus this plan. Base-owned files, manifests, lock,
+proto and session remain byte-identicald5. Source format/size/diff checks passed;
+these are not combined-head compiler or execution evidence.
