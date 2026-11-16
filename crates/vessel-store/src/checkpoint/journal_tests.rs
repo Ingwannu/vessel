@@ -82,7 +82,9 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
 fn selected_files(count: usize) -> (FileImage, vessel_proto::checkpoint::FileMetadata) {
     use vessel_proto::{
         BlobHash,
-        checkpoint::{Entry, FileBytes, FileMetadata, FileState, GroupId, OrdinaryMode, OwnerId},
+        checkpoint::{
+            CheckpointFileBytes, Entry, FileMetadata, FileState, GroupId, OrdinaryMode, OwnerId,
+        },
     };
     let metadata = FileMetadata {
         owner: OwnerId::new(1000),
@@ -98,7 +100,7 @@ fn selected_files(count: usize) -> (FileImage, vessel_proto::checkpoint::FileMet
                 .unwrap(),
                 state: FileState::Present {
                     digest: BlobHash::from_bytes([0; 32]),
-                    bytes: FileBytes::new(0).unwrap(),
+                    bytes: CheckpointFileBytes::new(0).unwrap(),
                     metadata,
                 },
             })

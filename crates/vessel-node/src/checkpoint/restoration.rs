@@ -309,12 +309,7 @@ impl Controller {
             Err(_failure) => {
                 // Actual I/O returned. Reload an uncertain terminal commit before
                 // deciding whether recovery is still required.
-                let latest = self
-                    .context
-                    .store
-                    .checkpoint_operation(operation.session, operation.id, operation.owner)
-                    .await
-                    .map_err(reason)?;
+                let latest = self.stored_operation(operation).await?;
                 match latest.outcome {
                     RestoreOutcome::InProgress { .. } => {
                         self.context
@@ -336,17 +331,14 @@ impl Controller {
                         self.attach_restore(plan, operation).await?;
                         return Ok(latest.outcome);
                     }
-                    terminal => terminal,
+                    terminal @ (RestoreOutcome::Restored { .. }
+                    | RestoreOutcome::Unchanged
+                    | RestoreOutcome::RolledBack { .. }) => terminal,
                 }
             }
         };
         self.attach_restore(plan, operation).await?;
-        let finished = self
-            .context
-            .store
-            .checkpoint_operation(operation.session, operation.id, operation.owner)
-            .await
-            .map_err(reason)?;
+        let finished = self.stored_operation(operation).await?;
         if matches!(outcome, RestoreOutcome::Restored { .. }) {
             self.publish_ended(&finished).await?;
         }
@@ -357,6 +349,14 @@ impl Controller {
         guard.settle_restore(operation.id).await?;
         drop(guard);
         Ok(outcome)
+    }
+    // Every completion rereads the same immutable operation, never a new resolver.
+    async fn stored_operation(&self, operation: &Operation) -> Result<Operation, CheckpointError> {
+        self.context
+            .store
+            .checkpoint_operation(operation.session, operation.id, operation.owner)
+            .await
+            .map_err(reason)
     }
     async fn existing(
         &self,
@@ -370,10 +370,14 @@ impl Controller {
             .await
         {
             Ok(operation) => Ok(Some(operation)),
-            Err(error) => match reason(error) {
-                CheckpointError::NotFound => Ok(None),
-                refusal => Err(refusal),
-            },
+            Err(error) => {
+                let refusal = reason(error);
+                if refusal == CheckpointError::NotFound {
+                    Ok(None)
+                } else {
+                    Err(refusal)
+                }
+            }
         }
     }
     async fn attach_restore(

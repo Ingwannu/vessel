@@ -1,6 +1,8 @@
 //! Immutable bounded images and the single effective target used throughout restore.
 
-use super::{CheckpointError, CheckpointPath, FileBytes, FileMetadata, ImageBytes, PathCount};
+use super::{
+    CheckpointError, CheckpointFileBytes, CheckpointPath, FileMetadata, ImageBytes, PathCount,
+};
 use crate::BlobHash;
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +17,7 @@ pub enum FileState {
         /// Digest verified while streaming.
         digest: BlobHash,
         /// Bounded raw size.
-        bytes: FileBytes,
+        bytes: CheckpointFileBytes,
         /// Capture evidence or effective desired metadata.
         metadata: FileMetadata,
     },

@@ -1,5 +1,8 @@
 //! Owned controller seam: resolving one operation never force-unlocks its aliases.
-use super::*;
+use super::{
+    Active, Arc, CancellationToken, Instant, Notify, PhysicalRoot, Request, RootGate, RootLease,
+    RootRefusal, State, WorktreeId, issue,
+};
 use vessel_proto::checkpoint::RestoreId;
 
 #[derive(Debug, Clone, Copy)]

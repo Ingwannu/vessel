@@ -7,6 +7,7 @@ mod checkpoint_anchor;
 mod checkpoint_runtime;
 #[cfg(target_os = "linux")]
 mod checkpoint_starting;
+mod discovery;
 mod handover;
 mod subagents;
 

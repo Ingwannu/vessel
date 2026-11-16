@@ -10,7 +10,7 @@ use std::{fs::File, os::unix::fs::MetadataExt as _, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{
     BlobHash,
-    checkpoint::{CheckpointError, FileBytes},
+    checkpoint::{CheckpointError, CheckpointFileBytes},
 };
 
 const PRIVATE_MODE: u32 = 0o600;
@@ -60,9 +60,9 @@ impl Archive {
     pub(super) fn capture(
         &self,
         source: &mut File,
-        budget: FileBytes,
+        budget: CheckpointFileBytes,
         cancellation: &CancellationToken,
-    ) -> Result<(BlobHash, FileBytes), Error> {
+    ) -> Result<(BlobHash, CheckpointFileBytes), Error> {
         let before = Identity::of(&source.metadata()?);
         let mut output = File::from(
             rustix::fs::openat(
@@ -90,9 +90,9 @@ impl Archive {
         source: &mut File,
         output: &mut File,
         before: Identity,
-        budget: FileBytes,
+        budget: CheckpointFileBytes,
         cancellation: &CancellationToken,
-    ) -> Result<(BlobHash, FileBytes), Error> {
+    ) -> Result<(BlobHash, CheckpointFileBytes), Error> {
         let (digest, bytes) =
             content::transfer(source, output, Budget::ImageRemaining(budget), cancellation)?;
         if Identity::of(&source.metadata()?) != before {
@@ -139,7 +139,7 @@ impl Archive {
     pub(super) fn verify(
         &self,
         digest: BlobHash,
-        bytes: FileBytes,
+        bytes: CheckpointFileBytes,
         cancellation: &CancellationToken,
     ) -> Result<(), Error> {
         let mut source = self.open_blob(digest)?;

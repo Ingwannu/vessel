@@ -20,8 +20,8 @@ use tokio_util::sync::CancellationToken;
 use vessel_proto::{
     BlobHash,
     checkpoint::{
-        CHECKPOINT_FILE_BYTES, CheckpointError, CheckpointPath, FileBytes, IgnoreFingerprint,
-        PathCount,
+        CHECKPOINT_FILE_BYTES, CheckpointError, CheckpointFileBytes, CheckpointPath,
+        IgnoreFingerprint, PathCount,
     },
 };
 
@@ -204,7 +204,7 @@ fn feed_file(
         return Ok(());
     };
     let before = Identity::of(&file.metadata()?);
-    let remaining = FileBytes::new(POLICY_TOTAL_BYTES.saturating_sub(*total))?;
+    let remaining = CheckpointFileBytes::new(POLICY_TOTAL_BYTES.saturating_sub(*total))?;
     let (digest, bytes) = content::transfer(
         &mut file,
         &mut io::sink(),

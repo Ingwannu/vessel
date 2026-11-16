@@ -17,6 +17,22 @@ use {
 };
 
 impl Workspaces {
+    fn require_write_root(
+        &self,
+        resolved: &Resolved,
+        required: RequiredRoot,
+    ) -> Result<(), WorkspaceError> {
+        match required {
+            RequiredRoot::Directory => {}
+            RequiredRoot::Repository => {
+                if !resolved.git {
+                    return Err(WorkspaceError::NotGit);
+                }
+                let _git = self.git()?;
+            }
+        }
+        Ok(())
+    }
     pub(super) async fn run_write<T, Make, Work>(
         self: &Arc<Self>,
         root: WorkspaceRoot,
@@ -32,15 +48,7 @@ impl Workspaces {
             return Err(WorkspaceError::Stopping);
         }
         let resolved = self.resolve(root).await?;
-        match required {
-            RequiredRoot::Directory => {}
-            RequiredRoot::Repository => {
-                if !resolved.git {
-                    return Err(WorkspaceError::NotGit);
-                }
-                let _git = self.git()?;
-            }
-        }
+        self.require_write_root(&resolved, required)?;
         #[cfg(target_os = "linux")]
         let (directory, lease) = {
             let mut opened = self.opened_admission(resolved.root.path()).await?;

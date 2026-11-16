@@ -33,6 +33,10 @@ mod device_invite;
 #[cfg(test)]
 mod device_self;
 #[cfg(test)]
+mod discovery_ingress;
+#[cfg(test)]
+mod export_metadata;
+#[cfg(test)]
 mod fleet;
 #[cfg(test)]
 mod fleet_control;

@@ -9,7 +9,7 @@ use rustix::fs::{CWD, Gid, Mode, OFlags};
 use std::{fs::File, os::unix::fs::MetadataExt as _, path::Path};
 use vessel_proto::{
     BlobHash,
-    checkpoint::{CheckpointError, FileBytes, FileMetadata, PathCount},
+    checkpoint::{CheckpointError, CheckpointFileBytes, FileMetadata, PathCount},
 };
 
 const DIRECTORY: OFlags = OFlags::RDONLY
@@ -65,7 +65,7 @@ impl Stage {
         slot: Slot,
         source: &mut File,
         digest: BlobHash,
-        bytes: FileBytes,
+        bytes: CheckpointFileBytes,
         desired: FileMetadata,
         cancellation: &tokio_util::sync::CancellationToken,
     ) -> Result<(), Error> {

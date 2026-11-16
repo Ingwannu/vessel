@@ -479,6 +479,7 @@ impl Sessions {
 // the conversation's input; reading the log.
 pub(crate) mod again;
 mod conversation;
+mod discovery;
 mod marks;
 mod read;
 mod side_questions;

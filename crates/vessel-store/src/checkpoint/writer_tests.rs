@@ -10,9 +10,9 @@ use vessel_proto::{
     BlobHash, EventSeq, HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec, WorktreeId,
     checkpoint::{
         Boundary, CHECKPOINT_PREVIEW_LIFETIME, CaptureGeneration, CaptureId, CaptureKey,
-        CheckpointError, CheckpointId, CheckpointOwner, Entry, FileBytes, FileImage, FileMetadata,
-        FileState, GroupId, OrdinaryMode, OwnerId, PathCount, RestoreId, RestoreOutcome,
-        RestorePlanId,
+        CheckpointError, CheckpointFileBytes, CheckpointId, CheckpointOwner, Entry, FileImage,
+        FileMetadata, FileState, GroupId, OrdinaryMode, OwnerId, PathCount, RestoreId,
+        RestoreOutcome, RestorePlanId,
     },
 };
 
@@ -50,7 +50,7 @@ pub(super) fn plan(session: SessionId) -> Plan {
         path: serde_json::from_str("\"file\"").unwrap(),
         state: FileState::Present {
             digest: BlobHash::from_bytes([0; 32]),
-            bytes: FileBytes::new(0).unwrap(),
+            bytes: CheckpointFileBytes::new(0).unwrap(),
             metadata,
         },
     }])

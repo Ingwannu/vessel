@@ -173,7 +173,10 @@ fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
 // The fixture removes later columns explicitly; the schema owner locates
 // the inbox predecessor instead of guessing how many appends followed it.
 fn migrate_again_without_inbox(db: &mut Connection) {
-    db.execute_batch("DROP TABLE checkpoint_allocations; DROP TABLE checkpoint_garbage; DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; DROP TABLE workspace_registry_resources; DROP TABLE workspace_registry_reservations; DROP TABLE workspace_registry; DROP TABLE workspace_registry_meta;").unwrap();
+    db.execute_batch("DROP TABLE checkpoint_allocations; DROP TABLE checkpoint_garbage; DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures;").unwrap();
+    db.execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    db.execute_batch("DROP TABLE workspace_registry_resources; DROP TABLE workspace_registry_reservations; DROP TABLE workspace_registry; DROP TABLE workspace_registry_meta;").unwrap();
     db.execute_batch(
         "ALTER TABLE sessions DROP COLUMN detach_receipt;
      ALTER TABLE sessions DROP COLUMN title_origin;",

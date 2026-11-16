@@ -38,7 +38,7 @@ pub(super) fn image(image: &FileImage) -> Result<BlobHash, CheckpointError> {
 mod tests {
     use super::*;
     use vessel_proto::checkpoint::{
-        CheckpointPath, Entry, FileBytes, FileMetadata, GroupId, OrdinaryMode, OwnerId,
+        CheckpointFileBytes, CheckpointPath, Entry, FileMetadata, GroupId, OrdinaryMode, OwnerId,
     };
     fn entry(path: &str, mode: u32) -> Entry {
         Entry {
@@ -48,7 +48,7 @@ mod tests {
             .unwrap(),
             state: FileState::Present {
                 digest: BlobHash::from_bytes([1; 32]),
-                bytes: FileBytes::new(1).unwrap(),
+                bytes: CheckpointFileBytes::new(1).unwrap(),
                 metadata: FileMetadata {
                     owner: OwnerId::new(1000),
                     group: GroupId::new(1000),

@@ -1259,7 +1259,8 @@ These new assertions and the implementation remain unverified by execution.
 The node tree now consumes announced head 9c150c6e (gate 50c, protocol24,
 store20). Existing registry/diagnostics methods, metadata restoration and startup
 reconciliation are retained alongside checkpoint hooks and physical admission.
-Checkpoint SQL appends once after REGISTRY_SCHEMA (21 locally); migrate() is
+Checkpoint SQL now appends once after BACKGROUND_SCHEMA (22 locally), using the
+announced head's canonical migrations/sequence.rs. migrate() is
 unchanged. Legacy rollback fixtures drop checkpoint tables before registry tables.
 The shared node.rs budget shrinks to 668; no size record increases.
 
@@ -1362,3 +1363,28 @@ joins the actual retained blocking mutation/recovery closure through completion,
 error and owner loss. The RPC waiter is not the completion boundary. Completed
 metadata-only retries perform no file I/O. This remains a consumer obligation,
 with no public hook, producer hash or comparison-cache parity claim.
+
+
+### Resumed union and separate physical-root producer (unverified)
+
+The full node source consumes announced ed4cd137 (protocol25, schema21).
+Checkpoint tables are the one following append (22 locally); migrate() remains
+byte-identical. The canonical sequence extraction is reused, with listing kept
+before checkpoint SQL and rollback fixtures removing the checkpoint tables first.
+The checkpoint byte-count type is now CheckpointFileBytes: FileBytes on the base
+means binary content, so sharing that generated alias would misdescribe the wire.
+No serialized field or numeric bound changes. Generated wire bytes retain exactly
+the announced head pending build-machine regeneration; they are never hand-edited.
+
+Run wp-checkpoints-node-narrow-20261115T182448Z-407d3ede failed cargo101 with five
+node lints. Explicit closed-set error/outcome arms, the existing-operation absence
+predicate, map_or_else and explicit recovery imports fix those sites in source;
+no replacement execution is implied. Its records are retained.
+
+The minimal physical-root leaf is separately extracted directly on ed4cd137 as
+its own branch. It includes no checkpoint calls, events, schema, restore or debt.
+Its own ordinary strict run and subsequent tests must pass before leaf-only V3;
+full-feature checks never establish that leaf's safety. W17, W11 and W21 must not
+consume it until the exact reviewed producer is announced. This full branch will
+merge the accepted exact commit, preserving one canonical root authority.
+Production restore remains Busy; no UI or terminal quiescence capability is claimed.

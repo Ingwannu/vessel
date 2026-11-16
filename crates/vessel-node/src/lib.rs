@@ -87,6 +87,7 @@ mod lifecycle;
 mod limits;
 mod lsp;
 mod lsp_config;
+mod metadata_export;
 mod models;
 mod node;
 mod persist;

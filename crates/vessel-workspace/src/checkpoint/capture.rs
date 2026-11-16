@@ -6,9 +6,9 @@ use super::{
 };
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{
-    CHECKPOINT_FILE_BYTES, CHECKPOINT_IMAGE_BYTES, CheckpointError, CheckpointPath, Entry,
-    FileBytes, FileImage, FileState, IgnoreFingerprint, ObservedEntry, ObservedSnapshot,
-    SnapshotEvidence,
+    CHECKPOINT_FILE_BYTES, CHECKPOINT_IMAGE_BYTES, CheckpointError, CheckpointFileBytes,
+    CheckpointPath, Entry, FileImage, FileState, IgnoreFingerprint, ObservedEntry,
+    ObservedSnapshot, SnapshotEvidence,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -43,7 +43,7 @@ fn image_to(
             Some(mut file) => {
                 let identity = Identity::of(&file.metadata()?);
                 let metadata = metadata(&file)?;
-                let budget = FileBytes::new(
+                let budget = CheckpointFileBytes::new(
                     CHECKPOINT_IMAGE_BYTES
                         .saturating_sub(total)
                         .min(CHECKPOINT_FILE_BYTES),

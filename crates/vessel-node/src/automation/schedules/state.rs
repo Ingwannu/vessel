@@ -19,13 +19,34 @@ pub(super) fn ends_an_agents(info: &ScheduleInfo) -> bool {
         && matches!(info.defined_by, Creator::Agent { .. })
 }
 
-/// An ended schedule cannot change or run.
+/// Ended schedules cannot pause/resume/run. Definition edits separately admit
+/// known Ended without reactivation (pinned Paseo schedule/service.ts458–509).
 pub(super) fn ended_refused(info: &ScheduleInfo) -> Result<(), AutomationError> {
     match info.state {
         ScheduleState::Ended { .. } | ScheduleState::Unknown => Err(AutomationError::Conflict(
             "the schedule has ended".to_owned(),
         )),
         ScheduleState::Active { .. } | ScheduleState::Paused { .. } => Ok(()),
+    }
+}
+
+/// Definition updates preserve a known Ended record, not a newer unknown state.
+/// Pinned Paseo schedule/service.ts458–509 keeps completed status on update.
+pub(super) fn update_admitted(info: &ScheduleInfo) -> Result<(), AutomationError> {
+    match info.state {
+        ScheduleState::Active { .. } | ScheduleState::Paused { .. } => Ok(()),
+        ScheduleState::Ended { reason, .. } => match reason {
+            EndReason::MaxRuns
+            | EndReason::Expired
+            | EndReason::CreatorGone
+            | EndReason::TargetGone => Ok(()),
+            EndReason::Unknown => Err(AutomationError::Conflict(
+                "the schedule has an unknown end reason".to_owned(),
+            )),
+        },
+        ScheduleState::Unknown => Err(AutomationError::Conflict(
+            "the schedule has an unknown state".to_owned(),
+        )),
     }
 }
 

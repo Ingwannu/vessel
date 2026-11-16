@@ -18,6 +18,8 @@ tokio = { workspace = true, features = ["fs"] }
 tokio-util.workspace = true
 toml_edit.workspace = true
 tracing.workspace = true
+# Parent directory file observation (ADR 0083), already used by vessel-lsp.
+notify.workspace = true
 
 [target.'cfg(unix)'.dependencies]
 # `O_NONBLOCK | O_NOFOLLOW` for reads (`regular`); FIFOs in its tests.

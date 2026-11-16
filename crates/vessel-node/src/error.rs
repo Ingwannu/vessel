@@ -118,9 +118,18 @@ pub(crate) enum ServiceError {
     /// Side creation inherits a spec or returns an existing side; it cannot apply overrides.
     #[error("creation labels cannot override a side question's inherited spec")]
     SideCreationLabels,
+    /// Side conversations inherit their existing spec instead of creating a new one.
+    #[error("a listing override cannot replace a side question's inherited spec")]
+    SideCreationListing,
     /// No protocol has published the label metadata yet.
     #[error("session labels have no assigned protocol version")]
     LabelsUnassigned,
+    /// A manifest must not install unassigned discovery metadata before starting.
+    #[error("session listing has no assigned protocol version")]
+    ListingUnassigned,
+    /// Export must preserve current metadata across every peer boundary.
+    #[error(transparent)]
+    MetadataProtocol(vessel_rpc::CallError),
     /// The session has ended and is served from the store (it ended in an
     /// earlier run, or in this one and was handed over); it can be read but
     /// not driven.
@@ -431,15 +440,18 @@ impl ServiceError {
             | Self::ReadAhead { .. }
             | Self::InvalidTtl
             | Self::SideCreationLabels
+            | Self::SideCreationListing
             | Self::NoScopes
             | Self::UnknownProfile(_)
             | Self::ProfileRemoved { .. }
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
             Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
-            Self::MoveRoute { .. } | Self::NotAPoint { .. } | Self::LabelsUnassigned => {
-                ErrorCode::Unsupported
-            }
+            Self::MoveRoute { .. }
+            | Self::NotAPoint { .. }
+            | Self::LabelsUnassigned
+            | Self::ListingUnassigned => ErrorCode::Unsupported,
+            Self::MetadataProtocol(error) => error.code().unwrap_or(ErrorCode::Internal),
             Self::SideQuestion(error) => error.code(),
             Self::Session(error) => error.code(),
             Self::StartRoot(error) => return error.wire(),

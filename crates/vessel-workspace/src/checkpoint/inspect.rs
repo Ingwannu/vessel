@@ -6,7 +6,7 @@ use super::{
 };
 use std::fs::File;
 use tokio_util::sync::CancellationToken;
-use vessel_proto::checkpoint::{CheckpointError, CheckpointPath, FileBytes, FileState};
+use vessel_proto::checkpoint::{CheckpointError, CheckpointFileBytes, CheckpointPath, FileState};
 
 pub(super) fn file(
     source: &mut File,
@@ -18,7 +18,7 @@ pub(super) fn file(
     let (digest, bytes) = content::transfer(
         source,
         &mut std::io::sink(),
-        Budget::Exact(FileBytes::new(before.len())?),
+        Budget::Exact(CheckpointFileBytes::new(before.len())?),
         cancellation,
     )?;
     if Identity::of(&source.metadata()?) != identity {

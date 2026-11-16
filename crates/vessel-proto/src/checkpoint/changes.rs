@@ -26,10 +26,10 @@ pub struct Change {
     pub path: CheckpointPath,
     /// Destructive effects are visible before admission.
     pub kind: ChangeKind,
-    /// Raw bytes before the effect; absent means the path does not exist.
-    pub before: Option<super::FileBytes>,
-    /// Raw bytes after the effect; absent means removal.
-    pub after: Option<super::FileBytes>,
+    /// Covered byte count before the effect; absent means the path does not exist.
+    pub before: Option<super::CheckpointFileBytes>,
+    /// Covered byte count after the effect; absent means removal.
+    pub after: Option<super::CheckpointFileBytes>,
 }
 impl EffectiveDesiredImage {
     /// Only differences from this frozen target appear in a confirmation.
@@ -78,7 +78,7 @@ impl EffectiveDesiredImage {
             .collect()
     }
 }
-fn size(state: Option<&FileState>) -> Option<super::FileBytes> {
+fn size(state: Option<&FileState>) -> Option<super::CheckpointFileBytes> {
     match state {
         Some(FileState::Present { bytes, .. }) => Some(*bytes),
         None | Some(FileState::Absent) => None,
@@ -90,7 +90,8 @@ mod tests {
     use crate::{
         BlobHash,
         checkpoint::{
-            CheckpointPath, Entry, FileBytes, FileMetadata, GroupId, OrdinaryMode, OwnerId,
+            CheckpointFileBytes, CheckpointPath, Entry, FileMetadata, GroupId, OrdinaryMode,
+            OwnerId,
         },
     };
     fn metadata(mode: u32) -> FileMetadata {
@@ -106,7 +107,7 @@ mod tests {
                 .unwrap(),
             state: FileState::Present {
                 digest: BlobHash::from_bytes([content; 32]),
-                bytes: FileBytes::new(1).unwrap(),
+                bytes: CheckpointFileBytes::new(1).unwrap(),
                 metadata: metadata(mode),
             },
         }])

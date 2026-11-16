@@ -76,7 +76,7 @@ macro_rules! bounded {
     };
 }
 bounded!(
-    FileBytes,
+    CheckpointFileBytes,
     u64,
     "u64",
     CHECKPOINT_FILE_BYTES,
@@ -139,10 +139,12 @@ mod tests {
     #[test]
     fn bounds_are_checked_on_decode_not_only_in_callers() {
         assert!(
-            serde_json::from_str::<FileBytes>(&CHECKPOINT_FILE_BYTES.saturating_add(1).to_string())
-                .is_err()
+            serde_json::from_str::<CheckpointFileBytes>(
+                &CHECKPOINT_FILE_BYTES.saturating_add(1).to_string()
+            )
+            .is_err()
         );
-        assert!(FileBytes::new(CHECKPOINT_FILE_BYTES).is_ok());
+        assert!(CheckpointFileBytes::new(CHECKPOINT_FILE_BYTES).is_ok());
         assert!(PathCount::new(CHECKPOINT_PATHS.saturating_add(1)).is_err());
         assert!(serde_json::from_str::<CheckpointPath>("\"\"").is_err());
         assert!(serde_json::from_str::<CheckpointPath>("\"../token\"").is_err());

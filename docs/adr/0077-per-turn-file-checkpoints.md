@@ -384,7 +384,7 @@ and its conversation action remain separate.
 
 `vessel-proto::checkpoint` owns validated CheckpointId, RestorePlanId, RestoreId,
 CheckpointCursor, ChangeCursor, CaptureId, CaptureGeneration, ImageBytes,
-FileBytes, PathCount, ContentDigest, EffectiveDesiredImage, DesiredEntry,
+CheckpointFileBytes, PathCount, ContentDigest, EffectiveDesiredImage, DesiredEntry,
 WorkspaceGeneration, CheckpointBoundary, CheckpointState, ChangeKind and
 RestoreOutcome. Reuse SessionId, EventSeq, RelPath and permission/scopes types.
 No String/boolean/numeric sentinel carries a closed kind or domain value.

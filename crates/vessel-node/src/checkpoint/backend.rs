@@ -83,7 +83,55 @@ fn publication_write(
 pub(crate) fn reason(error: StoreError) -> CheckpointError {
     let reason = match &error {
         StoreError::Checkpoint(CheckpointStoreError::Refused(reason)) => *reason,
-        _ => CheckpointError::Unknown,
+        StoreError::Checkpoint(
+            CheckpointStoreError::Duration(_)
+            | CheckpointStoreError::Id(_)
+            | CheckpointStoreError::Sql(_)
+            | CheckpointStoreError::Json(_),
+        )
+        | StoreError::Io { .. }
+        | StoreError::NotPrivate { .. }
+        | StoreError::Locked { .. }
+        | StoreError::Random(_)
+        | StoreError::InvalidNodeId { .. }
+        | StoreError::InvalidNodeKey { .. }
+        | StoreError::InvalidToken { .. }
+        | StoreError::NewerSchema { .. }
+        | StoreError::Sqlite(_)
+        | StoreError::Commit(_)
+        | StoreError::RegistryMissing(_)
+        | StoreError::RegistryInactive(_)
+        | StoreError::RegistryConflict
+        | StoreError::RegistryFull
+        | StoreError::RegistryRecordTooLarge
+        | StoreError::RegistryRevisionExhausted
+        | StoreError::RegistryRevisionRange(_)
+        | StoreError::RegistryDecode(_)
+        | StoreError::Corrupt { .. }
+        | StoreError::CorruptId { .. }
+        | StoreError::CorruptDevice { .. }
+        | StoreError::CorruptAttachment { .. }
+        | StoreError::CorruptMessage { .. }
+        | StoreError::UnknownDevice(_)
+        | StoreError::DeviceExists(_)
+        | StoreError::Encode(_)
+        | StoreError::OutOfRange(_)
+        | StoreError::UnknownSession(_)
+        | StoreError::SessionExists(_)
+        | StoreError::SessionLive(_)
+        | StoreError::SessionEnded(_)
+        | StoreError::Attachment(_)
+        | StoreError::OutOfOrder { .. }
+        | StoreError::InboxGone
+        | StoreError::PushDenied
+        | StoreError::PushFull
+        | StoreError::CorruptPush { .. }
+        | StoreError::NotChild(_)
+        | StoreError::InvalidParentage(_)
+        | StoreError::Closed
+        | StoreError::Thread(_)
+        | StoreError::UsageBusy(_)
+        | StoreError::Task(_) => CheckpointError::Unknown,
     };
     // This ownership boundary deliberately discards driver paths/SQL sources;
     // callers expose only the stable refusal, never the private source text.

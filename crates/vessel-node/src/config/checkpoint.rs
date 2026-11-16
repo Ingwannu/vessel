@@ -14,8 +14,7 @@ pub(super) fn defaults(
 ) -> Result<IgnoreDefaults, CheckpointError> {
     let config = config
         .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".config"));
+        .map_or_else(|| home.join(".config"), PathBuf::from);
     IgnoreDefaults::new(config.join("git").join("ignore")).map_err(|error| error.reason())
 }
 impl Config {

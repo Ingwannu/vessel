@@ -35,6 +35,7 @@ pub(crate) use checkpoints::PreviewRead;
 mod error;
 #[cfg(any(test, target_os = "linux"))]
 pub(crate) mod exclusion;
+mod file_panels;
 mod files;
 mod forge;
 mod git;

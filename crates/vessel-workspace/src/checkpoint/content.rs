@@ -8,23 +8,23 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{
     BlobHash,
-    checkpoint::{CHECKPOINT_IO_CHUNK, CheckpointError, FileBytes},
+    checkpoint::{CHECKPOINT_IO_CHUNK, CheckpointError, CheckpointFileBytes},
 };
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Budget {
-    ImageRemaining(FileBytes),
-    Exact(FileBytes),
+    ImageRemaining(CheckpointFileBytes),
+    Exact(CheckpointFileBytes),
 }
 impl Budget {
-    fn check(self, total: FileBytes) -> Result<(), CheckpointError> {
+    fn check(self, total: CheckpointFileBytes) -> Result<(), CheckpointError> {
         match self {
             Self::ImageRemaining(maximum) if total > maximum => Err(CheckpointError::ImageTooLarge),
             Self::Exact(expected) if total > expected => Err(CheckpointError::CaptureUnstable),
             Self::ImageRemaining(_) | Self::Exact(_) => Ok(()),
         }
     }
-    fn finish(self, total: FileBytes) -> Result<(), CheckpointError> {
+    fn finish(self, total: CheckpointFileBytes) -> Result<(), CheckpointError> {
         match self {
             Self::Exact(expected) if total != expected => Err(CheckpointError::CaptureUnstable),
             Self::ImageRemaining(_) | Self::Exact(_) => Ok(()),
@@ -36,7 +36,7 @@ pub(super) fn transfer(
     destination: &mut impl Write,
     budget: Budget,
     cancellation: &CancellationToken,
-) -> Result<(BlobHash, FileBytes), Error> {
+) -> Result<(BlobHash, CheckpointFileBytes), Error> {
     let mut buffer = vec![0_u8; CHECKPOINT_IO_CHUNK].into_boxed_slice();
     let mut total = 0_u64;
     let mut hash = Sha256::new();
@@ -51,12 +51,12 @@ pub(super) fn transfer(
         total = total
             .checked_add(u64::try_from(count).map_err(|_large| CheckpointError::FileTooLarge)?)
             .ok_or(CheckpointError::FileTooLarge)?;
-        budget.check(FileBytes::new(total)?)?;
+        budget.check(CheckpointFileBytes::new(total)?)?;
         let bytes = buffer.get(..count).ok_or(CheckpointError::FileTooLarge)?;
         hash.update(bytes);
         destination.write_all(bytes)?;
     }
-    let total = FileBytes::new(total)?;
+    let total = CheckpointFileBytes::new(total)?;
     budget.finish(total)?;
     Ok((BlobHash::from_bytes(hash.finalize().into()), total))
 }

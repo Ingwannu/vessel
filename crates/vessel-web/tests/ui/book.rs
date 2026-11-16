@@ -137,7 +137,9 @@ async fn forgetting_a_node_closes_its_connection_and_ends_its_streams_as_removed
 
         // Gone for calls, follows and retries, with no dial to it again.
         let before = dials.load(Ordering::SeqCst);
-        let id = tab.call("box", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("box", &Call::ListSessions(ListSessions::default()))
+            .await;
         match reply(&mut tab, id).await {
             CallOutcome::Err(Failure::Unreachable { message }) => {
                 assert!(message.contains("no node named box"), "{message}");
@@ -154,7 +156,9 @@ async fn forgetting_a_node_closes_its_connection_and_ends_its_streams_as_removed
         assert!(message.contains("no node named box"), "{message}");
         assert_eq!(dials.load(Ordering::SeqCst), before);
         // The other name for the same node is untouched.
-        let id = tab.call("lab", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("lab", &Call::ListSessions(ListSessions::default()))
+            .await;
         assert!(matches!(reply(&mut tab, id).await, CallOutcome::Ok(_)));
     }))
     .await;
@@ -313,7 +317,9 @@ async fn rename_and_default_answer_with_the_book_the_file_holds() {
         assert_eq!(keys(&nodes), ["big", "lab"]);
         assert_eq!(default(&nodes), Some("big"));
         assert_eq!(on_disk().default_node, Some("big".parse().unwrap()));
-        let id = tab.call("big", &Call::ListSessions(ListSessions)).await;
+        let id = tab
+            .call("big", &Call::ListSessions(ListSessions::default()))
+            .await;
         assert!(matches!(reply(&mut tab, id).await, CallOutcome::Ok(_)));
 
         // Saving a name that did not change is no change.

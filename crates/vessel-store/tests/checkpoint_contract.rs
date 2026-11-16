@@ -5,8 +5,8 @@ use vessel_proto::{
     BlobHash, EventRecord, EventSeq, HarnessKind, SessionEvent, SessionId, SessionInfo,
     SessionMode, SessionSpec, SessionStatus, WorktreeId,
     checkpoint::{
-        Boundary, CaptureGeneration, CaptureId, CaptureKey, CheckpointEvent, CheckpointId,
-        CheckpointOwner, Entry, FileBytes, FileFingerprint, FileImage, FileMetadata, FileState,
+        Boundary, CaptureGeneration, CaptureId, CaptureKey, CheckpointEvent, CheckpointFileBytes,
+        CheckpointId, CheckpointOwner, Entry, FileFingerprint, FileImage, FileMetadata, FileState,
         GroupId, IgnoreFingerprint, ObjectFingerprint, ObservedEntry, ObservedPresence,
         ObservedSnapshot, OrdinaryMode, OwnerId, PathCount, PhysicalRoot, RestoreId,
         RestoreOutcome, RestorePlanId, RootFingerprint, SnapshotEvidence,
@@ -97,7 +97,7 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         path: path.clone(),
         state: FileState::Present {
             digest: BlobHash::from_bytes([4; 32]),
-            bytes: FileBytes::new(0).unwrap(),
+            bytes: CheckpointFileBytes::new(0).unwrap(),
             metadata,
         },
     }])

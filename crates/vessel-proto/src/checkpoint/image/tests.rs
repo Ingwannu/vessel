@@ -7,7 +7,7 @@ fn image(mode: u32, byte: u8) -> FileImage {
             .unwrap(),
         state: FileState::Present {
             digest: BlobHash::from_bytes([byte; 32]),
-            bytes: FileBytes::new(1).unwrap(),
+            bytes: CheckpointFileBytes::new(1).unwrap(),
             metadata: metadata(mode),
         },
     }])
