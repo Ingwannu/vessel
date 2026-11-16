@@ -204,3 +204,21 @@ framed Scenario and unit fixtures share the incoming make_state, extended only
 with the existing usage hub; the obsolete duplicate Home drop/state constructor
 is removed. The app's earlier pending node runtime ancestry is still not a
 consumer-ready root package or a values carrier.
+
+## Receiving verification of shared refresh
+
+Exact executable source `dbd7a471777b0596bfa24121681884e23de2475f` has:
+
+| Run | Actual result | Limit |
+| --- | --- | --- |
+| wp-usage-native-context-20261116T024714Z-dbd7a471 | Three-crate all-target strict Clippy0, fonts0 | No runtime/capture implied |
+| wp-usage-native-context-20261116T025154Z-dbd7a471 | Usage tests66/0/0: App3, Link6, View57 | Headless header width/theme/locale probes, not inspected images |
+| wp-usage-native-wasm-20261116T025154Z-dbd7a471 | App and Link wasm32 check0, no warnings | Check only; no browser runtime claim |
+
+The header/footer probe really executes both locales and themes at compact358
+and desktop608 content widths using the shared refresh. No current whole native
+gate, managed capture, actual cog/tooltip interaction image or V4 package approval
+is inferred. New generic RPCs remain pending until canonical node review,
+assignment and receiving integration; current inherited native root ancestry is
+still not a runtime handoff. The S2 footer, locale amount/count and actual applied
+provider/plugin source dependencies remain explicitly incomplete.
