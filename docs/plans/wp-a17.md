@@ -512,3 +512,10 @@ or success claim. Exact original-recipient routing remains unchanged. The
 Link request validator is gated with its sole native actor caller, avoiding an
 unused browser-only method. The source run failed on these own diagnostics and
 the separately corrected Inbox sidebar arm; the corrected wasm check is owed.
+
+
+Exact f1f69420c receiving checks now passed: four native crates all-target
+strict rc0 (actual App/Link/Kit checking; unchanged View cached) and locked
+wasm32 Link/App check rc0 with no warnings. The actual corrected native unit
+run is newly submitted and remains pending. Earlier compiler-red runs retain
+their failures; this is no whole gate, OS callback rerun or platform proof.
