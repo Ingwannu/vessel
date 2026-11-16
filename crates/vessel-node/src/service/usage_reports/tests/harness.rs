@@ -16,6 +16,10 @@ use vessel_proto::{ClientInfo, DeviceId, Scope, usage_reports::BuiltinUsageSourc
 use vessel_rpc::{Framed, Server, ServerConfig};
 const FRAME_BYTES: usize = 65_536;
 pub(super) const SERVICE_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(30);
+// Real node setup includes its blocking database/directory initialization. Give
+// that phase the existing e2e step budget, still below the unchanged case bound;
+// protocol/barrier/reply phases keep the shorter shared ten-second deadline.
+const NODE_START_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
 pub(super) struct Fixture {
     pub(super) root: tempfile::TempDir,
     node: Option<crate::Node>,
@@ -46,7 +50,6 @@ impl Fixture {
                 (name == "CURSOR_ACCESS_TOKEN").then(|| "synthetic-service-source".into())
             })
         })
-        .phase("usage phase: Self::with_access")
         .await
     }
     pub(super) async fn with_access(
@@ -74,7 +77,7 @@ impl Fixture {
             format: RecordedUsageFormat::Report,
         };
         let node = crate::Node::start(config)
-            .phase("usage phase: crate::Node::start")
+            .phase_for("usage phase: crate::Node::start", NODE_START_BUDGET)
             .await
             .unwrap();
         let stop = CancellationToken::new();
