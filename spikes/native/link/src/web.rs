@@ -28,7 +28,7 @@ use chrono::Utc;
 use tokio::sync::mpsc;
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_proto::{ErrorCode, PairingLink};
+use vessel_proto::PairingLink;
 
 use crate::demo::Demo;
 use crate::{ActAnswer, ActFailed, CHANNEL, Command, Event, Rejected, Unsent};
@@ -227,7 +227,7 @@ impl Link {
                 session,
                 kind: act.kind(),
                 result: Err(ActFailed {
-                    code: Some(ErrorCode::Unsupported),
+                    code: Some(vessel_proto::ErrorCode::Unsupported),
                     message: "The browser's demo takes no session actions".to_owned(),
                 }),
             })),
@@ -238,7 +238,7 @@ impl Link {
             Command::Workspace { machine, ask } => self.emit(Event::Workspace {
                 machine,
                 answer: ask.refused(&Problem::Node {
-                    code: ErrorCode::Unsupported,
+                    code: vessel_proto::ErrorCode::Unsupported,
                     message: "The browser's demo has no projects".to_owned(),
                 }),
             }),

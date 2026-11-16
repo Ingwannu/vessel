@@ -16,8 +16,8 @@
 use std::cell::Cell;
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _,
-    Styled as _, Window, div, px,
+    Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _, Styled as _, Window,
+    div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
@@ -32,6 +32,7 @@ use crate::shell::Shell;
 
 mod open;
 pub(crate) use open::Open;
+mod body;
 
 /// A session asked for from the draft and not created yet.
 #[derive(Debug, Clone)]
@@ -366,65 +367,13 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let t = shell.t;
     let view = &shell.areas.session;
     if let Some(pending) = &view.pending
         && view.conversation.entries().is_empty()
     {
         return starting(pending, shell, tokens, window, cx);
     }
-    let Some(open) = &view.open else {
-        return div();
-    };
-    let detail = format!("{} · {}", open.machine, open.agent);
-    let body: AnyElement = if open.structured {
-        crate::region::timeline(shell, tokens, window, cx)
-    } else {
-        crate::areas::terminal::body(shell, tokens, window, cx)
-    };
-    let working = view.conversation.turn_running();
-    let screen = div()
-        .size_full()
-        .flex()
-        .flex_col()
-        .child(super::conversation::bar(
-            shell,
-            t.title(&open.title).to_owned(),
-            detail,
-            tokens,
-            window,
-            cx,
-        ))
-        .child(body)
-        .children(resume_note(shell, open, tokens))
-        .children(super::sessions::lifecycle_error(shell, tokens))
-        .when(open.structured, |frame| {
-            // The conversation's slot over the card (`conversation::dock`:
-            // the queue), at the card's width.
-            let dock = super::conversation::dock(shell, tokens, window, cx);
-            // An ended session its agent cannot pick up again has no
-            // composer: the banner in the dock says so (Paseo's archived
-            // agent shows only its callout); a send would only try to
-            // start it again.
-            let ended_for_good = shell.conversation_cannot_resume();
-            // The draft's pills on the session's own options (Paseo's
-            // AgentControls on a running agent).
-            let touch = crate::areas::draft::compact(window);
-            let (controls, over) =
-                crate::areas::draft::running_controls(shell, touch, tokens, window, cx).unzip();
-            frame
-                .children(dock.map(column))
-                .when(!ended_for_good, |frame| {
-                    frame.child(composer(shell, tokens, working, controls, window, cx))
-                })
-                .children(over.into_iter().flatten())
-        })
-        .children(super::conversation::overlays(shell, tokens, window, cx))
-        .children(super::sessions::lifecycle_overlay(
-            shell, tokens, window, cx,
-        ));
-    // Track F's slot: the screen, with the code panel beside it when out.
-    crate::areas::layout::frame(shell, screen, tokens, window, cx)
+    crate::areas::layout::frame(shell, body::render_body, tokens, window, cx)
 }
 
 /// Under an ended session's conversation: why it could not be started
@@ -656,5 +605,4 @@ fn bubble(text: &str, tokens: &Tokens) -> Div {
     )
 }
 
-use vessel_app_kit::ui::FluentBuilder as _;
 use vessel_app_kit::ui::StatefulInteractiveElement as _;
