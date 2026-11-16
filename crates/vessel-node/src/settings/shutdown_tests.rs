@@ -95,8 +95,14 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         );
         phase("teardown physical drain", stop).await;
         assert!(runtime_stop.is_cancelled());
+        // close() settles the writer; retained read-pool clones may still read
+        // committed snapshots. A real writer request is the closure receipt.
         assert!(matches!(
-            phase("Store remains live", store.sessions()).await,
+            phase(
+                "closed Store refuses policy writes",
+                store.set_restart_policy(false)
+            )
+            .await,
             Err(vessel_store::StoreError::Closed)
         ));
         assert!(matches!(

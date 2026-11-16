@@ -332,3 +332,18 @@ A deadline is a failing observation, never a physical completion or capacity
 release. Owned workers keep their original guards/accounting; an abandoned
 lookup gate refuses a late child, and fixture unwinding cancels the original
 launch owners. Successful paths still join the actual writer/runtime/Store.
+
+### Match actual completion and decoder contracts
+
+The first executed predecessor library set found two incorrect fixture
+expectations. Store close drains and closes its writer; cloned read-pool handles
+may still read committed snapshots. The teardown test now proves closure with
+a real policy-write request returning Closed, after the queued accepted write
+and SQL apply succeeded. A readable snapshot alone is no closure receipt.
+
+The legacy coverage query compares generic JSON with a separately known typed
+model. A well-formed but typed-invalid document must remain conservative
+PreserveBeforeWrite, not acquire a new validation policy. The privacy fixture
+keeps its canonical typed-error assertions, pins that existing coverage result,
+and separately feeds malformed JSON to exercise the actual compatibility-parser
+error chain and unchanged bytes. No product decoder/store behavior changes.

@@ -62,6 +62,16 @@ fn snapshot_diagnostics_never_reveal_the_private_concrete_parse_cause() {
         bytes.as_bytes()
     );
     assert!(error.source().unwrap().source().is_none());
+    // The legacy coverage query compares JSON with a separately known model;
+    // it is not a second typed validator. Preserve its conservative result.
+    assert!(
+        data.settings_hold_more_than(&SavedNodeSettings::default())
+            .unwrap()
+    );
+    // Exercise an actual compatibility-parser failure independently of the
+    // canonical typed failure, retaining the same private-value canary.
+    let malformed = format!(r#"{{"drivers":"{MARKER}""#);
+    std::fs::write(data.settings_path(), &malformed).unwrap();
     let compatibility = data
         .settings_hold_more_than(&SavedNodeSettings::default())
         .unwrap_err();
@@ -71,4 +81,8 @@ fn snapshot_diagnostics_never_reveal_the_private_concrete_parse_cause() {
         assert!(!format!("{error:?}").contains(MARKER));
         current = error.source();
     }
+    assert_eq!(
+        std::fs::read(data.settings_path()).unwrap(),
+        malformed.as_bytes()
+    );
 }
