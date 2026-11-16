@@ -8,7 +8,7 @@
 //!   Search gets a fresh field per opening and accepts input only in its visible
 //!   listing phase, so an old queued edit cannot undo close/reopen query reset.
 //! - Cost: a new form target gets a new input identity, not a second renderer.
-//! - Search surface: the reviewed shared SearchField owns Search/X chrome on
+//! - Search surface: the reviewed shared `SearchField` owns Search/X chrome on
 //!   that same identified engine. Replacing the wrapper never replaces the
 //!   opening/source/Listing admission above a retained manager query.
 

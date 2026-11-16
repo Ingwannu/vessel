@@ -624,3 +624,10 @@ executed source. Node source review/number assignment/receiving acceptance remai
 owed. The app independently adopted announced base14.6; its manager consumer is
 still uncompiled until the following remote native narrow. Shared producer
 V1 row304 is complete and does not substitute for this consumer's verification.
+
+
+Native consumer strict `wp-labels-20261116T044136Z-14bbb9b9` reached App checking
+and failed only the new SearchField comment's missing Markdown backticks.
+Correct that comment only; no product expression, fixture or assertion changes.
+The actual consumer runtime has not run. Keep the red result; corrected strict
+and A6 App tests are still owed before a bounded consumer review request.
