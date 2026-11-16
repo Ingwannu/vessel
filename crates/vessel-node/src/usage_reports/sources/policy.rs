@@ -5,24 +5,6 @@ use super::{
 };
 use vessel_proto::usage_reports::{UsageDisclosureVersion, UsageSourceGrant};
 impl Owner {
-    /// Atomically replace the saved grants; the file's state is unknown after
-    /// a failure, so the next choice writes whatever memory then holds.
-    async fn save(&mut self, grants: ReportSourceGrants) -> Result<(), WireError> {
-        self.persisted = None;
-        let dir = self.dir.clone();
-        let saved = grants.clone();
-        tokio::task::spawn_blocking(move || dir.write_usage_sources(&saved))
-            .await
-            .map_err(|_task| changed())?
-            .map_err(|_private| {
-                WireError::new(
-                    ErrorCode::Internal,
-                    "source consent could not be saved; read the current choice before trying again",
-                )
-            })?;
-        self.persisted = Some(grants);
-        Ok(())
-    }
     pub(super) async fn set(
         &mut self,
         request: SetUsageSourceLookup,
@@ -59,15 +41,11 @@ impl Owner {
             self.policy_generation = self.stop.child_token();
             self.invalidate(source);
             if request.policy == ExternalLookup::Off {
-                // Revocation applies in memory at once, even if saving fails.
                 self.grants = next.clone();
             }
-        }
-        // Decide the write against the file, never against memory: after a
-        // failed save of Off, memory already reads Off while the file may
-        // still grant the source, and a restart would revive that grant.
-        if self.persisted.as_ref() != Some(&next) {
-            self.save(next.clone()).await?;
+            let dir = self.dir.clone();
+            let saved = next.clone();
+            tokio::task::spawn_blocking(move||dir.write_usage_sources(&saved)).await.map_err(|_task|changed())?.map_err(|_private|WireError::new(ErrorCode::Internal,"source consent could not be saved; read the current choice before trying again"))?;
             self.grants = next;
         }
         if !global.still_current() {
