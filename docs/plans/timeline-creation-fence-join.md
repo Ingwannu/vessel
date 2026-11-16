@@ -68,3 +68,25 @@ No production registration, RPC, protocol allocation, schema, Store writer,
 provider or actual spawn/stop controller is introduced by the test-only
 common source. The receiving fixture and all changed-source checks/review remain
 owed before even test-only composition is qualified.
+
+## Continuation checkpoint
+
+The current composition is 340f8e4430ee084b2278d48e7c4fc4cdb04fc6a6. Its
+proto/store/node all-target/proto TS strict run passed; the bd38 Node library
+functional run remains queued. These are scoped checks, not receiving or launch
+qualification. Existing duplicated-identity and fixture-lint failures remain
+recorded at their original immutable snapshots.
+
+A functional guard constraint is still OPEN despite that strict pass: inherited
+reserve_prepared constructs the execution UUID/watch and reservation Arc inside
+the Agents guard. The count owner prepared correction
+000daf969f6e9ff6efe60798537831717960017d outside this composition; it is not
+adopted here. Resume with that exact correction and a private execution-module
+regression proving a prepared loser cannot replace or notify the incumbent's
+execution/watch/credential/marker. Add no getter, observer or Debug parser for
+that assertion. No public/private launch path is qualified before this join.
+
+The lower custody prototype 1108f5c83 and actual spawn/stop/controller are also
+not adopted. The original capture, retained placement, count, durable Begin and
+tracked owner must remain distinct and correctly settled. No new work, branch
+merge or runtime activation was started for this continuation checkpoint.
