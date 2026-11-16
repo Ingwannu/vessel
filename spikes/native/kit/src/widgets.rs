@@ -79,7 +79,13 @@ pub fn outline_button_with_glyph(
     enabled: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    button::outline_pressable(glyph_body(glyph, label, tone, enabled, tokens), id, enabled)
+    let label = label.into();
+    button::outline_pressable(
+        glyph_body(glyph, label.clone(), tone, enabled, tokens),
+        id,
+        label,
+        enabled,
+    )
 }
 
 fn glyph_body(

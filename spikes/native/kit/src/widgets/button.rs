@@ -305,9 +305,15 @@ fn render(
     let state = config.availability();
     let hover = config.hover_ink(tokens);
     let pressed = config.pressed_opacity(tokens);
+    let name = content.name();
     body(content, config, presentation, tokens)
         .id(id)
         .group(BUTTON_GROUP)
+        // Paseo's Button is always `accessibilityRole="button"`, named by its
+        // words (TRACKER 782); an icon-only one is named by its caller
+        // (`Button::aria_label`, or `aria_label` on the returned element).
+        .role(gpui::Role::Button)
+        .when_some(name, |button, name| button.aria_label(name))
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()
@@ -330,11 +336,15 @@ fn outline_config(enabled: bool) -> ButtonConfig {
 pub(super) fn outline_pressable(
     body: Div,
     id: impl Into<gpui::ElementId>,
+    label: SharedString,
     enabled: bool,
 ) -> Stateful<Div> {
-    body.id(id).when(enabled, |button| {
-        button.cursor_pointer().active(|style| style.opacity(0.85))
-    })
+    body.id(id)
+        .role(gpui::Role::Button)
+        .aria_label(label)
+        .when(enabled, |button| {
+            button.cursor_pointer().active(|style| style.opacity(0.85))
+        })
 }
 pub(super) fn outline_label(
     id: impl Into<gpui::ElementId>,
@@ -344,12 +354,13 @@ pub(super) fn outline_label(
 ) -> Stateful<Div> {
     outline_pressable(
         body(
-            ButtonContent::Label(label),
+            ButtonContent::Label(label.clone()),
             outline_config(enabled).into(),
             Presentation::PublishedOutline(tokens.neutral.foreground),
             tokens,
         ),
         id,
+        label,
         enabled,
     )
 }
@@ -401,6 +412,8 @@ fn wrapping(label: SharedString) -> Div {
 #[path = "button_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+mod accessibility_tests;
 #[cfg(test)]
 mod input_tests;
 #[cfg(test)]

@@ -22,6 +22,8 @@
 //!   text input (selection, clipboard, input methods), hidden behind
 //!   [`TextField`].
 
+#[cfg(test)]
+mod a11y_snapshot;
 pub mod agent_mark;
 pub mod alert;
 pub mod assets;
@@ -35,6 +37,7 @@ pub mod chrome;
 pub mod code;
 pub mod code_editor;
 pub mod command;
+pub mod control_names;
 pub mod control_sizing;
 pub mod copy;
 pub mod dialog;
@@ -89,6 +92,7 @@ pub use assets::Assets;
 pub use card_button::{CardLook, CardState, card_button};
 pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
+pub use control_names::{ControlNames, control_names, set_control_names};
 pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};

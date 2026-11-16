@@ -51,6 +51,8 @@ mod compact_tests;
 mod configuration_tests;
 mod header_back;
 #[cfg(test)]
+mod accessibility_tests;
+#[cfg(test)]
 mod header_back_tests;
 mod header_content;
 mod header_search;
@@ -358,9 +360,14 @@ fn header<V: 'static>(
     } = parts;
     let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
+    // Paseo names both header controls for assistive technology
+    // (adaptive-modal-sheet.tsx 411-434); the kit takes the words from the app.
+    let names = crate::control_names(cx);
     let hover = surfaces.surface2;
     let back =
-        back.map(|back| header_back::button(back, surfaces.foreground_muted, surfaces.foreground));
+        back.map(|back| {
+            header_back::button(back, &names.back, surfaces.foreground_muted, surfaces.foreground)
+        });
     let row = div()
         .debug_selector(|| "dialog-header".to_owned())
         .flex()
@@ -393,6 +400,8 @@ fn header<V: 'static>(
             div()
                 .id("dialog-close")
                 .debug_selector(|| "dialog-close".to_owned())
+                .role(gpui::Role::Button)
+                .aria_label(names.close)
                 .size(px(close_size))
                 .flex()
                 .items_center()
