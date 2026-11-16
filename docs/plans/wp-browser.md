@@ -8,6 +8,32 @@ necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
 
+## Bounded wait controller follow-through
+
+Reference desktop browser-automation/service.ts:68–70,986–1040 polls text or
+URL substring immediately and every25ms using the existing5s default/30s cap.
+Reuse WaitFor, WaitBudget, the existing CDP driver and isolated-realm commands.
+A new sealed ConditionProbe carries a borrowed typed condition as JSON data;
+caller text never becomes function source or a trusted user gesture. The shared
+foreign method name Runtime.callFunctionOn remains one Method::CallFunction
+entry for both independently authored snapshot and condition adapters.
+
+The page controller probes under before/after frame+loader fences. A changed
+loader refuses/invalidate rather than publishing an old-document match. This
+is a deliberate fail-closed difference from the reference's unfenced polling;
+a later caller can retry against its newly observed document. Outer timeout
+reuses the existing host wait budget and retains its Elapsed cause. Cancellation
+inside CDP keeps Page's existing Uncertain state; no completed wait invents a
+navigation or effect receipt. Polling sleeps are production scheduling; fixture
+ordering uses oneshot barriers rather than timing sleeps.
+
+Four controlled protocol fixtures cover text/URL kinds and repeated false
+probes, loader replacement, caller cancellation during a held reply and an
+exhausted explicit budget. One serialized hostile-input fixture guards source
+separation. They are unexecuted; actual DOM/CFT, world loss and product actor
+qualification remain owed. Runtime export41ecc652 predates this controller and
+cannot qualify it. No protocol/setting/offering or product engine is enabled.
+
 ## Evaluation result projection follow-through
 
 Reference protocol rpc-schemas.ts:443–449 and server browser-tools/tools.ts:770–824

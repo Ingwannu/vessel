@@ -50,7 +50,7 @@ methods! {
     KeyEvent => "Input.dispatchKeyEvent",
     FrameTree => "Page.getFrameTree",
     IsolatedWorld => "Page.createIsolatedWorld",
-    SnapshotTraversal => "Runtime.callFunctionOn",
+    CallFunction => "Runtime.callFunctionOn",
 }
 
 macro_rules! request {
@@ -66,7 +66,9 @@ mod keyboard;
 mod modifiers;
 mod pointer;
 pub(crate) use keyboard::{KeyboardError, KeyboardState};
+mod condition;
 mod snapshot;
+pub(crate) use condition::ConditionProbe;
 pub(crate) use pointer::{MouseEvent, PointerState};
 pub(crate) use snapshot::{FrameTree, IsolatedWorld, SnapshotTraversal};
 

@@ -81,7 +81,7 @@ impl std::fmt::Debug for SnapshotTraversal {
         f.write_str("OwnedSnapshotTraversal([private])")
     }
 }
-request!(SnapshotTraversal, Evaluated, SnapshotTraversal);
+request!(SnapshotTraversal, Evaluated, CallFunction);
 
 #[cfg(test)]
 mod tests {

@@ -7,6 +7,9 @@
 
 mod input;
 mod snapshot;
+mod wait;
+#[cfg(test)]
+mod wait_tests;
 
 use crate::cdp::{CdpError, Client, SessionId, TargetId, requests};
 use vessel_proto::browser::{
@@ -38,6 +41,10 @@ pub(crate) enum PageError {
     Snapshot(#[from] crate::snapshot::SnapshotError),
     #[error("browser target keyboard input was refused")]
     Keyboard(#[from] requests::KeyboardError),
+    #[error("browser condition did not match within its wait budget")]
+    WaitTimeout(#[source] tokio::time::error::Elapsed),
+    #[error("browser condition result could not be read")]
+    Evaluation(#[source] requests::EvaluationError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
