@@ -195,3 +195,14 @@ an offline, fixed root resolve-only recipe to return the original lock, patch
 and hashes while rejecting registry changes. Only that generated patch is to be
 committed; no lock is edited by hand and no Cargo command runs locally. The
 qualification head must include the generated lock before its strict/tests run.
+
+The fixed offline resolve run `wp-search-lock-20261115T185248Z-53471b09`
+completed rc0 on correction source53471b099. Every returned artifact SHA was
+independently verified, and the original lock exactly matched the worktree.
+The generated patch adds only the existing testkit reference to client, RPC
+and Store lock entries. All other package fields, versions, checksums and
+registry entries are unchanged. Only the generated patch was applied, after
+its apply-check; no Cargo command ran locally. Generated lock SHA256 is
+105d6e8f86932abfd3dfe8ce528ff356126e60cf0b05204b5962de57c1dad1c8.
+The receipt records build-VM UID/GID1000, private0600 artifacts, no network,
+compilation or build scripts. Corrected-head strict and exact tests remain owed.
