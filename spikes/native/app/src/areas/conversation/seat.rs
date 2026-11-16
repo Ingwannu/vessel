@@ -58,6 +58,17 @@ impl Seat {
         }
     }
 
+    /// Read-only header metadata belongs to the same captured root resource.
+    /// Derived origins never borrow a selected successor's title catalogue.
+    pub(super) fn root_get<'a>(&self, shell: &'a Shell) -> Option<&'a ConversationArea> {
+        match self {
+            Self::Origin(parent) => parent.root_get(shell),
+            Self::Legacy { .. } => self.get(shell),
+            #[cfg(test)]
+            Self::Admitted(_) => self.get(shell),
+        }
+    }
+
     /// Legacy accounting stays legacy. Scoped failures never consult that path.
     pub(super) fn origin_height(&self, shell: &Shell) -> Option<usize> {
         match self {

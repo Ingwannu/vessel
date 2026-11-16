@@ -27,3 +27,10 @@ W4 private response integration is not imported or reproduced here. The full
 A7 consumer needs its own strict and meaningful callback tests after the minimal
 producer checks; neither prior main tests nor producer-only tests prove this
 assembled source. No live resident, focus/IME, authority or UI claim is made.
+
+Read-only fork title metadata follows the captured root Seat, recursively through
+origins. It no longer reads the selected global header catalogue. The old
+pointer-based rewind/fork eligibility remains explicitly legacy and returns no
+action for admitted carriers; it does not authorize a new scoped operation. W2
+and W12 still own actual source hydration and guarded action integration. W4's
+private A8 Paint/header adaptation remains with W4, outside this owner cut.

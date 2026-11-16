@@ -119,6 +119,9 @@ pub(super) fn paint<'a>(
     tokens: &'a Tokens,
     window: &Window,
 ) -> Paint<'a> {
+    let headers = seat
+        .root_get(shell)
+        .map_or(&area.forking.headers, |root| &root.forking.headers);
     Paint {
         catalog: shell.words,
         words: shell.t.lang.conversation(),
@@ -134,7 +137,7 @@ pub(super) fn paint<'a>(
         rewinds: rewinds(shell, area).then_some(&area.timeline),
         forks: std::ptr::eq(area, &raw const shell.areas.conversation)
             .then_some((&area.timeline, &area.forking)),
-        fork_headers: &shell.areas.conversation.forking.headers,
+        fork_headers: headers,
         above: area.above(),
     }
 }
