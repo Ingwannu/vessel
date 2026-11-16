@@ -1,10 +1,14 @@
 # Retained files and shown-source acquisition join
 
-Status: source preparation only; uncompiled, not a consumer handoff. The
-primary3d3f21570 and reviewed shown340 sources remain separately immutable.
-The isolated join uses the exact reviewed G4 final51 prerequisite for preparation;
-product adoption waits for its lead-announced green receiving line. No foreign
-selected/delivery export is promoted or modified.
+Status: WIP, uncompiled receiving assembly; not a consumer handoff. Start the
+next session from [the committed resume note](wp-files-resume.md).
+
+Current source05936b803 includes announced base14.3 (67637eb6); docs-only
+fb104148d updates the package status. G4 and bounded shown-source prerequisites
+are already on that line. The full retained-owner four-crate strict is queued
+as wp-files-narrow-20261116T033234Z-05936b80. No actual compilation, new regression,
+full native gate or V4 approval is claimed. No selected/delivery export was
+independently promoted; incoming canonical producer bytes are preserved.
 
 [Decision Log]
 - Purpose: the Files opener and Changes actions must share the original guarded
@@ -70,9 +74,9 @@ assertions remain. File read/save reducer payloads in these cases are still
 locally injected; this migration does not prove their full wire/event dispatch.
 Each fixture explicitly closes its Scenario via the original Link. That closes
 the shared fixture and Devices8 workers, not a claimed generic C5 task drain.
-All of this receiving source is uncompiled/unexecuted pending the announced
-prerequisite line and its own targeted checks; standalone340 evidence is not
-relabelled as proof for this assembly.
+All of this receiving source remains uncompiled/unexecuted pending its own
+targeted checks. Its prerequisite is now announced; standalone340 or the landed
+small shown-source evidence is not relabelled as proof for this assembly.
 
 ## Announced base14.1 preparation
 
