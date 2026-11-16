@@ -278,3 +278,25 @@ Current announced node ed4cd137 is merged before this correction; its head tests
 pending rows and exports are retained. Generated wire starts from its exact
 baseline and is regenerated on the VM, never hand-combined. Native ed272f83 is
 a separate frozen/green handoff and receives no node merge.
+
+
+## Node gate57 baseline and retained generator evidence
+
+Before the replacement whole gate, announced node `bc9cacc6` was merged under
+A8, retaining its composer/voice values, membership reader, diagnostic helpers
+and existing tests. The observation rows remain pending; no number is assigned
+by this package. The corrected observation/publication source is unchanged by
+this merge. Its focused runner/comparison check remains a separate immutable
+run rather than evidence that the combined head has executed.
+
+VM run `wp-scripts-node-narrow-20261116T003354Z-13b899c1` passed all five
+generator/inventory tests, then exited1 for the expected generated-file diff.
+All six artifact hashes, its source ancestry and unchanged generator inputs
+were checked. The exact raw patch was applied, all three wire files compared
+byte-for-byte, and the later announced baseline merged without a conflict.
+Only the final combined whole gate can establish current wire freshness.
+
+The native approval-wrap correction follows its own coordinator ruling and
+requires a new native whole, export and inspected captures; the earlier native
+1572/0/2 result does not validate that corrected source. This node package does
+not supply its canonical runtime admission or mark D2/bootstrap complete.
