@@ -29,15 +29,20 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    // Keep the page/bridge fixture unchanged. The native document adds two
-    // explicit fields (the language, and Appearance's Animations, word 39)
-    // and differs in one stated default: ended sessions are listed
+    // Keep the page/bridge fixture unchanged. The native document adds three
+    // explicit fields (the usage display, host and pins of the Usage pages,
+    // first so a stored document keeps its order; the language; and
+    // Appearance's Animations, word 39) and differs in one stated default: ended sessions are listed
     // (`SidebarView::default`, 2026-11-14; the page and the bridge still
     // write `"ended":false` until the node line's slice moves them, and
     // then this exception goes). Every other byte of its defaults still
     // comes from that fixture.
     let native_default = DEFAULT
-        .replacen('{', r#"{"language":"system","#, 1)
+        .replacen(
+            '{',
+            r#"{"usage":{"display":"used","host":null,"pins":null},"language":"system","#,
+            1,
+        )
         .replacen(
             r#""conversation":"full""#,
             r#""conversation":"full","animations":"on""#,

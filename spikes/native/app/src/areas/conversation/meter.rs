@@ -256,6 +256,7 @@ fn card(
             }
         }))
         .child(summary)
+        .children(crate::areas::usage::session_card(shell, tokens, cx))
         .when(offers_compact, |card| {
             card.child(compact(words.meter_compact(), held.is_none(), tokens, cx))
                 .children(held.map(|why| {

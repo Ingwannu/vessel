@@ -78,6 +78,9 @@ fn page(section: Section) -> Option<Draw> {
         Section::Sync => {
             Some(|shell, tokens, phone, window, cx| sync::render(shell, tokens, phone, window, cx))
         }
+        Section::Usage => Some(|shell, tokens, phone, _, cx| {
+            crate::areas::usage::render(shell, tokens, phone, cx)
+        }),
         Section::Shortcuts => Some(crate::areas::shortcuts::page::render),
         // Not drawn yet. Sidebar and Notifications wait on S3's sidebar
         // reading its items and on notifications being delivered; the rest
@@ -93,7 +96,6 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Metadata
         | Section::Voice
         | Section::Workspaces
-        | Section::Usage
         | Section::Terminals
         | Section::Plugins
         | Section::Models => None,
