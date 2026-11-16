@@ -439,3 +439,9 @@ reservation prerequisite. Its authorized CLI companion changes only the two
 new exhaustive display arms; it is adopted together with the metadata values,
 never as an independently compiling old-base producer. No actual spawn driver,
 root/cleanup/debt proof or public creation activation is supplied by this cut.
+
+Source inspection also found that delegated contexts retain the delivering
+hop's protocol. New terminal metadata is therefore held off delegated list and
+direct access before mutation; legacy forwarding stays unchanged. A separate
+pure route test ensures neither new shape inherits legacy hop compatibility.
+Origin capability propagation is not inferred from a current relay version.

@@ -41,6 +41,14 @@ pub(super) fn may_use(principal: &Principal, info: &TerminalInfo) -> bool {
     }
 }
 
+/// A delegated connection carries its delivering hop's version, not the
+/// original reader's. New metadata must not cross that unresolved boundary.
+fn metadata_route_readable(principal: &Principal, info: &TerminalInfo) -> bool {
+    let creation =
+        info.place.workspace().is_some() || matches!(info.kind, TerminalKind::Profile { .. });
+    !creation || !matches!(principal, Principal::Delegated { .. })
+}
+
 impl NodeService {
     /// Refuse metadata the caller cannot decode before any terminal mutation.
     fn terminal_for_connection(
@@ -49,7 +57,10 @@ impl NodeService {
         id: TerminalId,
     ) -> Result<Entry, TerminalsError> {
         let entry = self.terminal_for(connection.principal(), id)?;
-        if !entry.handle.info().readable_by(connection.protocol()) {
+        let info = entry.handle.info();
+        if !metadata_route_readable(connection.principal(), &info)
+            || !info.readable_by(connection.protocol())
+        {
             return Err(TerminalsError::Unsupported(
                 "this terminal requires creation protocol support".to_owned(),
             ));
@@ -176,6 +187,7 @@ impl NodeService {
         let principal = connection.principal();
         let terminals = self.terminals.list(|info| {
             may_use(principal, info)
+                && metadata_route_readable(principal, info)
                 && info.readable_by(connection.protocol())
                 && request.place.as_ref().is_none_or(|place| match place {
                     TerminalPlace::Session { session } => info.place.session() == Some(*session),

@@ -422,3 +422,14 @@ opt into the separately reviewed Redacted process/PTY diagnostic boundary.
 Blank-shell initial bytes use a separate durable input boundary; profile argv
 expansion is part of the resource effect and cannot be silently replayed after
 an unknown spawn. This change assigns no protocol number or new create RPC.
+
+Delegated reads and mutations of these new terminal shapes remain unsupported:
+a delegated Connection retains the delivering hop's protocol rather than the
+original reader's. Checking that version alone could expose an undecodable
+Workspace place through a newer relay to an older caller. Lists omit those
+entries and direct access refuses before effect. Legacy terminal shapes and
+legacy forwarding remain unchanged. This is an explicit availability limit
+until an end-to-end caller-capability contract is qualified; it is not a claim
+that a hop version proves origin capability or that new metadata can be mapped
+to a fabricated legacy project/session. A pure route regression exercises the
+two new shapes independently from the pending feature-version gate.
