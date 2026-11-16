@@ -16,8 +16,9 @@ use vessel_proto::{
 };
 
 struct Fixture {
-    _temp: tempfile::TempDir,
+    // Drop pooled reader connections before removing their files on Windows.
     store: Store,
+    _temp: tempfile::TempDir,
     now: DateTime<Utc>,
 }
 impl Fixture {
@@ -28,8 +29,8 @@ impl Fixture {
             .unwrap()
             .store;
         Self {
-            _temp: temp,
             store,
+            _temp: temp,
             now: Utc::now(),
         }
     }
