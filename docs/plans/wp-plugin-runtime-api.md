@@ -118,7 +118,11 @@ case; it never becomes successful evidence.
 
 Only the existing local workspace vessel-testkit dev edge is added, with no
 normal product edge, registry package or public API. The manifest-only candidate
-uses the fixed root-dev-lock offline export recipe; the original root lock is
-preserved until its validated minimal patch is returned. No unlocked build or
-unrelated version/feature resolution is authorized. Corrected-source locked
-strict and the actual fixture suite remain owed after that patch is checked.
+used the fixed root-dev-lock offline export recipe. Its exact201451a0 run
+wp-plugins-runtime-diag-lock-20261116T014945Z-201451a0 returned a valid audit and
+only the vessel-plugin-to-vessel-testkit dev dependency edge in Cargo.lock.
+Original lock bytes and every exported SHA were checked before applying that
+canonical patch. Registry packages/versions/checksums are unchanged; the isolated
+offline recipe compiled nothing and ran no build script or network operation.
+No unlocked build or unrelated resolution was used. Corrected-source locked
+strict and the actual fixture suite remain owed on this canonical lock.

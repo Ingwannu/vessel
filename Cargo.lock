@@ -3940,6 +3940,7 @@ dependencies = [
  "tokio-util",
  "vessel-proc",
  "vessel-proto",
+ "vessel-testkit",
 ]
 
 [[package]]
