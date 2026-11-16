@@ -313,7 +313,7 @@ fn render(
         // words (TRACKER 782); an icon-only one is named by its caller
         // (`Button::aria_label`, or `aria_label` on the returned element).
         .role(gpui::Role::Button)
-        .when_some(name, |button, name| button.aria_label(name))
+        .when_some(name, StatefulInteractiveElement::aria_label)
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()

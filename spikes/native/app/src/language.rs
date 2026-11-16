@@ -49,8 +49,8 @@ impl Language {
 pub(crate) fn name_kit_controls(words: &'static Translator, cx: &mut App) {
     set_control_names(
         ControlNames {
-            close: words.layout().close.into(),
-            back: words.shortcuts().back.into(),
+            close: words.layout().close().into(),
+            back: words.shortcuts().back().into(),
         },
         cx,
     );
