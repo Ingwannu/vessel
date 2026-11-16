@@ -32,6 +32,10 @@ impl Points {
 
     /// `ProviderRow`/`StatusIndicator`'s explicit numeric10 refresh indicator.
     pub const TEN: Self = Self(px(10.0));
+    /// Pane toolbar helper's explicit pointer glyph size.
+    pub const FOURTEEN: Self = Self(px(crate::theme::icon::SM));
+    /// Pane toolbar helper's explicit compact glyph size.
+    pub const EIGHTEEN: Self = Self(px(18.0));
     /// `MenuItem`'s explicit numeric16 pending indicator.
     pub const SIXTEEN: Self = Self(px(16.0));
 }

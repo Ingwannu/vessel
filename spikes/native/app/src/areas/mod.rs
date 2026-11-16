@@ -91,7 +91,7 @@ impl Areas {
             pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
-            shortcuts: shortcuts::ShortcutListener::new(cx),
+            shortcuts: shortcuts::ShortcutListener::new(window, cx),
             sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::new(cx),
