@@ -210,7 +210,9 @@ fn account_observation(
                     vessel_app_kit::agent_mark::Space::Row,
                     tokens,
                 ))
-                .child(message(text.account_disclosure(), tokens)),
+                // The disclosure shares the row with the mark; it must shrink
+                // and wrap, or a narrow modal clips it mid-word.
+                .child(message(text.account_disclosure(), tokens).flex_1().min_w_0()),
         );
     match &report.result {
         Err(reason) => {
