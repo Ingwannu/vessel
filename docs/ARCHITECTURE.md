@@ -40,6 +40,7 @@ and 0013).
 | --- | --- | --- |
 | `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9; ADR 0062 adds typed title origin with a merge-assigned protocol threshold); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10); agents beyond the four (`agents`: `HarnessRef`, `AgentName`, protocol 11); schedules, runs, saved prompts and hooks (`automation`: `CronExpr` parsed into bit sets, bounded names and prompt text, typed run outcomes, protocol 11). No I/O. | - |
 | `vessel-rpc` | Moves `ClientFrame`/`ServerFrame` over any frame transport; handshake, correlation, concurrency limits, generic over `Handler`. From protocol 5 it holds both sides to the negotiated version: a call newer than the connection (`Call::since`) is refused by the client before sending and by the server before dispatch, and outgoing frames are adapted to an older client where they are encoded (`ServerFrame::for_protocol`). | proto |
+| `vessel-plugin` | Trusted node-owned standalone helper supervision (ADR 0079): bounded private frames, atomic declarations, cancellation-retained admission, private diagnostics and checked owned cleanup. No installer, source acquisition, caller authorization, broker or product Node/App dependency in this slice. | proto, proc |
 | `vessel-proc` | Command specs, spawning in a process group (a kill-on-close job object on Windows), killing the group; since milestone 11 (ADR 0031) the TCP ports a process tree listens on (`listening`: `/proc` on Linux, `lsof` on macOS, `netstat` and CIM on Windows, bounded), a terminal session's leftovers (`kill_session`, Linux) and the account's login shell. Generic selected-file kernel observations (`lock`, ADR 0001), without node layout or signal authority from a PID snapshot. | - |
 | `vessel-harness` | Everything harness-specific, one module per harness: discovery, version probe, terminal and ACP launch commands; `HarnessEnv` (the account harnesses run as, given by the binaries, never read from the process by a library); since milestone 4 harness profiles and `profiles.toml`, each harness's home and login check, a session's files and linking them between homes, a profile's memory files and renaming a path for another working directory (transfers, protocol 6), MCP servers for terminal sessions and for Claude Code's direct driver (`claude_mcp_file`; every write checks its directory is the writer's own, owner-only and not a link), and what `vessel init` offers (install and login commands, other accounts' homes); since milestone 5 a profile's `model` route and pointing its harness at the node's model proxy (`routing`: Claude Code by its gateway variables, Codex by a `vessel` provider in `-c` overrides); since protocol 18 (`direct`, ADR 0057) each agent's own protocol: its arguments, the versions its driver was checked against and whether it is offered, `launch_direct` and the `--version` command. | proto, proc |
 | `vessel-lsp` | Saved-file language context (M6, ADR 0016): bounded Content-Length transport, typed LSP edge, process actors keyed by workspace/language and shared fairly between allowed roots, conservative launch policy with a once-resolved Rust toolchain and checked Cargo projects, native watches and saved snapshots, progress/diagnostics, query conversion and pagination. No authentication or arbitrary LSP method passthrough. | proto, proc |
@@ -1676,6 +1677,17 @@ The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
 
+
+## Relay registration child lifetime (ADR0096)
+
+One `vessel-relay::NodeLink::run` owns a bounded `link/pending::DataOpens`
+JoinSet until every pending dial/handshake reaches accept or discard. Normal
+stop cancels/joins these children before Stopped/run completion; an already
+handed-off carrier belongs independently to the existing gateway. The node's
+Relays accept closure also checks its registration cancellation token. No
+second runner, transport, dependency or wire family is introduced. Dropping
+a run aborts its pending children and is not a normal stop acknowledgement.
+
 `vessel-proto::BookRouteId` is a client-minted, entry-scoped nonzero u32
 for the shared client-book model (ADR 0097). It is local data, not an RPC
 connection id or wire field; its lower-crate home lets the client and
@@ -1828,6 +1840,13 @@ the header and centres existing cards, with responsive width and a bounded
 scrolling stack. It no longer occupies the lower composer/dock region.
 The layer's tokens, status roles, colors and dismiss actions are unchanged.
 
+The web socket's authentication close path distinguishes a missed hello
+budget from invalid proof. Budget expiry remains a retryable transport close;
+only a refusal discards the tab's credential. Admission, mutual proof and
+single-use redemption remain owned by the same server and browser modules.
+ADR 0017 records why an absent proof at a resource deadline is insufficient
+to refuse identity; `docs/plans/backend-m12-web-identity.md` records verification.
+
 ### Creation-only session discovery metadata (ADR 0063, wiring in progress)
 
 `SessionSpec.listing` keeps an omitted override distinct from explicit Shown.
@@ -1856,3 +1875,16 @@ The existing forwarding TaskTracker owns cleanup across caller cancellation;
 Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
+
+
+## RPC caller-drop admission (ADR0080 prerequisite)
+
+The client writer reuses each call's existing oneshot closure instead of a
+second cancellation queue. It skips closed callers at dequeue and observes
+closure while waiting for reply-registration capacity or sink readiness.
+The private send_call helper installs the live waiter immediately before the
+synchronous start_send admission; the reader's registration-before-answer
+ordering is preserved without canceled unsent registrations. Public client
+APIs and frame/protocol shapes stay unchanged. Already admitted transport
+bytes and remote side effects remain outside retraction; post-admission
+Cancel is still best-effort. This adds no crate dependency or voice activation.
