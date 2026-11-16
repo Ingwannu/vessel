@@ -176,3 +176,21 @@ line is invented. W10's optional entry/footer element remains the owned hook, af
 the checked node boundary/reference contract and product scoped cutover exist.
 The node is still under independent validation; no unreviewed values producer or
 node branch is merged into the app. There is no checkpoint UI or capture proof yet.
+
+### W12 namespace direction (not a live API)
+
+W12 directs checkpoints to be a concrete nested Timeline owner, sharing the ONE
+OperationKind::Timeline allocator with a distinct opaque OperationTicket per
+checkpoint operation. No seventh registry, local allocator or immediate enum edit
+is needed. Kind alone never authorizes settlement. W9 first validates its own
+exact pending FollowBinding/ticket plus typed checkpoint/prompt/turn correlation;
+then canonical consume must succeed before the nested owner mutates.
+
+A7 and W9 must aggregate actual readiness/snapshot storage: checkpoint loading,
+confirmation, pending restore and uncertain outcome hold the Timeline owner.
+Ordinary timeline Ready cannot overwrite that hold; there is no default Ready.
+Input/confirmation requires the complete current SessionContext. Queued reads and
+replies keep the original guard/context and FollowBinding/ticket; hidden ingress
+uses binding, never a fabricated visible input or selected successor. W10 receives
+this direction to coordinate the nested hold/snapshot before source integration.
+This is no reviewed public signature, live product cutover or adoptable hash.
