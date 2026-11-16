@@ -7577,6 +7577,7 @@ dependencies = [
  "qrcode",
  "serde",
  "serde_json",
+ "similar",
  "thiserror 2.0.21",
  "unic-langid",
  "unicode-normalization",
