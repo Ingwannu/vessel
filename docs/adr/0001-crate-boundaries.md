@@ -30,6 +30,7 @@ Option 2, with this map and only these dependency edges:
 vessel-proto    (wire contract; no I/O, no tokio)
 vessel-rpc      -> proto
 vessel-proc     (process spawning, process groups, kill tree)
+vessel-plugin   -> proto, proc             (milestone 12, ADR 0079)
 vessel-harness  -> proto, proc
 vessel-pty      -> proc
 vessel-agent    -> proto, harness, proc   (harness: milestone 12)
@@ -374,3 +375,11 @@ offline safe-wrapper build proof, without a normal crate edge, native linking
 or runtime/model call. T's exact package/index/checksum receipt and V3's actual
 lock/feature acceptance precede any build script/compiler run; native loading
 and distribution remain separate. See docs/plans/voice-vad-build-proof.md.
+
+The standalone plugin helper API reuses proto declaration/private-frame values
+and proc owned cleanup. It owns bounded framing, logs, correlation/cancellation
+and helper supervision. No node/product manifest depends on it in this slice;
+there is no installer, source acquisition, caller authorization or broker. Its
+public library API is the explicitly approved exception for actual own fixtures,
+not permission to add a callerless Node service or advertise incomplete providers.
+

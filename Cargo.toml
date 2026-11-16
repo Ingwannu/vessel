@@ -95,6 +95,7 @@ vessel-lsp = { path = "crates/vessel-lsp" }
 vessel-mcp = { path = "crates/vessel-mcp" }
 vessel-node = { path = "crates/vessel-node" }
 vessel-proc = { path = "crates/vessel-proc" }
+vessel-plugin = { path = "crates/vessel-plugin" }
 vessel-proto = { path = "crates/vessel-proto" }
 vessel-pty = { path = "crates/vessel-pty" }
 vessel-relay = { path = "crates/vessel-relay" }
