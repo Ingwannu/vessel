@@ -126,8 +126,9 @@ fn preferences(current: &mut Preferences, before: &Preferences, after: &Preferen
         notifications: _,
         sidebar: _,
         defaults: _,
+        terminal_scrollback: _,
     } = after;
-    fields!(current,before,after;language);
+    fields!(current,before,after;language,terminal_scrollback);
     appearance(&mut current.appearance, before.appearance, after.appearance);
     layout(&mut current.layout, &before.layout, &after.layout);
     composer(&mut current.composer, before.composer, after.composer);
