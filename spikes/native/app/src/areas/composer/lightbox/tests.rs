@@ -176,3 +176,47 @@ fn ordinary_wheel_and_modifier_wheel_use_the_same_bounded_modal_route(cx: &mut T
         });
     }
 }
+
+#[gpui::test]
+fn the_toolbar_shows_on_hover_or_keys_and_the_shaded_bar_dismisses(cx: &mut TestAppContext) {
+    use gpui::{Modifiers, point, px};
+    use vessel_app_kit::ControlSizing;
+    use vessel_app_kit::icon_chrome::Presence;
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let open = |shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext| {
+        shell.update_in(cx, |shell, window, cx| {
+            window.activate_window();
+            shell.open_local_image(Arc::new(Image::empty()).into(), window, cx);
+        });
+        cx.run_until_parked();
+    };
+    open(&shell, cx);
+    shell.read_with(cx, |shell, _| {
+        let lightbox = &shell.areas.composer.lightbox;
+        assert_eq!(lightbox.presence(ControlSizing::Pointer), Presence::Hidden);
+        // The compact layout is Paseo's native form: always shown.
+        assert_eq!(lightbox.presence(ControlSizing::Touch), Presence::Shown);
+    });
+    // The viewport starts below the app's own bar; hovering it shows the actions.
+    cx.simulate_mouse_move(point(px(100.0), px(100.0)), None, Modifiers::none());
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let lightbox = &shell.areas.composer.lightbox;
+        assert_eq!(lightbox.presence(ControlSizing::Pointer), Presence::Shown);
+    });
+    // A press on the shaded bar beside the window controls is the backdrop's.
+    cx.simulate_click(point(px(8.0), px(8.0)), Modifiers::none());
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.areas.composer.lightbox.preview.is_none());
+    });
+    open(&shell, cx);
+    cx.simulate_keystrokes("tab");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let lightbox = &shell.areas.composer.lightbox;
+        assert!(lightbox.preview.is_some(), "Tab stays inside the modal");
+        assert_eq!(lightbox.presence(ControlSizing::Pointer), Presence::Shown);
+    });
+}

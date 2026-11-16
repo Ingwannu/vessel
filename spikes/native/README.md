@@ -1353,6 +1353,15 @@ image reads and decodes show a translated failure rather than staying in
 a loading state. The overlay uses the shared surface transition, held
 still by the existing reduced-motion setting.
 
+The image viewport starts below the app's own title bar: the bar beside
+the window controls is shaded (a press there dismisses, as Paseo's backdrop
+does) and the controls' corner (`kit::chrome::controls_corner`) is left
+uncovered, so minimise, maximise and close stay usable. The toolbar is the
+kit's `ToolbarButton::viewport` cluster (ZoomIn, ZoomOut, Scan, X) at the
+viewport's top right, shown while the pointer is over the viewport, after
+Tab or a zoom key, and always in the compact layout
+(`docs/plans/wp-b1.md`, "Lightbox toolbar correction").
+
 An ended session resumes before its attachments upload; no text-only
 prompt is sent first. The same upload, progress and retry tray is used
 for new, running and resumed conversations. System file selection and

@@ -7,12 +7,14 @@ use gpui::{
     StyledImage as _, anchored, deferred, img,
 };
 use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::icon_chrome::Presence;
 use vessel_app_kit::theme::{IMAGE_SCRIM, spacing};
+use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     MouseButton, ParentElement as _, Styled as _, Window, div, point, px, rgba,
 };
-use vessel_app_kit::{CardState, PillParts, Tokens, Type, TypeExt as _, motion, pill_parts};
+use vessel_app_kit::{ButtonState, ControlSizing, Tokens, Type, TypeExt as _, motion};
 use vessel_app_view::composer::viewer::{
     Extent, MAX_SCALE, MIN_SCALE, Viewport, ZOOM_IN, ZOOM_OUT,
 };
@@ -25,41 +27,21 @@ pub(crate) fn render(
 ) -> Option<AnyElement> {
     let source = source(shell)?;
     let size = window.viewport_size();
-    let canvas = Extent::new(f32::from(size.width), f32::from(size.height))?;
+    let region = Region::of(size);
+    let canvas = Extent::new(f32::from(size.width), f32::from(region.viewport_height))?;
     let content = content(shell, source, canvas, tokens, window, cx);
-    let overlay = div()
+    let viewport = div()
         .id("attachment-lightbox")
-        .track_focus(&shell.areas.composer.lightbox.focus)
+        .absolute()
+        .left_0()
+        .top(region.top)
         .w(size.width)
-        .h(size.height)
-        .relative()
+        .h(region.viewport_height)
         .overflow_hidden()
         .occlude()
-        .on_key_down(cx.listener(|shell, event: &KeyDownEvent, window, cx| {
-            match event.keystroke.key.as_str() {
-                "escape" => shell.close_image(window, cx),
-                "+" | "=" => {
-                    if let Some(viewport) = &mut shell.areas.composer.lightbox.viewport {
-                        viewport.zoom_center(ZOOM_IN);
-                        cx.notify();
-                    }
-                }
-                "-" => {
-                    if let Some(viewport) = &mut shell.areas.composer.lightbox.viewport {
-                        viewport.zoom_center(ZOOM_OUT);
-                        cx.notify();
-                    }
-                }
-                "0" => {
-                    if let Some(viewport) = &mut shell.areas.composer.lightbox.viewport {
-                        viewport.reset();
-                        cx.notify();
-                    }
-                }
-                _ => {}
-            }
-            // A modal owns its key scope; Tab cannot reach a background field.
-            cx.stop_propagation();
+        .on_hover(cx.listener(|shell, hovered: &bool, _window, cx| {
+            shell.areas.composer.lightbox.hovered = *hovered;
+            cx.notify();
         }))
         .on_mouse_down(
             MouseButton::Left,
@@ -74,12 +56,24 @@ pub(crate) fn render(
         .on_pinch(cx.listener(|shell, event, _window, cx| shell.image_pinched(event, cx)))
         .child(content)
         .child(toolbar(shell, tokens, window, cx))
-        .children(shell.areas.composer.lightbox.tips.render(tokens))
         .with_animation(
             "attachment-lightbox-arrive",
             motion::transition(motion::STANDARD),
-            |overlay, done| overlay.bg(rgba(IMAGE_SCRIM).opacity(done)),
+            |viewport, done| viewport.bg(rgba(IMAGE_SCRIM).opacity(done)),
         );
+    let overlay = div()
+        .id("attachment-lightbox-window")
+        .track_focus(&shell.areas.composer.lightbox.focus)
+        .w(size.width)
+        .h(size.height)
+        .relative()
+        .on_key_down(cx.listener(|shell, event: &KeyDownEvent, window, cx| {
+            shell.image_key(event.keystroke.key.as_str(), window, cx);
+            // A modal owns its key scope; Tab cannot reach a background field.
+            cx.stop_propagation();
+        }))
+        .children(bar_shade(region, size.width, cx))
+        .child(viewport);
     Some(
         deferred(
             anchored()
@@ -89,6 +83,57 @@ pub(crate) fn render(
         .with_priority(3)
         .into_any_element(),
     )
+}
+
+/// Where the lightbox lies in the window. Paseo's modal is its own window
+/// chrome root (`WindowChromeRootRegion`, attachment-lightbox.tsx:85), so the
+/// window's controls stay usable: here the image viewport starts below the
+/// app's own title bar, the bar beside the controls is shaded and pressing it
+/// dismisses as Paseo's backdrop does, and the controls' corner is left
+/// uncovered. With the system's title bar both are empty.
+#[derive(Clone, Copy)]
+struct Region {
+    /// The viewport's top: the app's own bar's height.
+    top: gpui::Pixels,
+    /// The viewport's height below that bar.
+    viewport_height: gpui::Pixels,
+    /// The width of the window controls' corner, left uncovered.
+    controls: gpui::Pixels,
+}
+
+impl Region {
+    fn of(size: gpui::Size<gpui::Pixels>) -> Self {
+        let top = vessel_app_kit::chrome::bar_height().min(size.height);
+        Self {
+            top,
+            viewport_height: size.height - top,
+            controls: vessel_app_kit::chrome::controls_corner().width,
+        }
+    }
+}
+
+fn bar_shade(
+    region: Region,
+    width: gpui::Pixels,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    (region.top > gpui::Pixels::ZERO).then(|| {
+        div()
+            .id("attachment-lightbox-bar")
+            .absolute()
+            .left_0()
+            .top_0()
+            .w((width - region.controls).max(gpui::Pixels::ZERO))
+            .h(region.top)
+            .occlude()
+            .on_click(cx.listener(|shell, _event, window, cx| shell.close_image(window, cx)))
+            .with_animation(
+                "attachment-lightbox-bar-arrive",
+                motion::transition(motion::STANDARD),
+                |shade, done| shade.bg(rgba(IMAGE_SCRIM).opacity(done)),
+            )
+            .into_any_element()
+    })
 }
 
 fn content(
@@ -154,46 +199,56 @@ enum Action {
     Close,
 }
 
-/// Paseo lightbox pointer control is20px; the shared spacing scale has no20px step.
-const POINTER_CONTROL: f32 = 20.0;
+/// One toolbar action: its element id, glyph, effect, accessible name and
+/// whether the viewport's scale admits it now.
+struct Control {
+    id: &'static str,
+    glyph: Glyph,
+    action: Action,
+    label: String,
+    enabled: bool,
+}
 
+/// Paseo's `ViewportToolbar` (zoomable-viewport/toolbar.tsx:39-71) and the
+/// lightbox's close action (attachment-lightbox.tsx:59-69): the shared small
+/// icon chrome in a top-right cluster inside the viewport, spacing 2 from its
+/// edges and spacing 1 apart, shown on hover, focus or touch. No tooltips:
+/// Paseo's buttons carry only their accessible names.
 fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Shell>) -> Div {
-    let side = px(if vessel_app_kit::breakpoint::phone(window) {
-        vessel_app_kit::breakpoint::TOUCH_TARGET
-    } else {
-        POINTER_CONTROL
-    });
-    let scale = shell.areas.composer.lightbox.viewport.map(Viewport::scale);
+    let sizing = ControlSizing::from_compact(vessel_app_kit::breakpoint::phone(window));
+    let lightbox = &shell.areas.composer.lightbox;
+    let presence = lightbox.presence(sizing);
+    let scale = lightbox.viewport.map(Viewport::scale);
     let words = shell.words.composer();
     let controls = [
-        (
-            "image-zoom-in",
-            Glyph::Plus,
-            Action::In,
-            words.image_zoom_in(),
-            scale.is_some_and(|v| v < MAX_SCALE),
-        ),
-        (
-            "image-zoom-out",
-            Glyph::Minus,
-            Action::Out,
-            words.image_zoom_out(),
-            scale.is_some_and(|v| v > MIN_SCALE),
-        ),
-        (
-            "image-reset",
-            Glyph::Maximize,
-            Action::Reset,
-            words.image_reset(),
-            scale.is_some_and(|v| v != MIN_SCALE),
-        ),
-        (
-            "image-close",
-            Glyph::Close,
-            Action::Close,
-            words.image_close(),
-            true,
-        ),
+        Control {
+            id: "image-zoom-in",
+            glyph: Glyph::ZoomIn,
+            action: Action::In,
+            label: words.image_zoom_in().to_owned(),
+            enabled: scale.is_some_and(|v| v < MAX_SCALE),
+        },
+        Control {
+            id: "image-zoom-out",
+            glyph: Glyph::ZoomOut,
+            action: Action::Out,
+            label: words.image_zoom_out().to_owned(),
+            enabled: scale.is_some_and(|v| v > MIN_SCALE),
+        },
+        Control {
+            id: "image-reset",
+            glyph: Glyph::Scan,
+            action: Action::Reset,
+            label: words.image_reset().to_owned(),
+            enabled: scale.is_some_and(|v| v != MIN_SCALE),
+        },
+        Control {
+            id: "image-close",
+            glyph: Glyph::X,
+            action: Action::Close,
+            label: words.image_close().to_owned(),
+            enabled: true,
+        },
     ];
     div()
         .absolute()
@@ -204,59 +259,54 @@ fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_,
         .children(
             controls
                 .into_iter()
-                .zip(&shell.areas.composer.lightbox.places)
-                .map(|((id, mark, action, label, enabled), place)| {
-                    let state = if enabled {
-                        CardState::Ready
-                    } else {
-                        CardState::Faded
-                    };
-                    let button = action_button(id, mark, action, state, side, tokens, cx);
-                    shell.areas.composer.lightbox.tips.on(
-                        button,
-                        place,
-                        label.to_owned(),
-                        vessel_app_kit::breakpoint::phone(window),
-                    )
-                }),
+                .map(|control| action_slot(control, sizing, presence, tokens, cx)),
         )
 }
 
-fn action_button(
-    id: &'static str,
-    mark: Glyph,
-    action: Action,
-    state: CardState,
-    side: gpui::Pixels,
+/// A press on an action is not a press on the viewport: it neither starts a
+/// drag nor dismisses the image. A hidden action takes no pointer events
+/// (Paseo's `pointerEvents: "none"`), so a press there reaches the viewport.
+fn action_slot(
+    control: Control,
+    sizing: ControlSizing,
+    presence: Presence,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> vessel_app_kit::ui::Stateful<Div> {
-    pill_parts(
-        id,
-        PillParts {
-            leading: Some(mark),
-            ..PillParts::default()
-        },
-        false,
-        side == px(vessel_app_kit::breakpoint::TOUCH_TARGET),
+) -> Div {
+    let availability = if control.enabled {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    };
+    let config = ToolbarConfig::new(sizing, availability);
+    let action = control.action;
+    let button = ToolbarButton::viewport(
+        control.id,
+        control.label,
+        control.glyph,
+        config,
+        presence,
         tokens,
     )
-    .size(side)
-    .rounded(px(vessel_app_kit::theme::radius::MD))
-    .bg(tokens.neutral.surface2)
-    .when(state != CardState::Ready, |button| button.opacity(0.5))
-    .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-    .on_mouse_up(MouseButton::Left, |_, _, cx| cx.stop_propagation())
     .on_click(cx.listener(move |shell, _, window, cx| {
-        cx.stop_propagation();
-        if state != CardState::Ready {
-            return;
-        }
+        shell.image_action(action, window, cx);
+    }));
+    let slot = div().flex_none().child(button);
+    match presence {
+        Presence::Hidden => slot,
+        Presence::Shown => slot
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+            .on_mouse_up(MouseButton::Left, |_, _, cx| cx.stop_propagation()),
+    }
+}
+
+impl Shell {
+    fn image_action(&mut self, action: Action, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Action::Close = action {
-            shell.close_image(window, cx);
+            self.close_image(window, cx);
             return;
         }
-        if let Some(viewport) = &mut shell.areas.composer.lightbox.viewport {
+        if let Some(viewport) = &mut self.areas.composer.lightbox.viewport {
             match action {
                 Action::In => viewport.zoom_center(ZOOM_IN),
                 Action::Out => viewport.zoom_center(ZOOM_OUT),
@@ -265,5 +315,25 @@ fn action_button(
             }
             cx.notify();
         }
-    }))
+    }
+
+    /// Escape closes; `+`/`=`, `-` and `0` zoom and reset. Tab and those keys
+    /// are the keyboard way to the toolbar (Paseo shows it while focus is within
+    /// it), so they also show it until the image closes.
+    fn image_key(&mut self, key: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let action = match key {
+            "escape" => Some(Action::Close),
+            "+" | "=" => Some(Action::In),
+            "-" => Some(Action::Out),
+            "0" => Some(Action::Reset),
+            _ => None,
+        };
+        if matches!(key, "tab" | "+" | "=" | "-" | "0") {
+            self.areas.composer.lightbox.keyed = true;
+            cx.notify();
+        }
+        if let Some(action) = action {
+            self.image_action(action, window, cx);
+        }
+    }
 }

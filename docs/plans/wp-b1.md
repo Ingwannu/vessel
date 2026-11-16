@@ -90,10 +90,56 @@ node, real agent, or preview process is involved. A centrally integrated
 base will be merged when supplied; no package-local node integration.
 
 The native link directly names the existing RPC error type to retain a
-read/resume cause; this adds no external dependency. Toolbar plus, minus
-and maximize glyphs reuse the kit's current glyph set instead of adding
-Paseo's zoom/scan drawings. The labels and tooltips retain the same
-meaning; compact buttons keep the kit's 44-point touch minimum.
+read/resume cause; this adds no external dependency. The first toolbar
+reused the kit's plus, minus and maximize glyphs with tooltips; it was
+returned and replaced, see "Lightbox toolbar correction" below.
+
+## Lightbox toolbar correction (2026-11-16)
+
+[Decision Log]
+- Purpose: the coordinator's capture comparison returned the lightbox toolbar
+  only: boxed white `+ − □ ×` squares at the window's top right, over and
+  looking like the window controls.
+- Paseo (pinned): `zoomable-viewport/toolbar.tsx` 28-136 and
+  `attachment-lightbox.tsx` 59-118. A cluster absolutely placed in the image
+  viewport, `top`/`right` spacing[2], `gap` spacing[1]; each action is the
+  small icon chrome (20 frame, 32 compact; 14/18 glyph) on `surface2` with a
+  `foregroundMuted` icon that turns `foreground` on hover; ZoomIn (disabled at
+  the maximum), ZoomOut (at the minimum), Scan (reset, at fit) and the
+  lightbox's X; shown on hover, focus within or touch input on the web and
+  always on the native app; hidden actions have opacity 0 and no pointer
+  events. No tooltips. The modal is a `WindowChromeRootRegion`.
+- Existing constraints: the overlay was one full-window occluding element, so
+  any top-right cluster landed on the app-drawn window controls and the
+  controls could not be used while it was open.
+- Alternatives: keep the full-window overlay and move only the cluster down
+  (the controls stay covered and unusable); start the whole overlay below the
+  title bar (the bar's sidebar, search and update actions would stay live under
+  a modal and could move focus out of it); a lightbox-local button style
+  (rejected by the return).
+- Choice: the overlay root keeps focus and keys only. Its viewport starts at
+  `kit::chrome::bar_height()` and carries the pointer handlers, the image and
+  the toolbar; a shaded, occluding strip covers the bar left of
+  `kit::chrome::controls_corner()` and dismisses on a press like Paseo's
+  backdrop; the controls' corner is not covered. The toolbar is
+  `ToolbarButton::viewport` (`icon_chrome::Profile::Viewport`) with the new
+  ZoomIn, ZoomOut and Scan glyphs and the existing X. Presence: shown while
+  the viewport is hovered (`on_hover`, which also fires for layout under a
+  still pointer), after Tab or a zoom key until the image closes (Vessel's
+  keyboard path to the same actions; Paseo shows the cluster while focus is
+  within it), and always in the compact layout (Paseo's native form).
+  Each action's slot stops a press from starting a drag or dismissing.
+- Why: it is the source chrome and glyph set, the controls stay usable as in
+  Paseo's own window-chrome root, and nothing under the modal can take input.
+- Differences that remain: Paseo's 4/6 px `hitSlop` has no GPUI counterpart;
+  the image fits the viewport below the bar rather than the whole window; the
+  undimmed controls' corner shows the bar's own colour; Vessel keeps its
+  existing fit/minimum scale of 1 (Paseo's minimum is 0.25), so ZoomOut is
+  disabled at fit; keyboard `+`/`-`/`0` stay Vessel additions.
+- Impact: tooltips, their per-action places and the old `pill_parts` buttons
+  are gone from the lightbox state. Pointer positions are mapped into the
+  viewport's own space. A new test covers hidden/shown presence, the shaded
+  bar's dismissal and Tab staying in the modal.
 
 ## Full attachment package
 

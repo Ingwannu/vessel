@@ -25,13 +25,11 @@ use crate::shell::Shell;
 use gpui::{
     FocusHandle, ImageSource, MouseMoveEvent, MouseUpEvent, PinchEvent, ScrollDelta, ScrollEvent,
 };
+use vessel_app_kit::icon_chrome::Presence;
 use vessel_app_kit::ui::{App, Context, Pixels, Point, Window};
 use vessel_app_view::composer::sent::{Picture, Sent};
 use vessel_app_view::composer::viewer::{Position, Viewport};
 use vessel_proto::AttachmentRef;
-
-/// Four explicit actions share one tooltip set and one placement per trigger.
-const ACTIONS: usize = 4;
 
 /// The one open image, including a remote reference while it loads.
 #[derive(Clone)]
@@ -55,8 +53,10 @@ pub(super) struct Lightbox {
     previous: Option<FocusHandle>,
     viewport: Option<Viewport>,
     gesture: Option<Gesture>,
-    tips: vessel_app_kit::Tooltips,
-    places: [vessel_app_kit::tooltip::Place; ACTIONS],
+    /// Paseo's `isHovered`: the pointer is over the image viewport.
+    hovered: bool,
+    /// Paseo's `isFocusWithin` for the keyboard: Tab or a zoom key was used.
+    keyed: bool,
 }
 
 impl std::fmt::Debug for Lightbox {
@@ -81,14 +81,26 @@ impl Lightbox {
             previous: None,
             viewport: None,
             gesture: None,
-            tips: vessel_app_kit::Tooltips::new(),
-            places: Default::default(),
+            hovered: false,
+            keyed: false,
+        }
+    }
+
+    /// Paseo shows the viewport toolbar on hover, focus or touch (web) and
+    /// always in its native app, whose form the compact layout is here.
+    fn presence(&self, sizing: vessel_app_kit::ControlSizing) -> Presence {
+        if self.hovered || self.keyed || sizing == vessel_app_kit::ControlSizing::Touch {
+            Presence::Shown
+        } else {
+            Presence::Hidden
         }
     }
 
     fn open(&mut self, preview: Preview, window: &mut Window, cx: &mut App) {
         if self.preview.is_none() {
             self.previous = window.focused(cx);
+            self.hovered = false;
+            self.keyed = false;
         }
         self.local_lease = None;
         self.preview = Some(preview);
@@ -163,7 +175,8 @@ impl Shell {
 
     pub(super) fn close_image(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let lightbox = &mut self.areas.composer.lightbox;
-        lightbox.tips = vessel_app_kit::Tooltips::new();
+        lightbox.hovered = false;
+        lightbox.keyed = false;
         lightbox.preview = None;
         drop(lightbox.local_lease.take());
         lightbox.viewport = None;
@@ -238,8 +251,11 @@ impl Shell {
     }
 }
 
+/// A window position in the image viewport's own space: the viewport starts
+/// below the app's own title bar (`draw::Region`).
 fn pointer(point: Point<Pixels>) -> Option<Position> {
-    Position::new(f32::from(point.x), f32::from(point.y))
+    let top = vessel_app_kit::chrome::bar_height();
+    Position::new(f32::from(point.x), f32::from(point.y - top))
 }
 
 /// Loading and refusal remain distinct so a failed read cannot spin forever.
