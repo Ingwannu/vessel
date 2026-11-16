@@ -124,6 +124,23 @@ pub enum ConfigProblem {
     Incoherent,
 }
 
+/// Closed editor presentation states; a failed read is never a missing file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfigPhase {
+    /// No authoritative document has been requested or retained.
+    NotHydrated,
+    /// An exact read ticket is pending.
+    Loading,
+    /// Source is loaded; dirty/validity/problem facts remain independently visible.
+    Ready,
+    /// One captured save is pending; subsequent editing may continue.
+    Saving,
+    /// Conflict or uncertain write requires explicit reload before saving again.
+    ReloadRequired,
+    /// The read failed without producing an editable document.
+    Failed,
+}
+
 /// Reloading a dirty draft is a deliberate UI action, never a side effect of refresh.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReloadDraft {
@@ -331,6 +348,18 @@ impl ProjectConfig {
         let serial = self.serial.checked_add(1).ok_or(ConfigRefusal::Exhausted)?;
         self.serial = serial;
         Ok(serial)
+    }
+    /// Project the exact read/save/error state without a screen recomputing it.
+    #[must_use]
+    pub const fn phase(&self) -> ConfigPhase {
+        match &self.pending {
+            Some(Pending::Read(_)) => ConfigPhase::Loading,
+            Some(Pending::Save(_)) => ConfigPhase::Saving,
+            None if self.reload_required => ConfigPhase::ReloadRequired,
+            None if self.document.is_some() => ConfigPhase::Ready,
+            None if self.problem.is_some() => ConfigPhase::Failed,
+            None => ConfigPhase::NotHydrated,
+        }
     }
     /// Whether text differs from the current authoritative source.
     #[must_use]

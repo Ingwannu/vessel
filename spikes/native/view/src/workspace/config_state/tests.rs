@@ -169,3 +169,33 @@ fn config_missing_file_and_secret_text_keep_canonical_bounds_and_redacted_diagno
         Err(ConfigRefusal::Exhausted)
     );
 }
+
+#[test]
+fn config_phase_keeps_loading_saving_conflict_and_failed_reads_distinct_from_absence() {
+    let (mut model, target) = loaded();
+    assert_eq!(model.phase(), ConfigPhase::Ready);
+    model.edit("# save").unwrap();
+    let key = model.begin_save().unwrap();
+    assert_eq!(model.phase(), ConfigPhase::Saving);
+    assert!(model.saved(&key, Err(ConfigProblem::Conflict)));
+    assert_eq!(model.phase(), ConfigPhase::ReloadRequired);
+    let read = model
+        .begin_read(target.clone(), ReloadDraft::Discard)
+        .unwrap();
+    assert_eq!(model.phase(), ConfigPhase::Loading);
+    assert!(model.read(&read, Err(ConfigProblem::Unsupported)));
+    assert_eq!(model.phase(), ConfigPhase::Failed);
+    assert!(model.document().is_none());
+    model.detach();
+    assert_eq!(model.phase(), ConfigPhase::NotHydrated);
+    let read = model.begin_read(target, ReloadDraft::Preserve).unwrap();
+    assert!(model.read(
+        &read,
+        Ok(ConfigDocument {
+            text: ConfigText::parse("").unwrap(),
+            revision: ConfigRevision::Missing,
+            validity: ConfigValidity::Valid,
+        })
+    ));
+    assert_eq!(model.phase(), ConfigPhase::Ready);
+}
