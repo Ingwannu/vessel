@@ -109,7 +109,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,
         })),
-        Command::Start { .. } | Command::Files(Files::Create(_)) => Event::Failed(said()),
+        Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
             harness,
@@ -140,18 +140,6 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         },
         // The machine's page never asked: said under the Messages group as
         // that machine's failure, in the app's words.
-        Command::Files(Files::Suggest(vessel_app_link::mentions::Ask::Root(ask))) => {
-            Event::Files(Answer::Root(vessel_app_link::mentions::RootAnswer {
-                ask,
-                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
-            }))
-        }
-        Command::Files(Files::Suggest(vessel_app_link::mentions::Ask::Suggestions(request))) => {
-            Event::Files(Answer::Suggestions(vessel_app_link::mentions::Answer {
-                request,
-                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
-            }))
-        }
         Command::Search(ask) => Event::Searched(vessel_app_link::search::Answer {
             machine: ask.machine,
             ticket: ask.ticket,
@@ -193,6 +181,19 @@ pub(crate) async fn receive(
 fn settle_files(command: Files, words: &str) -> Settle {
     let said = || words.to_owned();
     let answer = match command {
+        Files::Create(_) => return Settle::Answer(Box::new(Event::Failed(said()))),
+        Files::Suggest(vessel_app_link::mentions::Ask::Root(ask)) => {
+            Answer::Root(vessel_app_link::mentions::RootAnswer {
+                ask,
+                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
+            })
+        }
+        Files::Suggest(vessel_app_link::mentions::Ask::Suggestions(request)) => {
+            Answer::Suggestions(vessel_app_link::mentions::Answer {
+                request,
+                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
+            })
+        }
         Files::Prompt(prompt) => {
             return Settle::Prompt {
                 session: prompt.session,

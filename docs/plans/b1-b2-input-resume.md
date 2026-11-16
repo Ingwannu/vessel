@@ -66,3 +66,12 @@ node ee8e3450 is qualified event-free values only; full SDK/rich echo/runtime an
 A7 atomic ingress remain held until the official App route and actual handoff.
 G1 C4 forge Search/Lookup remains UNSTARTED; plugin search/runtime and source-owner
 browser/review intake are still unavailable. No new slice starts at this stop.
+
+## Final quota-time diagnostic
+
+Strict60 wp-composer-common-20261116T034617Z-0f38108f passed quality but found
+that the extracted file-refusal helper omitted Suggest/Create in its closed
+match, even though the outer dispatcher still intercepted them. The correction
+moves those exact existing refusal projections into the same helper and removes
+the duplicate outer cases. No wildcard, panic, new event, ID or transport is
+introduced. Common runtime and wasm remain unverified and unsubmitted.
