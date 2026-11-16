@@ -540,3 +540,12 @@ remains only in the explicit rejection test; local typed failure/translation
 fixtures remain local refusals. This consumer source awaits the reviewed pair
 producer on an announced receiving line, then actual compilation/runtime. It
 is not an adoption or success claim for the unreviewed fixture leaf.
+
+
+A prepared actual App receive case also holds genuine queued replies from both
+same-node peers, retires only the first, deliberately withholds its newer Fleet
+notice, then calls the real search handler for both replies. It requires no
+retired rows, one still-active source row, unchanged query/ticket and exactly
+one frame per peer. This is source preparation against the pair contract;
+execution and adoption await the reviewed receiving line. It grants no session
+opening authority and does not fill the pending canonical resident/opener seam.

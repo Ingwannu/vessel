@@ -2,7 +2,10 @@
 //! Source preparation: awaits the lead's checked G4 fixture/product exposure.
 
 use gpui::{TestAppContext, VisualTestContext};
-use vessel_app_link::{Event, testing::Scenario};
+use vessel_app_link::{
+    Event,
+    testing::{PeerNodes, PeerSlot, Scenario},
+};
 use vessel_app_view::{Machine, machine_book::Name};
 use vessel_proto::search::{SearchPage, Snippet, SnippetPart};
 use vessel_proto::{Call, Outcome, Reply, SessionId};
@@ -63,13 +66,17 @@ fn answer(scene: &mut Scenario, shell: &Shell) -> Searched {
 }
 
 fn queued(scene: &mut Scenario, shell: &Shell) -> Searched {
+    queued_at(scene, shell, PeerSlot::Primary)
+}
+fn queued_at(scene: &mut Scenario, shell: &Shell, peer: PeerSlot) -> Searched {
     assert!(matches!(
-        scene.request(shell.fixture_link()).unwrap(),
+        scene.request_from(shell.fixture_link(), peer).unwrap(),
         Call::SearchMessages(_)
     ));
     scene
-        .reply(
+        .reply_to(
             shell.fixture_link(),
+            peer,
             Outcome::Ok(Reply::SearchMessages(page())),
         )
         .unwrap();
@@ -79,6 +86,7 @@ fn queued(scene: &mut Scenario, shell: &Shell) -> Searched {
         "only the real actor issues the guard"
     );
     assert!(answer.result.is_ok());
+    assert_eq!(answer.connection, scene.context_of(peer));
     answer
 }
 
@@ -219,6 +227,71 @@ fn retiring_the_original_peer_invalidates_a_painted_and_prepared_search_hit(
         assert_eq!(shell.route, crate::routes::Route::Draft);
         assert!(shell.notice.is_some());
         assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 1);
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+#[gpui::test]
+fn two_actual_same_node_sources_keep_only_the_still_active_peers_queued_results(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (link, mut scene) = Scenario::start_pair(
+        &Name::parse("first").unwrap(),
+        &Name::parse("second").unwrap(),
+        PeerNodes::SameNode,
+    )
+    .unwrap();
+    let primary = scene.context();
+    let secondary = scene.context_of(PeerSlot::Secondary).unwrap();
+    assert_eq!(primary.node(), secondary.node());
+    assert_ne!(primary.epoch(), secondary.epoch());
+    let other = secondary.clone();
+    let (shell, cx) = cx.add_window_view(move |window, cx| {
+        let mut shell = Shell::with_test_link(window, cx, link);
+        shell.fleet.machines = vec![machine(&primary), machine(&secondary)];
+        shell.message_search_query("needle", cx);
+        shell
+    });
+    settle(cx);
+    shell.update(cx, |shell, cx| {
+        let old = queued_at(&mut scene, shell, PeerSlot::Primary);
+        let current = queued_at(&mut scene, shell, PeerSlot::Secondary);
+        let ticket = shell.areas.palette.messages_search.view.ticket();
+        scene
+            .retire_peer(shell.fixture_link(), PeerSlot::Primary)
+            .unwrap();
+        // Hold the retirement/Fleet notices: only the genuine original weak
+        // guards can distinguish these same-node queued results at receive.
+        assert_eq!(
+            shell.fleet.machines[1].connection_context(),
+            Some(other.clone())
+        );
+        shell.message_searched(old, cx);
+        assert!(shell.message_search_rows().is_empty());
+        shell.message_searched(current, cx);
+        let rows = shell.message_search_rows();
+        assert_eq!(rows.len(), 1);
+        assert!(matches!(rows.first(), Some(Row::Hit(hit)) if hit.machine == "second"));
+        assert_eq!(shell.areas.palette.messages_search.view.ticket(), ticket);
+        assert_eq!(
+            shell.areas.palette.messages_search.view.query(),
+            Some("needle")
+        );
+        assert_eq!(
+            scene
+                .transcript_of(shell.fixture_link(), PeerSlot::Primary)
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            scene
+                .transcript_of(shell.fixture_link(), PeerSlot::Secondary)
+                .unwrap()
+                .len(),
+            1
+        );
         scene.close(shell.fixture_link()).unwrap();
     });
 }
