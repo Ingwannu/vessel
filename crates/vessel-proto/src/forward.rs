@@ -347,6 +347,7 @@ impl Method {
             | Self::GitStatus
             | Self::GitCompare
             | Self::GitCompareFile
+            | Self::GitHistory
             | Self::GitChanges
             | Self::GitDiff
             | Self::GitShow

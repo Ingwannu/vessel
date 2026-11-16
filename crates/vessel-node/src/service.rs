@@ -57,6 +57,7 @@ mod status;
 mod file_panels;
 mod files;
 mod git;
+mod git_comparison;
 mod projects;
 mod registry;
 mod worktrees;

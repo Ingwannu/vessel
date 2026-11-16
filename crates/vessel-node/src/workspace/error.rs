@@ -2,17 +2,26 @@
 
 mod task;
 
+use super::comparison::{CacheError, JobError};
+use std::sync::Arc;
 use task::ProjectTaskCause;
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ErrorCode, ProjectId, WireError, WorktreeId};
 use vessel_store::StoreError;
 use vessel_workspace::GitError;
 use vessel_workspace::files::FileError;
+use vessel_workspace::git::ComparisonError;
 use vessel_workspace::paths::PathError;
 
 /// A workspace call's failure.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum WorkspaceError {
+    /// Bounded mutation admission is full or the node is stopping.
+    #[error(transparent)]
+    GitWriteAdmission(#[from] super::git_writes::WriteAdmission),
+    /// Waiting never permits following changed repository or base authority facts.
+    #[error("the registered folder changed while waiting; refresh before trying again")]
+    TargetChanged,
     /// A tracked project/backing operation stopped; retain its actual task cause.
     #[error("the project operation stopped")]
     ProjectTask(#[source] ProjectTaskCause),
@@ -47,6 +56,21 @@ pub(crate) enum WorkspaceError {
     /// git failed in a way no refusal covers.
     #[error("git failed")]
     Git(#[source] GitError),
+    /// Private comparison index preparation or cleanup failed.
+    #[error("the comparison could not be completed")]
+    Comparison(#[source] ComparisonError),
+    /// Classified history metadata failed without dropping its typed cause.
+    #[error("the branch history could not be read")]
+    History(#[source] vessel_workspace::git::HistoryError),
+    /// Comparison admission, shutdown or reply delivery failed.
+    #[error("{0}")]
+    ComparisonJob(#[from] JobError),
+    /// Cache admission, typed payload validation or shared delivery failed.
+    #[error(transparent)]
+    ComparisonCache(#[from] CacheError),
+    /// Identical readers retain one typed failure and its source chain.
+    #[error("{0}")]
+    SharedComparison(#[source] Arc<WorkspaceError>),
     /// The store refused.
     #[error("the node could not record it")]
     Store(#[source] StoreError),
@@ -74,6 +98,24 @@ impl From<GitError> for WorkspaceError {
             return Self::Busy("another git is changing this repository; try again".to_owned());
         }
         Self::Git(error)
+    }
+}
+
+impl From<ComparisonError> for WorkspaceError {
+    fn from(error: ComparisonError) -> Self {
+        match error {
+            ComparisonError::Git(GitError::Unexpected { what: "base" }) => {
+                Self::Invalid("the requested comparison base does not resolve".to_owned())
+            }
+            ComparisonError::Git(error) => Self::from(error),
+            error @ (ComparisonError::Io(_)
+            | ComparisonError::Task(_)
+            | ComparisonError::Utf8(_)
+            | ComparisonError::Object(_)
+            | ComparisonError::Path(_)
+            | ComparisonError::Cleanup { .. }
+            | ComparisonError::CleanupTask { .. }) => Self::Comparison(error),
+        }
     }
 }
 
@@ -132,11 +174,23 @@ impl WorkspaceError {
             | Self::UnknownSnapshot(_)
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
-            Self::Conflict(_) => ErrorCode::Conflict,
-            Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
-            Self::Git(_) | Self::Store(_) | Self::Io(_) | Self::ProjectTask(_) => {
-                ErrorCode::Internal
-            }
+            Self::Conflict(_) | Self::TargetChanged => ErrorCode::Conflict,
+            Self::Busy(_)
+            | Self::GitWriteAdmission(_)
+            | Self::Git(GitError::TimedOut { .. })
+            | Self::ComparisonJob(JobError::Busy | JobError::Closed)
+            | Self::ComparisonCache(CacheError::Refused(_)) => ErrorCode::Unavailable,
+            Self::Git(_)
+            | Self::Store(_)
+            | Self::Io(_)
+            | Self::ProjectTask(_)
+            | Self::Comparison(_)
+            | Self::History(_)
+            | Self::ComparisonJob(JobError::Worker(_))
+            | Self::ComparisonCache(
+                CacheError::Channel(_) | CacheError::Payload { .. } | CacheError::Ownership,
+            ) => ErrorCode::Internal,
+            Self::SharedComparison(error) => return error.wire(),
         };
         if code == ErrorCode::Internal {
             tracing::warn!(error = %self, source = ?std::error::Error::source(self), "workspace call failed");

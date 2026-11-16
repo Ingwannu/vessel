@@ -116,9 +116,10 @@ const fn refused(method: Method) -> bool {
         | Method::ListSnapshots
         | Method::DropSnapshot
         | Method::GitStatus
-        | Method::GitChanges
         | Method::GitCompare
         | Method::GitCompareFile
+        | Method::GitHistory
+        | Method::GitChanges
         | Method::GitDiff
         | Method::GitShow
         | Method::GitBranches

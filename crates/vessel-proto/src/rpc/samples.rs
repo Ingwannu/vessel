@@ -154,6 +154,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::GitStatus
         | Method::GitBranches
         | Method::GitLog
+        | Method::GitHistory
         | Method::GitStashes
         | Method::GitFetch
         | Method::GitPush

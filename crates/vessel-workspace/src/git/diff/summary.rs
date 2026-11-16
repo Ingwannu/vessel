@@ -53,7 +53,7 @@ impl Git {
             })
             .collect();
         if resolved.untracked {
-            let untracked = self.untracked(dir).await?;
+            let untracked = self.untracked(dir, resolved.index.as_deref()).await?;
             let counted = untracked_counts(dir, untracked.iter().take(COUNTED_UNTRACKED)).await;
             for (index, path) in untracked.into_iter().enumerate() {
                 let count = counted.get(index).copied().flatten();
@@ -78,12 +78,18 @@ impl Git {
     }
 
     /// Untracked files that are not ignored.
-    async fn untracked(&self, dir: &Path) -> Result<Vec<RelPath>, GitError> {
-        let output = self
-            .command(dir)
-            .args(["ls-files", "--others", "--exclude-standard", "-z"])
-            .output()
-            .await?;
+    pub(super) async fn untracked(
+        &self,
+        dir: &Path,
+        index: Option<&Path>,
+    ) -> Result<Vec<RelPath>, GitError> {
+        let mut command =
+            self.command(dir)
+                .args(["ls-files", "--others", "--exclude-standard", "-z"]);
+        if let Some(index) = index {
+            command = command.env("GIT_INDEX_FILE", index);
+        }
+        let output = command.output().await?.checked()?;
         Ok(output
             .stdout
             .split(|byte| *byte == 0)

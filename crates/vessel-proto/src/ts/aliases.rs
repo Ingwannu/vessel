@@ -43,6 +43,8 @@
 //!   `CommitId` is plain too: the node reports full ones, and a person may
 //!   type an abbreviated one wherever a ref is taken. `ProjectCommand` is
 //!   content: a line of a project's file, shown to be approved.
+//!   `CommitAbbreviation` is content: Git's observed display spelling, never
+//!   an operation identity or a value returned as authority by the page.
 //! - Protocol 11's pull requests (track B2, ADR 0029), by the same rule,
 //!   all plain: a forge's host, a repository's path, a login, a pull
 //!   request's number, title and address, a check's name are what a person
@@ -130,6 +132,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CodeSize", Alias::Quantity),
     ("CommandName", Alias::Named),
     ("CommandsDigest", Alias::Handle),
+    ("CommitAbbreviation", Alias::Content),
     ("CommitId", Alias::Named),
     ("CommitMessage", Alias::Named),
     ("ConfigKey", Alias::Named),
@@ -317,6 +320,15 @@ mod tests {
         assert_eq!(classify("PairingLink"), Some(Alias::Secret));
         assert_eq!(classify("EventSeq"), Some(Alias::Quantity));
         assert_eq!(classify("Nothing"), None);
+    }
+
+    #[test]
+    fn typescript_observed_commit_abbreviation_is_plain_display_content() {
+        assert_eq!(classify("CommitAbbreviation"), Some(Alias::Content));
+        assert_eq!(
+            <crate::workspace::CommitAbbreviation as ts_rs::TS>::decl(&ts_rs::Config::default()),
+            "type CommitAbbreviation = string;"
+        );
     }
 
     #[test]

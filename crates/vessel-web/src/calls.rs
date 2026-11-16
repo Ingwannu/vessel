@@ -153,6 +153,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListSnapshots
         | Method::DropSnapshot
         | Method::GitStatus
+        | Method::GitCompare
+        | Method::GitCompareFile
+        | Method::GitHistory
         | Method::GitChanges
         | Method::GitDiff
         | Method::GitShow
@@ -254,9 +257,7 @@ const fn forwardable(method: Method) -> bool {
         // Protocol 17: an agent's own history (ADR 0053).
         | Method::GetAgentHistory
         | Method::DetachSession
-        // Staged git comparison reads (ADR 0087), like the other git reads.
-        | Method::GitCompare
-        | Method::GitCompareFile => true,
+        => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

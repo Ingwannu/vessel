@@ -6,10 +6,86 @@ use std::path::Path;
 
 use vessel_proto::workspace::{CommitId, DiffScope, WorktreeBase};
 
-use super::Resolved;
+use super::{ComparisonError, Resolved};
 use crate::git::{Git, GitError};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ComparisonEnd {
+    Head,
+    Working,
+}
+
 impl Git {
+    /// ADR 0087's comparison resolver. Separate pending methods keep the
+    /// existing admitted `DiffScope` calls and older peers unchanged.
+    pub(crate) async fn resolve_comparison(
+        &self,
+        dir: &Path,
+        comparison: &vessel_proto::workspace::GitComparison,
+        base: Option<&WorktreeBase>,
+    ) -> Result<Option<Resolved>, ComparisonError> {
+        use vessel_proto::workspace::GitComparison;
+        match comparison {
+            GitComparison::Uncommitted => self
+                .resolve_scope(dir, &DiffScope::Uncommitted, base)
+                .await
+                .map(Some)
+                .map_err(Into::into),
+            GitComparison::Commit { id } => self
+                .resolve_scope(dir, &DiffScope::Commit { id: id.clone() }, base)
+                .await
+                .map(Some)
+                .map_err(Into::into),
+            GitComparison::Committed { base: asked } => {
+                self.resolve_branch_comparison(dir, asked.as_ref().or(base), ComparisonEnd::Head)
+                    .await
+            }
+            GitComparison::All { base: asked } => {
+                self.resolve_branch_comparison(dir, asked.as_ref().or(base), ComparisonEnd::Working)
+                    .await
+            }
+        }
+    }
+
+    async fn resolve_branch_comparison(
+        &self,
+        dir: &Path,
+        base: Option<&WorktreeBase>,
+        end: ComparisonEnd,
+    ) -> Result<Option<Resolved>, ComparisonError> {
+        let Some(base) = base else {
+            return Ok(None);
+        };
+        let commit = self.comparison_base(dir, base).await?;
+        let head = self.head(dir).await?;
+        if head.is_none() && end == ComparisonEnd::Head {
+            let empty = self.empty_tree(dir).await?;
+            return Ok(Some(Resolved {
+                sides: vec![empty.clone(), empty],
+                from: None,
+                untracked: false,
+                index: None,
+            }));
+        }
+        let fork = self.merge_base(dir, &commit).await?.unwrap_or(commit);
+        let mut sides = vec![fork.to_string()];
+        let untracked = match end {
+            ComparisonEnd::Head => {
+                if let Some(head) = head {
+                    sides.push(head.to_string());
+                }
+                false
+            }
+            ComparisonEnd::Working => true,
+        };
+        Ok(Some(Resolved {
+            sides,
+            from: Some(fork),
+            untracked,
+            index: None,
+        }))
+    }
+
     /// What `scope` compares in the repository at `dir`. `base` is the
     /// base to use when the scope names none (a worktree's own, or the
     /// project's default branch).
@@ -30,11 +106,13 @@ impl Git {
                 sides: Vec::new(),
                 from: head,
                 untracked: true,
+                index: None,
             },
             DiffScope::Staged => Resolved {
                 sides: vec!["--cached".to_owned()],
                 from: head,
                 untracked: false,
+                index: None,
             },
             DiffScope::Uncommitted => {
                 let side = match &head {
@@ -45,6 +123,7 @@ impl Git {
                     sides: vec![side],
                     from: head,
                     untracked: true,
+                    index: None,
                 }
             }
             DiffScope::Base { base: asked } => {
@@ -61,6 +140,7 @@ impl Git {
                     sides: vec![fork.to_string()],
                     from: Some(fork),
                     untracked: true,
+                    index: None,
                 }
             }
             DiffScope::Commit { id } => {
@@ -77,6 +157,7 @@ impl Git {
                     sides: vec![from, commit.to_string()],
                     from: parent,
                     untracked: false,
+                    index: None,
                 }
             }
         })

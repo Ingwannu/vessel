@@ -43,7 +43,11 @@ impl Git {
             .into_iter()
             .find(|raw| raw.path == path.as_str());
         let Some(raw) = raw else {
-            if resolved.untracked && self.is_untracked(dir, path).await? {
+            if resolved.untracked
+                && self
+                    .is_untracked(dir, path, resolved.index.as_deref())
+                    .await?
+            {
                 return untracked_diff(dir, path, from).await;
             }
             return Ok(unchanged(path));
@@ -116,13 +120,20 @@ impl Git {
         })
     }
 
-    async fn is_untracked(&self, dir: &Path, path: &RelPath) -> Result<bool, GitError> {
-        let output = self
+    async fn is_untracked(
+        &self,
+        dir: &Path,
+        path: &RelPath,
+        index: Option<&Path>,
+    ) -> Result<bool, GitError> {
+        let mut command = self
             .command(dir)
             .args(["ls-files", "--others", "--exclude-standard", "-z", "--"])
-            .arg(path.as_str())
-            .output()
-            .await?;
+            .arg(path.as_str());
+        if let Some(index) = index {
+            command = command.env("GIT_INDEX_FILE", index);
+        }
+        let output = command.output().await?;
         Ok(!output.stdout.is_empty())
     }
 }

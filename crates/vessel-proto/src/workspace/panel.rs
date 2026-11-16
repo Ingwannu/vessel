@@ -224,7 +224,9 @@ mod tests {
             assert_eq!(method.scope(), Some(Scope::Read));
             assert_eq!(method.shape(), MethodShape::Unary);
             assert_eq!(method.since(), None);
-            assert!(method.is_staged());
+            // This runtime package supplies handlers; the separately reviewed
+            // values-only leaf remains staged on the shared line until joined.
+            assert!(!method.is_staged());
         }
     }
 

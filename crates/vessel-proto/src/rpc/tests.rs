@@ -680,6 +680,7 @@ const FORWARDABLE: &[&str] = &[
     "file.duplicate",
     "file.observe",
     "file.suggest",
+    "git.history",
 ];
 
 #[test]

@@ -14,6 +14,7 @@ mod exec_path;
 mod file_terminals;
 mod files;
 mod git;
+mod history;
 mod panel;
 pub mod panel_files;
 mod path;
@@ -50,6 +51,10 @@ pub use git::{
     RenameOutcome, RepositoryConfigReason, ShowFile, Stage, StashAction, StashChanges, StashEntry,
     StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
 };
+pub use history::{
+    GitCommitLocation, GitCommitPublication, GitHistory, GitHistoryCommit, GitHistoryRead,
+    ReadGitHistory,
+};
 pub use panel::{
     CompareGit, CompareGitFile, GIT_PANEL, GitCompared, GitComparison, GitHunkOffset,
     GitReadReason, GitWhitespace,
@@ -68,9 +73,9 @@ pub use service_port::{InvalidServicePort, ServicePort};
 pub use service_ports::{InvalidServicePorts, ServicePorts, ServicePortsView};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
-    BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,
-    FolderName, GrepQuery, InvalidText, ProjectCommand, ProjectName, RefName, RemoteName,
-    SearchKey, TextKind, TextProblem,
+    BranchName, CommandsDigest, CommitAbbreviation, CommitId, CommitMessage, ConfigKey,
+    ContentHash, FindQuery, FolderName, GrepQuery, InvalidText, ProjectCommand, ProjectName,
+    RefName, RemoteName, SearchKey, TextKind, TextProblem,
 };
 pub use url::{CloneUrl, InvalidCloneUrl};
 pub use worktree::{

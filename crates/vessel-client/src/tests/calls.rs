@@ -428,6 +428,20 @@ async fn pending_git_comparison_never_reaches_the_peer() {
             method: vessel_proto::Method::GitCompare
         }
     ));
+    let history = client
+        .call(vessel_proto::workspace::ReadGitHistory {
+            root: WorkspaceRoot::Project {
+                project: vessel_proto::ProjectId::random(),
+            },
+        })
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        history,
+        crate::CallError::UnassignedProtocol {
+            method: vessel_proto::Method::GitHistory
+        }
+    ));
     drop(client);
     assert!(
         peer.await.unwrap().is_none(),

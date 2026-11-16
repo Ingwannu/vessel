@@ -1,6 +1,8 @@
 //! Registered file-panel operations reuse workspace resolution, never an
 //! absolute path supplied by the caller. Disk work stays in vessel-workspace.
 
+use std::sync::Arc;
+
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, DuplicatedFileEntry, FileBytePage, ObserveFile, ObservedFile, ReadFileBytes,
@@ -34,13 +36,16 @@ impl Workspaces {
         .await?)
     }
 
-    pub(crate) async fn duplicate_file_entry(
-        &self,
+    /// Capture before file-task admission; use the same retained physical
+    /// lifetime and cache guard as the legacy file mutations.
+    pub(crate) fn duplicate_file_entry(
+        self: &Arc<Self>,
         request: DuplicateFileEntry,
-    ) -> Result<DuplicatedFileEntry, WorkspaceError> {
-        let resolved = self.resolve(request.root).await?;
-        let path = files::duplicate::duplicate(&resolved.root, &request.path).await?;
-        Ok(DuplicatedFileEntry { path })
+    ) -> impl Future<Output = Result<DuplicatedFileEntry, WorkspaceError>> + Send + 'static {
+        self.mutating_file(request.root, move |opened| async move {
+            let path = files::duplicate::duplicate(&opened, &request.path).await?;
+            Ok(DuplicatedFileEntry { path })
+        })
     }
 
     pub(crate) async fn observe_file(

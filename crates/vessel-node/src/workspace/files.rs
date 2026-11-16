@@ -9,6 +9,12 @@
 //!   The caller is told apart by its principal's debug form, which names
 //!   the device, agent session or origin; two connections of one device
 //!   share their keys, as the device's own page does.
+//! - Mutation constructors capture the original registered root before the
+//!   service admits their owned future. The existing retained file task keeps
+//!   its cache invalidation guard through physical disk completion, not just
+//!   the caller's wait; no second file worker pool is introduced.
+
+mod mutations;
 
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, PoisonError};
@@ -61,56 +67,64 @@ impl Workspaces {
     ///
     /// # Errors
     /// `conflict` when `expect` does not hold.
-    pub(crate) async fn write_file(
-        &self,
+    pub(crate) fn write_file(
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
         text: String,
         expect: WriteExpect,
-    ) -> Result<FileVersion, WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::write(&resolved.root, path, text, expect).await?)
+    ) -> impl Future<Output = Result<FileVersion, WorkspaceError>> + Send + 'static {
+        let path = path.clone();
+        self.mutating_file(root, move |opened| async move {
+            files::write(&opened, &path, text, expect).await
+        })
     }
 
     /// `file.create_dir`.
     ///
     /// # Errors
     /// `conflict` when the path exists.
-    pub(crate) async fn create_dir(
-        &self,
+    pub(crate) fn create_dir(
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
-    ) -> Result<(), WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::create_dir(&resolved.root, path).await?)
+    ) -> impl Future<Output = Result<(), WorkspaceError>> + Send + 'static {
+        let path = path.clone();
+        self.mutating_file(root, move |opened| async move {
+            files::create_dir(&opened, &path).await
+        })
     }
 
     /// `file.rename`.
     ///
     /// # Errors
     /// `conflict` when `to` exists.
-    pub(crate) async fn rename_path(
-        &self,
+    pub(crate) fn rename_path(
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         from: &RelPath,
         to: &RelPath,
-    ) -> Result<(), WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::rename(&resolved.root, from, to).await?)
+    ) -> impl Future<Output = Result<(), WorkspaceError>> + Send + 'static {
+        let (from, to) = (from.clone(), to.clone());
+        self.mutating_file(root, move |opened| async move {
+            files::rename(&opened, &from, &to).await
+        })
     }
 
     /// `file.delete`.
     ///
     /// # Errors
     /// `conflict` for a folder that is not empty without `recursive`.
-    pub(crate) async fn delete_path(
-        &self,
+    pub(crate) fn delete_path(
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
         recursive: bool,
-    ) -> Result<(), WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::delete(&resolved.root, path, recursive).await?)
+    ) -> impl Future<Output = Result<(), WorkspaceError>> + Send + 'static {
+        let path = path.clone();
+        self.mutating_file(root, move |opened| async move {
+            files::delete(&opened, &path, recursive).await
+        })
     }
 
     /// `file.find`: by name, a newer search of the same caller and key

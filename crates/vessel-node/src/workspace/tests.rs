@@ -1,6 +1,11 @@
 //! The node's workspace calls against temporary repositories, with the
 //! machine's real git isolated from its configuration.
 
+mod comparison;
+mod file_mutations;
+mod git_history;
+mod git_writes;
+
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -1047,6 +1052,9 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
 
 mod approvals;
 mod git_apart;
+
+#[cfg(test)]
+mod queued_roots;
 
 mod project_admission;
 

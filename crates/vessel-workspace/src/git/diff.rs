@@ -11,11 +11,18 @@
 //!   (`--no-ext-diff --no-textconv`): a repository's configuration names
 //!   them, and a read must not run them (ADR 0023).
 
+mod base;
 mod file;
 mod scope;
 mod summary;
 
-use std::path::Path;
+mod all_index;
+mod comparison;
+
+pub use all_index::IndexError as ComparisonError;
+pub use comparison::Comparison;
+
+use std::path::{Path, PathBuf};
 
 use vessel_proto::workspace::CommitId;
 
@@ -42,6 +49,9 @@ pub struct Resolved {
     from: Option<CommitId>,
     /// Whether untracked files count as added.
     untracked: bool,
+    /// Only a node-created private index; never a client path. Legacy scopes
+    /// leave it absent, preserving their existing admitted behaviour.
+    index: Option<PathBuf>,
 }
 
 impl Git {
@@ -58,6 +68,9 @@ impl Git {
         ]);
         if ignore_whitespace {
             command = command.arg("--ignore-all-space");
+        }
+        if let Some(index) = &resolved.index {
+            command = command.env("GIT_INDEX_FILE", index);
         }
         command.args(&resolved.sides)
     }
@@ -81,3 +94,6 @@ fn line_count(bytes: &[u8]) -> u32 {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod comparison_tests;

@@ -398,10 +398,10 @@ macro_rules! method_table {
             /// Release automation for one explicitly inspected external source and revision.
             ReleaseWorkspaceAutomation / release_workspace_automation / "workspace.release_automation" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ReleaseWorkspaceAutomation => $crate::registry::WorkspaceDescriptor;
 
-            /// Distinct committed/All comparison summary (ADR 0087, staged values).
-            GitCompare / git_compare / "git.compare" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
-            /// A bounded file in the same comparison (ADR 0087, staged values).
-            GitCompareFile / git_compare_file / "git.compare_file" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
+            /// Distinct committed/All comparison summary (ADR 0087, runtime pending).
+            GitCompare / git_compare / "git.compare" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
+            /// A bounded file in the same comparison (ADR 0087, runtime pending).
+            GitCompareFile / git_compare_file / "git.compare_file" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
             /// Collect bounded content-free diagnostics (protocol 24).
             Diagnostics / diagnostics / "node.diagnostics" [Read, (pending $crate::diagnostics::DIAGNOSTICS_PROTOCOL), unary]: $crate::diagnostics::GetDiagnostics => $crate::diagnostics::DiagnosticReport;
             /// Rich explorer listing with honest modification metadata (ADR 0083).
@@ -425,6 +425,8 @@ macro_rules! method_table {
             SaveSkillsSelection / save_skills_selection / "skills.save_selection" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::SaveSkillsSelection => $crate::skills::SkillsSaved;
             /// Host orchestration skills (staged ADR 0065, Admin only).
             ImportSkillsSelection / import_skills_selection / "skills.import_selection" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::ImportSkillsSelection => $crate::skills::SkillsImported;
+            /// Complete classified branch history (ADR0087, runtime pending).
+            GitHistory / git_history / "git.history" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::ReadGitHistory => $crate::workspace::GitHistoryRead;
         }
     };
 }
