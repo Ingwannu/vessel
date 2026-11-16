@@ -50,7 +50,10 @@ Additive on package base 14.6; no existing profile, glyph, path or drawing chang
   labels. Paseo's 4/6 px `hitSlop` is not reproduced: the hit area is the frame.
   With a spacing-1 gap two slops overlap; GPUI delivers a press to every Normal
   hitbox under the pointer, and an occluding margin would block the owner's
-  viewport hover that drives `Presence` (see the lightbox plan in wp-b1.md). `panel_role_tests` helpers gain `pub(super)` (the same three-word change
+  viewport hover that drives `Presence` (see the lightbox plan in wp-b1.md).
+  Paseo's web build has no slop either (react-native-web 0.21.2 `Pressable`
+  does not implement `hitSlop`; only the legacy Touchable does), so only the
+  native app's compact 6 px is a real difference. `panel_role_tests` helpers gain `pub(super)` (the same three-word change
   as the S2 file-change leaf, so the two merge cleanly).
 
 ## Inventory order
