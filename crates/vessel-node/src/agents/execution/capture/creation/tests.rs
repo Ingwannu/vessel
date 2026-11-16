@@ -117,14 +117,15 @@ async fn invalidation_before_insertion_returns_the_original_candidate_and_begin(
         assert_eq!(refusal(rejected.reason), RefusalKind::ParentChanged);
         assert_eq!(rejected.candidate.child(), child);
         assert_eq!(rejected.candidate.workspace(), fixture.workspace());
-        let entries = agents.lock();
-        assert!(
-            rejected
-                .candidate
-                .count()
-                .matches_pending(agents, entries.get(&child).unwrap())
-        );
-        drop(entries);
+        {
+            let entries = agents.lock();
+            assert!(
+                rejected
+                    .candidate
+                    .count()
+                    .matches_pending(agents, entries.get(&child).unwrap())
+            );
+        }
         assert_eq!(
             creation_fixture_phase(
                 "retained Begin",
