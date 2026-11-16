@@ -30,7 +30,7 @@ pub(super) fn request(shell: &mut Shell, action: Action, cx: &mut Context<'_, Sh
         // End the initiating Shell borrow before traversing all registered owners.
         // request() enqueues synchronously, so it must follow this admission.
         if let Some(node) = node
-            && !cx.update(|cx| crate::local_node::admit_node(node, cx))
+            && !cx.update(|cx| crate::quit::activate(cx) && crate::local_node::admit_node(node, cx))
         {
             cx.update(crate::quit::finish);
             let _closed = this.update(cx, |shell, cx| {

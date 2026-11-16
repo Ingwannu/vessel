@@ -15,14 +15,17 @@ pub(crate) use vessel_app_view::desktop::quit::DocumentReadiness;
 
 type DocumentGuard = fn(&Shell, &App) -> DocumentReadiness;
 type NodeDocumentGuard = fn(&Shell, vessel_proto::NodeId, &App) -> DocumentReadiness;
+type PhaseApplier = fn(&mut Shell, &mut gpui::Context<'_, Shell>);
 struct Documents {
     guard: DocumentGuard,
     node_guard: Option<NodeDocumentGuard>,
     phase: Phase,
+    applier: Option<PhaseApplier>,
 }
 #[derive(Clone, Copy)]
 enum Phase {
     Idle,
+    Queued,
     Finalizing,
 }
 impl Global for Documents {}
@@ -47,8 +50,17 @@ pub(crate) fn set_document_guard(guard: DocumentGuard, cx: &mut App) {
             guard,
             node_guard: None,
             phase: Phase::Idle,
+            applier: None,
         });
     }
+}
+
+/// C5 promotes this registration only with its actual retained-editor owner.
+/// It reads the same global phase and changes editability, never document text.
+#[cfg(test)]
+pub(crate) fn set_document_phase_applier(applier: PhaseApplier, cx: &mut App) {
+    initialize(cx);
+    cx.global_mut::<Documents>().applier = Some(applier);
 }
 
 /// C5 supplies a facts filter over the same retained owners and original writes.
@@ -80,17 +92,60 @@ pub(crate) fn readiness_on(
 #[must_use]
 pub(crate) fn is_finalizing(cx: &App) -> bool {
     cx.try_global::<Documents>()
-        .is_some_and(|documents| matches!(documents.phase, Phase::Finalizing))
+        .is_some_and(|documents| !matches!(documents.phase, Phase::Idle))
 }
 
-/// Coalesce requests without borrowing any Shell; admission is checked asynchronously.
+/// Reserve/coalesce inside a Shell callback, without reborrowing that Shell.
+/// Writes are held now; actual engine freezing follows in activate, after the
+/// initiating borrow ends and before any node effect or asynchronous wait.
 pub(crate) fn begin(cx: &mut App) -> bool {
     if is_finalizing(cx) {
         return false;
     }
     initialize(cx);
-    cx.global_mut::<Documents>().phase = Phase::Finalizing;
+    cx.global_mut::<Documents>().phase = Phase::Queued;
     cx.refresh_windows();
+    true
+}
+
+/// App-level only: synchronously freeze every retained editor before yielding.
+/// Accepted text from before this activation still publishes and may veto the
+/// initial read-only admission. Unknown windows grant no destructive admission.
+pub(crate) fn activate(cx: &mut App) -> bool {
+    if !cx
+        .try_global::<Documents>()
+        .is_some_and(|documents| matches!(documents.phase, Phase::Queued))
+    {
+        return false;
+    }
+    let crate::desktop::LiveShells::Available(shells) = crate::desktop::shells(cx) else {
+        finish(cx);
+        tracing::warn!("finalization refused: not every live document window is available");
+        crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
+            shell.notice = Some(shell.words.quit().windows_unavailable().to_owned());
+            cx.notify();
+        });
+        return false;
+    };
+    cx.global_mut::<Documents>().phase = Phase::Finalizing;
+    if apply(shells, cx) {
+        true
+    } else {
+        finish(cx);
+        false
+    }
+}
+
+fn apply(shells: Vec<gpui::WeakEntity<Shell>>, cx: &mut App) -> bool {
+    let Some(applier) = cx.global::<Documents>().applier else {
+        return true;
+    };
+    for weak in shells {
+        let Some(shell) = weak.upgrade() else {
+            return false;
+        };
+        shell.update(cx, applier);
+    }
     true
 }
 
@@ -98,6 +153,11 @@ pub(crate) fn begin(cx: &mut App) -> bool {
 pub(crate) fn finish(cx: &mut App) {
     if is_finalizing(cx) {
         cx.global_mut::<Documents>().phase = Phase::Idle;
+        if cx.global::<Documents>().applier.is_some()
+            && let crate::desktop::LiveShells::Available(shells) = crate::desktop::shells(cx)
+        {
+            let _restored = apply(shells, cx);
+        }
         cx.refresh_windows();
     }
 }

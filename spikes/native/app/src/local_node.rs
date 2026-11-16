@@ -146,6 +146,9 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
     }
     cx.spawn(async move |cx| {
         // App-level admission runs after a menu/button's Shell borrow ends.
+        if !cx.update(crate::quit::activate) {
+            return;
+        }
         let settled = flush_then(cx, |cx| {
             if !admit_documents(cx) {
                 end_finalization(cx);

@@ -45,7 +45,7 @@ Paseo 0.15.4 is the behavioral reference:
 | `vessel-local-node` | exact packaged launch, authentication, Owned/Attached distinction, stop/restart/release |
 | `link::local_node` | one bounded actor/runtime, immutable snapshots, source correlation, exact acknowledgements |
 | `app::areas::onboarding` | reuse settings owners under fixed Context + Visit |
-| `app::quit` | one read-only C5 admission hook and one app-wide finalization phase |
+| `app::quit` | one read-only C5 admission hook, an owner phase-applier and one app-wide lifecycle phase |
 | `app::local_node` | process-wide ownership, normal quit/update consumer, OS backstop |
 | `desktop::persistence` | desktop-shell owner's canonical preferences/geometry receipt and current-state fence |
 
@@ -170,11 +170,19 @@ only delegate to proto::book_values::ManagedLocalAlias on an announced base.
 
 ## Ordinary quit, update and manual controls
 
-One global Idle/Finalizing phase coalesces lifecycle work. C5's read-only guard
+One global Idle/Queued/Finalizing phase coalesces lifecycle work. C5's read-only guard
 reports Ready/Dirty/Pending/Failed over all active/retained buffers and original
 write tickets. Dirty, Pending and Failed refuse; no implicit Save All or Discard
-is introduced. New edit/write intent is refused before effect while finalizing,
-but already accepted edit mirrors and original write replies still settle. The
+is introduced. Queued reserves the single lifecycle task from inside a Shell
+callback and holds new writes/mutations. Actual Finalizing activation runs at
+App level after every initiating Shell/Window borrow ends. Before its first
+asynchronous wait or node effect, it uses the canonical complete LiveShells
+snapshot and synchronously invokes C5's one phase-applier on every retained
+editor owner. Unknown windows refuse activation, without inventing document
+Dirty/Pending/Failed facts. New engine edits must then be refused by live engine
+editability at mutation entry, while already accepted edit mirrors and original
+write replies still settle. Accepted text from before activation is retained and
+can veto initial document admission. The
 same owner guards additional/macOS window close after the initiating Shell borrow
 ends. Finalization is projected temporarily into the existing frame foot without
 replacing retained notices; onboarding hides/disables new host-effect admission
@@ -185,6 +193,33 @@ The guard is `fn(&Shell, &App) -> DocumentReadiness`; the node filter is
 read-only App so C5 can compare actual editor text with its retained model even
 when accepted input or a silent find replacement precedes the queued mirror.
 The earlier Shell-only callback cannot prove this boundary and is superseded.
+
+[Decision Log]
+- Purpose: a render-only readonly projection leaves a gap between a finalization
+  request and the next frame, during which engine input can still change text.
+- Existing constraints: the admission guard must remain read-only, and immediate
+  all-Shell mutation inside the initiating Shell callback would reborrow it.
+- Alternatives: weaken the editing contract to a later dirty veto; invoke the
+  guard mutably; create another phase/registry. None preserves the agreed owner
+  or the before-effect boundary.
+- Choice: reuse the same Documents phase and one optional
+  `fn(&mut Shell, &mut Context<Shell>)` owner callback. Reserve Queued first;
+  activate and apply synchronously after the initiating borrow ends. C5 reads
+  the same global phase and changes only retained engine editability. Idle
+  restoration respects its existing close/path-mutation holds.
+- Cost: complete same-registry enumeration, actual owner registration and live
+  engine barrier tests must land in the same qualified consumer union. The
+  phase-applier setter remains literal cfg(test) until C5's real constructor
+  promotes it; marker tests are only generic ordering proof. The current
+  prepared source is not yet compiled with that union and makes no live C5
+  engine-safety claim. There is no new map, save/discard action or recovery journal.
+
+The older exact fba1de45 consumer run passed strict Clippy and 118 App tests with
+2 ignored, including actual Keep-and-quit dispatch/refusal and state fencing.
+That run precedes the Queued activation and complete registry join; it does not
+qualify those changes or the domain editor. Root Owned process-instance binding
+also has a separate returned finding and correction track; this app's early
+root drafts are excluded from a future clean native landing range.
 
 The existing controller reactor observes POSIX HUP/INT/TERM, or platform
 interrupt on other hosts, and forwards intent to that same desktop quit handler.

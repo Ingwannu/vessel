@@ -4,6 +4,8 @@ quit-documents-dirty = Save or discard your unsaved documents before continuing.
 quit-documents-pending = Wait for document writes to finish, then try again.
 # Ordinary quit/update admission; failed writes retain their modified buffers.
 quit-documents-failed = A document could not be saved. Resolve it in the editor before continuing.
+
+quit-windows-unavailable = Some open windows could not be checked. Keep them open and try again.
 # Lifecycle progress and additional-window refusal; also used for manual node control.
 quit-finalizing = Vessel is finishing the current request.
 

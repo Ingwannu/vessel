@@ -286,6 +286,9 @@ impl Shell {
             cx,
         );
         cx.spawn(async move |this, cx| {
+            if !cx.update(crate::quit::activate) {
+                return;
+            }
             let before = crate::local_node::flush_then(cx, crate::local_node::admit_documents).await;
             match before {
                 Ok(true) => {}
