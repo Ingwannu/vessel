@@ -227,8 +227,8 @@ the sole registry record and the current direct/wrapped root. Clearing a pending
 check matches the same handle and Shell identity, so old callback A cannot clear
 replacement B's queued check. Two retained-root replacement regressions cover
 that coalescing boundary and A becoming stale before B becomes the last window.
-This new-source hardening awaits its own App test run; earlier unit totals do
-not qualify it.
+These root/check-identity cases passed in exact9fa9 App29 (140/0/2). They
+do not qualify the later missing-registry refusal or the base13 receiving union.
 
 The pending close now also owns an opaque check identity. A registry A-to-B-to-A
 cycle can return to the same handle and Shell while retiring its old operation;
@@ -313,14 +313,16 @@ implicitly include the first refused field while its UI rollback is still queued
 This admission latch covers settings and nonsettings without another writer or
 changing Shell::prefer's unit-return API. A deterministic filled-pending-queue
 test checks refusal after the physical writer drains and successful recovery only
-from the reconciled canonical projection; its new-head execution is pending.
+from the reconciled canonical projection. It passed in exactec90 unit21; later
+base and owner consumer unions remain separate.
 Exact receipt admission is separate from canonical application: after its owner
 checks the current UI attempt, acknowledge reports an unseen failure even when a
 newer successful snapshot already won. It never reapplies the old preferences.
 A bounded64-entry per-window failure history deduplicates recent receipt/watch
 delivery without treating a different newer failure as this receipt's outcome.
 An actual Shell regression exercises failed write, newer unrelated success,
-out-of-order distinct failures and duplicate receipt; its new-head run is pending.
+out-of-order distinct failures and duplicate receipt. It passed in exactec90
+unit21 and later App24/App29; none of those is App strict or an OS verdict.
 
 Each workspace layout merges by LayoutKey; its validated pane tree stays atomic
 so allocator/reference invariants cannot be corrupted. W12 owns the UI-book cache
@@ -514,7 +516,8 @@ This E3 tree merged the selected owner, preserving its existing close-coalescing
 field. Desktop startup installs the real window factory; all actual creations
 register through the owner, and menus/launches use its root-checked dispatch.
 The former E3 selector and duplicate registry cleanup were removed. No second
-list or notice/context authority is introduced; this receiving union is unchecked.
+list or notice/context authority is introduced. App29 exercised this receiving
+source, while the later base13 union and final lead gate remain unqualified.
 
 Global lifecycle traversal needs a stronger boundary than choosing one valid
 window. host_windows::shells now returns LiveShells::Unavailable if any live handle
