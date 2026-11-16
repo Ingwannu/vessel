@@ -89,3 +89,20 @@ NO compile, actual five Link tests, two-window/replay/gate/review/adoption and
 still-pending admission ordering (3636fd83). Do not consume it as Saved-only ready.
 Read the committed Terminal resume for the latest docs-only checkpoint; exact
 source9d remains unchanged. No new Cargo or branch merge was started under stop.
+
+## Verified local closeout (2026-11-16 03:52 UTC)
+
+Recovery031322 was still QUEUED (last observed place25) at closeout. Local attach
+PID575112/start133926045 and its verified sleep child1138822/start134129947
+were terminated; actual local watcher remainder is empty. The helper has no
+cancellation trap; VM state was queried AFTER cleanup and remained queued.
+This local attach termination is not a remote build/source failure. Original
+run96727's local session may report143; do not treat that as cancelling the VM job.
+Proof: /tmp/work/m12-settings4/local-attach-cleanup-proof.json.
+
+Next session: use status/state, then attach EXISTING settings2-20261116T031322Z-927680a9
+into its recorded OUT, or retrieve its successful recorded export as supported.
+Do not submit another build. No new job was started after the quota warning.
+Terminal's latest docs-only checkpoint is877b00d7901caa977cc67e7b429ceac97437af85;
+its source remains9d1427e6. Root stop checkpoint remainsc60821c1b.
+All three worktrees must be checked clean before any next implementation.
