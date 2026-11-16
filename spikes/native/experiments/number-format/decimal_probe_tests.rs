@@ -12,7 +12,7 @@ const KO_SCALES: &[i16] = &[3, 4, 8, 12];
 fn digits(value: &str) -> String {
     value
         .chars()
-        .filter(|value| value.is_ascii_digit() || matches!(value, '-' | '.'))
+        .filter(|value| value.is_ascii_digit() || matches!(*value, '-' | '.'))
         .collect()
 }
 

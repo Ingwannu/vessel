@@ -5,7 +5,7 @@ const SOURCE: &str = include_str!(concat!(
     "/tests/fixtures/number-format/intl-en-ko.json"
 ));
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(in super::super) struct Oracle {
     pub(in super::super) amounts: Vec<Amount>,
     pub(in super::super) counts: Vec<Count>,
@@ -17,33 +17,33 @@ impl Oracle {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(in super::super) struct Amount {
     pub(in super::super) name: String,
     pub(in super::super) bits: String,
     pub(in super::super) output: Outputs,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(in super::super) struct Outputs {
     pub(in super::super) en: Styles,
     pub(in super::super) ko: Styles,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(in super::super) struct Styles {
     pub(in super::super) usd: String,
     pub(in super::super) tokens: String,
     pub(in super::super) decimal: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(in super::super) struct Count {
     pub(in super::super) unsigned: String,
     pub(in super::super) output: CountOutputs,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(in super::super) struct CountOutputs {
     pub(in super::super) en: String,
     pub(in super::super) ko: String,

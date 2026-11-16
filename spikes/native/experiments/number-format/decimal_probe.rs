@@ -10,6 +10,7 @@ use vessel_proto::conversation::FiniteNumber;
 
 const TWO_FRACTION_MAGNITUDE: i16 = -2;
 const COMPACT_FRACTION_MAGNITUDE: i16 = -1;
+const MIN_COMPACT_MAGNITUDE: i16 = 1;
 const MAX_FINITE_MAGNITUDE: i16 = 308;
 const HALF_EXPAND: SignedRoundingMode =
     SignedRoundingMode::Unsigned(UnsignedRoundingMode::HalfExpand);
@@ -91,7 +92,7 @@ impl<'a> CompactScales<'a> {
     pub(super) fn new(values: &'a [i16]) -> Result<Self, ScaleError> {
         if values
             .iter()
-            .any(|value| !(1..=MAX_FINITE_MAGNITUDE).contains(value))
+            .any(|value| !(MIN_COMPACT_MAGNITUDE..=MAX_FINITE_MAGNITUDE).contains(value))
         {
             return Err(ScaleError::OutOfRange);
         }
