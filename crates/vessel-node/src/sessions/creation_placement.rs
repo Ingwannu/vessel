@@ -1,6 +1,9 @@
 //! Staged placement inputs retain canonical metadata, not physical-root authority.
 use super::Sessions;
-use crate::workspace::{ProjectAdmission, Workspaces};
+use crate::{
+    agents::Agents,
+    workspace::{ProjectAdmission, Workspaces},
+};
 use std::sync::Arc;
 use tokio::sync::OwnedMutexGuard;
 use vessel_proto::registry::{
@@ -27,7 +30,6 @@ pub(crate) struct BoundCreationPlace {
     pub(crate) expected: RegistryRevision,
 }
 
-#[derive(Debug)]
 pub(crate) struct CreationPlacement {
     parent: SessionId,
     child: SessionId,
@@ -37,7 +39,7 @@ pub(crate) struct CreationPlacement {
     // This existing global64 hold extends unrelated-project latency through
     // actor settlement. It is not a per-project or physical generation lease.
     _project: Arc<ProjectAdmission>,
-    _owner: Arc<Sessions>,
+    owner: Arc<Sessions>,
     _metadata: OwnedMutexGuard<()>,
 }
 
@@ -102,13 +104,29 @@ impl Sessions {
             root: resolved.root,
             start,
             _project: project,
-            _owner: Arc::clone(self),
+            owner: Arc::clone(self),
             _metadata: metadata,
         })
     }
 }
 
+impl std::fmt::Debug for CreationPlacement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CreationPlacement")
+            .field("parent", &self.parent)
+            .field("child", &self.child)
+            .field("workspace", &self.descriptor.id)
+            .finish_non_exhaustive()
+    }
+}
+
 impl CreationPlacement {
+    /// Same node ids are not enough: this retained metadata owner must use
+    /// the actual registry whose guard performs launch admission.
+    pub(crate) fn owner_matches(&self, registry: &Agents) -> bool {
+        std::ptr::eq(self.owner.agents.as_ref(), registry)
+    }
+
     pub(crate) const fn parent(&self) -> SessionId {
         self.parent
     }
