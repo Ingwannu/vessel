@@ -334,7 +334,7 @@ fn explicit_source_and_account_ids_cannot_disagree_with_the_opaque_handle() {
 }
 
 #[test]
-fn source_methods_stay_pending_with_explicit_authority_and_unary_shape() {
+fn source_methods_are_protocol_26_with_explicit_authority_and_unary_shape() {
     use crate::{
         Scope,
         rpc::{Method, MethodShape},
@@ -344,7 +344,7 @@ fn source_methods_stay_pending_with_explicit_authority_and_unary_shape() {
         (Method::InspectUsageReport, Scope::Read),
         (Method::SetUsageSourceLookup, Scope::Admin),
     ] {
-        assert_eq!(method.since(), None);
+        assert_eq!(method.since(), Some(crate::ProtocolVersion::new(26)));
         assert_eq!(method.scope(), Some(scope));
         assert_eq!(method.shape(), MethodShape::Unary);
     }

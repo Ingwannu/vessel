@@ -1872,10 +1872,10 @@ The proto stamp/ceiling are correlation values only. This first producer impleme
 no runtime capture, parentage lease, actor queue policy or private notice admission;
 see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
 
-## Source/account usage reports (M12 F3, pending protocol, ADR 0042)
+## Source/account usage reports (M12 F3, protocol 26, ADR 0042)
 
 Accounting (`usage`, protocol 21), the immutable-launch saved-login limit contract
-(`limits`, protocol 23), and generic source reports (`usage_reports`, pending) are
+(`limits`, protocol 23), and generic source reports (`usage_reports`, protocol 26) are
 separate units and authority boundaries. External lookup Off never disables an
 agent's own accounting or context observations.
 
@@ -1904,10 +1904,10 @@ agent's own accounting or context observations.
   alias after enqueueing. GPUI draws the shared kit meter and existing settings
   controls. N2 owns web; W17 owns CLI; they consume the same report values.
 
-The three pending unary rows (`usage.reports`, `usage.inspect`,
-`usage.source_lookup`) have no assigned protocol version; the integrator owns
-assignment and consumers cannot send them yet. Read is cache-only, explicit
-Operate refresh may read a consented source, and Admin grants the exact current
+The three unary rows (`usage.reports`, `usage.inspect`,
+`usage.source_lookup`) are protocol 26, assigned at their node-line merge after
+the tracked DNS consumer; older or unassigned peers keep `usage.limits` (23).
+Read is cache-only, explicit Operate refresh may read a consented source, and Admin grants the exact current
 source disclosure; legacy global consent covers only its original three stores.
 No background credential discovery follows cache expiry. Additional-source Session
 association and plugin F6 execution remain Unsupported pending their actual owner
