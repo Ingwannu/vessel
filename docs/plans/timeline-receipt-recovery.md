@@ -184,3 +184,13 @@ FinishIntentId. The exact incoming generated proto bytes are retained as a base
 snapshot, pending regeneration from this full union; they are explicitly stale
 for this package's additional fields. This merge is not TS freshness or current
 runtime evidence. Schema remains listing21 plus this one unassigned append22.
+
+
+On resume the announced ed4cd137 node head is merged. Its gate56b is counted
+17/18 with the named open intermittent startSession /new case, not an unqualified
+whole pass. The existing migration array has moved to schema/migrations/sequence.rs;
+this package retains one append after listing21, with its relative version
+constant and unchanged SQL. The new RPC caller-drop boundary is retained: an
+unsent dropped caller is distinct from possibly dispatched work, and retained
+Pending cannot become a fabricated no-effect result. Current package checks
+remain separate from this incoming base evidence.

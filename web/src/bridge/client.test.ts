@@ -201,6 +201,25 @@ test("a refusal is final: Retry does not redial", () => {
   expect(Socket.all.length).toBe(1);
 });
 
+test("an elapsed server hello wait retries and proves the same key", async () => {
+  const TRY_AGAIN_LATER = 1013;
+  vi.useFakeTimers();
+  const { bridge, socket } = start();
+  socket.dispatchEvent(
+    Object.assign(new Event("close"), { code: TRY_AGAIN_LATER }),
+  );
+  expect(bridge.link.kind).toBe("closed");
+  await vi.advanceTimersToNextTimerAsync();
+  expect(Socket.all.length).toBe(2);
+  const next = Socket.all.at(-1);
+  if (next === undefined) throw new Error("No retry after elapsed hello");
+  vi.useRealTimers();
+  next.message(await answer(next));
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+});
+
 test("an op's failure keeps the bridge's reason, and a lost socket says so", async () => {
   const { bridge, socket } = start();
   socket.message(await answer(socket));

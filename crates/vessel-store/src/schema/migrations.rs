@@ -472,29 +472,5 @@ pub(super) const BACKGROUND_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
 /// One worker-owned admission append follows the announced head.
 const ADMISSION_SCHEMA: usize = BACKGROUND_SCHEMA.saturating_add(1);
 
-/// Every migration, oldest first. Index `n` takes the schema from version
-/// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; ADMISSION_SCHEMA] = &[
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-    V7,
-    V8,
-    V9,
-    V10,
-    V11,
-    V12,
-    V13,
-    SIDE_CONTEXT,
-    USAGE_LEDGER,
-    INBOX,
-    LABELS,
-    TITLE_ORIGIN,
-    SUBAGENT_RELATIONS,
-    super::workspace_registry::SQL,
-    super::listing::SQL,
-    crate::timeline_admission::SQL,
-];
+mod sequence;
+pub(super) use sequence::MIGRATIONS;
