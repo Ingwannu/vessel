@@ -19,7 +19,7 @@
 use std::collections::BTreeMap;
 
 use super::keys::{Binding, Chord, Platform, overlaps};
-use super::registry::{Action, bindings_of, jump_of};
+use super::registry::{Action, bindings_of};
 use crate::prefs::{ActionId, Bindings, KeyBinding, MAX_BINDINGS, ShortcutEdit, ShortcutTarget};
 
 /// Why a recorded chord is not accepted.
@@ -76,9 +76,6 @@ pub fn clash_of(
     overrides: &BTreeMap<ActionId, Bindings>,
     platform: Platform,
 ) -> Option<Clash> {
-    if binding.then.is_none() && jump_of(&binding.first).is_some() {
-        return Some(Clash::Fixed(Action::JumpSession));
-    }
     Action::ALL
         .into_iter()
         .filter(|other| !other.fixed())

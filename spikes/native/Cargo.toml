@@ -93,6 +93,8 @@ wildcard_enum_match_arm = "warn"
 
 [workspace.dependencies]
 # ADR 0039: maintained Fluent AST/runtime and pseudo transformation.
+# Bounded canonical edit previews; already locked transitively (Apache-2.0).
+similar = "2"
 fluent-bundle = "0.16"
 fluent-syntax = "0.12"
 fluent-pseudo = "0.3.3"
@@ -115,7 +117,7 @@ vessel-app-updater = { path = "../release/updater" }
 vessel-app-log = { path = "../release/applog" }
 
 vessel-client = { path = "../../crates/vessel-client" }
-# Test-only direct access to the already linked RPC framing, for actor regressions.
+# Unit/explicit-testing access to the existing RPC framing, for actor regressions.
 vessel-rpc = { path = "../../crates/vessel-rpc" }
 vessel-proto = { path = "../../crates/vessel-proto" }
 

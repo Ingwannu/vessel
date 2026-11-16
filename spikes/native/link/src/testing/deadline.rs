@@ -28,7 +28,7 @@ pub(crate) fn phase<T>(
     wait: impl Future<Output = T>,
 ) -> Pin<Box<impl Future<Output = T>>> {
     Box::pin(async move {
-        tokio::time::timeout(super::DEADLINE, wait)
+        tokio::time::timeout(super::super::DEADLINE, wait)
             .await
             .unwrap_or_else(|_elapsed| panic!("connection regression phase timed out: {name}"))
     })

@@ -204,8 +204,7 @@ fn render<V: 'static>(
         }))
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
-        .occlude()
-        .cursor_default()
+        .map(popup::layer)
         .flex()
         .flex_col()
         .bg(surfaces.surface0)

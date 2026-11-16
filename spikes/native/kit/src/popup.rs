@@ -169,8 +169,11 @@ where
 /// card the composer under it still showed the text cursor.
 #[must_use]
 pub fn layer<E: InteractiveElement + Styled>(element: E) -> E {
-    element.occlude().cursor_default()
+    element.key_context(KEY_CONTEXT).occlude().cursor_default()
 }
+
+/// Actual popup ancestors own keyboard input before app-wide shortcuts.
+pub const KEY_CONTEXT: &str = "VesselOverlay";
 
 #[cfg(test)]
 mod tests {

@@ -72,11 +72,8 @@ impl SessionResidents {
         binding: FollowBinding,
         retired: impl FnOnce(&mut SessionResources, &FollowRetirement),
     ) -> Result<(), ResidentProblem> {
-        self.admission.validate_binding(binding)?;
-        let notice = self
-            .admission
-            .retire_current(binding.resident)?
-            .ok_or(ResidentProblem::StaleBinding)?;
+        let _entry = self.entry(binding.resident)?;
+        let notice = self.admission.retire_binding(binding)?;
         retired(&mut self.entry_mut(binding.resident)?.resources, &notice);
         Ok(())
     }

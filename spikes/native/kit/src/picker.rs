@@ -639,6 +639,7 @@ mod tests {
                 .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds)
                 .id("picker-probe")
                 .track_focus(&self.state.focus)
+                .key_context(crate::popup::KEY_CONTEXT)
                 .capture_key_down(key_handler(&self.rows, &self.state, &handlers, cx))
                 .w(px(360.0))
                 .type_(Type::Body)

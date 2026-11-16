@@ -304,10 +304,10 @@ pub mod radius {
 
 /// Paseo's icon sizes (`ICON_SIZE` in its theme), in pixels.
 pub mod icon {
-    /// `ICON_SIZE.md`: standard source chevron/field slot,16 points.
-    pub const MD: f32 = 16.0;
     /// `ICON_SIZE.sm`: an icon-only action's glyph.
     pub const SM: f32 = 14.0;
-    /// `ICON_SIZE.lg`: source circular action, schedule empty icon/line box.
+    /// `ICON_SIZE.md`: standard field slot and desktop sidebar footer glyph.
+    pub const MD: f32 = 16.0;
+    /// `ICON_SIZE.lg`: source circular action and schedule line-box glyph.
     pub const LG: f32 = 20.0;
 }

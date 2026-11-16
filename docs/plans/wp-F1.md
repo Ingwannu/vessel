@@ -2036,3 +2036,30 @@ This correction changes no scheduler, revision/authority rule, wire, schema,
 manifest, locale or dependency version. About remains W20-owned except the
 explicitly delegated one line. Receiving View strict/lib and the previously
 unexecuted App binary tests remain owed; the prior red is not a current pass.
+
+### Announced package14.1 merge checkpoint
+
+Merged the announced green b54abbdc by A8 after prior narrow jobs ended. The
+incoming shortcut dispatcher replaces the old root implementation; Schedules
+adds only neutral route cases, and both navigation cancellation hooks run.
+Task/size exports are additive. Canonical FOURTEEN/EIGHTEEN loading constants
+are reused and icon::MD stays one16-point definition.
+
+The single extracted combobox renderer retains F1's typed width/empty/Form
+extensions while adopting incoming popup::layer and the test key context; no
+second root combobox renderer remains. Picker record stays591 (never raised).
+The canonical fallible framed testing facade wins: its existing make_state
+gets only the registered Schedule hub, and its unit-only expectations child
+adds connect_with_node over the SAME fallible start for same-node reconnect
+cases. Old duplicate Home cleanup/state/peer constructors are removed.
+README unions both owners' guides; all other incoming source is preserved.
+Static rustfmt/size/tokens/diff pass, actual receiving checks remain owed.
+Prior689 strict0/Kit267+Link136/View1129-2 are prior-source evidence, not this
+merge's verdict. About keeps the delegated jiff line; known Ended tests stay.
+
+Next shared field item (coordinator e838121d) is the C2 IME commit projection,
+ONLY AFTER secure field lands: ADR-light first, same subscription/FieldId +
+engine-owned commit payload, replace commit distinct from marked notify and
+unmark-only; distinguish equal repeats/programmatic clear/stale openings.
+Required real cases come from terminal-commit-seam-needed.md. No new listener,
+IME cache or concurrent events.rs edit; no implementation started here.

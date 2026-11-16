@@ -106,6 +106,7 @@ pub(crate) fn arrive(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    areas::shortcuts::navigation_changed(shell);
     areas::schedules::leaving(route, shell, window, cx);
     match route {
         Route::Schedules => areas::schedules::arrive(shell, window, cx),
