@@ -1,7 +1,8 @@
 # Assigned workspace metadata wire validation
 
-Status: authored tests on assigned protocol 25; changed-head execution and review
-remain owed. This supplements the registry assignment rather than enabling any
+Status: the corrected protocol-25 validation has passed all-target strict checks
+and all seven targeted runtime cases. Bounded review and receiving combined-line
+proof remain owed. This supplements the registry assignment rather than enabling any
 provisioning, generation, archive, config, editor or process effect.
 
 [Decision Log]
@@ -31,7 +32,7 @@ unchanged registry reads must return within the fixture phase bound rather than
 retaining the ordinary long-poll. Current raw unknown request params reach the
 recording handler; this proves forward decoding separately from domain authority.
 
-All authored cases still require exact changed-head execution. The real fleet
+The initial authored cases required exact changed-head execution. The real fleet
 fixture's existing join wait is reused without introducing new clock polling.
 Runtime outcome, every listed supported-wire cell and immutable gate review must
 be recorded before full matrix readiness is claimed. These tests exercise fake
@@ -66,3 +67,13 @@ sixty-second safety net. Seed writers close before assertion rethrow; node and
 relay handles remain outside authority assertions and drain on that failure path.
 No product timeout, grant, quota, assertion or policy is relaxed. Exact corrected
 strict and functional checks remain owed.
+
+
+The exact lifetime correction subsequently passed Client/RPC/Node all-target
+strict Clippy and all seven targeted runtime cases: SDK old-hop no-frame (one),
+real Node authority/CAS/scoped fleet (four), raw protocol refusal/dispatch (two).
+Both fake-binary prebuilds and the functional command completed successfully.
+This is scoped execution evidence, with the original fixture and lint failures
+retained. It does not supply a new whole-line, platform, provisioning, backing,
+resource-lifetime or full C1 approval. Review and receiving integration remain
+separate conditions.
