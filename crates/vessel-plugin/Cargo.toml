@@ -28,6 +28,8 @@ vessel-proto.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+# Canonical whole-case safety clock, starting after the shared fakes are built.
+vessel-testkit.workspace = true
 # Deterministically arbitrate a completed Ready frame at its expired deadline.
 tokio = { workspace = true, features = ["test-util"] }
 
