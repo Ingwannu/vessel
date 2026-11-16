@@ -569,4 +569,3 @@ the typed failure. Field/query/selection remain owned by that exact resource,
 and unrelated reveals remain protected. A real GPUI regression starts an empty
 slice, retires it, then delivers its old timer and requires no mutation or error
 notice. This union and new case are source-only until native checks execute.
-
