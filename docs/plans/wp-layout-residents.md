@@ -326,7 +326,7 @@ callback. A reply never refreshes a local context.
 Two additional bundled source fixtures cover successor connection/stale/hidden
 input refusal, duplicate/foreign-namespace completion, automatic installed
 Request retirement and exact resolution via the real scoped record-intake
-entry. They are unexecuted until the receiving VM checks complete. No delivery
+entry. They now pass in the receiving run recorded below. No delivery
 guard is fabricated: the eventual wire consumer must still check the same
 original lease before effects and after the queue. Rich authoritative Pending
 eligibility remains a required consumer amendment when its DTOs are present.
@@ -336,3 +336,19 @@ compiled the requested crate targets but rejected three unused-result lints in
 the App test target: the pre-consume correlation value and two projection-change
 flags. The correction names those deliberately unused values; it changes no
 validation, ordering, callback or assertion. No tests ran in that failed check.
+
+### Executed receiving owner union
+
+Exact `40e2ef6064405552fcd0349c7d1c99e09bda2587` completed requested View/App
+all-target strict Clippy in `wp-layout-core-union-20261116T010607Z-40e2ef60`,
+fonts/cargo0. Its raw log shows actual Kit/App Checking; View/Link were cached.
+Same-head `wp-layout-core-union-20261116T011248Z-40e2ef60` compiled
+View/Kit/Link/App and ran App all-target tests148/0/2 ignored, fonts/cargo0.
+All four new bundled Lifecycle/Requests cases and the earlier four Requests
+kernel cases passed explicitly. The earlier failed strict run remains separate.
+
+The selected portable native subtree equals that executed source; its new commit
+ids were not separately run. This is staged source and affected App execution,
+not a whole native gate, live multi-pane input, transport/Guard, rich Pending,
+scoped composer factory, expected-stop Window, painting or IME proof. Original
+global ownership and every literal module/constructor test gate remain intact.
