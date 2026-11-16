@@ -74,3 +74,89 @@ async fn refused_keep_preserves_the_live_owner_until_explicit_drop() {
     .await
     .unwrap();
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn peer_qualification_requires_the_exact_unreaped_owner() {
+    tokio::time::timeout(SAFETY_NET, async {
+        let command = CommandSpec::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "launch::owned::tests::bound_child_fixture",
+                "--nocapture",
+            ])
+            .env(FIXTURE_ENV, "1");
+        let Spawned {
+            child,
+            stdin,
+            stdout,
+            stderr,
+        } = spawn(&command).unwrap();
+        let process = std::num::NonZeroU32::new(child.pid()).unwrap();
+        let wrong = std::num::NonZeroU32::new(if process.get() == u32::MAX {
+            1
+        } else {
+            process.get() + 1
+        })
+        .unwrap();
+        let mut owned = Owned {
+            child,
+            logs: LogReader::collect(stderr),
+        };
+        let mut stdout = BufReader::new(stdout);
+        loop {
+            let mut line = String::new();
+            assert_ne!(stdout.read_line(&mut line).await.unwrap(), 0);
+            if line.ends_with(READY) {
+                break;
+            }
+        }
+        assert!(owned.qualify_peer(Some(process)).is_ok());
+        assert!(matches!(
+            owned.qualify_peer(None),
+            Err(LaunchError::PeerUnverified)
+        ));
+        assert!(matches!(
+            owned.qualify_peer(Some(wrong)),
+            Err(LaunchError::PeerUnverified)
+        ));
+        drop(stdin);
+        let _reaped = owned.wait().await.unwrap();
+        assert!(
+            matches!(
+                owned.qualify_peer(Some(process)),
+                Err(LaunchError::PeerUnverified)
+            ),
+            "a stale numeric match cannot recover reaped child authority"
+        );
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn first_record_completes_without_eof_and_refuses_prefetched_duplicates() {
+    tokio::time::timeout(SAFETY_NET, async {
+        let ready = Ready::new(vessel_proto::NodeId::random());
+        let encoded = ready.encode();
+        let (reader, mut retained_stdout) = tokio::io::duplex(MAX_READY_BYTES * 2);
+        retained_stdout.write_all(encoded.as_bytes()).await.unwrap();
+        let line = record(reader, MAX_READY_BYTES).await.unwrap();
+        assert_eq!(Ready::decode(&line).unwrap(), ready);
+        // The healthy child stdout writer is deliberately still open here.
+        drop(retained_stdout);
+        let duplicate = format!("{encoded}{encoded}");
+        assert!(matches!(
+            record(duplicate.as_bytes(), MAX_READY_BYTES).await,
+            Err(LaunchError::ExtraReadiness)
+        ));
+        let oversized = "x".repeat(MAX_READY_BYTES + 1);
+        let line = record(oversized.as_bytes(), MAX_READY_BYTES).await.unwrap();
+        assert!(matches!(
+            Ready::decode(&line),
+            Err(vessel_proto::local_launch::ReadyError::TooLong)
+        ));
+    })
+    .await
+    .unwrap();
+}
