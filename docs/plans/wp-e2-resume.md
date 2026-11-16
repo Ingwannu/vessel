@@ -61,6 +61,10 @@ No new whole gate was started under the warning; it cannot finish in the
 remaining queue window. New Offer source/frames still need V1 and coordinator
 comparison, the receiving APP union and its owning package gate. This is WIP,
 not full E2/QR/relay consent/physical phone/other OS/GPU/TLS/principal approval.
+V1 row314 was explicitly INTAKE ONLY at the quota stop: no packet, source, log
+or frame was opened/reviewed by V1. All checks above are author-reported to the
+reviewer and UNVERIFIED there; source/narrow/frame/coordinator visual/receiving/
+adoption stay on HOLD until explicit resume. Prior51 PASS is not borrowed.
 E2's opaque secure issued receipt and typed book writer/upsert still do NOT
 exist to consume. Do not rebuild that store/connector, reconstruct strong proof
 from public Offer/Paired/NodeInfo/Context, redeem again, or drop an issued
