@@ -593,8 +593,11 @@ It precedes label mutation wiring and claims no consumer availability.
   saturation must not produce equal successive values. Caller/event/receipt
   times remain their existing facts and never supply this ordering clock.
 - Coverage: initialize on a successful local row creation; advance on every
-  nonempty accepted append batch, accepted session mark and entry-level inbox
-  mark, successful reopen, first detach and metadata write. A rejected write,
+  nonempty accepted append batch, accepted non-attention session mark,
+  successful reopen, first detach and metadata write. Stored Read/Unread and
+  entry-level inbox marks advance only when their observed attention/seen state
+  changes. Loaded Read/Unread preserve the clock, including an ended handle
+  still retained by the runtime. A rejected write,
   empty append, repeated already-detached receipt, read, migration, pruning,
   index rebuild or usage backfill does not advance it. Profile/options/title/
   queue/usage changes already included in append tick there once; their SQL
@@ -607,9 +610,10 @@ It precedes label mutation wiring and claims no consumer availability.
   consumer's explicit id tie break, not a fabricated global order.
 - Effects and differences: Vessel stamps committed append batches, not each
   raw chunk or transient state emission; this preserves existing batched
-  persistence instead of adding one write per token. It also stamps canonical
-  marks consistently, whereas Paseo's live unread path changes attention
-  without explicitly calling touchUpdatedAt (`:2390-2407`). Imported sessions
+  persistence instead of adding one write per token. Attention marks follow
+  Paseo: loaded read/unread (`agent-manager.ts:2389-2414`) preserve updatedAt;
+  stored read (`session.ts:7697-7712`) and unread
+  (`agent-manager.ts:2420-2433`) stamp an actual attention transition. Imported sessions
   receive a new local creation clock; the source's value cannot control the
   destination's ordering. Legacy Unknown makes dependent selection refuse
   rather than invent a historical ordering.
@@ -690,3 +694,30 @@ payload is neither a registered Request nor an available session.labels call.
 The pending lifecycle method and its SessionInfo reply will be wired only with
 the real mutation and its projection tests; this value adds no assignment,
 service, event or consumer availability.
+
+
+### Attention marks preserve activity ordering
+
+[Decision Log]
+- Purpose: merely viewing a loaded finished session must not move it ahead of
+  another root in the later workspace unread selection.
+- Existing assets and constraints: the Node already distinguishes Found::Live
+  from Found::Stored, and exact inbox marks use runtime_handle under the same
+  marking lease as reopen. SQL live status is not runtime residency: a retained
+  ended handle is still loaded. The existing writer savepoint and SessionCommit
+  keep attention state and its acknowledged clock together.
+- Alternatives: infer residency from persisted live/status, skip the actual read
+  watermark, or add another clock. All lose an existing fact or ordering rule.
+- Choice: Node supplies loaded residency through two narrowly named Store
+  methods; their writer enum remains private to the Store crate. Existing Store
+  convenience methods retain stored semantics. Store does not authenticate that
+  local assertion; it controls ordering metadata only, never permission.
+- Why: loaded Read/Unread always preserve updated_at. Stored session marks
+  compare KeptMarks::marks(attention).unread before and after in one savepoint;
+  an unchanged unread value preserves the clock while still applying the read
+  watermark and its inbox propagation. Exact inbox marks compare their own seen
+  value in that savepoint. Pin/Unpin/Archive/Unarchive and other clock writers
+  retain their existing tick rule in both residency paths.
+- Effects: repeated attention marks do not invent activity. The nullable legacy
+  clock stays Unknown when an attention operation preserves it. Permissions,
+  mark validation, caller-loss settlement, schema and wire remain unchanged.

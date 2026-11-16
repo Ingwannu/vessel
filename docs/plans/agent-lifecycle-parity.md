@@ -513,20 +513,18 @@ feature constant, and an unassigned constant makes the whole call None.
 
 ## Resume point
 
-Current preparation: integrated discovery is merged; nonempty patches and the
-metadata queue refactor have narrow evidence. Mutation-clock and label-coverage
-contracts below have passed source review. The nullable clock, transactional acknowledgements, optional Info projection and
-live acknowledgement publication are implemented. The corrected changed-crate
-strict check and runtime forcing tests passed on their exact pre-merge revision;
-original generated declarations are committed. The complete gate of the merged
-package and its implementation review remain pending. The latest shared node head
-is merged with its migration sequence preserved. The dispatcher refactor keeps
-the same savepoints and commit boundary. Label coverage is still only a
-contract. No new event or mutation RPC is registered. Historical checkpoint text follows.
+Current boundary: the canonical clock passed source review and its integrated
+owning gate: eighteen stages passed, Rust 2862/0/12, web unit 465, browser e2e
+80/80 and forge fixture 4, with fresh generated declarations. The clock's schema
+is appended after listing. SESSION_MUTATIONS remains unassigned. This qualifies
+the producer boundary, not label mutation, coverage, reload or consumer policy.
 
-The separate transferable marking-order prerequisite passed its bounded
-source/runtime review and is received for integration. That evidence does not
-qualify this branch's pending clock or its consumers.
+Next: attention-mark parity. Loaded Read/Unread preserve the clock; stored
+attention/seen transitions tick, while repeated marks and watermark-only reads
+preserve it. The existing Node residency branches decide under the same marking
+lease as reopen. No SQL live/status inference or second clock is introduced.
+The workspace selection consumer waits for this correction. Quiescence code
+follows this package; its accepted contract alone is not a native proof.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
@@ -1606,3 +1604,25 @@ The later merge preserves that head's launch admission and execution invalidator
 no stop/resume/archive caller joins or stronger process proof are added here.
 The final complete gate must verify this combined head, including all wire/web
 checks. None of the partial checks is represented as that complete result.
+
+
+## Attention-mark activity parity
+
+Reference read: agent-manager.ts 2389-2414 (loaded clear/read and unread do not
+call touchUpdatedAt), 2420-2433 (stored unread advances nextStoredUpdatedAt), and
+session.ts 7697-7712 (stored read only for attention requiring clearance). This
+replaces the earlier deliberate difference that stamped every accepted mark.
+
+Reuse decision: modify the existing Node residency branches, marking lease,
+Store writer/savepoint, KeptMarks attention derivation and exact inbox seen state.
+Two named loaded Store entry points carry a private writer residency enum; their
+caller must hold the existing metadata order. Standard enums and the current
+SQLite/chrono dependencies suffice. No external API or dependency is needed.
+
+Forcing checks must cover loaded Read/Unread clock preservation, stored changed
+attention ticks, repeated and watermark-only reads preserving time, exact inbox
+seen transitions/no-ops, and the unchanged Pin/Archive tick rule. Existing caller
+cancellation, read validation, inbox state and safety budgets remain. The former
+loaded inbox clock-increase expectation changes to equality because that is the
+explicit behavior correction; shutdown's later increase proves its final append,
+not an inbox mark tick. Source review and narrow execution remain owed.
