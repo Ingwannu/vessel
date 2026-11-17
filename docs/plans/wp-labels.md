@@ -70,8 +70,9 @@ Reference sources read before implementation (relative to the reference source r
 - `app/src/areas/labels/`: existing kit controls draw view state.
   `follow.rs` keeps each connected, capable host's catalog and registry
   current (one waiting read of each out at a time, the quiet pause after
-  each answer, a longer one after a failure). `picker.rs` is opened from
-  a session row's menu (`areas/sidebar/row_menu.rs`, Labels after Pin);
+  each answer, a longer one after a failure); `rows.rs` reads it for a
+  session row (its registry workspace and labels) and opens the picker.
+  `picker.rs` is opened from a session row's menu (`areas/sidebar/row_menu.rs`, Labels after Pin);
   `colors::chip` draws Paseo's chips on the row's second line
   (`areas/sidebar/session_row.rs`).
 - Flow: bind (fleet change) -> follow reads -> Replica / Assignments ->

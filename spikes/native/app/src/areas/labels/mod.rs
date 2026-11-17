@@ -14,6 +14,7 @@ mod form;
 mod host_filter;
 mod hosts;
 mod picker;
+mod rows;
 mod surface;
 
 pub(crate) use colors::chip;
