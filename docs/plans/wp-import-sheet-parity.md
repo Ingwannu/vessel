@@ -162,11 +162,13 @@ Gates on 72b62fc12 (package base 14.28 merged), build VM, ordinary lane:
 - wasm32 check of link and app: rc 0, no warnings.
 
 After the capture pass (76e3928e3: the 14 muted provider marks in one
-column, the 16 slot for row marks): strict 0; kit and app suites rerun on
-the final head.
+column, the 16 slot for row marks): strict 0; kit 333 and app 292/0/2 on
+a86c19278. The folder label (coordinator's check, 71c4a7df9): strict 0, app
+292/0/2, view 1293 lib (history::folder::tests 4) and every integration
+suite.
 
 Captures (export of 76e3928e3 on the base14.19 shared fleet, fake agents):
 en-dark and ko-light at 1280 and 390: the merged list with the provider pill
 and a failed provider's banner, the filter list (a titled sheet on a phone),
 one provider (no pill), Codex only, no matches, "No Codex sessions found.",
-and an imported session opened. Sent to the coordinator.
+and an imported session opened. Coordinator visual PASS (2026-11-17).
