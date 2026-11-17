@@ -949,7 +949,11 @@ button; the owner asked for one.)
 - First answer wins (protocol). Another follower's answer clears the
   prompt here too, and the line says how it ended. A later click errors
   with conflict: a toast says so, the history stays.
-- The composer under it is disabled while it waits, its placeholder
+- The composer under it stays usable while it waits (Paseo's; TRACKER
+  794): a message then goes by the delivery rules below, a Queue
+  stopping the turn instead (it would be stranded behind the request),
+  and the placeholder says so. On a node before protocol 10, where
+  nothing can be sent during a turn, it is disabled, its placeholder
   "Answer the permission to continue".
 
 **A question the agent asks** (protocol 10, `question_asked`) takes the
@@ -1289,7 +1293,11 @@ approval (§6.7):
   and label turn while the modifier is held; the other way of queue is
   steer, of steer and interrupt queue. Steer is offered only where the
   agent says it takes it (`abilities.steer`), and an agent that refuses
-  it once is not offered it again while the session's page is open. Its tooltip says what
+  it once is not offered it again while the session's page is open; a
+  Steer chosen for an agent that cannot take it replaces the turn
+  (Paseo's `steerOrReplaceActiveTurn`, as the native app), and a Queue
+  while a permission waits interrupts, each with a line under the label
+  that says why (TRACKER 794). Its tooltip says what
   it does and the other way: "Sends when the agent finishes its turn",
   "Ctrl+↵ or Ctrl+click: steer message". With a queued prompt open in
   the box it is "Update queued message". A held queue (after Stop) does

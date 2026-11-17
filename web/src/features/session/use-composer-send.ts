@@ -84,7 +84,10 @@ export function useComposerSend({
   const [steerRefused, setSteerRefused] = useState(false);
   const filled = useStore(tray.items, (items) => items.length > 0);
   const text = draft.text;
-  const blocked = timeline.pending !== null || sending;
+  // A waiting permission blocks only where nothing can be delivered
+  // during a turn (before protocol 10); from 10 the rules decide (794).
+  const blocked =
+    (timeline.pending !== null && !hasConversation(protocol)) || sending;
   const state: SendState = {
     protocol,
     live: isLive(session),
@@ -94,6 +97,7 @@ export function useComposerSend({
     queue: timeline.conversation.queue,
     preferred,
     steerRefused,
+    permissionWaits: timeline.pending !== null,
   };
   const plan = sendPlan(state);
 

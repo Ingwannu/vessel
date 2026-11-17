@@ -139,6 +139,33 @@ test("by default a message sent during a turn steers it, and Mod+Enter queues (A
   await expect(timeline(page).getByText(/Turn ended · end turn/)).toBeVisible();
 });
 
+test("a Queue while a permission waits stops the turn instead, and says so (TRACKER 794)", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  await defaultSend(page, origin, "Queue");
+  try {
+    await startSession(page, "gpu-box", "Structured", "tidy the overview");
+    const prompt = page.getByRole("group", { name: "Permission request" });
+    await expect(prompt).toContainText("Run fake tool");
+    // Paseo's: a queued message would be stranded behind the request.
+    await expect(text(page)).toBeEnabled();
+    await expect(text(page)).toHaveAttribute(
+      "placeholder",
+      "Next message you send will stop the agent and go next",
+    );
+    await text(page).fill("later");
+    await expect(
+      composer(page).getByRole("button", { name: "Interrupt and send" }),
+    ).toBeVisible();
+    await text(page).fill("");
+    await prompt.getByRole("button", { name: "Allow" }).click();
+    await expect(prompt).toBeHidden();
+  } finally {
+    await defaultSend(page, origin, "Steer");
+  }
+});
+
 test("Default send Queue, kept by the bridge, makes Send queue and Mod+Enter steer", async ({
   page,
 }) => {

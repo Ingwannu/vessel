@@ -26,6 +26,7 @@ const RUNNING: SendState = {
   queue: { entries: [] },
   preferred: "queue",
   steerRefused: false,
+  permissionWaits: false,
 };
 
 describe("the composer's button", () => {
@@ -80,14 +81,14 @@ describe("the composer's button", () => {
     });
   });
 
-  test("an agent that cannot steer is never offered it, and queues", () => {
+  test("a Steer the agent cannot take replaces the turn (Paseo's steerOrReplaceActiveTurn)", () => {
     const plain = { ...STEERS, steer: false };
     expect(
       sendPlan({ ...RUNNING, preferred: "steer", abilities: plain }),
     ).toEqual({
       kind: "deliver",
-      delivery: "queue",
-      alternate: "interrupt",
+      delivery: "interrupt",
+      alternate: "queue",
       fallback: "cannot-steer",
     });
     // Not yet said counts as cannot.
@@ -95,7 +96,37 @@ describe("the composer's button", () => {
     // Refused by the node once: not offered again in this session.
     expect(
       sendPlan({ ...RUNNING, preferred: "steer", steerRefused: true }),
-    ).toMatchObject({ delivery: "queue", fallback: "cannot-steer" });
+    ).toMatchObject({ delivery: "interrupt", fallback: "cannot-steer" });
+    // Where it can, a Queue's other way is still the steer.
+    expect(sendPlan({ ...RUNNING, abilities: plain })).toMatchObject({
+      delivery: "queue",
+      alternate: "interrupt",
+      fallback: null,
+    });
+  });
+
+  test("a Queue while a permission waits interrupts (Paseo's resolveActiveSendBehavior)", () => {
+    const waiting = { ...RUNNING, permissionWaits: true };
+    expect(sendPlan(waiting)).toEqual({
+      kind: "deliver",
+      delivery: "interrupt",
+      alternate: "queue",
+      fallback: "permission-waits",
+    });
+    // Steer and Interrupt go as chosen: the turn takes the steer.
+    expect(sendPlan({ ...waiting, preferred: "steer" })).toMatchObject({
+      delivery: "steer",
+      fallback: null,
+    });
+    expect(sendPlan({ ...waiting, preferred: "interrupt" })).toMatchObject({
+      delivery: "interrupt",
+      fallback: null,
+    });
+    // Between turns nothing waits on the turn: it sends as ever.
+    expect(sendPlan({ ...waiting, inTurn: false })).toMatchObject({
+      delivery: "queue",
+      fallback: null,
+    });
   });
 });
 
@@ -108,13 +139,14 @@ test("a queued prompt's Send now: start, steer where it can, else interrupt", ()
 });
 
 describe("what the empty box says the next message will do", () => {
-  test("the preferred delivery, or the queue where the agent cannot steer", () => {
+  test("the delivery a message would take, by the same rules", () => {
     const empty = { ...RUNNING, filled: false };
     expect(nextDelivery({ ...empty, preferred: "steer" })).toBe("steer");
     expect(nextDelivery({ ...empty, preferred: "queue" })).toBe("queue");
     expect(
       nextDelivery({ ...empty, preferred: "steer", steerRefused: true }),
-    ).toBe("queue");
+    ).toBe("interrupt");
+    expect(nextDelivery({ ...empty, permissionWaits: true })).toBe("interrupt");
   });
 
   test("nothing between turns or before protocol 10", () => {
