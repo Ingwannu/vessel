@@ -13,8 +13,7 @@ use super::keys::key_handler;
 use super::lifecycle::RenderLease;
 use super::rows::{note_row, rows_list, title_row};
 use super::{
-    ComboHandlers, ComboHeader, ComboRow, ComboboxState, EDGE, LIFT, OFFSET, Side, room,
-    search_row,
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, EDGE, LIFT, OFFSET, Side, room, search_row,
 };
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
@@ -50,8 +49,13 @@ pub(super) fn panel<V: 'static>(
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
-    let (state, header, rows, handlers, width) =
-        (list.state, list.header, list.rows, list.handlers, list.width);
+    let (state, header, rows, handlers, width) = (
+        list.state,
+        list.header,
+        list.rows,
+        list.handlers,
+        list.width,
+    );
     let list_id = list.id.clone();
     if let Some(pages) = &state.submenus {
         // A new opening of the list starts at its root page.
