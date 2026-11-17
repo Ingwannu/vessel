@@ -11,7 +11,8 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
     ActionId, Alerts, Bindings, Choices, CodeSize, ContentWidth, ConversationDisplay, Grouping,
-    InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme, TurnDelivery,
+    InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme, TurnDelivery, UsageDisplay,
+    UsagePins,
 };
 #[cfg(doc)]
 use super::{
@@ -54,6 +55,16 @@ pub enum PreferenceChange {
     SidebarSort(SessionSort),
     /// [`SidebarView::ended`].
     SidebarEnded(bool),
+    /// [`SidebarView::usage`]: the footer's usage summary (ADR 0107).
+    SidebarUsage(bool),
+    /// [`super::UsagePreferences::display`].
+    UsageDisplay(UsageDisplay),
+    /// [`super::UsagePreferences::host`]; null follows the active machine.
+    UsageHost(Option<NodeId>),
+    /// [`super::UsagePreferences::pins`]; null follows the sources' defaults.
+    UsagePins(
+        #[cfg_attr(feature = "ts", ts(as = "Option<Vec<super::UsagePin>>"))] Option<UsagePins>,
+    ),
     /// Keys for some actions, applied together, so a key moves from one
     /// action to another in one change.
     Shortcuts {

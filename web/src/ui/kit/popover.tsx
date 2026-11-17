@@ -9,8 +9,9 @@ import "./popover.css";
 import { Popover as Base } from "@base-ui/react/popover";
 import type { ReactElement, ReactNode } from "react";
 
-/** GOAT's: 256, 320 and 384px. */
-export type PopoverWidth = "sm" | "md" | "lg";
+/** GOAT's: 256, 320 and 384px; `settings` is Paseo's 340px settings
+ * popover (usage/options.tsx, DropdownMenuContent width 340). */
+export type PopoverWidth = "sm" | "md" | "settings" | "lg";
 
 export function Popover({
   trigger,
@@ -19,6 +20,7 @@ export function Popover({
   width = "md",
   side = "bottom",
   align = "center",
+  showTitle = true,
 }: {
   /** A kit Button or IconButton; Base UI adds its handlers and ARIA. */
   trigger: ReactElement;
@@ -28,6 +30,9 @@ export function Popover({
   width?: PopoverWidth;
   side?: "bottom" | "top" | "right" | "left";
   align?: "start" | "center" | "end";
+  /** Off where the reference shows no heading (Paseo's settings popovers
+   * on wide screens): the title still names the popup. */
+  showTitle?: boolean;
 }) {
   return (
     <Base.Root>
@@ -41,7 +46,11 @@ export function Popover({
           collisionPadding={8}
         >
           <Base.Popup className={`popup popover ${width}`}>
-            <Base.Title className="popover-title">{title}</Base.Title>
+            <Base.Title
+              className={showTitle ? "popover-title" : "popover-title unseen"}
+            >
+              {title}
+            </Base.Title>
             {children}
           </Base.Popup>
         </Base.Positioner>

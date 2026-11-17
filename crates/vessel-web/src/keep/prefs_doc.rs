@@ -27,7 +27,7 @@ use vessel_proto::{NodeId, RawJson};
 
 use self::sections::{
     AppearanceFile, ComposerFile, LayoutFile, MachineFile, NotificationsFile, SidebarFile,
-    StoredAgent,
+    StoredAgent, UsageFile,
 };
 use super::lenient::{Blank, Entries, Field};
 use crate::wire::{
@@ -57,6 +57,8 @@ struct Body {
     notifications: Field<NotificationsFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
     sidebar: Field<SidebarFile>,
+    #[serde(skip_serializing_if = "Field::is_blank")]
+    usage: Field<UsageFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
     defaults: Field<Entries<NodeId, MachineFile>>,
     /// Keys this build does not know, `version` taken out.
@@ -188,6 +190,7 @@ impl PrefsDoc {
                 .read()
                 .map(SidebarFile::values)
                 .unwrap_or_default(),
+            usage: body.usage.read().map(UsageFile::values).unwrap_or_default(),
             defaults: body
                 .defaults
                 .read()
@@ -263,6 +266,12 @@ impl PrefsDoc {
             PreferenceChange::SidebarGroup(group) => body.sidebar.make_read().group.set(*group),
             PreferenceChange::SidebarSort(sort) => body.sidebar.make_read().sort.set(*sort),
             PreferenceChange::SidebarEnded(on) => body.sidebar.make_read().ended.set(*on),
+            PreferenceChange::SidebarUsage(on) => body.sidebar.make_read().usage.set(*on),
+            PreferenceChange::UsageDisplay(display) => {
+                body.usage.make_read().display.set(*display);
+            }
+            PreferenceChange::UsageHost(host) => body.usage.make_read().host.set(*host),
+            PreferenceChange::UsagePins(pins) => body.usage.make_read().pins.set(pins.clone()),
             PreferenceChange::Shortcuts { edits } => {
                 let shortcuts = body.shortcuts.make_read();
                 for edit in edits.items() {
@@ -311,3 +320,5 @@ impl PrefsDoc {
 mod sections;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod usage_tests;
