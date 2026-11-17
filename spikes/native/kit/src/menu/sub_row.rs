@@ -12,11 +12,11 @@ use gpui::{AnyElement, Context, MouseButton, div, px};
 
 /// What every row of one menu is drawn from.
 pub(super) struct Rows<'a, V> {
-    state: &'a MenuState,
+    pub(super) state: &'a MenuState,
     pub(super) handlers: &'a MenuHandlers<V>,
     pub(super) submenus: Option<&'a Submenus>,
-    surfaces: &'a Surfaces,
-    narrow: bool,
+    pub(super) surfaces: &'a Surfaces,
+    pub(super) narrow: bool,
 }
 
 /// `item`'s row: one that opens a page when the menu has submenus, else
@@ -59,9 +59,9 @@ struct SubRow<'a> {
     item: &'a MenuItem,
     page: &'a str,
     submenus: &'a Submenus,
-    pub(super) state: &'a MenuState,
-    pub(super) surfaces: &'a Surfaces,
-    pub(super) narrow: bool,
+    state: &'a MenuState,
+    surfaces: &'a Surfaces,
+    narrow: bool,
 }
 
 // Paseo's `MenuSubTrigger`: the decision's value and a chevron at the right;

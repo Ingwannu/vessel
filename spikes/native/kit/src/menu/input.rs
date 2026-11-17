@@ -14,7 +14,7 @@ pub(super) struct KeyMenu<V> {
     pub(super) lease: RenderLease,
     /// The menu's submenus, when it has any: Enter on a row that opens a
     /// page opens it.
-    pub(super) submenus: Option<crate::submenu::Submenus>,
+    pub(super) submenus: Option<Submenus>,
 }
 
 pub(super) fn keyboard<V: 'static>(
