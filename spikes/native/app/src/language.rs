@@ -10,7 +10,8 @@
 //!   replace the shell's borrowed catalog and legacy table together.
 //! - Cost: unmigrated areas still use English or Korean tables until moved.
 
-use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::ui::{App, Context, Window};
+use vessel_app_kit::{ControlNames, set_control_names};
 use vessel_app_view::Lang;
 use vessel_app_view::localization::{InitError, LanguagePreference, Translator, resolve_languages};
 
@@ -40,6 +41,19 @@ impl Language {
             self.checking.as_deref(),
         ))
     }
+}
+
+/// Name the kit's wordless controls (the dialog's close button and the sheet
+/// header's back arrow) in this catalog's words; the kit has none of its own
+/// (TRACKER 782, `docs/plans/shared-control-accessibility.md`).
+pub(crate) fn name_kit_controls(words: &'static Translator, cx: &mut App) {
+    set_control_names(
+        ControlNames {
+            close: words.layout().close().into(),
+            back: words.shortcuts().back().into(),
+        },
+        cx,
+    );
 }
 
 type RefreshWords = fn(&mut Shell, &mut Window, &mut Context<'_, Shell>);
@@ -79,6 +93,7 @@ impl Shell {
         }
         self.words = words;
         self.t = Lang::from_tag(words.locale().tag()).text();
+        name_kit_controls(words, cx);
         self.refresh_general_words();
         self.refresh_preference_refusal();
         crate::areas::settings::apply_composer(self, window, cx);

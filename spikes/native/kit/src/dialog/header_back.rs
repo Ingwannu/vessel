@@ -19,7 +19,7 @@
 
 use crate::assets::Glyph;
 use gpui::prelude::*;
-use gpui::{App, ClickEvent, Div, Hsla, Stateful, Window, div, px, svg};
+use gpui::{App, ClickEvent, Div, Hsla, SharedString, Stateful, Window, div, px, svg};
 use std::rc::Rc;
 
 /// The glyph's size (`ArrowLeft size={18}`).
@@ -33,6 +33,7 @@ type OnBack = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 /// The owner's way back, drawn before the title.
 pub struct HeaderBack {
     on_back: OnBack,
+    label: Option<SharedString>,
 }
 
 impl HeaderBack {
@@ -41,7 +42,16 @@ impl HeaderBack {
     pub fn new(on_back: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         Self {
             on_back: Rc::new(on_back),
+            label: None,
         }
+    }
+
+    /// Announce this name instead of the kit's "Back" (Paseo's
+    /// `back.accessibilityLabel ?? back.label`).
+    #[must_use]
+    pub fn with_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.label = Some(label.into());
+        self
     }
 }
 
@@ -51,11 +61,19 @@ impl std::fmt::Debug for HeaderBack {
     }
 }
 
-pub(super) fn button(back: HeaderBack, muted: Hsla, pressed: Hsla) -> Stateful<Div> {
-    let on_back = back.on_back;
+/// The arrow, announced as a button named by the owner's label or `back`.
+pub(super) fn button(
+    back: HeaderBack,
+    fallback: &SharedString,
+    muted: Hsla,
+    pressed: Hsla,
+) -> Stateful<Div> {
+    let HeaderBack { on_back, label } = back;
     div()
         .id(GROUP)
         .debug_selector(|| GROUP.to_owned())
+        .role(gpui::Role::Button)
+        .aria_label(label.unwrap_or_else(|| fallback.clone()))
         .group(GROUP)
         .relative()
         .flex_none()
