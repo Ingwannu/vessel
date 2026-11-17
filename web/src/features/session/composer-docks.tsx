@@ -1,4 +1,5 @@
 // What stands over a running session's composer, top to bottom: the
+// saved login's limit notice (features/usage/limit-notice.tsx), the
 // prompts waiting in the node's queue, then a permission the agent waits
 // on, or else the oldest question it asks (one at a time; the permission
 // first, since the turn cannot go on without it).
@@ -8,6 +9,7 @@ import { heldBy, type QueueRow } from "../../data/queue-view";
 import type { Timeline } from "../../data/timeline-model";
 import type { NodeKey } from "../../wire/bridge";
 import type { QueueEntryId, SessionId } from "../../wire/proto";
+import { LimitNotice } from "../usage/limit-notice";
 import { pendingTool } from "./composer-props";
 import { PermissionDock } from "./permission-dock";
 import { QuestionDock } from "./question-dock";
@@ -34,6 +36,7 @@ export function ComposerDocks({
   const tool = pendingTool(timeline);
   return (
     <>
+      <LimitNotice node={node} session={session} binding={timeline.binding} />
       <QueueDock
         rows={rows}
         held={heldBy(timeline.conversation.queue)}

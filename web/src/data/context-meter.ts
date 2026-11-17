@@ -22,8 +22,12 @@ export interface Meter {
   arc: number;
   percent: number;
   fullness: Fullness;
-  /** The hover's lines, the first its heading. */
-  lines: readonly string[];
+  /** The hover's words as Paseo's context-window-details.tsx sets them:
+   * the title, the share used (foreground), then muted details (the
+   * tokens, the session's cost, a warning when room runs low). */
+  title: string;
+  used: string;
+  details: readonly string[];
 }
 
 /** A token count as the meter writes it: 950, 84k, 1.2M. */
@@ -48,27 +52,32 @@ export function meterOf(usage: ContextUsage | null): Meter | null {
   const percent = Math.round(fraction * 100);
   const fullness: Fullness =
     fraction >= 0.9 ? "full" : fraction >= 0.7 ? "low" : "room";
-  const lines = [
-    "Context window",
-    `${tokens(usage.used)} / ${tokens(usage.size)} tokens (${String(percent)}%)`,
-  ];
+  const details = [`${tokens(usage.used)} / ${tokens(usage.size)} tokens`];
   const cost = usage.cost;
   if (cost !== undefined && cost !== null) {
-    lines.push(`Session cost ${costLabel(cost.amount, cost.unit)}`);
+    details.push(`Session cost ${costLabel(cost.amount, cost.unit)}`);
   }
   switch (fullness) {
     case "room":
       break;
     case "low":
-      lines.push("Room is running low. A long task may not fit.");
+      details.push("Room is running low. A long task may not fit.");
       break;
     case "full":
-      lines.push(
+      details.push(
         "The next turn may not fit. Compacting or starting a new conversation will reclaim room.",
       );
       break;
   }
-  return { fraction, arc: Math.max(0.08, fraction), percent, fullness, lines };
+  return {
+    fraction,
+    arc: Math.max(0.08, fraction),
+    percent,
+    fullness,
+    title: "Context window",
+    used: `${String(percent)}% used`,
+    details,
+  };
 }
 
 /** An amount in its unit: "$0.50" for dollars, "12.5 credits" else. */

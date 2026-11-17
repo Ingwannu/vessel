@@ -176,6 +176,7 @@ export function QuotaCardView({
   now,
   deviceClock,
   onRefresh,
+  compact = false,
 }: {
   card: QuotaCard;
   display: QuotaDisplay;
@@ -184,10 +185,18 @@ export function QuotaCardView({
   deviceClock: Intl.DateTimeFormat;
   /** Absent where the source cannot be refreshed (ADR 0042). */
   onRefresh: (() => void) | undefined;
+  /** Paseo's compact card (the session's hover card): tighter, without a
+   * surface of its own. Its freshness follows every card's rule (Paseo
+   * `showsFreshnessInline`): on the card only where there is no hover or
+   * nothing to refresh, else in the Refresh tooltip. */
+  compact?: boolean;
 }) {
   const freshness = freshnessText(card.fetchedAt, now);
   return (
-    <article className="quota-card" aria-label={card.name}>
+    <article
+      className={`quota-card${compact ? " compact" : ""}${onRefresh === undefined ? " unrefreshable" : ""}`}
+      aria-label={card.name}
+    >
       <header className="quota-card-head">
         {card.mark === null ? (
           <Icon name="plan" size={14} />
