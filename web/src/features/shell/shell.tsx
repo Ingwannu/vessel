@@ -13,6 +13,7 @@ import { useFleet, useFleetState } from "../../context";
 import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
+import { labelManager } from "../../data/workspace-labels/hub";
 import { Banner, Button, Sheet } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
 import { useNotices } from "../notifications/use-notices";
@@ -32,7 +33,12 @@ export function Shell(): ReactElement {
   // The sheet is open at the place it was opened from: going anywhere
   // (picking a row) closes it.
   const [sheetAt, setSheetAt] = useState<string | null>(null);
-  const sheet = sheetAt === at;
+  // The label manager opens from the sidebar's Display menu; the sheet
+  // (z 51) would sit over its dialog (z 50), so it steps aside while the
+  // manager is open and comes back as it was left when the manager
+  // closes.
+  const managing = useStore(labelManager, (open) => open);
+  const sheet = sheetAt === at && !managing;
   useShortcutListener();
   useShellShortcuts();
   useNotices();

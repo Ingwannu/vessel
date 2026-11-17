@@ -139,6 +139,11 @@
   background: transparent;
   color: var(--text-primary);
   font: var(--t-control);
+}
+
+/* Unboxed, as Paseo's: no ring on the field itself; the caret shows
+   where typing goes. */
+.dialog-search-input:focus-visible {
   outline: none;
 }
 
