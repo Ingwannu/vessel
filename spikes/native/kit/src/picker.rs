@@ -42,8 +42,8 @@ use gpui::{
 use crate::assets::Glyph;
 use crate::field::TextField;
 use crate::popup::{self, Surfaces};
-use crate::{fonts::Type, theme::Tokens};
 use crate::widgets::TypeExt as _;
+use crate::{fonts::Type, theme::Tokens};
 
 mod focus;
 mod keys;
