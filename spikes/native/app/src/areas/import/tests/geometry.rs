@@ -18,7 +18,9 @@ fn listed(cx: &mut TestAppContext, width: f32) -> (gpui::Entity<Shell>, &mut Vis
 #[gpui::test]
 fn the_desktop_card_is_560_and_rows_reach_8_past_the_inset(cx: &mut TestAppContext) {
     let (_shell, cx) = listed(cx, 1280.0);
-    let header = cx.debug_bounds("dialog-header").expect("the sheet's header");
+    let header = cx
+        .debug_bounds("dialog-header")
+        .expect("the sheet's header");
     assert_eq!(f32::from(header.size.width), 560.0);
     let row = cx.debug_bounds("history-row-native").expect("a row");
     let card_left = f32::from(header.left());
@@ -32,7 +34,9 @@ fn the_desktop_card_is_560_and_rows_reach_8_past_the_inset(cx: &mut TestAppConte
 #[gpui::test]
 fn a_phone_shows_the_sheet_across_the_window(cx: &mut TestAppContext) {
     let (_shell, cx) = listed(cx, 390.0);
-    let header = cx.debug_bounds("dialog-header").expect("the sheet's header");
+    let header = cx
+        .debug_bounds("dialog-header")
+        .expect("the sheet's header");
     assert_eq!(f32::from(header.size.width), 390.0);
     assert!(cx.debug_bounds("history-row-native").is_some());
 }

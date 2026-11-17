@@ -54,12 +54,12 @@ mod configuration_tests;
 mod header_back;
 #[cfg(test)]
 mod header_back_tests;
-#[cfg(test)]
-mod header_subtitle_tests;
 mod header_content;
 mod header_search;
 #[cfg(test)]
 mod header_search_tests;
+#[cfg(test)]
+mod header_subtitle_tests;
 mod layout;
 mod return_focus;
 #[cfg(test)]

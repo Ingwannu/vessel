@@ -31,6 +31,11 @@ use vessel_proto::{HarnessRef, HarnessSessionId, NodeId, SessionInfo, SessionTit
 pub const PAGE_LIMITS: [usize; 4] = [FIRST_LIMIT, 45, 90, 200];
 const FIRST_LIMIT: usize = 15;
 
+/// Reads outstanding at once. The node lists at most two at once (its
+/// `service::history::AT_ONCE`) and answers more `unavailable`, which would
+/// show as a failed provider; the rest wait here and go as answers come.
+const READS_AT_ONCE: usize = 2;
+
 /// The host (and folder) the sheet was opened for.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Opening {
@@ -49,6 +54,8 @@ pub enum FeedState {
     Idle,
     /// A page is outstanding.
     Pending(Ticket),
+    /// A read waits for one of the host's reading slots.
+    Queued,
     /// The last read failed.
     Failed(Problem),
 }
@@ -206,7 +213,11 @@ impl Sheet {
     pub fn retry(&mut self, harness: &HarnessRef) -> Result<Vec<Ask>, Problem> {
         let mut asks = Vec::new();
         for index in 0..self.feeds.len() {
-            if self.feeds.get(index).is_some_and(|feed| &feed.harness == harness) {
+            if self
+                .feeds
+                .get(index)
+                .is_some_and(|feed| &feed.harness == harness)
+            {
                 asks.extend(self.read(index, None)?);
             }
         }
@@ -253,7 +264,7 @@ impl Sheet {
     pub fn loading(&self) -> bool {
         self.feeds
             .iter()
-            .any(|feed| matches!(feed.state, FeedState::Pending(_)))
+            .any(|feed| matches!(feed.state, FeedState::Pending(_) | FeedState::Queued))
     }
 
     /// Whether any provider has been read at least once.
@@ -281,7 +292,7 @@ impl Sheet {
             .iter()
             .filter_map(|feed| match feed.state {
                 FeedState::Failed(problem) => Some((&feed.harness, problem)),
-                FeedState::Idle | FeedState::Pending(_) => None,
+                FeedState::Idle | FeedState::Pending(_) | FeedState::Queued => None,
             })
             .collect()
     }
@@ -350,7 +361,10 @@ impl Sheet {
         }
         if let Filter::Provider(harness) = &self.filter
             && self.rows(&Query::new("")).is_empty()
-            && self.feeds.iter().any(|feed| listable(feed).next().is_some())
+            && self
+                .feeds
+                .iter()
+                .any(|feed| listable(feed).next().is_some())
         {
             return Empty::NoProviderSessions(harness.clone());
         }
@@ -367,7 +381,11 @@ impl Sheet {
     /// Import one listed session; nothing while another import or no read.
     /// # Errors
     /// Ticket space is exhausted.
-    pub fn import(&mut self, harness: &HarnessRef, id: &HarnessSessionId) -> Result<Option<Ask>, Problem> {
+    pub fn import(
+        &mut self,
+        harness: &HarnessRef,
+        id: &HarnessSessionId,
+    ) -> Result<Option<Ask>, Problem> {
         if self.importing.is_some() {
             return Ok(None);
         }
@@ -426,16 +444,24 @@ impl Sheet {
                 scope,
                 ticket,
                 outcomes,
-            } => Answer {
-                applied: self.imported(&scope, ticket, outcomes),
-                follow: Vec::new(),
-            },
+            } => {
+                let applied = self.imported(&scope, ticket, outcomes);
+                Answer {
+                    applied,
+                    follow: if applied {
+                        self.queued_or_failed()
+                    } else {
+                        Vec::new()
+                    },
+                }
+            }
         }
     }
 
     fn listed(&mut self, scope: &Scope, ticket: Ticket, result: Result<Listed, Problem>) -> Answer {
         let Some(index) = self.feeds.iter().position(|feed| {
-            feed.state == FeedState::Pending(ticket) && self.scope(&feed.harness).as_ref() == Some(scope)
+            feed.state == FeedState::Pending(ticket)
+                && self.scope(&feed.harness).as_ref() == Some(scope)
         }) else {
             return Answer::default();
         };
@@ -448,7 +474,11 @@ impl Sheet {
                 feed.state = FeedState::Failed(Problem::IdentityChanged);
             }
             Ok(page) => {
-                let retained = if feed.continuing { feed.rows.as_slice() } else { &[] };
+                let retained = if feed.continuing {
+                    feed.rows.as_slice()
+                } else {
+                    &[]
+                };
                 if let Err(problem) = super::bounds::admit(retained, &page.entries) {
                     feed.state = FeedState::Failed(problem);
                     return Answer {
@@ -478,7 +508,7 @@ impl Sheet {
             }
             Err(problem) => feed.state = FeedState::Failed(problem),
         }
-        let follow = match self.continue_feed(index) {
+        let mut follow: Vec<Ask> = match self.continue_feed(index) {
             Ok(ask) => ask.into_iter().collect(),
             Err(problem) => {
                 if let Some(feed) = self.feeds.get_mut(index) {
@@ -487,6 +517,7 @@ impl Sheet {
                 Vec::new()
             }
         };
+        follow.extend(self.queued_or_failed());
         Answer {
             applied: true,
             follow,
@@ -552,12 +583,25 @@ impl Sheet {
         let Some(scope) = self.scope(&harness) else {
             return Ok(None);
         };
+        let in_flight = self
+            .feeds
+            .iter()
+            .filter(|feed| matches!(feed.state, FeedState::Pending(_)))
+            .count();
+        let Some(feed) = self.feeds.get_mut(index) else {
+            return Ok(None);
+        };
+        feed.continuing = cursor.is_some();
+        if cursor.is_none() {
+            feed.next = None;
+        }
+        // A feed already reading gives its slot to this read.
+        if in_flight >= READS_AT_ONCE && !matches!(feed.state, FeedState::Pending(_)) {
+            feed.state = FeedState::Queued;
+            return Ok(None);
+        }
         let ticket = self.ticket()?;
         if let Some(feed) = self.feeds.get_mut(index) {
-            feed.continuing = cursor.is_some();
-            if cursor.is_none() {
-                feed.next = None;
-            }
             feed.state = FeedState::Pending(ticket);
         }
         Ok(Some(Ask::List {
@@ -565,6 +609,45 @@ impl Sheet {
             ticket,
             cursor,
         }))
+    }
+
+    /// The waiting reads that can go now; out of tickets, they fail as one.
+    fn queued_or_failed(&mut self) -> Vec<Ask> {
+        self.dispatch_queued().unwrap_or_else(|problem| {
+            for feed in &mut self.feeds {
+                if feed.state == FeedState::Queued {
+                    feed.state = FeedState::Failed(problem);
+                }
+            }
+            Vec::new()
+        })
+    }
+
+    /// Send the waiting reads, in the host's order, while slots are free.
+    fn dispatch_queued(&mut self) -> Result<Vec<Ask>, Problem> {
+        let mut asks = Vec::new();
+        if self.importing.is_some() {
+            return Ok(asks);
+        }
+        while let Some(index) = self
+            .feeds
+            .iter()
+            .position(|feed| feed.state == FeedState::Queued)
+        {
+            let cursor = self
+                .feeds
+                .get(index)
+                .and_then(|feed| feed.continuing.then(|| feed.next.clone()).flatten());
+            if let Some(feed) = self.feeds.get_mut(index) {
+                feed.state = FeedState::Idle;
+            }
+            match self.read(index, cursor)? {
+                Some(ask) => asks.push(ask),
+                // Still no slot (or an import began): it waits again.
+                None => break,
+            }
+        }
+        Ok(asks)
     }
 
     /// Read on while a feed holds fewer listable sessions than the limit.

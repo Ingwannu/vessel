@@ -50,7 +50,11 @@ pub(super) fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
                 .text_color(tokens.neutral.foreground_muted)
                 .child(note.to_owned())
         }))
-        .children(hosts.into_iter().map(|machine| row(shell, machine, tokens, cx)))
+        .children(
+            hosts
+                .into_iter()
+                .map(|machine| row(shell, machine, tokens, cx)),
+        )
 }
 
 /// Paseo's `HostChooserRow`: the status dot in an 18 slot, the name over its

@@ -24,15 +24,10 @@ pub(super) fn list(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    div()
-        .flex()
-        .flex_col()
-        .min_w_0()
-        .children(rows.iter().map(|item| {
-            div()
-                .pb(px(S1))
-                .child(row(shell, item, tokens, cx))
-        }))
+    div().flex().flex_col().min_w_0().children(
+        rows.iter()
+            .map(|item| div().pb(px(S1)).child(row(shell, item, tokens, cx))),
+    )
 }
 
 /// A pressable row: the agent's mark (16, 2 down), then the title with its

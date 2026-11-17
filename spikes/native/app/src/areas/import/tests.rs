@@ -140,21 +140,12 @@ fn click(cx: &mut VisualTestContext, selector: &'static str) {
 
 fn context_of(shell: &gpui::Entity<Shell>, cx: &mut VisualTestContext) -> ConnectionContext {
     shell.read_with(cx, |shell, _| {
-        shell
-            .areas
-            .import
-            .model
-            .opening()
-            .unwrap()
-            .context
-            .clone()
+        shell.areas.import.model.opening().unwrap().context.clone()
     })
 }
 
 #[gpui::test]
-fn one_connected_host_skips_the_chooser_and_reads_every_agent_in_parallel(
-    cx: &mut TestAppContext,
-) {
+fn one_connected_host_skips_the_chooser_and_reads_every_agent_in_parallel(cx: &mut TestAppContext) {
     let (shell, cx, mut commands) = shell(cx, vec![machine("laptop", &[codex(), claude()])]);
     open(&shell, cx);
     let asks = sent(&mut commands);
@@ -188,7 +179,10 @@ fn several_hosts_without_one_in_context_open_import_from_host_first(cx: &mut Tes
         vec![machine("alpha", &[codex()]), machine("beta", &[claude()])],
     );
     open(&shell, cx);
-    assert!(sent(&mut commands).is_empty(), "nothing is read before a host");
+    assert!(
+        sent(&mut commands).is_empty(),
+        "nothing is read before a host"
+    );
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.areas.import.page, Page::Hosts);
     });
@@ -221,7 +215,12 @@ fn a_row_press_imports_that_session_then_closes_the_sheet_and_opens_it(cx: &mut 
     assert_eq!(batch.entries.len(), 1);
     shell.read_with(cx, |shell, _| {
         assert_eq!(
-            shell.areas.import.model.importing().map(HarnessSessionId::as_str),
+            shell
+                .areas
+                .import
+                .model
+                .importing()
+                .map(HarnessSessionId::as_str),
             Some("native")
         );
     });
@@ -251,7 +250,12 @@ fn a_row_press_imports_that_session_then_closes_the_sheet_and_opens_it(cx: &mut 
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
         assert!(!shell.areas.import.open, "the sheet closed");
-        let open = shell.areas.session.open.as_ref().expect("the session opened");
+        let open = shell
+            .areas
+            .session
+            .open
+            .as_ref()
+            .expect("the session opened");
         assert_eq!(open.session, created);
         assert_eq!(
             open.binding.as_ref().map(|binding| binding.address.node),
@@ -330,10 +334,7 @@ fn a_failed_provider_keeps_the_others_and_its_retry_reads_it_alone(cx: &mut Test
         panic!("two reads");
     };
     shell.update(cx, |shell, cx| {
-        shell.history_apply_reply(
-            first.refused(Problem::Timeout),
-            cx,
-        );
+        shell.history_apply_reply(first.refused(Problem::Timeout), cx);
     });
     answer(&shell, cx, vec![second], |_| vec![entry("claude-a", 1)]);
     assert!(cx.debug_bounds("history-provider-errors").is_some());
@@ -397,9 +398,15 @@ fn controls_drawn_for_an_earlier_opening_do_nothing(cx: &mut TestAppContext) {
         (stale.1)(shell, window, cx);
         (stale.2)(shell, window, cx);
     });
-    assert!(sent(&mut commands).is_empty(), "stale intentions send nothing");
+    assert!(
+        sent(&mut commands).is_empty(),
+        "stale intentions send nothing"
+    );
     shell.read_with(cx, |shell, _| {
-        assert!(shell.areas.import.open, "a stale close keeps the new opening");
+        assert!(
+            shell.areas.import.open,
+            "a stale close keeps the new opening"
+        );
         assert!(shell.areas.import.model.importing().is_none());
     });
     // The current row still imports.

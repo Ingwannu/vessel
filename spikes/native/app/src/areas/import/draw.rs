@@ -8,12 +8,13 @@ use vessel_app_kit::dialog::{CompactLayout, DesktopHeight, DialogInput, DialogLa
 use vessel_app_kit::sheet::snap::{Percentage, SnapPoints};
 use vessel_app_kit::theme::spacing::{S1, S2, S4, S8};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
+    div, px,
 };
 use vessel_app_kit::{
-    ButtonConfig, ButtonContent, ButtonKind, ButtonSize, ButtonState, ControlSizing,
-    DialogContent, DialogSize, Tokens, Type, TypeExt as _, button_control, button_with_kind,
+    ButtonConfig, ButtonContent, ButtonKind, ButtonSize, ButtonState, ControlSizing, DialogContent,
+    DialogSize, Tokens, Type, TypeExt as _, button_control, button_with_kind,
 };
 use vessel_app_view::history::Empty;
 
@@ -188,19 +189,15 @@ fn scope_line(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_
                 .child(text),
         )
         .when(scoped, |line| {
-            line.child(
-                div()
-                    .mx(px(SUBTITLE_ACTION_PULL))
-                    .child(small_button(
-                        "history-show-all".to_owned(),
-                        words.show_all(),
-                        Action::ShowAll,
-                        shell,
-                        tokens,
-                        compact,
-                        cx,
-                    )),
-            )
+            line.child(div().mx(px(SUBTITLE_ACTION_PULL)).child(small_button(
+                "history-show-all".to_owned(),
+                words.show_all(),
+                Action::ShowAll,
+                shell,
+                tokens,
+                compact,
+                cx,
+            )))
         })
 }
 
@@ -326,7 +323,12 @@ fn status(shell: &Shell, tokens: &Tokens, has_rows: bool) -> Vec<AnyElement> {
                     vessel_app_kit::theme::icon::MD,
                     ink,
                 ))
-                .child(div().type_(Type::Body).text_color(ink).child(words.loading()))
+                .child(
+                    div()
+                        .type_(Type::Body)
+                        .text_color(ink)
+                        .child(words.loading()),
+                )
                 .into_any_element(),
         );
     }
@@ -361,13 +363,11 @@ fn empty_state(shell: &Shell, empty: &Empty, tokens: &Tokens) -> AnyElement {
         .gap(px(S2))
         .py(px(S8))
         .px(px(S4))
-        .child(
-            div().mb(px(S1)).opacity(0.6).child(vessel_app_kit::glyph(
-                Glyph::Inbox,
-                vessel_app_kit::theme::icon::LG,
-                tokens.neutral.foreground_muted,
-            )),
-        )
+        .child(div().mb(px(S1)).opacity(0.6).child(vessel_app_kit::glyph(
+            Glyph::Inbox,
+            vessel_app_kit::theme::icon::LG,
+            tokens.neutral.foreground_muted,
+        )))
         .child(
             div()
                 .type_(Type::Body)

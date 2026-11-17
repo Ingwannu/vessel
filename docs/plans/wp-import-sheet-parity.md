@@ -34,7 +34,8 @@ design.
 - Card: 560 wide on desktop (`desktopMaxWidth`), content-sized up to the 85 %
   cap; compact: a draggable sheet with snap points 70 % / 92 %.
 - Header: title; the scope line under it (12 muted, one line: "This
-  workspace" with a ghost small "Show all", or "Sessions on {host}"); the
+  workspace" with a ghost small "Show all" pulled 8 into the gap, or
+  "Sessions on {host}"); the
   refresh icon before the close button (16 `RotateCw` muted in a 16 slot,
   padding 8, radius 8, pressed `surface2`, a 16 spinner and disabled while
   loading, tooltip and accessible name "Refresh sessions"); the search row
@@ -63,6 +64,78 @@ design.
 - `DialogInput::with_header_subtitle`: Paseo's `SheetHeader.subtitle` under the
   title in the title group (gap 4). The title truncates when a subtitle is
   present, as it does beside header actions.
+- Glyph roles `Inbox` (the empty state) and `Layers` (the filter's "All"),
+  Lucide's children at the provider's 1.5, appended to the inventory
+  (`assets::sheet_role_tests`).
+
+## View
+
+[Decision Log]
+- Purpose: the rulings need every provider of a host at once, merged, with
+  per-provider limits, failures and Retry, and one import per press.
+- Before: `History`, one scope (machine, agent, account, folder) with
+  multi-select rows and batch receipts.
+- Alternatives: run one `History` per provider in the app (the merge, the
+  limits and the empty states would live in the app, untested in view).
+- Choice: `history::Sheet`: one feed per provider, each with its tickets,
+  cursor and failure. A feed reads page after page until it holds its limit
+  of not-yet-imported sessions (the node has no limit, only cursor pages);
+  `answer` returns the follow-up reads. `empty_state` is Paseo's
+  `computeEmptyState` (only once every provider answered and not all failed).
+- Impact: `History`, `Loading` and `Selection` are removed; their boundary
+  tests (native identity, cursor bound, receipt scope, node change, capacity)
+  moved to `history::sheet::tests`. Link is unchanged; its delivery test now
+  drives a `Sheet`.
+
+## App
+
+[Decision Log]
+- Host: Paseo's new-workspace screen calls `useImportSession({ serverId })`
+  with no folder, so the new-session page passes its machine and no folder:
+  the list covers the whole host ("Sessions on {host}") and every row shows
+  its folder. The workspace form ("This workspace", "Show all") stays in the
+  model and the app (`open_import_for(host, cwd)`) for a workspace caller;
+  no Vessel caller passes a folder yet (none does in Paseo at the pin).
+- No host in context: the first page is Paseo's host chooser inside the same
+  sheet ("Import from host", "Search hosts...", rows with the status dot, the
+  name over its node id and the `Server` mark, "No matching hosts"). One
+  connected host skips it, as `useHostChooser` does.
+- A row press imports that session. On the receipt the sheet closes and the
+  session opens on the next frame with a window (`settle_import`, beside
+  `settle_sessions`), bound to the node the import went to, never a later
+  lookup of the machine's name. A receipt after the sheet was closed opens
+  nothing (the session is imported and listed as usual).
+- Rows are drawn in the dialog body, not a virtual list: the body is the
+  compact sheet's scroller (its drag hands off to it), and the per-provider
+  limits bound the rows.
+- Stale controls: every control captures the opening's visit; closing,
+  choosing a host, "Show all", a fleet change of the drawn hosts' controls
+  and an exact retirement advance it (`history_fleet`, `history_retired`).
+
+## Differences kept
+
+- Korean: Paseo shows `chooseHostTitle`, "Filter by provider", "Search
+  hosts..." and "No matching hosts" in English in every language; Vessel
+  translates them ("호스트에서 가져오기", "프로바이더로 필터", "호스트 검색...",
+  "일치하는 호스트가 없습니다").
+- The host chooser lists connected machines only and has no arrow-key
+  selection (Paseo's chooser lists every host with its state and takes
+  ArrowUp/ArrowDown/Enter).
+- The filter list's provider rows lead with the kit's row agent mark (Paseo:
+  a 14 muted provider icon); "All" leads with the 14 `Layers`.
+
+## Tests
+
+- View: `history::sheet::tests` (15).
+- Kit: `dialog::header_subtitle_tests`, `assets::sheet_role_tests`.
+- App: `areas::import::tests` (one host skips the chooser and reads every
+  agent; several hosts open "Import from host"; a row press imports, closes
+  and opens on the import's node; a receipt after closing opens nothing; the
+  filter narrows on the client; a failed provider's Retry reads it alone;
+  already imported says so; stale controls do nothing) and
+  `areas::import::tests::geometry` (560 on a desktop with rows 8 past the
+  inset; the full width on a phone).
+- Link: `history::delivery_tests` drives a `Sheet`.
 
 ## Status
 

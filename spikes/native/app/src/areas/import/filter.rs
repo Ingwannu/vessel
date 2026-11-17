@@ -20,13 +20,21 @@ fn choices(shell: &Shell) -> Vec<(Filter, String, Leading)> {
         shell.words.history().filter_all().to_owned(),
         Leading::SmallGlyph(Glyph::Layers),
     )];
-    choices.extend(shell.areas.import.model.providers().into_iter().map(|harness| {
-        (
-            Filter::Provider(harness.clone()),
-            vessel_app_view::agent_name(harness),
-            crate::agent_mark::leading(harness),
-        )
-    }));
+    choices.extend(
+        shell
+            .areas
+            .import
+            .model
+            .providers()
+            .into_iter()
+            .map(|harness| {
+                (
+                    Filter::Provider(harness.clone()),
+                    vessel_app_view::agent_name(harness),
+                    crate::agent_mark::leading(harness),
+                )
+            }),
+    );
     choices
 }
 
@@ -56,52 +64,55 @@ pub(super) fn pill(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
     let act = listener(shell, Action::FilterOpen);
     let hover = neutral.surface2;
     let pressed = neutral.surface3;
-    div().flex().pb(px(S2)).child(
-        div()
-            .id("history-filter")
-            .debug_selector(|| "history-filter".to_owned())
-            .role(gpui::Role::Button)
-            .aria_label(
-                shell
-                    .words
-                    .history()
-                    .filter_label(&label)
-                    .unwrap_or_else(|_| label.clone()),
-            )
-            .relative()
-            .flex()
-            .flex_row()
-            .items_center()
-            .gap(px(S1_5))
-            .max_w_full()
-            .py(px(S1_5))
-            .px(px(S3))
-            .rounded(px(vessel_app_kit::theme::radius::MD))
-            .bg(neutral.surface1)
-            .border_1()
-            .border_color(neutral.border)
-            .cursor_pointer()
-            .hover(move |style| style.bg(hover))
-            .active(move |style| style.bg(pressed))
-            .child(vessel_app_kit::anchor_probe(&area.filter_anchor))
-            .child(icon)
-            .child(
-                div()
-                    .flex_shrink()
-                    .min_w_0()
-                    .type_(Type::Label)
-                    .text_color(neutral.foreground)
-                    .truncate()
-                    .child(label),
-            )
-            .child(vessel_app_kit::glyph(
-                Glyph::ChevronDown,
-                14.0,
-                neutral.foreground_muted,
-            ))
-            .on_click(cx.listener(move |shell, _, window, cx| act(shell, window, cx))),
-    )
-    .into_any_element()
+    div()
+        .flex()
+        .pb(px(S2))
+        .child(
+            div()
+                .id("history-filter")
+                .debug_selector(|| "history-filter".to_owned())
+                .role(gpui::Role::Button)
+                .aria_label(
+                    shell
+                        .words
+                        .history()
+                        .filter_label(&label)
+                        .unwrap_or_else(|_| label.clone()),
+                )
+                .relative()
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(S1_5))
+                .max_w_full()
+                .py(px(S1_5))
+                .px(px(S3))
+                .rounded(px(vessel_app_kit::theme::radius::MD))
+                .bg(neutral.surface1)
+                .border_1()
+                .border_color(neutral.border)
+                .cursor_pointer()
+                .hover(move |style| style.bg(hover))
+                .active(move |style| style.bg(pressed))
+                .child(vessel_app_kit::anchor_probe(&area.filter_anchor))
+                .child(icon)
+                .child(
+                    div()
+                        .flex_shrink()
+                        .min_w_0()
+                        .type_(Type::Label)
+                        .text_color(neutral.foreground)
+                        .truncate()
+                        .child(label),
+                )
+                .child(vessel_app_kit::glyph(
+                    Glyph::ChevronDown,
+                    14.0,
+                    neutral.foreground_muted,
+                ))
+                .on_click(cx.listener(move |shell, _, window, cx| act(shell, window, cx))),
+        )
+        .into_any_element()
 }
 
 impl Shell {

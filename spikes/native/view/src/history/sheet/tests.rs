@@ -185,7 +185,10 @@ fn a_row_imports_one_session_and_hands_the_new_session_over() {
         panic!("an import");
     };
     assert_eq!(batch.entries.len(), 1);
-    assert_eq!(sheet.importing().map(HarnessSessionId::as_str), Some("codex-a"));
+    assert_eq!(
+        sheet.importing().map(HarnessSessionId::as_str),
+        Some("codex-a")
+    );
     // A second press while one is pending does nothing.
     assert!(
         sheet
@@ -247,7 +250,10 @@ fn empty_states_follow_paseo_s_order() {
     let _claude = sheet.answer(reply(&second, Vec::new(), None));
     assert_eq!(sheet.empty(&Query::new("zzz")), Empty::NoMatches);
     sheet.set_filter(Filter::Provider(claude()));
-    assert_eq!(sheet.empty(&Query::new("")), Empty::NoProviderSessions(claude()));
+    assert_eq!(
+        sheet.empty(&Query::new("")),
+        Empty::NoProviderSessions(claude())
+    );
     sheet.set_filter(Filter::All);
     let (empty, _asks) = opened(None);
     assert_eq!(empty.empty(&Query::new("")), Empty::NoRecent);
@@ -373,4 +379,23 @@ fn an_oversized_next_page_keeps_the_accepted_rows() {
     assert_eq!(sheet.failures(), [(&codex(), Problem::Capacity)]);
     assert_eq!(sheet.rows(&Query::new("")).len(), 1);
     assert!(sheet.has_more());
+}
+
+#[test]
+fn a_host_reads_two_providers_at_once_and_the_rest_as_answers_come() {
+    let gemini: HarnessRef = HarnessKind::Gemini.into();
+    let mut sheet = Sheet::default();
+    let asks = sheet
+        .open(opening(None), vec![codex(), claude(), gemini.clone()])
+        .unwrap();
+    let Ok([first, _second]) = <[Ask; 2]>::try_from(asks) else {
+        panic!("two reads at once");
+    };
+    assert!(sheet.loading());
+    assert!(sheet.failures().is_empty(), "waiting is not failing");
+    let answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
+    let third = only(answer.follow);
+    assert_eq!(harness_of(&third), &gemini);
+    // A refresh takes the two slots again; the one left waits again.
+    assert_eq!(sheet.refresh().unwrap().len(), 2);
 }
