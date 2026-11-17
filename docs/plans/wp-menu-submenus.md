@@ -86,3 +86,30 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
   as a sheet, Labels replacing it in place with a back header.
 - Captures to the coordinator (1280/390, dark/light, EN/KO): both menus with
   a flyout open, a flyout clamped at the window's edge, the compact pages.
+
+## Differences from Paseo (named)
+
+- Labels' Create stays the existing dialog: Paseo opens it as a press-only
+  page inside the Labels flyout (`hoverIntent: false`, a `MenuTextField`;
+  on a phone a page of the sheet). Accepted by the coordinator for this item
+  (2026-11-17); a follow-up row moves the form into the page.
+
+## Built (K1, kit)
+
+- `kit/src/submenu.rs`: `MenuPath` (Paseo's navigation, case-for-case
+  tests), `Submenus` (path, trigger and flyout probes, hover intent 90/260
+  ms with press-only pages, `follow` binding a path to one opening of its
+  menu or list), `flyout` (right edge minus 5, top on the row, clamped 8,
+  never flipped).
+- Action menu: `MenuItem::sub(label, page)` / `with_value`; `Content::
+  with_submenus` (rows open their page by rest, press or Enter, never close
+  or reach `chose`; a press on an open page is not outside);
+  `Content::with_sheet(title)` (a phone's bottom sheet with its title, 44
+  rows, the 45% scrim; while a page is open the menu draws nothing and the
+  screen's page sheet replaces it). `menu/sub_row.rs`, `menu/surface.rs`.
+- List: `ComboRow::page`, `ComboboxState::set_submenus` (wide windows), a
+  press on an open page not outside the list; `combobox_inline` draws the
+  list inside a flyout. The list's panel and placement moved to
+  `picker/panel.rs` (`picker.rs` 804 -> 715 on the size list); both sheets
+  take `popup::sheet_scrim`.
+
