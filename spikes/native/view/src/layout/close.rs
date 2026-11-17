@@ -159,7 +159,10 @@ impl Layout {
     /// # Errors
     /// Refuses an inconsistent tree (as `close_empty_pane`).
     pub(super) fn collapse_emptied(&mut self, pane: PaneId, keep: Keep) -> Result<(), LayoutError> {
-        let emptied = self.root.pane(pane).is_some_and(|pane| pane.tabs.is_empty());
+        let emptied = self
+            .root
+            .pane(pane)
+            .is_some_and(|pane| pane.tabs.is_empty());
         let kept = pane == PaneId::EXPLORER
             || (keep == Keep::Main && pane == PaneId::MAIN)
             || self.root.panes().len() < 2;

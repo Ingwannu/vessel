@@ -31,6 +31,10 @@ fn launch_roles_have_one_asset_each_on_the_source_grid_and_stroke() {
         // The shared parser asserts unfilled vector paths at stroke 1.5.
         assert_eq!(strokes(tree(glyph).root()), count, "{glyph:?}");
         // A command list draws them at its 2.2 too.
-        assert!(glyph.command_weight_path().starts_with("kit/command-weight/"));
+        assert!(
+            glyph
+                .command_weight_path()
+                .starts_with("kit/command-weight/")
+        );
     }
 }

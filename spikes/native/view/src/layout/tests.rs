@@ -440,7 +440,12 @@ fn moving_a_pane_s_last_tab_away_removes_the_pane() {
         .unwrap();
     let moving = open(&mut layout, Target::NewTab, Placement::Pane(side));
     layout
-        .drop_tab(moving, PaneId::MAIN, Position::Center, LayoutMode::SplitPanes)
+        .drop_tab(
+            moving,
+            PaneId::MAIN,
+            Position::Center,
+            LayoutMode::SplitPanes,
+        )
         .unwrap();
     assert!(layout.pane(side).is_none());
     assert_eq!(layout.containing(moving), Some(PaneId::MAIN));

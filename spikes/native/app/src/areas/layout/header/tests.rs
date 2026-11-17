@@ -181,7 +181,12 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
         let shell = probe.0.read(cx);
         assert!(shell.areas.layout.header_menu.is_open());
         assert_eq!(
-            shell.areas.layout.header_menu_for.as_ref().map(|menu| menu.kind),
+            shell
+                .areas
+                .layout
+                .header_menu_for
+                .as_ref()
+                .map(|menu| menu.kind),
             Some(MenuKind::NewTab)
         );
         with_layout(shell, |layout| {
@@ -236,9 +241,7 @@ fn retained_header_callback_refuses_changed_original_selection_without_split(
 /// Paseo's new-tab menu: the launch catalog in the pane's order, only what
 /// starts here enabled; Agent opens the new-agent page.
 #[gpui::test]
-fn the_new_tab_menu_lists_the_catalog_and_agent_opens_the_new_agent_page(
-    cx: &mut TestAppContext,
-) {
+fn the_new_tab_menu_lists_the_catalog_and_agent_opens_the_new_agent_page(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (probe, cx) = cx.add_window_view(fixture);
     cx.simulate_resize(gpui::size(px(1280.0), px(900.0)));
@@ -294,7 +297,12 @@ fn the_more_menu_splits_the_pane_it_was_opened_on(cx: &mut TestAppContext) {
     cx.update(|window, cx| {
         let shell = probe.read(cx).0.read(cx);
         assert_eq!(
-            shell.areas.layout.header_menu_for.as_ref().map(|menu| menu.kind),
+            shell
+                .areas
+                .layout
+                .header_menu_for
+                .as_ref()
+                .map(|menu| menu.kind),
             Some(MenuKind::Split)
         );
         let rows = rows(shell, MenuKind::Split, window);

@@ -176,26 +176,26 @@ pub(super) fn controls(
         let button = button(shell, control, (pane_id, maximized, sizing), tokens)
             .on_click(cx.listener({
                 let place = Rc::clone(&place);
-                move |shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| {
-                    match control.menu() {
-                        Some(kind) => open_menu(
-                            shell,
-                            HeaderMenu {
-                                kind,
-                                ..opened.clone()
-                            },
-                            place.get(),
-                            event.position(),
-                            window,
-                            cx,
-                        ),
-                        None => PaneAction {
-                            op: PaneOp::ToggleMaximize,
-                            pane: pane_id,
-                            context: opened.context.clone(),
-                        }
-                        .run(shell, window, cx),
+                move |shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| match control
+                    .menu()
+                {
+                    Some(kind) => open_menu(
+                        shell,
+                        HeaderMenu {
+                            kind,
+                            ..opened.clone()
+                        },
+                        place.get(),
+                        event.position(),
+                        window,
+                        cx,
+                    ),
+                    None => PaneAction {
+                        op: PaneOp::ToggleMaximize,
+                        pane: pane_id,
+                        context: opened.context.clone(),
                     }
+                    .run(shell, window, cx),
                 }
             }))
             .tooltip(&shell.areas.layout.tips, &place);
