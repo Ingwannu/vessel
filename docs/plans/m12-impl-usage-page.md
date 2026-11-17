@@ -45,6 +45,25 @@ Refresh per card, no pins). Nothing on machines below protocol 26, with lookup o
 account; a failed read shows Paseo's one line ("Unable to load usage: …").
 `features/usage/use-account-usage.ts` holds the reader and clock hooks both views share.
 
+### The session's limit notice
+
+The native app's dock notice (areas/usage/session.rs `limit_notice`; Paseo has none) over the page's composer,
+first among the docks (`features/usage/limit-notice.tsx`): when the node's `UsageLimits.notice` for the session
+says its saved login reports a full general window, the native English words ("The saved account reports a
+usage limit. This does not prove why the turn stopped.", the latest reported reset while ahead, "Wait for
+reset", "No prompt will be sent automatically. Continue when the account is ready.") and Switch model.
+
+- Data: `usage.limits` (protocol 23) with `{ kind: "session" }`, cached only, read when the composer opens and
+  again after each record after which the login may be another (`Timeline.binding`: status, profile or options
+  change, parked, woken, rewound; native `binding_epoch`). A notice read before such a record is hidden until
+  the new answer; a failed read shows nothing (an agent query's error hides its values, as on native). This is
+  the one fact the report methods do not carry; `usage.limits` is not a second card path.
+- Switch model presses the same composer's model trigger (`data-model-picker` in compose/agent-menu.tsx), as a
+  person's click does; the kit Menu takes no outside open, and the composer and kit menu are at their budgets.
+- The composer's memo compares `binding` too (composer-props.ts), so the read follows those records.
+- The e2e fleet has no saved login, so the notice is covered by unit tests (`session-notice.test.ts`,
+  `limit-notice.test.tsx`) and by a capture on the recorded usage fixture.
+
 ## Next
 
 - P2 (ADR 0107, coordinator approved): the bridge preference document gains a `usage` section shaped like the
