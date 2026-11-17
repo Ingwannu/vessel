@@ -16,6 +16,10 @@
   width: 320px;
 }
 
+.popover.settings {
+  width: 340px;
+}
+
 .popover.lg {
   width: 384px;
 }
@@ -24,4 +28,14 @@
   margin: 0;
   color: var(--text-primary);
   font: 600 13px / 18px var(--font-sans);
+}
+
+/* A title that names the popup without heading it. */
+.popover-title.unseen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

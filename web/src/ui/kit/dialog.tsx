@@ -53,6 +53,7 @@ export function Dialog({
   children,
   footer,
   size = "md",
+  actions,
 }: {
   title: string;
   /** Escape, the scrim and the close button all call it. */
@@ -61,6 +62,9 @@ export function Dialog({
   /** Actions, right-aligned: a ghost Cancel, then one primary. */
   footer?: ReactNode;
   size?: DialogSize;
+  /** Controls in the title row, before Close (Paseo's modal header
+   * actions: a host filter, Refresh all, a settings cog). */
+  actions?: ReactNode;
 }) {
   const popup = useRef<HTMLDivElement>(null);
   return (
@@ -82,6 +86,9 @@ export function Dialog({
           >
             <div className="dialog-h">
               <Base.Title className="dialog-title">{title}</Base.Title>
+              {actions === undefined ? null : (
+                <div className="dialog-actions">{actions}</div>
+              )}
               <Base.Close
                 render={<IconButton label="Close" icon="close" size="sm" />}
               />

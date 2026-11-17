@@ -27,6 +27,7 @@ import type {
   UsageWindow,
 } from "../../wire/proto";
 import { QuotaInstant, quotaClock, type QuotaClock } from "./clock";
+import { shortLabel } from "./short-label";
 import { FETCH, problemText } from "./failures";
 import {
   QuotaPercent,
@@ -67,6 +68,8 @@ export type QuotaCardStatus = "error" | "unavailable" | null;
 export interface QuotaCardWindow {
   key: string;
   label: string;
+  /** The sidebar summary's ("5h"); "" hides it. */
+  short: string;
   percent: QuotaPercent | null;
   tone: QuotaTone;
   clock: QuotaClock;
@@ -152,6 +155,7 @@ function windowOf(
   return {
     key: window.id,
     label: window.label,
+    short: shortLabel(window),
     percent: quotaPercent(sides, display),
     tone: quotaTone(sides, window.tone),
     clock: quotaClock(

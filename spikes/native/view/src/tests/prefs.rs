@@ -12,11 +12,16 @@ use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
     ActionId, AgentKind, Bindings, Choices, ContentWidth, Grouping, InvalidActionId,
     InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
-    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget,
-    SidebarView, Theme, TurnDelivery,
+    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme,
+    TurnDelivery,
 };
 
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
+/// The page/bridge defaults, byte for byte the bridge's `defaults_are_the_contracts`
+/// (crates/vessel-web/src/wire/prefs.rs) with the usage section of ADR 0107.
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
+
+/// The usage section both documents share (ADR 0107).
+const USAGE: &str = r#""usage":{"display":"used","host":null,"pins":null}"#;
 
 fn change(json: &str) -> PreferenceChange {
     serde_json::from_str(json).unwrap()
@@ -29,40 +34,35 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    // Keep the page/bridge fixture unchanged. The native document adds three
-    // explicit fields (the usage display, host and pins of the Usage pages,
-    // first so a stored document keeps its order; the language; and
-    // Appearance's Animations, word 39) and differs in one stated default: ended sessions are listed
-    // (`SidebarView::default`, 2026-11-14; the page and the bridge still
-    // write `"ended":false` until the node line's slice moves them, and
-    // then this exception goes). Every other byte of its defaults still
-    // comes from that fixture.
+    // Keep the page/bridge fixture unchanged and derive the native document
+    // from it. Both carry the usage section (display, host, pins; ADR 0107):
+    // the native one writes it first, so a stored document keeps its order,
+    // and keeps whether the sidebar shows the summary in its sidebar
+    // navigation instead of the bridge's `sidebar.usage`. The native document
+    // adds two explicit fields (the language, and Appearance's Animations,
+    // word 39) and differs in one stated default: a turn sent while one runs
+    // steers it (Paseo's default, the owner's word 45), where the page and
+    // the bridge still queue it (TRACKER 793). Every other byte of its
+    // defaults comes from that fixture.
     let native_default = DEFAULT
-        .replacen(
-            '{',
-            r#"{"usage":{"display":"used","host":null,"pins":null},"language":"system","#,
-            1,
-        )
+        .replacen(&format!(",{USAGE}"), "", 1)
+        .replacen(r#","usage":false"#, "", 1)
+        .replacen('{', &format!(r#"{{{USAGE},"language":"system","#), 1)
         .replacen(
             r#""conversation":"full""#,
             r#""conversation":"full","animations":"on""#,
             1,
         )
-        .replacen(r#""ended":false"#, r#""ended":true"#, 1);
+        .replacen(r#""delivery":"queue""#, r#""delivery":"steer""#, 1);
     assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
     assert_eq!(
         serde_json::from_str::<Preferences>(&native_default).unwrap(),
         values
     );
     // The page's document reads as the defaults with its own stated
-    // `"ended":false`: the one temporary difference, kept as written.
-    let page_default = Preferences {
-        sidebar: SidebarView {
-            ended: false,
-            ..values.sidebar
-        },
-        ..values.clone()
-    };
+    // delivery: the one difference, kept as written.
+    let mut page_default = values.clone();
+    page_default.composer.delivery = TurnDelivery::Queue;
     assert_eq!(
         serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
         page_default
