@@ -1,8 +1,12 @@
 // Paseo's usage options (usage/options.tsx), behind the cog that trails the
-// Plan usage title and the modal's header: the machine-wide lookup switch
-// with its disclosure (Admin), whether the sidebar shows the summary, and
-// whether percentages read as used or remaining. The last two are the
-// person's choices, kept by the bridge (ADR 0107).
+// Plan usage title and the modal's title row: a 340px popover with no
+// visible heading on wide screens, rows in Paseo's SettingsSwitch and
+// SettingsRow shape (label and hint at the left, the control at the
+// right, a hairline between rows). The machine-wide lookup switch keeps
+// our consent hint (ADR 0042); "Summary in sidebar" and "Percentages" are
+// the person's choices, kept by the bridge (ADR 0107).
+import type { ReactNode } from "react";
+
 import type { QuotaDisplay } from "../../data/account-usage/values";
 import {
   type Choice,
@@ -18,6 +22,30 @@ const DISPLAY: readonly Choice<QuotaDisplay>[] = [
   { value: "remaining", label: "Remaining" },
 ];
 
+/** Paseo's SettingsSwitch / SettingsRow: words at the left, the control
+ * at the right. */
+function OptionRow({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="quota-option">
+      <div className="quota-option-text">
+        <span className="quota-option-label">{label}</span>
+        {hint === undefined ? null : (
+          <span className="quota-option-hint">{hint}</span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function UsageOptions({
   lookup,
 }: {
@@ -28,40 +56,48 @@ export function UsageOptions({
   return (
     <Popover
       title="Usage options"
+      showTitle={false}
+      width="settings"
       align="end"
       trigger={<IconButton icon="settings" label="Usage options" />}
     >
       <div className="quota-options">
-        <Switch
+        <OptionRow
           label="Check account limits"
-          showLabel
-          checked={lookup?.on ?? false}
-          disabled={lookup === null}
-          onChange={(checked) => {
-            lookup?.set(checked);
-          }}
-        />
-        <p className="quota-card-quiet">
-          Allow this machine to read configured agents’ saved sign-ins and send
-          them only to their vendors to check account limits. Only an
-          administrator can change this setting.
-        </p>
-        <Switch
-          label="Show in sidebar"
-          showLabel
-          checked={inSidebar}
-          onChange={(checked) => {
-            change({ set: "sidebar_usage", value: checked });
-          }}
-        />
-        <Segmented
-          label="Display as"
-          value={usage.display}
-          options={DISPLAY}
-          onChange={(display) => {
-            change({ set: "usage_display", value: display });
-          }}
-        />
+          hint="Allow this machine to read configured agents’ saved sign-ins and send them only to their vendors to check account limits. Only an administrator can change this setting."
+        >
+          <Switch
+            label="Check account limits"
+            checked={lookup?.on ?? false}
+            disabled={lookup === null}
+            onChange={(checked) => {
+              lookup?.set(checked);
+            }}
+          />
+        </OptionRow>
+        <OptionRow
+          label="Summary in sidebar"
+          hint="Pinned windows show in the sidebar footer"
+        >
+          <Switch
+            label="Summary in sidebar"
+            checked={inSidebar}
+            onChange={(checked) => {
+              change({ set: "sidebar_usage", value: checked });
+            }}
+          />
+        </OptionRow>
+        <OptionRow label="Percentages">
+          <Segmented
+            label="Percentages"
+            size="sm"
+            value={usage.display}
+            options={DISPLAY}
+            onChange={(display) => {
+              change({ set: "usage_display", value: display });
+            }}
+          />
+        </OptionRow>
       </div>
     </Popover>
   );

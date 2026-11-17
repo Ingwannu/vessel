@@ -99,10 +99,3 @@
 .side-usage-label {
   color: var(--text-secondary);
 }
-
-/* The modal's host picker above the section. */
-.usage-modal-host {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}

@@ -75,15 +75,21 @@ reset", "No prompt will be sent automatically. Continue when the account is read
   each change writes only its field; `[]` pins nothing, null follows the defaults; an unreadable field is
   kept as written). Generated `web/src/wire/bridge.ts` follows.
 - Page: `data/prefs-change.ts` applies the four changes; `features/usage/use-usage-prefs.ts` reads them;
-  `usage-options.tsx` is Paseo's options popover (lookup, Show in sidebar, Display as);
+  `usage-options.tsx` is Paseo's options popover (340 px, no visible heading on wide screens; SettingsSwitch
+  rows with label and hint left and the control right, hairlines between: the lookup with our consent hint,
+  "Summary in sidebar" / "Pinned windows show in the sidebar footer", the "Percentages" row);
   `data/account-usage/pins.ts` is Paseo's pin rules (defaults: windows marked for the summary, else each
   source's first with a percent; the first edit keeps the shown defaults); window rows are pin toggles while
   the summary is on (`quota-card.tsx`).
 - `sidebar-usage.tsx`: Paseo's sidebar item above the sidebar's foot (marks, meters/percents/short labels,
   the richest layout that fits, measured off screen with N2's quotaPinnedLayout); it follows the picked host,
   then the active machine, then the first that reports (N2's quotaSummaryHost). A click opens
-  `usage-modal.tsx`: Paseo's "Usage" dialog with a host picker when more than one machine is connected
-  (picking writes the host preference) and the Plan usage section for that machine.
+  `usage-modal.tsx`: Paseo's "Usage" dialog, its title row holding the actions (the HostFilter pill when more
+  than one machine is connected, `usage-host-filter.tsx`; Refresh all; the options cog) and its body the cards
+  alone (no "Plan usage" heading or caveat, which are the Settings page's). Picking a host writes the host
+  preference. Settings and the modal share `usePlanUsage`, `PlanControls` and `PlanContent`.
+- Kit: `Popover` takes `showTitle={false}` (the title still names the popup) and the `settings` width (340);
+  `Dialog` takes title-row `actions` (before Close).
 
 ## Next
 

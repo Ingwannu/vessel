@@ -2,7 +2,10 @@
 // options.tsx) at the top of Settings > Usage: the title with Refresh all
 // and the options cog trailing it, the saved-account caveat once, then one
 // card per report; the source consent rows follow the cards (ADR 0042).
-// The reported-usage ledger stays below, as on the native app.
+// The reported-usage ledger stays below, as on the native app. The usage
+// modal takes the same reader, controls and content (usePlanUsage,
+// PlanControls, PlanContent) without the heading and caveat, as Paseo's
+// modal shows the cards alone under its own title row.
 import "./quota-card.css";
 
 import type { ReactNode } from "react";
@@ -31,7 +34,13 @@ const CAVEAT =
   "These are the configured saved account’s limits, not proof of the login held by a running agent.";
 
 /** Paseo usage-section.tsx `UsageMessage`. */
-function Message({ text, children }: { text: string; children?: ReactNode }) {
+export function Message({
+  text,
+  children,
+}: {
+  text: string;
+  children?: ReactNode;
+}) {
   return (
     <div className="quota-message">
       <span>{text}</span>
@@ -40,39 +49,31 @@ function Message({ text, children }: { text: string; children?: ReactNode }) {
   );
 }
 
-export function PlanUsage({ node, label }: { node: NodeKey; label: string }) {
+/** One machine's plan usage: its reader and whether it can report. The
+ * Settings section and the usage modal share it, so the two never read or
+ * act differently. */
+export function usePlanUsage(node: NodeKey) {
   const status = useFleetState((state) => state.statuses[node]);
   const serves = servesAccountReports(status);
   const { reader, read } = useAccountReader(node, serves, null);
-  const display = useUsagePrefs().usage.display;
-  const { now, locale, deviceClock } = useQuotaClock();
-
-  if (status?.state !== "connected") return null;
-  if (!serves) {
-    return (
-      <SettingsSection title={TITLE}>
-        <Message text={`Update ${label} to see plan usage.`} />
-      </SettingsSection>
-    );
-  }
   const ready = read.kind === "ready" && read.node === node ? read : null;
-  const on = ready?.reports.policy === "on";
-  const options = (
-    <UsageOptions
-      lookup={
-        ready === null
-          ? null
-          : {
-              on,
-              set: (next) => {
-                reader.setLookup(next ? "on" : "off");
-              },
-            }
-      }
-    />
-  );
+  return {
+    connected: status?.state === "connected",
+    serves,
+    reader,
+    read,
+    ready,
+  };
+}
+export type PlanUsageState = ReturnType<typeof usePlanUsage>;
 
-  const trailing = (
+/** Paseo controls.tsx: Refresh all while the lookup is on, then the
+ * options cog (the Settings title's trailing actions, the modal's title
+ * row). */
+export function PlanControls({ plan }: { plan: PlanUsageState }) {
+  const { ready, reader } = plan;
+  const on = ready?.reports.policy === "on";
+  return (
     <>
       {ready !== null && on ? (
         <Tooltip label="Refresh all accounts">
@@ -86,30 +87,78 @@ export function PlanUsage({ node, label }: { node: NodeKey; label: string }) {
           />
         </Tooltip>
       ) : null}
-      {options}
+      <UsageOptions
+        lookup={
+          ready === null
+            ? null
+            : {
+                on,
+                set: (next) => {
+                  reader.setLookup(next ? "on" : "off");
+                },
+              }
+        }
+      />
     </>
   );
+}
+
+/** Paseo usage-section.tsx `UsageBody`: the cards (and our consent rows),
+ * or the one message for a read that has not come or has failed. */
+export function PlanContent({
+  plan,
+  label,
+}: {
+  plan: PlanUsageState;
+  label: string;
+}) {
+  const display = useUsagePrefs().usage.display;
+  const { now, locale, deviceClock } = useQuotaClock();
+  if (plan.ready === null) {
+    return plan.read.kind === "failed" ? (
+      <Banner tone="error">{plan.read.problem.message}</Banner>
+    ) : (
+      <Message text="Reading usage…" />
+    );
+  }
   return (
-    <SettingsSection title={TITLE} action={trailing}>
-      {ready === null ? (
-        read.kind === "failed" ? (
-          <Banner tone="error">{read.problem.message}</Banner>
-        ) : (
-          <Message text="Reading usage…" />
-        )
-      ) : (
-        <PlanBody
-          ready={ready}
-          label={label}
-          display={display}
-          locale={locale}
-          now={now}
-          deviceClock={deviceClock}
-          reader={reader}
-        />
-      )}
+    <PlanBody
+      ready={plan.ready}
+      label={label}
+      display={display}
+      locale={locale}
+      now={now}
+      deviceClock={deviceClock}
+      reader={plan.reader}
+    />
+  );
+}
+
+/** Settings > Usage's section: the title with its controls, the caveat
+ * once, then the content. */
+export function PlanUsage({ node, label }: { node: NodeKey; label: string }) {
+  const plan = usePlanUsage(node);
+  if (!plan.connected) return null;
+  if (!plan.serves) {
+    return (
+      <SettingsSection title={TITLE}>
+        <Message text={updateText(label)} />
+      </SettingsSection>
+    );
+  }
+  return (
+    <SettingsSection title={TITLE} action={<PlanControls plan={plan} />}>
+      {plan.ready?.reports.policy === "on" ? (
+        <p className="quota-caveat">{CAVEAT}</p>
+      ) : null}
+      <PlanContent plan={plan} label={label} />
     </SettingsSection>
   );
+}
+
+/** Paseo `hostUpgradeRequired`. */
+export function updateText(label: string): string {
+  return `Update ${label} to see plan usage.`;
 }
 
 function PlanBody({
@@ -179,7 +228,6 @@ function PlanBody({
   const consent = consentRows(ready.reports);
   return (
     <>
-      <p className="quota-caveat">{CAVEAT}</p>
       {problem}
       {cards.length === 0 ? (
         <Message text="No usage data" />
