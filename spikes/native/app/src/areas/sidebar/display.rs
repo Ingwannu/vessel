@@ -14,11 +14,11 @@ use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::Leading;
+use vessel_app_kit::submenu::{Submenus, flyout};
 use vessel_app_kit::ui::{
     AnyElement, Bounds, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     Pixels, StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
 };
-use vessel_app_kit::submenu::{Submenus, flyout};
 use vessel_app_kit::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Tokens, combobox, combobox_inline, select,
 };

@@ -18,7 +18,15 @@ fn a_wide_display_menu_opens_a_page_beside_it_and_an_option_there_closes_it(
     cx.run_until_parked();
     // The Grouping row is drawn as its page's trigger.
     shell.read_with(cx, |shell, _| {
-        assert!(shell.areas.sidebar.display.pages.trigger("grouping").is_some());
+        assert!(
+            shell
+                .areas
+                .sidebar
+                .display
+                .pages
+                .trigger("grouping")
+                .is_some()
+        );
     });
     let before = shell.read_with(cx, |shell, _| shell.prefs.settings.sidebar.group);
     shell.update_in(cx, |shell, window, cx| {
