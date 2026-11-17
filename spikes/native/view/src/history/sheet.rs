@@ -305,10 +305,11 @@ impl Sheet {
 
     /// Show one provider or all of them; an unknown provider shows all.
     pub fn set_filter(&mut self, filter: Filter) {
-        self.filter = match filter {
-            Filter::Provider(harness) if !self.providers().contains(&&harness) => Filter::All,
-            filter => filter,
+        let known = match &filter {
+            Filter::All => true,
+            Filter::Provider(harness) => self.providers().contains(&harness),
         };
+        self.filter = if known { filter } else { Filter::All };
     }
 
     /// The listed sessions: not yet imported, at most the limit per

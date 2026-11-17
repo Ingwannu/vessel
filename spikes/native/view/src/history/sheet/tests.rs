@@ -2,6 +2,7 @@
 //! merged, limits read through cursor pages, per-provider failures, one import.
 use super::*;
 use crate::devices::MachineKey;
+use crate::history::{Listed, Outcome};
 use vessel_proto::{HarnessKind, SessionId, SessionMode};
 
 const NODE: &str = "00000000-0000-0000-0000-000000000001";
