@@ -91,6 +91,16 @@ reset", "No prompt will be sent automatically. Continue when the account is read
 - Kit: `Popover` takes `showTitle={false}` (the title still names the popup) and the `settings` width (340);
   `Dialog` takes title-row `actions` (before Close).
 
+## TRACKER 793: the default turn delivery is Steer (ADR 0108)
+
+Not usage, but this track's next item (coordinator, 2026-11-17). The bridge's `TurnDelivery` default and the page's
+`DEFAULT_PREFERENCES` move from Queue to Steer together; the sparse keeper means a document that never set the
+delivery reads as Steer and one that chose Queue keeps it (no migration). The empty box's placeholder now says what
+Enter will do (`nextDelivery` in data/delivery.ts), which it did not for Steer before. The conversation e2e sets Queue
+in Settings for the queue cases and puts Steer back; the screens harness queues with the modifier. The page still
+queues where the agent cannot steer (its stated fallback); native and Paseo replace the turn there, reported to the
+coordinator as a separate parity item.
+
 ## Next
 
 - The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).

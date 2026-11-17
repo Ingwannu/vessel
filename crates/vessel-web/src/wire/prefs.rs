@@ -315,9 +315,11 @@ pub enum SendKey {
 #[serde(rename_all = "snake_case")]
 pub enum TurnDelivery {
     /// It waits in the session's queue for the turn to end.
-    #[default]
     Queue,
-    /// It joins the running turn, where the agent can steer.
+    /// It joins the running turn, where the agent can steer. The default,
+    /// Paseo's and the native app's (the owner's word 45, ADR 0108): a
+    /// document that never set it reads so; a stored choice is kept.
+    #[default]
     Steer,
     /// The turn is stopped and it starts the next.
     Interrupt,
@@ -447,7 +449,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }

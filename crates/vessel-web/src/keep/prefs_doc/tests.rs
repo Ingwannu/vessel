@@ -70,7 +70,8 @@ fn unknown_keys_at_every_level_are_kept_on_rewrite() {
 #[test]
 fn the_delivery_is_the_composers_and_keeps_the_send_key() {
     let mut doc = read(r#"{"version":1,"composer":{"send":"mod_enter"}}"#);
-    assert_eq!(doc.values().composer.delivery, TurnDelivery::Queue);
+    // Never set: the default (ADR 0108).
+    assert_eq!(doc.values().composer.delivery, TurnDelivery::Steer);
     doc = doc
         .changed(&PreferenceChange::Delivery(TurnDelivery::Interrupt))
         .unwrap();
@@ -82,7 +83,26 @@ fn the_delivery_is_the_composers_and_keeps_the_send_key() {
     );
     // A value a newer page wrote reads as the default and is kept.
     let doc = read(r#"{"version":1,"composer":{"delivery":"later"}}"#);
-    assert_eq!(doc.values().composer.delivery, TurnDelivery::Queue);
+    assert_eq!(doc.values().composer.delivery, TurnDelivery::Steer);
+}
+
+/// ADR 0108: the default moved from Queue to Steer. A document that never
+/// set the delivery reads as Steer and is not rewritten for it; a Queue
+/// someone chose stays Queue, written as it was.
+#[test]
+fn a_chosen_queue_survives_the_steer_default() {
+    let unset = read(r#"{"version":1,"composer":{"send":"enter"}}"#);
+    assert_eq!(unset.values().composer.delivery, TurnDelivery::Steer);
+    assert_eq!(
+        compact(&written(&unset)),
+        compact(r#"{"version":1,"composer":{"send":"enter"}}"#)
+    );
+    let chosen = read(r#"{"version":1,"composer":{"delivery":"queue"}}"#);
+    assert_eq!(chosen.values().composer.delivery, TurnDelivery::Queue);
+    assert_eq!(
+        compact(&written(&chosen)),
+        compact(r#"{"version":1,"composer":{"delivery":"queue"}}"#)
+    );
 }
 
 #[test]

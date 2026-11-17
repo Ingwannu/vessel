@@ -119,6 +119,15 @@ export function sendPlan(state: SendState): SendPlan {
   };
 }
 
+/** The delivery a message would take while a turn runs, whatever the box
+ * holds now, so the empty box can say what Enter will do; `null` between
+ * turns and on a node before protocol 10. */
+export function nextDelivery(state: SendState): Delivery | null {
+  if (!state.inTurn) return null;
+  const plan = sendPlan({ ...state, filled: true });
+  return plan.kind === "deliver" ? plan.delivery : null;
+}
+
 /** Between turns: `queue` keeps the order of what already waits and
  * starts at once when nothing does; a held queue keeps what it holds and
  * the new message starts now. */

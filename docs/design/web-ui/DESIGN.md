@@ -1274,8 +1274,9 @@ approval (§6.7):
   square, "Stop turn" (it stops that turn, `cancel_turn`, and the
   node's queue holds). While a turn runs with text: what Settings ›
   General's "Default send" says (Paseo's setting, `composer.delivery`,
-  kept by the bridge): "Queue message" (an arrow, the default), "Steer
-  message" (a turning arrow) or "Interrupt and send". The other way is
+  kept by the bridge): "Queue message" (an arrow), "Steer message" (a
+  turning arrow, the default since ADR 0108, as Paseo's and the native
+  app's) or "Interrupt and send". The other way is
   one modifier away: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter
   (⌘/Ctrl+Shift+Enter where ⌘/Ctrl+Enter is the send key), and the icon
   and label turn while the modifier is held; the other way of queue is

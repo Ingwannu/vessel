@@ -10,7 +10,13 @@ import { useState } from "react";
 import { useFleet } from "../../context";
 import { cancelTurn, sendPrompt } from "../../data/calls";
 import { changeQueue, promptSession } from "../../data/conversation-calls";
-import { hasConversation, sendPlan, type SendPlan } from "../../data/delivery";
+import {
+  hasConversation,
+  nextDelivery,
+  sendPlan,
+  type SendPlan,
+  type SendState,
+} from "../../data/delivery";
 import { isLive } from "../../data/format";
 import { seedImage } from "../../data/images";
 import { errorCode } from "../../data/outcome";
@@ -22,7 +28,7 @@ import type { Timeline } from "../../data/timeline-model";
 import type { Tray } from "../../data/tray";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
-import type { ContentBlock, SessionInfo } from "../../wire/proto";
+import type { ContentBlock, Delivery, SessionInfo } from "../../wire/proto";
 import type { DraftState } from "../compose/use-draft";
 
 /** A queued prompt open in the composer. */
@@ -33,6 +39,8 @@ export interface Editing {
 
 export interface ComposerSend {
   plan: SendPlan;
+  /** What a message would do while a turn runs (`nextDelivery`). */
+  next: Delivery | null;
   sending: boolean;
   /** What the node or the tray refused, to say under the box. */
   problem: string | null;
@@ -77,7 +85,7 @@ export function useComposerSend({
   const filled = useStore(tray.items, (items) => items.length > 0);
   const text = draft.text;
   const blocked = timeline.pending !== null || sending;
-  const plan = sendPlan({
+  const state: SendState = {
     protocol,
     live: isLive(session),
     inTurn: timeline.inTurn,
@@ -86,7 +94,8 @@ export function useComposerSend({
     queue: timeline.conversation.queue,
     preferred,
     steerRefused,
-  });
+  };
+  const plan = sendPlan(state);
 
   const send = (other: boolean) => {
     if (blocked) {
@@ -218,6 +227,7 @@ export function useComposerSend({
   };
   return {
     plan,
+    next: nextDelivery(state),
     sending,
     problem,
     steerRefused,

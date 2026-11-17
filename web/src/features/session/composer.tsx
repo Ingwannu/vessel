@@ -219,6 +219,7 @@ export const Composer = memo(function Composer({
         live,
         again: canStartAgain(session),
         plan: sender.plan,
+        next: sender.next,
         modern,
         starting: starting ? agent : null,
       })}
