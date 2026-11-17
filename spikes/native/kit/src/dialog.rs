@@ -54,6 +54,8 @@ mod configuration_tests;
 mod header_back;
 #[cfg(test)]
 mod header_back_tests;
+#[cfg(test)]
+mod header_subtitle_tests;
 mod header_content;
 mod header_search;
 #[cfg(test)]
@@ -345,6 +347,34 @@ fn handle(color: gpui::Hsla) -> gpui::Div {
 /// The title and the close button, over a rule; with a way back, Paseo's back
 /// arrow leads the title; with a search, Paseo's search row sits under the
 /// title inside the same rule (`headerContainer`).
+/// Paseo's `headerTitleGroup` (flex 1, gap 4): the title, then the owner's
+/// subtitle under it when there is one.
+fn title_group(
+    title: SharedString,
+    subtitle: Option<AnyElement>,
+    has_actions: bool,
+    surfaces: &Surfaces,
+) -> gpui::Div {
+    let title = div()
+        .debug_selector(|| "dialog-title".to_owned())
+        .min_w(px(0.0))
+        .when(has_actions || subtitle.is_some(), Styled::truncate)
+        .type_(Type::Label)
+        .text_color(surfaces.foreground)
+        .child(title);
+    match subtitle {
+        None => title.flex_1(),
+        Some(subtitle) => div()
+            .flex_1()
+            .min_w(px(0.0))
+            .flex()
+            .flex_col()
+            .gap(px(4.0))
+            .child(title)
+            .child(subtitle),
+    }
+}
+
 fn header<V: 'static>(
     title: SharedString,
     parts: header_content::HeaderParts,
@@ -357,6 +387,7 @@ fn header<V: 'static>(
         back,
         actions,
         search,
+        subtitle,
     } = parts;
     let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
@@ -381,16 +412,7 @@ fn header<V: 'static>(
         .px(px(INSIDE))
         .py(px(16.0))
         .children(back)
-        .child(
-            div()
-                .debug_selector(|| "dialog-title".to_owned())
-                .flex_1()
-                .min_w(px(0.0))
-                .when(has_actions, Styled::truncate)
-                .type_(Type::Label)
-                .text_color(surfaces.foreground)
-                .child(title),
-        )
+        .child(title_group(title, subtitle, has_actions, surfaces))
         .children(actions.map(|actions| {
             div()
                 .debug_selector(|| "dialog-header-actions".to_owned())
