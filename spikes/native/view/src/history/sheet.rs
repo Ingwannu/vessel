@@ -466,7 +466,15 @@ impl Sheet {
             }
             Err(problem) => feed.state = FeedState::Failed(problem),
         }
-        let follow = self.continue_feed(index).unwrap_or_default();
+        let follow = match self.continue_feed(index) {
+            Ok(ask) => ask.into_iter().collect(),
+            Err(problem) => {
+                if let Some(feed) = self.feeds.get_mut(index) {
+                    feed.state = FeedState::Failed(problem);
+                }
+                Vec::new()
+            }
+        };
         Answer {
             applied: true,
             follow,

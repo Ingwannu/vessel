@@ -124,7 +124,7 @@ fn rows_merge_newest_first_without_imported_sessions_and_filter_by_provider() {
 
 #[test]
 fn a_provider_reads_on_through_cursor_pages_until_its_limit() {
-    let (mut sheet, [first, second]) = opened(None);
+    let (mut sheet, [first, _second]) = opened(None);
     // Ten listable sessions and a next page: read on.
     let answer = sheet.answer(reply(&first, entries("codex", 10), Some("page-2")));
     assert!(answer.applied);
@@ -165,7 +165,7 @@ fn a_failed_provider_keeps_the_others_and_retries_alone() {
 
 #[test]
 fn a_stale_reply_changes_nothing() {
-    let (mut sheet, [first, second]) = opened(None);
+    let (mut sheet, [first, _second]) = opened(None);
     let stale = reply(&first, vec![entry("codex-a", 1)], None);
     let _fresh = sheet.refresh().unwrap();
     assert!(!sheet.answer(stale).applied);
@@ -174,7 +174,7 @@ fn a_stale_reply_changes_nothing() {
 
 #[test]
 fn a_row_imports_one_session_and_hands_the_new_session_over() {
-    let (mut sheet, [first, second]) = opened(None);
+    let (mut sheet, [first, _second]) = opened(None);
     let answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
     assert!(answer.applied);
     let ask = sheet
@@ -221,7 +221,7 @@ fn a_row_imports_one_session_and_hands_the_new_session_over() {
 
 #[test]
 fn a_failed_import_keeps_the_sheet_and_says_so() {
-    let (mut sheet, [first, second]) = opened(None);
+    let (mut sheet, [first, _second]) = opened(None);
     let _answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
     let ask = sheet
         .import(&codex(), &HarnessSessionId::new("codex-a"))
