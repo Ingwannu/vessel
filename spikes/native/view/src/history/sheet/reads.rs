@@ -7,7 +7,12 @@ use crate::history::{Ask, Cursor, Listed, Outcome, Problem, Scope};
 use vessel_proto::HarnessRef;
 
 impl Sheet {
-    pub(super) fn listed(&mut self, scope: &Scope, ticket: Ticket, result: Result<Listed, Problem>) -> Answer {
+    pub(super) fn listed(
+        &mut self,
+        scope: &Scope,
+        ticket: Ticket,
+        result: Result<Listed, Problem>,
+    ) -> Answer {
         let Some(index) = self.feeds.iter().position(|feed| {
             feed.state == FeedState::Pending(ticket)
                 && self.scope(&feed.harness).as_ref() == Some(scope)
@@ -73,7 +78,12 @@ impl Sheet {
         }
     }
 
-    pub(super) fn imported(&mut self, scope: &Scope, ticket: Ticket, outcomes: Vec<Outcome>) -> bool {
+    pub(super) fn imported(
+        &mut self,
+        scope: &Scope,
+        ticket: Ticket,
+        outcomes: Vec<Outcome>,
+    ) -> bool {
         let Some(pending) = &self.importing else {
             return false;
         };
@@ -122,7 +132,11 @@ impl Sheet {
     }
 
     /// Read a feed from `cursor` (the start without one).
-    pub(super) fn read(&mut self, index: usize, cursor: Option<Cursor>) -> Result<Option<Ask>, Problem> {
+    pub(super) fn read(
+        &mut self,
+        index: usize,
+        cursor: Option<Cursor>,
+    ) -> Result<Option<Ask>, Problem> {
         if self.importing.is_some() {
             return Ok(None);
         }
