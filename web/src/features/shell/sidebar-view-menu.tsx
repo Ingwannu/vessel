@@ -1,15 +1,19 @@
 // The sidebar's "Display" menu (Paseo's: a sliders button by the list's
-// heading): group by machine or by status, sort by creation or by last
-// activity, and whether ended sessions are listed. Kept by the bridge, so
-// every tab and every launch shows the same list.
+// heading): group by machine, by status or by workspace, sort by creation
+// or by last activity, and whether ended sessions are listed; grouped by
+// workspace, the Labels filter and "Manage labels…" too (Paseo offers
+// both with its workspace grouping). Kept by the bridge, so every tab and
+// every launch shows the same list.
 
 import { useFleet } from "../../context";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
+import { labelManager } from "../../data/workspace-labels/hub";
 import {
   IconButton,
   Menu,
   MenuGroup,
+  MenuItem,
   MenuRadioGroup,
   MenuSeparator,
   MenuSwitchItem,
@@ -17,6 +21,7 @@ import {
 } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { PreferenceChange } from "../../wire/bridge";
+import { LabelFilterMenu } from "../workspace-labels/filter-menu";
 
 export function SidebarViewMenu() {
   const fleet = useFleet();
@@ -46,9 +51,24 @@ export function SidebarViewMenu() {
           options={[
             { value: "machine", label: "Machine" },
             { value: "status", label: "Status" },
+            { value: "workspace", label: "Workspace" },
           ]}
         />
       </MenuGroup>
+      {view.group === "workspace" ? (
+        <>
+          <MenuSeparator />
+          <LabelFilterMenu picked={view.labels} />
+          <MenuItem
+            icon="tag"
+            onSelect={() => {
+              labelManager.set(true);
+            }}
+          >
+            Manage labels…
+          </MenuItem>
+        </>
+      ) : null}
       <MenuSeparator />
       <MenuGroup label="Sort">
         <MenuRadioGroup

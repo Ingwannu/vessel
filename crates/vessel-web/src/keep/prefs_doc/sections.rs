@@ -11,8 +11,8 @@ use vessel_proto::{ChoiceValue, HarnessKind, ProfileName, RawJson};
 use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
-    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, Layout, MachineDefaults,
-    Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery,
+    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, LabelPicks, Layout,
+    MachineDefaults, Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -75,7 +75,12 @@ section! {
 
 section! {
     /// `sidebar`.
-    SidebarFile => SidebarView { group: Grouping, sort: SessionSort, ended: bool }
+    SidebarFile => SidebarView {
+        group: Grouping,
+        sort: SessionSort,
+        ended: bool,
+        labels: LabelPicks,
+    }
 }
 
 /// One machine's defaults in the file.

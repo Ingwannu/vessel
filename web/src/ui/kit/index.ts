@@ -33,8 +33,8 @@ export {
   MenuItem,
   MenuRadioGroup,
   MenuSeparator,
-  MenuSubmenu,
 } from "./menu";
+export { MenuSubmenu } from "./menu-submenu";
 export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { type OptionRow, OptionList } from "./option-list";
 export { type PanelTab, PanelTabs } from "./panel-tabs";

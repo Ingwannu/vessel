@@ -363,3 +363,31 @@
 .side-label .btn ~ .btn {
   margin-left: 2px;
 }
+
+/* Grouped by workspace (Paseo's workspace rows): the name with its row
+   menu, shown on hover on a pointer and always on touch, and the label
+   chips on a line under the name, on the name's rail. */
+.nav-item.workspace {
+  color: var(--text-primary);
+}
+
+.side-workspace-menu {
+  margin-left: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .side-workspace-menu {
+    opacity: 0;
+  }
+
+  .side-workspace:hover .side-workspace-menu,
+  .side-workspace-menu:focus-within,
+  .side-workspace-menu:has([data-popup-open]) {
+    opacity: 1;
+  }
+}
+
+.side-workspace-meta {
+  display: flex;
+  padding: 0 10px 4px 34px;
+}

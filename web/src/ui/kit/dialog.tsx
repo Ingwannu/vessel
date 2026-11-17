@@ -19,6 +19,17 @@
 //   from .95 over 120ms; the scrim 80ms).
 // - Focus on open goes to the first field of the body, else to the
 //   footer's last action (the primary one), never to the close button.
+// - Header back and header search (Paseo's SheetHeader, for the label
+//   manager): a back arrow before the title, and a search under it,
+//   unboxed (a 16px muted icon and the text, no fill, no clear button)
+//   over a rule. A dialog with either is paged: its header is ruled off
+//   from the body and its footer too, as Paseo's sheet draws them. Paseo
+//   does not focus the search on open, so a dialog with a search takes
+//   focus itself; a field there would hide the first rows on a phone
+//   behind the keyboard. The search is controlled, so the box and the
+//   list it filters always agree. It is a text input with the searchbox
+//   role, not `type="search"`: Chromium's search input clears itself on
+//   Escape, which here belongs to closing the dialog.
 
 import "./dialog.css";
 
@@ -26,14 +37,32 @@ import { Dialog as Base } from "@base-ui/react/dialog";
 import { type ReactNode, useRef } from "react";
 
 import { IconButton } from "./button";
+import { Icon } from "./icon";
 
 /** `md` is the reference's 512px; `lg` holds a grid of cards. */
 export type DialogSize = "md" | "lg";
 
+/** A search in the dialog's header (Paseo's sheet header search). */
+export interface DialogSearch {
+  value: string;
+  onChange: (value: string) => void;
+  /** Also its name for a screen reader. */
+  placeholder: string;
+}
+
+/** A back arrow before the title, for a dialog with a second view. */
+export interface DialogBack {
+  label: string;
+  onBack: () => void;
+}
+
 /** What takes focus when `popup` opens. */
-function firstFocus(popup: HTMLElement | null): HTMLElement | null {
-  if (popup === null) {
-    return null;
+function firstFocus(
+  popup: HTMLElement | null,
+  searched: boolean,
+): HTMLElement | null {
+  if (popup === null || searched) {
+    return popup;
   }
   const field = popup.querySelector<HTMLElement>(
     ".dialog-b input:not([disabled]), .dialog-b textarea:not([disabled]), .dialog-b [role='combobox']:not([data-disabled]), .dialog-b button:not([disabled])",
@@ -53,6 +82,8 @@ export function Dialog({
   children,
   footer,
   size = "md",
+  back,
+  search,
 }: {
   title: string;
   /** Escape, the scrim and the close button all call it. */
@@ -61,8 +92,13 @@ export function Dialog({
   /** Actions, right-aligned: a ghost Cancel, then one primary. */
   footer?: ReactNode;
   size?: DialogSize;
+  back?: DialogBack;
+  search?: DialogSearch;
 }) {
   const popup = useRef<HTMLDivElement>(null);
+  // `paged`, not `sheet`: the kit Sheet owns that class (kit/sheet.css).
+  const paged = back !== undefined || search !== undefined;
+  const look = `dialog${size === "lg" ? " lg" : ""}${paged ? " paged" : ""}`;
   return (
     <Base.Root
       open
@@ -77,15 +113,42 @@ export function Dialog({
         <Base.Viewport className="dialog-viewport">
           <Base.Popup
             ref={popup}
-            className={size === "lg" ? "dialog lg" : "dialog"}
-            initialFocus={() => firstFocus(popup.current)}
+            className={look}
+            initialFocus={() => firstFocus(popup.current, search !== undefined)}
           >
             <div className="dialog-h">
+              {back === undefined ? null : (
+                <IconButton
+                  label={back.label}
+                  icon="back"
+                  size="sm"
+                  onClick={back.onBack}
+                />
+              )}
               <Base.Title className="dialog-title">{title}</Base.Title>
               <Base.Close
                 render={<IconButton label="Close" icon="close" size="sm" />}
               />
             </div>
+            {search === undefined ? null : (
+              <label className="dialog-search">
+                <Icon name="search" size={16} />
+                <input
+                  className="dialog-search-input"
+                  type="text"
+                  role="searchbox"
+                  enterKeyHint="search"
+                  value={search.value}
+                  placeholder={search.placeholder}
+                  aria-label={search.placeholder}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(event) => {
+                    search.onChange(event.currentTarget.value);
+                  }}
+                />
+              </label>
+            )}
             <div className="dialog-b">{children}</div>
             {footer === undefined ? null : (
               <div className="dialog-f">{footer}</div>

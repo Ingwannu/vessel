@@ -116,7 +116,7 @@ describe("sidebarMachines", () => {
 
 describe("the view the person chose", () => {
   it("lists ended sessions when asked, and sorts by activity", () => {
-    const view = { group: "machine", sort: "activity", ended: true } as const;
+    const view = { ...DEFAULT_VIEW, sort: "activity" } as const;
     const [laptop] = sidebarMachines(STATE, view);
     expect(laptop?.sessions.map((row) => [row.id, row.mark])).toEqual([
       ["bbbb", "idle"],

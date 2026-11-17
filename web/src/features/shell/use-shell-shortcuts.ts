@@ -12,6 +12,8 @@ import {
   type SidebarSession,
 } from "../../data/sidebar";
 import { useWhere } from "../../data/where";
+import { sidebarWorkspaces } from "../../data/workspace-labels/groups";
+import { labelsOf } from "../../data/workspace-labels/hub";
 import { useShortcut } from "../shortcuts/handlers";
 
 export function useShellShortcuts(): void {
@@ -37,8 +39,20 @@ export function useShellShortcuts(): void {
     });
     return true;
   };
-  const order = () =>
-    sidebarOrder(fleet.store.get(), prefs.get().values.sidebar);
+  const order = () => {
+    const view = prefs.get().values.sidebar;
+    // Grouped by workspace, the keys walk the workspace rows as drawn
+    // (their membership needs the registry, which data/sidebar.ts does
+    // not hold).
+    return view.group === "workspace"
+      ? sidebarWorkspaces(
+          fleet.store.get(),
+          labelsOf(fleet).store.get(),
+          view,
+          view.labels,
+        ).flatMap((row) => row.sessions)
+      : sidebarOrder(fleet.store.get(), view);
+  };
   useShortcut("settings", () => go("/settings"));
   useShortcut("go-board", () => go("/sessions"));
   useShortcut("go-machines", () => go("/settings/machines"));

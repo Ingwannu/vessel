@@ -139,12 +139,16 @@ export function MenuCheckboxItem({
   onChange,
   shortcut,
   disabled,
+  leading,
   children,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   shortcut?: string;
   disabled?: boolean;
+  /** Drawn in the box's place (a label's colour dot, Paseo's picker),
+   * with the check then at the right as a radio row draws it. */
+  leading?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -157,14 +161,23 @@ export function MenuCheckboxItem({
       disabled={disabled}
       closeOnClick={false}
     >
-      <span className="menu-box" aria-hidden="true">
-        <Base.CheckboxItemIndicator className="menu-box-mark">
-          <Icon name="check" size={12} />
-        </Base.CheckboxItemIndicator>
-      </span>
+      {leading ?? (
+        <span className="menu-box" aria-hidden="true">
+          <Base.CheckboxItemIndicator className="menu-box-mark">
+            <Icon name="check" size={12} />
+          </Base.CheckboxItemIndicator>
+        </span>
+      )}
       <RowContent icon={undefined} description={undefined} shortcut={shortcut}>
         {children}
       </RowContent>
+      {leading === undefined ? null : (
+        <span className="menu-check" aria-hidden="true">
+          <Base.CheckboxItemIndicator className="menu-check-mark">
+            <Icon name="check" size={14} />
+          </Base.CheckboxItemIndicator>
+        </span>
+      )}
     </Base.CheckboxItem>
   );
 }
@@ -252,43 +265,5 @@ export function MenuGroup({
       <Base.GroupLabel className="menu-label">{label}</Base.GroupLabel>
       {children}
     </Base.Group>
-  );
-}
-
-/** A row that opens a menu of its own, to the side. */
-export function MenuSubmenu({
-  label,
-  icon,
-  value,
-  children,
-}: {
-  label: string;
-  icon?: IconName;
-  /** The current value, muted, before the chevron (the reference's
-   * "Model  Opus ›"). */
-  value?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Base.SubmenuRoot>
-      <Base.SubmenuTrigger className="menu-item">
-        {icon === undefined ? null : <Icon name={icon} size={15} />}
-        <span className="label">{label}</span>
-        {value === undefined ? null : (
-          <span className="menu-value">{value}</span>
-        )}
-        <Icon name="chevron" size={14} />
-      </Base.SubmenuTrigger>
-      <Base.Portal>
-        <Base.Positioner
-          className="popup-positioner"
-          sideOffset={9}
-          alignOffset={-5}
-          collisionPadding={8}
-        >
-          <Base.Popup className="popup menu-popup">{children}</Base.Popup>
-        </Base.Positioner>
-      </Base.Portal>
-    </Base.SubmenuRoot>
   );
 }
