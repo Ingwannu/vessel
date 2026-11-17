@@ -18,7 +18,7 @@ mod draw;
 mod tests;
 
 use vessel_app_kit::field::FieldId;
-use vessel_app_kit::ui::{AnyElement, Bounds, Context, Pixels, Point, Window, px, size};
+use vessel_app_kit::ui::{AnyElement, Bounds, Context, Pixels, Point, Window};
 use vessel_app_kit::{DialogState, Side, TextField};
 use vessel_app_link::labels::{Answer, Command, Event};
 use vessel_app_view::labels::{
@@ -98,7 +98,7 @@ impl Shell {
         let state = &mut self.areas.labels;
         state
             .picker_combo
-            .set_anchor(at.map(|at| Bounds::new(at, size(px(0.0), px(0.0)))));
+            .set_anchor(at.map(|at| Bounds::from_corners(at, at)));
         if let Some(picker) = &mut state.picker {
             let middle = f32::from(window.viewport_size().height).mul_add(0.5, 0.0);
             let lower = at.is_some_and(|at| f32::from(at.y) > middle);
