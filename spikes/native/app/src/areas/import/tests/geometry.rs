@@ -29,7 +29,9 @@ fn the_desktop_card_is_560_and_rows_reach_8_past_the_inset(cx: &mut TestAppConte
     let header = cx
         .debug_bounds("dialog-header")
         .expect("the sheet's header");
-    assert_eq!(header.size.width, px(560.0));
+    // Paseo's 560 is the card's border box; the header lies inside its two
+    // hairlines.
+    assert_eq!(header.size.width, px(558.0));
     let row = cx.debug_bounds("history-row-codex-native").expect("a row");
     assert_eq!(row.left(), moved(header.left(), ROW_FROM_EDGE));
     assert_eq!(row.right(), moved(header.right(), ROW_FROM_RIGHT));
