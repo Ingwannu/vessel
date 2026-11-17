@@ -4,6 +4,7 @@
 // /commands", its "Restore the session to continue" for an ended one.
 
 import type { SendPlan } from "../../data/delivery";
+import type { Delivery } from "../../wire/proto";
 import type { SendAction } from "../compose/send-button";
 
 export function composerPlaceholder({
@@ -13,6 +14,7 @@ export function composerPlaceholder({
   plan,
   modern,
   starting = null,
+  next = null,
 }: {
   pending: boolean;
   live: boolean;
@@ -23,6 +25,9 @@ export function composerPlaceholder({
   modern: boolean;
   /** The agent, while the session's first prompt waits on its start. */
   starting?: string | null;
+  /** What a message would do while a turn runs, said before anything is
+   * typed (the empty box's plan is Stop). */
+  next?: Delivery | null;
 }): string {
   if (pending) {
     return "Answer the permission to continue";
@@ -40,7 +45,7 @@ export function composerPlaceholder({
     (plan.kind === "deliver" && plan.alternate !== null)
   ) {
     // A turn runs: say what Send will do with the next message.
-    const delivery = plan.kind === "deliver" ? plan.delivery : null;
+    const delivery = plan.kind === "deliver" ? plan.delivery : next;
     return delivery === "steer"
       ? "Next message you send will steer the agent"
       : delivery === "interrupt"

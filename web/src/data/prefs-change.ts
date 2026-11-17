@@ -21,7 +21,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
     conversation: "full",
   },
   layout: { sidebar: "shown", inspector: "shown" },
-  composer: { send: "enter", delivery: "queue" },
+  // Steer, as Paseo and the native app (ADR 0108); a stored choice wins.
+  composer: { send: "enter", delivery: "steer" },
   shortcuts: {},
   notifications: { alerts: "off", title: true },
   sidebar: {

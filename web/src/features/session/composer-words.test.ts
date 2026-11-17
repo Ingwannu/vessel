@@ -41,4 +41,20 @@ describe("the composer's placeholder", () => {
       }),
     ).toBe("Answer the permission to continue");
   });
+
+  it("says what Enter will do while a turn runs, before anything is typed", () => {
+    const running = {
+      pending: false,
+      live: true,
+      again: false,
+      plan: { kind: "stop" } as const,
+      modern: true,
+    };
+    expect(composerPlaceholder({ ...running, next: "steer" })).toBe(
+      "Next message you send will steer the agent",
+    );
+    expect(composerPlaceholder({ ...running, next: "queue" })).toBe(
+      "Next message you send will be queued",
+    );
+  });
 });

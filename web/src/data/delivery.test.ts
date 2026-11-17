@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   canSteer,
   hasConversation,
+  nextDelivery,
   sendNowDelivery,
   sendPlan,
   type SendState,
@@ -104,4 +105,20 @@ test("a queued prompt's Send now: start, steer where it can, else interrupt", ()
   expect(
     sendNowDelivery({ ...RUNNING, abilities: { ...STEERS, steer: false } }),
   ).toBe("interrupt");
+});
+
+describe("what the empty box says the next message will do", () => {
+  test("the preferred delivery, or the queue where the agent cannot steer", () => {
+    const empty = { ...RUNNING, filled: false };
+    expect(nextDelivery({ ...empty, preferred: "steer" })).toBe("steer");
+    expect(nextDelivery({ ...empty, preferred: "queue" })).toBe("queue");
+    expect(
+      nextDelivery({ ...empty, preferred: "steer", steerRefused: true }),
+    ).toBe("queue");
+  });
+
+  test("nothing between turns or before protocol 10", () => {
+    expect(nextDelivery({ ...RUNNING, inTurn: false })).toBeNull();
+    expect(nextDelivery({ ...RUNNING, protocol: 9 })).toBeNull();
+  });
 });
