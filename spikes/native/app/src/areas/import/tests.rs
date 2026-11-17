@@ -166,8 +166,8 @@ fn one_connected_host_skips_the_chooser_and_reads_every_agent_in_parallel(cx: &m
         }
     });
     assert!(cx.debug_bounds("history-loading").is_none());
-    assert!(cx.debug_bounds("history-row-codex-a").is_some());
-    assert!(cx.debug_bounds("history-row-claude-a").is_some());
+    assert!(cx.debug_bounds("history-row-codex-codex-a").is_some());
+    assert!(cx.debug_bounds("history-row-claude-code-claude-a").is_some());
     // Two providers: Paseo's filter pill.
     assert!(cx.debug_bounds("history-filter").is_some());
 }
@@ -208,7 +208,7 @@ fn a_row_press_imports_that_session_then_closes_the_sheet_and_opens_it(cx: &mut 
     open(&shell, cx);
     let asks = sent(&mut commands);
     answer(&shell, cx, asks, |_| vec![entry("native", 1)]);
-    click(cx, "history-row-native");
+    click(cx, "history-row-codex-native");
     let Ok([Ask::Import(batch)]) = <[Ask; 1]>::try_from(sent(&mut commands)) else {
         panic!("one import");
     };
@@ -225,7 +225,7 @@ fn a_row_press_imports_that_session_then_closes_the_sheet_and_opens_it(cx: &mut 
         );
     });
     // A second press while it runs sends nothing.
-    click(cx, "history-row-native");
+    click(cx, "history-row-codex-native");
     assert!(sent(&mut commands).is_empty());
     let node = context_of(&shell, cx).node();
     let created = SessionId::random();
@@ -271,7 +271,7 @@ fn a_receipt_after_the_sheet_closed_opens_nothing(cx: &mut TestAppContext) {
     open(&shell, cx);
     let asks = sent(&mut commands);
     answer(&shell, cx, asks, |_| vec![entry("native", 1)]);
-    click(cx, "history-row-native");
+    click(cx, "history-row-codex-native");
     let Ok([Ask::Import(batch)]) = <[Ask; 1]>::try_from(sent(&mut commands)) else {
         panic!("one import");
     };
@@ -321,8 +321,8 @@ fn the_provider_filter_narrows_the_merged_rows_on_the_client(cx: &mut TestAppCon
     });
     cx.run_until_parked();
     assert!(sent(&mut commands).is_empty(), "the filter reads nothing");
-    assert!(cx.debug_bounds("history-row-claude-a").is_some());
-    assert!(cx.debug_bounds("history-row-codex-a").is_none());
+    assert!(cx.debug_bounds("history-row-claude-code-claude-a").is_some());
+    assert!(cx.debug_bounds("history-row-codex-codex-a").is_none());
     shell.read_with(cx, |shell, _| assert!(!shell.areas.import.filter.is_open()));
 }
 
@@ -338,7 +338,7 @@ fn a_failed_provider_keeps_the_others_and_its_retry_reads_it_alone(cx: &mut Test
     });
     answer(&shell, cx, vec![second], |_| vec![entry("claude-a", 1)]);
     assert!(cx.debug_bounds("history-provider-errors").is_some());
-    assert!(cx.debug_bounds("history-row-claude-a").is_some());
+    assert!(cx.debug_bounds("history-row-claude-code-claude-a").is_some());
     click(cx, "history-retry-codex");
     let Ok([retried]) = <[Ask; 1]>::try_from(sent(&mut commands)) else {
         panic!("one read");
@@ -357,7 +357,7 @@ fn every_listed_session_already_imported_says_so(cx: &mut TestAppContext) {
         vec![imported]
     });
     assert!(cx.debug_bounds("history-empty").is_some());
-    assert!(cx.debug_bounds("history-row-done").is_none());
+    assert!(cx.debug_bounds("history-row-codex-done").is_none());
     shell.read_with(cx, |shell, _| {
         let area = &shell.areas.import;
         assert_eq!(
@@ -410,7 +410,7 @@ fn controls_drawn_for_an_earlier_opening_do_nothing(cx: &mut TestAppContext) {
         assert!(shell.areas.import.model.importing().is_none());
     });
     // The current row still imports.
-    click(cx, "history-row-native");
+    click(cx, "history-row-codex-native");
     assert!(matches!(
         <[Ask; 1]>::try_from(sent(&mut commands)),
         Ok([Ask::Import(_)])

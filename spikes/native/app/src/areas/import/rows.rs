@@ -44,7 +44,8 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
     let enabled = state(&action, shell) == ButtonState::Enabled;
     let importing = area.model.importing() == Some(&entry.id);
     let act = listener(shell, action);
-    let selector = format!("history-row-{}", entry.id.as_str());
+    // Paseo's testID: the provider and its id (two agents may share an id).
+    let selector = format!("history-row-{}-{}", item.harness, entry.id.as_str());
     let title = entry
         .title
         .as_ref()
@@ -99,31 +100,7 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
                 .flex()
                 .flex_col()
                 .gap(px(S1))
-                .child(
-                    div()
-                        .flex()
-                        .flex_row()
-                        .items_baseline()
-                        .justify_between()
-                        .gap(px(S2))
-                        .min_w_0()
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .type_(Type::Body)
-                                .text_color(tokens.neutral.foreground)
-                                .truncate()
-                                .child(title),
-                        )
-                        .children(meta.map(|meta| {
-                            div()
-                                .flex_shrink_0()
-                                .type_(Type::Meta)
-                                .text_color(tokens.neutral.foreground_muted)
-                                .child(meta)
-                        })),
-                )
+                .child(heading(title, meta, tokens))
                 .when(!area.model.scoped(), |content| {
                     content.child(
                         div()
@@ -135,6 +112,34 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
                 }),
         )
         .into_any_element()
+}
+
+/// Paseo's `rowHeader`: the title (14, one line) and, on its baseline at the
+/// right, the activity time or "Importing..." (12 muted).
+fn heading(title: String, meta: Option<String>, tokens: &Tokens) -> Div {
+    div()
+        .flex()
+        .flex_row()
+        .items_baseline()
+        .justify_between()
+        .gap(px(S2))
+        .min_w_0()
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .type_(Type::Body)
+                .text_color(tokens.neutral.foreground)
+                .truncate()
+                .child(title),
+        )
+        .children(meta.map(|meta| {
+            div()
+                .flex_shrink_0()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(meta)
+        }))
 }
 
 /// Paseo's `ProviderErrorBanner`: one bordered box (radius 8, 4 by 12) with a

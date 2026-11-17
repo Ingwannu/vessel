@@ -22,7 +22,7 @@ fn the_desktop_card_is_560_and_rows_reach_8_past_the_inset(cx: &mut TestAppConte
         .debug_bounds("dialog-header")
         .expect("the sheet's header");
     assert_eq!(f32::from(header.size.width), 560.0);
-    let row = cx.debug_bounds("history-row-native").expect("a row");
+    let row = cx.debug_bounds("history-row-codex-native").expect("a row");
     let card_left = f32::from(header.left());
     assert_eq!(f32::from(row.left()) - card_left, INSET - 8.0);
     assert_eq!(
@@ -38,5 +38,5 @@ fn a_phone_shows_the_sheet_across_the_window(cx: &mut TestAppContext) {
         .debug_bounds("dialog-header")
         .expect("the sheet's header");
     assert_eq!(f32::from(header.size.width), 390.0);
-    assert!(cx.debug_bounds("history-row-native").is_some());
+    assert!(cx.debug_bounds("history-row-codex-native").is_some());
 }

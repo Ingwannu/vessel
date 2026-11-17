@@ -82,6 +82,11 @@ design.
   of not-yet-imported sessions (the node has no limit, only cursor pages);
   `answer` returns the follow-up reads. `empty_state` is Paseo's
   `computeEmptyState` (only once every provider answered and not all failed).
+- Read slots: the node lists at most two at once (`service::history::AT_ONCE`)
+  and answers more `unavailable`, which would show as a failed provider. The
+  sheet sends at most two reads; the rest wait (`FeedState::Queued`) and go
+  as answers come. A refresh while reads are outstanding can still meet the
+  node's limit, as the earlier reads still count there until they finish.
 - Impact: `History`, `Loading` and `Selection` are removed; their boundary
   tests (native identity, cursor bound, receipt scope, node change, capacity)
   moved to `history::sheet::tests`. Link is unchanged; its delivery test now
@@ -126,7 +131,7 @@ design.
 
 ## Tests
 
-- View: `history::sheet::tests` (15).
+- View: `history::sheet::tests` (16).
 - Kit: `dialog::header_subtitle_tests`, `assets::sheet_role_tests`.
 - App: `areas::import::tests` (one host skips the chooser and reads every
   agent; several hosts open "Import from host"; a row press imports, closes
