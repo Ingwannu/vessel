@@ -1,8 +1,8 @@
 //! The import sheet's provider filter: "All" (a 14 glyph) and each provider
 //! (a 14 muted mark, known or the bot) keep one 14 column, as Paseo's list.
 use super::leading_column;
-use crate::{ComboRow, Leading};
 use crate::assets::Glyph;
+use crate::{ComboRow, Leading};
 
 #[test]
 fn small_marks_and_small_glyphs_share_one_14_column() {
