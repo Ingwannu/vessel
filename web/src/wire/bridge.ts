@@ -321,7 +321,7 @@ message: string, };
 /**
  * What the sidebar groups sessions by.
  */
-export type Grouping = "machine" | "status";
+export type Grouping = "machine" | "status" | "workspace";
 
 /**
  * The interface's text size: whole pixels, 12 to 20 (14 by default).
@@ -607,7 +607,11 @@ export type Panel = "shown" | "hidden";
 /**
  * One change to the preferences: each replaces one setting.
  */
-export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_usage", "value": boolean } | { "set": "usage_display", "value": UsageDisplay } | { "set": "usage_host", "value": NodeId | null } | { "set": "usage_pins", "value": Array<UsagePin> | null } | { "set": "shortcuts", "value": { 
+export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_labels", "value": { 
+/**
+ * The names picked; `""` is Unlabelled.
+ */
+picks: Array<string>, } } | { "set": "sidebar_usage", "value": boolean } | { "set": "usage_display", "value": UsageDisplay } | { "set": "usage_host", "value": NodeId | null } | { "set": "usage_pins", "value": Array<UsagePin> | null } | { "set": "shortcuts", "value": { 
 /**
  * At most [`MAX_EDITS`].
  */
@@ -851,6 +855,12 @@ sort: SessionSort,
  * Whether ended sessions are listed.
  */
 ended: boolean, 
+/**
+ * The workspace labels the sidebar is filtered by, when grouped by
+ * workspace; empty lists every workspace, `""` is Unlabelled. At most
+ * 32 names.
+ */
+labels: Array<string>, 
 /**
  * Whether the footer shows the usage summary (Paseo's footer item,
  * off by default; ADR 0107).
