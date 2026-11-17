@@ -82,9 +82,14 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
                 .active(move |style| style.bg(pressed))
                 .on_click(cx.listener(move |shell, _, window, cx| act(shell, window, cx)))
         })
+        // Paseo's `rowIconWrap`: a 16 slot, so every title starts at one
+        // edge whatever the artwork's width.
         .child(
             div()
                 .flex_shrink_0()
+                .w(px(vessel_app_kit::theme::icon::MD))
+                .flex()
+                .justify_center()
                 .pt(px(S0_5))
                 .child(crate::agent_mark::mark_muted(
                     Some(item.harness),

@@ -144,4 +144,13 @@ design.
 
 ## Status
 
-In progress. Gates and captures are recorded here when they pass.
+Gates on 72b62fc12 (package base 14.28 merged), build VM, ordinary lane:
+
+- strict (fonts, fmt, quality, clippy) on 71198de52: 0; 72b62fc12 changes
+  one test's expected width only.
+- whole app suite: 292 passed, 0 failed, 2 ignored.
+- whole view crate: 1289 lib tests and every integration suite passed.
+- kit 332 and link 183 passed.
+- wasm32 check of link and app: rc 0, no warnings.
+
+Captures: pending (coordinator).

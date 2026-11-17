@@ -13,28 +13,24 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ComboHandlers, ComboRow, Leading, Tokens, Type, TypeExt as _, combobox};
 use vessel_app_view::history::Filter;
 
-/// The filter's choices in Paseo's order, each with its words and leading.
+/// The filter's choices in Paseo's order ("All", then the providers sorted
+/// by their id, `[...providersToFetch].sort()`), each with its words and
+/// its 14 muted leading.
 fn choices(shell: &Shell) -> Vec<(Filter, String, Leading)> {
+    let mut providers = shell.areas.import.model.providers();
+    providers.sort_by_key(|harness| harness.to_string());
     let mut choices = vec![(
         Filter::All,
         shell.words.history().filter_all().to_owned(),
         Leading::SmallGlyph(Glyph::Layers),
     )];
-    choices.extend(
-        shell
-            .areas
-            .import
-            .model
-            .providers()
-            .into_iter()
-            .map(|harness| {
-                (
-                    Filter::Provider(harness.clone()),
-                    vessel_app_view::agent_name(harness),
-                    crate::agent_mark::leading(harness),
-                )
-            }),
-    );
+    choices.extend(providers.into_iter().map(|harness| {
+        (
+            Filter::Provider(harness.clone()),
+            vessel_app_view::agent_name(harness),
+            Leading::SmallAgentMark(crate::agent_mark::of(harness)),
+        )
+    }));
     choices
 }
 

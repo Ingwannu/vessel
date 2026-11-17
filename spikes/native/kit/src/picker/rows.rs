@@ -78,7 +78,7 @@ const fn leading_width(leading: &Leading) -> Option<f32> {
     match leading {
         Leading::Glyph(_) | Leading::Mark(_) | Leading::Initial(_) => Some(16.0),
         Leading::Dot(_) => Some(14.0),
-        Leading::SmallGlyph(_) => Some(SMALL_ROW_GLYPH),
+        Leading::SmallGlyph(_) | Leading::SmallAgentMark(_) => Some(SMALL_ROW_GLYPH),
         Leading::AgentMark(_) => None,
     }
 }
@@ -241,6 +241,19 @@ fn row_leading(
         Leading::SmallGlyph(which) => {
             glyph(which, SMALL_ROW_GLYPH, neutral.foreground_muted).into_any_element()
         }
+        // A 14 column, as the small glyphs', so "All" and every provider
+        // start their words at one edge whatever the artwork's width.
+        Leading::SmallAgentMark(art) => div()
+            .w(px(SMALL_ROW_GLYPH))
+            .flex()
+            .justify_center()
+            .child(crate::agent_mark::agent_mark_muted(
+                art,
+                crate::agent_mark::Size::Fourteen,
+                crate::agent_mark::Space::Compact,
+                tokens,
+            ))
+            .into_any_element(),
         Leading::AgentMark(art) => {
             let mark = crate::agent_mark::agent_mark(art, mark_size, space, tokens);
             // The minimum OpenCode box occupies the row's existing vertical
