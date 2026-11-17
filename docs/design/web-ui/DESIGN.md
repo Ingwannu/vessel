@@ -987,12 +987,12 @@ scroll lock and the inert page. Focus moves in on open (the first field
 in the body, else the last footer button) and back to the opener on
 close. The command palette (§6.13) is a dialog on the same scrim.
 
-A dialog with a second view or a list to search is a sheet (Paseo's sheet
+A dialog with a second view or a list to search is paged (Paseo's sheet
 header; the label manager): an optional back arrow before the title, and
 an optional search under the title, unboxed (a 16px muted search icon, 8px
 to the text, no fill, no clear button). Its header sits on a rule, and its
-footer on another. A sheet with a search keeps focus on itself when it
-opens, as Paseo does not focus the search.
+footer on another. A paged dialog with a search keeps focus on itself when
+it opens, as Paseo does not focus the search.
 
 Dimmer click and Escape cancel, unless a pairing invite is live and
 uncopied — then confirm.

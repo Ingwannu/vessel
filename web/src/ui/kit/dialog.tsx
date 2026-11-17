@@ -22,9 +22,9 @@
 // - Header back and header search (Paseo's SheetHeader, for the label
 //   manager): a back arrow before the title, and a search under it,
 //   unboxed (a 16px muted icon and the text, no fill, no clear button)
-//   over a rule. A dialog with either is a sheet: its header is ruled off
+//   over a rule. A dialog with either is paged: its header is ruled off
 //   from the body and its footer too, as Paseo's sheet draws them. Paseo
-//   does not focus the search on open, so a sheet with a search takes
+//   does not focus the search on open, so a dialog with a search takes
 //   focus itself; a field there would hide the first rows on a phone
 //   behind the keyboard. The search is controlled, so the box and the
 //   list it filters always agree. It is a text input with the searchbox
@@ -96,8 +96,9 @@ export function Dialog({
   search?: DialogSearch;
 }) {
   const popup = useRef<HTMLDivElement>(null);
-  const sheet = back !== undefined || search !== undefined;
-  const look = `dialog${size === "lg" ? " lg" : ""}${sheet ? " sheet" : ""}`;
+  // `paged`, not `sheet`: the kit Sheet owns that class (kit/sheet.css).
+  const paged = back !== undefined || search !== undefined;
+  const look = `dialog${size === "lg" ? " lg" : ""}${paged ? " paged" : ""}`;
   return (
     <Base.Root
       open

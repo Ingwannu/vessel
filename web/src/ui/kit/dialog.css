@@ -94,25 +94,25 @@
   padding: 0 16px 16px;
 }
 
-/* A sheet (a dialog with a header back or search, Paseo's sheet header):
+/* A paged dialog (a header back or search, Paseo's sheet header):
    the title row, then the search unboxed under it (a 16px muted icon, 8px
    to the text, 12px under it), then a rule; the body starts 16px below
    it, and the footer sits on a rule of its own. */
-.dialog.sheet .dialog-h {
+.dialog.paged .dialog-h {
   padding: 12px 12px 12px 16px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.dialog.sheet .dialog-h:has(+ .dialog-search) {
+.dialog.paged .dialog-h:has(+ .dialog-search) {
   padding-bottom: 8px;
   border-bottom: 0;
 }
 
-.dialog.sheet .dialog-h .icon-btn:first-child {
+.dialog.paged .dialog-h .icon-btn:first-child {
   margin-left: -6px;
 }
 
-.dialog.sheet .dialog-title {
+.dialog.paged .dialog-title {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -146,11 +146,11 @@
   color: var(--text-tertiary);
 }
 
-.dialog.sheet .dialog-b {
+.dialog.paged .dialog-b {
   padding-top: 16px;
 }
 
-.dialog.sheet .dialog-f {
+.dialog.paged .dialog-f {
   padding: 12px 16px;
   border-top: 1px solid var(--border-subtle);
 }
