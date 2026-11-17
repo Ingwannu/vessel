@@ -64,11 +64,15 @@ async function filterBy(page: Page, label: string): Promise<void> {
   await closeMenus(page);
 }
 
+// The grouping is a bridge preference every spec shares: put it back
+// whatever the test left. A pick of a deleted label is pruned on its own,
+// so "Clear filter" may be gone; the Labels submenu that hovering opened
+// then covers the Display menu, so close both before choosing Machine.
 test.afterEach(async ({ page }) => {
   await display(page);
-  const clear = page.getByRole("menuitem", { name: /^Labels/ });
-  if (await clear.isVisible()) {
-    await clear.hover();
+  const labels = page.getByRole("menuitem", { name: /^Labels/ });
+  if (await labels.isVisible()) {
+    await labels.hover();
     const item = page.getByRole("menuitem", { name: "Clear filter" });
     const shown = await item.waitFor({ state: "visible", timeout: 3000 }).then(
       () => true,
@@ -76,8 +80,9 @@ test.afterEach(async ({ page }) => {
     );
     if (shown) {
       await item.click();
-      await display(page);
     }
+    await closeMenus(page);
+    await display(page);
   }
   await page.getByRole("menuitemradio", { name: "Machine" }).click();
   await closeMenus(page);
