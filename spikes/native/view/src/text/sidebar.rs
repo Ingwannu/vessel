@@ -159,7 +159,7 @@ const KO: SidebarWords = SidebarWords {
     activity: "마지막 활동",
     show_ended: "끝난 세션 표시",
     copy_path: "경로 복사",
-    labels: "레이블",
+    labels: "라벨",
     settings: "설정",
     back: "뒤로",
     theme: "테마",
