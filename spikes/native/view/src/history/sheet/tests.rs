@@ -447,7 +447,10 @@ fn opening_again_waits_for_the_previous_openings_reads() {
     assert_eq!(harness_of(&only(answer.follow)), &codex());
     let answer = sheet.answer(reply(&second, Vec::new(), None));
     assert_eq!(harness_of(&only(answer.follow)), &claude());
-    assert!(sheet.rows(&Query::new("")).is_empty(), "the old page is not shown");
+    assert!(
+        sheet.rows(&Query::new("")).is_empty(),
+        "the old page is not shown"
+    );
 }
 
 #[test]

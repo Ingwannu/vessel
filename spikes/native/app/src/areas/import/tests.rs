@@ -513,7 +513,12 @@ fn a_receipt_after_opening_on_another_host_opens_on_the_import_s_host(cx: &mut T
     });
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
-        let open = shell.areas.session.open.as_ref().expect("the session opened");
+        let open = shell
+            .areas
+            .session
+            .open
+            .as_ref()
+            .expect("the session opened");
         assert_eq!(open.session, created);
         assert_eq!(open.machine, "alpha", "the import's host, not beta");
         assert_eq!(

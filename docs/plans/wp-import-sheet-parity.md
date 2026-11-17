@@ -94,8 +94,11 @@ design.
 - Read slots: the node lists at most two at once (`service::history::AT_ONCE`)
   and answers more `unavailable`, which would show as a failed provider. The
   sheet sends at most two reads; the rest wait (`FeedState::Queued`) and go
-  as answers come. A refresh while reads are outstanding can still meet the
-  node's limit, as the earlier reads still count there until they finish.
+  as answers come. A read the sheet replaced (a refresh, Show all, closing
+  and opening again) still runs on the node, so its slot frees only when its
+  reply comes: the sheet keeps every sent listing by connection until its
+  answer, across `close` (app reviewer F1, 2026-11-17). Reads asked while an
+  import runs wait and go with its receipt.
 - Impact: `History`, `Loading` and `Selection` are removed; their boundary
   tests (native identity, cursor bound, receipt scope, node change, capacity)
   moved to `history::sheet::tests`. Link is unchanged; its delivery test now
@@ -116,8 +119,9 @@ design.
   connected host skips it, as `useHostChooser` does.
 - A row press imports that session. On the receipt the sheet closes and the
   session opens on the next frame with a window (`settle_import`, beside
-  `settle_sessions`), bound to the node the import went to, never a later
-  lookup of the machine's name. A receipt after the sheet was closed opens
+  `settle_sessions`), bound to the import's own scope (its host and node):
+  not the sheet's current opening, which may be another host's by then
+  (app reviewer F2), and never a later lookup of the machine's name. A receipt after the sheet was closed opens
   nothing (the session is imported and listed as usual).
 - Rows are drawn in the dialog body, not a virtual list: the body is the
   compact sheet's scroller (its drag hands off to it), and the per-provider
@@ -138,7 +142,7 @@ design.
 
 ## Tests
 
-- View: `history::sheet::tests` (16), `history::folder::tests` (4).
+- View: `history::sheet::tests` (19), `history::folder::tests` (4).
 - Kit: `dialog::header_subtitle_tests`, `assets::sheet_role_tests`,
   `picker::rows::small_mark_tests`.
 - App: `areas::import::tests` (one host skips the chooser and reads every
