@@ -150,3 +150,44 @@ test("a label made on a workspace row shows as its chip, filters it, and goes wh
   await page.keyboard.press("Escape");
   await expect(chip).toBeHidden();
 });
+
+test("on a phone the Labels submenu opens to the right, inside the window, and leaving it hands back the Display menu", async ({
+  page,
+}) => {
+  await openUi(page);
+  await group(page, "Workspace");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Open sidebar" }).click();
+  await display(page);
+  const row = page.getByRole("menuitem", { name: /^Labels/ });
+  await row.hover();
+  const flyout = page.getByRole("menu").filter({
+    has: page.getByRole("menuitemcheckbox", { name: "Unlabelled" }),
+  });
+  await expect(flyout).toBeVisible();
+  const anchor = await row.boundingBox();
+  const inner = await flyout.boundingBox();
+  if (anchor === null || inner === null) {
+    throw new Error("a menu part has no box");
+  }
+  // Paseo's flyout: to the right of its row's start, never flipped to the
+  // left, clamped into the window.
+  expect(inner.x).toBeGreaterThan(anchor.x);
+  expect(inner.x + inner.width).toBeLessThanOrEqual(390);
+  // The pointer leaving the flyout for a Display row closes it, as hover
+  // intent does for a person, and that row then takes the click: the
+  // checked grouping, so nothing changes. (Base UI keeps the other rows
+  // from the pointer while a hover-opened submenu is open; a click
+  // without the move would wait on them.)
+  const target = page.getByRole("menuitemradio", { name: "Workspace" });
+  const spot = await target.boundingBox();
+  if (spot === null) {
+    throw new Error("the Workspace row has no box");
+  }
+  await page.mouse.move(spot.x + 8, spot.y + spot.height / 2, { steps: 4 });
+  await expect(flyout).toBeHidden();
+  await page.getByRole("menuitemradio", { name: "Workspace" }).click();
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1440, height: 900 });
+});
