@@ -1749,7 +1749,8 @@ node-book alias. Existing project/worktree IO remains `workspace::WorkspaceRoot`
 `vessel-store::registry` uses the existing writer savepoints and read pool. A
 single append migration retains descriptors, backing reservations, resource
 ownership/start leases and the global snapshot revision. Capacity reserves
-worst-case retained bytes before effects and never evicts ownership. Writer
+worst-case retained bytes before effects and never evicts live ownership;
+archived records count apart (ADR 0082 amendment). Writer
 commit publishes a coalesced watch; readers hydrate descriptors and memberships
 in one transaction. `registry::write::{require_active,bump_revision}` is the
 in-transaction seam for catalog assignment extensions, not a second registry.
@@ -1765,6 +1766,19 @@ exclusive persisted claim before backing recovery. Filesystem provisioning remai
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
 Those have no method row; protocol 25 covers the six metadata methods only.
+
+Runtime registration (ADR 0106) is what populates the registry. `vessel-node::workspace::registration`
+registers a project root when `session.create`, `terminal.create` or `script.run`
+starts work there, and at node start for the roots of stored placed sessions
+(once per project). A failure is logged and never refuses the start.
+`vessel-store::registry::placement` finds or creates the root's `Local`
+workspace in one writer savepoint. It derives each placed session's membership
+when a snapshot is read (no row per session, not revisioned). It archives a
+project's `Local` Active workspaces in the same write as legacy project removal.
+The legacy-removal fence (`registry::project_reference`) still refuses `Managed`
+backings, reservations and records that are Archiving or Restoring. Archived
+records stay outside the live caps and are pruned oldest first beyond
+`MAX_ARCHIVED_WORKSPACES` (ADR 0082 amendment). Worktrees are not registered yet.
 
 ### Workspace label catalog (ADR 0086, protocol 28)
 

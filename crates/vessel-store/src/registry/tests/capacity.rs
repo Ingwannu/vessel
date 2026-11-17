@@ -1,4 +1,4 @@
-//! Capacity is a lifetime reservation: full history still permits exact reconciliation.
+//! Live capacity is reserved before side effects; archived records count apart (ADR 0106).
 
 use super::*;
 use rusqlite::params;
@@ -112,6 +112,7 @@ fn oversized_descriptor_does_not_consume_a_slot_or_advance_revision() {
     assert_eq!(load(&db).unwrap(), before);
     assert_eq!(
         MAX_RETAINED_BYTES,
-        MAX_WORKSPACES * RESERVED_BYTES_PER_WORKSPACE + MAX_RESOURCES * RESERVED_BYTES_PER_RESOURCE
+        (MAX_WORKSPACES + MAX_ARCHIVED_WORKSPACES) * RESERVED_BYTES_PER_WORKSPACE
+            + MAX_RESOURCES * RESERVED_BYTES_PER_RESOURCE
     );
 }

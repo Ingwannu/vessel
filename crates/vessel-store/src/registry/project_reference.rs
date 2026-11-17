@@ -1,7 +1,10 @@
-//! Retained descriptors and pre-publication reservations both fence legacy project cleanup.
+//! Registry-owned backings and pre-publication reservations fence legacy project cleanup.
 //! The caller holds canonical project metadata admission across this read and its effects.
+//! A `Local` workspace that is Active or Archived owns no directory: legacy removal
+//! archives the Active ones in its own savepoint instead (ADR 0106, reversing W11's
+//! "every retained lifecycle blocks"). `Managed`, Archiving and Restoring still fence.
 use rusqlite::Connection;
-use vessel_proto::registry::WorkspaceDescriptor;
+use vessel_proto::registry::{WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle};
 use vessel_proto::{ProjectId, WorkspaceId};
 
 use super::{WorkspaceProvision, decode};
@@ -25,7 +28,12 @@ fn find(connection: &Connection, project: ProjectId) -> Result<Option<WorkspaceI
         while let Some(row) = rows.next()? {
             let text: String = row.get(0)?;
             let descriptor: WorkspaceDescriptor = decode(&text)?;
-            if descriptor.project == project {
+            let unowned = descriptor.backing == WorkspaceBacking::Local
+                && matches!(
+                    descriptor.lifecycle,
+                    WorkspaceLifecycle::Active | WorkspaceLifecycle::Archived { .. }
+                );
+            if descriptor.project == project && !unowned {
                 return Ok(Some(descriptor.id));
             }
         }

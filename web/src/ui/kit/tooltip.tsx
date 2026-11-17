@@ -45,7 +45,7 @@ export function Tooltip({
       <Base.Trigger {...trigger} render={children} />
       <Base.Portal>
         <Base.Positioner
-          className="popup-positioner"
+          className="popup-positioner tooltip-positioner"
           side={side}
           sideOffset={8}
           collisionPadding={8}

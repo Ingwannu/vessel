@@ -641,6 +641,23 @@ lit at 6% and a bottom edge shaded at 10%. No outer shadow, no glow.
 `--overlay` (a dialog's scrim): the ink at 45% light, the page's own
 black at 85% dark: the reference's. No blur behind it.
 
+### 4.6a Planes
+
+| Token | Value | Layer |
+| --- | --- | --- |
+| `--z-sheet-scrim` | 50 | a sheet's scrim |
+| `--z-sheet` | 51 | the sheet (the narrow sidebar, the narrow session panel) |
+| `--z-dialog` | 52 | a dialog and its scrim, the command palette |
+| `--z-popup` | 60 | menus, selects, popovers, comboboxes |
+| `--z-toast` | 70 | the toast stack |
+| `--z-tooltip` | 80 | tooltips |
+
+Paseo's order (`overlay-root.ts`: floating < modal < toast < tooltip):
+a dialog opened from a sheet comes over it, a menu inside a dialog over
+the dialog, a toast raised while a dialog is open stays readable, and a
+tooltip is always on top. Every overlay names its token; no other
+`z-index` above 40 is set.
+
 ### 4.7 Motion
 
 | Token | Value |
@@ -745,9 +762,11 @@ Every state of every control is on `/kit`.
 | `.btn.primary` | the ink as a fill (`#1F1F1F`, white text, weight 500) with the inset edge | one primary per view (New, Create, Send, Pair) |
 | `.btn.danger` | `--danger` text on no fill, a 12% tint on hover; solid `--danger` only on the confirm step | Kill, Revoke |
 | `.btn.ghost` | no fill, secondary text; the sidebar's growing pill on hover | icon buttons, quiet actions |
+| `.btn.edged` (variant `outline`) | no fill, a `--border-strong` edge; hover and press fill it | the choices inside a callout with its own fill (Paseo's outline: the file conflict alert's Overwrite and Reload, ADR 0105) |
 | `.btn.sm`, `.btn.xs` | 28px and 24px tall, 12px type | row actions, small controls |
 
-Buttons are filled, not outlined, 32px tall with an 8px radius. Hover
+Buttons are filled, not outlined (bar `outline`, inside a filled
+callout), 32px tall with an 8px radius. Hover
 deepens the fill; nothing scales or moves. `shape`: `rect` (8px), `soft`
 (10px, a composer's quiet triggers), `round` (a pill, or a circle for an
 icon: a composer's Send, Stop and "+"). An `IconButton` may be `primary`

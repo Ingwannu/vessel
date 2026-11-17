@@ -9,6 +9,7 @@ mod diagnostics;
 pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
 mod forge;
 mod inbox;
+mod placement;
 mod push;
 mod registry;
 mod search;
@@ -318,12 +319,18 @@ impl Store {
     }
 
     /// Delete a project and its approvals (never one with worktrees: the
-    /// node refuses first, and the database refuses too).
+    /// node refuses first, and the database refuses too). In the same
+    /// savepoint its `Local` Active registry workspaces become Archived at
+    /// `at` (ADR 0106, as Paseo's project removal archives its workspaces).
     ///
     /// # Errors
     /// The write failed.
-    pub async fn forget_project(&self, project: ProjectId) -> Result<(), StoreError> {
-        self.workspace_write(WorkspaceWrite::ForgetProject(project))
+    pub async fn forget_project(
+        &self,
+        project: ProjectId,
+        at: DateTime<Utc>,
+    ) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::ForgetProject { project, at })
             .await
     }
 
