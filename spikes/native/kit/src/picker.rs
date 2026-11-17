@@ -726,6 +726,7 @@ mod tests {
     use super::keys::key_handler;
     use super::rows::{Listing, combo_row, leading_column};
     use super::*;
+    use crate::popup;
     use crate::theme::{Scheme, Tokens};
 
     #[test]
