@@ -1284,7 +1284,9 @@ approval (§6.7):
   one modifier away: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter
   (⌘/Ctrl+Shift+Enter where ⌘/Ctrl+Enter is the send key), and the icon
   and label turn while the modifier is held; the other way of queue is
-  steer, of steer and interrupt queue. Steer is offered only where the
+  interrupt-and-send (Paseo's "Command/Ctrl+Enter submits"), of steer
+  and interrupt queue. Settings › General says so under Default send,
+  in Paseo's words for the send key. Steer is offered only where the
   agent says it takes it (`abilities.steer`), and an agent that refuses
   it once is not offered it again while the session's page is open; a
   Steer chosen for an agent that cannot take it replaces the turn

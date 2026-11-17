@@ -27,15 +27,30 @@ const DELIVERY_CHOICES: readonly Choice<TurnDelivery>[] = [
   { value: "interrupt", label: "Interrupt" },
 ];
 
-/** What the delivery row says its choice does. */
-function deliveryNote(delivery: TurnDelivery): string {
+/** What the delivery row says its choice does: Paseo's words
+ * (settings.general.defaultSend, en.ts), by the send key. */
+function deliveryNote(
+  delivery: TurnDelivery,
+  send: SendKey,
+  modifier: string,
+): string {
+  if (send === "mod_enter") {
+    switch (delivery) {
+      case "interrupt":
+        return `When the agent is running, ${modifier}+Enter interrupts. Enter inserts a new line.`;
+      case "steer":
+        return `When the agent is running, ${modifier}+Enter steers the active turn. Enter inserts a new line.`;
+      case "queue":
+        return `When the agent is running, ${modifier}+Enter queues. Enter inserts a new line.`;
+    }
+  }
   switch (delivery) {
-    case "queue":
-      return "A message sent while the agent works waits, and goes when its turn ends.";
-    case "steer":
-      return "A message sent while the agent works joins its turn, where the agent can take one; it waits otherwise.";
     case "interrupt":
-      return "A message sent while the agent works stops its turn and starts the next.";
+      return "When the agent is running, Enter interrupts. Command/Ctrl+Enter queues.";
+    case "steer":
+      return "When the agent is running, Enter steers the active turn. Command/Ctrl+Enter queues.";
+    case "queue":
+      return "When the agent is running, Enter queues. Command/Ctrl+Enter submits.";
   }
 }
 
@@ -77,7 +92,13 @@ export function GeneralSection() {
           />
           <Row
             title="Default send"
-            detail={{ description: deliveryNote(delivery) }}
+            detail={{
+              description: deliveryNote(
+                delivery,
+                send,
+                currentPlatform() === "mac" ? "⌘" : "Ctrl",
+              ),
+            }}
             control={
               <Select
                 aria-label="Default send"
