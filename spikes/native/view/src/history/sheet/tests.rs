@@ -210,7 +210,7 @@ fn a_row_imports_one_session_and_hands_the_new_session_over() {
     assert!(
         sheet
             .answer(Reply::Imported {
-                scope: batch.scope,
+                scope: batch.scope.clone(),
                 ticket: batch.ticket,
                 outcomes: vec![outcome],
             })
