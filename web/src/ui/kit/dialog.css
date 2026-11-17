@@ -106,6 +106,72 @@
   padding: 0 16px 16px;
 }
 
+/* A paged dialog (a header back or search, Paseo's sheet header):
+   the title row, then the search unboxed under it (a 16px muted icon, 8px
+   to the text, 12px under it), then a rule; the body starts 16px below
+   it, and the footer sits on a rule of its own. */
+.dialog.paged .dialog-h {
+  padding: 12px 12px 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dialog.paged .dialog-h:has(+ .dialog-search) {
+  padding-bottom: 8px;
+  border-bottom: 0;
+}
+
+.dialog.paged .dialog-h .icon-btn:first-child {
+  margin-left: -6px;
+}
+
+.dialog.paged .dialog-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  cursor: text;
+}
+
+.dialog-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: var(--t-control);
+}
+
+/* Unboxed, as Paseo's: no ring on the field itself; the caret shows
+   where typing goes. */
+.dialog-search-input:focus-visible {
+  outline: none;
+}
+
+.dialog-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.dialog.paged .dialog-b {
+  padding-top: 16px;
+}
+
+.dialog.paged .dialog-f {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dialog,
   .dialog-backdrop {

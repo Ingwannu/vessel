@@ -1,0 +1,233 @@
+/* Workspace labels (Paseo's chip, swatch and manager): a label's name in
+   its own colour on a 10% ground of the same hue. The ten colours are
+   Paseo's identity table (foreground per scheme, the tint from the base
+   hue), so a label reads the same on every client of a machine. */
+
+.label-chip {
+  display: inline-flex;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 6px;
+  border-radius: 999px;
+  font: var(--t-meta);
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--label-fg);
+  background: var(--label-tint);
+}
+
+.label-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--label-fg);
+}
+
+.label-dot.none {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--text-tertiary);
+}
+
+.label-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+[data-label-color="violet"] {
+  --label-fg: light-dark(#6d49b5, #a392d5);
+  --label-tint: #7a6aa81a;
+}
+[data-label-color="sky"] {
+  --label-fg: light-dark(#3d6985, #6aa6ce);
+  --label-tint: #3d7ea61a;
+}
+[data-label-color="emerald"] {
+  --label-fg: light-dark(#3e6e5d, #6cae96);
+  --label-tint: #3880681a;
+}
+[data-label-color="orange"] {
+  --label-fg: light-dark(#845838, #cc8f64);
+  --label-tint: #a4673a1a;
+}
+[data-label-color="pink"] {
+  --label-fg: light-dark(#974168, #d87da3);
+  --label-tint: #b05c801a;
+}
+[data-label-color="indigo"] {
+  --label-fg: light-dark(#5251c2, #9299d5);
+  --label-tint: #6a70b81a;
+}
+[data-label-color="teal"] {
+  --label-fg: light-dark(#3e6d6c, #6cacab);
+  --label-tint: #3680801a;
+}
+[data-label-color="red"] {
+  --label-fg: light-dark(#9c4243, #d88381);
+  --label-tint: #b062601a;
+}
+[data-label-color="amber"] {
+  --label-fg: light-dark(#716239, #b29d64);
+  --label-tint: #8f78381a;
+}
+[data-label-color="blue"] {
+  --label-fg: light-dark(#39649e, #7ba1d5);
+  --label-tint: #5179b01a;
+}
+
+/* The colour choice: ten 20px round swatches 12px apart (Paseo's
+   swatch row); the chosen one carries an inset ring in the text colour,
+   inside the circle, so choosing moves nothing. */
+.label-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.label-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--label-fg);
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.label-swatch[aria-checked="true"] {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+
+.label-swatch:focus-visible {
+  outline-color: var(--ring);
+}
+
+.label-swatch:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* The manager (Paseo's manager modal). The host pill: its status dot, the
+   name and a chevron, 6px apart, on the raised surface with an edge. */
+.label-host {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  background: var(--bg-well);
+  color: var(--text-primary);
+  font: var(--t-control);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.label-host:hover {
+  background: var(--bg-hover);
+}
+
+.label-host[data-popup-open],
+.label-host:active {
+  background: var(--bg-active);
+}
+
+.label-host:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.label-host:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.label-host .ico {
+  color: var(--text-tertiary);
+}
+
+.label-host-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One left rail: the dot, the name, and the pencil, whose glyph ends on
+   the rail. The pencil fades in on hover or focus rather than mounting,
+   so the row does not move under the pointer; on touch and on a phone it
+   is always there. */
+.label-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--text-primary);
+  font: var(--t-control);
+}
+
+.label-row .label-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-row .icon-btn {
+  margin-right: -5px;
+  opacity: 0;
+  transition: opacity 120ms var(--ease);
+}
+
+.label-row:hover .icon-btn,
+.label-row:focus-within .icon-btn {
+  opacity: 1;
+}
+
+@media (hover: none), (max-width: 767px) {
+  .label-row .icon-btn {
+    opacity: 1;
+  }
+}
+
+.label-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.label-note.error {
+  color: var(--danger);
+}
+
+/* The edit footer: Delete at the left, Save (at least 112px) at the
+   right. */
+.label-manager-foot {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label-manager-foot > .btn:last-child {
+  min-width: 112px;
+}

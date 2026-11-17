@@ -134,7 +134,11 @@ export function listed(
     });
 }
 
-function row(node: NodeKey, session: SessionInfo): SidebarSession {
+/** `session`'s row on `node`. */
+export function sessionRow(
+  node: NodeKey,
+  session: SessionInfo,
+): SidebarSession {
   return {
     node,
     unread: isUnread(session),
@@ -164,7 +168,9 @@ export function sidebarMachines(
       word: named.word,
       connected: status?.state === "connected",
       live: all.filter(isLive).length,
-      sessions: shown.slice(0, limit).map((session) => row(node.key, session)),
+      sessions: shown
+        .slice(0, limit)
+        .map((session) => sessionRow(node.key, session)),
       more: Math.max(0, shown.length - limit),
     };
   });
@@ -205,7 +211,7 @@ export function sidebarStatuses(
     const rows = shown
       .filter((item) => sessionMark(item.session) === mark)
       .map((item) => ({
-        ...row(item.node, item.session),
+        ...sessionRow(item.node, item.session),
         machine: item.machine,
       }));
     return {
@@ -223,9 +229,21 @@ export function sidebarOrder(
   state: FleetState,
   view: SidebarView,
 ): SidebarSession[] {
-  return view.group === "machine"
-    ? sidebarMachines(state, view).flatMap((machine) => machine.sessions)
-    : sidebarStatuses(state, view).flatMap((group) => group.sessions);
+  switch (view.group) {
+    case "machine":
+      return sidebarMachines(state, view).flatMap(
+        (machine) => machine.sessions,
+      );
+    case "status":
+      return sidebarStatuses(state, view).flatMap((group) => group.sessions);
+    case "workspace":
+      // Workspace rows need the registry: the shortcuts walk them through
+      // `sidebarWorkspaces` (data/workspace-labels/groups.ts); without it,
+      // the machine order is the closest.
+      return sidebarMachines(state, view).flatMap(
+        (machine) => machine.sessions,
+      );
+  }
 }
 
 /** The session `by` places from `current` in `order`, wrapping; the

@@ -37,6 +37,7 @@ mod bounded;
 mod change;
 mod drafts;
 mod keys;
+mod labels;
 mod usage;
 
 use std::collections::BTreeMap;
@@ -51,6 +52,8 @@ pub use bounded::{
 pub use change::{PreferenceChange, ShortcutEdit, ShortcutTarget};
 pub use drafts::{Draft, DraftKey, DraftText, DraftTooLong, DraftsState, MAX_DRAFT};
 pub use keys::{ActionId, InvalidActionId, InvalidKeyBinding, KeyBinding};
+use labels::no_picks;
+pub use labels::{LabelPick, LabelPicks};
 pub use usage::{MAX_USAGE_PINS, UsageDisplay, UsagePin, UsagePins, UsagePreferences};
 
 /// The most keys bound to one action.
@@ -359,7 +362,7 @@ pub enum Alerts {
 }
 
 /// How the sidebar lists sessions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SidebarView {
     /// What sessions are grouped by.
@@ -368,6 +371,12 @@ pub struct SidebarView {
     pub sort: SessionSort,
     /// Whether ended sessions are listed.
     pub ended: bool,
+    /// The workspace labels the sidebar is filtered by, when grouped by
+    /// workspace; empty lists every workspace, `""` is Unlabelled. At most
+    /// 32 names.
+    #[serde(default = "no_picks")]
+    #[cfg_attr(feature = "ts", ts(as = "Vec<String>"))]
+    pub labels: LabelPicks,
     /// Whether the footer shows the usage summary (Paseo's footer item,
     /// off by default; ADR 0107).
     pub usage: bool,
@@ -381,6 +390,7 @@ impl Default for SidebarView {
             group: Grouping::default(),
             sort: SessionSort::default(),
             ended: true,
+            labels: no_picks(),
             usage: false,
         }
     }
@@ -396,6 +406,9 @@ pub enum Grouping {
     Machine,
     /// Their status.
     Status,
+    /// Their registry workspace (ADR 0106), each with its label chips;
+    /// only this grouping is filtered by labels.
+    Workspace,
 }
 
 /// The order of sessions within a group.
@@ -447,7 +460,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }

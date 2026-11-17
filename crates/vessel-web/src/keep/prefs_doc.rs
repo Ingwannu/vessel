@@ -266,6 +266,9 @@ impl PrefsDoc {
             PreferenceChange::SidebarGroup(group) => body.sidebar.make_read().group.set(*group),
             PreferenceChange::SidebarSort(sort) => body.sidebar.make_read().sort.set(*sort),
             PreferenceChange::SidebarEnded(on) => body.sidebar.make_read().ended.set(*on),
+            PreferenceChange::SidebarLabels { picks } => {
+                body.sidebar.make_read().labels.set(picks.clone());
+            }
             PreferenceChange::SidebarUsage(on) => body.sidebar.make_read().usage.set(*on),
             PreferenceChange::UsageDisplay(display) => {
                 body.usage.make_read().display.set(*display);
