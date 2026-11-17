@@ -77,9 +77,7 @@ fn a_committed_assignment_shows_at_once_and_the_next_snapshot_replaces_it() {
 #[test]
 fn an_assignment_outlives_a_snapshot_read_before_its_commit() {
     let workspace = WorkspaceId::random();
-    let labelled = |labels: Vec<Name>| {
-        vec![WorkspaceLabelAssignments { workspace, labels }]
-    };
+    let labelled = |labels: Vec<Name>| vec![WorkspaceLabelAssignments { workspace, labels }];
     let mut assignments = Assignments::read(&snapshot(4, Vec::new(), Vec::new()));
     assignments.assigned(workspace, vec![name("Ready")]);
     // Read before the commit (no newer than the revision held): kept.
@@ -99,4 +97,3 @@ fn an_assignment_outlives_a_snapshot_read_before_its_commit() {
     assignments.refreshed(&snapshot(8, Vec::new(), Vec::new()));
     assert!(assignments.labels(workspace).is_empty());
 }
-

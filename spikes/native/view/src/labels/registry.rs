@@ -78,9 +78,7 @@ impl Assignments {
             if next.labels(workspace) == committed.labels.as_slice() {
                 continue;
             }
-            let older = committed
-                .held
-                .is_some_and(|held| snapshot.revision <= held);
+            let older = committed.held.is_some_and(|held| snapshot.revision <= held);
             if !older && committed.passed {
                 continue;
             }

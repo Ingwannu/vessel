@@ -445,9 +445,10 @@ fn settle(follow: &mut Follow, read: Read, answer: &Answer, quick: bool) -> Outc
                 (Some(AFTER_FAILURE), true)
             }
         },
-        Answer::Assigned { .. } | Answer::Updated(_) | Answer::Inspected(_) | Answer::Deleted(_) => {
-            (None, false)
-        }
+        Answer::Assigned { .. }
+        | Answer::Updated(_)
+        | Answer::Inspected(_)
+        | Answer::Deleted(_) => (None, false),
     };
     Outcome {
         pause,
@@ -467,7 +468,9 @@ fn pace(idle: &mut u32, changed: bool, quick: bool) -> Duration {
         return QUIET;
     }
     *idle = idle.saturating_add(1).min(5);
-    QUIET.saturating_mul(2_u32.saturating_pow(*idle)).min(LONGEST)
+    QUIET
+        .saturating_mul(2_u32.saturating_pow(*idle))
+        .min(LONGEST)
 }
 
 /// After `wait`, `read` of `key` may ask again (if still resting from the
