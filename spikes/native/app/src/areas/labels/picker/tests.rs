@@ -340,9 +340,9 @@ fn labels_picker_opens_at_the_row_menu_on_the_side_with_room(cx: &mut TestAppCon
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
         let side = |shell: &Shell| shell.areas.labels.picker.as_ref().unwrap().side;
-        let height = window.viewport_size().height;
-        let high = point(px(40.0), height / 4.0);
-        let low = point(px(40.0), height * 0.75);
+        let height = f32::from(window.viewport_size().height);
+        let high = point(px(40.0), px(height.mul_add(0.25, 0.0)));
+        let low = point(px(40.0), px(height.mul_add(0.75, 0.0)));
         shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
         shell.labels_picker_place(Some(high), window);
         assert_eq!(side(shell), Side::Below);

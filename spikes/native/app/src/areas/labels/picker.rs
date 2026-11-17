@@ -100,8 +100,8 @@ impl Shell {
             .picker_combo
             .set_anchor(at.map(|at| Bounds::new(at, size(px(0.0), px(0.0)))));
         if let Some(picker) = &mut state.picker {
-            let middle = window.viewport_size().height / 2.0;
-            let lower = at.is_some_and(|at| at.y > middle);
+            let middle = f32::from(window.viewport_size().height).mul_add(0.5, 0.0);
+            let lower = at.is_some_and(|at| f32::from(at.y) > middle);
             picker.side = if lower { Side::Above } else { Side::Below };
         }
     }
