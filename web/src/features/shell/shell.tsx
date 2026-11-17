@@ -33,9 +33,9 @@ export function Shell(): ReactElement {
   // The sheet is open at the place it was opened from: going anywhere
   // (picking a row) closes it.
   const [sheetAt, setSheetAt] = useState<string | null>(null);
-  // The label manager opens from the sidebar's Display menu; the sheet
-  // (z 51) would sit over its dialog (z 50), so it steps aside while the
-  // manager is open and comes back as it was left when the manager
+  // The label manager opens from the sidebar's Display menu. On a phone
+  // the sheet steps aside while the manager is open, so one surface sits
+  // over the page, and comes back as it was left when the manager
   // closes.
   const managing = useStore(labelManager, (open) => open);
   const sheet = sheetAt === at && !managing;
