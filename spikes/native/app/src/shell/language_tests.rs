@@ -142,3 +142,22 @@ pub(crate) fn preserves(cx: &mut TestAppContext, setup: Setup, field: Field, che
         });
     });
 }
+
+/// The kit's close button and back arrow are announced in the person's
+/// language (TRACKER 782).
+#[gpui::test]
+fn the_kits_wordless_controls_follow_the_language(cx: &mut TestAppContext) {
+    init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let korean = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
+        shell.apply_language(korean, window, cx);
+        let names = vessel_app_kit::control_names(cx);
+        assert_eq!(names.close.as_ref(), "닫기");
+        assert_eq!(names.back.as_ref(), "뒤로");
+        shell.apply_language(Translator::get(ENGLISH).unwrap(), window, cx);
+        let names = vessel_app_kit::control_names(cx);
+        assert_eq!(names.close.as_ref(), "Close");
+        assert_eq!(names.back.as_ref(), "Back");
+    });
+}

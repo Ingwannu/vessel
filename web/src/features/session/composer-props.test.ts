@@ -61,6 +61,14 @@ test("a new prompt, a replayed one, the turn's end and options do", () => {
   expect(sameComposerProps(props(replayed), props(options))).toBe(false);
 });
 
+test("a record after which the login may be another does", () => {
+  const woken = reduce(started, [
+    { seq: started.next, at: "2026-11-12T12:00:00Z", event: { type: "woken" } },
+  ]);
+  expect(woken.binding).toBe(started.next);
+  expect(sameComposerProps(props(started), props(woken))).toBe(false);
+});
+
 test("another session or machine draws it again", () => {
   expect(
     sameComposerProps(props(started), { ...props(started), label: "gpu-box" }),

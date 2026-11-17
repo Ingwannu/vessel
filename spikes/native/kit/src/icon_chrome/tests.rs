@@ -216,3 +216,56 @@ fn a_disabled_viewport_action_paints_the_same_under_hover_and_press(cx: &mut Tes
         }
     }
 }
+
+struct ToolbarHover {
+    availability: ButtonState,
+}
+impl Render for ToolbarHover {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        div().size_full().p(px(16.0)).child(
+            render(
+                "split",
+                "More actions",
+                Profile::ToolbarSmall {
+                    config: ToolbarConfig::new(ControlSizing::Pointer, self.availability),
+                    icon: ToolbarIcon::new(Glyph::Columns2, ToolbarInk::ExtraMuted),
+                },
+                &tokens,
+            )
+            .debug_selector(|| "toolbar-hover".to_owned()),
+        )
+    }
+}
+/// The Toolbar profile, as the viewport's: Paseo's disabled `Pressable`
+/// has no hovered or pressed state (TRACKER 776 item 7).
+#[gpui::test]
+fn a_disabled_toolbar_action_paints_the_same_under_hover_and_press(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap();
+    });
+    let highlight = gpui::solid_background(Tokens::of(Scheme::Dark).neutral.interaction_highlight);
+    for availability in [ButtonState::Enabled, ButtonState::Disabled] {
+        let (_view, cx) = cx.add_window_view(move |_, _| ToolbarHover { availability });
+        cx.run_until_parked();
+        let bounds = cx.debug_bounds("toolbar-hover").unwrap();
+        cx.simulate_mouse_move(point(px(600.0), px(500.0)), None, Modifiers::none());
+        let rest = backgrounds(cx);
+        cx.simulate_mouse_move(bounds.center(), None, Modifiers::none());
+        let hovered = backgrounds(cx);
+        cx.simulate_mouse_down(bounds.center(), gpui::MouseButton::Left, Modifiers::none());
+        let pressed = backgrounds(cx);
+        cx.simulate_mouse_up(bounds.center(), gpui::MouseButton::Left, Modifiers::none());
+        match availability {
+            ButtonState::Enabled => {
+                assert!(!rest.contains(&highlight));
+                assert!(hovered.contains(&highlight));
+                assert!(pressed.contains(&highlight));
+            }
+            ButtonState::Disabled => {
+                assert_eq!(hovered, rest);
+                assert_eq!(pressed, rest);
+            }
+        }
+    }
+}

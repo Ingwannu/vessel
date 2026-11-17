@@ -19,7 +19,8 @@
 //   caller and every hook under the composer changed for it); leaving it
 //   (a cost on every frame of every long log).
 // - Choice: `memo` with this comparison: the same session and machine,
-//   the same conversation, permission, turn and options, the same
+//   the same conversation, permission, turn, options and login's
+//   record (`binding`, which the limit notice reads again after), the same
 //   prompts sent (read once per entries' array and kept beside it, the
 //   scan the composer already made for every frame), and the same tool
 //   entry for a pending permission.
@@ -85,6 +86,7 @@ export function sameComposerProps(
     before.inTurn === after.inTurn &&
     before.turn === after.turn &&
     before.options === after.options &&
+    before.binding === after.binding &&
     sameList(promptsOf(before.entries), promptsOf(after.entries)) &&
     (after.pending === null || pendingTool(before) === pendingTool(after))
   );

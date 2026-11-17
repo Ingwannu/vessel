@@ -130,10 +130,14 @@ pub(crate) fn toolbar_frame(
         .rounded(px(crate::theme::radius::MD))
         .bg(toolbar_fill(config, Phase::Rest, tokens))
         .opacity(config.opacity())
-        .hover(move |style| style.bg(hover))
-        .active(move |style| style.bg(pressed))
+        // Paseo's disabled `Pressable` has no hovered or pressed state, as in
+        // the viewport profile (`viewport_responds`): only an enabled action
+        // answers the pointer (TRACKER 776 item 7).
         .when(config.availability() == ButtonState::Enabled, |element| {
-            element.cursor_pointer()
+            element
+                .cursor_pointer()
+                .hover(move |style| style.bg(hover))
+                .active(move |style| style.bg(pressed))
         })
         .child(content)
 }

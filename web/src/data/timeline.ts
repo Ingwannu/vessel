@@ -59,6 +59,18 @@ export function reduce(
   return { ...work.finish(), conversation: folded };
 }
 
+/** The records after which the session may run under another saved
+ * login, so its limit notice is read again (native view/src/usage/session.rs
+ * `binding_epoch`, the same list). */
+const BINDING: ReadonlySet<string> = new Set([
+  "status",
+  "profile_changed",
+  "options_changed",
+  "parked",
+  "woken",
+  "rewound",
+]);
+
 /** One batch's mutable copy. */
 class Work {
   readonly entries: Entry[];
@@ -76,6 +88,7 @@ class Work {
   status: SessionStatus | null;
   usage: Usage | null;
   options: readonly SessionOption[] | null;
+  binding: number;
   title: string | null;
   next: number;
 
@@ -94,6 +107,7 @@ class Work {
     this.status = timeline.status;
     this.usage = timeline.usage;
     this.options = timeline.options;
+    this.binding = timeline.binding;
     this.title = timeline.title;
     this.next = timeline.next;
   }
@@ -111,6 +125,7 @@ class Work {
       status: this.status,
       usage: this.usage,
       options: this.options,
+      binding: this.binding,
       title: this.title,
       next: this.next,
       tools: this.tools,
@@ -124,6 +139,7 @@ class Work {
     const base = { key: `r${record.seq}`, seq: record.seq, at: record.at };
     const event = record.event;
     if (conversation.isConversationEvent(event)) return;
+    if (BINDING.has(event.type)) this.binding = record.seq;
     switch (event.type) {
       case "status":
         this.status = event.status;

@@ -18,9 +18,9 @@ layout-close-left = Close tabs to the left
 # Workspace tab or pane control; keep short.
 layout-close-right = Close tabs to the right
 # Workspace tab or pane control; keep short.
-layout-split-right = Split right
+layout-split-right = Split pane right
 # Workspace tab or pane control; keep short.
-layout-split-down = Split down
+layout-split-down = Split pane down
 # Workspace tab or pane control; keep short.
 layout-copy-id = Copy ID
 # Workspace tab or pane control; keep short.
@@ -71,3 +71,15 @@ layout-rename-failed = The host refused this rename. Your entered title has been
 layout-rename-malformed = The host returned an unexpected rename result.
 # Rename refusal when the captured authenticated owner no longer matches.
 layout-rename-node-changed = This host identity changed. Reopen the original session before renaming.
+# The pane header's "…" menu button (Paseo's workspace.git.actions.moreActions).
+layout-more-actions = More actions
+# New-tab menu item: a new agent (Paseo's workspace.tabs.fallback.agent).
+layout-launch-agent = Agent
+# New-tab menu item: a new terminal (Paseo's workspace.tabs.fallback.terminal).
+layout-launch-terminal = Terminal
+# New-tab menu item: the working diff (Paseo's panels.diff.diffLabel).
+layout-launch-diff = Diff
+# New-tab menu item: a browser (Paseo's workspace.tabs.fallback.browser).
+layout-launch-browser = Browser
+# New-tab menu item: the workspace's pull request (Paseo's panels.pullRequest.label).
+layout-launch-pull-request = Pull request

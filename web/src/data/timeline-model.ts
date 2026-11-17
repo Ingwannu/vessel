@@ -119,6 +119,11 @@ export interface Timeline {
    * `null` until the node says, which a node older than protocol 9 never
    * does. Not an entry: the composer shows it, the timeline does not. */
   options: readonly SessionOption[] | null;
+  /** The last record after which the session's saved login may be another
+   * one (its status, profile or options changed, it was parked, woken or
+   * rewound; native `usage::binding_epoch`); -1 before one. The session's
+   * limit notice is read again after it. */
+  binding: number;
   /** The session's title when it changed in this log; `null` when it has
    * not (the session's `SessionInfo.title` is then the one to show). */
   title: string | null;
@@ -150,6 +155,7 @@ export const EMPTY: Timeline = {
   status: null,
   usage: null,
   options: null,
+  binding: -1,
   title: null,
   next: 0,
   conversation: EMPTY_CONVERSATION,

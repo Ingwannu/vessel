@@ -131,9 +131,45 @@ impl Layout {
         if plan.effect != CloseEffect::Local && approval != CloseApproval::LifecycleSettled {
             return Err(LayoutError::InvalidState);
         }
+        let source = self.containing(plan.tab);
         self.detach(plan.tab);
         let _closed = self.tabs.remove(&plan.tab);
-        Ok(())
+        // Paseo's close keeps the main pane (its `DEFAULT_PANE_ID`), Explorer
+        // and the last ordinary pane; any other pane goes with its last tab.
+        match source {
+            Some(source) => self.collapse_emptied(source, Keep::Main),
+            None => Ok(()),
+        }
+    }
+    /// Paseo's `detachTabFromTree`: a pane its last tab has just left is
+    /// removed, as no Paseo pane stays empty, unless it is Explorer, the last
+    /// ordinary pane, or (`Keep::Main`) the main pane.
+    ///
+    /// [Decision Log]
+    /// - Purpose: TRACKER 776 item 6 (coordinator, 2026-11-16): Vessel kept
+    ///   an emptied pane and drew an X to close it; Paseo removes the pane
+    ///   (`removeTabFromTree`, `moveTabInLayout`), so its header has no such
+    ///   X.
+    /// - Reference: closing keeps `DEFAULT_PANE_ID`, Explorer and the last
+    ///   visible ordinary pane; moving keeps the source only when the tab
+    ///   stays in it or crosses into or out of Explorer.
+    /// - Difference: Paseo puts a fresh New tab into a kept empty pane
+    ///   (`ensureRetainedPaneHasTab`); Vessel leaves it empty, as before.
+    ///
+    /// # Errors
+    /// Refuses an inconsistent tree (as `close_empty_pane`).
+    pub(super) fn collapse_emptied(&mut self, pane: PaneId, keep: Keep) -> Result<(), LayoutError> {
+        let emptied = self
+            .root
+            .pane(pane)
+            .is_some_and(|pane| pane.tabs.is_empty());
+        let kept = pane == PaneId::EXPLORER
+            || (keep == Keep::Main && pane == PaneId::MAIN)
+            || self.root.panes().len() < 2;
+        if !emptied || kept {
+            return Ok(());
+        }
+        self.close_empty_pane(pane)
     }
     /// A pane can close only after its tab owners have finished teardown.
     ///
@@ -213,4 +249,13 @@ impl Layout {
         self.pane_mut(self.focused)?.tabs.push(id);
         self.select(id)
     }
+}
+
+/// Which emptied pane stays (see `Layout::collapse_emptied`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Keep {
+    /// Closing a tab: the main pane stays too.
+    Main,
+    /// Moving a tab: only Explorer and the last pane stay.
+    No,
 }

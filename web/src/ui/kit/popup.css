@@ -10,8 +10,14 @@
    wash in the primary colour, the chosen one on the 7% wash. */
 
 .popup-positioner {
-  z-index: 60;
+  z-index: var(--z-popup);
   outline: none;
+}
+
+/* A tooltip is the top plane (tokens.css): over a toast, a dialog and
+   the popup it explains. */
+.popup-positioner.tooltip-positioner {
+  z-index: var(--z-tooltip);
 }
 
 .popup {

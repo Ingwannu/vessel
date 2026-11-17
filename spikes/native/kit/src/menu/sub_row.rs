@@ -6,7 +6,7 @@ use super::item::paint;
 use super::{MenuHandlers, MenuItem, MenuState};
 use crate::popup::Surfaces;
 use crate::submenu::Submenus;
-use crate::theme::spacing;
+use crate::theme::{Tokens, spacing};
 use gpui::prelude::*;
 use gpui::{AnyElement, Context, MouseButton, div, px};
 
@@ -15,6 +15,7 @@ pub(super) struct Rows<'a, V> {
     pub(super) state: &'a MenuState,
     pub(super) handlers: &'a MenuHandlers<V>,
     pub(super) submenus: Option<&'a Submenus>,
+    pub(super) tokens: &'a Tokens,
     pub(super) surfaces: &'a Surfaces,
     pub(super) narrow: bool,
 }
@@ -46,7 +47,7 @@ pub(super) fn any_row<V: 'static>(
             item,
             rows.state,
             rows.handlers,
-            rows.surfaces,
+            rows.tokens,
             rows.narrow,
             cx,
         ),

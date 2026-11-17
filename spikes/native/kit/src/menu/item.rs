@@ -82,6 +82,9 @@ pub struct MenuItem {
     pub status: ItemStatus,
     /// Default Close; direct writes opt into staying on the same surface.
     pub dismissal: Dismissal,
+    /// The bound shortcut's chords at the row's end (Paseo's `trailing`
+    /// `<Shortcut chord>`); empty draws nothing.
+    pub shortcut: Vec<SharedString>,
     /// The page this row leads to (a submenu, [`crate::submenu`]): choosing
     /// it opens the page, never closes the menu and never reaches the caller.
     pub opens: Option<crate::submenu::PageId>,
@@ -103,6 +106,7 @@ impl MenuItem {
             leading_size: LeadingSize::Small,
             status: ItemStatus::Idle,
             dismissal: Dismissal::Close,
+            shortcut: Vec::new(),
             opens: None,
             value: None,
         }
@@ -159,6 +163,15 @@ impl MenuItem {
     pub fn with_presentation(self, presentation: Presentation) -> Self {
         Self {
             presentation,
+            ..self
+        }
+    }
+    /// Show the bound shortcut's chords at the row's end, as Paseo's menu
+    /// rows do (`DropdownMenuItem trailing={<Shortcut chord />}`).
+    #[must_use]
+    pub fn with_shortcut(self, chords: Vec<SharedString>) -> Self {
+        Self {
+            shortcut: chords,
             ..self
         }
     }

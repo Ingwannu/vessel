@@ -402,3 +402,60 @@ fn group_resize_targets_the_group_not_a_selected_descendant() {
         Err(LayoutError::InvalidState)
     );
 }
+
+/// Paseo's `removeTabFromTree` (TRACKER 776 item 6): a pane goes with its
+/// last tab, but the main pane and the last ordinary pane stay.
+#[test]
+fn a_pane_goes_with_its_last_tab_but_main_and_the_last_pane_stay() {
+    let mut layout = Layout::default();
+    let main_tab = open(&mut layout, Target::NewTab, Placement::Focused);
+    let side = layout
+        .split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)
+        .unwrap();
+    let side_tab = open(&mut layout, Target::NewTab, Placement::Pane(side));
+    let plan = layout.request_close(side_tab).unwrap();
+    layout.close_confirmed(&plan, CloseApproval::Local).unwrap();
+    assert!(layout.pane(side).is_none());
+    assert_eq!(layout.root().panes().len(), 1);
+    assert_eq!(layout.focused_pane(), PaneId::MAIN);
+    // The main pane stays empty beside another pane.
+    let other = layout
+        .split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)
+        .unwrap();
+    let _other_tab = open(&mut layout, Target::NewTab, Placement::Pane(other));
+    let plan = layout.request_close(main_tab).unwrap();
+    layout.close_confirmed(&plan, CloseApproval::Local).unwrap();
+    assert!(layout.pane(PaneId::MAIN).is_some());
+    assert_eq!(layout.root().panes().len(), 2);
+}
+
+/// Paseo's move: the source pane goes when the moved tab was its last,
+/// unless the tab stays in it.
+#[test]
+fn moving_a_pane_s_last_tab_away_removes_the_pane() {
+    let mut layout = Layout::default();
+    let _main_tab = open(&mut layout, Target::NewTab, Placement::Focused);
+    let side = layout
+        .split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)
+        .unwrap();
+    let moving = open(&mut layout, Target::NewTab, Placement::Pane(side));
+    layout
+        .drop_tab(
+            moving,
+            PaneId::MAIN,
+            Position::Center,
+            LayoutMode::SplitPanes,
+        )
+        .unwrap();
+    assert!(layout.pane(side).is_none());
+    assert_eq!(layout.containing(moving), Some(PaneId::MAIN));
+    // Splitting a pane with its own only tab keeps the pane it came from.
+    let lone = layout
+        .split(PaneId::MAIN, Position::Bottom, LayoutMode::SplitPanes)
+        .unwrap();
+    let only = open(&mut layout, Target::NewTab, Placement::Pane(lone));
+    layout
+        .drop_tab(only, lone, Position::Right, LayoutMode::SplitPanes)
+        .unwrap();
+    assert!(layout.pane(lone).is_some());
+}

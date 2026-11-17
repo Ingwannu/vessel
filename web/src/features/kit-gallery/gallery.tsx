@@ -34,6 +34,7 @@ import { Conversation } from "./conversation";
 import { Display } from "./display";
 import { Fields } from "./fields";
 import { Popups } from "./popups";
+import { QuotaMeters } from "./quota-meters";
 
 export function Gallery() {
   const preference = useTheme();
@@ -67,6 +68,7 @@ export function Gallery() {
         <Composer />
         <Conversation />
         <Display />
+        <QuotaMeters />
       </main>
     </TooltipProvider>
   );

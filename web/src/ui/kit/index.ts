@@ -24,6 +24,7 @@ export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";
 export { useFilePicker } from "./file-picker";
 export { Field, FieldGroup } from "./field";
+export { HoverCard } from "./hover-card";
 export { ICON_NAMES, Icon, type IconName, type IconSize } from "./icon";
 export { Kbd } from "./kbd";
 export {
@@ -39,6 +40,12 @@ export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { type OptionRow, OptionList } from "./option-list";
 export { type PanelTab, PanelTabs } from "./panel-tabs";
 export { Popover } from "./popover";
+export { ProviderMark, type ProviderMarkName } from "./provider-mark";
+export {
+  QuotaMeter,
+  type QuotaMeterTone,
+  type QuotaMeterEmphasis,
+} from "./quota-meter";
 export { Row, type RowDetail, RowList, type RowMark } from "./row";
 export { Segmented, type SegmentedOptions } from "./segmented";
 export { Select } from "./select";

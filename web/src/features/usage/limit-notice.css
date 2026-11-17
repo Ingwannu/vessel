@@ -1,0 +1,47 @@
+/* The session's limit notice over its composer (limit-notice.tsx), in the
+   docks' shape (ended-banner.css): radius 20, a warn-tinted hairline, the
+   box's surface, 8px above it; the warn icon, a 13px medium sentence and
+   12px muted lines, Switch model at the right. */
+
+.limit-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--border-subtle));
+  border-radius: var(--r-composer);
+  background: var(--composer-bg);
+}
+
+.limit-notice-icon {
+  display: flex;
+  flex: none;
+  padding-top: 1px;
+  color: var(--warn);
+}
+
+.limit-notice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.limit-notice-title {
+  margin: 0 0 2px;
+  color: var(--text-primary);
+  font: 500 13px / 18px var(--font-sans);
+}
+
+.limit-notice-detail {
+  margin: 0;
+  color: var(--text-tertiary);
+  font: 400 12px / 16px var(--font-sans);
+}
+
+.limit-notice > button {
+  flex: none;
+  align-self: center;
+}

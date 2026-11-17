@@ -27,6 +27,9 @@ import type {
   ToolCallId,
   TransferId,
   UploadId,
+  UsageAccountKey,
+  UsageReportId,
+  UsageSourceId,
   WorktreeId,
 } from "../wire/proto";
 
@@ -55,6 +58,9 @@ interface Handles {
   ToolCallId: ToolCallId;
   TransferId: TransferId;
   UploadId: UploadId;
+  UsageAccountKey: UsageAccountKey;
+  UsageReportId: UsageReportId;
+  UsageSourceId: UsageSourceId;
   WorktreeId: WorktreeId;
 }
 

@@ -46,3 +46,12 @@ body:has(.usage-scope .select-trigger[data-popup-open])
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* The ledger's lead under its heading (the page starts with plan usage):
+   the settings lead's words and size, inset to the rows' text edge. */
+.usage-ledger-lead {
+  margin: -4px 0 0;
+  padding: 0 16px;
+  color: var(--text-secondary);
+  font: 400 13px / 18px var(--font-sans);
+}

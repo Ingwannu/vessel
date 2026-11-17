@@ -98,6 +98,14 @@ pub(super) struct Parts {
     pub label: Option<SharedString>,
 }
 impl ButtonContent {
+    /// Its words, which also name it for assistive technology; none for an
+    /// icon-only control.
+    pub(super) fn name(&self) -> Option<SharedString> {
+        match self {
+            Self::Label(label) | Self::IconAndLabel { label, .. } => Some(label.clone()),
+            Self::Icon(_) => None,
+        }
+    }
     pub(super) fn parts(self) -> Parts {
         match self {
             Self::Label(label) => Parts {

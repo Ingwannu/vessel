@@ -29,6 +29,7 @@ use vessel_app_view::shortcuts::{
 
 mod admission;
 mod badges;
+pub(crate) mod caps;
 mod core;
 pub(crate) mod dispatch;
 pub(crate) mod help_dialog;

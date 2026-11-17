@@ -98,6 +98,7 @@ pub(crate) fn frame(
             shell, &layout, &key, &mut agent, tokens, window, cx,
         ))
         .children(super::menu::overlay(shell, tokens, window, cx))
+        .children(super::header::menu_overlay(shell, tokens, window, cx))
         .children(super::rename::overlay(shell, tokens, window, cx))
         .children(shell.areas.layout.tips.render(tokens));
     crate::areas::workspace::code_beside(shell, content, tokens, window, cx)

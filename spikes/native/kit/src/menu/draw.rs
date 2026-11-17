@@ -39,12 +39,21 @@ pub enum Width {
     Content,
     /// Explicit width in logical pixels (the schedule menu uses 220).
     Fixed(Pixels),
+    /// Content-sized from this minimum to the legacy maximum (Paseo's
+    /// `minWidth`, the new-tab menu's 200).
+    AtLeast(Pixels),
 }
 impl Width {
-    fn fixed(self) -> Option<Pixels> {
+    pub(super) fn fixed(self) -> Option<Pixels> {
         match self {
-            Self::Content => None,
+            Self::Content | Self::AtLeast(_) => None,
             Self::Fixed(width) => Some(width),
+        }
+    }
+    pub(super) fn minimum(self) -> Pixels {
+        match self {
+            Self::AtLeast(minimum) => minimum,
+            Self::Content | Self::Fixed(_) => MIN_WIDTH,
         }
     }
 }
@@ -104,6 +113,14 @@ impl<'a> Content<'a> {
     #[must_use]
     pub fn with_layer(self, layer: Layer) -> Self {
         Self { layer, ..self }
+    }
+    /// Size to the content from `minimum` up (Paseo's `minWidth`).
+    #[must_use]
+    pub fn with_min_width(self, minimum: Pixels) -> Self {
+        Self {
+            width: Width::AtLeast(minimum),
+            ..self
+        }
     }
     /// Set the menu's reference width, without affecting the legacy entry.
     #[must_use]
@@ -255,8 +272,8 @@ fn draw<V: 'static>(
         .cursor_default()
         .flex()
         .flex_col()
-        .min_w(MIN_WIDTH)
-        .when(width == Width::Content, |panel| panel.max_w(MAX_WIDTH))
+        .min_w(width.minimum())
+        .when(width.fixed().is_none(), |panel| panel.max_w(MAX_WIDTH))
         .when_some(width.fixed(), Styled::w)
         .py(px(spacing::S1))
         .bg(surfaces.surface1)
@@ -269,6 +286,7 @@ fn draw<V: 'static>(
         state,
         handlers,
         submenus: submenus.as_ref(),
+        tokens,
         surfaces: &surfaces,
         narrow,
     };
@@ -332,10 +350,11 @@ pub(super) fn row<V: 'static>(
     item: &MenuItem,
     state: &MenuState,
     handlers: &MenuHandlers<V>,
-    surfaces: &Surfaces,
+    tokens: &Tokens,
     narrow: bool,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
+    let surfaces = &Surfaces::of(tokens);
     let highlighted = state.highlighted == Some(index);
     let paint = paint(item, highlighted, surfaces);
     // Paseo's row: hovered, focused and open rows alike on `surface2`,
@@ -343,7 +362,15 @@ pub(super) fn row<V: 'static>(
     let wash = surfaces.surface2;
     let get = handlers.state;
     let chose = Rc::clone(&handlers.chose);
-    let mut element = row_body(index, item, paint, narrow);
+    // Paseo's trailing slot: pushed to the row's end (`marginLeft: auto`).
+    let trailing = (!item.shortcut.is_empty()).then(|| {
+        div()
+            .debug_selector(move || format!("menu-row-shortcut-{index}"))
+            .ml_auto()
+            .flex_none()
+            .child(crate::command::key_badges(&item.shortcut, tokens))
+    });
+    let mut element = row_body(index, item, paint, narrow).children(trailing);
     if item.selectable() {
         let choice = item.clone();
         let press_lease = state.render_lease();
@@ -457,6 +484,7 @@ pub(super) fn row_body(
         .opacity(paint.opacity)
         .border_1()
         .border_color(gpui::transparent_black())
+        .debug_selector(move || format!("menu-row-{index}"))
         .children(leading(index, item, paint.glyph))
         .child(
             div()

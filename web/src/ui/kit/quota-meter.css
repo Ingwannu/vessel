@@ -1,0 +1,31 @@
+/* The quota share's geometry is the reference's, not the context ring's.
+   A parent sizes its width; the fill follows that track's height. */
+.quota-meter {
+  width: 100%;
+  height: var(--quota-meter-height);
+  overflow: hidden;
+  border-radius: var(--quota-meter-radius);
+  background: var(--quota-surface-3);
+}
+
+.quota-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.quota-meter-muted {
+  background: var(--text-tertiary);
+}
+.quota-meter-ok {
+  background: var(--online);
+}
+.quota-meter-warning {
+  background: var(--warn);
+}
+.quota-meter-danger {
+  background: var(--danger);
+}
+.quota-meter-quiet {
+  background: var(--quota-surface-4);
+}
