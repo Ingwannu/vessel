@@ -53,8 +53,8 @@ design.
   and the folder (12 muted, one line, ellipsized) only when unscoped, named
   as Paseo's `resolveDirectoryLabel`: inside a known project of the host
   "{project} · {relative}", the project's root its name, else the full path
-  (`history::folder_label`, the deepest root wins, paths compared by
-  component).
+  (`history::folder_label`, on the composer tray's
+  `workspace::projects::project_among`: the deepest root wins).
 - Status: loading is a spinner row ("Loading recent sessions..."); a provider
   that failed gets a banner row ("Could not load {provider} sessions" in red
   12, a ghost small "Retry" that refetches that provider only); an import

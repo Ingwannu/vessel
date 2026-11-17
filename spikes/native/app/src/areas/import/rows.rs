@@ -134,12 +134,7 @@ fn folder(shell: &Shell, cwd: &std::path::Path) -> String {
             ProjectsView::Loading | ProjectsView::Failed(_) | ProjectsView::Older => None,
         })
         .unwrap_or_default();
-    folder_label(
-        cwd,
-        projects
-            .iter()
-            .map(|project| (project.root.as_path(), project.name.as_str())),
-    )
+    folder_label(cwd, projects)
 }
 
 /// Paseo's `rowHeader`: the title (14, one line) and, on its baseline at the
