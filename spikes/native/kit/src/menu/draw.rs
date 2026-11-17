@@ -298,8 +298,7 @@ fn draw<V: 'static>(
         .py(px(spacing::S1));
     panel = match &sheet {
         Some(title) => surface::sheet(panel, title.clone(), tokens),
-        None => surface::popover(panel, width, &surfaces, tokens)
-            .on_mouse_down_out(on_outside),
+        None => surface::popover(panel, width, &surfaces, tokens).on_mouse_down_out(on_outside),
     };
     let rows = Rows {
         state,
