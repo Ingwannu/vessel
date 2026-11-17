@@ -933,10 +933,12 @@ screen, and it is asked once. (Milestone 9 drew it twice, a card in the
 timeline and a bar over the composer, each with every option as a
 button; the owner asked for one.)
 
-- **Docked over the composer's top edge**, GOAT's approval drawer: 12px
-  narrower than the box on each side, its top corners 16px, an edge of
-  the review colour at 28% and a tint of it at 8%; the box covers its
-  bottom 16px, so it reads as tucked under it. In it: a 16px shield in
+- **Docked over the composer**, 8px above the box and wholly clear of
+  it (Paseo keeps the pending card fully visible above its composer;
+  GOAT's drawer tucked 16px under the box was covered once the box
+  stayed usable during a permission, TRACKER 794): 12px narrower than
+  the box on each side, radius 16, an edge of the review colour at 28%
+  and a tint of it at 8%. In it: a 16px shield in
   the review colour; "Approval needed" (11px medium, that colour); what is
   asked, the tool call's title, in 12px mono, and the file it touches;
   then Decline and Approve, `xs`, Approve the primary.

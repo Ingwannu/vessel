@@ -120,6 +120,9 @@ coordinator as a separate parity item.
     a turn, so it stays disabled with "Answer the permission to continue"); the placeholder says what Enter will
     do (`nextDelivery`).
 - Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so).
+- Frame return (coordinator): the permission card was GOAT's drawer tucked 16px under the box, which the box now
+  covers while a permission waits; it now sits 8px above the box with its whole border (Paseo keeps the pending
+  card fully visible above the composer), checked in conversation.spec at 1280x900, 1280x560 and 390x844.
 - Follow-up (coordinator, same day): the other way of Queue is interrupt-and-send, as Paseo's "Command/Ctrl+Enter
   submits" (`resolveAlternateSendAction`), where the page used to steer; Settings › General's Default send hint is
   Paseo's words (en.ts settings.general.defaultSend.descriptions / commandEnterDescriptions) by the send key.
