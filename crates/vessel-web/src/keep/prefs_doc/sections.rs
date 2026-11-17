@@ -6,13 +6,14 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use vessel_proto::{ChoiceValue, HarnessKind, ProfileName, RawJson};
+use vessel_proto::{ChoiceValue, HarnessKind, NodeId, ProfileName, RawJson};
 
 use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
     ContentWidth, ConversationDisplay, Grouping, InterfaceSize, Layout, MachineDefaults,
-    Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery,
+    Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery, UsageDisplay,
+    UsagePins, UsagePreferences,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -75,7 +76,16 @@ section! {
 
 section! {
     /// `sidebar`.
-    SidebarFile => SidebarView { group: Grouping, sort: SessionSort, ended: bool }
+    SidebarFile => SidebarView { group: Grouping, sort: SessionSort, ended: bool, usage: bool }
+}
+
+section! {
+    /// `usage` (ADR 0107): the native app's usage section.
+    UsageFile => UsagePreferences {
+        display: UsageDisplay,
+        host: Option<NodeId>,
+        pins: Option<UsagePins>,
+    }
 }
 
 /// One machine's defaults in the file.

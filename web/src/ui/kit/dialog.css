@@ -69,6 +69,15 @@
   padding: 12px 12px 0 16px;
 }
 
+/* Title-row controls sit at the right, next to Close. */
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+}
+
 .dialog-title {
   margin: 0;
   font: 600 15px / 20px var(--font-sans);

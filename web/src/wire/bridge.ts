@@ -2,7 +2,7 @@
 // `VESSEL_WRITE_TS=1 cargo test --features ts typescript` in the crate that
 // generates this file rewrites it, and CI fails while it differs.
 
-import type { Call, EventRecord, EventSeq, HarnessKind, Method, NodeId, NodeInfo, OptionId, OptionValueId, PairingOffer, ProfileName, ProtocolVersion, Reply, SessionId, TerminalId, WireError } from "./proto";
+import type { Call, EventRecord, EventSeq, HarnessKind, LimitKey, Method, NodeId, NodeInfo, OptionId, OptionValueId, PairingOffer, ProfileName, ProtocolVersion, Reply, SessionId, TerminalId, UsageSourceId, WireError } from "./proto";
 
 /**
  * One of the page's actions: 1 to 48 characters of `a-z`, `0-9` and `-`,
@@ -607,7 +607,7 @@ export type Panel = "shown" | "hidden";
 /**
  * One change to the preferences: each replaces one setting.
  */
-export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "shortcuts", "value": { 
+export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_usage", "value": boolean } | { "set": "usage_display", "value": UsageDisplay } | { "set": "usage_host", "value": NodeId | null } | { "set": "usage_pins", "value": Array<UsagePin> | null } | { "set": "shortcuts", "value": { 
 /**
  * At most [`MAX_EDITS`].
  */
@@ -673,6 +673,10 @@ notifications: Notifications,
  * How the sidebar lists sessions.
  */
 sidebar: SidebarView, 
+/**
+ * The usage cards, summary and modal (ADR 0107).
+ */
+usage: UsagePreferences, 
 /**
  * What new sessions start with, by machine. At most [`MAX_MACHINES`].
  */
@@ -846,7 +850,12 @@ sort: SessionSort,
 /**
  * Whether ended sessions are listed.
  */
-ended: boolean, };
+ended: boolean, 
+/**
+ * Whether the footer shows the usage summary (Paseo's footer item,
+ * off by default; ADR 0107).
+ */
+usage: boolean, };
 
 /**
  * `GET /api/status`: what is serving.
@@ -931,3 +940,39 @@ export type Transport = "ws" | "ssh" | "paired";
  *   agent that can.
  */
 export type TurnDelivery = "queue" | "steer" | "interrupt";
+
+/**
+ * How percentages read: used, or remaining.
+ */
+export type UsageDisplay = "used" | "remaining";
+
+/**
+ * One window pinned to the sidebar summary, by the node's ids.
+ */
+export type UsagePin = { 
+/**
+ * The report source.
+ */
+source: UsageSourceId, 
+/**
+ * The window within it.
+ */
+window: LimitKey, };
+
+/**
+ * The usage section.
+ */
+export type UsagePreferences = { 
+/**
+ * How percentages read.
+ */
+display: UsageDisplay, 
+/**
+ * The host chosen for the summary and modal; none follows the active
+ * machine, then the first one that reports.
+ */
+host: NodeId | null, 
+/**
+ * None follows the sources' defaults; a list pins exactly those.
+ */
+pins: Array<UsagePin> | null, };
