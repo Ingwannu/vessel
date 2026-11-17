@@ -14,8 +14,8 @@ use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Context, ElementId, MouseButton, Pixels, SharedString, Window, anchored,
-    deferred, div, px,
+    Anchor, AnyElement, Context, ElementId, MouseButton, Pixels, SharedString, anchored, deferred,
+    div, px,
 };
 
 /// The narrowest a menu is (Paseo's `minWidth`).
@@ -251,12 +251,7 @@ fn draw<V: 'static>(
         submenus.follow(&Rc::downgrade(&state.cycle));
     }
     let sheet = sheet.filter(|_| narrow);
-    if sheet.is_some()
-        && submenus
-            .as_ref()
-            .is_some_and(|pages| !pages.path().pages().is_empty())
-    {
-        // Its open page replaces it in place, as the screen's own sheet.
+    if surface::replaced(sheet.as_ref(), submenus.as_ref()) {
         return None;
     }
     let get = handlers.state;

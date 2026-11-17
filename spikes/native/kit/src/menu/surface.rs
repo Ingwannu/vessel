@@ -22,6 +22,7 @@ use super::draw::MAX_WIDTH;
 use super::{MenuState, Width};
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
+use crate::submenu::Submenus;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
@@ -79,6 +80,12 @@ pub(super) fn sheet(panel: Stateful<Div>, title: SharedString, tokens: &Tokens) 
         )
 }
 
+/// Whether a phone's sheet has a page open: the page replaces it in place,
+/// drawn by the screen as its own sheet, so the menu draws nothing.
+pub(super) fn replaced(sheet: Option<&SharedString>, submenus: Option<&Submenus>) -> bool {
+    sheet.is_some() && submenus.is_some_and(|pages| !pages.path().pages().is_empty())
+}
+
 /// A press on the dimmed page closes the menu (a stale frame's is kept).
 pub(super) fn scrim<V: 'static>(
     state: &MenuState,
@@ -97,12 +104,15 @@ pub(super) fn scrim<V: 'static>(
     })
 }
 
+/// A press on the scrim.
+pub(super) type ScrimPress = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App)>;
+
 /// The sheet at the window's bottom over the scrim, laid out where the
 /// window's size is known.
 #[derive(gpui::IntoElement)]
 pub(super) struct SheetBoundary {
     pub(super) panel: AnyElement,
-    pub(super) on_scrim: Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App)>,
+    pub(super) on_scrim: ScrimPress,
 }
 
 impl RenderOnce for SheetBoundary {
