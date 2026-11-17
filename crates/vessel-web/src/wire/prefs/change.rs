@@ -55,6 +55,12 @@ pub enum PreferenceChange {
     SidebarSort(SessionSort),
     /// [`SidebarView::ended`].
     SidebarEnded(bool),
+    /// [`SidebarView::labels`]: the whole filter, at most 32 names.
+    SidebarLabels {
+        /// The names picked; `""` is Unlabelled.
+        #[cfg_attr(feature = "ts", ts(as = "Vec<String>"))]
+        picks: super::LabelPicks,
+    },
     /// [`SidebarView::usage`]: the footer's usage summary (ADR 0107).
     SidebarUsage(bool),
     /// [`super::UsagePreferences::display`].

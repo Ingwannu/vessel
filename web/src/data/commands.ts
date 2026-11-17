@@ -26,6 +26,7 @@ export type PaletteTarget =
   | { kind: "route"; to: string }
   | { kind: "new-session"; node: string | null }
   | { kind: "add-machine" }
+  | { kind: "manage-labels" }
   | { kind: "theme"; preference: ThemePreference };
 
 /** The places a palette entry can name, for its icon. */
@@ -38,6 +39,7 @@ export type PalettePlace =
   | "structured"
   | "new"
   | "add-machine"
+  | "labels"
   | "theme-system"
   | "theme-light"
   | "theme-dark";
@@ -131,6 +133,14 @@ export function paletteEntries(
       group: "Actions",
       place: "add-machine",
       target: { kind: "add-machine" },
+    },
+    {
+      id: "manage-labels",
+      label: "Manage labels",
+      keywords: "workspace labels tags",
+      group: "Actions",
+      place: "labels",
+      target: { kind: "manage-labels" },
     },
   ];
   return [...actions, ...PLACES, ...machines, ...sessions, ...THEMES];

@@ -1798,8 +1798,14 @@ to Now. Shutdown drains accepted label work after callers and before the Store.
 There is no second database, registry, event renderer or package dependency.
 A corrupt stored label row refuses node start (`NodeError::WorkspaceLabels`, as
 Paseo's daemon); the cause names the table and the row's place
-(`vessel_store::LabelRow`), never its name or color. The page, CLI and native
-consumers are separate packages.
+(`vessel_store::LabelRow`), never its name or color. The page consumer is
+`web/src/data/workspace-labels/` (per-machine registry and catalog replicas
+behind long polls, held only while a surface draws them; picker, manager,
+merge and filter models) and `web/src/features/workspace-labels/` (chips,
+the row menu's Labels submenu, the create and delete dialogs, the manager),
+with the sidebar's "Workspace" grouping in `features/shell/sidebar-workspaces.tsx`
+and the filter kept in the bridge's `SidebarView.labels` (ADR 0086, "Page
+consumer"). CLI and native consumers are separate packages.
 
 ### Settings writer lifetime
 

@@ -91,6 +91,39 @@ reset", "No prompt will be sent automatically. Continue when the account is read
 - Kit: `Popover` takes `showTitle={false}` (the title still names the popup) and the `settings` width (340);
   `Dialog` takes title-row `actions` (before Close).
 
+## TRACKER 793: the default turn delivery is Steer (ADR 0108)
+
+Not usage, but this track's next item (coordinator, 2026-11-17). The bridge's `TurnDelivery` default and the page's
+`DEFAULT_PREFERENCES` move from Queue to Steer together; the sparse keeper means a document that never set the
+delivery reads as Steer and one that chose Queue keeps it (no migration). The empty box's placeholder now says what
+Enter will do (`nextDelivery` in data/delivery.ts), which it did not for Steer before. The conversation e2e sets Queue
+in Settings for the queue cases and puts Steer back; the screens harness queues with the modifier. The page still
+queues where the agent cannot steer (its stated fallback); native and Paseo replace the turn there, reported to the
+coordinator as a separate parity item.
+
+## TRACKER 794: Paseo's two delivery rules on the page
+
+[Decision Log] (ADR-light: no wire change; both are deliveries the node already takes)
+- Purpose: a message sent during a turn goes as on Paseo and the native app (view/src/session/delivery.rs
+  `send_delivery`), not by the page's own rules.
+- Constraint: the page queued a Steer the agent could not take, and disabled the box while a permission waited, so
+  the Queue-behind-a-permission case could not arise.
+- Alternatives: keep the queue fallback (gentler, but the person chose to reach the agent now); keep the box
+  disabled during a permission (then a Queue cannot be stranded, but the person cannot redirect a turn parked on a
+  request, which Paseo and native allow).
+- Choice (data/delivery.ts `sendPlan`):
+  - Steer the agent cannot take (or once refused) -> Interrupt, fallback `cannot-steer` ("cannot steer: this
+    replaces the turn").
+  - Queue while a permission waits -> Interrupt, fallback `permission-waits` ("A permission waits: this stops the
+    turn instead of queueing"); Steer and Interrupt go as chosen; the other way stays Queue.
+  - The box stays usable while a permission waits on nodes from protocol 10 (before 10 nothing can be sent during
+    a turn, so it stays disabled with "Answer the permission to continue"); the placeholder says what Enter will
+    do (`nextDelivery`).
+- Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so); the
+  page's other way of Queue stays Steer where the agent can (Paseo's is Interrupt), left as it was.
+- Tests: delivery.test.ts (both rules, nextDelivery), composer-words.test.ts (placeholders), conversation.spec
+  (Queue while a permission waits: box enabled, placeholder, "Interrupt and send"), app.spec (box enabled).
+
 ## Next
 
 - The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).

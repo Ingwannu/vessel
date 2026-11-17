@@ -27,11 +27,35 @@ const PNG = Buffer.from(
   "base64",
 );
 
+/** Settings › General's Default send. The bridge keeps it for every later
+ * test of the fleet, so a test that chooses Queue puts the default (Steer,
+ * ADR 0108) back. */
+async function defaultSend(
+  page: Page,
+  origin: string,
+  choice: "Queue" | "Steer",
+): Promise<void> {
+  await page.goto(`${origin}/settings/general`);
+  const send = page.getByRole("combobox", { name: "Default send" });
+  await choose(page, send, new RegExp(`^${choice}`));
+  await expect(send).toContainText(choice);
+}
+
 test("a message sent during a turn waits in the node's queue, and is edited, moved, held and sent", async ({
   page,
 }) => {
   test.setTimeout(120_000);
-  await openUi(page);
+  const origin = await openUi(page);
+  await defaultSend(page, origin, "Queue");
+  try {
+    await queueFlow(page);
+  } finally {
+    await defaultSend(page, origin, "Steer");
+  }
+});
+
+/** The queue's whole round, with Default send on Queue. */
+async function queueFlow(page: Page): Promise<void> {
   await startSession(page, "laptop", "Structured", "wait");
   await expect(timeline(page).getByText("turn 1")).toBeVisible();
   await expect(text(page)).toHaveAttribute(
@@ -85,21 +109,29 @@ test("a message sent during a turn waits in the node's queue, and is edited, mov
   await queue(page).getByRole("button", { name: "Resume" }).click();
   await expect(timeline(page).getByText(/^options mode=/)).toBeVisible();
   await expect(queue(page)).toBeHidden();
-});
+}
 
-test("the other way: a message steered into the running turn", async ({
+test("by default a message sent during a turn steers it, and Mod+Enter queues (ADR 0108)", async ({
   page,
 }) => {
   await openUi(page);
   await startSession(page, "laptop", "Structured", "wait");
   // The other way exists only once the page knows a turn runs.
   await expect(timeline(page).getByText("turn 1")).toBeVisible();
+  await expect(text(page)).toHaveAttribute(
+    "placeholder",
+    "Next message you send will steer the agent",
+  );
   await text(page).fill("finish");
+  await expect(
+    composer(page).getByRole("button", { name: "Steer message" }),
+  ).toBeVisible();
+  await page.keyboard.down("Control");
   await expect(
     composer(page).getByRole("button", { name: "Queue message" }),
   ).toBeVisible();
-  // Mod+Enter sends the other way: the fake agent steers.
-  await text(page).press("ControlOrMeta+Enter");
+  await page.keyboard.up("Control");
+  await text(page).press("Enter");
   await expect(
     timeline(page).getByText("steered", { exact: true }),
   ).toBeVisible();
@@ -107,34 +139,50 @@ test("the other way: a message steered into the running turn", async ({
   await expect(timeline(page).getByText(/Turn ended · end turn/)).toBeVisible();
 });
 
-test("Default send, kept by the bridge, makes Send steer and Mod+Enter queue", async ({
+test("a Queue while a permission waits stops the turn instead, and says so (TRACKER 794)", async ({
   page,
 }) => {
   const origin = await openUi(page);
-  await page.goto(`${origin}/settings/general`);
-  const send = page.getByRole("combobox", { name: "Default send" });
-  await choose(page, send, /^Steer/);
-  await expect(send).toContainText("Steer");
+  await defaultSend(page, origin, "Queue");
+  try {
+    await startSession(page, "gpu-box", "Structured", "tidy the overview");
+    const prompt = page.getByRole("group", { name: "Permission request" });
+    await expect(prompt).toContainText("Run fake tool");
+    // Paseo's: a queued message would be stranded behind the request.
+    await expect(text(page)).toBeEnabled();
+    await expect(text(page)).toHaveAttribute(
+      "placeholder",
+      "Next message you send will stop the agent and go next",
+    );
+    await text(page).fill("later");
+    await expect(
+      composer(page).getByRole("button", { name: "Interrupt and send" }),
+    ).toBeVisible();
+    await text(page).fill("");
+    await prompt.getByRole("button", { name: "Allow" }).click();
+    await expect(prompt).toBeHidden();
+  } finally {
+    await defaultSend(page, origin, "Steer");
+  }
+});
+
+test("Default send Queue, kept by the bridge, makes Send queue and Mod+Enter steer", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  await defaultSend(page, origin, "Queue");
   try {
     await startSession(page, "laptop", "Structured", "wait");
     await expect(timeline(page).getByText("turn 1")).toBeVisible();
     await text(page).fill("finish");
     await expect(
-      composer(page).getByRole("button", { name: "Steer message" }),
-    ).toBeVisible();
-    // The other way is now the queue.
-    await page.keyboard.down("Control");
-    await expect(
       composer(page).getByRole("button", { name: "Queue message" }),
     ).toBeVisible();
-    await page.keyboard.up("Control");
-    await text(page).press("Enter");
+    // Mod+Enter sends the other way: the fake agent steers.
+    await text(page).press("ControlOrMeta+Enter");
     await expect(timeline(page).getByText("steered: finish")).toBeVisible();
   } finally {
-    // The bridge keeps the choice for every later test: put it back.
-    await page.goto(`${origin}/settings/general`);
-    await choose(page, send, /^Queue/);
-    await expect(send).toContainText("Queue");
+    await defaultSend(page, origin, "Steer");
   }
 });
 

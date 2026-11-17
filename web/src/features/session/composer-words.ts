@@ -3,7 +3,8 @@
 // will be queued" while a turn runs, Paseo's "tag @files, or use
 // /commands", its "Restore the session to continue" for an ended one.
 
-import type { SendPlan } from "../../data/delivery";
+import type { DeliveryFallback, SendPlan } from "../../data/delivery";
+import type { Delivery } from "../../wire/proto";
 import type { SendAction } from "../compose/send-button";
 
 export function composerPlaceholder({
@@ -13,6 +14,7 @@ export function composerPlaceholder({
   plan,
   modern,
   starting = null,
+  next = null,
 }: {
   pending: boolean;
   live: boolean;
@@ -23,8 +25,14 @@ export function composerPlaceholder({
   modern: boolean;
   /** The agent, while the session's first prompt waits on its start. */
   starting?: string | null;
+  /** What a message would do while a turn runs, said before anything is
+   * typed (the empty box's plan is Stop). */
+  next?: Delivery | null;
 }): string {
-  if (pending) {
+  // A permission waiting: before protocol 10 nothing can be sent while a
+  // turn runs, so the box waits for the answer; from 10 it says what Enter
+  // will do (TRACKER 794: a Queue then interrupts).
+  if (pending && !modern) {
     return "Answer the permission to continue";
   }
   if (starting !== null && live && modern) {
@@ -40,7 +48,7 @@ export function composerPlaceholder({
     (plan.kind === "deliver" && plan.alternate !== null)
   ) {
     // A turn runs: say what Send will do with the next message.
-    const delivery = plan.kind === "deliver" ? plan.delivery : null;
+    const delivery = plan.kind === "deliver" ? plan.delivery : next;
     return delivery === "steer"
       ? "Next message you send will steer the agent"
       : delivery === "interrupt"
@@ -95,16 +103,29 @@ export function composerAction({
         kind: "deliver",
         delivery: plan.delivery,
         alternate: plan.alternate,
-        fallback:
-          plan.fallback === null
-            ? null
-            : steerRefused
-              ? `${agent} refused to steer: this queues`
-              : `${agent} cannot steer: this queues`,
+        fallback: fallbackText(plan.fallback, agent, steerRefused),
         turn: plan.alternate !== null,
         disabled: blocked,
         busy: sending,
         onSend: send,
       };
+  }
+}
+
+/** Why the button does not go the chosen way, under its label. */
+function fallbackText(
+  fallback: DeliveryFallback | null,
+  agent: string,
+  steerRefused: boolean,
+): string | null {
+  switch (fallback) {
+    case null:
+      return null;
+    case "cannot-steer":
+      return steerRefused
+        ? `${agent} refused to steer: this replaces the turn`
+        : `${agent} cannot steer: this replaces the turn`;
+    case "permission-waits":
+      return "A permission waits: this stops the turn instead of queueing";
   }
 }

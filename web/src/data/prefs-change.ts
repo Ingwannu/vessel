@@ -21,10 +21,17 @@ export const DEFAULT_PREFERENCES: Preferences = {
     conversation: "full",
   },
   layout: { sidebar: "shown", inspector: "shown" },
-  composer: { send: "enter", delivery: "queue" },
+  // Steer, as Paseo and the native app (ADR 0108); a stored choice wins.
+  composer: { send: "enter", delivery: "steer" },
   shortcuts: {},
   notifications: { alerts: "off", title: true },
-  sidebar: { group: "machine", sort: "created", ended: true, usage: false },
+  sidebar: {
+    group: "machine",
+    sort: "created",
+    ended: true,
+    labels: [],
+    usage: false,
+  },
   usage: { display: "used", host: null, pins: null },
   defaults: {},
 };
@@ -104,6 +111,11 @@ export function applyChange(
       return { ...prefs, sidebar: { ...prefs.sidebar, sort: change.value } };
     case "sidebar_ended":
       return { ...prefs, sidebar: { ...prefs.sidebar, ended: change.value } };
+    case "sidebar_labels":
+      return {
+        ...prefs,
+        sidebar: { ...prefs.sidebar, labels: change.value.picks },
+      };
     case "sidebar_usage":
       return { ...prefs, sidebar: { ...prefs.sidebar, usage: change.value } };
     case "usage_display":
