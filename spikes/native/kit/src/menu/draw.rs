@@ -298,7 +298,8 @@ fn draw<V: 'static>(
         .py(px(spacing::S1));
     panel = match &sheet {
         Some(title) => surface::sheet(panel, title.clone(), tokens),
-        None => surface::popover(panel.on_mouse_down_out(on_outside), width, &surfaces, tokens),
+        None => surface::popover(panel, width, &surfaces, tokens)
+            .on_mouse_down_out(on_outside),
     };
     let rows = Rows {
         state,
@@ -337,8 +338,7 @@ fn draw<V: 'static>(
     };
     let overlay = match layer {
         Layer::Screen => surface,
-        Layer::AboveDialog => surface::ModalBoundary { surface }
-        .into_any_element(),
+        Layer::AboveDialog => surface::ModalBoundary { surface }.into_any_element(),
     };
     Some(
         deferred(overlay)
