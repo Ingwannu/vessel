@@ -29,17 +29,29 @@ describe("the composer's placeholder", () => {
     ).toBe("Message the agent, tag @files, or use /commands");
   });
 
-  it("asks for a pending permission first", () => {
+  it("asks for a pending permission first where nothing can be sent during a turn", () => {
     expect(
       composerPlaceholder({
         pending: true,
         live: true,
         again: false,
-        plan: { kind: "idle" },
-        modern: true,
-        starting: "Claude Code",
+        plan: { kind: "stop" },
+        modern: false,
       }),
     ).toBe("Answer the permission to continue");
+  });
+
+  it("from protocol 10 says what a message does while a permission waits (794)", () => {
+    expect(
+      composerPlaceholder({
+        pending: true,
+        live: true,
+        again: false,
+        plan: { kind: "stop" },
+        modern: true,
+        next: "interrupt",
+      }),
+    ).toBe("Next message you send will stop the agent and go next");
   });
 
   it("says what Enter will do while a turn runs, before anything is typed", () => {

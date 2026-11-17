@@ -142,7 +142,7 @@ export const Composer = memo(function Composer({
       placeCaret(next, caret);
     },
   });
-  const blocked = pending !== null || !live || sender.sending;
+  const blocked = (pending !== null && !modern) || !live || sender.sending;
   // A session the new-session page made with files: its first prompt is
   // sent from here once the agent has said what it takes and the machine
   // its limits (data/trays.ts). Taken once, on the first render.
