@@ -50,7 +50,11 @@ design.
   down), then a column:
   the title (14 foreground, one line) with the activity time on its right
   ("just now", "5m ago", 12 muted; "Importing..." while this row imports),
-  and the folder (12 muted, one line, ellipsized) only when unscoped.
+  and the folder (12 muted, one line, ellipsized) only when unscoped, named
+  as Paseo's `resolveDirectoryLabel`: inside a known project of the host
+  "{project} · {relative}", the project's root its name, else the full path
+  (`history::folder_label`, the deepest root wins, paths compared by
+  component).
 - Status: loading is a spinner row ("Loading recent sessions..."); a provider
   that failed gets a banner row ("Could not load {provider} sessions" in red
   12, a ghost small "Retry" that refetches that provider only); an import
@@ -134,7 +138,7 @@ design.
 
 ## Tests
 
-- View: `history::sheet::tests` (16).
+- View: `history::sheet::tests` (16), `history::folder::tests` (4).
 - Kit: `dialog::header_subtitle_tests`, `assets::sheet_role_tests`,
   `picker::rows::small_mark_tests`.
 - App: `areas::import::tests` (one host skips the chooser and reads every

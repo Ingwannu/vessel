@@ -11,7 +11,8 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{ButtonState, Tokens, Type, TypeExt as _};
 use vessel_app_view::devices::time::Age;
-use vessel_app_view::history::{Problem, Row};
+use vessel_app_view::history::{Problem, Row, folder_label};
+use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_proto::HarnessRef;
 
 /// Paseo's row margin: the fill reaches 8 past the content on both sides.
@@ -112,11 +113,33 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
                             .type_(Type::Meta)
                             .text_color(tokens.neutral.foreground_muted)
                             .truncate()
-                            .child(entry.cwd.to_string_lossy().into_owned()),
+                            .child(folder(shell, &entry.cwd)),
                     )
                 }),
         )
         .into_any_element()
+}
+
+/// Paseo's `resolveFolder`: the folder named by the host's project that
+/// holds it, from the projects the app has read for that host.
+fn folder(shell: &Shell, cwd: &std::path::Path) -> String {
+    let projects = shell
+        .areas
+        .import
+        .model
+        .opening()
+        .and_then(|opening| shell.areas.workspace.projects.get(opening.machine.as_str()))
+        .and_then(|view| match view {
+            ProjectsView::Ready(list) => Some(list.projects.as_slice()),
+            ProjectsView::Loading | ProjectsView::Failed(_) | ProjectsView::Older => None,
+        })
+        .unwrap_or_default();
+    folder_label(
+        cwd,
+        projects
+            .iter()
+            .map(|project| (project.root.as_path(), project.name.as_str())),
+    )
 }
 
 /// Paseo's `rowHeader`: the title (14, one line) and, on its baseline at the
