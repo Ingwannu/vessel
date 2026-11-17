@@ -133,6 +133,7 @@ export function AgentMenu({
           shape="soft"
           disabled={disabled}
           aria-label={pickerName(state, agent.name)}
+          data-model-picker=""
         >
           <TriggerLabel state={state} name={agent.name} />
         </Button>

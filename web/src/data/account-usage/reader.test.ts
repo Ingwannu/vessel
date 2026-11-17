@@ -4,6 +4,7 @@ import { fixtureId } from "../../testing/ids";
 import type {
   LimitRefresh,
   UsageReportLookup,
+  UsageReportScope,
   UsageReports,
 } from "../../wire/proto";
 import type { Outcome } from "../outcome";
@@ -33,13 +34,14 @@ function pending() {
   const reads: {
     node: string;
     refresh: LimitRefresh;
+    scope: UsageReportScope;
     answer: (value: Outcome<UsageReports>) => void;
   }[] = [];
   const lookups: ((value: Outcome<"on" | "off">) => void)[] = [];
   const calls: AccountCalls = {
-    read: (node, refresh) =>
+    read: (node, refresh, scope) =>
       new Promise((answer) => {
-        reads.push({ node, refresh, answer });
+        reads.push({ node, refresh, scope, answer });
       }),
     inspect: () =>
       Promise.resolve<Outcome<UsageReportLookup>>({
@@ -115,5 +117,22 @@ describe("AccountReader", () => {
     await settle();
     expect(reads).toHaveLength(2);
     expect(reader.store.get()).toEqual({ kind: "idle" });
+  });
+
+  it("keeps a session's scope for its reads and Refresh all", async () => {
+    const { calls, reads } = pending();
+    const reader = new AccountReader(calls);
+    const scope: UsageReportScope = {
+      kind: "session",
+      session: fixtureId("SessionId", "s1"),
+    };
+    reader.open(FIRST, scope);
+    reads[0]?.answer({ ok: true, value: reports("on") });
+    await settle();
+    reader.refreshAll();
+    expect(reads.map((read) => [read.refresh, read.scope])).toEqual([
+      ["cached", scope],
+      ["refresh", scope],
+    ]);
   });
 });

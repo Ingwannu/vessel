@@ -10,8 +10,9 @@
 //   behaviour there (no account cards) and says the machine needs an update,
 //   as Paseo's `hostUpgradeRequired` does.
 // - Choice: the protocol is read from the connected status before calling,
-//   so an older machine is never asked; `usage.limits` (23) is not wired on
-//   the page, which never drew it.
+//   so an older machine is never asked. `usage.limits` (23) is read for one
+//   thing only, a session's limit notice (the node's `notice`, which the
+//   report methods do not carry); it is never a second card path.
 // - Read is cached-only and never contacts a vendor; only Refresh (Operate)
 //   and a source's consent (Admin) change anything, both explicit clicks.
 import type { NodeKey, NodeStatus } from "../../wire/bridge";
@@ -21,7 +22,10 @@ import type {
   UsageDisclosureVersion,
   UsageReportId,
   UsageReportLookup,
+  UsageReportScope,
   UsageReports,
+  SessionId,
+  UsageLimits,
   UsageSourceDescriptor,
   UsageSourceId,
 } from "../../wire/proto";
@@ -38,17 +42,16 @@ export function servesAccountReports(status: NodeStatus | undefined): boolean {
   );
 }
 
-/** The machine's reports. `cached` never discovers logins or contacts a source. */
+/** The machine's reports, or one session's account (Paseo's agent usage).
+ * `cached` never discovers logins or contacts a source. */
 export function readAccountReports(
   fleet: Fleet,
   node: NodeKey,
   refresh: LimitRefresh,
+  scope: UsageReportScope,
 ): Promise<Outcome<UsageReports>> {
   return attempt(() =>
-    fleet.bridge.call(node, "usage.reports", {
-      scope: { kind: "machine" },
-      refresh,
-    }),
+    fleet.bridge.call(node, "usage.reports", { scope, refresh }),
   );
 }
 
@@ -85,6 +88,29 @@ export function setSourceLookup(
       source,
       policy,
       disclosure_version: disclosure,
+    }),
+  );
+}
+
+/** `usage.limits` (PROTOCOL.md v23), read here for the limit notice only. */
+export const LIMITS_PROTOCOL = 23;
+
+/** Whether `status` is a connected machine that serves `usage.limits`. */
+export function servesLimits(status: NodeStatus | undefined): boolean {
+  return status?.state === "connected" && status.protocol >= LIMITS_PROTOCOL;
+}
+
+/** What the saved login a session runs under last reported, cached only:
+ * no login is discovered and no vendor is contacted. */
+export function readSessionLimits(
+  fleet: Fleet,
+  node: NodeKey,
+  session: SessionId,
+): Promise<Outcome<UsageLimits>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "usage.limits", {
+      scope: { kind: "session", session },
+      refresh: "cached",
     }),
   );
 }
