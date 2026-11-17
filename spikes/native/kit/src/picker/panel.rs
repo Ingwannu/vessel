@@ -5,8 +5,8 @@
 
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Bounds, Context, ElementId, MouseButton, Pixels, Window, anchored, div,
-    point, px, rgba,
+    Anchor, AnyElement, Bounds, Context, Div, ElementId, MouseButton, Pixels, Stateful, Window,
+    anchored, div, point, px, rgba,
 };
 
 use super::keys::key_handler;
@@ -130,22 +130,7 @@ pub(super) fn panel<V: 'static>(
             }
         }
     };
-    if let Some(title) = &header.title {
-        panel = panel.child(title_row(
-            title.clone(),
-            header.back,
-            state,
-            handlers,
-            tokens,
-            cx,
-        ));
-    }
-    if header.search {
-        panel = panel.child(search_row(state, tokens, cx));
-    }
-    if let Some(note) = &header.note {
-        panel = panel.child(note_row(note.clone(), tokens));
-    }
+    panel = heading(panel, list, tokens, cx);
     panel = panel.child(rows_list(
         header, rows, state, handlers, compact, tokens, cx,
     ));
@@ -229,4 +214,32 @@ pub(super) fn placed<V: 'static>(
             .child(panel)
             .into_any_element()
     }
+}
+
+/// The rows above the list's rows: its title (with the way back), its
+/// search, its note.
+fn heading<V: 'static>(
+    mut panel: Stateful<Div>,
+    list: &List<'_, V>,
+    tokens: &Tokens,
+    cx: &mut Context<'_, V>,
+) -> Stateful<Div> {
+    let (state, header) = (list.state, list.header);
+    if let Some(title) = &header.title {
+        panel = panel.child(title_row(
+            title.clone(),
+            header.back,
+            state,
+            list.handlers,
+            tokens,
+            cx,
+        ));
+    }
+    if header.search {
+        panel = panel.child(search_row(state, tokens, cx));
+    }
+    if let Some(note) = &header.note {
+        panel = panel.child(note_row(note.clone(), tokens));
+    }
+    panel
 }

@@ -5,8 +5,8 @@ use crate::{
     dialog::{DialogContent, DialogSize, DialogState},
 };
 use gpui::{
-    Entity, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseDownEvent, MouseUpEvent,
-    Render, TestAppContext, VisualTestContext, div, point, px,
+    Entity, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseButton, MouseDownEvent,
+    MouseUpEvent, Render, TestAppContext, VisualTestContext, div, point, px,
 };
 #[derive(Clone, Copy)]
 enum Reopen {

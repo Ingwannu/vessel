@@ -37,13 +37,13 @@ use std::rc::Rc;
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, Pixels, SharedString,
-    Stateful, Window, canvas, deferred, div, point, px, svg,
+    Stateful, Window, canvas, deferred, div, px, svg,
 };
 
 use crate::assets::Glyph;
 use crate::field::TextField;
 use crate::fonts::Type;
-use crate::popup::{self, Surfaces};
+use crate::popup::Surfaces;
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
