@@ -6,7 +6,7 @@
 use gpui::prelude::*;
 use gpui::{
     Anchor, AnyElement, Bounds, Context, Div, ElementId, MouseButton, Pixels, Stateful, Window,
-    anchored, div, point, px, rgba,
+    anchored, div, point, px,
 };
 
 use super::keys::key_handler;
@@ -193,7 +193,7 @@ pub(super) fn placed<V: 'static>(
                     .flex()
                     .flex_col()
                     .justify_end()
-                    .bg(rgba(0x0000_0073))
+                    .bg(popup::sheet_scrim())
                     .on_mouse_down(MouseButton::Left, on_scrim)
                     .child(panel),
             )

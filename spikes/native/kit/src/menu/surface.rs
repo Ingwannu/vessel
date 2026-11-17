@@ -28,7 +28,7 @@ use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, Context, Div, MouseButton, MouseDownEvent, SharedString, Stateful, Window,
-    anchored, div, point, px, rgba,
+    anchored, div, point, px,
 };
 
 /// Paseo's popover: content-sized or a caller's width, on `surface1` edged
@@ -125,7 +125,7 @@ impl RenderOnce for SheetBoundary {
                 .flex()
                 .flex_col()
                 .justify_end()
-                .bg(rgba(0x0000_0073))
+                .bg(popup::sheet_scrim())
                 .on_mouse_down(MouseButton::Left, self.on_scrim)
                 .child(self.panel),
         )
