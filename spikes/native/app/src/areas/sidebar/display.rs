@@ -22,9 +22,9 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Tokens, combobox, combobox_inline, select,
 };
+use vessel_app_view::SidebarWords;
 use vessel_app_view::prefs::SidebarView;
 use vessel_app_view::sidebar::display::{DisplayAct, DisplayPage, OptionMark, RowKind};
-use vessel_app_view::text::SidebarWords;
 
 use crate::shell::Shell;
 
