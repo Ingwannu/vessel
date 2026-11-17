@@ -1,21 +1,64 @@
 //! A menu row that opens a page (TRACKER 791, [`crate::submenu`]), drawn
 //! by the one menu renderer beside its ordinary rows.
 
-use super::MenuState;
-use super::draw::row_body;
+use super::draw::{row, row_body};
 use super::item::paint;
+use super::{MenuHandlers, MenuItem, MenuState};
 use crate::popup::Surfaces;
 use crate::submenu::Submenus;
 use crate::theme::spacing;
 use gpui::prelude::*;
 use gpui::{AnyElement, Context, MouseButton, div, px};
 
+/// What every row of one menu is drawn from.
+pub(super) struct Rows<'a, V> {
+    state: &'a MenuState,
+    pub(super) handlers: &'a MenuHandlers<V>,
+    pub(super) submenus: Option<&'a Submenus>,
+    surfaces: &'a Surfaces,
+    narrow: bool,
+}
+
+/// `item`'s row: one that opens a page when the menu has submenus, else
+/// an ordinary one.
+pub(super) fn any_row<V: 'static>(
+    index: usize,
+    item: &MenuItem,
+    rows: &Rows<'_, V>,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    match (&item.opens, rows.submenus) {
+        (Some(page), Some(submenus)) => sub_row(
+            &SubRow {
+                index,
+                item,
+                page,
+                submenus,
+                state: rows.state,
+                surfaces: rows.surfaces,
+                narrow: rows.narrow,
+            },
+            rows.handlers.state,
+            cx,
+        ),
+        _ => row(
+            index,
+            item,
+            rows.state,
+            rows.handlers,
+            rows.surfaces,
+            rows.narrow,
+            cx,
+        ),
+    }
+}
+
 /// A row that opens a page, and what it is drawn from.
-pub(super) struct SubRow<'a> {
-    pub(super) index: usize,
-    pub(super) item: &'a super::MenuItem,
-    pub(super) page: &'a str,
-    pub(super) submenus: &'a Submenus,
+struct SubRow<'a> {
+    index: usize,
+    item: &'a MenuItem,
+    page: &'a str,
+    submenus: &'a Submenus,
     pub(super) state: &'a MenuState,
     pub(super) surfaces: &'a Surfaces,
     pub(super) narrow: bool,
@@ -25,7 +68,7 @@ pub(super) struct SubRow<'a> {
 // while its page is open the row keeps the fill (`active`) and no check.
 // Pointer rest opens the page (hover intent), a press or Enter opens it at
 // once; neither closes the menu nor reaches the caller's `chose`.
-pub(super) fn sub_row<V: 'static>(
+fn sub_row<V: 'static>(
     row: &SubRow<'_>,
     get: fn(&mut V) -> &mut MenuState,
     cx: &mut Context<'_, V>,

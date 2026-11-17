@@ -185,6 +185,7 @@ impl Submenus {
     }
 
     /// Back one page; false at the root.
+    #[must_use = "false at the root, where the caller closes the menu"]
     pub fn back(&self) -> bool {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;

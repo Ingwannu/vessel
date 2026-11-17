@@ -1,11 +1,11 @@
 //! One shared renderer for point-opened and right-aligned action menus.
 
-use super::input::{KeyMenu, keyboard};
+use super::input::{KeyMenu, keyboard, outside};
 use super::item::{Leading, paint};
 use super::{MenuHandlers, MenuItem, MenuState, pointer_choice};
 use std::rc::Rc;
 
-use super::sub_row::{SubRow, sub_row};
+use super::sub_row::{Rows, any_row};
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::submenu::Submenus;
@@ -232,30 +232,7 @@ fn draw<V: 'static>(
     let on_key = cx.listener(move |view, event, window, cx| {
         keyboard(view, event, window, cx, &key_menu);
     });
-    let outside_lease = state.render_lease();
-    let pages = submenus.clone();
-    let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
-        // A press on one of its open pages belongs to the menu.
-        if pages
-            .as_ref()
-            .is_some_and(|pages| pages.contains(window.mouse_position()))
-        {
-            return;
-        }
-        if !get(view).accepts(&outside_lease) {
-            if layer == Layer::AboveDialog {
-                // A stale nested menu still contains this press; forwarding
-                // along A's path could dismiss the dialog underneath B.
-                cx.stop_propagation();
-            }
-            return;
-        }
-        get(view).close_and_restore(window, cx);
-        if layer == Layer::AboveDialog {
-            cx.stop_propagation();
-        }
-        cx.notify();
-    });
+    let on_outside = outside(state, get, layer, submenus.clone(), cx);
     // track_focus installs GPUI's own automatic pointer-focus listener. Fence
     // its default behavior too, before an obsolete panel can focus old state.
     let focus_lease = state.render_lease();
@@ -288,6 +265,13 @@ fn draw<V: 'static>(
         .rounded(px(popup::MENU_RADIUS))
         .overflow_hidden()
         .shadow(popup::shadow_md(tokens));
+    let rows = Rows {
+        state,
+        handlers,
+        submenus: submenus.as_ref(),
+        surfaces: &surfaces,
+        narrow,
+    };
     for (index, item) in items.iter().enumerate() {
         if item.starts_group && index > 0 {
             panel = panel.child(
@@ -297,23 +281,7 @@ fn draw<V: 'static>(
                     .bg(surfaces.border_accent),
             );
         }
-        let drawn = match (&item.opens, &submenus) {
-            (Some(page), Some(submenus)) => sub_row(
-                &SubRow {
-                    index,
-                    item,
-                    page,
-                    submenus,
-                    state,
-                    surfaces: &surfaces,
-                    narrow,
-                },
-                get,
-                cx,
-            ),
-            _ => row(index, item, state, handlers, &surfaces, narrow, cx),
-        };
-        panel = panel.child(drawn);
+        panel = panel.child(any_row(index, item, &rows, cx));
     }
     let surface = anchored()
         .anchor(corner)
@@ -359,7 +327,7 @@ impl RenderOnce for ModalBoundary {
     }
 }
 
-fn row<V: 'static>(
+pub(super) fn row<V: 'static>(
     index: usize,
     item: &MenuItem,
     state: &MenuState,

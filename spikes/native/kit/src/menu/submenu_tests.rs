@@ -79,7 +79,7 @@ fn state(view: &Entity<Probe>, cx: &mut VisualTestContext) -> (bool, bool, usize
     })
 }
 
-fn sub_row_centre(view: &Entity<Probe>, cx: &mut VisualTestContext) -> gpui::Point<gpui::Pixels> {
+fn sub_row_centre(view: &Entity<Probe>, cx: &mut VisualTestContext) -> Point<Pixels> {
     view.read_with(cx, |probe, _| probe.submenus.trigger("labels"))
         .unwrap()
         .center()
