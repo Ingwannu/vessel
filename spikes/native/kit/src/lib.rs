@@ -73,6 +73,7 @@ pub mod sheet;
 pub mod skeleton;
 pub mod slider;
 pub mod split_button;
+pub mod submenu;
 pub mod tabs;
 pub mod terminal_grid;
 pub mod theme;
@@ -109,7 +110,8 @@ pub use output::{
 };
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
-    anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
+    anchor_probe, combobox, combobox_inline, glyph, initial_of, initial_tile, pill, pill_parts,
+    send_button,
 };
 pub use screen_header::{compact_header, screen_header};
 pub use scroll_viewport::{ScrollState, ScrollViewport, SectionIndex};
