@@ -381,7 +381,12 @@ pub(super) fn combo_row<V: 'static>(
         );
     }
     if !row.disabled {
-        element = enabled_row(element, index, state, handlers, wash, cx);
+        element = match (&row.page, &state.submenus) {
+            (Some(page), Some(pages)) => {
+                super::pages::page_row(element, page, pages, state, handlers.state, wash, cx)
+            }
+            _ => enabled_row(element, index, state, handlers, wash, cx),
+        };
     }
     element.into_any_element()
 }
