@@ -6,6 +6,7 @@ use super::{MenuHandlers, MenuItem, MenuState, pointer_choice};
 use std::rc::Rc;
 
 use super::sub_row::{Rows, any_row};
+use super::surface;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::submenu::Submenus;
@@ -13,8 +14,8 @@ use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Context, ElementId, MouseButton, Pixels, Window, anchored, deferred, div,
-    px,
+    Anchor, AnyElement, Context, ElementId, MouseButton, Pixels, SharedString, Window, anchored,
+    deferred, div, px,
 };
 
 /// The narrowest a menu is (Paseo's `minWidth`).
@@ -87,6 +88,9 @@ pub struct Content<'a> {
     pub layer: Layer,
     /// Its submenus, when a row opens a page ([`crate::submenu`]).
     pub submenus: Option<Submenus>,
+    /// On a phone, a sheet from the bottom with this title (Paseo's
+    /// `compactMode="sheet"`, `sheetTitle`); otherwise the popover.
+    pub sheet: Option<SharedString>,
 }
 impl<'a> Content<'a> {
     /// Legacy content width, with all labels and states retained.
@@ -98,6 +102,16 @@ impl<'a> Content<'a> {
             width: Width::Content,
             layer: Layer::Screen,
             submenus: None,
+            sheet: None,
+        }
+    }
+    /// On a phone, come up as a sheet titled `title`; a page it opens
+    /// replaces it in place (the screen draws that page's sheet).
+    #[must_use]
+    pub fn with_sheet(self, title: impl Into<SharedString>) -> Self {
+        Self {
+            sheet: Some(title.into()),
+            ..self
         }
     }
     /// Rows that open pages open them through `submenus`; a press on an
@@ -230,10 +244,20 @@ fn draw<V: 'static>(
         width,
         layer,
         submenus,
+        sheet,
     } = content;
     if let Some(submenus) = &submenus {
         // A new opening of this menu starts at its root page.
         submenus.follow(&Rc::downgrade(&state.cycle));
+    }
+    let sheet = sheet.filter(|_| narrow);
+    if sheet.is_some()
+        && submenus
+            .as_ref()
+            .is_some_and(|pages| !pages.path().pages().is_empty())
+    {
+        // Its open page replaces it in place, as the screen's own sheet.
+        return None;
     }
     let get = handlers.state;
     let keys_items: Rc<[MenuItem]> = items.into();
@@ -266,22 +290,16 @@ fn draw<V: 'static>(
             }
         }))
         .on_key_down(on_key)
-        .on_mouse_down_out(on_outside)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
         .occlude()
         .cursor_default()
         .flex()
         .flex_col()
-        .min_w(width.minimum())
-        .when(width.fixed().is_none(), |panel| panel.max_w(MAX_WIDTH))
-        .when_some(width.fixed(), Styled::w)
-        .py(px(spacing::S1))
-        .bg(surfaces.surface1)
-        .border_1()
-        .border_color(surfaces.border_accent)
-        .rounded(px(popup::MENU_RADIUS))
-        .overflow_hidden()
-        .shadow(popup::shadow_md(tokens));
+        .py(px(spacing::S1));
+    panel = match &sheet {
+        Some(title) => surface::sheet(panel, title.clone(), tokens),
+        None => surface::popover(panel.on_mouse_down_out(on_outside), width, &surfaces, tokens),
+    };
     let rows = Rows {
         state,
         handlers,
@@ -301,22 +319,25 @@ fn draw<V: 'static>(
         }
         panel = panel.child(any_row(index, item, &rows, cx));
     }
-    let surface = anchored()
-        .anchor(corner)
-        .position(at)
-        .offset(gpui::point(px(0.0), px(OFFSET)))
-        .snap_to_window_with_margin(px(spacing::S2))
-        // All entries retain the published QUICK arrival and one panel.
-        .child(popup::appear(
-            ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
-            panel,
-            crate::motion::QUICK,
-        ));
+    let arrival = ElementId::NamedChild(std::sync::Arc::new(id), "appear".into());
+    let surface = if sheet.is_some() {
+        // A phone's sheet rises over the standard length, as the list's does.
+        let panel = popup::appear(arrival, panel, crate::motion::STANDARD).into_any_element();
+        let on_scrim = Box::new(surface::scrim(state, get, cx));
+        surface::SheetBoundary { panel, on_scrim }.into_any_element()
+    } else {
+        anchored()
+            .anchor(corner)
+            .position(at)
+            .offset(gpui::point(px(0.0), px(OFFSET)))
+            .snap_to_window_with_margin(px(spacing::S2))
+            // All entries retain the published QUICK arrival and one panel.
+            .child(popup::appear(arrival, panel, crate::motion::QUICK))
+            .into_any_element()
+    };
     let overlay = match layer {
-        Layer::Screen => surface.into_any_element(),
-        Layer::AboveDialog => ModalBoundary {
-            surface: surface.into_any_element(),
-        }
+        Layer::Screen => surface,
+        Layer::AboveDialog => surface::ModalBoundary { surface }
         .into_any_element(),
     };
     Some(
@@ -324,25 +345,6 @@ fn draw<V: 'static>(
             .with_priority(layer.priority())
             .into_any_element(),
     )
-}
-
-// A nested deferred element still participates in its parent's layout. Read
-// the actual Window here: size_full inside a dialog would cover only its body,
-// leaving the scrim and sibling actions reachable by the same outside press.
-#[derive(gpui::IntoElement)]
-struct ModalBoundary {
-    surface: AnyElement,
-}
-impl RenderOnce for ModalBoundary {
-    fn render(self, window: &mut Window, _: &mut gpui::App) -> impl IntoElement {
-        let size = window.viewport_size();
-        anchored().position(gpui::point(px(0.0), px(0.0))).child(
-            popup::layer(div())
-                .w(size.width)
-                .h(size.height)
-                .child(self.surface),
-        )
-    }
 }
 
 pub(super) fn row<V: 'static>(

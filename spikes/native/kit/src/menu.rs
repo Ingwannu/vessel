@@ -17,9 +17,11 @@
 //!   frame, over everything, at the point it was opened from, kept
 //!   inside the window. A chosen row is handed back by index, so the
 //!   screen keeps its own list of what each row does.
-//! - Cost: no submenus, group labels or check rows yet (no menu of ours
-//!   needs them); a phone shows the same popover with 44-point rows, as
-//!   Paseo's menus do unless they ask for a sheet (none of ours does yet).
+//! - Cost: no group labels or check rows yet (no menu of ours needs them).
+//!   Submenus (a row that opens a page, [`crate::submenu`]) and a phone's
+//!   sheet are opted into per menu (TRACKER 791, `Content::with_submenus`,
+//!   `Content::with_sheet`); without a sheet a phone shows the same popover
+//!   with 44-point rows, as Paseo's menus do unless they ask for a sheet.
 //!
 //! Integration decision: the published renderer owns both entry points.
 //! Keep item values, caller-owned state and drawing in separate modules so
@@ -41,10 +43,13 @@ mod modal_tests;
 #[cfg(test)]
 mod presentation_tests;
 #[cfg(test)]
+mod sheet_tests;
+#[cfg(test)]
 mod shortcut_tests;
 mod sub_row;
 #[cfg(test)]
 mod submenu_tests;
+mod surface;
 #[cfg(test)]
 mod tests;
 mod trigger;

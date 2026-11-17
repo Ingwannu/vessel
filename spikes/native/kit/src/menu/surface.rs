@@ -1,0 +1,142 @@
+//! The menu's two surfaces: Paseo's popover at its trigger, and, opted into
+//! per menu, a phone's sheet (TRACKER 791; Paseo's `MenuRoot`
+//! `compactMode="sheet"` with its `sheetTitle`).
+//!
+//! [Decision Log]
+//! - Purpose: the menus Paseo shows as sheets on a phone (a workspace row's,
+//!   the sidebar's Display) come up from the bottom here too, and a page they
+//!   open replaces them in place with a back header.
+//! - Constraint: one renderer owns keys, leases and dismissal for both; the
+//!   window's size is read where the sheet is laid out (a nested deferred
+//!   element still takes its parent's layout, as `ModalBoundary` notes).
+//! - Choice: below the compact width a menu with a sheet title is a
+//!   full-width panel on `surface0` with its top corners at the sheet radius,
+//!   its title on top and 44-point rows, over the 45% scrim that closes it;
+//!   while one of its pages is open the menu draws nothing and the screen
+//!   draws the page as its own sheet with a back header (the list's sheet),
+//!   whose Back returns here.
+//! - Cost: a page's sheet is the screen's; the kit draws the root sheet and
+//!   the flyouts' wide case.
+
+use super::draw::MAX_WIDTH;
+use super::{MenuState, Width};
+use crate::fonts::Type;
+use crate::popup::{self, Surfaces};
+use crate::theme::{Tokens, spacing};
+use crate::widgets::TypeExt as _;
+use gpui::prelude::*;
+use gpui::{
+    AnyElement, App, Context, Div, MouseButton, MouseDownEvent, SharedString, Stateful, Window,
+    anchored, div, point, px, rgba,
+};
+
+/// Paseo's popover: content-sized or a caller's width, on `surface1` edged
+/// with `borderAccent` under the medium shadow.
+pub(super) fn popover(
+    panel: Stateful<Div>,
+    width: Width,
+    surfaces: &Surfaces,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    panel
+        .min_w(width.minimum())
+        .when(width.fixed().is_none(), |panel| panel.max_w(MAX_WIDTH))
+        .when_some(width.fixed(), Styled::w)
+        .bg(surfaces.surface1)
+        .border_1()
+        .border_color(surfaces.border_accent)
+        .rounded(px(popup::MENU_RADIUS))
+        .overflow_hidden()
+        .shadow(popup::shadow_md(tokens))
+}
+
+/// A phone's sheet: the window's width, `surface0`, its top corners
+/// rounded, its title first.
+pub(super) fn sheet(panel: Stateful<Div>, title: SharedString, tokens: &Tokens) -> Stateful<Div> {
+    let surfaces = Surfaces::of(tokens);
+    panel
+        .w_full()
+        .max_h(gpui::relative(0.8))
+        .bg(surfaces.surface0)
+        .border_1()
+        .border_color(tokens.neutral.border)
+        .rounded_t(px(popup::SHEET_RADIUS))
+        .pb(px(spacing::S4))
+        .overflow_hidden()
+        .child(
+            // The list's sheet title row (`picker::rows::title_row`), so the
+            // menu and the page that replaces it share one header.
+            div()
+                .flex()
+                .items_center()
+                .px(px(12.0))
+                .py(px(10.0))
+                .border_b_1()
+                .border_color(tokens.neutral.border)
+                .type_(Type::Label)
+                .text_color(surfaces.foreground)
+                .child(div().min_w_0().truncate().child(title)),
+        )
+}
+
+/// A press on the dimmed page closes the menu (a stale frame's is kept).
+pub(super) fn scrim<V: 'static>(
+    state: &MenuState,
+    get: fn(&mut V) -> &mut MenuState,
+    cx: &mut Context<'_, V>,
+) -> impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static {
+    let lease = state.render_lease();
+    cx.listener(move |view: &mut V, _event: &MouseDownEvent, window, cx| {
+        if get(view).accepts(&lease) {
+            get(view).close_and_restore(window, cx);
+            cx.notify();
+        } else {
+            window.prevent_default();
+        }
+        cx.stop_propagation();
+    })
+}
+
+/// The sheet at the window's bottom over the scrim, laid out where the
+/// window's size is known.
+#[derive(gpui::IntoElement)]
+pub(super) struct SheetBoundary {
+    pub(super) panel: AnyElement,
+    pub(super) on_scrim: Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App)>,
+}
+
+impl RenderOnce for SheetBoundary {
+    fn render(self, window: &mut Window, _: &mut App) -> impl IntoElement {
+        let size = window.viewport_size();
+        anchored().position(point(px(0.0), px(0.0))).child(
+            div()
+                .w(size.width)
+                .h(size.height)
+                .flex()
+                .flex_col()
+                .justify_end()
+                .bg(rgba(0x0000_0073))
+                .on_mouse_down(MouseButton::Left, self.on_scrim)
+                .child(self.panel),
+        )
+    }
+}
+
+// A nested deferred element still participates in its parent's layout. Read
+// the actual Window here: size_full inside a dialog would cover only its body,
+// leaving the scrim and sibling actions reachable by the same outside press.
+#[derive(gpui::IntoElement)]
+pub(super) struct ModalBoundary {
+    pub(super) surface: AnyElement,
+}
+impl RenderOnce for ModalBoundary {
+    fn render(self, window: &mut Window, _: &mut App) -> impl IntoElement {
+        let size = window.viewport_size();
+        anchored().position(point(px(0.0), px(0.0))).child(
+            popup::layer(div())
+                .w(size.width)
+                .h(size.height)
+                .child(self.surface),
+        )
+    }
+}
