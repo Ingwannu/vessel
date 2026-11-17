@@ -24,6 +24,12 @@ impl Shell {
         {
             let _inserted = held.insert(key.clone());
         }
+        // The pane header's open menu holds its layout as the tab menu does.
+        if self.areas.layout.header_menu.is_open()
+            && let Some(menu) = &self.areas.layout.header_menu_for
+        {
+            let _inserted = held.insert(menu.workspace.clone());
+        }
         if (self.areas.layout.resizing.get().is_some()
             || self.areas.layout.drop_preview.get().is_some()
             || self.areas.layout.tab_drop_preview.get().is_some())

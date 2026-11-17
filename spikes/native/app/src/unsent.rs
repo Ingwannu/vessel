@@ -75,14 +75,12 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Sessions(ask) => {
             Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
         }
-        Command::Create(ask) => Event::Creation(ask.refused(match unsent.why {
-            Rejected::Full => vessel_app_view::creation::Failure::QueueFull,
-            Rejected::Closed => vessel_app_view::creation::Failure::Offline,
-        })),
+        Command::Create(ask) => Event::Creation(ask.refused(creation_failure(unsent.why))),
         Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
             ask,
             vessel_app_view::history::Problem::Unsent,
         )),
+        Command::Labels(request) => Event::Labels(request.refused(labels_failure(unsent.why))),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
@@ -163,6 +161,23 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// A creation the link gave back: a full queue or a stopped link.
+const fn creation_failure(why: Rejected) -> vessel_app_view::creation::Failure {
+    match why {
+        Rejected::Full => vessel_app_view::creation::Failure::QueueFull,
+        Rejected::Closed => vessel_app_view::creation::Failure::Offline,
+    }
+}
+
+/// A labels command the link gave back: a full queue is a failed update
+/// to try again, a stopped link the host offline.
+const fn labels_failure(why: Rejected) -> vessel_app_view::labels::Failure {
+    match why {
+        Rejected::Full => vessel_app_view::labels::Failure::Update,
+        Rejected::Closed => vessel_app_view::labels::Failure::Offline,
+    }
 }
 
 /// As the devices page: a full queue is the usage page's "busy", a stopped
@@ -250,6 +265,41 @@ mod tests {
     use super::{Settle, settle};
 
     const WORDS: &str = "Could not send. Try again.";
+
+    #[test]
+    fn labels_queue_refusal_keeps_host_ticket_and_operation_kind() {
+        use vessel_app_link::labels::{Answer, Command as LabelCommand};
+        use vessel_app_view::labels::{Failure, Tickets};
+        let context = vessel_app_view::connection::ConnectionEpochs::default()
+            .admit(
+                vessel_app_view::connection::MachineKey::from_book("fixture"),
+                vessel_proto::NodeId::random(),
+            )
+            .unwrap();
+        let ticket = Tickets::default().issue().unwrap();
+        let ask = LabelCommand::InspectDelete("Ready".parse().unwrap());
+        let Settle::Answer(event) = settle(
+            vessel_app_link::Unsent::new(
+                Rejected::Closed,
+                Command::Labels(vessel_app_link::labels::Request {
+                    context: context.clone(),
+                    ticket,
+                    ask,
+                }),
+            ),
+            WORDS,
+        ) else {
+            panic!("an inspection settles through its typed result");
+        };
+        let Event::Labels(answer) = *event else {
+            panic!("a label result");
+        };
+        assert_eq!((answer.context, answer.ticket), (context, ticket));
+        assert!(matches!(
+            answer.answer,
+            Answer::Inspected(Err(Failure::Offline))
+        ));
+    }
 
     fn list() -> Command {
         Command::Workspace {

@@ -10,7 +10,11 @@ test("no meter before the agent says, or without a window", () => {
 test("the ring, its colour and its words, by the reference's thresholds", () => {
   const room = meterOf({ used: 1200, size: 200_000 });
   expect(room).toMatchObject({ percent: 1, fullness: "room", arc: 0.08 });
-  expect(room?.lines).toEqual(["Context window", "1k / 200k tokens (1%)"]);
+  expect(room).toMatchObject({
+    title: "Context window",
+    used: "1% used",
+    details: ["1k / 200k tokens"],
+  });
   expect(meterOf({ used: 140_000, size: 200_000 })?.fullness).toBe("low");
   const full = meterOf({
     used: 190_000,
@@ -18,7 +22,7 @@ test("the ring, its colour and its words, by the reference's thresholds", () => 
     cost: { amount: 0.5, unit: "USD" },
   });
   expect(full?.fullness).toBe("full");
-  expect(full?.lines).toContain("Session cost $0.50");
+  expect(full?.details).toContain("Session cost $0.50");
 });
 
 test("counts and costs as written", () => {

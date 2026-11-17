@@ -19,6 +19,7 @@ import type {
   UsageDisclosureVersion,
   UsageReportId,
   UsageReportLookup,
+  UsageReportScope,
   UsageReports,
   UsageSourceDescriptor,
   UsageSourceId,
@@ -45,6 +46,7 @@ export interface AccountCalls {
   read: (
     node: NodeKey,
     refresh: LimitRefresh,
+    scope: UsageReportScope,
   ) => Promise<Outcome<UsageReports>>;
   inspect: (
     node: NodeKey,
@@ -88,15 +90,18 @@ export class AccountReader {
   readonly #calls: AccountCalls;
   #generation = 0;
   #node: NodeKey | null = null;
+  #scope: UsageReportScope = { kind: "machine" };
 
   constructor(calls: AccountCalls) {
     this.#calls = calls;
   }
 
-  /** Show `node`'s reports, read cached (never contacts a source). */
-  open(node: NodeKey): void {
+  /** Show `node`'s reports (the machine's, or one session's account),
+   * read cached (never contacts a source). */
+  open(node: NodeKey, scope: UsageReportScope = { kind: "machine" }): void {
     this.#generation += 1;
     this.#node = node;
+    this.#scope = scope;
     this.store.set({ kind: "loading", node });
     this.#read(this.#generation, node, "cached");
   }
@@ -190,7 +195,7 @@ export class AccountReader {
   }
 
   #read(generation: number, node: NodeKey, refresh: LimitRefresh): void {
-    void this.#calls.read(node, refresh).then((outcome) => {
+    void this.#calls.read(node, refresh, this.#scope).then((outcome) => {
       if (generation !== this.#generation) return;
       const shown = this.#shown();
       if (outcome.ok) {

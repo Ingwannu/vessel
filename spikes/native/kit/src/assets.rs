@@ -476,6 +476,8 @@ mod command_role_tests;
 #[cfg(test)]
 mod command_weight_tests;
 #[cfg(test)]
+mod launch_role_tests;
+#[cfg(test)]
 mod sheet_role_tests;
 #[cfg(test)]
 mod viewport_role_tests;

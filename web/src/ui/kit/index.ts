@@ -24,6 +24,7 @@ export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";
 export { useFilePicker } from "./file-picker";
 export { Field, FieldGroup } from "./field";
+export { HoverCard } from "./hover-card";
 export { ICON_NAMES, Icon, type IconName, type IconSize } from "./icon";
 export { Kbd } from "./kbd";
 export {

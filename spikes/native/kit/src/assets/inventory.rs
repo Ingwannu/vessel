@@ -242,6 +242,16 @@ glyph_inventory! {
     CommandCircleDashed => "kit/command-circle-dashed.svg",
     /// The left sidebar toggle in the command centre (Paseo `PanelLeftIcon`, Lucide `PanelLeft` at 2.2).
     CommandPanelLeft => "kit/command-panel-left.svg",
+    /// The new-tab menu's Agent (Paseo's launcher `SquarePen`).
+    SquarePen => "kit/square-pen.svg",
+    /// The new-tab menu's Terminal (Paseo's launcher `SquareTerminal`).
+    SquareTerminal => "kit/square-terminal.svg",
+    /// The new-tab menu's Changes and Diff (Paseo's diff panels' `FileDiff`).
+    FileDiff => "kit/file-diff.svg",
+    /// The new-tab menu's Files (Paseo's files panel `Files`).
+    Files => "kit/files.svg",
+    /// The new-tab menu's Browser (Paseo's launcher `Globe`).
+    Globe => "kit/globe.svg",
     /// The import sheet's empty state (Paseo `SheetEmptyState`, Lucide `Inbox`).
     Inbox => "kit/inbox.svg",
     /// The import sheet's "All" provider filter (Paseo's filter pill, Lucide `Layers`).

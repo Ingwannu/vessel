@@ -13,8 +13,13 @@
 //!   fill for an unread one that neither works nor waits); an unread
 //!   title in the primary colour at medium weight. The agent's mark stays
 //!   ahead of it (the native sidebar has drawn it since track S's rows).
+//! - Labels (ADR 0086): the session's workspace labels as Paseo's chips on
+//!   a second line under the title rail (Paseo's workspace meta row), only
+//!   when it has any, so an unlabelled row keeps its one line.
 //! - Difference, named: no branch chip yet (the page shows the session's
-//!   branch; the card's branch is the workspace track's to draw).
+//!   branch; the card's branch is the workspace track's to draw); the meta
+//!   line carries only the labels (Paseo's also shows a change request and
+//!   checks).
 //! - Its menu (`row_menu`): Paseo's kebab at the row's right, shown while
 //!   the row is hovered or its menu is open and always on touch (18 points
 //!   on a wide window, 32 on touch, corners of 4, the muted mark
@@ -57,6 +62,11 @@ const DOTS_TOUCH: f32 = 32.0;
 const DOTS_MARK: f32 = 14.0;
 /// Its corners (Paseo's 4).
 const DOTS_CORNER: f32 = 4.0;
+/// The agent's mark ahead of the slot (`Size::Fourteen`).
+const AGENT: f32 = 14.0;
+/// Where a title starts: the agent's mark, the slot and their gaps, so
+/// the labels' line starts under it.
+const TITLE_RAIL: f32 = AGENT + spacing::S2 + SLOT + spacing::S2;
 
 /// `card`'s row; `machine`: its machine's name at the right (grouped by
 /// status).
@@ -85,19 +95,17 @@ pub(super) fn session_row(
     } else {
         tokens.text_secondary
     };
-    div()
-        .id(ElementId::Name(format!("session-{}", card.session).into()))
-        .group(group.clone())
+    let labels = shell
+        .areas
+        .labels
+        .row(&card.machine, card.session, card.member_project())
+        .map(|row| row.labels)
+        .unwrap_or_default();
+    let line = div()
         .flex()
         .flex_row()
         .items_center()
         .gap(px(spacing::S2))
-        .px(px(INSET))
-        .py(px(ROW_Y))
-        .rounded(px(radius::R4))
-        .when(active, |row| row.bg(tokens.bg_active))
-        .hover(|style| style.bg(tokens.bg_hover))
-        .cursor_pointer()
         .child(crate::agent_mark::mark_muted(
             card.detail.harness.as_ref(),
             vessel_app_kit::agent_mark::Size::Fourteen,
@@ -132,7 +140,21 @@ pub(super) fn session_row(
                 .text_color(tokens.text_tertiary)
                 .child(name.to_owned())
         }))
-        .child(dots(card, group, touch, menu_open, tokens, cx))
+        .child(dots(card, group.clone(), touch, menu_open, tokens, cx));
+    div()
+        .id(ElementId::Name(format!("session-{}", card.session).into()))
+        .group(group)
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S1))
+        .px(px(INSET))
+        .py(px(ROW_Y))
+        .rounded(px(radius::R4))
+        .when(active, |row| row.bg(tokens.bg_active))
+        .hover(|style| style.bg(tokens.bg_hover))
+        .cursor_pointer()
+        .child(line)
+        .children(labels_line(&labels, tokens))
         .on_mouse_down(
             MouseButton::Right,
             cx.listener(move |this, event: &MouseDownEvent, window, cx| {
@@ -142,6 +164,28 @@ pub(super) fn session_row(
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);
         }))
+}
+
+/// The workspace's labels under the title rail, when it has any.
+fn labels_line(
+    labels: &[vessel_app_view::labels::Label],
+    tokens: &Tokens,
+) -> Option<vessel_app_kit::ui::Div> {
+    (!labels.is_empty()).then(|| {
+        div()
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(spacing::S1))
+            .pl(px(TITLE_RAIL))
+            .min_w_0()
+            .overflow_hidden()
+            .children(
+                labels
+                    .iter()
+                    .map(|label| crate::areas::labels::chip(label, tokens)),
+            )
+    })
 }
 
 /// The row's kebab: always shown on touch or while its menu is open, else

@@ -4,7 +4,7 @@ use crate::areas::session::Open;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
 use vessel_app_kit::ui::{Entity, IntoElement, px};
-use vessel_app_view::layout::AgentRole;
+use vessel_app_view::layout::{AgentRole, OpenIntent, Placement, Target};
 use vessel_proto::SessionId;
 
 struct Probe(Entity<Shell>);
@@ -30,7 +30,7 @@ impl Render for Probe {
 fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
     Probe(cx.new(|cx| {
         let mut shell = Shell::without_io(window, cx);
-        shell.route = crate::routes::Route::Session;
+        shell.route = Route::Session;
         let session = SessionId::random();
         shell.areas.session.open = Some(Open {
             machine: "isolated".to_owned(),
@@ -85,6 +85,13 @@ fn pointer_header_uses_shared_hitboxes_and_switches_actual_maximize_restore(
                 .borrow()
                 .contains_key(&(PaneId::MAIN, Control::Focus))
         );
+        // Paseo's "…" while panes can split, in the same 20-point chrome.
+        assert_eq!(
+            place(shell, Control::More).size,
+            gpui::size(px(20.0), px(20.0))
+        );
+        // Order: + | maximise | … (maximise only with two or more panes).
+        assert!(place(shell, Control::New).right() <= place(shell, Control::More).left());
     });
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, cx| {
@@ -155,30 +162,32 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
                 .layout
                 .tip_places
                 .borrow()
-                .contains_key(&(PaneId::MAIN, Control::Right))
-        );
-        // Compact tooltips intentionally install no measurement/listener. The
-        // actual row contains only New, so its painted bounds are the hitbox.
-        assert!(
-            shell.areas.layout.tip_places.borrow()[&(PaneId::MAIN, Control::New)]
-                .get()
-                .is_none()
+                .contains_key(&(PaneId::MAIN, Control::More))
         );
     });
+    // Compact tooltips install no listener, but "+" is still measured so its
+    // menu opens under it; the row holds only New, so both bounds agree.
     let new = cx.debug_bounds("layout-main-pane-controls").unwrap();
     assert_eq!(new.size, gpui::size(px(32.0), px(32.0)));
+    let measured = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::New));
+    assert_eq!(measured, new);
     cx.simulate_click(new.center(), Modifiers::none());
     cx.run_until_parked();
+    // Paseo's "+" is a menu: it opens the new-tab menu and adds no tab.
     probe.read_with(cx, |probe, cx| {
         let shell = probe.0.read(cx);
+        assert!(shell.areas.layout.header_menu.is_open());
+        assert_eq!(
+            shell
+                .areas
+                .layout
+                .header_menu_for
+                .as_ref()
+                .map(|menu| menu.kind),
+            Some(MenuKind::NewTab)
+        );
         with_layout(shell, |layout| {
-            assert_eq!(layout.tabs().count(), 2);
-            assert_eq!(
-                layout
-                    .action_context(&super::super::key(shell).unwrap())
-                    .target(),
-                Some(&Target::NewTab)
-            );
+            assert_eq!(layout.tabs().count(), 1);
             Ok(())
         })
         .unwrap();
@@ -192,7 +201,7 @@ fn retained_header_callback_refuses_changed_original_selection_without_split(
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        shell.route = crate::routes::Route::Session;
+        shell.route = Route::Session;
         shell.areas.session.open = Some(Open {
             machine: "isolated".to_owned(),
             session: SessionId::random(),
@@ -205,7 +214,7 @@ fn retained_header_callback_refuses_changed_original_selection_without_split(
         });
         let context = shell.layout_action_context().unwrap();
         let old = PaneAction {
-            control: Control::Right,
+            op: PaneOp::Split(Position::Right),
             pane: PaneId::MAIN,
             context,
         };
@@ -223,5 +232,98 @@ fn retained_header_callback_refuses_changed_original_selection_without_split(
         old.run(shell, window, cx);
         assert_eq!(*shell.areas.layout.book.borrow(), before);
         assert!(shell.areas.layout.maximized.is_none());
+    });
+}
+
+/// Paseo's new-tab menu: the launch catalog in the pane's order, only what
+/// starts here enabled; Agent opens the new-agent page.
+#[gpui::test]
+fn the_new_tab_menu_lists_the_catalog_and_agent_opens_the_new_agent_page(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    cx.simulate_resize(gpui::size(px(1280.0), px(900.0)));
+    cx.run_until_parked();
+    let new = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::New));
+    cx.simulate_click(new.center(), Modifiers::none());
+    cx.run_until_parked();
+    // Below "+" (its start at the button's, moved left as the window edge
+    // requires: "+" ends the header near the window's right edge here).
+    let first = cx.debug_bounds("menu-row-0").unwrap();
+    assert!(first.top() > new.bottom());
+    assert!(first.right() <= px(1280.0));
+    let launches = cx.update(|window, cx| {
+        let shell = probe.read(cx).0.read(cx);
+        rows(shell, MenuKind::NewTab, window)
+            .iter()
+            .map(|(op, item)| (*op, item.disabled))
+            .collect::<Vec<_>>()
+    });
+    {
+        assert_eq!(
+            launches,
+            [
+                (Some(PaneOp::Launch(Launch::Agent)), false),
+                (None, true),
+                (None, true),
+                (None, true),
+                (None, true),
+                (None, true),
+                (None, true),
+            ]
+        );
+    }
+    cx.simulate_click(first.center(), Modifiers::none());
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        let shell = probe.0.read(cx);
+        assert_eq!(shell.route, Route::Draft);
+        assert!(!shell.areas.layout.header_menu.is_open());
+    });
+}
+
+/// Paseo's "…": a 220-wide menu below the button, its end at the button's,
+/// with both splits and their chords; a row splits the pane it was opened on.
+#[gpui::test]
+fn the_more_menu_splits_the_pane_it_was_opened_on(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    cx.simulate_resize(gpui::size(px(1280.0), px(900.0)));
+    cx.run_until_parked();
+    let more = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::More));
+    cx.simulate_click(more.center(), Modifiers::none());
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        let shell = probe.read(cx).0.read(cx);
+        assert_eq!(
+            shell
+                .areas
+                .layout
+                .header_menu_for
+                .as_ref()
+                .map(|menu| menu.kind),
+            Some(MenuKind::Split)
+        );
+        let rows = rows(shell, MenuKind::Split, window);
+        assert_eq!(
+            rows.iter().map(|(op, _)| *op).collect::<Vec<_>>(),
+            [
+                Some(PaneOp::Split(Position::Right)),
+                Some(PaneOp::Split(Position::Bottom)),
+            ]
+        );
+        assert_eq!(rows[0].1.leading, Some(Glyph::Columns2));
+        assert_eq!(rows[1].1.leading, Some(Glyph::Rows2));
+        assert_eq!(rows[0].1.shortcut, caps(Action::SplitRight, shell));
+    });
+    let right = cx.debug_bounds("menu-row-0").unwrap();
+    assert!(right.top() > more.bottom());
+    cx.simulate_click(right.center(), Modifiers::none());
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        let shell = probe.0.read(cx);
+        assert_eq!(
+            with_layout(shell, |layout| Ok(layout.root().panes().len())).unwrap(),
+            2
+        );
     });
 }

@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
-    Creator, DisplayStatus, EventSeq, HarnessRef, KanbanColumn, SessionInfo, SessionMarks,
-    SessionMode, SessionStatus,
+    Creator, DisplayStatus, EventSeq, HarnessRef, KanbanColumn, ProjectId, SessionInfo,
+    SessionMarks, SessionMode, SessionStatus,
 };
 
 use super::{Attention, Card, Lane, Phrase, agent_name};
@@ -26,6 +26,11 @@ pub struct CardDetail {
     pub cwd: Option<String>,
     /// Its worktree's branch, when it has one (protocol 10).
     pub branch: Option<String>,
+    /// The project it is placed in, at its root or a folder, never a
+    /// worktree: the project whose workspace it belongs to when its node's
+    /// registry names no row for it (ADR 0106's derived membership).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<ProjectId>,
     /// The profile it runs with now (protocol 5).
     pub profile: Option<String>,
     /// The provider's model it runs, when the node says.
@@ -61,6 +66,16 @@ pub struct CardDetail {
 }
 
 impl Card {
+    /// The project whose workspace this session belongs to when its node's
+    /// registry names no row for it: placed in that project and not
+    /// archived, as the node derives it (ADR 0106 choice 4).
+    #[must_use]
+    pub fn member_project(&self) -> Option<ProjectId> {
+        self.detail
+            .project
+            .filter(|_| self.detail.marks.archived_at.is_none())
+    }
+
     /// A session's card, placed as the page places it (`placement`): the
     /// node's lane and phrase when it sent one, else its process state.
     #[must_use]
@@ -116,6 +131,11 @@ impl Card {
                 .as_ref()
                 .and_then(|workspace| workspace.branch.as_ref())
                 .map(ToString::to_string),
+            project: session
+                .workspace
+                .as_ref()
+                .filter(|workspace| workspace.worktree.is_none())
+                .map(|workspace| workspace.project),
             profile: session
                 .profile
                 .as_ref()

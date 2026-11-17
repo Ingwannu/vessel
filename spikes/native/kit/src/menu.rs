@@ -41,6 +41,8 @@ mod modal_tests;
 #[cfg(test)]
 mod presentation_tests;
 #[cfg(test)]
+mod shortcut_tests;
+#[cfg(test)]
 mod tests;
 mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
@@ -149,6 +151,16 @@ impl MenuState {
         self.highlighted = None;
         self.focus.focus(window, cx);
     }
+
+    /// Open under a measured trigger with its left edges aligned (Paseo's
+    /// `side="bottom" align="start"`, the new-tab menu), taking the keys.
+    pub fn open_start(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+        self.capture_return_focus(window, cx);
+        self.cycle = Rc::new(());
+        self.at = Some(Placement::Start(bounds));
+        self.highlighted = None;
+        self.focus.focus(window, cx);
+    }
 }
 
 // Entry requires an open cycle. After an authorized Close choice, identity
@@ -180,6 +192,7 @@ impl<V> std::fmt::Debug for MenuHandlers<V> {
 enum Placement {
     Pointer(Point<Pixels>),
     End(Bounds<Pixels>),
+    Start(Bounds<Pixels>),
 }
 impl Placement {
     fn geometry(self, pointer_corner: gpui::Anchor) -> (Point<Pixels>, gpui::Anchor) {
@@ -188,6 +201,10 @@ impl Placement {
             Self::End(bounds) => (
                 gpui::point(bounds.right(), bounds.bottom()),
                 gpui::Anchor::TopRight,
+            ),
+            Self::Start(bounds) => (
+                gpui::point(bounds.left(), bounds.bottom()),
+                gpui::Anchor::TopLeft,
             ),
         }
     }

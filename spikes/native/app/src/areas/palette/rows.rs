@@ -6,7 +6,7 @@ use vessel_app_kit::ui::SharedString;
 use vessel_app_view::palette::{PaletteGroup, PaletteTarget};
 use vessel_app_view::prefs::Theme;
 use vessel_app_view::settings::Section;
-use vessel_app_view::shortcuts::{Action, Platform, bindings_of, chord_caps};
+use vessel_app_view::shortcuts::Action;
 
 use super::{Entry, Target};
 use crate::areas::settings;
@@ -115,23 +115,9 @@ const fn action_of(target: &Target) -> Option<Action> {
 /// The badges of the first key bound to what `target` does, one per
 /// chord (Paseo's `Shortcut`), as the person has the keys.
 pub(super) fn keys_of(target: &Target, shell: &Shell) -> Vec<SharedString> {
-    let Some(action) = action_of(target) else {
-        return Vec::new();
-    };
-    let platform = Platform::native();
-    let joiner = match platform {
-        Platform::Mac => "",
-        Platform::Other => "+",
-    };
-    bindings_of(action, &shell.prefs.settings.shortcuts)
-        .first()
-        .map(|binding| {
-            binding
-                .chords()
-                .map(|chord| chord_caps(chord, platform).join(joiner).into())
-                .collect()
-        })
-        .unwrap_or_default()
+    action_of(target).map_or_else(Vec::new, |action| {
+        crate::areas::shortcuts::caps::caps(action, shell)
+    })
 }
 
 /// Map semantic view text into the shared control; no typography lives here.

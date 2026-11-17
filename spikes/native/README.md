@@ -367,6 +367,11 @@ close button and the sheet header's back arrow take their names from
 button is `ButtonConfig::loading()` through `button_control`
 ([`shared-control-accessibility.md`](../../docs/plans/shared-control-accessibility.md)).
 
+The pane header is Paseo's + | maximise/restore | …: "+" opens the new-tab
+menu (the view's launch `catalog`), "…" the split menu; menu rows and toolbar
+tooltips show bound chords, and a pane goes with its last tab
+([`shared-pane-header-menus.md`](../../docs/plans/shared-pane-header-menus.md)).
+
 `kit::icon_chrome` owns the closed small-Toolbar and sidebar-Footer frame
 profiles. `ToolbarButton` keeps its disabled callback guard and tooltip wrapper;
 the sidebar package owns the Footer wrapper. The lower frame grants no input or
@@ -1342,6 +1347,14 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Identity paint
+
+`kit::theme::identity` owns generic identity hues, scheme-dependent ink and
+stable translucent grounds after the reference identity-color table. Label,
+project and host surfaces map their own domain values to `Hue`; the kit never
+depends on protocol types. The named palette builder and brand accents remain
+independent because identity colors identify a choice rather than a status.
 
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
