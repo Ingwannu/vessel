@@ -129,7 +129,6 @@ impl ToolbarButton {
 
     /// The bound shortcut's chords, shown after the words in this button's
     /// tooltip (Paseo's `ToolbarButton shortcut={keys}`); empty shows none.
-    #[must_use]
     pub fn shortcut(mut self, chords: Vec<SharedString>) -> Self {
         self.shortcut = std::rc::Rc::from(chords);
         self
