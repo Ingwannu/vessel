@@ -82,7 +82,7 @@ pub(super) fn state(action: &Action, shell: &Shell) -> ButtonState {
 pub(super) fn listener(
     shell: &Shell,
     action: Action,
-) -> impl Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) + Clone + 'static {
+) -> impl Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) + Clone + 'static + use<> {
     let capture = Capture::of(shell);
     move |shell, window, cx| {
         if !capture.accepts(shell) || state(&action, shell) == ButtonState::Disabled {

@@ -98,7 +98,6 @@ pub(super) fn pill(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
                 .child(icon)
                 .child(
                     div()
-                        .flex_shrink()
                         .min_w_0()
                         .type_(Type::Label)
                         .text_color(neutral.foreground)

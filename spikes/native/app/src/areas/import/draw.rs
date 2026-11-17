@@ -181,7 +181,6 @@ fn scope_line(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_
         .child(
             div()
                 .debug_selector(|| "history-scope".to_owned())
-                .flex_shrink()
                 .min_w_0()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)

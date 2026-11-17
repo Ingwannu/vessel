@@ -171,7 +171,6 @@ pub(super) fn failures(
                 .gap(px(S2))
                 .child(
                     div()
-                        .flex_shrink()
                         .min_w_0()
                         .type_(Type::Meta)
                         .text_color(tokens.status().red_300)

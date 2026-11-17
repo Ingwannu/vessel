@@ -1,7 +1,7 @@
 //! Ordinary commands and actual framed responses reach the real guarded event.
 use crate::{Command, Event, testing::actor::Actor};
 use vessel_app_view::{
-    devices::Tickets,
+    devices::{Ticket, Tickets},
     history::{Ask, Batch, Entry, Problem, Reply, Scope},
 };
 use vessel_proto::{Call, HarnessKind, HarnessSessionId, Outcome, SessionId, SessionInfo};
@@ -136,6 +136,21 @@ async fn queued_actual_create_receipt_becomes_uncertain_after_physical_peer_clos
     .await;
 }
 
+/// A sheet open on `scope`'s host with its one agent, and that read's ticket.
+fn opened(scope: &Scope) -> (vessel_app_view::history::Sheet, Ticket) {
+    let mut model = vessel_app_view::history::Sheet::default();
+    let opening = vessel_app_view::history::Opening {
+        context: scope.context.clone(),
+        machine: scope.machine.clone(),
+        cwd: None,
+    };
+    let asks = model.open(opening, vec![scope.harness.clone()]).unwrap();
+    let Ok([Ask::List { ticket, .. }]) = <[Ask; 1]>::try_from(asks) else {
+        panic!("list")
+    };
+    (model, ticket)
+}
+
 #[tokio::test(start_paused = true)]
 async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_import() {
     crate::testing::within(async {
@@ -149,17 +164,7 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
             profile: None,
             cwd: None,
         };
-        let codex: vessel_proto::HarnessRef = HarnessKind::Codex.into();
-        let mut model = vessel_app_view::history::Sheet::default();
-        let opening = vessel_app_view::history::Opening {
-            context: scope.context.clone(),
-            machine: scope.machine.clone(),
-            cwd: None,
-        };
-        let asks = model.open(opening, vec![codex.clone()]).unwrap();
-        let Ok([Ask::List { ticket, .. }]) = <[Ask; 1]>::try_from(asks) else {
-            panic!("list")
-        };
+        let (mut model, ticket) = opened(&scope);
         let entry = Entry {
             id: HarnessSessionId::new("native"),
             cwd: "/work".into(),
@@ -180,7 +185,7 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
                 })
                 .applied
         );
-        let request = model.import(&codex, &entry.id).unwrap().unwrap();
+        let request = model.import(&scope.harness, &entry.id).unwrap().unwrap();
         let reply = crate::testing::phase(
             "actual create receipt",
             crate::history::answer(&selected, request.clone()),
