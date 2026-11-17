@@ -14,6 +14,11 @@ use vessel_app_view::{Fleet, Machine, connection::ConnectionTag};
 /// The dialog body's 24 inset, undone: the chooser's rows reach the card's edges.
 const EDGE: f32 = -24.0;
 
+/// Paseo's chooser row: at least 56 high (`row.minHeight`).
+const ROW_MIN_HEIGHT: f32 = 56.0;
+/// Paseo's `rowIconSlot`: the status dot's 18-wide slot.
+const DOT_SLOT: f32 = 18.0;
+
 /// Paseo's `matchesHostQuery`: the label or the id contains the search.
 fn matches(machine: &Machine, needle: &str) -> bool {
     needle.is_empty()
@@ -79,7 +84,7 @@ fn row(
         .flex_row()
         .items_center()
         .gap(px(S3))
-        .min_h(px(56.0))
+        .min_h(px(ROW_MIN_HEIGHT))
         .mx(px(EDGE))
         .px(px(S4))
         .py(px(S3))
@@ -88,7 +93,7 @@ fn row(
         .active(move |style| style.bg(hover))
         .child(
             div()
-                .w(px(18.0))
+                .w(px(DOT_SLOT))
                 .flex()
                 .items_center()
                 .justify_center()
