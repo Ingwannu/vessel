@@ -40,11 +40,11 @@ mod lease_tests;
 mod modal_tests;
 #[cfg(test)]
 mod presentation_tests;
+#[cfg(test)]
+mod shortcut_tests;
 mod sub_row;
 #[cfg(test)]
 mod submenu_tests;
-#[cfg(test)]
-mod shortcut_tests;
 #[cfg(test)]
 mod tests;
 mod trigger;
