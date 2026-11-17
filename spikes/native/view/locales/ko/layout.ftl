@@ -18,9 +18,9 @@ layout-close-left = 왼쪽 탭 닫기
 # Workspace tab or pane control; keep short.
 layout-close-right = 오른쪽 탭 닫기
 # Workspace tab or pane control; keep short.
-layout-split-right = 오른쪽으로 나누기
+layout-split-right = 창을 오른쪽으로 분할
 # Workspace tab or pane control; keep short.
-layout-split-down = 아래로 나누기
+layout-split-down = 창을 아래로 분할
 # Workspace tab or pane control; keep short.
 layout-copy-id = ID 복사
 # Workspace tab or pane control; keep short.
@@ -71,3 +71,15 @@ layout-rename-failed = 호스트에서 이름 변경을 거절했습니다. 입�
 layout-rename-malformed = 호스트에서 예상하지 못한 이름 변경 결과를 받았습니다.
 # Rename refusal when the captured authenticated owner no longer matches.
 layout-rename-node-changed = 호스트의 신원이 바뀌었습니다. 원래 세션을 다시 연 다음 이름을 변경하세요.
+# The pane header's "…" menu button (Paseo's workspace.git.actions.moreActions).
+layout-more-actions = 작업 더 보기
+# New-tab menu item: a new agent (Paseo's workspace.tabs.fallback.agent).
+layout-launch-agent = 에이전트
+# New-tab menu item: a new terminal (Paseo's workspace.tabs.fallback.terminal).
+layout-launch-terminal = 터미널
+# New-tab menu item: the working diff (Paseo's panels.diff.diffLabel).
+layout-launch-diff = Diff
+# New-tab menu item: a browser (Paseo's workspace.tabs.fallback.browser).
+layout-launch-browser = 브라우저
+# New-tab menu item: the workspace's pull request (Paseo's panels.pullRequest.label).
+layout-launch-pull-request = 풀 리퀘스트

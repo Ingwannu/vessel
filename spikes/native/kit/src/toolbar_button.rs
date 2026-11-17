@@ -28,6 +28,7 @@ pub struct ToolbarButton {
     element: Stateful<Div>,
     config: ToolbarConfig,
     label: SharedString,
+    shortcut: std::rc::Rc<[SharedString]>,
 }
 impl ToolbarButton {
     /// Keep the source geometry fixed while the owner supplies its actual layout
@@ -93,6 +94,7 @@ impl ToolbarButton {
             element,
             config,
             label,
+            shortcut: std::rc::Rc::from([]),
         }
     }
 
@@ -109,6 +111,7 @@ impl ToolbarButton {
             element,
             config,
             label,
+            shortcut: std::rc::Rc::from([]),
         }
     }
 
@@ -121,6 +124,13 @@ impl ToolbarButton {
         if self.config.availability() == ButtonState::Enabled {
             self.element = self.element.on_click(listener);
         }
+        self
+    }
+
+    /// The bound shortcut's chords, shown after the words in this button's
+    /// tooltip (Paseo's `ToolbarButton shortcut={keys}`); empty shows none.
+    pub fn shortcut(mut self, chords: Vec<SharedString>) -> Self {
+        self.shortcut = std::rc::Rc::from(chords);
         self
     }
 
@@ -147,10 +157,11 @@ impl ToolbarButton {
         text: impl Into<SharedString>,
         side: crate::tooltip::Side,
     ) -> Self {
-        self.element = tips.on_configured(
+        self.element = tips.on_configured_keyed(
             self.element,
             place,
             text,
+            std::rc::Rc::clone(&self.shortcut),
             crate::tooltip::Configuration::toolbar().side(side),
             self.config.sizing(),
         );
