@@ -1,0 +1,43 @@
+/* The file conflict alert (file-change-alert.tsx; Paseo's
+   conflict-alert.tsx): at least 48px, the amber triangle and title, a
+   muted description, outline choices at the end that wrap under the text
+   in a narrow panel, an amber rule below, and a fill one step off the
+   panel's (Paseo's surface1). */
+
+.file-change-alert {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 48px;
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--warn);
+  background: var(--bg-well);
+  color: var(--warn);
+}
+
+.file-change-message {
+  display: flex;
+  flex: 1 1 180px;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.file-change-title {
+  font: var(--t-label);
+  color: var(--warn);
+}
+
+.file-change-description {
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.file-change-actions {
+  display: flex;
+  flex: none;
+  gap: var(--s-2);
+  margin-left: auto;
+}

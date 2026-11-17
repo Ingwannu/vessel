@@ -16,6 +16,7 @@ const VARIANTS: readonly ButtonVariant[] = [
   "primary",
   "secondary",
   "ghost",
+  "outline",
   "danger",
   "danger-solid",
 ];

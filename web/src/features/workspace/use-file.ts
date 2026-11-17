@@ -72,8 +72,8 @@ export interface OpenFile {
   save: (text: string, base: FileVersion | null) => Promise<Saved>;
   /** Read it again from the start. */
   reload: () => void;
-  /** The disk moved past what is shown (`file.observe`): a view follows
-   * it with `refresh` unless an edit is open. */
+  /** The disk against what is shown (`file.observe`): a view follows a
+   * change with `refresh` unless an edit is open. */
   disk: Disk;
   /** Read it again from the start, what is shown kept until it arrives. */
   refresh: () => void;
@@ -250,7 +250,8 @@ export function useFile(
       : null;
   }, []);
   const inFlight = useCallback(() => writing.current, []);
-  const { disk, settled } = useDisk(node, root, path, shown, inFlight);
+  const read = text.kind === "text" || text.kind === "binary";
+  const { disk, settled } = useDisk(node, root, path, read, shown, inFlight);
 
   const reload = useCallback(() => {
     settled();

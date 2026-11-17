@@ -3,7 +3,9 @@
 // ink) and Edit; the text in its colours; or the editor, with Cancel and
 // Save (⌘/Ctrl+S) and a dot while there are unsaved edits. A save that
 // finds the file changed on disk keeps the edits and shows both sides
-// (GOAT's banner: reload from disk, or overwrite).
+// (GOAT's banner: reload from disk, or overwrite). The file's watch
+// (ADR 0105) follows the disk with no edit open; with one open, or when
+// the file is gone, Paseo's conflict alert says so under the head.
 
 import "./files.css";
 
@@ -17,6 +19,7 @@ import { languageOf } from "../../data/workspace/syntax-languages";
 import {
   Banner,
   Button,
+  Dialog,
   EmptyState,
   Icon,
   IconButton,
@@ -31,6 +34,7 @@ import type {
   SessionId,
   WorkspaceRoot,
 } from "../../wire/proto";
+import { type DiskChange, FileChangeAlert } from "./file-change-alert";
 import { FileConflict } from "./file-conflict";
 import { FileLines } from "./file-lines";
 import { useFile, WRITE_LIMIT } from "./use-file";
@@ -57,6 +61,7 @@ export function FileView({
   const [base, setBase] = useState<FileVersion | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<Saved | null>(null);
+  const [confirmReload, setConfirmReload] = useState(false);
   const { dir, name } = splitPath(path);
   const language = languageOf(path);
   const text = file.text;
@@ -65,8 +70,8 @@ export function FileView({
     editing && (text.kind !== "text" || draft !== text.lines.join("\n"));
   const tooBig = text.kind === "text" && text.version.size > WRITE_LIMIT;
   // The disk moved past what is shown (the file's watch): the view follows
-  // it; an open edit keeps its text and says so (Paseo's "Changed on
-  // disk"), and its save then meets the change as the conflict below.
+  // it; an open edit keeps its text under the alert, and its save then
+  // meets the change as the conflict below. A file gone keeps its copy.
   const { disk, refresh } = file;
   useEffect(() => {
     if (disk === "changed" && draft === null) {
@@ -87,6 +92,36 @@ export function FileView({
       }
     });
   };
+  const reloadFromDisk = () => {
+    setConfirmReload(false);
+    setDraft(null);
+    setSaved(null);
+    file.reload();
+  };
+  const shownCopy = editing || text.kind === "text" || text.kind === "binary";
+  const change: DiskChange | null =
+    saved?.kind === "conflict" && editing
+      ? null
+      : disk === "deleted" && shownCopy
+        ? { kind: "deleted" }
+        : disk === "changed" && editing
+          ? {
+              kind: "changed",
+              canOverwrite: dirty,
+              busy: saving,
+              onOverwrite: () => {
+                save(true);
+              },
+              onReload: () => {
+                // Paseo asks only when the edit would be thrown away.
+                if (dirty) {
+                  setConfirmReload(true);
+                } else {
+                  reloadFromDisk();
+                }
+              },
+            }
+          : null;
   const edit = () => {
     void file.whole().then((whole) => {
       if (whole !== null) {
@@ -159,6 +194,7 @@ export function FileView({
           ) : null}
         </span>
       </div>
+      {change === null ? null : <FileChangeAlert change={change} />}
       {text.kind === "loading" ? (
         <div className="changes-pad">
           <Skeleton />
@@ -207,11 +243,6 @@ export function FileView({
           goTo={goTo}
         />
       )}
-      {disk === "changed" && draft !== null && saved?.kind !== "conflict" ? (
-        <div className="file-strip">
-          <Banner tone="warn">Changed on disk</Banner>
-        </div>
-      ) : null}
       {saved?.kind === "conflict" && draft !== null && base !== null ? (
         <FileConflict
           mine={saved.mine}
@@ -232,6 +263,31 @@ export function FileView({
         <div className="file-strip">
           <Banner tone="error">{saved.message}</Banner>
         </div>
+      ) : null}
+      {confirmReload ? (
+        <Dialog
+          title="Reload from disk?"
+          onClose={() => {
+            setConfirmReload(false);
+          }}
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setConfirmReload(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="danger-solid" onClick={reloadFromDisk}>
+                Reload
+              </Button>
+            </>
+          }
+        >
+          <p className="dialog-copy">Your local changes will be lost.</p>
+        </Dialog>
       ) : null}
     </div>
   );
