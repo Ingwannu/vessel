@@ -82,6 +82,12 @@ pub struct MenuItem {
     pub status: ItemStatus,
     /// Default Close; direct writes opt into staying on the same surface.
     pub dismissal: Dismissal,
+    /// The page this row leads to (a submenu, [`crate::submenu`]): choosing
+    /// it opens the page, never closes the menu and never reaches the caller.
+    pub opens: Option<crate::submenu::PageId>,
+    /// The current value of that page's decision, muted before the chevron
+    /// (Paseo's `MenuSubTrigger` `value`: "Grouping  Project ›").
+    pub value: Option<SharedString>,
 }
 impl MenuItem {
     /// An ordinary item, with no leading glyph or pending state.
@@ -97,6 +103,24 @@ impl MenuItem {
             leading_size: LeadingSize::Small,
             status: ItemStatus::Idle,
             dismissal: Dismissal::Close,
+            opens: None,
+            value: None,
+        }
+    }
+    /// A row that opens `page` beside the menu (Paseo's `MenuSubTrigger`).
+    #[must_use]
+    pub fn sub(label: impl Into<SharedString>, page: impl Into<crate::submenu::PageId>) -> Self {
+        Self {
+            opens: Some(page.into()),
+            ..Self::new(label)
+        }
+    }
+    /// The decision's current value, shown before the chevron.
+    #[must_use]
+    pub fn with_value(self, value: impl Into<SharedString>) -> Self {
+        Self {
+            value: Some(value.into()),
+            ..self
         }
     }
     /// A destructive item starting a group.

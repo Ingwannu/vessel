@@ -40,6 +40,9 @@ mod lease_tests;
 mod modal_tests;
 #[cfg(test)]
 mod presentation_tests;
+mod sub_row;
+#[cfg(test)]
+mod submenu_tests;
 #[cfg(test)]
 mod tests;
 mod trigger;
@@ -230,7 +233,9 @@ fn selected_index(items: &[MenuItem], highlighted: Option<usize>) -> Option<usiz
 // Pointer and Enter converge here so a KeepOpen action cannot accidentally
 // close before its caller publishes pending state. Escape/outside still close.
 fn pointer_choice(state: &mut MenuState, item: &MenuItem, index: usize) -> Option<usize> {
-    if !item.selectable() {
+    // A row that opens a page navigates (the renderer opens it); it neither
+    // closes the menu nor reaches the caller.
+    if !item.selectable() || item.opens.is_some() {
         return None;
     }
     if item.dismissal == Dismissal::Close {

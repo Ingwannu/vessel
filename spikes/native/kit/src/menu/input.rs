@@ -9,6 +9,9 @@ pub(super) struct KeyMenu<V> {
     pub(super) handlers: MenuHandlers<V>,
     pub(super) items: Rc<[MenuItem]>,
     pub(super) lease: RenderLease,
+    /// The menu's submenus, when it has any: Enter on a row that opens a
+    /// page opens it.
+    pub(super) submenus: Option<crate::submenu::Submenus>,
 }
 
 pub(super) fn keyboard<V: 'static>(
@@ -22,6 +25,7 @@ pub(super) fn keyboard<V: 'static>(
         handlers,
         items,
         lease,
+        submenus,
     } = input;
     let Some(key) = MenuKey::of(event) else {
         return;
@@ -46,7 +50,12 @@ pub(super) fn keyboard<V: 'static>(
             menu.step(items, Direction::Previous);
         }
         MenuKey::Choose => {
-            if let Some(index) = keyboard_choice(menu, items) {
+            let page = super::selected_index(items, menu.highlighted)
+                .and_then(|index| items.get(index))
+                .and_then(|item| item.opens.as_ref());
+            if let (Some(page), Some(submenus)) = (page, submenus) {
+                submenus.open(page, 0);
+            } else if let Some(index) = keyboard_choice(menu, items) {
                 if !menu.same_cycle(lease) {
                     return;
                 }

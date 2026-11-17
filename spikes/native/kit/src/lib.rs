@@ -70,6 +70,7 @@ pub mod sheet;
 pub mod skeleton;
 pub mod slider;
 pub mod split_button;
+pub mod submenu;
 pub mod tabs;
 pub mod terminal_grid;
 pub mod theme;

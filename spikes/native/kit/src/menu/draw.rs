@@ -7,6 +7,8 @@ use std::rc::Rc;
 
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
+use super::sub_row::{SubRow, sub_row};
+use crate::submenu::Submenus;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
@@ -74,6 +76,8 @@ pub struct Content<'a> {
     pub width: Width,
     /// Default screen ordering, or an explicit menu inside a dialog.
     pub layer: Layer,
+    /// Its submenus, when a row opens a page ([`crate::submenu`]).
+    pub submenus: Option<Submenus>,
 }
 impl<'a> Content<'a> {
     /// Legacy content width, with all labels and states retained.
@@ -84,6 +88,16 @@ impl<'a> Content<'a> {
             items,
             width: Width::Content,
             layer: Layer::Screen,
+            submenus: None,
+        }
+    }
+    /// Rows that open pages open them through `submenus`; a press on an
+    /// open page is not outside this menu.
+    #[must_use]
+    pub fn with_submenus(self, submenus: &Submenus) -> Self {
+        Self {
+            submenus: Some(submenus.clone()),
+            ..self
         }
     }
     /// Choose the containing surface without another menu renderer.
@@ -198,7 +212,12 @@ fn draw<V: 'static>(
         items,
         width,
         layer,
+        submenus,
     } = content;
+    if let Some(submenus) = &submenus {
+        // A new opening of this menu starts at its root page.
+        submenus.follow(&Rc::downgrade(&state.cycle));
+    }
     let get = handlers.state;
     let keys_items: Rc<[MenuItem]> = items.into();
     let key_menu = KeyMenu {
@@ -208,12 +227,21 @@ fn draw<V: 'static>(
         },
         items: keys_items,
         lease: state.render_lease(),
+        submenus: submenus.clone(),
     };
     let on_key = cx.listener(move |view, event, window, cx| {
         keyboard(view, event, window, cx, &key_menu);
     });
     let outside_lease = state.render_lease();
+    let pages = submenus.clone();
     let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
+        // A press on one of its open pages belongs to the menu.
+        if pages
+            .as_ref()
+            .is_some_and(|pages| pages.contains(window.mouse_position()))
+        {
+            return;
+        }
         if !get(view).accepts(&outside_lease) {
             if layer == Layer::AboveDialog {
                 // A stale nested menu still contains this press; forwarding
@@ -269,7 +297,23 @@ fn draw<V: 'static>(
                     .bg(surfaces.border_accent),
             );
         }
-        panel = panel.child(row(index, item, state, handlers, &surfaces, narrow, cx));
+        let drawn = match (&item.opens, &submenus) {
+            (Some(page), Some(submenus)) => sub_row(
+                &SubRow {
+                    index,
+                    item,
+                    page,
+                    submenus,
+                    state,
+                    surfaces: &surfaces,
+                    narrow,
+                },
+                get,
+                cx,
+            ),
+            _ => row(index, item, state, handlers, &surfaces, narrow, cx),
+        };
+        panel = panel.child(drawn);
     }
     let surface = anchored()
         .anchor(corner)
@@ -420,7 +464,7 @@ pub(super) fn ordinary_glyph(
     crate::picker::glyph(glyph, item.leading_size.points(), ink)
 }
 
-fn row_body(
+pub(super) fn row_body(
     index: usize,
     item: &MenuItem,
     paint: super::item::Paint,
