@@ -1,44 +1,82 @@
-//! Outgoing intentions bind to the rendered visit before any UI or RPC effect.
+//! Outgoing intentions bind to the rendered opening before any UI or RPC effect.
+use super::Page;
 use crate::shell::Shell;
+use vessel_app_kit::ButtonState;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_view::{
-    devices::Ticket,
-    history::{Scope, Selection},
-};
-use vessel_proto::HarnessSessionId;
+use vessel_app_view::devices::Ticket;
+use vessel_app_view::history::Filter;
+use vessel_proto::{HarnessRef, HarnessSessionId};
 
+/// The opening a control was drawn for.
 #[derive(Clone)]
 pub(super) struct Capture {
     visit: Option<Ticket>,
-    scope: Option<Scope>,
 }
 impl Capture {
-    pub(super) fn of(shell: &Shell) -> Self {
+    pub(super) const fn of(shell: &Shell) -> Self {
         Self {
             visit: shell.areas.import.visit,
-            scope: shell.areas.import.model.scope().cloned(),
         }
     }
     pub(super) fn accepts(&self, shell: &Shell) -> bool {
         let area = &shell.areas.import;
-        area.open
-            && self.visit.is_some()
-            && area.visit == self.visit
-            && area.model.scope() == self.scope.as_ref()
+        area.open && self.visit.is_some() && area.visit == self.visit
     }
 }
+
 #[derive(Clone)]
 pub(super) enum Action {
+    Close,
+    /// The first page's host row.
+    Host(String),
+    /// The header's refresh icon.
     Refresh,
-    Cancel,
-    Import,
-    More,
+    /// The scope line's "Show all".
     ShowAll,
-    Picker(super::Picker),
+    /// The provider pill.
+    FilterOpen,
+    /// A row of the provider pill's list.
+    Filter(Filter),
+    /// A failed provider's Retry.
+    Retry(HarnessRef),
+    /// "Load more".
+    More,
+    /// A session row: import it.
     Row {
+        harness: HarnessRef,
         id: HarnessSessionId,
-        selection: Selection,
     },
+}
+
+impl Action {
+    /// Whether this action changes what the sheet is open for, so every
+    /// control drawn before it must refuse.
+    const fn moves(&self) -> bool {
+        matches!(self, Self::Close | Self::Host(_) | Self::ShowAll)
+    }
+}
+
+/// Paseo's disabled states: rows and Show all while an import runs; Refresh
+/// and Load more while reading too (`isRefreshing`).
+pub(super) fn state(action: &Action, shell: &Shell) -> ButtonState {
+    let area = &shell.areas.import;
+    let model = &area.model;
+    let importing = model.importing().is_some();
+    let ready = match action {
+        Action::Close | Action::FilterOpen | Action::Filter(_) => true,
+        Action::Host(_) => area.page == Page::Hosts,
+        Action::Row { .. } | Action::ShowAll | Action::Retry(_) => {
+            area.page == Page::Sessions && !importing
+        }
+        Action::Refresh | Action::More => {
+            area.page == Page::Sessions && !importing && !model.loading()
+        }
+    };
+    if ready {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    }
 }
 
 pub(super) fn listener(
@@ -47,35 +85,26 @@ pub(super) fn listener(
 ) -> impl Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) + Clone + 'static {
     let capture = Capture::of(shell);
     move |shell, window, cx| {
-        if !capture.accepts(shell)
-            || super::draw::state(&action, &shell.areas.import.model)
-                == vessel_app_kit::ButtonState::Disabled
-        {
+        if !capture.accepts(shell) || state(&action, shell) == ButtonState::Disabled {
             return;
         }
-        if matches!(action, Action::Picker(_)) && !super::pickers::ready(shell) {
-            return;
-        }
-        if let Action::Row { id, selection } = &action
-            && shell.areas.import.model.selection(id) != *selection
-        {
-            return;
-        }
-        // Invalidate every previously rendered intention before an accepted effect.
-        if !shell.areas.import.advance_visit() {
+        if action.moves() && !shell.areas.import.advance_visit() {
+            cx.notify();
             return;
         }
         match &action {
-            Action::Refresh => {
-                shell.history_profiles();
-                shell.history_refresh();
-            }
-            Action::Cancel => shell.close_import(window, cx),
-            Action::Import => shell.history_import(),
-            Action::More => shell.history_more(),
+            Action::Close => shell.close_import(window, cx),
+            Action::Host(name) => shell.history_host(name, None, window, cx),
+            Action::Refresh => shell.history_refresh(),
             Action::ShowAll => shell.history_show_all(),
-            Action::Picker(which) => shell.history_picker(*which, window, cx),
-            Action::Row { id, .. } => shell.history_row(id, window, cx),
+            Action::FilterOpen => shell.history_filter_open(window, cx),
+            Action::Filter(filter) => {
+                shell.areas.import.filter.close_and_restore(window, cx);
+                shell.history_filter(filter.clone());
+            }
+            Action::Retry(harness) => shell.history_retry(harness),
+            Action::More => shell.history_more(),
+            Action::Row { harness, id } => shell.history_row(harness, id),
         }
         cx.notify();
     }

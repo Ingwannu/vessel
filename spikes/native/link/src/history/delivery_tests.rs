@@ -149,9 +149,15 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
             profile: None,
             cwd: None,
         };
-        let mut model = vessel_app_view::history::History::default();
-        model.choose(scope.clone());
-        let Ask::List { ticket, .. } = model.refresh().unwrap().unwrap() else {
+        let codex: vessel_proto::HarnessRef = HarnessKind::Codex.into();
+        let mut model = vessel_app_view::history::Sheet::default();
+        let opening = vessel_app_view::history::Opening {
+            context: scope.context.clone(),
+            machine: scope.machine.clone(),
+            cwd: None,
+        };
+        let asks = model.open(opening, vec![codex.clone()]).unwrap();
+        let Ok([Ask::List { ticket, .. }]) = <[Ask; 1]>::try_from(asks) else {
             panic!("list")
         };
         let entry = Entry {
@@ -161,17 +167,20 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
             updated_at: None,
             in_vessel: None,
         };
-        assert!(model.answer(Reply::Listed {
-            scope: scope.clone(),
-            ticket,
-            result: Ok(vessel_app_view::history::Listed {
-                entries: vec![entry.clone()],
-                next: None,
-                node: scope.context.node()
-            })
-        }));
-        model.toggle(&entry.id);
-        let request = model.import().unwrap().unwrap();
+        assert!(
+            model
+                .answer(Reply::Listed {
+                    scope: scope.clone(),
+                    ticket,
+                    result: Ok(vessel_app_view::history::Listed {
+                        entries: vec![entry.clone()],
+                        next: None,
+                        node: scope.context.node()
+                    })
+                })
+                .applied
+        );
+        let request = model.import(&codex, &entry.id).unwrap().unwrap();
         let reply = crate::testing::phase(
             "actual create receipt",
             crate::history::answer(&selected, request.clone()),
@@ -217,17 +226,15 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
             panic!("terminal history")
         };
         let terminal = answer.into_reply();
-        assert!(model.answer(terminal.clone()));
-        assert!(!model.importing());
-        assert!(model.requires_refresh());
-        assert_eq!(model.outcomes()[0].result, Err(Problem::Uncertain));
-        assert!(model.refresh().unwrap().is_some());
-        let fresh = model.loading().clone();
+        assert!(model.answer(terminal.clone()).applied);
+        assert!(model.importing().is_none());
+        assert_eq!(model.import_failed(), Some(Problem::Uncertain));
+        assert_eq!(model.refresh().unwrap().len(), 1);
         assert!(
-            !model.answer(terminal),
+            !model.answer(terminal).applied,
             "duplicate terminal cannot settle the fresh read"
         );
-        assert_eq!(model.loading(), &fresh);
+        assert!(model.loading());
         assert!(incoming.try_recv().is_err());
         assert_eq!(
             peer.calls.lock().unwrap().len(),

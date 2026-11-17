@@ -297,6 +297,7 @@ impl Render for Shell {
         }
         self.settle_settings(window);
         self.settle_sessions(window, cx);
+        self.settle_import(window, cx);
         self.settle_session_lifecycle(window, cx);
         self.terminal_present(window, cx);
         let tokens = tokens(cx);

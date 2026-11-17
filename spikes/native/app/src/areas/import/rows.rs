@@ -1,161 +1,191 @@
-//! A bounded virtual list keeps long agent histories responsive on a phone.
+//! Paseo's `ImportSessionSheetRow` and `ProviderErrorBanner`.
 
+use super::draw::small_button;
+use super::intent::{Action, listener, state};
 use crate::shell::Shell;
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::theme::spacing::{S1, S2, S3, S4};
+use vessel_app_kit::agent_mark::{Size, Space};
+use vessel_app_kit::theme::spacing::{S0_5, S1, S2, S3};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
-    div, px,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::history::{Entry, Selection};
+use vessel_app_kit::{ButtonState, Tokens, Type, TypeExt as _};
+use vessel_app_view::devices::time::Age;
+use vessel_app_view::history::{Problem, Row};
+use vessel_proto::HarnessRef;
 
-/// Leave room for scope, search and persistent import actions at every size.
-const VIEWPORT_SHARE: f32 = 0.30;
+/// Paseo's row margin: the fill reaches 8 past the content on both sides.
+const PULL: f32 = -8.0;
 
+/// The rows, 4 apart (Paseo's `listRow` bottom padding).
 pub(super) fn list(
     shell: &Shell,
-    _tokens: &Tokens,
-    window: &Window,
+    rows: &[Row<'_>],
+    tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let capture = super::intent::Capture::of(shell);
-    let height = f32::from(window.viewport_size().height).mul_add(VIEWPORT_SHARE, 0.0);
     div()
-        .h(px(height))
-        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
-        .w_full()
+        .flex()
+        .flex_col()
         .min_w_0()
-        .overflow_hidden()
-        .child(shell.areas.import.list.element(cx.processor(
-            move |shell: &mut Shell, index: usize, _window, cx| {
-                if !capture.accepts(shell) {
-                    return div().into_any_element();
-                }
-                let tokens = vessel_app_kit::tokens(cx);
-                let area = &shell.areas.import;
-                let Some(id) = area.visible.get(index) else {
-                    return div().into_any_element();
-                };
-                let Some(entry) = area.model.entries().iter().find(|entry| &entry.id == id) else {
-                    return div().into_any_element();
-                };
-                row(shell, entry, &tokens, cx)
-            },
-        )))
+        .children(rows.iter().map(|item| {
+            div()
+                .pb(px(S1))
+                .child(row(shell, item, tokens, cx))
+        }))
 }
 
-fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
+/// A pressable row: the agent's mark (16, 2 down), then the title with its
+/// time (or "Importing...") on the right, and the folder only when the list
+/// is not limited to one. Its fill reaches 8 past the text on both sides.
+fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
     let area = &shell.areas.import;
     let words = shell.words.history();
-    let selected = area.model.selection(&entry.id);
-    let (icon, action) = match selected {
-        Selection::Selected => (Glyph::SquareCheck, words.selected()),
-        Selection::Available => (Glyph::Circle, words.select()),
-        Selection::Existing(_) => (Glyph::ChevronRight, words.open()),
+    let entry = item.entry;
+    let action = Action::Row {
+        harness: item.harness.clone(),
+        id: entry.id.clone(),
     };
-    let listener = super::intent::listener(
-        shell,
-        super::intent::Action::Row {
-            id: entry.id.clone(),
-            selection: selected,
-        },
-    );
-    div()
-        .id(ElementId::Name(
-            format!("history-row-{}", entry.id.as_str()).into(),
-        ))
-        .debug_selector({
-            let id = entry.id.clone();
-            move || format!("history-row-{}", id.as_str())
-        })
-        .flex()
-        .items_start()
-        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
-        .gap(px(S3))
-        .px(px(S2))
-        .py(px(S3))
-        .min_w_0()
-        .rounded(px(vessel_app_kit::theme::radius::R2))
-        .when(selected == Selection::Selected, |row| {
-            row.bg(tokens.neutral.surface2)
-        })
-        .when(!area.model.importing(), |row| {
-            row.cursor_pointer()
-                .hover(|row| row.bg(tokens.neutral.surface1))
-        })
-        .child(vessel_app_kit::glyph(
-            icon,
-            S4,
-            tokens.neutral.foreground_muted,
-        ))
-        .child(details(shell, entry, tokens))
-        .child(
-            div()
-                .flex_shrink_0()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(action),
-        )
-        .on_click(cx.listener(move |shell, _, window, cx| listener(shell, window, cx)))
-        .into_any_element()
-}
-
-fn details(shell: &Shell, entry: &Entry, tokens: &Tokens) -> Div {
-    let words = shell.words.history();
+    let enabled = state(&action, shell) == ButtonState::Enabled;
+    let importing = area.model.importing() == Some(&entry.id);
+    let act = listener(shell, action);
+    let selector = format!("history-row-{}", entry.id.as_str());
     let title = entry
         .title
         .as_ref()
         .map_or_else(|| words.untitled().to_owned(), ToString::to_string);
-    let activity = entry.updated_at.map_or_else(
-        || words.unknown_time().to_owned(),
-        |at| {
-            shell
-                .t
-                .lang
-                .machines()
-                .ago(vessel_app_view::ago::Ago::of(at, chrono::Utc::now()))
-        },
-    );
-    let failure = shell
-        .areas
-        .import
-        .model
-        .outcomes()
-        .iter()
-        .find(|outcome| outcome.id == entry.id)
-        .and_then(|outcome| outcome.result.as_ref().err());
+    let meta = if importing {
+        Some(words.importing().to_owned())
+    } else {
+        entry.updated_at.map(|at| {
+            shell.t.lang.devices().compact_age(Age::of(
+                at,
+                chrono::Utc::now(),
+                *chrono::Local::now().offset(),
+            ))
+        })
+    };
+    let hover = tokens.neutral.surface1;
+    let pressed = tokens.neutral.surface2;
     div()
-        .flex_1()
+        .id(ElementId::Name(selector.clone().into()))
+        .debug_selector(move || selector.clone())
+        .role(gpui::Role::Button)
+        .aria_label(title.clone())
+        .flex()
+        .flex_row()
+        .items_start()
+        .gap(px(S2))
+        .p(px(S2))
+        .mx(px(PULL))
         .min_w_0()
+        .rounded(px(vessel_app_kit::theme::radius::R2))
+        .when(enabled, |row| {
+            row.cursor_pointer()
+                .hover(move |style| style.bg(hover))
+                .active(move |style| style.bg(pressed))
+                .on_click(cx.listener(move |shell, _, window, cx| act(shell, window, cx)))
+        })
+        .child(
+            div()
+                .flex_shrink_0()
+                .pt(px(S0_5))
+                .child(crate::agent_mark::mark_muted(
+                    Some(item.harness),
+                    Size::Sixteen,
+                    Space::Compact,
+                    tokens,
+                )),
+        )
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .flex()
+                .flex_col()
+                .gap(px(S1))
+                .child(
+                    div()
+                        .flex()
+                        .flex_row()
+                        .items_baseline()
+                        .justify_between()
+                        .gap(px(S2))
+                        .min_w_0()
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .type_(Type::Body)
+                                .text_color(tokens.neutral.foreground)
+                                .truncate()
+                                .child(title),
+                        )
+                        .children(meta.map(|meta| {
+                            div()
+                                .flex_shrink_0()
+                                .type_(Type::Meta)
+                                .text_color(tokens.neutral.foreground_muted)
+                                .child(meta)
+                        })),
+                )
+                .when(!area.model.scoped(), |content| {
+                    content.child(
+                        div()
+                            .type_(Type::Meta)
+                            .text_color(tokens.neutral.foreground_muted)
+                            .truncate()
+                            .child(entry.cwd.to_string_lossy().into_owned()),
+                    )
+                }),
+        )
+        .into_any_element()
+}
+
+/// Paseo's `ProviderErrorBanner`: one bordered box (radius 8, 4 by 12) with a
+/// row per failed provider: its words in red 12 and a small ghost Retry.
+pub(super) fn failures(
+    shell: &Shell,
+    failures: &[(&HarnessRef, Problem)],
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let words = shell.words.history();
+    div()
+        .debug_selector(|| "history-provider-errors".to_owned())
         .flex()
         .flex_col()
-        .gap(px(S1))
-        .child(
+        .border_1()
+        .border_color(tokens.neutral.border)
+        .rounded(px(vessel_app_kit::theme::radius::R2))
+        .py(px(S1))
+        .px(px(S3))
+        .children(failures.iter().map(|(harness, _problem)| {
+            let name = vessel_app_view::agent_name(harness);
             div()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground)
-                .truncate()
-                .child(title),
-        )
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .truncate()
-                .child(entry.cwd.to_string_lossy().into_owned()),
-        )
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_extra_muted)
-                .child(activity),
-        )
-        .children(failure.map(|problem| {
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.destructive)
-                .child(problem.words(shell.words).to_owned())
+                .flex()
+                .flex_row()
+                .items_center()
+                .justify_between()
+                .gap(px(S2))
+                .child(
+                    div()
+                        .flex_shrink()
+                        .min_w_0()
+                        .type_(Type::Meta)
+                        .text_color(tokens.status().red_300)
+                        .child(words.failed_provider(&name).unwrap_or(name)),
+                )
+                .child(small_button(
+                    format!("history-retry-{harness}"),
+                    words.retry(),
+                    Action::Retry((*harness).clone()),
+                    shell,
+                    tokens,
+                    compact,
+                    cx,
+                ))
         }))
+        .into_any_element()
 }

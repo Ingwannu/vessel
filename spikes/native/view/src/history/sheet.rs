@@ -4,7 +4,7 @@
 //! [Decision Log]
 //! - Purpose: the coordinator's 777 rulings (2026-11-17): the sheet follows
 //!   Paseo's `import-session-sheet.tsx` and its view model, not the earlier
-//!   one-agent, multi-select design (`History`).
+//!   one-agent, multi-select design (the `History` model it replaces).
 //! - Reference: `fetchRecentProviderSessions` per provider, merged and sorted
 //!   by activity (`aggregateSessionEntries`); already-imported sessions are
 //!   not listed; `PAGE_LIMITS` 15 / 45 / 90 / 200 per provider behind "Load
@@ -328,6 +328,18 @@ impl Sheet {
                 .then_with(|| left.entry.id.as_str().cmp(right.entry.id.as_str()))
         });
         rows
+    }
+
+    /// Paseo's `computeEmptyState`: an empty state only once every provider
+    /// has answered, not every one of them failed, and nothing is listed.
+    #[must_use]
+    pub fn empty_state(&self, query: &Query) -> Option<Empty> {
+        let settled = !self.feeds.is_empty() && !self.loading();
+        let all_failed = self
+            .feeds
+            .iter()
+            .all(|feed| matches!(feed.state, FeedState::Failed(_)));
+        (settled && !all_failed && self.rows(query).is_empty()).then(|| self.empty(query))
     }
 
     /// Why `rows(query)` is empty (Paseo's order of empty states).

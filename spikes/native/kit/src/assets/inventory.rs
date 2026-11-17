@@ -242,4 +242,8 @@ glyph_inventory! {
     CommandCircleDashed => "kit/command-circle-dashed.svg",
     /// The left sidebar toggle in the command centre (Paseo `PanelLeftIcon`, Lucide `PanelLeft` at 2.2).
     CommandPanelLeft => "kit/command-panel-left.svg",
+    /// The import sheet's empty state (Paseo `SheetEmptyState`, Lucide `Inbox`).
+    Inbox => "kit/inbox.svg",
+    /// The import sheet's "All" provider filter (Paseo's filter pill, Lucide `Layers`).
+    Layers => "kit/layers.svg",
 }

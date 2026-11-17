@@ -2,7 +2,7 @@
 //! merged, limits read through cursor pages, per-provider failures, one import.
 use super::*;
 use crate::devices::MachineKey;
-use vessel_proto::{HarnessKind, SessionId};
+use vessel_proto::{HarnessKind, SessionId, SessionMode};
 
 const NODE: &str = "00000000-0000-0000-0000-000000000001";
 
@@ -254,6 +254,22 @@ fn empty_states_follow_paseo_s_order() {
 }
 
 #[test]
+fn the_empty_state_waits_for_every_provider_and_not_every_failure() {
+    let (mut sheet, [first, second]) = opened(None);
+    let all = Query::new("");
+    assert_eq!(sheet.empty_state(&all), None, "still reading");
+    let _codex = sheet.answer(reply(&first, Vec::new(), None));
+    assert_eq!(sheet.empty_state(&all), None, "one provider still reading");
+    let _claude = sheet.answer(second.refused(Problem::Timeout));
+    assert_eq!(sheet.empty_state(&all), Some(Empty::NoRecent));
+    let _again = sheet.retry(&codex()).unwrap();
+    let (mut failed, [first, second]) = opened(None);
+    let _codex = failed.answer(first.refused(Problem::Timeout));
+    let _claude = failed.answer(second.refused(Problem::Timeout));
+    assert_eq!(failed.empty_state(&all), None, "every provider failed");
+}
+
+#[test]
 fn show_all_reads_the_whole_host_again() {
     let (mut sheet, _asks) = opened(Some("/work/project"));
     let asks = sheet.show_all().unwrap();
@@ -261,4 +277,100 @@ fn show_all_reads_the_whole_host_again() {
     assert!(asks.iter().all(|ask| ask.scope().cwd.is_none()));
     assert!(!sheet.scoped());
     assert!(sheet.show_all().unwrap().is_empty());
+}
+
+#[test]
+fn the_import_keeps_the_native_identity_and_directory() {
+    let (mut sheet, [first, _second]) = opened(None);
+    let _answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
+    let Some(Ask::Import(batch)) = sheet
+        .import(&codex(), &HarnessSessionId::new("codex-a"))
+        .unwrap()
+    else {
+        panic!("an import");
+    };
+    let entry = batch.entries.first().unwrap();
+    let spec = entry.spec(&batch.scope);
+    assert_eq!(spec.cwd.as_ref(), Some(&entry.cwd));
+    assert_eq!(spec.harness, codex());
+    assert_eq!(spec.profile, None);
+    assert_eq!(spec.title, entry.title);
+    assert!(
+        matches!(spec.mode, SessionMode::Structured { resume: Some(id), .. } if id == entry.id)
+    );
+}
+
+#[test]
+fn cursor_bound_is_checked_at_the_boundary() {
+    assert!(Cursor::parse("x".repeat(Cursor::MAX_BYTES)).is_ok());
+    assert_eq!(
+        Cursor::parse("x".repeat(Cursor::MAX_BYTES.saturating_add(1))),
+        Err(Problem::InvalidReply)
+    );
+}
+
+#[test]
+fn an_import_receipt_must_match_its_scope_and_name_the_session() {
+    let (mut sheet, [first, _second]) = opened(None);
+    let _answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
+    let Some(Ask::Import(batch)) = sheet
+        .import(&codex(), &HarnessSessionId::new("codex-a"))
+        .unwrap()
+    else {
+        panic!("an import");
+    };
+    let mut wrong = batch.scope.clone();
+    wrong.machine = MachineKey::from_book("other");
+    let refused = sheet.answer(Reply::Imported {
+        scope: wrong,
+        ticket: batch.ticket,
+        outcomes: Vec::new(),
+    });
+    assert!(!refused.applied);
+    assert!(sheet.importing().is_some());
+    let empty = sheet.answer(Reply::Imported {
+        scope: batch.scope,
+        ticket: batch.ticket,
+        outcomes: Vec::new(),
+    });
+    assert!(empty.applied);
+    assert!(sheet.importing().is_none());
+    assert_eq!(sheet.import_failed(), Some(Problem::InvalidReply));
+    assert!(sheet.take_imported().is_none());
+}
+
+#[test]
+fn a_new_node_cannot_append_to_the_previous_nodes_pages() {
+    let (mut sheet, [first, _second]) = opened(None);
+    let answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], Some("page-2")));
+    let follow = only(answer.follow);
+    let mut changed = reply(&follow, vec![entry("wrong-node", 2)], None);
+    if let Reply::Listed {
+        result: Ok(page), ..
+    } = &mut changed
+    {
+        page.node = NodeId::random();
+    }
+    assert!(sheet.answer(changed).applied);
+    assert_eq!(sheet.failures(), [(&codex(), Problem::IdentityChanged)]);
+    let ids: Vec<&str> = sheet
+        .rows(&Query::new(""))
+        .iter()
+        .map(|row| row.entry.id.as_str())
+        .collect();
+    assert_eq!(ids, ["codex-a"]);
+}
+
+#[test]
+fn an_oversized_next_page_keeps_the_accepted_rows() {
+    const OVER_BUDGET: usize = 17 * 1024 * 1024;
+    let (mut sheet, [first, _second]) = opened(None);
+    let answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], Some("page-2")));
+    let follow = only(answer.follow);
+    let mut oversized = entry("oversized", 2);
+    oversized.id = HarnessSessionId::new("x".repeat(OVER_BUDGET));
+    assert!(sheet.answer(reply(&follow, vec![oversized], None)).applied);
+    assert_eq!(sheet.failures(), [(&codex(), Problem::Capacity)]);
+    assert_eq!(sheet.rows(&Query::new("")).len(), 1);
+    assert!(sheet.has_more());
 }
