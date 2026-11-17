@@ -131,7 +131,12 @@ pub struct Sheet {
     limit: usize,
     importing: Option<Pending>,
     import_failed: Option<Problem>,
-    imported: Option<Box<SessionInfo>>,
+    imported: Option<(Scope, Box<SessionInfo>)>,
+    /// Listings sent and not answered yet, by connection. Each holds one of
+    /// the node's reading slots until its reply comes, whatever the sheet did
+    /// since (a refresh, Show all, closing and opening again), so it survives
+    /// `close` as the ticket source does. The link answers every ask once.
+    sent: Vec<(ConnectionContext, Ticket)>,
     tickets: Tickets,
 }
 
@@ -426,9 +431,10 @@ impl Sheet {
         self.import_failed
     }
 
-    /// The session the last import created; the owner closes the sheet and
-    /// opens it.
-    pub fn take_imported(&mut self) -> Option<Box<SessionInfo>> {
+    /// The session the last import created, with the scope it was imported
+    /// through (its host and node, whatever the sheet is open for now); the
+    /// owner closes the sheet and opens it.
+    pub fn take_imported(&mut self) -> Option<(Scope, Box<SessionInfo>)> {
         self.imported.take()
     }
 
@@ -440,7 +446,19 @@ impl Sheet {
                 scope,
                 ticket,
                 result,
-            } => self.listed(&scope, ticket, result),
+            } => {
+                // Any answer frees its slot, the superseded ones included.
+                let freed = self.settle_sent(&scope.context, ticket);
+                let answer = self.listed(&scope, ticket, result);
+                if answer.applied || !freed {
+                    answer
+                } else {
+                    Answer {
+                        applied: false,
+                        follow: self.queued_or_failed(),
+                    }
+                }
+            }
             Reply::Imported {
                 scope,
                 ticket,

@@ -8,7 +8,7 @@ use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_view::Card;
 use vessel_app_view::devices::MachineKey;
-use vessel_app_view::history::{Ask, Filter, Opening, Problem, Reply};
+use vessel_app_view::history::{Ask, Filter, Opening, Problem, Reply, Scope};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::matcher::Query;
 use vessel_app_view::sessions::SessionAddress;
@@ -181,25 +181,32 @@ impl Shell {
 
     pub(super) fn history_apply_reply(&mut self, reply: Reply, cx: &mut Context<'_, Self>) {
         let answer = self.areas.import.model.answer(reply);
+        // A superseded reply changes nothing shown, yet frees a reading slot
+        // for a read that was waiting.
+        let follows = !answer.follow.is_empty();
+        self.history_submit(Ok(answer.follow));
         if !answer.applied {
+            if follows {
+                cx.notify();
+            }
             return;
         }
-        self.history_submit(Ok(answer.follow));
-        if let Some(info) = self.areas.import.model.take_imported() {
-            self.history_imported(&info);
+        if let Some((scope, info)) = self.areas.import.model.take_imported() {
+            self.history_imported(&scope, &info);
         }
         cx.notify();
     }
 
     /// Paseo's `onImported`: open the new session where it was imported.
-    /// The node is the one the import went to, never a later lookup of the
-    /// machine's name, which may have been rebound meanwhile.
-    fn history_imported(&mut self, info: &SessionInfo) {
+    /// Host and node are the import's own scope: neither the sheet's current
+    /// opening (it may have been opened again on another host since) nor a
+    /// later lookup of the machine's name (which may have been rebound).
+    fn history_imported(&mut self, scope: &Scope, info: &SessionInfo) {
         let area = &mut self.areas.import;
-        let Some(opening) = area.model.opening().filter(|_| area.open) else {
+        if !area.open {
             return;
-        };
-        let machine = opening.machine.as_str().to_owned();
+        }
+        let machine = scope.machine.as_str().to_owned();
         let Ok(host) = Name::parse(&machine) else {
             return;
         };
@@ -207,7 +214,7 @@ impl Shell {
         open.binding = Some(vessel_app_link::sessions::Binding {
             host,
             address: SessionAddress {
-                node: opening.context.node(),
+                node: scope.context.node(),
                 session: info.id,
             },
         });

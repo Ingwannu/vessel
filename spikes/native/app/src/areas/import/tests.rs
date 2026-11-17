@@ -467,3 +467,58 @@ fn a_fleet_change_or_a_retirement_refuses_controls_drawn_before_it(cx: &mut Test
         assert!(shell.areas.import.model.importing().is_none());
     });
 }
+
+#[gpui::test]
+fn a_receipt_after_opening_on_another_host_opens_on_the_import_s_host(cx: &mut TestAppContext) {
+    let (shell, cx, mut commands) = shell(
+        cx,
+        vec![machine("alpha", &[codex()]), machine("beta", &[codex()])],
+    );
+    shell.update_in(cx, |shell, window, cx| {
+        shell.open_import_for(Some("alpha".to_owned()), None, window, cx);
+    });
+    cx.run_until_parked();
+    let alpha = context_of(&shell, cx).node();
+    let asks = sent(&mut commands);
+    answer(&shell, cx, asks, |_| vec![entry("native", 1)]);
+    click(cx, "history-row-codex-native");
+    let Ok([Ask::Import(batch)]) = <[Ask; 1]>::try_from(sent(&mut commands)) else {
+        panic!("one import");
+    };
+    // Opened again on the other host before the receipt comes.
+    shell.update_in(cx, |shell, window, cx| {
+        shell.close_import(window, cx);
+        shell.open_import_for(Some("beta".to_owned()), None, window, cx);
+    });
+    cx.run_until_parked();
+    assert!(sent(&mut commands).is_empty(), "beta waits for the import");
+    let entry = batch.entries.first().unwrap().clone();
+    let created = SessionId::random();
+    shell.update(cx, |shell, cx| {
+        shell.history_apply_reply(
+            Reply::Imported {
+                outcomes: vec![Outcome {
+                    id: entry.id.clone(),
+                    result: Ok(Box::new(SessionInfo::new(
+                        created,
+                        entry.spec(&batch.scope),
+                        chrono::DateTime::UNIX_EPOCH,
+                    ))),
+                }],
+                scope: batch.scope.clone(),
+                ticket: batch.ticket,
+            },
+            cx,
+        );
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let open = shell.areas.session.open.as_ref().expect("the session opened");
+        assert_eq!(open.session, created);
+        assert_eq!(open.machine, "alpha", "the import's host, not beta");
+        assert_eq!(
+            open.binding.as_ref().map(|binding| binding.address.node),
+            Some(alpha)
+        );
+    });
+}

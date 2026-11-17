@@ -2,6 +2,7 @@
 //! pages, the host's two reading slots and the single import's receipt.
 
 use super::{Answer, FeedState, READS_AT_ONCE, Sheet, listable};
+use crate::connection::ConnectionContext;
 use crate::devices::Ticket;
 use crate::history::{Ask, Cursor, Listed, Outcome, Problem, Scope};
 use vessel_proto::HarnessRef;
@@ -100,7 +101,7 @@ impl Sheet {
                         entry.in_vessel = Some(info.id);
                     }
                 }
-                self.imported = Some(info);
+                self.imported = Some((scope.clone(), info));
             }
             Some(Err(problem)) => self.import_failed = Some(problem),
             None => self.import_failed = Some(Problem::InvalidReply),
@@ -137,19 +138,17 @@ impl Sheet {
         index: usize,
         cursor: Option<Cursor>,
     ) -> Result<Option<Ask>, Problem> {
-        if self.importing.is_some() {
-            return Ok(None);
-        }
         let Some(harness) = self.feeds.get(index).map(|feed| feed.harness.clone()) else {
             return Ok(None);
         };
         let Some(scope) = self.scope(&harness) else {
             return Ok(None);
         };
+        // A superseded read still runs on the node until its reply comes.
         let in_flight = self
-            .feeds
+            .sent
             .iter()
-            .filter(|feed| matches!(feed.state, FeedState::Pending(_)))
+            .filter(|(context, _)| context == &scope.context)
             .count();
         let Some(feed) = self.feeds.get_mut(index) else {
             return Ok(None);
@@ -158,8 +157,9 @@ impl Sheet {
         if cursor.is_none() {
             feed.next = None;
         }
-        // A feed already reading gives its slot to this read.
-        if in_flight >= READS_AT_ONCE && !matches!(feed.state, FeedState::Pending(_)) {
+        // No read while an import runs (its receipt changes the list); the
+        // read waits and goes with the receipt, as one waiting for a slot.
+        if in_flight >= READS_AT_ONCE || self.importing.is_some() {
             feed.state = FeedState::Queued;
             return Ok(None);
         }
@@ -167,11 +167,20 @@ impl Sheet {
         if let Some(feed) = self.feeds.get_mut(index) {
             feed.state = FeedState::Pending(ticket);
         }
+        self.sent.push((scope.context.clone(), ticket));
         Ok(Some(Ask::List {
             scope,
             ticket,
             cursor,
         }))
+    }
+
+    /// Forget a listing's slot once its reply comes; whether it was sent.
+    pub(super) fn settle_sent(&mut self, context: &ConnectionContext, ticket: Ticket) -> bool {
+        let before = self.sent.len();
+        self.sent
+            .retain(|(sent, sent_ticket)| !(sent == context && *sent_ticket == ticket));
+        self.sent.len() != before
     }
 
     /// The waiting reads that can go now; out of tickets, they fail as one.

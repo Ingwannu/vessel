@@ -216,7 +216,9 @@ fn a_row_imports_one_session_and_hands_the_new_session_over() {
             })
             .applied
     );
-    assert_eq!(sheet.take_imported().map(|info| info.id), Some(created));
+    let (scope, info) = sheet.take_imported().unwrap();
+    assert_eq!(info.id, created);
+    assert_eq!(scope, batch.scope, "the import's own scope comes with it");
     assert!(sheet.importing().is_none());
     // The imported session leaves the list; nothing left says so.
     assert!(sheet.rows(&Query::new("")).is_empty());
@@ -278,7 +280,9 @@ fn the_empty_state_waits_for_every_provider_and_not_every_failure() {
 
 #[test]
 fn show_all_reads_the_whole_host_again() {
-    let (mut sheet, _asks) = opened(Some("/work/project"));
+    let (mut sheet, [first, second]) = opened(Some("/work/project"));
+    let _first = sheet.answer(reply(&first, Vec::new(), None));
+    let _second = sheet.answer(reply(&second, Vec::new(), None));
     let asks = sheet.show_all().unwrap();
     assert_eq!(asks.len(), 2);
     assert!(asks.iter().all(|ask| ask.scope().cwd.is_none()));
@@ -398,5 +402,71 @@ fn a_host_reads_two_providers_at_once_and_the_rest_as_answers_come() {
     let third = only(answer.follow);
     assert_eq!(harness_of(&third), &gemini);
     // A refresh takes the two slots again; the one left waits again.
-    assert_eq!(sheet.refresh().unwrap().len(), 2);
+    // A refresh now waits: the two reads out still hold both slots.
+    assert!(sheet.refresh().unwrap().is_empty());
+    assert!(sheet.loading());
+}
+
+#[test]
+fn a_superseded_read_holds_its_slot_until_its_reply_comes() {
+    let gemini: HarnessRef = HarnessKind::Gemini.into();
+    let mut sheet = Sheet::default();
+    let asks = sheet
+        .open(
+            opening(Some("/work/project")),
+            vec![codex(), claude(), gemini.clone()],
+        )
+        .unwrap();
+    let Ok([first, second]) = <[Ask; 2]>::try_from(asks) else {
+        panic!("two reads at once");
+    };
+    // Show all while both run: nothing more goes yet.
+    assert!(sheet.show_all().unwrap().is_empty());
+    // The superseded reads still answer; each frees its slot for a new read.
+    let answer = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
+    assert!(!answer.applied, "a superseded reply changes nothing");
+    let codex_again = only(answer.follow);
+    assert_eq!(harness_of(&codex_again), &codex());
+    assert_eq!(codex_again.scope().cwd, None, "the whole host now");
+    let answer = sheet.answer(second.refused(Problem::Timeout));
+    assert!(!answer.applied);
+    assert_eq!(harness_of(&only(answer.follow)), &claude());
+    assert!(sheet.failures().is_empty(), "no provider failed");
+    let answer = sheet.answer(reply(&codex_again, Vec::new(), None));
+    assert_eq!(harness_of(&only(answer.follow)), &gemini);
+}
+
+#[test]
+fn opening_again_waits_for_the_previous_openings_reads() {
+    let (mut sheet, [first, second]) = opened(None);
+    sheet.close();
+    let asks = sheet.open(opening(None), vec![codex(), claude()]).unwrap();
+    assert!(asks.is_empty(), "both slots are still taken");
+    let answer = sheet.answer(reply(&first, vec![entry("old", 1)], None));
+    assert!(!answer.applied);
+    assert_eq!(harness_of(&only(answer.follow)), &codex());
+    let answer = sheet.answer(reply(&second, Vec::new(), None));
+    assert_eq!(harness_of(&only(answer.follow)), &claude());
+    assert!(sheet.rows(&Query::new("")).is_empty(), "the old page is not shown");
+}
+
+#[test]
+fn reads_asked_during_an_import_go_with_its_receipt() {
+    let (mut sheet, [first, second]) = opened(None);
+    let _codex = sheet.answer(reply(&first, vec![entry("codex-a", 1)], None));
+    let _claude = sheet.answer(reply(&second, Vec::new(), None));
+    let Some(Ask::Import(batch)) = sheet
+        .import(&codex(), &HarnessSessionId::new("codex-a"))
+        .unwrap()
+    else {
+        panic!("an import");
+    };
+    // Opened again (here, on the same host) while the import runs.
+    sheet.close();
+    let asks = sheet.open(opening(None), vec![codex(), claude()]).unwrap();
+    assert!(asks.is_empty(), "no read while an import runs");
+    assert!(sheet.loading(), "they wait");
+    let answer = sheet.answer(Ask::Import(batch).refused(Problem::Timeout));
+    assert!(answer.applied);
+    assert_eq!(answer.follow.len(), 2, "both go with the receipt");
 }
