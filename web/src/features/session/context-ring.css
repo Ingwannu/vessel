@@ -62,6 +62,14 @@
   font: 500 13px / 18px var(--font-sans);
 }
 
+/* Paseo's share used: foreground, the title's size; the rest muted. */
+.context-details-used {
+  margin: 0;
+  color: var(--text-primary);
+  font: 400 13px / 18px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
 .context-details-line {
   margin: 0;
   color: var(--text-secondary);

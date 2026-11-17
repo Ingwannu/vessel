@@ -40,8 +40,10 @@ Paseo's context window hover card (components/context-window-details.tsx, usage/
 session's plan usage below the context figures. The page's context ring turns from a tooltip into a kit
 `HoverCard` (Base UI PreviewCard, the popover surface; same 400 ms delay): the figures as before, then
 `features/usage/session-usage.tsx`, which opens the same reader with `{ kind: "session", session }` when the
-card mounts (cached only; hovering never contacts a vendor) and draws compact cards (freshness on the card,
-Refresh per card, no pins). Nothing on machines below protocol 26, with lookup off, or when the session has no
+card mounts (cached only; hovering never contacts a vendor) and draws compact cards (Refresh per card, no
+pins; the freshness follows Paseo's `showsFreshnessInline`: in the Refresh tooltip where there is hover, on the
+card at phone width or when nothing can be refreshed). The figures are Paseo's three lines: the title, "{pct}%
+used" in foreground, then the tokens and the session's cost, muted. Nothing on machines below protocol 26, with lookup off, or when the session has no
 account; a failed read shows Paseo's one line ("Unable to load usage: …").
 `features/usage/use-account-usage.ts` holds the reader and clock hooks both views share.
 

@@ -210,7 +210,9 @@
   font-weight: 500;
 }
 
-.quota-card.compact .quota-card-fresh {
+/* Paseo's third case: a card that cannot be refreshed has no tooltip to
+   carry its freshness. */
+.quota-card.unrefreshable .quota-card-fresh {
   display: inline;
 }
 

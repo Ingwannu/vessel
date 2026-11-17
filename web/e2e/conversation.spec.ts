@@ -387,6 +387,9 @@ test("the context meter and a turn's tokens are the agent's own figures", async 
   const ring = composer(page).getByRole("img", { name: "Context 1% used" });
   await expect(ring).toBeVisible();
   await ring.hover();
-  await expect(page.getByText("1k / 200k tokens (1%)")).toBeVisible();
+  await expect(page.getByText("1% used", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("1k / 200k tokens", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("Session cost $0.50")).toBeVisible();
 });

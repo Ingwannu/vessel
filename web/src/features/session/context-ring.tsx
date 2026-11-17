@@ -30,7 +30,6 @@ export function ContextRing({
   if (meter === null) {
     return null;
   }
-  const [heading = "", ...lines] = meter.lines;
   return (
     // Paseo's context window hover card: the figures, then the session's
     // plan usage (its cards may be refreshed, so not a tooltip).
@@ -56,8 +55,9 @@ export function ContextRing({
         </span>
       }
     >
-      <p className="context-details-title">{heading}</p>
-      {lines.map((line) => (
+      <p className="context-details-title">{meter.title}</p>
+      <p className="context-details-used">{meter.used}</p>
+      {meter.details.map((line) => (
         <p key={line} className="context-details-line">
           {line}
         </p>
