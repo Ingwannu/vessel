@@ -135,7 +135,7 @@ fn a_capable_host_is_followed_and_its_answers_reach_the_rows(cx: &mut TestAppCon
             },
             cx,
         );
-        let row = shell.areas.labels.row("fixture", session).unwrap();
+        let row = shell.areas.labels.row("fixture", session, None).unwrap();
         assert_eq!(row.workspace, workspace);
         assert_eq!(row.labels, [ready()]);
         assert!(row.writable);
@@ -143,7 +143,7 @@ fn a_capable_host_is_followed_and_its_answers_reach_the_rows(cx: &mut TestAppCon
             shell
                 .areas
                 .labels
-                .row("fixture", SessionId::random())
+                .row("fixture", SessionId::random(), None)
                 .is_none()
         );
     });
@@ -218,7 +218,7 @@ fn a_row_s_labels_item_opens_the_picker_on_its_registry_workspace(cx: &mut TestA
             },
             cx,
         );
-        shell.labels_row_open("fixture", session, window, cx);
+        shell.labels_row_open("fixture", session, None, window, cx);
         let target = shell.areas.labels.picker_target().unwrap();
         assert_eq!(target.workspace(), workspace);
         assert_eq!(target.connection(), &connection);
@@ -236,7 +236,7 @@ fn a_row_s_labels_item_opens_the_picker_on_its_registry_workspace(cx: &mut TestA
             },
             cx,
         );
-        let row = shell.areas.labels.row("fixture", session).unwrap();
+        let row = shell.areas.labels.row("fixture", session, None).unwrap();
         let names: Vec<Name> = row.labels.into_iter().map(|label| label.name).collect();
         assert_eq!(names, [name("Ready"), name("Blocked")]);
     });

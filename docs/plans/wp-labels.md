@@ -56,7 +56,8 @@ Reference sources read before implementation (relative to the reference source r
 - `view/src/labels/`: validated display names, color and assignment enums;
   host-local catalogs and merge projection; the catalog `Replica`
   (contiguous changes, a snapshot after a gap); `Assignments`, a host's
-  registry projection (session -> workspace by membership, workspace ->
+  registry projection (session -> workspace by its explicit membership,
+  else by the node's derived rule from the card's project; workspace ->
   ordered label names); picker/manager transitions and correlated
   operation tickets. No I/O or GPUI.
 - `view/locales/{en,ko}/labels.ftl`: every displayed sentence.
@@ -85,7 +86,14 @@ The five `workspace.label.*` calls are protocol 28 (`WORKSPACE_LABELS`,
 ADR 0086), on the line since package base 14.15; the registry snapshot's
 `labels` projection is there for protocol-28 peers, and runtime workspace
 registration (ADR 0106, base 14.20) gives new sessions a workspace
-membership. The app uses only these; it adds no node call. Session
+membership. A session placed in a project is a derived member: the
+snapshot lists it, but its start writes nothing, so a read waiting on the
+revision does not wake for it. As the ADR tells a client, the app applies
+the same rule itself, from the session's `SessionInfo.workspace` (project,
+no worktree, not archived) and the registry's workspaces: the project's
+oldest Active, foreground `Local` workspace. Seen on a real fleet: without
+it, a new session's Labels item waited for the whole long poll. The app
+uses only these; it adds no node call. Session
 metadata (`session.labels`) has a separate owner and is not touched here.
 
 ## Shared identity paint
@@ -125,8 +133,8 @@ around reference 20-point swatches. Choosing a color changes the draft only.
 - Labels open the picker dialog from the row menu (the kit's menu has no
   pages; Paseo shows a page inside the menu). The row's meta line carries
   only the labels (Paseo's also shows a change request and checks). A
-  session without a workspace membership (older than ADR 0106) has no
-  Labels item and no chips.
+  session with no workspace (in a worktree, in a plain folder, or older
+  than ADR 0106) has no Labels item and no chips, as on the node.
 - Paseo's sidebar filter by label (with Unlabelled) is a later row; the
   manager's host filter is built.
 - The pure model uses deterministic Unicode lowercase ordering rather than
@@ -317,8 +325,8 @@ The picker/create renderer in app/src/areas/labels/picker.rs consumes the
 reviewed WorkspaceTarget, ordered assignment names and EditAccess; it
 never synthesizes a workspace from cwd, session or an arbitrary alias.
 It was test-only until the receiving union (below) gave it its caller: a
-session row's Labels item, with the registry membership's workspace and
-the followed registry's names. The global manager keeps its existing
+session row's Labels item, with the session's registry workspace (its
+explicit row, else the derived one) and the followed registry's names. The global manager keeps its existing
 registration.
 
 The picker reuses kit ComboboxState/ComboRow (checked rows, dot leading, pending

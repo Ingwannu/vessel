@@ -98,7 +98,7 @@ pub(super) fn session_row(
     let labels = shell
         .areas
         .labels
-        .row(&card.machine, card.session)
+        .row(&card.machine, card.session, card.member_project())
         .map(|row| row.labels)
         .unwrap_or_default();
     let line = div()

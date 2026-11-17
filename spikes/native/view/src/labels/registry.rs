@@ -6,22 +6,35 @@
 //!   Labels page assigns to that workspace, as Paseo's sidebar does.
 //! - Constraint: assignments live in the registry snapshot's `labels`
 //!   projection (protocol 28), keyed by the registry's workspace identity;
-//!   a session reaches its workspace only through `memberships`, never by
-//!   its directory. The snapshot is replaced whole, by revision.
-//! - Choice: keep only those two maps from each snapshot, with its
-//!   revision for the next `changed_from` read; a committed assignment
+//!   a session reaches its workspace through the registry, never by its
+//!   directory. The snapshot is replaced whole, by revision. A session
+//!   placed in a project (its root or a folder, not a worktree) is a
+//!   derived member (ADR 0106 choice 4): the snapshot lists it, but its
+//!   start writes nothing, so a read waiting on the revision does not wake
+//!   for it and a new session would wait up to a whole wait for its row's
+//!   Labels.
+//! - Choice: keep only those maps from each snapshot, with its revision
+//!   for the next `changed_from` read. A session without an explicit row
+//!   takes the node's own derived rule from its `SessionInfo.workspace`
+//!   project, as the ADR tells a client to: the project's oldest Active,
+//!   foreground `Local` workspace. A committed assignment
 //!   answer updates its workspace at once. A snapshot read before that
 //!   commit can arrive after its answer: the assignment is kept over a
 //!   snapshot no newer than the revision held when it was answered, and
 //!   over one newer snapshot that still disagrees (the commit's own
 //!   snapshot follows it), then the registry wins again.
-//! - Cost: a session without a membership (an older one) has no
-//!   workspace, so no labels and no Labels page.
+//! - Cost: the rule is the node's, kept twice (vessel-store
+//!   `derived_memberships`); a change there changes this. A session in a
+//!   worktree, or with no project (a plain folder), has no workspace, so
+//!   no labels and no Labels page, as on the node.
 
 use std::collections::BTreeMap;
 
-use vessel_proto::registry::{RegistryRevision, RegistrySnapshot, WorkspaceResource};
-use vessel_proto::{SessionId, WorkspaceId};
+use vessel_proto::registry::{
+    RegistryRevision, RegistrySnapshot, WorkspaceBacking, WorkspaceLifecycle, WorkspaceResource,
+    WorkspaceVisibility,
+};
+use vessel_proto::{ProjectId, SessionId, WorkspaceId};
 
 use super::Name;
 
@@ -30,6 +43,8 @@ use super::Name;
 pub struct Assignments {
     revision: Option<RegistryRevision>,
     sessions: BTreeMap<SessionId, WorkspaceId>,
+    /// Each project's workspace for its derived members.
+    owners: BTreeMap<ProjectId, WorkspaceId>,
     labels: BTreeMap<WorkspaceId, Vec<Name>>,
     /// Committed assignments the registry may not show yet.
     committed: BTreeMap<WorkspaceId, Committed>,
@@ -65,6 +80,7 @@ impl Assignments {
         Self {
             revision: Some(snapshot.revision),
             sessions,
+            owners: owners(snapshot),
             labels,
             committed: BTreeMap::new(),
         }
@@ -100,10 +116,15 @@ impl Assignments {
         self.revision
     }
 
-    /// The workspace `session` belongs to.
+    /// The workspace `session` belongs to: its explicit row, else, placed
+    /// in `project` (its `SessionInfo.workspace` without a worktree, not
+    /// archived), that project's workspace.
     #[must_use]
-    pub fn workspace(&self, session: SessionId) -> Option<WorkspaceId> {
-        self.sessions.get(&session).copied()
+    pub fn workspace(&self, session: SessionId, project: Option<ProjectId>) -> Option<WorkspaceId> {
+        self.sessions
+            .get(&session)
+            .copied()
+            .or_else(|| project.and_then(|project| self.owners.get(&project).copied()))
     }
 
     /// `workspace`'s labels, in their committed order.
@@ -132,6 +153,33 @@ impl Assignments {
             let _previous = self.labels.insert(workspace, labels);
         }
     }
+}
+
+/// Each project's oldest Active, foreground `Local` workspace (by creation,
+/// then identity): the node's `derived_memberships` owner.
+fn owners(snapshot: &RegistrySnapshot) -> BTreeMap<ProjectId, WorkspaceId> {
+    let mut oldest = BTreeMap::new();
+    for descriptor in &snapshot.workspaces {
+        let live = descriptor.lifecycle == WorkspaceLifecycle::Active
+            && descriptor.visibility == WorkspaceVisibility::Foreground
+            && descriptor.backing == WorkspaceBacking::Local;
+        if !live {
+            continue;
+        }
+        let candidate = (descriptor.created_at, descriptor.id);
+        let _owner = oldest
+            .entry(descriptor.project)
+            .and_modify(|owner| {
+                if candidate < *owner {
+                    *owner = candidate;
+                }
+            })
+            .or_insert(candidate);
+    }
+    oldest
+        .into_iter()
+        .map(|(project, (_, workspace))| (project, workspace))
+        .collect()
 }
 
 #[cfg(test)]

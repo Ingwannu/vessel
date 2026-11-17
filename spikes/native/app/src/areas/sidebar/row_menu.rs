@@ -117,7 +117,7 @@ fn acts(shell: &Shell, card: &Card) -> Vec<RowAct> {
     if shell
         .areas
         .labels
-        .row(&card.machine, card.session)
+        .row(&card.machine, card.session, card.member_project())
         .is_some()
     {
         acts.push(RowAct::Labels);
@@ -180,7 +180,10 @@ impl Shell {
             RowAct::Mark(MarkAction::Pin) => self.act_on_card(&card, Act::Mark(Mark::Pin)),
             RowAct::Mark(MarkAction::Unpin) => self.act_on_card(&card, Act::Mark(Mark::Unpin)),
             RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete) => {}
-            RowAct::Labels => self.labels_row_open(&card.machine, card.session, window, cx),
+            RowAct::Labels => {
+                let project = card.member_project();
+                self.labels_row_open(&card.machine, card.session, project, window, cx);
+            }
         }
         cx.notify();
     }

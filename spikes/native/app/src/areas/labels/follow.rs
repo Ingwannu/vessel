@@ -288,15 +288,17 @@ impl Shell {
     }
 
     /// The Labels item of `session`'s row menu: the picker for its
-    /// workspace, with the registry's labels.
+    /// workspace, with the registry's labels. `project` is the card's
+    /// [`member_project`](vessel_app_view::board::Card::member_project).
     pub(crate) fn labels_row_open(
         &mut self,
         machine: &str,
         session: vessel_proto::SessionId,
+        project: Option<vessel_proto::ProjectId>,
         window: &mut vessel_app_kit::ui::Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(row) = self.areas.labels.row(machine, session) else {
+        let Some(row) = self.areas.labels.row(machine, session, project) else {
             return;
         };
         let key = vessel_app_view::layout::LayoutKey::Workspace {
@@ -357,10 +359,15 @@ impl super::Labels {
 
     /// A session row's workspace and labels, on `machine`'s host: none
     /// while the host is not followed or the session has no workspace.
+    /// `project` is the card's
+    /// [`member_project`](vessel_app_view::board::Card::member_project): a
+    /// new session's derived membership advances no registry revision, so
+    /// the row takes it from there rather than wait for the next snapshot.
     pub(crate) fn row(
         &self,
         machine: &str,
         session: vessel_proto::SessionId,
+        project: Option<vessel_proto::ProjectId>,
     ) -> Option<RowLabels<'_>> {
         let host = self
             .hosts
@@ -371,7 +378,7 @@ impl super::Labels {
             .follows
             .iter()
             .find(|follow| &follow.connection == connection)?;
-        let workspace = follow.registry.workspace(session)?;
+        let workspace = follow.registry.workspace(session, project)?;
         let labels = follow
             .registry
             .labels(workspace)
