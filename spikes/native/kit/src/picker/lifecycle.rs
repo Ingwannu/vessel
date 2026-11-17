@@ -30,6 +30,16 @@ impl ComboboxState {
         }
     }
 
+    /// Open it as a page beside its menu (a flyout, [`crate::submenu`]): its
+    /// rows take presses, while the keys stay with the menu that opened it
+    /// (no focus moves, none is returned on close).
+    pub fn open_beside(&mut self) {
+        self.cycle = Rc::new(());
+        self.open = true;
+        self.highlighted = None;
+        self.highlighted_label = None;
+    }
+
     /// Close it (no longer `const`: it drops the highlighted row's label).
     pub fn close(&mut self) {
         self.open = false;

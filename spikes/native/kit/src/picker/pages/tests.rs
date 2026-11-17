@@ -99,8 +99,8 @@ fn setup(cx: &mut TestAppContext, with_pages: bool) -> (Entity<Probe>, &mut Visu
             size: gpui::size(px(80.0), px(30.0)),
         }));
         probe.list.open(None, window, cx);
-        probe.page_list.open(None, window, cx);
-        probe.list.open(None, window, cx);
+        // The page's list takes presses; the keys stay with the root list.
+        probe.page_list.open_beside();
         cx.notify();
     });
     cx.run_until_parked();
@@ -147,6 +147,7 @@ fn a_press_on_the_page_keeps_the_list_and_one_outside_closes_it(cx: &mut TestApp
     cx.simulate_click(inside, Modifiers::none());
     cx.run_until_parked();
     assert!(state(&view, cx).0);
+    assert_eq!(view.read_with(cx, |probe, _| probe.page_pressed), 1);
     cx.simulate_click(point(px(10.0), px(300.0)), Modifiers::none());
     cx.run_until_parked();
     assert!(!state(&view, cx).0);
