@@ -220,3 +220,123 @@ verified same-commit managed CLI/node/fake exports, without a local Rust or
 bundle build. The selected source and binary identities match before/after.
 This replaces the earlier narrow-width visual claim only; the plan retains
 the exact execution, provenance limits and next investigation.
+
+
+## F3 account usage presentation boundary
+
+[Decision Log]
+- Purpose: prepare the account quota cards and their sidebar/session views
+  without equating account quota with historical tokens or context occupancy.
+- Existing assets: reuse Fleet, Outcome, Store, Settings and the existing kit.
+  The ledger's `data/usage/facts.ts` expects integer token counters and reports
+  per-field coverage. The context meter owns context occupancy. Neither is an
+  account balance formatter: provider balances can be fractional and carry
+  separate units, while a quota has reset and projected exhaustion facts.
+- Alternatives: broadening the ledger reader would conflate historical profile
+  aggregation with a current account binding. Reusing its integer formatter
+  would reject legitimate fractional balances. Adding a client pricing library
+  would introduce estimates and dependencies that neither contract needs.
+- Choice: small pure modules under `data/account-usage` validate finite paint
+  percentages, preserve independent used/remaining observations and source tone,
+  format each reported amount in its own unit, and model reset, projected
+  exhaustion and successful-snapshot age as separate states. They use standard
+  Intl formatting and the existing dependency set, with no credential, network,
+  account discovery, prices, polling, local persistence or wire declaration.
+- Why: a source's own used and remaining values need not be complementary.
+  Unknown and zero differ. Only a reset state carries an exact reset instant;
+  an exhaustion warning must not accidentally show that instant as the time of
+  exhaustion. Retained past risk is suppressed, as in the reference.
+- Consequences: this is an inactive presentation skeleton. It does not register
+  a screen, issue a pending call or create an account binding. The account
+  report/inspect/source-consent adapter waits for its reviewed, assigned and
+  merged node contract. Unsupported sources get no working-looking action.
+  Agent-reported ledger/context remains independent when external lookup is Off.
+
+Reference: pinned Paseo `usage/model.ts:8–19,209–244`, `format.ts:29–38,48–204`
+and `tone.ts`. The source tone overrides inferred thresholds; the fallback is
+muted below 70, warning from 70 through 90, danger strictly above 90. Amount
+formatting uses USD currency, compact tokens, and two decimal places for other
+units. Following the conservative guard used for ledger token counts, this account
+amount formatter flags values beyond the browser's safe integer range rather
+than printing trustworthy-looking exact digits. This is a stated difference
+from Paseo's amount formatter; it is not a change to ledger cost formatting.
+
+Host query data precedes a host query error in the reference, while an agent
+query error hides its prior/partial list (`model.ts:114–181`). A successful query
+containing a per-report failure is different: it may show the last successful
+values and their original successful timestamp. The eventual reader must keep
+these distinctions and its own request lifetime separate from a cached remote
+Refreshing phase. None of these view states diagnoses a stopped turn or enables
+automatic wait/resume or account switching.
+
+
+The shared quota meter consumes the same private-constructor percentage value
+as the account projection. Its implementation lives in the dependency-free
+`quota-percent` module, enforced as a leaf by ESLint; the data module re-exports
+the unchanged value API. Keeping that value inside data would force the kit to
+import application data; keeping it inside the kit would force the reverse
+edge. Duplicating the guard would make two facts out of one. This extraction
+changes neither percentage behavior nor existing test expectations. The kit
+performs no second validation/clamp and no controller/slider behavior.
+
+
+The shared web quota meter is a read-only kit control, with 6px height, 3px
+track radius, clipped overflow and a full-radius fill. It accepts only the
+validated percentage value and typed tone/emphasis; zero has zero fill width.
+It imports no data or wire layer and has no slider, keyboard controller or
+minimum context arc. Its isolated `/kit` specimens precede any app usage.
+
+Two missing surface roles are added as named tokens from the pinned default
+Paseo themes: surface3 light/dark `#e4e4e7`/`#434645`, surface4
+`#d4d4d8`/`#595b5b`. Normal muted/success/warning/danger fills use the web
+page's existing `text-tertiary`, `online`, `warn`, `danger` tokens, retaining
+the palette and contrast choices documented by `tokens.css`. No existing
+theme role is replaced. This theme adaptation is explicit; the control's
+geometry and quiet/normal semantics follow `usage/meter.tsx`.
+
+The pure renderer regressions cover names, read-only semantics, 0/50/100,
+overflow/negative clamp and quiet override. The gallery capture cases measure
+actual track/fill bounds and resolved colors, and capture the original
+light/dark specimens at desktop/390 widths in both browser locales. The
+control must pass the reviewer and coordinator's comparison before a Usage
+screen consumes it. These are control captures, not account-report fixtures.
+
+
+The inactive host chooser follows `usage/model.ts:189–222` independently of
+account identity: sidebar choice is picked supported host, active supported
+host, then the first supported host; the modal may preserve a connected
+unsupported pick to show why it cannot report. An offline pick falls back
+without rewriting the user's preference and can return when connected.
+This differs deliberately from the ledger's machine-transition scope reset:
+a device's chosen host is persistent routing preference, not a historical
+profile or a saved account association. The pure chooser accepts existing
+branded NodeKeys and an explicit capability/connection state; it sends no call,
+reads no policy and does not enable a pending method or external lookup.
+
+
+Inactive countdown formatting consumes the view's floored two-part duration
+rather than re-reading a raw timestamp. It uses standard Intl narrow units
+and viewer-localized numbers, joined as in the reference's duration pair;
+English/Korean expectations match `format.ts` and their timing resources.
+Sentence copy remains a surface responsibility. This adds neither a second
+clock calculation nor a new localization dependency, and it never renders raw
+seconds/ISO text or infers a reset from a missing report.
+
+
+The inactive sidebar layout policy follows `usage/pinned.ts`: show labels
+before measurement, then all meters if labels plus 16px tracks and 4px gaps
+fit, otherwise labels, otherwise percentages if narrower. It never mixes
+meter and non-meter modes in one row. Invalid observer measurements are
+explicitly treated as not measured. This minimum is the track's useful width,
+not a minimum fill; the approved zero-width-zero control remains unchanged.
+The policy uses no account IDs, report DTO or pending wire operation.
+
+Quota clock hints reuse the semantic clock and a caller-supplied standard
+Intl device formatter. The ledger's full observation timestamp cannot be
+reused: it includes a date where the reference shows only time, weekday or
+month/day depending on reset distance. The device formatter owns time zone
+and 12/24-hour preference; date names follow the viewer language in that same
+zone. The pure result leaves punctuation to localized surface words and
+withholds an exact time for forecasts, missing or elapsed resets. Percent
+text consumes the already-validated shared value without a second clamp.
+No date library, device preference reader, report DTO or surface is added.

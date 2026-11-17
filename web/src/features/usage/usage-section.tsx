@@ -29,6 +29,7 @@ import {
   SettingsPage,
   SettingsSection,
 } from "../settings/settings-page";
+import { PlanUsage } from "./plan-usage";
 import { UsageScopePicker } from "./scope-picker";
 import { useUsage } from "./use-usage";
 
@@ -45,7 +46,7 @@ export function UsageSection({ machine }: { machine: NodeKey | undefined }) {
   const selected = useFleetState((state) => state.selected);
   const node = machineFor(book ?? [], machine, selected);
   return (
-    <SettingsPage lead={LEAD}>
+    <SettingsPage lead={node === null ? LEAD : undefined}>
       {node === null ? (
         book === null ? (
           <Skeleton />
@@ -80,10 +81,14 @@ function MachineUsage({ node, label }: { node: NodeKey; label: string }) {
     read.kind === "loading";
   return (
     <div className="usage-report">
+      <PlanUsage node={node} label={label} />
       <SettingsSection
         title={`Reported usage on ${label}`}
         action={<MachinePicker section="usage" machine={node} />}
       >
+        {/* The ledger's sentence sits with the ledger: Paseo's plan usage
+            comes first on this page. */}
+        <p className="usage-ledger-lead">{LEAD}</p>
         <RowList label="Usage interval">
           <Row
             title="Period"

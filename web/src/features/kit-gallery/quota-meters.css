@@ -1,0 +1,28 @@
+.kit-quota-grid,
+.kit-quota-tones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+
+.kit-quota-tones {
+  margin-top: var(--s-4);
+}
+
+.kit-quota-specimen {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.kit-quota-specimen strong {
+  font-weight: 500;
+}
+
+@media (width <= 600px) {
+  .kit-quota-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

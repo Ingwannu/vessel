@@ -18,14 +18,16 @@ export function SettingsPage({
   lead,
   children,
 }: {
-  /** One sentence: what this section is for. */
-  lead: ReactNode;
+  /** One sentence: what this section is for. A page whose first section
+   * is not what the sentence describes (Usage, where Paseo's plan usage
+   * comes before the ledger) puts it in that section instead. */
+  lead?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="settings-page">
       <div className="settings-column">
-        <p className="settings-lead">{lead}</p>
+        {lead === undefined ? null : <p className="settings-lead">{lead}</p>}
         {children}
       </div>
     </div>

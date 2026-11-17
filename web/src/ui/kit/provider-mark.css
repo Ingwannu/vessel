@@ -1,0 +1,34 @@
+/* Provider marks (provider-mark.tsx): one form per scheme. The page
+   follows the system unless `data-theme` pins one (tokens.css). */
+
+.provider-mark {
+  display: block;
+  flex: none;
+}
+
+.provider-mark-pair {
+  display: inline-flex;
+  flex: none;
+}
+
+.provider-mark.dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .provider-mark.light {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .provider-mark.dark {
+    display: block;
+  }
+}
+
+:root[data-theme="dark"] .provider-mark.light {
+  display: none;
+}
+
+:root[data-theme="dark"] .provider-mark.dark {
+  display: block;
+}
