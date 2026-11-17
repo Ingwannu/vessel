@@ -30,7 +30,7 @@ impl Render for Probe {
 fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
     Probe(cx.new(|cx| {
         let mut shell = Shell::without_io(window, cx);
-        shell.route = crate::routes::Route::Session;
+        shell.route = Route::Session;
         let session = SessionId::random();
         shell.areas.session.open = Some(Open {
             machine: "isolated".to_owned(),
@@ -162,7 +162,7 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
                 .layout
                 .tip_places
                 .borrow()
-                .contains_key(&(PaneId::MAIN, Control::Right))
+                .contains_key(&(PaneId::MAIN, Control::More))
         );
         // Compact tooltips intentionally install no measurement/listener. The
         // actual row contains only New, so its painted bounds are the hitbox.
@@ -204,7 +204,7 @@ fn retained_header_callback_refuses_changed_original_selection_without_split(
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        shell.route = crate::routes::Route::Session;
+        shell.route = Route::Session;
         shell.areas.session.open = Some(Open {
             machine: "isolated".to_owned(),
             session: SessionId::random(),

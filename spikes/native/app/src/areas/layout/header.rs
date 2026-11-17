@@ -109,15 +109,9 @@ pub(super) enum MenuKind {
 pub(super) struct HeaderMenu {
     kind: MenuKind,
     pane: PaneId,
-    workspace: LayoutKey,
-    context: LayoutActionContext,
-}
-
-impl HeaderMenu {
     /// The workspace whose layout the menu was opened on.
-    pub(super) const fn workspace(&self) -> &LayoutKey {
-        &self.workspace
-    }
+    pub(super) workspace: LayoutKey,
+    context: LayoutActionContext,
 }
 
 /// What a header control or menu row does to its pane.
