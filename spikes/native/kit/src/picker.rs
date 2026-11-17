@@ -31,8 +31,7 @@
 //! - Cost: no type-ahead without the search row (Paseo has none either),
 //!   no favourites (GOAT's), no animation.
 
-use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+use std::{cell::Cell, cell::RefCell, rc::Rc};
 
 use gpui::prelude::*;
 use gpui::{
@@ -42,9 +41,8 @@ use gpui::{
 
 use crate::assets::Glyph;
 use crate::field::TextField;
-use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
-use crate::theme::Tokens;
+use crate::{fonts::Type, theme::Tokens};
 use crate::widgets::TypeExt as _;
 
 mod focus;
