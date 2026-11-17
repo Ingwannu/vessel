@@ -5,9 +5,9 @@ use super::item::{Leading, paint};
 use super::{MenuHandlers, MenuItem, MenuState, pointer_choice};
 use std::rc::Rc;
 
+use super::sub_row::{SubRow, sub_row};
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
-use super::sub_row::{SubRow, sub_row};
 use crate::submenu::Submenus;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;

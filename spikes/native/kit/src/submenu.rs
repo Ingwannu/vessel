@@ -161,7 +161,10 @@ impl Submenus {
     /// Whether `page`, opened from `depth`, is open (its row is active).
     #[must_use]
     pub fn is_open(&self, page: &str, depth: usize) -> bool {
-        self.0.borrow().path.is_open(&PageId::from(page.to_owned()), depth)
+        self.0
+            .borrow()
+            .path
+            .is_open(&PageId::from(page.to_owned()), depth)
     }
 
     /// Mark `page` as one a press opens and hover does not (a form).
@@ -347,7 +350,9 @@ pub fn flyout(
     let probe = submenus.surface_probe(depth);
     let entered = submenus.clone();
     let surface = div()
-        .id(ElementId::Name(SharedString::from(format!("submenu-{page}"))))
+        .id(ElementId::Name(SharedString::from(format!(
+            "submenu-{page}"
+        ))))
         .relative()
         .occlude()
         .on_hover(move |inside: &bool, window, cx| {

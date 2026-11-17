@@ -95,10 +95,7 @@ fn a_page_opens_when_the_pointer_rests_and_overlaps_its_menu(cx: &mut TestAppCon
     let page = bounds(cx, "page");
     assert_eq!(
         page.origin,
-        point(
-            px(OVERLAP.mul_add(-1.0, f32::from(row.right()))),
-            row.top()
-        )
+        point(px(OVERLAP.mul_add(-1.0, f32::from(row.right()))), row.top())
     );
     // A press on the page is not outside the menu; one elsewhere is.
     view.read_with(cx, |probe, _| {
