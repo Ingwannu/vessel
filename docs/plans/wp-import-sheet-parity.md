@@ -43,9 +43,11 @@ design.
 - Provider filter (more than one provider): a pill (leading icon 14, label 14
   medium, chevron 14; padding 6 by 12, radius 6, `surface1`, `border`
   hairline, hover `surface2`, pressed `surface3`), 8 above the list, opening a
-  non-searchable list ("All", then each provider with its icon).
+  non-searchable list ("All", then each provider sorted by id, every row
+  leading with a 14 muted icon).
 - Rows: a pressable row (gap 8, padding 8, radius 8, 4 between rows; hover
-  `surface1`, pressed `surface2`): the agent mark (16, 2 down), then a column:
+  `surface1`, pressed `surface2`): the agent mark (muted, in a 16 slot, 2
+  down), then a column:
   the title (14 foreground, one line) with the activity time on its right
   ("just now", "5m ago", 12 muted; "Importing..." while this row imports),
   and the folder (12 muted, one line, ellipsized) only when unscoped.
@@ -64,6 +66,9 @@ design.
 - `DialogInput::with_header_subtitle`: Paseo's `SheetHeader.subtitle` under the
   title in the title group (gap 4). The title truncates when a subtitle is
   present, as it does beside header actions.
+- `Leading::SmallAgentMark`: the agent mark at 14 in the muted ink, in the
+  small glyphs' 14 column, so the filter list's "All" (`Layers`) and its
+  providers start their words at one edge (Paseo's `ProviderIcon size={14}`).
 - Glyph roles `Inbox` (the empty state) and `Layers` (the filter's "All"),
   Lucide's children at the provider's 1.5, appended to the inventory
   (`assets::sheet_role_tests`).
@@ -126,13 +131,12 @@ design.
 - The host chooser lists connected machines only and has no arrow-key
   selection (Paseo's chooser lists every host with its state and takes
   ArrowUp/ArrowDown/Enter).
-- The filter list's provider rows lead with the kit's row agent mark (Paseo:
-  a 14 muted provider icon); "All" leads with the 14 `Layers`.
 
 ## Tests
 
 - View: `history::sheet::tests` (16).
-- Kit: `dialog::header_subtitle_tests`, `assets::sheet_role_tests`.
+- Kit: `dialog::header_subtitle_tests`, `assets::sheet_role_tests`,
+  `picker::rows::small_mark_tests`.
 - App: `areas::import::tests` (one host skips the chooser and reads every
   agent; several hosts open "Import from host"; a row press imports, closes
   and opens on the import's node; a receipt after closing opens nothing; the
@@ -153,4 +157,12 @@ Gates on 72b62fc12 (package base 14.28 merged), build VM, ordinary lane:
 - kit 332 and link 183 passed.
 - wasm32 check of link and app: rc 0, no warnings.
 
-Captures: pending (coordinator).
+After the capture pass (76e3928e3: the 14 muted provider marks in one
+column, the 16 slot for row marks): strict 0; kit and app suites rerun on
+the final head.
+
+Captures (export of 76e3928e3 on the base14.19 shared fleet, fake agents):
+en-dark and ko-light at 1280 and 390: the merged list with the provider pill
+and a failed provider's banner, the filter list (a titled sheet on a phone),
+one provider (no pill), Codex only, no matches, "No Codex sessions found.",
+and an imported session opened. Sent to the coordinator.
