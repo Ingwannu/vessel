@@ -164,16 +164,13 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
                 .borrow()
                 .contains_key(&(PaneId::MAIN, Control::More))
         );
-        // Compact tooltips intentionally install no measurement/listener. The
-        // actual row contains only New, so its painted bounds are the hitbox.
-        assert!(
-            shell.areas.layout.tip_places.borrow()[&(PaneId::MAIN, Control::New)]
-                .get()
-                .is_none()
-        );
     });
+    // Compact tooltips install no listener, but "+" is still measured so its
+    // menu opens under it; the row holds only New, so both bounds agree.
     let new = cx.debug_bounds("layout-main-pane-controls").unwrap();
     assert_eq!(new.size, gpui::size(px(32.0), px(32.0)));
+    let measured = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::New));
+    assert_eq!(measured, new);
     cx.simulate_click(new.center(), Modifiers::none());
     cx.run_until_parked();
     // Paseo's "+" is a menu: it opens the new-tab menu and adds no tab.
@@ -249,10 +246,11 @@ fn the_new_tab_menu_lists_the_catalog_and_agent_opens_the_new_agent_page(cx: &mu
     let new = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::New));
     cx.simulate_click(new.center(), Modifiers::none());
     cx.run_until_parked();
-    // Below "+", its left edge at the button's, 4 down.
+    // Below "+" (its start at the button's, moved left as the window edge
+    // requires: "+" ends the header near the window's right edge here).
     let first = cx.debug_bounds("menu-row-0").unwrap();
     assert!(first.top() > new.bottom());
-    assert!(first.left() >= new.left());
+    assert!(first.right() <= px(1280.0));
     let launches = cx.update(|window, cx| {
         let shell = probe.read(cx).0.read(cx);
         rows(shell, MenuKind::NewTab, window)
