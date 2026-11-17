@@ -1,7 +1,7 @@
 //! Isolated canonical workspace fixtures; compiled UI, no live registry or RPC.
 use super::*;
 use gpui::TestAppContext;
-use vessel_app_kit::ui::point;
+use vessel_app_kit::ui::{point, px};
 use vessel_app_link::Link;
 use vessel_app_view::{
     connection::{ConnectionEpochs, MachineKey},
