@@ -119,8 +119,10 @@ coordinator as a separate parity item.
   - The box stays usable while a permission waits on nodes from protocol 10 (before 10 nothing can be sent during
     a turn, so it stays disabled with "Answer the permission to continue"); the placeholder says what Enter will
     do (`nextDelivery`).
-- Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so); the
-  page's other way of Queue stays Steer where the agent can (Paseo's is Interrupt), left as it was.
+- Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so).
+- Follow-up (coordinator, same day): the other way of Queue is interrupt-and-send, as Paseo's "Command/Ctrl+Enter
+  submits" (`resolveAlternateSendAction`), where the page used to steer; Settings › General's Default send hint is
+  Paseo's words (en.ts settings.general.defaultSend.descriptions / commandEnterDescriptions) by the send key.
 - Tests: delivery.test.ts (both rules, nextDelivery), composer-words.test.ts (placeholders), conversation.spec
   (Queue while a permission waits: box enabled, placeholder, "Interrupt and send"), app.spec (box enabled).
 

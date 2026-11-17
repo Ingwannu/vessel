@@ -75,9 +75,11 @@ describe("the composer's button", () => {
       delivery: "interrupt",
       alternate: "queue",
     });
+    // Paseo's "Command/Ctrl+Enter submits": the other way of a Queue
+    // interrupts and sends, even where the agent could steer.
     expect(sendPlan(RUNNING)).toMatchObject({
       delivery: "queue",
-      alternate: "steer",
+      alternate: "interrupt",
     });
   });
 
@@ -97,7 +99,7 @@ describe("the composer's button", () => {
     expect(
       sendPlan({ ...RUNNING, preferred: "steer", steerRefused: true }),
     ).toMatchObject({ delivery: "interrupt", fallback: "cannot-steer" });
-    // Where it can, a Queue's other way is still the steer.
+    // A Queue's other way interrupts here too.
     expect(sendPlan({ ...RUNNING, abilities: plain })).toMatchObject({
       delivery: "queue",
       alternate: "interrupt",
