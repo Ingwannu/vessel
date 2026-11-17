@@ -18,7 +18,7 @@ use vessel_app_view::history::Filter;
 /// its 14 muted leading.
 fn choices(shell: &Shell) -> Vec<(Filter, String, Leading)> {
     let mut providers = shell.areas.import.model.providers();
-    providers.sort_by_key(|harness| harness.to_string());
+    providers.sort_by_key(ToString::to_string);
     let mut choices = vec![(
         Filter::All,
         shell.words.history().filter_all().to_owned(),
