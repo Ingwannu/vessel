@@ -125,7 +125,7 @@ fn answer(
 }
 
 fn open(shell: &gpui::Entity<Shell>, cx: &mut VisualTestContext) {
-    shell.update_in(cx, |shell, window, cx| shell.open_import(window, cx));
+    shell.update_in(cx, Shell::open_import);
     cx.run_until_parked();
 }
 
