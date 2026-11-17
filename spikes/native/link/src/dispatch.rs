@@ -25,6 +25,7 @@ impl State {
             Command::SessionLifecycle(request) => self.session_lifecycle(&request),
             Command::Create(ask) => self.create(ask),
             Command::History(ask) => self.history(ask).await,
+            Command::Labels(request) => self.labels(request).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {

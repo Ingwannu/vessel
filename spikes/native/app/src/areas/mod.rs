@@ -19,6 +19,7 @@ pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
 pub(crate) mod import;
+pub(crate) mod labels;
 pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
@@ -53,6 +54,7 @@ pub(crate) struct Areas {
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
     pub(crate) git: git::GitArea,
+    pub(crate) labels: labels::Labels,
     pub(crate) layout: layout::LayoutArea,
     // Sole future resource owner; legacy globals remain product-only until cutover.
     #[cfg(test)]
@@ -110,6 +112,7 @@ impl Areas {
             settings: settings::SettingsState::new(general, window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
+            labels: labels::Labels::new(window, cx),
             layout: layout::LayoutArea::new(cx),
             #[cfg(test)]
             session_residents: layout::residents::SessionResidents::new(),
