@@ -1,8 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
 use vessel_proto::registry::{
-    RegistryRevision, RegistrySnapshot, WorkspaceAutomation, WorkspaceBacking,
-    WorkspaceDescriptor, WorkspaceLifecycle, WorkspaceMembership, WorkspacePin,
-    WorkspaceResource, WorkspaceVisibility,
+    RegistryRevision, RegistrySnapshot, WorkspaceAutomation, WorkspaceBacking, WorkspaceDescriptor,
+    WorkspaceLifecycle, WorkspaceMembership, WorkspacePin, WorkspaceResource, WorkspaceVisibility,
 };
 use vessel_proto::workspace_labels::WorkspaceLabelAssignments;
 use vessel_proto::{NodeId, ProjectId, SessionId, TerminalId, WorkspaceId, WorktreeId};
@@ -136,8 +135,20 @@ fn a_session_placed_in_a_project_belongs_to_its_oldest_live_local_workspace() {
     let mut registry = snapshot(1, Vec::new(), Vec::new());
     registry.workspaces = vec![
         // Older ones that do not own: archived, background, a worktree.
-        descriptor(project, at(1), local, WorkspaceLifecycle::Archived { at: at(0) }, front),
-        descriptor(project, at(1), local, active.clone(), WorkspaceVisibility::Background),
+        descriptor(
+            project,
+            at(1),
+            local,
+            WorkspaceLifecycle::Archived { at: at(0) },
+            front,
+        ),
+        descriptor(
+            project,
+            at(1),
+            local,
+            active.clone(),
+            WorkspaceVisibility::Background,
+        ),
         descriptor(
             project,
             at(2),

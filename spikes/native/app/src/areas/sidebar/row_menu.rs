@@ -48,10 +48,11 @@ pub(crate) struct RowMenu {
     target: Option<Target>,
 }
 
-/// A session's row menu: the session and what it offers.
+/// A session's row menu: the session, what it offers, and where it opened.
 struct Target {
     card: Card,
     acts: Vec<RowAct>,
+    at: Point<Pixels>,
 }
 
 /// What an item does.
@@ -145,6 +146,7 @@ impl Shell {
         rows.target = Some(Target {
             card: card.clone(),
             acts,
+            at,
         });
         rows.menu.open(at, window, cx);
         cx.notify();
@@ -158,6 +160,7 @@ impl Shell {
             return;
         };
         let card = target.card;
+        let at = target.at;
         match act {
             RowAct::CopyPath => {
                 if let Some(folder) = &card.detail.cwd {
@@ -182,7 +185,7 @@ impl Shell {
             RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete) => {}
             RowAct::Labels => {
                 let project = card.member_project();
-                self.labels_row_open(&card.machine, card.session, project, window, cx);
+                self.labels_row_open(&card.machine, card.session, project, Some(at), window, cx);
             }
         }
         cx.notify();

@@ -218,7 +218,7 @@ fn a_row_s_labels_item_opens_the_picker_on_its_registry_workspace(cx: &mut TestA
             },
             cx,
         );
-        shell.labels_row_open("fixture", session, None, window, cx);
+        shell.labels_row_open("fixture", session, None, None, window, cx);
         let target = shell.areas.labels.picker_target().unwrap();
         assert_eq!(target.workspace(), workspace);
         assert_eq!(target.connection(), &connection);

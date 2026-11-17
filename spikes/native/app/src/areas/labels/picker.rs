@@ -18,8 +18,8 @@ mod draw;
 mod tests;
 
 use vessel_app_kit::field::FieldId;
-use vessel_app_kit::ui::{AnyElement, Context, Window};
-use vessel_app_kit::{DialogState, TextField};
+use vessel_app_kit::ui::{AnyElement, Bounds, Context, Pixels, Point, Window, px, size};
+use vessel_app_kit::{DialogState, Side, TextField};
 use vessel_app_link::labels::{Answer, Command, Event};
 use vessel_app_view::labels::{
     Assignment, EditAccess, Failure, HostState, Label, Name, Picker, PickerPage, WorkspaceTarget,
@@ -41,6 +41,8 @@ pub(super) struct WorkspacePicker {
     dialog: DialogState,
     error: Option<Failure>,
     applied_editability: Option<EditAccess>,
+    /// Which side of its anchor the list opens on.
+    side: Side,
 }
 
 impl Shell {
@@ -84,8 +86,24 @@ impl Shell {
             dialog: DialogState::new(cx),
             error: None,
             applied_editability: None,
+            side: Side::Below,
         });
         cx.notify();
+    }
+
+    /// Places the open picker at `at`, where the row's menu was: Paseo's
+    /// Labels page replaces that menu in place. It opens below the point,
+    /// or above it from the window's lower half, where the list has room.
+    pub(super) fn labels_picker_place(&mut self, at: Option<Point<Pixels>>, window: &Window) {
+        let state = &mut self.areas.labels;
+        state
+            .picker_combo
+            .set_anchor(at.map(|at| Bounds::new(at, size(px(0.0), px(0.0)))));
+        if let Some(picker) = &mut state.picker {
+            let middle = window.viewport_size().height / 2.0;
+            let lower = at.is_some_and(|at| at.y > middle);
+            picker.side = if lower { Side::Above } else { Side::Below };
+        }
     }
 
     /// Registry projection is authoritative; unary assignment replies only settle.

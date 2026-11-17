@@ -1,6 +1,7 @@
 //! Isolated canonical workspace fixtures; compiled UI, no live registry or RPC.
 use super::*;
 use gpui::TestAppContext;
+use vessel_app_kit::ui::point;
 use vessel_app_link::Link;
 use vessel_app_view::{
     connection::{ConnectionEpochs, MachineKey},
@@ -329,5 +330,24 @@ fn labels_old_create_visit_cannot_submit_or_close_a_later_create_visit(cx: &mut 
         assert!(shell.areas.labels.picker.as_ref().unwrap().visible);
         shell.labels_picker_submit(current, cx);
         assert!(matches!(commands.try_recv().unwrap(), vessel_app_link::Command::Labels(vessel_app_link::labels::Request {ask: Command::Assign {label, ..}, ..}) if label.name.as_str() == "Current draft"));
+    });
+}
+
+#[gpui::test]
+fn labels_picker_opens_at_the_row_menu_on_the_side_with_room(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let target = install(shell);
+        let side = |shell: &Shell| shell.areas.labels.picker.as_ref().unwrap().side;
+        let height = window.viewport_size().height;
+        let high = point(px(40.0), height / 4.0);
+        let low = point(px(40.0), height * 0.75);
+        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        shell.labels_picker_place(Some(high), window);
+        assert_eq!(side(shell), Side::Below);
+        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        shell.labels_picker_place(Some(low), window);
+        assert_eq!(side(shell), Side::Above);
     });
 }

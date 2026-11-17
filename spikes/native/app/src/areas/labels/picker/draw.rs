@@ -2,9 +2,7 @@
 
 use std::rc::Rc;
 use vessel_app_kit::ui::{AnyElement, Context, Window};
-use vessel_app_kit::{
-    ComboHandlers, ComboHeader, ComboRow, Leading, Side, Tokens, combobox, select,
-};
+use vessel_app_kit::{ComboHandlers, ComboHeader, ComboRow, Leading, Tokens, combobox, select};
 use vessel_app_view::labels::{Assignment, Catalog, Label, PickerPage};
 
 use super::{Opening, availability};
@@ -94,7 +92,7 @@ pub(super) fn overlay(
             search: true,
             empty: words.no_matches().into(),
             note: note.map(Into::into),
-            side: Side::Below,
+            side: picker.side,
         },
         &rows,
         &handlers,

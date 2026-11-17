@@ -288,13 +288,15 @@ impl Shell {
     }
 
     /// The Labels item of `session`'s row menu: the picker for its
-    /// workspace, with the registry's labels. `project` is the card's
+    /// workspace, with the registry's labels, opened where the menu was
+    /// (`at`). `project` is the card's
     /// [`member_project`](vessel_app_view::board::Card::member_project).
     pub(crate) fn labels_row_open(
         &mut self,
         machine: &str,
         session: vessel_proto::SessionId,
         project: Option<vessel_proto::ProjectId>,
+        at: Option<vessel_app_kit::ui::Point<vessel_app_kit::ui::Pixels>>,
         window: &mut vessel_app_kit::ui::Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -317,6 +319,7 @@ impl Shell {
             EditAccess::ReadOnly
         };
         self.labels_picker_open(target, assigned, access, window, cx);
+        self.labels_picker_place(at, window);
     }
 
     /// The open picker's assigned labels and access, from its host's
