@@ -1,9 +1,17 @@
 //! Paseo's sheet geometry: 560 on a desktop, the full width on a phone, and
 //! rows whose fill reaches 8 past the content inset on both sides.
 use super::*;
+use gpui::Pixels;
 
-/// The dialog body's inset (Paseo's sheet padding 24).
-const INSET: f32 = 24.0;
+/// A row's edge from the card's: the body's 24 inset less the row's 8.
+const ROW_FROM_EDGE: f32 = 16.0;
+/// The same distance back from the card's right edge.
+const ROW_FROM_RIGHT: f32 = -16.0;
+
+/// `at` moved by `by`, without float arithmetic in the assertion.
+fn moved(at: Pixels, by: f32) -> Pixels {
+    px(f32::from(at).mul_add(1.0, by))
+}
 
 fn listed(cx: &mut TestAppContext, width: f32) -> (gpui::Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx, mut commands) = shell(cx, vec![machine("laptop", &[codex()])]);
@@ -21,14 +29,10 @@ fn the_desktop_card_is_560_and_rows_reach_8_past_the_inset(cx: &mut TestAppConte
     let header = cx
         .debug_bounds("dialog-header")
         .expect("the sheet's header");
-    assert_eq!(f32::from(header.size.width), 560.0);
+    assert_eq!(header.size.width, px(560.0));
     let row = cx.debug_bounds("history-row-codex-native").expect("a row");
-    let card_left = f32::from(header.left());
-    assert_eq!(f32::from(row.left()) - card_left, INSET - 8.0);
-    assert_eq!(
-        f32::from(header.right()) - f32::from(row.right()),
-        INSET - 8.0
-    );
+    assert_eq!(row.left(), moved(header.left(), ROW_FROM_EDGE));
+    assert_eq!(row.right(), moved(header.right(), ROW_FROM_RIGHT));
 }
 
 #[gpui::test]
@@ -37,6 +41,6 @@ fn a_phone_shows_the_sheet_across_the_window(cx: &mut TestAppContext) {
     let header = cx
         .debug_bounds("dialog-header")
         .expect("the sheet's header");
-    assert_eq!(f32::from(header.size.width), 390.0);
+    assert_eq!(header.size.width, px(390.0));
     assert!(cx.debug_bounds("history-row-codex-native").is_some());
 }

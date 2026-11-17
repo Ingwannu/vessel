@@ -55,14 +55,13 @@ impl Shell {
                 (Some(_), Some(_)) | (None, Some(_) | None) => None,
             }
         });
-        match host {
-            Some(name) => self.history_host(&name, cwd, window, cx),
-            None => {
-                self.areas.import.model.close();
-                self.areas.import.page = Page::Hosts;
-                self.history_reset_search(window, cx);
-                self.areas.import.search.focus(window, cx);
-            }
+        if let Some(name) = host {
+            self.history_host(&name, cwd, window, cx);
+        } else {
+            self.areas.import.model.close();
+            self.areas.import.page = Page::Hosts;
+            self.history_reset_search(window, cx);
+            self.areas.import.search.focus(window, cx);
         }
         cx.notify();
     }

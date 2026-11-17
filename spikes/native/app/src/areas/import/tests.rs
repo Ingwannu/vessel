@@ -425,3 +425,45 @@ fn controls_drawn_for_an_earlier_opening_do_nothing(cx: &mut TestAppContext) {
         Ok([Ask::Import(_)])
     ));
 }
+
+#[gpui::test]
+fn a_fleet_change_or_a_retirement_refuses_controls_drawn_before_it(cx: &mut TestAppContext) {
+    let (shell, cx, mut commands) = shell(cx, vec![machine("laptop", &[codex()])]);
+    open(&shell, cx);
+    let asks = sent(&mut commands);
+    answer(&shell, cx, asks, |_| vec![entry("native", 1)]);
+    let row = |shell: &Shell| {
+        listener(
+            shell,
+            Action::Row {
+                harness: codex(),
+                id: HarnessSessionId::new("native"),
+            },
+        )
+    };
+    // The drawn host's agents change: what was drawn before is stale.
+    let stale = shell.read_with(cx, |shell, _| row(shell));
+    shell.update(cx, |shell, cx| {
+        let mut fleet = shell.fleet.clone();
+        for machine in &mut fleet.machines {
+            machine.agents.push(Agent {
+                harness: claude(),
+                name: vessel_app_view::agent_name(&claude()),
+                unavailable: None,
+                not_installed: false,
+            });
+        }
+        shell.history_test_fleet(fleet, cx);
+    });
+    shell.update_in(cx, |shell, window, cx| stale(shell, window, cx));
+    assert!(sent(&mut commands).is_empty(), "stale after a fleet change");
+    // The opening's connection retires: the same.
+    let stale = shell.read_with(cx, |shell, _| row(shell));
+    let context = context_of(&shell, cx);
+    shell.update(cx, |shell, cx| shell.history_test_retirement(&context, cx));
+    shell.update_in(cx, |shell, window, cx| stale(shell, window, cx));
+    assert!(sent(&mut commands).is_empty(), "stale after a retirement");
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.areas.import.model.importing().is_none());
+    });
+}
