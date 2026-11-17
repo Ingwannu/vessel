@@ -54,8 +54,6 @@ use keys::key_handler;
 use lifecycle::RenderLease;
 mod rows;
 mod send;
-#[cfg(test)]
-mod small_mark_tests;
 use rows::{note_row, rows_list, title_row};
 pub use send::{SendKind, send_button};
 
@@ -293,9 +291,7 @@ pub enum Leading {
     SmallGlyph(Glyph),
     /// An official agent mark, or the generic bot when unknown.
     AgentMark(Option<crate::agent_mark::Artwork>),
-    /// The same mark at 14 in the muted ink, in the small glyphs' 14
-    /// column: Paseo's import-sheet provider filter (`ProviderIcon size={14}
-    /// color={foregroundMuted}` beside its `Layers` for "All").
+    /// Paseo's import filter: the same mark at 14, muted, in the 14 column.
     SmallAgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
     Dot(Hsla),

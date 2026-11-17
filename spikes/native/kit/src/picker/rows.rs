@@ -427,3 +427,6 @@ fn enabled_row<V: 'static>(
             cx.notify();
         }))
 }
+
+#[cfg(test)]
+mod small_mark_tests;
