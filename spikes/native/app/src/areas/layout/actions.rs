@@ -64,7 +64,12 @@ impl Shell {
                         window,
                         cx,
                     )
-                    .map(|_| ()),
+                    .map(|tab| {
+                        // Paseo's panel takes the keys as it opens in the
+                        // pane in use: its first row (TRACKER 336).
+                        let owner = super::new_tab::Owner::Tab(workspace.clone(), tab);
+                        self.new_tab_take_keys(owner, None, window, cx);
+                    }),
                 Err(error) => Err(error),
             },
             LayoutAction::Split(position) => with_layout(self, |layout| {

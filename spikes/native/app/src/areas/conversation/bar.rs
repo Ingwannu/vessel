@@ -245,7 +245,6 @@ pub(crate) fn session_menu_item(shell: &Shell, action: MenuAction) -> MenuItem {
         MenuAction::Mark(mark) => MenuItem::new(words.mark_action(mark)),
         MenuAction::CopyLink => MenuItem::new(shell.words.sessions().copy_link()),
         MenuAction::Close => MenuItem::new(shell.words.sessions().close()),
-        MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
         MenuAction::Kill => MenuItem::danger(words.kill()),
         MenuAction::AgentLog => MenuItem::new(
             words.agent_log(
@@ -271,8 +270,9 @@ pub(crate) fn session_menu_item(shell: &Shell, action: MenuAction) -> MenuItem {
 }
 
 /// The Session actions this session offers, in their order: its marks,
-/// Copy session id, Copy link, Close once the node described it, Agent log
-/// once the agent wrote a line, Kill while it lives.
+/// Copy link, Close once the node described it, Agent log once the agent
+/// wrote a line, Kill while it lives. (No Copy session id: the tab menu's
+/// own Copy agent id copies it.)
 pub(crate) fn session_menu_rows(shell: &Shell) -> Vec<MenuAction> {
     let area = &shell.areas.conversation;
     // The fleet does not say a machine's protocol yet; a session the
@@ -288,7 +288,6 @@ pub(crate) fn session_menu_rows(shell: &Shell) -> Vec<MenuAction> {
                 .collect()
         })
         .unwrap_or_default();
-    rows.push(MenuAction::CopyId);
     rows.push(MenuAction::CopyLink);
     if area.info.is_some() {
         rows.push(MenuAction::Close);

@@ -8,6 +8,7 @@
 //!   The app adapts this enum to the kit's reviewed artwork in one place.
 //! - Cost: an added Copilot command remains generic, despite the bundled
 //!   official Copilot artwork being available for attribution.
+use vessel_proto::terminal_profiles::{Profile, Profiles};
 use vessel_proto::{HarnessKind, HarnessRef};
 
 /// A mark's semantic identity, independent of how a renderer draws it.
@@ -48,6 +49,27 @@ impl AgentMark {
                 HarnessKind::OpenCode => Self::OpenCode,
             },
             HarnessRef::Added(_) => Self::Generic,
+        }
+    }
+
+    /// A terminal profile's mark (the New tab panel's profile rows, TRACKER
+    /// 336). Only a profile exactly as Vessel ships it carries its brand:
+    /// those are the app's own constants, not a node's words. A configured
+    /// profile, even one that reuses a shipped id or icon text, has none, so
+    /// it cannot borrow a brand (the rule above). `None` means no mark: the
+    /// caller draws Paseo's no-icon form (the terminal glyph); Pi has no
+    /// bundled artwork, so it takes that form too.
+    #[must_use]
+    pub fn of_profile(profile: &Profile) -> Option<Self> {
+        let shipped = Profiles::shipped().ok()?;
+        if shipped.get(profile.id()) != Some(profile) {
+            return None;
+        }
+        match profile.id().as_str() {
+            "claude" => Some(Self::ClaudeCode),
+            "codex" => Some(Self::Codex),
+            "opencode" => Some(Self::OpenCode),
+            _ => None,
         }
     }
 }
@@ -95,5 +117,42 @@ mod tests {
             let added = HarnessRef::Added(id.parse().unwrap());
             assert_eq!(AgentMark::of(&added), AgentMark::Generic, "{id}");
         }
+    }
+    #[test]
+    fn shipped_profiles_carry_their_brand_and_pi_none() {
+        let shipped = Profiles::shipped().unwrap();
+        let marks: Vec<Option<AgentMark>> =
+            shipped.entries().iter().map(AgentMark::of_profile).collect();
+        assert_eq!(
+            marks,
+            [
+                Some(AgentMark::ClaudeCode),
+                Some(AgentMark::Codex),
+                Some(AgentMark::OpenCode),
+                None,
+            ]
+        );
+    }
+    #[test]
+    fn a_configured_profile_with_a_shipped_id_or_icon_has_no_brand() {
+        use vessel_proto::terminal_profiles::{Argument, Icon, Id, Name, Program};
+        let claude_like = Profile::new(
+            Id::parse("claude").unwrap(),
+            Name::parse("Claude Code").unwrap(),
+            Program::parse("/usr/local/bin/anything").unwrap(),
+            vec![Argument::parse("{{{prompt}}}").unwrap()],
+            Some(Icon::parse("claude").unwrap()),
+        )
+        .unwrap();
+        assert_eq!(AgentMark::of_profile(&claude_like), None);
+        let iconed = Profile::new(
+            Id::parse("mine").unwrap(),
+            Name::parse("Mine").unwrap(),
+            Program::parse("codex").unwrap(),
+            Vec::new(),
+            Some(Icon::parse("codex").unwrap()),
+        )
+        .unwrap();
+        assert_eq!(AgentMark::of_profile(&iconed), None);
     }
 }

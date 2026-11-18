@@ -389,18 +389,6 @@ impl ConversationWords {
         self.either("Session actions", "세션 작업")
     }
 
-    /// The menu's row that copies the session's id.
-    #[must_use]
-    pub const fn copy_session_id(&self) -> &'static str {
-        self.either("Copy session id", "세션 ID 복사")
-    }
-
-    /// The toast after it.
-    #[must_use]
-    pub const fn copied_id(&self) -> &'static str {
-        self.either("Copied the session id", "세션 ID를 복사했습니다")
-    }
-
     /// The menu's row that kills a live session, and the kill confirm's
     /// button.
     #[must_use]

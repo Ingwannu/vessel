@@ -71,7 +71,7 @@ const fn session_glyph(action: MenuAction) -> Glyph {
         MenuAction::Mark(MarkAction::Archive) => Glyph::Archive,
         MenuAction::Mark(MarkAction::Unarchive) => Glyph::ArchiveRestore,
         MenuAction::Mark(MarkAction::Delete) => Glyph::Trash2,
-        MenuAction::CopyId | MenuAction::CopyLink => Glyph::Copy,
+        MenuAction::CopyLink => Glyph::Copy,
         MenuAction::Close => Glyph::X,
         MenuAction::AgentLog => Glyph::FileText,
         MenuAction::Kill => Glyph::Stop,
@@ -204,7 +204,7 @@ pub(super) fn entries(shell: &Shell, tab: TabId, surface: Surface) -> Vec<(Actio
     items.extend(
         session_rows
             .into_iter()
-            .filter(|action| !matches!(action, MenuAction::CopyId | MenuAction::Close))
+            .filter(|action| *action != MenuAction::Close)
             .map(|action| {
                 let mut item = session_menu_item(shell, action);
                 item.starts_group = false;

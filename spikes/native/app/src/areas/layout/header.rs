@@ -19,14 +19,12 @@
 //!   `open_end`), drawn by `menu_overlay`; the list is the view's launch
 //!   `catalog` (`LaunchPurpose::Primary`, as Paseo's pane row). Each choice
 //!   runs only while the layout it was opened for is still current.
-//! - Launch availability: only Agent can start from here today; it opens the
-//!   new-agent page, as the passive New tab's own button does, because a
-//!   workspace draft tab cannot be created outside tests yet (W2's seed
-//!   bridge). The other launches are listed disabled, as Paseo's
-//!   `item.disabled`, until their panels render in a pane: Terminal (the
-//!   terminal panel), Changes, Diff and Files (the explorer panels), Browser
-//!   (row 509) and Pull request. Plugin panels and terminal profiles (Paseo's
-//!   other two groups) are row 336.
+//! - Launch availability: only Agent can start from here today (the table
+//!   and its reasons are `layout::launch`, shared with the New tab panel).
+//!   Paseo's menu also lists its other groups after a separator: plugin
+//!   panels (none in the native app yet) and the terminal profiles under
+//!   their label with Edit profiles. The New tab panel draws the profiles
+//!   (TRACKER 336); this menu waits for the kit menu's section label.
 //! - Chords: shown only for actions Vessel performs (New tab, both splits).
 //!   The launch shortcuts (`TabAgent`, `NewTerminal`, `TabChanges`,
 //!   `TabFiles`, `TabBrowser`) are bound but not yet performed, so their
@@ -36,9 +34,8 @@
 //!   does the same. Paseo's X in this row is Exit focus mode, and Vessel's
 //!   focus mode is the maximised pane, whose way back is the selected
 //!   Restore pane toggle (the W12 adoption).
-use super::{mode, with_layout};
+use super::{launch, mode, with_layout};
 use crate::areas::shortcuts::caps::caps;
-use crate::routes::Route;
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::assets::Glyph;
@@ -343,11 +340,11 @@ fn rows(shell: &Shell, kind: MenuKind, window: &Window) -> Vec<(Option<PaneOp>, 
                     .with_shortcut(caps(Action::SplitDown, shell)),
             ),
         ],
-        MenuKind::NewTab => catalog(LaunchPurpose::Primary, mode(window), availability)
+        MenuKind::NewTab => catalog(LaunchPurpose::Primary, mode(window), launch::availability)
             .into_iter()
             .map(|(launch, availability)| {
-                let mut item = MenuItem::new(launch_label(shell, launch).to_owned())
-                    .with_leading(launch_glyph(launch));
+                let mut item = MenuItem::new(launch::label(shell, launch).to_owned())
+                    .with_leading(launch::glyph(launch));
                 item.disabled = availability != Availability::Ready;
                 (
                     (availability == Availability::Ready).then_some(PaneOp::Launch(launch)),
@@ -355,47 +352,6 @@ fn rows(shell: &Shell, kind: MenuKind, window: &Window) -> Vec<(Option<PaneOp>, 
                 )
             })
             .collect(),
-    }
-}
-
-/// Which launches start from the pane header today (see the decision log).
-const fn availability(launch: Launch) -> Availability {
-    match launch {
-        Launch::Agent => Availability::Ready,
-        Launch::Terminal
-        | Launch::Changes
-        | Launch::Diff
-        | Launch::Files
-        | Launch::Browser
-        | Launch::PullRequest => Availability::Disabled,
-    }
-}
-
-/// Paseo's launch item words (`workspace.tabs.fallback.*` and the panels'
-/// labels).
-fn launch_label(shell: &Shell, launch: Launch) -> &str {
-    let words = shell.words.layout();
-    match launch {
-        Launch::Agent => words.launch_agent(),
-        Launch::Terminal => words.launch_terminal(),
-        Launch::Changes => words.changes(),
-        Launch::Diff => words.launch_diff(),
-        Launch::Files => words.files(),
-        Launch::Browser => words.launch_browser(),
-        Launch::PullRequest => words.launch_pull_request(),
-    }
-}
-
-/// Paseo's launch item icons (`SquarePen`, `SquareTerminal`, the diff
-/// panels' `FileDiff`, `Files`, `Globe`, `GitPullRequest`).
-const fn launch_glyph(launch: Launch) -> Glyph {
-    match launch {
-        Launch::Agent => Glyph::SquarePen,
-        Launch::Terminal => Glyph::SquareTerminal,
-        Launch::Changes | Launch::Diff => Glyph::FileDiff,
-        Launch::Files => Glyph::Files,
-        Launch::Browser => Glyph::Globe,
-        Launch::PullRequest => Glyph::PullRequest,
     }
 }
 
@@ -429,16 +385,7 @@ impl PaneAction {
                     shell.layout_result(result, cx);
                 }
             }
-            // The new-agent page, as the passive New tab's own button opens.
-            PaneOp::Launch(Launch::Agent) => shell.go(Route::Draft, window, cx),
-            PaneOp::Launch(
-                Launch::Terminal
-                | Launch::Changes
-                | Launch::Diff
-                | Launch::Files
-                | Launch::Browser
-                | Launch::PullRequest,
-            ) => {}
+            PaneOp::Launch(chosen) => launch::run(shell, chosen, window, cx),
         }
     }
 }
