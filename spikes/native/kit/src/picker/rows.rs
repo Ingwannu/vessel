@@ -54,6 +54,18 @@ pub(super) fn rows_list<V: 'static>(
         );
     }
     for (index, row) in rows.iter().enumerate() {
+        // Paseo's `MenuSeparator` (1 high, 4 above and below, the menu's
+        // `borderAccent`), only between rows: none before the first.
+        if row.separated && index > 0 {
+            list = list.child(
+                div()
+                    .debug_selector(move || format!("combobox-rule-{index}"))
+                    .flex_none()
+                    .my(px(crate::theme::spacing::S1))
+                    .h(px(1.0))
+                    .bg(neutral.border_accent),
+            );
+        }
         if let Some(heading) = &row.heading {
             list = list.child(
                 div()
@@ -328,6 +340,7 @@ pub(super) fn combo_row<V: 'static>(
             "combobox-row".into(),
             u64::try_from(index).unwrap_or(u64::MAX),
         ))
+        .debug_selector(move || format!("combobox-row-{index}"))
         .flex()
         .flex_row()
         .items_center()
@@ -436,5 +449,7 @@ fn enabled_row<V: 'static>(
         }))
 }
 
+#[cfg(test)]
+mod separator_tests;
 #[cfg(test)]
 mod small_mark_tests;

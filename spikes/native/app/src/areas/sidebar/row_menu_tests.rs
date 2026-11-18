@@ -139,6 +139,31 @@ fn resting_on_labels_shows_the_picker_beside_and_leaves_the_keys_with_the_menu(
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
 }
 
+/// The Labels list's rules, as drawn (`combobox-rule-{row}`).
+fn rules(cx: &mut VisualTestContext) -> Vec<Bounds<Pixels>> {
+    (0..16_usize)
+        .filter_map(|row| {
+            cx.debug_bounds(format!("combobox-rule-{row}").leak())
+        })
+        .collect()
+}
+
+#[gpui::test]
+fn create_label_has_paseos_rule_above_it_while_labels_are_shown(cx: &mut TestAppContext) {
+    let (shell, cx, _sent) = opened(cx, 1280.0);
+    let row = labels_row(&shell, cx);
+    cx.simulate_click(row.center(), Modifiers::none());
+    cx.run_until_parked();
+    let create = create_row(&shell, cx);
+    let shown = rules(cx);
+    assert_eq!(shown.len(), 1, "one rule, above Create label");
+    assert!(shown[0].bottom() <= create.top());
+    // A search that leaves no label: Create label alone, no rule.
+    cx.simulate_input("zzz");
+    cx.run_until_parked();
+    assert!(rules(cx).is_empty());
+}
+
 /// The Labels list's Create label row, as drawn.
 fn create_row(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Bounds<Pixels> {
     shell

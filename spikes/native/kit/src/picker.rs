@@ -36,7 +36,7 @@ use std::{cell::Cell, cell::RefCell, rc::Rc};
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, Pixels, SharedString,
-    Stateful, Window, canvas, deferred, div, px, svg,
+    Stateful, Window, deferred, div, px, svg,
 };
 
 use crate::assets::Glyph;
@@ -51,11 +51,13 @@ mod keys;
 mod lifecycle;
 mod pages;
 mod panel;
+mod probe;
 mod rows;
 mod send;
 #[cfg(test)]
 mod sheet_drag_tests;
 pub use inline::combobox_inline;
+pub use probe::anchor_probe;
 pub use send::{SendKind, send_button};
 
 /// Paseo's compact width, the kit's one ([`crate::breakpoint::PHONE`]):
@@ -263,23 +265,6 @@ pub fn pill_parts(
         })
 }
 
-/// Where an element is drawn, recorded in `cell` every frame (an absolute
-/// layer over its parent): the anchor of a list opened from it later
-/// ([`ComboboxState::set_anchor`]), when several triggers share one list.
-#[must_use]
-pub fn anchor_probe(cell: &Rc<Cell<Option<Bounds<Pixels>>>>) -> AnyElement {
-    let cell = Rc::clone(cell);
-    canvas(
-        move |bounds, _window, _cx| cell.set(Some(bounds)),
-        |_, (), _, _| {},
-    )
-    .absolute()
-    .top_0()
-    .left_0()
-    .size_full()
-    .into_any_element()
-}
-
 /// What leads a row.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Leading {
@@ -363,6 +348,9 @@ pub struct ComboRow {
     /// ([`ComboboxState::set_submenus`]): a press, Enter or the pointer at
     /// rest opens it there and the screen's `chose` is not called.
     pub page: Option<crate::submenu::PageId>,
+    /// A rule above it when a row is shown before it (Paseo's
+    /// `MenuSeparator`: Create label after the labels, TRACKER 807).
+    pub separated: bool,
 }
 
 impl ComboRow {
@@ -382,6 +370,7 @@ impl ComboRow {
             note: None,
             tooltip: None,
             page: None,
+            separated: false,
         }
     }
 }

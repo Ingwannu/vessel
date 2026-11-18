@@ -115,10 +115,13 @@ fn list(
     }
     // Paseo's create row keeps the label rows' leading column (a muted
     // Plus). Beside the row menu it leads to its page (TRACKER 792, press
-    // only); a sheet's list opens the Create label sheet.
+    // only); a sheet's list opens the Create label sheet. A rule above it
+    // while labels are shown (Paseo's `MenuSeparator`, TRACKER 807; the
+    // list draws none above its first row).
     rows.push(ComboRow {
         disabled: !online,
         opens: true,
+        separated: true,
         leading: Some(Leading::SmallGlyph(vessel_app_kit::assets::Glyph::Plus)),
         page: matches!(picker.place, PickerPlace::Beside)
             .then(|| super::create::CREATE.to_owned().into()),
