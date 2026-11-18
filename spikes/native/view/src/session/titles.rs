@@ -40,7 +40,7 @@ pub const fn has_title(session: &SessionInfo) -> bool {
 }
 
 /// `text` as a title, or why it cannot be one (the node's own rules:
-/// trimmed, one line, at most 120 characters).
+/// trimmed, one line, at most `SessionTitle::MAX_CHARS` characters).
 ///
 /// # Errors
 ///
@@ -56,7 +56,8 @@ pub const fn can_rename(session: &SessionInfo) -> bool {
 }
 
 /// The title a prompt gives a session, as the node takes one from a
-/// first prompt: its first line with text, cut at 80 characters.
+/// first prompt: its first line with text, cut at
+/// `SessionTitle::FROM_PROMPT_CHARS` characters.
 #[must_use]
 pub fn title_from_prompt(text: &str) -> Option<SessionTitle> {
     SessionTitle::from_prompt(text)
