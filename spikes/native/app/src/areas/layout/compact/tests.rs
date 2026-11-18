@@ -124,7 +124,9 @@ fn one_header_row_as_wide_as_the_window_with_the_switcher_in_the_touch_frame(
     // "…" in the toolbar's touch frame, at the row's middle.
     let more = cx.debug_bounds("compact-workspace-actions-button").unwrap();
     assert_eq!(more.size, gpui::size(px(32.0), px(32.0)));
-    assert_eq!(more.center().y, header.top() + px(8.0) + px(28.0));
+    // 8 above the row, then half of the 56 row.
+    let middle = f32::from(header.top()).mul_add(1.0, 36.0);
+    assert_eq!(more.center().y, px(middle));
 }
 
 #[gpui::test]
@@ -173,7 +175,10 @@ fn new_agent_in_the_footer_opens_the_new_agent_page(cx: &mut TestAppContext) {
     cx.run_until_parked();
     let button = cx.debug_bounds("compact-tab-switcher-footer").unwrap();
     // New agent is the footer's first half.
-    let left = gpui::point(button.left() + px(8.0), button.center().y);
+    let left = gpui::point(
+        px(f32::from(button.left()).mul_add(1.0, 8.0)),
+        button.center().y,
+    );
     cx.simulate_click(left, Modifiers::none());
     cx.run_until_parked();
     probe.read_with(cx, |probe, cx| {

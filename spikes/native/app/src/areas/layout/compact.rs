@@ -57,7 +57,7 @@ use vessel_app_kit::{
     ButtonState, ControlSizing, DialogState, MenuHandlers, MenuItem, MenuState, Tokens,
     anchor_probe,
 };
-use vessel_app_view::layout::{CloseScope, Layout, PaneId, TabId, Target};
+use vessel_app_view::layout::{CloseScope, Layout, Pane, PaneId, TabId, Target};
 
 /// Paseo's workspace menu `width`.
 const ACTIONS_WIDTH: f32 = 220.0;
@@ -114,7 +114,7 @@ fn current(layout: &Layout) -> Option<TabId> {
         .panes()
         .into_iter()
         .find(|pane| pane.id() == layout.focused_pane())
-        .and_then(|pane| pane.focused())
+        .and_then(Pane::focused)
 }
 
 /// The header row, in place of the tab head and the session bar.
@@ -318,7 +318,7 @@ pub(super) fn row_actions(shell: &Shell, tab: TabId) -> Vec<(Action, MenuItem)> 
             MenuItem::new(words.copy_agent_id().to_owned()),
         )),
         Target::Terminal(_) => {
-            items.push((Action::Copy, MenuItem::new(words.copy_id().to_owned())))
+            items.push((Action::Copy, MenuItem::new(words.copy_id().to_owned())));
         }
         Target::File { .. } => {
             items.push((Action::Copy, MenuItem::new(words.copy_path().to_owned())));
