@@ -200,3 +200,27 @@ fn a_press_asks_its_screen_once_to_move_the_keys_in_and_hover_never(cx: &mut Tes
         assert!(!probe.submenus.pressed("show"));
     });
 }
+
+#[gpui::test]
+fn a_page_holding_the_keys_outlasts_the_grace_until_it_closes(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    view.update(cx, |probe, cx| {
+        probe.submenus.open("show", 0);
+        assert!(probe.submenus.take_pressed("show"));
+        cx.notify();
+    });
+    cx.run_until_parked();
+    let row = bounds(cx, "row");
+    pointer(cx, row.center());
+    pointer(cx, nowhere());
+    advance(cx, 600);
+    assert!(open(&view, cx));
+    // Closed by its own Escape (Back), the hold goes: hover rules again.
+    view.update(cx, |probe, _| assert!(probe.submenus.back()));
+    pointer(cx, row.center());
+    advance(cx, 90);
+    assert!(open(&view, cx));
+    pointer(cx, nowhere());
+    advance(cx, 260);
+    assert!(!open(&view, cx));
+}

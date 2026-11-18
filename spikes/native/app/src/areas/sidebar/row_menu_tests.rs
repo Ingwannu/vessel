@@ -93,6 +93,10 @@ fn a_press_on_labels_opens_the_picker_beside_with_the_keys_and_escape_ends_both(
     cx.simulate_click(row.center(), Modifiers::none());
     cx.run_until_parked();
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
+    // Holding the keys, the page outlasts the pointer's leaving.
+    cx.simulate_mouse_move(point(px(1200.0), px(800.0)), None, Modifiers::none());
+    wait(cx, HOVER_CLOSE);
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
     cx.simulate_input("Re");
     assert_eq!(query(&shell, cx), "Re");
     cx.simulate_keystrokes("escape");

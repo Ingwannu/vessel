@@ -70,6 +70,13 @@ fn a_page_opened_by_enter_takes_the_keys_and_escape_leads_back_to_the_list(
         cx.notify();
     });
     cx.run_until_parked();
+    // A press on Sort's row while Grouping holds the keys: Sort takes them,
+    // the list's focus still their way back.
+    shell.update(cx, |shell, cx| {
+        shell.areas.sidebar.display.pages.open("sort", 0);
+        cx.notify();
+    });
+    cx.run_until_parked();
     cx.simulate_keystrokes("escape");
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {

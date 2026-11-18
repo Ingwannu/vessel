@@ -51,9 +51,12 @@ impl ComboboxState {
     /// focus returns when it closes.
     pub fn take_keys(&mut self, search: bool, window: &mut Window, cx: &mut App) {
         // Open already, so remember the menu's focus here (an opening's
-        // capture skips an open list).
-        self.return_to = crate::focus::ReturnFocus::default();
-        self.return_to.remember(window, cx);
+        // capture skips an open list); holding them already (another page
+        // pressed into the same list), the menu's focus stays the return.
+        if !self.focus.contains_focused(window, cx) {
+            self.return_to = crate::focus::ReturnFocus::default();
+            self.return_to.remember(window, cx);
+        }
         if search {
             self.search.focus(window, cx);
         } else {

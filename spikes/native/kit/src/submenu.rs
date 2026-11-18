@@ -127,6 +127,10 @@ struct Inner {
     press_only: Vec<PageId>,
     /// A page a press or Enter opened, until its screen takes the keys.
     pressed: Option<PageId>,
+    /// The open page whose screen moved the keys into it: hover neither
+    /// closes it nor swaps it for a sibling (its keys would be left on a
+    /// list no longer drawn); its own Escape, a press or the menu ends it.
+    keyed: Option<PageId>,
     opening: Option<Timer>,
     closing: Option<Timer>,
     /// The menu opening this path belongs to.
@@ -134,11 +138,26 @@ struct Inner {
 }
 
 impl Inner {
+    /// A press-only page or one holding the keys is open (`keyed` is
+    /// settled: it names an open page or none).
     fn held(&self) -> bool {
-        self.path
-            .pages()
-            .iter()
-            .any(|page| self.press_only.contains(page))
+        self.keyed.is_some()
+            || self
+                .path
+                .pages()
+                .iter()
+                .any(|page| self.press_only.contains(page))
+    }
+
+    /// Drop the keys' hold once its page is no longer open.
+    fn settle_keys(&mut self) {
+        let closed = self
+            .keyed
+            .as_ref()
+            .is_some_and(|page| !self.path.pages().contains(page));
+        if closed {
+            self.keyed = None;
+        }
     }
 }
 
@@ -185,6 +204,7 @@ impl Submenus {
         inner.closing = None;
         let page = PageId::from(page.to_owned());
         inner.path.open(&page, depth);
+        inner.settle_keys();
         inner.pressed = Some(page);
     }
 
@@ -195,7 +215,8 @@ impl Submenus {
     pub fn take_pressed(&self, page: &str) -> bool {
         let taken = self.pressed(page);
         if taken {
-            self.0.borrow_mut().pressed = None;
+            let mut inner = self.0.borrow_mut();
+            inner.keyed = inner.pressed.take();
         }
         taken
     }
@@ -216,7 +237,9 @@ impl Submenus {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
         inner.closing = None;
-        inner.path.back()
+        let back = inner.path.back();
+        inner.settle_keys();
+        back
     }
 
     /// Close every page (the menu closed).
@@ -227,31 +250,36 @@ impl Submenus {
         inner.path = MenuPath::default();
         inner.surfaces.clear();
         inner.pressed = None;
+        inner.keyed = None;
     }
 
     /// Cut the path back to the pages that still exist.
     pub fn prune(&self, exists: impl Fn(&PageId) -> bool) {
-        self.0.borrow_mut().path.prune(exists);
+        let mut inner = self.0.borrow_mut();
+        inner.path.prune(exists);
+        inner.settle_keys();
     }
 
     /// The pointer came to rest on `page`'s row: open it after
-    /// [`HOVER_OPEN`], unless it is press-only.
+    /// [`HOVER_OPEN`], unless it is press-only or a page holds the keys.
     pub fn hover_open(&self, page: &str, depth: usize, window: &Window, cx: &App) {
         let page = PageId::from(page.to_owned());
         let mut inner = self.0.borrow_mut();
         inner.closing = None;
-        if inner.press_only.contains(&page) {
+        if inner.press_only.contains(&page) || inner.keyed.is_some() {
             inner.opening = None;
             return;
         }
         let timer = self.after(HOVER_OPEN, window, cx, move |inner| {
             inner.path.open(&page, depth);
+            inner.settle_keys();
         });
         inner.opening = Some(timer);
     }
 
     /// The pointer left a row or flyout at `depth`: close what it opened
-    /// after [`HOVER_CLOSE`], unless a press-only page is open.
+    /// after [`HOVER_CLOSE`], unless a press-only page or one holding the
+    /// keys is open.
     pub fn hover_close(&self, depth: usize, window: &Window, cx: &App) {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
@@ -260,6 +288,7 @@ impl Submenus {
         }
         let timer = self.after(HOVER_CLOSE, window, cx, move |inner| {
             inner.path.close(depth);
+            inner.settle_keys();
         });
         inner.closing = Some(timer);
     }

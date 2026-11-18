@@ -102,7 +102,10 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
   search, the Display page's list); one the pointer opened leaves them with
   the menu. Paseo's flyouts never take focus; without this a keyboard could
   open a page it cannot reach. Escape in the Labels list ends the menu;
-  Escape in a Display page leads back to the Display list.
+  Escape in a Display page leads back to the Display list. A page holding
+  the keys is not closed or swapped by hover (the grace, a sibling row), so
+  the keys are never left on a list no longer drawn; its Escape, a press on
+  another page's row, or the menu's close ends it.
 
 ## Built (K1, kit)
 
