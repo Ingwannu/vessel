@@ -2,11 +2,15 @@
 //! nothing new, turns made outside Vessel added once, a history that does
 //! not begin with the log's prompts adding nothing, and the bounds.
 
-use vessel_proto::{AgentEvent, ContentBlock, SessionEvent, SessionStatus, StopReason};
+use vessel_proto::{
+    AgentEvent, ContentBlock, SessionEvent, SessionStatus, StopReason, ToolCallContent, ToolCallId,
+    ToolCallUpdate,
+};
 
 use super::UserPrompts;
 use super::rehydrate::{
-    APPEND_MAX, DIVERGED, GATHER_ITEMS, GATHER_TIME, Gather, MORE, Outcome, UNKNOWN, outcome,
+    APPEND_MAX, DIVERGED, GATHER_BYTES, GATHER_ITEMS, GATHER_TIME, Gather, MORE, Outcome, UNKNOWN,
+    outcome,
 };
 
 fn text(text: &str) -> ContentBlock {
@@ -29,6 +33,22 @@ fn said(chunk: &str) -> AgentEvent {
     AgentEvent::MessageChunk {
         content: text(chunk),
     }
+}
+
+/// A tool call's update carrying `size` bytes of output.
+fn output(size: usize) -> AgentEvent {
+    AgentEvent::ToolCallUpdate(ToolCallUpdate {
+        id: ToolCallId::new("call"),
+        title: None,
+        kind: None,
+        status: None,
+        content: Some(vec![ToolCallContent::Content {
+            content: text(&"x".repeat(size)),
+        }]),
+        locations: None,
+        raw_input: None,
+        raw_output: None,
+    })
 }
 
 fn ended() -> AgentEvent {
@@ -211,5 +231,37 @@ async fn a_gather_past_its_time_adds_nothing() {
     assert!(matches!(
         outcome(&log_of(&["plain"]), gather),
         Outcome::Nothing(line) if line.contains("60 seconds")
+    ));
+}
+
+#[test]
+fn a_gather_past_its_bytes_adds_nothing() {
+    const MIB: usize = 1024 * 1024;
+    let log = log_of(&["plain"]);
+    // A few large tool outputs, under the bound, are added.
+    let mut under = history(&["plain"]);
+    under.push(user("next"));
+    for _ in 0..3 {
+        under.push(output(MIB));
+    }
+    let Outcome::Append { records, more } = outcome(&log, under) else {
+        panic!("three outputs of 1 MiB fit");
+    };
+    assert_eq!((records.len(), more), (4, false));
+    // Outputs past the bound in serialized size, far fewer than the item
+    // bound: the gather stops and nothing is added, as for a history that
+    // does not line up.
+    let mut over = history(&["plain"]);
+    over.push(user("next"));
+    let count = GATHER_BYTES.checked_div(MIB).unwrap().saturating_add(1);
+    assert!(count < GATHER_ITEMS);
+    for _ in 0..count {
+        over.push(output(MIB));
+    }
+    // Nothing after the bound is gathered either.
+    over.push(user("after"));
+    assert!(matches!(
+        outcome(&log, over),
+        Outcome::Nothing(line) if line.contains("64 MiB")
     ));
 }

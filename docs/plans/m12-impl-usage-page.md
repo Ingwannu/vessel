@@ -177,7 +177,8 @@ coordinator as a separate parity item.
     new credential and token), in one actor step.
   - A parked session is started; an ended one is started again.
   - It answers the `SessionInfo`. The `reloaded` record has a log-line stand-in for older peers.
-- The history (coordinator's ruling C, "R2"): the replay is gathered within 60 s and 20,000 events. Only what
+- The history (coordinator's ruling C, "R2"): the replay is gathered within 60 s, 20,000 events and 64 MiB of
+  serialized size (the byte bound the coordinator asked for before merge). Only what
   lies beyond the log's exact user prompts is appended: whole messages, 2,000 records at most. Otherwise
   nothing is appended, and one line says why.
 - Code:

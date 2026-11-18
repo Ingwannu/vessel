@@ -4,10 +4,20 @@
 //! prompts is added.
 //!
 //! [Decision Log]
-//! - Bounds (the ruling: time and items for the gather, a cap for what is
-//!   added): [`GATHER_TIME`] after the reload starts and [`GATHER_ITEMS`]
-//!   replayed events. Past either the gather drops what it held and the
-//!   reload adds nothing, saying why: half a history cannot be lined up.
+//! - Bounds (the ruling: time, items and bytes for the gather, a cap for
+//!   what is added): [`GATHER_TIME`] after the reload starts,
+//!   [`GATHER_ITEMS`] replayed events, and [`GATHER_BYTES`] of their
+//!   serialized size. Past any of them the gather drops what it held, keeps
+//!   nothing more, and the reload adds nothing, saying why (as for a history
+//!   that does not line up): half a history cannot be lined up.
+//! - Why bytes as well as items: a count alone lets a few huge records (a
+//!   tool's whole output, a large diff) hold the node's memory; the
+//!   serialized size is what the log would store. It is counted without
+//!   keeping the bytes, so weighing an event costs one serialization and no
+//!   copy. Considered: summing the text of each event's blocks (cheaper, but
+//!   misses raw tool input and output, which are the large ones), and a
+//!   larger item count only (no bound on memory). Cost: each kept event is
+//!   serialized once more during a reload.
 //!   [`APPEND_MAX`] records are added at most, in whole user messages; a
 //!   later reload adds the rest, since the log's prompts then still begin
 //!   the history.
@@ -30,6 +40,8 @@ use super::prompts::{UserPrompts, messages};
 pub(crate) const GATHER_TIME: Duration = Duration::from_secs(60);
 /// How many replayed events are gathered at most.
 pub(crate) const GATHER_ITEMS: usize = 20_000;
+/// How large the gathered events are at most, serialized (64 MiB).
+pub(crate) const GATHER_BYTES: usize = 64 * 1024 * 1024;
 /// How many records one reload adds at most.
 pub(crate) const APPEND_MAX: usize = 2_000;
 
@@ -37,6 +49,8 @@ pub(crate) const APPEND_MAX: usize = 2_000;
 #[derive(Debug)]
 pub(crate) struct Gather {
     events: Vec<AgentEvent>,
+    /// The serialized size of `events`.
+    bytes: usize,
     until: Instant,
     over: Option<Over>,
 }
@@ -46,6 +60,7 @@ pub(crate) struct Gather {
 enum Over {
     Time,
     Items,
+    Bytes,
 }
 
 impl Gather {
@@ -54,6 +69,7 @@ impl Gather {
         let now = Instant::now();
         Self {
             events: Vec::new(),
+            bytes: 0,
             until: now.checked_add(GATHER_TIME).unwrap_or(now),
             over: None,
         }
@@ -64,19 +80,47 @@ impl Gather {
         if self.over.is_some() || !kept(&event) {
             return;
         }
+        let bytes = self.bytes.saturating_add(weight(&event));
         let over = if Instant::now() > self.until {
             Some(Over::Time)
         } else if self.events.len() >= GATHER_ITEMS {
             Some(Over::Items)
+        } else if bytes > GATHER_BYTES {
+            Some(Over::Bytes)
         } else {
             None
         };
         if over.is_some() {
             self.over = over;
             self.events = Vec::new();
+            self.bytes = 0;
             return;
         }
+        self.bytes = bytes;
         self.events.push(event);
+    }
+}
+
+/// An event's serialized size, counted without keeping the bytes.
+fn weight(event: &AgentEvent) -> usize {
+    let mut counter = Counter(0);
+    // Writing to a counter does not fail; an event that cannot be
+    // serialized weighs what was written before the error.
+    let _written = serde_json::to_writer(&mut counter, event);
+    counter.0
+}
+
+/// A writer that only counts.
+struct Counter(usize);
+
+impl std::io::Write for Counter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0 = self.0.saturating_add(buf.len());
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -127,6 +171,8 @@ const TOO_SLOW: &str = "vessel: the agent's own history took longer than 60 seco
                         nothing of it was added";
 const TOO_MANY: &str = "vessel: the agent's own history is longer than 20000 records, so nothing \
                         of it was added";
+const TOO_BIG: &str = "vessel: the agent's own history is larger than 64 MiB, so nothing of it \
+                       was added";
 const TOO_LONG: &str = "vessel: the agent's next message in its own history is longer than 2000 \
                         records, so nothing of it was added";
 /// The line when part of what lies beyond the log waits for another
@@ -139,6 +185,7 @@ pub(crate) fn outcome(log: &UserPrompts, gather: Gather) -> Outcome {
     match gather.over {
         Some(Over::Time) => return Outcome::Nothing(TOO_SLOW),
         Some(Over::Items) => return Outcome::Nothing(TOO_MANY),
+        Some(Over::Bytes) => return Outcome::Nothing(TOO_BIG),
         None => {}
     }
     let Some(logged) = log.prompts() else {

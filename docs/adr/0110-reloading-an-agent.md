@@ -62,7 +62,8 @@ refused a session that was not live or was parked, and dropped the replay.
   - The record: `reloaded { harness_session, appended }` once the agent is ready again. An older peer reads it
     as `vessel: the agent was reloaded` (with the count when records were added), at the same sequence.
   - The history (ruling C, R2):
-    - Instead of being dropped, the replay is gathered, bounded by 60 s and 20,000 events.
+    - Instead of being dropped, the replay is gathered, bounded by 60 s, 20,000 events and 64 MiB of their
+      serialized size (counted, not kept). Past any bound the gather stops and drops what it held.
     - Its user messages are lined up with the log's user prompts, compared exactly as text.
     - Only when the log's prompts are exactly the first ones are the records from the next user message on
       appended after `reloaded`: whole messages, at most 2,000 records.
@@ -116,7 +117,8 @@ refused a session that was not live or was parked, and dropped the replay.
   - nothing new;
   - turns made outside Vessel added once, with no duplicate on a second reload;
   - a diverged history adding nothing;
-  - the unknown log, the cap in whole messages, and the item and time bounds on a paused clock.
+  - the unknown log, the cap in whole messages, and the item and time bounds on a paused clock;
+  - the byte bound: three 1 MiB tool outputs added, 65 of them adding nothing.
 - `vessel-node` e2e `reload.rs`, over the wire with `fake-acp` (`FAKE_ACP_REPLAY_FIRST`, `FAKE_ACP_REPLAY_USER`,
   `FAKE_ACP_LOAD_FAILS_IF`, the `deaf` prompt):
   - the three history cases;
