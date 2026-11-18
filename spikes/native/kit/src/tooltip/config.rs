@@ -10,6 +10,9 @@ pub enum Side {
     Top,
     /// Pane toolbar default in the pinned source.
     Bottom,
+    /// To the right, centred on the trigger's height: a menu row's
+    /// (Paseo's `menu-item.tsx`, `side="right"`, `align="center"`).
+    Right,
 }
 /// Finite nonnegative distance from the trigger edge in logical points.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,6 +20,8 @@ pub struct Offset(Pixels);
 impl Offset {
     /// Both pinned composer and pane toolbar profiles use eight logical points.
     pub const EIGHT: Self = Self(px(8.0));
+    /// A menu row's tooltip (`offset={10}`).
+    pub const TEN: Self = Self(px(10.0));
 }
 /// Invalid geometry is refused at the caller's configuration edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -49,6 +54,8 @@ impl Delay {
     pub const IMMEDIATE: Self = Self(Duration::ZERO);
     /// Pinned pane toolbar desktop hover delay.
     pub const TOOLBAR: Self = Self(Duration::from_millis(300));
+    /// A menu row's tooltip (`delayDuration={250}`).
+    pub const MENU_ROW: Self = Self(Duration::from_millis(250));
     /// A typed duration, with no string or bare numeric unit crossing this API.
     #[must_use]
     pub const fn new(duration: Duration) -> Self {
@@ -85,6 +92,11 @@ impl Configuration {
     pub const fn toolbar() -> Self {
         Self::new(Side::Bottom, Offset::EIGHT, Delay::TOOLBAR)
     }
+    /// `menu-item.tsx`'s row tooltip: right, offset ten, 250 milliseconds.
+    #[must_use]
+    pub const fn menu_row() -> Self {
+        Self::new(Side::Right, Offset::TEN, Delay::MENU_ROW)
+    }
     /// The source card-refresh control explicitly chooses top over the default.
     #[must_use]
     pub const fn side(mut self, side: Side) -> Self {
@@ -110,6 +122,11 @@ impl Configuration {
                 point(bounds.center().x, bounds.bottom()),
                 Anchor::TopCenter,
                 point(px(0.0), self.offset.0),
+            ),
+            Side::Right => (
+                point(bounds.right(), bounds.center().y),
+                Anchor::LeftCenter,
+                point(self.offset.0, px(0.0)),
             ),
         }
     }

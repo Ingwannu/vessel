@@ -328,6 +328,7 @@ fn draw<V: 'static>(
             .child(popup::appear(arrival, panel, crate::motion::QUICK))
             .into_any_element()
     };
+    let surface = super::tip::with_layer(surface, state, tokens);
     let overlay = match layer {
         Layer::Screen => surface,
         Layer::AboveDialog => surface::ModalBoundary { surface }.into_any_element(),
@@ -364,9 +365,10 @@ pub(super) fn row<V: 'static>(
             .flex_none()
             .child(crate::command::key_badges(&item.shortcut, tokens))
     });
-    let mut element = row_body(index, item, paint, narrow)
+    let element = row_body(index, item, paint, narrow)
         .children(super::hint::hint(index, item, surfaces))
         .children(trailing);
+    let mut element = super::tip::with_tip(element, index, item, state, narrow);
     if item.selectable() {
         let choice = item.clone();
         let press_lease = state.render_lease();

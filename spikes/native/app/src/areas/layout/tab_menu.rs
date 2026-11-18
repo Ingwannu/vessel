@@ -19,11 +19,9 @@
 //!   one press path per row (`menu::chose`). After Paseo's rows, on the
 //!   open session's agent tab, Vessel's own session actions follow a rule
 //!   (its marks, Copy link, Agent log, Kill), as 789's row menu had them.
-//! - Reload agent (coordinator, 2026-11-18): not in 797. Paseo's refresh
-//!   interrupts a running turn and reloads the agent from persistence, which
-//!   a client-side park and wake cannot do without racing; it comes with
-//!   its own node call as TRACKER 803 (ADR 0110), with the kit's row
-//!   tooltip. Its slot is marked below.
+//! - Reload agent (coordinator, 2026-11-18): not a client-side park and
+//!   wake (it would race a running turn) but the node's `session.reload`
+//!   (TRACKER 803, ADR 0110), with the kit's row tooltip: `reload`.
 //! - Differences kept: Rename shows on the open session's agent tab only
 //!   (both rename dialogs read the open session; a terminal has no rename
 //!   yet); a file has no "Open with…" (one panel per file); the closes stay
@@ -44,6 +42,7 @@ use vessel_app_view::session::{MarkAction, ResumeUnavailable, resume_command};
 use vessel_app_view::toasts::ToastTone;
 use vessel_proto::SessionId;
 
+mod reload;
 #[cfg(test)]
 mod tests;
 
@@ -186,7 +185,10 @@ pub(super) fn entries(shell: &Shell, tab: TabId, surface: Surface) -> Vec<(Actio
     if matches!(target, Target::Agent(_) | Target::Terminal(_)) {
         group_from(&mut items, closes);
     }
-    // TRACKER 803: Reload agent goes here, on an agent's tab, as Paseo's.
+    // Reload agent, on an agent's tab, as Paseo's (TRACKER 803).
+    if let Target::Agent(session) = &target {
+        items.extend(reload::row(shell, *session));
+    }
     if session_tab {
         // The agent's own Close follows the session's lifecycle policy (a
         // root archives first), as the bar's Close does.

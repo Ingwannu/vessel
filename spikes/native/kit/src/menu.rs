@@ -55,6 +55,9 @@ mod submenu_tests;
 mod surface;
 #[cfg(test)]
 mod tests;
+mod tip;
+#[cfg(test)]
+mod tip_tests;
 mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
 pub use draw::{Content, Layer, Width, menu, menu_right, menu_with};
@@ -77,6 +80,11 @@ pub struct MenuState {
     cycle: Rc<()>,
     /// Its phone sheet's drag (TRACKER 799): one per opening.
     sheet: Rc<crate::sheet::snap::host::SheetState>,
+    /// Its rows' tooltips (TRACKER 803, `tip`): the menu's own, so no
+    /// caller threads one in; at most one shown.
+    tips: crate::tooltip::Tooltips,
+    /// Where each row was last drawn, for its tooltip.
+    tip_places: std::cell::RefCell<Vec<crate::tooltip::Place>>,
 }
 
 impl MenuState {
@@ -89,6 +97,8 @@ impl MenuState {
             return_to: crate::focus::ReturnFocus::default(),
             cycle: Rc::new(()),
             sheet: Rc::default(),
+            tips: crate::tooltip::Tooltips::new(),
+            tip_places: std::cell::RefCell::default(),
         }
     }
 
@@ -96,6 +106,7 @@ impl MenuState {
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.tips.dismiss();
         self.sheet = Rc::default();
         self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
@@ -162,6 +173,7 @@ impl MenuState {
     pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.tips.dismiss();
         self.sheet = Rc::default();
         self.at = Some(Placement::End(bounds));
         self.highlighted = None;
@@ -173,6 +185,7 @@ impl MenuState {
     pub fn open_start(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.tips.dismiss();
         self.sheet = Rc::default();
         self.at = Some(Placement::Start(bounds));
         self.highlighted = None;

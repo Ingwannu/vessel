@@ -93,6 +93,9 @@ pub struct MenuItem {
     /// that opens no page, a muted hint at its end (Paseo's `hint`: Copy
     /// agent id's first seven characters).
     pub value: Option<SharedString>,
+    /// Words shown beside the row while the pointer rests on it (Paseo's
+    /// `MenuItem` `tooltip`: Reload agent's, TRACKER 803); none on a phone.
+    pub tooltip: Option<SharedString>,
 }
 impl MenuItem {
     /// An ordinary item, with no leading glyph or pending state.
@@ -111,6 +114,7 @@ impl MenuItem {
             shortcut: Vec::new(),
             opens: None,
             value: None,
+            tooltip: None,
         }
     }
     /// A row that opens `page` beside the menu (Paseo's `MenuSubTrigger`).
@@ -120,6 +124,12 @@ impl MenuItem {
             opens: Some(page.into()),
             ..Self::new(label)
         }
+    }
+    /// Words beside the row while the pointer rests on it.
+    #[must_use]
+    pub fn with_tooltip(mut self, tooltip: impl Into<SharedString>) -> Self {
+        self.tooltip = Some(tooltip.into());
+        self
     }
     /// The decision's current value, shown before the chevron.
     #[must_use]
