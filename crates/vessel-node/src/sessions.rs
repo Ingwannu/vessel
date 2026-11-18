@@ -460,6 +460,7 @@ mod discovery;
 mod marks;
 mod metadata;
 mod read;
+pub(crate) mod settled;
 mod side_questions;
 
 #[cfg(test)]
