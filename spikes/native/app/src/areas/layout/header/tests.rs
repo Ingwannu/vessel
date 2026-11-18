@@ -1,6 +1,7 @@
 //! The actual header draws shared chrome and keeps its original action target.
 use super::*;
 use crate::areas::session::Open;
+use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
 use vessel_app_kit::ui::{Entity, IntoElement, px};

@@ -142,7 +142,7 @@ pub(super) fn chose(
         Action::Session(action) => {
             // Copies leave the switcher open; anything that opens a
             // confirm, a log or the page's next screen closes it first.
-            if !matches!(action, MenuAction::CopyId | MenuAction::CopyLink) {
+            if action != MenuAction::CopyLink {
                 shell.compact_close_switcher(window, cx);
             }
             shell.menu_chose(action, window, cx);

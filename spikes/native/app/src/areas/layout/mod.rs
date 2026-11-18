@@ -10,7 +10,9 @@ mod explorer;
 mod file_guard;
 mod header;
 mod keyboard_menu;
+mod launch;
 mod menu;
+mod new_tab;
 // The desktop coordinator removes this exact staging attribute with its real caller.
 #[cfg(test)]
 mod preferences;
@@ -58,6 +60,8 @@ pub(crate) struct LayoutArea {
     compact: compact::Compact,
     /// The workspace "…" menu at both widths (TRACKER 795).
     workspace_menu: workspace_menu::WorkspaceMenu,
+    /// The New tab panels' keys (TRACKER 336).
+    new_tab: new_tab::Keys,
     /// The pane header's "+" and "…" menus (one open at a time).
     header_menu: MenuState,
     header_menu_for: Option<header::HeaderMenu>,
@@ -91,6 +95,7 @@ impl LayoutArea {
             tab_places: RefCell::new(BTreeMap::new()),
             compact: compact::Compact::new(cx),
             workspace_menu: workspace_menu::WorkspaceMenu::new(cx),
+            new_tab: new_tab::Keys::new(cx),
             header_menu: MenuState::new(cx),
             header_menu_for: None,
             maximized: None,

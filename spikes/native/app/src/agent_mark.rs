@@ -28,6 +28,13 @@ pub(crate) fn mark(agent: Option<&HarnessRef>, size: Size, space: Space, tokens:
     agent_mark::agent_mark(agent.and_then(of), size, space, tokens)
 }
 
+/// A mark the view chose without an agent (a shipped terminal profile's,
+/// `AgentMark::of_profile`), in the muted ink, as Paseo's
+/// `TerminalProfileIcon` (the New tab panel, TRACKER 336).
+pub(crate) fn mark_muted_of(mark: AgentMark, size: Size, space: Space, tokens: &Tokens) -> Div {
+    agent_mark::agent_mark_muted(artwork(mark), size, space, tokens)
+}
+
 /// The same mark in the muted ink, for the sidebar's session rows (Paseo's
 /// `agent-list.tsx`; the coordinator, 2026-11-14: colour stays in the
 /// pickers and Settings › Agents).

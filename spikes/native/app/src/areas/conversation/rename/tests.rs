@@ -235,19 +235,53 @@ fn a_rename_waits_for_the_node_and_keeps_the_title_on_a_refusal(cx: &mut TestApp
     });
 }
 
-#[gpui::test]
-fn the_field_stops_at_the_nodes_longest_title(cx: &mut TestAppContext) {
-    let (probe, cx) = shown(cx);
-    update(&probe, cx, Shell::open_rename);
+/// The field's length after typing one past `most` over the selection.
+fn typed_past(probe: &Entity<Probe>, cx: &mut VisualTestContext, most: usize) -> Option<usize> {
+    update(probe, cx, Shell::open_rename);
     cx.run_until_parked();
     // The prefilled title is selected: typing replaces it, up to the limit.
-    let longest = "x".repeat(SessionTitle::MAX_CHARS);
-    cx.simulate_input(&longest);
+    cx.simulate_input(&"x".repeat(most));
     cx.simulate_input("y");
-    assert_eq!(
-        state(&probe, cx).map(|(text, ..)| text.chars().count()),
-        Some(SessionTitle::MAX_CHARS)
-    );
+    state(probe, cx).map(|(text, ..)| text.chars().count())
+}
+
+/// `laptop`, connected at `protocol`.
+fn connected(probe: &Entity<Probe>, cx: &mut VisualTestContext, protocol: u32) {
+    update(probe, cx, |shell, _window, _cx| {
+        shell.fleet.machines = vec![vessel_app_view::Machine {
+            name: "laptop".to_owned(),
+            reach: vessel_app_view::Reach::Online,
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            protocol: Some(vessel_proto::ProtocolVersion::new(protocol)),
+            version: None,
+            node: None,
+            connection_epoch: None,
+        }];
+    });
+}
+
+#[gpui::test]
+fn the_field_stops_at_paseos_200_on_a_node_with_long_titles(cx: &mut TestAppContext) {
+    let (probe, cx) = shown(cx);
+    connected(&probe, cx, 30);
+    let most = SessionTitle::MAX_CHARS;
+    assert_eq!(typed_past(&probe, cx, most), Some(most));
+}
+
+#[gpui::test]
+fn the_field_stops_at_120_on_an_older_node(cx: &mut TestAppContext) {
+    let (probe, cx) = shown(cx);
+    connected(&probe, cx, 29);
+    let most = SessionTitle::LEGACY_MAX_CHARS;
+    assert_eq!(typed_past(&probe, cx, most), Some(most));
+}
+
+#[gpui::test]
+fn the_field_stops_at_120_while_the_node_is_not_connected(cx: &mut TestAppContext) {
+    let (probe, cx) = shown(cx);
+    let most = SessionTitle::LEGACY_MAX_CHARS;
+    assert_eq!(typed_past(&probe, cx, most), Some(most));
 }
 
 /// The Rename acts the shell sent since the last look.

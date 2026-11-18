@@ -23,8 +23,6 @@ pub(crate) enum Confirm {
 pub(crate) enum MenuAction {
     /// A mark or a life action.
     Mark(MarkAction),
-    /// Copy the session's id.
-    CopyId,
     /// Copy a credential-free link through the shared desktop route format.
     CopyLink,
     /// Close using the root/child lifecycle policy.
@@ -112,17 +110,6 @@ impl Shell {
             }
             MenuAction::Close => {
                 self.request_session_close(window, cx);
-                None
-            }
-            MenuAction::CopyId => {
-                if let Some(shown) = &self.areas.conversation.shown {
-                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(
-                        shown.session.to_string(),
-                    ));
-                    // Paseo's agent id copy (workspace-screen.tsx 2090): a
-                    // Vessel session is Paseo's agent.
-                    self.toast_copied(self.words.layout().copied_agent_id(), cx);
-                }
                 None
             }
         };

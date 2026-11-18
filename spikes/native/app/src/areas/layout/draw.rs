@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::layout::{
     AgentRole, Axis, Layout, LayoutMode, OpenIntent, Pane, PaneId, Placement, Position, SplitNode,
     TabId, Target,
@@ -204,7 +204,13 @@ fn pane_view(
             window,
             cx,
         ),
-        None => launcher(shell, tokens, window, cx).into_any_element(),
+        None => super::new_tab::panel(
+            shell,
+            &super::new_tab::Owner::Pane(workspace.clone(), id),
+            tokens,
+            window,
+            cx,
+        ),
     };
     let frame = div()
         .id(ElementId::Name(format!("layout-pane-{}", id.get()).into()))
@@ -386,39 +392,6 @@ pub(super) fn tab_label(shell: &Shell, target: &Target) -> String {
         | Target::Setup(_)
         | Target::CommitDiff(_) => shell.words.layout().tabs().to_owned(),
     }
-}
-
-pub(super) fn launcher(
-    shell: &Shell,
-    tokens: &Tokens,
-    _window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    div()
-        .size_full()
-        .flex()
-        .flex_col()
-        .items_center()
-        .justify_center()
-        .gap(px(spacing::S3))
-        .p(px(spacing::S4))
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(shell.words.layout().empty().to_owned()),
-        )
-        .child(
-            button(
-                "layout-launch-agent",
-                shell.words.layout().new_agent().to_owned(),
-                false,
-                tokens,
-            )
-            .on_click(cx.listener(|shell, _event, window, cx| {
-                shell.go(crate::routes::Route::Draft, window, cx);
-            })),
-        )
 }
 
 fn drop_preview(shell: &Shell, pane: PaneId, tokens: &Tokens) -> Option<Div> {
