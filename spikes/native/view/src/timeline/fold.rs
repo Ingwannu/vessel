@@ -354,7 +354,9 @@ impl Timeline {
                     after: *after,
                 },
             ),
-            SessionEvent::Terminal(_) => {}
+            // A reload (protocol 31, ADR 0110) is not drawn as a line yet:
+            // the records it announces follow as ordinary agent records.
+            SessionEvent::Terminal(_) | SessionEvent::Reloaded { .. } => {}
             SessionEvent::Agent { event, .. } => self.agent(record, event),
             SessionEvent::ProfileChanged { from, to, .. } => self.push(
                 record,

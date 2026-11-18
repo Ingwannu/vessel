@@ -85,6 +85,7 @@ mod usage_reports;
 mod forking;
 mod history;
 mod parking;
+mod reload;
 mod search;
 mod settings;
 mod side_questions;

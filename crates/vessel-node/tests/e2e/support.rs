@@ -314,7 +314,8 @@ pub(crate) fn output_of(records: &[EventRecord]) -> String {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => None,
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Reloaded { .. } => None,
         })
         .flatten()
         .collect();
@@ -368,7 +369,8 @@ pub(crate) fn status_of(record: &EventRecord) -> Option<&SessionStatus> {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
-        | SessionEvent::Rewound { .. } => None,
+        | SessionEvent::Rewound { .. }
+        | SessionEvent::Reloaded { .. } => None,
     }
 }
 
@@ -425,7 +427,8 @@ pub(crate) const fn agent_of(record: &EventRecord) -> Option<&AgentEvent> {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
-        | SessionEvent::Rewound { .. } => None,
+        | SessionEvent::Rewound { .. }
+        | SessionEvent::Reloaded { .. } => None,
     }
 }
 

@@ -30,16 +30,28 @@
 //   list it filters always agree. It is a text input with the searchbox
 //   role, not `type="search"`: Chromium's search input clears itself on
 //   Escape, which here belongs to closing the dialog.
+// - Compact (TRACKER 787): below 600px (ui/breakpoints.ts) the same dialog
+//   is Paseo's AdaptiveModalSheet, a sheet from the bottom: 65% of the
+//   window, raised to 90% by a drag up or by a text field taking focus
+//   (Gorhom's keyboard "extend"), closed by a drag down; a handle on top,
+//   the top corners at 16, black at 45% behind (sheet-drag.ts). `sheet:
+//   "content"` is Paseo's ContextWindowSheet instead: as tall as what it
+//   holds, at most 80%. Wider, the card is centred, at most Paseo's 520.
+//   A sheet takes focus itself, not its first field: Paseo's sheet opens
+//   no keyboard until a field is pressed, and a field focused on open
+//   would raise every sheet with one to 90% at once.
 
 import "./dialog.css";
 
 import { Dialog as Base } from "@base-ui/react/dialog";
-import { type ReactNode, useRef } from "react";
+import { type FocusEvent, type ReactNode, useRef, useState } from "react";
 
+import { COMPACT } from "../breakpoints";
 import { IconButton } from "./button";
 import { Icon } from "./icon";
+import { type SheetFit, type SheetSnap, useSheetDrag } from "./sheet-drag";
 
-/** `md` is the reference's 512px; `lg` holds a grid of cards. */
+/** `md` is Paseo's 520px; `lg` holds a grid of cards. */
 export type DialogSize = "md" | "lg";
 
 /** A search in the dialog's header (Paseo's sheet header search). */
@@ -85,6 +97,7 @@ export function Dialog({
   actions,
   back,
   search,
+  sheet = "snap",
 }: {
   title: string;
   /** Escape, the scrim and the close button all call it. */
@@ -98,11 +111,32 @@ export function Dialog({
   actions?: ReactNode;
   back?: DialogBack;
   search?: DialogSearch;
+  /** At a compact width: a sheet at Paseo's snap points (a dialog), or
+   * as tall as its content (Paseo's ContextWindowSheet). */
+  sheet?: SheetFit;
 }) {
   const popup = useRef<HTMLDivElement>(null);
+  const [snap, setSnap] = useState<SheetSnap>("low");
+  const drag = useSheetDrag(popup, sheet, setSnap, onClose);
   // `paged`, not `sheet`: the kit Sheet owns that class (kit/sheet.css).
   const paged = back !== undefined || search !== undefined;
-  const look = `dialog${size === "lg" ? " lg" : ""}${paged ? " paged" : ""}`;
+  const look = `dialog${size === "lg" ? " lg" : ""}${paged ? " paged" : ""}${
+    sheet === "content" ? " fit" : ""
+  }`;
+  // Gorhom's keyboard "extend": a field taking focus (a phone's keyboard
+  // opening) raises a snapping sheet to its upper point.
+  const extend = (event: FocusEvent<HTMLDivElement>) => {
+    const field = event.target;
+    if (
+      sheet === "snap" &&
+      (field instanceof HTMLInputElement ||
+        field instanceof HTMLTextAreaElement ||
+        (field instanceof HTMLElement && field.isContentEditable)) &&
+      window.matchMedia(COMPACT).matches
+    ) {
+      setSnap("high");
+    }
+  };
   return (
     <Base.Root
       open
@@ -113,14 +147,22 @@ export function Dialog({
       }}
     >
       <Base.Portal>
-        <Base.Backdrop className="dialog-backdrop" />
-        <Base.Viewport className="dialog-viewport">
+        <Base.Backdrop className="dialog-backdrop adaptive" />
+        <Base.Viewport className="dialog-viewport adaptive">
           <Base.Popup
             ref={popup}
             className={look}
-            initialFocus={() => firstFocus(popup.current, search !== undefined)}
+            data-snap={snap}
+            initialFocus={() =>
+              window.matchMedia(COMPACT).matches
+                ? popup.current
+                : firstFocus(popup.current, search !== undefined)
+            }
+            onFocus={extend}
           >
-            <div className="dialog-h">
+            {/* The sheet's handle (drawn at a compact width only). */}
+            <div className="dialog-handle" aria-hidden="true" {...drag} />
+            <div className="dialog-h" {...drag}>
               {back === undefined ? null : (
                 <IconButton
                   label={back.label}

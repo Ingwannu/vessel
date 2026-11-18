@@ -39,6 +39,8 @@ pub fn binding_epoch(records: &[vessel_proto::EventRecord]) -> Option<EventSeq> 
                 record.event,
                 SessionEvent::ProfileChanged { .. }
                     | SessionEvent::Woken
+                    // A reload starts the agent again (ADR 0110), as a wake does.
+                    | SessionEvent::Reloaded { .. }
                     | SessionEvent::Rewound { .. }
                     | SessionEvent::OptionsChanged { .. }
                     | SessionEvent::Status { .. }

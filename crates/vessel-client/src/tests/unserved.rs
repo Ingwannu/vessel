@@ -164,6 +164,7 @@ macro_rules! methods {
             search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
             park_session: vessel_proto::parking::ParkSession => SessionInfo;
             wake_session: vessel_proto::parking::WakeSession => SessionInfo;
+            reload_session: vessel_proto::reload::ReloadSession => SessionInfo;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;

@@ -150,6 +150,13 @@ impl SessionHandle {
         self.0.driver
     }
 
+    /// The first record of this run: what a reload reads the earlier
+    /// prompts before from the store (TRACKER 803).
+    #[must_use]
+    pub fn run_start(&self) -> EventSeq {
+        self.0.ring().start()
+    }
+
     /// The choices the session runs with now (protocol 9): every select's
     /// current value and every toggle's state from its last
     /// `options_changed`; before any, its spec's own choices; none for a

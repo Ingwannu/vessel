@@ -137,6 +137,11 @@ impl Conversation {
                     String::new()
                 }
             )),
+            SessionEvent::Reloaded { appended, .. } => self.line(match appended {
+                0 => "[agent reloaded]".to_owned(),
+                1 => "[agent reloaded: 1 record from its own history follows]".to_owned(),
+                _ => format!("[agent reloaded: {appended} records from its own history follow]"),
+            }),
         }
     }
 

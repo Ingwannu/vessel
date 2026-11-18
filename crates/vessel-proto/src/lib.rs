@@ -60,6 +60,7 @@ pub mod push;
 mod raw;
 pub mod registry;
 mod relay;
+pub mod reload;
 pub mod restart;
 mod rpc;
 pub mod scripts;

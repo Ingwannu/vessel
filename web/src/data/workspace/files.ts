@@ -10,6 +10,7 @@
 import type { NodeKey } from "../../wire/bridge";
 import type {
   DirListing,
+  DuplicatedFileEntry,
   FileBytePage,
   FileRead,
   FileRevision,
@@ -118,6 +119,19 @@ export function deletePath(
 ): Promise<Outcome<null>> {
   return attempt(() =>
     fleet.bridge.call(node, "file.delete", { root, path, recursive }),
+  );
+}
+
+/** A copy of `path` beside it, named by the node (`file.duplicate`, the
+ * file panels protocol); its path comes back. */
+export function duplicateEntry(
+  fleet: Fleet,
+  node: NodeKey,
+  root: WorkspaceRoot,
+  path: RelPath,
+): Promise<Outcome<DuplicatedFileEntry>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "file.duplicate", { root, path }),
   );
 }
 

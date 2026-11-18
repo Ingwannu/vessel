@@ -1010,8 +1010,9 @@ black in the light theme. xterm.js takes them as its theme.
 
 ### 6.9 Dialogs
 
-The kit's `Dialog`, the reference's base dialog: centred, 512px (`lg`,
-640px), the popup surface (§4.6) at radius 10, 16px inside. Title 15px /
+The kit's `Dialog`, the reference's base dialog: centred, 520px (Paseo's
+adaptive modal card; `lg`, 640px), the popup surface (§4.6) at radius 10,
+16px inside. Title 15px /
 600; a ghost close button at the top right. Footer right-aligned, ghost
 Cancel then one primary. The scrim is `--overlay`, no blur. Base UI
 gives `role="dialog"`, `aria-modal`, the label, the focus trap, the
@@ -1028,6 +1029,18 @@ it opens, as Paseo does not focus the search.
 
 Dimmer click and Escape cancel, unless a pairing invite is live and
 uncopied — then confirm.
+
+Compact (below 600px, §3) a dialog is Paseo's `AdaptiveModalSheet`
+(TRACKER 787): a sheet from the bottom as wide as the window, its top
+corners at 16, a 32 by 4 handle 8px under its edge, over black at 45%;
+65% of the window tall, its footer at its foot. A drag on the handle or
+the header raises it to 90% (past halfway, or flung up), lowers it to 65%,
+or closes it (well below 65%, or flung down from there); a text field
+taking focus raises it to 90% (Gorhom's keyboard "extend"). It takes focus
+itself on open, not its first field, so no keyboard opens until a field is
+pressed. `sheet="content"` is Paseo's `ContextWindowSheet`: as tall as
+what it holds, at most 80%; the context ring opens its figures in one at a
+compact width (a press; the hover card elsewhere).
 
 ### 6.10 Toasts
 
@@ -1198,7 +1211,7 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Option row | 13px / 1.5 (about 32px), 8px by 6px, radius 8; secondary text at rest; highlighted on the 4% wash in the primary colour; chosen or open on the 7% wash; a muted detail at the right (12px, tertiary, cut first); a group's heading 10px, tracked, tertiary. A row reached from the keyboard also takes the ring, inside it |
 | Select | trigger: the secondary button's raised surface (an edge 5% darker, the inset bevel), 13px, the value then its detail, a chevron that turns over 300ms while open; `ghost`: no fill until hover. `md` 32px, `sm` 28px; `fill` or `fit` width. The list is at least the trigger's width, below it, not over it |
 | Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px, `wide`), checkbox rows (16px box, radius 6), radio groups (a check at the right; values that share a group under its heading), submenus (the current value and a chevron; the flyout opens to the right of its row, 5px over it, top-aligned, clamped into the window and never flipped, as Paseo's), separators, a danger row; `narrow` is 256px (a composer's agent menu). `MenuSwitchItem`: a setting's row with a switch at the right, 12px text, 8px by 12px, keeping the menu open; `MenuNote`: a line of tertiary text that is not a choice |
-| ContextMenu | the Menu's rows and popup opened at the pointer by a right click on the thing it acts on, or a touch held 500 ms (Paseo's ContextMenu); `actions` is 220px (Paseo's file actions menu). The Files tab's rows open Paseo's file actions: Copy path, Copy relative path, Download, Add to chat for a file; Collapse folder (its own group) and the copies for an open folder; a hairline between groups, Delete red |
+| ContextMenu | the Menu's rows and popup opened at the pointer by a right click on the thing it acts on, or a touch held 500 ms (Paseo's ContextMenu); `actions` is 220px (Paseo's file actions menu). The Files tab's rows open Paseo's file actions: New file, New folder | Collapse folder (an open folder) | Copy path, Copy relative path, Download and Add to chat (a file) | Rename, Duplicate | Delete; the tree's empty space New file and New folder at the root; a hairline between groups, Delete red. New and Rename type the name in a row of the tree (Enter or leaving it makes it, Escape drops it); Delete asks first ("Delete file?" / "Delete folder?", the name "will be permanently deleted.") |
 | Combobox | a field shell (§6.2) whose suggestions are option rows, at least the field's width; it takes any text. `ghost`: no fill or edge at rest, the 4% wash on hover, the shell while focused (a composer's tray) |
 | Popover | the popup surface with 16px inside, 256, 320 or 384px wide (GOAT's), a 13px semibold title |
 | Tooltip | 12px on the popup fill, no edge, 6px by 12px, radius 8, a 10px arrow; after 400ms of hover or on keyboard focus; a shortcut after the words. Never takes the pointer |
