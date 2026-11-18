@@ -75,6 +75,16 @@ impl Call {
                 None => None,
             },
             Self::HarnessOptions(request) => added(Some(&request.harness)),
+            // A ranked listing (ADR 0109): an older node would ignore
+            // `limit` and `query` and answer the agent's first page
+            // unfiltered, without prompts, as if nothing matched less.
+            Self::GetAgentHistory(request) => {
+                if request.is_ranked() {
+                    Some(crate::history::RANKED_HISTORY_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
             Self::ListProfiles(request) => added(request.harness.as_ref()),
             // `scopes` came in 5; a scope newer than that needs its own
             // version, or an older node would refuse the name it lacks.
@@ -309,7 +319,6 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
-            | Self::GetAgentHistory(_)
             | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));

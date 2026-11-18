@@ -158,9 +158,10 @@ pub(crate) struct NodeService {
     prompts: SavedPrompts,
     /// Places for searches running at once (protocol 12, `search`).
     searches: tokio::sync::Semaphore,
-    /// Places for listings of agents' histories running at once
-    /// (protocol 17, `history`).
-    listings: tokio::sync::Semaphore,
+    /// Places for listings of agents' histories, those waiting for one,
+    /// and the prompts ranked listings read (protocol 17, `history`; ADR
+    /// 0109).
+    listings: history::Listings,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
     usage_reports: crate::usage_reports::Registry,
@@ -282,7 +283,7 @@ impl NodeService {
             fleet_reads: Arc::new(tokio::sync::Semaphore::new(4)),
             prompts: SavedPrompts::new(store),
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
-            listings: tokio::sync::Semaphore::new(history::AT_ONCE),
+            listings: history::Listings::default(),
             settings,
             limits,
             notices: Arc::default(),

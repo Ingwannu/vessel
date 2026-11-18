@@ -317,10 +317,7 @@ fn draw<V: 'static>(
     }
     let arrival = ElementId::NamedChild(std::sync::Arc::new(id), "appear".into());
     let surface = if sheet.is_some() {
-        // A phone's sheet rises over the standard length, as the list's does.
-        let panel = popup::appear(arrival, panel, crate::motion::STANDARD).into_any_element();
-        let on_scrim = Box::new(surface::scrim(state, get, cx));
-        surface::SheetBoundary { panel, on_scrim }.into_any_element()
+        surface::sheet_surface(panel, arrival, state, get, cx)
     } else {
         anchored()
             .anchor(corner)

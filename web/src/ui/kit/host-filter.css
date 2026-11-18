@@ -1,0 +1,57 @@
+/* Host filter (kit/host-filter.tsx): Paseo's HostFilter pill. md is the
+   label manager's (6px by 12px, at the start of its column, as wide as the
+   column allows); sm sits in a dialog's title row (4px by 10px, at most
+   200px). A well fill, a hairline, radius 2, the control font at 500;
+   hover and open washes; the chevron muted. */
+
+.host-filter {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  background: var(--bg-well);
+  color: var(--text-primary);
+  font: var(--t-control);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.host-filter.sm {
+  align-self: auto;
+  max-width: 200px;
+  padding: 4px 10px;
+}
+
+.host-filter:hover {
+  background: var(--bg-hover);
+}
+
+.host-filter[data-popup-open],
+.host-filter:active {
+  background: var(--bg-active);
+}
+
+.host-filter:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.host-filter:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.host-filter .ico {
+  color: var(--text-tertiary);
+}
+
+.host-filter-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

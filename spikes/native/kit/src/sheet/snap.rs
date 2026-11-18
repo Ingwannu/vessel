@@ -13,12 +13,15 @@
 //!   reference's platform gesture recognizer; the snap rule is shared.
 
 mod drag;
+pub(crate) mod host;
 pub mod listener;
 pub(crate) mod motion;
 mod points;
 
 #[cfg(test)]
 mod configuration_tests;
+#[cfg(test)]
+mod content_tests;
 #[cfg(test)]
 mod tests;
 

@@ -2,14 +2,22 @@
 
 /* --- Toasts / empty / skeleton --- */
 
+/* Paseo's app-shell host (toast-host.tsx 199-201, 284-288): under the
+   safe area and the header, the first card spacing 2 below it, centred.
+   The stack starts at the header's bottom (the frame's inset, its 1px edge
+   and the title bar: shell/frame.css, frame-top.css) and that gap is its
+   top padding; the cards' shadow reaches about 4px above them, the sides
+   and bottom keep 12px for it. */
 .toast-stack {
   --toast-card-width: 320px;
+  --toast-header-bottom: calc(var(--panel-inset-y) + 1px + var(--topbar-h));
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h) + var(--s-4));
+  top: calc(env(safe-area-inset-top, 0px) + var(--toast-header-bottom));
   left: 50%;
   width: min(calc(var(--toast-card-width) + var(--s-3) * 2), 100vw);
   padding: var(--s-3);
-  padding-block: min(
+  padding-top: min(var(--s-2), calc(var(--toast-available-height, 100dvh) / 2));
+  padding-bottom: min(
     var(--s-3),
     calc(var(--toast-available-height, 100dvh) / 2)
   );
@@ -24,6 +32,21 @@
 
 .toast-stack:empty {
   display: none;
+}
+
+/* Its bottom never passes the composer's dock or a prompt menu over it
+   (Paseo's toast never sits over the composer or the question dock).
+   Anchor positioning places that edge in the same layout as the dock, so
+   a viewport change or a dock that grows leaves no frame in which the
+   stack covers the question's controls, as a measured height did
+   (feedback-toast.spec, the short phone). Without anchors the measured
+   height (use-toast-clearance.ts) still holds it, a frame late. With both
+   edges set, `fit-content` keeps the stack as tall as its toasts. */
+@supports (anchor-name: --toast-floor) {
+  .toast-stack {
+    bottom: max(anchor(--prompt-dock top, 0px), anchor(--prompt-menu top, 0px));
+    height: fit-content;
+  }
 }
 
 .toast {
@@ -63,6 +86,9 @@
 @media (max-width: 767px) {
   .toast-stack {
     --toast-card-width: min(calc((100vw - var(--s-4) * 2) * 0.92), 480px);
+    --toast-header-bottom: calc(
+      var(--panel-inset-phone) + 1px + var(--topbar-h)
+    );
   }
 }
 

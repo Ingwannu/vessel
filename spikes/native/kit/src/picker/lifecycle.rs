@@ -18,6 +18,7 @@ impl ComboboxState {
     pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.sheet = Rc::default();
         self.open = true;
         self.highlighted = None;
         self.highlighted_label = None;
@@ -37,6 +38,7 @@ impl ComboboxState {
     pub fn open_beside(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
         self.return_to = crate::focus::ReturnFocus::default();
         self.cycle = Rc::new(());
+        self.sheet = Rc::default();
         self.open = true;
         self.highlighted = None;
         self.highlighted_label = None;

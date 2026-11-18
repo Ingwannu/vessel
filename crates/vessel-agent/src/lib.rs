@@ -24,7 +24,8 @@
 //! - `probe`: asking an agent what it offers without a session (protocol
 //!   9's `harness.options`);
 //! - `history`: a page of the agent's own conversations, over `session/list`
-//!   (protocol 17's `agent.history`);
+//!   (protocol 17's `agent.history`), or a ranked listing with their
+//!   prompts (`ranked_with`, ADR 0109);
 //! - `permissions`: pending permission requests, first answer wins;
 //! - `questions`: pending questions (ACP form elicitations, protocol 10),
 //!   first answer wins;
@@ -83,8 +84,11 @@ pub use drivers::Driver;
 pub use error::{AgentError, Disconnect, InputError, LaunchRefusal};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom, ForkRefusal};
 pub use history::{
-    HistoryEntry, HistoryError, HistoryFrom, HistoryPage, MAX_ENTRIES as HISTORY_MAX_ENTRIES,
-    NotACursor, history, history_with,
+    CLOSE_LIMIT as HISTORY_CLOSE_LIMIT, HistoryEntry, HistoryError, HistoryFrom, HistoryPage,
+    LOAD_LIMIT as HISTORY_LOAD_LIMIT, MAX_ENTRIES as HISTORY_MAX_ENTRIES, NotACursor,
+    PREVIEW_BUDGET as HISTORY_PREVIEW_BUDGET, PREVIEW_CHARS as HISTORY_PREVIEW_CHARS, Previews,
+    Prompts, RANKED_LIMIT as HISTORY_RANKED_LIMIT, Ranked, RankedPage, SCAN as HISTORY_SCAN,
+    history, history_with, preview as prompt_preview, ranked_with,
 };
 pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
