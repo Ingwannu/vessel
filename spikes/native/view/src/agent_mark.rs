@@ -121,8 +121,11 @@ mod tests {
     #[test]
     fn shipped_profiles_carry_their_brand_and_pi_none() {
         let shipped = Profiles::shipped().unwrap();
-        let marks: Vec<Option<AgentMark>> =
-            shipped.entries().iter().map(AgentMark::of_profile).collect();
+        let marks: Vec<Option<AgentMark>> = shipped
+            .entries()
+            .iter()
+            .map(AgentMark::of_profile)
+            .collect();
         assert_eq!(
             marks,
             [

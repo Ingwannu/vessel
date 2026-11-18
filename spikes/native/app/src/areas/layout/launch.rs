@@ -58,7 +58,12 @@ pub(super) const fn glyph(launch: Launch) -> Glyph {
 }
 
 /// Start `launch`; a launch that cannot start yet does nothing.
-pub(super) fn run(shell: &mut Shell, launch: Launch, window: &mut Window, cx: &mut Context<'_, Shell>) {
+pub(super) fn run(
+    shell: &mut Shell,
+    launch: Launch,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
     match launch {
         Launch::Agent => shell.go(Route::Draft, window, cx),
         Launch::Terminal

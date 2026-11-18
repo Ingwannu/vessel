@@ -34,7 +34,9 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::agent_mark::AgentMark;
-use vessel_app_view::layout::{Availability, Launch, LaunchPurpose, LayoutKey, PaneId, TabId, catalog};
+use vessel_app_view::layout::{
+    Availability, Launch, LaunchPurpose, LayoutKey, PaneId, TabId, catalog,
+};
 use vessel_proto::terminal_profiles::Profiles;
 
 /// Paseo's `LAUNCHER_MAX_WIDTH`.
@@ -113,16 +115,20 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
         index = index.saturating_add(1);
         this
     };
-    let tabs = catalog(LaunchPurpose::Primary, super::mode(window), launch::availability)
-        .into_iter()
-        .map(|(chosen, availability)| Row {
-            index: next(),
-            id: format!("{chosen:?}").to_lowercase().into(),
-            label: launch::label(shell, chosen).to_owned().into(),
-            icon: Icon::Glyph(launch::glyph(chosen)),
-            launch: (availability == Availability::Ready).then_some(chosen),
-        })
-        .collect();
+    let tabs = catalog(
+        LaunchPurpose::Primary,
+        super::mode(window),
+        launch::availability,
+    )
+    .into_iter()
+    .map(|(chosen, availability)| Row {
+        index: next(),
+        id: format!("{chosen:?}").to_lowercase().into(),
+        label: launch::label(shell, chosen).to_owned().into(),
+        icon: Icon::Glyph(launch::glyph(chosen)),
+        launch: (availability == Availability::Ready).then_some(chosen),
+    })
+    .collect();
     let mut groups = vec![Group {
         label: None,
         edit: false,
@@ -260,7 +266,11 @@ fn group_view(
                         .items_center()
                         .justify_center()
                         .opacity(EDIT_DISABLED)
-                        .child(glyph(Glyph::Pencil, EDIT_GLYPH, neutral.foreground_extra_muted)),
+                        .child(glyph(
+                            Glyph::Pencil,
+                            EDIT_GLYPH,
+                            neutral.foreground_extra_muted,
+                        )),
                 )
             })
     });
@@ -348,7 +358,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let first = ready(&groups(self, window)).first().map_or(0, |(index, _)| *index);
+        let first = ready(&groups(self, window))
+            .first()
+            .map_or(0, |(index, _)| *index);
         let keys = &mut self.areas.layout.new_tab;
         keys.owner = Some(owner);
         keys.row = row.unwrap_or(first);
@@ -360,7 +372,9 @@ impl Shell {
     /// starts the highlighted one. Whether the key was the panel's.
     fn new_tab_key(&mut self, key: &str, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
         let rows = ready(&groups(self, window));
-        let at = rows.iter().position(|(index, _)| *index == self.areas.layout.new_tab.row);
+        let at = rows
+            .iter()
+            .position(|(index, _)| *index == self.areas.layout.new_tab.row);
         match key {
             "up" | "down" => {
                 let Some(last) = rows.len().checked_sub(1) else {

@@ -119,9 +119,7 @@ const PROFILES: [&str; 4] = [
 ];
 
 #[gpui::test]
-fn the_built_ins_come_in_paseos_order_then_the_profiles_under_their_label(
-    cx: &mut TestAppContext,
-) {
+fn the_built_ins_come_in_paseos_order_then_the_profiles_under_their_label(cx: &mut TestAppContext) {
     let (_probe, cx) = at(cx, 1280.0);
     let order: Vec<&str> = BUILT_INS.iter().chain(&PROFILES).copied().collect();
     let tops: Vec<Pixels> = order.iter().map(|id| top(cx, id)).collect();
@@ -141,7 +139,8 @@ fn the_rail_is_at_most_380_wide_and_centred(cx: &mut TestAppContext) {
     let rail = cx.debug_bounds("new-tab-rail").unwrap();
     let panel = cx.debug_bounds("new-tab-panel").unwrap();
     assert_eq!(rail.size.width, px(RAIL_MAX));
-    let off = f32::from(rail.center().x).mul_add(1.0, f32::from(panel.center().x).mul_add(-1.0, 0.0));
+    let off =
+        f32::from(rail.center().x).mul_add(1.0, f32::from(panel.center().x).mul_add(-1.0, 0.0));
     assert!(off.abs() < 1.0, "{rail:?} in {panel:?}");
     let agent = cx.debug_bounds(row("agent")).unwrap();
     assert!(agent.size.height >= px(ROW_MIN));
