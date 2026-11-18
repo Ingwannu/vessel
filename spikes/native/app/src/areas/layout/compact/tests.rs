@@ -5,6 +5,7 @@ use super::*;
 use crate::areas::conversation::MenuAction;
 use crate::areas::layout::menu::Action;
 use crate::areas::session::Open;
+use vessel_app_kit::MenuItem;
 use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
@@ -127,7 +128,7 @@ fn one_header_row_as_wide_as_the_window_with_the_switcher_in_the_touch_frame(
     assert_eq!(header.origin, frame.origin);
     assert!(cx.debug_bounds("layout-main-pane-controls").is_none());
     // "…" in the toolbar's touch frame, at the row's middle.
-    let more = cx.debug_bounds("compact-workspace-actions-button").unwrap();
+    let more = cx.debug_bounds("workspace-actions-button").unwrap();
     assert_eq!(more.size, gpui::size(px(32.0), px(32.0)));
     // 8 above the row, then half of the 56 row.
     let middle = f32::from(header.top()).mul_add(1.0, 36.0);
@@ -287,7 +288,7 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
 fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppContext) {
     let (probe, cx) = compact(cx);
     probe.read_with(cx, |probe, cx| {
-        assert_eq!(workspace_path(probe.0.read(cx)), None);
+        assert_eq!(super::super::workspace_menu::workspace_path(probe.0.read(cx)), None);
     });
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, _cx| {
@@ -295,13 +296,13 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
             shell.areas.conversation.info = Some(Box::new(info(session)));
         });
     });
-    let more = cx.debug_bounds("compact-workspace-actions-button").unwrap();
+    let more = cx.debug_bounds("workspace-actions-button").unwrap();
     cx.simulate_click(more.center(), Modifiers::none());
     cx.run_until_parked();
     probe.read_with(cx, |probe, cx| {
         let shell = probe.0.read(cx);
-        assert!(shell.areas.layout.compact.actions.is_open());
-        assert_eq!(workspace_path(shell).as_deref(), Some("/work/shop"));
+        assert!(shell.areas.layout.workspace_menu.menu.is_open());
+        assert_eq!(super::super::workspace_menu::workspace_path(shell).as_deref(), Some("/work/shop"));
     });
 }
 

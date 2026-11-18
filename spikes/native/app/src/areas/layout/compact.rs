@@ -38,6 +38,7 @@ mod switcher;
 mod tests;
 
 use super::key;
+use super::workspace_menu::{self, Header};
 #[cfg(test)]
 use super::with_layout;
 use crate::areas::conversation::heading;
@@ -47,7 +48,6 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::menu::{Content, LeadingSize, menu_with};
 use vessel_app_kit::screen_header::{Content as HeaderContent, Density, frame};
 use vessel_app_kit::toolbar_button::{
     Disclosure, Selection, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
@@ -55,16 +55,9 @@ use vessel_app_kit::toolbar_button::{
 use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, IntoElement as _, ParentElement as _, Styled as _, Window, div,
-    px,
 };
-use vessel_app_kit::{
-    ButtonState, ControlSizing, DialogState, MenuHandlers, MenuItem, MenuState, Tokens,
-    anchor_probe,
-};
+use vessel_app_kit::{ButtonState, ControlSizing, DialogState, Tokens};
 use vessel_app_view::layout::{Layout, Pane, TabId};
-
-/// Paseo's workspace menu `width`.
-const ACTIONS_WIDTH: f32 = 220.0;
 
 /// The header's state, kept by the layout area.
 pub(super) struct Compact {
@@ -73,9 +66,6 @@ pub(super) struct Compact {
     switcher: DialogState,
     /// Where each row's "…" was drawn: its menu opens under it.
     row_places: RefCell<BTreeMap<TabId, Place>>,
-    /// Where "…" was drawn, and its menu.
-    actions_place: Place,
-    actions: MenuState,
 }
 
 impl Compact {
@@ -84,8 +74,6 @@ impl Compact {
             switcher_open: false,
             switcher: DialogState::new(cx),
             row_places: RefCell::new(BTreeMap::new()),
-            actions_place: Rc::new(std::cell::Cell::new(None)),
-            actions: MenuState::new(cx),
         }
     }
 
@@ -151,22 +139,8 @@ pub(super) fn header(
     .on_click(cx.listener(|shell, _event, window, cx| {
         shell.compact_open_switcher(window, cx);
     }));
-    let more = ToolbarButton::new(
-        "compact-workspace-actions",
-        words.workspace_actions().to_owned(),
-        ToolbarIcon::new(Glyph::More, ToolbarInk::Muted),
-        config.disclosure(if area.actions.is_open() {
-            Disclosure::Open
-        } else {
-            Disclosure::Closed
-        }),
-        tokens,
-    )
-    .on_click(cx.listener(
-        |shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| {
-            shell.compact_open_actions(event.position(), window, cx);
-        },
-    ));
+    // The shared workspace "…" (`workspace_menu`), in the island's chrome.
+    let more = workspace_menu::trigger(shell, Header::Island, ControlSizing::Touch, tokens, cx);
     let explorer_open = shell.areas.workspace.code.open;
     let toggle = ToolbarButton::new(
         "compact-explorer-toggle",
@@ -185,15 +159,6 @@ pub(super) fn header(
         tokens,
     )
     .on_click(cx.listener(|shell, _event, window, cx| shell.toggle_code(window, cx)));
-    let more = div()
-        .relative()
-        .flex_none()
-        .child(more)
-        .child(anchor_probe(&area.actions_place));
-    #[cfg(test)]
-    let more = vessel_app_kit::ui::InteractiveElement::debug_selector(more, || {
-        "compact-workspace-actions-button".to_owned()
-    });
     let island = div()
         .flex()
         .flex_row()
@@ -223,7 +188,8 @@ pub(super) fn header(
     row
 }
 
-/// The switcher's sheet and the Workspace actions menu, when open.
+/// The switcher's sheet, when open (the Workspace actions menu is
+/// `workspace_menu`'s, shared with the wide bar).
 pub(super) fn overlay(
     shell: &Shell,
     layout: &Layout,
@@ -231,69 +197,7 @@ pub(super) fn overlay(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let sheet = switcher::sheet(shell, layout, tokens, window, cx);
-    let actions = actions_menu(shell, tokens, window, cx);
-    (sheet.is_some() || actions.is_some())
-        .then(|| div().children(sheet).children(actions).into_any_element())
-}
-
-/// What "…" offers: Paseo's workspace actions that Vessel performs (Copy
-/// workspace path, Import session). New browser tab and the terminal
-/// profiles are left out, as Paseo leaves them out where it cannot create
-/// them; Copy branch name too, since Vessel knows only the branch a session
-/// started on, and Show setup, which Vessel has no page for.
-fn actions_menu(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let area = &shell.areas.layout.compact;
-    if !area.actions.is_open() {
-        return None;
-    }
-    let words = shell.words.layout();
-    let mut copy = MenuItem::new(words.copy_workspace_path().to_owned())
-        .with_leading_at(Glyph::Copy, LeadingSize::Regular);
-    copy.disabled = workspace_path(shell).is_none();
-    // Paseo's order: Copy workspace path, then Import session, each led
-    // by its 16 glyph.
-    let items = [
-        copy,
-        MenuItem::new(shell.words.history().title().to_owned())
-            .with_leading_at(Glyph::Import, LeadingSize::Regular),
-    ];
-    let handlers = MenuHandlers {
-        state: |shell: &mut Shell| &mut shell.areas.layout.compact.actions,
-        chose: Rc::new(|shell: &mut Shell, index, window, cx| {
-            if index == 0 {
-                if let Some(path) = workspace_path(shell) {
-                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(path));
-                }
-            } else {
-                shell.open_import_for_workspace(window, cx);
-            }
-        }),
-    };
-    menu_with(
-        Content::new("compact-workspace-actions-menu", &items).with_width(px(ACTIONS_WIDTH)),
-        &area.actions,
-        &handlers,
-        tokens,
-        vessel_app_kit::breakpoint::phone(window),
-        cx,
-    )
-}
-
-/// The open session's folder, once the node described it.
-fn workspace_path(shell: &Shell) -> Option<String> {
-    shell
-        .areas
-        .conversation
-        .info
-        .as_deref()
-        .and_then(|info| info.spec.cwd.as_ref())
-        .map(|cwd| cwd.display().to_string())
+    switcher::sheet(shell, layout, tokens, window, cx)
 }
 
 impl Shell {
@@ -338,21 +242,6 @@ impl Shell {
         area.menu_surface = super::menu::Surface::Switcher;
         area.menu_tab = Some((workspace, tab));
         area.menu.open_end(bounds, window, cx);
-        cx.notify();
-    }
-
-    /// "…": Workspace actions, under it (Paseo's `align="start"`).
-    fn compact_open_actions(
-        &mut self,
-        at: vessel_app_kit::ui::Point<vessel_app_kit::ui::Pixels>,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let area = &mut self.areas.layout.compact;
-        match area.actions_place.get() {
-            Some(bounds) => area.actions.open_start(bounds, window, cx),
-            None => area.actions.open(at, window, cx),
-        }
         cx.notify();
     }
 }

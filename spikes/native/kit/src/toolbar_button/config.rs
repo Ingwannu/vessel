@@ -4,6 +4,8 @@ use gpui::prelude::*;
 use gpui::{Pixels, Svg, px, svg};
 
 const POINTER_FRAME: Pixels = px(20.0);
+/// Paseo's large chrome on a wide window: `HEADER_CONTROL_HEIGHT`.
+const LARGE_POINTER_FRAME: Pixels = px(26.0);
 const COMPACT_FRAME: Pixels = px(32.0);
 const FIXED_GLYPH: Pixels = crate::loading::Points::FOURTEEN.pixels();
 const COMPACT_GLYPH: Pixels = crate::loading::Points::EIGHTEEN.pixels();
@@ -35,7 +37,17 @@ pub struct ToolbarConfig {
     availability: ButtonState,
     selection: Selection,
     disclosure: Disclosure,
-    island: bool,
+    chrome: Chrome,
+}
+/// Paseo's icon button chrome sizes (`icon-button-chrome.ts`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Chrome {
+    /// The toolbar's own: 20 or 32, a 14 (or adaptive 18) glyph.
+    Small,
+    /// `size: "large"`: 26 on a wide window, 32 on a phone, a 16 glyph.
+    Large,
+    /// The header island: the large chrome, round.
+    Island,
 }
 impl ToolbarConfig {
     /// Create an unselected, closed small toolbar action for the actual layout.
@@ -46,21 +58,33 @@ impl ToolbarConfig {
             availability,
             selection: Selection::Unselected,
             disclosure: Disclosure::Closed,
-            island: false,
+            chrome: Chrome::Small,
         }
+    }
+    /// Paseo's large chrome (`iconButtonChromeStyle({ size: "large" })`,
+    /// TRACKER 795: the wide workspace "…"): 26 on a pointer, 32 on touch,
+    /// a 16 glyph, square corners.
+    #[must_use]
+    pub const fn large(mut self) -> Self {
+        self.chrome = Chrome::Large;
+        self
     }
     /// Paseo's header island (`IconButtonChromeProvider value="header-island"`,
     /// TRACKER 789): its icon actions take the large chrome, a 16 glyph, and a
-    /// round hitbox and highlight. The frame stays the toolbar's (32 on touch,
-    /// Paseo's `COMPACT_LARGE_ICON_BUTTON_SIZE`); every other toolbar keeps
-    /// its 14 glyph and its square corners.
+    /// round hitbox and highlight (32 on touch, Paseo's
+    /// `COMPACT_LARGE_ICON_BUTTON_SIZE`); every other toolbar keeps its 14
+    /// glyph and its square corners.
     #[must_use]
     pub const fn header_island(mut self) -> Self {
-        self.island = true;
+        self.chrome = Chrome::Island;
         self
     }
     pub(crate) const fn island(self) -> bool {
-        self.island
+        matches!(self.chrome, Chrome::Island)
+    }
+    /// The large chrome's 16 glyph (large and island).
+    pub(crate) const fn large_glyph(self) -> bool {
+        !matches!(self.chrome, Chrome::Small)
     }
     /// Reflect the owner's current selection without allocating local state.
     #[must_use]
@@ -87,9 +111,10 @@ impl ToolbarConfig {
         self
     }
     pub(crate) const fn frame(self) -> Pixels {
-        match self.sizing {
-            ControlSizing::Pointer => POINTER_FRAME,
-            ControlSizing::Touch => COMPACT_FRAME,
+        match (self.chrome, self.sizing) {
+            (Chrome::Small, ControlSizing::Pointer) => POINTER_FRAME,
+            (Chrome::Large | Chrome::Island, ControlSizing::Pointer) => LARGE_POINTER_FRAME,
+            (Chrome::Small | Chrome::Large | Chrome::Island, ControlSizing::Touch) => COMPACT_FRAME,
         }
     }
     pub(crate) const fn highlighted(self) -> bool {
