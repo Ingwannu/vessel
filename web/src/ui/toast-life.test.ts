@@ -52,16 +52,25 @@ describe("one toast at a time (Paseo's ToastHost)", () => {
     expect(shownToast.get()).toBeNull();
   });
 
-  it("a copied toast is a success that says it was copied", () => {
-    toastCopied("Copied the session id");
+  it("a copied toast is Paseo's: a success that says what was copied", () => {
+    toastCopied("Agent ID");
     expect(shownToast.get()).toMatchObject({
+      text: "Copied Agent ID",
       variant: "success",
       copied: true,
     });
+    toastCopied();
+    expect(shownToast.get()?.text).toBe("Copied");
+  });
+
+  it("empty words show nothing, as Paseo's", () => {
+    const dismiss = toast("  ");
+    expect(shownToast.get()).toBeNull();
+    dismiss();
   });
 
   it("a new toast replaces the one up", () => {
-    toastCopied("Copied the session id");
+    toastCopied("Agent ID");
     toast("Renamed laptop to desk");
     expect(shownToast.get()).toMatchObject({
       text: "Renamed laptop to desk",

@@ -82,6 +82,8 @@ function show(
   copied: boolean,
   options: ToastOptions,
 ): () => void {
+  // Paseo shows nothing for empty words (toast-host.tsx 87-89).
+  if (text.trim() === "") return () => {};
   const id = next;
   next += 1;
   stop();
@@ -104,8 +106,13 @@ export function toast(
   return show(text, variant, false, options);
 }
 
-/** Paseo's `toast.copied`: a success whose mark is in the text colour. */
-export function toastCopied(text: string): () => void {
+/** Paseo's `toast.copied(label)`: a success whose mark is in the text
+ * colour, "Copied {label}" (`common.states.copiedLabel`), or "Copied"
+ * without one (`common.states.copied`). Labels are Paseo's where it has
+ * the copy ("Agent ID": `workspace.tabs.toasts.agentIdCopiedLabel`;
+ * TRACKER 804). */
+export function toastCopied(label?: string): () => void {
+  const text = label === undefined ? "Copied" : `Copied ${label}`;
   return show(text, "success", true, {});
 }
 

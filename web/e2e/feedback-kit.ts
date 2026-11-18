@@ -29,7 +29,7 @@ export async function copyToast(
     .getByRole("button", { name: "Session actions" })
     .click({ force: timing === "paused" });
   if (timing === "paused") await page.clock.runFor(FOCUS_FRAME_MS);
-  const copy = page.getByRole("menuitem", { name: "Copy session id" });
+  const copy = page.getByRole("menuitem", { name: "Copy agent id" });
   if (timing === "paused") {
     // Toasts sit above menus (Paseo's planes, tokens.css): on a phone the
     // toast this fixture keeps up covers the menu's first rows, so the row
@@ -41,9 +41,7 @@ export async function copyToast(
 }
 
 export async function clearToastBounds(page: Page): Promise<Locator> {
-  const toast = page
-    .locator(".toast")
-    .filter({ hasText: "Copied the session id" });
+  const toast = page.locator(".toast").filter({ hasText: "Copied Agent ID" });
   await expect(toast).toBeVisible();
   const viewport = page.viewportSize();
   if (viewport === null) throw new Error("Expected a fixed fixture viewport");

@@ -1657,7 +1657,7 @@ The rest is in a menu at the bar's end, "Session actions":
 | Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too |
 | Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
-| Copy session id | |
+| Copy agent id | Paseo's row for the agent's id (a Vessel session is its agent); the toast says "Copied Agent ID" (`toast.copied`) |
 | Kill | live only, apart under a separator; confirm; `session.kill` |
 
 A board card's one action is Kill for a live session and Archive for an
