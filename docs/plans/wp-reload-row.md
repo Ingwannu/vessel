@@ -120,11 +120,21 @@ row menu with Reload agent. Light Korean, the same.
 ## Differences
 
 - The failure toast shows the node's words as they come (English in a
-  Korean window), as Paseo shows an error's message; one line, cut with an
-  ellipsis like every Vessel toast. A turn that ignores its cancel gives
+  Korean window), as Paseo shows an error's message. A turn that ignores its cancel gives
   "the session's agent cannot be reloaded: the running turn did not end
   after its cancel; it goes on: …" with the reason said twice by the node.
 - Paseo refetches the timeline after the reload; Vessel's log is live, and
   the `reloaded` record arrives on it (the conversation reads it but does
   not draw it yet, package base 14.54).
 - No tooltip on a phone's sheet (Paseo's `enabledOnMobile={false}`).
+
+## Coordinator's fix (2026-11-18): the toast's width
+
+The first frames had the failure toast about 1010 wide on one line. The
+kit toast computed Paseo's boundary (92% of the window less 16 each side,
+at most 480) but the card's holder, a centred flex child, took its words'
+width. The holder is now held to the boundary (`max_w_full`), so every
+toast is at most the boundary across and a long message wraps onto more
+lines, as Paseo's (`toast: maxWidth 100%`, `message: flexShrink 1`). Kit
+`toast_tests`: a long message within 480 on a wide window and within 92%
+on a phone, wrapped; a short one on one line.
