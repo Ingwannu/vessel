@@ -8,6 +8,7 @@ use gpui::{
     Anchor, AnyElement, Bounds, Context, Div, ElementId, MouseButton, Pixels, Stateful, Window,
     anchored, div, point, px,
 };
+use std::rc::Rc;
 
 use super::keys::key_handler;
 use super::lifecycle::RenderLease;
@@ -18,6 +19,9 @@ use super::{
 use crate::dialog::sheet_handle;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
+use crate::sheet::snap::host::SheetFrame;
+use crate::sheet::snap::listener::OnRelease;
+use crate::sheet::snap::{Origin, Release, Stop};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
@@ -60,12 +64,13 @@ pub(super) fn panel<V: 'static>(
     let list_id = list.id.clone();
     if let Some(pages) = &state.submenus {
         // A new opening of the list starts at its root page.
-        pages.follow(&std::rc::Rc::downgrade(&state.cycle));
+        pages.follow(&Rc::downgrade(&state.cycle));
     }
     let compact = surface == Surface::Sheet;
     let surfaces = Surfaces::of(tokens);
     let neutral = tokens.neutral;
     let get = handlers.state;
+    let drag = compact.then(|| drag(state, get, window, cx));
     let on_key = key_handler(rows, state, handlers, cx);
     let lease = state.render_lease();
     let outside_lease = lease.clone();
@@ -118,7 +123,7 @@ pub(super) fn panel<V: 'static>(
             .max_h(gpui::relative(0.9))
             .rounded_t(px(popup::SHEET_RADIUS))
             .pb(px(16.0))
-            .child(sheet_handle(tokens.neutral.foreground_extra_muted)),
+            .child(handle(tokens, drag.as_ref())),
         Surface::Popover | Surface::Flyout => {
             let popover = panel
                 .w(px(width))
@@ -134,14 +139,16 @@ pub(super) fn panel<V: 'static>(
         }
     };
     panel = heading(panel, list, tokens, cx);
-    panel = panel.child(rows_list(
-        header, rows, state, handlers, compact, tokens, cx,
-    ));
+    let listed = rows_list(header, rows, state, handlers, compact, tokens, cx);
+    panel = panel.child(match &drag {
+        Some(drag) => body(listed, drag),
+        None => listed,
+    });
 
     // Word 39: the list arrives as Paseo's popover does (opacity and a
     // small rise, `popup::appear`); a phone's sheet over the surface
     // length. It leaves at once, as Paseo's desktop popovers do.
-    popup::appear(
+    let arrived = popup::appear(
         ElementId::NamedChild(std::sync::Arc::new(list_id), "appear".into()),
         panel,
         if compact {
@@ -150,7 +157,72 @@ pub(super) fn panel<V: 'static>(
             crate::motion::QUICK
         },
     )
-    .into_any_element()
+    .into_any_element();
+    if compact {
+        // Drawn as far below its stop as the drag holds it, and measured.
+        div()
+            .relative()
+            .w_full()
+            .top(state.sheet.offset())
+            .child(arrived)
+            .child(state.sheet.panel_probe())
+            .into_any_element()
+    } else {
+        arrived
+    }
+}
+
+/// A sheet's drag (TRACKER 799, `sheet::snap::host`): this frame of it and
+/// what a pan past its stop does, which is a press on the dim's work.
+struct Drag {
+    frame: SheetFrame,
+    release: OnRelease,
+}
+
+fn drag<V: 'static>(
+    state: &ComboboxState,
+    get: fn(&mut V) -> &mut ComboboxState,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> Drag {
+    let frame = state.sheet.frame_content(window, cx);
+    let lease = state.render_lease();
+    let release = cx.listener(move |view: &mut V, release: &Release, window, cx| {
+        if *release == Release::Pan(Stop::Closed) && get(view).accepts(&lease) {
+            get(view).close_and_restore(window, cx);
+            cx.notify();
+        }
+    });
+    Drag {
+        frame,
+        release: Rc::new(release),
+    }
+}
+
+/// The handle (Paseo's `SheetHandle`); on a sheet it always moves it.
+fn handle(tokens: &Tokens, drag: Option<&Drag>) -> Div {
+    let handle = sheet_handle(tokens.neutral.foreground_extra_muted);
+    match drag {
+        Some(drag) => handle
+            .relative()
+            .child(drag.frame.listener(Origin::Handle, &drag.release)),
+        None => handle,
+    }
+}
+
+/// The rows under the sheet's pan: down from their top it moves the sheet,
+/// scrolled it scrolls them first (the list tracks the drag's handle). The
+/// search above is left out: a text field keeps its own drags.
+fn body(listed: AnyElement, drag: &Drag) -> AnyElement {
+    div()
+        .relative()
+        .flex()
+        .flex_col()
+        .flex_shrink(1.0)
+        .min_h_0()
+        .child(listed)
+        .child(drag.frame.listener(Origin::Content, &drag.release))
+        .into_any_element()
 }
 
 /// Where the list is drawn: below the compact width a sheet from the
@@ -161,6 +233,8 @@ pub(super) struct Placement {
     pub(super) side: Side,
     pub(super) anchor: Option<Bounds<Pixels>>,
     pub(super) lease: RenderLease,
+    /// The dim's share while a sheet is dragged down (1 at rest).
+    pub(super) backdrop: f32,
 }
 pub(super) fn placed<V: 'static>(
     panel: impl IntoElement,
@@ -174,10 +248,13 @@ pub(super) fn placed<V: 'static>(
         side,
         anchor,
         lease,
+        backdrop,
     } = placement;
     if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
         let viewport = window.viewport_size();
+        let mut scrim = popup::sheet_scrim();
+        scrim.a = scrim.a.mul_add(backdrop, 0.0);
         let on_scrim = cx.listener(move |view: &mut V, _event, window, cx| {
             if get(view).accepts(&lease) {
                 get(view).close_and_restore(window, cx);
@@ -196,7 +273,7 @@ pub(super) fn placed<V: 'static>(
                     .flex()
                     .flex_col()
                     .justify_end()
-                    .bg(popup::sheet_scrim())
+                    .bg(scrim)
                     .on_mouse_down(MouseButton::Left, on_scrim)
                     .child(panel),
             )

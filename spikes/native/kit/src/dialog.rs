@@ -64,7 +64,6 @@ mod layout;
 mod return_focus;
 #[cfg(test)]
 mod selection_tests;
-mod sheet;
 #[cfg(test)]
 mod title_wrap_tests;
 
@@ -76,6 +75,7 @@ pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, Dialog
 use crate::assets::Glyph;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
+use crate::sheet::snap::host as sheet;
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 

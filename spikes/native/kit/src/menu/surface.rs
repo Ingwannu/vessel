@@ -24,6 +24,9 @@ use super::{MenuState, Width};
 use crate::dialog::sheet_handle;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
+use crate::sheet::snap::host::SheetState;
+use crate::sheet::snap::listener::OnRelease;
+use crate::sheet::snap::{Origin, Release, Stop};
 use crate::submenu::Submenus;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
@@ -32,6 +35,7 @@ use gpui::{
     AnyElement, App, Context, Div, MouseButton, MouseDownEvent, SharedString, Stateful, Window,
     anchored, div, point, px,
 };
+use std::rc::Rc;
 
 /// Paseo's popover: content-sized or a caller's width, on `surface1` edged
 /// with `borderAccent` under the medium shadow.
@@ -111,17 +115,47 @@ pub(super) fn scrim<V: 'static>(
 /// A press on the scrim.
 pub(super) type ScrimPress = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App)>;
 
+/// A pan down the sheet that ends past its stop closes the menu, as a
+/// press on the scrim does (Paseo's `enablePanDownToClose`).
+pub(super) fn released<V: 'static>(
+    state: &MenuState,
+    get: fn(&mut V) -> &mut MenuState,
+    cx: &mut Context<'_, V>,
+) -> OnRelease {
+    let lease = state.render_lease();
+    Rc::new(cx.listener(move |view: &mut V, release: &Release, window, cx| {
+        if *release == Release::Pan(Stop::Closed) && get(view).accepts(&lease) {
+            get(view).close_and_restore(window, cx);
+            cx.notify();
+        }
+    }))
+}
+
 /// The sheet at the window's bottom over the scrim, laid out where the
-/// window's size is known.
+/// window's size is known; its drag (the kit's one, `sheet::snap::host`,
+/// content-sized) moves it down and fades the scrim with it. A menu has no
+/// text field, so the whole panel takes the pan.
 #[derive(gpui::IntoElement)]
 pub(super) struct SheetBoundary {
     pub(super) panel: AnyElement,
     pub(super) on_scrim: ScrimPress,
+    pub(super) sheet: Rc<SheetState>,
+    pub(super) on_release: OnRelease,
 }
 
 impl RenderOnce for SheetBoundary {
-    fn render(self, window: &mut Window, _: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let size = window.viewport_size();
+        let frame = self.sheet.frame_content(window, cx);
+        let mut scrim = popup::sheet_scrim();
+        scrim.a = scrim.a.mul_add(self.sheet.backdrop(), 0.0);
+        let panel = div()
+            .relative()
+            .w_full()
+            .top(self.sheet.offset())
+            .child(self.panel)
+            .child(self.sheet.panel_probe())
+            .child(frame.listener(Origin::Content, &self.on_release));
         anchored().position(point(px(0.0), px(0.0))).child(
             div()
                 .w(size.width)
@@ -129,9 +163,9 @@ impl RenderOnce for SheetBoundary {
                 .flex()
                 .flex_col()
                 .justify_end()
-                .bg(popup::sheet_scrim())
+                .bg(scrim)
                 .on_mouse_down(MouseButton::Left, self.on_scrim)
-                .child(self.panel),
+                .child(panel),
         )
     }
 }

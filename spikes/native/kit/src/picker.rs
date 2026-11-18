@@ -421,6 +421,8 @@ pub enum Side {
 pub struct ComboboxState {
     open: bool,
     cycle: Rc<()>,
+    /// Its phone sheet's drag (TRACKER 799): one per opening.
+    sheet: Rc<crate::sheet::snap::host::SheetState>,
     return_to: crate::focus::ReturnFocus,
     highlighted: Option<usize>,
     /// The highlighted row's label: the highlight follows its row when rows
@@ -469,6 +471,7 @@ impl ComboboxState {
         Self {
             open: false,
             cycle: Rc::new(()),
+            sheet: Rc::default(),
             return_to: crate::focus::ReturnFocus::default(),
             highlighted: None,
             highlighted_label: None,
@@ -632,6 +635,7 @@ pub fn combobox<V: 'static>(
         side: header.side,
         anchor: state.anchor.get(),
         lease: state.render_lease(),
+        backdrop: state.sheet.backdrop(),
     };
     let element = panel::placed(drawn, placement, handlers.state, window, cx);
     // Over a dialog too (`kit::dialog` is at 2): a feature's list opens

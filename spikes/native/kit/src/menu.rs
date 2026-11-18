@@ -72,6 +72,8 @@ pub struct MenuState {
     focus: FocusHandle,
     return_to: crate::focus::ReturnFocus,
     cycle: Rc<()>,
+    /// Its phone sheet's drag (TRACKER 799): one per opening.
+    sheet: Rc<crate::sheet::snap::host::SheetState>,
 }
 
 impl MenuState {
@@ -83,6 +85,7 @@ impl MenuState {
             focus: cx.focus_handle(),
             return_to: crate::focus::ReturnFocus::default(),
             cycle: Rc::new(()),
+            sheet: Rc::default(),
         }
     }
 
@@ -90,6 +93,7 @@ impl MenuState {
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.sheet = Rc::default();
         self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
         self.focus.focus(window, cx);
@@ -155,6 +159,7 @@ impl MenuState {
     pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.sheet = Rc::default();
         self.at = Some(Placement::End(bounds));
         self.highlighted = None;
         self.focus.focus(window, cx);
@@ -165,6 +170,7 @@ impl MenuState {
     pub fn open_start(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.cycle = Rc::new(());
+        self.sheet = Rc::default();
         self.at = Some(Placement::Start(bounds));
         self.highlighted = None;
         self.focus.focus(window, cx);
