@@ -7,7 +7,7 @@ the coordinator from TRACKER 792's frames. Reference: pinned Paseo 0.15.4
 `components/ui/menu/menu-item.tsx` (`MenuSeparator`, `separator` style:
 height 1, `marginVertical: spacing[1]`, `borderAccent`).
 
-Status: built; gates and frames follow.
+Status: plan approved by the coordinator (2026-11-18); built, gated on 14.60; frames with the coordinator.
 
 ## Paseo
 
