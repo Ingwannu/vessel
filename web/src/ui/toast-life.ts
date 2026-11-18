@@ -76,6 +76,11 @@ function run(id: number, ms: number): void {
   }, ms);
 }
 
+/** The dismissal of a toast that was never shown. */
+function noDismiss(): void {
+  // Nothing was shown, so there is nothing to take down.
+}
+
 function show(
   text: string,
   variant: ToastVariant,
@@ -83,7 +88,7 @@ function show(
   options: ToastOptions,
 ): () => void {
   // Paseo shows nothing for empty words (toast-host.tsx 87-89).
-  if (text.trim() === "") return () => {};
+  if (text.trim() === "") return noDismiss;
   const id = next;
   next += 1;
   stop();
