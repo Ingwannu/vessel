@@ -706,7 +706,10 @@ in the real adapters' shapes (Claude Code leaving plan mode with five
 is checked against them and the `shapes-asking` session's long command.
 
 `scripts/shell-fixtures.py` adds eight long English/Korean session titles
-and long working paths through the real CLI, pins two and archives two.
+(typed with `vessel run --title`, 121 to 150 characters: past an older
+node's 120 and within protocol 30's 200, since a prompt's own title is cut
+at 60; the fleet must speak protocol 30, base14.47 on) and long working
+paths through the real CLI, pins two and archives two.
 It reads the disposable node's durable projection to fail startup when
 these shapes are missing. It refuses a book outside disposable loopback
 endpoints or an adapter that is not the real-shape fake. This tests shell
