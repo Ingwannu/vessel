@@ -21,8 +21,11 @@ impl Render for CountProbe {
         );
         div()
             .size_full()
+            .flex()
+            .items_start()
             .child(
                 div()
+                    .flex_none()
                     .debug_selector(|| "tab-count-frame".to_owned())
                     .child(button.on_click(cx.listener(|this, _, _, _| {
                         this.calls = this.calls.saturating_add(1);
