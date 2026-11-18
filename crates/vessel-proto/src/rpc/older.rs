@@ -276,6 +276,8 @@ impl Reply {
             | Self::DuplicateFileEntry(_)
             | Self::ObserveFile(_)
             | Self::SuggestEntries(_)
+            | Self::SuggestFolders(_)
+            | Self::ProjectIcon(_)
             | Self::ReadFile(_)
             | Self::WriteFile(_)
             | Self::CreateDir(_)

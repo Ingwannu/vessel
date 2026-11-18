@@ -249,6 +249,8 @@ impl Call {
             | Self::DuplicateFileEntry(_)
             | Self::ObserveFile(_)
             | Self::SuggestEntries(_)
+            | Self::SuggestFolders(_)
+            | Self::ProjectIcon(_)
             | Self::ReadFile(_)
             | Self::CreateDir(_)
             | Self::RenamePath(_)

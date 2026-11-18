@@ -68,6 +68,28 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 32 (drafted, 2026-11-18, milestone 12): folder suggestions from the home and project icons (impl F, F-F17/F-F46, ADR 0112)
+
+Drafted as 32 (`HOST_FOLDERS_PROTOCOL`, `PROTOCOL_VERSION` 32); the number is assigned at the node-line merge.
+Both methods are unary and forwardable; an agent principal is refused both.
+
+- `folder.suggest { query, limit? }` (`operate`) answers `{ folders: [{ path, shown }], more }`: folders under the
+  node user's home, as Paseo's Add project searches (`directory_suggestions_request` without a `cwd`). `path` is
+  absolute (what `project.add` takes), `shown` writes the home as `~`. A blank query answers nothing; `~`, `~/…`,
+  `./…` or an absolute path under the home names a place: the folder itself first when it exists, then what is
+  under it (one level for a bare `~`). Hidden folders and Paseo's skip list (`node_modules`, `venv`, `env`,
+  `virtualenv`, `dist`, `build`, `target`, `out`, `coverage`, `vendor`, `__pycache__`, `.git`) are not walked,
+  nor `~/Library` on macOS; no link is walked, and a typed path through a link is accepted only when its real
+  place is under the home. The walk stops at depth 12, 20,000 entries, 3 seconds, or a confident match after
+  5,000 entries; `more` says it stopped or the limit (30 by default, at most 100) cut matches. Never a file name.
+- `project.icon { project }` (`read`) answers `{ icon? }` with `icon = { type, bytes }`: the project's own icon as
+  Paseo's `project-icon.ts` finds it (its names and order, `public`/`static`/`priv/static`/`assets`/`images`/`img`
+  first, then `packages/*` and `apps/*`, then the root), inside the project's root, no link read or walked.
+  `type` (`png`, `ico`, `svg`) is decided by the bytes; an ICO's widest PNG frame is sent as `png`. Square only
+  (PNG by its header; ICO and SVG trusted, as Paseo's), at most 32 KiB, base64 `bytes`. No icon otherwise.
+  Clients draw it only as an image, never as inline SVG markup.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 31 (2026-11-18, milestone 12): reloading an agent (impl U, TRACKER 803, ADR 0110)
 
 Assigned 31 (`RELOAD_PROTOCOL`, `PROTOCOL_VERSION` 31) at its node-line merge, the next free number in merge order.

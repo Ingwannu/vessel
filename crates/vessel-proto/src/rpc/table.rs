@@ -461,6 +461,10 @@ macro_rules! method_table {
             SetServiceExposure / set_service_exposure / "service.set_exposure" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::SetServiceExposure => $crate::workspace_services::ServiceSettingsOutcome;
             /// Start a session's agent again on its conversation, as Paseo's "Reload agent" (TRACKER 803, ADR 0110).
             ReloadSession / reload_session / "session.reload" [Operate, (pending $crate::reload::RELOAD_PROTOCOL), unary]: $crate::reload::ReloadSession => $crate::SessionInfo;
+            /// Folders under the node user's home for Add project, as Paseo's (ADR 0112).
+            SuggestFolders / suggest_folders / "folder.suggest" [Operate, (pending $crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL), unary]: $crate::workspace::host_folders::SuggestFolders => $crate::workspace::host_folders::FolderSuggestions;
+            /// A project's own icon, inside its root, as Paseo's (ADR 0112).
+            ProjectIcon / project_icon / "project.icon" [Read, (pending $crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL), unary]: $crate::workspace::host_folders::GetProjectIcon => $crate::workspace::host_folders::ProjectIcon;
         }
     };
 }

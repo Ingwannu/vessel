@@ -186,6 +186,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::DuplicateFileEntry
         | Method::ObserveFile
         | Method::SuggestEntries
+        // ADR 0112: Add project's folders (`operate` on the node) and
+        // project icons, unary as the file panels.
+        | Method::SuggestFolders
+        | Method::ProjectIcon
         | Method::WriteFile
         | Method::CreateDir
         | Method::RenamePath
@@ -385,6 +389,18 @@ mod tests {
                 vessel_proto::workspace::panel_files::FILE_PANELS_PROTOCOL
             );
             assert!(method.since().is_some(), "{method:?}");
+            assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
+        }
+    }
+
+    #[test]
+    fn folder_suggestions_and_icons_forward_at_their_protocol() {
+        for method in [Method::SuggestFolders, Method::ProjectIcon] {
+            assert!(forwardable(method));
+            assert_eq!(
+                method.since(),
+                vessel_proto::workspace::host_folders::HOST_FOLDERS_PROTOCOL
+            );
             assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
         }
     }

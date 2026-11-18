@@ -167,6 +167,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
     ("HttpUrl", Alias::Named),
+    ("IconBytes", Alias::Content),
     ("IdleMinutes", Alias::Quantity),
     ("InboxCount", Alias::Quantity),
     ("InboxCursor", Alias::Quantity),
