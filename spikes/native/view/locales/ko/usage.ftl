@@ -115,7 +115,7 @@ usage-secondary = 보조 한도
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-reset-unknown = 초기화 시각이 보고되지 않음
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-reset-past = 보고된 초기화 시각이 지났습니다. 새로 고침으로 다시 확인하세요.
+usage-reset-past = 초기화 시각 지남
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-plan = 요금제
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -147,13 +147,13 @@ usage-unassociated = 이 세션을 시작한 저장 계정을 더 이상 사용�
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-rate-limited = 공급자가 다시 조회하기 전에 대기하도록 요청했습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-limit-notice = 저장된 계정에서 사용량 한도가 보고되었습니다. 턴이 멈춘 원인을 증명하지는 않습니다.
+usage-limit-notice = 이 계정의 사용량 한도에 도달했습니다.
+# The limit notice's reset, one line; $time is the reported reset, a whole date and time.
+usage-limit-resets = { $time }에 초기화
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-switch-model = 모델 전환
 # Title and accessible label for the shared usage options popover or compact sheet.
 usage-options = 사용량 옵션
-# Usage settings or limit notice; keep this whole label or explanation together.
-usage-wait = 초기화까지 대기
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-wait-hint = 프롬프트는 자동으로 전송되지 않습니다. 계정이 준비되면 계속하세요.
 # Usage settings or limit notice; keep this whole label or explanation together.

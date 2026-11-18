@@ -115,7 +115,7 @@ usage-secondary = Secondary window
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-reset-unknown = Reset time not reported
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-reset-past = Reported reset has passed; refresh to check again.
+usage-reset-past = Reset time passed
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-plan = Plan
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -147,13 +147,13 @@ usage-unassociated = This session’s original saved account is no longer availa
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-rate-limited = The vendor requested a cooldown before checking again.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-limit-notice = The saved account reports a usage limit. This does not prove why the turn stopped.
+usage-limit-notice = This account has reached its usage limit.
+# The limit notice's reset, one line; $time is the reported reset, a whole date and time.
+usage-limit-resets = Resets { $time }
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-switch-model = Switch model
 # Title and accessible label for the shared usage options popover or compact sheet.
 usage-options = Usage options
-# Usage settings or limit notice; keep this whole label or explanation together.
-usage-wait = Wait for reset
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-wait-hint = No prompt will be sent automatically. Continue when the account is ready.
 # Usage settings or limit notice; keep this whole label or explanation together.

@@ -256,12 +256,13 @@ pub(crate) fn limit_notice(
             vessel_app_kit::alert::Variant::Warning,
             tokens,
         ));
+    // TRACKER 788: the reset on one line ("Resets …"), then the no-auto-send
+    // hint; the notice says the fact only, never why a turn stopped.
     if let Some(reset) = reset {
-        banner = banner.child(message(timestamp(reset, state.offset, shell.words), tokens));
+        let at = timestamp(reset, state.offset, shell.words);
+        banner = banner.child(message(text.limit_resets(&at).unwrap_or(at), tokens));
     }
-    banner = banner
-        .child(message(text.wait(), tokens))
-        .child(message(text.wait_hint(), tokens));
+    banner = banner.child(message(text.wait_hint(), tokens));
     Some(
         banner
             .child(
