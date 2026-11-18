@@ -164,6 +164,13 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
                 .map_err(|error| file_problem(&error)),
             ask,
         },
+        FileAsk::Inspect(ask) => Answer::Inspected {
+            result: client
+                .inspect_workspace_directory(ask.clone())
+                .await
+                .map_err(|error| file_problem(&error)),
+            ask,
+        },
         FileAsk::Download(download) => Answer::Downloaded {
             result: super::download::fetch(client, &download).await,
             download,

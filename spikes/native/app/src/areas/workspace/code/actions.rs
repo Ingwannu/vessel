@@ -28,7 +28,6 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
 use vessel_app_link::workspace::{Ask, FileAsk, PathChange};
-use vessel_app_view::workspace::file_panels::offered;
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::panel_files::{DuplicateFileEntry, DuplicatedFileEntry};
@@ -174,20 +173,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let panels = self
-            .areas
-            .workspace
-            .code
-            .root()
-            .is_some_and(|(machine, _)| {
-                offered(
-                    self.fleet
-                        .machines
-                        .iter()
-                        .find(|known| known.name == machine)
-                        .and_then(|known| known.protocol),
-                )
-            });
+        let panels = self.code_panels_offered();
         let actions = &mut self.areas.workspace.code.files.actions;
         actions.target = Some(Target {
             path,

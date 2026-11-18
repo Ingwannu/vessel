@@ -23,6 +23,7 @@
 
 mod appearance;
 mod change;
+mod explorer;
 mod keys;
 mod language;
 mod send;
@@ -42,6 +43,7 @@ pub use appearance::{
     Theme,
 };
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
+pub use explorer::ExplorerSort;
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};
 pub use send::{EnterPress, send_key_label, sends, sends_other};
 
@@ -153,6 +155,10 @@ pub struct Layout {
     /// The inspector (a session's summary).
     #[serde(deserialize_with = "lenient")]
     pub inspector: Panel,
+    /// How the Files tree orders a folder's entries (Paseo's
+    /// `explorerSortOption`; the bridge's `layout.explorer_sort`).
+    #[serde(deserialize_with = "lenient")]
+    pub explorer_sort: ExplorerSort,
     /// The sidebar's width when dragged, whole points (`None`: the
     /// default, `panels::SIDEBAR`). Not written while `None`, so the
     /// document the page and the bridge share is unchanged until a panel
