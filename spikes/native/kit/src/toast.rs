@@ -1,36 +1,29 @@
-//! The toast (Paseo's `components/toast-host.tsx`): a card at the top of
-//! the window, centred, on `surface0` with a hairline, 16 round, 8 by 12
-//! inside, a medium shadow; its words 14 in the foreground; an error's
-//! hairline `destructive` with Paseo's warning glyph beside the words. It
-//! arrives over the kit's surface length (`popup::appear`).
+//! The toast (Paseo's `components/toast-host.tsx`, its `ToastCard`
+//! 230-275 and styles 284-333): one card at the top of the window, centred,
+//! as wide as its words up to the boundary, on `surface0` with a hairline,
+//! 16 round, 8 by 12 inside, a medium shadow; a leading mark per look, its
+//! words 14 in the foreground; an error's hairline `destructive`. No close
+//! button: a toast leaves when its life ends. It arrives over the kit's
+//! surface length (`popup::appear`).
 //!
 //! [Decision Log]
-//! - Purpose: the page says what an action came to in a toast (a kill, a
-//!   refused restore); the app needs the same, in Paseo's look.
-//! - Choice: the cards stack, oldest first, each with its own dismiss
-//!   (the page's `ui/toasts.tsx`: an error stays until dismissed), where
-//!   Paseo shows one at a time and lets an error go after 3.2 s. How long
-//!   one stays is the screen's (`vessel_app_view::toasts`); this module
-//!   only draws.
-//! - Cost: two toasts at once take two rows of the window's top, where
-//!   Paseo's second replaces the first.
-//!
-//! [Decision Log: unavailable action guidance]
-//! - Purpose: Git's muted idle menu action explains its known limitation without
-//!   executing a node handler (`git/use-actions.tsx:38–58`).
-//! - Constraint: existing plain/error paint and callers stay unchanged.
-//! - Alternatives: misuse success/error styling, or add an area-owned card.
-//! - Choice: additive Info look, the same neutral chrome with foreground Info16;
-//!   view's matching tone owns its reference 3200ms lifetime.
-//! - Why: advisory feedback is neither a successful write nor a node failure.
-//! - Cost: one typed variant and exhaustive app mapping; no new toast renderer.
+//! - Purpose: the page says what an action came to in a toast; the app
+//!   says it the same way, in Paseo's look (TRACKER 802).
+//! - Choice: one card, drawn by `toast_layer` under the title bar; how long
+//!   it stays and what replaces it is the screen's
+//!   (`vessel_app_view::toasts`), this module only draws. The marks are
+//!   Paseo's: success `CheckCircle2` in the primary colour (the kit's
+//!   `accent`), a copy's in the foreground, an error's `AlertTriangle` in
+//!   `destructive`; the git guidance keeps its own foreground `Info` at 16
+//!   (`git/use-actions.tsx:38-58`).
+//! - Cost: the close glyph the app had is gone, as in Paseo: an error can
+//!   no longer be kept on screen past its 3.2 s.
 
 use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, ClickEvent, ElementId, SharedString, Window, anchored, deferred, div, point,
-    px, relative,
+    AnyElement, App, ElementId, SharedString, Window, anchored, deferred, div, point, px, relative,
 };
 
 use crate::assets::Glyph;
@@ -43,25 +36,53 @@ use crate::widgets::TypeExt as _;
 /// Paseo's `TOAST_MAX_WIDTH`.
 const MAX_WIDTH: f32 = 480.0;
 
-/// What a toast says.
+/// Paseo's toast mark size.
+const MARK: f32 = 18.0;
+
+/// What a toast says, and so its mark.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToastLook {
-    /// A plain line (Paseo's default variant).
+    /// A plain line (Paseo's default variant): no mark.
     Plain,
+    /// Something went as asked (Paseo's `success`).
+    Success,
+    /// Something was copied (Paseo's `toast.copied`).
+    Copied,
     /// Known unavailability guidance, with the reference's foreground Info16.
     Info,
     /// Something failed (Paseo's `error`).
     Error,
 }
 
-/// One toast card; `id` keys its fade, `on_dismiss` runs from its close
-/// glyph.
+/// Hover events are semantic across the kit/app boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToastHover {
+    /// Pause this card's remaining life.
+    Enter,
+    /// Resume this card's remaining life.
+    Leave,
+}
+
+/// One card's content.
+#[derive(Debug)]
+pub struct ToastContent {
+    /// Identity also keys the enter animation.
+    pub id: ElementId,
+    /// Whole localized words supplied by the caller.
+    pub text: SharedString,
+    /// Its look and mark.
+    pub look: ToastLook,
+}
+
+/// A card's typed pointer-presence callback.
+pub type ToastHovered = Rc<dyn Fn(ToastHover, &mut Window, &mut App)>;
+
+/// One toast card; `id` keys its fade.
 #[must_use]
 pub fn toast(
     id: impl Into<ElementId>,
     text: impl Into<SharedString>,
     look: ToastLook,
-    on_dismiss: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
     tokens: &Tokens,
 ) -> AnyElement {
     toast_with(
@@ -70,77 +91,38 @@ pub fn toast(
             text: text.into(),
             look,
         },
-        ToastHandlers {
-            dismiss: Rc::new(on_dismiss),
-            hover: None,
-        },
+        None,
         tokens,
     )
 }
 
-/// Hover events are semantic across the kit/app boundary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ToastHover {
-    /// Pause this card's remaining reading time.
-    Enter,
-    /// Resume this card's remaining time.
-    Leave,
-}
-
-/// One card's content, sharing the existing toast renderer.
-#[derive(Debug)]
-pub struct ToastContent {
-    /// Identity also keys the enter animation.
-    pub id: ElementId,
-    /// Whole localized guidance supplied by the caller.
-    pub text: SharedString,
-    /// Legacy paint or the new neutral Info profile.
-    pub look: ToastLook,
-}
-
-/// Dismiss and optional typed hover behavior, retained by a single card.
-pub struct ToastHandlers {
-    /// Legacy cards keep their dismiss button; Info has none as in Paseo.
-    pub dismiss: ToastDismiss,
-    /// Info uses this to pause/resume its keyed clock. Legacy callers omit it.
-    pub hover: Option<ToastHovered>,
-}
-
-/// A legacy card's explicit dismiss callback.
-pub type ToastDismiss = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
-/// A card's typed pointer-presence callback.
-pub type ToastHovered = Rc<dyn Fn(ToastHover, &mut Window, &mut App)>;
-
-impl std::fmt::Debug for ToastHandlers {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ToastHandlers")
-            .field("hover", &self.hover.is_some())
-            .finish_non_exhaustive()
+/// The card's leading mark (Paseo's `iconSlot`), if its look has one.
+fn mark(look: ToastLook, tokens: &Tokens) -> Option<gpui::Svg> {
+    let neutral = tokens.neutral;
+    match look {
+        ToastLook::Plain => None,
+        ToastLook::Success => Some(glyph(Glyph::CircleCheck, MARK, tokens.accent)),
+        ToastLook::Copied => Some(glyph(Glyph::CircleCheck, MARK, neutral.foreground)),
+        ToastLook::Info => Some(glyph(Glyph::Info, 16.0, neutral.foreground)),
+        ToastLook::Error => Some(glyph(Glyph::Alert, MARK, neutral.destructive)),
     }
 }
 
-/// Additive entry for a toast with source hover behavior. The old entry delegates
-/// with no hover handler; all chrome, animation and placement stay shared.
+/// A toast card whose pointer presence `hover` hears (the screen holds the
+/// toast's life while a pointer rests on it).
 #[must_use]
-pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Tokens) -> AnyElement {
+pub fn toast_with(
+    content: ToastContent,
+    hover: Option<ToastHovered>,
+    tokens: &Tokens,
+) -> AnyElement {
     let ToastContent { id, text, look } = content;
     let neutral = tokens.neutral;
-    let border = match look {
-        ToastLook::Plain | ToastLook::Info => neutral.border,
-        ToastLook::Error => neutral.destructive,
+    let border = if look == ToastLook::Error {
+        neutral.destructive
+    } else {
+        neutral.border
     };
-    let close = div()
-        .id(ElementId::Name(format!("{id}-dismiss").into()))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .size(px(20.0))
-        .rounded(px(popup::ROW_RADIUS))
-        .cursor_pointer()
-        .hover(move |style| style.bg(neutral.surface2))
-        .on_click(move |event, window, cx| (handlers.dismiss)(event, window, cx))
-        .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted));
     let card = div()
         .id(id.clone())
         .flex()
@@ -155,12 +137,7 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
         .border_color(border)
         .rounded(px(16.0))
         .shadow(popup::shadow_md(tokens))
-        .when(look == ToastLook::Info, |card| {
-            card.child(glyph(Glyph::Info, 16.0, neutral.foreground))
-        })
-        .when(look == ToastLook::Error, |card| {
-            card.child(glyph(Glyph::Alert, 18.0, neutral.destructive))
-        })
+        .children(mark(look, tokens))
         .child(
             div()
                 .flex_1()
@@ -169,8 +146,7 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
                 .text_color(neutral.foreground)
                 .child(text),
         )
-        .when(look != ToastLook::Info, |card| card.child(close))
-        .when_some(handlers.hover, |card, hover| {
+        .when_some(hover, |card, hover| {
             card.on_hover(move |inside, window, cx| {
                 hover(
                     if *inside {
@@ -193,42 +169,33 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
     .into_any_element()
 }
 
-/// The toasts over the window, oldest first, `top` under its top edge
-/// (under the title bar), 16 in from each side and at most 480 across.
-/// Clicks pass through the room around them.
+/// The toast over the window, `top` under its top edge (under the title
+/// bar), in Paseo's boundary: 16 in from each side, 92% of the rest, at
+/// most 480 across, the card centred in it. Clicks pass through the room
+/// around it.
 #[must_use]
-pub fn toasts(cards: Vec<AnyElement>, top: f32, window: &Window) -> Option<AnyElement> {
-    if cards.is_empty() {
-        return None;
-    }
+pub fn toast_layer(card: AnyElement, top: f32, window: &Window) -> AnyElement {
     let width = window.viewport_size().width;
-    Some(
-        deferred(
-            anchored().position(point(px(0.0), px(0.0))).child(
-                div()
-                    .w(width)
-                    .flex()
-                    .flex_col()
-                    .items_center()
-                    .pt(px(top))
-                    .px(px(16.0))
-                    .child(
-                        div()
-                            .w(relative(0.92))
-                            .max_w(px(MAX_WIDTH))
-                            .flex()
-                            .flex_col()
-                            .items_center()
-                            .gap(px(8.0))
-                            .children(
-                                cards
-                                    .into_iter()
-                                    .map(|card| popup::layer(div().child(card))),
-                            ),
-                    ),
-            ),
-        )
-        .with_priority(3)
-        .into_any_element(),
+    deferred(
+        anchored().position(point(px(0.0), px(0.0))).child(
+            div()
+                .w(width)
+                .flex()
+                .flex_col()
+                .items_center()
+                .pt(px(top))
+                .px(px(16.0))
+                .child(
+                    div()
+                        .w(relative(0.92))
+                        .max_w(px(MAX_WIDTH))
+                        .flex()
+                        .flex_col()
+                        .items_center()
+                        .child(popup::layer(div().child(card))),
+                ),
+        ),
     )
+    .with_priority(3)
+    .into_any_element()
 }

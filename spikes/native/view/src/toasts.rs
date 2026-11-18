@@ -1,40 +1,64 @@
-//! Toasts (the page's `ui/toasts.tsx`, DESIGN.md §6.10): a stack of short
-//! lines, oldest first. One that says something went as asked leaves by
-//! itself after [`TOAST_LIFE`]; an error stays until it is dismissed.
+//! Toasts (the page's `ui/toast-life.ts`, DESIGN.md §6.10; Paseo's
+//! `ToastHost`, `toast-host.tsx` 81-195): one at a time. A new toast
+//! replaces the one up and starts its own life; a pointer resting on it
+//! holds the life it has left.
 
 // [Decision Log]
-// - Purpose: source Info guidance pauses its remaining 3200ms on hover.
-// - Constraint: no clock I/O in view; legacy Ok4s/Error-persistent stay.
-// - Alternatives: restart on hover-out, or let an old timeout dismiss a new card.
-// - Choice: injected monotonic time, keyed running phases, one replaceable Info.
-// - Why: timeout/id/hover-out from a replaced card cannot affect its successor.
-// - Cost: Info replaces only older Info to preserve legacy stacked callers;
-//   Paseo replaces every kind. This is a compatibility departure, not parity.
+// - Purpose: TRACKER 802. Paseo shows one toast with its own duration
+//   (2.2 s, an error 3.2 s); the app kept a stack in which a success ran
+//   4 s and an error stayed until its close button, and only the git
+//   guidance (Info) replaced its predecessor and paused on hover.
+// - Constraint: no clock I/O in view; the app passes the monotonic `now`.
+// - Alternatives: keep the list and cap it at one, leaving each old timer
+//   to tell a gone toast from the shown one; or Paseo's one slot with the
+//   keyed, phased clock the Info guidance already had.
+// - Choice: one slot; every toast runs that clock (keyed by its id and the
+//   instant its running phase began), so a wake, a hover or a dismissal
+//   from a replaced toast cannot touch its successor.
+// - Costs: a toast that arrives while another is read replaces it, an
+//   error too, and an error leaves by itself after 3.2 s (Paseo's rule).
+//   No caller needs Paseo's `durationMs: null`, so there is none here.
 
 use std::time::{Duration, Instant};
 
-/// How long a legacy success toast stays; Info has its own reading lifetime.
-pub const TOAST_LIFE: Duration = Duration::from_secs(4);
+/// Paseo's `DEFAULT_DURATION_MS`: a success, a copy.
+pub const TOAST_LIFE: Duration = Duration::from_millis(2200);
 
-/// Paseo's unavailable action guidance (`git/use-actions.tsx`), distinct from
-/// the legacy four-second success lifetime.
+/// Paseo's `toast.error` duration.
+pub const ERROR_LIFE: Duration = Duration::from_millis(3200);
+
+/// Paseo's unavailable action guidance (`git/use-actions.tsx`).
 pub const INFO_LIFE: Duration = Duration::from_millis(3200);
 
 /// What a toast says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToastTone {
-    /// Something went as asked.
+    /// Something went as asked (Paseo's `success`).
     Ok,
+    /// Something was copied (Paseo's `toast.copied`).
+    Copied,
     /// Advisory explanation; the action was not attempted.
     Info,
-    /// Something failed: it stays until dismissed.
+    /// Something failed.
     Error,
+}
+
+impl ToastTone {
+    /// How long a toast of this tone stays by itself.
+    #[must_use]
+    pub const fn life(self) -> Duration {
+        match self {
+            Self::Ok | Self::Copied => TOAST_LIFE,
+            Self::Info => INFO_LIFE,
+            Self::Error => ERROR_LIFE,
+        }
+    }
 }
 
 /// One toast.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Toast {
-    /// Its own number, to dismiss it by.
+    /// Its own number: its clock, its hover and its dismissal go by it.
     pub id: u64,
     /// What it says.
     pub tone: ToastTone,
@@ -42,148 +66,130 @@ pub struct Toast {
     pub text: String,
 }
 
-/// The toasts on screen.
+/// The toast on screen, if any.
 #[derive(Debug, Clone, Default)]
 pub struct Toasts {
-    list: Vec<Toast>,
+    shown: Option<Toast>,
     last: u64,
-    info: Option<InfoClock>,
-}
-
-impl Toasts {
-    /// Show `text`; its id, and when it leaves by itself (an error does
-    /// not).
-    pub fn push(&mut self, text: impl Into<String>, tone: ToastTone) -> (u64, Option<Duration>) {
-        if tone == ToastTone::Info {
-            // Only this additive profile replaces its predecessor. Legacy
-            // success/error callers keep their existing stack and lifetimes.
-            self.list.retain(|toast| toast.tone != ToastTone::Info);
-            self.info = None;
-        }
-        self.last = self.last.saturating_add(1);
-        let id = self.last;
-        self.list.push(Toast {
-            id,
-            tone,
-            text: text.into(),
-        });
-        let life = match tone {
-            ToastTone::Ok => Some(TOAST_LIFE),
-            ToastTone::Info => Some(INFO_LIFE),
-            ToastTone::Error => None,
-        };
-        (id, life)
-    }
-
-    /// Take toast `id` away (its time is up, or it was dismissed); one
-    /// already gone is no matter.
-    pub fn dismiss(&mut self, id: u64) {
-        self.list.retain(|toast| toast.id != id);
-        if self.info.as_ref().is_some_and(|clock| clock.id == id) {
-            self.info = None;
-        }
-    }
-
-    /// The toasts, oldest first.
-    #[must_use]
-    pub fn list(&self) -> &[Toast] {
-        &self.list
-    }
+    clock: Option<Clock>,
 }
 
 /// Pointer presence, without any toolkit type in the lifetime policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToastHover {
-    /// Stop the countdown while the person reads the guidance.
+    /// Stop the countdown while the person reads.
     Enter,
-    /// Resume the time that remained, rather than start another full lifetime.
+    /// Resume the time that remained, rather than start another full life.
     Leave,
 }
 
 /// One scheduled wake; its start instant also identifies the running phase.
 /// A timeout from before a hover or replacement cannot dismiss a later phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct InfoWake {
+pub struct ToastWake {
     id: u64,
     since: Instant,
     after: Duration,
 }
-impl InfoWake {
+
+impl ToastWake {
     /// The executor's delay; the app supplies the monotonic clock on wake.
     #[must_use]
     pub const fn after(self) -> Duration {
         self.after
     }
+
+    /// The toast it is for.
+    #[must_use]
+    pub const fn id(self) -> u64 {
+        self.id
+    }
 }
 
 #[derive(Debug, Clone)]
-struct InfoClock {
+struct Clock {
     id: u64,
-    phase: InfoPhase,
+    phase: Phase,
 }
+
 #[derive(Debug, Clone, Copy)]
-enum InfoPhase {
+enum Phase {
     Running { since: Instant, remaining: Duration },
     Paused(Duration),
 }
 
 impl Toasts {
-    /// Start only the current Info toast. `now` comes from the app; view reads
-    /// no system clock and the legacy four-second success path stays unchanged.
-    pub fn start_info(&mut self, id: u64, now: Instant) -> Option<InfoWake> {
-        let _current = self
-            .list
-            .iter()
-            .find(|toast| toast.id == id && toast.tone == ToastTone::Info)?;
-        if self.info.as_ref().is_some_and(|clock| clock.id == id) {
-            return None;
-        }
-        self.info = Some(InfoClock {
+    /// Show `text` in place of the toast up, its life starting `now`; the
+    /// wake to schedule.
+    pub fn push(&mut self, text: impl Into<String>, tone: ToastTone, now: Instant) -> ToastWake {
+        self.last = self.last.saturating_add(1);
+        let id = self.last;
+        self.shown = Some(Toast {
             id,
-            phase: InfoPhase::Running {
+            tone,
+            text: text.into(),
+        });
+        let life = tone.life();
+        self.clock = Some(Clock {
+            id,
+            phase: Phase::Running {
                 since: now,
-                remaining: INFO_LIFE,
+                remaining: life,
             },
         });
-        Some(InfoWake {
+        ToastWake {
             id,
             since: now,
-            after: INFO_LIFE,
-        })
+            after: life,
+        }
     }
 
-    /// Pause/resume the current guidance, never an older card at the same place.
-    pub fn hover_info(&mut self, id: u64, hover: ToastHover, now: Instant) -> Option<InfoWake> {
-        let clock = self.info.as_mut().filter(|clock| clock.id == id)?;
+    /// Take toast `id` away; one already gone or replaced is no matter.
+    pub fn dismiss(&mut self, id: u64) {
+        if self.shown.as_ref().is_some_and(|toast| toast.id == id) {
+            self.shown = None;
+            self.clock = None;
+        }
+    }
+
+    /// The toast up.
+    #[must_use]
+    pub const fn shown(&self) -> Option<&Toast> {
+        self.shown.as_ref()
+    }
+
+    /// Pause or resume toast `id`'s life, never a replaced toast's.
+    pub fn hover(&mut self, id: u64, hover: ToastHover, now: Instant) -> Option<ToastWake> {
+        let clock = self.clock.as_mut().filter(|clock| clock.id == id)?;
         match (&clock.phase, hover) {
-            (InfoPhase::Running { since, remaining }, ToastHover::Enter) => {
-                clock.phase = InfoPhase::Paused(
+            (Phase::Running { since, remaining }, ToastHover::Enter) => {
+                clock.phase = Phase::Paused(
                     remaining.saturating_sub(now.saturating_duration_since(*since)),
                 );
                 None
             }
-            (InfoPhase::Paused(remaining), ToastHover::Leave) => {
+            (Phase::Paused(remaining), ToastHover::Leave) => {
                 let remaining = *remaining;
-                clock.phase = InfoPhase::Running {
+                clock.phase = Phase::Running {
                     since: now,
                     remaining,
                 };
-                Some(InfoWake {
+                Some(ToastWake {
                     id,
                     since: now,
                     after: remaining,
                 })
             }
-            (InfoPhase::Running { .. }, ToastHover::Leave)
-            | (InfoPhase::Paused(_), ToastHover::Enter) => None,
+            (Phase::Running { .. }, ToastHover::Leave)
+            | (Phase::Paused(_), ToastHover::Enter) => None,
         }
     }
 
     /// Recheck the matching running phase at its wake. Paused, replaced and
     /// superseded timers do nothing; an early executor wake waits the remainder.
-    pub fn wake_info(&mut self, wake: InfoWake, now: Instant) -> Option<InfoWake> {
-        let clock = self.info.as_ref().filter(|clock| clock.id == wake.id)?;
-        let InfoPhase::Running { since, remaining } = clock.phase else {
+    pub fn wake(&mut self, wake: ToastWake, now: Instant) -> Option<ToastWake> {
+        let clock = self.clock.as_ref().filter(|clock| clock.id == wake.id)?;
+        let Phase::Running { since, remaining } = clock.phase else {
             return None;
         };
         if since != wake.since {
@@ -194,7 +200,7 @@ impl Toasts {
             self.dismiss(wake.id);
             None
         } else {
-            Some(InfoWake {
+            Some(ToastWake {
                 after: remaining,
                 ..wake
             })
@@ -203,189 +209,122 @@ impl Toasts {
 }
 
 #[cfg(test)]
-mod info_tests {
-    use super::*;
-    #[test]
-    fn advice_has_its_own_exact_lifetime_and_legacy_success_error_lifetimes_stay() {
-        let mut toasts = Toasts::default();
-        for (tone, expected) in [
-            (ToastTone::Ok, Some(Duration::from_secs(4))),
-            (ToastTone::Info, Some(Duration::from_millis(3200))),
-            (ToastTone::Error, None),
-        ] {
-            let (_, life) = toasts.push("The complete localized guidance.", tone);
-            assert_eq!(life, expected);
-        }
-    }
-    #[test]
-    fn an_old_advice_timeout_cannot_dismiss_a_new_advice_even_with_the_same_words() {
-        let mut toasts = Toasts::default();
-        let (old, _) = toasts.push("There are no local commits to push.", ToastTone::Info);
-        let (new, life) = toasts.push("There are no local commits to push.", ToastTone::Info);
-        assert_ne!(new, old);
-        toasts.dismiss(old);
-        assert_eq!(
-            toasts.list(),
-            &[Toast {
-                id: new,
-                tone: ToastTone::Info,
-                text: "There are no local commits to push.".into(),
-            }]
-        );
-        assert_eq!(life, Some(INFO_LIFE));
-        toasts.dismiss(new);
-        assert_eq!(toasts.list(), &[]);
-    }
+fn at(now: Instant, millis: u64) -> Instant {
+    now + Duration::from_millis(millis)
 }
 
 #[cfg(test)]
-mod info_clock_tests {
+mod clock_tests {
     use super::*;
+
+    #[test]
+    fn each_tone_lives_as_paseo_says() {
+        let mut toasts = Toasts::default();
+        let now = Instant::now();
+        for (tone, millis) in [
+            (ToastTone::Ok, 2200),
+            (ToastTone::Copied, 2200),
+            (ToastTone::Info, 3200),
+            (ToastTone::Error, 3200),
+        ] {
+            let wake = toasts.push("Words", tone, now);
+            assert_eq!(wake.after(), Duration::from_millis(millis));
+        }
+    }
+
     #[test]
     fn exact_deadline_and_early_wakes_do_not_round_away_the_remaining_millisecond() {
         let mut toasts = Toasts::default();
-        let (id, _) = toasts.push("Advice", ToastTone::Info);
         let now = Instant::now();
-        let wake = toasts.start_info(id, now).unwrap();
-        assert_eq!(wake.after(), Duration::from_millis(3200));
-        let early = toasts
-            .wake_info(wake, now + Duration::from_millis(3199))
-            .unwrap();
+        let wake = toasts.push("Advice", ToastTone::Info, now);
+        let early = toasts.wake(wake, at(now, 3199)).unwrap();
         assert_eq!(early.after(), Duration::from_millis(1));
-        assert_eq!(toasts.list().len(), 1);
-        assert_eq!(
-            toasts.wake_info(early, now + Duration::from_millis(3200)),
-            None
-        );
-        assert_eq!(toasts.list(), &[]);
+        assert!(toasts.shown().is_some());
+        assert_eq!(toasts.wake(early, at(now, 3200)), None);
+        assert_eq!(toasts.shown(), None);
     }
+
     #[test]
-    fn hover_keeps_guidance_visible_and_resume_uses_remaining_time_without_old_timer_interference()
-    {
-        let mut toasts = Toasts::default();
-        let (id, _) = toasts.push("Advice", ToastTone::Info);
-        let now = Instant::now();
-        let first = toasts.start_info(id, now).unwrap();
-        assert_eq!(
-            toasts.hover_info(id, ToastHover::Enter, now + Duration::from_millis(1200)),
-            None
-        );
-        assert_eq!(toasts.wake_info(first, now + Duration::from_secs(5)), None);
-        assert_eq!(toasts.list().len(), 1);
-        let resumed = toasts
-            .hover_info(id, ToastHover::Leave, now + Duration::from_secs(5))
-            .unwrap();
-        assert_eq!(resumed.after(), Duration::from_millis(2000));
-        assert_eq!(
-            toasts.wake_info(first, now + Duration::from_millis(5100)),
-            None
-        );
-        assert_eq!(toasts.list().len(), 1);
-        assert_eq!(
-            toasts.wake_info(resumed, now + Duration::from_secs(7)),
-            None
-        );
-        assert_eq!(toasts.list(), &[]);
-    }
-    #[test]
-    fn replacing_info_preserves_legacy_cards_and_rejects_the_replaced_timeout_and_hover() {
+    fn hover_keeps_the_toast_and_resume_uses_the_remaining_time() {
         let mut toasts = Toasts::default();
         let now = Instant::now();
-        let (legacy, _) = toasts.push("Error", ToastTone::Error);
-        let (first, _) = toasts.push("Advice", ToastTone::Info);
-        let old = toasts.start_info(first, now).unwrap();
-        let (second, _) = toasts.push("Advice", ToastTone::Info);
-        let current = toasts
-            .start_info(second, now + Duration::from_millis(100))
-            .unwrap();
-        assert_eq!(
-            toasts
-                .list()
-                .iter()
-                .map(|toast| toast.id)
-                .collect::<Vec<_>>(),
-            [legacy, second]
-        );
-        assert_eq!(toasts.hover_info(first, ToastHover::Enter, now), None);
-        assert_eq!(
-            toasts.wake_info(old, now + Duration::from_millis(3200)),
-            None
-        );
-        assert_eq!(toasts.list().len(), 2);
-        assert_eq!(
-            toasts.wake_info(current, now + Duration::from_millis(3300)),
-            None
-        );
-        assert_eq!(
-            toasts
-                .list()
-                .iter()
-                .map(|toast| toast.id)
-                .collect::<Vec<_>>(),
-            [legacy]
-        );
+        let first = toasts.push("Merged", ToastTone::Ok, now);
+        let id = first.id();
+        assert_eq!(toasts.hover(id, ToastHover::Enter, at(now, 1200)), None);
+        assert_eq!(toasts.wake(first, at(now, 5000)), None);
+        assert!(toasts.shown().is_some());
+        let resumed = toasts.hover(id, ToastHover::Leave, at(now, 5000)).unwrap();
+        assert_eq!(resumed.after(), Duration::from_millis(1000));
+        assert_eq!(toasts.wake(first, at(now, 5100)), None);
+        assert!(toasts.shown().is_some());
+        assert_eq!(toasts.wake(resumed, at(now, 6000)), None);
+        assert_eq!(toasts.shown(), None);
     }
 }
 
 #[cfg(test)]
-mod hover_replacement_tests {
+mod replacement_tests {
     use super::*;
+
     #[test]
-    fn replacement_while_hovered_rejects_old_hover_out_and_still_expires_at_the_new_deadline() {
+    fn a_new_toast_replaces_the_one_up_whatever_their_tones() {
         let mut toasts = Toasts::default();
         let now = Instant::now();
-        let (error, _) = toasts.push("Persistent error", ToastTone::Error);
-        let (old, _) = toasts.push("Old advice", ToastTone::Info);
-        let old_wake = toasts.start_info(old, now).unwrap();
+        let error = toasts.push("The machine is stopping", ToastTone::Error, now);
+        let copied = toasts.push("Path copied", ToastTone::Copied, now);
+        assert_ne!(copied.id(), error.id());
         assert_eq!(
-            toasts.hover_info(old, ToastHover::Enter, now + Duration::from_millis(1000)),
-            None
+            toasts.shown(),
+            Some(&Toast {
+                id: copied.id(),
+                tone: ToastTone::Copied,
+                text: "Path copied".into(),
+            })
         );
-        let (new, _) = toasts.push("New advice", ToastTone::Info);
-        let new_wake = toasts
-            .start_info(new, now + Duration::from_millis(2000))
-            .unwrap();
-        assert_eq!(
-            toasts.hover_info(old, ToastHover::Leave, now + Duration::from_millis(3000)),
-            None
-        );
-        assert_eq!(
-            toasts.wake_info(old_wake, now + Duration::from_millis(3200)),
-            None
-        );
-        assert_eq!(
-            toasts.start_info(new, now + Duration::from_millis(4000)),
-            None
-        );
-        assert_eq!(
-            toasts.wake_info(new_wake, now + Duration::from_millis(5200)),
-            None
-        );
-        assert_eq!(
-            toasts
-                .list()
-                .iter()
-                .map(|toast| toast.id)
-                .collect::<Vec<_>>(),
-            [error]
-        );
+        // The error's wake, hover and dismissal no longer reach anything.
+        assert_eq!(toasts.wake(error, at(now, 3200)), None);
+        assert_eq!(toasts.hover(error.id(), ToastHover::Enter, now), None);
+        toasts.dismiss(error.id());
+        assert_eq!(toasts.shown().map(|toast| toast.id), Some(copied.id()));
+        assert_eq!(toasts.wake(copied, at(now, 2200)), None);
+        assert_eq!(toasts.shown(), None);
     }
+
     #[test]
-    fn dismissing_paused_advice_cannot_reappear_on_a_late_hover_out() {
+    fn replacement_while_hovered_rejects_old_hover_out_and_expires_at_the_new_deadline() {
         let mut toasts = Toasts::default();
         let now = Instant::now();
-        let (id, _) = toasts.push("Advice", ToastTone::Info);
-        let wake = toasts.start_info(id, now).unwrap();
+        let old = toasts.push("Old advice", ToastTone::Info, now);
         assert_eq!(
-            toasts.hover_info(id, ToastHover::Enter, now + Duration::from_millis(500)),
+            toasts.hover(old.id(), ToastHover::Enter, at(now, 1000)),
             None
         );
-        toasts.dismiss(id);
+        let new = toasts.push("New advice", ToastTone::Info, at(now, 2000));
         assert_eq!(
-            toasts.hover_info(id, ToastHover::Leave, now + Duration::from_millis(1000)),
+            toasts.hover(old.id(), ToastHover::Leave, at(now, 3000)),
             None
         );
-        assert_eq!(toasts.wake_info(wake, now + Duration::from_secs(4)), None);
-        assert_eq!(toasts.list(), &[]);
+        assert_eq!(toasts.wake(old, at(now, 3200)), None);
+        assert!(toasts.shown().is_some());
+        assert_eq!(toasts.wake(new, at(now, 5200)), None);
+        assert_eq!(toasts.shown(), None);
+    }
+
+    #[test]
+    fn dismissing_a_paused_toast_cannot_bring_it_back_on_a_late_hover_out() {
+        let mut toasts = Toasts::default();
+        let now = Instant::now();
+        let wake = toasts.push("Advice", ToastTone::Info, now);
+        assert_eq!(
+            toasts.hover(wake.id(), ToastHover::Enter, at(now, 500)),
+            None
+        );
+        toasts.dismiss(wake.id());
+        assert_eq!(
+            toasts.hover(wake.id(), ToastHover::Leave, at(now, 1000)),
+            None
+        );
+        assert_eq!(toasts.wake(wake, at(now, 4000)), None);
+        assert_eq!(toasts.shown(), None);
     }
 }

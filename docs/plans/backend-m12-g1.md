@@ -581,6 +581,10 @@ No Git screen, node write or live input-method proof is claimed here.
 
 ## Shared Info toast for a known unavailable action
 
+Superseded by TRACKER 802 (README, "Toasts are Paseo's"): every toast now
+takes the keyed clock below and replaces the one up; the stack, the close
+control and the persistent error are gone.
+
 [Decision Log]
 - Purpose: Paseo's git/use-actions.tsx38–58 explains unavailableMessage with a
   default-chrome toast, foreground Info16 and duration3200, before returning

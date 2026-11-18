@@ -117,10 +117,7 @@ pub use screen_header::{compact_header, screen_header};
 pub use scroll_viewport::{ScrollState, ScrollViewport, SectionIndex};
 pub use sheet::{Edge, sheet};
 pub use theme::{Palette, Scheme, Tokens};
-pub use toast::{
-    ToastContent, ToastDismiss, ToastHandlers, ToastHover, ToastHovered, ToastLook, toast,
-    toast_with, toasts,
-};
+pub use toast::{ToastContent, ToastHover, ToastHovered, ToastLook, toast, toast_layer, toast_with};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
