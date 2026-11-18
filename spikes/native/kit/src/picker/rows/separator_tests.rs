@@ -69,9 +69,8 @@ fn a_separated_row_has_paseos_rule_between_it_and_the_row_before(cx: &mut TestAp
     let after = cx.debug_bounds("combobox-row-2").unwrap();
     assert_eq!(rule.size.height, px(1.0));
     // 4 above and below it.
-    let gap = |upper: Pixels, lower: Pixels| {
-        f32::from(upper).mul_add(-1.0, f32::from(lower)).to_bits()
-    };
+    let gap =
+        |upper: Pixels, lower: Pixels| f32::from(upper).mul_add(-1.0, f32::from(lower)).to_bits();
     assert_eq!(gap(before.bottom(), rule.top()), 4.0_f32.to_bits());
     assert_eq!(gap(rule.bottom(), after.top()), 4.0_f32.to_bits());
     // The list's full width, as the rows.
