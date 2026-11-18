@@ -150,7 +150,10 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
   from a row straight into its flyout, or onto a sibling page's row, ran
   the leaving row's close after the cancel or opening. `hover_close` now
   keeps a flyout the pointer is in and a sibling's pending opening; a press
-  inside a flyout holds its page (as the keys do).
+  inside a flyout holds its page (as the keys do). In a phone's sheet a
+  sub row has no hover intent (Paseo's sheet opens pages by press): a page
+  opened under a resting pointer replaced the sheet and took the press
+  meant for the row (it toggled the label under it).
 - Tests: kit `submenu/tests.rs` (a press asks once, hover never; one move
   into the page; sliding onto a sibling row); app
   `sidebar/row_menu_tests.rs` (press and keys, rest and grace, the Create
