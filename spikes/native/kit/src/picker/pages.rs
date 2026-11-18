@@ -8,6 +8,29 @@ use crate::submenu::Submenus;
 use gpui::prelude::*;
 use gpui::{Context, Div, Hsla, MouseButton, Stateful};
 
+impl ComboboxState {
+    /// Rows with a [`super::ComboRow::page`] open it beside the list through
+    /// `submenus` (a wide window; `None` keeps pages the screen's own), and a
+    /// press on an open page is not outside the list.
+    pub fn set_submenus(&mut self, submenus: Option<&crate::submenu::Submenus>) {
+        self.submenus = submenus.cloned();
+        self.submenu_depth = 0;
+    }
+
+    /// As [`set_submenus`](Self::set_submenus) for a list that is itself a
+    /// page of a menu (a row menu's Labels page, TRACKER 792): its rows'
+    /// pages open at `depth`, after its own, and its opening leaves the
+    /// menu's path alone (the menu owns it, and the list's page is on it).
+    pub fn set_nested_submenus(
+        &mut self,
+        submenus: Option<&crate::submenu::Submenus>,
+        depth: usize,
+    ) {
+        self.submenus = submenus.cloned();
+        self.submenu_depth = depth;
+    }
+}
+
 /// Bind `element`, the row for `page`: the pointer at rest opens the page,
 /// leaving closes it after the grace, a press opens it at once; the screen's
 /// `chose` is not called.
@@ -62,6 +85,6 @@ pub(super) fn page_row<V: 'static>(
 }
 
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
 mod nested_tests;
+#[cfg(test)]
+mod tests;

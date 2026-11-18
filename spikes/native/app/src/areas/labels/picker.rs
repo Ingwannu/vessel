@@ -197,7 +197,10 @@ impl Shell {
     pub(crate) fn labels_row_picker_pages(&mut self, pages: &vessel_app_kit::submenu::Submenus) {
         // The list is the menu's Labels page (depth 0); its Create label
         // page opens after it, at depth 1.
-        self.areas.labels.picker_combo.set_nested_submenus(Some(pages), 1);
+        self.areas
+            .labels
+            .picker_combo
+            .set_nested_submenus(Some(pages), 1);
         pages.press_only(create::CREATE);
     }
 
