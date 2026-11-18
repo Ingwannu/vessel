@@ -93,6 +93,18 @@ Close, Agent log, Kill). Then the content.
 
 ### Kit
 
+- `ToolbarConfig::header_island` (coordinator's return, 2026-11-18): Paseo's
+  header island (`IconButtonChromeProvider value="header-island"`) gives its
+  icon actions the large chrome, a 16 glyph (`iconButtonChromeGlyphSize
+  ("large")`, `ICON_SIZE.md`), and a round hitbox and highlight. The frame
+  stays the toolbar's 32 on touch; every other toolbar keeps 14 and square
+  corners.
+- Three Lucide glyphs from Lucide's own sources (lucide-icons/lucide
+  `icons/*.svg`) at the provider's 1.5: `ArrowLeftToLine`,
+  `ArrowRightToLine`, `CopyX`, for the tab menu's closes.
+- Menu rows: an ordinary row draws its `value` at its end, muted at 12
+  (Paseo's `hint`), as a submenu row draws it before its chevron
+  (`menu/hint.rs`).
 - `ToolbarButton::count` (`toolbar_button/count.rs`): Paseo's tab switcher
   trigger, the open-tab count in an outlined badge (at least 16 wide, 16
   tall, 2 across, radius 2, a 1 border of `foregroundMuted`; the number 10
@@ -104,9 +116,7 @@ Close, Agent log, Kill). Then the content.
   frame was Paseo's `CompactHeader` without a subtitle ("until a consumer
   needs it"). With a subtitle, the title is 14 (Paseo's `fontSize.base`)
   instead of 16, as Paseo's `singleLineTitle` is only for a title alone.
-  `editing` puts the caller's field in the title's place while the title is
-  renamed. The frame keeps the 56 row, 8 above, 12 across, no fill and no
-  rule.
+  The frame keeps the 56 row, 8 above, 12 across, no fill and no rule.
 
 ### App
 
@@ -131,16 +141,28 @@ Close, Agent log, Kill). Then the content.
 - A row's "…" opens the tab menu (`layout::menu`, surface `Switcher`) under
   it, over the sheet (`Layer::AboveDialog`), 220 wide. Its rows follow
   Paseo's order: Copy agent id (Copy ID on a terminal, Copy path on a
-  file); Rename (the open session's, when it can be renamed: the header's
-  title becomes the field, without the line under it while it is
-  edited); a rule; Close tabs above, Close tabs below,
+  file), with the id's first seven characters as its muted hint; Rename
+  (the open session's, when it can be renamed); a rule; Close tabs above, Close tabs below,
   Close other tabs; then Close. On the open session's agent tab, Close is
   the session's Close (a root archives first, as the bar's Close did).
   After a rule come Vessel's own actions that Paseo's tab menu lacks: the
-  marks, Copy link, Agent log, Kill. Copies keep the sheet open; every other
+  marks, Copy link, Agent log, Kill. Every row leads with a 16 muted glyph:
+  Paseo's (copy, pencil, arrow-left-to-line, arrow-right-to-line, copy-x,
+  x), and for Vessel's extras the nearest kit glyph (Pin, CircleDot,
+  Circle, RotateCw, Archive, ArchiveRestore, Trash2, Copy, FileText, Stop).
+- Rename (both widths, one way in: the bar's title and the row menu) opens
+  Paseo's `AdaptiveRenameModal` made with the kit dialog: "Rename agent",
+  the title prefilled and selected, then Cancel and Rename side by side
+  (flex 1 each, 8 apart; the body's parts 12 apart). Rename is disabled
+  while the text is the title already or one the node would refuse; Enter
+  or Rename with such a title keeps the dialog with the reason under the
+  field. The inline title field is gone. Paseo waits for the save
+  ("Saving…"); the dialog closes when the rename is sent, and a node's
+  refusal shows under the session's title as before. Copies keep the sheet open; every other
   session action closes it first, so its confirm or log is on top.
 - "…" (Workspace actions): Copy workspace path (the session's folder,
-  disabled until the node describes it), then Import session. Import session
+  disabled until the node describes it), then Import session, led by the
+  copy and import glyphs. Import session
   opens 777's sheet for this host and folder, so it reads "This workspace"
   with "Show all".
 - Words (en, ko from Paseo's own ko): Switch tabs ({count} open), Workspace
@@ -155,31 +177,46 @@ Close, Agent log, Kill). Then the content.
 - Paseo's menus are bottom sheets on a phone (`compactMode="sheet"`, the
   row menu titled with the tab's label). The kit menu is a popover with
   touch rows, as the bar's "…" was. A sheet form of the kit menu would serve
-  every compact menu; it is not in this item.
+  every compact menu: TRACKER 798.
 - The switcher is the kit dialog's sheet, which keeps its close button.
   Paseo's combobox sheet has a title only. The kit combobox has neither a
   row's trailing control nor a footer.
-- Paseo's tab menu rows lead with icons. Vessel's tab and session menus have
-  none, and three of those icons (arrow-left-to-line, arrow-right-to-line,
-  copy-x) are not in the kit.
-- The header's glyphs are the toolbar's 14, not Paseo's 16.
 - Not listed in Workspace actions: New browser tab and terminal profiles
   (Paseo leaves them out where it cannot create them), Copy branch name
   (Vessel knows only the branch a session started on), Show setup (no page).
 - Close tabs above/below act within the tab's pane (the layout's
   `CloseScope::Before`/`After`); the switcher lists every pane's tabs.
+- The rename dialog closes when the rename is sent; Paseo's waits for the
+  save ("Saving…") and closes on success.
+
+## Later rows (coordinator, 2026-11-18)
+
+- TRACKER 797 (visual lane, after 795): one tab menu builder for both
+  widths, as Paseo's `buildWorkspaceTabMenuEntries({surface})`, with Copy
+  resume command, Reload agent and the terminal and file rows' hints (an ADR
+  first if they need node work).
+- TRACKER 798 (Kit owner): compact menus as sheets (`compactMode="sheet"`,
+  `sheetTitle`); the combobox sheet titled with no close button.
 
 ## Tests
 
 - kit: `toolbar_button::count::tests` (the 16 badge centred in the 32 touch
   frame, one press; more digits widen it); `screen_header` (a subtitle steps
-  the compact title from 16 to 14).
+  the compact title from 16 to 14); `toolbar_button::tests` (the header
+  island's 16 glyph at both sizings, the 14 default kept);
+  `menu::hint_tests` (a row's hint at its end, none without one);
+  `assets::tab_menu_role_tests` (the three Lucide glyphs on the source grid
+  at 1.5).
+- app `conversation::rename::tests`: the dialog opens prefilled, Rename
+  waits for another valid title, a refused title shows its reason and keeps
+  the dialog, Cancel closes it.
 - app `layout::compact::tests`: one 64-tall header row as wide as the
   window, no pane controls, "…" 32 square at the row's middle; the switcher
   lists both tabs and a press shows the pressed one and closes it; New agent
   opens the new-agent page; the agent row's menu is Paseo's items then the
   session's, with the rules where Paseo has its separator, and the New tab's
-  is the closes with Close last; a row's "…" opens the tab menu over the
+  is the closes with Close last; every row has its glyph and Copy agent id
+  its seven-character hint; a row's "…" opens the tab menu over the
   sheet; Workspace actions copies the folder once known; Import session
   opens the import sheet.
 - app `layout::header::tests::compact_width_draws_no_pane_controls` replaces

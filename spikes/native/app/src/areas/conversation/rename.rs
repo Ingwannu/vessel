@@ -194,11 +194,12 @@ pub(super) fn rename_dialog(
         .gap(px(S3))
         .pb(px(S2))
         .child(rename.field.element(tokens, narrow, cx))
-        .children(rename.invalid.clone().map(|why| {
-            div()
-                .text_color(tokens.neutral.destructive)
-                .child(why)
-        }))
+        .children(
+            rename
+                .invalid
+                .clone()
+                .map(|why| div().text_color(tokens.neutral.destructive).child(why)),
+        )
         .child(
             div()
                 .flex()

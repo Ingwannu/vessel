@@ -21,9 +21,9 @@ use super::super::menu::{Action, close_item};
 use super::super::with_layout;
 use crate::areas::conversation::{MenuAction, session_menu_item, session_menu_rows};
 use crate::shell::Shell;
+use vessel_app_kit::MenuItem;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::menu::LeadingSize;
-use vessel_app_kit::MenuItem;
 use vessel_app_view::layout::{CloseScope, TabId, Target};
 use vessel_app_view::session::MarkAction;
 
@@ -84,8 +84,8 @@ pub(in crate::areas::layout) fn row_actions(shell: &Shell, tab: TabId) -> Vec<(A
     match target {
         Target::Agent(id) => {
             let hint: String = id.to_string().chars().take(ID_HINT).collect();
-            let item = led(MenuItem::new(words.copy_agent_id().to_owned()), Glyph::Copy)
-                .with_value(hint);
+            let item =
+                led(MenuItem::new(words.copy_agent_id().to_owned()), Glyph::Copy).with_value(hint);
             let action = if session_tab {
                 Action::Session(MenuAction::CopyId)
             } else {

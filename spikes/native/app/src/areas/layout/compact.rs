@@ -37,10 +37,10 @@ mod switcher;
 #[cfg(test)]
 mod tests;
 
-pub(super) use row_menu::row_actions;
 use super::{key, with_layout};
 use crate::areas::conversation::heading;
 use crate::shell::Shell;
+pub(super) use row_menu::row_actions;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
