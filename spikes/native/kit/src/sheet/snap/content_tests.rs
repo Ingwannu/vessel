@@ -65,13 +65,6 @@ fn a_flick_down_closes_it_and_the_dim_follows_the_drag() {
     let held = visible(&mut state, half);
     assert!(held.top > px(140.0) && held.top < px(160.0));
     assert!(held.backdrop > 0.45 && held.backdrop < 0.55);
-    let _scroll = state.pan(
-        point(px(100.0), px(170.0)),
-        px(0.0),
-        after(now, 30),
-    );
-    assert_eq!(
-        state.release(after(now, 32)),
-        Release::Pan(Stop::Closed)
-    );
+    let _scroll = state.pan(point(px(100.0), px(170.0)), px(0.0), after(now, 30));
+    assert_eq!(state.release(after(now, 32)), Release::Pan(Stop::Closed));
 }
