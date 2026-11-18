@@ -266,8 +266,10 @@ impl SessionEvent {
     ) -> Option<Self> {
         if let Self::Renamed { title, origin } = self {
             let adapted = origin.for_protocol(protocol, assigned);
-            return (adapted != *origin).then(|| Self::Renamed {
-                title: title.clone(),
+            // A title longer than an older peer decodes is cut (TRACKER 801).
+            let cut = title.for_protocol(protocol);
+            return (adapted != *origin || cut.is_some()).then(|| Self::Renamed {
+                title: cut.unwrap_or_else(|| title.clone()),
                 origin: adapted,
             });
         }

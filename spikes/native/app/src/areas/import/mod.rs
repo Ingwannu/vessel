@@ -72,7 +72,14 @@ pub(crate) struct ImportArea {
     pub(super) opened: Option<Open>,
     pub(super) prior: Option<FocusHandle>,
     pub(super) visit: Option<Ticket>,
+    /// Counts what was typed, so only the last search is sent (Paseo's
+    /// 200 ms debounce, `SEARCH_SETTLE`).
+    pub(super) typed: u64,
 }
+
+/// How long the search rests before a ranked host is asked (Paseo's
+/// `SEARCH_DEBOUNCE_MS`).
+pub(super) const SEARCH_SETTLE: std::time::Duration = std::time::Duration::from_millis(200);
 
 impl ImportArea {
     /// Whether the sheet is open (another area's test asks).
@@ -90,6 +97,7 @@ impl ImportArea {
                 "",
                 |shell: &mut Shell, text, cx| {
                     shell.areas.import.query = Query::new(&text);
+                    shell.history_search(&text, cx);
                     cx.notify();
                 },
                 window,
@@ -106,6 +114,7 @@ impl ImportArea {
             opened: None,
             prior: None,
             visit: None,
+            typed: 0,
         }
     }
 

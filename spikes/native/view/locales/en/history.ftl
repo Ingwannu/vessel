@@ -42,6 +42,8 @@ history-failed-import = Could not import selected session.
 history-more = Load more
 # A listed session without a title.
 history-untitled = Untitled session
+# A listed session whose prompts the machine did not read (the line under its title).
+history-no-prompt = No prompt preview
 # The pressed row while its session is imported. Keep short.
 history-importing = Importing...
 # Empty list: nothing on the machine to import.

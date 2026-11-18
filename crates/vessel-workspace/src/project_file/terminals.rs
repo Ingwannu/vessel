@@ -102,7 +102,7 @@ mod tests {
         }
         let too_long = format!(
             "[[worktree.terminals]]\nname = '{}'\ncommand = 'x'",
-            "n".repeat(121)
+            "n".repeat(vessel_proto::SessionTitle::MAX_CHARS.saturating_add(1))
         );
         assert!(matches!(
             ProjectFile::parse(too_long.as_bytes()),

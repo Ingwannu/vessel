@@ -28,6 +28,8 @@ fn batch(node: vessel_proto::NodeId) -> Batch {
             title: Some(id.parse().unwrap()),
             updated_at: None,
             in_vessel: None,
+            first_prompt: None,
+            last_prompt: None,
         })
         .collect();
     Batch {

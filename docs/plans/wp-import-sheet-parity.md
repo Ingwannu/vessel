@@ -23,11 +23,14 @@ design.
   then 45 / 90 / 200 behind "Load more" (Paseo's `PAGE_LIMITS`). No account
   picker: when the node lists sessions per account, each saved account is
   fetched and merged; the sheet never asks.
-- (C) Each row leads with its agent's mark. The prompt preview waits for the
-  node to send it (filed for the node line); no "No prompt preview" line.
-- (D) Search filters the loaded rows on the client, with Paseo's placeholder
-  "Search sessions...". Server-side search (200 ms debounce, feature-gated)
-  is filed with the node item.
+- (C) Each row leads with its agent's mark. On a host that answers the
+  ranked listing (TRACKER 790, ADR 0109, `RANKED_HISTORY_PROTOCOL`, 29) the
+  row shows Paseo's prompt preview under its title (the last prompt, else
+  the first, else "No prompt preview"; two lines) and a title-less session
+  is called by its first prompt. An older host shows no preview line.
+- (D) Search, with Paseo's placeholder "Search sessions...": on a ranked
+  host it is the node's, sent after Paseo's 200 ms debounce and read again
+  from the first limit; on an older host it filters the loaded rows here.
 
 ## Presentation (Paseo values)
 
@@ -91,10 +94,12 @@ design.
   of not-yet-imported sessions (the node has no limit, only cursor pages);
   `answer` returns the follow-up reads. `empty_state` is Paseo's
   `computeEmptyState` (only once every provider answered and not all failed).
-- Read slots: the node lists at most two at once (`service::history::AT_ONCE`)
-  and answers more `unavailable`, which would show as a failed provider. The
-  sheet sends at most two reads; the rest wait (`FeedState::Queued`) and go
-  as answers come. A read the sheet replaced (a refresh, Show all, closing
+- Read slots: an older node lists at most two at once
+  (`service::history::AT_ONCE`) and answers more `unavailable`, which would
+  show as a failed provider. For it the sheet sends at most two reads; the
+  rest wait (`FeedState::Queued`) and go as answers come. A ranked node runs
+  four and queues sixteen itself (ADR 0109), so every provider is asked at
+  once (`sheet/ranked.rs`). A read the sheet replaced (a refresh, Show all, closing
   and opening again) still runs on the node, so its slot frees only when its
   reply comes: the sheet keeps every sent listing by connection until its
   answer, across `close` (app reviewer F1, 2026-11-17). Reads asked while an
@@ -181,3 +186,24 @@ App reviewer return (F1, F2) fixed on d050bebf2: strict (fonts, fmt, quality,
 clippy) 0; view, app and link suites in one run (app 293 passed, 0 failed, 2
 ignored; link 183; view 1296 lib tests and every integration suite); wasm32
 check of link and app rc 0, no warnings.
+
+## TRACKER 790: the node's ranked listing (impl U, 2026-11-18, on 14.41)
+
+[Decision Log]
+- Purpose: drop the sheet's stand-ins on a node that answers Paseo's own read (ADR 0109): the client filter, the
+  two-read queue and the missing preview.
+- Choice:
+  - `Opening::ranked` is set from the host's protocol (at least `RANKED_HISTORY_PROTOCOL`).
+  - Each provider is asked `limit` (Paseo's `PAGE_LIMITS`) and the search.
+  - The node answers the newest not-yet-imported sessions with their prompts and `already_imported`.
+  - "Load more" asks again with the next limit; rows stay until each answer. It stays while a provider
+    answered a full page, or shows rows while its next read runs (Paseo's `hasMoreSessions`).
+  - A search (the app's 200 ms debounce) reads again from the first limit.
+  - The empty state says "All recent sessions are already imported." from the summed count.
+  - Reads still wait while an import runs: its receipt changes the list.
+  - A ranked read gets 180 s in the link: up to 90 s for a place, then the listing.
+- An older host keeps everything above: cursor pages, the client filter, two reads at once.
+- Words: `history-no-prompt` = Paseo's `importSession.preview.noPrompt` ("No prompt preview", "프롬프트 미리보기
+  없음").
+- Size: the empty-state rules moved to `sheet/empty.rs` to keep `sheet.rs` within the line budget.
+

@@ -251,23 +251,28 @@ fn trims_and_refuses_what_the_node_refuses_counting_characters() {
         check_title("two\nlines").map(|_| ()),
         Err(InvalidTitle::ControlCharacter)
     );
-    assert!(check_title(&"x".repeat(120)).is_ok());
-    assert!(check_title(&"x".repeat(121)).is_err());
-    assert!(check_title(&"한".repeat(120)).is_ok());
-    assert!(check_title(&"🙂".repeat(120)).is_ok());
+    let max = SessionTitle::MAX_CHARS;
+    let over = max.saturating_add(1);
+    assert!(check_title(&"x".repeat(max)).is_ok());
+    assert!(check_title(&"x".repeat(over)).is_err());
+    assert!(check_title(&"한".repeat(max)).is_ok());
+    assert!(check_title(&"🙂".repeat(max)).is_ok());
     assert_eq!(
-        EN.title_refused(InvalidTitle::TooLong { chars: 121 }),
-        "A title is at most 120 characters."
+        EN.title_refused(InvalidTitle::TooLong { chars: over }),
+        format!("A title is at most {max} characters.")
     );
 }
 
 #[test]
-fn takes_the_first_line_with_text_cut_at_80_characters() {
+fn takes_the_first_line_with_text_cut_at_the_prompt_title_length() {
     let title = |text: &str| title_from_prompt(text).map(|title| title.to_string());
     assert_eq!(
         title("\n\n  Tidy the overview \nand more").as_deref(),
         Some("Tidy the overview")
     );
-    assert_eq!(title(&"a".repeat(100)), Some("a".repeat(80)));
+    assert_eq!(
+        title(&"a".repeat(100)),
+        Some("a".repeat(SessionTitle::FROM_PROMPT_CHARS))
+    );
     assert_eq!(title("  \n "), None);
 }

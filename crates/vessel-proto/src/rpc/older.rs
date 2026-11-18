@@ -29,11 +29,13 @@ use crate::device::Scope;
 use crate::forward::Forwarded;
 use crate::node::ProtocolVersion;
 use crate::session::SessionInfo;
+use crate::title::SessionTitle;
 
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
 
 mod templates;
+mod titles;
 
 impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
@@ -47,7 +49,26 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
-            Self::GetRegistry(snapshot) => snapshot.for_protocol(protocol).map(Self::GetRegistry),
+            Self::GetRegistry(snapshot) => titles::registry(snapshot, protocol).map(Self::GetRegistry),
+            Self::ListWorkspaces(list) => titles::workspaces(list, protocol).map(Self::ListWorkspaces),
+            Self::GetWorkspace(workspace) => titles::workspace(workspace, protocol).map(Self::GetWorkspace),
+            Self::RenameWorkspace(workspace) => titles::workspace(workspace, protocol).map(Self::RenameWorkspace),
+            Self::PinWorkspace(workspace) => titles::workspace(workspace, protocol).map(Self::PinWorkspace),
+            Self::ReleaseWorkspaceAutomation(workspace) => {
+                titles::workspace(workspace, protocol).map(Self::ReleaseWorkspaceAutomation)
+            }
+            Self::ListInbox(page) => titles::inbox_page(page, protocol).map(Self::ListInbox),
+            Self::GetInboxEntry(entry) => entry
+                .as_ref()
+                .and_then(|entry| titles::inbox_entry(entry, protocol))
+                .map(|entry| Self::GetInboxEntry(Some(entry))),
+            Self::CreateTerminal(info) => titles::terminal(info, protocol).map(Self::CreateTerminal),
+            Self::ListTerminals(list) => titles::terminals(list, protocol).map(Self::ListTerminals),
+            Self::GetTerminal(info) => titles::terminal(info, protocol).map(Self::GetTerminal),
+            Self::RenameTerminal(info) => titles::terminal(info, protocol).map(Self::RenameTerminal),
+            Self::SubscribeTerminal(subscribed) => {
+                titles::subscribed(subscribed, protocol).map(Self::SubscribeTerminal)
+            }
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ListWorkspaceScripts(reply) => reply.for_protocol(protocol).map(Self::ListWorkspaceScripts),
             Self::StartWorkspaceScript(reply) => reply.for_protocol(protocol).map(Self::StartWorkspaceScript),
@@ -139,13 +160,11 @@ impl Reply {
             Self::CreateWorktree(outcome) => {
                 outcome.for_protocol(protocol).map(Self::CreateWorktree)
             }
-            Self::ListScripts(list) => list.commands.for_protocol(protocol).map(|commands| {
-                let mut list = list.clone();
-                list.commands = commands;
-                Self::ListScripts(list)
-            }),
-            Self::RunScript(outcome) => outcome.for_protocol(protocol).map(Self::RunScript),
-            Self::RestartScript(outcome) => outcome.for_protocol(protocol).map(Self::RestartScript),
+            Self::ListScripts(list) => titles::script_list(list, protocol).map(Self::ListScripts),
+            Self::RunScript(outcome) => titles::script_outcome(outcome, protocol).map(Self::RunScript),
+            Self::RestartScript(outcome) => {
+                titles::script_outcome(outcome, protocol).map(Self::RestartScript)
+            }
             Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
             Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
@@ -219,11 +238,6 @@ impl Reply {
             | Self::UpdateWorkspaceLabel(_)
             | Self::InspectWorkspaceLabelDelete(_)
             | Self::DeleteWorkspaceLabel(_)
-            | Self::ListWorkspaces(_)
-            | Self::GetWorkspace(_)
-            | Self::RenameWorkspace(_)
-            | Self::PinWorkspace(_)
-            | Self::ReleaseWorkspaceAutomation(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)
@@ -275,13 +289,8 @@ impl Reply {
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
-            | Self::CreateTerminal(_)
-            | Self::ListTerminals(_)
-            | Self::GetTerminal(_)
             | Self::ReadTerminal(_)
-            | Self::SubscribeTerminal(_)
             | Self::SendTerminal(_)
-            | Self::RenameTerminal(_)
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
             | Self::ListPorts(_)
@@ -313,8 +322,6 @@ impl Reply {
             | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::DeletePrompt(_)
-            | Self::ListInbox(_)
-            | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
             | Self::GetWorkspaceServiceEnv(_)
@@ -348,7 +355,31 @@ impl SessionInfo {
     /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.for_protocol_with_mutation_time(protocol, crate::SESSION_MUTATIONS)
+        let projected = self.for_protocol_with_mutation_time(protocol, crate::SESSION_MUTATIONS);
+        self.titles_for_protocol(projected, protocol)
+    }
+
+    /// After every other rule: a title, current or asked, longer than an
+    /// older peer decodes is cut to what it decodes (TRACKER 801).
+    fn titles_for_protocol(
+        &self,
+        projected: Option<Self>,
+        protocol: ProtocolVersion,
+    ) -> Option<Self> {
+        let source = projected.as_ref().unwrap_or(self);
+        let title = SessionTitle::optional_for_protocol(source.title.as_ref(), protocol);
+        let asked = SessionTitle::optional_for_protocol(source.spec.title.as_ref(), protocol);
+        if title.is_none() && asked.is_none() {
+            return projected;
+        }
+        let mut info = projected.unwrap_or_else(|| self.clone());
+        if let Some(title) = title {
+            info.title = title;
+        }
+        if let Some(asked) = asked {
+            info.spec.title = asked;
+        }
+        Some(info)
     }
 
     /// One projection rule also exercised with a synthetic assigned threshold.
