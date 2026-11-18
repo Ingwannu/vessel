@@ -151,13 +151,15 @@ pub(super) fn overlay(
     let opening = picker.opening;
     if narrow {
         let words = shell.words.labels();
+        let back: FormAct<Shell> =
+            Rc::new(move |shell, window, cx| shell.labels_picker_back(opening, window, cx));
+        let dismiss: FormAct<Shell> =
+            Rc::new(move |shell, window, cx| shell.labels_picker_close(opening, window, cx));
         let sheet = FormSheet {
             title: words.create().into(),
             back_label: words.back().into(),
-            back: Rc::new(move |shell, window, cx| shell.labels_picker_back(opening, window, cx)),
-            dismiss: Rc::new(move |shell, window, cx| {
-                shell.labels_picker_close(opening, window, cx);
-            }),
+            back,
+            dismiss,
         };
         return Some(form_sheet(
             "workspace-label-create-sheet",
