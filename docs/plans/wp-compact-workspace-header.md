@@ -223,3 +223,18 @@ Close, Agent log, Kill). Then the content.
   776's compact "+" test (the "+" is not drawn at compact width any more).
 
 ## Status
+
+First pass (head 1359a9af2): coordinator RETURN with four fixes, 2026-11-18
+(rename dialog, menu glyphs, Copy agent id hint, header island glyphs 16);
+everything else passed (layout, switcher, row menu order, Workspace actions,
+Import scope, 1280 unchanged).
+
+After the fixes, head 8ffa4af86, build VM, ordinary lane:
+- strict (fonts, fmt, quality, clippy) and the app build: 0;
+- kit 360, app 301 passed, 0 failed, 2 ignored; view 1296 lib tests and
+  every integration suite;
+- wasm32 check of link and app: rc 0, no warnings.
+
+Captures: export of 8ffa4af86 with the base14.19 shared root, a fleet.sh
+fleet with fake agents, 390 wide. Frames: en-dark header, switcher, row
+menu, rename dialog and Workspace actions; ko-light row menu.
