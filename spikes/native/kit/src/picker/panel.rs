@@ -62,10 +62,7 @@ pub(super) fn panel<V: 'static>(
         list.width,
     );
     let list_id = list.id.clone();
-    if let Some(pages) = &state.submenus {
-        // A new opening of the list starts at its root page.
-        pages.follow(&Rc::downgrade(&state.cycle));
-    }
+    state.follow_pages();
     let compact = surface == Surface::Sheet;
     let surfaces = Surfaces::of(tokens);
     let neutral = tokens.neutral;

@@ -1,104 +1,194 @@
-//! Create-and-assign shares the manager's one swatch renderer and kit dialog.
+//! Create label as a page of the Labels menu (TRACKER 792; Paseo's
+//! `WorkspaceLabelCreatePage`, `workspace-labels/picker.tsx`): beside the
+//! row menu, a flyout at the Labels list's Create label row ([`beside`]);
+//! on a phone the menu's sheet page titled Create label whose title row
+//! leads back to the list, and for the picker with no menu around it on a
+//! wide window a dialog with the same way back ([`overlay`]). All draw the
+//! kit's form page: the name in a menu field, the swatches on the rows'
+//! rail, Create, and a failure under it. The draft, its submit and the
+//! host's answer are the picker's as before.
 
 use std::rc::Rc;
-use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
-use vessel_app_kit::theme::spacing::S3;
-use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+use vessel_app_kit::dialog::{DialogContent, DialogSize, HeaderBack, dialog};
+use vessel_app_kit::menu::{
+    FormAct, FormPage, FormSheet, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows,
+    form_sheet,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
+use vessel_app_kit::theme::spacing::S2;
+use vessel_app_kit::ui::{
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, KeyDownEvent,
+    ParentElement as _, Styled as _, Window, div, px,
+};
+use vessel_app_kit::{Tokens, select};
 use vessel_app_link::labels::Command;
 use vessel_app_view::labels::{Assignment, EditAccess, PickerPage};
 
-use super::{Opening, availability};
+use super::{Opening, PickerPlace, WorkspacePicker, availability};
 use crate::shell::Shell;
 
-pub(super) fn overlay(
+/// The page's id among the row menu's pages (opened from the Labels page,
+/// press only: a page you type into is not one the pointer opens).
+pub(crate) const CREATE: &str = "labels-create";
+
+/// The page's rows, while there is a draft.
+fn rows(
     shell: &Shell,
+    picker: &WorkspacePicker,
     tokens: &Tokens,
+    narrow: bool,
     window: &Window,
     cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
+) -> Option<Div> {
     let state = &shell.areas.labels;
-    let picker = state.picker.as_ref()?;
     let (draft, pending) = match &picker.page {
         PickerPage::Listing => return None,
         PickerPage::Creating(draft) => (draft, false),
         PickerPage::Submitting { draft, .. } => (draft, true),
     };
     let opening = picker.opening;
-    let editable = !pending && availability(state, picker).connected();
-    let can_submit = editable && draft.label().is_some();
-    let on_choose = color_choice(opening);
-    let mut body = div()
-        .flex()
-        .flex_col()
-        .gap(px(S3))
-        .child(picker.name.element(tokens, false, cx))
-        .child(super::super::colors::choices_for(
-            shell,
-            draft.color(),
-            if editable {
-                EditAccess::Editable
-            } else {
-                EditAccess::ReadOnly
-            },
-            &on_choose,
-            tokens,
-            cx,
-        ));
-    if let Some(failure) = picker.error.or_else(|| draft.error()) {
-        body = body.child(super::super::draw::failure_text(failure, shell));
+    let connected = availability(state, picker).connected();
+    let words = shell.words.labels();
+    // Paseo's Create row: disabled while offline or the name is empty;
+    // "Creating…" with the spinner while the host answers.
+    let mut action = MenuItem::new(words.create_confirm().to_owned());
+    action.disabled = !connected || draft.label().is_none();
+    if pending {
+        action.status = ItemStatus::Pending(words.creating().to_owned().into());
+    }
+    let editability = if !pending && connected {
+        EditAccess::Editable
+    } else {
+        EditAccess::ReadOnly
+    };
+    let swatches =
+        div()
+            .px(px(ROW_TEXT_INSET))
+            .py(px(S2))
+            .child(super::super::colors::choices_for(
+                shell,
+                draft.color(),
+                editability,
+                &color_choice(opening),
+                tokens,
+                cx,
+            ));
+    let page = FormPage::new(&picker.name, action)
+        .with_body(swatches)
+        .with_hint(hint(shell, picker).map(Into::into));
+    let act: FormAct<Shell> =
+        Rc::new(move |shell, _window, cx| shell.labels_picker_submit(opening, cx));
+    Some(
+        form_rows(page, act, narrow, tokens, window, cx)
+            .debug_selector(|| "workspace-label-create".to_owned())
+            // Escape returns to the list, as the sheet's back and Paseo's
+            // `goBack` do.
+            .on_key_down(cx.listener(move |shell, event: &KeyDownEvent, window, cx| {
+                if event.keystroke.key == "escape" {
+                    shell.labels_picker_back(opening, window, cx);
+                    cx.stop_propagation();
+                }
+            })),
+    )
+}
+
+/// What shows under Create: a failure, else why nothing can change.
+fn hint(shell: &Shell, picker: &WorkspacePicker) -> Option<&'static str> {
+    let draft_error = match &picker.page {
+        PickerPage::Creating(draft) | PickerPage::Submitting { draft, .. } => draft.error(),
+        PickerPage::Listing => None,
+    };
+    if let Some(failure) = picker.error.or(draft_error) {
+        return Some(super::super::draw::failure_text(failure, shell));
     }
     if picker.access == EditAccess::ReadOnly {
-        body = body.child(shell.words.labels().read_only());
-    } else if let Err(failure) = availability(state, picker).writable() {
-        body = body.child(super::super::draw::failure_text(failure, shell));
+        return Some(shell.words.labels().read_only());
     }
-    let footer = vec![
-        button_with_kind(
-            "workspace-label-create-back",
-            shell.words.labels().back(),
-            ButtonKind::Secondary,
-            enabled(!pending),
+    availability(&shell.areas.labels, picker)
+        .writable()
+        .err()
+        .map(|failure| super::super::draw::failure_text(failure, shell))
+}
+
+/// The page beside the row menu: its flyout's panel, as wide as the list.
+pub(super) fn beside(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let picker = shell.areas.labels.picker.as_ref()?;
+    if !picker.visible || !matches!(picker.place, PickerPlace::Beside) {
+        return None;
+    }
+    let rows = rows(shell, picker, tokens, false, window, cx)?;
+    Some(
+        form_flyout(
+            "workspace-label-create-page",
+            rows,
+            px(select::WIDTH),
             tokens,
         )
-        .when(!pending, |button| {
-            button.on_click(cx.listener(move |shell, _, window, cx| {
-                shell.labels_picker_back(opening, window, cx);
-            }))
-        })
         .into_any_element(),
-        button_with_kind(
-            "workspace-label-create-submit",
-            if pending {
-                shell.words.labels().pending()
-            } else {
-                shell.words.labels().create()
-            },
-            ButtonKind::Primary,
-            enabled(can_submit),
+    )
+}
+
+/// The page away from the row menu's flyouts: on a phone the menu's
+/// sheet page titled Create label, its title row leading back to the list
+/// (Paseo's compact menu); on a wide window the picker with no menu around
+/// it has no flyout chain, so the page is a dialog with the same way back.
+pub(super) fn overlay(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let picker = shell.areas.labels.picker.as_ref()?;
+    if matches!(picker.place, PickerPlace::Beside) {
+        return None;
+    }
+    let narrow = vessel_app_kit::breakpoint::phone(window);
+    let rows = rows(shell, picker, tokens, narrow, window, cx)?;
+    let opening = picker.opening;
+    if narrow {
+        let words = shell.words.labels();
+        let back: FormAct<Shell> =
+            Rc::new(move |shell, window, cx| shell.labels_picker_back(opening, window, cx));
+        let dismiss: FormAct<Shell> =
+            Rc::new(move |shell, window, cx| shell.labels_picker_close(opening, window, cx));
+        let sheet = FormSheet {
+            title: words.create().into(),
+            back_label: words.back().into(),
+            back,
+            dismiss,
+        };
+        return Some(form_sheet(
+            "workspace-label-create-sheet",
+            &picker.dialog,
+            sheet,
+            rows,
             tokens,
-        )
-        .when(can_submit, |button| {
-            button.on_click(
-                cx.listener(move |shell, _, _window, cx| shell.labels_picker_submit(opening, cx)),
-            )
-        })
-        .into_any_element(),
-    ];
+            window,
+            cx,
+        ));
+    }
+    let content = DialogContent {
+        title: shell.words.labels().create().into(),
+        body: rows.into_any_element(),
+        footer: Vec::new(),
+        size: DialogSize::Normal,
+    }
+    .with_header_back(
+        HeaderBack::new(cx.listener(move |shell, _event, window, cx| {
+            shell.labels_picker_back(opening, window, cx);
+        }))
+        .with_label(shell.words.labels().back()),
+    );
     Some(dialog(
         &picker.dialog,
-        DialogContent {
-            title: shell.words.labels().create().into(),
-            body: body.into_any_element(),
-            footer,
-            size: DialogSize::Normal,
-        },
+        content,
         tokens,
         window,
-        vessel_app_kit::breakpoint::phone(window),
+        false,
         move |shell, window, cx| shell.labels_picker_close(opening, window, cx),
         cx,
     ))
@@ -195,11 +285,71 @@ impl Shell {
             picker.page = PickerPage::Listing;
             picker.error = None;
             picker.dialog.dismissed(window, cx);
-            state
-                .picker_combo
-                .open(Some(self.words.labels().search()), window, cx);
+            // Beside the row menu the list stayed open under its page: the
+            // keys go back to it; a sheet's list opens again.
+            if state.picker_combo.is_open() {
+                state.picker_combo.take_keys(true, window, cx);
+            } else {
+                state
+                    .picker_combo
+                    .open(Some(self.words.labels().search()), window, cx);
+            }
         }
         cx.notify();
+    }
+
+    /// The row menu opened the Create label page beside the list (a press
+    /// or Enter on its row): a fresh draft whose name holds the keys; the
+    /// list stays open beside it.
+    pub(crate) fn labels_row_picker_create(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.labels;
+        let Some(picker) = &state.picker else {
+            return;
+        };
+        if !picker.visible
+            || !matches!(picker.place, PickerPlace::Beside)
+            || !matches!(picker.page, PickerPage::Listing)
+        {
+            return;
+        }
+        let Some(next) = super::next_opening(state) else {
+            cx.notify();
+            return;
+        };
+        let Some(picker) = &mut state.picker else {
+            return;
+        };
+        match picker.page.create() {
+            Ok(()) => {
+                picker.opening = next;
+                picker.error = None;
+                picker.name = super::name_field(self.words.labels().name(), window, cx);
+                picker.applied_editability = None;
+                picker.name.focus(window, cx);
+            }
+            Err(failure) => picker.error = Some(failure),
+        }
+        self.labels_picker_settle(cx);
+        cx.notify();
+    }
+
+    /// The row menu's Create label page closed while its draft was open
+    /// (a press outside it, the menu's Escape): back to the list.
+    pub(crate) fn labels_row_picker_create_closed(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(picker) = &self.areas.labels.picker
+            && matches!(picker.page, PickerPage::Creating(_))
+        {
+            let opening = picker.opening;
+            self.labels_picker_back(opening, window, cx);
+        }
     }
 
     pub(super) fn labels_picker_close(
@@ -215,13 +365,5 @@ impl Shell {
             picker.dialog.dismissed(window, cx);
         }
         cx.notify();
-    }
-}
-
-const fn enabled(yes: bool) -> ButtonState {
-    if yes {
-        ButtonState::Enabled
-    } else {
-        ButtonState::Disabled
     }
 }

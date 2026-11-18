@@ -85,3 +85,8 @@ labels-changed = 선택한 연결이 변경되었습니다. 다시 시도하세�
 
 # Canonical workspace caller marks the registry target inactive or read-only; connecting cannot unlock it.
 labels-read-only = 이 작업공간에서는 라벨을 변경할 수 없습니다.
+
+# Create label page (TRACKER 792): the row that creates it (Paseo's workspaceLabels.createConfirm).
+labels-create-confirm = 만들기
+# Create label page: that row while the host answers (Paseo's workspaceLabels.creating).
+labels-creating = 만드는 중…

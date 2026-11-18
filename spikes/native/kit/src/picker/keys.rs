@@ -40,7 +40,7 @@ pub(super) fn key_handler<V: 'static>(
                     .and_then(|index| key_rows.get(index))
                     .and_then(|row| row.page.as_ref());
                 if let (Some(page), Some(pages)) = (page, &list.submenus) {
-                    pages.open(page, 0);
+                    pages.open(page, list.submenu_depth);
                 } else if let Some(index) = list.choice(&key_rows) {
                     chose(view, index, window, cx);
                     get(view).restore_choice_if_current(&lease, window, cx);

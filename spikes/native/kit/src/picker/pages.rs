@@ -8,6 +8,35 @@ use crate::submenu::Submenus;
 use gpui::prelude::*;
 use gpui::{Context, Div, Hsla, MouseButton, Stateful};
 
+impl ComboboxState {
+    /// Rows with a [`super::ComboRow::page`] open it beside the list through
+    /// `submenus` (a wide window; `None` keeps pages the screen's own), and a
+    /// press on an open page is not outside the list.
+    pub fn set_submenus(&mut self, submenus: Option<&Submenus>) {
+        self.submenus = submenus.cloned();
+        self.submenu_depth = 0;
+    }
+
+    /// As [`set_submenus`](Self::set_submenus) for a list that is itself a
+    /// page of a menu (a row menu's Labels page, TRACKER 792): its rows'
+    /// pages open at `depth`, after its own, and its opening leaves the
+    /// menu's path alone (the menu owns it, and the list's page is on it).
+    pub fn set_nested_submenus(&mut self, submenus: Option<&Submenus>, depth: usize) {
+        self.submenus = submenus.cloned();
+        self.submenu_depth = depth;
+    }
+
+    /// A new opening of a root list starts its pages at the root; a list
+    /// that is a menu's page leaves its menu's path alone.
+    pub(super) fn follow_pages(&self) {
+        if let Some(pages) = &self.submenus
+            && self.submenu_depth == 0
+        {
+            pages.follow(&std::rc::Rc::downgrade(&self.cycle));
+        }
+    }
+}
+
 /// Bind `element`, the row for `page`: the pointer at rest opens the page,
 /// leaving closes it after the grace, a press opens it at once; the screen's
 /// `chose` is not called.
@@ -20,7 +49,8 @@ pub(super) fn page_row<V: 'static>(
     wash: Hsla,
     cx: &mut Context<'_, V>,
 ) -> Stateful<Div> {
-    let open = pages.is_open(page, 0);
+    let depth = state.submenu_depth;
+    let open = pages.is_open(page, depth);
     let page = crate::submenu::PageId::from(page.to_owned());
     let hover_lease = state.render_lease();
     let press_lease = hover_lease.clone();
@@ -39,9 +69,9 @@ pub(super) fn page_row<V: 'static>(
                 return;
             }
             if *inside {
-                hovered.hover_open(&hovered_page, 0, window, cx);
+                hovered.hover_open(&hovered_page, depth, window, cx);
             } else {
-                hovered.hover_close(0, window, cx);
+                hovered.hover_close(depth, window, cx);
             }
         }))
         .on_mouse_down(
@@ -54,11 +84,13 @@ pub(super) fn page_row<V: 'static>(
         )
         .on_click(cx.listener(move |view: &mut V, _event, _window, cx| {
             if get(view).accepts(&click_lease) {
-                pressed.open(&page, 0);
+                pressed.open(&page, depth);
                 cx.notify();
             }
         }))
 }
 
+#[cfg(test)]
+mod nested_tests;
 #[cfg(test)]
 mod tests;
