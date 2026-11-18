@@ -200,8 +200,9 @@ Devices are sections there too (milestone 10, track W2).
   title in semibold primary text and its hollow dot filled in the muted
   ink, agent-orchestrator's unread dot. A mark the page asked for shows
   when the machine reports it.
-- **Below 768px** the sidebar is a sheet (the kit's `Sheet`, GOAT's
-  phone sidebar) from the title bar's menu button, over a scrim, so
+- **Compact** (below 600px, Paseo's `isCompactBreakpoint`: its `xs`
+  and `sm`, below `md` = 600; `src/ui/breakpoints.ts`) the sidebar is a
+  sheet (the kit's `Sheet`, GOAT's phone sidebar) from the title bar's menu button, over a scrim, so
   Settings' sections are reachable on a phone; picking a row closes
   it.
 - **Search** (`/` or `⌘K`) opens the command palette (§6.13): New
@@ -288,12 +289,18 @@ A 12-column grid inside `main`, not including the sidebar.
 
 | Breakpoint | Sidebar | Main | Columns | Gutter |
 | --- | --- | --- | --- | --- |
-| ≥ 1280px | 240px fixed | fluid | 12 | 16px |
-| 1100–1279 | 52px icon rail | fluid | 12 | 16px |
-| 768–1099 | hidden, drawer | fluid | 8 | 12px |
-| < 768 | hidden, drawer | fluid | 4 | 8px |
+| ≥ 1100px | 240px fixed | fluid | 12 | 16px |
+| 600–1099 | 52px icon rail | fluid | 8 | 12px |
+| < 600 (compact) | hidden, a sheet from the title bar | fluid | 4 | 8px |
 
-Page padding inside main: 16px (12px below 768). Max content width is
+Compact is Paseo's: a window below 600px (TRACKER 805; the page folded
+at 768 before, the native app moved to 600 in 798). The number lives in
+`src/ui/breakpoints.ts`; stylesheets write `@media (--compact)` and the
+build puts the same query in its place (`vite.config.ts`
+`compactMedia`, which refuses a width query spelling 599/600 or the old
+767/768).
+
+Page padding inside main: 16px (12px when compact). Max content width is
 the pane, not a centred 720px reading column — this is an app.
 
 ### 3.1 Common page frames
@@ -309,7 +316,7 @@ of its own, and literal values (an address, an id, a path) are only in
 those detail rows. A section about one machine (Agents, Models, Devices,
 Sync) names it in its heading and offers a ghost select of the machines;
 the choice is the address's `?machine=`, so it survives a reload and a
-move between sections. Below 768px the column's padding is 12px.
+move between sections. Compact, the column's padding is 12px.
 
 - **Machines**: a row per machine (a machine icon, its name, one line:
   platform, how it is reached, its state, live sessions; "This machine"
@@ -387,7 +394,7 @@ move between sections. Below 768px the column's padding is 12px.
   Meta is taken, refused in place when it needs a modifier, when the
   browser keeps it or when text editing uses it. A key another command
   holds opens "Shortcut already in use" (Reassign or Cancel); a clash
-  found in what is kept is said on both rows. Below 768px the search
+  found in what is kept is said on both rows. Compact, the search
   takes its own row.
 - **Notifications**: Sessions (Session notifications: Off,
   Notifications only, Sound only, Notifications and sound; Count in the
@@ -414,7 +421,7 @@ each a 48px heading over its own scrolling column of cards, then a 36px
 bar with the archive's count. When the book has more than one node a slim
 row above the lanes scopes the board to one. No inspector; a card opens
 the session. Below 1024px of pane the board scrolls sideways (lanes keep
-256px); below 768px the lanes stack.
+256px); compact, the lanes stack.
 
 **Session with a timeline.**
 
@@ -467,7 +474,7 @@ forget): the kit's (§6.9).
 | `--s-7` | 48 | empty-state vertical rhythm |
 
 Row heights: sidebar item 32px, table row 40px, topbar 40px, composer
-min 72px. Touch targets below 768px inflate to 44px; on desktop we
+min 72px. Touch targets on a compact window inflate to 44px; on desktop we
 keep 32px because this is a pointer-first operator tool, with visible
 focus for keyboard.
 
@@ -1437,7 +1444,7 @@ through its one seam (`reveal.ts`).
 The kit's `Sheet`: a dialog from the left edge, full height, the window
 less 12px and at most 320px wide, on the sidebar's surface over the
 dialog scrim, sliding in over 200ms (none under reduced motion); Escape
-or the scrim closes it. The sidebar uses it below 768px (§2.2). From the
+or the scrim closes it. The sidebar uses it when compact (§2.2). From the
 right (`side="right"`) it is as wide as the window less 12px, at most
 560px, on the page's surface: a session's panel below 1280px.
 
@@ -1807,7 +1814,7 @@ from the section's button; the section says what the browser answered.
   keyboard draws it inside itself; a popup's own surface does not draw
   it. Do not remove outlines. A mouse click on a button does not leave a
   ring (`:focus-visible` only).
-- **Hit targets.** 32px desktop, 44px below 768px for the primary
+- **Hit targets.** 32px desktop, 44px compact (below 600px) for the primary
   controls (nav, composer send, dialog buttons).
 - **Landmarks.** `role="banner"` topbar, `role="navigation"` sidebar,
   `role="main"`, inspector `role="complementary"`, composer is a

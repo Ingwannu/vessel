@@ -156,7 +156,7 @@
   opacity: 1;
 }
 
-@media (hover: none), (max-width: 767px) {
+@media (hover: none), (--compact) {
   .label-row .icon-btn {
     opacity: 1;
   }

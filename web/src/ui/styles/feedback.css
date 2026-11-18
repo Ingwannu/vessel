@@ -121,7 +121,7 @@
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 767px) {
+@media (--compact) {
   .toast-host {
     --toast-header-bottom: calc(
       var(--panel-inset-phone) + 1px + var(--topbar-h)

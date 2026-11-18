@@ -1,8 +1,8 @@
 // The chrome every page sits in (DESIGN.md §2.2): the sidebar and the
 // framed page with its title bar, set into one grey shell. The sidebar
 // can be hidden (its shortcut, or the title bar's button; kept with the
-// bridge); below 768px it opens as a sheet from the title bar's menu
-// button, as GOAT's does, and picking a row closes it.
+// bridge); compact (below 600px) it opens as a sheet from the title
+// bar's menu button, as GOAT's does, and picking a row closes it.
 
 import "./frame.css";
 

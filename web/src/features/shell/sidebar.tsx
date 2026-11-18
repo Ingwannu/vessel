@@ -14,10 +14,11 @@ import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
+import { COMPACT } from "../../ui/breakpoints";
 import { BrandMark, Icon, Kbd } from "../../ui/kit";
 import { SidebarSearch } from "../palette/palette";
 import { SidebarProjects } from "../projects/sidebar-projects";
-import { PHONE, useMedia } from "./use-media";
+import { useMedia } from "./use-media";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
 import { SidebarUsage } from "../usage/sidebar-usage";
@@ -55,7 +56,9 @@ export function Sidebar({
   const inSettings = place === "settings";
   const grouping = useStore(prefs, (state) => state.values.sidebar.group);
   const newKeys = useShortcutWords("new-session");
-  const phone = useMedia(PHONE);
+  // A compact window (below 600px, as Paseo) has no sidebar beside the
+  // page: it opens as a sheet (sidebar.css).
+  const phone = useMedia(COMPACT);
   return (
     <nav
       className="sidebar"
