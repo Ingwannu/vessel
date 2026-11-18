@@ -124,7 +124,10 @@ fn resting_on_labels_shows_the_picker_beside_and_leaves_the_keys_with_the_menu(
     // outside the menu and holds the page past the pointer's leaving.
     cx.simulate_mouse_move(row.center(), None, Modifiers::none());
     wait(cx, HOVER_OPEN);
-    let inside = point(px(f32::from(row.right()).mul_add(1.0, 20.0)), row.center().y);
+    let inside = point(
+        px(f32::from(row.right()).mul_add(1.0, 20.0)),
+        row.center().y,
+    );
     cx.simulate_mouse_move(inside, None, Modifiers::none());
     wait(cx, HOVER_CLOSE);
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
