@@ -1,6 +1,7 @@
 //! Titles longer than an older peer decodes (TRACKER 801, amending ADR
 //! 0022) in the replies that carry one outside a session: the inbox, the
-//! terminals and the workspace registry. Each is cut by
+//! terminals (script runs included: `script.list`'s runs and a started
+//! run, which `terminal.rename` can name) and the workspace registry. Each is cut by
 //! [`SessionTitle::for_protocol`]; sessions, their templates and the
 //! `renamed` event are cut where they are projected already
 //! (`SessionInfo::for_protocol`, `templates`, `SessionEvent`).
@@ -17,6 +18,7 @@
 use super::templates::changed;
 use crate::inbox::{InboxEntry, InboxPage};
 use crate::registry::{RegistrySnapshot, WorkspaceDescriptor};
+use crate::scripts::{ScriptList, ScriptRunOutcome};
 use crate::terminals::{TerminalInfo, TerminalList, TerminalSubscribed};
 use crate::{ProtocolVersion, SessionTitle};
 
@@ -61,6 +63,37 @@ pub(super) fn subscribed(
     let mut older = subscribed.clone();
     older.terminal = info;
     Some(older)
+}
+
+/// A project's scripts: its commands' rule first, then its runs' titles.
+pub(super) fn script_list(list: &ScriptList, protocol: ProtocolVersion) -> Option<ScriptList> {
+    let commands = list.commands.for_protocol(protocol);
+    let runs = changed(&list.runs, |info| terminal(info, protocol));
+    if commands.is_none() && runs.is_none() {
+        return None;
+    }
+    let mut older = list.clone();
+    if let Some(commands) = commands {
+        older.commands = commands;
+    }
+    if let Some(runs) = runs {
+        older.runs = runs;
+    }
+    Some(older)
+}
+
+/// A script's run or restart: a started run's title cut, any other outcome
+/// by its own rule (an approval it could not show).
+pub(super) fn script_outcome(
+    outcome: &ScriptRunOutcome,
+    protocol: ProtocolVersion,
+) -> Option<ScriptRunOutcome> {
+    if let ScriptRunOutcome::Started { terminal: run } = outcome {
+        return terminal(run, protocol).map(|run| ScriptRunOutcome::Started {
+            terminal: Box::new(run),
+        });
+    }
+    outcome.for_protocol(protocol)
 }
 
 /// A workspace with its given title cut.
@@ -243,5 +276,69 @@ mod tests {
             terminals: vec![info],
         };
         assert!(terminals(&list, older()).is_some());
+    }
+
+    /// What an older peer reads of a script run: its title, by that parse.
+    #[derive(Debug, Deserialize)]
+    struct OlderRun {
+        title: Option<OlderTitle>,
+    }
+
+    fn run() -> TerminalInfo {
+        let mut info = TerminalInfo::new(
+            crate::TerminalId::random(),
+            crate::terminals::TerminalPlace::Project {
+                project: crate::ProjectId::random(),
+                dir: None,
+            },
+            "checkout".into(),
+            crate::terminals::TerminalKind::Shell {
+                program: "/bin/sh".into(),
+            },
+            DateTime::UNIX_EPOCH,
+        );
+        // `terminal.rename` names a script's run as any terminal.
+        info.title = Some(long());
+        info
+    }
+
+    #[test]
+    fn script_runs_reach_an_older_peer_cut() {
+        let list = Reply::ListScripts(ScriptList {
+            root: "/work/app".into(),
+            commands: crate::workspace::ProjectCommands::None,
+            runs: vec![run()],
+        });
+        let whole = serde_json::to_value(&list).unwrap();
+        assert!(serde_json::from_value::<Vec<OlderRun>>(whole["runs"].clone()).is_err());
+        let Some(Reply::ListScripts(listed)) = list.for_protocol(older()) else {
+            panic!("the runs are rewritten for an older peer");
+        };
+        let value = serde_json::to_value(&listed).unwrap();
+        let runs: Vec<OlderRun> = serde_json::from_value(value["runs"].clone()).unwrap();
+        let title = runs[0].title.as_ref().unwrap();
+        assert_eq!(title.0.chars().count(), SessionTitle::LEGACY_MAX_CHARS);
+
+        for reply in [
+            Reply::RunScript(ScriptRunOutcome::Started {
+                terminal: Box::new(run()),
+            }),
+            Reply::RestartScript(ScriptRunOutcome::Started {
+                terminal: Box::new(run()),
+            }),
+        ] {
+            let projected = reply.for_protocol(older()).unwrap();
+            let (Reply::RunScript(outcome) | Reply::RestartScript(outcome)) = &projected else {
+                panic!("still a script outcome");
+            };
+            let value = serde_json::to_value(outcome).unwrap();
+            assert_eq!(value["outcome"], "started");
+            let started: OlderRun = serde_json::from_value(value["terminal"].clone()).unwrap();
+            assert_eq!(
+                started.title.unwrap().0.chars().count(),
+                SessionTitle::LEGACY_MAX_CHARS
+            );
+            assert_eq!(reply.for_protocol(crate::PROTOCOL_VERSION), None);
+        }
     }
 }

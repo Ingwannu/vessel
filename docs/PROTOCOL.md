@@ -79,7 +79,8 @@ event or record is added.
     older node would refuse the whole call.
   - A peer below this protocol receives every title over 120 characters cut to its first 120, trimmed. That
     covers sessions (current and asked titles), `renamed` events, saved prompts, schedules, the inbox,
-    terminals, workspaces and the registry snapshot. Its parse would otherwise refuse the frame.
+    terminals, script runs (`script.list`, `script.run`, `script.restart`), workspaces and the registry
+    snapshot. Its parse would otherwise refuse the frame. A transfer's blob keeps the stored title whole.
   - The node stores whole titles.
   - Clients take their limit from `SessionTitle::max_chars_for(protocol)`.
 - Not gated, for every peer: a title taken from a prompt is its first non-empty line, with each run of white

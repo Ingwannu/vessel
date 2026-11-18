@@ -20,8 +20,9 @@ export const TITLE_MAX = 200;
 /** The most an older node takes, and its other clients decode. */
 export const LEGACY_TITLE_MAX = 120;
 
-/** The protocol from which a node takes `TITLE_MAX` (vessel-proto's
- * `LONG_TITLES_PROTOCOL`; drafted as 30, assigned at merge). */
+/** The protocol from which a node takes `TITLE_MAX`: a copy of
+ * vessel-proto's `LONG_TITLES_PROTOCOL` (drafted as 30), which must follow
+ * the number assigned at merge. */
 export const LONG_TITLES_PROTOCOL = 30;
 
 /** The most characters a typed title may have on a node speaking

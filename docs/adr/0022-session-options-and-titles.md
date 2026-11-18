@@ -183,7 +183,9 @@ Questions:
     title cut to its first 120 characters, trimmed
     (`SessionTitle::for_protocol`). This covers sessions and their asked
     title, the `renamed` event, saved prompts and schedules, the inbox,
-    terminals, workspaces and the registry snapshot.
+    terminals, script runs (`script.list`'s runs and `script.run` or
+    `script.restart`'s started run, which `terminal.rename` can name),
+    workspaces and the registry snapshot.
   - Clients read their limit from `SessionTitle::max_chars_for(protocol)`
     (the page's `titleMax`), so the native rename field (TRACKER 800) uses
     the same rule.
@@ -197,4 +199,12 @@ Questions:
     form is still behind `PROJECT_FILE_KEYS` (unassigned), so no peer
     receives them yet. Assigning that number must add their projection.
   - Agent history titles (ADR 0053) are prompt titles, at most 60.
+  - A transfer's blob (`session.export`) carries the session's record as
+    stored, title whole: an older node importing it refuses the record.
+    Cutting it would change what the transfer copies; a long-titled session
+    is moved to an older node only after a rename to 120 characters.
+  - A downgrade to a build before this change refuses stored titles over
+    120 characters, as any older peer would.
+  - The page's `LONG_TITLES_PROTOCOL` (`web/src/data/titles.ts`) is a copy
+    of the number and must follow the one assigned at merge.
 
