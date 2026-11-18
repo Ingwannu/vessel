@@ -51,9 +51,12 @@ account; a failed read shows Paseo's one line ("Unable to load usage: …").
 
 The native app's dock notice (areas/usage/session.rs `limit_notice`; Paseo has none) over the page's composer,
 first among the docks (`features/usage/limit-notice.tsx`): when the node's `UsageLimits.notice` for the session
-says its saved login reports a full general window, the native English words ("The saved account reports a
-usage limit. This does not prove why the turn stopped.", the latest reported reset while ahead, "Wait for
-reset", "No prompt will be sent automatically. Continue when the account is ready.") and Switch model.
+says its saved login reports a full general window, the native English words and Switch model. Since TRACKER 788
+(native and page together, ADR 0075's rule that the notice states a fact and never a cause for a stopped turn):
+"This account has reached its usage limit.", then "Resets Fri, Nov 20, 3:01 PM" on one line while the reported
+reset is ahead, then "No prompt will be sent automatically. Continue when the account is ready." (Before 788: a
+disclaimer sentence after the fact, a bare date and "Wait for reset".) Window rows say Paseo's "Reset time passed"
+for values kept from before a reset, and "Resetting now" for a current read (format.ts formatResetLabel).
 
 - Data: `usage.limits` (protocol 23) with `{ kind: "session" }`, cached only, read when the composer opens and
   again after each record after which the login may be another (`Timeline.binding`: status, profile or options
