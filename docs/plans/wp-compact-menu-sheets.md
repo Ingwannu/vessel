@@ -8,7 +8,7 @@ Reference: pinned Paseo 0.15.4 (`1c00b365c`):
 `screens/workspace/compact-workspace-header/tab-switcher.tsx`,
 `components/ui/combobox.tsx` (`bottomSheetHeader`, `comboboxTitle`).
 
-Status: built; gates under "Status".
+Status: built and gated; frames with the coordinator.
 
 ## Paseo on a phone
 
@@ -63,4 +63,8 @@ dialog's sheet with its title row, rule and close button.
 
 ## Status
 
-Built; gates pending.
+Gates on 836f8d079 (build VM, ordinary lane): strict (fonts, fmt, quality,
+clippy) 0; app 326 passed, 0 failed, 2 ignored; kit 378. Frames at 390 on
+the base14.41 fleet (export of 836f8d079), dark English and light Korean:
+the switcher's title-only sheet, a row's menu sheet titled with the tab's
+label, and the Workspace actions sheet.
