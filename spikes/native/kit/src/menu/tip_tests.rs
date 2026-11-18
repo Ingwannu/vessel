@@ -77,9 +77,10 @@ fn a_rows_tooltip_comes_after_its_delay_right_of_the_row_and_centred(cx: &mut Te
     // Paseo's `side="right"`, `offset={10}`, `align="center"`.
     let gap = f32::from(row.right()).mul_add(-1.0, f32::from(card.left()));
     assert!((9.5..10.5).contains(&gap), "10 right of the row, was {gap}");
+    // Within the half point a whole-pixel layout rounds an odd height to.
     let centre = f32::from(row.center().y).mul_add(-1.0, f32::from(card.center().y));
     assert!(
-        (-0.5..0.5).contains(&centre),
+        (-0.5..=0.5).contains(&centre),
         "centred on the row, off by {centre}"
     );
 }
