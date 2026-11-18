@@ -16,10 +16,10 @@
 
 use vessel_app_kit::theme::spacing::{S0, S1_5};
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, IntoElement as _, ParentElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::session::{can_rename, park_state, session_name};
+use vessel_app_view::session::{park_state, session_name};
 use vessel_proto::SessionStatus;
 
 use super::bar::{lost_line, parked_chip, status_badge};
@@ -87,7 +87,7 @@ pub(crate) fn heading(shell: &Shell, tokens: &Tokens) -> Option<Heading> {
 
 /// The title as the bar shows it: the node's answer to a rename first, then
 /// the session's own report, then the frame's title.
-fn shown_title(shell: &Shell) -> String {
+pub(super) fn shown_title(shell: &Shell) -> String {
     let area = &shell.areas.conversation;
     let fallback = shell
         .areas
@@ -102,19 +102,3 @@ fn shown_title(shell: &Shell) -> String {
         .unwrap_or(fallback)
 }
 
-impl Shell {
-    /// The tab switcher row menu's Rename: the header's title becomes the
-    /// field, as a press on the bar's title does.
-    pub(crate) fn rename_from_header(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let renamable = self
-            .areas
-            .conversation
-            .info
-            .as_deref()
-            .is_some_and(can_rename);
-        if renamable {
-            let shown = shown_title(self);
-            self.start_rename(&shown, window, cx);
-        }
-    }
-}

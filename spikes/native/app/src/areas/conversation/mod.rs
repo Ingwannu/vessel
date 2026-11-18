@@ -98,6 +98,9 @@ pub(crate) use heading::heading;
 pub(crate) use meter::meter;
 pub(crate) use overlays::overlays;
 pub(crate) use place::{Answer, Place, SessionPlace};
+pub(crate) use rename::rename_dialog;
+#[cfg(test)]
+pub(crate) use rename::Route as RenameRoute;
 pub(crate) use seat::Seat;
 pub(crate) use timeline::timeline;
 

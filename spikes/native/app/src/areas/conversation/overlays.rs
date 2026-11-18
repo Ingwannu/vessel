@@ -53,8 +53,8 @@ fn going_back(
     floating
 }
 
-/// What floats over the frame: the Session actions menu when open, the
-/// confirm when one is asked.
+/// What floats over the frame: the confirm when one is asked, the agent's
+/// log when shown.
 pub(crate) fn overlays(
     shell: &Shell,
     tokens: &Tokens,
@@ -66,19 +66,6 @@ pub(crate) fn overlays(
     let mut floating = Vec::new();
     floating.extend(super::search::example(shell, tokens, window, cx));
     floating.extend(going_back(shell, tokens, narrow, cx));
-    let items = super::bar::menu_items(shell);
-    if let Some(menu) = menu(
-        "session-actions",
-        &area.menu,
-        &items,
-        &Shell::menu_handlers(),
-        tokens,
-        narrow,
-        cx,
-    ) {
-        floating.push(menu);
-    }
-    floating.extend(super::rename::rename_dialog(shell, tokens, window, cx));
     if let Some(confirm) = area.confirm {
         floating.push(confirm_dialog(shell, confirm, tokens, (window, narrow), cx));
     }

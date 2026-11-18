@@ -107,8 +107,6 @@ layout-explorer-open = 사이드 패널 열기
 layout-explorer-close = 사이드 패널 닫기
 # Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
 layout-rename-agent = 에이전트 이름 변경
-# The session bar's own "…" (marks, copy, close, log, kill), named apart from the workspace "…".
-layout-session-actions = 세션 작업
 # Tab menu: copy the command that resumes the agent in its own CLI (Paseo's workspace.tabs.menu.copyResumeCommand).
 layout-copy-resume-command = 재개 명령 복사
 # Tab menu: copy the terminal's id (Paseo's workspace.tabs.menu.copyTerminalId).
@@ -129,3 +127,9 @@ layout-copied-resume-command = 재개 명령
 layout-resume-id-unavailable = 재개 ID를 사용할 수 없습니다
 # Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).
 layout-resume-command-unavailable = 재개 명령을 사용할 수 없습니다
+# Rename dialog: the title is empty (Paseo's common.errors.nameRequired).
+layout-name-required = 이름을 입력하세요
+# Rename dialog: Rename's label while the rename waits for the host (Paseo's renameModal.saving).
+layout-rename-saving = 저장하는 중...
+# Rename dialog: a rename failed without the host's words (Paseo's common.errors.unableToSave).
+layout-unable-to-save = 저장할 수 없습니다

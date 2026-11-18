@@ -10,7 +10,7 @@ use crate::shell::Shell;
 use vessel_app_kit::menu::{Content, Layer, menu_with};
 use vessel_app_kit::ui::{AnyElement, Context, Window, px};
 use vessel_app_kit::{MenuHandlers, MenuItem, Tokens};
-use vessel_app_view::layout::{CloseEffect, CloseScope, LayoutAction, LayoutKey, TabId};
+use vessel_app_view::layout::{CloseEffect, CloseScope, LayoutAction, TabId};
 
 /// Paseo's tab menu `width` (`DROPDOWN_WIDTH`, workspace-desktop-tabs-row.tsx;
 /// workspace-tab-trailing-accessory.tsx).
@@ -119,14 +119,9 @@ pub(super) fn chose(
         Action::CopyResume => shell.tab_menu_copy_resume(tab, cx),
         Action::Rename => {
             shell.compact_close_switcher(window, cx);
-            // A workspace layout's rename carries the original node's
-            // authority and waits for its answer; elsewhere the session's
-            // own rename dialog (789), as the header's title opens it.
-            if matches!(super::key(shell), Ok(LayoutKey::Workspace { .. })) {
-                shell.layout_start_rename(tab, window, cx);
-            } else {
-                shell.rename_from_header(window, cx);
-            }
+            // The one rename dialog (TRACKER 800), as the bar's title opens
+            // it; it picks the workspace layout's route itself.
+            shell.open_rename(window, cx);
         }
         Action::Close(scope) => {
             shell.layout_select(tab, cx);

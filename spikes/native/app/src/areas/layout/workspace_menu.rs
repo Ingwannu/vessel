@@ -23,9 +23,8 @@
 //!   them out where it cannot create them; the desktop menu has neither),
 //!   Copy branch name (Vessel knows only the branch a session started on),
 //!   Show setup (no page).
-//! - Cost: until TRACKER 797 moves the session's actions into the wide tab
-//!   menu, the wide bar has two "…": this one after the title, the session's
-//!   at the bar's end ("Session actions").
+//! - The wide bar had a second "…" for the session's own actions until
+//!   TRACKER 800 removed it; they are the tab menu's (TRACKER 797).
 
 use crate::shell::Shell;
 use std::rc::Rc;

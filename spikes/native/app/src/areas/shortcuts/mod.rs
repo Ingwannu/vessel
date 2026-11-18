@@ -238,6 +238,19 @@ impl Shell {
             self.areas.shortcuts.held.release();
             return;
         }
+        // The platform's context-menu keys open the focused tab's menu
+        // (TRACKER 800, `layout::keyboard_menu`); they are not the app's
+        // shortcuts, so the registry never sees them when they do.
+        if crate::areas::layout::is_context_menu_key(
+            &press.key,
+            press.shift,
+            press.ctrl || press.alt || press.meta,
+        ) && self.layout_tab_menu_from_keyboard(window, cx)
+        {
+            self.areas.shortcuts.engine.reset();
+            cx.stop_propagation();
+            return;
+        }
         self.resolve_shortcut(&press, context, window, cx);
     }
 

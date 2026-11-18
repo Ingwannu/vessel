@@ -156,8 +156,14 @@ impl Shell {
             self.fork_answered(&answer);
             self.empty_fork_removed(&answer);
         }
+        // A rename the dialog sent settles there (TRACKER 800); its
+        // refusal is said under the field, not again under the title.
+        let renamed = self.rename_acted(&answer, cx);
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);
+        }
+        if renamed {
+            self.areas.conversation.refused = None;
         }
         if let Some(session) = again {
             self.resumed(session, cx);

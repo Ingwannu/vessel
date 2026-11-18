@@ -71,7 +71,6 @@ impl ConversationArea {
             return OwnerReadiness::Hold(HoldReason::ActiveEditor);
         }
         if self.confirm.is_some()
-            || self.menu.is_open()
             || self.forking.menu.is_open()
             || self.rewinding.menu.is_open()
         {

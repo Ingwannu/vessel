@@ -101,7 +101,11 @@ pub(crate) fn frame(
         .children(super::workspace_menu::overlay(shell, tokens, window, cx))
         .children(super::menu::overlay(shell, tokens, window, cx))
         .children(super::header::menu_overlay(shell, tokens, window, cx))
-        .children(super::rename::overlay(shell, tokens, window, cx))
+        // The one rename dialog, drawn by the frame so it shows whichever
+        // tab is in front (TRACKER 800).
+        .children(crate::areas::conversation::rename_dialog(
+            shell, tokens, window, cx,
+        ))
         .children(shell.areas.layout.tips.render(tokens));
     crate::areas::workspace::code_beside(shell, content, tokens, window, cx)
 }
@@ -274,6 +278,8 @@ fn tab_view(
     let menu_key = workspace.clone();
     let select_key = workspace.clone();
     let drop_key = workspace.clone();
+    // Where it is drawn: Shift+F10 opens its menu under it.
+    let place = shell.areas.layout.tab_place(id);
     tab(
         ElementId::Name(format!("layout-tab-{}", id.get()).into()),
         label,
@@ -281,6 +287,8 @@ fn tab_view(
         None,
         tokens,
     )
+    .relative()
+    .child(vessel_app_kit::anchor_probe(&place))
     .max_w(px(spacing::S32))
     .truncate()
     .on_click(cx.listener(move |shell, _event, _window, cx| {
