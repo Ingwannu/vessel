@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type FileActionKey, fileActions } from "./file-actions";
+import { type FileActionKey, fileActions, spaceActions } from "./file-actions";
 
 const ALL: ReadonlySet<FileActionKey> = new Set<FileActionKey>([
   "new-file",
@@ -67,5 +67,9 @@ describe("the Explorer's file actions (Paseo's file-actions-menu.tsx)", () => {
     const can = new Set<FileActionKey>(["copy-path", "download", "delete"]);
     const rows = fileActions({ kind: "file", open: false }, can);
     expect(drawn(rows)).toEqual(["Copy path", "Download", "—", "Delete"]);
+  });
+
+  it("the empty space makes a file or a folder at the root, nothing else", () => {
+    expect(drawn(spaceActions(ALL))).toEqual(["New file", "New folder"]);
   });
 });

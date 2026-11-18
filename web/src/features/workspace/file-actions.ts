@@ -152,3 +152,11 @@ export function fileActions(
     separatorBefore: index > 0 && chosen[index - 1]?.group !== spec.group,
   }));
 }
+
+/** The rows the tree's empty space offers (Paseo's explorer, 1351: New
+ * file and New folder at the root). */
+export function spaceActions(can: ReadonlySet<FileActionKey>): FileAction[] {
+  return fileActions({ kind: "dir", open: false }, can).filter(
+    (action) => action.key === "new-file" || action.key === "new-folder",
+  );
+}

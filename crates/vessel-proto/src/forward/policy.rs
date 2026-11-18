@@ -51,6 +51,8 @@ impl Method {
     ///   `session.rewind`) and protocol 17's `agent.history` (ADR 0053),
     ///   which an import there needs as `session.create` does; not
     ///   `node.settings` or `node.set_settings`, a node's administration.
+    /// - Forwardable, `session.reload` (TRACKER 803, ADR 0110), as
+    ///   `session.wake`: it acts on one session's agent.
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -226,6 +228,8 @@ impl Method {
             // Parking acts on a session as a prompt does.
             | Self::ParkSession
             | Self::WakeSession
+            // A reload acts on a session as a wake does (TRACKER 803).
+            | Self::ReloadSession
             // Forking and rewinding act on a session as a prompt does.
             | Self::ForkSession
             | Self::RewindSession

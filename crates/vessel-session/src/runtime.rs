@@ -26,6 +26,7 @@ pub use preparation_gate::{
 mod private_dir;
 #[cfg(test)]
 mod registration;
+mod reload;
 
 mod diagnostics;
 

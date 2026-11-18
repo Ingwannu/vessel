@@ -52,7 +52,9 @@ pub(crate) fn observe(
             cost::starting(connection, session)?;
             return Ok(());
         }
-        SessionEvent::Woken => {
+        // A reload (TRACKER 803) is a wake's restart on the same
+        // conversation: its Ready is consumed, its counter goes on.
+        SessionEvent::Woken | SessionEvent::Reloaded { .. } => {
             cost::woken(connection, session)?;
             return Ok(());
         }

@@ -96,6 +96,8 @@ mod prompts;
 #[cfg(test)]
 mod registration;
 #[cfg(test)]
+mod reload;
+#[cfg(test)]
 #[cfg(unix)]
 mod remote;
 #[cfg(test)]

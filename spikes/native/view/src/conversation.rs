@@ -214,7 +214,11 @@ impl Conversation {
             // Protocol 14's fork and rewind records: taken, not drawn yet
             // (the app's rewind and fork are a later slice).
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => {}
+            | SessionEvent::Rewound { .. }
+            // Protocol 31's reload record (ADR 0110): taken, not drawn
+            // yet; the history records it announces follow as ordinary
+            // agent records and are read as such.
+            | SessionEvent::Reloaded { .. } => {}
         }
     }
 

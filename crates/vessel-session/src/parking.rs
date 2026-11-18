@@ -247,7 +247,7 @@ impl StructuredActor {
     }
 
     /// Record the parked state and publish it.
-    async fn enter_parked(&mut self, reason: ParkReason) {
+    pub(crate) async fn enter_parked(&mut self, reason: ParkReason) {
         self.parking.parked = Some(Parked {
             since: Utc::now(),
             reason: reason.clone(),

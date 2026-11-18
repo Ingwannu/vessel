@@ -253,6 +253,8 @@ const fn forwardable(method: Method) -> bool {
         // Protocol 12: parking and waking a session's agent.
         | Method::ParkSession
         | Method::WakeSession
+        // TRACKER 803 (ADR 0110): the page's "Reload agent".
+        | Method::ReloadSession
         // Protocol 12: the node's settings (the change needs `admin`).
         | Method::GetNodeSettings
         | Method::SetNodeSettings

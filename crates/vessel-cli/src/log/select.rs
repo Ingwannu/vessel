@@ -68,7 +68,8 @@ fn kind(event: &SessionEvent) -> Option<Filter> {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
-        | SessionEvent::Rewound { .. } => None,
+        | SessionEvent::Rewound { .. }
+        | SessionEvent::Reloaded { .. } => None,
     }
 }
 

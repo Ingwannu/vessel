@@ -180,6 +180,9 @@ const fn refused(method: Method) -> bool {
         Method::ListProjects
         // Side-question policy refuses agents before reading a parent;
         // its typed reason belongs to that domain, not file/git policy.
+        // A reload refuses agents in its service with its own reason (a
+        // person reloads, TRACKER 803).
+        | Method::ReloadSession
         | Method::OpenSideQuestion
         | Method::PromptSideQuestion
         | Method::ResetSideQuestion
