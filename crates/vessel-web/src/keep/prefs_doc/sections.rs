@@ -11,7 +11,7 @@ use vessel_proto::{ChoiceValue, HarnessKind, NodeId, ProfileName, RawJson};
 use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
-    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, LabelPicks, Layout,
+    ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, LabelPicks, Layout,
     MachineDefaults, Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery,
     UsageDisplay, UsagePins, UsagePreferences,
 };
@@ -61,7 +61,7 @@ section! {
 
 section! {
     /// `layout`.
-    LayoutFile => Layout { sidebar: Panel, inspector: Panel }
+    LayoutFile => Layout { sidebar: Panel, inspector: Panel, explorer_sort: ExplorerSort }
 }
 
 section! {
