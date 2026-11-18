@@ -6,7 +6,8 @@ package base 14.44). Reference: pinned Paseo 0.15.4 (`1c00b365c`):
 `internal/catalog.ts`, `components/terminal-profile-icon.tsx`,
 `protocol/src/terminal-profiles.ts`.
 
-Status: plan approved by the coordinator (2026-11-18), being built.
+Status: built and gated on package base 14.50 (head eb0ad6a0e); frames
+with the coordinator.
 
 ## Rulings (coordinator, 2026-11-18)
 
