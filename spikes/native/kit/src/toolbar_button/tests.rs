@@ -320,3 +320,15 @@ fn the_header_island_takes_paseos_large_sixteen_glyph_and_keeps_the_frame() {
     assert!(config.header_island().island());
     assert_eq!(config.header_island().frame(), config.frame());
 }
+
+#[test]
+fn the_large_chrome_is_paseos_26_on_a_pointer_and_32_on_touch_and_square() {
+    let pointer = ToolbarConfig::new(ControlSizing::Pointer, ButtonState::Enabled);
+    let touch = ToolbarConfig::new(ControlSizing::Touch, ButtonState::Enabled);
+    assert_eq!(pointer.large().frame(), px(26.0));
+    assert_eq!(touch.large().frame(), px(32.0));
+    assert_eq!(pointer.frame(), px(20.0), "the default frame stays");
+    assert!(pointer.large().large_glyph() && !pointer.large().island());
+    assert!(touch.header_island().large_glyph() && touch.header_island().island());
+    assert!(!pointer.large_glyph());
+}

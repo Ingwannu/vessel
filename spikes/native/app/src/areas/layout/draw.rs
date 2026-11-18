@@ -98,6 +98,7 @@ pub(crate) fn frame(
             shell, &layout, &key, &mut agent, tokens, window, cx,
         ))
         .children(super::compact::overlay(shell, &layout, tokens, window, cx))
+        .children(super::workspace_menu::overlay(shell, tokens, window, cx))
         .children(super::menu::overlay(shell, tokens, window, cx))
         .children(super::header::menu_overlay(shell, tokens, window, cx))
         .children(super::rename::overlay(shell, tokens, window, cx))

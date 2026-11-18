@@ -21,6 +21,7 @@ mod resize;
 #[cfg(test)]
 pub(crate) mod residents;
 mod sheets;
+mod workspace_menu;
 
 use crate::shell::Shell;
 use std::cell::{Cell, RefCell};
@@ -32,6 +33,7 @@ use vessel_app_view::layout::{
 };
 
 pub(crate) use draw::frame;
+pub(crate) use workspace_menu::{Header as WorkspaceMenuHeader, trigger as workspace_menu_trigger};
 
 /// Presentation retained across navigation; buffers stay with feature owners.
 pub(crate) struct LayoutArea {
@@ -49,6 +51,8 @@ pub(crate) struct LayoutArea {
     menu_surface: menu::Surface,
     /// The compact workspace header (TRACKER 789).
     compact: compact::Compact,
+    /// The workspace "…" menu at both widths (TRACKER 795).
+    workspace_menu: workspace_menu::WorkspaceMenu,
     /// The pane header's "+" and "…" menus (one open at a time).
     header_menu: MenuState,
     header_menu_for: Option<header::HeaderMenu>,
@@ -72,6 +76,7 @@ impl LayoutArea {
             menu_tab: None,
             menu_surface: menu::Surface::Strip,
             compact: compact::Compact::new(cx),
+            workspace_menu: workspace_menu::WorkspaceMenu::new(cx),
             header_menu: MenuState::new(cx),
             header_menu_for: None,
             maximized: None,

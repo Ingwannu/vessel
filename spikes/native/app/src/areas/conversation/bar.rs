@@ -66,7 +66,7 @@ pub(crate) fn bar(
             .text_color(tokens.neutral.destructive)
             .child(why.clone())
     });
-    let actions = actions_button(tokens, narrow, cx);
+    let actions = actions_button(shell, tokens, narrow, cx);
     div()
         .flex()
         .flex_row()
@@ -87,6 +87,15 @@ pub(crate) fn bar(
                 .text_color(tokens.neutral.foreground_extra_muted)
                 .child(detail),
         )
+        // The workspace "…" right after the title group, as Paseo's header
+        // (TRACKER 795, `layout::workspace_menu`).
+        .child(crate::areas::layout::workspace_menu_trigger(
+            shell,
+            crate::areas::layout::WorkspaceMenuHeader::Bar,
+            vessel_app_kit::ControlSizing::from_compact(narrow),
+            tokens,
+            cx,
+        ))
         .child(div().flex_1())
         .children(lost)
         .children(refused)
@@ -120,11 +129,20 @@ pub(super) fn status_badge(
         .child(words.status_word(status))
 }
 
-/// The Session actions button: its menu opens where it was pressed.
-fn actions_button(tokens: &Tokens, narrow: bool, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
+/// The Session actions button: its menu opens where it was pressed. Named
+/// "Session actions" so it is never taken for the workspace "…" beside the
+/// title (TRACKER 795, until 797 moves these actions into the tab menu).
+fn actions_button(
+    shell: &Shell,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Stateful<Div> {
     let surfaces = popup::Surfaces::of(tokens);
     div()
         .id("session-actions")
+        .role(gpui::Role::Button)
+        .aria_label(shell.words.layout().session_actions().to_owned())
         .flex_shrink_0()
         .size(px(if narrow { 44.0 } else { 28.0 }))
         .flex()
@@ -230,6 +248,8 @@ fn title_element(
         .truncate()
         .type_(Type::Label)
         .text_color(tokens.neutral.foreground);
+    #[cfg(test)]
+    let text = text.debug_selector(|| "session-title-text".to_owned());
     if !renamable {
         return text.child(title).into_any_element();
     }

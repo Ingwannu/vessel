@@ -107,3 +107,5 @@ layout-explorer-open = 사이드 패널 열기
 layout-explorer-close = 사이드 패널 닫기
 # Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
 layout-rename-agent = 에이전트 이름 변경
+# The session bar's own "…" (marks, copy, close, log, kill), named apart from the workspace "…".
+layout-session-actions = 세션 작업

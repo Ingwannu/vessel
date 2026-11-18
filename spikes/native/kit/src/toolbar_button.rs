@@ -41,7 +41,11 @@ impl ToolbarButton {
         config: ToolbarConfig,
         tokens: &crate::Tokens,
     ) -> Self {
-        let icon = if config.island() { icon.large() } else { icon };
+        let icon = if config.large_glyph() {
+            icon.large()
+        } else {
+            icon
+        };
         Self::with_content(
             id,
             label,

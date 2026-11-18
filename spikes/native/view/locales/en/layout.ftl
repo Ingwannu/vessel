@@ -107,3 +107,5 @@ layout-explorer-open = Open Explorer sidebar
 layout-explorer-close = Close Explorer sidebar
 # Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
 layout-rename-agent = Rename agent
+# The session bar's own "…" (marks, copy, close, log, kill), named apart from the workspace "…".
+layout-session-actions = Session actions
