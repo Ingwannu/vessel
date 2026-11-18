@@ -316,9 +316,7 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
     });
     // Its copy says so as Paseo's (TRACKER 804): "Copied Workspace path".
     probe.update(cx, |probe, cx| {
-        probe
-            .0
-            .update(cx, |shell, cx| shell.copy_workspace_path(cx));
+        probe.0.update(cx, Shell::copy_workspace_path);
     });
     probe.read_with(cx, |probe, cx| {
         let said = probe.0.read(cx).areas.toasts.shown().cloned();
