@@ -2,14 +2,16 @@
 // control is not needed this minute, it is in a menu", DESIGN.md §1):
 // its marks where the machine keeps them (protocol 10: pin, read or
 // unread, start again, archive or unarchive, delete; use-mark-actions.tsx),
-// move to another profile, copy its id, kill. Moving, archiving, deleting
-// and killing ask first, in a dialog.
+// move to another profile, copy its id, reload its agent (TRACKER 803,
+// data/reload.ts), kill. Moving, archiving, deleting and killing ask first,
+// in a dialog.
 
 import { useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { type MarkAction, markActions } from "../../data/marks";
-import { killSession } from "../../data/calls";
+import { killSession, reloadSession } from "../../data/calls";
+import { canReload, RELOAD_WORDS, reloadFailure } from "../../data/reload";
 import { isLive, shortId } from "../../data/format";
 import {
   Button,
@@ -61,6 +63,19 @@ export function SessionActions({
     ) : null;
   const close = () => {
     setDialog(null);
+  };
+  // Paseo's `handleReloadAgent`: its toast stays up until the answer
+  // replaces it.
+  const reload = () => {
+    toast(RELOAD_WORDS.reloading, "default", { durationMs: null });
+    void reloadSession(fleet, node, session.id).then((outcome) => {
+      if (outcome.ok) {
+        toast(RELOAD_WORDS.reloaded, "success");
+        void fleet.refreshSessions(node);
+      } else {
+        toast(reloadFailure(outcome.problem.message), "error");
+      }
+    });
   };
   const kill = () => {
     setDialog(null);
@@ -115,6 +130,15 @@ export function SessionActions({
         >
           Copy agent id
         </MenuItem>
+        {canReload(session, protocol) ? (
+          <MenuItem
+            icon="refresh"
+            tooltip={RELOAD_WORDS.tooltip}
+            onSelect={reload}
+          >
+            {RELOAD_WORDS.label}
+          </MenuItem>
+        ) : null}
         {offered.includes("delete") ? (
           <>
             <MenuSeparator />

@@ -52,7 +52,8 @@ pub(crate) fn signal(event: &SessionEvent) -> Option<Signal<'_>> {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
-        | SessionEvent::Rewound { .. } => None,
+        | SessionEvent::Rewound { .. }
+        | SessionEvent::Reloaded { .. } => None,
     }
 }
 

@@ -27,10 +27,14 @@ use crate::sessions::again;
 impl NodeService {
     /// Start the ended session `id` again for `connection`'s caller; its
     /// info once its agent is ready.
+    /// `rehydrate`, a reload's (TRACKER 803): the stored log's user
+    /// prompts, which the agent's replay is lined up with instead of being
+    /// dropped.
     pub(super) async fn start_again(
         &self,
         connection: &Connection,
         id: SessionId,
+        rehydrate: Option<vessel_session::UserPrompts>,
     ) -> Result<SessionInfo, ServiceError> {
         if self.lifecycle.is_draining() {
             return Err(ServiceError::Draining);
@@ -54,6 +58,7 @@ impl NodeService {
             Some(SessionPlace::Project { .. }) | None => None,
         };
         let mut launch = self.launcher.again(&self.profiles, &ended.info)?;
+        launch.rehydrate = rehydrate;
         // The schedules its agent made in its last run go first: a run
         // started again is a new grant, and a heartbeat does not outlive
         // the run that set it (ADR 0033, "Integration 3 (node)").

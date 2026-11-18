@@ -161,6 +161,15 @@ pub enum SessionEvent {
         /// those changes were not put back.
         files_changed: u32,
     },
+    /// The agent was started again on its conversation and is ready
+    /// (`session.reload`, ADR 0110); the `appended` records after this one
+    /// are what its own history had beyond the log (`crate::reload`).
+    Reloaded {
+        /// The conversation it runs on: the same as before.
+        harness_session: crate::id::HarnessSessionId,
+        /// How many records follow from the agent's history.
+        appended: u32,
+    },
 }
 
 impl SessionEvent {
@@ -180,6 +189,7 @@ impl SessionEvent {
             | Self::UsageChanged { .. } => Some(ProtocolVersion::new(10)),
             Self::Parked { .. } | Self::Woken => Some(ProtocolVersion::new(12)),
             Self::Forked { .. } | Self::Rewound { .. } => Some(ProtocolVersion::new(14)),
+            Self::Reloaded { .. } => crate::reload::RELOAD_PROTOCOL,
         }
     }
 
@@ -254,6 +264,7 @@ impl SessionEvent {
                     String::new()
                 }
             )),
+            Self::Reloaded { appended, .. } => log(crate::reload::reloaded_line(*appended)),
         }
     }
 

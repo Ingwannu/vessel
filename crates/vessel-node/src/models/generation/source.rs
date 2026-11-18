@@ -154,7 +154,8 @@ fn cancels(event: &SessionEvent, expected: &SessionTitle) -> bool {
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
         | SessionEvent::UsageChanged { .. }
-        | SessionEvent::Woken => false,
+        | SessionEvent::Woken
+        | SessionEvent::Reloaded { .. } => false,
     }
 }
 

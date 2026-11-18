@@ -69,6 +69,9 @@ const BINDING: ReadonlySet<string> = new Set([
   "parked",
   "woken",
   "rewound",
+  // TRACKER 803: a reload starts the agent under its profile's sign-in as
+  // it stands now.
+  "reloaded",
 ]);
 
 /** One batch's mutable copy. */
@@ -191,6 +194,12 @@ class Work {
         // Protocol 14 (ADR 0052): where a fork's conversation comes from,
         // and a rewind's turn. Drawing them (the source's history above a
         // fork, the left-behind turns folded) is the conversation track's.
+        return;
+      case "reloaded":
+        // TRACKER 803 (ADR 0110): the agent was started again on its
+        // conversation. What its own history added follows as ordinary
+        // records, drawn as the conversation is; the reload itself is the
+        // toast the row shows, as in Paseo.
         return;
     }
   }

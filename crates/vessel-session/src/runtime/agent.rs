@@ -83,6 +83,7 @@ impl SessionRuntime {
         let ActorStart {
             desk,
             replaying,
+            rehydrate,
             gate,
             opening,
         } = actor;
@@ -107,10 +108,7 @@ impl SessionRuntime {
             ready: false,
             disconnect: None,
             failed_before_kill: false,
-            move_state: MoveState {
-                replaying,
-                ..MoveState::default()
-            },
+            move_state: MoveState::starting(replaying, rehydrate),
             desk,
             gate,
             loader: self.attachments.clone(),

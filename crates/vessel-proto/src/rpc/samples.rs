@@ -58,6 +58,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetPullRequest
         | Method::ParkSession
         | Method::WakeSession
+        | Method::ReloadSession
         | Method::ForkSession => json!({"session": id}),
         Method::CreateSession => json!({"spec":{"harness":"codex","mode":"structured"}}),
         Method::PromptSideQuestion => json!({"session":id,"question":"sample"}),

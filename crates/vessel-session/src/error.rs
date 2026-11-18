@@ -120,6 +120,12 @@ pub enum SessionError {
     /// `session.resume`).
     #[error("the session cannot start again: {0}")]
     NotResumable(#[from] NotResumable),
+    /// `session.reload` refused (TRACKER 803).
+    #[error("the session's agent cannot be reloaded: {0}")]
+    NotReloadable(#[from] crate::NotReloadable),
+    /// The reloaded agent did not become the session's (TRACKER 803).
+    #[error("the session's agent did not reload: {0}")]
+    ReloadFailed(String),
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
@@ -295,6 +301,7 @@ impl SessionError {
                 | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
             Self::Probe(vessel_agent::ProbeError::CatalogUnsupported { .. }) => ErrorCode::Unsupported,
+            Self::NotReloadable(refusal) => refusal.code(),
             Self::Probe(vessel_agent::ProbeError::CatalogTimedOut { .. }) => ErrorCode::Unavailable,
             Self::Spawn(_)
             | Self::StartAgent(_)
@@ -307,6 +314,7 @@ impl SessionError {
                 | vessel_agent::HistoryError::TimedOut { .. },
             )
             | Self::WakeFailed(_)
+            | Self::ReloadFailed(_)
             | Self::RewindFailed(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
             // An agent this node has not added (ADR 0032).

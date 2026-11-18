@@ -131,7 +131,8 @@ impl SessionEvent {
             | Self::Parked { .. }
             | Self::Woken
             | Self::Forked { .. }
-            | Self::Rewound { .. } => false,
+            | Self::Rewound { .. }
+            | Self::Reloaded { .. } => false,
         }
     }
 }
