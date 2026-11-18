@@ -152,6 +152,7 @@ pub fn toast_with(
     };
     let card = div()
         .id(id.clone())
+        .debug_selector(|| "toast-card".to_owned())
         .flex()
         .flex_row()
         .items_center()
@@ -222,10 +223,19 @@ pub fn toast_layer(card: AnyElement, top: f32, window: &Window) -> AnyElement {
                         .flex()
                         .flex_col()
                         .items_center()
-                        .child(popup::layer(div().child(card))),
+                        // The card's holder is held to the boundary too: a
+                        // centred child takes its content's width, so
+                        // without it a long message ran on one line across
+                        // the window (TRACKER 803) where Paseo's wraps
+                        // (`toast: maxWidth 100%`, `message: flexShrink 1`).
+                        .child(popup::layer(div().max_w_full().child(card))),
                 ),
         ),
     )
     .with_priority(3)
     .into_any_element()
 }
+
+#[cfg(test)]
+#[path = "toast_tests.rs"]
+mod tests;
