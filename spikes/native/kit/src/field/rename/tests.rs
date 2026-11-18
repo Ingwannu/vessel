@@ -1,7 +1,7 @@
 //! The rename field's character limit (Paseo's `maxLength`).
 use super::*;
 use crate::{Scheme, SchemeChoice, Tokens};
-use gpui::{Context, IntoElement, ParentElement as _, Render, TestAppContext, Window, div};
+use gpui::{Context, IntoElement, Render, TestAppContext, Window, div};
 
 struct Probe {
     field: TextField,
