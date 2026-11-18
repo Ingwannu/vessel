@@ -51,9 +51,12 @@ account; a failed read shows Paseo's one line ("Unable to load usage: …").
 
 The native app's dock notice (areas/usage/session.rs `limit_notice`; Paseo has none) over the page's composer,
 first among the docks (`features/usage/limit-notice.tsx`): when the node's `UsageLimits.notice` for the session
-says its saved login reports a full general window, the native English words ("The saved account reports a
-usage limit. This does not prove why the turn stopped.", the latest reported reset while ahead, "Wait for
-reset", "No prompt will be sent automatically. Continue when the account is ready.") and Switch model.
+says its saved login reports a full general window, the native English words and Switch model. Since TRACKER 788
+(native and page together, ADR 0075's rule that the notice states a fact and never a cause for a stopped turn):
+"This account has reached its usage limit.", then "Resets Fri, Nov 20, 3:01 PM" on one line while the reported
+reset is ahead, then "No prompt will be sent automatically. Continue when the account is ready." (Before 788: a
+disclaimer sentence after the fact, a bare date and "Wait for reset".) Window rows say Paseo's "Reset time passed"
+for values kept from before a reset, and "Resetting now" for a current read (format.ts formatResetLabel).
 
 - Data: `usage.limits` (protocol 23) with `{ kind: "session" }`, cached only, read when the composer opens and
   again after each record after which the login may be another (`Timeline.binding`: status, profile or options
@@ -119,8 +122,13 @@ coordinator as a separate parity item.
   - The box stays usable while a permission waits on nodes from protocol 10 (before 10 nothing can be sent during
     a turn, so it stays disabled with "Answer the permission to continue"); the placeholder says what Enter will
     do (`nextDelivery`).
-- Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so); the
-  page's other way of Queue stays Steer where the agent can (Paseo's is Interrupt), left as it was.
+- Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so).
+- Frame return (coordinator): the permission card was GOAT's drawer tucked 16px under the box, which the box now
+  covers while a permission waits; it now sits 8px above the box with its whole border (Paseo keeps the pending
+  card fully visible above the composer), checked in conversation.spec at 1280x900, 1280x560 and 390x844.
+- Follow-up (coordinator, same day): the other way of Queue is interrupt-and-send, as Paseo's "Command/Ctrl+Enter
+  submits" (`resolveAlternateSendAction`), where the page used to steer; Settings › General's Default send hint is
+  Paseo's words (en.ts settings.general.defaultSend.descriptions / commandEnterDescriptions) by the send key.
 - Tests: delivery.test.ts (both rules, nextDelivery), composer-words.test.ts (placeholders), conversation.spec
   (Queue while a permission waits: box enabled, placeholder, "Interrupt and send"), app.spec (box enabled).
 

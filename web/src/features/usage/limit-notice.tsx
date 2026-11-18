@@ -1,9 +1,10 @@
 // The session's limit notice over its composer (native app
 // areas/usage/session.rs `limit_notice`, in the conversation dock; Paseo
 // has none). When the saved login the session runs under reports a full
-// general window: the fact, said as no proof of why a turn stopped; the
-// latest reported reset while it is ahead; that nothing is sent by itself;
-// and Switch model, which opens the composer's own model control.
+// general window: the fact as a plain sentence, never a cause for a
+// stopped turn (TRACKER 788); "Resets …" on one line while the reported
+// reset is ahead; that nothing is sent by itself; and Switch model, which
+// opens the composer's own model control.
 //
 // [Decision Log] (2026-11-17, impl U, TRACKER 771 P3)
 // - Purpose: the page says what the native app says when a session's
@@ -104,8 +105,11 @@ export function LimitNoticeView({
   const clock = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
       }),
     [locale],
   );
@@ -118,15 +122,14 @@ export function LimitNoticeView({
       </span>
       <div className="limit-notice-text">
         <p className="limit-notice-title">
-          The saved account reports a usage limit. This does not prove why the
-          turn stopped.
+          This account has reached its usage limit.
         </p>
         {reset === null ? null : (
           <p className="limit-notice-detail">
+            Resets{" "}
             <time dateTime={reset.toISOString()}>{clock.format(reset)}</time>
           </p>
         )}
-        <p className="limit-notice-detail">Wait for reset</p>
         <p className="limit-notice-detail">
           No prompt will be sent automatically. Continue when the account is
           ready.

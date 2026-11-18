@@ -20,9 +20,9 @@
 //   (agent-orchestrator's arrow to queue, GOAT's and T3 Code's turn for a
 //   steer), the default from the preference (Paseo's "Default send"),
 //   the other way with the modifier, as all three do. The other way of
-//   queue is steer where the agent can and interrupt where it cannot; of
-//   steer and interrupt, queue (Paseo's pairs). The person's choice is
-//   kept for the next agent that can steer.
+//   queue is interrupt-and-send (Paseo's "Command/Ctrl+Enter submits",
+//   `resolveAlternateSendAction`); of steer and interrupt, queue. The
+//   person's choice is kept for the next agent that can steer.
 // - TRACKER 794, Paseo's two rules, as the native app has them
 //   (view/src/session/delivery.rs `send_delivery`): a Steer the agent
 //   cannot take replaces the turn (Paseo's server,
@@ -134,8 +134,7 @@ export function sendPlan(state: SendState): SendPlan {
   return {
     kind: "deliver",
     delivery,
-    alternate:
-      delivery === "queue" ? (steers ? "steer" : "interrupt") : "queue",
+    alternate: delivery === "queue" ? "interrupt" : "queue",
     fallback:
       delivery === chosen
         ? null
