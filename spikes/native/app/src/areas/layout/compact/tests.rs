@@ -481,7 +481,7 @@ fn at_700_a_strip_tabs_menu_is_a_popover(cx: &mut TestAppContext) {
     probe.update_in(cx, |probe, window, cx| {
         probe.0.update(cx, |shell, cx| {
             // As a right press on the strip tab opens it (`draw::tab_view`).
-            let workspace = super::super::key(shell).unwrap();
+            let workspace = key(shell).unwrap();
             let area = &mut shell.areas.layout;
             area.menu_surface = Surface::Strip;
             area.menu_tab = Some((workspace, ids[0]));
