@@ -4,7 +4,9 @@ use super::*;
 use crate::submenu::Submenus;
 use crate::{Scheme, Tokens};
 use gpui::prelude::*;
-use gpui::{Entity, Modifiers, Render, TestAppContext, VisualTestContext, div, point, px};
+use gpui::{
+    Entity, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext, div, point, px,
+};
 
 struct Probe {
     menu: MenuState,
@@ -117,5 +119,39 @@ fn a_resting_pointer_does_not_open_a_page_of_the_sheet(cx: &mut TestAppContext) 
     view.read_with(cx, |probe, _| {
         assert!(!probe.submenus.is_open("labels", 0));
         assert!(probe.drawn);
+    });
+}
+
+/// Drag from `from` down by `distance`, then hold past the velocity window
+/// before letting go, so only where it was let go decides.
+fn drag_down(cx: &mut VisualTestContext, from: Point<Pixels>, distance: f32) {
+    let to = point(from.x, px(f32::from(from.y).mul_add(1.0, distance)));
+    cx.simulate_mouse_down(from, MouseButton::Left, Modifiers::none());
+    for step in 1_u8..=4 {
+        let y = distance.mul_add(f32::from(step).mul_add(0.25, 0.0), f32::from(from.y));
+        cx.simulate_mouse_move(point(from.x, px(y)), MouseButton::Left, Modifiers::none());
+    }
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+}
+
+#[gpui::test]
+fn a_pan_down_the_sheet_past_its_middle_closes_the_menu(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, true);
+    let row = labels_row(&view, cx);
+    let (_, height) = window_size(cx);
+    drag_down(cx, row.center(), height);
+    view.read_with(cx, |probe, _| assert!(!probe.menu.is_open()));
+}
+
+#[gpui::test]
+fn a_short_pan_lets_the_sheet_spring_back_open(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, true);
+    let row = labels_row(&view, cx);
+    drag_down(cx, row.center(), 12.0);
+    view.read_with(cx, |probe, _| {
+        assert!(probe.menu.is_open());
+        assert!(!probe.submenus.is_open("labels", 0));
     });
 }

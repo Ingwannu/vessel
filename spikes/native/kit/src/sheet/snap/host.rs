@@ -72,6 +72,12 @@ impl SheetState {
         crate::picker::anchor_probe(&self.panel)
     }
 
+    /// The panel where it was last measured (tests find its handle there).
+    #[cfg(test)]
+    pub(crate) fn panel_bounds(&self) -> Option<Bounds<Pixels>> {
+        self.panel.get()
+    }
+
     fn sample(
         &self,
         points: SnapPoints,

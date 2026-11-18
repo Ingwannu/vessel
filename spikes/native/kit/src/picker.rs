@@ -52,6 +52,8 @@ mod pages;
 mod panel;
 mod rows;
 mod send;
+#[cfg(test)]
+mod sheet_drag_tests;
 pub use send::{SendKind, send_button};
 
 /// Paseo's compact width: below it pickers are sheets and controls are

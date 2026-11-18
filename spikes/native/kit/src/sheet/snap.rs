@@ -21,6 +21,8 @@ mod points;
 #[cfg(test)]
 mod configuration_tests;
 #[cfg(test)]
+mod content_tests;
+#[cfg(test)]
 mod tests;
 
 pub use motion::Stop;
