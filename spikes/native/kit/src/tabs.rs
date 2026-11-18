@@ -133,7 +133,11 @@ mod tests {
 
     struct Probe;
     impl Render for Probe {
-        fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
+        fn render(
+            &mut self,
+            _window: &mut Window,
+            _cx: &mut Context<'_, Self>,
+        ) -> impl IntoElement {
             let tokens = Tokens::of(Scheme::Dark);
             let long = "Review the shell's command palette with long session titles";
             div().child(
