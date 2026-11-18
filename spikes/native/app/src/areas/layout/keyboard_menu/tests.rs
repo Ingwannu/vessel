@@ -103,15 +103,27 @@ fn shift_f10_opens_the_menu_while_the_composer_has_the_keys(cx: &mut TestAppCont
     let (shell, cx, agent) = page(cx, 1280.0);
     let focused = shell.update_in(cx, |shell, window, cx| {
         shell.areas.session.composer.focus(window, cx);
-        shell.areas.session.composer.focus_handle(cx).is_focused(window)
+        shell
+            .areas
+            .session
+            .composer
+            .focus_handle(cx)
+            .is_focused(window)
     });
     cx.run_until_parked();
     cx.simulate_keystrokes("shift-f10");
     let seen = shell.read_with(cx, |shell, _| {
         let area = &shell.areas.layout;
-        (area.menu.is_open(), area.menu_tab.as_ref().map(|(_, tab)| *tab))
+        (
+            area.menu.is_open(),
+            area.menu_tab.as_ref().map(|(_, tab)| *tab),
+        )
     });
-    assert_eq!((focused, seen), (true, (true, Some(agent))), "right after the key");
+    assert_eq!(
+        (focused, seen),
+        (true, (true, Some(agent))),
+        "right after the key"
+    );
     cx.run_until_parked();
     assert_eq!(menu_on(&shell, cx), Some(agent), "a frame later");
 }
