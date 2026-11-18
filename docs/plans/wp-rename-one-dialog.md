@@ -129,11 +129,13 @@ limit comes from it and the connected node's protocol instead of
 
 ## Status
 
-Gates on c4e51bad5 (build VM, ordinary lane): strict (fonts, fmt, quality,
-clippy) 0; app 323 passed, 0 failed, 2 ignored; kit 367; view 1299 lib tests
-and every integration suite; wasm32 check of link and app 0, no warnings.
-Frames (export of c4e51bad5): the wide bar without the session "…"; the
-dialog prefilled, "Name is required", "Saving..." (the test node paused) and
-the result (the tab's label renamed), in dark English and light Korean; the
-compact sheet; the tab menu opened by Shift+F10 and by the real Menu key
-(X11).
+Coordinator visual PASS (2026-11-18) on c4e51bad5's frames, with three
+fixes made in 0e0e23701 (Korean "이름 변경", no placeholder, no caret while
+waiting).
+
+Merged with package base 14.41 (33d2d6615, protocol 29) at a93ca4d15.
+Gates on 0e0e23701 (build VM, ordinary lane): the whole native gate
+(fonts, fmt, quality, clippy, build, test: 2314 passed, 0 failed, 2 ignored
+across kit, app, link and view) 0; wasm32 check of link and app 0, no
+warnings. Re-takes on the base14.41 fleet (export of 0e0e23701):
+ko-light-1280-rename-required and en-dark-1280-rename-saving.
