@@ -10,7 +10,8 @@
 //   origin each launch) and its policy allows images from itself and
 //   `data:` only; an SVG must never be put into the page as markup.
 // - Choice: a promise per node and project in memory, so every row of
-//   one project shares one call; the answer becomes a `data:` address
+//   one project shares one call (a failed call is dropped and asked again
+//   by the next row drawn); the answer becomes a `data:` address
 //   with the node's content type, drawn by an `img`, which runs no script
 //   and reaches nothing. A failed call or no icon is `null`: the folder
 //   mark stays, as on a node older than the protocol.
@@ -58,7 +59,13 @@ export function projectIcon(
   const answer = attempt(() =>
     fleet.bridge.call(node, "project.icon", { project }),
   ).then((outcome) => {
-    const icon = outcome.ok ? outcome.value.icon : null;
+    // A failed call is asked again by the next row drawn; only an answer
+    // (an icon or none) is kept for the page load.
+    if (!outcome.ok) {
+      asked.delete(key);
+      return null;
+    }
+    const icon = outcome.value.icon;
     return icon === undefined || icon === null ? null : iconAddress(icon);
   });
   asked.set(key, answer);

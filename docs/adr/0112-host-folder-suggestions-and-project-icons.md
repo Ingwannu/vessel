@@ -58,10 +58,10 @@ no icon lookup (`file.inspect` is folder metadata).
   `project.add`; Read principals see nothing new but icons inside projects they can already read; each
   method has one root rule, so ADR 0083's boundary for `file.suggest` is untouched.
 - Advantages, costs and effects: Add project works as Paseo's for local and remote nodes; a scan costs
-  up to 20,000 directory entries on the blocking pool per query (debounced by the client, results cached
-  8 s as Paseo's); an icon read is at most 32 KiB per project, cached by the client. A node's home layout
-  becomes visible to Operate principals (they could already add any folder by name). Not covered: custom
-  icons, icons for worktrees (they show their project's), Windows drive roots outside the home.
+  up to 20,000 directory entries on the blocking pool per query (debounced by the client); an icon read is
+  at most 32 KiB per project, cached by the client. A node's home layout becomes visible to Operate
+  principals (they could already add any folder by name). Not covered: custom icons, icons for worktrees
+  (they show their project's), Windows drive roots outside the home.
 
 ## Stated differences from the reference
 
@@ -81,3 +81,6 @@ project flow); Read principals get no folder suggestions (Paseo has one owner pr
   SVG bytes become an icon; Paseo's JPEG, GIF and WebP sniffing is left out, since its names are SVG, PNG and ICO
   only. SVG is recognised when its first element (after a byte order mark, XML declaration, comments and a
   doctype) is `svg`.
+- Caching: the node keeps no directory-read cache (Paseo's keeps listings 8 s) and clients keep no answer cache
+  (Paseo's query keeps one 15 s); each pause in typing (250 ms) is one call. Recorded as a difference; a cache
+  is later work if the calls show in measurements.

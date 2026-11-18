@@ -62,4 +62,6 @@ test("a project's own icon replaces its folder mark", async ({ page }) => {
     has: page.getByRole("button", { name: "iconed", exact: true }),
   });
   await expect(row.locator("img.project-icon")).toBeVisible();
+  // The fleet is shared by every spec: leave it as it was.
+  cli(["project", "remove", "iconed"]);
 });
