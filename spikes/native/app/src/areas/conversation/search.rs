@@ -427,9 +427,10 @@ pub(crate) fn example(
             }))
             .child(message_row(shell, row, index == 0, compact, tokens))
     });
-    // As wide as the column up to GOAT's 640 (360 on a phone): a fixed 640
-    // ran past any column narrower than that (the app reviewer and the
-    // coordinator, after TRACKER 798 brought desktop widths down to 600).
+    // As wide as the column, less its inset, up to GOAT's 640 (360 on a
+    // phone): a fixed 640 ran past any column narrower than that (the app
+    // reviewer and the coordinator, after TRACKER 798 brought desktop widths
+    // down to 600).
     let card = div()
         .id("message-search-example")
         .occlude()
@@ -463,6 +464,10 @@ pub(crate) fn example(
             .top(px(56.0))
             .left_0()
             .right_0()
+            // The conversation content's inset, so a card narrower than 640
+            // lines up with the column's edges (the coordinator, 798's 600
+            // follow-up).
+            .px(px(vessel_app_kit::theme::spacing::S4))
             .flex()
             .justify_center()
             .child(card)

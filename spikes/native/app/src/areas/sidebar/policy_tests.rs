@@ -105,3 +105,34 @@ fn at_the_least_width_the_foot_keeps_labels_on_one_line(cx: &mut TestAppContext)
     // One line, wider than tall; squeezed, it stood one letter a line.
     assert!(labels.size.width > labels.size.height, "{labels:?}");
 }
+
+/// Where the foot's build and "reload" sit, and the clipped line they share.
+fn foot_parts(
+    cx: &mut VisualTestContext,
+) -> (gpui::Bounds<gpui::Pixels>, gpui::Bounds<gpui::Pixels>, gpui::Bounds<gpui::Pixels>) {
+    (
+        cx.debug_bounds("sidebar-foot-start").unwrap(),
+        cx.debug_bounds("sidebar-foot-build").unwrap(),
+        cx.debug_bounds("sidebar-foot-reload").unwrap(),
+    )
+}
+
+#[gpui::test]
+fn at_the_least_width_the_build_and_its_dot_go_and_reload_leads(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (_shell, cx) = setup(cx, 600.0, Route::Draft);
+    let (line, build, reload) = foot_parts(cx);
+    // Whole or not at all: the build wraps below the clipped line.
+    assert!(build.top() >= line.bottom(), "{build:?} {line:?}");
+    assert_eq!(reload.left(), line.left(), "reload leads the foot");
+}
+
+#[gpui::test]
+fn with_room_the_build_and_its_dot_come_before_reload(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (_shell, cx) = setup(cx, 1280.0, Route::Draft);
+    let (line, build, reload) = foot_parts(cx);
+    assert_eq!(build.top(), line.top(), "on the line");
+    assert!(build.right() <= reload.left());
+    assert!(build.left() >= line.left());
+}
