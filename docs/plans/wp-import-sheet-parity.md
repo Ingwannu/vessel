@@ -176,3 +176,8 @@ en-dark and ko-light at 1280 and 390: the merged list with the provider pill
 and a failed provider's banner, the filter list (a titled sheet on a phone),
 one provider (no pill), Codex only, no matches, "No Codex sessions found.",
 and an imported session opened. Coordinator visual PASS (2026-11-17).
+
+App reviewer return (F1, F2) fixed on d050bebf2: strict (fonts, fmt, quality,
+clippy) 0; view, app and link suites in one run (app 293 passed, 0 failed, 2
+ignored; link 183; view 1296 lib tests and every integration suite); wasm32
+check of link and app rc 0, no warnings.
