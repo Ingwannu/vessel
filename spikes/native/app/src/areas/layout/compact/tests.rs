@@ -289,7 +289,7 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
     let (probe, cx) = compact(cx);
     probe.read_with(cx, |probe, cx| {
         assert_eq!(
-            super::super::workspace_menu::workspace_path(probe.0.read(cx)),
+            workspace_menu::workspace_path(probe.0.read(cx)),
             None
         );
     });
@@ -306,7 +306,7 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
         let shell = probe.0.read(cx);
         assert!(shell.areas.layout.workspace_menu.menu.is_open());
         assert_eq!(
-            super::super::workspace_menu::workspace_path(shell).as_deref(),
+            workspace_menu::workspace_path(shell).as_deref(),
             Some("/work/shop")
         );
     });

@@ -5,7 +5,7 @@ use crate::areas::session::Open;
 use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
-use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement, Styled as _};
+use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement};
 use vessel_proto::SessionId;
 
 struct Probe(Entity<Shell>);
