@@ -1,30 +1,35 @@
-//! `web/src/ui/toasts.tsx`: a stack, oldest first; what went as asked
-//! leaves after four seconds, an error stays until dismissed.
+//! `web/src/ui/toast-life.test.ts`: one toast at a time; a new one
+//! replaces the one up with its own life (2.2 s, an error 3.2 s), and a
+//! replaced toast's dismissal leaves the newer one.
 
-use crate::toasts::{TOAST_LIFE, ToastTone, Toasts};
+use std::time::{Duration, Instant};
+
+use crate::toasts::{ERROR_LIFE, TOAST_LIFE, ToastTone, Toasts};
 
 #[test]
-fn keeps_toasts_oldest_first_and_lets_only_what_went_well_leave_by_itself() {
+fn a_new_toast_replaces_the_one_up_and_runs_its_own_life() {
+    assert_eq!(TOAST_LIFE.as_millis(), 2200);
+    assert_eq!(ERROR_LIFE.as_millis(), 3200);
     let mut toasts = Toasts::default();
-    let (killed, life) = toasts.push("Killed 3f2a", ToastTone::Ok);
-    assert_eq!(life, Some(TOAST_LIFE));
-    assert_eq!(TOAST_LIFE.as_millis(), 4000);
-    let (refused, life) = toasts.push("The machine is stopping", ToastTone::Error);
-    assert_eq!(life, None);
-    assert_ne!(killed, refused);
-    let words: Vec<&str> = toasts
-        .list()
-        .iter()
-        .map(|toast| toast.text.as_str())
-        .collect();
-    assert_eq!(words, ["Killed 3f2a", "The machine is stopping"]);
-    toasts.dismiss(killed);
-    toasts.dismiss(killed);
-    assert_eq!(toasts.list().len(), 1);
-    assert_eq!(toasts.list()[0].tone, ToastTone::Error);
-    toasts.dismiss(refused);
-    assert!(toasts.list().is_empty());
+    let now = Instant::now();
+    let first = toasts.push("first", ToastTone::Error, now);
+    let later = now.checked_add(Duration::from_millis(3000)).unwrap();
+    let second = toasts.push("second", ToastTone::Ok, later);
+    assert_eq!(second.after(), TOAST_LIFE);
+    // The first's 3.2 s pass: the second stays.
+    let first_end = now.checked_add(ERROR_LIFE).unwrap();
+    assert_eq!(toasts.wake(first, first_end), None);
+    assert_eq!(
+        toasts.shown().map(|toast| toast.text.as_str()),
+        Some("second")
+    );
+    // Dismissing the replaced toast leaves the newer one.
+    toasts.dismiss(first.id());
+    assert_eq!(toasts.shown().map(|toast| toast.id), Some(second.id()));
+    let second_end = later.checked_add(TOAST_LIFE).unwrap();
+    assert_eq!(toasts.wake(second, second_end), None);
+    assert!(toasts.shown().is_none());
     // A new one never takes a gone one's number.
-    let (again, _) = toasts.push("Killed 9c1d", ToastTone::Ok);
-    assert!(again > refused);
+    let again = toasts.push("Killed 9c1d", ToastTone::Ok, later);
+    assert!(again.id() > second.id());
 }

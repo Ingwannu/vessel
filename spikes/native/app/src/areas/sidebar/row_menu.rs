@@ -175,7 +175,7 @@ impl Shell {
                     cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(
                         folder.clone(),
                     ));
-                    self.toast(self.t.lang.settings().path_copied, ToastTone::Ok, cx);
+                    self.toast(self.t.lang.settings().path_copied, ToastTone::Copied, cx);
                 }
             }
             RowAct::Mark(MarkAction::Archive) => self.ask_archive(&card, window, cx),

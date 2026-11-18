@@ -1,14 +1,18 @@
 //! The list as a phone's sheet drags down to close, with the dialog's
-//! engine (TRACKER 799): from its handle, or from its rows at their top.
+//! engine (TRACKER 799): from its handle, or from its rows at their top;
+//! closing so returns the keys to its opener, and a row tap still chooses.
 use super::*;
 use crate::{Scheme, Tokens};
 use gpui::{
-    Entity, Modifiers, MouseButton, Point, Render, TestAppContext, VisualTestContext, div, point,
-    px, size,
+    Entity, FocusHandle, Modifiers, MouseButton, Point, Render, TestAppContext, VisualTestContext,
+    div, point, px, size,
 };
 
 struct Probe {
     list: ComboboxState,
+    /// The opener: it holds the keys before the list opens.
+    root: FocusHandle,
+    chosen: Option<usize>,
 }
 
 impl Render for Probe {
@@ -21,7 +25,7 @@ impl Render for Probe {
         ];
         let handlers = ComboHandlers {
             state: |this: &mut Self| &mut this.list,
-            chose: Rc::new(|_: &mut Self, _, _, _| {}),
+            chose: Rc::new(|this: &mut Self, index, _, _| this.chosen = Some(index)),
             back: None,
         };
         let header = ComboHeader {
@@ -39,13 +43,19 @@ impl Render for Probe {
             window,
             cx,
         );
-        div().size_full().children(list)
+        div().size_full().track_focus(&self.root).children(list)
     }
 }
 
 fn setup(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
-    let (view, cx) = cx.add_window_view(|window, cx| Probe {
-        list: ComboboxState::new(window, cx),
+    let (view, cx) = cx.add_window_view(|window, cx| {
+        let root = cx.focus_handle();
+        root.focus(window, cx);
+        Probe {
+            list: ComboboxState::new(window, cx),
+            root,
+            chosen: None,
+        }
     });
     cx.simulate_resize(size(px(390.0), px(800.0)));
     view.update_in(cx, |probe, window, cx| {
@@ -95,6 +105,8 @@ fn its_handle_pulled_past_the_middle_closes_the_list(cx: &mut TestAppContext) {
     let at = on_handle(panel(&view, cx));
     drag_down(cx, at, 600.0);
     view.read_with(cx, |probe, _| assert!(!probe.list.is_open()));
+    // The keys go back to the opener, as an Escape would give them.
+    cx.update(|window, cx| view.read_with(cx, |probe, _| assert!(probe.root.is_focused(window))));
 }
 
 #[gpui::test]
@@ -116,4 +128,18 @@ fn its_rows_pulled_down_from_their_top_close_it_too(cx: &mut TestAppContext) {
     );
     drag_down(cx, at, 600.0);
     view.read_with(cx, |probe, _| assert!(!probe.list.is_open()));
+}
+
+#[gpui::test]
+fn a_row_tap_on_the_sheet_still_chooses_it(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx);
+    let panel = panel(&view, cx);
+    // A press and release in one place on a row stays a tap, not a pan.
+    let at = point(
+        panel.center().x,
+        px(f32::from(panel.bottom()).mul_add(1.0, -60.0)),
+    );
+    cx.simulate_click(at, Modifiers::none());
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| assert!(probe.chosen.is_some()));
 }

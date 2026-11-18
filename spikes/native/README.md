@@ -610,12 +610,15 @@ uses the code face for a whole path or hash. Existing `on` stays body text.
 `kit::form_summary` supplies GOAT’s branch/files summary and fixed file-list
 inset. Static outer edges keep the content geometry and never take focus.
 
-`kit/toast.rs` retains its legacy toast entry and adds `toast_with` for typed
-content/optional hover wiring. Info uses neutral chrome and foreground Info16,
-with no close control. `view::toasts` owns its keyed monotonic3200ms lifetime,
-pausing and resuming the remainder; old callbacks cannot clear a replacement.
-Legacy Ok4s/Error-persistent cards keep their stack and controls. Only older
-Info is replaced, an explicit compatibility difference from Paseo's single card.
+Toasts are Paseo's (TRACKER 802): one at a time. `view::toasts` holds one
+slot; a new toast replaces the one up and runs its own keyed, monotonic life
+(success and copied 2.2 s, Info guidance and errors 3.2 s), pausing and
+resuming the remainder on hover; a replaced toast's wake, hover or dismissal
+cannot touch its successor. `kit/toast.rs` draws Paseo's `ToastCard`: no
+close control, a leading mark per look (success `CircleCheck` in the accent,
+copied in the foreground, Info16 for the git guidance, an error's `Alert` with
+a destructive hairline), as wide as its words in Paseo's boundary;
+`toast_layer` places the one card under the title bar.
 
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
