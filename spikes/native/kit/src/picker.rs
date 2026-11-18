@@ -46,12 +46,16 @@ use crate::widgets::TypeExt as _;
 use crate::{fonts::Type, theme::Tokens};
 
 mod focus;
+mod inline;
 mod keys;
 mod lifecycle;
 mod pages;
 mod panel;
 mod rows;
 mod send;
+#[cfg(test)]
+mod sheet_drag_tests;
+pub use inline::combobox_inline;
 pub use send::{SendKind, send_button};
 
 /// Paseo's compact width: below it pickers are sheets and controls are
@@ -421,6 +425,8 @@ pub enum Side {
 pub struct ComboboxState {
     open: bool,
     cycle: Rc<()>,
+    /// Its phone sheet's drag (TRACKER 799): one per opening.
+    sheet: Rc<crate::sheet::snap::host::SheetState>,
     return_to: crate::focus::ReturnFocus,
     highlighted: Option<usize>,
     /// The highlighted row's label: the highlight follows its row when rows
@@ -469,6 +475,7 @@ impl ComboboxState {
         Self {
             open: false,
             cycle: Rc::new(()),
+            sheet: Rc::default(),
             return_to: crate::focus::ReturnFocus::default(),
             highlighted: None,
             highlighted_label: None,
@@ -632,6 +639,7 @@ pub fn combobox<V: 'static>(
         side: header.side,
         anchor: state.anchor.get(),
         lease: state.render_lease(),
+        backdrop: state.sheet.backdrop(),
     };
     let element = panel::placed(drawn, placement, handlers.state, window, cx);
     // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
@@ -644,40 +652,6 @@ pub fn combobox<V: 'static>(
             .children(tips)
             .into_any_element(),
     )
-}
-
-/// The list inside a flyout, a page beside its menu ([`crate::submenu`]):
-/// the same panel, placed by [`crate::submenu::flyout`]; a press outside it
-/// is its menu's to judge.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "a list is drawn from its state, its content, its handlers and the window's size"
-)]
-pub fn combobox_inline<V: 'static>(
-    id: impl Into<ElementId>,
-    state: &ComboboxState,
-    header: &ComboHeader,
-    rows: &[ComboRow],
-    handlers: &ComboHandlers<V>,
-    width: f32,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, V>,
-) -> Option<AnyElement> {
-    if !state.open {
-        return None;
-    }
-    let list = panel::List {
-        id: id.into(),
-        state,
-        header,
-        rows,
-        handlers,
-        width,
-    };
-    let drawn = panel::panel(&list, panel::Surface::Flyout, tokens, window, cx);
-    let tips = state.tips.render(tokens);
-    Some(div().child(drawn).children(tips).into_any_element())
 }
 
 fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {
