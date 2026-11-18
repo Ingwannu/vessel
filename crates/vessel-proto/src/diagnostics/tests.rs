@@ -35,6 +35,7 @@ fn fields() -> DiagnosticReportFields {
         listeners: unavailable(),
         relays: unavailable(),
         recent_failures: unavailable(),
+        more: None,
     }
 }
 fn agent(slot: usize) -> DiagnosticAgent {

@@ -39,6 +39,7 @@ fn report(id: NodeId) -> DiagnosticReport {
         listeners: unavailable(),
         relays: unavailable(),
         recent_failures: unavailable(),
+        more: None,
     }
     .try_into()
     .unwrap()

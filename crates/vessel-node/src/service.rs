@@ -51,6 +51,7 @@ mod options;
 mod again;
 mod conversation;
 // Protocol 11's calls: agents beyond the four (ADR 0032).
+mod agent_diagnostic;
 mod agents;
 mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
@@ -73,6 +74,7 @@ mod diagnostics;
 mod followed;
 mod inbox;
 mod limits;
+mod node_log;
 mod notices;
 mod prompts;
 mod push;

@@ -66,6 +66,8 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "service.settings",
             "service.set_gateway",
             "service.set_exposure",
+            // ADR 0111: a node's own log is its administrators'.
+            "node.log",
         ]
     );
     assert_eq!(
@@ -605,7 +607,31 @@ fn folder_suggestions_and_icons_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, HOST_FOLDERS_METHODS);
-    assert_eq!(HOST_FOLDERS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(HOST_FOLDERS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+}
+
+/// ADR 0111's methods, drafted as 33 (`DIAGNOSTICS_WIRE_PROTOCOL`).
+const DIAGNOSTICS_WIRE_METHODS: &[(&str, Scope)] = &[
+    ("agent.diagnostic", Scope::Read),
+    ("node.log", Scope::Admin),
+];
+
+#[test]
+fn the_diagnostics_wire_methods_know_their_version_scope_and_shape() {
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL)
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, DIAGNOSTICS_WIRE_METHODS);
+    assert!(Method::GetAgentDiagnostic.forwardable());
+    assert!(!Method::ReadNodeLog.forwardable());
 }
 
 #[test]
@@ -828,6 +854,7 @@ const FORWARDABLE: &[&str] = &[
     "session.reload",
     "folder.suggest",
     "project.icon",
+    "agent.diagnostic",
 ];
 
 #[test]

@@ -357,11 +357,18 @@ pub fn check_strict(generated: &str) -> Result<(), String> {
 
 /// Protocol thresholds the web UI reads, each with what it gates; the
 /// declarations end with one constant per entry ([`protocols`]).
-pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[(
-    "RELOAD_PROTOCOL",
-    crate::reload::RELOAD_PROTOCOL,
-    "`session.reload` and the `reloaded` record (ADR 0110).",
-)];
+pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
+    (
+        "RELOAD_PROTOCOL",
+        crate::reload::RELOAD_PROTOCOL,
+        "`session.reload` and the `reloaded` record (ADR 0110).",
+    ),
+    (
+        "DIAGNOSTICS_WIRE_PROTOCOL",
+        crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL,
+        "`agent.diagnostic`, `node.log` and the report's added sections (ADR 0111).",
+    ),
+];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.
 #[must_use]

@@ -35,6 +35,12 @@ pub struct DiagnosticReportFields {
     pub relays: DiagnosticSection<DiagnosticRelays>,
     /// Explicitly scoped failed-call observations, not a log tail.
     pub recent_failures: DiagnosticSection<DiagnosticFailureWindow>,
+    /// The sections of `DIAGNOSTICS_WIRE_PROTOCOL` (ADR 0111): the machine,
+    /// its disk, workspaces, what runs and two tools. `None` for an older
+    /// peer, which reads this struct's fields as closed. Boxed: the reply
+    /// enum holds every report inline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub more: Option<Box<super::DiagnosticMore>>,
 }
 
 /// A bounded failure window with explicit observation/loss coverage.
@@ -62,6 +68,18 @@ impl DiagnosticReport {
     #[must_use]
     pub const fn fields(&self) -> &DiagnosticReportFields {
         &self.0
+    }
+
+    /// This report as a peer speaking `protocol` reads it: without the
+    /// sections of `DIAGNOSTICS_WIRE_PROTOCOL` below it (ADR 0111), since
+    /// an older peer reads the report's fields as closed. Dropping a
+    /// section keeps it within its bounds.
+    #[must_use]
+    pub fn for_protocol(mut self, protocol: crate::ProtocolVersion) -> Self {
+        if super::DIAGNOSTICS_WIRE_PROTOCOL.is_none_or(|since| protocol < since) {
+            self.0.more = None;
+        }
+        self
     }
 }
 impl TryFrom<DiagnosticReportFields> for DiagnosticReport {

@@ -23,9 +23,12 @@ pub(super) fn unavailable<T>(reason: DiagnosticUnavailable) -> DiagnosticSection
     DiagnosticSection::Unavailable { reason }
 }
 impl State {
+    /// The report; with ADR 0111's sections when `more` (a peer that reads
+    /// them), so an older peer's report runs no tool.
     pub(crate) async fn collect(
         &self,
         lifecycle: &Lifecycle,
+        more: bool,
     ) -> Result<DiagnosticReport, WireError> {
         let lease = self.admission.admit().map_err(|error| refusal(&error))?;
         let deadline = Instant::now().checked_add(RESPONSE_BUDGET).ok_or_else(|| {
@@ -35,10 +38,18 @@ impl State {
             )
         })?;
         let metadata = self.metadata(Arc::clone(&lease));
-        let (metadata, store, recent_failures) = tokio::join!(
+        let extra = async {
+            if more {
+                Some(Box::new(self.more(Arc::clone(&lease), deadline).await))
+            } else {
+                None
+            }
+        };
+        let (metadata, store, recent_failures, more) = tokio::join!(
             timeout_at(deadline, metadata),
             self.store_section(Arc::clone(&lease), deadline),
             self.failure_section(deadline),
+            extra,
         );
         let metadata = match metadata {
             Ok(Ok(value)) => value,
@@ -59,6 +70,7 @@ impl State {
                 at,
                 value: listeners,
             },
+            more,
         })
         .map_err(|_invalid| {
             WireError::new(

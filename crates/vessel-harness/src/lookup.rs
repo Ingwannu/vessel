@@ -87,6 +87,19 @@ impl Lookup {
         }
         which::which_in(binary, Some(joined), Path::new("/")).ok()
     }
+
+    /// Every executable named `binary` in these directories, in search
+    /// order, at most `limit`: which one runs and which others a person may
+    /// have meant (an agent's diagnostic, ADR 0111). Blocking, as
+    /// [`Self::find`].
+    #[must_use]
+    pub fn find_all(&self, binary: &str, limit: usize) -> Vec<PathBuf> {
+        let Some(joined) = self.joined.as_ref() else {
+            return Vec::new();
+        };
+        which::which_in_all(binary, Some(joined), Path::new("/"))
+            .map_or_else(|_none| Vec::new(), |found| found.take(limit).collect())
+    }
 }
 
 // Search locations determine equality; a test's observation does not change
