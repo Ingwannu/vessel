@@ -274,6 +274,9 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
         });
     });
     cx.run_until_parked();
+    // Paseo's combobox sheet: its title, and no close button (TRACKER 798).
+    assert!(cx.debug_bounds("dialog-title").is_some());
+    assert!(cx.debug_bounds("dialog-close").is_none());
     let ids = tab_ids(&probe, cx);
     let dots = cx
         .debug_bounds(selector(format!("compact-tab-menu-{}", ids[0].get())))
@@ -288,6 +291,21 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
         assert_eq!(layout.menu_tab.as_ref().map(|(_, tab)| *tab), Some(ids[0]));
         assert!(layout.compact.switcher_open, "the sheet stays under it");
     });
+    // A sheet titled with the tab's label, as wide as the window.
+    assert_sheet(cx);
+}
+
+/// The open menu is a phone's sheet: its first row spans the window, less
+/// the sheet's insets (a popover is 220 wide).
+fn assert_sheet(cx: &mut gpui::VisualTestContext) {
+    // The frame after the sheet's first measures it.
+    cx.update(|window, cx| {
+        let _ran = window.simulate_next_frame(cx);
+    });
+    cx.run_until_parked();
+    let row = cx.debug_bounds("menu-row-0").unwrap();
+    assert!(row.left() < px(16.0), "{row:?}");
+    assert!(row.right() > px(374.0), "{row:?}");
 }
 
 #[gpui::test]
@@ -305,6 +323,8 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
     let more = cx.debug_bounds("workspace-actions-button").unwrap();
     cx.simulate_click(more.center(), Modifiers::none());
     cx.run_until_parked();
+    // Paseo's sheet titled "Workspace actions" on a phone (TRACKER 798).
+    assert_sheet(cx);
     probe.read_with(cx, |probe, cx| {
         let shell = probe.0.read(cx);
         assert!(shell.areas.layout.workspace_menu.menu.is_open());

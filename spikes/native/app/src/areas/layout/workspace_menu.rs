@@ -140,8 +140,13 @@ pub(super) fn overlay(
             }
         }),
     };
+    // On a phone, Paseo's sheet titled "Workspace actions" (TRACKER 798,
+    // workspace-header-menu.tsx `compactMode="sheet"`, `sheetTitle`).
+    let title = shell.words.layout().workspace_actions().to_owned();
     menu_with(
-        Content::new("workspace-actions-menu", &items).with_width(px(WIDTH)),
+        Content::new("workspace-actions-menu", &items)
+            .with_width(px(WIDTH))
+            .with_sheet(title),
         &area.menu,
         &handlers,
         tokens,
