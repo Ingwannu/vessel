@@ -75,7 +75,7 @@
   font-variant-ligatures: none;
 }
 
-@media (width < 768px) {
+@media (--compact) {
   .settings-column {
     padding: 16px 12px 40px;
   }

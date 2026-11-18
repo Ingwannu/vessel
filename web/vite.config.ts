@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
+import { COMPACT, COMPACT_MEDIA_NAME } from "./src/ui/breakpoints";
 import { vesselMark } from "./vite-mark";
 
 /** xterm.js's stylesheet gives its screen-reader tree a bare `monospace`;
@@ -52,8 +53,41 @@ function pretendardName(): Plugin {
   };
 }
 
+/** The compact breakpoint (src/ui/breakpoints.ts): a stylesheet of ours
+ * writes `@media (--compact)` and gets the query the TS side matches, so
+ * the fold has one number. A width query that spells the fold's number
+ * (599/600px) or the page's old one (767/768px) is refused: it would
+ * drift from the constant. */
+function compactMedia(): Plugin {
+  const spelled = /@media[^{]*\b(?:599|600|767|768)(?:\.\d+)?px/;
+  return {
+    name: "vessel-compact-media",
+    enforce: "pre",
+    transform(code, id) {
+      if (!id.endsWith(".css") || id.includes("/node_modules/")) {
+        return null;
+      }
+      const at = spelled.exec(code);
+      if (at !== null) {
+        throw new Error(
+          `${id}: "${at[0]}" spells the compact width; write @media ${COMPACT_MEDIA_NAME}`,
+        );
+      }
+      return code.includes(COMPACT_MEDIA_NAME)
+        ? code.replaceAll(COMPACT_MEDIA_NAME, COMPACT)
+        : null;
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [xtermFont(), pretendardName(), vesselMark(), react()],
+  plugins: [
+    compactMedia(),
+    xtermFont(),
+    pretendardName(),
+    vesselMark(),
+    react(),
+  ],
   build: {
     outDir: "dist",
     assetsDir: "assets",

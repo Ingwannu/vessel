@@ -329,8 +329,10 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   projects/ (Settings › Projects, the sidebar's projects, adding one, the
                   approval of its commands, removing a worktree that would lose work),
                   workspace/ (the code panel, a chunk loaded when Changes or Files opens: the
-                  diff in the timeline's window, git's bar, menu and dialogs, the tree, the
-                  file viewer and editor, "Add to chat"; and the branch's chip and a
+                  diff in the timeline's window, git's bar, menu and dialogs, the tree and
+                  its rows' file action menu (Paseo's: file-actions, explorer-menu,
+                  use-explorer-actions, download), the file viewer and editor, "Add to
+                  chat"; and the branch's chip and a
                   worktree's setup card, which the entry and /new use), compose/'s tray and
                   the worktree's start (where-tray, where-place, use-starter,
                   start-worktree), the session's panel as tabs (inspector, panel-state),
@@ -343,7 +345,9 @@ web/src/routes/   the screens, each composing features: home (welcome or board),
                   redirects; a session, new session and Settings (and /kit) are chunks of their
                   own, loaded when they open (milestone 11)
 web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, its CSS beside it
-web/src/ui/       the design's tokens, the fonts, the toasts, and the older areas' CSS in styles/
+web/src/ui/       the design's tokens, the fonts, the toasts, the compact breakpoint (breakpoints:
+                  Paseo's 600, matched by TS and written `@media (--compact)` in CSS, which the
+                  build's compactMedia plugin resolves), and the older areas' CSS in styles/
                   (one file per area, imported in order from styles/index.css)
 web/src/testing/  tests' helper that names a fixture's handle without a guard (tests and fixtures only)
 web/scripts/      the build's integrity pass (tags and the import map), its compression pass

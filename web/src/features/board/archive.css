@@ -35,7 +35,7 @@
 }
 
 /* Narrow panes: the lanes stack and the page scrolls as one. */
-@media (max-width: 767px) {
+@media (--compact) {
   .board {
     display: block;
     overflow-y: auto;

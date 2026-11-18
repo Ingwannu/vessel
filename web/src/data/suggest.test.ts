@@ -7,6 +7,7 @@ import {
   matchCommands,
   pathParts,
   triggerAt,
+  withMention,
 } from "./suggest";
 
 describe("what the caret is in", () => {
@@ -78,6 +79,17 @@ describe("choosing", () => {
         'open @"docs/a b.md" and fix',
       );
     }
+  });
+});
+
+describe("the Explorer's Add to chat", () => {
+  test("names the file as `@` does, a word of its own", () => {
+    expect(withMention("", "src/main.rs")).toBe("@src/main.rs ");
+    expect(withMention("  ", "src/main.rs")).toBe("@src/main.rs ");
+    expect(withMention("look at", "src/main.rs")).toBe("look at @src/main.rs ");
+    expect(withMention("look at\n", "docs/a b.md")).toBe(
+      'look at\n@"docs/a b.md" ',
+    );
   });
 });
 

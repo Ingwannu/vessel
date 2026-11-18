@@ -199,7 +199,7 @@
      sidebar's side, so the two read as one shell. */
   --panel-inset-y: 14px;
   --panel-inset-x: 16px;
-  /* Below 768px, with no sidebar beside it, on every side. */
+  /* Compact (below 600px), with no sidebar beside it, on every side. */
   --panel-inset-phone: 8px;
   --inspect-w: 340px;
   --row-h: 40px;

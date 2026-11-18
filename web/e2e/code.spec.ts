@@ -10,41 +10,12 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
-
-/** The session panel's tab named `name`. */
-function tab(page: Page, name: string) {
-  return page
-    .getByRole("tablist", { name: "Session panel" })
-    .getByRole("tab", { name });
-}
-
-/** Start a session on laptop in the project `shop`, `where` it runs. */
-async function startInShop(
-  page: Page,
-  where: "Local" | "New worktree",
-  prompt: string,
-): Promise<void> {
-  const box = await newSessionPage(page, "laptop", "Structured");
-  await choose(
-    page,
-    page.getByRole("combobox", { name: "Project" }),
-    /^shop\b/,
-  );
-  if (where === "New worktree") {
-    await choose(
-      page,
-      page.getByRole("combobox", { name: "Where it runs" }),
-      /^New worktree/,
-    );
-  }
-  await box.getByRole("textbox", { name: "Prompt" }).fill(prompt);
-  await box.getByRole("button", { name: "Send" }).click();
-}
+import { panelTab as tab, startInShop } from "./shop";
 
 test("a session starts in a new worktree once its commands are approved, setup shown as it runs", async ({
   page,

@@ -2,10 +2,6 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-/** Below this width the sidebar beside the page is not drawn
- * (sidebar.css): it opens as a sheet from the title bar instead. */
-export const PHONE = "(max-width: 767px)";
-
 /** Whether `query` matches, drawn again when that changes. The
  * subscription is one per query (a new function each drawing would have
  * React unsubscribe and subscribe again every time). */

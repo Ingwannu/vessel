@@ -92,7 +92,7 @@
   font: var(--t-mono);
 }
 
-@media (width < 768px) {
+@media (--compact) {
   .invite-link {
     grid-template-columns: minmax(0, 1fr);
   }

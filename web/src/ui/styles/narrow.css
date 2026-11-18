@@ -6,7 +6,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (--compact) {
   .page-body {
     padding: 12px;
   }

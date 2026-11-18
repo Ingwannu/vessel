@@ -63,7 +63,7 @@
   color: var(--danger);
 }
 
-@media (max-width: 767px) {
+@media (--compact) {
   .new-session h1 {
     font-size: 24px;
     line-height: 32px;

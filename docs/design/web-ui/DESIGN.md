@@ -200,8 +200,9 @@ Devices are sections there too (milestone 10, track W2).
   title in semibold primary text and its hollow dot filled in the muted
   ink, agent-orchestrator's unread dot. A mark the page asked for shows
   when the machine reports it.
-- **Below 768px** the sidebar is a sheet (the kit's `Sheet`, GOAT's
-  phone sidebar) from the title bar's menu button, over a scrim, so
+- **Compact** (below 600px, Paseo's `isCompactBreakpoint`: its `xs`
+  and `sm`, below `md` = 600; `src/ui/breakpoints.ts`) the sidebar is a
+  sheet (the kit's `Sheet`, GOAT's phone sidebar) from the title bar's menu button, over a scrim, so
   Settings' sections are reachable on a phone; picking a row closes
   it.
 - **Search** (`/` or `⌘K`) opens the command palette (§6.13): New
@@ -288,12 +289,18 @@ A 12-column grid inside `main`, not including the sidebar.
 
 | Breakpoint | Sidebar | Main | Columns | Gutter |
 | --- | --- | --- | --- | --- |
-| ≥ 1280px | 240px fixed | fluid | 12 | 16px |
-| 1100–1279 | 52px icon rail | fluid | 12 | 16px |
-| 768–1099 | hidden, drawer | fluid | 8 | 12px |
-| < 768 | hidden, drawer | fluid | 4 | 8px |
+| ≥ 1100px | 240px fixed | fluid | 12 | 16px |
+| 600–1099 | 52px icon rail | fluid | 8 | 12px |
+| < 600 (compact) | hidden, a sheet from the title bar | fluid | 4 | 8px |
 
-Page padding inside main: 16px (12px below 768). Max content width is
+Compact is Paseo's: a window below 600px (TRACKER 805; the page folded
+at 768 before, the native app moved to 600 in 798). The number lives in
+`src/ui/breakpoints.ts`; stylesheets write `@media (--compact)` and the
+build puts the same query in its place (`vite.config.ts`
+`compactMedia`, which refuses a width query spelling 599/600 or the old
+767/768).
+
+Page padding inside main: 16px (12px when compact). Max content width is
 the pane, not a centred 720px reading column — this is an app.
 
 ### 3.1 Common page frames
@@ -309,7 +316,7 @@ of its own, and literal values (an address, an id, a path) are only in
 those detail rows. A section about one machine (Agents, Models, Devices,
 Sync) names it in its heading and offers a ghost select of the machines;
 the choice is the address's `?machine=`, so it survives a reload and a
-move between sections. Below 768px the column's padding is 12px.
+move between sections. Compact, the column's padding is 12px.
 
 - **Machines**: a row per machine (a machine icon, its name, one line:
   platform, how it is reached, its state, live sessions; "This machine"
@@ -387,7 +394,7 @@ move between sections. Below 768px the column's padding is 12px.
   Meta is taken, refused in place when it needs a modifier, when the
   browser keeps it or when text editing uses it. A key another command
   holds opens "Shortcut already in use" (Reassign or Cancel); a clash
-  found in what is kept is said on both rows. Below 768px the search
+  found in what is kept is said on both rows. Compact, the search
   takes its own row.
 - **Notifications**: Sessions (Session notifications: Off,
   Notifications only, Sound only, Notifications and sound; Count in the
@@ -414,7 +421,7 @@ each a 48px heading over its own scrolling column of cards, then a 36px
 bar with the archive's count. When the book has more than one node a slim
 row above the lanes scopes the board to one. No inspector; a card opens
 the session. Below 1024px of pane the board scrolls sideways (lanes keep
-256px); below 768px the lanes stack.
+256px); compact, the lanes stack.
 
 **Session with a timeline.**
 
@@ -467,7 +474,7 @@ forget): the kit's (§6.9).
 | `--s-7` | 48 | empty-state vertical rhythm |
 
 Row heights: sidebar item 32px, table row 40px, topbar 40px, composer
-min 72px. Touch targets below 768px inflate to 44px; on desktop we
+min 72px. Touch targets on a compact window inflate to 44px; on desktop we
 keep 32px because this is a pointer-first operator tool, with visible
 focus for keyboard.
 
@@ -1191,6 +1198,7 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Option row | 13px / 1.5 (about 32px), 8px by 6px, radius 8; secondary text at rest; highlighted on the 4% wash in the primary colour; chosen or open on the 7% wash; a muted detail at the right (12px, tertiary, cut first); a group's heading 10px, tracked, tertiary. A row reached from the keyboard also takes the ring, inside it |
 | Select | trigger: the secondary button's raised surface (an edge 5% darker, the inset bevel), 13px, the value then its detail, a chevron that turns over 300ms while open; `ghost`: no fill until hover. `md` 32px, `sm` 28px; `fill` or `fit` width. The list is at least the trigger's width, below it, not over it |
 | Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px, `wide`), checkbox rows (16px box, radius 6), radio groups (a check at the right; values that share a group under its heading), submenus (the current value and a chevron; the flyout opens to the right of its row, 5px over it, top-aligned, clamped into the window and never flipped, as Paseo's), separators, a danger row; `narrow` is 256px (a composer's agent menu). `MenuSwitchItem`: a setting's row with a switch at the right, 12px text, 8px by 12px, keeping the menu open; `MenuNote`: a line of tertiary text that is not a choice |
+| ContextMenu | the Menu's rows and popup opened at the pointer by a right click on the thing it acts on, or a touch held 500 ms (Paseo's ContextMenu); `actions` is 220px (Paseo's file actions menu). The Files tab's rows open Paseo's file actions: Copy path, Copy relative path, Download, Add to chat for a file; Collapse folder (its own group) and the copies for an open folder; a hairline between groups, Delete red |
 | Combobox | a field shell (§6.2) whose suggestions are option rows, at least the field's width; it takes any text. `ghost`: no fill or edge at rest, the 4% wash on hover, the shell while focused (a composer's tray) |
 | Popover | the popup surface with 16px inside, 256, 320 or 384px wide (GOAT's), a 13px semibold title |
 | Tooltip | 12px on the popup fill, no edge, 6px by 12px, radius 8, a 10px arrow; after 400ms of hover or on keyboard focus; a shortcut after the words. Never takes the pointer |
@@ -1436,7 +1444,7 @@ through its one seam (`reveal.ts`).
 The kit's `Sheet`: a dialog from the left edge, full height, the window
 less 12px and at most 320px wide, on the sidebar's surface over the
 dialog scrim, sliding in over 200ms (none under reduced motion); Escape
-or the scrim closes it. The sidebar uses it below 768px (§2.2). From the
+or the scrim closes it. The sidebar uses it when compact (§2.2). From the
 right (`side="right"`) it is as wide as the window less 12px, at most
 560px, on the page's surface: a session's panel below 1280px.
 
@@ -1806,7 +1814,7 @@ from the section's button; the section says what the browser answered.
   keyboard draws it inside itself; a popup's own surface does not draw
   it. Do not remove outlines. A mouse click on a button does not leave a
   ring (`:focus-visible` only).
-- **Hit targets.** 32px desktop, 44px below 768px for the primary
+- **Hit targets.** 32px desktop, 44px compact (below 600px) for the primary
   controls (nav, composer send, dialog buttons).
 - **Landmarks.** `role="banner"` topbar, `role="navigation"` sidebar,
   `role="main"`, inspector `role="complementary"`, composer is a

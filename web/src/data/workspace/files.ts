@@ -10,7 +10,9 @@
 import type { NodeKey } from "../../wire/bridge";
 import type {
   DirListing,
+  FileBytePage,
   FileRead,
+  FileRevision,
   FileVersion,
   GrepCase,
   GrepMode,
@@ -116,6 +118,36 @@ export function deletePath(
 ): Promise<Outcome<null>> {
   return attempt(() =>
     fleet.bridge.call(node, "file.delete", { root, path, recursive }),
+  );
+}
+
+/** The first protocol with the file panels' calls (`file.read_bytes`,
+ * `file.duplicate`; the node's `FILE_PANELS_PROTOCOL`). */
+export const FILE_PANELS_PROTOCOL = 27;
+
+/** Whether a connection speaking `protocol` has the file panels' calls. */
+export function hasFilePanels(protocol: number | null): boolean {
+  return protocol !== null && protocol >= FILE_PANELS_PROTOCOL;
+}
+
+/** One page of a file's exact bytes from `offset` (the file panels
+ * protocol's `file.read_bytes`); after the first page, `expected` is the
+ * revision it answered, so a file changed mid-way is refused, not mixed. */
+export function readBytes(
+  fleet: Fleet,
+  node: NodeKey,
+  root: WorkspaceRoot,
+  path: RelPath,
+  offset: number,
+  expected: FileRevision | null,
+): Promise<Outcome<FileBytePage>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "file.read_bytes", {
+      root,
+      path,
+      offset,
+      expected,
+    }),
   );
 }
 
