@@ -38,6 +38,7 @@ mod identity;
 pub use identity::FieldId;
 pub(crate) mod composition;
 mod frame;
+mod menu_line;
 mod presentation;
 mod rename;
 mod search;

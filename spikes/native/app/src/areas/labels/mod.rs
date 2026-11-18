@@ -20,7 +20,7 @@ mod rows;
 mod surface;
 
 pub(crate) use colors::chip;
-pub(crate) use picker::{PickerPlace, RowPicker};
+pub(crate) use picker::{CREATE_PAGE, PickerPlace, RowCreate, RowPicker};
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
 use vessel_app_kit::{
@@ -218,6 +218,16 @@ impl Shell {
         self.settle_labels(cx);
         self.labels_picker_settle(cx);
     }
+}
+
+/// A row menu's Create label page beside the Labels list: its flyout's
+/// panel (TRACKER 792).
+pub(crate) fn create_beside(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    picker::create_beside(shell, tokens, cx)
 }
 
 /// A row menu's Labels page beside the menu: the picker's list, for the

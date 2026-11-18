@@ -108,3 +108,22 @@ pub(crate) fn followed_session(
 pub(crate) fn picker_query(shell: &Shell, cx: &App) -> String {
     shell.areas.labels.picker_combo.query(cx)
 }
+
+/// The host's answer to `request`, an assignment that made its label.
+pub(crate) fn assigned(request: Request) -> Event {
+    let vessel_app_link::labels::Command::Assign {
+        workspace, label, ..
+    } = request.ask
+    else {
+        panic!("create and assignment share one operation");
+    };
+    Event {
+        context: request.context,
+        ticket: request.ticket,
+        answer: Answer::Assigned {
+            workspace,
+            name: label.name,
+            result: Ok(Vec::new()),
+        },
+    }
+}

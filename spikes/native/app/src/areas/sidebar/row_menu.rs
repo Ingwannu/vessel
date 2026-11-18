@@ -43,7 +43,9 @@ use vessel_app_view::session::{CONVERSATION_PROTOCOL, MarkAction};
 use vessel_app_view::toasts::ToastTone;
 use vessel_proto::Mark;
 
-use crate::areas::labels::{PickerPlace, RowPicker, picker_beside};
+use crate::areas::labels::{
+    CREATE_PAGE, PickerPlace, RowCreate, RowPicker, create_beside, picker_beside,
+};
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -226,13 +228,22 @@ impl Shell {
                 let project = card.member_project();
                 let opened =
                     self.labels_row_picker(&card.machine, card.session, project, place, window, cx);
+                if opened && !phone {
+                    let pages = self.areas.sidebar.rows.pages.clone();
+                    self.labels_row_picker_pages(&pages);
+                }
                 if opened {
                     self.row_menu_labels_keys(phone, window, cx);
                 } else {
                     self.areas.sidebar.rows.pages.close_all();
                 }
             }
-            (true, RowPicker::Open) => self.row_menu_labels_keys(phone, window, cx),
+            (true, RowPicker::Open) => {
+                self.row_menu_labels_keys(phone, window, cx);
+                if !phone {
+                    self.row_menu_create_sync(window, cx);
+                }
+            }
             (true, RowPicker::Dismissed) => {
                 self.labels_row_picker_close();
                 let rows = &mut self.areas.sidebar.rows;
@@ -263,6 +274,26 @@ impl Shell {
         }
     }
 
+    /// Follow the Labels list's Create label page beside it (TRACKER 792):
+    /// a press or Enter on its row opened it, so a draft starts; open with no
+    /// draft left means a label was made and the list is back, so it
+    /// closes; closed under a draft (a press outside, Escape in the list),
+    /// the draft goes. A save under way is left to finish.
+    fn row_menu_create_sync(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let pages = &self.areas.sidebar.rows.pages;
+        match (pages.is_open(CREATE_PAGE, 1), self.areas.labels.row_create()) {
+            (true, RowCreate::None) => {
+                if pages.take_pressed(CREATE_PAGE) {
+                    self.labels_row_picker_create(window, cx);
+                } else {
+                    let _closed = pages.back();
+                }
+            }
+            (false, RowCreate::Draft) => self.labels_row_picker_create_closed(window, cx),
+            (true, RowCreate::Draft | RowCreate::Saving) | (false, RowCreate::None | RowCreate::Saving) => {}
+        }
+    }
+
     /// The phone's Labels page led back: the menu's sheet again.
     fn row_menu_labels_back(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         self.labels_row_picker_close();
@@ -279,7 +310,14 @@ fn labels_out_of_step(shell: &Shell, phone: bool) -> bool {
     match (open, shell.areas.labels.row_picker()) {
         (true, RowPicker::None | RowPicker::Dismissed)
         | (false, RowPicker::Open | RowPicker::Dialog | RowPicker::Dismissed) => true,
-        (true, RowPicker::Open) => !phone && rows.pages.pressed(LABELS),
+        (true, RowPicker::Open) => {
+            !phone
+                && (rows.pages.pressed(LABELS)
+                    || matches!(
+                        (rows.pages.is_open(CREATE_PAGE, 1), shell.areas.labels.row_create()),
+                        (true, RowCreate::None) | (false, RowCreate::Draft)
+                    ))
+        }
         (true, RowPicker::Dialog) | (false, RowPicker::None) => false,
     }
 }
@@ -320,9 +358,9 @@ pub(super) fn render(
     let content = Content::new("sidebar-row-menu", &items)
         .with_submenus(&rows.pages)
         .with_sheet(words.row_actions);
-    // While the Labels picker's Create dialog is up (Paseo: a page in the
-    // flyout; here the dialog, a named difference) the menu waits behind it
-    // undrawn, so a press in the dialog is not a press outside the menu.
+    // While a phone's Create label sheet is up the menu waits behind it
+    // undrawn, so a press in the sheet is not a press outside the menu
+    // (beside the menu the page is a flyout of the menu, TRACKER 792).
     let waiting = shell.areas.labels.row_picker() == RowPicker::Dialog;
     let mut drawn: Vec<AnyElement> = if waiting {
         Vec::new()
@@ -332,12 +370,19 @@ pub(super) fn render(
             .collect()
     };
     // Its Labels page beside it, drawn after it (same layer, on top); on a
-    // phone the picker's own sheet replaces the menu's.
+    // phone the picker's own sheet replaces the menu's. The list's Create
+    // label page beside the list, after it (TRACKER 792).
     if !phone && rows.menu.is_open() && rows.pages.is_open(LABELS, 0) {
         drawn.extend(
             picker_beside(shell, tokens, window, cx)
                 .and_then(|list| flyout(&rows.pages, LABELS, 0, 1, list)),
         );
+        if rows.pages.is_open(CREATE_PAGE, 1) {
+            drawn.extend(
+                create_beside(shell, tokens, cx)
+                    .and_then(|page| flyout(&rows.pages, CREATE_PAGE, 1, 1, page)),
+            );
+        }
     }
     if labels_out_of_step(shell, phone) {
         cx.defer_in(window, move |shell, window, cx| {

@@ -1,7 +1,8 @@
 //! The row menu's Labels page (TRACKER 791): on a wide window the
 //! workspace picker beside the menu, the keys moved in only by a press, its
 //! dismissal closing the menu; on a phone the picker's sheet replacing the
-//! menu's and leading back to it.
+//! menu's and leading back to it. Its Create label page (TRACKER 792):
+//! beside the list on a press only, as a sheet on a phone.
 use std::time::Duration;
 
 use super::*;
@@ -138,19 +139,108 @@ fn resting_on_labels_shows_the_picker_beside_and_leaves_the_keys_with_the_menu(
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
 }
 
+/// The Labels list's Create label row, as drawn.
+fn create_row(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Bounds<Pixels> {
+    shell
+        .read_with(cx, |shell, _| {
+            shell.areas.sidebar.rows.pages.trigger(CREATE_PAGE)
+        })
+        .unwrap()
+}
+
+/// The Create label page open beside the list, and the picker's draft.
+fn creating(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (bool, RowCreate) {
+    shell.read_with(cx, |shell, _| {
+        (
+            shell.areas.sidebar.rows.pages.is_open(CREATE_PAGE, 1),
+            shell.areas.labels.row_create(),
+        )
+    })
+}
+
+fn create_name(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<String> {
+    cx.update(|_, cx| shell.read(cx).labels_create_name(cx))
+}
+
+/// The Labels list beside the menu, opened by a press, then its Create
+/// label row pressed (TRACKER 792).
+fn create_page(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, Sent) {
+    let (shell, cx, sent) = opened(cx, 1280.0);
+    let row = labels_row(&shell, cx);
+    cx.simulate_click(row.center(), Modifiers::none());
+    cx.run_until_parked();
+    let create = create_row(&shell, cx);
+    // A page you type into does not open under a resting pointer.
+    cx.simulate_mouse_move(create.center(), None, Modifiers::none());
+    wait(cx, HOVER_OPEN);
+    assert_eq!(creating(&shell, cx), (false, RowCreate::None));
+    cx.simulate_click(create.center(), Modifiers::none());
+    cx.run_until_parked();
+    (shell, cx, sent)
+}
+
 #[gpui::test]
-fn the_create_dialog_keeps_the_menu_waiting_undrawn_behind_it(cx: &mut TestAppContext) {
-    let (shell, cx, _sent) = opened(cx, 1280.0);
+fn create_label_opens_its_page_beside_the_list_on_a_press_with_the_name_holding_the_keys(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx, _sent) = create_page(cx);
+    assert_eq!(creating(&shell, cx), (true, RowCreate::Draft));
+    // The menu and the list stay; the page is beside the list.
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
+    let page = cx.debug_bounds("workspace-label-create").unwrap();
+    assert!(page.left() >= create_row(&shell, cx).center().x);
+    cx.simulate_input("Ops");
+    assert_eq!(create_name(&shell, cx).as_deref(), Some("Ops"));
+    // A press in the page is not outside the menu, and the pointer's
+    // leaving closes nothing.
+    let swatches = cx.debug_bounds("label-swatches").unwrap();
+    cx.simulate_click(swatches.center(), Modifiers::none());
+    cx.simulate_mouse_move(point(px(1200.0), px(800.0)), None, Modifiers::none());
+    wait(cx, HOVER_CLOSE);
+    assert_eq!(creating(&shell, cx), (true, RowCreate::Draft));
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
+}
+
+#[gpui::test]
+fn escape_in_the_page_goes_back_to_the_list(cx: &mut TestAppContext) {
+    let (shell, cx, _sent) = create_page(cx);
+    cx.simulate_input("Ops");
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    assert_eq!(creating(&shell, cx), (false, RowCreate::None));
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
+}
+
+#[gpui::test]
+fn enter_creates_the_label_and_the_list_comes_back(cx: &mut TestAppContext) {
+    let (shell, cx, mut sent) = create_page(cx);
+    cx.simulate_input("Ops");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(creating(&shell, cx), (true, RowCreate::Saving));
+    let request = crate::areas::labels::fixtures::sent(&mut sent);
+    let answer = crate::areas::labels::fixtures::assigned(request);
+    shell.update(cx, |shell, cx| shell.labels_answer(answer, cx));
+    cx.run_until_parked();
+    // Paseo's `goBack`: the list again, the menu still open.
+    assert_eq!(creating(&shell, cx), (false, RowCreate::None));
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
+}
+
+#[gpui::test]
+fn on_a_phone_create_label_is_a_sheet_leading_back_to_the_list(cx: &mut TestAppContext) {
+    let (shell, cx, _sent) = opened(cx, 390.0);
     let row = labels_row(&shell, cx);
     cx.simulate_click(row.center(), Modifiers::none());
     cx.run_until_parked();
     shell.update_in(cx, Shell::labels_picker_create_now);
     cx.run_until_parked();
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Dialog));
-    // A press in the dialog is not a press outside the menu.
-    cx.simulate_click(point(px(640.0), px(MIDDLE)), Modifiers::none());
+    assert!(cx.debug_bounds("workspace-label-create").is_some());
+    let back = cx.debug_bounds("dialog-header-back").unwrap();
+    cx.simulate_click(back.center(), Modifiers::none());
     cx.run_until_parked();
-    assert_eq!(state(&shell, cx), (true, true, RowPicker::Dialog));
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
 }
 
 #[gpui::test]

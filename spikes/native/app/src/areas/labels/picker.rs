@@ -19,6 +19,9 @@
 
 mod create;
 mod draw;
+
+/// The Create label page's id among a row menu's pages.
+pub(crate) use create::CREATE as CREATE_PAGE;
 #[cfg(test)]
 mod tests;
 
@@ -63,6 +66,18 @@ pub(crate) enum PickerPlace {
     Page(vessel_app_kit::picker::Back<Shell>),
 }
 
+/// Where a row menu's Create label page is, for the menu to follow it
+/// (TRACKER 792).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RowCreate {
+    /// No draft: the list.
+    None,
+    /// A name is being given.
+    Draft,
+    /// The host is answering.
+    Saving,
+}
+
 /// Where a row menu's Labels picker is, for the menu to follow it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RowPicker {
@@ -70,7 +85,9 @@ pub(crate) enum RowPicker {
     None,
     /// Its list is up.
     Open,
-    /// Its Create dialog is up, the list closed behind it.
+    /// Its Create label sheet is up, the list closed behind it (a
+    /// phone's page; beside the menu the page is a flyout and the list
+    /// stays open).
     Dialog,
     /// Dismissed by the person (Escape, the scrim): its menu closes too.
     Dismissed,
@@ -171,7 +188,15 @@ impl Shell {
         {
             state.picker = None;
             state.picker_combo.close();
+            state.picker_combo.set_submenus(None);
         }
+    }
+
+    /// Give a row menu's Labels list the menu's pages, so its Create label
+    /// row opens its page beside it, on a press only (TRACKER 792).
+    pub(crate) fn labels_row_picker_pages(&mut self, pages: &vessel_app_kit::submenu::Submenus) {
+        self.areas.labels.picker_combo.set_submenus(Some(pages));
+        pages.press_only(create::CREATE);
     }
 
     /// Move the keys into a row menu's Labels list (its page opened by a
@@ -401,6 +426,15 @@ pub(super) fn overlay(
     draw::overlay(shell, tokens, window, cx)
 }
 
+/// The Create label page beside the list (TRACKER 792).
+pub(super) fn create_beside(
+    shell: &Shell,
+    tokens: &vessel_app_kit::Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    create::beside(shell, tokens, cx)
+}
+
 /// The list inside the row menu's Labels flyout (TRACKER 791).
 pub(super) fn beside(
     shell: &Shell,
@@ -417,8 +451,18 @@ impl super::Labels {
         self.picker.as_ref().map(|picker| picker.target.clone())
     }
 
-    /// Where a row menu's Labels picker is: none, its list up, its Create
-    /// dialog up, or dismissed (hidden, or its list closed on its own).
+    /// Where a row menu's Create label page is: its draft, or its save.
+    pub(crate) fn row_create(&self) -> RowCreate {
+        match self.picker.as_ref().map(|picker| &picker.page) {
+            Some(PickerPage::Creating(_)) => RowCreate::Draft,
+            Some(PickerPage::Submitting { .. }) => RowCreate::Saving,
+            Some(PickerPage::Listing) | None => RowCreate::None,
+        }
+    }
+
+    /// Where a row menu's Labels picker is: none, its list up (beside the
+    /// menu, with or without its Create label page), its Create label sheet
+    /// up (a phone), or dismissed (hidden, or its list closed on its own).
     pub(crate) fn row_picker(&self) -> RowPicker {
         let Some(picker) = &self.picker else {
             return RowPicker::None;
@@ -427,9 +471,10 @@ impl super::Labels {
             return RowPicker::None;
         }
         let listing = matches!(picker.page, PickerPage::Listing);
-        if !picker.visible || (listing && !self.picker_combo.is_open()) {
+        let beside = matches!(picker.place, PickerPlace::Beside);
+        if !picker.visible || ((listing || beside) && !self.picker_combo.is_open()) {
             RowPicker::Dismissed
-        } else if listing {
+        } else if listing || beside {
             RowPicker::Open
         } else {
             RowPicker::Dialog
