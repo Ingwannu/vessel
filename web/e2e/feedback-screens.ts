@@ -1,7 +1,7 @@
 // One affected-state matrix, with a real question and UI-generated feedback.
 // Desktop authentication then resize, not a cold-mobile bootstrap claim.
 import { expect, test } from "@playwright/test";
-import { clearToastBounds, copyToast, stackedToasts } from "./feedback-kit";
+import { clearToastBounds, copyToast, repeatedToasts } from "./feedback-kit";
 import { startSession } from "./kit";
 import { openUi } from "./open";
 import { watchPageErrors } from "./page-errors";
@@ -41,9 +41,9 @@ for (const locale of ["en-US", "ko-KR"]) {
           const name = `feedback-${locale}-${scheme}-${String(size.width)}x${String(size.height)}`;
           await shot(page, `${name}-toast`);
           await toast.getByRole("button", { name: "Dismiss" }).click();
-          await stackedToasts(page);
+          await repeatedToasts(page);
           await page.mouse.move(0, 0);
-          await shot(page, `${name}-stack`);
+          await shot(page, `${name}-repeated`);
           expect(
             await page.evaluate(
               () => document.documentElement.scrollWidth > window.innerWidth,

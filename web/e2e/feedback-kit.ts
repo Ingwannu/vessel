@@ -1,7 +1,8 @@
 // Actual controls and geometry shared by the feedback regressions/captures.
 import { expect, type Locator, type Page } from "@playwright/test";
 
-export const STACK_FIXTURE_COUNT = 8;
+/** Toasts said in a row by the fixtures; one stays up (Paseo's host). */
+export const REPEAT_FIXTURE_COUNT = 8;
 export const FOCUS_FRAME_MS = 120;
 // Paseo toast-host: 16px at each side, then a 92% width boundary.
 // A literal measured result keeps this independent of the CSS formula.
@@ -24,8 +25,8 @@ export async function copyToast(
   const copy = page.getByRole("menuitem", { name: "Copy session id" });
   if (timing === "paused") {
     // Toasts sit above menus (Paseo's planes, tokens.css): on a phone the
-    // stack this fixture builds covers the menu's rows, so the row is
-    // chosen without a pointer aimed through the stack.
+    // toast this fixture keeps up covers the menu's first rows, so the row
+    // is chosen without a pointer aimed through the toast.
     await copy.dispatchEvent("click");
   } else {
     await copy.click();
@@ -60,16 +61,17 @@ export async function clearToastBounds(page: Page): Promise<Locator> {
   return toast;
 }
 
-export async function stackedToasts(page: Page): Promise<void> {
+export async function repeatedToasts(page: Page): Promise<void> {
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
-  for (let index = 0; index < STACK_FIXTURE_COUNT; index += 1) {
+  for (let index = 0; index < REPEAT_FIXTURE_COUNT; index += 1) {
     await copyToast(page, "paused");
     await page.clock.runFor(FOCUS_FRAME_MS);
-    await expect(page.locator(".toast")).toHaveCount(index + 1);
+    // Each replaces the one up: never a second card.
+    await expect(page.locator(".toast")).toHaveCount(1);
   }
-  const stack = page.locator(".toast-stack");
-  const bounds = await rectangle(stack);
+  const host = page.locator(".toast-host");
+  const bounds = await rectangle(host);
   const header = await rectangle(page.getByRole("banner"));
   const prompt = await rectangle(page.getByRole("form", { name: "Prompt" }));
   const next = await rectangle(
@@ -81,14 +83,6 @@ export async function stackedToasts(page: Page): Promise<void> {
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(
     Math.min(prompt.y, next.y),
   );
-  expect(
-    await stack.evaluate(
-      (element) => element.scrollHeight > element.clientHeight,
-    ),
-  ).toBe(true);
-  await stack.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
-  await expect(page.locator(".toast").last()).toBeInViewport({ ratio: 1 });
+  await expect(page.locator(".toast")).toBeInViewport({ ratio: 1 });
   await page.clock.resume();
 }

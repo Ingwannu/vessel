@@ -1031,11 +1031,17 @@ anchored to the composer's dock and a prompt menu over it (CSS anchor
 positioning), so no viewport change or growing dock leaves a frame in
 which a toast covers a question control; browsers without anchors keep the
 measured height (`use-toast-clearance.ts`), one rendering step late. Cards retain 320px on a
-wide screen; below 768px they use 92vw up to 480px. The existing multi-toast
-host occupies at most a quarter of the viewport height; accumulated or long
-messages remain reachable by scrolling, and words wrap. Padding preserves
-room for the card's shadow. 4s for success, stay for error until dismissed. `--bg-elevated` + hairline + 3px status bar on the left.
-`role="status"` for success, `role="alert"` for error.
+wide screen; below 768px they use 92vw up to 480px.
+
+One toast at a time, as Paseo's `ToastHost` (`toast-host.tsx` 81-130): a
+new toast replaces the one up and starts its own life (`ui/toast-life.ts`):
+4s for success, an error stays until dismissed; dismissing an older toast
+leaves the newer one. A mouse resting on the card holds the life it has
+left, and leaving runs the rest (Paseo pauses its timer on hover). The host
+occupies at most a quarter of the viewport height; a long message wraps
+and scrolls. Padding preserves room for the card's shadow.
+`--bg-elevated` + hairline + 3px status bar on the left. `role="status"`
+for success, `role="alert"` for error.
 
 ### 6.11 Empty, loading, error
 

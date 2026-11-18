@@ -1,56 +1,52 @@
-// Toasts (DESIGN.md §6.10): below the header, clear of the lower composer
-// and dock. Success leaves after 4 s; errors are dismissed.
+// Toasts (DESIGN.md §6.10): one at a time below the header, clear of the
+// lower composer and dock. A new toast replaces the one up (toast-life.ts);
+// success leaves after 4 s, an error stays until dismissed.
 
-import { Store, useStore } from "../data/store";
+import { useStore } from "../data/store";
 import { IconButton } from "./kit";
+import {
+  dismissToast,
+  holdToast,
+  releaseToast,
+  shownToast,
+} from "./toast-life";
 import { useToastClearance } from "./use-toast-clearance";
 
-interface Toast {
-  id: number;
-  tone: "ok" | "error";
-  text: string;
-}
-
-const toasts = new Store<readonly Toast[]>([]);
-let next = 1;
-
-export function toast(text: string, tone: "ok" | "error" = "ok"): void {
-  const id = next;
-  next += 1;
-  toasts.update((list) => [...list, { id, tone, text }]);
-  if (tone === "ok") {
-    setTimeout(() => {
-      dismiss(id);
-    }, 4000);
-  }
-}
-
-function dismiss(id: number): void {
-  toasts.update((list) => list.filter((item) => item.id !== id));
-}
+export { toast } from "./toast-life";
 
 export function Toasts() {
-  const list = useStore(toasts, (value) => value);
-  const host = useToastClearance(list.length > 0);
+  const shown = useStore(shownToast, (value) => value);
+  const host = useToastClearance(shown !== null);
+  // One card for whichever toast is up, keyed by tone and not by toast: a
+  // replacement of the same tone changes the words of the live region in
+  // place, as Paseo's single surface (a new node per toast may go
+  // unannounced); a change between status and alert is a new region.
   return (
-    <div ref={host} className="toast-stack">
-      {list.map((item) => (
+    <div ref={host} className="toast-host">
+      {shown === null ? null : (
         <div
-          key={item.id}
-          className={item.tone === "error" ? "toast error" : "toast"}
-          role={item.tone === "error" ? "alert" : "status"}
+          key={shown.tone}
+          className={shown.tone === "error" ? "toast error" : "toast"}
+          role={shown.tone === "error" ? "alert" : "status"}
+          // Paseo holds the life on hover only (web); a touch is not a rest.
+          onPointerEnter={(event) => {
+            if (event.pointerType !== "touch") holdToast(shown.id);
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType !== "touch") releaseToast(shown.id);
+          }}
         >
-          <span>{item.text}</span>
+          <span>{shown.text}</span>
           <IconButton
             label="Dismiss"
             icon="close"
             size="xs"
             onClick={() => {
-              dismiss(item.id);
+              dismissToast(shown.id);
             }}
           />
         </div>
-      ))}
+      )}
     </div>
   );
 }
