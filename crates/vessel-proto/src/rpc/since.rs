@@ -305,6 +305,8 @@ impl Call {
             | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
+            | Self::GetAgentDiagnostic(_)
+            | Self::ReadNodeLog(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)

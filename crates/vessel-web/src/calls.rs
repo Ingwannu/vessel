@@ -244,6 +244,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetInboxEntry
         | Method::MarkInbox
         | Method::Diagnostics
+        // ADR 0111: an agent's diagnostic and the node's log.
+        | Method::GetAgentDiagnostic
+        | Method::ReadNodeLog
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush

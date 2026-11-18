@@ -160,6 +160,8 @@ macro_rules! methods {
             park_session: vessel_proto::parking::ParkSession => SessionInfo;
             wake_session: vessel_proto::parking::WakeSession => SessionInfo;
             reload_session: vessel_proto::reload::ReloadSession => SessionInfo;
+            agent_diagnostic: vessel_proto::agents::GetAgentDiagnostic => vessel_proto::agents::AgentDiagnostic;
+            node_log: vessel_proto::diagnostics::ReadNodeLog => vessel_proto::diagnostics::NodeLog;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;

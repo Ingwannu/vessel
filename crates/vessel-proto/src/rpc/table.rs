@@ -461,6 +461,10 @@ macro_rules! method_table {
             SetServiceExposure / set_service_exposure / "service.set_exposure" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::SetServiceExposure => $crate::workspace_services::ServiceSettingsOutcome;
             /// Start a session's agent again on its conversation, as Paseo's "Reload agent" (TRACKER 803, ADR 0110).
             ReloadSession / reload_session / "session.reload" [Operate, (pending $crate::reload::RELOAD_PROTOCOL), unary]: $crate::reload::ReloadSession => $crate::SessionInfo;
+            /// One agent's diagnostic with a new probe of its catalogue, as Paseo's provider diagnostic (ADR 0111).
+            GetAgentDiagnostic / agent_diagnostic / "agent.diagnostic" [Read, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::agents::GetAgentDiagnostic => $crate::agents::AgentDiagnostic;
+            /// The last lines of the node's own log, for its administrators (ADR 0111).
+            ReadNodeLog / node_log / "node.log" [Admin, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::diagnostics::ReadNodeLog => $crate::diagnostics::NodeLog;
         }
     };
 }

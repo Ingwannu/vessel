@@ -195,6 +195,26 @@ coordinator as a separate parity item.
 - Native: the row is the visual lane's, after this node op lands. The native usage `binding_epoch` list
   should gain `reloaded`, as the page's `BINDING` did.
 
+## The diagnostics wire (ADR 0111; TRACKER 568, 67, 87, 567, 569)
+
+- First commit: row 332's two open notes. A parked reload records `woken` just before `reloaded`; the page
+  reads `RELOAD_PROTOCOL` from the wire declarations, which now end with generated protocol constants
+  (`vessel_proto::ts::PROTOCOLS`).
+- Node (protocol drafted 32, `DIAGNOSTICS_WIRE_PROTOCOL`):
+  - `agent.diagnostic`: `service/agent_diagnostic.rs`, with `Probes::refresh` (the diagnostic's forced probe,
+    kept for `harness.options`) and `Lookup::find_all`.
+  - The report's `more` sections: `diagnostics/more.rs`, `SessionRuntime::diagnostic_activity`,
+    `DataDir::space`. Sent only to peers at 32 (`DiagnosticReport::for_protocol`).
+  - `node.log`: `service/node_log.rs`, `DataDir::node_log_files` (`data_dir/logs.rs`, which now also holds
+    `open_node_log`).
+  - Renderers: `vessel_proto::diagnostics::text` (the CLI now uses it) and `AgentDiagnostic::text`, held to
+    `web/src/wire/fixtures/` (the `ts` step rewrites the text files).
+- Tests: proto fixtures and words; node unit tests (parsers, the log's file and tail, the refresh); the real
+  collector's sections; e2e `agent_diagnostic.rs` (a ready agent probed again and kept, agents that cannot run
+  here, the log for administrators, agents refused).
+- Then the page row (Settings › Diagnostics with each machine's report, an agent's "Diagnostic" dialog, a
+  machine's "Log file" row) and the native row, with frames for each.
+
 ## Next
 
 - The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).

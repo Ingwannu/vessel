@@ -51,7 +51,7 @@ async fn real_node_reports_only_safe_sources_without_running_an_agent() {
         let state = &node.secure.service.0.diagnostics;
         let report = phase(
             "compose real source report",
-            state.collect(&node.secure.service.0.lifecycle),
+            state.collect(&node.secure.service.0.lifecycle, true),
         )
         .await
         .unwrap();
@@ -67,6 +67,7 @@ async fn real_node_reports_only_safe_sources_without_running_an_agent() {
         let DiagnosticSection::Available { value, .. } = &fields.agents else {
             panic!("agents unavailable")
         };
+        more_sections(fields);
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.len() <= MAX_DIAGNOSTIC_REPORT_BYTES);
         assert!(!json.contains(PRIVATE));
@@ -95,4 +96,40 @@ async fn real_node_reports_only_safe_sources_without_running_an_agent() {
         phase("stop diagnostic node", node.stop()).await.unwrap();
     })
     .await;
+}
+
+/// ADR 0111's sections of a fresh node: the machine, its disk, no
+/// workspaces or sessions yet, and no `git` or `gh` on its search path.
+fn more_sections(fields: &vessel_proto::diagnostics::DiagnosticReportFields) {
+    let more = fields.more.as_ref().expect("the sections of protocol 32");
+    let DiagnosticSection::Available { value: system, .. } = &more.system else {
+        panic!("system unavailable")
+    };
+    assert!(system.cpus.get() > 0);
+    assert_eq!(system.load.is_some(), cfg!(target_os = "linux"));
+    if cfg!(unix) {
+        assert!(matches!(more.disk, DiagnosticSection::Available { .. }));
+    }
+    let DiagnosticSection::Available {
+        value: workspaces, ..
+    } = &more.workspaces
+    else {
+        panic!("workspaces unavailable")
+    };
+    assert_eq!(workspaces.projects.get(), 0);
+    let DiagnosticSection::Available {
+        value: activity, ..
+    } = &more.activity
+    else {
+        panic!("activity unavailable")
+    };
+    assert!(activity.builtin.is_empty());
+    let DiagnosticSection::Available { value: tools, .. } = &more.tools else {
+        panic!("tools unavailable")
+    };
+    assert_eq!(
+        tools.git,
+        vessel_proto::diagnostics::DiagnosticTool::Missing
+    );
+    assert_eq!(tools.gh, vessel_proto::diagnostics::DiagnosticTool::Missing);
 }

@@ -222,6 +222,9 @@ untargeted!(
     vessel_proto::inbox::MarkInbox,
     vessel_proto::inbox::GetInboxEntry,
     vessel_proto::diagnostics::GetDiagnostics,
+    // ADR 0111: an agent's diagnostic and the node's log are no session's.
+    vessel_proto::agents::GetAgentDiagnostic,
+    vessel_proto::diagnostics::ReadNodeLog,
     vessel_proto::push::GetPushKey,
     vessel_proto::push::SubscribePush,
     vessel_proto::push::UnsubscribePush,

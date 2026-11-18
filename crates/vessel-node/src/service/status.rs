@@ -45,7 +45,7 @@ impl NodeService {
     }
 
     /// The agents and profiles asked about: one, or every agent's default.
-    fn status_pairs(
+    pub(super) fn status_pairs(
         &self,
         agent: Option<&HarnessRef>,
         profile: Option<&vessel_proto::ProfileName>,
@@ -102,7 +102,7 @@ impl NodeService {
     }
 
     /// The facts of `agent` under `profile` now.
-    fn readiness_of(
+    pub(super) fn readiness_of(
         &self,
         agent: &HarnessRef,
         profile: &Profile,
@@ -145,7 +145,12 @@ impl NodeService {
 
     /// Run `agent`'s checks under `profile` and keep what they say: its
     /// status command (Claude Code, Codex), or a handshake (the others).
-    async fn refresh_status(&self, agent: &HarnessRef, profile: &Profile, installed: bool) {
+    pub(super) async fn refresh_status(
+        &self,
+        agent: &HarnessRef,
+        profile: &Profile,
+        installed: bool,
+    ) {
         let key = Key {
             agent: agent.clone(),
             profile: profile.name().clone(),

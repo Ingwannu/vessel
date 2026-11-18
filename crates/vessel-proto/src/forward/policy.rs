@@ -53,6 +53,8 @@ impl Method {
     ///   `node.settings` or `node.set_settings`, a node's administration.
     /// - Forwardable, `session.reload` (TRACKER 803, ADR 0110), as
     ///   `session.wake`: it acts on one session's agent.
+    /// - ADR 0111: `agent.diagnostic` is forwardable as `agent.status` is;
+    ///   `node.log` is not, a node's administration.
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -192,6 +194,9 @@ impl Method {
             // Protocol 11: what a node can run is read like its harnesses.
             | Self::ListAgents
             | Self::GetAgentStatus
+            // ADR 0111: an agent's diagnostic, read and probed as
+            // `agent.status` and `harness.options` are.
+            | Self::GetAgentDiagnostic
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
             | Self::GetDeviceSelf
@@ -247,6 +252,8 @@ impl Method {
             | Self::SetServiceGateway
             | Self::SetServiceExposure
             | Self::Diagnostics
+            // ADR 0111: a node's log is its administration, done there.
+            | Self::ReadNodeLog
             | Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
