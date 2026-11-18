@@ -5,14 +5,22 @@ use crate::automation::{PromptList, SavedPrompt, ScheduleInfo, ScheduleList, Sch
 use crate::{ProtocolVersion, SessionImported, SessionSpec, TransferDetail, TransferManifest};
 
 fn spec(value: &SessionSpec, protocol: ProtocolVersion) -> Option<SessionSpec> {
-    (!crate::lifecycle_version::visible(crate::lifecycle_version::SINCE, protocol)
-        && (!value.labels.is_empty() || value.listing.is_some()))
-    .then(|| {
-        let mut older = value.clone();
+    let strip = !crate::lifecycle_version::visible(crate::lifecycle_version::SINCE, protocol)
+        && (!value.labels.is_empty() || value.listing.is_some());
+    // A title longer than an older peer decodes is cut (TRACKER 801).
+    let title = crate::SessionTitle::optional_for_protocol(value.title.as_ref(), protocol);
+    if !strip && title.is_none() {
+        return None;
+    }
+    let mut older = value.clone();
+    if strip {
         older.labels.clear();
         older.listing = None;
-        older
-    })
+    }
+    if let Some(title) = title {
+        older.title = title;
+    }
+    Some(older)
 }
 
 /// A session inside a transfer must obey the same metadata version as get/list.
@@ -74,7 +82,7 @@ pub(super) fn schedules(value: &ScheduleList, protocol: ProtocolVersion) -> Opti
         .map(|schedules| ScheduleList { schedules })
 }
 
-fn changed<T: Clone>(items: &[T], rewrite: impl Fn(&T) -> Option<T>) -> Option<Vec<T>> {
+pub(super) fn changed<T: Clone>(items: &[T], rewrite: impl Fn(&T) -> Option<T>) -> Option<Vec<T>> {
     // Delay the list copy until the first changed item, and keep that rewrite.
     let mut tail = items.iter().enumerate();
     let (index, replacement) =
