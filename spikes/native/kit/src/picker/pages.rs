@@ -12,7 +12,7 @@ impl ComboboxState {
     /// Rows with a [`super::ComboRow::page`] open it beside the list through
     /// `submenus` (a wide window; `None` keeps pages the screen's own), and a
     /// press on an open page is not outside the list.
-    pub fn set_submenus(&mut self, submenus: Option<&crate::submenu::Submenus>) {
+    pub fn set_submenus(&mut self, submenus: Option<&Submenus>) {
         self.submenus = submenus.cloned();
         self.submenu_depth = 0;
     }
@@ -23,11 +23,21 @@ impl ComboboxState {
     /// menu's path alone (the menu owns it, and the list's page is on it).
     pub fn set_nested_submenus(
         &mut self,
-        submenus: Option<&crate::submenu::Submenus>,
+        submenus: Option<&Submenus>,
         depth: usize,
     ) {
         self.submenus = submenus.cloned();
         self.submenu_depth = depth;
+    }
+
+    /// A new opening of a root list starts its pages at the root; a list
+    /// that is a menu's page leaves its menu's path alone.
+    pub(super) fn follow_pages(&self) {
+        if let Some(pages) = &self.submenus
+            && self.submenu_depth == 0
+        {
+            pages.follow(&std::rc::Rc::downgrade(&self.cycle));
+        }
     }
 }
 
