@@ -119,9 +119,30 @@ fn shift_f10_and_the_menu_key_open_the_focused_tabs_menu(cx: &mut TestAppContext
     });
     shell.update(cx, |shell, _| shell.areas.layout.menu.close());
     cx.run_until_parked();
-    cx.simulate_keystrokes("menu");
+    // The Menu key as a platform sends it: no text. (The test context's
+    // `simulate_keystrokes("menu")` would type the word "menu".)
+    let mut menu_key = gpui::Keystroke::parse("menu").unwrap();
+    menu_key.key_char = None;
+    cx.simulate_event(gpui::KeyDownEvent {
+        keystroke: menu_key,
+        is_held: false,
+        prefer_character_input: false,
+    });
     cx.run_until_parked();
     assert_eq!(menu_on(&shell, cx), Some(agent));
+}
+
+#[gpui::test]
+fn diagnostic_fresh_page_shift_f10(cx: &mut TestAppContext) {
+    let (shell, cx, agent) = page(cx, 1280.0);
+    let focus = shell.update_in(cx, |shell, window, cx| {
+        let composer = shell.areas.session.composer.focus_handle(cx).is_focused(window);
+        (window.focused(cx).is_some(), composer)
+    });
+    cx.simulate_keystrokes("shift-f10");
+    let seen = shell.read_with(cx, |shell, _| shell.areas.layout.menu.is_open());
+    cx.run_until_parked();
+    assert_eq!((focus, seen, menu_on(&shell, cx)), ((false, false), true, Some(agent)));
 }
 
 #[gpui::test]
