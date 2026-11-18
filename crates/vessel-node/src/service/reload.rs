@@ -65,11 +65,18 @@ impl NodeService {
         self.agents.end_move(id, reloaded.is_ok());
         self.models.end_move(id, reloaded.is_ok());
         match reloaded {
-            Err(ServiceError::Ended(_)) => {
-                let ended = self.sessions.get(id).await?;
-                let _conversation = vessel_session::resumable(&ended)
+            // Ended, or ending while this call ran: started again once its
+            // log is all in the store (`Sessions::ended` waits for the
+            // hand-over), so the prompts read from it are all of them.
+            Err(ServiceError::Ended(_) | ServiceError::Session(SessionError::Ended)) => {
+                let info = self.sessions.get(id).await?;
+                let _conversation = vessel_session::resumable(&info)
                     .map_err(|refusal| SessionError::from(NotReloadable::from(refusal)))?;
-                let before = self.sessions.prompts_before(id, ended.next_seq).await?;
+                let ended = self.sessions.ended(id).await?;
+                let before = self
+                    .sessions
+                    .prompts_before(id, ended.info.next_seq)
+                    .await?;
                 self.start_again(connection, id, Some(before)).await
             }
             other => other,

@@ -57,7 +57,8 @@ refused a session that was not live or was parked, and dropped the replay.
        started with `session/load` and a fresh launch: the current profile, the fleet's MCP servers as they
        are now, a new `vessel` credential and a routed profile's new token, the session's choices.
     3. A parked session: started with that launch.
-    4. An ended or archived session: started again as `session.resume` starts it.
+    4. An ended or archived session: started again as `session.resume` starts it, once its log is all in the
+       store (the hand-over), so the prompts read from the store are all of them.
   - The record: `reloaded { harness_session, appended }` once the agent is ready again. An older peer reads it
     as `vessel: the agent was reloaded` (with the count when records were added), at the same sequence.
   - The history (ruling C, R2):
@@ -117,9 +118,13 @@ refused a session that was not live or was parked, and dropped the replay.
   - a diverged history adding nothing;
   - the unknown log, the cap in whole messages, and the item and time bounds on a paused clock.
 - `vessel-node` e2e `reload.rs`, over the wire with `fake-acp` (`FAKE_ACP_REPLAY_FIRST`, `FAKE_ACP_REPLAY_USER`,
-  the `deaf` prompt):
+  `FAKE_ACP_LOAD_FAILS_IF`, the `deaf` prompt):
   - the three history cases;
   - an archived session unarchived and started again;
+  - a parked session reloaded (running, not parked, `reloaded`, its next prompt on the loaded conversation);
+  - a reloaded agent that cannot load (`FAKE_ACP_LOAD_FAILS_IF`): a live session `spawn_failed` and ended
+    `failed` with its log kept, then reloaded again once the agent can load; a parked one left parked with a
+    failed wake's reason;
   - a turn that does not end kept with `conflict`;
   - an agent `forbidden`, a terminal `unsupported`, an unknown session `not_found`.
 - `vessel-proto`:

@@ -10,6 +10,7 @@
 //! `FAKE_ACP_REPLAY_USER`, a later prompt nobody sent through Vessel.
 
 use vessel_client::NodeClient;
+use vessel_proto::parking::{ParkReason, ParkSession};
 use vessel_proto::reload::ReloadSession;
 use vessel_proto::{
     AgentEvent, ContentBlock, ErrorCode, EventRecord, EventSeq, HarnessKind, Mark, SessionEvent,
@@ -339,6 +340,154 @@ async fn an_agent_and_a_terminal_are_refused() {
                     .await
             ),
             ErrorCode::NotFound
+        );
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// Profiles whose agent cannot load its conversation while `switch`
+/// exists: the next start that loads fails, and a later one does not.
+fn breakable(fixture: &Fixture) -> std::path::PathBuf {
+    let switch = fixture.cwd().join("break-load");
+    let path = switch.display().to_string();
+    let profiles = format!(
+        "{PROFILES}\n[profiles.breakable]\nharness = \"claude\"\nenv = {{ FAKE_ACP_REPLAY_FIRST = \"plain\", FAKE_ACP_LOAD_FAILS_IF = {path:?} }}\n"
+    );
+    std::fs::write(fixture.data_dir().profiles_path(), profiles).unwrap();
+    switch
+}
+
+/// A parked session is started on its conversation (no stop): it runs,
+/// is parked no more, logs `reloaded`, and its next prompt reaches the new
+/// agent with its conversation loaded.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_parked_session_is_reloaded() {
+    within(async {
+        let fixture = Fixture::new();
+        std::fs::write(fixture.data_dir().profiles_path(), PROFILES).unwrap();
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+        let mut running = asked(&client, &fixture, Some("lined")).await;
+        let parked = client
+            .call(ParkSession {
+                session: running.id,
+            })
+            .await
+            .unwrap();
+        assert!(parked.parked.is_some());
+        let (appended, _) = reload(&client, &mut running).await;
+        assert_eq!(appended, 0);
+        let info = client.session(running.id).await.unwrap();
+        assert!(info.parked.is_none());
+        let conversation = info.harness_session.unwrap();
+        let said = ask(
+            &client,
+            &mut running.stream,
+            &mut running.seen,
+            running.id,
+            "loaded",
+        )
+        .await;
+        assert_eq!(said, format!("loaded {conversation}"));
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// The reloaded agent cannot load the conversation: the call is
+/// `spawn_failed`, the session ends `failed` with its log kept, and a
+/// reload once the agent can load again brings it back.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_live_reload_whose_agent_does_not_load_fails_the_session_until_reloaded() {
+    within(async {
+        let fixture = Fixture::new();
+        let switch = breakable(&fixture);
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+        let mut running = asked(&client, &fixture, Some("breakable")).await;
+        let conversation = client.session(running.id).await.unwrap().harness_session;
+        std::fs::write(&switch, "").unwrap();
+        assert_eq!(
+            code(
+                client
+                    .call(ReloadSession {
+                        session: running.id
+                    })
+                    .await
+            ),
+            ErrorCode::SpawnFailed
+        );
+        read_until(&mut running.stream, &mut running.seen, |record| {
+            matches!(
+                record.event,
+                SessionEvent::Status {
+                    status: SessionStatus::Failed { .. }
+                }
+            )
+        })
+        .await;
+        let page = client.read(running.id, EventSeq::ZERO, 1000).await.unwrap();
+        assert!(
+            page.records.iter().any(|record| matches!(
+                &record.event,
+                SessionEvent::Agent {
+                    event: AgentEvent::MessageChunk {
+                        content: ContentBlock::Text { text },
+                    },
+                } if text == "echo: plain"
+            )),
+            "the log is kept"
+        );
+        std::fs::remove_file(&switch).unwrap();
+        let info = client
+            .call(ReloadSession {
+                session: running.id,
+            })
+            .await
+            .unwrap();
+        assert_eq!(info.status, SessionStatus::Running);
+        assert_eq!(info.harness_session, conversation);
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// The same failure on a parked session: it stays parked, and says why as
+/// a failed wake does.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_parked_reload_whose_agent_does_not_load_stays_parked() {
+    within(async {
+        let fixture = Fixture::new();
+        let switch = breakable(&fixture);
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+        let running = asked(&client, &fixture, Some("breakable")).await;
+        let _parked = client
+            .call(ParkSession {
+                session: running.id,
+            })
+            .await
+            .unwrap();
+        std::fs::write(&switch, "").unwrap();
+        assert_eq!(
+            code(
+                client
+                    .call(ReloadSession {
+                        session: running.id
+                    })
+                    .await
+            ),
+            ErrorCode::SpawnFailed
+        );
+        let info = client.session(running.id).await.unwrap();
+        assert_eq!(info.status, SessionStatus::Running);
+        assert!(
+            matches!(
+                info.parked.map(|parked| parked.reason),
+                Some(ParkReason::WakeFailed { .. })
+            ),
+            "it says why"
         );
         node.stop().await.unwrap();
     })

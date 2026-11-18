@@ -59,7 +59,8 @@
 //!   message id is where a fork was made (`<at>`, `head-last` for `head`,
 //!   `replayed-last` for any other session), then
 //!   answers with the same options as `session/new`, as they stand. With
-//!   `FAKE_ACP_LOAD_FAILS` set it replays nothing and answers an error
+//!   `FAKE_ACP_LOAD_FAILS` set (or `FAKE_ACP_LOAD_FAILS_IF` naming a file
+//!   that exists when it starts) it replays nothing and answers an error
 //!   (`no such session: <id>`), as an agent whose transcript is gone does.
 //! - Both remember the MCP servers they were given, and `session/load` the
 //!   session id it loaded.
@@ -370,7 +371,12 @@ async fn serve() -> ExitCode {
     let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
     let load_usage = std::env::var_os("FAKE_ACP_LOAD_USAGE")
         .map(|mode| if mode == "higher" { 10.0 } else { 0.5 });
-    let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
+    // `FAKE_ACP_LOAD_FAILS_IF`: as `FAKE_ACP_LOAD_FAILS` while the file it
+    // names exists when this process starts, so a test fails one restart
+    // and not the next (TRACKER 803).
+    let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some()
+        || std::env::var_os("FAKE_ACP_LOAD_FAILS_IF")
+            .is_some_and(|path| std::path::Path::new(&path).exists());
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let forks = std::env::var_os("FAKE_ACP_NO_FORK").is_none();
     let ignores_point = std::env::var_os("FAKE_ACP_FORK_IGNORES_POINT").is_some();

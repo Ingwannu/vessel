@@ -47,6 +47,7 @@ impl Sessions {
         plan: impl AsyncFnOnce(&SessionHandle) -> Result<Reload, ServiceError>,
     ) -> Result<SessionInfo, ServiceError> {
         match self.find(id).await? {
+            Found::Live { handle, .. } if handle.has_ended() => Err(ServiceError::Ended(id)),
             Found::Live { handle, .. } => {
                 let reload = plan(&handle).await?;
                 Ok(self.runtime.reload(id, reload).await?)
