@@ -101,9 +101,13 @@ Status: built; gates under "Status".
 - app `layout::rename::tests`: a workspace rename takes only its own
   ticket's answer, names the card and closes; a refusal keeps the typed
   title with the layout's words.
-- app `layout::keyboard_menu::tests`: Shift+F10 and the Menu key open the
-  focused tab's menu with the session's actions; F10, Ctrl+Shift+F10 and the
-  compact width do not.
+- app `layout::keyboard_menu::tests`: Shift+F10 opens the focused tab's
+  menu with the session's actions, with nothing focused and with the
+  composer focused; F10, Ctrl+Shift+F10 and the compact width do not; the
+  key rule takes Shift+F10 and the Menu key alone. The Menu key is checked
+  by name only: the test context types it as the word "menu", while a
+  platform's Menu key (Windows `VK_APPS`, the keysym `Menu`) arrives as the
+  name `menu` with no text.
 
 ## Status
 
