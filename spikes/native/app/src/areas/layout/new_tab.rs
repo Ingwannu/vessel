@@ -100,8 +100,9 @@ struct Row {
 
 struct Group {
     label: Option<SharedString>,
-    /// Paseo's group accessory (Edit profiles), drawn disabled.
-    edit: bool,
+    /// Paseo's group accessory (Edit profiles), drawn disabled: its
+    /// accessible name.
+    edit: Option<SharedString>,
     rows: Vec<Row>,
 }
 
@@ -131,7 +132,7 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
     .collect();
     let mut groups = vec![Group {
         label: None,
-        edit: false,
+        edit: None,
         rows: tabs,
     }];
     // The node's profiles do not reach the app yet; Paseo shows the
@@ -156,7 +157,7 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
     if !profiles.is_empty() {
         groups.push(Group {
             label: Some(shell.words.layout().terminal_profiles().to_owned().into()),
-            edit: true,
+            edit: Some(shell.words.layout().edit_profiles().to_owned().into()),
             rows: profiles,
         });
     }
@@ -240,6 +241,7 @@ fn group_view(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let neutral = tokens.neutral;
+    let edit = group.edit;
     let header = group.label.map(|label| {
         div()
             .flex()
@@ -255,10 +257,15 @@ fn group_view(
                     .text_color(neutral.foreground_extra_muted)
                     .child(label),
             )
-            .when(group.edit, |header| {
-                // Its box keeps the row 20 tall (Paseo's negative margin).
+            .when_some(edit, |header, name| {
+                // Its box keeps the row 20 tall (Paseo's negative margin). A
+                // named button, as Paseo's `EditProfilesButton`; disabled, so
+                // it offers no Click.
                 header.child(
                     div()
+                        .id("new-tab-edit-profiles")
+                        .role(gpui::Role::Button)
+                        .aria_label(name)
                         .debug_selector(|| "new-tab-edit-profiles".to_owned())
                         .size(px(EDIT_HIT))
                         .m(px(EDIT_MARGIN))
@@ -297,7 +304,13 @@ fn row_view(
     };
     let id = row.id.clone();
     let icon_id = row.id.clone();
+    // A named button, as Paseo's `LauncherRow` (`accessibilityRole`,
+    // `accessibilityLabel`); a disabled one offers no Click, as the kit's
+    // disabled buttons (the app reviewer on 336, R1).
     let body = div()
+        .id(ElementId::Name(format!("new-tab-launch-{}", row.id).into()))
+        .role(gpui::Role::Button)
+        .aria_label(row.label.clone())
         .debug_selector(move || format!("new-tab-row-{id}"))
         .flex()
         .items_center()
@@ -343,8 +356,7 @@ fn row_view(
     let surface2 = neutral.surface2;
     let pressed = owner.clone();
     let index = row.index;
-    body.id(ElementId::Name(format!("new-tab-launch-{}", row.id).into()))
-        .cursor_pointer()
+    body.cursor_pointer()
         .hover(move |style| style.bg(surface2))
         .active(|style| style.opacity(PRESSED))
         .on_mouse_down(

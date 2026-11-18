@@ -248,3 +248,37 @@ fn every_label_starts_on_one_rail(cx: &mut TestAppContext) {
         .collect();
     assert!(ends.windows(2).all(|pair| pair[0] == pair[1]), "{ends:?}");
 }
+
+/// Every `aria` object of GPUI's real accessibility snapshot, as text (its
+/// values here hold no braces); no raw snapshot is printed.
+fn arias(cx: &mut VisualTestContext) -> Vec<String> {
+    let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    json.split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .collect()
+}
+
+#[gpui::test]
+fn the_rows_and_the_pencil_are_named_buttons(cx: &mut TestAppContext) {
+    let (probe, cx) = at(cx, 1280.0);
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    probe.update(cx, |probe, cx| probe.0.update(cx, |_, cx| cx.notify()));
+    cx.run_until_parked();
+    let arias = arias(cx);
+    let named = |label: &str| {
+        let label = format!(r#""label": "{label}""#);
+        arias.iter().find(|aria| aria.contains(&label)).cloned()
+    };
+    // Paseo's LauncherRow: a button named by its label; Agent starts.
+    let agent = named("Agent").unwrap();
+    assert!(agent.contains(r#""Button""#) && agent.contains(r#""Click""#));
+    // A disabled row and the disabled pencil are named but offer no Click.
+    for disabled in ["Terminal", "Pi", "Edit profiles"] {
+        let aria = named(disabled).unwrap();
+        assert!(aria.contains(r#""Button""#), "{disabled}");
+        assert!(!aria.contains(r#""Click""#), "{disabled}");
+    }
+}

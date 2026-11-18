@@ -136,3 +136,6 @@ layout-unable-to-save = Unable to save
 # New tab panel: the terminal profiles group's label (Paseo's
 # workspace.tabs.actions.terminalProfilesMenu).
 layout-terminal-profiles = Terminal profiles
+# New tab panel: the terminal profiles group's pencil, its accessible name
+# (Paseo's workspace.tabs.actions.editTerminalProfiles).
+layout-edit-profiles = Edit profiles

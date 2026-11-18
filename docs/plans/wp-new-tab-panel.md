@@ -143,6 +143,16 @@ Details:
   (the coordinator, from the 700 frames). Test: kit `tabs::tests`
   `a_long_label_ends_inside_its_capped_tab`.
 
+## App review round 1 (R1)
+
+The rows and the pencil had no accessible role or name, where the old pane's
+New agent was a named kit button. Every row is now a button named by its
+label (Paseo's `accessibilityRole="button"`, `accessibilityLabel`); the
+pencil too, named "Edit profiles" / "프로필 편집" (Paseo's
+`editTerminalProfiles`). Ready rows offer Click; disabled rows and the
+disabled pencil offer none, as the kit's disabled buttons. Test:
+`the_rows_and_the_pencil_are_named_buttons`.
+
 ## Tests
 
 - app `layout::new_tab::tests`: groups and order (built-ins in Paseo's
