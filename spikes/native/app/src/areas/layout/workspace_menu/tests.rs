@@ -41,21 +41,24 @@ fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
 
 fn titled(title: &str, window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
     let shown = title.to_owned();
-    Probe(cx.new(|cx| {
-        let mut shell = Shell::without_io(window, cx);
-        shell.route = Route::Session;
-        shell.areas.session.open = Some(Open {
-            machine: "laptop".to_owned(),
-            session: SessionId::random(),
-            title: "Fix the cart".to_owned(),
-            agent: "Claude Code".to_owned(),
-            structured: true,
-            live: true,
-            archived_at: None,
-            binding: None,
-        });
-        shell
-    }), shown)
+    Probe(
+        cx.new(|cx| {
+            let mut shell = Shell::without_io(window, cx);
+            shell.route = Route::Session;
+            shell.areas.session.open = Some(Open {
+                machine: "laptop".to_owned(),
+                session: SessionId::random(),
+                title: "Fix the cart".to_owned(),
+                agent: "Claude Code".to_owned(),
+                structured: true,
+                live: true,
+                archived_at: None,
+                binding: None,
+            });
+            shell
+        }),
+        shown,
+    )
 }
 
 #[gpui::test]
@@ -120,7 +123,10 @@ fn a_title_longer_than_the_bar_shrinks_and_keeps_both_dots_inside(cx: &mut TestA
     let bar = cx.debug_bounds("session-bar").unwrap();
     let title = cx.debug_bounds("session-title-text").unwrap();
     let dots = cx.debug_bounds("workspace-actions-button").unwrap();
-    assert!(title.size.width < px(CHARACTER.mul_add(200.0, 0.0)), "{title:?}");
+    assert!(
+        title.size.width < px(CHARACTER.mul_add(200.0, 0.0)),
+        "{title:?}"
+    );
     assert!(title.right() <= dots.left(), "{title:?} {dots:?}");
     assert!(dots.right() <= bar.right(), "{dots:?} {bar:?}");
 }
