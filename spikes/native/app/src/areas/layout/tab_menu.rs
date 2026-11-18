@@ -97,21 +97,11 @@ fn target_of(shell: &Shell, tab: TabId) -> Option<Target> {
     .flatten()
 }
 
-/// The tab menu's rows, in Paseo's order, then the open session's own.
-pub(super) fn entries(shell: &Shell, tab: TabId, surface: Surface) -> Vec<(Action, MenuItem)> {
+/// Paseo's copies, by the tab's kind.
+fn copies(shell: &Shell, target: &Target) -> Vec<(Action, MenuItem)> {
     let words = shell.words.layout();
-    let Some(target) = target_of(shell, tab) else {
-        return Vec::new();
-    };
-    let open = shell.areas.session.open.as_ref().map(|open| open.session);
-    let session_tab = matches!(&target, Target::Agent(id) if Some(*id) == open);
-    let session_rows = if session_tab {
-        session_menu_rows(shell)
-    } else {
-        Vec::new()
-    };
     let mut items = Vec::new();
-    match &target {
+    match target {
         Target::Agent(id) => {
             items.push((
                 Action::CopyResume,
@@ -149,6 +139,23 @@ pub(super) fn entries(shell: &Shell, tab: TabId, surface: Surface) -> Vec<(Actio
         | Target::Setup(_)
         | Target::CommitDiff(_) => {}
     }
+    items
+}
+
+/// The tab menu's rows, in Paseo's order, then the open session's own.
+pub(super) fn entries(shell: &Shell, tab: TabId, surface: Surface) -> Vec<(Action, MenuItem)> {
+    let words = shell.words.layout();
+    let Some(target) = target_of(shell, tab) else {
+        return Vec::new();
+    };
+    let open = shell.areas.session.open.as_ref().map(|open| open.session);
+    let session_tab = matches!(&target, Target::Agent(id) if Some(*id) == open);
+    let session_rows = if session_tab {
+        session_menu_rows(shell)
+    } else {
+        Vec::new()
+    };
+    let mut items = copies(shell, &target);
     let renamable = shell
         .areas
         .conversation

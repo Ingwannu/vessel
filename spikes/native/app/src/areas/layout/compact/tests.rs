@@ -284,7 +284,7 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
     probe.read_with(cx, |probe, cx| {
         let layout = &probe.0.read(cx).areas.layout;
         assert!(layout.menu.is_open());
-        assert_eq!(layout.menu_surface, super::super::menu::Surface::Switcher);
+        assert_eq!(layout.menu_surface, Surface::Switcher);
         assert_eq!(layout.menu_tab.as_ref().map(|(_, tab)| *tab), Some(ids[0]));
         assert!(layout.compact.switcher_open, "the sheet stays under it");
     });
