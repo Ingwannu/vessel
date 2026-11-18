@@ -116,8 +116,8 @@ fn copy<E>(words: Result<String, E>) -> Option<(String, ToastTone)> {
 }
 
 /// The toast a copy that could not be made says: Paseo's `toast.error`.
-fn error(words: &str) -> Option<(String, ToastTone)> {
-    Some((words.to_owned(), ToastTone::Error))
+fn error(words: &str) -> (String, ToastTone) {
+    (words.to_owned(), ToastTone::Error)
 }
 
 fn clipboard(cx: &mut VisualTestContext) -> Option<String> {
@@ -213,7 +213,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, mine, Action::CopyResume);
-    assert_eq!(said, error(words.resume_id_unavailable()));
+    assert_eq!(said, Some(error(words.resume_id_unavailable())));
     assert_eq!(clipboard(cx), None);
     // Once it did: Paseo's template for Claude Code, and its "Copied …"
     // (built by the same catalog call, Fluent's isolation marks included).
@@ -260,7 +260,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, other, Action::CopyResume);
-    assert_eq!(said, error(words.resume_command_unavailable()));
+    assert_eq!(said, Some(error(words.resume_command_unavailable())));
     assert_eq!(clipboard(cx).as_deref(), Some("codex resume 9e8d"));
 }
 
