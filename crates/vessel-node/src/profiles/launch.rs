@@ -322,6 +322,9 @@ impl Launcher {
             notices,
             model_proxy: None,
             questions: watched(&info.created_by),
+            // A reload sets it (`service::reload`); `session.resume` drops
+            // the replay.
+            rehydrate: None,
         })
     }
 

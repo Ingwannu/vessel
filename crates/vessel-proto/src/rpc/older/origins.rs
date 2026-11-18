@@ -23,7 +23,7 @@ fn assert_hidden(reply: &Reply) {
 
 #[test]
 fn all_session_reply_carriers_hide_origin_from_an_older_peer() {
-    let constructors: [fn(SessionInfo) -> Reply; 12] = [
+    let constructors: [fn(SessionInfo) -> Reply; 13] = [
         Reply::GetSession,
         Reply::CreateSession,
         Reply::MoveProfile,
@@ -34,6 +34,7 @@ fn all_session_reply_carriers_hide_origin_from_an_older_peer() {
         Reply::MarkSession,
         Reply::ParkSession,
         Reply::WakeSession,
+        Reply::ReloadSession,
         Reply::ForkSession,
         Reply::RewindSession,
     ];

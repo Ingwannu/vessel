@@ -459,6 +459,8 @@ macro_rules! method_table {
             SetServiceGateway / set_service_gateway / "service.set_gateway" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::SetServiceGateway => $crate::workspace_services::ServiceSettingsOutcome;
             /// Explicit anonymous consent still needs canonical incarnation before any write.
             SetServiceExposure / set_service_exposure / "service.set_exposure" [Admin, (staged $crate::workspace_services::WORKSPACE_SERVICES), unary]: $crate::workspace_services::SetServiceExposure => $crate::workspace_services::ServiceSettingsOutcome;
+            /// Start a session's agent again on its conversation, as Paseo's "Reload agent" (TRACKER 803, ADR 0110).
+            ReloadSession / reload_session / "session.reload" [Operate, (pending $crate::reload::RELOAD_PROTOCOL), unary]: $crate::reload::ReloadSession => $crate::SessionInfo;
         }
     };
 }

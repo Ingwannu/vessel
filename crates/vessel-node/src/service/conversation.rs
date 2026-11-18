@@ -71,7 +71,7 @@ impl NodeService {
         connection: &Connection,
         request: ResumeSession,
     ) -> Result<SessionInfo, WireError> {
-        self.start_again(connection, request.session)
+        self.start_again(connection, request.session, None)
             .await
             .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))

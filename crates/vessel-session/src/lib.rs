@@ -131,6 +131,7 @@ mod moving;
 mod parking;
 mod publish;
 mod queue;
+mod reload;
 mod ring;
 mod runtime;
 mod side_questions;
@@ -149,6 +150,7 @@ pub use forge::ForgeView;
 pub use handle::{SessionHandle, TitleUpdate};
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
+pub use reload::{NotReloadable, Reload, UserPrompts};
 pub use ring::{Follow, FollowError};
 pub use runtime::{
     Created, ForkStart, LaunchAdmission, LaunchOptions, PreparationAdmission,

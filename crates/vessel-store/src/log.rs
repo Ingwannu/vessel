@@ -250,6 +250,13 @@ impl Projection {
                 // events may be pruned; do not pretend to reconstruct it.
                 self.plan = PlanMove::Cleared;
             }
+            // A reload (TRACKER 803) runs on the same conversation; the id
+            // is kept as `ready` would keep it, its `ready` being consumed.
+            SessionEvent::Reloaded {
+                harness_session, ..
+            } => {
+                self.harness_session = Some(harness_session.clone());
+            }
         }
     }
 }

@@ -143,7 +143,8 @@ async fn print_output<L: Log>(mut stream: Stream<L>) -> Result<Ended, CliError> 
                 | SessionEvent::Parked { .. }
                 | SessionEvent::Woken
                 | SessionEvent::Forked { .. }
-                | SessionEvent::Rewound { .. } => {}
+                | SessionEvent::Rewound { .. }
+                | SessionEvent::Reloaded { .. } => {}
             },
             Some(Err(error)) if !error.is_fatal() => notice(&error, "\n").await?,
             Some(Err(error)) => return Err(error.into()),

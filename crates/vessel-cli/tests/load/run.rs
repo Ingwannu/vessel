@@ -386,7 +386,8 @@ impl Phase {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => 0,
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Reloaded { .. } => 0,
         };
         self.bytes = self
             .bytes

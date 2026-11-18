@@ -110,6 +110,13 @@ fn lifecycle_events() -> Vec<(SessionEvent, ProtocolVersion)> {
             },
             ProtocolVersion::new(14),
         ),
+        (
+            SessionEvent::Reloaded {
+                harness_session: HarnessSessionId::new("fixture"),
+                appended: 2,
+            },
+            crate::reload::RELOAD_PROTOCOL.unwrap(),
+        ),
     ]
 }
 

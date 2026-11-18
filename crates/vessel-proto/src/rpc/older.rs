@@ -172,6 +172,7 @@ impl Reply {
             Self::MarkSession(session) => info(session).map(Self::MarkSession),
             Self::ParkSession(session) => info(session).map(Self::ParkSession),
             Self::WakeSession(session) => info(session).map(Self::WakeSession),
+            Self::ReloadSession(session) => info(session).map(Self::ReloadSession),
             Self::ForkSession(session) => info(session).map(Self::ForkSession),
             Self::RewindSession(session) => info(session).map(Self::RewindSession),
             Self::ExportSession(value) => templates::exported(value, protocol).map(Self::ExportSession),

@@ -243,7 +243,8 @@ mod support {
                 | SessionEvent::Parked { .. }
                 | SessionEvent::Woken
                 | SessionEvent::Forked { .. }
-                | SessionEvent::Rewound { .. }) => {
+                | SessionEvent::Rewound { .. }
+                | SessionEvent::Reloaded { .. }) => {
                     panic!("last record is not a status: {other:?}")
                 }
             }

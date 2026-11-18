@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn existing_session_carriers_and_nested_envelopes_use_the_shared_mask() {
         use crate::{Reply, forward::Forwarded};
-        let constructors: [fn(SessionInfo) -> Reply; 12] = [
+        let constructors: [fn(SessionInfo) -> Reply; 13] = [
             Reply::GetSession,
             Reply::CreateSession,
             Reply::MoveProfile,
@@ -90,6 +90,7 @@ mod tests {
             Reply::MarkSession,
             Reply::ParkSession,
             Reply::WakeSession,
+            Reply::ReloadSession,
             Reply::ForkSession,
             Reply::RewindSession,
         ];

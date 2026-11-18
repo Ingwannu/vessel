@@ -103,6 +103,10 @@ pub struct Relaunch {
     /// Whether its agent may ask questions, as for a new session of its
     /// creator.
     pub questions: bool,
+    /// A reload's start again (TRACKER 803): the stored log's user
+    /// prompts, which the agent's replay is lined up with instead of being
+    /// dropped (`reload`).
+    pub rehydrate: Option<crate::UserPrompts>,
 }
 
 /// A session starting again: registered, its agent starting, publishing
@@ -298,6 +302,7 @@ impl SessionRuntime {
             mut notices,
             model_proxy,
             questions,
+            rehydrate,
         } = launch;
         let profile = profile.map_or_else(|| Profile::default_of(&info.spec.harness), Ok)?;
         // Launched under its current profile, which a move may have
@@ -353,6 +358,7 @@ impl SessionRuntime {
         let actor = ActorStart {
             desk: Desk::continuing(queue),
             replaying: true,
+            rehydrate: rehydrate.map(Box::new),
             gate: Some(opened),
             opening: None,
         };

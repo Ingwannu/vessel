@@ -155,6 +155,7 @@ mod tests {
             Reply::MarkSession(info.clone()),
             Reply::ParkSession(info.clone()),
             Reply::WakeSession(info.clone()),
+            Reply::ReloadSession(info.clone()),
             Reply::ForkSession(info.clone()),
             Reply::RewindSession(info.clone()),
             Reply::OpenSideQuestion(info.clone()),

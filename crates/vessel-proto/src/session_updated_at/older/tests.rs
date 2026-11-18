@@ -48,7 +48,7 @@ fn assert_each_route(mut reply: Reply) {
 
 #[test]
 fn every_info_reply_list_subscription_and_nested_route_hides_pending_time() {
-    let constructors: [fn(SessionInfo) -> Reply; 12] = [
+    let constructors: [fn(SessionInfo) -> Reply; 13] = [
         Reply::GetSession,
         Reply::CreateSession,
         Reply::MoveProfile,
@@ -59,6 +59,7 @@ fn every_info_reply_list_subscription_and_nested_route_hides_pending_time() {
         Reply::MarkSession,
         Reply::ParkSession,
         Reply::WakeSession,
+        Reply::ReloadSession,
         Reply::ForkSession,
         Reply::RewindSession,
     ];

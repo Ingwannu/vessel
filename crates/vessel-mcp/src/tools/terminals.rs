@@ -139,7 +139,8 @@ impl VesselTools {
                 | SessionEvent::Parked { .. }
                 | SessionEvent::Woken
                 | SessionEvent::Forked { .. }
-                | SessionEvent::Rewound { .. } => {}
+                | SessionEvent::Rewound { .. }
+                | SessionEvent::Reloaded { .. } => {}
             }
             next = record.seq.next().unwrap_or(record.seq);
         }

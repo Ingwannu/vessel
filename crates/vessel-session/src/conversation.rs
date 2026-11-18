@@ -86,7 +86,8 @@ impl Seen {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => false,
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Reloaded { .. } => false,
         }
     }
 
@@ -117,7 +118,8 @@ impl Seen {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => {}
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Reloaded { .. } => {}
         }
     }
 

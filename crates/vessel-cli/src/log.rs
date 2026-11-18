@@ -105,7 +105,8 @@ impl Timeline {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => (
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Reloaded { .. } => (
                 Stream::Note,
                 Cow::Owned(self.conversation.show(record).into_bytes()),
             ),

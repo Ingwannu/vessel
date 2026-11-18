@@ -312,6 +312,7 @@ impl Call {
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)
+            | Self::ReloadSession(_)
             | Self::GetSkillsStatus(_)
             | Self::ReconcileSkills(_)
             | Self::UninstallSkills(_)

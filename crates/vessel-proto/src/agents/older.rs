@@ -102,6 +102,7 @@ impl Reply {
             | Self::MarkSession(info)
             | Self::ParkSession(info)
             | Self::WakeSession(info)
+            | Self::ReloadSession(info)
             | Self::ForkSession(info)
             | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),

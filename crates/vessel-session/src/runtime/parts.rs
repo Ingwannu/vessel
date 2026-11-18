@@ -59,6 +59,9 @@ impl Begin {
 pub(crate) struct ActorStart {
     pub(crate) desk: Desk,
     pub(crate) replaying: bool,
+    /// A reload's start again: the replay is gathered and lined up with
+    /// these prompts once ready (TRACKER 803).
+    pub(crate) rehydrate: Option<Box<crate::UserPrompts>>,
     pub(crate) gate: Option<oneshot::Receiver<()>>,
     /// A record the log starts with after `starting` (a fork's `forked`,
     /// protocol 14). Boxed: a session event is large, and every start's

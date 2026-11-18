@@ -558,6 +558,26 @@ fn protocol_twenty_eight_methods_know_their_version_scope_and_shape() {
     assert_eq!(twenty_eight, PROTOCOL_TWENTY_EIGHT);
 }
 
+/// TRACKER 803's method (ADR 0110), drafted as 31 (`RELOAD_PROTOCOL`).
+const RELOAD_METHODS: &[(&str, Scope)] = &[("session.reload", Scope::Operate)];
+
+#[test]
+fn the_reload_method_knows_its_version_scope_and_shape() {
+    let reload: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == crate::reload::RELOAD_PROTOCOL)
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(reload, RELOAD_METHODS);
+    assert!(Method::ReloadSession.forwardable());
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -775,6 +795,7 @@ const FORWARDABLE: &[&str] = &[
     "workspace.label.update",
     "workspace.label.inspect_delete",
     "workspace.label.delete",
+    "session.reload",
 ];
 
 #[test]

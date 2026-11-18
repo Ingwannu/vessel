@@ -76,6 +76,7 @@ pub(crate) fn observe(
         SessionEvent::Rewound { .. } => clear_branch(connection, session),
         SessionEvent::Parked { .. }
         | SessionEvent::Woken
+        | SessionEvent::Reloaded { .. }
         | SessionEvent::Forked { .. }
         | SessionEvent::Terminal(_)
         | SessionEvent::ProfileChanged { .. }

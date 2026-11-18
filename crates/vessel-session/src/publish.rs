@@ -16,6 +16,7 @@ use crate::activity::Tracker;
 use crate::conversation::Seen;
 use crate::forge::ForgeView;
 use crate::handle::Shared;
+use crate::reload::UserPrompts;
 
 /// The actor's write side of a session.
 ///
@@ -34,6 +35,9 @@ pub(crate) struct Publisher {
     /// What the agent is doing, read off every committed record; the
     /// source of `SessionInfo::board`.
     activity: Tracker,
+    /// This run's user prompts, read off every committed record: what a
+    /// reload lines the agent's history up with (TRACKER 803).
+    prompts: UserPrompts,
 }
 
 /// Room for one record in the durable channel.
@@ -68,6 +72,7 @@ impl Publisher {
             info,
             next,
             activity,
+            prompts: UserPrompts::new(),
         }
     }
 
@@ -82,6 +87,11 @@ impl Publisher {
             Ok(permit) => Slot::Durable(permit),
             Err(_closed) => Slot::Gone,
         }
+    }
+
+    /// This run's user prompts so far (`reload::prompts`).
+    pub(crate) const fn prompts(&self) -> &UserPrompts {
+        &self.prompts
     }
 
     /// The sequence number the next record committed gets.
@@ -148,6 +158,7 @@ impl Publisher {
                 .unwrap_or_else(PoisonError::into_inner) = Some(reported);
         }
         self.activity.observe(&event, at);
+        self.prompts.observe(&event);
         if Seen::cares(&event) {
             self.shared
                 .seen
@@ -265,6 +276,9 @@ enum InfoChange {
     Title(SessionTitle, vessel_proto::TitleOrigin),
     /// Its agent was parked (`Some`) or woken (protocol 12).
     Parked(Option<vessel_proto::parking::ParkReason>),
+    /// Its agent was reloaded (TRACKER 803): ready on this conversation,
+    /// and not parked.
+    Reloaded(HarnessSessionId),
 }
 
 impl InfoChange {
@@ -287,6 +301,11 @@ impl InfoChange {
             SessionEvent::Rewound {
                 harness_session, ..
             } => Self::Ready(harness_session.clone(), None),
+            // A reload (TRACKER 803) runs on the same conversation; a
+            // parked session it started is parked no more.
+            SessionEvent::Reloaded {
+                harness_session, ..
+            } => Self::Reloaded(harness_session.clone()),
             // Options are not part of the info: a client reads them from
             // the log, or asks `session.options`.
             SessionEvent::Terminal(_)
@@ -335,6 +354,11 @@ impl InfoChange {
             Self::Parked(reason) => {
                 info.parked =
                     reason.map(|reason| vessel_proto::parking::Parked { since: at, reason });
+                true
+            }
+            Self::Reloaded(id) => {
+                info.harness_session = Some(id);
+                info.parked = None;
                 true
             }
         }

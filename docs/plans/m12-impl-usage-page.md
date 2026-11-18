@@ -168,6 +168,29 @@ coordinator as a separate parity item.
     terminal;
   - `titles.test.ts`.
 
+## TRACKER 803: reloading an agent (ADR 0110)
+
+- The node op: `session.reload`, drafted as protocol 31 (`RELOAD_PROTOCOL`), Paseo's `refresh_agent_request`.
+  - It unarchives the session.
+  - A live session: the running turn is cancelled (refused with `conflict`, the turn kept, past the 10 s
+    grace); the agent is stopped and started with `session/load` and a fresh launch (profile, MCP servers, a
+    new credential and token), in one actor step.
+  - A parked session is started; an ended one is started again.
+  - It answers the `SessionInfo`. The `reloaded` record has a log-line stand-in for older peers.
+- The history (coordinator's ruling C, "R2"): the replay is gathered within 60 s and 20,000 events. Only what
+  lies beyond the log's exact user prompts is appended: whole messages, 2,000 records at most. Otherwise
+  nothing is appended, and one line says why.
+- Code:
+  - `vessel-session` `reload` (`actor`, `prompts`, `rehydrate`), `runtime/reload.rs`;
+  - the publisher folds the run's prompts; `MoveState` gathers;
+  - `vessel-node` `service/reload.rs`, `sessions/reload.rs` (the store's prompts before a run);
+  - `fake-acp` `FAKE_ACP_REPLAY_FIRST` and the `deaf` prompt.
+- The page: "Reload agent" in the session's actions (`data/reload.ts`, icon `refresh`, the rotate-cw drawing).
+  It has Paseo's tooltip and its toasts: "Reloading agent..." until the answer, then "Reloaded agent", or the
+  node's message, else "Failed to reload agent".
+- Native: the row is the visual lane's, after this node op lands. The native usage `binding_epoch` list
+  should gain `reloaded`, as the page's `BINDING` did.
+
 ## Next
 
 - The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).

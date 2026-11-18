@@ -53,7 +53,7 @@
 //!   set, "method not found" then): three earlier conversations over two
 //!   pages (`history` module); no session is started by it.
 //! - `session/load`: replays the conversation as a user message chunk
-//!   `earlier question` (then, with `FAKE_ACP_REPLAY` set to a number,
+//!   `earlier question` (`FAKE_ACP_REPLAY_FIRST` when set; then, with `FAKE_ACP_REPLAY` set to a number,
 //!   that many agent message chunks `replayed line <n>`, a long
 //!   conversation) and an agent message chunk `replayed <id>` whose
 //!   message id is where a fork was made (`<at>`, `head-last` for `head`,
@@ -71,6 +71,7 @@
 //!     (`msg-<n>`, new each time), then `end_turn`;
 //!   - `wait`: nothing until `session/cancel`, then `cancelled`, or until
 //!     a steer `finish`, then `end_turn`;
+//!   - `deaf`: as `wait`, but `session/cancel` does not end it;
 //!   - `flood`: message chunks `flood`, ten a millisecond (faster than a
 //!     slow client reads) until `session/cancel`, then `cancelled`; it
 //!     gives up with `end_turn` after a minute;
@@ -540,8 +541,12 @@ async fn serve() -> ExitCode {
                             UsageUpdate::new(1200, 200_000).cost(Cost::new(amount, "USD")),
                         ))?;
                     }
+                    // `FAKE_ACP_REPLAY_FIRST`: the conversation's first prompt
+                    // as a session made through Vessel has it (TRACKER 803).
+                    let first = std::env::var("FAKE_ACP_REPLAY_FIRST")
+                        .unwrap_or_else(|_| "earlier question".to_owned());
                     say(SessionUpdate::UserMessageChunk(ContentChunk::new(text(
-                        "earlier question",
+                        &first,
                     ))))?;
                     // A long conversation (`FAKE_ACP_REPLAY`): what an
                     // import of one costs.
@@ -619,7 +624,8 @@ async fn serve() -> ExitCode {
                     let (model, report) = {
                         let mut state = lock(&state);
                         state.turn = Some(turn.clone());
-                        state.steerable = (prompt == "wait").then(|| finish.clone());
+                        state.steerable =
+                            matches!(prompt.as_str(), "wait" | "deaf").then(|| finish.clone());
                         let report = report(&prompt, &state);
                         (state.options.model.clone(), report)
                     };
@@ -891,6 +897,11 @@ async fn run_turn(
                 () = turn.cancelled() => StopReason::Cancelled,
                 () = finish.cancelled() => StopReason::EndTurn,
             });
+        }
+        // A turn that does not end on `session/cancel` (TRACKER 803).
+        "deaf" => {
+            finish.cancelled().await;
+            return Ok(StopReason::EndTurn);
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,

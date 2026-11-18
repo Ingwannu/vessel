@@ -148,6 +148,17 @@ export function killSession(
   return attempt(() => fleet.bridge.call(node, "session.kill", { session }));
 }
 
+/** Start a session's agent again on its conversation (TRACKER 803,
+ * `session.reload`): answered once it is ready; an ended one is started
+ * again, an archived one unarchived. */
+export function reloadSession(
+  fleet: Fleet,
+  node: NodeKey,
+  session: SessionId,
+): Promise<Outcome<SessionInfo>> {
+  return attempt(() => fleet.bridge.call(node, "session.reload", { session }));
+}
+
 /** Continue a structured session under another profile of its agent
  * (`null`: the default one), between turns. */
 export function moveProfile(

@@ -7,6 +7,13 @@ the integrator changes that one line. The plan is
 `docs/plans/agent-lifecycle-parity.md`. This track adds no
 `node.settings` key.
 
+Partly superseded by ADR 0110 (2026-11-18, TRACKER 803): its "Reload" section. `session.reload` now
+unarchives, starts a parked or ended session's agent instead of refusing it, and adds what the agent's
+own history has beyond the log instead of dropping the replay; it has its own protocol constant
+(`RELOAD_PROTOCOL`), not `lifecycle_version::SINCE`. The turn rule (cancel, wait the grace, refuse with
+`conflict` and keep the turn), the stop, the failure ending the session `failed`, and the agents' refusal
+stand as written here.
+
 ## Purpose and intent
 
 Paseo lets a person mark an agent with `key=value` labels and filter the
@@ -264,6 +271,8 @@ integrated method-table head; storage and discovery wiring remain in progress.
 not care about the listing. A background session is still there.
 
 ### Reload
+
+Superseded by ADR 0110 where they differ (see the status note above).
 
 `session.reload` (`operate`, forwardable, since `lifecycle_version::SINCE`)
 restarts the live

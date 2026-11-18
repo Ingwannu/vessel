@@ -26,6 +26,10 @@ pub(crate) struct Ring {
     bytes: Option<(usize, usize)>,
     /// Sequence number of the next record (the end of the log).
     next: EventSeq,
+    /// The first record of this run: zero for a new session, its stored
+    /// log's end for one started again. A reload (TRACKER 803) reads the
+    /// prompts before it from the store and folds this run's itself.
+    start: EventSeq,
     /// `None` once the session has ended, so live receivers see `Closed`
     /// right after the final record instead of waiting forever.
     live: Option<broadcast::Sender<Arc<EventRecord>>>,
@@ -43,6 +47,7 @@ impl Ring {
             capacity,
             bytes: None,
             next,
+            start: next,
             live: Some(live),
         }
     }
@@ -59,6 +64,7 @@ impl Ring {
             capacity: records,
             bytes: Some((bytes, 0)),
             next,
+            start: next,
             live: Some(live),
         }
     }
@@ -94,6 +100,11 @@ impl Ring {
         if let Some((_, held)) = &mut self.bytes {
             *held = held.saturating_sub(weight(record));
         }
+    }
+
+    /// The first record of this run (see `start`).
+    pub(crate) const fn start(&self) -> EventSeq {
+        self.start
     }
 
     /// The oldest record kept, or the end when none is.
@@ -186,7 +197,8 @@ fn weight(record: &EventRecord) -> usize {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
-        | SessionEvent::Rewound { .. } => 64,
+        | SessionEvent::Rewound { .. }
+        | SessionEvent::Reloaded { .. } => 64,
     }
 }
 

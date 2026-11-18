@@ -21,6 +21,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import { type Choice, choiceOf, runs } from "./choice";
 import { Icon, type IconName } from "./icon";
+import { Tooltip } from "./tooltip";
 
 export interface MenuProps {
   /** The element that opens it: a kit Button or IconButton. Base UI adds
@@ -108,6 +109,7 @@ export function MenuItem({
   description,
   disabled,
   tone = "default",
+  tooltip,
   children,
 }: {
   icon?: IconName;
@@ -117,9 +119,12 @@ export function MenuItem({
   disabled?: boolean;
   /** `danger` for the one destructive row, kept apart by a separator. */
   tone?: "default" | "danger";
+  /** A line on hover or focus, as Paseo's menu entries' `tooltip`
+   * ("Reload agent", TRACKER 803). */
+  tooltip?: string;
   children: ReactNode;
 }) {
-  return (
+  const row = (
     <Base.Item
       className={tone === "danger" ? "menu-item danger" : "menu-item"}
       disabled={disabled}
@@ -131,6 +136,13 @@ export function MenuItem({
         {children}
       </RowContent>
     </Base.Item>
+  );
+  return tooltip === undefined ? (
+    row
+  ) : (
+    <Tooltip label={tooltip} side="right">
+      {row}
+    </Tooltip>
   );
 }
 

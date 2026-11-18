@@ -11,6 +11,7 @@ use crate::delivery::Desk;
 use crate::lifecycle::{Lifecycle, drain_deadline};
 use crate::moving::{Control, Launch};
 use crate::parking::{Parking, Route};
+use crate::reload::{Gather, UserPrompts};
 
 /// Owns an ACP agent process for the life of a structured session.
 ///
@@ -83,6 +84,25 @@ pub(crate) struct MoveState {
     pub(crate) turn_over: bool,
     /// How an agent's connection ended during the move.
     pub(crate) disconnect: Option<Disconnect>,
+    /// A reload's replay, gathered instead of dropped (TRACKER 803).
+    pub(crate) gather: Option<Gather>,
+    /// A reload of an ended session, started again: the log's prompts
+    /// before this run, which the gathered replay is lined up with once
+    /// the agent is ready (`reload`).
+    pub(crate) rehydrate: Option<Box<UserPrompts>>,
+}
+
+impl MoveState {
+    /// A run's start: its replay dropped (`replaying`), or, for a reload
+    /// that started it again, gathered.
+    pub(crate) fn starting(replaying: bool, rehydrate: Option<Box<UserPrompts>>) -> Self {
+        Self {
+            replaying,
+            gather: rehydrate.is_some().then(Gather::new),
+            rehydrate,
+            ..Self::default()
+        }
+    }
 }
 
 impl StructuredActor {
@@ -132,6 +152,7 @@ impl StructuredActor {
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
                         Some(Control::Rewind(order)) => self.rewind(order).await,
+                        Some(Control::Reload(order)) => self.reload(*order).await,
                         #[cfg(test)]
                         Some(Control::PrivateDir(reply)) => {
                             drop(reply.send(self.launch.setup.private_dir.clone()));
@@ -209,7 +230,8 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
             }
-            AgentEvent::TurnStarted { .. }
+            // A reload gathers what a move drops (TRACKER 803).
+            event @ (AgentEvent::TurnStarted { .. }
             | AgentEvent::UserMessageChunk { .. }
             | AgentEvent::MessageChunk { .. }
             | AgentEvent::ThoughtChunk { .. }
@@ -222,8 +244,29 @@ impl StructuredActor {
             | AgentEvent::TurnFailed { .. }
             | AgentEvent::Steered { .. }
             | AgentEvent::QuestionAsked(_)
-            | AgentEvent::QuestionResolved { .. } => {}
+            | AgentEvent::QuestionResolved { .. }) => {
+                if let Some(gather) = &mut self.move_state.gather {
+                    gather.push(event);
+                }
+            }
         }
+    }
+
+    /// The run's first `ready` is in the log: the session runs. An ended
+    /// session a reload started again first gets what its agent's history
+    /// adds (TRACKER 803), before `running`, which the node's answer waits
+    /// for.
+    async fn first_ready(&mut self) {
+        self.ready = true;
+        if let Some(before) = self.move_state.rehydrate.take()
+            && let Some(conversation) = self.parking.harness_session.clone()
+        {
+            let gather = self.move_state.gather.take().unwrap_or_else(Gather::new);
+            self.reloaded(&before, gather, conversation).await;
+        }
+        self.life
+            .status(&mut self.agent, SessionStatus::Running)
+            .await;
     }
 
     pub(crate) async fn output(&mut self, output: AgentOutput) {
@@ -326,10 +369,7 @@ impl StructuredActor {
                         .await;
                 }
                 if became_ready {
-                    self.ready = true;
-                    self.life
-                        .status(&mut self.agent, SessionStatus::Running)
-                        .await;
+                    self.first_ready().await;
                 }
             }
             AgentOutput::Disconnected(disconnect) => {

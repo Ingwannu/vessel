@@ -181,6 +181,8 @@ targets!(
     // protocol 14: forking reads it and rewinding acts on it (ADR 0052).
     vessel_proto::parking::ParkSession,
     vessel_proto::parking::WakeSession,
+    // TRACKER 803: a reload acts on a session as a wake does.
+    vessel_proto::reload::ReloadSession,
     vessel_proto::forking::ForkSession,
     vessel_proto::forking::RewindSession,
     SendInput,

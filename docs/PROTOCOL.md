@@ -68,6 +68,27 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 31 (drafted, 2026-11-18, milestone 12): reloading an agent (impl U, TRACKER 803, ADR 0110)
+
+Drafted as 31 (`RELOAD_PROTOCOL`, `PROTOCOL_VERSION` 31); the number is assigned at the node-line merge.
+
+- `session.reload { session }` (`operate`, forwardable, unary) answers the `SessionInfo` once the agent is
+  ready again; `next_seq` stands for Paseo's `timelineSize`.
+  - An archived session is unarchived first.
+  - A live one: its running turn is cancelled and waited on for 10 s; if the turn does not end, the call is
+    `conflict` and the turn goes on. Then the process is stopped and started again with `session/load` and a
+    fresh launch (current profile, the fleet's MCP servers, a new `vessel` credential and model token).
+  - A parked one is started; an ended one is started again as `session.resume` starts it.
+  - Refused: an agent (`forbidden`); a terminal session, one with no conversation yet, or an agent without
+    `session/load` (`unsupported`); one starting or moving (`conflict`); a process that cannot be signalled
+    (`unavailable`). A new agent that does not become ready is `spawn_failed`: a live session then ends
+    `failed`, and a parked one stays parked, saying why.
+- New record `reloaded { harness_session, appended }`, once the agent is ready again. The `appended` records
+  after it are what the agent's own history has beyond the log; they are added only when the log's user
+  prompts are exactly the history's first ones (ADR 0110). An older peer reads it as a `harness_log` line
+  `vessel: the agent was reloaded` (with the count when records were added) at the same sequence.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 30 (2026-11-18, milestone 12): Paseo's title limits (impl U, TRACKER 801, ADR 0022's amendment)
 
 Assigned 30 (`LONG_TITLES_PROTOCOL`) at its node-line merge, the next free number in merge order after 29 (the ranked history listing). No method,

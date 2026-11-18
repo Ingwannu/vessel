@@ -149,6 +149,8 @@ pub(crate) enum Control {
     Park(ParkOrder),
     /// Take the conversation back to a turn's end (protocol 14, ADR 0052).
     Rewind(crate::forking::RewindOrder),
+    /// Start the agent again on its conversation (TRACKER 803, ADR 0110).
+    Reload(Box<crate::reload::ReloadOrder>),
     /// The private directory the actor's current launch carries (tests:
     /// every launch site gives the node's, `RuntimeConfig::private_dir`).
     #[cfg(test)]
