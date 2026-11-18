@@ -26,7 +26,7 @@ layout-copy-id = ID 복사
 # Workspace tab or pane control; keep short.
 layout-copy-path = 경로 복사
 # Workspace tab or pane control; keep short.
-layout-rename = 이름 바꾸기
+layout-rename = 이름 변경
 # Workspace tab or pane control; keep short.
 layout-reload = 에이전트 다시 불러오기
 # Workspace tab or pane control; keep short.
@@ -54,7 +54,7 @@ layout-panel-unavailable = 이 호스트에서 이 패널을 사용할 수 없�
 # Tab rename modal label or failure; retain user input.
 layout-rename-field = 제목
 # Tab rename modal label or failure; retain user input.
-layout-rename-save = 이름 바꾸기
+layout-rename-save = 이름 변경
 # Tab rename modal label or failure; retain user input.
 layout-cancel = 취소
 # Tab rename modal label or failure; retain user input.

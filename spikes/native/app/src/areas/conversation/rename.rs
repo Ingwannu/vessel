@@ -59,6 +59,9 @@ pub(crate) struct Rename {
     route: Route,
     /// A rename was sent and its answer has not come.
     pending: bool,
+    /// A failure handed the keys back: the field takes them at the next
+    /// frame (an answer comes without a window).
+    refocus: std::cell::Cell<bool>,
 }
 
 /// Where a rename goes, and how its answer is known.
@@ -142,9 +145,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let words = self.t.lang.conversation();
+        // No placeholder, as Paseo's tab rename passes none.
         let field = TextField::with_change(
-            words.title_field(),
+            "",
             Self::rename_entered,
             |shell: &mut Self, _text, cx| {
                 // Typing clears the last reason and updates Rename.
@@ -169,6 +172,7 @@ impl Shell {
             error: None,
             route,
             pending: false,
+            refocus: std::cell::Cell::new(false),
         });
         cx.notify();
     }
@@ -202,11 +206,11 @@ impl Shell {
         clippy::needless_pass_by_value,
         reason = "the field's submit callback hands the text over by value"
     )]
-    fn rename_entered(&mut self, text: String, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.save_rename(&text, cx);
+    fn rename_entered(&mut self, text: String, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.save_rename(&text, window, cx);
     }
 
-    fn rename_pressed(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn rename_pressed(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let Some(text) = self
             .areas
             .conversation
@@ -216,13 +220,13 @@ impl Shell {
         else {
             return;
         };
-        self.save_rename(&text, cx);
+        self.save_rename(&text, window, cx);
     }
 
     /// Send `text` as the title and wait: the reason stays under the field
     /// when it cannot be one, and nothing is asked when it is the title
     /// already or a rename waits.
-    fn save_rename(&mut self, text: &str, cx: &mut Context<'_, Self>) {
+    fn save_rename(&mut self, text: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
         // The catalog is the app's for its life: borrowed apart from `self`.
         let translator = self.words;
         let words = translator.layout();
@@ -248,7 +252,11 @@ impl Shell {
         };
         rename.error = None;
         rename.pending = true;
+        // Read-only and without its caret while it waits (Paseo's
+        // `editable={!isPending}`): the dialog holds the keys, so Escape
+        // still reaches it (and is held).
         rename.field.set_editability(Editability::ReadOnly, cx);
+        self.areas.conversation.rename_dialog.focus(window, cx);
         let by_layout = matches!(rename.route, Route::Layout(_));
         let sent = if by_layout {
             self.layout_send_rename(title)
@@ -316,6 +324,7 @@ impl Shell {
             rename.pending = false;
             rename.error = Some(why);
             rename.field.set_editability(Editability::Editable, cx);
+            rename.refocus.set(true);
         }
         cx.notify();
     }
@@ -331,10 +340,13 @@ fn savable(rename: &Rename, text: &str) -> bool {
 pub(crate) fn rename_dialog(
     shell: &Shell,
     tokens: &Tokens,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let rename = shell.areas.conversation.rename.as_ref()?;
+    if rename.refocus.take() {
+        rename.field.focus(window, cx);
+    }
     let words = shell.words.layout();
     let narrow = vessel_app_kit::breakpoint::phone(window);
     let sizing = ControlSizing::from_compact(narrow);

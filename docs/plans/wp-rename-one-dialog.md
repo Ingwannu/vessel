@@ -65,6 +65,15 @@ Status: built and gated; frames with the coordinator.
   The session's refusal is said in the dialog only, not again under the
   bar's title. A paste past the limit is refused whole (Paseo cuts it).
 
+- Coordinator's visual return (2026-11-18), fixed: Korean "이름 변경" for the
+  tab menu's Rename and the dialog's submit (Paseo's
+  `workspace.tabs.menu.rename`, `renameModal.rename`; ends 789's "이름
+  바꾸기"); no placeholder in the field (Paseo's tab rename passes none);
+  no caret while it waits: the field is read-only and the dialog holds the
+  keys (Escape reaches it and is held), and a failure hands the keys back to
+  the field at the next frame. gpui-base draws a read-only field's caret
+  (only a disabled one hides it, and dims its text), and its patches are
+  slotted, so the dialog moves the focus instead.
 - Dialog: Paseo's rename field profile (`TextField::rename_element`),
   limited to `SessionTitle::MAX_CHARS` (the kit's new
   `TextField::set_max_chars`; TRACKER 801 brings Paseo's 200). "Name is
@@ -87,6 +96,14 @@ Status: built and gated; frames with the coordinator.
   single quotes (`'` as `'\''`), so a pasted command never runs part of
   the id.
 
+## Follow-up when TRACKER 801 lands
+
+801 (impl U, node queue) adds `SessionTitle::max_chars_for(protocol)`: 200
+from protocol 30, 120 before. Once it is in a package base, the field's
+limit comes from it and the connected node's protocol instead of
+`SessionTitle::MAX_CHARS` (`conversation::rename::start_rename`, the
+`set_max_chars` call), with a test for both protocols.
+
 ## Tests
 
 - view `tests::resume`: an ordinary id copies bare; one with a space, a
@@ -96,8 +113,9 @@ Status: built and gated; frames with the coordinator.
 - app `conversation::rename::tests`: prefilled, "Name is required", typing
   clears it, Cancel closes; a rename waits (read-only, Cancel held, Saving),
   a refusal keeps the typed title with the node's words and not under the
-  bar, success closes and renames the open session; the field stops at the
-  node's longest title.
+  bar, success closes and renames the open session; no caret while waiting
+  (the field is not focused) and the field has the keys again after a
+  failure; the field stops at the node's longest title.
 - app `layout::rename::tests`: a workspace rename takes only its own
   ticket's answer, names the card and closes; a refusal keeps the typed
   title with the layout's words.

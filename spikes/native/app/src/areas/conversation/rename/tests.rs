@@ -100,6 +100,17 @@ fn state(probe: &Entity<Probe>, cx: &mut VisualTestContext) -> Option<Seen> {
     })
 }
 
+fn field_focused(probe: &Entity<Probe>, cx: &mut VisualTestContext) -> bool {
+    update(probe, cx, |shell, window, cx| {
+        shell
+            .areas
+            .conversation
+            .rename
+            .as_ref()
+            .is_some_and(|rename| rename.field.focus_handle(cx).is_focused(window))
+    })
+}
+
 fn answer(probe: &Entity<Probe>, cx: &mut VisualTestContext, result: Result<Acted, ActFailed>) {
     let session = probe.read_with(cx, |probe, _| probe.1);
     update(probe, cx, |shell, _window, cx| {
@@ -159,6 +170,8 @@ fn a_rename_waits_for_the_node_and_keeps_the_title_on_a_refusal(cx: &mut TestApp
         state(&probe, cx),
         Some(("Fix the basket".to_owned(), false, None, true))
     );
+    // Without its caret: the dialog holds the keys, not the field.
+    assert!(!field_focused(&probe, cx), "no caret while it waits");
     cx.simulate_input("zz");
     update(&probe, cx, Shell::cancel_rename);
     assert_eq!(
@@ -187,6 +200,10 @@ fn a_rename_waits_for_the_node_and_keeps_the_title_on_a_refusal(cx: &mut TestApp
     probe.read_with(cx, |probe, cx| {
         assert_eq!(probe.0.read(cx).areas.conversation.refused, None);
     });
+    // The field takes the keys back at the next frame.
+    probe.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    assert!(field_focused(&probe, cx), "the field has the keys again");
     // Again, and taken: the dialog closes and the open session (its tab's
     // label, `layout::tab_label`) has the new title.
     update(&probe, cx, Shell::rename_pressed);
