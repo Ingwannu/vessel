@@ -18,5 +18,5 @@ diagnostics-copy = 복사
 # 보고서를 다시 수집합니다. 짧게 씁니다.
 diagnostics-refresh = 새로 고침
 
-# 보고서를 복사한 뒤 창 아래에 표시하는 완전한 안내 문장.
-diagnostics-copied = 진단을 복사했습니다.
+# 보고서를 복사한 뒤 띄우는 복사 토스트의 이름("{ $label } 복사됨", Paseo의 settings.diagnostics.app.copyLabel).
+diagnostics-copied-label = 진단

@@ -1,8 +1,10 @@
-//! The real copy/language path keeps clipboard data, notices and input ownership.
+//! The real copy/language path keeps clipboard data and input ownership; a copy
+//! says so in Paseo's copied toast, not the frame notice (TRACKER 804).
 use super::PreparedGeneral;
 use crate::shell::language_tests;
 use vessel_app_view::localization::{ENGLISH, Locale, Translator};
 use vessel_app_view::prefs::{Kept, TurnDelivery};
+use vessel_app_view::toasts::ToastTone;
 
 const PATH: &str = "/isolated/prefs.json";
 
@@ -19,7 +21,6 @@ fn refreshing_changed_storage_facts_replaces_the_prepared_hint() {
         &Kept::File {
             path: PATH.to_owned(),
         },
-        &mut None,
     );
     assert_eq!(
         prepared.hint.as_ref(),
@@ -28,7 +29,7 @@ fn refreshing_changed_storage_facts_replaces_the_prepared_hint() {
 }
 
 #[gpui::test]
-fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input_or_copy(
+fn real_language_dispatch_refreshes_hint_without_changing_input_or_copy(
     cx: &mut gpui::TestAppContext,
 ) {
     language_tests::init(cx);
@@ -41,7 +42,15 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
             shell.refresh_general_words();
             assert_delivery_labels_borrow_cached_text(shell);
             shell.copy_preferences_path(PATH, cx);
-            assert_eq!(shell.notice.as_deref(), Some("The path was copied."));
+            let said = shell
+                .areas
+                .toasts
+                .shown()
+                .map(|toast| (toast.text.as_str(), toast.tone));
+            // Fluent isolates the label (U+2068 .. U+2069).
+            let expected = "Copied \u{2068}Preferences path\u{2069}";
+            assert_eq!(said, Some((expected, ToastTone::Copied)));
+            assert_eq!(shell.notice, None);
             assert_eq!(
                 shell.areas.settings.general.hint.as_ref(),
                 "Kept by Vessel on this computer, so every launch opens with them.\n\u{2068}/isolated/prefs.json\u{2069}"
@@ -50,7 +59,6 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
         |shell| &shell.areas.session.composer,
         |shell| {
             assert_delivery_labels_borrow_cached_text(shell);
-            assert_eq!(shell.notice.as_deref(), Some("경로를 복사했습니다."));
             assert_eq!(
                 shell.areas.settings.general.hint.as_ref(),
                 "Vessel이 이 컴퓨터에 보관하므로, 실행할 때마다 그대로 열립니다.\n\u{2068}/isolated/prefs.json\u{2069}"
@@ -69,20 +77,6 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
                 .is_some_and(|item| item.text().as_deref() == Some(PATH))
         );
     });
-}
-
-#[gpui::test]
-fn an_old_copy_notice_does_not_overwrite_another_areas_notice(cx: &mut gpui::TestAppContext) {
-    language_tests::init(cx);
-    language_tests::preserves(
-        cx,
-        |shell, _window, cx| {
-            shell.copy_preferences_path(PATH, cx);
-            shell.notice = Some("another area's later notice".to_owned());
-        },
-        |shell| &shell.areas.session.composer,
-        |shell| assert_eq!(shell.notice.as_deref(), Some("another area's later notice")),
-    );
 }
 
 #[test]
@@ -109,7 +103,7 @@ fn changed_language_uses_the_prepared_safe_position_fallback() {
             prepared.hint.as_ref(),
             "Preference storage information is unavailable."
         );
-        prepared.refresh(ko, &kept, &mut None);
+        prepared.refresh(ko, &kept);
         assert_eq!(
             prepared.hint.as_ref(),
             "환경설정 보관 정보를 표시할 수 없습니다."

@@ -50,8 +50,8 @@ sessions-navigation-refused = The host could not open this session.
 sessions-navigation-timeout = Opening the session timed out. Try again.
 # Session navigation feedback.
 sessions-navigation-busy = Another request is being processed. Try again.
-# Session navigation feedback.
-sessions-link-copied = Session link copied
+# The copied-toast label for a session link: "Copied { $label }" (layout-copied; Paseo's copiedLabel pattern, a Vessel-only copy).
+sessions-copied-link-label = Session link
 # A mutation timed out; do not imply it failed before being committed.
 sessions-outcome-uncertain = The operation timed out and may have completed. Refresh before retrying.
 # Fresh conversation refuses to overwrite another unsent draft.
