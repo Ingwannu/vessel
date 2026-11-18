@@ -43,6 +43,9 @@ use crate::widgets::TypeExt as _;
 /// padding. A page's own content (a swatch row) sits on this rail.
 pub const ROW_TEXT_INSET: f32 = 13.0;
 
+/// What a page's action row runs when pressed.
+pub type FormAct<V> = Rc<dyn Fn(&mut V, &mut Window, &mut Context<'_, V>)>;
+
 /// What a form page holds, top to bottom: its field, its body, a
 /// separator, its one action, and a hint under it.
 pub struct FormPage<'a> {
@@ -50,6 +53,14 @@ pub struct FormPage<'a> {
     body: Option<AnyElement>,
     action: MenuItem,
     hint: Option<SharedString>,
+}
+
+impl std::fmt::Debug for FormPage<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FormPage")
+            .field("action", &self.action.label)
+            .finish_non_exhaustive()
+    }
 }
 
 impl<'a> FormPage<'a> {
@@ -84,7 +95,7 @@ impl<'a> FormPage<'a> {
 /// is selectable); `narrow` is a phone's 44-point rows.
 pub fn form_rows<V: 'static>(
     page: FormPage<'_>,
-    act: Rc<dyn Fn(&mut V, &mut Window, &mut Context<'_, V>)>,
+    act: FormAct<V>,
     narrow: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,

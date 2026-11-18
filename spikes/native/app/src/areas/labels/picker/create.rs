@@ -72,7 +72,7 @@ fn rows(
     let page = FormPage::new(&picker.name, action)
         .with_body(swatches)
         .with_hint(hint(shell, picker).map(Into::into));
-    let act: Rc<dyn Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>)> =
+    let act: FormAct<Shell> =
         Rc::new(move |shell, _window, cx| shell.labels_picker_submit(opening, cx));
     Some(
         form_rows(page, act, narrow, tokens, cx)
