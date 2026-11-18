@@ -165,10 +165,12 @@ The report's readers:
   the native app renders the same text. Its words change from Rust's debug names to the shared rule (a wire
   name with `_` read as a space; a tagged value as its tag, then its fields in parentheses), and its sections
   are apart by a blank line, as Paseo's.
-- The page gains Settings › Diagnostics: "App diagnostic", "Collect connection, node, agent and log
-  details", "Run", a dialog "App diagnostic" with Copy and Refresh, a row per step (Page, each machine:
-  running / done / failed), the page's own facts, then each machine's report; "Status: unsupported by this
-  node" below protocol 24, "Status: machine is not connected" when it is not.
+- The page gains Settings › Diagnostics (under About): "App diagnostic", "Collect connection, machine,
+  node and agent details", "Run", a dialog "App diagnostic" with Copy and Refresh, a row per step (Page,
+  each machine: running / done / failed), then the text: the page's version, browser and machine count, and
+  per machine its name, protocol and version and its report; "Status: unsupported by this node" below
+  protocol 24, "Status: machine is not connected" when it is not, the call's error otherwise. The page has
+  no desktop half, so Paseo's desktop sections have no counterpart.
 - The native app's diagnostic asks each connected machine through the staged adapter and adds the same
   rows and text (it asked none until now).
 
@@ -184,9 +186,13 @@ The report's readers:
   each line cut at 4 KiB; the reply says when it was cut.
 - Process diagnostics stay in the report (part 3 adds nothing to them): the pid, parent, memory and uptime
   ADR 0074 collects are Paseo's `ProcessDiagnostics`.
-- Clients, with Paseo's words: a machine's settings have "Log file" (the path, or "Log path
-  unavailable"), "Copy path" (toast "Log path copied.") and "Open logs", a dialog "Node logs" with the path
-  and the lines, or "(log file is empty)". Shown to callers with `Admin` only.
+- Clients, with Paseo's words: a machine's settings have "Log file" (the path, or where the node writes
+  instead, or "Log path unavailable" when the call is refused), "Copy path" (toast "Log path copied.") and
+  "Open logs", a dialog "Node logs" with the path and the lines, or "(log file is empty)". The row asks for
+  one line to learn the path; the dialog asks for the default 100.
+- An agent's card (Settings › Agents) gains Paseo's "Diagnostic" button (a file mark) beside its title,
+  on a machine at protocol 32: a dialog "Diagnostic" asks when it opens and on Refresh, shows "Running
+  diagnostic..." until the first answer, then the text, with Copy ("Copied diagnostic").
 
 ### Protocol and order
 

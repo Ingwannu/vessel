@@ -212,8 +212,12 @@ coordinator as a separate parity item.
 - Tests: proto fixtures and words; node unit tests (parsers, the log's file and tail, the refresh); the real
   collector's sections; e2e `agent_diagnostic.rs` (a ready agent probed again and kept, agents that cannot run
   here, the log for administrators, agents refused).
-- Then the page row (Settings › Diagnostics with each machine's report, an agent's "Diagnostic" dialog, a
-  machine's "Log file" row) and the native row, with frames for each.
+- The page row (on the node row): Settings › Diagnostics (`features/diagnostics/diagnostics-section.tsx`,
+  `data/app-diagnostic.ts`: a run per open or Refresh, a row per step, then the text), an agent card's
+  "Diagnostic" (`agent-diagnostic.tsx`) and a machine's "Log file" row with its "Node logs" dialog
+  (`node-log.tsx`), all through `DiagnosticTextDialog` (Copy, Refresh, "Running diagnostic..."). Calls in
+  `data/calls.ts`. Tests: `app-diagnostic.test.ts`, `diagnostic-text.test.ts`, e2e `diagnostics.spec.ts`.
+- Then the native row (app line, after the node row merges and the lead adopts it), with frames.
 
 ## Next
 
