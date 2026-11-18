@@ -113,10 +113,7 @@ function MachineProjects({
                 <ProjectIcon
                   node={node}
                   project={project.id}
-                  size={14}
-                  fallback={
-                    <Icon name={isOpen ? "folder-open" : "folder"} size={14} />
-                  }
+                  name={project.name}
                 />
                 <Icon name="chevron" size={14} />
               </span>

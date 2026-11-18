@@ -1,7 +1,7 @@
 // Project icons (ADR 0112): a project with Paseo's favicon under `public`
 // is drawn with it, as an image from a `data:` address of the node's type,
-// in the sidebar and in Settings > Projects; a project without one keeps
-// the folder mark.
+// in the sidebar and in Settings > Projects; a project without one gets
+// Paseo's lettered identity square (TRACKER 809).
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -28,7 +28,9 @@ function cli(args: string[]): string {
   });
 }
 
-test("a project's own icon replaces its folder mark", async ({ page }) => {
+test("a project's own icon is its mark, else its lettered square", async ({
+  page,
+}) => {
   const env = loadEnv();
   const folder = join(env.root, "repos", "iconed");
   mkdirSync(join(folder, "public"), { recursive: true });
@@ -49,11 +51,11 @@ test("a project's own icon replaces its folder mark", async ({ page }) => {
   await expect
     .poll(() => icon.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0);
-  // The fixture's own repositories have none: the folder mark stays.
+  // The fixture's own repositories have none: Paseo's lettered square.
   const shop = page.locator(".side-project", {
     has: page.getByRole("button", { name: /^shop\b/ }),
   });
-  await expect(shop.locator(".ico-folder")).toHaveCount(1);
+  await expect(shop.locator(".project-identity")).toHaveText("S");
   await expect(shop.locator("img")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Add project" }).first().click();
