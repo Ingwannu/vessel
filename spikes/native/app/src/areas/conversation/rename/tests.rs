@@ -323,7 +323,7 @@ fn a_rename_is_not_sent_to_a_session_that_is_no_longer_shown(cx: &mut TestAppCon
     typed(&probe, cx, "Fix the basket");
     // The session went from the page while the dialog was open.
     update(&probe, cx, |shell, _, _| {
-        shell.areas.conversation.shown = None
+        shell.areas.conversation.shown = None;
     });
     update(&probe, cx, Shell::rename_pressed);
     let words = probe
