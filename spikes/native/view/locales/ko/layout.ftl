@@ -83,3 +83,27 @@ layout-launch-diff = Diff
 layout-launch-browser = 브라우저
 # New-tab menu item: the workspace's pull request (Paseo's panels.pullRequest.label).
 layout-launch-pull-request = 풀 리퀘스트
+# Compact header: the tab switcher's accessible name (Paseo's workspace.tabs.switcher.trigger).
+layout-switch-tabs = 탭 전환 ({ $count }개 열림)
+# Compact header: the tab switcher sheet's title (Paseo's workspace.tabs.switcher.title).
+layout-workspace-tabs = 워크스페이스 탭
+# Tab switcher footer: a new terminal tab (Paseo's workspace.header.actions.newTerminal).
+layout-new-terminal = 새 터미널
+# Compact header: the workspace "…" menu (Paseo's workspace.header.actions.workspaceActions).
+layout-workspace-actions = 워크스페이스 작업
+# Workspace actions: copy the session's folder (Paseo's workspace.header.actions.copyPath).
+layout-copy-workspace-path = 워크스페이스 경로 복사
+# Tab switcher row menu: copy the agent's id (Paseo's workspace.tabs.menu.copyAgentId).
+layout-copy-agent-id = 에이전트 ID 복사
+# Tab switcher row menu: close the tabs listed above this one (Paseo's closeAbove).
+layout-close-above = 위쪽 탭 닫기
+# Tab switcher row menu: close the tabs listed below this one (Paseo's closeBelow).
+layout-close-below = 아래쪽 탭 닫기
+# Tab switcher row: the accessible name of its "…" (Paseo's workspace.tabs.menu.openFor).
+layout-tab-menu-for = { $label }의 메뉴 열기
+# Compact header: the code panel toggle while the panel is closed (Paseo's explorerSidebar.open).
+layout-explorer-open = 사이드 패널 열기
+# Compact header: the code panel toggle while the panel is open (Paseo's explorerSidebar.close).
+layout-explorer-close = 사이드 패널 닫기
+# Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
+layout-rename-agent = 에이전트 이름 변경

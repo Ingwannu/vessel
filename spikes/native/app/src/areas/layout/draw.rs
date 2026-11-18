@@ -97,6 +97,7 @@ pub(crate) fn frame(
         .children(super::sheets::overlay(
             shell, &layout, &key, &mut agent, tokens, window, cx,
         ))
+        .children(super::compact::overlay(shell, &layout, tokens, window, cx))
         .children(super::menu::overlay(shell, tokens, window, cx))
         .children(super::header::menu_overlay(shell, tokens, window, cx))
         .children(super::rename::overlay(shell, tokens, window, cx))
@@ -163,15 +164,22 @@ fn pane_view(
     let (shell, layout, workspace) = source;
     let (window, cx) = ui;
     let id = pane.id();
-    let tabs = pane
-        .tabs()
-        .iter()
-        .filter_map(|id| layout.tab(*id))
-        .fold(div(), |row, tab| {
-            row.child(tab_view(shell, tab, pane, workspace, tokens, cx))
-        });
+    // Below the compact width the compact workspace header (TRACKER 789)
+    // takes the tab head's place, and the session bar's.
+    let head = if mode(window) == LayoutMode::Compact {
+        super::compact::header(shell, layout, tokens, cx)
+    } else {
+        let tabs = pane
+            .tabs()
+            .iter()
+            .filter_map(|id| layout.tab(*id))
+            .fold(div(), |row, tab| {
+                row.child(tab_view(shell, tab, pane, workspace, tokens, cx))
+            });
+        let controls = super::header::controls(shell, layout, pane, tokens, window, cx);
+        tab_head(tabs, Some(controls), tokens).h(px(vessel_app_kit::tabs::HEAD_HEIGHT))
+    };
     let drop_key = workspace.clone();
-    let controls = super::header::controls(shell, layout, pane, tokens, window, cx);
     let content = match pane.focused().and_then(|id| layout.tab(id)) {
         Some(tab) => registry::render(
             shell,
@@ -202,13 +210,7 @@ fn pane_view(
         .flex_col()
         .border_color(tokens.neutral.border)
         .border_r_1()
-        .child(tab_head(tabs, Some(controls), tokens).h(px(
-            if mode(window) == LayoutMode::Compact {
-                vessel_app_kit::breakpoint::TOUCH_TARGET
-            } else {
-                vessel_app_kit::tabs::HEAD_HEIGHT
-            },
-        )))
+        .child(head)
         .child(div().flex_1().min_h_0().min_w_0().child(content))
         .children(drop_preview(shell, id, tokens))
         .on_drag_move::<Dragged>(cx.listener(
@@ -288,6 +290,7 @@ fn tab_view(
     .on_mouse_down(
         MouseButton::Right,
         cx.listener(move |shell, event: &gpui::MouseDownEvent, window, cx| {
+            shell.areas.layout.menu_surface = super::menu::Surface::Strip;
             shell.areas.layout.menu_tab = Some((menu_key.clone(), id));
             shell.areas.layout.menu.open(event.position, window, cx);
             cx.notify();
@@ -341,7 +344,7 @@ fn tab_view(
         },
     )
 }
-fn tab_label(shell: &Shell, target: &Target) -> String {
+pub(super) fn tab_label(shell: &Shell, target: &Target) -> String {
     match target {
         Target::Agent(session) => shell
             .areas

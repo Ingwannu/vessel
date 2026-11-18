@@ -12,6 +12,7 @@
 //!   existing Tooltips may decorate this same element; no new listener or overlay
 //!   controller, area geometry override or ordinary Button modification is added.
 mod config;
+mod count;
 #[cfg(test)]
 mod tests;
 
@@ -40,6 +41,7 @@ impl ToolbarButton {
         config: ToolbarConfig,
         tokens: &crate::Tokens,
     ) -> Self {
+        let icon = if config.island() { icon.large() } else { icon };
         Self::with_content(
             id,
             label,
@@ -70,6 +72,18 @@ impl ToolbarButton {
             ink.colour(tokens),
         );
         Self::with_content(id, label, content, config.disabled(), tokens)
+    }
+
+    /// Paseo's compact tab switcher: the number of open tabs in an outlined
+    /// badge, in the same chrome as a glyph (`count`).
+    pub fn count(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        count: usize,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
+        Self::with_content(id, label, count::badge(count, tokens), config, tokens)
     }
 
     /// A zoomable viewport's floating action (`icon_chrome::Profile::Viewport`).

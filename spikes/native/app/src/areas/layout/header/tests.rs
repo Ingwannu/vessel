@@ -139,9 +139,7 @@ fn pointer_header_uses_shared_hitboxes_and_switches_actual_maximize_restore(
 }
 
 #[gpui::test]
-fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
-    cx: &mut TestAppContext,
-) {
+fn compact_width_draws_no_pane_controls(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (probe, cx) = cx.add_window_view(fixture);
     cx.simulate_resize(gpui::size(px(390.0), px(844.0)));
@@ -154,43 +152,13 @@ fn compact_header_keeps_fixed_glyph_frame_policy_and_actual_new_tab_dispatch(
         });
     });
     cx.run_until_parked();
+    // TRACKER 789: the compact workspace header replaces the tab head, so
+    // no pane control ("+" included) is drawn or measured; the switcher's
+    // footer has New agent (compact::tests).
+    assert!(cx.debug_bounds("layout-main-pane-controls").is_none());
+    assert!(cx.debug_bounds("compact-workspace-header").is_some());
     probe.read_with(cx, |probe, cx| {
-        let shell = probe.0.read(cx);
-        assert!(
-            !shell
-                .areas
-                .layout
-                .tip_places
-                .borrow()
-                .contains_key(&(PaneId::MAIN, Control::More))
-        );
-    });
-    // Compact tooltips install no listener, but "+" is still measured so its
-    // menu opens under it; the row holds only New, so both bounds agree.
-    let new = cx.debug_bounds("layout-main-pane-controls").unwrap();
-    assert_eq!(new.size, gpui::size(px(32.0), px(32.0)));
-    let measured = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::New));
-    assert_eq!(measured, new);
-    cx.simulate_click(new.center(), Modifiers::none());
-    cx.run_until_parked();
-    // Paseo's "+" is a menu: it opens the new-tab menu and adds no tab.
-    probe.read_with(cx, |probe, cx| {
-        let shell = probe.0.read(cx);
-        assert!(shell.areas.layout.header_menu.is_open());
-        assert_eq!(
-            shell
-                .areas
-                .layout
-                .header_menu_for
-                .as_ref()
-                .map(|menu| menu.kind),
-            Some(MenuKind::NewTab)
-        );
-        with_layout(shell, |layout| {
-            assert_eq!(layout.tabs().count(), 1);
-            Ok(())
-        })
-        .unwrap();
+        assert!(probe.0.read(cx).areas.layout.tip_places.borrow().is_empty());
     });
 }
 

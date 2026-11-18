@@ -78,6 +78,7 @@ pub(crate) fn overlays(
     ) {
         floating.push(menu);
     }
+    floating.extend(super::rename::rename_dialog(shell, tokens, window, cx));
     if let Some(confirm) = area.confirm {
         floating.push(confirm_dialog(shell, confirm, tokens, (window, narrow), cx));
     }

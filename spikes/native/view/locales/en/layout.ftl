@@ -83,3 +83,27 @@ layout-launch-diff = Diff
 layout-launch-browser = Browser
 # New-tab menu item: the workspace's pull request (Paseo's panels.pullRequest.label).
 layout-launch-pull-request = Pull request
+# Compact header: the tab switcher's accessible name (Paseo's workspace.tabs.switcher.trigger).
+layout-switch-tabs = Switch tabs ({ $count } open)
+# Compact header: the tab switcher sheet's title (Paseo's workspace.tabs.switcher.title).
+layout-workspace-tabs = Workspace tabs
+# Tab switcher footer: a new terminal tab (Paseo's workspace.header.actions.newTerminal).
+layout-new-terminal = New terminal
+# Compact header: the workspace "…" menu (Paseo's workspace.header.actions.workspaceActions).
+layout-workspace-actions = Workspace actions
+# Workspace actions: copy the session's folder (Paseo's workspace.header.actions.copyPath).
+layout-copy-workspace-path = Copy workspace path
+# Tab switcher row menu: copy the agent's id (Paseo's workspace.tabs.menu.copyAgentId).
+layout-copy-agent-id = Copy agent id
+# Tab switcher row menu: close the tabs listed above this one (Paseo's closeAbove).
+layout-close-above = Close tabs above
+# Tab switcher row menu: close the tabs listed below this one (Paseo's closeBelow).
+layout-close-below = Close tabs below
+# Tab switcher row: the accessible name of its "…" (Paseo's workspace.tabs.menu.openFor).
+layout-tab-menu-for = Open menu for { $label }
+# Compact header: the code panel toggle while the panel is closed (Paseo's explorerSidebar.open).
+layout-explorer-open = Open Explorer sidebar
+# Compact header: the code panel toggle while the panel is open (Paseo's explorerSidebar.close).
+layout-explorer-close = Close Explorer sidebar
+# Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
+layout-rename-agent = Rename agent

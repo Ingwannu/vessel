@@ -9,7 +9,11 @@
 //!   entries delegate, and a compact menu calls only its supplied callback.
 //! - Why: settings' back button and the shell's menu share one renderer
 //!   without sharing navigation policy. Existing kit faces supply text metrics.
-//! - Cost: no subtitle variant until a consumer needs it; no drag integration.
+//! - Cost: no drag integration.
+//! - Subtitle (TRACKER 789, the compact workspace header): Paseo's
+//!   `CompactHeader` takes a line under its title, and its title then reads
+//!   one step smaller (14 rather than 16). The caller supplies the line; the
+//!   frame keeps the row, the islands and the title's ink and weight.
 
 use crate::{Tokens, Type, TypeExt as _, assets::Glyph, fonts, picker, theme::spacing};
 use gpui::prelude::*;
@@ -32,6 +36,8 @@ pub struct Content {
     pub leading: Option<AnyElement>,
     /// Caller-owned, already wired actions.
     pub actions: Option<AnyElement>,
+    /// A line under the title (Paseo's `subtitle`); the title is then 14.
+    pub subtitle: Option<AnyElement>,
 }
 impl std::fmt::Debug for Content {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -50,6 +56,19 @@ struct Geometry {
     title: f32,
     weight: FontWeight,
 }
+/// Paseo's `fontSize.base`: a title over a subtitle.
+const SUBTITLED_TITLE: f32 = 14.0;
+
+/// The title's size: one step smaller over a subtitle (Paseo's
+/// `singleLineTitle` is only for a title alone).
+const fn title_size(geometry: Geometry, subtitled: bool) -> f32 {
+    if subtitled {
+        SUBTITLED_TITLE
+    } else {
+        geometry.title
+    }
+}
+
 const fn geometry(density: Density) -> Geometry {
     match density {
         Density::Desktop => Geometry {
@@ -99,16 +118,25 @@ pub fn frame(content: Content, density: Density, tokens: &Tokens) -> Div {
         title,
         leading,
         actions,
+        subtitle,
     } = content;
+    let size = title_size(geometry, subtitle.is_some());
     let title = div()
         .min_w_0()
         .flex_shrink(1.0)
         .type_(Type::Body)
-        .text_size(px(fonts::ui(geometry.title)))
+        .text_size(px(fonts::ui(size)))
         .font_weight(geometry.weight)
         .text_color(paint.title)
         .truncate()
         .child(picker::one_line(&title));
+    let title = div()
+        .flex()
+        .flex_col()
+        .min_w_0()
+        .flex_shrink(1.0)
+        .child(title)
+        .children(subtitle);
     let (left, leading) = match density {
         Density::Desktop => (
             div()
@@ -179,6 +207,7 @@ pub fn screen_header(
             title: title.into(),
             leading: None,
             actions: action_slot(actions),
+            subtitle: None,
         },
         if narrow {
             Density::Compact
@@ -217,6 +246,7 @@ pub fn compact_header(
             title: title.into(),
             leading: Some(menu.into_any_element()),
             actions: action_slot(actions),
+            subtitle: None,
         },
         Density::Compact,
         tokens,
@@ -280,6 +310,12 @@ mod tests {
         );
     }
     #[test]
+    fn a_subtitle_steps_the_compact_title_down_to_paseos_base() {
+        let compact = geometry(Density::Compact);
+        assert_eq!(title_size(compact, false).to_bits(), 16.0_f32.to_bits());
+        assert_eq!(title_size(compact, true).to_bits(), 14.0_f32.to_bits());
+    }
+    #[test]
     fn frame_and_actual_menu_vector_have_literal_reference_colours() {
         for (scheme, background, border, foreground, muted) in [
             (
@@ -332,6 +368,7 @@ mod frame_regression {
                 title: "Schedules".into(),
                 leading: None,
                 actions: None,
+                subtitle: None,
             },
             Density::Desktop,
             &Tokens::of(Scheme::Light),

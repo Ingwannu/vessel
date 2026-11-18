@@ -2,6 +2,7 @@
 mod action_context;
 mod actions;
 mod book;
+mod compact;
 mod draw;
 // The existing Explorer host must adopt this projection with its real renderer.
 #[cfg(test)]
@@ -44,6 +45,10 @@ pub(crate) struct LayoutArea {
     rename_ticket: vessel_app_view::layout::RenameTicket,
     rename_dialog: vessel_app_kit::DialogState,
     menu_tab: Option<(LayoutKey, TabId)>,
+    /// Where the tab menu was opened: the tab strip or the compact switcher.
+    menu_surface: menu::Surface,
+    /// The compact workspace header (TRACKER 789).
+    compact: compact::Compact,
     /// The pane header's "+" and "…" menus (one open at a time).
     header_menu: MenuState,
     header_menu_for: Option<header::HeaderMenu>,
@@ -65,6 +70,8 @@ impl LayoutArea {
             rename_ticket: vessel_app_view::layout::RenameTicket::ZERO,
             rename_dialog: vessel_app_kit::DialogState::new(cx),
             menu_tab: None,
+            menu_surface: menu::Surface::Strip,
+            compact: compact::Compact::new(cx),
             header_menu: MenuState::new(cx),
             header_menu_for: None,
             maximized: None,

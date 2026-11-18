@@ -34,6 +34,9 @@ mod draw;
 mod feedback_tests;
 #[cfg(test)]
 mod focus_tests;
+mod hint;
+#[cfg(test)]
+mod hint_tests;
 mod input;
 mod item;
 #[cfg(test)]

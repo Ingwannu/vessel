@@ -78,7 +78,7 @@ impl Shell {
         }
     }
 
-    fn menu_chose(
+    pub(crate) fn menu_chose(
         &mut self,
         action: MenuAction,
         window: &mut vessel_app_kit::ui::Window,

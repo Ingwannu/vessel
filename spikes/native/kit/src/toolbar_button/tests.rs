@@ -307,3 +307,16 @@ fn a_hidden_viewport_action_takes_no_click_until_its_owner_shows_it(cx: &mut Tes
     cx.run_until_parked();
     view.read_with(cx, |probe, _| assert_eq!(probe.clicks, 1));
 }
+
+#[test]
+fn the_header_island_takes_paseos_large_sixteen_glyph_and_keeps_the_frame() {
+    let icon = ToolbarIcon::new(Glyph::More, ToolbarInk::Muted);
+    for sizing in [ControlSizing::Pointer, ControlSizing::Touch] {
+        assert_eq!(icon.large().size(sizing), px(16.0));
+        assert_eq!(icon.size(sizing), px(14.0), "the default stays 14");
+    }
+    let config = ToolbarConfig::new(ControlSizing::Touch, ButtonState::Enabled);
+    assert!(!config.island());
+    assert!(config.header_island().island());
+    assert_eq!(config.header_island().frame(), config.frame());
+}

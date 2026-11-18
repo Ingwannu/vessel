@@ -367,7 +367,9 @@ pub(super) fn row<V: 'static>(
             .flex_none()
             .child(crate::command::key_badges(&item.shortcut, tokens))
     });
-    let mut element = row_body(index, item, paint, narrow).children(trailing);
+    let mut element = row_body(index, item, paint, narrow)
+        .children(super::hint::hint(index, item, surfaces))
+        .children(trailing);
     if item.selectable() {
         let choice = item.clone();
         let press_lease = state.render_lease();
