@@ -60,6 +60,9 @@ mod header_search;
 mod header_search_tests;
 #[cfg(test)]
 mod header_subtitle_tests;
+mod header_title_only;
+#[cfg(test)]
+mod header_title_only_tests;
 mod layout;
 mod return_focus;
 #[cfg(test)]
@@ -390,7 +393,11 @@ fn header<V: 'static>(
         actions,
         search,
         subtitle,
+        title_only,
     } = parts;
+    if title_only {
+        return header_title_only::row(title, surfaces);
+    }
     let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
     // Paseo names both header controls for assistive technology

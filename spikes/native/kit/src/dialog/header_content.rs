@@ -18,6 +18,7 @@ pub struct DialogInput {
     header_actions: Option<AnyElement>,
     header_search: Option<HeaderSearch>,
     header_subtitle: Option<AnyElement>,
+    title_only: bool,
 }
 
 impl DialogContent {
@@ -31,7 +32,14 @@ impl DialogContent {
             header_actions: Some(actions.into_any_element()),
             header_search: None,
             header_subtitle: None,
+            title_only: false,
         }
+    }
+
+    /// Paseo's combobox sheet header: the title alone (`header_title_only`).
+    #[must_use]
+    pub fn with_title_only(self) -> DialogInput {
+        DialogInput::from(self).with_title_only()
     }
 
     /// Put the owner's search under the title, inside the header's rule.
@@ -55,6 +63,7 @@ impl From<DialogContent> for DialogInput {
             header_actions: None,
             header_search: None,
             header_subtitle: None,
+            title_only: false,
         }
     }
 }
@@ -65,6 +74,7 @@ pub(super) struct HeaderParts {
     pub(super) actions: Option<AnyElement>,
     pub(super) search: Option<HeaderSearch>,
     pub(super) subtitle: Option<AnyElement>,
+    pub(super) title_only: bool,
 }
 
 impl DialogInput {
@@ -80,6 +90,16 @@ impl DialogInput {
     #[must_use]
     pub fn with_header_back(mut self, back: HeaderBack) -> Self {
         self.header_back = Some(back);
+        self
+    }
+
+    /// Paseo's combobox sheet header (`combobox.tsx` `bottomSheetHeader`): the
+    /// title alone, with no close button and no rule; Escape, the scrim and
+    /// the handle still close it. Any back, actions, search or subtitle given
+    /// with it are not drawn.
+    #[must_use]
+    pub const fn with_title_only(mut self) -> Self {
+        self.title_only = true;
         self
     }
 
@@ -99,6 +119,7 @@ impl DialogInput {
                 actions: self.header_actions,
                 search: self.header_search,
                 subtitle: self.header_subtitle,
+                title_only: self.title_only,
             },
         )
     }
