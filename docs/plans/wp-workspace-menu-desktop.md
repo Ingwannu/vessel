@@ -102,3 +102,15 @@ workspace "…" existed only in the compact header (789).
 - app `layout::compact::tests` use the shared trigger and menu.
 
 ## Status
+
+Coordinator return (2026-11-18): the English bar title in en-dark-1280-menu
+ended at "…paths while pres" with no ellipsis. Cause: not a clip. That
+session's title is the node's prompt title, the prompt's first line cut at
+80 characters with no ellipsis (`SessionTitle::from_prompt`,
+vessel-proto title.rs), as Paseo cuts its provisional title at 60 with no
+ellipsis (`deriveInitialAgentTitle`, server create-agent-title.ts). The bar
+had room for it: about 230 points stayed free after the "…". A title longer
+than the bar shrinks and ends in "…" (the bar's `truncate`); re-take
+en-dark-1280-menu-long-title, after a rename to a 116-character title. Tests
+added: an 80-character title shows whole at 1280; a 200-character one
+shrinks and keeps both "…" inside the bar.

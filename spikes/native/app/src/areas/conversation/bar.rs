@@ -248,6 +248,8 @@ fn title_element(
         .truncate()
         .type_(Type::Label)
         .text_color(tokens.neutral.foreground);
+    #[cfg(test)]
+    let text = text.debug_selector(|| "session-title-text".to_owned());
     if !renamable {
         return text.child(title).into_any_element();
     }
