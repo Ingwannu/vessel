@@ -9,7 +9,8 @@ use gpui::{
 use std::rc::Rc;
 use std::time::Duration;
 
-/// A trigger row ("show") and, while its page is open, the page's flyout.
+/// Two trigger rows ("show", and "other" under it) and, while a page is
+/// open, its flyout.
 struct Probe {
     submenus: Submenus,
     /// The row sits at the window's right edge.
@@ -41,16 +42,38 @@ impl Render for Probe {
                 }
             })
             .child(self.submenus.trigger_probe("show"));
+        let sibling = self.submenus.clone();
+        let other = div()
+            .id("other")
+            .debug_selector(|| "other".to_owned())
+            .absolute()
+            .left(px(left))
+            .top(px(68.0))
+            .w(px(60.0))
+            .h(px(28.0))
+            .on_hover(move |inside: &bool, window, cx| {
+                if *inside {
+                    sibling.hover_open("other", 0, window, cx);
+                } else {
+                    sibling.hover_close(0, window, cx);
+                }
+            })
+            .child(self.submenus.trigger_probe("other"));
         let page = div()
             .debug_selector(|| "page".to_owned())
             .w(px(180.0))
             .h(px(120.0));
         let flyout = self
             .submenus
-            .is_open("show", 0)
-            .then(|| flyout(&self.submenus, "show", 0, 1, page))
-            .flatten();
-        div().size_full().relative().child(row).children(flyout)
+            .path()
+            .current()
+            .and_then(|id| flyout(&self.submenus, id, 0, 1, page));
+        div()
+            .size_full()
+            .relative()
+            .child(row)
+            .child(other)
+            .children(flyout)
     }
 }
 
@@ -242,3 +265,23 @@ fn a_page_holding_the_keys_outlasts_the_grace_until_it_closes(cx: &mut TestAppCo
     advance(cx, 260);
     assert!(!open(&view, cx));
 }
+
+#[gpui::test]
+fn sliding_onto_a_sibling_row_swaps_the_page(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    let row = bounds(cx, "row");
+    let other = bounds(cx, "other");
+    pointer(cx, row.center());
+    advance(cx, 90);
+    assert!(open(&view, cx));
+    pointer(cx, other.center());
+    advance(cx, 90);
+    view.read_with(cx, |probe, _| {
+        assert!(probe.submenus.is_open("other", 0));
+        assert!(!probe.submenus.is_open("show", 0));
+    });
+    // Its own grace does not close it under the resting pointer.
+    advance(cx, 400);
+    view.read_with(cx, |probe, _| assert!(probe.submenus.is_open("other", 0)));
+}
+

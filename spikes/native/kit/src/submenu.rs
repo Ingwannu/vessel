@@ -133,6 +133,8 @@ struct Inner {
     /// own Escape, a press on another row or the menu's close ends it.
     keyed: Option<PageId>,
     opening: Option<Timer>,
+    /// The page `opening` opens.
+    opening_page: Option<PageId>,
     closing: Option<Timer>,
     /// The menu opening this path belongs to.
     cycle: Option<Weak<()>>,
@@ -271,6 +273,7 @@ impl Submenus {
             inner.opening = None;
             return;
         }
+        inner.opening_page = Some(page.clone());
         let timer = self.after(HOVER_OPEN, window, cx, move |inner| {
             inner.path.open(&page, depth);
             inner.settle_keys();
@@ -285,8 +288,21 @@ impl Submenus {
         // Left the row straight into its flyout: in one pointer move the
         // flyout (drawn on top) hears its entering before the row its
         // leaving, so the cancel came first and this close must not start.
-        let into_flyout = self.contains(window.mouse_position());
+        let at = window.mouse_position();
+        let into_flyout = self.contains(at);
         let mut inner = self.0.borrow_mut();
+        // Left straight onto a sibling page's row, which heard its entering
+        // first: its pending opening swaps the branch; cancelling it or
+        // closing under it would leave neither page open.
+        let onto_sibling = inner
+            .opening_page
+            .as_ref()
+            .and_then(|page| inner.triggers.get(page))
+            .and_then(|probe| probe.get())
+            .is_some_and(|row| row.contains(&at));
+        if onto_sibling {
+            return;
+        }
         inner.opening = None;
         if inner.held() || into_flyout {
             return;

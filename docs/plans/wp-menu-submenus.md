@@ -145,7 +145,14 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
   way back (`PickerPlace::Page`, its own sheet with Back, Escape and its
   scrim); the page closed, the picker closes; the picker dismissed, the
   menu closes. The old placement at the menu's point is gone.
-- Tests: kit `submenu/tests.rs` (a press asks once, hover never); app
+- Real fleet (2026-11-18) found what stepwise tests had missed: in one
+  pointer move the element drawn on top hears its hover first, so a move
+  from a row straight into its flyout, or onto a sibling page's row, ran
+  the leaving row's close after the cancel or opening. `hover_close` now
+  keeps a flyout the pointer is in and a sibling's pending opening; a press
+  inside a flyout holds its page (as the keys do).
+- Tests: kit `submenu/tests.rs` (a press asks once, hover never; one move
+  into the page; sliding onto a sibling row); app
   `sidebar/row_menu_tests.rs` (press and keys, rest and grace, the Create
   dialog, the phone's sheet and Back and scrim) and
   `sidebar/display_tests.rs` (Enter's page takes the keys, Escape back).
