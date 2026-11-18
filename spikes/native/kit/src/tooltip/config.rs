@@ -20,8 +20,10 @@ pub struct Offset(Pixels);
 impl Offset {
     /// Both pinned composer and pane toolbar profiles use eight logical points.
     pub const EIGHT: Self = Self(px(8.0));
-    /// A menu row's tooltip (`offset={10}`).
-    pub const TEN: Self = Self(px(10.0));
+    /// A menu row's tooltip: Paseo's `offset={10}` from the row's edge.
+    /// The row's place is measured inside its 1-point border (the menu's
+    /// `row_body`), so the distance from the place is 11.
+    pub const MENU_ROW: Self = Self(px(11.0));
 }
 /// Invalid geometry is refused at the caller's configuration edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -92,10 +94,11 @@ impl Configuration {
     pub const fn toolbar() -> Self {
         Self::new(Side::Bottom, Offset::EIGHT, Delay::TOOLBAR)
     }
-    /// `menu-item.tsx`'s row tooltip: right, offset ten, 250 milliseconds.
+    /// `menu-item.tsx`'s row tooltip: right, ten from the row's edge, 250
+    /// milliseconds.
     #[must_use]
     pub const fn menu_row() -> Self {
-        Self::new(Side::Right, Offset::TEN, Delay::MENU_ROW)
+        Self::new(Side::Right, Offset::MENU_ROW, Delay::MENU_ROW)
     }
     /// The source card-refresh control explicitly chooses top over the default.
     #[must_use]
