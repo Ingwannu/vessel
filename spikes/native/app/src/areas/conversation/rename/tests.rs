@@ -246,7 +246,7 @@ fn typed_past(probe: &Entity<Probe>, cx: &mut VisualTestContext, most: usize) ->
 }
 
 /// `laptop`, connected at `protocol`.
-fn connected(probe: &Entity<Probe>, cx: &mut VisualTestContext, protocol: u16) {
+fn connected(probe: &Entity<Probe>, cx: &mut VisualTestContext, protocol: u32) {
     update(probe, cx, |shell, _window, _cx| {
         shell.fleet.machines = vec![vessel_app_view::Machine {
             name: "laptop".to_owned(),
