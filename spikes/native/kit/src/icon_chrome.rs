@@ -129,7 +129,7 @@ pub(crate) fn toolbar_frame(
         .p(px(crate::theme::spacing::S0))
         .rounded(px(crate::theme::radius::MD))
         // Paseo's header island: a round hitbox and highlight.
-        .when(config.island(), gpui::Styled::rounded_full)
+        .when(config.island(), Styled::rounded_full)
         .bg(toolbar_fill(config, Phase::Rest, tokens))
         .opacity(config.opacity())
         // Paseo's disabled `Pressable` has no hovered or pressed state, as in
