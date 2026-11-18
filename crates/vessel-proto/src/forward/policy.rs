@@ -159,6 +159,8 @@ impl Method {
             | Self::DuplicateFileEntry
             | Self::ObserveFile
             | Self::SuggestEntries
+            | Self::SuggestFolders
+            | Self::ProjectIcon
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir

@@ -2,11 +2,15 @@
 //! absolute path supplied by the caller. Disk work stays in vessel-workspace.
 
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
+use vessel_proto::workspace::host_folders::{
+    FolderSuggestions, GetProjectIcon, ProjectIcon, SuggestFolders,
+};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, DuplicatedFileEntry, FileBytePage, ObserveFile, ObservedFile, ReadFileBytes,
 };
 use vessel_proto::workspace::suggestions::{EntrySuggestions, SuggestEntries};
 use vessel_workspace::files;
+use vessel_workspace::paths::Root;
 
 use super::{WorkspaceError, Workspaces};
 
@@ -62,6 +66,31 @@ impl Workspaces {
             None
         };
         Ok(files::suggestions::suggest(git, &resolved.root, &request).await?)
+    }
+
+    /// `folder.suggest` (ADR 0112): under the node user's home, resolved
+    /// as the node started.
+    pub(crate) async fn suggest_folders(
+        &self,
+        request: SuggestFolders,
+    ) -> Result<FolderSuggestions, WorkspaceError> {
+        Ok(files::host_folders::suggest_folders(&self.places.home, &request).await?)
+    }
+
+    /// `project.icon` (ADR 0112): inside the registered project's root; a
+    /// root that cannot be opened (moved, removed) has no icon.
+    pub(crate) async fn project_icon(
+        &self,
+        request: GetProjectIcon,
+    ) -> Result<ProjectIcon, WorkspaceError> {
+        let root = self.project_root(request.project)?;
+        let Ok(root) = tokio::task::spawn_blocking(move || Root::open(&root))
+            .await
+            .map_err(|_stopped| WorkspaceError::from(files::FileError::Task))?
+        else {
+            return Ok(ProjectIcon { icon: None });
+        };
+        Ok(files::project_icon::project_icon(&root).await?)
     }
 
     pub(crate) async fn inspect_directory(

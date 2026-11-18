@@ -316,7 +316,11 @@ impl Reply {
             | Self::ReadFileBytes(_)
             | Self::DuplicateFileEntry(_)
             | Self::ObserveFile(_)
-            | Self::SuggestEntries(_) => None,
+            | Self::SuggestEntries(_)
+            // Folder suggestions and icons (ADR 0112): refused below their
+            // protocol before dispatch, like the file panels.
+            | Self::SuggestFolders(_)
+            | Self::ProjectIcon(_) => None,
         }
     }
 }

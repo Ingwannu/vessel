@@ -67,3 +67,17 @@ no icon lookup (`file.inspect` is folder metadata).
 
 The search never leaves the home and never returns files (Paseo's `includeFiles` is not used by its Add
 project flow); Read principals get no folder suggestions (Paseo has one owner principal).
+
+## Implementation notes (node, drafted protocol 32)
+
+- `vessel_proto::workspace::host_folders` holds both methods' types and `HOST_FOLDERS_PROTOCOL`; the disk work is
+  `vessel_workspace::files::host_folders` and `files::project_icon`, run on the node's file workers (the same
+  four-slot pool and 60 s wait as the file panels).
+- Folder walk: Paseo's query plan and breadth order, ranked by the scorer `file.suggest` uses (ADR 0083's accepted
+  difference from Paseo's tiers). No link is walked, so a folder reachable only through a link inside the home is
+  found only when typed. Time bound: 3 s, after which the folders found so far come back with `more`.
+- Icon search: entries in name order (Paseo's are the disk's `readdir` order), at most 5,000 entries read per
+  search, links neither read nor walked (also a link on the way, as `priv` in `priv/static`). Only PNG, ICO and
+  SVG bytes become an icon; Paseo's JPEG, GIF and WebP sniffing is left out, since its names are SVG, PNG and ICO
+  only. SVG is recognised when its first element (after a byte order mark, XML declaration, comments and a
+  doctype) is `svg`.
