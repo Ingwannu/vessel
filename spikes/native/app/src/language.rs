@@ -105,7 +105,6 @@ impl Shell {
         self.updates.translate(self.words, &mut self.notice);
         self.translate_rewind_notice();
         self.translate_fork_words();
-        self.translate_diagnostic_notice();
         self.areas
             .conversation
             .list

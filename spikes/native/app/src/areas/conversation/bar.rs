@@ -294,7 +294,7 @@ pub(crate) fn session_menu_item(shell: &Shell, action: MenuAction) -> MenuItem {
         MenuAction::Mark(mark) => MenuItem::new(words.mark_action(mark)),
         MenuAction::CopyLink => MenuItem::new(shell.words.sessions().copy_link()),
         MenuAction::Close => MenuItem::new(shell.words.sessions().close()),
-        MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
+        MenuAction::CopyId => MenuItem::new(words.copy_agent_id()).grouped(),
         MenuAction::Kill => MenuItem::danger(words.kill()),
         MenuAction::AgentLog => MenuItem::new(
             words.agent_log(

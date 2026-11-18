@@ -175,3 +175,24 @@ fn on_a_phone_the_labels_sheet_replaces_the_menu_and_leads_back(cx: &mut TestApp
     cx.run_until_parked();
     assert_eq!(state(&shell, cx), (false, false, RowPicker::None));
 }
+
+#[gpui::test]
+fn copy_path_copies_the_folder_and_says_so_in_paseos_words(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (link, _sent) = Link::detached(COMMANDS).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    cx.run_until_parked();
+    let mut row = card(SessionId::random());
+    row.detail.cwd = Some("/work/shop".to_owned());
+    shell.update_in(cx, |shell, window, cx| {
+        shell.row_menu_open(&row, point(px(40.0), px(120.0)), window, cx);
+        // A row whose folder is known leads with Copy path.
+        shell.row_menu_chose(0, window, cx);
+        let said = shell.areas.toasts.shown().cloned();
+        let said = said.map(|toast| (toast.text, toast.tone));
+        // Paseo's sidebar copy (sidebar.workspace.toasts.pathCopied).
+        assert_eq!(said, Some(("Path copied".to_owned(), ToastTone::Copied)));
+    });
+    let copied = cx.read_from_clipboard().and_then(|item| item.text());
+    assert_eq!(copied.as_deref(), Some("/work/shop"));
+}

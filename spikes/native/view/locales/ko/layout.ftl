@@ -115,7 +115,7 @@ layout-copy-resume-command = 재개 명령 복사
 layout-copy-terminal-id = 터미널 ID 복사
 # Tab menu: copy the file's path (Paseo's workspace.tabs.menu.copyFilePath).
 layout-copy-file-path = 파일 경로 복사
-# Toast after a tab menu copy; $label is one of the copied-* words (Paseo's common.states.copiedLabel).
+# The copied toast (Paseo's common.states.copiedLabel); $label is a copied-* label here or another area's (sessions, general, diagnostics).
 layout-copied = { $label } 복사됨
 # The copied-toast label for an agent's id (Paseo's workspace.tabs.toasts.agentIdCopiedLabel).
 layout-copied-agent-id = 에이전트 ID
@@ -125,6 +125,8 @@ layout-copied-terminal-id = 터미널 ID
 layout-copied-file-path = 파일 경로
 # The copied-toast label for a resume command, lower case after "Copied" (Paseo's resumeCommandCopiedLabel).
 layout-copied-resume-command = 재개 명령
+# The copied-toast label for the workspace's path (Paseo's workspace.header.toasts.workspacePathCopiedLabel).
+layout-copied-workspace-path = 워크스페이스 경로
 # Toast: the agent has not named its own session yet (Paseo's workspace.tabs.toasts.resumeIdUnavailable).
 layout-resume-id-unavailable = 재개 ID를 사용할 수 없습니다
 # Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).

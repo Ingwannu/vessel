@@ -134,7 +134,9 @@ impl Shell {
                     cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(
                         shown.session.to_string(),
                     ));
-                    self.notice = Some(self.t.lang.conversation().copied_id().to_owned());
+                    // Paseo's agent id copy (workspace-screen.tsx 2090): a
+                    // Vessel session is Paseo's agent.
+                    self.toast_copied(self.words.layout().copied_agent_id(), cx);
                 }
                 None
             }

@@ -312,11 +312,4 @@ impl Shell {
             }
         }
     }
-
-    /// Paseo's `toast.copied` (workspace-screen.tsx 2090, 2103).
-    fn toast_copied(&mut self, label: &str, cx: &mut Context<'_, Self>) {
-        let words = self.words.layout();
-        let text = words.copied(label).unwrap_or_else(|_| label.to_owned());
-        self.toast(text, ToastTone::Copied, cx);
-    }
 }

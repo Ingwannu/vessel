@@ -57,8 +57,8 @@ general-kept-newer = Kept until Vessel quits: { $path } was written by a newer V
 # Safe fallback if the typed storage message cannot be prepared before paint.
 general-storage-unavailable = Preference storage information is unavailable.
 
-# Frame notice after copying the preference file path.
-general-path-copied = The path was copied.
+# The copied-toast label for the preference file path: "Copied { $label }" (layout-copied; Paseo's copiedLabel pattern, a Vessel-only copy).
+general-copied-path-label = Preferences path
 
 # Whole unreadable-file recovery. $problem is closed; $path is a display path.
 general-kept-unreadable = Kept until Vessel quits: { $path } could not be read ({ $problem ->

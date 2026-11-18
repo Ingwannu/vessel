@@ -105,6 +105,9 @@ pub(crate) use timeline::timeline;
 mod connection_tests;
 
 #[cfg(test)]
+mod copy_tests;
+
+#[cfg(test)]
 mod late_answers;
 
 #[cfg(test)]

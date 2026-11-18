@@ -57,8 +57,8 @@ general-kept-newer = Vessel을 끝낼 때까지만 보관합니다: { $path }{ P
 # Safe fallback if the typed storage message cannot be prepared before paint.
 general-storage-unavailable = 환경설정 보관 정보를 표시할 수 없습니다.
 
-# Frame notice after copying the preference file path.
-general-path-copied = 경로를 복사했습니다.
+# The copied-toast label for the preference file path: "Copied { $label }" (layout-copied; Paseo's copiedLabel pattern, a Vessel-only copy).
+general-copied-path-label = 환경설정 경로
 
 # Whole unreadable-file recovery. $problem is closed; $path is a display path.
 general-kept-unreadable = Vessel을 끝낼 때까지만 보관합니다: 다음 파일을 읽지 못했습니다: { $path } ({ $problem ->

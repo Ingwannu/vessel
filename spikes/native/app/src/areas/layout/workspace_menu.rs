@@ -133,9 +133,7 @@ pub(super) fn overlay(
         state: |shell: &mut Shell| &mut shell.areas.layout.workspace_menu.menu,
         chose: Rc::new(|shell: &mut Shell, index, window, cx| {
             if index == 0 {
-                if let Some(path) = workspace_path(shell) {
-                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(path));
-                }
+                shell.copy_workspace_path(cx);
             } else {
                 shell.open_import_for_workspace(window, cx);
             }
@@ -175,6 +173,16 @@ pub(super) fn workspace_path(shell: &Shell) -> Option<String> {
 }
 
 impl Shell {
+    /// Copy workspace path, then Paseo's copied toast, "Copied Workspace
+    /// path" (workspace-screen.tsx 2196); nothing before the node described
+    /// the folder.
+    pub(super) fn copy_workspace_path(&mut self, cx: &mut Context<'_, Self>) {
+        if let Some(path) = workspace_path(self) {
+            cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(path));
+            self.toast_copied(self.words.layout().copied_workspace_path(), cx);
+        }
+    }
+
     /// "…": Workspace actions, under it (Paseo's `align="start"`).
     fn open_workspace_menu(
         &mut self,
