@@ -11,6 +11,11 @@
 //!   current while the picker is open (`follow.rs`).
 //! - Tradeoff: a session with no workspace membership (an older one) has no
 //!   Labels item.
+//! - Place (TRACKER 791): the row menu's Labels page shows the list beside
+//!   the menu (`PickerPlace::Beside`, drawn in its flyout, keys with the
+//!   menu until a press or Enter opens the page) or, on a phone, as the
+//!   canonical picker's sheet with the page's way back (`Page`); the
+//!   canonical entry draws it on its own (`Popover`).
 
 mod create;
 mod draw;

@@ -92,7 +92,17 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
 - Labels' Create stays the existing dialog: Paseo opens it as a press-only
   page inside the Labels flyout (`hoverIntent: false`, a `MenuTextField`;
   on a phone a page of the sheet). Accepted by the coordinator for this item
-  (2026-11-17); a follow-up row moves the form into the page.
+  (2026-11-17); a follow-up row moves the form into the page. While the
+  dialog is up the row menu waits behind it undrawn (a press in the dialog
+  would otherwise be a press outside the menu and end both).
+- The row menu's sheet title is "Session actions" ("세션 작업"): Paseo's
+  `sidebar.workspace.actions.menu` reads "Workspace actions", but a Vessel
+  sidebar row is a session.
+- Keys: a page opened by a press or Enter takes the keys (the Labels list's
+  search, the Display page's list); one the pointer opened leaves them with
+  the menu. Paseo's flyouts never take focus; without this a keyboard could
+  open a page it cannot reach. Escape in the Labels list ends the menu;
+  Escape in a Display page leads back to the Display list.
 
 ## Built (K1, kit)
 
@@ -112,4 +122,30 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
   list inside a flyout. The list's panel and placement moved to
   `picker/panel.rs` (`picker.rs` 804 -> 715 on the size list); both sheets
   take `popup::sheet_scrim`.
+
+## Built (K2, K3, app)
+
+- K2 Display menu (`sidebar/display.rs`): on a wide window the list takes
+  `Submenus`, its Grouping and Sort rows open their page beside it in a
+  flyout (`combobox_inline`, a second list state opened with
+  `open_beside`, so it takes presses and not the keys), an option there
+  chosen as on the page in place; a page a press or Enter opened takes the
+  keys (`Submenus::take_pressed`, `ComboboxState::take_keys`), Escape
+  there leads back. Below the compact width the list's sheet keeps its
+  pages in place.
+- K3 row menu Labels (`sidebar/row_menu.rs`): `MenuItem::sub` with
+  `Content::with_submenus` and `with_sheet`. The screen keeps the menu's
+  Labels page and the labels picker in step after each frame
+  (`row_menu_labels_sync`): the page opened, the picker opens for the
+  row's workspace beside the menu (`PickerPlace::Beside`, drawn by the
+  menu's flyout) or, on a phone, as the canonical picker given the page's
+  way back (`PickerPlace::Page`, its own sheet with Back, Escape and its
+  scrim); the page closed, the picker closes; the picker dismissed, the
+  menu closes. The old placement at the menu's point is gone.
+- Tests: kit `submenu/tests.rs` (a press asks once, hover never); app
+  `sidebar/row_menu_tests.rs` (press and keys, rest and grace, the Create
+  dialog, the phone's sheet and Back and scrim) and
+  `sidebar/display_tests.rs` (Enter's page takes the keys, Escape back).
+  The labels test fixture for a followed session row is
+  `labels/fixtures.rs`.
 
