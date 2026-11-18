@@ -1322,6 +1322,14 @@ card shows its number, state and checks under the branch. The fleet's
 nodes reach no forge (the remotes are bare repositories), so the screens
 there show why a pull request cannot be opened.
 
+The Files tab orders its tree as Paseo's explorer does (Name, Modified,
+Size, the trigger at the end of the Files bar moving to the next), kept as
+the page's preference `layout.explorer_sort`. Name needs only `file.list`;
+Modified and Size inspect each listed folder (`file.inspect`) and keep the
+facts by path until the root changes (`app/src/areas/workspace/code/sort.rs`,
+order in `view::workspace::file_tree`). A machine below the file panels'
+protocol sorts by name and shows no trigger.
+
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.

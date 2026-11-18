@@ -17,9 +17,12 @@
 //! - Cost: a folder closed and opened again is not listed again until the
 //!   tab refreshes; a file an agent adds meanwhile shows on the refresh.
 
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
-use vessel_proto::workspace::{DirListing, EntryKind, RelPath};
+use vessel_proto::workspace::{DirEntry, DirListing, EntryKind, RelPath};
+
+use crate::prefs::ExplorerSort;
 
 /// What is known of one folder's entries.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,20 +97,101 @@ impl TreeRow {
     }
 }
 
+/// When an entry last changed and its size (`file.inspect`), for the
+/// Modified and Size orders; `None` where the node did not say.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct EntryFacts {
+    /// Milliseconds since the epoch.
+    pub modified: Option<u64>,
+    /// Bytes.
+    pub size: Option<u64>,
+}
+
+/// How the tree orders a folder's entries, and the facts it orders by,
+/// by path (none needed for Name).
+pub struct Sorting<'facts, S> {
+    /// The order.
+    pub by: ExplorerSort,
+    /// The facts.
+    pub facts: &'facts HashMap<RelPath, EntryFacts, S>,
+}
+
+// By hand: a derive would ask the hasher to be `Copy` too.
+impl<S> Clone for Sorting<'_, S> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<S> Copy for Sorting<'_, S> {}
+
+// By hand for the same reason: the map is `Debug` whatever its hasher.
+impl<S> std::fmt::Debug for Sorting<'_, S> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Sorting")
+            .field("by", &self.by)
+            .field("facts", self.facts)
+            .finish()
+    }
+}
+
+/// Names as people read them (the page's `localeCompare`): letters before
+/// their case, then lower case first.
+fn by_name(one: &str, two: &str) -> Ordering {
+    one.to_lowercase()
+        .cmp(&two.to_lowercase())
+        .then_with(|| two.cmp(one))
+}
+
+/// Indexes of `listing`'s entries in Paseo's explorer order (tree.ts
+/// `sortExplorerEntries`): folders first, then by name, by last change
+/// (newest first) or by size (largest first); an entry with no fact goes
+/// last, and ties keep the node's order.
+fn ordered<S: std::hash::BuildHasher>(
+    listing: &DirListing,
+    dir: &RelPath,
+    sorting: Sorting<'_, S>,
+) -> Vec<usize> {
+    let fact = |entry: &DirEntry| -> Option<u64> {
+        let facts = sorting.facts.get(&dir.child(&entry.name).ok()?)?;
+        match sorting.by {
+            ExplorerSort::Name => None,
+            ExplorerSort::Modified => facts.modified,
+            ExplorerSort::Size => facts.size,
+        }
+    };
+    let mut order: Vec<usize> = (0..listing.entries.len()).collect();
+    order.sort_by(|&one, &two| {
+        let (Some(a), Some(b)) = (listing.entries.get(one), listing.entries.get(two)) else {
+            return Ordering::Equal;
+        };
+        let folder = |entry: &DirEntry| entry.kind == EntryKind::Dir;
+        folder(b).cmp(&folder(a)).then_with(|| match sorting.by {
+            ExplorerSort::Name => by_name(&a.name, &b.name),
+            // Larger first; `None` (no fact) is below every `Some`.
+            ExplorerSort::Modified | ExplorerSort::Size => fact(b).cmp(&fact(a)),
+        })
+    });
+    order
+}
+
 /// The rows of the tree from its root.
 #[must_use]
 pub fn tree_rows<S: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
+    sorting: Sorting<'_, S>,
 ) -> Vec<TreeRow> {
     let mut rows = Vec::new();
-    rows_under(listings, open, &RelPath::root(), 0, &mut rows);
+    rows_under(listings, open, sorting, &RelPath::root(), 0, &mut rows);
     rows
 }
 
 fn rows_under<S: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
+    sorting: Sorting<'_, S>,
     dir: &RelPath,
     depth: usize,
     rows: &mut Vec<TreeRow>,
@@ -136,7 +220,10 @@ fn rows_under<S: std::hash::BuildHasher>(
             depth,
         });
     }
-    for (index, entry) in listing.entries.iter().enumerate() {
+    for index in ordered(listing, dir, sorting) {
+        let Some(entry) = listing.entries.get(index) else {
+            continue;
+        };
         // A name the wire's path refuses (the node never lists one) has no
         // row: it could not be opened or read.
         let Ok(path) = dir.child(&entry.name) else {
@@ -151,7 +238,14 @@ fn rows_under<S: std::hash::BuildHasher>(
             open: is_open,
         });
         if is_open {
-            rows_under(listings, open, &path, depth.saturating_add(1), rows);
+            rows_under(
+                listings,
+                open,
+                sorting,
+                &path,
+                depth.saturating_add(1),
+                rows,
+            );
         }
     }
     if listing.more {
@@ -199,6 +293,88 @@ mod tests {
         text.parse().unwrap()
     }
 
+    static NO_FACTS: std::sync::LazyLock<HashMap<RelPath, EntryFacts>> =
+        std::sync::LazyLock::new(HashMap::new);
+
+    fn by_name_only() -> Sorting<'static, std::collections::hash_map::RandomState> {
+        Sorting {
+            by: ExplorerSort::Name,
+            facts: &NO_FACTS,
+        }
+    }
+
+    /// The names of the root's entry rows, in order.
+    fn names(
+        listing: &DirListing,
+        sorting: Sorting<'_, std::collections::hash_map::RandomState>,
+    ) -> Vec<String> {
+        let listings = HashMap::from([(RelPath::root(), Listing::Listed(listing.clone()))]);
+        tree_rows(&listings, &HashSet::new(), sorting)
+            .iter()
+            .filter_map(|row| {
+                if let TreeRow::Entry { index, .. } = row {
+                    listing.entries.get(*index).map(|entry| entry.name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// The page's file-tree.test.ts "Paseo's explorer orders".
+    #[test]
+    fn orders_folders_first_then_by_name_change_or_size() {
+        let listing = DirListing {
+            entries: vec![
+                entry("b.txt", EntryKind::File),
+                entry("src", EntryKind::Dir),
+                entry("a.txt", EntryKind::File),
+                entry("C.txt", EntryKind::File),
+                entry("docs", EntryKind::Dir),
+            ],
+            more: false,
+        };
+        let fact = |modified, size| EntryFacts {
+            modified: Some(modified),
+            size,
+        };
+        let facts = HashMap::from([
+            (path("a.txt"), fact(100, Some(3000))),
+            (path("b.txt"), fact(300, Some(10))),
+            (path("C.txt"), fact(200, Some(500))),
+            (path("src"), fact(50, None)),
+            (path("docs"), fact(400, None)),
+        ]);
+        let by = |by| Sorting { by, facts: &facts };
+        assert_eq!(
+            names(&listing, by(ExplorerSort::Name)),
+            ["docs", "src", "a.txt", "b.txt", "C.txt"]
+        );
+        assert_eq!(
+            names(&listing, by(ExplorerSort::Modified)),
+            ["docs", "src", "b.txt", "C.txt", "a.txt"]
+        );
+        assert_eq!(
+            names(&listing, by(ExplorerSort::Size)),
+            ["src", "docs", "a.txt", "C.txt", "b.txt"]
+        );
+        // An entry the node gave no time for goes last; ties keep the node's order.
+        let some = HashMap::from([(path("a.txt"), fact(1, Some(1)))]);
+        let sorted = names(
+            &listing,
+            Sorting {
+                by: ExplorerSort::Modified,
+                facts: &some,
+            },
+        );
+        assert_eq!(
+            sorted.get(2..),
+            Some(&["a.txt".to_owned(), "b.txt".to_owned(), "C.txt".to_owned()][..])
+        );
+        assert_eq!(ExplorerSort::Name.next(), ExplorerSort::Modified);
+        assert_eq!(ExplorerSort::Size.next(), ExplorerSort::Name);
+    }
+
     #[test]
     fn flattens_the_open_folders_in_order_with_their_depth() {
         let listings = HashMap::from([
@@ -214,7 +390,7 @@ mod tests {
             ),
             (path("src"), Listing::Loading),
         ]);
-        let rows = tree_rows(&listings, &HashSet::from([path("src")]));
+        let rows = tree_rows(&listings, &HashSet::from([path("src")]), by_name_only());
         let shape: Vec<(&str, usize)> = rows
             .iter()
             .map(|row| {
@@ -240,7 +416,7 @@ mod tests {
                 more: true,
             }),
         )]);
-        let rows = tree_rows(&listings, &HashSet::new());
+        let rows = tree_rows(&listings, &HashSet::new(), by_name_only());
         assert!(matches!(
             rows.as_slice(),
             [TreeRow::Empty { .. }, TreeRow::More { .. }]

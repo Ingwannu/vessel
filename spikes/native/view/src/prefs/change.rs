@@ -8,9 +8,9 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
     ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, Choices, CodeSize,
-    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
-    MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany,
-    TurnDelivery,
+    ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, MAX_ACTIONS,
+    MAX_EDITS, MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme,
+    TooMany, TurnDelivery,
 };
 
 /// One change: the setting it names, and its value.
@@ -46,6 +46,8 @@ pub enum PreferenceChange {
     SidebarPanel(Panel),
     /// Whether the inspector shows.
     InspectorPanel(Panel),
+    /// The Files tree's order.
+    ExplorerSort(ExplorerSort),
     /// Which key sends.
     Send(SendKey),
     /// What Send does while a turn runs.
@@ -201,6 +203,7 @@ impl Preferences {
             PreferenceChange::Animations(animations) => self.appearance.animations = *animations,
             PreferenceChange::SidebarPanel(panel) => self.layout.sidebar = *panel,
             PreferenceChange::InspectorPanel(panel) => self.layout.inspector = *panel,
+            PreferenceChange::ExplorerSort(sort) => self.layout.explorer_sort = *sort,
             PreferenceChange::Send(send) => self.composer.send = *send,
             PreferenceChange::Delivery(delivery) => self.composer.delivery = *delivery,
             PreferenceChange::Alerts(alerts) => self.notifications.alerts = *alerts,

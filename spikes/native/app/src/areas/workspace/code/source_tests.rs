@@ -13,7 +13,7 @@ use vessel_proto::{
     workspace::{ChangeStatus, DiffContent, FileChange, FileDiff, SessionWorkspace},
 };
 
-fn prepare(shell: &mut Shell, context: &ConnectionContext) -> (SessionId, ProjectId) {
+pub(super) fn prepare(shell: &mut Shell, context: &ConnectionContext) -> (SessionId, ProjectId) {
     shell.route = crate::routes::Route::Session;
     let session = SessionId::random();
     shell.areas.session.open = Some(crate::areas::session::Open {
@@ -78,7 +78,12 @@ fn answer(scene: &mut Scenario, shell: &Shell) -> Answer {
     }
     panic!("expected bounded code-source event");
 }
-fn root(scene: &mut Scenario, shell: &mut Shell, session: SessionId, project: ProjectId) {
+pub(super) fn root(
+    scene: &mut Scenario,
+    shell: &mut Shell,
+    session: SessionId,
+    project: ProjectId,
+) {
     assert!(
         matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetSession(ask) if ask.session == session)
     );
@@ -93,7 +98,7 @@ fn root(scene: &mut Scenario, shell: &mut Shell, session: SessionId, project: Pr
         matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitChanges(ask) if ask.root == WorkspaceRoot::Project { project })
     );
 }
-fn ready(scene: &mut Scenario, shell: &mut Shell) {
+pub(super) fn ready(scene: &mut Scenario, shell: &mut Shell) {
     scene
         .reply(
             shell.fixture_link(),
@@ -107,7 +112,9 @@ fn ready(scene: &mut Scenario, shell: &mut Shell) {
     assert_eq!(shown.root(), *shell.areas.workspace.code.root().unwrap().1);
     assert!(shell.shown_changes_is_current(&shown));
 }
-fn setup(cx: &mut TestAppContext) -> (gpui::Entity<Shell>, &mut gpui::VisualTestContext, Scenario) {
+pub(super) fn setup(
+    cx: &mut TestAppContext,
+) -> (gpui::Entity<Shell>, &mut gpui::VisualTestContext, Scenario) {
     crate::shell::language_tests::init(cx);
     let (link, scene) = Scenario::start(&Name::parse("fixture").unwrap()).unwrap();
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));

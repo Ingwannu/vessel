@@ -28,7 +28,7 @@ pub(super) fn indented(depth: usize) -> f32 {
 
 /// Paseo's sidebar hover surface (`surfaceSidebarHover`: the third
 /// surface in the dark, the first in the light), which its trees use.
-const fn hover_surface(tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
+pub(super) const fn hover_surface(tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
     match tokens.scheme {
         vessel_app_kit::Scheme::Dark => tokens.neutral.surface3,
         vessel_app_kit::Scheme::Light => tokens.neutral.surface1,

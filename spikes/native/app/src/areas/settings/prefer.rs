@@ -53,6 +53,7 @@ impl Shell {
                     PreferenceChange::Conversation(display) => {
                         self.conversation_display(*display);
                     }
+                    PreferenceChange::ExplorerSort(_) => self.explorer_sorted(),
                     PreferenceChange::Animations(animations) => {
                         // `motion` (the reduced-motion switch) is the
                         // desktop's; a browser only redraws.

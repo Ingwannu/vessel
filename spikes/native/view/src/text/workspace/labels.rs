@@ -130,6 +130,13 @@ pub struct Labels {
     pub by_name: &'static str,
     /// The Files tab's search: the segment that searches inside files.
     pub by_content: &'static str,
+    /// The Files tree's sort trigger: by name (Paseo's
+    /// `workspace.fileExplorer.sort.name`).
+    pub sort_name: &'static str,
+    /// The sort trigger: by last change (`sort.modified`).
+    pub sort_modified: &'static str,
+    /// The sort trigger: by size (`sort.size`).
+    pub sort_size: &'static str,
     /// The Files tab's search results when nothing matched.
     pub nothing_found: &'static str,
     /// The Files tab's search results when the machine could not search; its reason is shown under it.
