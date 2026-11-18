@@ -101,9 +101,13 @@ fn the_explorer_sort_is_kept_with_the_panels() {
         compact(&written(&doc)),
         compact(r#"{"version":1,"layout":{"sidebar":"hidden","explorer_sort":"modified"}}"#)
     );
-    // An order a newer page wrote reads as Name and is kept.
+    // An order a newer page wrote reads as Name and is kept as written.
     let doc = read(r#"{"version":1,"layout":{"explorer_sort":"type"}}"#);
     assert_eq!(doc.values().layout.explorer_sort, ExplorerSort::Name);
+    assert_eq!(
+        compact(&written(&doc)),
+        compact(r#"{"version":1,"layout":{"explorer_sort":"type"}}"#)
+    );
 }
 
 /// ADR 0108: the default moved from Queue to Steer. A document that never
