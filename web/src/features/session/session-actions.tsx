@@ -21,7 +21,7 @@ import {
   MenuSeparator,
   Tooltip,
 } from "../../ui/kit";
-import { toast } from "../../ui/toasts";
+import { toast, toastCopied } from "../../ui/toasts";
 import type { SessionInfo } from "../../wire/proto";
 import { MoveProfile } from "./move-profile";
 import { useMarkActions } from "./use-mark-actions";
@@ -105,7 +105,7 @@ export function SessionActions({
           onSelect={() => {
             navigator.clipboard.writeText(session.id).then(
               () => {
-                toast("Copied the session id");
+                toastCopied("Copied the session id");
               },
               () => {
                 toast("The clipboard refused the text", "error");
