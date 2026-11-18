@@ -9,6 +9,7 @@ mod draw;
 mod explorer;
 mod file_guard;
 mod header;
+mod keyboard_menu;
 mod menu;
 // The desktop coordinator removes this exact staging attribute with its real caller.
 #[cfg(test)]
@@ -34,6 +35,8 @@ use vessel_app_view::layout::{
 };
 
 pub(crate) use draw::frame;
+pub(crate) use keyboard_menu::is_context_menu_key;
+pub(crate) use rename::LayoutRoute;
 pub(crate) use workspace_menu::{Header as WorkspaceMenuHeader, trigger as workspace_menu_trigger};
 
 /// Presentation retained across navigation; buffers stay with feature owners.
@@ -44,12 +47,13 @@ pub(crate) struct LayoutArea {
     menu: MenuState,
     tips: vessel_app_kit::Tooltips,
     tip_places: RefCell<BTreeMap<(PaneId, header::Control), vessel_app_kit::tooltip::Place>>,
-    rename: Option<rename::Rename>,
     rename_ticket: vessel_app_view::layout::RenameTicket,
-    rename_dialog: vessel_app_kit::DialogState,
     menu_tab: Option<(LayoutKey, TabId)>,
     /// Where the tab menu was opened: the tab strip or the compact switcher.
     menu_surface: menu::Surface,
+    /// Where each strip tab was drawn: the keyboard's tab menu opens under
+    /// it (`keyboard_menu`).
+    tab_places: RefCell<BTreeMap<TabId, vessel_app_kit::tooltip::Place>>,
     /// The compact workspace header (TRACKER 789).
     compact: compact::Compact,
     /// The workspace "…" menu at both widths (TRACKER 795).
@@ -63,6 +67,16 @@ pub(crate) struct LayoutArea {
     resizing: std::rc::Rc<Cell<Option<vessel_app_view::layout::GroupId>>>,
 }
 impl LayoutArea {
+    /// Where `tab` was drawn in a strip (empty until it is).
+    fn tab_place(&self, tab: TabId) -> vessel_app_kit::tooltip::Place {
+        std::rc::Rc::clone(
+            self.tab_places
+                .borrow_mut()
+                .entry(tab)
+                .or_insert_with(|| std::rc::Rc::new(Cell::new(None))),
+        )
+    }
+
     pub(crate) fn new(cx: &mut App) -> Self {
         Self {
             #[cfg(test)]
@@ -71,11 +85,10 @@ impl LayoutArea {
             menu: MenuState::new(cx),
             tips: vessel_app_kit::Tooltips::new(),
             tip_places: RefCell::new(BTreeMap::new()),
-            rename: None,
             rename_ticket: vessel_app_view::layout::RenameTicket::ZERO,
-            rename_dialog: vessel_app_kit::DialogState::new(cx),
             menu_tab: None,
             menu_surface: menu::Surface::Strip,
+            tab_places: RefCell::new(BTreeMap::new()),
             compact: compact::Compact::new(cx),
             workspace_menu: workspace_menu::WorkspaceMenu::new(cx),
             header_menu: MenuState::new(cx),

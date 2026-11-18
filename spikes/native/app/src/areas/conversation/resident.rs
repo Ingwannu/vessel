@@ -70,11 +70,7 @@ impl ConversationArea {
         if self.find.is_some() || self.rename.is_some() || self.queue_edit.is_some() {
             return OwnerReadiness::Hold(HoldReason::ActiveEditor);
         }
-        if self.confirm.is_some()
-            || self.menu.is_open()
-            || self.forking.menu.is_open()
-            || self.rewinding.menu.is_open()
-        {
+        if self.confirm.is_some() || self.forking.menu.is_open() || self.rewinding.menu.is_open() {
             return OwnerReadiness::Hold(HoldReason::Overlay);
         }
         if self.tail.snapshot_busy()

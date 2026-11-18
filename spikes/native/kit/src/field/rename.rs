@@ -12,7 +12,7 @@
 use gpui::prelude::*;
 use gpui::{App, Div, px};
 
-use super::{TextField, settings_frame};
+use super::{Kind, TextField, settings_frame};
 use crate::theme::{Tokens, radius, spacing};
 
 impl TextField {
@@ -29,4 +29,19 @@ impl TextField {
             .border_color(tokens.neutral.border)
             .child(self.bare(tokens, cx))
     }
+
+    /// Refuse text longer than `max` characters, as Paseo's rename field's
+    /// `maxLength` (TRACKER 800): a keystroke or paste that would pass it
+    /// is not taken, and the text stays as it was. Paseo cuts a long paste
+    /// instead. A one-line field only: the engine checks a line's edits.
+    pub fn set_max_chars(&self, max: usize, cx: &mut App) {
+        if let Kind::Line(state) = &self.kind {
+            state.update(cx, |state, cx| {
+                state.set_validator(move |text, _| text.chars().count() <= max, cx);
+            });
+        }
+    }
 }
+
+#[cfg(test)]
+mod tests;

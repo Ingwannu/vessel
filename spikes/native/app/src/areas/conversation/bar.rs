@@ -1,13 +1,15 @@
 //! The session's title bar: its title, its state when it is not running,
-//! where it runs, and the Session actions (the page's `session-bar.tsx`
-//! and `session-actions.tsx`; Paseo's header: 36 points tall with a
-//! pointer, 44 on a phone, a hairline under it).
+//! where it runs (the page's `session-bar.tsx`; Paseo's header: 36 points
+//! tall with a pointer, 44 on a phone, a hairline under it).
+//!
+//! The session's own actions are the tab menu's (TRACKER 797), on the
+//! open agent's tab: its right press, Shift+F10 or the Menu key, and the
+//! compact switcher's row "…". The bar's own "…" went in TRACKER 800, as
+//! Paseo's header has no second "…".
 
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, ClickEvent, Context, Div, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{MenuItem, Tokens, Type, TypeExt as _, breakpoint, popup};
 use vessel_app_view::ConversationWords;
@@ -65,7 +67,6 @@ pub(crate) fn bar(
             .text_color(tokens.neutral.destructive)
             .child(why.clone())
     });
-    let actions = actions_button(shell, tokens, narrow, cx);
     div()
         .flex()
         .flex_row()
@@ -100,7 +101,6 @@ pub(crate) fn bar(
         .children(refused)
         // Track F's slot: the code panel's toggle.
         .children(crate::areas::workspace::code_toggle(shell, tokens, narrow, cx))
-        .child(actions)
         .into_any_element()
 }
 
@@ -126,43 +126,6 @@ pub(super) fn status_badge(
         .type_(Type::Meta)
         .text_color(color)
         .child(words.status_word(status))
-}
-
-/// The Session actions button: its menu opens where it was pressed. Named
-/// "Session actions" so it is never taken for the workspace "…" beside the
-/// title (TRACKER 795, until 797 moves these actions into the tab menu).
-fn actions_button(
-    shell: &Shell,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Stateful<Div> {
-    let surfaces = popup::Surfaces::of(tokens);
-    let button = div()
-        .id("session-actions")
-        .role(gpui::Role::Button)
-        .aria_label(shell.words.layout().session_actions().to_owned())
-        .flex_shrink_0()
-        .size(px(if narrow { 44.0 } else { 28.0 }))
-        .flex()
-        .items_center()
-        .justify_center()
-        .rounded(px(popup::MENU_RADIUS))
-        .text_color(tokens.neutral.foreground_muted)
-        .cursor_pointer()
-        .hover(move |style| style.bg(surfaces.surface2))
-        // A click, not a press: GPUI offers assistive tech its Click action
-        // only on an element with a click listener (it then sends a press
-        // and a release), so a pointer and a screen reader open it by the
-        // one path, once.
-        .on_click(cx.listener(|shell, event: &ClickEvent, window, cx| {
-            shell.open_actions(event.position(), window, cx);
-            cx.stop_propagation();
-        }))
-        .child(glyph(Glyph::More, 16.0, tokens.neutral.foreground_muted));
-    #[cfg(test)]
-    let button = button.debug_selector(|| "session-actions-button".to_owned());
-    button
 }
 
 /// The bar's word for a released agent, quiet as an idle session is, or
@@ -257,34 +220,22 @@ fn title_element(
         return text.child(title).into_any_element();
     }
     let surface = tokens.neutral.surface2;
-    let shown = title.clone();
     text.id("session-title")
         .px(px(6.0))
         .mx(px(-6.0))
         .rounded(px(6.0))
         .cursor_pointer()
         .hover(move |style| style.bg(surface))
-        .on_click(cx.listener(move |shell, _event, window, cx| {
-            shell.start_rename(&shown, window, cx);
+        .on_click(cx.listener(|shell, _event, window, cx| {
+            shell.open_rename(window, cx);
         }))
         .child(title)
         .into_any_element()
 }
 
-/// The menu's rows, as their actions say.
-pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
-    shell
-        .areas
-        .conversation
-        .menu_rows
-        .iter()
-        .map(|action| session_menu_item(shell, *action))
-        .collect()
-}
-
 /// One Session action's row: its words, its tone, and whether it waits for
-/// a lifecycle change already under way. The bar's menu and the compact
-/// tab switcher's row menu (TRACKER 789) draw the same rows.
+/// a lifecycle change already under way (the tab menu's rows after Paseo's,
+/// `layout::tab_menu`).
 pub(crate) fn session_menu_item(shell: &Shell, action: MenuAction) -> MenuItem {
     let words = shell.t.lang.conversation();
     let mut item = match action {
@@ -319,7 +270,7 @@ pub(crate) fn session_menu_item(shell: &Shell, action: MenuAction) -> MenuItem {
     item
 }
 
-/// The Session actions this session offers, in the bar's order: its marks,
+/// The Session actions this session offers, in their order: its marks,
 /// Copy session id, Copy link, Close once the node described it, Agent log
 /// once the agent wrote a line, Kill while it lives.
 pub(crate) fn session_menu_rows(shell: &Shell) -> Vec<MenuAction> {
@@ -356,21 +307,4 @@ pub(crate) fn session_menu_rows(shell: &Shell) -> Vec<MenuAction> {
         rows.push(MenuAction::Kill);
     }
     rows
-}
-
-impl Shell {
-    /// Open the Session actions at `at`, with the rows this session
-    /// offers.
-    fn open_actions(
-        &mut self,
-        at: vessel_app_kit::ui::Point<vessel_app_kit::ui::Pixels>,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let rows = session_menu_rows(self);
-        let area = &mut self.areas.conversation;
-        area.menu_rows = rows;
-        area.menu.open(at, window, cx);
-        cx.notify();
-    }
 }

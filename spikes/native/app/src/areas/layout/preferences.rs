@@ -16,8 +16,8 @@ impl Shell {
         #[cfg(test)]
         let before = super::registry::retirement::Before::book(self);
         let mut held = BTreeSet::new();
-        if let Some(form) = &self.areas.layout.rename {
-            let _inserted = held.insert(form.workspace().clone());
+        if let Some(workspace) = self.areas.conversation.rename_workspace() {
+            let _inserted = held.insert(workspace.clone());
         }
         if self.areas.layout.menu.is_open()
             && let Some((key, _)) = &self.areas.layout.menu_tab

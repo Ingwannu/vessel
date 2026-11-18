@@ -7,13 +7,13 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use vessel_app_kit::ui::{App, Subscription};
-use vessel_app_kit::{DialogState, MenuState, Reveal, VirtualList};
+use vessel_app_kit::{DialogState, Reveal, VirtualList};
 use vessel_app_link::ActKind;
 use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::timeline::{FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline};
 use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
-use super::actions::{AgentLog, Confirm, MenuAction};
+use super::actions::{AgentLog, Confirm};
 use super::{
     bench, find, fork, meter, origin, outline, permission, question, queue, read, rename, rewind,
     tail,
@@ -119,9 +119,6 @@ pub(crate) struct ConversationArea {
     pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The tooltip of the bar's word for a released agent.
     pub(crate) parked_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
-    /// The Session actions menu, and what its rows do.
-    pub(crate) menu: MenuState,
-    pub(crate) menu_rows: Vec<MenuAction>,
     /// The confirm open, if any.
     pub(crate) confirm: Option<Confirm>,
     pub(crate) dialog: DialogState,
@@ -198,8 +195,6 @@ impl ConversationArea {
                 vessel_app_kit::Tooltips::new(),
                 Rc::new(std::cell::Cell::new(None)),
             ),
-            menu: MenuState::new(cx),
-            menu_rows: Vec::new(),
             confirm: None,
             dialog: DialogState::new(cx),
             rename_dialog: DialogState::new(cx),
@@ -270,7 +265,6 @@ impl ConversationArea {
         self.refused = None;
         self.restarting = false;
         self.again_refused = None;
-        self.menu.close();
         self.confirm = None;
         self.rename = None;
         self.find = None;

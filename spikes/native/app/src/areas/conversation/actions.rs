@@ -1,10 +1,8 @@
-//! The Session actions menu and its confirms (archive, delete, kill), the
-//! agent's log shown from it, and the acts they send to the node for the
-//! session shown.
+//! The Session actions (the tab menu's rows on the open agent's tab,
+//! TRACKER 797) and their confirms (archive, delete, kill), the agent's log
+//! shown from them, and the acts they send to the node for the session
+//! shown.
 
-use std::rc::Rc;
-
-use vessel_app_kit::MenuHandlers;
 use vessel_app_kit::ui::Context;
 use vessel_app_link::{Act, Command};
 use vessel_app_view::session::MarkAction;
@@ -62,19 +60,6 @@ impl Shell {
                 session: shown.session,
                 act,
             });
-        }
-    }
-
-    /// The menu's handlers: how to reach its state, and what a row does.
-    pub(crate) fn menu_handlers() -> MenuHandlers<Self> {
-        MenuHandlers {
-            state: |shell: &mut Self| &mut shell.areas.conversation.menu,
-            chose: Rc::new(|shell: &mut Self, index, window, cx| {
-                let Some(action) = shell.areas.conversation.menu_rows.get(index).copied() else {
-                    return;
-                };
-                shell.menu_chose(action, window, cx);
-            }),
         }
     }
 
