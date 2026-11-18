@@ -10,9 +10,13 @@
 // - Where: Paseo has the row on an agent tab's menu; the page has no tab
 //   menu, so the row sits in the session's actions menu, after "Copy agent
 //   id", as Paseo's comes after its other non-destructive rows.
-// - Who sees it: a structured session, on a machine speaking
-//   `RELOAD_PROTOCOL`, unless its agent said it cannot load a conversation.
-//   Paseo offers it on every agent tab. A session whose agent has not named
+// - Who sees it: a structured session, unless its agent said it cannot
+//   load a conversation or its machine is connected and speaks less than
+//   `RELOAD_PROTOCOL`. Paseo offers it on every agent tab. A machine that
+//   is not connected keeps the row, as Paseo's does: a press says "Host is
+//   not connected" (Paseo's `workspace.terminal.hostDisconnected`), since
+//   hiding it would move the menu under the person's pointer whenever the
+//   link drops. A session whose agent has not named
 //   a conversation yet is offered too: the page's copy of the info may not
 //   have it yet, and the node's refusal ("its agent has no conversation
 //   yet") is the failure toast. An ended session is offered: the node
@@ -22,12 +26,9 @@
 //   `failedToReloadAgent`): "Reloading agent..." stays up until the answer
 //   replaces it; a failure shows the node's message, else Paseo's line.
 
-import type { SessionInfo } from "../wire/proto";
-
-/** `session.reload`'s protocol: a copy of vessel-proto's
- * `RELOAD_PROTOCOL` (assigned 31 at its node-line merge); the two must
- * stay equal. */
-export const RELOAD_PROTOCOL = 31;
+// `RELOAD_PROTOCOL` is generated from vessel-proto's into the wire
+// declarations, so it stays equal to the Rust constant.
+import { RELOAD_PROTOCOL, type SessionInfo } from "../wire/proto";
 
 /** Paseo's words for the row and its toasts. */
 export const RELOAD_WORDS = {
@@ -36,15 +37,17 @@ export const RELOAD_WORDS = {
   reloading: "Reloading agent...",
   reloaded: "Reloaded agent",
   failed: "Failed to reload agent",
+  disconnected: "Host is not connected",
 } as const;
 
 /** Whether the page offers "Reload agent" for `session` on a connection
- * speaking `protocol` (`null` while not connected). */
+ * speaking `protocol` (`null` while not connected: offered, and a press
+ * says so). */
 export function canReload(
   session: SessionInfo,
   protocol: number | null,
 ): boolean {
-  if (protocol === null || protocol < RELOAD_PROTOCOL) {
+  if (protocol !== null && protocol < RELOAD_PROTOCOL) {
     return false;
   }
   if (session.spec.mode !== "structured") {

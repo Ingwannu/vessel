@@ -90,6 +90,15 @@ impl StructuredActor {
                 self.disconnect = None;
                 self.failed_before_kill = false;
                 let _live = self.route.send_replace(Route::Live(self.input.clone()));
+                if parked {
+                    // The park ends as a wake's does, so every reader that
+                    // pairs `parked` with `woken` (a peer below the reload
+                    // protocol reads `reloaded` only as a line) sees it end;
+                    // `reloaded` follows for what the reload added.
+                    self.life
+                        .publish(&mut self.agent, SessionEvent::Woken)
+                        .await;
+                }
                 self.reloaded(before, gather.unwrap_or_else(Gather::new), conversation)
                     .await;
                 self.parking.touch();

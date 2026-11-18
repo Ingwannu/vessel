@@ -122,7 +122,7 @@ pub enum SessionError {
     NotResumable(#[from] NotResumable),
     /// `session.reload` refused (TRACKER 803).
     #[error("the session's agent cannot be reloaded: {0}")]
-    NotReloadable(#[from] crate::NotReloadable),
+    NotReloadable(crate::NotReloadable),
     /// The reloaded agent did not become the session's (TRACKER 803).
     #[error("the session's agent did not reload: {0}")]
     ReloadFailed(String),

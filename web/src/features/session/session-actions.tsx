@@ -65,8 +65,13 @@ export function SessionActions({
     setDialog(null);
   };
   // Paseo's `handleReloadAgent`: its toast stays up until the answer
-  // replaces it.
+  // replaces it; a machine not connected is said at once, as Paseo's
+  // `hostDisconnected` error.
   const reload = () => {
+    if (protocol === null) {
+      toast(RELOAD_WORDS.disconnected, "error");
+      return;
+    }
     toast(RELOAD_WORDS.reloading, "default", { durationMs: null });
     void reloadSession(fleet, node, session.id).then((outcome) => {
       if (outcome.ok) {

@@ -176,7 +176,8 @@ coordinator as a separate parity item.
     grace); the agent is stopped and started with `session/load` and a fresh launch (profile, MCP servers, a
     new credential and token), in one actor step.
   - A parked session is started; an ended one is started again.
-  - It answers the `SessionInfo`. The `reloaded` record has a log-line stand-in for older peers.
+  - It answers the `SessionInfo`. The `reloaded` record has a log-line stand-in for older peers; a parked
+    session's reload records `woken` just before it (row 332 note).
 - The history (coordinator's ruling C, "R2"): the replay is gathered within 60 s, 20,000 events and 64 MiB of
   serialized size (the byte bound the coordinator asked for before merge). Only what
   lies beyond the log's exact user prompts is appended: whole messages, 2,000 records at most. Otherwise
@@ -188,7 +189,9 @@ coordinator as a separate parity item.
   - `fake-acp` `FAKE_ACP_REPLAY_FIRST` and the `deaf` prompt.
 - The page: "Reload agent" in the session's actions (`data/reload.ts`, icon `refresh`, the rotate-cw drawing).
   It has Paseo's tooltip and its toasts: "Reloading agent..." until the answer, then "Reloaded agent", or the
-  node's message, else "Failed to reload agent".
+  node's message, else "Failed to reload agent". On a machine that is not connected the row stays and a press
+  toasts "Host is not connected" (diagnostics packet's first commit); it is hidden only on a connected machine
+  below protocol 31.
 - Native: the row is the visual lane's, after this node op lands. The native usage `binding_epoch` list
   should gain `reloaded`, as the page's `BINDING` did.
 
