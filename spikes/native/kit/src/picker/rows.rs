@@ -40,7 +40,10 @@ pub(super) fn rows_list<V: 'static>(
         .flex()
         .flex_col()
         .py(px(4.0))
-        .overflow_y_scroll();
+        .overflow_y_scroll()
+        // On a sheet the drag hands a pan down to this scroll first
+        // (`sheet::snap::host`, TRACKER 799).
+        .when(compact, |list| list.track_scroll(&state.sheet.scroll()));
     if rows.is_empty() {
         list = list.child(
             div()

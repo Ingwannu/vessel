@@ -63,6 +63,15 @@ impl SnapPoints {
         expanded: Percentage(90),
     };
 
+    /// A content-sized sheet (Paseo's `enableDynamicSizing`): positions are
+    /// measured against its own height, both open stops at all of it, so
+    /// one open stop and closed (`host::SheetState::frame_content`). Not
+    /// reachable through [`Self::new`], which keeps authored stops apart.
+    pub(crate) const CONTENT: Self = Self {
+        compact: Percentage::FULL,
+        expanded: Percentage::FULL,
+    };
+
     /// Refuse reversed/equal stops and percentages outside the viewport.
     #[must_use]
     pub const fn new(compact: u8, expanded: u8) -> Option<Self> {
