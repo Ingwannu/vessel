@@ -82,9 +82,15 @@ Status: built; gates under "Status".
   actions are the tab menu's (797).
 - Words (en, ko): Name is required, Saving..., Unable to save (Paseo's);
   "Session actions" removed.
+- Copy resume command (app review P3 of 797, ruled in): an id of only
+  `[A-Za-z0-9._:-]` goes in bare, as Paseo copies it; any other in POSIX
+  single quotes (`'` as `'\''`), so a pasted command never runs part of
+  the id.
 
 ## Tests
 
+- view `tests::resume`: an ordinary id copies bare; one with a space, a
+  quote and `$( )` is one quoted word; an empty one is `''`.
 - kit `field::rename::tests`: the field takes no character past its limit,
   counting characters, not bytes.
 - app `conversation::rename::tests`: prefilled, "Name is required", typing

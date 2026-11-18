@@ -37,9 +37,7 @@ fn card(session: SessionId) -> Card {
 
 /// The dialog open on a workspace layout's route, its title typed and
 /// Enter pressed; the request it sent.
-fn sent(
-    cx: &mut TestAppContext,
-) -> (Entity<Probe>, &mut VisualTestContext, Ask, SessionId) {
+fn sent(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext, Ask, SessionId) {
     language_tests::init(cx);
     let node = NodeId::random();
     let session = SessionId::random();
@@ -94,12 +92,16 @@ fn sent(
 
 fn renamed(probe: &Entity<Probe>, cx: &mut VisualTestContext, answer: Answer) {
     probe.update(cx, |probe, cx| {
-        probe.0.update(cx, |shell, cx| shell.layout_renamed(answer, cx));
+        probe
+            .0
+            .update(cx, |shell, cx| shell.layout_renamed(answer, cx));
     });
 }
 
 fn open(probe: &Entity<Probe>, cx: &mut VisualTestContext) -> bool {
-    probe.read_with(cx, |probe, cx| probe.0.read(cx).areas.conversation.rename.is_some())
+    probe.read_with(cx, |probe, cx| {
+        probe.0.read(cx).areas.conversation.rename.is_some()
+    })
 }
 
 #[gpui::test]

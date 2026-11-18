@@ -15,9 +15,7 @@
 //! - Cost: the line can hold less than the bar's row; every piece truncates.
 
 use vessel_app_kit::theme::spacing::{S0, S1_5};
-use vessel_app_kit::ui::{
-    AnyElement, IntoElement as _, ParentElement as _, Styled as _, div, px,
-};
+use vessel_app_kit::ui::{AnyElement, IntoElement as _, ParentElement as _, Styled as _, div, px};
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::session::{park_state, session_name};
 use vessel_proto::SessionStatus;
@@ -101,4 +99,3 @@ pub(super) fn shown_title(shell: &Shell) -> String {
         .and_then(|info| session_name(info, area.timeline.title()))
         .unwrap_or(fallback)
 }
-

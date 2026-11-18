@@ -129,7 +129,9 @@ fn the_dialog_opens_prefilled_and_asks_for_a_name(cx: &mut TestAppContext) {
     // None at all: Paseo's "Name is required", and the dialog stays.
     typed(&probe, cx, "  ");
     update(&probe, cx, Shell::rename_pressed);
-    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
     assert_eq!(
         state(&probe, cx).and_then(|(_, _, error, _)| error),
         Some(words.name_required().to_owned())

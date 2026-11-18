@@ -265,11 +265,16 @@ impl Shell {
     /// shows its failure under the field. Whether the form took it.
     pub(crate) fn rename_acted(&mut self, answer: &ActAnswer, cx: &mut Context<'_, Self>) -> bool {
         let ours = answer.kind == ActKind::Rename
-            && self.areas.conversation.rename.as_ref().is_some_and(|rename| {
-                rename.pending
-                    && matches!(&rename.route, Route::Session { machine, session }
+            && self
+                .areas
+                .conversation
+                .rename
+                .as_ref()
+                .is_some_and(|rename| {
+                    rename.pending
+                        && matches!(&rename.route, Route::Session { machine, session }
                         if *machine == answer.machine && *session == answer.session)
-            });
+                });
         if !ours {
             return false;
         }
