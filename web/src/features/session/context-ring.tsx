@@ -36,6 +36,11 @@ export function ContextRing({
   const meter = meterOf(usage);
   const compact = useMedia(COMPACT);
   const [sheet, setSheet] = useState(false);
+  // Widened while open: the sheet goes, and narrowing again does not
+  // bring it back unasked.
+  if (sheet && !compact) {
+    setSheet(false);
+  }
   if (meter === null) {
     return null;
   }
