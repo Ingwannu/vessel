@@ -6,18 +6,24 @@ use super::*;
 use crate::areas::session::Open;
 use crate::routes::Route as Page;
 use crate::shell::language_tests;
-use gpui::{AppContext as _, Render, TestAppContext, VisualTestContext};
-use vessel_app_kit::ui::{Entity, IntoElement};
-use vessel_app_link::ActFailed;
+use gpui::{AppContext as _, FocusHandle, Render, TestAppContext, VisualTestContext};
+use tokio::sync::mpsc::Receiver;
+use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement};
+use vessel_app_link::{ActFailed, Command, Link};
 use vessel_proto::{ErrorCode, HarnessKind, SessionInfo, SessionMode, SessionSpec};
 
-struct Probe(Entity<Shell>, SessionId);
+/// The shell, its session, two openers that can hold the keys, and what
+/// the shell asked the link.
+struct Probe(Entity<Shell>, SessionId, [FocusHandle; 2], Receiver<Command>);
 
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = vessel_app_kit::tokens(cx);
+        let openers = self.2.clone();
         self.0.update(cx, |shell, cx| {
-            div().children(rename_dialog(shell, &tokens, window, cx))
+            div()
+                .children(openers.iter().map(|opener| div().track_focus(opener)))
+                .children(rename_dialog(shell, &tokens, window, cx))
         })
     }
 }
@@ -42,9 +48,11 @@ fn shown(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
     language_tests::init(cx);
     let (probe, cx) = cx.add_window_view(|window, cx| {
         let session = SessionId::random();
+        let (link, commands) = Link::detached(16).unwrap();
+        let openers = [cx.focus_handle(), cx.focus_handle()];
         Probe(
             cx.new(|cx| {
-                let mut shell = Shell::without_io(window, cx);
+                let mut shell = Shell::with_test_link(window, cx, link);
                 shell.route = Page::Session;
                 shell.areas.session.open = Some(Open {
                     machine: "laptop".to_owned(),
@@ -61,6 +69,8 @@ fn shown(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
                 shell
             }),
             session,
+            openers,
+            commands,
         )
     });
     cx.update(|window, _| window.activate_window());
@@ -232,5 +242,104 @@ fn the_field_stops_at_the_nodes_longest_title(cx: &mut TestAppContext) {
     assert_eq!(
         state(&probe, cx).map(|(text, ..)| text.chars().count()),
         Some(SessionTitle::MAX_CHARS)
+    );
+}
+
+/// The Rename acts the shell sent since the last look.
+fn renames_sent(probe: &Entity<Probe>, cx: &mut VisualTestContext) -> usize {
+    probe.update(cx, |probe, _| {
+        std::iter::from_fn(|| probe.3.try_recv().ok())
+            .filter(|command| {
+                matches!(
+                    command,
+                    Command::Act {
+                        act: Act::Rename(_),
+                        ..
+                    }
+                )
+            })
+            .count()
+    })
+}
+
+fn opener_focused(probe: &Entity<Probe>, cx: &mut VisualTestContext, which: usize) -> bool {
+    probe.update_in(cx, |probe, window, _| probe.2[which].is_focused(window))
+}
+
+fn focus_opener(probe: &Entity<Probe>, cx: &mut VisualTestContext, which: usize) {
+    probe.update_in(cx, |probe, window, cx| probe.2[which].focus(window, cx));
+    cx.run_until_parked();
+}
+
+/// A frame of the probe (where the dialog acknowledges a close).
+fn frame(probe: &Entity<Probe>, cx: &mut VisualTestContext) {
+    probe.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+}
+
+#[gpui::test]
+fn a_taken_rename_hands_the_keys_back_to_its_opener(cx: &mut TestAppContext) {
+    let (probe, cx) = shown(cx);
+    focus_opener(&probe, cx, 0);
+    update(&probe, cx, Shell::open_rename);
+    frame(&probe, cx);
+    typed(&probe, cx, "Fix the basket");
+    update(&probe, cx, Shell::rename_pressed);
+    frame(&probe, cx);
+    assert_eq!(renames_sent(&probe, cx), 1);
+    let session = probe.read_with(cx, |probe, _| probe.1);
+    answer(
+        &probe,
+        cx,
+        Ok(Acted::Session(Box::new(info(session, "Fix the basket")))),
+    );
+    frame(&probe, cx);
+    assert_eq!(state(&probe, cx), None);
+    assert!(opener_focused(&probe, cx, 0), "the opener has the keys again");
+    // The next opening remembers its own opener: Cancel goes back there.
+    focus_opener(&probe, cx, 1);
+    update(&probe, cx, Shell::open_rename);
+    frame(&probe, cx);
+    update(&probe, cx, Shell::cancel_rename);
+    cx.run_until_parked();
+    assert!(opener_focused(&probe, cx, 1), "Cancel returns to the new opener");
+}
+
+#[gpui::test]
+fn a_rename_is_not_sent_to_a_session_that_is_no_longer_shown(cx: &mut TestAppContext) {
+    let (probe, cx) = shown(cx);
+    update(&probe, cx, Shell::open_rename);
+    typed(&probe, cx, "Fix the basket");
+    // The session went from the page while the dialog was open.
+    update(&probe, cx, |shell, _, _| shell.areas.conversation.shown = None);
+    update(&probe, cx, Shell::rename_pressed);
+    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    assert_eq!(renames_sent(&probe, cx), 0, "nothing goes to another session");
+    assert_eq!(
+        state(&probe, cx),
+        Some((
+            "Fix the basket".to_owned(),
+            true,
+            Some(words.unable_to_save().to_owned()),
+            false
+        )),
+        "not waiting: Cancel works"
+    );
+}
+
+#[gpui::test]
+fn a_rename_stops_waiting_after_its_deadline(cx: &mut TestAppContext) {
+    let (probe, cx) = shown(cx);
+    update(&probe, cx, Shell::open_rename);
+    typed(&probe, cx, "Fix the basket");
+    update(&probe, cx, Shell::rename_pressed);
+    assert_eq!(state(&probe, cx).map(|(.., pending)| pending), Some(true));
+    cx.executor()
+        .advance_clock(RENAME_DEADLINE.saturating_add(std::time::Duration::from_secs(1)));
+    cx.run_until_parked();
+    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    assert_eq!(
+        state(&probe, cx).map(|(_, save, error, pending)| (save, error, pending)),
+        Some((true, Some(words.rename_timeout().to_owned()), false))
     );
 }

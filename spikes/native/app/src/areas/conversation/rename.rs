@@ -24,10 +24,18 @@
 //!     for this machine and session (`rename_acted`).
 //! - Field: the kit's rename profile, limited to the node's longest title
 //!   (`SessionTitle::MAX_CHARS`; TRACKER 801 brings Paseo's 200).
-//! - Cost: an answer closes the dialog without a window, so focus is not
-//!   handed back to the opener (as the settings page's rename). A session's
-//!   own refusal is said in the dialog only, not again under the bar's
-//!   title.
+//! - Answers come without a window: success closes the dialog and the next
+//!   frame acknowledges it (`DialogState::dismissed`), so its opener has the
+//!   keys again and the next opening remembers its own opener; a failure
+//!   gives the field the keys at the next frame (app review of 800, R1).
+//! - The session's act goes to the session shown when it is sent, so the
+//!   dialog sends only while that is still the session it was opened for,
+//!   and says it could not save otherwise (R2). A send waits at most 30 s
+//!   (`RENAME_DEADLINE`): the act has no deadline of its own, and a held
+//!   Cancel must not outlive a stalled connection.
+//! - Cost: a session's own refusal is said in the dialog only, not again
+//!   under the bar's title. An answer after the deadline still names the
+//!   open session (its tab) and the cards.
 
 use vessel_app_kit::theme::spacing::{S2, S3};
 use vessel_app_kit::ui::{
@@ -46,6 +54,9 @@ use super::area::ConversationArea;
 use crate::areas::layout::LayoutRoute;
 use crate::shell::Shell;
 
+/// How long a rename waits for the node before the dialog lets go.
+const RENAME_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// A title being edited.
 pub(crate) struct Rename {
     /// The field, holding the title as it is typed.
@@ -62,6 +73,8 @@ pub(crate) struct Rename {
     /// A failure handed the keys back: the field takes them at the next
     /// frame (an answer comes without a window).
     refocus: std::cell::Cell<bool>,
+    /// Which send it waits for (its deadline's).
+    attempt: u64,
 }
 
 /// Where a rename goes, and how its answer is known.
@@ -173,6 +186,7 @@ impl Shell {
             route,
             pending: false,
             refocus: std::cell::Cell::new(false),
+            attempt: 0,
         });
         cx.notify();
     }
@@ -256,24 +270,77 @@ impl Shell {
         // `editable={!isPending}`): the dialog holds the keys, so Escape
         // still reaches it (and is held).
         rename.field.set_editability(Editability::ReadOnly, cx);
-        self.areas.conversation.rename_dialog.focus(window, cx);
-        let by_layout = matches!(rename.route, Route::Layout(_));
-        let sent = if by_layout {
-            self.layout_send_rename(title)
-        } else {
-            self.act(Act::Rename(title));
-            true
+        let target = match &rename.route {
+            Route::Layout(_) => None,
+            Route::Session { machine, session } => Some((machine.clone(), *session)),
         };
-        if !sent {
+        let attempt = self.areas.conversation.rename_sends.wrapping_add(1);
+        self.areas.conversation.rename_sends = attempt;
+        rename.attempt = attempt;
+        self.areas.conversation.rename_dialog.focus(window, cx);
+        let sent = match target {
+            None => self.layout_send_rename(title),
+            // Only to the session the dialog was opened for: the act goes
+            // to the session shown now (the legacy seat), which may have
+            // gone or changed while the dialog was open.
+            Some((machine, session)) => {
+                let still = self
+                    .areas
+                    .conversation
+                    .shown
+                    .as_ref()
+                    .is_some_and(|shown| shown.machine == machine && shown.session == session);
+                if still {
+                    self.act(Act::Rename(title));
+                }
+                still
+            }
+        };
+        if sent {
+            Self::rename_deadline(attempt, cx);
+        } else {
             self.rename_failed(words.unable_to_save().to_owned(), cx);
         }
         cx.notify();
+    }
+
+    /// No answer within `RENAME_DEADLINE`: the dialog stops waiting and
+    /// says so, so Cancel works again (a stalled connection never answers;
+    /// the session's act has no deadline of its own).
+    fn rename_deadline(attempt: u64, cx: &mut Context<'_, Self>) {
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(RENAME_DEADLINE).await;
+            let _waited = this.update(cx, |shell, cx| {
+                let waiting = shell
+                    .areas
+                    .conversation
+                    .rename
+                    .as_ref()
+                    .is_some_and(|rename| rename.pending && rename.attempt == attempt);
+                if waiting {
+                    let why = shell.words.layout().rename_timeout().to_owned();
+                    shell.rename_failed(why, cx);
+                }
+            });
+        })
+        .detach();
     }
 
     /// The session's act answered: a rename this form sent closes it on
     /// success (naming the open session, so its tab's label follows) or
     /// shows its failure under the field. Whether the form took it.
     pub(crate) fn rename_acted(&mut self, answer: &ActAnswer, cx: &mut Context<'_, Self>) -> bool {
+        // The open session takes the node's title (its tab's label), also
+        // when the answer comes after the dialog stopped waiting.
+        if answer.kind == ActKind::Rename
+            && let Ok(Acted::Session(info)) = &answer.result
+            && let Some(title) = info.title.as_ref()
+            && let Some(open) = self.areas.session.open.as_mut().filter(|open| {
+                open.session == answer.session && open.machine == answer.machine
+            })
+        {
+            title.as_str().clone_into(&mut open.title);
+        }
         let ours = answer.kind == ActKind::Rename
             && self
                 .areas
@@ -289,17 +356,7 @@ impl Shell {
             return false;
         }
         match &answer.result {
-            Ok(acted) => {
-                if let Acted::Session(info) = acted
-                    && let Some(title) = info.title.as_ref()
-                    && let Some(open) = self.areas.session.open.as_mut().filter(|open| {
-                        open.session == answer.session && open.machine == answer.machine
-                    })
-                {
-                    title.as_str().clone_into(&mut open.title);
-                }
-                self.rename_done(cx);
-            }
+            Ok(_) => self.rename_done(cx),
             Err(failed) => {
                 let why = if failed.message.trim().is_empty() {
                     self.words.layout().unable_to_save().to_owned()
@@ -312,9 +369,11 @@ impl Shell {
         true
     }
 
-    /// The rename was taken: the dialog closes.
+    /// The rename was taken: the dialog closes, and the next frame hands
+    /// the keys back to its opener (`rename_closed`).
     pub(crate) fn rename_done(&mut self, cx: &mut Context<'_, Self>) {
         self.areas.conversation.rename = None;
+        self.areas.conversation.rename_closed.set(true);
         cx.notify();
     }
 
@@ -343,7 +402,14 @@ pub(crate) fn rename_dialog(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let rename = shell.areas.conversation.rename.as_ref()?;
+    let area = &shell.areas.conversation;
+    // Closed without a window: acknowledged now, so its opener has the
+    // keys again (only while the dialog still holds them) and its next
+    // opening remembers a new opener.
+    if area.rename_closed.take() {
+        area.rename_dialog.dismissed(window, cx);
+    }
+    let rename = area.rename.as_ref()?;
     if rename.refocus.take() {
         rename.field.focus(window, cx);
     }

@@ -126,6 +126,12 @@ pub(crate) struct ConversationArea {
     pub(crate) rename_dialog: DialogState,
     /// The title, while it is renamed in place.
     pub(crate) rename: Option<rename::Rename>,
+    /// The rename dialog closed without a window (an answer, another
+    /// session): the next frame acknowledges it (`rename::rename_dialog`),
+    /// handing the keys back to its opener.
+    pub(crate) rename_closed: std::cell::Cell<bool>,
+    /// Renames sent so far: each send's deadline knows its own.
+    pub(crate) rename_sends: u64,
     /// The prompts, for the outline rail.
     pub(crate) outline: Vec<OutlineItem>,
     /// Where the pointer is on the rail.
@@ -198,6 +204,8 @@ impl ConversationArea {
             confirm: None,
             dialog: DialogState::new(cx),
             rename_dialog: DialogState::new(cx),
+            rename_closed: std::cell::Cell::new(false),
+            rename_sends: 0,
             rename: None,
             queue_edit: None,
             answering: None,
@@ -266,7 +274,9 @@ impl ConversationArea {
         self.restarting = false;
         self.again_refused = None;
         self.confirm = None;
-        self.rename = None;
+        if self.rename.take().is_some() {
+            self.rename_closed.set(true);
+        }
         self.find = None;
         self.find_cache = FindCache::default();
         self.outline.clear();
