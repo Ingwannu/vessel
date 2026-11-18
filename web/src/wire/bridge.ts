@@ -286,6 +286,13 @@ kept: Kept,
 drafts: Array<Draft>, };
 
 /**
+ * The order of a folder's entries in the Files tab's tree: folders first,
+ * then by name, by last change (newest first) or by size (largest first),
+ * as Paseo's file explorer sorts.
+ */
+export type ExplorerSort = "name" | "modified" | "size";
+
+/**
  * Why a call has no reply.
  */
 export type Failure = { "kind": "remote", 
@@ -398,7 +405,12 @@ sidebar: Panel,
 /**
  * The inspector (a session's summary).
  */
-inspector: Panel, };
+inspector: Panel, 
+/**
+ * How the Files tab's tree orders a folder's entries (Paseo's
+ * `explorerSortOption`, kept with its panels).
+ */
+explorer_sort: ExplorerSort, };
 
 /**
  * What a new session on one machine starts with, remembered from the
@@ -607,7 +619,7 @@ export type Panel = "shown" | "hidden";
 /**
  * One change to the preferences: each replaces one setting.
  */
-export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_labels", "value": { 
+export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "explorer_sort", "value": ExplorerSort } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_labels", "value": { 
 /**
  * The names picked; `""` is Unlabelled.
  */
