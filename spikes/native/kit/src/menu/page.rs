@@ -32,10 +32,10 @@ use gpui::{AnyElement, Context, Div, Pixels, SharedString, Stateful, Window, div
 use super::MenuItem;
 use super::draw::{ROW_LINE, Width, row_body};
 use crate::TextField;
+use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
 use crate::theme::spacing;
-use crate::fonts::Type;
 use crate::widgets::TypeExt as _;
 
 /// Where a row's words start from the page's edge (Paseo's

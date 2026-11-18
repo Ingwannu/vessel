@@ -16,14 +16,12 @@ impl Render for Probe {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let page = FormPage::new(&self.field, self.action.clone())
-            .with_body(
-                div()
-                    .debug_selector(|| "probe-body".to_owned())
-                    .h(px(20.0)),
-            )
+            .with_body(div().debug_selector(|| "probe-body".to_owned()).h(px(20.0)))
             .with_hint(Some("Unable to update label".into()));
         let act: Rc<dyn Fn(&mut Self, &mut Window, &mut Context<'_, Self>)> =
-            Rc::new(|probe: &mut Self, _window, _cx| probe.pressed = probe.pressed.saturating_add(1));
+            Rc::new(|probe: &mut Self, _window, _cx| {
+                probe.pressed = probe.pressed.saturating_add(1)
+            });
         let rows = form_rows(page, act, false, &tokens, cx);
         div()
             .size_full()

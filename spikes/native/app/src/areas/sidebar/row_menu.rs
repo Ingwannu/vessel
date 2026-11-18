@@ -281,7 +281,10 @@ impl Shell {
     /// the draft goes. A save under way is left to finish.
     fn row_menu_create_sync(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let pages = &self.areas.sidebar.rows.pages;
-        match (pages.is_open(CREATE_PAGE, 1), self.areas.labels.row_create()) {
+        match (
+            pages.is_open(CREATE_PAGE, 1),
+            self.areas.labels.row_create(),
+        ) {
             (true, RowCreate::None) => {
                 if pages.take_pressed(CREATE_PAGE) {
                     self.labels_row_picker_create(window, cx);
@@ -290,7 +293,8 @@ impl Shell {
                 }
             }
             (false, RowCreate::Draft) => self.labels_row_picker_create_closed(window, cx),
-            (true, RowCreate::Draft | RowCreate::Saving) | (false, RowCreate::None | RowCreate::Saving) => {}
+            (true, RowCreate::Draft | RowCreate::Saving)
+            | (false, RowCreate::None | RowCreate::Saving) => {}
         }
     }
 
@@ -314,7 +318,10 @@ fn labels_out_of_step(shell: &Shell, phone: bool) -> bool {
             !phone
                 && (rows.pages.pressed(LABELS)
                     || matches!(
-                        (rows.pages.is_open(CREATE_PAGE, 1), shell.areas.labels.row_create()),
+                        (
+                            rows.pages.is_open(CREATE_PAGE, 1),
+                            shell.areas.labels.row_create()
+                        ),
                         (true, RowCreate::None) | (false, RowCreate::Draft)
                     ))
         }

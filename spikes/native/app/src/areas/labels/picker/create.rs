@@ -9,7 +9,9 @@
 
 use std::rc::Rc;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, HeaderBack, dialog};
-use vessel_app_kit::menu::{FormPage, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows};
+use vessel_app_kit::menu::{
+    FormPage, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows,
+};
 use vessel_app_kit::theme::spacing::S2;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, KeyDownEvent,
@@ -55,17 +57,18 @@ fn rows(
     } else {
         EditAccess::ReadOnly
     };
-    let swatches = div()
-        .px(px(ROW_TEXT_INSET))
-        .py(px(S2))
-        .child(super::super::colors::choices_for(
-            shell,
-            draft.color(),
-            editability,
-            &color_choice(opening),
-            tokens,
-            cx,
-        ));
+    let swatches =
+        div()
+            .px(px(ROW_TEXT_INSET))
+            .py(px(S2))
+            .child(super::super::colors::choices_for(
+                shell,
+                draft.color(),
+                editability,
+                &color_choice(opening),
+                tokens,
+                cx,
+            ));
     let page = FormPage::new(&picker.name, action)
         .with_body(swatches)
         .with_hint(hint(shell, picker).map(Into::into));
@@ -114,7 +117,15 @@ pub(super) fn beside(
         return None;
     }
     let rows = rows(shell, picker, tokens, false, cx)?;
-    Some(form_flyout("workspace-label-create-page", rows, px(select::WIDTH), tokens).into_any_element())
+    Some(
+        form_flyout(
+            "workspace-label-create-page",
+            rows,
+            px(select::WIDTH),
+            tokens,
+        )
+        .into_any_element(),
+    )
 }
 
 /// The page as a sheet (a phone, or the picker with no menu around it):
