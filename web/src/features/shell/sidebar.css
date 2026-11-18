@@ -271,42 +271,10 @@
   padding-left: 10px;
 }
 
-/* Narrow windows (DESIGN.md §3): the sidebar beside the page becomes a
-   rail of icons, then leaves; compact (below 600px) it opens as a sheet
-   from the title bar's menu button (shell.tsx), drawn whole there. */
-@media (max-width: 1099px) {
-  .app {
-    grid-template-columns: 52px minmax(0, 1fr);
-  }
-
-  .app > .sidebar .brand span,
-  .app > .sidebar .side-search-wrap,
-  .app > .sidebar .side-label,
-  .app > .sidebar .nav-item span.label,
-  .app > .sidebar .nav-item .count,
-  .app > .sidebar .nav-item .dash,
-  .app > .sidebar .nav-item .shortcut,
-  /* The rail has no room for a machine's sessions: the board has them. */
-  .app > .sidebar .nav-item.sub,
-  .app > .sidebar .nav-item.more,
-  .app > .sidebar .side-status,
-  .app > .sidebar .side-machine {
-    display: none;
-  }
-
-  .app > .sidebar .side-head {
-    padding-inline: 0;
-    display: grid;
-    place-items: center;
-  }
-
-  .app > .sidebar .nav-item,
-  .app > .sidebar .nav-item.node {
-    padding: 0;
-    justify-content: center;
-  }
-}
-
+/* Compact windows (DESIGN.md §3): the sidebar leaves the page and opens
+   as a sheet from the title bar's menu button (shell.tsx), drawn whole
+   there. Wider it is drawn whole beside the page (frame.css), as Paseo's:
+   there is no rail of icons. */
 @media (--compact) {
   .app {
     grid-template-columns: minmax(0, 1fr);
