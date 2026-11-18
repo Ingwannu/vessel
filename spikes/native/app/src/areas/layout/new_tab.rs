@@ -25,7 +25,7 @@ use super::launch;
 use crate::shell::Shell;
 use vessel_app_kit::agent_mark::{Size, Space};
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::theme::spacing::{S1, S2, S3, S6, S12};
+use vessel_app_kit::theme::spacing::{S0, S0_5, S1, S2, S3, S6, S12};
 use vessel_app_kit::theme::{icon, radius};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
@@ -245,7 +245,7 @@ fn group_view(
             .flex()
             .items_center()
             .justify_between()
-            .px(px(2.0))
+            .px(px(S0_5))
             .mb(px(S1))
             .child(
                 div()
@@ -319,7 +319,7 @@ fn row_view(
         .child(
             div()
                 .flex_1()
-                .min_w(px(0.0))
+                .min_w(px(S0))
                 .truncate()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
