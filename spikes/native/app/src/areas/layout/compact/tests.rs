@@ -5,10 +5,10 @@ use super::*;
 use crate::areas::conversation::MenuAction;
 use crate::areas::layout::menu::Action;
 use crate::areas::session::Open;
-use vessel_app_kit::MenuItem;
 use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
+use vessel_app_kit::MenuItem;
 use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement, px};
 use vessel_app_view::layout::{
     AgentRole, CloseScope, LayoutMode, OpenIntent, PaneId, Placement, Position, Target,
@@ -288,7 +288,10 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
 fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppContext) {
     let (probe, cx) = compact(cx);
     probe.read_with(cx, |probe, cx| {
-        assert_eq!(super::super::workspace_menu::workspace_path(probe.0.read(cx)), None);
+        assert_eq!(
+            super::super::workspace_menu::workspace_path(probe.0.read(cx)),
+            None
+        );
     });
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, _cx| {
@@ -302,7 +305,10 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
     probe.read_with(cx, |probe, cx| {
         let shell = probe.0.read(cx);
         assert!(shell.areas.layout.workspace_menu.menu.is_open());
-        assert_eq!(super::super::workspace_menu::workspace_path(shell).as_deref(), Some("/work/shop"));
+        assert_eq!(
+            super::super::workspace_menu::workspace_path(shell).as_deref(),
+            Some("/work/shop")
+        );
     });
 }
 

@@ -38,9 +38,9 @@ mod switcher;
 mod tests;
 
 use super::key;
-use super::workspace_menu::{self, Header};
 #[cfg(test)]
 use super::with_layout;
+use super::workspace_menu::{self, Header};
 use crate::areas::conversation::heading;
 use crate::shell::Shell;
 pub(super) use row_menu::row_actions;

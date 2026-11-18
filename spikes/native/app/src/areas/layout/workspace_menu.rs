@@ -31,10 +31,10 @@ use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::menu::{Content, LeadingSize, menu_with};
-use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::toolbar_button::{
     Disclosure, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
 };
+use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{
     AnyElement, App, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
@@ -82,13 +82,12 @@ pub(crate) fn trigger(
 ) -> AnyElement {
     let words = shell.words.layout();
     let area = &shell.areas.layout.workspace_menu;
-    let config = ToolbarConfig::new(sizing, ButtonState::Enabled).disclosure(
-        if area.menu.is_open() {
+    let config =
+        ToolbarConfig::new(sizing, ButtonState::Enabled).disclosure(if area.menu.is_open() {
             Disclosure::Open
         } else {
             Disclosure::Closed
-        },
-    );
+        });
     let config = match header {
         Header::Bar => config.large(),
         Header::Island => config.header_island(),
@@ -101,9 +100,11 @@ pub(crate) fn trigger(
         tokens,
     )
     .tooltip(&shell.areas.layout.tips, &area.place)
-    .on_click(cx.listener(|shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| {
-        shell.open_workspace_menu(event.position(), window, cx);
-    }));
+    .on_click(cx.listener(
+        |shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| {
+            shell.open_workspace_menu(event.position(), window, cx);
+        },
+    ));
     let trigger = div()
         .relative()
         .flex_none()
