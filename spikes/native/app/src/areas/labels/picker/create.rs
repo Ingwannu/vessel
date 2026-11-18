@@ -1,16 +1,18 @@
 //! Create label as a page of the Labels menu (TRACKER 792; Paseo's
 //! `WorkspaceLabelCreatePage`, `workspace-labels/picker.tsx`): beside the
 //! row menu, a flyout at the Labels list's Create label row ([`beside`]);
-//! on a phone, and for the picker with no menu around it, a sheet titled
-//! Create label whose header leads back to the list ([`overlay`]). Both
-//! draw the kit's form page: the name in a menu field, the swatches on the
-//! rows' rail, Create, and a failure under it. The draft, its submit and
-//! the host's answer are the picker's as before.
+//! on a phone the menu's sheet page titled Create label whose title row
+//! leads back to the list, and for the picker with no menu around it on a
+//! wide window a dialog with the same way back ([`overlay`]). All draw the
+//! kit's form page: the name in a menu field, the swatches on the rows'
+//! rail, Create, and a failure under it. The draft, its submit and the
+//! host's answer are the picker's as before.
 
 use std::rc::Rc;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, HeaderBack, dialog};
 use vessel_app_kit::menu::{
-    FormAct, FormPage, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows,
+    FormAct, FormPage, FormSheet, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows,
+    form_sheet,
 };
 use vessel_app_kit::theme::spacing::S2;
 use vessel_app_kit::ui::{
@@ -130,8 +132,10 @@ pub(super) fn beside(
     )
 }
 
-/// The page as a sheet (a phone, or the picker with no menu around it):
-/// titled Create label, its header leading back to the list.
+/// The page away from the row menu's flyouts: on a phone the menu's
+/// sheet page titled Create label, its title row leading back to the list
+/// (Paseo's compact menu); on a wide window the picker with no menu around
+/// it has no flyout chain, so the page is a dialog with the same way back.
 pub(super) fn overlay(
     shell: &Shell,
     tokens: &Tokens,
@@ -145,6 +149,26 @@ pub(super) fn overlay(
     let narrow = vessel_app_kit::breakpoint::phone(window);
     let rows = rows(shell, picker, tokens, narrow, window, cx)?;
     let opening = picker.opening;
+    if narrow {
+        let words = shell.words.labels();
+        let sheet = FormSheet {
+            title: words.create().into(),
+            back_label: words.back().into(),
+            back: Rc::new(move |shell, window, cx| shell.labels_picker_back(opening, window, cx)),
+            dismiss: Rc::new(move |shell, window, cx| {
+                shell.labels_picker_close(opening, window, cx);
+            }),
+        };
+        return Some(form_sheet(
+            "workspace-label-create-sheet",
+            &picker.dialog,
+            sheet,
+            rows,
+            tokens,
+            window,
+            cx,
+        ));
+    }
     let content = DialogContent {
         title: shell.words.labels().create().into(),
         body: rows.into_any_element(),
@@ -162,7 +186,7 @@ pub(super) fn overlay(
         content,
         tokens,
         window,
-        narrow,
+        false,
         move |shell, window, cx| shell.labels_picker_close(opening, window, cx),
         cx,
     ))

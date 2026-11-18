@@ -237,7 +237,18 @@ fn on_a_phone_create_label_is_a_sheet_leading_back_to_the_list(cx: &mut TestAppC
     cx.run_until_parked();
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Dialog));
     assert!(cx.debug_bounds("workspace-label-create").is_some());
-    let back = cx.debug_bounds("dialog-header-back").unwrap();
+    // Paseo's compact page: the menu sheet's title row leads back; no
+    // dialog header with its close button.
+    assert!(cx.debug_bounds("dialog-header-back").is_none());
+    let back = cx.debug_bounds("form-sheet-back").unwrap();
+    assert!(back.top() > px(MIDDLE), "the page is the bottom sheet");
+    // The name holds the keys, and a press on a swatch leaves them there.
+    cx.simulate_input("Ops");
+    let blue = cx.debug_bounds("label-swatch-Blue").unwrap();
+    cx.simulate_click(blue.center(), Modifiers::none());
+    cx.run_until_parked();
+    cx.simulate_input("!");
+    assert_eq!(create_name(&shell, cx).as_deref(), Some("Ops!"));
     cx.simulate_click(back.center(), Modifiers::none());
     cx.run_until_parked();
     assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));

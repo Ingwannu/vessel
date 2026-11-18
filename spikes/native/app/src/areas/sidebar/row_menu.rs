@@ -29,7 +29,9 @@
 //!   window, the workspace picker's list in its flyout; on a phone the menu
 //!   is a sheet titled "Session actions" (Paseo's "Workspace actions"; a
 //!   Vessel row is a session) and the picker's sheet replaces it, leading
-//!   back. The picker's Create stays a dialog (Paseo: a page with a field).
+//!   back. The list's Create label is a press-only page with a field
+//!   (TRACKER 792): a flyout beside the list, or on a phone the sheet page
+//!   that replaces the list's, leading back to it.
 
 use std::rc::Rc;
 

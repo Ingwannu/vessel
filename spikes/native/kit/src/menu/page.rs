@@ -24,14 +24,39 @@
 //! - Pros, cons and impact: the page's numbers follow the row's (change
 //!   one, change both, as Paseo notes); the action row is not the menu's
 //!   keyboard row: the field holds the keys and Enter acts.
+//!
+//! [Decision Log: the page on a phone]
+//! - Purpose and intent: in Paseo's compact menu the page replaces the
+//!   Labels page in the same sheet under `MenuSheetHeader` (a back chevron
+//!   and the title, no close button), as Vessel's Labels page does.
+//! - Existing implementation and constraints: the menu draws its root
+//!   sheet and leaves a page's sheet to the screen (`surface::replaced`);
+//!   the kit dialog's sheet has the adaptive-sheet header (an 18 arrow, a
+//!   close button) and a 24 body inset, so a page drawn in it did not look
+//!   like the Labels page it replaced.
+//! - Alternatives considered: a header mode on the kit dialog (every
+//!   dialog's header grows a menu case); the menu's own sheet surface (its
+//!   pan takes the whole panel, which a page you type into cannot give).
+//! - Chosen approach: [`form_sheet`] draws the menu sheet's look (surface0,
+//!   the handle, the list's title row with its chevron leading back) over
+//!   the sheet scrim, keeping the dialog's focus owner (`DialogState`) for
+//!   its keys and its return of focus.
+//! - Pros, cons and impact: the Labels page and its Create page share one
+//!   header; the page does not pan down to close (the dialog's fitting
+//!   sheet did not either): the scrim and Back close it.
 use std::rc::Rc;
 
 use gpui::prelude::*;
-use gpui::{AnyElement, Context, Div, Pixels, SharedString, Stateful, Window, div, px};
+use gpui::{
+    AnimationExt as _, AnyElement, Context, Div, MouseButton, Pixels, SharedString, Stateful,
+    Window, anchored, deferred, div, point, px, relative,
+};
 
 use super::MenuItem;
 use super::draw::{ROW_LINE, Width, row_body};
 use crate::TextField;
+use crate::assets::Glyph;
+use crate::dialog::{DialogState, sheet_handle};
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
@@ -171,6 +196,132 @@ pub fn form_flyout(id: &'static str, rows: Div, width: Pixels, tokens: &Tokens) 
         .py(px(spacing::S1))
         .child(rows);
     super::surface::popover(panel, Width::Fixed(width), &surfaces, tokens)
+}
+
+/// What a phone's form sheet says and does.
+pub struct FormSheet<V> {
+    /// Its title (the page's name).
+    pub title: SharedString,
+    /// The header's way back, named for assistive technology.
+    pub back_label: SharedString,
+    /// The header's press: back to the page it replaced.
+    pub back: FormAct<V>,
+    /// A press on the dimmed page: the whole menu closes.
+    pub dismiss: FormAct<V>,
+}
+
+impl<V> std::fmt::Debug for FormSheet<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FormSheet")
+            .field("title", &self.title)
+            .finish_non_exhaustive()
+    }
+}
+
+/// The page's rows in a phone's sheet: the menu sheet's look, its title
+/// row leading back, over the sheet scrim. `state` owns its focus: call
+/// its `focus` when the page opens and `dismissed` when it goes.
+pub fn form_sheet<V: 'static>(
+    id: &'static str,
+    state: &DialogState,
+    sheet: FormSheet<V>,
+    rows: Div,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    let surfaces = Surfaces::of(tokens);
+    let neutral = tokens.neutral;
+    let FormSheet {
+        title,
+        back_label,
+        back,
+        dismiss,
+    } = sheet;
+    // The list's sheet title row (`picker::rows::title_row`), the menu's.
+    let header = div()
+        .id("form-sheet-back")
+        .debug_selector(|| "form-sheet-back".to_owned())
+        .role(gpui::Role::Button)
+        .aria_label(back_label)
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(6.0))
+        .px(px(12.0))
+        .py(px(10.0))
+        .border_b_1()
+        .border_color(neutral.border)
+        .type_(Type::Label)
+        .text_color(surfaces.foreground)
+        .cursor_pointer()
+        .hover(move |style| style.bg(neutral.surface1))
+        .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
+            back(view, window, cx);
+            cx.notify();
+        }))
+        .child(crate::picker::glyph(
+            Glyph::ChevronLeft,
+            16.0,
+            neutral.foreground_muted,
+        ))
+        .child(div().flex_1().min_w_0().truncate().child(title));
+    // As the dialog's card: a press inside neither closes (the panel
+    // occludes the scrim) nor takes the field's keys (the default focus
+    // move is prevented; the field focuses itself first).
+    let panel = div()
+        .id(id)
+        .track_focus(state.focus_handle())
+        .key_context(popup::KEY_CONTEXT)
+        .occlude()
+        .on_mouse_down(MouseButton::Left, |_event, window, _cx| {
+            window.prevent_default();
+        })
+        .cursor_default()
+        .flex()
+        .flex_col()
+        .w_full()
+        .max_h(relative(0.8))
+        .overflow_hidden()
+        .bg(surfaces.surface0)
+        .border_1()
+        .border_color(neutral.border)
+        .rounded_t(px(popup::SHEET_RADIUS))
+        .pb(px(spacing::S4))
+        .child(sheet_handle(neutral.foreground_extra_muted))
+        .child(header)
+        .child(div().pt(px(spacing::S1)).child(rows));
+    let size = window.viewport_size();
+    let shade = popup::sheet_scrim();
+    let scrim = div()
+        .id("form-sheet-scrim")
+        .w(size.width)
+        .h(size.height)
+        .flex()
+        .justify_center()
+        .items_end()
+        .occlude()
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(move |view: &mut V, _event, window, cx| {
+                dismiss(view, window, cx);
+                cx.notify();
+            }),
+        )
+        .child(popup::appear(
+            "form-sheet-appear",
+            panel,
+            crate::motion::STANDARD,
+        ))
+        .with_animation(
+            "form-sheet-scrim-appear",
+            crate::motion::transition(crate::motion::STANDARD),
+            move |scrim, done| scrim.bg(shade.opacity(done)),
+        );
+    // The dialog's layer: the page took the dialog's place.
+    deferred(anchored().position(point(px(0.0), px(0.0))).child(scrim))
+        .with_priority(2)
+        .into_any_element()
 }
 
 #[cfg(test)]
