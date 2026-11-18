@@ -10,7 +10,7 @@
 use std::rc::Rc;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, HeaderBack, dialog};
 use vessel_app_kit::menu::{
-    FormPage, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows,
+    FormAct, FormPage, ItemStatus, MenuItem, ROW_TEXT_INSET, form_flyout, form_rows,
 };
 use vessel_app_kit::theme::spacing::S2;
 use vessel_app_kit::ui::{
