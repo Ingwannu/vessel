@@ -61,7 +61,7 @@ use vessel_app_kit::{
     ButtonState, ControlSizing, DialogState, MenuHandlers, MenuItem, MenuState, Tokens,
     anchor_probe,
 };
-use vessel_app_view::layout::{Layout, Pane, PaneId, TabId};
+use vessel_app_view::layout::{Layout, Pane, TabId};
 
 /// Paseo's workspace menu `width`.
 const ACTIONS_WIDTH: f32 = 220.0;
@@ -99,16 +99,17 @@ impl Compact {
     }
 }
 
-/// The workspace's tabs in the switcher's order: pane by pane, each pane's
-/// tabs in its strip's order (Paseo lists every tab of the workspace).
+/// The switcher's tabs: the focused pane's, in its strip's order (Paseo's
+/// `focusedPaneTabState.tabs`, workspace-screen.tsx 1557-1559), so Close
+/// tabs above/below act on the rows above and below.
 fn tabs(layout: &Layout) -> Vec<TabId> {
     layout
         .root()
         .panes()
         .into_iter()
-        .filter(|pane| pane.id() != PaneId::EXPLORER)
-        .flat_map(|pane| pane.tabs().to_vec())
-        .collect()
+        .find(|pane| pane.id() == layout.focused_pane())
+        .map(|pane| pane.tabs().to_vec())
+        .unwrap_or_default()
 }
 
 /// The tab the compact layout shows: the focused pane's.

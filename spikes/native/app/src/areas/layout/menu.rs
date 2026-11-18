@@ -157,7 +157,7 @@ pub(super) fn overlay(
     }
 }
 
-fn chose(
+pub(super) fn chose(
     shell: &mut Shell,
     tab: TabId,
     action: Action,

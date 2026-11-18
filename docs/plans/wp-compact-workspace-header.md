@@ -52,8 +52,9 @@ Close, Agent log, Kill). Then the content.
      shows today under it (state, "machine · agent").
    - Right: the tab switcher, "…" and the panel (explorer) toggle.
 2. The tab switcher uses the kit combobox as a compact sheet, "Workspace
-   tabs". Its rows are the layout's tabs, labelled as the tab head labels
-   them, with the current tab checked. Its footer has "New agent" (the
+   tabs". Its rows are the focused pane's tabs (Paseo's
+   `focusedPaneTabState.tabs`), labelled as the tab head labels them, with
+   the current tab checked. Its footer has "New agent" (the
    new-agent page, as 776's "+ › Agent") and "New terminal" (disabled
    until a terminal tab can be made, as in 776's menu).
 3. "…" is a compact sheet, "Workspace actions", built as its own menu, as
@@ -131,8 +132,11 @@ Close, Agent log, Kill). Then the content.
   own pieces, so they read the same. The session bar is not drawn in compact
   mode (`session::body`).
 - The switcher (`compact/switcher.rs`) is the kit dialog as a fitting sheet
-  (at most 90 % of the window), titled "Workspace tabs". Every tab is
-  listed, pane by pane in strip order. A row: a 16 icon slot (the agent's
+  (at most 90 % of the window), titled "Workspace tabs". It lists the
+  focused pane's tabs in strip order, as Paseo's
+  (`focusedPaneTabState.tabs`, workspace-screen.tsx 1557-1559; the app
+  reviewer's P3 on 0d7539de2), so Close tabs above/below act on the rows
+  above and below. A row: a 16 icon slot (the agent's
   mark, or the tab kind's glyph), the label 14 in the foreground, the
   current tab's muted check, and a 28 "…". A row's press shows that tab and
   closes the sheet. The footer has New agent (the new-agent page, as 776's
@@ -184,8 +188,6 @@ Close, Agent log, Kill). Then the content.
 - Not listed in Workspace actions: New browser tab and terminal profiles
   (Paseo leaves them out where it cannot create them), Copy branch name
   (Vessel knows only the branch a session started on), Show setup (no page).
-- Close tabs above/below act within the tab's pane (the layout's
-  `CloseScope::Before`/`After`); the switcher lists every pane's tabs.
 - The rename dialog closes when the rename is sent; Paseo's waits for the
   save ("Saving…") and closes on success.
 
@@ -216,7 +218,9 @@ Close, Agent log, Kill). Then the content.
   opens the new-agent page; the agent row's menu is Paseo's items then the
   session's, with the rules where Paseo has its separator, and the New tab's
   is the closes with Close last; every row has its glyph and Copy agent id
-  its seven-character hint; a row's "…" opens the tab menu over the
+  its seven-character hint; with two panes the switcher lists the focused
+  pane's tabs only and Close tabs above leaves the other pane alone; a
+  row's "…" opens the tab menu over the
   sheet; Workspace actions copies the folder once known; Import session
   opens the import sheet.
 - app `layout::header::tests::compact_width_draws_no_pane_controls` replaces
@@ -238,3 +242,8 @@ After the fixes, head 8ffa4af86, build VM, ordinary lane:
 Captures: export of 8ffa4af86 with the base14.19 shared root, a fleet.sh
 fleet with fake agents, 390 wide. Frames: en-dark header, switcher, row
 menu, rename dialog and Workspace actions; ko-light row menu.
+
+App reviewer P3 on 0d7539de2 (source and gates PASS): Paseo's switcher lists
+the focused pane's tabs only. Coordinator ruling 2026-11-18: copy Paseo; the
+list, the closes and the count badge all use the focused pane's tabs; a
+two-pane test added. One-pane frames are unchanged.
