@@ -21,11 +21,7 @@ impl ComboboxState {
     /// page of a menu (a row menu's Labels page, TRACKER 792): its rows'
     /// pages open at `depth`, after its own, and its opening leaves the
     /// menu's path alone (the menu owns it, and the list's page is on it).
-    pub fn set_nested_submenus(
-        &mut self,
-        submenus: Option<&Submenus>,
-        depth: usize,
-    ) {
+    pub fn set_nested_submenus(&mut self, submenus: Option<&Submenus>, depth: usize) {
         self.submenus = submenus.cloned();
         self.submenu_depth = depth;
     }
