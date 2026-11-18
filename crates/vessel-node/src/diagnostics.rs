@@ -11,6 +11,7 @@ mod inventory;
 mod journal;
 #[cfg(test)]
 mod lifetime;
+mod more;
 mod process;
 mod sources;
 #[cfg(test)]
@@ -89,6 +90,11 @@ impl State {
             readiness,
             store,
         }
+    }
+    /// The node's data directory (`node.log` and the report's disk, ADR
+    /// 0111), as its profiles keep it.
+    pub(crate) fn data_dir(&self) -> &vessel_store::DataDir {
+        self.profiles.dir()
     }
     /// Borrow the actual successful bind result before serving. Neither the
     /// endpoint nor the listener is copied or retained in report state.

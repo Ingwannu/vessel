@@ -1,0 +1,45 @@
+Claude Code
+  Command source: built in
+  Configured command: claude
+  Search path matches: ~/.local/bin/claude
+    /usr/local/bin/claude
+  Resolved path: ~/.local/bin/claude
+  Version: 2.0.14
+  Conversations: available
+  Auth: signed in
+  ACP spawn: ok
+  ACP initialize: ok (agent 0.9.1)
+  ACP session/new: ok
+  Probe took: 1834 ms
+  Models: 5
+  Status: Ready
+
+Local Coder (ACP)
+  Command source: added
+  Configured command: npx -y local-coder --acp
+  Search path matches: none
+  Resolved path: not found (npx)
+  Version: unknown
+  Conversations: unavailable: not installed
+  Auth: unknown (not installed)
+  ACP spawn: error: cannot start the agent
+  ACP initialize: not reached
+  ACP session/new: not reached
+  Probe took: 3 ms
+  Models: —
+  Status: Unavailable
+
+OpenCode
+  Command source: built in
+  Configured command: opencode
+  Search path matches: ~/.opencode/bin/opencode
+  Resolved path: ~/.opencode/bin/opencode
+  Version: unknown
+  Conversations: available
+  Auth: unknown (timed out after 60000 ms)
+  ACP spawn: ok
+  ACP initialize: error: the agent did not complete the ACP handshake within 60 s
+  ACP session/new: not reached
+  Probe took: 60012 ms
+  Models: —
+  Status: Error: the agent did not complete the ACP handshake within 60 s

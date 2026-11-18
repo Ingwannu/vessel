@@ -43,6 +43,18 @@ impl NodeService {
         resolved: vessel_harness::Profile,
         profile: Option<ProfileName>,
     ) -> Answer {
+        self.probed_with(harness, resolved, profile, false).await
+    }
+
+    /// As [`Self::probed`]; `fresh` always probes, keeping the answer for
+    /// later callers (an agent's diagnostic, ADR 0111).
+    pub(crate) async fn probed_with(
+        &self,
+        harness: HarnessRef,
+        resolved: vessel_harness::Profile,
+        profile: Option<ProfileName>,
+        fresh: bool,
+    ) -> Answer {
         let installed = self
             .harnesses()
             .await
@@ -70,11 +82,12 @@ impl NodeService {
                     harness: harness.clone(),
                     profile,
                 };
-                self.probes
-                    .answer(key, installed.version, async || {
-                        self.probe(harness, resolved).await
-                    })
-                    .await
+                let probe = async || self.probe(harness, resolved).await;
+                if fresh {
+                    self.probes.refresh(key, installed.version, probe).await
+                } else {
+                    self.probes.answer(key, installed.version, probe).await
+                }
             }
         }
     }

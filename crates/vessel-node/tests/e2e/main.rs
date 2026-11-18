@@ -13,6 +13,8 @@ mod across;
 #[cfg(test)]
 mod added;
 #[cfg(test)]
+mod agent_diagnostic;
+#[cfg(test)]
 mod agents;
 #[cfg(test)]
 mod attachments;

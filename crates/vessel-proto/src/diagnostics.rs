@@ -11,6 +11,8 @@ mod admission;
 mod bounded;
 pub use admission::{DiagnosticRefusal, MAX_DIAGNOSTIC_COLLECTIONS};
 mod error;
+mod host;
+mod log;
 mod process;
 mod protocol;
 pub use process::{
@@ -19,12 +21,22 @@ pub use process::{
 mod report;
 mod scalar;
 mod sections;
+pub mod text;
 mod version;
 
 pub use bounded::{
     DiagnosticAgents, MAX_DIAGNOSTIC_AGENTS, MAX_DIAGNOSTIC_FAILURES, RecentFailures,
 };
 pub use error::InvalidDiagnostic;
+pub use host::{
+    DiagnosticActivity, DiagnosticAgentCount, DiagnosticDisk, DiagnosticLoad, DiagnosticMore,
+    DiagnosticSystem, DiagnosticSystemMemory, DiagnosticTool, DiagnosticTools,
+    DiagnosticWorkspaces,
+};
+pub use log::{
+    DEFAULT_LOG_LINES, LogSink, MAX_LOG_LINE_BYTES, MAX_LOG_LINES, MAX_LOG_TAIL_BYTES, NodeLog,
+    ReadNodeLog,
+};
 pub use protocol::{AcpProtocolVersion, MAX_DIAGNOSTIC_AGENT_PROTOCOL};
 pub use report::{
     DiagnosticFailureWindow, DiagnosticReport, DiagnosticReportFields, MAX_DIAGNOSTIC_REPORT_BYTES,
@@ -57,6 +69,12 @@ pub struct GetDiagnostics {}
 /// `required_protocol` accessor. The integrator alone assigns this number.
 pub const DIAGNOSTICS_PROTOCOL: Option<crate::ProtocolVersion> =
     Some(crate::ProtocolVersion::new(24));
+
+/// ADR 0111 (drafted 33; the integrator assigns it at the node-line merge):
+/// `agent.diagnostic`, `node.log` and the report's [`DiagnosticMore`]
+/// sections, which an older peer is not sent.
+pub const DIAGNOSTICS_WIRE_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(33));
 
 #[cfg(test)]
 mod tests;
