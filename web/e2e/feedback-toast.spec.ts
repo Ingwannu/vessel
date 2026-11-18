@@ -67,6 +67,31 @@ for (const colorScheme of ["light", "dark"] as const) {
       const compact = await stack.boundingBox();
       if (compact === null) throw new Error("Expected the live toast stack");
       const collapse = page.getByRole("button", { name: "Collapse question" });
+      const geometry = await page.evaluate(() => {
+        const box = (selector: string) => {
+          const node = document.querySelector(selector);
+          if (node === null) return null;
+          const r = node.getBoundingClientRect();
+          return [
+            Math.round(r.x),
+            Math.round(r.y),
+            Math.round(r.width),
+            Math.round(r.height),
+            (node.textContent ?? "").slice(0, 30),
+          ];
+        };
+        return JSON.stringify({
+          collapse: box(".question-chevron"),
+          tooltip: box("[role=tooltip]"),
+          tip: box(".tooltip-positioner"),
+          stack: box(".toast-stack"),
+          dock: box(".prompt-dock"),
+          active:
+            document.activeElement?.getAttribute("aria-label") ??
+            document.activeElement?.tagName,
+        });
+      });
+      console.log(`DIAG796 ${geometry}`);
       expect(
         await collapse.evaluate((element) => {
           const rect = element.getBoundingClientRect();
