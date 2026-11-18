@@ -133,7 +133,7 @@ struct Inner {
     /// own Escape, a press on another row or the menu's close ends it.
     keyed: Option<PageId>,
     opening: Option<Timer>,
-    /// The page `opening` opens.
+    /// The page `opening` will open, while it is pending.
     opening_page: Option<PageId>,
     closing: Option<Timer>,
     /// The menu opening this path belongs to.
@@ -204,6 +204,7 @@ impl Submenus {
     pub fn open(&self, page: &str, depth: usize) {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
+        inner.opening_page = None;
         inner.closing = None;
         let page = PageId::from(page.to_owned());
         inner.path.open(&page, depth);
@@ -239,6 +240,7 @@ impl Submenus {
     pub fn back(&self) -> bool {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
+        inner.opening_page = None;
         inner.closing = None;
         let back = inner.path.back();
         inner.settle_keys();
@@ -249,6 +251,7 @@ impl Submenus {
     pub fn close_all(&self) {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
+        inner.opening_page = None;
         inner.closing = None;
         inner.path = MenuPath::default();
         inner.surfaces.clear();
@@ -271,10 +274,12 @@ impl Submenus {
         inner.closing = None;
         if inner.press_only.contains(&page) || inner.keyed.is_some() {
             inner.opening = None;
+            inner.opening_page = None;
             return;
         }
         inner.opening_page = Some(page.clone());
         let timer = self.after(HOVER_OPEN, window, cx, move |inner| {
+            inner.opening_page = None;
             inner.path.open(&page, depth);
             inner.settle_keys();
         });
@@ -304,6 +309,7 @@ impl Submenus {
             return;
         }
         inner.opening = None;
+        inner.opening_page = None;
         if inner.held() || into_flyout {
             return;
         }
