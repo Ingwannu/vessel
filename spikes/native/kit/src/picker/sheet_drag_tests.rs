@@ -109,10 +109,10 @@ fn a_short_pull_lets_it_spring_back_open(cx: &mut TestAppContext) {
 fn its_rows_pulled_down_from_their_top_close_it_too(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx);
     let panel = panel(&view, cx);
-    // Near the bottom: the last row, under the title.
+    // On the rows (the panel keeps 16 under them, the list 4 more).
     let at = point(
         panel.center().x,
-        px(f32::from(panel.bottom()).mul_add(1.0, -30.0)),
+        px(f32::from(panel.bottom()).mul_add(1.0, -60.0)),
     );
     drag_down(cx, at, 600.0);
     view.read_with(cx, |probe, _| assert!(!probe.list.is_open()));
