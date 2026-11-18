@@ -45,7 +45,11 @@ content-scroll handoff).
 - Costs and limits: the first frame after opening is unmeasured and cannot
   be dragged until drawn; the menu sheet's rows are not a scroll list, so
   its body hands off nothing. A row press that moves past the slop becomes
-  a pan, as in the dialog.
+  a pan, as in the dialog. The sheets' height limit (80% of the window for
+  the menu, 90% for the list) sits on the drag's wrapper and the panel
+  shrinks into it: a percentage limit on the panel resolves against the
+  wrapper, whose height is the panel's own, and cut the sheet short (found
+  on the fleet, guarded by a test).
 
 ## Packet
 
