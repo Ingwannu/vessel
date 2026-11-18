@@ -54,7 +54,7 @@ fn setup(cx: &mut TestAppContext, narrow: bool) -> &mut VisualTestContext {
     cx
 }
 
-fn rest_on(cx: &mut VisualTestContext, row: &str) {
+fn rest_on(cx: &mut VisualTestContext, row: &'static str) {
     let at = cx.debug_bounds(row).unwrap().center();
     cx.simulate_mouse_move(at, None, Modifiers::none());
     cx.run_until_parked();
