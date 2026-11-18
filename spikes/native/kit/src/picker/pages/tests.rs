@@ -100,7 +100,7 @@ fn setup(cx: &mut TestAppContext, with_pages: bool) -> (Entity<Probe>, &mut Visu
         }));
         probe.list.open(None, window, cx);
         // The page's list takes presses; the keys stay with the root list.
-        probe.page_list.open_beside();
+        probe.page_list.open_beside(None, window, cx);
         cx.notify();
     });
     cx.run_until_parked();

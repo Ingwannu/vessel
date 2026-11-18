@@ -12,7 +12,7 @@ fn a_wide_display_menu_opens_a_page_beside_it_and_an_option_there_closes_it(
         let menu = &mut shell.areas.sidebar.display;
         menu.list.set_submenus(Some(&menu.pages));
         menu.list.open(None, window, cx);
-        menu.page_list.open_beside();
+        menu.page_list.open_beside(None, window, cx);
         cx.notify();
     });
     cx.run_until_parked();
@@ -46,6 +46,37 @@ fn a_wide_display_menu_opens_a_page_beside_it_and_an_option_there_closes_it(
         assert_ne!(shell.prefs.settings.sidebar.group, before);
         assert!(!menu.list.is_open());
         assert!(menu.pages.path().pages().is_empty());
+    });
+}
+
+#[gpui::test]
+fn a_page_opened_by_enter_takes_the_keys_and_escape_leads_back_to_the_list(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let menu = &mut shell.areas.sidebar.display;
+        menu.list.set_submenus(Some(&menu.pages));
+        menu.list.open(None, window, cx);
+        menu.page_list.open_beside(None, window, cx);
+        // Enter on the Grouping row, as its key handler does.
+        menu.pages.open("grouping", 0);
+        cx.notify();
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let menu = &shell.areas.sidebar.display;
+        assert!(menu.list.is_open() && menu.page_list.is_open());
+        assert!(menu.pages.path().pages().is_empty());
+    });
+    // The list has the keys again: Escape there closes the menu.
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert!(!shell.areas.sidebar.display.list.is_open());
     });
 }
 

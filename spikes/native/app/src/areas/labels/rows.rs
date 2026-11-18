@@ -7,6 +7,7 @@ use vessel_app_kit::ui::Context;
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::labels::{EditAccess, Label};
 
+use super::PickerPlace;
 use crate::shell::Shell;
 
 /// A session row's workspace labels: its host's admission, its registry
@@ -20,21 +21,20 @@ pub(crate) struct RowLabels<'a> {
 }
 
 impl Shell {
-    /// The Labels item of `session`'s row menu: the picker for its
-    /// workspace, with the registry's labels, opened where the menu was
-    /// (`at`). `project` is the card's
-    /// [`member_project`](vessel_app_view::board::Card::member_project).
-    pub(crate) fn labels_row_open(
+    /// The picker for `session`'s workspace, its list at `place` (a row
+    /// menu's Labels page beside it or on a phone); false when the session
+    /// has no workspace on a followed host.
+    pub(crate) fn labels_row_picker(
         &mut self,
         machine: &str,
         session: vessel_proto::SessionId,
         project: Option<vessel_proto::ProjectId>,
-        at: Option<vessel_app_kit::ui::Point<vessel_app_kit::ui::Pixels>>,
+        place: PickerPlace,
         window: &mut vessel_app_kit::ui::Window,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
         let Some(row) = self.areas.labels.row(machine, session, project) else {
-            return;
+            return false;
         };
         let key = vessel_app_view::layout::LayoutKey::Workspace {
             node: row.connection.node(),
@@ -43,7 +43,7 @@ impl Shell {
         let Ok(target) =
             vessel_app_view::labels::WorkspaceTarget::new(row.connection.clone(), &key)
         else {
-            return;
+            return false;
         };
         let assigned = row.labels.iter().map(|label| label.name.clone()).collect();
         let access = if row.writable {
@@ -51,8 +51,7 @@ impl Shell {
         } else {
             EditAccess::ReadOnly
         };
-        self.labels_picker_open(target, assigned, access, window, cx);
-        self.labels_picker_place(at, window);
+        self.labels_picker_open_in(target, assigned, access, place, window, cx)
     }
 
     /// The open picker's assigned labels and access, from its host's

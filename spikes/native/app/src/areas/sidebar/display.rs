@@ -7,7 +7,9 @@
 //! as Paseo's flyout (TRACKER 791, `kit::submenu`: by hover intent or a
 //! press, the list staying open); below the compact width the list is a
 //! sheet whose page replaces it in place with a way back (its title row),
-//! Paseo's `compactMode="sheet"`.
+//! Paseo's `compactMode="sheet"`. A page opened by a press or Enter takes
+//! the keys (one the pointer opened leaves them with the list); Escape
+//! there leads back to the list.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -102,6 +104,40 @@ impl Shell {
     }
 }
 
+impl Shell {
+    /// Keep the page beside the list in step: a page a press or Enter
+    /// opened takes the keys; its list closed by Escape leads back to the
+    /// menu's list, which has them again, ready to open a page anew.
+    fn display_page_sync(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let menu = &mut self.areas.sidebar.display;
+        let Some(id) = menu.pages.path().current().cloned() else {
+            return;
+        };
+        if !menu.list.is_open() {
+            return;
+        }
+        if menu.page_list.is_open() {
+            if menu.pages.take_pressed(&id) {
+                menu.page_list.take_keys(false, window, cx);
+            }
+        } else {
+            let _root = menu.pages.back();
+            menu.page_list.open_beside(None, window, cx);
+        }
+        cx.notify();
+    }
+}
+
+/// Whether the page beside the list waits for [`Shell::display_page_sync`].
+fn page_out_of_step(menu: &DisplayMenu) -> bool {
+    menu.list.is_open()
+        && menu
+            .pages
+            .path()
+            .current()
+            .is_some_and(|id| menu.pages.pressed(id) || !menu.page_list.is_open())
+}
+
 /// A page's name among the menu's submenus.
 const fn page_id(page: DisplayPage) -> Option<&'static str> {
     match page {
@@ -155,7 +191,7 @@ pub(super) fn trigger(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
                 let wide = window.viewport_size().width >= px(vessel_app_kit::picker::COMPACT);
                 menu.list.set_submenus(wide.then_some(&menu.pages));
                 menu.list.open(None, window, cx);
-                menu.page_list.open_beside();
+                menu.page_list.open_beside(None, window, cx);
             }
             cx.notify();
         }))
@@ -204,6 +240,11 @@ pub(super) fn menu(
     );
     // The page is drawn after the list: same layer, so it paints on top.
     let beside = beside(shell, tokens, window, cx);
+    if page_out_of_step(menu) {
+        cx.defer_in(window, |shell, window, cx| {
+            shell.display_page_sync(window, cx);
+        });
+    }
     Some(div().children(list).children(beside).into_any_element())
 }
 

@@ -125,6 +125,8 @@ struct Inner {
     surfaces: HashMap<usize, Probe>,
     /// Pages a press opens and hover does not (forms).
     press_only: Vec<PageId>,
+    /// A page a press or Enter opened, until its screen takes the keys.
+    pressed: Option<PageId>,
     opening: Option<Timer>,
     closing: Option<Timer>,
     /// The menu opening this path belongs to.
@@ -181,7 +183,31 @@ impl Submenus {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
         inner.closing = None;
-        inner.path.open(&PageId::from(page.to_owned()), depth);
+        let page = PageId::from(page.to_owned());
+        inner.path.open(&page, depth);
+        inner.pressed = Some(page);
+    }
+
+    /// Whether `page` was opened by a press or Enter since last asked: its
+    /// screen moves the keys into it (a page the pointer opened leaves them
+    /// with the menu, as Paseo's flyouts do).
+    #[must_use = "true once: the screen moves the keys into the page"]
+    pub fn take_pressed(&self, page: &str) -> bool {
+        let taken = self.pressed(page);
+        if taken {
+            self.0.borrow_mut().pressed = None;
+        }
+        taken
+    }
+
+    /// Whether `page` was opened by a press or Enter and its screen has
+    /// not taken the keys yet ([`take_pressed`](Self::take_pressed)).
+    #[must_use]
+    pub fn pressed(&self, page: &str) -> bool {
+        let inner = self.0.borrow();
+        // A page closed since (Back, the grace) no longer wants the keys.
+        inner.pressed.as_deref() == Some(page)
+            && inner.path.pages().iter().any(|open| **open == *page)
     }
 
     /// Back one page; false at the root.
@@ -200,6 +226,7 @@ impl Submenus {
         inner.closing = None;
         inner.path = MenuPath::default();
         inner.surfaces.clear();
+        inner.pressed = None;
     }
 
     /// Cut the path back to the pages that still exist.

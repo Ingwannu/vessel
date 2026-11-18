@@ -2,10 +2,12 @@
 
 use std::rc::Rc;
 use vessel_app_kit::ui::{AnyElement, Context, Window};
-use vessel_app_kit::{ComboHandlers, ComboHeader, ComboRow, Leading, Tokens, combobox, select};
+use vessel_app_kit::{
+    ComboHandlers, ComboHeader, ComboRow, Leading, Side, Tokens, combobox, combobox_inline, select,
+};
 use vessel_app_view::labels::{Assignment, Catalog, Label, PickerPage};
 
-use super::{Opening, availability};
+use super::{Opening, PickerPlace, availability};
 use crate::shell::Shell;
 
 enum Choice {
@@ -19,8 +21,7 @@ pub(super) fn overlay(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let state = &shell.areas.labels;
-    let picker = state.picker.as_ref()?;
+    let picker = shell.areas.labels.picker.as_ref()?;
     if !picker.visible {
         return None;
     }
@@ -30,6 +31,61 @@ pub(super) fn overlay(
         }
         PickerPage::Listing => {}
     }
+    // Beside its row menu the menu's flyout draws the list ([`beside`]).
+    if matches!(picker.place, PickerPlace::Beside) {
+        return None;
+    }
+    let (header, rows, handlers) = list(shell, picker, tokens, cx);
+    combobox(
+        "workspace-label-picker",
+        &shell.areas.labels.picker_combo,
+        &header,
+        &rows,
+        &handlers,
+        select::WIDTH,
+        tokens,
+        window,
+        cx,
+    )
+}
+
+/// The list inside the row menu's Labels flyout (TRACKER 791).
+pub(super) fn beside(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let picker = shell.areas.labels.picker.as_ref()?;
+    if !picker.visible
+        || !matches!(picker.place, PickerPlace::Beside)
+        || !matches!(picker.page, PickerPage::Listing)
+    {
+        return None;
+    }
+    let (header, rows, handlers) = list(shell, picker, tokens, cx);
+    combobox_inline(
+        "workspace-label-picker",
+        &shell.areas.labels.picker_combo,
+        &header,
+        &rows,
+        &handlers,
+        select::WIDTH,
+        tokens,
+        window,
+        cx,
+    )
+}
+
+/// The picker's list: its title and search, the host's labels checked as
+/// assigned, and "Create label"; a phone's page leads back to its menu.
+fn list(
+    shell: &Shell,
+    picker: &super::WorkspacePicker,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> (ComboHeader, Vec<ComboRow>, ComboHandlers<Shell>) {
+    let state = &shell.areas.labels;
     let fallback = Catalog::default();
     // Node lookup here resolves cached display colors only, never a connection.
     let catalog = state
@@ -79,28 +135,21 @@ pub(super) fn overlay(
                 Choice::Create => shell.labels_picker_create(opening, window, cx),
             }
         }),
-        back: None,
+        back: match &picker.place {
+            PickerPlace::Page(back) => Some(Rc::clone(back)),
+            PickerPlace::Popover | PickerPlace::Beside => None,
+        },
     };
     let words = shell.words.labels();
-    let note = note(shell, picker);
-    combobox(
-        "workspace-label-picker",
-        &state.picker_combo,
-        &ComboHeader {
-            title: Some(words.title().into()),
-            back: false,
-            search: true,
-            empty: words.no_matches().into(),
-            note: note.map(Into::into),
-            side: picker.side,
-        },
-        &rows,
-        &handlers,
-        select::WIDTH,
-        tokens,
-        window,
-        cx,
-    )
+    let header = ComboHeader {
+        title: Some(words.title().into()),
+        back: matches!(picker.place, PickerPlace::Page(_)),
+        search: true,
+        empty: words.no_matches().into(),
+        note: note(shell, picker).map(Into::into),
+        side: Side::Below,
+    };
+    (header, rows, handlers)
 }
 
 fn note(shell: &Shell, picker: &super::WorkspacePicker) -> Option<&'static str> {

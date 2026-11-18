@@ -179,3 +179,24 @@ fn a_new_opening_of_the_menu_starts_at_the_root(cx: &mut TestAppContext) {
         assert!(!probe.submenus.is_open("show", 0));
     });
 }
+
+#[gpui::test]
+fn a_press_asks_its_screen_once_to_move_the_keys_in_and_hover_never(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    let row = bounds(cx, "row");
+    pointer(cx, row.center());
+    advance(cx, 90);
+    view.update(cx, |probe, _| {
+        assert!(probe.submenus.is_open("show", 0));
+        assert!(!probe.submenus.pressed("show"));
+        probe.submenus.open("show", 0);
+        assert!(probe.submenus.pressed("show"));
+        assert!(probe.submenus.take_pressed("show"));
+        assert!(!probe.submenus.take_pressed("show"));
+        // Closed before its screen took the keys: nothing left to take.
+        probe.submenus.open("show", 0);
+        assert!(probe.submenus.back());
+        assert!(!probe.submenus.back());
+        assert!(!probe.submenus.pressed("show"));
+    });
+}
