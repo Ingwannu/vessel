@@ -289,9 +289,19 @@ A 12-column grid inside `main`, not including the sidebar.
 
 | Breakpoint | Sidebar | Main | Columns | Gutter |
 | --- | --- | --- | --- | --- |
-| ≥ 1100px | 240px fixed | fluid | 12 | 16px |
-| 600–1099 | 52px icon rail | fluid | 8 | 12px |
+| ≥ 1100px | the whole sidebar, 240px | fluid | 12 | 16px |
+| 600–1099 | the whole sidebar, 240px (down to 200 below 640, so the page keeps 400) | fluid | 8 | 12px |
 | < 600 (compact) | hidden, a sheet from the title bar | fluid | 4 | 8px |
+
+The sidebar beside the page is Paseo's desktop sidebar
+(`desktop-sidebar-layout.ts`, TRACKER 806): drawn whole at its width,
+narrowed to 200 at least so the page keeps a 400 centre, and hidden only
+by its toggle or at a compact width. There is no rail of icons (Paseo has
+none; the native app already follows this). Paseo also hides it where a
+route needs more than the centre (Settings' split, 720; a workspace with
+its explorer, 600); the page's Settings draws its sections in the sidebar
+itself and its code panel is a sheet below 1280, so neither applies.
+`--sidebar-min-w` and `--center-min-w` (tokens.css) hold the two numbers.
 
 Compact is Paseo's: a window below 600px (TRACKER 805; the page folded
 at 768 before, the native app moved to 600 in 798). The number lives in
