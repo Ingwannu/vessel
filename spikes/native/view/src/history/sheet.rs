@@ -17,7 +17,14 @@
 //!   rows and failure; `answer` returns the follow-up reads a feed still
 //!   needs, so the owner issues them as it issues the first.
 //! - Impact: the default account only (the node lists without one); saved
-//!   accounts and the prompt preview wait for node work (filed).
+//!   accounts wait for node work (filed).
+//! - Ranked listing (TRACKER 790, ADR 0109): a node of
+//!   `RANKED_HISTORY_PROTOCOL` answers Paseo's own read, so for it
+//!   (`Opening::ranked`) a feed asks its limit and the search and gets
+//!   that many not-yet-imported sessions with their prompts and the count
+//!   it left out; "Load more" asks again with the next limit; nothing waits
+//!   in the sheet (the node runs four and queues sixteen) and nothing is
+//!   filtered here (`ranked`). An older node keeps the cursor pages above.
 
 use super::{Ask, Batch, Cursor, Entry, Problem, Reply, Scope};
 use crate::connection::ConnectionContext;
@@ -31,9 +38,10 @@ use vessel_proto::{HarnessRef, HarnessSessionId, NodeId, SessionInfo, SessionTit
 pub const PAGE_LIMITS: [usize; 4] = [FIRST_LIMIT, 45, 90, 200];
 const FIRST_LIMIT: usize = 15;
 
-/// Reads outstanding at once. The node lists at most two at once (its
-/// `service::history::AT_ONCE`) and answers more `unavailable`, which would
-/// show as a failed provider; the rest wait here and go as answers come.
+/// Reads outstanding at once on a node before the ranked listing. It lists
+/// at most two at once (its `service::history::AT_ONCE`) and answers more
+/// `unavailable`, which would show as a failed provider; the rest wait here
+/// and go as answers come. A ranked node queues them itself.
 const READS_AT_ONCE: usize = 2;
 
 /// The host (and folder) the sheet was opened for.
@@ -45,6 +53,8 @@ pub struct Opening {
     pub machine: MachineKey,
     /// The workspace's folder; `None` lists the whole host.
     pub cwd: Option<PathBuf>,
+    /// The host speaks `RANKED_HISTORY_PROTOCOL` (ADR 0109).
+    pub ranked: bool,
 }
 
 /// A feed's read state; rows already read stay while a new read runs.
@@ -70,6 +80,8 @@ struct Feed {
     state: FeedState,
     node: Option<NodeId>,
     read: bool,
+    /// A ranked listing's count of sessions left out as already imported.
+    already_imported: u32,
 }
 
 /// Which providers the list shows (Paseo's provider filter).
@@ -138,6 +150,8 @@ pub struct Sheet {
     /// `close` as the ticket source does. The link answers every ask once.
     sent: Vec<(ConnectionContext, Ticket)>,
     tickets: Tickets,
+    /// The search a ranked listing asks the node, trimmed; empty for none.
+    query: String,
 }
 
 impl Sheet {
@@ -161,6 +175,7 @@ impl Sheet {
                 state: FeedState::Idle,
                 node: None,
                 read: false,
+                already_imported: 0,
             })
             .collect();
         self.refresh()
@@ -175,6 +190,7 @@ impl Sheet {
         self.limit = 0;
         self.import_failed = None;
         self.imported = None;
+        self.query.clear();
     }
 
     /// The host the sheet is open for.
@@ -240,6 +256,10 @@ impl Sheet {
             .limit
             .saturating_add(1)
             .min(PAGE_LIMITS.len().saturating_sub(1));
+        if self.ranked() {
+            // Paseo grows the limit and reads again; rows stay until then.
+            return self.refresh();
+        }
         let mut asks = Vec::new();
         for index in 0..self.feeds.len() {
             asks.extend(self.continue_feed(index)?);
@@ -257,6 +277,9 @@ impl Sheet {
     /// than the current limit, and a larger limit exists.
     #[must_use]
     pub fn has_more(&self) -> bool {
+        if self.ranked() {
+            return self.ranked_has_more();
+        }
         self.limit.saturating_add(1) < PAGE_LIMITS.len()
             && self
                 .feeds
@@ -335,7 +358,8 @@ impl Sheet {
                     entry,
                 })
             })
-            .filter(|row| matches(row.entry, query))
+            // A ranked node searched already; an older one is searched here.
+            .filter(|row| self.ranked() || matches(row.entry, query))
             .collect();
         rows.sort_by(|left, right| {
             right
@@ -345,43 +369,6 @@ impl Sheet {
                 .then_with(|| left.entry.id.as_str().cmp(right.entry.id.as_str()))
         });
         rows
-    }
-
-    /// Paseo's `computeEmptyState`: an empty state only once every provider
-    /// has answered, not every one of them failed, and nothing is listed.
-    #[must_use]
-    pub fn empty_state(&self, query: &Query) -> Option<Empty> {
-        let settled = !self.feeds.is_empty() && !self.loading();
-        let all_failed = self
-            .feeds
-            .iter()
-            .all(|feed| matches!(feed.state, FeedState::Failed(_)));
-        (settled && !all_failed && self.rows(query).is_empty()).then(|| self.empty(query))
-    }
-
-    /// Why `rows(query)` is empty (Paseo's order of empty states).
-    #[must_use]
-    pub fn empty(&self, query: &Query) -> Empty {
-        if !query.is_empty() {
-            return Empty::NoMatches;
-        }
-        if let Filter::Provider(harness) = &self.filter
-            && self.rows(&Query::new("")).is_empty()
-            && self
-                .feeds
-                .iter()
-                .any(|feed| listable(feed).next().is_some())
-        {
-            return Empty::NoProviderSessions(harness.clone());
-        }
-        if self
-            .feeds
-            .iter()
-            .any(|feed| feed.rows.iter().any(|entry| entry.in_vessel.is_some()))
-        {
-            return Empty::AlreadyImported;
-        }
-        Empty::NoRecent
     }
 
     /// Import one listed session; nothing while another import or no read.
@@ -490,6 +477,8 @@ fn matches(entry: &Entry, query: &Query) -> bool {
     query.is_empty() || query.score(&[title, &path], None).is_some()
 }
 
+mod empty;
+mod ranked;
 mod reads;
 #[cfg(test)]
 mod tests;

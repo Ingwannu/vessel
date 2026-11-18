@@ -53,6 +53,7 @@ async fn queued_actual_history_page_cannot_install_after_connected_retirement() 
                 scope: scope.clone(),
                 ticket,
                 cursor: None,
+                ranked: None,
             }))
             .await;
         let request = actor.request().await;
@@ -100,6 +101,8 @@ async fn queued_actual_create_receipt_becomes_uncertain_after_physical_peer_clos
             title: None,
             updated_at: None,
             in_vessel: None,
+            first_prompt: None,
+            last_prompt: None,
         };
         let batch = Batch {
             node: scope.context.node(),
@@ -144,6 +147,7 @@ fn opened(scope: &Scope) -> (vessel_app_view::history::Sheet, Ticket) {
         context: scope.context.clone(),
         machine: scope.machine.clone(),
         cwd: None,
+        ranked: false,
     };
     let asks = model.open(opening, vec![scope.harness.clone()]).unwrap();
     let Ok([Ask::List { ticket, .. }]) = <[Ask; 1]>::try_from(asks) else {
@@ -172,6 +176,8 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
             title: None,
             updated_at: None,
             in_vessel: None,
+            first_prompt: None,
+            last_prompt: None,
         };
         assert!(
             model
@@ -181,7 +187,8 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
                     result: Ok(vessel_app_view::history::Listed {
                         entries: vec![entry.clone()],
                         next: None,
-                        node: scope.context.node()
+                        node: scope.context.node(),
+                        already_imported: 0,
                     })
                 })
                 .applied

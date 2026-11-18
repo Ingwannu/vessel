@@ -59,6 +59,7 @@ impl Sheet {
                 });
                 feed.node = Some(page.node);
                 feed.next = page.next;
+                feed.already_imported = page.already_imported;
                 feed.state = FeedState::Idle;
             }
             Err(problem) => feed.state = FeedState::Failed(problem),
@@ -144,6 +145,8 @@ impl Sheet {
         let Some(scope) = self.scope(&harness) else {
             return Ok(None);
         };
+        // A ranked node runs four listings and queues sixteen itself.
+        let ranked = self.ranked().then(|| self.ranked_ask());
         // A superseded read still runs on the node until its reply comes.
         let in_flight = self
             .sent
@@ -159,7 +162,7 @@ impl Sheet {
         }
         // No read while an import runs (its receipt changes the list); the
         // read waits and goes with the receipt, as one waiting for a slot.
-        if in_flight >= READS_AT_ONCE || self.importing.is_some() {
+        if (ranked.is_none() && in_flight >= READS_AT_ONCE) || self.importing.is_some() {
             feed.state = FeedState::Queued;
             return Ok(None);
         }
@@ -171,7 +174,8 @@ impl Sheet {
         Ok(Some(Ask::List {
             scope,
             ticket,
-            cursor,
+            cursor: if ranked.is_some() { None } else { cursor },
+            ranked,
         }))
     }
 
