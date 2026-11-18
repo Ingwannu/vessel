@@ -31,6 +31,11 @@ pub(crate) struct LayoutRoute {
 }
 
 impl LayoutRoute {
+    /// The original node's alias: the rename's limit is its protocol's.
+    pub(crate) const fn machine(&self) -> &HostAlias {
+        &self.machine
+    }
+
     /// The layout it was opened from (kept while the form is open).
     #[cfg(test)]
     pub(crate) const fn workspace(&self) -> &LayoutKey {

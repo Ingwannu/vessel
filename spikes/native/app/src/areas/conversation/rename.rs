@@ -22,8 +22,9 @@
 //!     alias and id, answered by ticket (`layout_renamed`);
 //!   - otherwise the session's own act (`Act::Rename`), answered by the act
 //!     for this machine and session (`rename_acted`).
-//! - Field: the kit's rename profile, limited to the node's longest title
-//!   (`SessionTitle::MAX_CHARS`; TRACKER 801 brings Paseo's 200).
+//! - Field: the kit's rename profile, limited to the longest title the
+//!   session's node decodes (`SessionTitle::max_chars_for` its protocol:
+//!   Paseo's 200 from protocol 30, 120 before or while not connected).
 //! - Answers come without a window: success closes the dialog and the next
 //!   frame acknowledges it (`DialogState::dismissed`), so its opener has the
 //!   keys again and the next opening remembers its own opener; a failure
@@ -88,6 +89,16 @@ pub(crate) enum Route {
     },
     /// A workspace layout's: the original node's authority, by ticket.
     Layout(LayoutRoute),
+}
+
+impl Route {
+    /// The machine the rename goes to.
+    fn machine(&self) -> &str {
+        match self {
+            Self::Session { machine, .. } => machine,
+            Self::Layout(route) => route.machine().as_str(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -172,7 +183,11 @@ impl Shell {
             window,
             cx,
         );
-        field.set_max_chars(SessionTitle::MAX_CHARS, cx);
+        // The longest title the session's node decodes (TRACKER 801): 200 from
+        // protocol 30, 120 before or while it is not connected.
+        let most = self.fleet.protocol_of(route.machine());
+        let most = most.map_or(SessionTitle::LEGACY_MAX_CHARS, SessionTitle::max_chars_for);
+        field.set_max_chars(most, cx);
         field.set_text(shown, window, cx);
         self.areas.conversation.rename_dialog.focus(window, cx);
         field.focus(window, cx);

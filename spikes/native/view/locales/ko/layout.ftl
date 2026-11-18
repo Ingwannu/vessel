@@ -45,8 +45,6 @@ layout-unavailable = 작업 공간 배치를 복원하지 못했습니다.
 layout-modified = 수정한 파일을 저장하거나 버린 후 닫아 주세요.
 # Workspace tab or pane control; keep short.
 layout-refused = 지금은 이 배치 작업을 할 수 없습니다.
-# Workspace tab or pane control; keep short.
-layout-empty = 이 창에서 열 항목을 선택하세요.
 
 # Missing panel capability notice in a retained tab.
 layout-panel-unavailable = 이 호스트에서 이 패널을 사용할 수 없습니다.
@@ -135,3 +133,9 @@ layout-name-required = 이름을 입력하세요
 layout-rename-saving = 저장하는 중...
 # Rename dialog: a rename failed without the host's words (Paseo's common.errors.unableToSave).
 layout-unable-to-save = 저장할 수 없습니다
+# New tab panel: the terminal profiles group's label (Paseo's
+# workspace.tabs.actions.terminalProfilesMenu).
+layout-terminal-profiles = 터미널 프로필
+# New tab panel: the terminal profiles group's pencil, its accessible name
+# (Paseo's workspace.tabs.actions.editTerminalProfiles).
+layout-edit-profiles = 프로필 편집

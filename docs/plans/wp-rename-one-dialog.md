@@ -108,13 +108,19 @@ Status: built and gated; frames with the coordinator.
   single quotes (`'` as `'\''`), so a pasted command never runs part of
   the id.
 
-## Follow-up when TRACKER 801 lands
+## Follow-up when TRACKER 801 lands (done in TRACKER 336's branch)
 
 801 (impl U, node queue) adds `SessionTitle::max_chars_for(protocol)`: 200
 from protocol 30, 120 before. Once it is in a package base, the field's
 limit comes from it and the connected node's protocol instead of
 `SessionTitle::MAX_CHARS` (`conversation::rename::start_rename`, the
 `set_max_chars` call), with a test for both protocols.
+
+Done on 2026-11-18 with package base 14.48: the field takes
+`SessionTitle::max_chars_for` the session's node's protocol
+(`fleet.protocol_of` the route's machine), 120 while it is not connected.
+Tests: `conversation::rename::tests` at protocol 30 (200), 29 (120) and with
+no connected node (120).
 
 ## Tests
 

@@ -45,8 +45,6 @@ layout-unavailable = Workspace layout could not be restored.
 layout-modified = Save or discard the modified file before closing it.
 # Workspace tab or pane control; keep short.
 layout-refused = This layout action is unavailable.
-# Workspace tab or pane control; keep short.
-layout-empty = Choose what to open in this pane.
 
 # Missing panel capability notice in a retained tab.
 layout-panel-unavailable = This panel is unavailable on this host.
@@ -135,3 +133,9 @@ layout-name-required = Name is required
 layout-rename-saving = Saving...
 # Rename dialog: a rename failed without the host's words (Paseo's common.errors.unableToSave).
 layout-unable-to-save = Unable to save
+# New tab panel: the terminal profiles group's label (Paseo's
+# workspace.tabs.actions.terminalProfilesMenu).
+layout-terminal-profiles = Terminal profiles
+# New tab panel: the terminal profiles group's pencil, its accessible name
+# (Paseo's workspace.tabs.actions.editTerminalProfiles).
+layout-edit-profiles = Edit profiles
