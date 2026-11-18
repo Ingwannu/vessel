@@ -8,7 +8,8 @@ Reference: pinned Paseo 0.15.4 (`1c00b365c`):
 `screens/workspace/compact-workspace-header/tab-switcher.tsx`,
 `components/ui/combobox.tsx` (`bottomSheetHeader`, `comboboxTitle`).
 
-Status: built and gated; frames with the coordinator.
+Status: visual PASS (coordinator); app reviewer round 1 returned R1 (the
+600-768 band), fixed at the root below; round 2 with the app reviewer.
 
 ## Paseo on a phone
 
@@ -54,12 +55,47 @@ dialog's sheet with its title row, rule and close button.
   (`draw::tab_label`); `layout::compact::switcher` uses the title-only
   header.
 
+## One compact width (app reviewer R1; the coordinator's ruling)
+
+The app reviewer found that between 600 and 768 the wide bar and strip
+were drawn while the two titled menus came up as sheets: the kit's phone
+width (`kit::breakpoint::PHONE`) was 768 and the layout's Compact 600.
+Paseo has one compact width, below `md` (600; `constants/layout.ts`
+`isCompactBreakpoint`, `styles/unistyles.ts`), and every sheet form
+switches there.
+
+[Decision Log]
+- Purpose and intent: one width for the phone form, as Paseo.
+- Existing implementation and constraints: `PHONE` 768 (the page's
+  sidebar fold) drove about sixty places: dialogs as sheets, titled menus
+  as sheets, touch sizes in the conversation bar and elsewhere, the title
+  bar's icons, the Settings sidebar and list form, the code panel's full
+  screen form, some densities. The layout's Compact, the sidebar's sheet
+  (`SIDEBAR_COMPACT`) and the pickers (`picker::COMPACT`) were 600.
+- Alternatives considered: a Compact condition on the two sheet titles
+  (the app reviewer's fix; the band stays wrong for every other sheet).
+- Chosen approach (the coordinator): `PHONE` is 600; `picker::COMPACT` is
+  `PHONE`; the view's `SIDEBAR_COMPACT` is its `COMPACT_LAYOUT_WIDTH`; the
+  app asserts at compile time that `PHONE` equals `COMPACT_LAYOUT_WIDTH`
+  (the view cannot depend on the kit). Settings' own sheet branch in
+  `sidebar::arrangement` became the sidebar's rule and went.
+- Pros, cons and impact: from 600 to 767 dialogs are centred cards, menus
+  popovers, controls pointer-sized, the title bar has its wide statuses,
+  Settings docks its list (below its 720 minimum until E2's frame) and
+  loads its sections at once, the code panel is beside or over the
+  conversation and its file viewer editable. A touch window in that band
+  gets pointer-sized targets, as Paseo's. The browser build's page still
+  folds its sidebar at 768.
+- Tests that assumed 768: Settings' sidebar form (now a sheet at 590, docked
+  at 650 and 800) and the shortcuts page at 700 (not the phone form).
+
 ## Tests
 
 - kit `dialog::header_title_only_tests`.
 - app `layout::compact::tests`: the switcher has its title and no close
   button; a row's "…" and the Workspace actions open as sheets as wide as
-  the window.
+  the window; at 700 Workspace actions and a strip tab's menu are
+  popovers.
 
 ## Status
 

@@ -14,6 +14,7 @@ fn opening(cwd: Option<&str>) -> Opening {
             .unwrap(),
         machine: MachineKey::from_book("laptop"),
         cwd: cwd.map(PathBuf::from),
+        ranked: false,
     }
 }
 
@@ -32,6 +33,8 @@ fn entry(id: &str, minute: i64) -> Entry {
         title: Some(id.parse::<SessionTitle>().unwrap()),
         updated_at: chrono::DateTime::from_timestamp(minute.saturating_mul(60), 0),
         in_vessel: None,
+        first_prompt: None,
+        last_prompt: None,
     }
 }
 
@@ -52,6 +55,7 @@ fn reply(ask: &Ask, entries: Vec<Entry>, next: Option<&str>) -> Reply {
             entries,
             node: NODE.parse().unwrap(),
             next: next.map(|cursor| Cursor::parse(cursor.to_owned()).unwrap()),
+            already_imported: 0,
         }),
     }
 }

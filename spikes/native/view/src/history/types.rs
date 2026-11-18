@@ -59,9 +59,37 @@ pub struct Entry {
     pub updated_at: Option<DateTime<Utc>>,
     /// Existing session to open instead of duplicating it.
     pub in_vessel: Option<SessionId>,
+    /// Its first prompt, from a ranked listing (ADR 0109); `None` from an
+    /// older node or when the node did not read it in time.
+    pub first_prompt: Option<String>,
+    /// Its last prompt, as `first_prompt`.
+    pub last_prompt: Option<String>,
 }
 
 impl Entry {
+    /// Paseo's `getPromptPreview`: the last prompt, else the first; `None`
+    /// when the node read neither (the row then says "No prompt preview").
+    #[must_use]
+    pub fn preview(&self) -> Option<&str> {
+        [self.last_prompt.as_deref(), self.first_prompt.as_deref()]
+            .into_iter()
+            .flatten()
+            .map(str::trim)
+            .find(|text| !text.is_empty())
+    }
+
+    /// Paseo's `getSessionTitle`: the agent's title, else the first prompt;
+    /// `None` for "Untitled session".
+    #[must_use]
+    pub fn shown_title(&self) -> Option<&str> {
+        self.title
+            .as_ref()
+            .map(SessionTitle::as_str)
+            .or(self.first_prompt.as_deref())
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+    }
+
     /// Resume the selected native conversation, preserving its account and title.
     #[must_use]
     pub fn spec(&self, scope: &Scope) -> SessionSpec {
@@ -89,6 +117,19 @@ pub struct Listed {
     pub node: vessel_proto::NodeId,
     /// Next page as minted by the node.
     pub next: Option<Cursor>,
+    /// A ranked listing's count of conversations left out because they are
+    /// already in Vessel (ADR 0109); 0 from a cursor page.
+    pub already_imported: u32,
+}
+
+/// What a ranked listing asks (ADR 0109, `RANKED_HISTORY_PROTOCOL`): Paseo's
+/// per-provider `limit` and its search, both answered by the node.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ranked {
+    /// The newest this many not yet in Vessel (Paseo's `PAGE_LIMITS`).
+    pub limit: u16,
+    /// What they must hold; `None` for all.
+    pub query: Option<String>,
 }
 
 /// A creation batch remains bound to its original scope after navigation.
@@ -122,6 +163,8 @@ pub enum Ask {
         ticket: Ticket,
         /// Absent starts a fresh list.
         cursor: Option<Cursor>,
+        /// A ranked listing instead of a cursor page (never with a cursor).
+        ranked: Option<Ranked>,
     },
     /// Import one or several selected conversations.
     Import(Batch),

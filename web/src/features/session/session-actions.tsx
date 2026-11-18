@@ -105,7 +105,7 @@ export function SessionActions({
           onSelect={() => {
             navigator.clipboard.writeText(session.id).then(
               () => {
-                toastCopied("Copied the session id");
+                toastCopied("Agent ID");
               },
               () => {
                 toast("The clipboard refused the text", "error");
@@ -113,7 +113,7 @@ export function SessionActions({
             );
           }}
         >
-          Copy session id
+          Copy agent id
         </MenuItem>
         {offered.includes("delete") ? (
           <>

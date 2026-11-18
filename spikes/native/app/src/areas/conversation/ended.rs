@@ -28,7 +28,7 @@
 //!   page's heading and line at the left and the button at the right.
 //!   Paseo's button is plain words; the page's restore mark is not drawn
 //!   because the kit's button takes words only. The phone padding follows
-//!   the app's phone width (768), not Paseo's 600.
+//!   the app's phone width, Paseo's 600 (TRACKER 798).
 //! - Slice M (the owner on 0.0.0.0.13: sending as in Paseo): an ended
 //!   session that can go on has no banner at all; the next message
 //!   starts it again underneath and shows at once (`tail`). The banner is

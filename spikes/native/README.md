@@ -619,6 +619,16 @@ close control, a leading mark per look (success `CircleCheck` in the accent,
 copied in the foreground, Info16 for the git guidance, an error's `Alert` with
 a destructive hairline), as wide as its words in Paseo's boundary;
 `toast_layer` places the one card under the title bar.
+A copy says so as Paseo's copied toast (TRACKER 804): `Shell::toast_copied`
+words it "Copied {label}" / "{label} 복사됨" (`layout-copied`, Paseo's
+`common.states.copiedLabel`) with Paseo's labels (Agent ID, Terminal ID, File
+path, resume command, Workspace path, diagnostic) and, for Vessel's own copies,
+sentence-case ones in the same pattern (Session link, Preferences path); the
+sidebar's row copy keeps Paseo's own sidebar words, "Path copied". The session
+bar's Copy ID is Paseo's "Copy agent id". The diagnostic, session link and
+preferences path copies were frame notices that re-worded on a language
+change; a toast, as in Paseo, is not re-worded. Copies Paseo leaves silent
+(the explorer's paths) and inline states (the pairing link) stay as they are.
 
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
@@ -700,18 +710,18 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   for what belongs to no control.
 - Every screen works from 360 points wide (the phone); targets are 44
   points on touch; nothing depends on hover (ADR 0036).
-- Two widths, both named in the kit, each with its reason:
-  - `kit::breakpoint::PHONE` (768): below it the sidebar is a sheet from
-    the title bar's menu button, and the title bar's statuses are icons.
-    ADR 0036's width, the page's too, so the sidebar folds at the same
-    size on every surface.
-  - `kit::picker::COMPACT` (600, Paseo's compact width,
-    `constants/layout.ts`): below it controls are touch-sized (44), a
-    picker's list and a dialog are sheets from the bottom, and the
-    composer's card is tighter. Paseo's own width, so its controls change
-    where Paseo's do.
-  Between 600 and 768 the sidebar is a sheet and the controls are still
-  pointer-sized: a narrow desktop window, where a mouse is still likely.
+- One compact width, as Paseo's (below its `md`, 600,
+  `constants/layout.ts`): `kit::breakpoint::PHONE`, which
+  `kit::picker::COMPACT` is and the layout's Compact
+  (`view::layout::COMPACT_LAYOUT_WIDTH`) equals (the app checks it when
+  it compiles). Below it the sidebar is a sheet from the title bar's menu
+  button and the title bar's statuses are icons; controls are
+  touch-sized (44); dialogs, pickers and titled menus are sheets from the
+  bottom; the workspace has one compact header. From 600 up the window is
+  a desktop's: centred dialogs, popovers, pointer-sized controls, as in
+  Paseo (TRACKER 798, the coordinator's ruling; before it the phone form
+  ran to 768 while the layout changed at 600). The browser build's own
+  page still folds its sidebar at 768.
   `kit::breakpoint::INSPECTOR` (1280) folds the inspector, when there is
   one.
 - No library's default look anywhere (the owner, on 0.0.0.0.3): fields

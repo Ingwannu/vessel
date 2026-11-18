@@ -27,6 +27,7 @@ fn controls_keep_the_existing_english_and_korean_sentences() {
     assert_eq!(ko.copy(), "복사");
     assert_eq!(en.refresh(), "Refresh");
     assert_eq!(ko.refresh(), "새로 고침");
-    assert_eq!(en.copied(), "Diagnostic copied.");
-    assert_eq!(ko.copied(), "진단을 복사했습니다.");
+    // The label in Paseo's "Copied {label}" toast (settings.diagnostics.app.copyLabel).
+    assert_eq!(en.copied_label(), "diagnostic");
+    assert_eq!(ko.copied_label(), "진단");
 }

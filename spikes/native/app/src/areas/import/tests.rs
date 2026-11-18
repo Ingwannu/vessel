@@ -13,6 +13,7 @@ use vessel_app_view::{Agent, Fleet, Machine, Reach};
 use vessel_proto::{HarnessKind, HarnessRef, HarnessSessionId, NodeId, SessionId, SessionInfo};
 
 mod geometry;
+mod ranked;
 
 fn codex() -> HarnessRef {
     HarnessKind::Codex.into()
@@ -41,8 +42,18 @@ fn machine(name: &str, harnesses: &[HarnessRef]) -> Machine {
                 not_installed: false,
             })
             .collect(),
-        protocol: Some(vessel_proto::PROTOCOL_VERSION),
+        // The cursor listing these tests drive: a host before the ranked one
+        // (ADR 0109); `ranked_machine` speaks it (tests/ranked.rs).
+        protocol: Some(vessel_proto::ProtocolVersion::new(28)),
         version: None,
+    }
+}
+
+/// `machine`, speaking the ranked listing (`RANKED_HISTORY_PROTOCOL`).
+fn ranked_machine(name: &str, harnesses: &[HarnessRef]) -> Machine {
+    Machine {
+        protocol: vessel_proto::history::RANKED_HISTORY_PROTOCOL,
+        ..machine(name, harnesses)
     }
 }
 
@@ -53,6 +64,8 @@ fn entry(id: &str, minute: i64) -> Entry {
         title: Some(id.parse().unwrap()),
         updated_at: chrono::DateTime::from_timestamp(minute.saturating_mul(60), 0),
         in_vessel: None,
+        first_prompt: None,
+        last_prompt: None,
     }
 }
 
@@ -115,6 +128,7 @@ fn answer(
                         entries,
                         next: None,
                         node,
+                        already_imported: 0,
                     }),
                 },
                 cx,

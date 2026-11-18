@@ -43,9 +43,9 @@ pub const SIDEBAR: Limits = Limits {
     beside: 400.0,
 };
 
-/// Paseo compact layouts are below 600 (`constants/layout.ts:36`), independent
-/// of the native shell's 768-point phone chrome and other areas.
-pub const SIDEBAR_COMPACT: f32 = 600.0;
+/// Paseo compact layouts are below 600 (`constants/layout.ts:36`): the
+/// layout's Compact width, which the kit's phone width equals.
+pub const SIDEBAR_COMPACT: f32 = crate::layout::COMPACT_LAYOUT_WIDTH;
 /// Paseo settings split minimum: navigation 320 plus detail 400.
 pub const SETTINGS_CONTENT_MINIMUM: f32 = 720.0;
 

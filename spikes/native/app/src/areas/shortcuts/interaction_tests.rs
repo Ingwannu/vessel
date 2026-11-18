@@ -290,14 +290,14 @@ fn layout_close_never_reaches_window_fallback_in_an_active_session(cx: &mut Test
 }
 
 #[gpui::test]
-fn settings_shortcuts_use_actual_six_hundred_boundary_independent_of_phone_form(
-    cx: &mut TestAppContext,
-) {
+fn settings_shortcuts_change_at_the_one_six_hundred_boundary(cx: &mut TestAppContext) {
     let (shell, cx) = setup(cx);
     cx.simulate_resize(gpui::size(gpui::px(700.0), gpui::px(844.0)));
     cx.run_until_parked();
     shell.update_in(cx, |shell, window, cx| {
-        assert!(vessel_app_kit::breakpoint::phone(window));
+        // The phone form and the shortcuts' availability share Paseo's one
+        // compact width (TRACKER 798).
+        assert!(!vessel_app_kit::breakpoint::phone(window));
         assert!(super::available(window));
         shell.open_settings(Some(Section::Shortcuts), window, cx);
     });

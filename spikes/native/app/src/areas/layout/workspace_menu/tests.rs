@@ -100,9 +100,10 @@ const CHARACTER: f32 = 8.4;
 #[gpui::test]
 fn a_prompt_cut_title_has_room_and_shows_whole(cx: &mut TestAppContext) {
     language_tests::init(cx);
-    // The node's prompt title: its first line cut at 80 characters, with no
-    // ellipsis, as Paseo's provisional title (60, create-agent-title.ts).
-    // The bar has room for it: shown whole, not clipped.
+    // The node's prompt title is its first line cut at
+    // `SessionTitle::FROM_PROMPT_CHARS` (60 since protocol 30, Paseo's
+    // provisional title, create-agent-title.ts), with no ellipsis. The bar
+    // has room for more: 80 characters are shown whole, not clipped.
     let prompt = "x".repeat(80);
     let (_probe, cx) = cx.add_window_view(|window, cx| titled(&prompt, window, cx));
     cx.simulate_resize(gpui::size(px(1280.0), px(800.0)));

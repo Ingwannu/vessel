@@ -77,7 +77,7 @@ impl Shell {
                     }
                     .to_url();
                     cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(link));
-                    self.notice = Some(self.words.sessions().link_copied().to_owned());
+                    self.toast_copied(self.words.sessions().copied_link_label(), cx);
                 }
             },
             Err(failure) => {

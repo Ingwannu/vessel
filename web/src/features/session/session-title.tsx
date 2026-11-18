@@ -6,9 +6,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { useFleet } from "../../context";
+import { useFleet, useFleetState } from "../../context";
 import { renameSession } from "../../data/calls";
-import { checkTitle } from "../../data/titles";
+import { checkTitle, titleMax } from "../../data/titles";
 import { TextField, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
@@ -28,6 +28,12 @@ export function SessionTitle({
   canRename: boolean;
 }) {
   const fleet = useFleet();
+  // The longest title this node takes: 200 from LONG_TITLES_PROTOCOL,
+  // 120 before (TRACKER 801).
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
   const [draft, setDraft] = useState<string | null>(null);
   // Set once Enter or Escape ended the edit, so the blur that follows
   // (the field leaving the page) does not save a second time.
@@ -56,7 +62,7 @@ export function SessionTitle({
     }
     ended.current = true;
     setDraft(null);
-    const checked = checkTitle(text);
+    const checked = checkTitle(text, titleMax(protocol));
     if (!checked.ok) {
       toast(checked.reason, "error");
       return;

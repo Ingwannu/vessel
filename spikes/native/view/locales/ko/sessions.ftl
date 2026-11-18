@@ -50,8 +50,8 @@ sessions-navigation-refused = 호스트에서 이 세션을 열지 못했습니�
 sessions-navigation-timeout = 세션을 여는 시간이 초과되었습니다. 다시 시도해 주세요.
 # Session navigation feedback.
 sessions-navigation-busy = 다른 요청을 처리하고 있습니다. 다시 시도해 주세요.
-# Session navigation feedback.
-sessions-link-copied = 세션 링크 복사됨
+# The copied-toast label for a session link: "Copied { $label }" (layout-copied; Paseo's copiedLabel pattern, a Vessel-only copy).
+sessions-copied-link-label = 세션 링크
 # A mutation timed out; do not imply it failed before being committed.
 sessions-outcome-uncertain = 작업 시간이 초과되어 완료 여부를 확인할 수 없습니다. 새로고침 후 다시 확인해 주세요.
 # Fresh conversation refuses to overwrite another unsent draft.
