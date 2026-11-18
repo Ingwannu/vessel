@@ -38,7 +38,7 @@ fn empty_image_clipboard_is_a_visible_error_without_inserting_its_text(cx: &mut 
         assert!(!shell.composer_has_files(DraftKey::New));
         assert_eq!(shell.areas.draft.composer.text(cx), "kept draft");
         assert_eq!(
-            shell.areas.toasts.list().last().unwrap().text,
+            shell.areas.toasts.shown().unwrap().text,
             shell.words.composer().image_clipboard_empty()
         );
     });

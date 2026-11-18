@@ -302,20 +302,21 @@ impl Shell {
                 cx.write_to_clipboard(ClipboardItem::new_string(command));
                 self.toast_copied(words.copied_resume_command(), cx);
             }
-            // Advisory: nothing was copied (Paseo shows these as errors;
-            // Vessel's error toasts stay until dismissed).
+            // Nothing was copied: Paseo's error toasts
+            // (workspace-screen.tsx 2132, 2143), gone after 3.2 s.
             Err(ResumeUnavailable::NoId) => {
-                self.toast(words.resume_id_unavailable(), ToastTone::Info, cx);
+                self.toast(words.resume_id_unavailable(), ToastTone::Error, cx);
             }
             Err(ResumeUnavailable::NoCommand) => {
-                self.toast(words.resume_command_unavailable(), ToastTone::Info, cx);
+                self.toast(words.resume_command_unavailable(), ToastTone::Error, cx);
             }
         }
     }
 
+    /// Paseo's `toast.copied` (workspace-screen.tsx 2090, 2103).
     fn toast_copied(&mut self, label: &str, cx: &mut Context<'_, Self>) {
         let words = self.words.layout();
         let text = words.copied(label).unwrap_or_else(|_| label.to_owned());
-        self.toast(text, ToastTone::Ok, cx);
+        self.toast(text, ToastTone::Copied, cx);
     }
 }

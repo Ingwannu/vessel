@@ -91,24 +91,33 @@ fn labels(items: &[(Action, MenuItem)]) -> Vec<String> {
         .collect()
 }
 
-/// Choose `action` on `tab`; the newest toast's words, if any.
+/// Choose `action` on `tab`; the toast up after it, its words and tone.
 fn choose(
     probe: &Entity<Probe>,
     cx: &mut VisualTestContext,
     tab: TabId,
     action: Action,
-) -> Option<String> {
+) -> Option<(String, ToastTone)> {
     probe.update_in(cx, |probe, window, cx| {
         probe.0.update(cx, |shell, cx| {
             chose(shell, tab, action, window, cx);
             shell
                 .areas
                 .toasts
-                .list()
-                .last()
-                .map(|toast| toast.text.clone())
+                .shown()
+                .map(|toast| (toast.text.clone(), toast.tone))
         })
     })
+}
+
+/// The toast a copy says: its words, Paseo's `toast.copied`.
+fn copy<E>(words: Result<String, E>) -> Option<(String, ToastTone)> {
+    words.ok().map(|text| (text, ToastTone::Copied))
+}
+
+/// The toast a copy that could not be made says: Paseo's `toast.error`.
+fn error(words: &str) -> (String, ToastTone) {
+    (words.to_owned(), ToastTone::Error)
 }
 
 fn clipboard(cx: &mut VisualTestContext) -> Option<String> {
@@ -204,7 +213,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, mine, Action::CopyResume);
-    assert_eq!(said.as_deref(), Some(words.resume_id_unavailable()));
+    assert_eq!(said, Some(error(words.resume_id_unavailable())));
     assert_eq!(clipboard(cx), None);
     // Once it did: Paseo's template for Claude Code, and its "Copied …"
     // (built by the same catalog call, Fluent's isolation marks included).
@@ -216,7 +225,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, mine, Action::CopyResume);
-    assert_eq!(said, words.copied(words.copied_resume_command()).ok());
+    assert_eq!(said, copy(words.copied(words.copied_resume_command())));
     assert_eq!(clipboard(cx).as_deref(), Some("claude --resume 4f1c2a"));
     // Another agent's tab reads its card: Codex's command.
     let card = |kind| {
@@ -242,7 +251,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, other, Action::CopyResume);
-    assert_eq!(said, words.copied(words.copied_resume_command()).ok());
+    assert_eq!(said, copy(words.copied(words.copied_resume_command())));
     assert_eq!(clipboard(cx).as_deref(), Some("codex resume 9e8d"));
     // Gemini has no template in Paseo's table.
     probe.update(cx, |probe, cx| {
@@ -251,7 +260,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, other, Action::CopyResume);
-    assert_eq!(said.as_deref(), Some(words.resume_command_unavailable()));
+    assert_eq!(said, Some(error(words.resume_command_unavailable())));
     assert_eq!(clipboard(cx).as_deref(), Some("codex resume 9e8d"));
 }
 
@@ -266,9 +275,9 @@ fn the_id_copies_put_the_tabs_id_on_the_clipboard_and_say_so(cx: &mut TestAppCon
         .read_with(cx, |probe, cx| probe.0.read(cx).words)
         .layout();
     let said = choose(&probe, cx, other, Action::Copy(Copied::AgentId));
-    assert_eq!(said, words.copied(words.copied_agent_id()).ok());
+    assert_eq!(said, copy(words.copied(words.copied_agent_id())));
     assert_eq!(clipboard(cx), Some(session.to_string()));
     let said = choose(&probe, cx, terminal, Action::Copy(Copied::TerminalId));
-    assert_eq!(said, words.copied(words.copied_terminal_id()).ok());
+    assert_eq!(said, copy(words.copied(words.copied_terminal_id())));
     assert_eq!(clipboard(cx), Some(shell_id.to_string()));
 }

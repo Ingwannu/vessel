@@ -5,11 +5,14 @@ use crate::submenu::Submenus;
 use crate::{Scheme, Tokens};
 use gpui::prelude::*;
 use gpui::{
-    Entity, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext, div, point, px,
+    Entity, FocusHandle, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext, div,
+    point, px,
 };
 
 struct Probe {
     menu: MenuState,
+    /// The opener: it holds the keys before the menu opens.
+    root: FocusHandle,
     submenus: Submenus,
     items: Vec<MenuItem>,
     sheet: bool,
@@ -31,17 +34,22 @@ impl Render for Probe {
         };
         let menu = menu_with(content, &self.menu, &handlers, &tokens, true, cx);
         self.drawn = menu.is_some();
-        div().size_full().children(menu)
+        div().size_full().track_focus(&self.root).children(menu)
     }
 }
 
 fn setup(cx: &mut TestAppContext, sheet: bool) -> (Entity<Probe>, &mut VisualTestContext) {
-    let (view, cx) = cx.add_window_view(move |_, cx| Probe {
-        menu: MenuState::new(cx),
-        submenus: Submenus::new(),
-        items: vec![MenuItem::new("Pin"), MenuItem::sub("Labels", "labels")],
-        sheet,
-        drawn: false,
+    let (view, cx) = cx.add_window_view(move |window, cx| {
+        let root = cx.focus_handle();
+        root.focus(window, cx);
+        Probe {
+            menu: MenuState::new(cx),
+            root,
+            submenus: Submenus::new(),
+            items: vec![MenuItem::new("Pin"), MenuItem::sub("Labels", "labels")],
+            sheet,
+            drawn: false,
+        }
     });
     view.update_in(cx, |probe, window, cx| {
         probe.menu.open(point(px(40.0), px(40.0)), window, cx);
@@ -158,6 +166,8 @@ fn a_pan_down_the_sheet_past_its_middle_closes_the_menu(cx: &mut TestAppContext)
     let (_, height) = window_size(cx);
     drag_down(cx, row.center(), height);
     view.read_with(cx, |probe, _| assert!(!probe.menu.is_open()));
+    // The keys go back to the opener, as an Escape would give them.
+    cx.update(|window, cx| view.read_with(cx, |probe, _| assert!(probe.root.is_focused(window))));
 }
 
 #[gpui::test]
