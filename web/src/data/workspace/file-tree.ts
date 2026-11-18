@@ -63,7 +63,6 @@ export function parentOf(path: RelPath): RelPath {
   return at < 0 ? "" : path.slice(0, at);
 }
 
-/** The rows of the tree under `dir`, `depth` deep. */
 /** When an entry last changed and its size (`file.inspect`), for the
  * Modified and Size orders; `null` where the node did not say. */
 export interface EntryFacts {
@@ -107,6 +106,7 @@ export function sortedEntries(
   });
 }
 
+/** The rows of the tree under `dir`, `depth` deep. */
 export function treeRows(
   listings: ReadonlyMap<RelPath, Listing>,
   open: ReadonlySet<RelPath>,
