@@ -46,7 +46,9 @@ export function useEntryFacts(
       }
       asked.current.set(dir, listing);
       void inspectDir(fleet, node, root, dir, ignored).then((outcome) => {
-        if (!outcome.ok) return;
+        // A slower answer for an older listing of the folder must not
+        // overwrite the newer one's facts.
+        if (!outcome.ok || asked.current.get(dir) !== listing) return;
         setFacts((known) => {
           const next = new Map(known);
           for (const entry of outcome.value.entries) {
