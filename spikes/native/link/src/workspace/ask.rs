@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use vessel_proto::workspace::directory_metadata::InspectDirectory;
+use vessel_proto::workspace::host_folders::SuggestFolders;
 use vessel_proto::workspace::panel_files::{DuplicateFileEntry, ObserveFile};
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateDir, DeletePath, Discard, DropSnapshot, Fetch,
@@ -53,6 +54,10 @@ pub enum ProjectAsk {
     Commands(GetProjectCommands),
     /// `project.approve` (or withdraw).
     Approve(ApproveCommands),
+    /// `folder.suggest` (ADR 0112): Add project's folders from the home.
+    SuggestFolders(SuggestFolders),
+    /// `project.icon` (ADR 0112).
+    Icon(ProjectId),
 }
 
 /// The worktree asks.

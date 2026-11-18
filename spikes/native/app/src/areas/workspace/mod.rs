@@ -14,6 +14,7 @@ mod code;
 mod detail;
 mod place;
 mod place_rows;
+mod project_icons;
 mod projects;
 mod remove;
 mod sidebar;
@@ -58,6 +59,8 @@ pub(crate) struct Workspace {
     /// The sidebar's projects unfolded past their first rows ("All
     /// projects (N)" pressed).
     pub(crate) projects_unfolded: bool,
+    /// Projects' own icons (ADR 0112).
+    pub(crate) icons: project_icons::ProjectIcons,
 }
 
 impl Workspace {
@@ -69,6 +72,7 @@ impl Workspace {
             start: None,
             code: code::CodePanel::new(window, cx),
             projects_unfolded: false,
+            icons: project_icons::ProjectIcons::default(),
         }
     }
 }
@@ -131,6 +135,7 @@ impl Shell {
                     .workspace
                     .projects
                     .insert(machine.to_owned(), ProjectsView::listed(result));
+                self.ask_project_icons(machine);
             }
             Answer::Project(project) => {
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
@@ -138,6 +143,8 @@ impl Shell {
                 }
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
+            Answer::Folders { query, result } => self.folders_suggested(machine, &query, result),
+            Answer::Icon { project, result } => self.project_icon_read(machine, project, result),
             Answer::Forgot { project, result } => self.forgot_project(machine, project, result),
             Answer::Commands {
                 project,

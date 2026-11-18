@@ -34,7 +34,7 @@ use vessel_app_kit::ui::{
     ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _,
     Window, div, px,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph, initial_of, initial_tile};
+use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::settings::Section;
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::ProjectState;
@@ -53,6 +53,8 @@ struct Entry {
     name: String,
     /// Why it cannot be started in, in words (`None`: ready).
     state: Option<String>,
+    /// Its icon, or its initial on a tile (`project_icons`).
+    mark: AnyElement,
 }
 
 impl Shell {
@@ -116,10 +118,12 @@ pub(crate) fn projects(
             machines_with = machines_with.saturating_add(1);
         }
         for project in &list.projects {
+            let name = project.name.to_string();
             entries.push(Entry {
                 machine: machine.name.clone(),
                 project: project.id,
-                name: project.name.to_string(),
+                mark: super::project_icons::mark(shell, &machine.name, project.id, &name, tokens),
+                name,
                 state: match project.state {
                     ProjectState::Ready => None,
                     ProjectState::Cloning { .. }
@@ -258,6 +262,7 @@ fn project_row(
         project,
         name,
         state,
+        mark,
     } = entry;
     let ready = state.is_none();
     let trailing: Option<SharedString> = state
@@ -270,7 +275,7 @@ fn project_row(
         ),
         tokens,
     )
-    .child(initial_tile(initial_of(&name), tokens))
+    .child(mark)
     .child(
         div()
             .flex_1()
