@@ -288,10 +288,7 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
 fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppContext) {
     let (probe, cx) = compact(cx);
     probe.read_with(cx, |probe, cx| {
-        assert_eq!(
-            workspace_menu::workspace_path(probe.0.read(cx)),
-            None
-        );
+        assert_eq!(workspace_menu::workspace_path(probe.0.read(cx)), None);
     });
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, _cx| {
