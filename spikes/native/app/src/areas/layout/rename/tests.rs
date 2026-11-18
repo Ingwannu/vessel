@@ -5,7 +5,7 @@ use super::*;
 use crate::areas::conversation::RenameRoute;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Render, TestAppContext, VisualTestContext};
-use vessel_app_kit::ui::{Entity, IntoElement, Window, div};
+use vessel_app_kit::ui::{Entity, IntoElement, ParentElement as _, Window, div};
 use vessel_app_link::workspace::layout::{Answer, Ask};
 use vessel_app_view::board::CardDetail;
 use vessel_app_view::layout::RenameTicket;
