@@ -1,9 +1,9 @@
 //! A followed host for tests outside the area: a session row whose
 //! registry workspace has a label, as the host's first reads leave it.
 
+use vessel_app_kit::ui::App;
 use vessel_app_link::labels::{Answer, Event, Request};
 use vessel_app_view::connection::{ConnectionContext, ConnectionEpochs, MachineKey};
-use vessel_app_kit::ui::App;
 use vessel_app_view::labels::{Catalog, Color, Host, HostState, Label};
 use vessel_app_view::machine_book;
 use vessel_proto::registry::{

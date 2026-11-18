@@ -340,7 +340,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if let Some(opening) = self.areas.labels.picker.as_ref().map(|picker| picker.opening) {
+        if let Some(picker) = &self.areas.labels.picker {
+            let opening = picker.opening;
             self.labels_picker_create(opening, window, cx);
         }
     }
