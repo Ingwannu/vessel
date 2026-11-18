@@ -14,9 +14,9 @@ layout-close-pane = Close pane
 # Workspace tab or pane control; keep short.
 layout-close-others = Close other tabs
 # Workspace tab or pane control; keep short.
-layout-close-left = Close tabs to the left
+layout-close-left = Close to the left
 # Workspace tab or pane control; keep short.
-layout-close-right = Close tabs to the right
+layout-close-right = Close to the right
 # Workspace tab or pane control; keep short.
 layout-split-right = Split pane right
 # Workspace tab or pane control; keep short.
@@ -109,3 +109,23 @@ layout-explorer-close = Close Explorer sidebar
 layout-rename-agent = Rename agent
 # The session bar's own "…" (marks, copy, close, log, kill), named apart from the workspace "…".
 layout-session-actions = Session actions
+# Tab menu: copy the command that resumes the agent in its own CLI (Paseo's workspace.tabs.menu.copyResumeCommand).
+layout-copy-resume-command = Copy resume command
+# Tab menu: copy the terminal's id (Paseo's workspace.tabs.menu.copyTerminalId).
+layout-copy-terminal-id = Copy terminal id
+# Tab menu: copy the file's path (Paseo's workspace.tabs.menu.copyFilePath).
+layout-copy-file-path = Copy file path
+# Toast after a tab menu copy; $label is one of the copied-* words (Paseo's common.states.copiedLabel).
+layout-copied = Copied { $label }
+# The copied-toast label for an agent's id (Paseo's workspace.tabs.toasts.agentIdCopiedLabel).
+layout-copied-agent-id = Agent ID
+# The copied-toast label for a terminal's id (Paseo's terminalIdCopiedLabel).
+layout-copied-terminal-id = Terminal ID
+# The copied-toast label for a file's path (Paseo's filePathCopiedLabel).
+layout-copied-file-path = File path
+# The copied-toast label for a resume command, lower case after "Copied" (Paseo's resumeCommandCopiedLabel).
+layout-copied-resume-command = resume command
+# Toast: the agent has not named its own session yet (Paseo's workspace.tabs.toasts.resumeIdUnavailable).
+layout-resume-id-unavailable = Resume ID not available
+# Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).
+layout-resume-command-unavailable = Resume command not available
