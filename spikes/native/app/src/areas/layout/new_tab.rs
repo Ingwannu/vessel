@@ -296,6 +296,7 @@ fn row_view(
         }
     };
     let id = row.id.clone();
+    let icon_id = row.id.clone();
     let body = div()
         .debug_selector(move || format!("new-tab-row-{id}"))
         .flex()
@@ -315,7 +316,18 @@ fn row_view(
         } else {
             neutral.surface1
         })
-        .child(mark.flex_none())
+        // One 16 glyph box for every row, so the labels share one rail
+        // (Paseo's `LAUNCHER_ICON_SIZE`): a brand mark keeps its clear space
+        // and is centred over the box.
+        .child(
+            div()
+                .debug_selector(move || format!("new-tab-icon-{icon_id}"))
+                .flex_none()
+                .w(px(icon::MD))
+                .flex()
+                .justify_center()
+                .child(mark),
+        )
         .child(
             div()
                 .flex_1()

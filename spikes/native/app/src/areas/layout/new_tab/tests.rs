@@ -232,3 +232,16 @@ fn a_press_on_agent_opens_the_new_agent_page(cx: &mut TestAppContext) {
         assert_eq!(probe.0.read(cx).route, Route::Draft);
     });
 }
+
+#[gpui::test]
+fn every_label_starts_on_one_rail(cx: &mut TestAppContext) {
+    let (_probe, cx) = at(cx, 1280.0);
+    // Paseo's one glyph box: a brand mark's clear space moves no label.
+    let lefts: Vec<Pixels> = BUILT_INS
+        .iter()
+        .chain(&PROFILES)
+        .map(|id| cx.debug_bounds(format!("new-tab-icon-{id}").leak()).unwrap())
+        .map(|icon| icon.right())
+        .collect();
+    assert!(lefts.windows(2).all(|pair| pair[0] == pair[1]), "{lefts:?}");
+}
