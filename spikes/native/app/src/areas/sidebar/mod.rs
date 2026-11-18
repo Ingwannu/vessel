@@ -257,16 +257,16 @@ const PANEL: Panel = Panel {
 };
 
 /// One sidebar-only layout decision, including the width currently dragged.
-/// Settings retains its old compact form until its frame owner consumes the
-/// shared budget; docking it at 600 now would duplicate its compact nav list.
+/// Settings folds where every route does: its phone form (the list, then a
+/// pushed section) and the sidebar's sheet share the one compact width
+/// (`kit::breakpoint::PHONE`, 600, TRACKER 798), so a docked sidebar never
+/// meets the compact list. From 600 to its 720 minimum Settings docks below
+/// that minimum (`Sharing::TooNarrow`) until E2's frame takes the budget.
 pub(crate) fn arrangement(
     shell: &Shell,
     window: &Window,
 ) -> vessel_app_view::panels::SidebarLayout {
-    use vessel_app_view::panels::{SidebarContext, SidebarLayout, sidebar_layout};
-    if shell.route == Route::Settings && vessel_app_kit::breakpoint::phone(window) {
-        return SidebarLayout::Sheet;
-    }
+    use vessel_app_view::panels::{SidebarContext, sidebar_layout};
     let context = match shell.route {
         Route::Settings => SidebarContext::Settings,
         Route::Draft

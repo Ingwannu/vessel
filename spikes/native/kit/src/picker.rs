@@ -58,9 +58,9 @@ mod sheet_drag_tests;
 pub use inline::combobox_inline;
 pub use send::{SendKind, send_button};
 
-/// Paseo's compact width: below it pickers are sheets and controls are
-/// touch-sized (`constants/layout.ts`).
-pub const COMPACT: f32 = 600.0;
+/// Paseo's compact width, the kit's one ([`crate::breakpoint::PHONE`]):
+/// below it pickers are sheets and controls are touch-sized.
+pub const COMPACT: f32 = crate::breakpoint::PHONE;
 
 /// `text` on one line: its line breaks and runs of spaces as one space.
 /// An agent's description can have several lines (Claude Code's subagents'
