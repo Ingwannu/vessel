@@ -841,6 +841,29 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
     assert_eq!(drivers.into_call().since(), Some(ProtocolVersion::new(18)));
 }
 
+/// The ranked history listing (ADR 0109): a `limit` or a `query` needs its
+/// protocol, where an older node would ignore both and answer the agent's
+/// first page unfiltered; a cursor listing stays at 17.
+#[test]
+fn a_ranked_history_listing_needs_its_own_protocol() {
+    use crate::history::{GetAgentHistory, RANKED_HISTORY_PROTOCOL};
+    let asked = |limit, query: Option<&str>| {
+        GetAgentHistory {
+            harness: crate::HarnessRef::Known(HarnessKind::ClaudeCode),
+            profile: None,
+            cwd: None,
+            cursor: None,
+            limit,
+            query: query.map(str::to_owned),
+        }
+        .into_call()
+    };
+    assert_eq!(asked(None, None).since(), Some(ProtocolVersion::new(17)));
+    assert_eq!(asked(Some(15), None).since(), RANKED_HISTORY_PROTOCOL);
+    assert_eq!(asked(None, Some("build")).since(), RANKED_HISTORY_PROTOCOL);
+    assert!(RANKED_HISTORY_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+}
+
 /// Protocol 11's write guard (the join of wave 2's first half): a write
 /// guarded by its content needs 11, which a protocol 10 node could not
 /// decode; one that creates only, or writes whatever is there, does not.

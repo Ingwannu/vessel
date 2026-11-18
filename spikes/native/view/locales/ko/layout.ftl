@@ -109,3 +109,23 @@ layout-explorer-close = 사이드 패널 닫기
 layout-rename-agent = 에이전트 이름 변경
 # The session bar's own "…" (marks, copy, close, log, kill), named apart from the workspace "…".
 layout-session-actions = 세션 작업
+# Tab menu: copy the command that resumes the agent in its own CLI (Paseo's workspace.tabs.menu.copyResumeCommand).
+layout-copy-resume-command = 재개 명령 복사
+# Tab menu: copy the terminal's id (Paseo's workspace.tabs.menu.copyTerminalId).
+layout-copy-terminal-id = 터미널 ID 복사
+# Tab menu: copy the file's path (Paseo's workspace.tabs.menu.copyFilePath).
+layout-copy-file-path = 파일 경로 복사
+# Toast after a tab menu copy; $label is one of the copied-* words (Paseo's common.states.copiedLabel).
+layout-copied = { $label } 복사됨
+# The copied-toast label for an agent's id (Paseo's workspace.tabs.toasts.agentIdCopiedLabel).
+layout-copied-agent-id = 에이전트 ID
+# The copied-toast label for a terminal's id (Paseo's terminalIdCopiedLabel).
+layout-copied-terminal-id = 터미널 ID
+# The copied-toast label for a file's path (Paseo's filePathCopiedLabel).
+layout-copied-file-path = 파일 경로
+# The copied-toast label for a resume command, lower case after "Copied" (Paseo's resumeCommandCopiedLabel).
+layout-copied-resume-command = 재개 명령
+# Toast: the agent has not named its own session yet (Paseo's workspace.tabs.toasts.resumeIdUnavailable).
+layout-resume-id-unavailable = 재개 ID를 사용할 수 없습니다
+# Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).
+layout-resume-command-unavailable = 재개 명령을 사용할 수 없습니다

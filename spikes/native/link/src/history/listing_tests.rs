@@ -16,10 +16,13 @@ async fn history_uses_the_selected_account_folder_and_unmodified_cursor() {
             title: Some("Kept title".parse().unwrap()),
             updated_at: Some(chrono::DateTime::UNIX_EPOCH),
             in_vessel: Some(existing),
+            first_prompt: None,
+            last_prompt: None,
         };
         let peer = peer::connect(vec![peer::Behaviour::Page(AgentHistoryPage {
             conversations: vec![entry.clone()],
             next: Some("provider:next".into()),
+            already_imported: None,
         })])
         .await;
         let mut request = batch(peer.client.node().id);
@@ -74,6 +77,7 @@ async fn an_empty_filtered_page_can_still_offer_another_page() {
         let peer = peer::connect(vec![peer::Behaviour::Page(AgentHistoryPage {
             conversations: vec![],
             next: Some("continue".into()),
+            already_imported: None,
         })])
         .await;
         let request = batch(peer.client.node().id);
@@ -128,6 +132,7 @@ fn a_remote_page_cannot_persist_an_oversized_continuation() {
     let page = AgentHistoryPage {
         conversations: vec![],
         next: Some("x".repeat(Cursor::MAX_BYTES.saturating_add(1))),
+        already_imported: None,
     };
     assert_eq!(
         project(vessel_proto::NodeId::random(), page),

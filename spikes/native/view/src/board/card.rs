@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
-    Creator, DisplayStatus, EventSeq, HarnessRef, KanbanColumn, ProjectId, SessionInfo,
-    SessionMarks, SessionMode, SessionStatus,
+    Creator, DisplayStatus, EventSeq, HarnessRef, HarnessSessionId, KanbanColumn, ProjectId,
+    SessionInfo, SessionMarks, SessionMode, SessionStatus,
 };
 
 use super::{Attention, Card, Lane, Phrase, agent_name};
@@ -63,6 +63,12 @@ pub struct CardDetail {
     /// this was (the menu then offers no "Mark as read").
     #[serde(default)]
     pub next_seq: Option<EventSeq>,
+    /// Its agent's own session id, once the agent named it (the node's
+    /// `harness_session`): what the tab menu's "Copy resume command" puts
+    /// in the agent's CLI command (TRACKER 797). `None` on a card kept
+    /// before this was, or before the agent named it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub harness_session: Option<HarnessSessionId>,
 }
 
 impl Card {
@@ -155,6 +161,7 @@ impl Card {
             process: phrase_of_status(&session.status),
             pull_request: session.pull_request.clone(),
             next_seq: Some(session.next_seq),
+            harness_session: session.harness_session.clone(),
             created_at: session.created_at,
             active_at: session
                 .board

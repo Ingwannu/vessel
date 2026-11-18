@@ -25,6 +25,7 @@ mod options;
 mod overview;
 mod palette;
 mod prefs;
+mod resume;
 mod search;
 mod settings;
 mod shortcuts;
