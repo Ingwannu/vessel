@@ -1,4 +1,7 @@
 // A fixed toast host must fit above the live composer, including its docks.
+// Where CSS anchor positioning exists the stack's bottom edge is anchored to
+// the dock (styles/feedback.css) and this height is a second cap; elsewhere
+// it is the only one, one rendering step after a change.
 // Resize alone misses a later-mounted prompt; observing every chat mutation
 // would do needless layout work. Rebind only when a boundary enters/leaves,
 // and let ResizeObserver own its size changes (question folds, input growth).

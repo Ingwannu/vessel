@@ -42,6 +42,6 @@
 @media (max-width: 767px) {
   /* With no sidebar beside it the frame is inset on every side. */
   .frame-wrap {
-    padding: 8px;
+    padding: var(--panel-inset-phone);
   }
 }
