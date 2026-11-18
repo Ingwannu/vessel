@@ -107,8 +107,6 @@ layout-explorer-open = Open Explorer sidebar
 layout-explorer-close = Close Explorer sidebar
 # Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
 layout-rename-agent = Rename agent
-# The session bar's own "…" (marks, copy, close, log, kill), named apart from the workspace "…".
-layout-session-actions = Session actions
 # Tab menu: copy the command that resumes the agent in its own CLI (Paseo's workspace.tabs.menu.copyResumeCommand).
 layout-copy-resume-command = Copy resume command
 # Tab menu: copy the terminal's id (Paseo's workspace.tabs.menu.copyTerminalId).
@@ -129,3 +127,9 @@ layout-copied-resume-command = resume command
 layout-resume-id-unavailable = Resume ID not available
 # Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).
 layout-resume-command-unavailable = Resume command not available
+# Rename dialog: the title is empty (Paseo's common.errors.nameRequired).
+layout-name-required = Name is required
+# Rename dialog: Rename's label while the rename waits for the host (Paseo's renameModal.saving).
+layout-rename-saving = Saving...
+# Rename dialog: a rename failed without the host's words (Paseo's common.errors.unableToSave).
+layout-unable-to-save = Unable to save

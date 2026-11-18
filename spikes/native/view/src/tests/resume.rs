@@ -50,3 +50,26 @@ fn says_the_id_is_missing_before_the_command() {
         Err(ResumeUnavailable::NoCommand)
     );
 }
+
+#[test]
+fn quotes_an_id_a_shell_would_read_as_more_than_a_word() {
+    let claude = HarnessRef::Known(HarnessKind::ClaudeCode);
+    // Ordinary ids go in bare, exactly as Paseo copies them.
+    let plain = HarnessSessionId::new("0f3a-9b:x_y.z");
+    assert_eq!(
+        resume_command(Some(&claude), Some(&plain)).as_deref(),
+        Ok("claude --resume 0f3a-9b:x_y.z")
+    );
+    // A space, a quote and a command substitution: one quoted word that
+    // runs nothing on paste.
+    let odd = HarnessSessionId::new("a b'c$(touch x)");
+    assert_eq!(
+        resume_command(Some(&claude), Some(&odd)).as_deref(),
+        Ok(r"claude --resume 'a b'\''c$(touch x)'")
+    );
+    let empty = HarnessSessionId::new("");
+    assert_eq!(
+        resume_command(Some(&claude), Some(&empty)).as_deref(),
+        Ok("claude --resume ''")
+    );
+}

@@ -16,8 +16,14 @@
 //! - Choice: the client table, keyed by Vessel's four harnesses; an added
 //!   agent has no template.
 //! - Cost: a CLI that renames its resume flag needs this table changed, as
-//!   Paseo's does. The id is not quoted, as Paseo's is not: harnesses mint
-//!   ids without spaces.
+//!   Paseo's does.
+//! - The id is the node's opaque word, pasted into a shell. Paseo puts it
+//!   in bare; an id holding a space, a quote or `$( )` would then run on
+//!   paste (app review of TRACKER 797, ruled into 800). So an id of only
+//!   `[A-Za-z0-9._:-]` goes in bare, copied exactly as Paseo's, and any
+//!   other in POSIX single quotes, each `'` written `'\''`.
+
+use std::borrow::Cow;
 
 use vessel_proto::{HarnessKind, HarnessRef, HarnessSessionId};
 
@@ -51,5 +57,19 @@ pub fn resume_command(
             return Err(ResumeUnavailable::NoCommand);
         }
     };
-    Ok(format!("{command} {}", session.as_str()))
+    Ok(format!("{command} {}", shell_word(session.as_str())))
+}
+
+/// `id` as one POSIX shell word: bare when it holds only
+/// `[A-Za-z0-9._:-]`, else single-quoted.
+fn shell_word(id: &str) -> Cow<'_, str> {
+    let plain = !id.is_empty()
+        && id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || ".:_-".contains(character));
+    if plain {
+        Cow::Borrowed(id)
+    } else {
+        Cow::Owned(format!("'{}'", id.replace('\'', r"'\''")))
+    }
 }

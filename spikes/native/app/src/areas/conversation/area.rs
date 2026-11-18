@@ -7,13 +7,13 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use vessel_app_kit::ui::{App, Subscription};
-use vessel_app_kit::{DialogState, MenuState, Reveal, VirtualList};
+use vessel_app_kit::{DialogState, Reveal, VirtualList};
 use vessel_app_link::ActKind;
 use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::timeline::{FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline};
 use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
-use super::actions::{AgentLog, Confirm, MenuAction};
+use super::actions::{AgentLog, Confirm};
 use super::{
     bench, find, fork, meter, origin, outline, permission, question, queue, read, rename, rewind,
     tail,
@@ -119,9 +119,6 @@ pub(crate) struct ConversationArea {
     pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The tooltip of the bar's word for a released agent.
     pub(crate) parked_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
-    /// The Session actions menu, and what its rows do.
-    pub(crate) menu: MenuState,
-    pub(crate) menu_rows: Vec<MenuAction>,
     /// The confirm open, if any.
     pub(crate) confirm: Option<Confirm>,
     pub(crate) dialog: DialogState,
@@ -129,6 +126,12 @@ pub(crate) struct ConversationArea {
     pub(crate) rename_dialog: DialogState,
     /// The title, while it is renamed in place.
     pub(crate) rename: Option<rename::Rename>,
+    /// The rename dialog closed without a window (an answer, another
+    /// session): the next frame acknowledges it (`rename::rename_dialog`),
+    /// handing the keys back to its opener.
+    pub(crate) rename_closed: std::cell::Cell<bool>,
+    /// Renames sent so far: each send's deadline knows its own.
+    pub(crate) rename_sends: u64,
     /// The prompts, for the outline rail.
     pub(crate) outline: Vec<OutlineItem>,
     /// Where the pointer is on the rail.
@@ -198,11 +201,11 @@ impl ConversationArea {
                 vessel_app_kit::Tooltips::new(),
                 Rc::new(std::cell::Cell::new(None)),
             ),
-            menu: MenuState::new(cx),
-            menu_rows: Vec::new(),
             confirm: None,
             dialog: DialogState::new(cx),
             rename_dialog: DialogState::new(cx),
+            rename_closed: std::cell::Cell::new(false),
+            rename_sends: 0,
             rename: None,
             queue_edit: None,
             answering: None,
@@ -270,9 +273,10 @@ impl ConversationArea {
         self.refused = None;
         self.restarting = false;
         self.again_refused = None;
-        self.menu.close();
         self.confirm = None;
-        self.rename = None;
+        if self.rename.take().is_some() {
+            self.rename_closed.set(true);
+        }
         self.find = None;
         self.find_cache = FindCache::default();
         self.outline.clear();
