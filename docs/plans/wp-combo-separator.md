@@ -37,7 +37,7 @@ last label.
   row when a row is shown before it, none above the first. The labels list
   sets it on Create label, so a list filtered to no labels has no rule, as
   Paseo's `rows.length > 0`. `anchor_probe` moved to `picker/probe.rs`
-  (re-exported unchanged) so `picker.rs` shrinks (683 → 672 recorded).
+  (re-exported unchanged) so `picker.rs` shrinks (683 → 676 recorded, after the row's `#[expect]` for its four bools).
 - Pros, cons and impact: one field, every other list unchanged; rows gain
   a `combobox-row-{index}` selector and the rule `combobox-rule-{index}`
   for tests.

@@ -317,6 +317,10 @@ pub fn initial_of(name: &str) -> SharedString {
 
 /// One row of a list.
 #[derive(Debug, Clone, PartialEq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts a caller sets per row (opens, checked, disabled, separated)"
+)]
 pub struct ComboRow {
     /// Its words.
     pub label: SharedString,
