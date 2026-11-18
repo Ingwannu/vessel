@@ -284,4 +284,3 @@ fn sliding_onto_a_sibling_row_swaps_the_page(cx: &mut TestAppContext) {
     advance(cx, 400);
     view.read_with(cx, |probe, _| assert!(probe.submenus.is_open("other", 0)));
 }
-
