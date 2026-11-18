@@ -105,6 +105,9 @@ export interface SheetDragHandlers {
   onPointerMove: (event: PointerEvent<HTMLElement>) => void;
   onPointerUp: (event: PointerEvent<HTMLElement>) => void;
   onPointerCancel: (event: PointerEvent<HTMLElement>) => void;
+  /** A capture lost (the element gone, another capture) is a cancel, so
+   * no inline height stays behind. */
+  onLostPointerCapture: (event: PointerEvent<HTMLElement>) => void;
 }
 
 /** Drag the sheet `sheet` (only at a compact width); a release snaps it
@@ -194,6 +197,9 @@ export function useSheetDrag(
       end(event, true);
     },
     onPointerCancel: (event) => {
+      end(event, false);
+    },
+    onLostPointerCapture: (event) => {
       end(event, false);
     },
   };
