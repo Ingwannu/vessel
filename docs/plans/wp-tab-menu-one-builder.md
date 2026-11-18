@@ -7,7 +7,7 @@ Visual lane, 2026-11-18. Built on TRACKER 795's branch (head 65c10b67b, with
 reload agent), `utils/provider-command-templates.ts`,
 `screens/workspace/workspace-tab-trailing-accessory.tsx`.
 
-Status: built; gates under "Status".
+Status: built and gated; frames with the coordinator.
 
 ## Paseo
 
@@ -135,7 +135,12 @@ mobile items, then the session's own actions).
 
 ## Status
 
-Built; gates pending.
+Gates on 9e6445a2f (build VM, ordinary lane): strict (fonts, fmt, quality,
+clippy) 0; app 316 passed, 0 failed, 2 ignored; wasm32 check of link and
+app 0, no warnings. View 1298 lib tests and every integration suite on
+302586217 (view unchanged since). Frames: the strip's menu on the open
+agent's tab at 1280 (dark English, light Korean), the switcher's row menu
+at 390 (both), and the "Copied resume command" toast.
 
 ## For TRACKER 800
 
