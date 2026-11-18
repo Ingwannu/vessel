@@ -290,7 +290,7 @@ fn row_view(
     let neutral = tokens.neutral;
     let highlighted = lit == Some(row.index);
     let mark = match row.icon {
-        Icon::Glyph(shape) => glyph(shape, icon::MD, neutral.foreground_muted),
+        Icon::Glyph(shape) => div().child(glyph(shape, icon::MD, neutral.foreground_muted)),
         Icon::Mark(mark) => {
             crate::agent_mark::mark_muted_of(mark, Size::Sixteen, Space::Compact, tokens)
         }
@@ -315,7 +315,7 @@ fn row_view(
         } else {
             neutral.surface1
         })
-        .child(div().flex_none().child(mark))
+        .child(mark.flex_none())
         .child(
             div()
                 .flex_1()
