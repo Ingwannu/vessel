@@ -7,8 +7,13 @@ import "./files.css";
 
 import { useState } from "react";
 
+import { useFleet, useFleetState } from "../../context";
+import { prefer, prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
+import { nextSort, SORT_WORDS } from "../../data/workspace/file-tree";
+import { hasFilePanels } from "../../data/workspace/files";
 import { rootKey } from "../../data/workspace/root";
-import { IconButton, TextField, Tooltip } from "../../ui/kit";
+import { Button, Icon, IconButton, TextField, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
 import { FindResults, GrepResults } from "./file-search";
@@ -38,6 +43,17 @@ export function FilesTab({
   opened: Opened | null;
   onOpened: (opened: Opened | null) => void;
 }) {
+  const fleet = useFleet();
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
+  // Paseo's explorer sort, kept with the page's panels (the bridge's
+  // `layout.explorer_sort`); Modified and Size need `file.inspect`, so a
+  // node older than the file panels protocol sorts by name.
+  const kept = useStore(prefs, (state) => state.values.layout.explorer_sort);
+  const sortable = hasFilePanels(protocol);
+  const sort = sortable ? kept : "name";
   const [query, setQuery] = useState("");
   const [content, setContent] = useState(false);
   const [ignored, setIgnored] = useState(false);
@@ -85,6 +101,26 @@ export function FilesTab({
             role="searchbox"
           />
         </span>
+        {sortable && searching === "" ? (
+          // Paseo's sort trigger: the order's word and a chevron; a press
+          // moves to the next order.
+          <Tooltip label="Sort">
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label={`Sort: ${SORT_WORDS[sort]}`}
+              end={<Icon name="chevron-down" size={12} />}
+              onClick={() => {
+                void prefer(fleet, {
+                  set: "explorer_sort",
+                  value: nextSort(sort),
+                });
+              }}
+            >
+              {SORT_WORDS[sort]}
+            </Button>
+          </Tooltip>
+        ) : null}
         <Tooltip label={content ? "Find a file by name" : "Search in files"}>
           <IconButton
             label="Search in files"
@@ -129,6 +165,7 @@ export function FilesTab({
           folder={folder}
           session={session}
           ignored={ignored}
+          sort={sort}
           open={folders}
           onOpenChange={setFolders}
           onFile={(path) => {
