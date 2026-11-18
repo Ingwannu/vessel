@@ -19,9 +19,10 @@
 //!   joins "…" once 777 is in a package base (base 14.32 has it).
 //! - Alternatives: keep the tab head at compact and drop only the bar (not
 //!   Paseo's row); keep the session's "…" beside the workspace's (two "…").
-//! - Choice: the header draws the session's heading
-//!   (`conversation::heading`), the switcher trigger (`ToolbarButton::count`),
-//!   "…" and the code panel toggle, all in the toolbar's touch chrome. The
+//! - Choice: the kit's compact header frame (`screen_header::frame`, now
+//!   with a subtitle) draws the session's heading (`conversation::heading`)
+//!   and one island: the switcher trigger (`ToolbarButton::count`), "…" and
+//!   the code panel toggle, all in the toolbar's touch chrome. The
 //!   switcher is the kit dialog's sheet; each row's "…" opens the tab menu
 //!   (`menu`, surface `Switcher`) over it.
 //! - Cost and differences: Vessel's titlebar keeps the sidebar menu, so the
@@ -155,9 +156,11 @@ pub(super) fn header(
         }),
         tokens,
     )
-    .on_click(cx.listener(|shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| {
-        shell.compact_open_actions(event.position(), window, cx);
-    }));
+    .on_click(cx.listener(
+        |shell, event: &vessel_app_kit::ui::ClickEvent, window, cx| {
+            shell.compact_open_actions(event.position(), window, cx);
+        },
+    ));
     let explorer_open = shell.areas.workspace.code.open;
     let toggle = ToolbarButton::new(
         "compact-explorer-toggle",
@@ -193,9 +196,8 @@ pub(super) fn header(
         .child(switch)
         .child(more)
         .child(toggle);
-    let heading = heading(shell, tokens, cx);
-    let (title, subtitle, editing) = match heading {
-        Some(heading) => (heading.title, Some(heading.line), heading.editing),
+    let (title, subtitle, editing) = match heading(shell, tokens, cx) {
+        Some(session) => (session.title, Some(session.line), session.editing),
         None => (String::new(), None, None),
     };
     let row = frame(
@@ -226,12 +228,8 @@ pub(super) fn overlay(
 ) -> Option<AnyElement> {
     let sheet = switcher::sheet(shell, layout, tokens, window, cx);
     let actions = actions_menu(shell, tokens, window, cx);
-    (sheet.is_some() || actions.is_some()).then(|| {
-        div()
-            .children(sheet)
-            .children(actions)
-            .into_any_element()
-    })
+    (sheet.is_some() || actions.is_some())
+        .then(|| div().children(sheet).children(actions).into_any_element())
 }
 
 /// What "…" offers: Paseo's workspace actions that Vessel performs (Copy
@@ -253,7 +251,10 @@ fn actions_menu(
     let mut copy = MenuItem::new(words.copy_workspace_path().to_owned());
     copy.disabled = workspace_path(shell).is_none();
     // Paseo's order: Copy workspace path, then Import session.
-    let items = [copy, MenuItem::new(shell.words.history().title().to_owned())];
+    let items = [
+        copy,
+        MenuItem::new(shell.words.history().title().to_owned()),
+    ];
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.layout.compact.actions,
         chose: Rc::new(|shell: &mut Shell, index, window, cx| {
@@ -316,7 +317,9 @@ pub(super) fn row_actions(shell: &Shell, tab: TabId) -> Vec<(Action, MenuItem)> 
             Action::Copy,
             MenuItem::new(words.copy_agent_id().to_owned()),
         )),
-        Target::Terminal(_) => items.push((Action::Copy, MenuItem::new(words.copy_id().to_owned()))),
+        Target::Terminal(_) => {
+            items.push((Action::Copy, MenuItem::new(words.copy_id().to_owned())))
+        }
         Target::File { .. } => {
             items.push((Action::Copy, MenuItem::new(words.copy_path().to_owned())));
         }

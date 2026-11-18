@@ -30,8 +30,9 @@ use vessel_app_kit::sheet::snap::Percentage;
 use vessel_app_kit::theme::spacing::{S0, S1, S2, S3};
 use vessel_app_kit::theme::{icon, radius};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{
     ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize,
@@ -55,11 +56,7 @@ const SHEET_CAP: u8 = 90;
 fn size() -> DialogSize {
     Percentage::new(SHEET_CAP)
         .and_then(|cap| {
-            DialogLayout::new(
-                WIDTH,
-                DesktopHeight::AtMost(cap),
-                CompactLayout::Fixed(cap),
-            )
+            DialogLayout::new(WIDTH, DesktopHeight::AtMost(cap), CompactLayout::Fixed(cap))
         })
         .map_or(DialogSize::Normal, |layout| {
             DialogSize::Configured(

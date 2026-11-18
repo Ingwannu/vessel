@@ -19,13 +19,15 @@ impl Render for CountProbe {
             ToolbarConfig::new(ControlSizing::Touch, ButtonState::Enabled),
             &tokens,
         );
-        div().size_full().child(
-            div()
-                .debug_selector(|| "tab-count-frame".to_owned())
-                .child(button.on_click(cx.listener(|this, _, _, _| {
-                    this.calls = this.calls.saturating_add(1);
-                }))),
-        )
+        div()
+            .size_full()
+            .child(
+                div()
+                    .debug_selector(|| "tab-count-frame".to_owned())
+                    .child(button.on_click(cx.listener(|this, _, _, _| {
+                        this.calls = this.calls.saturating_add(1);
+                    }))),
+            )
     }
 }
 
@@ -38,7 +40,11 @@ fn the_count_is_a_sixteen_badge_in_the_touch_frame_and_presses_as_one(cx: &mut T
     let badge = cx.debug_bounds("toolbar-count-badge").unwrap();
     assert_eq!(frame.size, gpui::size(px(32.0), px(32.0)));
     assert_eq!(badge.size.height, px(16.0));
-    assert_eq!(badge.size.width, px(16.0), "one digit keeps the least width");
+    assert_eq!(
+        badge.size.width,
+        px(16.0),
+        "one digit keeps the least width"
+    );
     assert_eq!(badge.center(), frame.center(), "centred as a glyph is");
     cx.simulate_click(badge.center(), Modifiers::none());
     view.read_with(cx, |probe, _| assert_eq!(probe.calls, 1));

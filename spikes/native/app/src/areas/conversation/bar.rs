@@ -97,7 +97,11 @@ pub(crate) fn bar(
 }
 
 /// The session's state when it is not running, in its colour.
-pub(super) fn status_badge(status: &SessionStatus, words: ConversationWords, tokens: &Tokens) -> Div {
+pub(super) fn status_badge(
+    status: &SessionStatus,
+    words: ConversationWords,
+    tokens: &Tokens,
+) -> Div {
     let color = match status {
         SessionStatus::Starting => tokens.st_building,
         SessionStatus::Running => tokens.st_ready,
@@ -143,7 +147,12 @@ fn actions_button(tokens: &Tokens, narrow: bool, cx: &mut Context<'_, Shell>) ->
 /// The bar's word for a released agent, quiet as an idle session is, or
 /// for a resume that failed, in the danger colour; its tooltip says what a
 /// send does, or the node's words for the failure.
-pub(super) fn parked_chip(shell: &Shell, state: &ParkState, tokens: &Tokens, narrow: bool) -> AnyElement {
+pub(super) fn parked_chip(
+    shell: &Shell,
+    state: &ParkState,
+    tokens: &Tokens,
+    narrow: bool,
+) -> AnyElement {
     let area = &shell.areas.conversation;
     let words = shell.t.lang.conversation();
     let (word, color, tip) = match state {

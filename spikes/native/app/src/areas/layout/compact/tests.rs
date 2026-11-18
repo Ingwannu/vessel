@@ -98,8 +98,16 @@ fn tab_ids(probe: &Entity<Probe>, cx: &mut gpui::VisualTestContext) -> Vec<TabId
     })
 }
 
+/// A per-tab selector: the test context takes only static ones.
+fn selector(text: String) -> &'static str {
+    text.leak()
+}
+
 fn labels(items: &[(Action, MenuItem)]) -> Vec<String> {
-    items.iter().map(|(_, item)| item.label.to_string()).collect()
+    items
+        .iter()
+        .map(|(_, item)| item.label.to_string())
+        .collect()
 }
 
 #[gpui::test]
@@ -132,16 +140,19 @@ fn the_switcher_lists_every_tab_and_a_press_shows_that_tab(cx: &mut TestAppConte
     let ids = tab_ids(&probe, cx);
     assert_eq!(ids.len(), 2, "the agent tab and the New tab");
     let [agent, new] = [ids[0], ids[1]];
-    assert!(cx.debug_bounds(&format!("compact-tab-row-{}", agent.get())).is_some());
+    assert!(cx.debug_bounds(selector(format!("compact-tab-row-{}", agent.get()))).is_some());
     let row = cx
-        .debug_bounds(&format!("compact-tab-row-{}", new.get()))
+        .debug_bounds(selector(format!("compact-tab-row-{}", new.get())))
         .unwrap();
     assert!(row.size.height >= px(36.0), "Paseo's least row height");
     cx.simulate_click(row.center(), Modifiers::none());
     cx.run_until_parked();
     probe.read_with(cx, |probe, cx| {
         let shell = probe.0.read(cx);
-        assert!(!shell.areas.layout.compact.switcher_open, "a press closes it");
+        assert!(
+            !shell.areas.layout.compact.switcher_open,
+            "a press closes it"
+        );
         let shown = with_layout(shell, |layout| Ok(current(layout))).unwrap();
         assert_eq!(shown, Some(new));
     });
@@ -240,7 +251,7 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
     cx.run_until_parked();
     let ids = tab_ids(&probe, cx);
     let dots = cx
-        .debug_bounds(&format!("compact-tab-menu-{}", ids[0].get()))
+        .debug_bounds(selector(format!("compact-tab-menu-{}", ids[0].get())))
         .unwrap();
     assert_eq!(dots.size, gpui::size(px(28.0), px(28.0)));
     cx.simulate_click(dots.center(), Modifiers::none());
@@ -249,10 +260,7 @@ fn a_rows_dots_open_its_menu_over_the_sheet(cx: &mut TestAppContext) {
         let layout = &probe.0.read(cx).areas.layout;
         assert!(layout.menu.is_open());
         assert_eq!(layout.menu_surface, super::super::menu::Surface::Switcher);
-        assert_eq!(
-            layout.menu_tab.as_ref().map(|(_, tab)| *tab),
-            Some(ids[0])
-        );
+        assert_eq!(layout.menu_tab.as_ref().map(|(_, tab)| *tab), Some(ids[0]));
         assert!(layout.compact.switcher_open, "the sheet stays under it");
     });
 }
