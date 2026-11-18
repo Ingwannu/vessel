@@ -282,6 +282,47 @@ impl SessionRuntime {
         folder: Option<&std::path::Path>,
         from: vessel_agent::HistoryFrom,
     ) -> Result<vessel_agent::HistoryPage, SessionError> {
+        let (command, driver) = self.listing(harness, (profile, proxy), cwd).await?;
+        let limit = self.config.agent_handshake_timeout;
+        self.launch_admission().check()?;
+        Ok(vessel_agent::history_with(driver, &command, folder, from, limit).await?)
+    }
+
+    /// A ranked listing of `harness`'s own conversations (ADR 0109,
+    /// `vessel_agent::ranked_with`): the agent started as for
+    /// [`history`](Self::history), the newest `ranked.limit` conversations
+    /// not on the node read with their prompts (each loaded on the listing
+    /// connection; no session is started), and stopped. Bounded by
+    /// `vessel_agent::HISTORY_RANKED_LIMIT` or the handshake timeout,
+    /// whichever is longer.
+    ///
+    /// # Errors
+    /// As [`history`](Self::history).
+    pub async fn ranked_history(
+        &self,
+        harness: HarnessRef,
+        launch: (Option<Profile>, Option<ModelProxy>),
+        cwd: PathBuf,
+        folder: Option<&std::path::Path>,
+        ranked: &vessel_agent::Ranked,
+    ) -> Result<vessel_agent::RankedPage, SessionError> {
+        let (command, driver) = self.listing(harness, launch, cwd).await?;
+        let limit = self
+            .config
+            .agent_handshake_timeout
+            .max(vessel_agent::HISTORY_RANKED_LIMIT);
+        self.launch_admission().check()?;
+        Ok(vessel_agent::ranked_with(driver, &command, folder, ranked, limit).await?)
+    }
+
+    /// The command and driver a listing starts the agent with, as a probe
+    /// starts it.
+    async fn listing(
+        &self,
+        harness: HarnessRef,
+        (profile, proxy): (Option<Profile>, Option<ModelProxy>),
+        cwd: PathBuf,
+    ) -> Result<(CommandSpec, Driver), SessionError> {
         self.launch_admission().check()?;
         let mode = SessionMode::Structured {
             model: None,
@@ -296,9 +337,7 @@ impl SessionRuntime {
         let AgentCommand {
             command, driver, ..
         } = self.agent_command(spec, profile, proxy).await?;
-        let limit = self.config.agent_handshake_timeout;
-        self.launch_admission().check()?;
-        Ok(vessel_agent::history_with(driver, &command, folder, from, limit).await?)
+        Ok((command, driver))
     }
 
     /// Move a live structured session to another profile (ADR 0011): link

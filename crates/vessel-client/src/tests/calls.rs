@@ -161,6 +161,8 @@ async fn agent_history_is_refused_locally_before_protocol_17() {
         profile: None,
         cwd: None,
         cursor: None,
+        limit: None,
+        query: None,
     };
     assert_eq!(
         client.call(asked).await.unwrap_err().code(),

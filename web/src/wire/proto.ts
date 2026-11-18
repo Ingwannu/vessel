@@ -349,8 +349,16 @@ conversations: Array<HistoryEntry>,
  * The next page's cursor, opaque; absent on the last page. A page
  * can be empty and still have one (an agent that filters by folder
  * after paging), after the node has asked several of the agent's.
+ * Never on a ranked listing's.
  */
-next?: string | null, };
+next?: string | null, 
+/**
+ * A ranked listing's: how many of the conversations it looked
+ * through (and that match its `query`) are already on this node, so
+ * were left out. Paseo's sheet says "All recent sessions are already
+ * imported." when nothing is left and this is not zero.
+ */
+already_imported?: number | null, };
 
 /**
  * One agent as `agent.list` reports it.
@@ -3365,9 +3373,11 @@ export type Generation = number;
 /**
  * `agent.history`: a page of `harness`'s own conversations, as its agent
  * lists them. The node starts the agent as `harness.options` does (under
- * `profile`, in a scratch folder), asks it, and stops it; no session is
- * started or loaded. Needs `operate`; refused to agents; at most two at
- * once on a node (`unavailable` beyond).
+ * `profile`, in a scratch folder), asks it, and stops it. A cursor
+ * listing starts or loads no session; a ranked one (`limit`) loads each
+ * conversation it answers to read its prompts, and starts none. Needs
+ * `operate`; refused to agents; at most four at once on a node and
+ * sixteen waiting for a place (`unavailable` beyond).
  */
 export type GetAgentHistory = { 
 /**
@@ -3387,9 +3397,25 @@ cwd?: string | null,
 /**
  * Where the page starts: a page's `next`, as it was given (at most
  * [`GetAgentHistory::MAX_CURSOR_BYTES`]; anything else is
- * `invalid_request`); the newest without.
+ * `invalid_request`); the newest without. Not with `limit`.
  */
-cursor?: string | null, };
+cursor?: string | null, 
+/**
+ * A ranked listing ([`RANKED_HISTORY_PROTOCOL`]): the newest `limit`
+ * conversations (1 to [`GetAgentHistory::MAX_LIMIT`]) not already on
+ * this node, with their prompts, in one answer without `next`. A
+ * client asks again with a larger limit for more (Paseo's 15, 45, 90,
+ * 200).
+ */
+limit?: number | null, 
+/**
+ * Only the conversations whose title, first or last prompt, or
+ * folder's last name holds this text, letter case aside (trimmed;
+ * at most [`GetAgentHistory::MAX_QUERY_BYTES`]). Needs `limit`; the
+ * node looks through at most [`GetAgentHistory::SEARCH_SCAN`] of
+ * the agent's conversations.
+ */
+query?: string | null, };
 
 /**
  * `agent.status`: the facts of every agent and profile, or of one agent
@@ -4065,7 +4091,19 @@ updated_at?: string | null,
  * an ended one) rather than import it twice. A rewound session is on
  * its new conversation, so the one it left lists unmarked.
  */
-in_vessel?: SessionId | null, };
+in_vessel?: SessionId | null, 
+/**
+ * A ranked listing's: the conversation's first prompt, its blanks
+ * folded to one space and cut at
+ * [`HistoryEntry::PROMPT_PREVIEW_CHARS`]; absent when it was not read
+ * in time or the agent replayed none.
+ */
+first_prompt?: string | null, 
+/**
+ * A ranked listing's: its last prompt, as `first_prompt`. Paseo's
+ * row shows this one, else the first, else "No prompt preview".
+ */
+last_prompt?: string | null, };
 
 /**
  * How the node is signed in to one host.

@@ -68,6 +68,30 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 29 (2026-11-18, milestone 12): a ranked history listing (impl U, TRACKER 790, ADR 0109)
+
+Drafted as 29 (`RANKED_HISTORY_PROTOCOL`); the integrator assigns the number at merge, in merge order. No
+method, event or record is added. `agent.history` gains optional fields, and a call that uses them needs
+this protocol (`Call::since`). An older node would ignore them and answer the agent's first page unfiltered.
+
+- `GetAgentHistory` gains `limit?` (1 to 200) and `query?` (at most 512 bytes; needs `limit`). With `limit`
+  the node answers the newest `limit` conversations not already on it in that account, newest first, with no
+  `next` and no `in_vessel`. Each conversation is loaded on the listing connection (`session/load`, no MCP
+  servers, no prompt; `session/close` after when the agent offers it) for its prompts: 30 s a load, none after
+  60 s from the first page, 90 s for the whole listing (Paseo's budgets). A conversation whose replay held
+  nothing is left out. A `query` (trimmed, letter case aside) keeps those whose title, first or last prompt,
+  or folder's last name holds it. At most 500 of the agent's conversations are looked through.
+- `HistoryEntry` gains `first_prompt?` and `last_prompt?`: the first and last user message of the replay, blanks
+  folded to one space, at most 160 characters. They are absent when the load failed, came too late, or
+  replayed none. Only a ranked listing sets them.
+- `AgentHistoryPage` gains `already_imported?`: on a ranked listing, how many of the conversations looked
+  through (and matching the query) were already on the node and so were left out.
+- Errors: `invalid_request` also for `limit` with a `cursor`, `query` without `limit`, `limit` 0 or above
+  200, and a longer query. `unavailable` now comes only when four listings run and sixteen wait, or when a
+  place did not free within 90 s.
+- A cursor listing is unchanged and loads nothing. The minimum protocol remains 2, and the store schema is
+  unchanged.
+
 ## Version 28 (2026-11-16, milestone 12): workspace labels (W10b A6, ADR 0086)
 
 Protocol 28 introduces the host-local workspace label catalog and its ordered

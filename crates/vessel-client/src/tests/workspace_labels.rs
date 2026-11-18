@@ -94,7 +94,8 @@ async fn workspace_labels_older_peer_receives_no_request_frame() {
 
 #[tokio::test]
 async fn workspace_labels_assigned_peer_receives_each_call_and_its_answer() {
-    assert_eq!(WORKSPACE_LABELS, Some(PROTOCOL_VERSION));
+    // Assigned, and spoken by this build (a later protocol keeps it).
+    assert!(WORKSPACE_LABELS.is_some_and(|since| since <= PROTOCOL_VERSION));
     tokio::time::timeout(LABEL_SDK_DEADLINE, async {
         let (client, mut node_end) = connected(PROTOCOL_VERSION).await;
         for call in calls() {
@@ -126,10 +127,7 @@ async fn workspace_labels_assigned_peer_receives_each_call_and_its_answer() {
             };
             assert_eq!(error.code, ErrorCode::NotFound);
         }
-        assert!(matches!(
-            Method::ListWorkspaceLabels.since(),
-            Some(since) if since == PROTOCOL_VERSION
-        ));
+        assert_eq!(Method::ListWorkspaceLabels.since(), WORKSPACE_LABELS);
     })
     .await
     .unwrap();

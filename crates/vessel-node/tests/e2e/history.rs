@@ -4,7 +4,9 @@
 //! (`session.create` with `resume`) replays one into a new session's log
 //! and marks its entry, a second import of it is refused while the first
 //! runs, a long conversation imports within the handshake, and the
-//! refusals, a device paired with `read` alone among them.
+//! refusals, a device paired with `read` alone among them. A ranked
+//! listing (ADR 0109) answers the conversations not imported with their
+//! prompts, counts the imported one, and searches on the node.
 
 use std::time::Instant;
 
@@ -28,6 +30,10 @@ env = { FAKE_ACP_NO_LIST = "1" }
 [profiles.long]
 harness = "claude"
 env = { FAKE_ACP_REPLAY = "10000" }
+
+[profiles.lastly]
+harness = "claude"
+env = { FAKE_ACP_REPLAY_USER = "and   ship\nit" }
 "#;
 
 fn asked(fixture: &Fixture, cursor: Option<String>) -> GetAgentHistory {
@@ -36,6 +42,8 @@ fn asked(fixture: &Fixture, cursor: Option<String>) -> GetAgentHistory {
         profile: None,
         cwd: Some(fixture.cwd()),
         cursor,
+        limit: None,
+        query: None,
     }
 }
 
@@ -169,6 +177,97 @@ async fn a_listing_pages_and_an_import_replays_and_marks_its_entry() {
             code(agent.call(asked(&fixture, None)).await),
             ErrorCode::Forbidden
         );
+    })
+    .await;
+}
+
+fn ranked(fixture: &Fixture, limit: u16, query: Option<&str>) -> GetAgentHistory {
+    GetAgentHistory {
+        limit: Some(limit),
+        query: query.map(str::to_owned),
+        ..asked(fixture, None)
+    }
+}
+
+/// ADR 0109: `limit` answers the newest conversations not on the node,
+/// newest first, each with the prompts its load replayed (`fake-acp`
+/// replays `earlier question`, and with `FAKE_ACP_REPLAY_USER` a later
+/// one), with no `next`; an imported one is left out and counted; a query
+/// matches titles and prompts on the node; the ranked fields are refused
+/// with a cursor, and a query without a limit.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_ranked_listing_answers_prompts_leaves_out_imports_and_searches() {
+    within(async {
+        let fixture = Fixture::new();
+        std::fs::write(fixture.data_dir().profiles_path(), PROFILES).unwrap();
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+
+        let all = client.call(ranked(&fixture, 15, None)).await.unwrap();
+        assert_eq!(ids(&all), ["past-3", "past-2", "past-1"]);
+        assert_eq!(all.next, None);
+        assert_eq!(all.already_imported, Some(0));
+        assert!(all.conversations.iter().all(|entry| {
+            entry.first_prompt.as_deref() == Some("earlier question")
+                && entry.last_prompt.as_deref() == Some("earlier question")
+                && entry.in_vessel.is_none()
+        }));
+
+        let mut lastly = ranked(&fixture, 1, None);
+        lastly.profile = Some("lastly".parse().unwrap());
+        let lastly = client.call(lastly).await.unwrap();
+        assert_eq!(ids(&lastly), ["past-3"], "a limit of one");
+        assert_eq!(
+            lastly.conversations[0].last_prompt.as_deref(),
+            Some("and ship it"),
+            "the last prompt, its blanks folded"
+        );
+
+        // Imported, past-2 is left out and counted.
+        let mut spec = structured_spec(&fixture, Some(HarnessSessionId::new("past-2")));
+        spec.cwd = Some(all.conversations[1].cwd.clone());
+        let imported = client.create_session(spec).await.unwrap();
+        let _seen = until_running(&client, imported.id).await;
+        let after = client.call(ranked(&fixture, 15, None)).await.unwrap();
+        assert_eq!(ids(&after), ["past-3", "past-1"]);
+        assert_eq!(after.already_imported, Some(1));
+
+        // Searched on the node: a title, a prompt (letter case aside).
+        let titled = client
+            .call(ranked(&fixture, 15, Some("  THIRD ")))
+            .await
+            .unwrap();
+        assert_eq!(ids(&titled), ["past-3"]);
+        let prompted = client
+            .call(ranked(&fixture, 15, Some("Earlier")))
+            .await
+            .unwrap();
+        assert_eq!(ids(&prompted), ["past-3", "past-1"]);
+        assert_eq!(prompted.already_imported, Some(1), "past-2 matches too");
+        let unmatched = client
+            .call(ranked(&fixture, 15, Some("nothing like it")))
+            .await
+            .unwrap();
+        assert!(unmatched.conversations.is_empty());
+        assert_eq!(unmatched.already_imported, Some(0));
+
+        // Refusals.
+        let mut paged = ranked(&fixture, 15, None);
+        paged.cursor = Some("0~".to_owned());
+        assert_eq!(code(client.call(paged).await), ErrorCode::InvalidRequest);
+        let mut unlimited = asked(&fixture, None);
+        unlimited.query = Some("third".to_owned());
+        assert_eq!(
+            code(client.call(unlimited).await),
+            ErrorCode::InvalidRequest
+        );
+        assert_eq!(
+            code(client.call(ranked(&fixture, 0, None)).await),
+            ErrorCode::InvalidRequest
+        );
+        let mut cannot = ranked(&fixture, 15, None);
+        cannot.profile = Some("cannot".parse().unwrap());
+        assert_eq!(code(client.call(cannot).await), ErrorCode::Unsupported);
     })
     .await;
 }
