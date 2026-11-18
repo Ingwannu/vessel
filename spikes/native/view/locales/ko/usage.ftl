@@ -115,7 +115,7 @@ usage-secondary = 보조 한도
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-reset-unknown = 초기화 시각이 보고되지 않음
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-reset-past = 초기화 시각 지남
+usage-reset-past = 초기화 시간이 지났습니다
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-plan = 요금제
 # Usage settings or limit notice; keep this whole label or explanation together.
