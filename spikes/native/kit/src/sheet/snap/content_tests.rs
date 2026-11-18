@@ -18,6 +18,10 @@ fn visible(state: &mut State, now: Instant) -> Geometry {
     }
 }
 
+fn after(now: Instant, millis: u64) -> Instant {
+    now.checked_add(Duration::from_millis(millis)).unwrap()
+}
+
 /// At rest at its open stop, as a menu sheet appears.
 fn opened() -> (State, Instant) {
     let now = Instant::now();
@@ -33,11 +37,11 @@ fn opened() -> (State, Instant) {
 fn slow_pan(state: &mut State, now: Instant, distance: f32) -> Release {
     state.press(Origin::Handle, point(px(100.0), px(10.0)), px(0.0), now);
     for step in 1_u8..=10 {
-        let at = now + Duration::from_millis(u64::from(step).saturating_mul(40));
+        let at = after(now, u64::from(step).saturating_mul(40));
         let y = distance.mul_add(f32::from(step).mul_add(0.1, 0.0), 10.0);
         let _scroll = state.pan(point(px(100.0), px(y)), px(0.0), at);
     }
-    state.release(now + Duration::from_millis(900))
+    state.release(after(now, 900))
 }
 
 #[test]
@@ -56,7 +60,7 @@ fn a_pan_past_half_its_height_closes_it() {
 fn a_flick_down_closes_it_and_the_dim_follows_the_drag() {
     let (mut state, now) = opened();
     state.press(Origin::Handle, point(px(100.0), px(10.0)), px(0.0), now);
-    let half = now + Duration::from_millis(20);
+    let half = after(now, 20);
     let _scroll = state.pan(point(px(100.0), px(160.0)), px(0.0), half);
     let held = visible(&mut state, half);
     assert!(held.top > px(140.0) && held.top < px(160.0));
@@ -64,10 +68,10 @@ fn a_flick_down_closes_it_and_the_dim_follows_the_drag() {
     let _scroll = state.pan(
         point(px(100.0), px(170.0)),
         px(0.0),
-        now + Duration::from_millis(30),
+        after(now, 30),
     );
     assert_eq!(
-        state.release(now + Duration::from_millis(32)),
+        state.release(after(now, 32)),
         Release::Pan(Stop::Closed)
     );
 }
