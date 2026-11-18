@@ -186,7 +186,8 @@ dir = "web"
 
 Terminals. At most 32, the same cap as a command list. `command` is a
 `ProjectCommand`. `name`, when present, is a `SessionTitle` (trimmed,
-one line, at most 120 characters, no control character); a blank name is
+one line, at most 200 characters since ADR 0022's amendment (120 before),
+no control character); a blank name is
 the same as no name. Paseo trims a name and has no length bound
 (`utils/worktree.ts`): a name that is not a non-empty string is dropped
 and the terminal still opens, and a bad command is skipped rather than

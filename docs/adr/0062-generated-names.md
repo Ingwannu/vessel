@@ -40,9 +40,10 @@ wait.
 ## Existing implementation and constraints
 
 - **Titles.** `SessionTitle` is parsed once (`crates/vessel-proto/src/title.rs`).
-  A typed title is trimmed, one line, at most 120 characters, and
-  refused otherwise. `SessionTitle::from_prompt` takes the first
-  non-empty line and cuts it at 80. `SessionInfo.title` is the one
+  A typed title is trimmed, one line, at most 120 characters (200 since
+  ADR 0022's amendment, TRACKER 801), and refused otherwise.
+  `SessionTitle::from_prompt` takes the first non-empty line and cuts it
+  at 80 (60, its blanks folded, since that amendment). `SessionInfo.title` is the one
   current title; each change is a `renamed` record (protocol 9). A
   title from before this decision has no record of who produced it.
 - **Routes.** The only way the node calls a model is a route in

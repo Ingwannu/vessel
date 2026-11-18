@@ -182,9 +182,7 @@ test("a toast stays above a dialog opened while it is up", async ({ page }) => {
   await pauseClock(page);
   await copyToast(page, "paused");
   await page.clock.runFor(FOCUS_FRAME_MS);
-  const toast = page
-    .locator(".toast")
-    .filter({ hasText: "Copied the session id" });
+  const toast = page.locator(".toast").filter({ hasText: "Copied Agent ID" });
   await expect(toast).toBeVisible();
   // The success toast's 2.2 s are held while the Kill dialog opens over it.
   await page
