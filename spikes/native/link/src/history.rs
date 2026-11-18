@@ -14,6 +14,10 @@ use vessel_app_view::history::{Batch, Cursor, Entry, Listed, Outcome, Problem};
 
 #[cfg(not(target_arch = "wasm32"))]
 const READ_DEADLINE: std::time::Duration = std::time::Duration::from_secs(90);
+/// A ranked listing (ADR 0109) may wait up to 90 s for one of the node's
+/// places and then take up to 90 s (its loads' budget and the agent).
+#[cfg(not(target_arch = "wasm32"))]
+const RANKED_DEADLINE: std::time::Duration = std::time::Duration::from_secs(180);
 #[cfg(not(target_arch = "wasm32"))]
 const CREATE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(90);
 
@@ -79,16 +83,24 @@ async fn answer(client: &crate::connections::SelectedConnection, ask: Ask) -> Re
             scope,
             ticket,
             cursor,
+            ranked,
         } => {
+            let deadline = if ranked.is_some() {
+                RANKED_DEADLINE
+            } else {
+                READ_DEADLINE
+            };
+            let (limit, query) =
+                ranked.map_or((None, None), |ranked| (Some(ranked.limit), ranked.query));
             let request = vessel_proto::history::GetAgentHistory {
                 harness: scope.harness.clone(),
                 profile: scope.profile.clone(),
                 cwd: scope.cwd.clone(),
                 cursor: cursor.map(|cursor| cursor.as_str().to_owned()),
-                limit: None,
-                query: None,
+                limit,
+                query,
             };
-            let result = tokio::time::timeout(READ_DEADLINE, client.call(request))
+            let result = tokio::time::timeout(deadline, client.call(request))
                 .await
                 .map_or(Err(Problem::Timeout), |result| result.map_err(read_failure))
                 .and_then(|page| project(scope.context.node(), page));
@@ -135,12 +147,15 @@ fn project(
             title: entry.title,
             updated_at: entry.updated_at,
             in_vessel: entry.in_vessel,
+            first_prompt: entry.first_prompt,
+            last_prompt: entry.last_prompt,
         })
         .collect();
     Ok(Listed {
         entries,
         next,
         node,
+        already_imported: page.already_imported.unwrap_or(0),
     })
 }
 

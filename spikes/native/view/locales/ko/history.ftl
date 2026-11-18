@@ -41,6 +41,8 @@ history-failed-import = 선택한 세션을 가져올 수 없습니다.
 history-more = 더 보기
 # A listed session without a title.
 history-untitled = 제목 없는 세션
+# A listed session whose prompts the machine did not read (the line under its title).
+history-no-prompt = 프롬프트 미리보기 없음
 # The pressed row while its session is imported. Keep short.
 history-importing = 가져오는 중...
 # Empty list: nothing on the machine to import.

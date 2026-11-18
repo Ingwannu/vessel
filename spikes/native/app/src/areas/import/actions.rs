@@ -98,7 +98,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some((context, providers)) = self
+        let Some((context, providers, ranked)) = self
             .fleet
             .online()
             .find(|machine| machine.name == name)
@@ -109,9 +109,14 @@ impl Shell {
                     .filter(|agent| agent.available())
                     .map(|agent| agent.harness.clone())
                     .collect();
+                // ADR 0109: the node lists, searches and previews itself.
+                let ranked = machine.protocol.is_some_and(|protocol| {
+                    vessel_proto::history::RANKED_HISTORY_PROTOCOL
+                        .is_some_and(|since| protocol >= since)
+                });
                 machine
                     .connection_context()
-                    .map(|context| (context, providers))
+                    .map(|context| (context, providers, ranked))
             })
         else {
             // Gone or offline since it was drawn: choose again.
@@ -124,6 +129,7 @@ impl Shell {
             context,
             machine: MachineKey::from_book(name),
             cwd,
+            ranked,
         };
         let area = &mut self.areas.import;
         area.page = Page::Sessions;
@@ -134,6 +140,8 @@ impl Shell {
 
     /// Paseo resets the search per opening and per page.
     fn history_reset_search(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        // A search still resting belongs to the last opening: drop it.
+        self.areas.import.typed = self.areas.import.typed.wrapping_add(1);
         self.areas.import.search.clear(window, cx);
         self.areas.import.query = Query::new("");
         super::refresh_words(self, window, cx);
@@ -171,6 +179,29 @@ impl Shell {
     pub(super) fn history_show_all(&mut self) {
         let asks = self.areas.import.model.show_all();
         self.history_submit(asks);
+    }
+
+    /// The search changed: once it rests ([`SEARCH_SETTLE`](super::SEARCH_SETTLE)),
+    /// a ranked host is asked again with it; an older one is filtered here.
+    pub(super) fn history_search(&mut self, text: &str, cx: &mut Context<'_, Self>) {
+        let area = &mut self.areas.import;
+        area.typed = area.typed.wrapping_add(1);
+        if !area.model.ranked() {
+            return;
+        }
+        let typed = area.typed;
+        let text = text.to_owned();
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(super::SEARCH_SETTLE).await;
+            let _gone = this.update(cx, |shell, cx| {
+                if shell.areas.import.typed == typed && shell.areas.import.open {
+                    let asks = shell.areas.import.model.search(&text);
+                    shell.history_submit(asks);
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
     }
 
     pub(super) fn history_filter(&mut self, filter: Filter) {
