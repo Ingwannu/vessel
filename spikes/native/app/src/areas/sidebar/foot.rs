@@ -19,6 +19,11 @@ const OUT: f32 = -8.0;
 /// hairline over one line, its items at the left and Settings, a gear, at
 /// the right end. Here the build and "새로고침" at the left; the gear opens
 /// Settings, the build Settings › About.
+///
+/// At the sidebar's least width (200, a window of 600 to about 700) the line
+/// is fuller than the sidebar: the build's words give way (cut with an
+/// ellipsis) and Labels and the gear keep their size. Before, Labels was
+/// squeezed to one letter a line (the coordinator's 600 frame, TRACKER 798).
 pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let t = shell.t;
     div()
@@ -39,6 +44,8 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
             // The build, and its updates: Settings › About.
             div()
                 .id("build")
+                .min_w(px(spacing::S0))
+                .truncate()
                 .pl(px(spacing::S0_5))
                 .cursor_pointer()
                 .hover(|style| style.text_color(tokens.text_secondary))
@@ -51,13 +58,19 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
         .child(
             div()
                 .id("reload")
+                .flex_none()
                 .cursor_pointer()
                 .hover(|style| style.text_color(tokens.text_secondary))
                 .child(t.reload)
                 .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
         )
         .child(div().flex_1())
-        .child(crate::areas::labels::entry(shell, tokens, cx))
+        .child(
+            div()
+                .debug_selector(|| "sidebar-foot-labels".to_owned())
+                .flex_none()
+                .child(crate::areas::labels::entry(shell, tokens, cx)),
+        )
         .child(
             vessel_app_kit::pill_parts(
                 "settings",
@@ -69,6 +82,7 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
                 false,
                 tokens,
             )
+            .flex_none()
             .track_focus(&shell.areas.sidebar.layout.footer)
             .on_click(cx.listener(|this, _event, window, cx| {
                 this.open_settings(None, window, cx);

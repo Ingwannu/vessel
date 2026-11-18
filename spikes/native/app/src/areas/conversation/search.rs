@@ -427,10 +427,14 @@ pub(crate) fn example(
             }))
             .child(message_row(shell, row, index == 0, compact, tokens))
     });
+    // As wide as the column up to GOAT's 640 (360 on a phone): a fixed 640
+    // ran past any column narrower than that (the app reviewer and the
+    // coordinator, after TRACKER 798 brought desktop widths down to 600).
     let card = div()
         .id("message-search-example")
         .occlude()
-        .w(px(if compact { 360.0 } else { 640.0 }))
+        .w_full()
+        .max_w(px(if compact { 360.0 } else { 640.0 }))
         .max_h(px(480.0))
         .overflow_y_scroll()
         .flex()

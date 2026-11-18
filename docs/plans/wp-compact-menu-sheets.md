@@ -89,6 +89,24 @@ switches there.
 - Tests that assumed 768: Settings' sidebar form (now a sheet at 590, docked
   at 650 and 800) and the shortcuts page at 700 (not the phone form).
 
+## Follow-up at 600 (branch backend/m12-width-followups)
+
+The coordinator asked for frames at 600, the narrowest desktop width now,
+of Settings and of a session with a permission card, and for anything that
+overflows there to be fixed; the app reviewer and the coordinator added the
+message search card.
+
+- The sidebar's foot at its least width (200): Labels was squeezed to one
+  letter a line. The build's words now give way (cut with an ellipsis);
+  Labels and the gear keep their size. Test: `sidebar::policy_tests`
+  `at_the_least_width_the_foot_keeps_labels_on_one_line`.
+- The message search card (`conversation::search`, shown with
+  `VESSEL_APP_MESSAGE_SEARCH`) was a fixed 640 and ran past any narrower
+  column (before 798 too, above 768). It is now as wide as the column up to
+  640 (360 on a phone).
+- Settings at 600 and the permission card at 600 needed nothing (the card's
+  520 is a maximum height).
+
 ## Tests
 
 - kit `dialog::header_title_only_tests`.
