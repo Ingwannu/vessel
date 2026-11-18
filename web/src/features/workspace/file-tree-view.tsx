@@ -12,6 +12,7 @@ import {
   type Listing,
   treeRows,
   type TreeRow,
+  withEdit,
 } from "../../data/workspace/file-tree";
 import { listDir } from "../../data/workspace/files";
 import { Icon, Spinner } from "../../ui/kit";
@@ -19,7 +20,7 @@ import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
 import { useWindow } from "../session/use-window";
 import { WindowRow } from "../session/window-row";
-import { EntryMenu } from "./explorer-menu";
+import { DeleteConfirm, EntryMenu, NameRow, SpaceMenu } from "./explorer-menu";
 import {
   type ExplorerActions,
   useExplorerActions,
@@ -65,11 +66,24 @@ function TreeRowView({
           trigger={button}
           // A link acts as the file it leads to (the node reads through it).
           entry={{ kind: dir ? "dir" : "file", open: row.open }}
-          target={{ path: row.path, name: row.entry.name }}
+          target={{
+            path: row.path,
+            name: row.entry.name,
+            kind: dir ? "dir" : "file",
+          }}
           actions={actions}
         />
       );
     }
+    case "edit":
+      return (
+        <NameRow
+          entry={row.entry}
+          initial={row.initial}
+          depth={row.depth}
+          actions={actions}
+        />
+      );
     case "loading":
       return (
         <p className="tree-note-row" style={indent}>
@@ -121,11 +135,6 @@ export function FileTreeView({
   onFile: (path: RelPath) => void;
 }) {
   const fleet = useFleet();
-  const actions = useExplorerActions(
-    { node, root, folder, session },
-    open,
-    onOpenChange,
-  );
   const [listings, setListings] = useState<ReadonlyMap<RelPath, Listing>>(
     () => new Map(),
   );
@@ -155,7 +164,24 @@ export function FileTreeView({
       fetchListing(dir);
     }
   }, [fetchListing, listedFirst]);
-  const rows = useMemo(() => treeRows(listings, open), [listings, open]);
+  const actions = useExplorerActions(
+    { node, root, folder, session },
+    {
+      open,
+      onOpenChange,
+      refresh: fetchListing,
+      expand: (dir) => {
+        if (open.has(dir)) return;
+        if (!listings.has(dir)) fetchListing(dir);
+        onOpenChange(new Set(open).add(dir));
+      },
+      onFile,
+    },
+  );
+  const rows = useMemo(
+    () => withEdit(treeRows(listings, open), actions.edit),
+    [listings, open, actions.edit],
+  );
   const windowed = useWindow(rows, null, { follow: false });
   const { scroller, span } = windowed;
   const onOpen = (path: RelPath, dir: boolean) => {
@@ -188,6 +214,8 @@ export function FileTreeView({
         ))}
         <div style={{ height: span.after }} />
       </section>
+      <SpaceMenu actions={actions} />
+      <DeleteConfirm actions={actions} />
     </div>
   );
 }

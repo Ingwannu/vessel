@@ -64,3 +64,11 @@ file opens.
 - E2: New file, New folder, Rename (inline rows), Duplicate, Delete
   (confirm), the listing refreshed; e2e on a fleet workspace.
 - Captures to the coordinator (1280 and 390, dark and light).
+
+## Status
+
+- E1 done (2026-11-18): the menu, Collapse, the copies, Download, Add to chat.
+- E2 done (2026-11-18): New file and New folder (a row and the empty space),
+  Rename in the row, Duplicate (protocol 27), Delete after the question; a new
+  file is written only where none is (`expect: absent`); the open folders follow
+  a rename or a delete; names Paseo refuses are refused in its words.
