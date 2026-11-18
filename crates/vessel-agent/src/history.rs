@@ -21,6 +21,10 @@
 //! - Only an agent that advertises `sessionCapabilities.list` and
 //!   `loadSession` lists: a conversation that cannot be loaded cannot be
 //!   imported.
+//! - A ranked listing ([`ranked_with`], ADR 0109) answers the newest
+//!   conversations not on the node with their prompts, read by loading
+//!   them on the same connection (`ranked`'s Decision Log); the cursor
+//!   listing above loads nothing.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -36,6 +40,14 @@ use vessel_proto::HarnessSessionId;
 use crate::drivers::Driver;
 use crate::error::AgentError;
 use crate::transport::{self, Gate};
+
+mod loads;
+mod ranked;
+
+pub use ranked::{
+    CLOSE_LIMIT, LOAD_LIMIT, PREVIEW_BUDGET, PREVIEW_CHARS, Previews, Prompts, RANKED_LIMIT,
+    Ranked, RankedPage, SCAN, preview,
+};
 
 /// How long the agent may take to exit once the page is read, before its
 /// process group is killed.
@@ -61,6 +73,10 @@ pub struct HistoryEntry {
     pub title: Option<String>,
     /// When it was last active, as the agent says it (ISO 8601).
     pub updated_at: Option<String>,
+    /// Its first prompt as a preview; a ranked listing's only.
+    pub first_prompt: Option<String>,
+    /// Its last prompt as a preview; a ranked listing's only.
+    pub last_prompt: Option<String>,
 }
 
 /// A page of conversations and where the next one starts.
@@ -161,7 +177,8 @@ impl std::fmt::Display for Said<'_> {
 }
 
 /// How the exchange ended, before the log is attached.
-enum Unlisted {
+#[derive(Debug)]
+pub(crate) enum Unlisted {
     CannotList,
     Refused(String),
     Failed(String),
@@ -202,20 +219,81 @@ pub async fn history_with(
         return Err(HistoryError::Spawn(AgentError::NoDriver(driver)));
     }
     match driver {
-        Driver::Acp => over_acp(command, cwd, from, limit).await,
+        Driver::Acp => match over_acp(command, Ask::Page { cwd, from }, limit).await? {
+            Answer::Page(page) => Ok(page),
+            Answer::Ranked(_) => Err(HistoryError::Failed {
+                message: "a page was asked, a ranking answered".to_owned(),
+                log: Vec::new(),
+            }),
+        },
         Driver::CodexAppServer => crate::codex::history(command, cwd, from, limit).await,
         Driver::ClaudeStream => crate::claude::history(command, cwd, from, limit).await,
         Driver::OpencodeHttp => crate::opencode::history(command, cwd, from, limit).await,
     }
 }
 
-/// [`history`] over ACP: `session/list`.
-async fn over_acp(
+/// A ranked listing (ADR 0109) of `command`'s conversations in `cwd` (all
+/// of them without), over the protocol `driver` speaks, within `limit`
+/// (at least [`RANKED_LIMIT`] is sensible: the loads take up to
+/// [`PREVIEW_BUDGET`]). A driver that lists but cannot load answers its
+/// first page's conversations without prompts, ranked the same way.
+///
+/// # Errors
+/// As [`history`].
+pub async fn ranked_with(
+    driver: Driver,
     command: &CommandSpec,
     cwd: Option<&Path>,
-    from: HistoryFrom,
+    ranked: &Ranked,
     limit: Duration,
-) -> Result<HistoryPage, HistoryError> {
+) -> Result<RankedPage, HistoryError> {
+    if !driver.built() {
+        return Err(HistoryError::Spawn(AgentError::NoDriver(driver)));
+    }
+    if !matches!(driver, Driver::Acp) {
+        let page = history_with(driver, command, cwd, HistoryFrom::default(), limit).await?;
+        return Ok(ranked::unloaded(page.entries, ranked));
+    }
+    let ask = Ask::Ranked {
+        cwd,
+        ranked: ranked.clone(),
+    };
+    match over_acp(command, ask, limit).await? {
+        Answer::Ranked(page) => Ok(page),
+        Answer::Page(_) => Err(HistoryError::Failed {
+            message: "a ranking was asked, a page answered".to_owned(),
+            log: Vec::new(),
+        }),
+    }
+}
+
+/// What a listing connection asks.
+enum Ask<'a> {
+    /// A cursor page (protocol 17).
+    Page {
+        cwd: Option<&'a Path>,
+        from: HistoryFrom,
+    },
+    /// A ranked listing (ADR 0109).
+    Ranked {
+        cwd: Option<&'a Path>,
+        ranked: Ranked,
+    },
+}
+
+/// What it answered.
+enum Answer {
+    Page(HistoryPage),
+    Ranked(RankedPage),
+}
+
+/// A listing over ACP: `session/list`, and for a ranked one
+/// `session/load` of the conversations it answers.
+async fn over_acp(
+    command: &CommandSpec,
+    ask: Ask<'_>,
+    limit: Duration,
+) -> Result<Answer, HistoryError> {
     let vessel_proc::Spawned {
         mut child,
         stdin,
@@ -239,19 +317,36 @@ async fn over_acp(
     let gate = Gate::new();
     let released = gate.clone();
     let transport = transport::lines(stdin, stdout, gate);
-    let cwd = cwd.map(Path::to_path_buf);
+    let gathered = Arc::new(std::sync::Mutex::new(ranked::Gathered::default()));
+    let gathering = Arc::clone(&gathered);
     let exchange = Client
         .v1()
         .name("vessel")
         .on_receive_notification(
-            async move |_notification: acp::SessionNotification, _cx| {
-                // Nothing to show while listing; the permit goes back.
+            async move |notification: acp::SessionNotification, _cx| {
+                // A ranked listing's loads replay their conversations: only
+                // their user messages are kept, and only while gathered.
+                gathering
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .accept(&notification);
                 released.release();
                 Ok::<(), Error>(())
             },
             agent_client_protocol::on_receive_notification!(),
         )
-        .connect_with(transport, async |cx| Ok(list(&cx, cwd, from).await));
+        .connect_with(transport, async |cx| {
+            Ok(match ask {
+                Ask::Page { cwd, from } => list(&cx, cwd.map(Path::to_path_buf), from)
+                    .await
+                    .map(Answer::Page),
+                Ask::Ranked { cwd, ranked } => {
+                    loads::ranked_over(&cx, cwd.map(Path::to_path_buf), &ranked, gathered)
+                        .await
+                        .map(Answer::Ranked)
+                }
+            })
+        });
     let outcome = tokio::time::timeout(limit, exchange).await;
     stop(&mut child).await;
     let log = std::mem::take(
@@ -265,7 +360,7 @@ async fn over_acp(
             message: error.to_string(),
             log,
         }),
-        Ok(Ok(Ok(page))) => Ok(page),
+        Ok(Ok(Ok(answer))) => Ok(answer),
         Ok(Ok(Err(Unlisted::CannotList))) => Err(HistoryError::CannotList),
         Ok(Ok(Err(Unlisted::Refused(message)))) => Err(HistoryError::Refused(message)),
         Ok(Ok(Err(Unlisted::Failed(message)))) => Err(HistoryError::Failed { message, log }),
@@ -275,24 +370,11 @@ async fn over_acp(
 /// `initialize`, then `session/list` from `from` (see the module's
 /// Decision Log for the pages).
 async fn list(
-    cx: &agent_client_protocol::v1::ConnectionTo<agent_client_protocol::Agent>,
+    cx: &Connection,
     cwd: Option<PathBuf>,
     from: HistoryFrom,
 ) -> Result<HistoryPage, Unlisted> {
-    let initialized = cx
-        .send_request(
-            acp::InitializeRequest::new(ProtocolVersion::V1).client_info(acp::Implementation::new(
-                "vessel",
-                env!("CARGO_PKG_VERSION"),
-            )),
-        )
-        .block_task()
-        .await
-        .map_err(|error| Unlisted::Failed(format!("`initialize` failed: {error}")))?;
-    let capabilities = &initialized.agent_capabilities;
-    if capabilities.session_capabilities.list.is_none() || !capabilities.load_session {
-        return Err(Unlisted::CannotList);
-    }
+    let _capabilities = initialize(cx).await?;
     let HistoryFrom {
         mut cursor,
         mut skip,
@@ -300,37 +382,14 @@ async fn list(
     let mut asked: usize = 0;
     loop {
         asked = asked.saturating_add(1);
-        let listed = cx
-            .send_request(
-                acp::ListSessionsRequest::new()
-                    .cwd(cwd.clone())
-                    .cursor(cursor.clone()),
-            )
-            .block_task()
-            .await
-            .map_err(|error| {
-                // An agent that advertised the listing but does not know
-                // the method lists nothing either.
-                if error.code == ErrorCode::METHOD_NOT_FOUND {
-                    Unlisted::CannotList
-                } else if error.code == ErrorCode::INVALID_PARAMS {
-                    Unlisted::Refused(error.to_string())
-                } else {
-                    Unlisted::Failed(format!("`session/list` failed: {error}"))
-                }
-            })?;
+        let listed = ask_page(cx, cwd.clone(), cursor.clone()).await?;
         let mut entries: Vec<HistoryEntry> = listed
             .sessions
             .into_iter()
             .filter(|session| session.cwd.is_absolute())
             .skip(skip)
             .take(MAX_ENTRIES.saturating_add(1))
-            .map(|session| HistoryEntry {
-                session: HarnessSessionId::new(session.session_id.0),
-                cwd: session.cwd,
-                title: session.title,
-                updated_at: session.updated_at,
-            })
+            .map(entry)
             .collect();
         if entries.len() > MAX_ENTRIES {
             // More of this page than one listing gives: the rest of it next.
@@ -354,6 +413,62 @@ async fn list(
             }
             next => return Ok(HistoryPage { entries, next }),
         }
+    }
+}
+
+/// The listing's connection to the agent.
+type Connection = agent_client_protocol::v1::ConnectionTo<agent_client_protocol::Agent>;
+
+/// `initialize`; the agent's capabilities when it lists and loads.
+async fn initialize(cx: &Connection) -> Result<acp::AgentCapabilities, Unlisted> {
+    let initialized = cx
+        .send_request(
+            acp::InitializeRequest::new(ProtocolVersion::V1).client_info(acp::Implementation::new(
+                "vessel",
+                env!("CARGO_PKG_VERSION"),
+            )),
+        )
+        .block_task()
+        .await
+        .map_err(|error| Unlisted::Failed(format!("`initialize` failed: {error}")))?;
+    let capabilities = initialized.agent_capabilities;
+    if capabilities.session_capabilities.list.is_none() || !capabilities.load_session {
+        return Err(Unlisted::CannotList);
+    }
+    Ok(capabilities)
+}
+
+/// One `session/list` from `cursor`.
+async fn ask_page(
+    cx: &Connection,
+    cwd: Option<PathBuf>,
+    cursor: Option<String>,
+) -> Result<acp::ListSessionsResponse, Unlisted> {
+    cx.send_request(acp::ListSessionsRequest::new().cwd(cwd).cursor(cursor))
+        .block_task()
+        .await
+        .map_err(|error| {
+            // An agent that advertised the listing but does not know the
+            // method lists nothing either.
+            if error.code == ErrorCode::METHOD_NOT_FOUND {
+                Unlisted::CannotList
+            } else if error.code == ErrorCode::INVALID_PARAMS {
+                Unlisted::Refused(error.to_string())
+            } else {
+                Unlisted::Failed(format!("`session/list` failed: {error}"))
+            }
+        })
+}
+
+/// A listed conversation as an entry, without prompts.
+fn entry(session: acp::SessionInfo) -> HistoryEntry {
+    HistoryEntry {
+        session: HarnessSessionId::new(session.session_id.0),
+        cwd: session.cwd,
+        title: session.title,
+        updated_at: session.updated_at,
+        first_prompt: None,
+        last_prompt: None,
     }
 }
 

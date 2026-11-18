@@ -426,6 +426,22 @@ impl Sessions {
             .await?)
     }
 
+    /// A ranked listing of `harness`'s own conversations
+    /// (`SessionRuntime::ranked_history`, ADR 0109).
+    pub(crate) async fn ranked_history(
+        &self,
+        harness: HarnessRef,
+        launch: (Option<Profile>, Option<ModelProxy>),
+        dir: PathBuf,
+        folder: Option<&std::path::Path>,
+        ranked: &vessel_agent::Ranked,
+    ) -> Result<vessel_agent::RankedPage, ServiceError> {
+        Ok(self
+            .runtime
+            .ranked_history(harness, launch, dir, folder, ranked)
+            .await?)
+    }
+
     /// Stop a session. Killing one that already ended is a no-op.
     pub(crate) async fn kill(&self, id: SessionId) -> Result<(), ServiceError> {
         match self.find(id).await? {

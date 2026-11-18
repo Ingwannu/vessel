@@ -1024,8 +1024,13 @@ uncopied — then confirm.
 
 ### 6.10 Toasts
 
-Centred below the header, as Paseo's app-shell host, so feedback stays
-clear of the lower composer and question actions. Cards retain 320px on a
+Centred below the header, 8px under it, as Paseo's app-shell host
+(`toast-host.tsx`: safe area + header + spacing 2), so feedback stays clear
+of the lower composer and question actions. The stack's bottom edge is
+anchored to the composer's dock and a prompt menu over it (CSS anchor
+positioning), so no viewport change or growing dock leaves a frame in
+which a toast covers a question control; browsers without anchors keep the
+measured height (`use-toast-clearance.ts`), one rendering step late. Cards retain 320px on a
 wide screen; below 768px they use 92vw up to 480px. The existing multi-toast
 host occupies at most a quarter of the viewport height; accumulated or long
 messages remain reachable by scrolling, and words wrap. Padding preserves

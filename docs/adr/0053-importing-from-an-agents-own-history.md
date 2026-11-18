@@ -7,6 +7,17 @@ track A2 wrote it at 14 beside forking, and on milestone 12's node line
 15 (fleet controls) and 16 (`fleet.published`) came first, so it was
 numbered 17 when merged there.
 
+Partly superseded by [ADR 0109](0109-ranked-history-listing.md) (2026-11-18, TRACKER 790), for a
+listing asked with `limit`:
+- "Not offered: previews" and "no session is created or loaded" no longer hold for it. It loads each
+  conversation it answers (`session/load` on the listing connection, Paseo's 30 s and 60 s budgets) for its
+  first and last prompts.
+- "A search over the agent's list (a client's filter)" is now the node's `query`.
+- "Nothing is cached" no longer holds. Previews are kept while a conversation's time is unchanged, so a
+  conversation just had still shows fresh.
+- "Two listings at once on a node, `unavailable` beyond" is now four at once and sixteen waiting.
+The cursor listing below, the claim on a conversation and the import path are unchanged.
+
 ## Context
 
 A person has conversations with their agents outside Vessel: in the
