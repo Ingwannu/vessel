@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use vessel_proto::workspace::directory_metadata::InspectDirectory;
 use vessel_proto::workspace::panel_files::{DuplicateFileEntry, ObserveFile};
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateDir, DeletePath, Discard, DropSnapshot, Fetch,
@@ -107,6 +108,10 @@ pub enum FileAsk {
     Observe(ObserveFile),
     /// `file.duplicate` (protocol 27, ADR 0105): a copy beside an entry.
     Duplicate(DuplicateFileEntry),
+    /// `file.inspect` (protocol 27, ADR 0105): a folder's entries with when
+    /// each last changed and its size, for the tree's Modified and Size
+    /// orders.
+    Inspect(InspectDirectory),
     /// `file.read_bytes`, page by page (protocol 27, ADR 0105): a file kept
     /// on this computer.
     Download(Download),

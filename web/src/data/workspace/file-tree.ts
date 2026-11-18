@@ -14,6 +14,7 @@
 // - Cost: a folder closed and opened again is not listed again until the
 //   tab refreshes; a file an agent adds meanwhile shows on the refresh.
 
+import type { ExplorerSort } from "../../wire/bridge";
 import type { DirEntry, DirListing, RelPath } from "../../wire/proto";
 
 /** What is known of one folder's entries. */
@@ -62,10 +63,54 @@ export function parentOf(path: RelPath): RelPath {
   return at < 0 ? "" : path.slice(0, at);
 }
 
+/** When an entry last changed and its size (`file.inspect`), for the
+ * Modified and Size orders; `null` where the node did not say. */
+export interface EntryFacts {
+  modified: number | null;
+  size: number | null;
+}
+
+/** How the tree orders a folder's entries, and the facts it orders by
+ * (by path; empty for Name). */
+export interface Sorting {
+  by: ExplorerSort;
+  facts: ReadonlyMap<RelPath, EntryFacts>;
+}
+
+const BY_NAME: Sorting = { by: "name", facts: new Map() };
+
+/** `entries` of folder `dir` in Paseo's explorer order (tree.ts
+ * `sortExplorerEntries`): folders first, then by name, by last change
+ * (newest first) or by size (largest first); an entry with no fact goes
+ * last, and ties keep the node's order. */
+export function sortedEntries(
+  entries: readonly DirEntry[],
+  dir: RelPath,
+  sorting: Sorting,
+): DirEntry[] {
+  const fact = (entry: DirEntry, key: keyof EntryFacts): number =>
+    sorting.facts.get(childPath(dir, entry.name))?.[key] ?? -Infinity;
+  return [...entries].sort((a, b) => {
+    const folderA = a.kind === "dir";
+    if (folderA !== (b.kind === "dir")) return folderA ? -1 : 1;
+    switch (sorting.by) {
+      case "name":
+        return a.name.localeCompare(b.name);
+      case "modified":
+      case "size": {
+        const key = sorting.by;
+        const [x, y] = [fact(b, key), fact(a, key)];
+        return x === y ? 0 : x > y ? 1 : -1;
+      }
+    }
+  });
+}
+
 /** The rows of the tree under `dir`, `depth` deep. */
 export function treeRows(
   listings: ReadonlyMap<RelPath, Listing>,
   open: ReadonlySet<RelPath>,
+  sorting: Sorting = BY_NAME,
   dir: RelPath = "",
   depth = 0,
 ): TreeRow[] {
@@ -82,12 +127,12 @@ export function treeRows(
   if (listing.listing.entries.length === 0) {
     rows.push({ kind: "empty", key: `empty:${dir}`, depth });
   }
-  for (const entry of listing.listing.entries) {
+  for (const entry of sortedEntries(listing.listing.entries, dir, sorting)) {
     const path = childPath(dir, entry.name);
     const isOpen = entry.kind === "dir" && open.has(path);
     rows.push({ kind: "entry", key: path, path, entry, depth, open: isOpen });
     if (isOpen) {
-      rows.push(...treeRows(listings, open, path, depth + 1));
+      rows.push(...treeRows(listings, open, sorting, path, depth + 1));
     }
   }
   if (listing.listing.more) {
@@ -189,4 +234,23 @@ export function withoutWithin(
   gone: RelPath,
 ): Set<RelPath> {
   return new Set([...open].filter((path) => !isWithin(path, gone)));
+}
+
+/** Paseo's sort trigger's words (`workspace.fileExplorer.sort`). */
+export const SORT_WORDS: Readonly<Record<ExplorerSort, string>> = {
+  name: "Name",
+  modified: "Modified",
+  size: "Size",
+};
+
+/** The order after `sort` in Paseo's cycle: Name, Modified, Size. */
+export function nextSort(sort: ExplorerSort): ExplorerSort {
+  switch (sort) {
+    case "name":
+      return "modified";
+    case "modified":
+      return "size";
+    case "size":
+      return "name";
+  }
 }

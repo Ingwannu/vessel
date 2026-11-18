@@ -1,5 +1,6 @@
 //! The tab menu (TRACKER 797): one builder for the strip and the switcher,
-//! Paseo's rows per tab kind, and what its copies put on the clipboard.
+//! Paseo's rows per tab kind, and what its copies put on the clipboard;
+//! Reload agent and its toasts (TRACKER 803).
 use super::*;
 use crate::areas::layout::menu::chose;
 use crate::areas::session::Open;
@@ -7,15 +8,23 @@ use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Render, TestAppContext, VisualTestContext};
 use vessel_app_kit::ui::{Entity, IntoElement, Window, div};
+use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_app_view::layout::{AgentRole, LayoutMode, OpenIntent, Placement};
 use vessel_app_view::{Card, Machine, Reach};
 use vessel_proto::{
-    HarnessKind, HarnessSessionId, SessionInfo, SessionMode, SessionSpec, TerminalId,
+    AgentAbilities, ErrorCode, HarnessKind, HarnessSessionId, ProtocolVersion, SessionInfo,
+    SessionMode, SessionSpec, TerminalId,
 };
 
 /// The shell, its tabs (the open agent's, another agent's, a terminal's),
-/// the other agent's session and the terminal.
-struct Probe(Entity<Shell>, [TabId; 3], SessionId, TerminalId);
+/// the other agent's session, the terminal, and what the shell sent.
+struct Probe(
+    Entity<Shell>,
+    [TabId; 3],
+    SessionId,
+    TerminalId,
+    tokio::sync::mpsc::Receiver<Command>,
+);
 
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
@@ -27,8 +36,10 @@ fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
     let other = SessionId::random();
     let terminal = TerminalId::random();
     let mut tabs = None;
+    let mut sent = None;
     let shell = cx.new(|cx| {
-        let mut shell = Shell::without_io(window, cx);
+        let (mut shell, commands) = language_tests::with_commands(window, cx);
+        sent = Some(commands);
         shell.route = Route::Session;
         let session = SessionId::random();
         shell.areas.session.open = Some(Open {
@@ -60,7 +71,7 @@ fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
         .ok();
         shell
     });
-    Probe(shell, tabs.unwrap(), other, terminal)
+    Probe(shell, tabs.unwrap(), other, terminal, sent.unwrap())
 }
 
 /// A structured session's description, with its agent's own id.
@@ -280,4 +291,200 @@ fn the_id_copies_put_the_tabs_id_on_the_clipboard_and_say_so(cx: &mut TestAppCon
     let said = choose(&probe, cx, terminal, Action::Copy(Copied::TerminalId));
     assert_eq!(said, copy(words.copied(words.copied_terminal_id())));
     assert_eq!(clipboard(cx), Some(shell_id.to_string()));
+}
+
+/// The laptop speaking `protocol` (`None`: not connected), listing the
+/// other agent's session, whose agent can load a conversation when `loads`.
+fn laptop(other: SessionId, protocol: Option<ProtocolVersion>, loads: bool) -> Machine {
+    let mut session = info(other, HarnessKind::Codex, Some("9e8d"));
+    session.abilities = Some(AgentAbilities {
+        resume: loads,
+        ..AgentAbilities::default()
+    });
+    Machine {
+        name: "laptop".to_owned(),
+        reach: Reach::Online,
+        sessions: vec![Card::from_session("laptop", &session)],
+        agents: Vec::new(),
+        protocol,
+        version: None,
+        node: None,
+        connection_epoch: None,
+    }
+}
+
+fn put_laptop(probe: &Entity<Probe>, cx: &mut VisualTestContext, machine: Machine) {
+    probe.update(cx, |probe, cx| {
+        probe
+            .0
+            .update(cx, |shell, _| shell.fleet.machines = vec![machine]);
+    });
+}
+
+fn reloading() -> Option<ProtocolVersion> {
+    vessel_proto::reload::RELOAD_PROTOCOL
+}
+
+#[gpui::test]
+fn reload_agent_follows_close_other_tabs_with_paseos_tooltip_where_its_node_can(
+    cx: &mut TestAppContext,
+) {
+    let (probe, cx) = open(cx);
+    let ([_, other, terminal], session) = probe.read_with(cx, |probe, _| (probe.1, probe.2));
+    put_laptop(&probe, cx, laptop(session, reloading(), true));
+    probe.read_with(cx, |probe, cx| {
+        let shell = probe.0.read(cx);
+        let words = shell.words.layout();
+        // Paseo's order: Close other tabs, Reload agent, Close.
+        let items = entries(shell, other, Surface::Strip);
+        assert_eq!(
+            labels(&items),
+            [
+                words.copy_resume_command(),
+                words.copy_agent_id(),
+                words.close_left(),
+                words.close_right(),
+                words.close_others(),
+                words.reload_agent(),
+                words.close(),
+            ]
+        );
+        let (action, reload) = &items[5];
+        assert_eq!(*action, Action::Reload);
+        assert_eq!(reload.leading, Some(Glyph::RotateCw));
+        assert_eq!(
+            reload.tooltip.as_deref(),
+            Some("Reload agent to update skills, MCPs or login status.")
+        );
+        assert!(!reload.disabled && !reload.starts_group);
+        let switcher = entries(shell, other, Surface::Switcher);
+        assert_eq!(switcher[5].0, Action::Reload);
+        // A terminal has none.
+        let items = entries(shell, terminal, Surface::Strip);
+        assert!(!items.iter().any(|(action, _)| *action == Action::Reload));
+    });
+    let offered = |probe: &Entity<Probe>, cx: &mut VisualTestContext| {
+        probe.read_with(cx, |probe, cx| {
+            entries(probe.0.read(cx), probe.1[1], Surface::Strip)
+                .iter()
+                .any(|(action, _)| *action == Action::Reload)
+        })
+    };
+    // A connected node older than the reload protocol: none.
+    put_laptop(
+        &probe,
+        cx,
+        laptop(session, Some(ProtocolVersion::new(30)), true),
+    );
+    assert!(!offered(&probe, cx));
+    // A disconnected one: offered, as Paseo's (a press says so).
+    put_laptop(&probe, cx, laptop(session, None, true));
+    assert!(offered(&probe, cx));
+    // An agent that cannot load its conversation: none, as the page's.
+    put_laptop(&probe, cx, laptop(session, reloading(), false));
+    assert!(!offered(&probe, cx));
+}
+
+/// The reload's answer for `session`, as the link gives it.
+fn answered(
+    probe: &Entity<Probe>,
+    cx: &mut VisualTestContext,
+    session: SessionId,
+    result: Result<Acted, ActFailed>,
+) -> Option<(String, ToastTone)> {
+    probe.update(cx, |probe, cx| {
+        probe.0.update(cx, |shell, cx| {
+            let passed = shell.tab_menu_reload_acted(
+                ActAnswer {
+                    terminal: None,
+                    machine: "laptop".to_owned(),
+                    session,
+                    kind: ActKind::Reload,
+                    result,
+                },
+                cx,
+            );
+            // A success goes on to the conversation; a failure is the
+            // toast's alone.
+            assert_eq!(
+                passed.is_some(),
+                shell
+                    .areas
+                    .toasts
+                    .shown()
+                    .is_some_and(|toast| toast.tone == ToastTone::Ok)
+            );
+            shell
+                .areas
+                .toasts
+                .shown()
+                .map(|toast| (toast.text.clone(), toast.tone))
+        })
+    })
+}
+
+#[gpui::test]
+fn reload_holds_its_toast_until_the_answer_says_how_it_went(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let ([_, other, _], session) = probe.read_with(cx, |probe, _| (probe.1, probe.2));
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
+    put_laptop(&probe, cx, laptop(session, reloading(), true));
+    let said = choose(&probe, cx, other, Action::Reload);
+    let held = Some((words.reloading_agent().to_owned(), ToastTone::Plain));
+    assert_eq!(said, held);
+    let sent = probe.update(cx, |probe, _| probe.4.try_recv().ok());
+    assert!(matches!(
+        sent,
+        Some(Command::Act { machine, session: acted, act: Act::Reload })
+            if machine == "laptop" && acted == session
+    ));
+    // Paseo's `durationMs: null`: still up long after any toast's life.
+    cx.executor()
+        .advance_clock(std::time::Duration::from_secs(60));
+    cx.run_until_parked();
+    let up = probe.read_with(cx, |probe, cx| {
+        probe
+            .0
+            .read(cx)
+            .areas
+            .toasts
+            .shown()
+            .map(|toast| (toast.text.clone(), toast.tone))
+    });
+    assert_eq!(up, held);
+    let reloaded = info(session, HarnessKind::Codex, Some("9e8d"));
+    let said = answered(&probe, cx, session, Ok(Acted::Session(Box::new(reloaded))));
+    assert_eq!(
+        said,
+        Some((words.reloaded_agent().to_owned(), ToastTone::Ok))
+    );
+    // A refusal says the node's words; none, Paseo's line.
+    let refused = ActFailed {
+        code: Some(ErrorCode::Conflict),
+        message: "The running turn did not end.".to_owned(),
+    };
+    let said = answered(&probe, cx, session, Err(refused));
+    assert_eq!(said, Some(error("The running turn did not end.")));
+    let lost = ActFailed {
+        code: None,
+        message: " ".to_owned(),
+    };
+    let said = answered(&probe, cx, session, Err(lost));
+    assert_eq!(said, Some(error(words.failed_to_reload_agent())));
+}
+
+#[gpui::test]
+fn reload_on_a_disconnected_host_says_so_and_sends_nothing(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let ([_, other, _], session) = probe.read_with(cx, |probe, _| (probe.1, probe.2));
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
+    put_laptop(&probe, cx, laptop(session, None, true));
+    let said = choose(&probe, cx, other, Action::Reload);
+    assert_eq!(said, Some(error(words.host_disconnected())));
+    let sent = probe.update(cx, |probe, _| probe.4.try_recv().ok());
+    assert!(sent.is_none());
 }

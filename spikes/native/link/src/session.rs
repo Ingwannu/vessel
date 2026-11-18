@@ -94,6 +94,11 @@ pub enum Act {
     /// Start a parked session's agent again (`session.wake`, protocol 12):
     /// the session as it then stands, its `parked` cleared.
     Wake,
+    /// Start its agent again on the same conversation, picking up skills,
+    /// MCP servers and its login (`session.reload`, protocol 31, TRACKER
+    /// 803): the session as it then stands; its `reloaded` record follows
+    /// in the log.
+    Reload,
     /// Take the conversation back to the end of the turn whose
     /// `turn_ended` record is this one (`session.rewind`, protocol 14):
     /// the session as it then stands; its `rewound` record follows in the
@@ -147,6 +152,8 @@ pub enum ActKind {
     SetOption,
     /// A parked agent started again.
     Wake,
+    /// An agent reloaded.
+    Reload,
     /// A rewind.
     Rewind,
     /// A fork.
@@ -175,6 +182,7 @@ impl Act {
             | Self::Conversation
             | Self::SetOption(_)
             | Self::Wake
+            | Self::Reload
             | Self::Rewind(_)
             | Self::Fork(_)
             | Self::Log(_) => None,
@@ -199,6 +207,7 @@ impl Act {
             Self::Conversation => ActKind::Conversation,
             Self::SetOption(_) => ActKind::SetOption,
             Self::Wake => ActKind::Wake,
+            Self::Reload => ActKind::Reload,
             Self::Rewind(_) => ActKind::Rewind,
             Self::Fork(_) => ActKind::Fork,
             Self::Log(_) | Self::TerminalLog { .. } => ActKind::Log,
@@ -338,6 +347,10 @@ pub(crate) async fn run(
         Act::StartAgain => client.resume_session(session).await.map(boxed),
         Act::Wake => client
             .call(vessel_proto::parking::WakeSession { session })
+            .await
+            .map(boxed),
+        Act::Reload => client
+            .call(vessel_proto::reload::ReloadSession { session })
             .await
             .map(boxed),
         Act::Rewind(after) => client

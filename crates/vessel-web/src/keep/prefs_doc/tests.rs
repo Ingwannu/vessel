@@ -2,8 +2,8 @@ use vessel_proto::HarnessKind;
 
 use super::*;
 use crate::wire::{
-    Choices, InterfaceSize, KeyBinding, Notifications, Panel, SendKey, ShortcutEdit, ShortcutEdits,
-    Theme, TurnDelivery,
+    Choices, ExplorerSort, InterfaceSize, KeyBinding, Notifications, Panel, SendKey, ShortcutEdit,
+    ShortcutEdits, Theme, TurnDelivery,
 };
 
 fn read(text: &str) -> PrefsDoc {
@@ -84,6 +84,30 @@ fn the_delivery_is_the_composers_and_keeps_the_send_key() {
     // A value a newer page wrote reads as the default and is kept.
     let doc = read(r#"{"version":1,"composer":{"delivery":"later"}}"#);
     assert_eq!(doc.values().composer.delivery, TurnDelivery::Steer);
+}
+
+/// The Files tab's order (Paseo's explorer sort) is kept with the panels,
+/// beside the sidebar's and the inspector's, and changes only itself.
+#[test]
+fn the_explorer_sort_is_kept_with_the_panels() {
+    let mut doc = read(r#"{"version":1,"layout":{"sidebar":"hidden"}}"#);
+    assert_eq!(doc.values().layout.explorer_sort, ExplorerSort::Name);
+    doc = doc
+        .changed(&PreferenceChange::ExplorerSort(ExplorerSort::Modified))
+        .unwrap();
+    assert_eq!(doc.values().layout.explorer_sort, ExplorerSort::Modified);
+    assert_eq!(doc.values().layout.sidebar, Panel::Hidden);
+    assert_eq!(
+        compact(&written(&doc)),
+        compact(r#"{"version":1,"layout":{"sidebar":"hidden","explorer_sort":"modified"}}"#)
+    );
+    // An order a newer page wrote reads as Name and is kept as written.
+    let doc = read(r#"{"version":1,"layout":{"explorer_sort":"type"}}"#);
+    assert_eq!(doc.values().layout.explorer_sort, ExplorerSort::Name);
+    assert_eq!(
+        compact(&written(&doc)),
+        compact(r#"{"version":1,"layout":{"explorer_sort":"type"}}"#)
+    );
 }
 
 /// ADR 0108: the default moved from Queue to Steer. A document that never

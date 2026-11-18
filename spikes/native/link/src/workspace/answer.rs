@@ -4,6 +4,7 @@
 use vessel_app_view::workspace::file_panels::DownloadFailure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
+use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, DuplicatedFileEntry, ObserveFile, ObservedFile,
 };
@@ -217,6 +218,13 @@ pub enum Answer {
         /// The copy, or why not.
         result: Result<DuplicatedFileEntry, Problem>,
     },
+    /// A folder's entries with their times and sizes.
+    Inspected {
+        /// What was asked.
+        ask: InspectDirectory,
+        /// The facts, or why not.
+        result: Result<InspectedDirectory, Problem>,
+    },
     /// A download ended.
     Downloaded {
         /// What was asked.
@@ -411,6 +419,10 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
             result: no(problem),
         },
         FileAsk::Duplicate(ask) => Answer::Duplicated {
+            ask,
+            result: no(problem),
+        },
+        FileAsk::Inspect(ask) => Answer::Inspected {
             ask,
             result: no(problem),
         },

@@ -10,7 +10,7 @@ use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, OptionValueId};
 use crate::Lang;
 use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
-    ActionId, AgentKind, Bindings, Choices, ContentWidth, Grouping, InvalidActionId,
+    ActionId, AgentKind, Bindings, Choices, ContentWidth, ExplorerSort, Grouping, InvalidActionId,
     InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
     Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme,
     TurnDelivery,
@@ -18,7 +18,7 @@ use crate::prefs::{
 
 /// The page/bridge defaults, byte for byte the bridge's `defaults_are_the_contracts`
 /// (crates/vessel-web/src/wire/prefs.rs) with the usage section of ADR 0107.
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
 
 /// The usage section both documents share (ADR 0107).
 const USAGE: &str = r#""usage":{"display":"used","host":null,"pins":null}"#;
@@ -261,6 +261,10 @@ fn changes_are_tagged_by_setting_with_their_value() {
     assert_eq!(
         change(r#"{"set":"inspector_panel","value":"hidden"}"#),
         PreferenceChange::InspectorPanel(Panel::Hidden)
+    );
+    assert_eq!(
+        change(r#"{"set":"explorer_sort","value":"modified"}"#),
+        PreferenceChange::ExplorerSort(ExplorerSort::Modified)
     );
     for refused in [
         r#"{"set":"interface_size","value":21}"#,

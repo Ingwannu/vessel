@@ -127,6 +127,18 @@ layout-copied-workspace-path = 워크스페이스 경로
 layout-resume-id-unavailable = 재개 ID를 사용할 수 없습니다
 # Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).
 layout-resume-command-unavailable = 재개 명령을 사용할 수 없습니다
+# Tab menu: start the agent again on its conversation, picking up skills, MCPs and login (Paseo's workspace.tabs.menu.reloadAgent).
+layout-reload-agent = 에이전트 다시 로드
+# Tab menu: Reload agent's tooltip (Paseo's workspace.tabs.menu.reloadAgentTooltip).
+layout-reload-agent-tooltip = 스킬, MCP 또는 로그인 상태를 업데이트하려면 에이전트를 다시 로드하세요.
+# Toast while the host reloads the agent, until its answer (Paseo's workspace.tabs.toasts.reloadingAgent).
+layout-reloading-agent = 에이전트 다시 로드 중...
+# Toast: the agent was reloaded (Paseo's workspace.tabs.toasts.reloadedAgent).
+layout-reloaded-agent = 에이전트를 다시 로드했습니다
+# Toast: the reload failed and the host gave no words (Paseo's workspace.tabs.toasts.failedToReloadAgent).
+layout-failed-to-reload-agent = 에이전트를 다시 로드하지 못했습니다
+# Toast: Reload agent pressed while the session's host is not connected (Paseo's workspace.terminal.hostDisconnected).
+layout-host-disconnected = 호스트가 연결되어 있지 않습니다
 # Rename dialog: the title is empty (Paseo's common.errors.nameRequired).
 layout-name-required = 이름을 입력하세요
 # Rename dialog: Rename's label while the rename waits for the host (Paseo's renameModal.saving).

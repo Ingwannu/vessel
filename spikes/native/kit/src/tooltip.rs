@@ -268,6 +268,28 @@ impl Tooltips {
     /// The tooltip shown, over everything.
     #[must_use]
     pub fn render(&self, tokens: &Tokens) -> Option<AnyElement> {
+        Some(
+            deferred(self.placed(tokens)?)
+                .with_priority(4)
+                .into_any_element(),
+        )
+    }
+
+    /// The tooltip shown, for a surface that is itself drawn in a deferred
+    /// layer (a menu, TRACKER 803): drawn after the surface's own content,
+    /// so on top of it, without a second deferral inside the first.
+    #[must_use]
+    pub(crate) fn render_in_layer(&self, tokens: &Tokens) -> Option<AnyElement> {
+        self.placed(tokens).map(IntoElement::into_any_element)
+    }
+
+    /// Take down the tooltip shown or pending (a menu opening again).
+    pub(crate) fn dismiss(&self) {
+        self.state.borrow_mut().dismiss();
+    }
+
+    /// The card at its trigger, kept within the window.
+    fn placed(&self, tokens: &Tokens) -> Option<gpui::Anchored> {
         let tip = self.state.borrow().shown.clone()?;
         let _trigger = tip.trigger.upgrade()?;
         let bounds = tip.place.get()?;
@@ -279,6 +301,7 @@ impl Tooltips {
         let (position, anchor, offset) = tip.configuration.placement(bounds);
         let metrics = tip.content.metrics();
         let card = div()
+            .debug_selector(|| "tooltip-card".to_owned())
             .max_w(px(280.0))
             .py(px(4.0))
             .px(px(8.0))
@@ -315,16 +338,12 @@ impl Tooltips {
             crate::motion::QUICK,
         );
         Some(
-            deferred(
-                anchored()
-                    .position(position)
-                    .anchor(anchor)
-                    .offset(offset)
-                    .snap_to_window_with_margin(px(8.0))
-                    .child(card),
-            )
-            .with_priority(4)
-            .into_any_element(),
+            anchored()
+                .position(position)
+                .anchor(anchor)
+                .offset(offset)
+                .snap_to_window_with_margin(px(8.0))
+                .child(card),
         )
     }
 }

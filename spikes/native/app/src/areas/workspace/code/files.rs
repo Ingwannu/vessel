@@ -126,8 +126,14 @@ impl Shell {
             // node's reason is shown under it.
             Err(problem) => Listing::Failed(words.problem(&problem)),
         };
+        let listed = matches!(listing, Listing::Listed(_));
         let _was = panel.files.listings.insert(ask.dir.clone(), listing);
         panel.files.relist();
+        // A new look at the folder: its times and sizes again, when the
+        // order needs them (`sort.rs`).
+        if listed {
+            self.inspect_folder(&ask.dir);
+        }
     }
 
     pub(super) fn toggle_folder(&mut self, path: &RelPath, cx: &mut Context<'_, Self>) {
@@ -281,7 +287,14 @@ pub(super) fn render(
     if let Some(viewer) = &files.viewer {
         return super::viewer::viewer_element(shell, viewer, tokens, window, cx);
     }
-    let body = super::found::results(shell, tokens, cx).unwrap_or_else(|| {
+    let found = super::found::results(shell, tokens, cx);
+    // Paseo's sort trigger orders the tree: none over search results.
+    let sort = if found.is_none() {
+        super::sort::trigger(shell, tokens, cx)
+    } else {
+        None
+    };
+    let body = found.unwrap_or_else(|| {
         files
             .list
             .element(
@@ -297,7 +310,7 @@ pub(super) fn render(
         .min_h(px(0.0))
         .flex()
         .flex_col()
-        .child(super::search::bar(shell, tokens, cx))
+        .child(super::search::bar(shell, tokens, sort, cx))
         .children(super::actions_view::refused_note(shell, tokens))
         .child(div().flex_1().min_h(px(0.0)).child(body))
         .children(super::actions_view::overlays(shell, tokens, window, cx))

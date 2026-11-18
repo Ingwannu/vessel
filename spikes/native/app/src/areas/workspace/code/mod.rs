@@ -39,6 +39,10 @@ mod frame;
 mod line_syntax;
 mod search;
 mod shown_source;
+mod sort;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod sort_tests;
 mod source_acquisition;
 mod source_answer;
 mod source_follow;
@@ -53,8 +57,9 @@ use std::collections::{HashMap, HashSet};
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, VirtualList};
+use vessel_app_view::prefs::ExplorerSort;
 use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, change_rows};
-use vessel_app_view::workspace::file_tree::{Listing, TreeRow, tree_rows};
+use vessel_app_view::workspace::file_tree::{EntryFacts, Listing, Sorting, TreeRow, tree_rows};
 use vessel_app_view::workspace::problem::Problem;
 
 use vessel_proto::SessionId;
@@ -150,6 +155,11 @@ enum Shown {
 struct Files {
     listings: HashMap<RelPath, Listing>,
     open: HashSet<RelPath>,
+    /// The tree's order (the preferences' `layout.explorer_sort`).
+    sort: ExplorerSort,
+    /// Each entry's time and size by path, from `file.inspect`, while the
+    /// order needs them.
+    facts: HashMap<RelPath, EntryFacts>,
     rows: Vec<TreeRow>,
     list: VirtualList,
     viewer: Option<Viewer>,
@@ -206,6 +216,8 @@ impl CodePanel {
             files: Files {
                 listings: HashMap::new(),
                 open: HashSet::new(),
+                sort: ExplorerSort::Name,
+                facts: HashMap::new(),
                 rows: Vec::new(),
                 list: VirtualList::new(false),
                 viewer: None,
@@ -246,6 +258,7 @@ impl CodePanel {
             self.changes.states.clear();
             self.changes.relist();
             self.files.listings.clear();
+            self.files.facts.clear();
             self.files.viewer = None;
             self.files.relist();
         }
@@ -279,7 +292,11 @@ impl Changes {
 
 impl Files {
     fn relist(&mut self) {
-        self.rows = tree_rows(&self.listings, &self.open);
+        let sorting = Sorting {
+            by: self.sort,
+            facts: &self.facts,
+        };
+        self.rows = tree_rows(&self.listings, &self.open, sorting);
         self.list.reset(self.row_count());
     }
 
@@ -440,6 +457,8 @@ impl Shell {
     /// Read what the chosen tab shows, if not read yet, or again when a
     /// git write changed it while it was hidden.
     fn code_read_tab(&mut self) {
+        // The root's machine is known now: the order it can be sorted in.
+        self.areas.workspace.code.files.sort = self.explorer_sort();
         let reread = self.code_reread_shown();
         match self.areas.workspace.code.tab {
             // Asked again already: a second ask would answer twice.

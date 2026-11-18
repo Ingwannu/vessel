@@ -20,7 +20,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     content_width: "comfortable",
     conversation: "full",
   },
-  layout: { sidebar: "shown", inspector: "shown" },
+  layout: { sidebar: "shown", inspector: "shown", explorer_sort: "name" },
   // Steer, as Paseo and the native app (ADR 0108); a stored choice wins.
   composer: { send: "enter", delivery: "steer" },
   shortcuts: {},
@@ -88,6 +88,11 @@ export function applyChange(
       return { ...prefs, layout: { ...prefs.layout, sidebar: change.value } };
     case "inspector_panel":
       return { ...prefs, layout: { ...prefs.layout, inspector: change.value } };
+    case "explorer_sort":
+      return {
+        ...prefs,
+        layout: { ...prefs.layout, explorer_sort: change.value },
+      };
     case "send":
       return { ...prefs, composer: { ...prefs.composer, send: change.value } };
     case "delivery":

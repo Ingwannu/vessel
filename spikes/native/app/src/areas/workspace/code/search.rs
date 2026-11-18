@@ -19,7 +19,8 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::segmented::{SegmentSize, segment, segmented};
 use vessel_app_kit::ui::{
-    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{Reveal, TextField, Tokens, VirtualList, glyph};
 use vessel_app_link::workspace::{Ask, FileAsk};
@@ -329,8 +330,14 @@ fn search_focus(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
         .focus(window, cx);
 }
 
-/// The field and the kind of search, over the tree or the results.
-pub(super) fn bar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+/// The field and the kind of search, over the tree or the results, and
+/// the tree's sort trigger (`sort.rs`) where it is shown.
+pub(super) fn bar(
+    shell: &Shell,
+    tokens: &Tokens,
+    sort: Option<AnyElement>,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let search = &shell.areas.workspace.code.files.search;
     let labels = shell.words().labels();
     let neutral = tokens.neutral;
@@ -388,6 +395,7 @@ pub(super) fn bar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -
                     })),
                 ),
         )
+        .children(sort)
 }
 
 /// Bring line `line` (from 1) of the viewed file to the top, once read.
