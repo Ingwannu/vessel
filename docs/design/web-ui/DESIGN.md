@@ -933,10 +933,12 @@ screen, and it is asked once. (Milestone 9 drew it twice, a card in the
 timeline and a bar over the composer, each with every option as a
 button; the owner asked for one.)
 
-- **Docked over the composer's top edge**, GOAT's approval drawer: 12px
-  narrower than the box on each side, its top corners 16px, an edge of
-  the review colour at 28% and a tint of it at 8%; the box covers its
-  bottom 16px, so it reads as tucked under it. In it: a 16px shield in
+- **Docked over the composer**, 8px above the box and wholly clear of
+  it (Paseo keeps the pending card fully visible above its composer;
+  GOAT's drawer tucked 16px under the box was covered once the box
+  stayed usable during a permission, TRACKER 794): 12px narrower than
+  the box on each side, radius 16, an edge of the review colour at 28%
+  and a tint of it at 8%. In it: a 16px shield in
   the review colour; "Approval needed" (11px medium, that colour); what is
   asked, the tool call's title, in 12px mono, and the file it touches;
   then Decline and Approve, `xs`, Approve the primary.
@@ -1291,7 +1293,9 @@ approval (§6.7):
   one modifier away: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter
   (⌘/Ctrl+Shift+Enter where ⌘/Ctrl+Enter is the send key), and the icon
   and label turn while the modifier is held; the other way of queue is
-  steer, of steer and interrupt queue. Steer is offered only where the
+  interrupt-and-send (Paseo's "Command/Ctrl+Enter submits"), of steer
+  and interrupt queue. Settings › General says so under Default send,
+  in Paseo's words for the send key. Steer is offered only where the
   agent says it takes it (`abilities.steer`), and an agent that refuses
   it once is not offered it again while the session's page is open; a
   Steer chosen for an agent that cannot take it replaces the turn

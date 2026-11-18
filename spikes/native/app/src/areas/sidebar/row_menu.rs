@@ -24,14 +24,18 @@
 //! - Differences, named: the dots are the kit's horizontal ones (Paseo's
 //!   are vertical; the kit has no vertical mark); no Rename, Copy branch
 //!   name or Open in file manager (no native seam yet); the menu's
-//!   rows have no leading glyphs (the kit's menu has none). Labels opens
-//!   the workspace picker dialog rather than a page inside the menu (the
-//!   kit's menu has no pages).
+//!   rows have no leading glyphs (the kit's menu has none). Labels is a
+//!   page of the menu (TRACKER 791, `kit::submenu`): beside it on a wide
+//!   window, the workspace picker's list in its flyout; on a phone the menu
+//!   is a sheet titled "Session actions" (Paseo's "Workspace actions"; a
+//!   Vessel row is a session) and the picker's sheet replaces it, leading
+//!   back. The picker's Create stays a dialog (Paseo: a page with a field).
 
 use std::rc::Rc;
 
 use vessel_app_kit::Tokens;
-use vessel_app_kit::menu::{MenuHandlers, MenuItem, MenuState, menu};
+use vessel_app_kit::menu::{Content, MenuHandlers, MenuItem, MenuState, menu_with};
+use vessel_app_kit::submenu::{Submenus, flyout};
 use vessel_app_kit::ui::{AnyElement, App, Context, Pixels, Point, Window};
 use vessel_app_link::Act;
 use vessel_app_view::Card;
@@ -39,20 +43,25 @@ use vessel_app_view::session::{CONVERSATION_PROTOCOL, MarkAction};
 use vessel_app_view::toasts::ToastTone;
 use vessel_proto::Mark;
 
+use crate::areas::labels::{PickerPlace, RowPicker, picker_beside};
 use crate::routes::Route;
 use crate::shell::Shell;
+
+/// The Labels page's name among the menu's submenus.
+const LABELS: &str = "labels";
 
 /// The menu's state and the session it is for.
 pub(crate) struct RowMenu {
     menu: MenuState,
     target: Option<Target>,
+    /// Its Labels page.
+    pages: Submenus,
 }
 
-/// A session's row menu: the session, what it offers, and where it opened.
+/// A session's row menu: the session and what it offers.
 struct Target {
     card: Card,
     acts: Vec<RowAct>,
-    at: Point<Pixels>,
 }
 
 /// What an item does.
@@ -71,6 +80,7 @@ impl RowMenu {
         Self {
             menu: MenuState::new(cx),
             target: None,
+            pages: Submenus::new(),
         }
     }
 
@@ -146,7 +156,6 @@ impl Shell {
         rows.target = Some(Target {
             card: card.clone(),
             acts,
-            at,
         });
         rows.menu.open(at, window, cx);
         cx.notify();
@@ -160,7 +169,6 @@ impl Shell {
             return;
         };
         let card = target.card;
-        let at = target.at;
         match act {
             RowAct::CopyPath => {
                 if let Some(folder) = &card.detail.cwd {
@@ -182,13 +190,97 @@ impl Shell {
             }
             RowAct::Mark(MarkAction::Pin) => self.act_on_card(&card, Act::Mark(Mark::Pin)),
             RowAct::Mark(MarkAction::Unpin) => self.act_on_card(&card, Act::Mark(Mark::Unpin)),
-            RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete) => {}
-            RowAct::Labels => {
-                let project = card.member_project();
-                self.labels_row_open(&card.machine, card.session, project, Some(at), window, cx);
-            }
+            // Labels is a page of the menu: the menu opens it, never choosing
+            // it.
+            RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete)
+            | RowAct::Labels => {}
         }
         cx.notify();
+    }
+
+    /// Follow the menu's Labels page with the workspace picker: opened for
+    /// the row's workspace when the page opens (beside the menu, or on a
+    /// phone as the sheet that replaces it), the keys moved in when a press
+    /// or Enter opened it, closed with the page, and the menu closed when
+    /// the person dismisses the picker (Escape, its sheet's scrim).
+    fn row_menu_labels_sync(
+        &mut self,
+        phone: bool,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let rows = &self.areas.sidebar.rows;
+        let open = rows.menu.is_open() && rows.pages.is_open(LABELS, 0);
+        match (open, self.areas.labels.row_picker()) {
+            (true, RowPicker::None) => {
+                let Some(card) = rows.target.as_ref().map(|target| target.card.clone()) else {
+                    return;
+                };
+                let place = if phone {
+                    PickerPlace::Page(Rc::new(|shell: &mut Shell, window, cx| {
+                        shell.row_menu_labels_back(window, cx);
+                    }))
+                } else {
+                    PickerPlace::Beside
+                };
+                let project = card.member_project();
+                let opened =
+                    self.labels_row_picker(&card.machine, card.session, project, place, window, cx);
+                if opened {
+                    self.row_menu_labels_keys(phone, window, cx);
+                } else {
+                    self.areas.sidebar.rows.pages.close_all();
+                }
+            }
+            (true, RowPicker::Open) => self.row_menu_labels_keys(phone, window, cx),
+            (true, RowPicker::Dismissed) => {
+                self.labels_row_picker_close();
+                let rows = &mut self.areas.sidebar.rows;
+                rows.pages.close_all();
+                rows.target = None;
+                rows.menu.close_and_restore(window, cx);
+            }
+            (false, RowPicker::Open | RowPicker::Dialog | RowPicker::Dismissed) => {
+                self.labels_row_picker_close();
+            }
+            // The dialog's own Back returns to the list, which takes the keys.
+            (true, RowPicker::Dialog) | (false, RowPicker::None) => {}
+        }
+        cx.notify();
+    }
+
+    /// A press or Enter opened the Labels page: beside the menu its list
+    /// takes the keys (one the pointer opened leaves them with the menu); a
+    /// phone's page sheet took them when it opened.
+    fn row_menu_labels_keys(
+        &mut self,
+        phone: bool,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.areas.sidebar.rows.pages.take_pressed(LABELS) && !phone {
+            self.labels_row_picker_keys(window, cx);
+        }
+    }
+
+    /// The phone's Labels page led back: the menu's sheet again.
+    fn row_menu_labels_back(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.labels_row_picker_close();
+        let _back = self.areas.sidebar.rows.pages.back();
+        cx.notify();
+    }
+}
+
+/// Whether the menu's Labels page and its picker disagree, or a press
+/// that opened the page waits to move the keys in.
+fn labels_out_of_step(shell: &Shell, phone: bool) -> bool {
+    let rows = &shell.areas.sidebar.rows;
+    let open = rows.menu.is_open() && rows.pages.is_open(LABELS, 0);
+    match (open, shell.areas.labels.row_picker()) {
+        (true, RowPicker::None | RowPicker::Dismissed)
+        | (false, RowPicker::Open | RowPicker::Dialog | RowPicker::Dismissed) => true,
+        (true, RowPicker::Open) => !phone && rows.pages.pressed(LABELS),
+        (true, RowPicker::Dialog) | (false, RowPicker::None) => false,
     }
 }
 
@@ -214,7 +306,7 @@ pub(super) fn render(
                 .map(|act| match act {
                     RowAct::CopyPath => MenuItem::new(words.copy_path),
                     RowAct::Mark(action) => MenuItem::new(said.mark_action(*action)),
-                    RowAct::Labels => MenuItem::new(words.labels),
+                    RowAct::Labels => MenuItem::sub(words.labels, LABELS),
                 })
                 .collect()
         })
@@ -225,17 +317,33 @@ pub(super) fn render(
             shell.row_menu_chose(index, window, cx);
         }),
     };
-    let mut drawn: Vec<AnyElement> = menu(
-        "sidebar-row-menu",
-        &rows.menu,
-        &items,
-        &handlers,
-        tokens,
-        phone,
-        cx,
-    )
-    .into_iter()
-    .collect();
+    let content = Content::new("sidebar-row-menu", &items)
+        .with_submenus(&rows.pages)
+        .with_sheet(words.row_actions);
+    // While the Labels picker's Create dialog is up (Paseo: a page in the
+    // flyout; here the dialog, a named difference) the menu waits behind it
+    // undrawn, so a press in the dialog is not a press outside the menu.
+    let waiting = shell.areas.labels.row_picker() == RowPicker::Dialog;
+    let mut drawn: Vec<AnyElement> = if waiting {
+        Vec::new()
+    } else {
+        menu_with(content, &rows.menu, &handlers, tokens, phone, cx)
+            .into_iter()
+            .collect()
+    };
+    // Its Labels page beside it, drawn after it (same layer, on top); on a
+    // phone the picker's own sheet replaces the menu's.
+    if !phone && rows.menu.is_open() && rows.pages.is_open(LABELS, 0) {
+        drawn.extend(
+            picker_beside(shell, tokens, window, cx)
+                .and_then(|list| flyout(&rows.pages, LABELS, 0, 1, list)),
+        );
+    }
+    if labels_out_of_step(shell, phone) {
+        cx.defer_in(window, move |shell, window, cx| {
+            shell.row_menu_labels_sync(phone, window, cx);
+        });
+    }
     if shell.route != Route::Board {
         drawn.extend(crate::areas::board::card_question(
             shell, tokens, window, cx,
@@ -243,3 +351,7 @@ pub(super) fn render(
     }
     drawn
 }
+
+#[cfg(test)]
+#[path = "row_menu_tests.rs"]
+mod tests;

@@ -11,7 +11,8 @@
 //!   element still takes its parent's layout, as `ModalBoundary` notes).
 //! - Choice: below the compact width a menu with a sheet title is a
 //!   full-width panel on `surface0` with its top corners at the sheet radius,
-//!   its title on top and 44-point rows, over the 45% scrim that closes it;
+//!   the kit's drag handle (Paseo's `SheetHandle`), its title and 44-point
+//!   rows, over the 45% scrim that closes it;
 //!   while one of its pages is open the menu draws nothing and the screen
 //!   draws the page as its own sheet with a back header (the list's sheet),
 //!   whose Back returns here.
@@ -20,6 +21,7 @@
 
 use super::draw::MAX_WIDTH;
 use super::{MenuState, Width};
+use crate::dialog::sheet_handle;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::submenu::Submenus;
@@ -64,6 +66,8 @@ pub(super) fn sheet(panel: Stateful<Div>, title: SharedString, tokens: &Tokens) 
         .rounded_t(px(popup::SHEET_RADIUS))
         .pb(px(spacing::S4))
         .overflow_hidden()
+        // Paseo's `SheetHandle` (menu-surface.tsx), the kit's sheets' one.
+        .child(sheet_handle(tokens.neutral.foreground_extra_muted))
         .child(
             // The list's sheet title row (`picker::rows::title_row`), so the
             // menu and the page that replaces it share one header.

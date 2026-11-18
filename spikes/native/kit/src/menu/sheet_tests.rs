@@ -105,3 +105,17 @@ fn a_press_on_the_dimmed_page_closes_it(cx: &mut TestAppContext) {
     cx.run_until_parked();
     view.read_with(cx, |probe, _| assert!(!probe.menu.is_open()));
 }
+
+#[gpui::test]
+fn a_resting_pointer_does_not_open_a_page_of_the_sheet(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, true);
+    let row = labels_row(&view, cx);
+    cx.simulate_mouse_move(row.center(), None, Modifiers::none());
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(300));
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| {
+        assert!(!probe.submenus.is_open("labels", 0));
+        assert!(probe.drawn);
+    });
+}

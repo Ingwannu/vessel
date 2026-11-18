@@ -14,12 +14,12 @@ export function resetText(
   switch (clock.kind) {
     case "unreported":
       return null;
+    // Paseo format.ts formatResetLabel: "resetting now" for a current read,
+    // "Reset time passed" for values kept from before the reset.
     case "resetting":
+      return { text: "Resetting now", atRisk: false };
     case "reset_passed":
-      return {
-        text: "Reported reset has passed; refresh to check again.",
-        atRisk: false,
-      };
+      return { text: "Reset time passed", atRisk: false };
     case "reset": {
       const duration = quotaDurationText(clock.parts, locale);
       const at = quotaResetClock(clock, locale, deviceClock);

@@ -302,6 +302,7 @@ fn draw<V: 'static>(
         tokens,
         surfaces: &surfaces,
         narrow,
+        sheet: sheet.is_some(),
     };
     for (index, item) in items.iter().enumerate() {
         if item.starts_group && index > 0 {

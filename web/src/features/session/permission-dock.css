@@ -1,8 +1,11 @@
-/* The permission prompt docked over the composer (features/session/
-   permission-dock.tsx), GOAT's approval drawer: narrower than the box by
-   12px each side, its top corners 16px, an edge of the review colour at
-   28% and a tint of it at 8%; the box covers its bottom 16px, so it reads
-   as tucked under it. Inside: a 16px shield in the review colour, the
+/* The permission prompt over the composer (features/session/
+   permission-dock.tsx): narrower than the box by 12px each side, an edge
+   of the review colour at 28% and a tint of it at 8%, radius 16, 8px
+   above the box and wholly clear of it. It was GOAT's drawer tucked 16px
+   under the box; since the box stays usable while a permission waits
+   (TRACKER 794) the box covered the card's foot, and Paseo keeps the
+   pending card fully visible above its composer (agent-stream/view.tsx,
+   `bottomOverlayInset`). Inside: a 16px shield in the review colour, the
    kind in 11px medium in that colour, what is asked in 12px mono, then
    the answers, 6px apart. */
 
@@ -10,11 +13,10 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 0 12px -16px;
-  padding: 12px 12px 28px;
+  margin: 0 12px 8px;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--warn) 28%, transparent);
-  border-bottom: 0;
-  border-radius: 16px 16px 0 0;
+  border-radius: 16px;
   background: color-mix(in srgb, var(--warn) 8%, var(--composer-bg));
 }
 

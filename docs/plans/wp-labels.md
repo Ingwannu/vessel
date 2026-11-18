@@ -72,7 +72,9 @@ Reference sources read before implementation (relative to the reference source r
   current (one waiting read of each out at a time, the quiet pause after
   each answer, a longer one after a failure); `rows.rs` reads it for a
   session row (its registry workspace and labels) and opens the picker.
-  `picker.rs` is opened from a session row's menu (`areas/sidebar/row_menu.rs`, Labels after Pin);
+  `picker.rs` is opened from a session row's menu (`areas/sidebar/row_menu.rs`, Labels after Pin)
+  as the menu's page: beside it on a wide window, its sheet on a phone
+  (TRACKER 791, `docs/plans/wp-menu-submenus.md`);
   `colors::chip` draws Paseo's chips on the row's second line
   (`areas/sidebar/session_row.rs`).
 - Flow: bind (fleet change) -> follow reads -> Replica / Assignments ->

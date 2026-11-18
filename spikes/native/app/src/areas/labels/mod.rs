@@ -9,6 +9,8 @@ mod draw;
 #[cfg(test)]
 mod draw_tests;
 mod fields;
+#[cfg(test)]
+pub(crate) mod fixtures;
 mod follow;
 mod form;
 mod host_filter;
@@ -18,6 +20,7 @@ mod rows;
 mod surface;
 
 pub(crate) use colors::chip;
+pub(crate) use picker::{PickerPlace, RowPicker};
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
 use vessel_app_kit::{
@@ -215,6 +218,17 @@ impl Shell {
         self.settle_labels(cx);
         self.labels_picker_settle(cx);
     }
+}
+
+/// A row menu's Labels page beside the menu: the picker's list, for the
+/// menu's flyout (TRACKER 791).
+pub(crate) fn picker_beside(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    picker::beside(shell, tokens, window, cx)
 }
 
 /// The picker or the manager, whichever is open. The shell draws it just

@@ -6,17 +6,12 @@ use std::time::Duration;
 use gpui::TestAppContext;
 use vessel_app_link::Link;
 use vessel_app_link::labels::{Answer, Command, Event, Request};
-use vessel_app_view::connection::{ConnectionContext, ConnectionEpochs, MachineKey};
-use vessel_app_view::labels::{Catalog, Color, Host, HostState, Label, Name};
-use vessel_app_view::machine_book;
-use vessel_proto::registry::{
-    RegistryRevision, RegistrySnapshot, WorkspaceMembership, WorkspaceResource,
-};
-use vessel_proto::workspace_labels::{
-    CatalogCursor, CatalogList, CatalogMode, CatalogRead, WorkspaceLabelAssignments,
-};
-use vessel_proto::{NodeId, SessionId, WorkspaceId, WorkspaceLabelGeneration, WorkspaceLabelSeq};
+use vessel_app_view::connection::ConnectionContext;
+use vessel_app_view::labels::{Color, HostState, Label, Name};
+use vessel_proto::workspace_labels::{CatalogCursor, CatalogList, CatalogMode, CatalogRead};
+use vessel_proto::{SessionId, WorkspaceId, WorkspaceLabelGeneration, WorkspaceLabelSeq};
 
+use super::super::fixtures::{install, registry, sent};
 use crate::shell::Shell;
 
 const COMMAND_CAPACITY: usize = 8;
@@ -32,49 +27,10 @@ fn ready() -> Label {
     }
 }
 
-/// A host on protocol 28 that has not loaded yet, as a bind leaves it.
-fn install(shell: &mut Shell) -> ConnectionContext {
-    let connection = ConnectionEpochs::default()
-        .admit(MachineKey::from_book("fixture"), NodeId::random())
-        .unwrap();
-    shell.areas.labels.hosts = vec![Host {
-        key: connection.node(),
-        route: machine_book::Name::parse("fixture").unwrap(),
-        connection: Some(connection.clone()),
-        state: HostState::Loading,
-        catalog: Catalog::default(),
-    }];
-    connection
-}
-
-/// The next command the area sent: a labels request.
-fn sent(commands: &mut tokio::sync::mpsc::Receiver<vessel_app_link::Command>) -> Request {
-    let Ok(vessel_app_link::Command::Labels(request)) = commands.try_recv() else {
-        panic!("expected a labels request");
-    };
-    request
-}
-
 fn head() -> CatalogCursor {
     CatalogCursor {
         generation: WorkspaceLabelGeneration::random(),
         after: WorkspaceLabelSeq::new(1),
-    }
-}
-
-fn registry(session: SessionId, workspace: WorkspaceId) -> RegistrySnapshot {
-    RegistrySnapshot {
-        labels: vec![WorkspaceLabelAssignments {
-            workspace,
-            labels: vec![name("Ready")],
-        }],
-        node: NodeId::random(),
-        revision: RegistryRevision::ZERO.next().unwrap(),
-        workspaces: Vec::new(),
-        memberships: vec![WorkspaceMembership {
-            workspace,
-            resource: WorkspaceResource::Session { session },
-        }],
     }
 }
 
@@ -218,7 +174,14 @@ fn a_row_s_labels_item_opens_the_picker_on_its_registry_workspace(cx: &mut TestA
             },
             cx,
         );
-        shell.labels_row_open("fixture", session, None, None, window, cx);
+        assert!(shell.labels_row_picker(
+            "fixture",
+            session,
+            None,
+            crate::areas::labels::PickerPlace::Beside,
+            window,
+            cx,
+        ));
         let target = shell.areas.labels.picker_target().unwrap();
         assert_eq!(target.workspace(), workspace);
         assert_eq!(target.connection(), &connection);

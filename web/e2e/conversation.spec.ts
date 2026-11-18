@@ -159,6 +159,26 @@ test("a Queue while a permission waits stops the turn instead, and says so (TRAC
       composer(page).getByRole("button", { name: "Interrupt and send" }),
     ).toBeVisible();
     await text(page).fill("");
+    // The card is never under the box, at any height (Paseo keeps the
+    // pending card fully visible above its composer).
+    const box = page.locator(".prompt-box");
+    for (const size of [
+      { width: 1280, height: 900 },
+      { width: 1280, height: 560 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(size);
+      await expect(async () => {
+        const card = await prompt.boundingBox();
+        const under = await box.boundingBox();
+        expect(card).not.toBeNull();
+        expect(under).not.toBeNull();
+        if (card !== null && under !== null) {
+          expect(card.y + card.height).toBeLessThanOrEqual(under.y);
+        }
+      }).toPass();
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
     await prompt.getByRole("button", { name: "Allow" }).click();
     await expect(prompt).toBeHidden();
   } finally {
@@ -166,11 +186,17 @@ test("a Queue while a permission waits stops the turn instead, and says so (TRAC
   }
 });
 
-test("Default send Queue, kept by the bridge, makes Send queue and Mod+Enter steer", async ({
+test("Default send Queue, kept by the bridge, makes Send queue and Mod+Enter interrupt and send", async ({
   page,
 }) => {
   const origin = await openUi(page);
   await defaultSend(page, origin, "Queue");
+  // Paseo's hint for the choice, by the send key.
+  await expect(
+    page.getByText(
+      "When the agent is running, Enter queues. Command/Ctrl+Enter submits.",
+    ),
+  ).toBeVisible();
   try {
     await startSession(page, "laptop", "Structured", "wait");
     await expect(timeline(page).getByText("turn 1")).toBeVisible();
@@ -178,9 +204,19 @@ test("Default send Queue, kept by the bridge, makes Send queue and Mod+Enter ste
     await expect(
       composer(page).getByRole("button", { name: "Queue message" }),
     ).toBeVisible();
-    // Mod+Enter sends the other way: the fake agent steers.
+    // The other way submits: the turn stops and this one starts (Paseo's
+    // "Command/Ctrl+Enter submits"), even though this agent could steer.
+    await page.keyboard.down("Control");
+    await expect(
+      composer(page).getByRole("button", { name: "Interrupt and send" }),
+    ).toBeVisible();
+    await page.keyboard.up("Control");
     await text(page).press("ControlOrMeta+Enter");
-    await expect(timeline(page).getByText("steered: finish")).toBeVisible();
+    await expect(timeline(page).getByText(/^echo: finish/)).toBeVisible();
+    // The fake agent's next turn asks a permission: answer it.
+    const prompt = page.getByRole("group", { name: "Permission request" });
+    await prompt.getByRole("button", { name: "Allow" }).click();
+    await expect(prompt).toBeHidden();
   } finally {
     await defaultSend(page, origin, "Steer");
   }
