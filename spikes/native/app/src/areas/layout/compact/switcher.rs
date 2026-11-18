@@ -13,9 +13,10 @@
 //!   secondary buttons side by side, `SquarePen` and `SquareTerminal`, 12
 //!   between them, 24 across and 12 down.
 //! - Choice: the kit dialog as a fitting sheet (Paseo's combobox sheet is a
-//!   bottom sheet with a title, a scrolling body and a footer); the rows are
-//!   drawn here because the kit combobox has neither a row's trailing
-//!   control nor a footer.
+//!   bottom sheet with a title, a scrolling body and a footer) with the
+//!   combobox sheet's title-only header (TRACKER 798: no close button, no
+//!   rule); the rows are drawn here because the kit combobox has neither a
+//!   row's trailing control nor a footer.
 //! - New terminal stays disabled until a terminal tab can be made in a
 //!   pane, as 776's new-tab menu disables Terminal.
 
@@ -91,7 +92,10 @@ pub(super) fn sheet(
             body: body.into_any_element(),
             footer: vec![footer(shell, tokens, cx).into_any_element()],
             size: size(),
-        },
+        }
+        // Paseo's combobox sheet takes a title only: no close button, no
+        // rule (TRACKER 798); Escape, the scrim and the handle close it.
+        .with_title_only(),
         tokens,
         window,
         vessel_app_kit::breakpoint::phone(window),

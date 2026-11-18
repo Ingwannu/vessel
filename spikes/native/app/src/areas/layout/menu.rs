@@ -91,7 +91,19 @@ pub(super) fn overlay(
             chose(shell, tab, *action, window, cx);
         }),
     };
-    let content = Content::new("layout-tab-menu", &items).with_width(px(WIDTH));
+    // On a phone, Paseo's sheet titled with the tab's label (TRACKER 798,
+    // workspace-tab-trailing-accessory.tsx `sheetTitle={presentationLabel}`).
+    let title = with_layout(shell, |layout| {
+        Ok(layout
+            .tab(tab)
+            .map(|tab| super::draw::tab_label(shell, tab.target())))
+    })
+    .ok()
+    .flatten()
+    .unwrap_or_default();
+    let content = Content::new("layout-tab-menu", &items)
+        .with_width(px(WIDTH))
+        .with_sheet(title);
     let content = match shell.areas.layout.menu_surface {
         Surface::Strip => content,
         // Over the switcher's sheet (a dialog).

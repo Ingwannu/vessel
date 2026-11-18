@@ -710,18 +710,18 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   for what belongs to no control.
 - Every screen works from 360 points wide (the phone); targets are 44
   points on touch; nothing depends on hover (ADR 0036).
-- Two widths, both named in the kit, each with its reason:
-  - `kit::breakpoint::PHONE` (768): below it the sidebar is a sheet from
-    the title bar's menu button, and the title bar's statuses are icons.
-    ADR 0036's width, the page's too, so the sidebar folds at the same
-    size on every surface.
-  - `kit::picker::COMPACT` (600, Paseo's compact width,
-    `constants/layout.ts`): below it controls are touch-sized (44), a
-    picker's list and a dialog are sheets from the bottom, and the
-    composer's card is tighter. Paseo's own width, so its controls change
-    where Paseo's do.
-  Between 600 and 768 the sidebar is a sheet and the controls are still
-  pointer-sized: a narrow desktop window, where a mouse is still likely.
+- One compact width, as Paseo's (below its `md`, 600,
+  `constants/layout.ts`): `kit::breakpoint::PHONE`, which
+  `kit::picker::COMPACT` is and the layout's Compact
+  (`view::layout::COMPACT_LAYOUT_WIDTH`) equals (the app checks it when
+  it compiles). Below it the sidebar is a sheet from the title bar's menu
+  button and the title bar's statuses are icons; controls are
+  touch-sized (44); dialogs, pickers and titled menus are sheets from the
+  bottom; the workspace has one compact header. From 600 up the window is
+  a desktop's: centred dialogs, popovers, pointer-sized controls, as in
+  Paseo (TRACKER 798, the coordinator's ruling; before it the phone form
+  ran to 768 while the layout changed at 600). The browser build's own
+  page still folds its sidebar at 768.
   `kit::breakpoint::INSPECTOR` (1280) folds the inspector, when there is
   one.
 - No library's default look anywhere (the owner, on 0.0.0.0.3): fields

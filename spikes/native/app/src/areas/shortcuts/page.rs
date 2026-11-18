@@ -101,7 +101,8 @@ pub(crate) fn render(
 ) -> AnyElement {
     let words = shell.words.shortcuts();
     // Section renderer keeps the shared Settings signature; its list/detail
-    // form does not decide keyboard availability (600, not global PHONE768).
+    // form does not decide keyboard availability (`available`, 600; the
+    // phone form switches at the same width since TRACKER 798).
     if !super::available(window) {
         return div()
             .type_(Type::Body)
