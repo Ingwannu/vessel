@@ -21,7 +21,7 @@
   font-weight: 500;
 }
 
-@media (width <= 600px) {
+@media (--compact) {
   .kit-quota-grid {
     grid-template-columns: minmax(0, 1fr);
   }

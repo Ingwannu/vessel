@@ -39,7 +39,7 @@
   flex-direction: column;
 }
 
-@media (max-width: 767px) {
+@media (--compact) {
   /* With no sidebar beside it the frame is inset on every side. */
   .frame-wrap {
     padding: var(--panel-inset-phone);

@@ -39,7 +39,7 @@ export function FrameTop({
   onMenu,
 }: {
   slot: (element: HTMLElement | null) => void;
-  /** Open the sidebar as a sheet (below 768px, where it has no room). */
+  /** Open the sidebar as a sheet (compact, below 600px: no room). */
   onMenu: () => void;
 }) {
   const fleet = useFleet();

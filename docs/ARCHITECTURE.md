@@ -343,7 +343,9 @@ web/src/routes/   the screens, each composing features: home (welcome or board),
                   redirects; a session, new session and Settings (and /kit) are chunks of their
                   own, loaded when they open (milestone 11)
 web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, its CSS beside it
-web/src/ui/       the design's tokens, the fonts, the toasts, and the older areas' CSS in styles/
+web/src/ui/       the design's tokens, the fonts, the toasts, the compact breakpoint (breakpoints:
+                  Paseo's 600, matched by TS and written `@media (--compact)` in CSS, which the
+                  build's compactMedia plugin resolves), and the older areas' CSS in styles/
                   (one file per area, imported in order from styles/index.css)
 web/src/testing/  tests' helper that names a fixture's handle without a guard (tests and fixtures only)
 web/scripts/      the build's integrity pass (tags and the import map), its compression pass

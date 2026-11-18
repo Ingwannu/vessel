@@ -272,8 +272,8 @@
 }
 
 /* Narrow windows (DESIGN.md §3): the sidebar beside the page becomes a
-   rail of icons, then leaves; below 768px it opens as a sheet from the
-   title bar's menu button (shell.tsx), drawn whole there. */
+   rail of icons, then leaves; compact (below 600px) it opens as a sheet
+   from the title bar's menu button (shell.tsx), drawn whole there. */
 @media (max-width: 1099px) {
   .app {
     grid-template-columns: 52px minmax(0, 1fr);
@@ -307,7 +307,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (--compact) {
   .app {
     grid-template-columns: minmax(0, 1fr);
   }
