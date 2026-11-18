@@ -47,5 +47,8 @@ fn the_title_only_header_has_no_close_button_and_escape_closes(cx: &mut TestAppC
     let inset = f32::from(header.left()).mul_add(-1.0, f32::from(title.left()));
     assert_eq!(inset.to_bits(), 24.0_f32.to_bits(), "24 across");
     cx.simulate_keystrokes("escape");
-    assert!(view.read_with(cx, |probe, _| probe.closed), "Escape still closes");
+    assert!(
+        view.read_with(cx, |probe, _| probe.closed),
+        "Escape still closes"
+    );
 }
