@@ -39,6 +39,11 @@ const MAX_WIDTH: f32 = 480.0;
 /// Paseo's toast mark size.
 const MARK: f32 = 18.0;
 
+/// The card across, besides its words: 12 of padding and a 1 border each
+/// side; with a leading mark, its 18 and the 8 gap too.
+const CHROME: f32 = 26.0;
+const CHROME_MARKED: f32 = 52.0;
+
 /// What a toast says, and so its mark.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToastLook {
@@ -84,6 +89,7 @@ pub fn toast(
     text: impl Into<SharedString>,
     look: ToastLook,
     tokens: &Tokens,
+    window: &Window,
 ) -> AnyElement {
     toast_with(
         ToastContent {
@@ -93,7 +99,16 @@ pub fn toast(
         },
         None,
         tokens,
+        window,
     )
+}
+
+/// Paseo's boundary on this window: 92% of its width less 16 each side, at
+/// most 480 (`toast_layer`).
+fn boundary(window: &Window) -> f32 {
+    f32::from(window.viewport_size().width)
+        .mul_add(0.92, -29.44)
+        .min(MAX_WIDTH)
 }
 
 /// The card's leading mark (Paseo's `iconSlot`), if its look has one.
@@ -115,9 +130,21 @@ pub fn toast_with(
     content: ToastContent,
     hover: Option<ToastHovered>,
     tokens: &Tokens,
+    window: &Window,
 ) -> AnyElement {
     let ToastContent { id, text, look } = content;
     let neutral = tokens.neutral;
+    // GPUI's line wrapper adds each character's advance (no kerning), so
+    // words laid out at their own shaped width could wrap their last word
+    // ("Copied Session link" on two lines with room to spare). Words that
+    // fit the boundary on one line are kept on it; longer ones wrap in it.
+    let chrome = if look == ToastLook::Plain {
+        CHROME
+    } else {
+        CHROME_MARKED
+    };
+    let words = crate::fonts::measure(window, text.as_ref(), Type::Body);
+    let one_line = words.mul_add(1.0, chrome) <= boundary(window);
     let border = if look == ToastLook::Error {
         neutral.destructive
     } else {
@@ -139,15 +166,14 @@ pub fn toast_with(
         .shadow(popup::shadow_md(tokens))
         .children(mark(look, tokens))
         // The words take their own width and only shrink (Paseo's message:
-        // `flexShrink: 1`). A zero basis (`flex_1`) let the card's measured
-        // width round below the words' and wrap the last one ("Copied
-        // Session link" on two lines with room to spare).
+        // `flexShrink: 1`).
         .child(
             div()
                 .flex_shrink_1()
                 .min_w_0()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
+                .when(one_line, Styled::whitespace_nowrap)
                 .child(text),
         )
         .when_some(hover, |card, hover| {

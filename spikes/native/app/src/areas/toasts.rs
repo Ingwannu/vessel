@@ -93,6 +93,7 @@ pub(crate) fn render(
         },
         Some(hover),
         tokens,
+        window,
     );
     Some(toast_layer(card, chrome::HEIGHT.mul_add(1.0, GAP), window))
 }
