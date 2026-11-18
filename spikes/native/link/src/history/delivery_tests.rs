@@ -63,6 +63,7 @@ async fn queued_actual_history_page_cannot_install_after_connected_retirement() 
                 vessel_proto::history::AgentHistoryPage {
                     conversations: vec![],
                     next: None,
+                    already_imported: None,
                 },
             )))
             .unwrap();

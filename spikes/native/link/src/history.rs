@@ -85,6 +85,8 @@ async fn answer(client: &crate::connections::SelectedConnection, ask: Ask) -> Re
                 profile: scope.profile.clone(),
                 cwd: scope.cwd.clone(),
                 cursor: cursor.map(|cursor| cursor.as_str().to_owned()),
+                limit: None,
+                query: None,
             };
             let result = tokio::time::timeout(READ_DEADLINE, client.call(request))
                 .await
