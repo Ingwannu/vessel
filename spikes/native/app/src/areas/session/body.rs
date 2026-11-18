@@ -10,6 +10,7 @@
 //! - Choice: the body moves here unchanged, a child module calling the
 //!   session's private helpers through `super`.
 //! - Cost: one more file; no behaviour change.
+//! - Since TRACKER 789 the bar is drawn only above the compact width.
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{
@@ -19,6 +20,7 @@ use vessel_app_kit::ui::{
 use super::{column, composer, resume_note};
 use crate::areas::conversation;
 use crate::shell::Shell;
+use vessel_app_view::layout::LayoutMode;
 
 // Retained source body, invoked only for the visible selected legacy agent.
 // This still reads the existing owner; it grants no scoped resident authority.
@@ -40,18 +42,24 @@ pub(super) fn render_body(
         crate::areas::terminal::body(shell, tokens, window, cx)
     };
     let working = view.conversation.turn_running();
-    div()
-        .size_full()
-        .flex()
-        .flex_col()
-        .child(conversation::bar(
+    // Below the compact width the compact workspace header (TRACKER 789,
+    // `layout::compact`) shows the bar's title, state and actions, so the
+    // bar is not drawn twice.
+    let bar = (crate::areas::layout::mode(window) != LayoutMode::Compact).then(|| {
+        conversation::bar(
             shell,
             t.title(&open.title).to_owned(),
             detail,
             tokens,
             window,
             cx,
-        ))
+        )
+    });
+    div()
+        .size_full()
+        .flex()
+        .flex_col()
+        .children(bar)
         .child(body)
         .children(resume_note(shell, open, tokens))
         .children(crate::areas::sessions::lifecycle_error(shell, tokens))

@@ -97,7 +97,7 @@ pub(crate) fn bar(
 }
 
 /// The session's state when it is not running, in its colour.
-fn status_badge(status: &SessionStatus, words: ConversationWords, tokens: &Tokens) -> Div {
+pub(super) fn status_badge(status: &SessionStatus, words: ConversationWords, tokens: &Tokens) -> Div {
     let color = match status {
         SessionStatus::Starting => tokens.st_building,
         SessionStatus::Running => tokens.st_ready,
@@ -143,7 +143,7 @@ fn actions_button(tokens: &Tokens, narrow: bool, cx: &mut Context<'_, Shell>) ->
 /// The bar's word for a released agent, quiet as an idle session is, or
 /// for a resume that failed, in the danger colour; its tooltip says what a
 /// send does, or the node's words for the failure.
-fn parked_chip(shell: &Shell, state: &ParkState, tokens: &Tokens, narrow: bool) -> AnyElement {
+pub(super) fn parked_chip(shell: &Shell, state: &ParkState, tokens: &Tokens, narrow: bool) -> AnyElement {
     let area = &shell.areas.conversation;
     let words = shell.t.lang.conversation();
     let (word, color, tip) = match state {
@@ -179,7 +179,7 @@ fn parked_chip(shell: &Shell, state: &ParkState, tokens: &Tokens, narrow: bool) 
 /// says the machine is unreachable); the transport's words only in the
 /// line's tooltip (the coordinator's review, 2026-11-13: it was said three
 /// times, twice in the transport's English).
-fn lost_line(shell: &Shell, tokens: &Tokens, narrow: bool) -> Option<AnyElement> {
+pub(super) fn lost_line(shell: &Shell, tokens: &Tokens, narrow: bool) -> Option<AnyElement> {
     let area = &shell.areas.conversation;
     let why = area.lost.as_ref()?;
     let line = div()
@@ -218,18 +218,8 @@ fn title_element(
     narrow: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if let Some(rename) = &shell.areas.conversation.rename {
-        return div()
-            .w(px(if narrow { 200.0 } else { 320.0 }))
-            .flex_shrink_0()
-            .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
-                if event.keystroke.key == "escape" {
-                    shell.cancel_rename(cx);
-                    cx.stop_propagation();
-                }
-            }))
-            .child(rename.field.element(tokens, narrow, cx))
-            .into_any_element();
+    if let Some(field) = rename_field(shell, tokens, narrow, cx) {
+        return field;
     }
     let text = div()
         .min_w(px(0.0))
@@ -254,47 +244,115 @@ fn title_element(
         .into_any_element()
 }
 
+/// The title's field while it is renamed; Escape leaves the title as it
+/// was.
+pub(super) fn rename_field(
+    shell: &Shell,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let rename = shell.areas.conversation.rename.as_ref()?;
+    Some(
+        div()
+            .w(px(if narrow { 200.0 } else { 320.0 }))
+            .flex_shrink_0()
+            .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
+                if event.keystroke.key == "escape" {
+                    shell.cancel_rename(cx);
+                    cx.stop_propagation();
+                }
+            }))
+            .child(rename.field.element(tokens, narrow, cx))
+            .into_any_element(),
+    )
+}
+
 /// The menu's rows, as their actions say.
 pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
-    let words = shell.t.lang.conversation();
     shell
         .areas
         .conversation
         .menu_rows
         .iter()
-        .map(|action| {
-            let mut item = match action {
-                MenuAction::Mark(MarkAction::Delete) => {
-                    MenuItem::danger(words.mark_action(MarkAction::Delete))
-                }
-                MenuAction::Mark(mark) => MenuItem::new(words.mark_action(*mark)),
-                MenuAction::CopyLink => MenuItem::new(shell.words.sessions().copy_link()),
-                MenuAction::Close => MenuItem::new(shell.words.sessions().close()),
-                MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
-                MenuAction::Kill => MenuItem::danger(words.kill()),
-                MenuAction::AgentLog => MenuItem::new(
-                    words.agent_log(
-                        Logs::all(shell.areas.conversation.timeline.entries())
-                            .lines()
-                            .count(),
-                    ),
-                ),
-            };
-            if matches!(
-                action,
-                MenuAction::Close
-                    | MenuAction::Mark(
-                        MarkAction::Archive
-                            | MarkAction::Unarchive
-                            | MarkAction::Delete
-                            | MarkAction::StartAgain
-                    )
-            ) {
-                item.disabled = shell.sessions_lifecycle_busy();
-            }
-            item
-        })
+        .map(|action| session_menu_item(shell, *action))
         .collect()
+}
+
+/// One Session action's row: its words, its tone, and whether it waits for
+/// a lifecycle change already under way. The bar's menu and the compact
+/// tab switcher's row menu (TRACKER 789) draw the same rows.
+pub(crate) fn session_menu_item(shell: &Shell, action: MenuAction) -> MenuItem {
+    let words = shell.t.lang.conversation();
+    let mut item = match action {
+        MenuAction::Mark(MarkAction::Delete) => {
+            MenuItem::danger(words.mark_action(MarkAction::Delete))
+        }
+        MenuAction::Mark(mark) => MenuItem::new(words.mark_action(mark)),
+        MenuAction::CopyLink => MenuItem::new(shell.words.sessions().copy_link()),
+        MenuAction::Close => MenuItem::new(shell.words.sessions().close()),
+        MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
+        MenuAction::Kill => MenuItem::danger(words.kill()),
+        MenuAction::AgentLog => MenuItem::new(
+            words.agent_log(
+                Logs::all(shell.areas.conversation.timeline.entries())
+                    .lines()
+                    .count(),
+            ),
+        ),
+    };
+    if matches!(
+        action,
+        MenuAction::Close
+            | MenuAction::Mark(
+                MarkAction::Archive
+                    | MarkAction::Unarchive
+                    | MarkAction::Delete
+                    | MarkAction::StartAgain
+            )
+    ) {
+        item.disabled = shell.sessions_lifecycle_busy();
+    }
+    item
+}
+
+/// The Session actions this session offers, in the bar's order: its marks,
+/// Copy session id, Copy link, Close once the node described it, Agent log
+/// once the agent wrote a line, Kill while it lives.
+pub(crate) fn session_menu_rows(shell: &Shell) -> Vec<MenuAction> {
+    let area = &shell.areas.conversation;
+    // The fleet does not say a machine's protocol yet; a session the
+    // node described is from one with marks (protocol 10), and an
+    // older node refuses a mark it does not know, which is shown.
+    let mut rows: Vec<MenuAction> = area
+        .info
+        .as_deref()
+        .map(|info| {
+            mark_actions(info, Some(CONVERSATION_PROTOCOL))
+                .into_iter()
+                .map(MenuAction::Mark)
+                .collect()
+        })
+        .unwrap_or_default();
+    rows.push(MenuAction::CopyId);
+    rows.push(MenuAction::CopyLink);
+    if area.info.is_some() {
+        rows.push(MenuAction::Close);
+    }
+    // The agent's own log, out of the conversation (slice M): here
+    // once the agent has written a line.
+    if area
+        .timeline
+        .entries()
+        .iter()
+        .any(|entry| matches!(entry.kind, EntryKind::Log { .. }))
+    {
+        rows.push(MenuAction::AgentLog);
+    }
+    if area.info.as_deref().is_none_or(is_live) {
+        rows.push(MenuAction::Kill);
+    }
+    rows
 }
 
 impl Shell {
@@ -306,38 +364,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        let rows = session_menu_rows(self);
         let area = &mut self.areas.conversation;
-        // The fleet does not say a machine's protocol yet; a session the
-        // node described is from one with marks (protocol 10), and an
-        // older node refuses a mark it does not know, which is shown.
-        let mut rows: Vec<MenuAction> = area
-            .info
-            .as_deref()
-            .map(|info| {
-                mark_actions(info, Some(CONVERSATION_PROTOCOL))
-                    .into_iter()
-                    .map(MenuAction::Mark)
-                    .collect()
-            })
-            .unwrap_or_default();
-        rows.push(MenuAction::CopyId);
-        rows.push(MenuAction::CopyLink);
-        if area.info.is_some() {
-            rows.push(MenuAction::Close);
-        }
-        // The agent's own log, out of the conversation (slice M): here
-        // once the agent has written a line.
-        if area
-            .timeline
-            .entries()
-            .iter()
-            .any(|entry| matches!(entry.kind, EntryKind::Log { .. }))
-        {
-            rows.push(MenuAction::AgentLog);
-        }
-        if area.info.as_deref().is_none_or(is_live) {
-            rows.push(MenuAction::Kill);
-        }
         area.menu_rows = rows;
         area.menu.open(at, window, cx);
         cx.notify();

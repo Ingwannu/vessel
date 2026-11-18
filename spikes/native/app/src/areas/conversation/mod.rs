@@ -58,6 +58,7 @@ mod find;
 mod follow;
 mod footer;
 mod fork;
+mod heading;
 mod intake;
 mod look;
 mod meter;
@@ -91,8 +92,9 @@ mod tool_detail;
 
 pub(crate) use actions::{AgentLog, Confirm, MenuAction};
 pub(crate) use area::ConversationArea;
-pub(crate) use bar::bar;
+pub(crate) use bar::{bar, session_menu_item, session_menu_rows};
 pub(crate) use dock::dock;
+pub(crate) use heading::heading;
 pub(crate) use meter::meter;
 pub(crate) use overlays::overlays;
 pub(crate) use place::{Answer, Place, SessionPlace};
