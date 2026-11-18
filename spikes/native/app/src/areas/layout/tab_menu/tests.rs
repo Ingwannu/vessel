@@ -262,7 +262,9 @@ fn the_id_copies_put_the_tabs_id_on_the_clipboard_and_say_so(cx: &mut TestAppCon
         probe.read_with(cx, |probe, _| (probe.1, probe.2, probe.3));
     // Paseo's "Copied …", built by the same catalog call (so Fluent's
     // isolation marks around the label match).
-    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
     let said = choose(&probe, cx, other, Action::Copy(Copied::AgentId));
     assert_eq!(said, words.copied(words.copied_agent_id()).ok());
     assert_eq!(clipboard(cx), Some(session.to_string()));
