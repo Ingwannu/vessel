@@ -159,6 +159,26 @@ test("a Queue while a permission waits stops the turn instead, and says so (TRAC
       composer(page).getByRole("button", { name: "Interrupt and send" }),
     ).toBeVisible();
     await text(page).fill("");
+    // The card is never under the box, at any height (Paseo keeps the
+    // pending card fully visible above its composer).
+    const box = page.locator(".prompt-box");
+    for (const size of [
+      { width: 1280, height: 900 },
+      { width: 1280, height: 560 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(size);
+      await expect(async () => {
+        const card = await prompt.boundingBox();
+        const under = await box.boundingBox();
+        expect(card).not.toBeNull();
+        expect(under).not.toBeNull();
+        if (card !== null && under !== null) {
+          expect(card.y + card.height).toBeLessThanOrEqual(under.y);
+        }
+      }).toPass();
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
     await prompt.getByRole("button", { name: "Allow" }).click();
     await expect(prompt).toBeHidden();
   } finally {
