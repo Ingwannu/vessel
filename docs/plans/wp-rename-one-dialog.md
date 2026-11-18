@@ -4,7 +4,7 @@ Visual lane, 2026-11-18. Built on TRACKER 797's branch (head 5583af105).
 Reference: pinned Paseo 0.15.4 (`1c00b365c`): `components/rename-modal.tsx`
 (`AdaptiveRenameModal`), `screens/workspace/use-workspace-tab-rename.tsx`.
 
-Status: built; gates under "Status".
+Status: built and gated; frames with the coordinator.
 
 ## Paseo
 
@@ -111,4 +111,11 @@ Status: built; gates under "Status".
 
 ## Status
 
-Built; gates pending.
+Gates on c4e51bad5 (build VM, ordinary lane): strict (fonts, fmt, quality,
+clippy) 0; app 323 passed, 0 failed, 2 ignored; kit 367; view 1299 lib tests
+and every integration suite; wasm32 check of link and app 0, no warnings.
+Frames (export of c4e51bad5): the wide bar without the session "…"; the
+dialog prefilled, "Name is required", "Saving..." (the test node paused) and
+the result (the tab's label renamed), in dark English and light Korean; the
+compact sheet; the tab menu opened by Shift+F10 and by the real Menu key
+(X11).
