@@ -141,8 +141,11 @@ fn list(
         },
     };
     let words = shell.words.labels();
+    // Beside its menu the row it opened from names it (Paseo's flyouts have
+    // no title of their own).
+    let beside = matches!(picker.place, PickerPlace::Beside);
     let header = ComboHeader {
-        title: Some(words.title().into()),
+        title: (!beside).then(|| words.title().into()),
         back: matches!(picker.place, PickerPlace::Page(_)),
         search: true,
         empty: words.no_matches().into(),

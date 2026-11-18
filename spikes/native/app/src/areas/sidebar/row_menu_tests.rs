@@ -116,9 +116,23 @@ fn resting_on_labels_shows_the_picker_beside_and_leaves_the_keys_with_the_menu(
     cx.simulate_input("Re");
     assert_eq!(query(&shell, cx), "");
     // Leaving closes the page after the grace, the picker with it.
-    cx.simulate_mouse_move(point(px(1200.0), px(800.0)), None, Modifiers::none());
+    let away = point(px(1200.0), px(800.0));
+    cx.simulate_mouse_move(away, None, Modifiers::none());
     wait(cx, HOVER_CLOSE);
     assert_eq!(state(&shell, cx), (true, false, RowPicker::None));
+    // One move from the row into the flyout keeps it; a press there is not
+    // outside the menu and holds the page past the pointer's leaving.
+    cx.simulate_mouse_move(row.center(), None, Modifiers::none());
+    wait(cx, HOVER_OPEN);
+    let inside = point(px(f32::from(row.right()).mul_add(1.0, 20.0)), row.center().y);
+    cx.simulate_mouse_move(inside, None, Modifiers::none());
+    wait(cx, HOVER_CLOSE);
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
+    cx.simulate_click(inside, Modifiers::none());
+    cx.run_until_parked();
+    cx.simulate_mouse_move(away, None, Modifiers::none());
+    wait(cx, HOVER_CLOSE);
+    assert_eq!(state(&shell, cx), (true, true, RowPicker::Open));
 }
 
 #[gpui::test]

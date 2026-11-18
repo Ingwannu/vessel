@@ -130,6 +130,24 @@ fn leaving_closes_after_the_grace_unless_the_pointer_reaches_the_page(cx: &mut T
 }
 
 #[gpui::test]
+fn one_move_from_the_row_into_its_page_keeps_it_open(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    let row = bounds(cx, "row");
+    pointer(cx, row.center());
+    advance(cx, 90);
+    let page = bounds(cx, "page");
+    pointer(cx, page.center());
+    advance(cx, 600);
+    assert!(open(&view, cx));
+    // A press inside holds it past the pointer's leaving.
+    cx.simulate_click(page.center(), Modifiers::none());
+    cx.run_until_parked();
+    pointer(cx, nowhere());
+    advance(cx, 600);
+    assert!(open(&view, cx));
+}
+
+#[gpui::test]
 fn a_press_only_page_opens_on_press_and_hover_does_not_close_it(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, false);
     view.update(cx, |probe, _| probe.submenus.press_only("show"));

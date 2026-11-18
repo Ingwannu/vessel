@@ -127,9 +127,10 @@ struct Inner {
     press_only: Vec<PageId>,
     /// A page a press or Enter opened, until its screen takes the keys.
     pressed: Option<PageId>,
-    /// The open page whose screen moved the keys into it: hover neither
-    /// closes it nor swaps it for a sibling (its keys would be left on a
-    /// list no longer drawn); its own Escape, a press or the menu ends it.
+    /// The open page the person works in (its screen moved the keys into
+    /// it, or a press landed inside it): hover neither closes it nor swaps
+    /// it for a sibling (keys would be left on a list no longer drawn); its
+    /// own Escape, a press on another row or the menu's close ends it.
     keyed: Option<PageId>,
     opening: Option<Timer>,
     closing: Option<Timer>,
@@ -281,9 +282,13 @@ impl Submenus {
     /// after [`HOVER_CLOSE`], unless a press-only page or one holding the
     /// keys is open.
     pub fn hover_close(&self, depth: usize, window: &Window, cx: &App) {
+        // Left the row straight into its flyout: in one pointer move the
+        // flyout (drawn on top) hears its entering before the row its
+        // leaving, so the cancel came first and this close must not start.
+        let into_flyout = self.contains(window.mouse_position());
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
-        if inner.held() {
+        if inner.held() || into_flyout {
             return;
         }
         let timer = self.after(HOVER_CLOSE, window, cx, move |inner| {
@@ -296,6 +301,15 @@ impl Submenus {
     /// The pointer is inside a flyout: keep it.
     pub fn cancel_close(&self) {
         self.0.borrow_mut().closing = None;
+    }
+
+    /// A press landed inside `page`'s flyout: hold it (see `keyed`).
+    fn hold(&self, page: &PageId) {
+        let mut inner = self.0.borrow_mut();
+        if inner.path.pages().contains(page) {
+            inner.closing = None;
+            inner.keyed = Some(page.clone());
+        }
     }
 
     /// Whether `at` lies on an open flyout: not an outside press for the
@@ -406,6 +420,8 @@ pub fn flyout(
     let at = point(px(OVERLAP.mul_add(-1.0, f32::from(row.right()))), row.top());
     let probe = submenus.surface_probe(depth);
     let entered = submenus.clone();
+    let pressed = submenus.clone();
+    let held = PageId::from(page.to_owned());
     let surface = div()
         .id(ElementId::Name(SharedString::from(format!(
             "submenu-{page}"
@@ -419,6 +435,7 @@ pub fn flyout(
                 entered.hover_close(depth, window, cx);
             }
         })
+        .capture_any_mouse_down(move |_event, _window, _cx| pressed.hold(&held))
         .child(content)
         .child(crate::picker::anchor_probe(&probe));
     let placed = anchored()
