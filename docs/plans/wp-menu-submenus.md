@@ -117,8 +117,8 @@ and `components/sidebar/display-preferences/menu.tsx` (`compactMode="sheet"`).
 - Action menu: `MenuItem::sub(label, page)` / `with_value`; `Content::
   with_submenus` (rows open their page by rest, press or Enter, never close
   or reach `chose`; a press on an open page is not outside);
-  `Content::with_sheet(title)` (a phone's bottom sheet with its title, 44
-  rows, the 45% scrim; while a page is open the menu draws nothing and the
+  `Content::with_sheet(title)` (a phone's bottom sheet with the kit's drag
+  handle, its title, 44 rows, the 45% scrim; while a page is open the menu draws nothing and the
   screen's page sheet replaces it). `menu/sub_row.rs`, `menu/surface.rs`.
 - List: `ComboRow::page`, `ComboboxState::set_submenus` (wide windows), a
   press on an open page not outside the list; `combobox_inline` draws the

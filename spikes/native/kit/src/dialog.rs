@@ -219,7 +219,7 @@ pub fn dialog<V: 'static>(
                 },
             )
             .rounded_t(px(popup::SHEET_RADIUS))
-            .child(handle(tokens.neutral.foreground_extra_muted).map(|handle| {
+            .child(sheet_handle(tokens.neutral.foreground_extra_muted).map(|handle| {
                 match (&sheet, &release) {
                     (Some(sheet), Some(release)) => handle
                         .relative()
@@ -332,8 +332,10 @@ fn body(
 }
 
 /// A sheet's drag handle (Gorhom's indicator; Paseo themes it zinc 600,
-/// the kit's nearest neutral step is `foregroundExtraMuted`).
-fn handle(color: gpui::Hsla) -> gpui::Div {
+/// the kit's nearest neutral step is `foregroundExtraMuted`). Every bottom
+/// sheet draws it (Paseo's `SheetHandle`): the dialog's, the menu's and
+/// the list's.
+pub(crate) fn sheet_handle(color: gpui::Hsla) -> gpui::Div {
     div()
         .w_full()
         .flex()
