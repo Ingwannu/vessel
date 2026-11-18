@@ -20,5 +20,5 @@ diagnostics-copy = Copy
 # Collect the report again. Keep short.
 diagnostics-refresh = Refresh
 
-# The complete frame notice after copying the report.
-diagnostics-copied = Diagnostic copied.
+# The copied-toast label for the report, lower case after "Copied" (Paseo's settings.diagnostics.app.copyLabel).
+diagnostics-copied-label = diagnostic

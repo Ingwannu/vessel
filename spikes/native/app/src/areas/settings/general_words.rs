@@ -10,26 +10,17 @@ use crate::shell::Shell;
 /// A complete prepared hint, including a localized formatting-error fallback.
 pub(crate) struct PreparedGeneral {
     pub(super) hint: SharedString,
-    copied_notice: Option<&'static str>,
 }
 
 impl PreparedGeneral {
     pub(crate) fn new(words: &'static Translator, kept: &Kept) -> Self {
         Self {
             hint: hint(words, kept),
-            copied_notice: None,
         }
     }
 
-    fn refresh(&mut self, words: &'static Translator, kept: &Kept, notice: &mut Option<String>) {
+    fn refresh(&mut self, words: &'static Translator, kept: &Kept) {
         self.hint = hint(words, kept);
-        if let Some(previous) = self.copied_notice {
-            let copied = words.general().path_copied();
-            if notice.as_deref() == Some(previous) {
-                *notice = Some(copied.to_owned());
-            }
-            self.copied_notice = Some(copied);
-        }
     }
 }
 
@@ -47,15 +38,14 @@ impl Shell {
         self.areas
             .settings
             .general
-            .refresh(self.words, &self.prefs.kept, &mut self.notice);
+            .refresh(self.words, &self.prefs.kept);
     }
 
+    /// Copy the preferences path, then the copied toast in Paseo's words
+    /// ("Copied Preferences path", its copiedLabel pattern; TRACKER 804).
     pub(super) fn copy_preferences_path(&mut self, path: &str, cx: &mut Context<'_, Self>) {
         cx.write_to_clipboard(ClipboardItem::new_string(path.to_owned()));
-        let copied = self.words.general().path_copied();
-        self.areas.settings.general.copied_notice = Some(copied);
-        self.notice = Some(copied.to_owned());
-        cx.notify();
+        self.toast_copied(self.words.general().copied_path_label(), cx);
     }
 }
 

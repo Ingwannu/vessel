@@ -30,8 +30,6 @@ use crate::shell::Shell;
 pub(crate) struct State {
     report: Option<String>,
     dialog: DialogState,
-    /// Last copy notice, retained while it may still own the global frame foot.
-    copied_notice: Option<&'static str>,
 }
 
 impl State {
@@ -39,31 +37,16 @@ impl State {
         Self {
             report: None,
             dialog: DialogState::new(cx),
-            copied_notice: None,
         }
     }
 }
 
 impl Shell {
-    /// Copy the report the button actually showed; retain only notice wording.
+    /// Copy the report the button actually showed, then Paseo's copied
+    /// toast (app-diagnostic-sheet.tsx 149: "Copied diagnostic").
     fn copy_diagnostic(&mut self, report: &str, cx: &mut Context<'_, Self>) {
         cx.write_to_clipboard(ClipboardItem::new_string(report.to_owned()));
-        let copied = self.words.diagnostics().copied();
-        self.areas.settings.diagnostics.copied_notice = Some(copied);
-        self.notice = Some(copied.to_owned());
-        cx.notify();
-    }
-
-    /// Refresh an owned copy notice without recollecting or translating data.
-    pub(crate) fn translate_diagnostic_notice(&mut self) {
-        let state = &mut self.areas.settings.diagnostics;
-        if let Some(previous) = state.copied_notice {
-            let copied = self.words.diagnostics().copied();
-            if self.notice.as_deref() == Some(previous) {
-                self.notice = Some(copied.to_owned());
-            }
-            state.copied_notice = Some(copied);
-        }
+        self.toast_copied(self.words.diagnostics().copied_label(), cx);
     }
 
     /// Collect the report (again) and show it.
