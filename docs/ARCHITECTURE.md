@@ -329,8 +329,10 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   projects/ (Settings › Projects, the sidebar's projects, adding one, the
                   approval of its commands, removing a worktree that would lose work),
                   workspace/ (the code panel, a chunk loaded when Changes or Files opens: the
-                  diff in the timeline's window, git's bar, menu and dialogs, the tree, the
-                  file viewer and editor, "Add to chat"; and the branch's chip and a
+                  diff in the timeline's window, git's bar, menu and dialogs, the tree and
+                  its rows' file action menu (Paseo's: file-actions, explorer-menu,
+                  use-explorer-actions, download), the file viewer and editor, "Add to
+                  chat"; and the branch's chip and a
                   worktree's setup card, which the entry and /new use), compose/'s tray and
                   the worktree's start (where-tray, where-place, use-starter,
                   start-worktree), the session's panel as tabs (inspector, panel-state),

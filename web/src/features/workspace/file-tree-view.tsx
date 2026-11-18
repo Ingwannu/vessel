@@ -2,7 +2,8 @@
 // in, a folder's open or closed mark or a file's, the name at 13px, a 4%
 // wash on hover and 7% on the open file; each level 16px further in. A
 // folder is listed by the node when it is first opened; the rows are
-// windowed as the timeline's are.
+// windowed as the timeline's are. A row's right click (or a held touch)
+// opens Paseo's file actions menu (`explorer-menu.tsx`).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -15,22 +16,29 @@ import {
 import { listDir } from "../../data/workspace/files";
 import { Icon, Spinner } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { RelPath, WorkspaceRoot } from "../../wire/proto";
+import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
 import { useWindow } from "../session/use-window";
 import { WindowRow } from "../session/window-row";
+import { EntryMenu } from "./explorer-menu";
+import {
+  type ExplorerActions,
+  useExplorerActions,
+} from "./use-explorer-actions";
 
 function TreeRowView({
   row,
   onOpen,
+  actions,
 }: {
   row: TreeRow;
   onOpen: (path: RelPath, dir: boolean) => void;
+  actions: ExplorerActions;
 }) {
   const indent = { paddingLeft: 6 + row.depth * 16 };
   switch (row.kind) {
     case "entry": {
       const dir = row.entry.kind === "dir";
-      return (
+      const button = (
         <button
           type="button"
           className={
@@ -51,6 +59,15 @@ function TreeRowView({
             <span className="tree-note">link</span>
           ) : null}
         </button>
+      );
+      return (
+        <EntryMenu
+          trigger={button}
+          // A link acts as the file it leads to (the node reads through it).
+          entry={{ kind: dir ? "dir" : "file", open: row.open }}
+          target={{ path: row.path, name: row.entry.name }}
+          actions={actions}
+        />
       );
     }
     case "loading":
@@ -83,6 +100,8 @@ function TreeRowView({
 export function FileTreeView({
   node,
   root,
+  folder,
+  session,
   ignored,
   open,
   onOpenChange,
@@ -90,6 +109,10 @@ export function FileTreeView({
 }: {
   node: NodeKey;
   root: WorkspaceRoot;
+  /** The root's folder on the node (Copy path), when known. */
+  folder: string | null;
+  /** The session whose composer Add to chat writes in. */
+  session: SessionId;
   /** Whether files git ignores are listed too. */
   ignored: boolean;
   /** The folders open, kept by the tab across a file opened. */
@@ -98,6 +121,11 @@ export function FileTreeView({
   onFile: (path: RelPath) => void;
 }) {
   const fleet = useFleet();
+  const actions = useExplorerActions(
+    { node, root, folder, session },
+    open,
+    onOpenChange,
+  );
   const [listings, setListings] = useState<ReadonlyMap<RelPath, Listing>>(
     () => new Map(),
   );
@@ -155,7 +183,7 @@ export function FileTreeView({
             last={span.start + offset === rows.length - 1}
             rows={windowed.rows}
           >
-            <TreeRowView row={row} onOpen={onOpen} />
+            <TreeRowView row={row} onOpen={onOpen} actions={actions} />
           </WindowRow>
         ))}
         <div style={{ height: span.after }} />

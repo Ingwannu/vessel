@@ -24,12 +24,16 @@ export interface Opened {
 export function FilesTab({
   node,
   root,
+  folder,
   session,
   opened,
   onOpened,
 }: {
   node: NodeKey;
   root: WorkspaceRoot;
+  /** The root's folder on the node, when known (the Explorer's Copy
+   * path). */
+  folder: string | null;
   session: SessionId;
   opened: Opened | null;
   onOpened: (opened: Opened | null) => void;
@@ -122,6 +126,8 @@ export function FilesTab({
           key={`${String(ignored)}:${String(round)}`}
           node={node}
           root={root}
+          folder={folder}
+          session={session}
           ignored={ignored}
           open={folders}
           onOpenChange={setFolders}

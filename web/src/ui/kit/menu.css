@@ -102,6 +102,11 @@
   max-width: calc(100vw - 32px);
 }
 
+.menu-popup.actions {
+  width: 220px;
+  max-width: calc(100vw - 32px);
+}
+
 /* A setting's switch row (kit/menu-switch.tsx): the label, the switch at
    the right, 12px text, 8px by 12px. */
 .menu-item.menu-switch-row {

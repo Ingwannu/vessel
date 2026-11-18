@@ -27,6 +27,7 @@ export { Field, FieldGroup } from "./field";
 export { HoverCard } from "./hover-card";
 export { HostFilter, type HostOption } from "./host-filter";
 export { ICON_NAMES, Icon, type IconName, type IconSize } from "./icon";
+export { ContextMenu } from "./context-menu";
 export { Kbd } from "./kbd";
 export {
   Menu,
