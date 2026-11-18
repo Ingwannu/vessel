@@ -195,7 +195,9 @@ impl Shell {
     /// Give a row menu's Labels list the menu's pages, so its Create label
     /// row opens its page beside it, on a press only (TRACKER 792).
     pub(crate) fn labels_row_picker_pages(&mut self, pages: &vessel_app_kit::submenu::Submenus) {
-        self.areas.labels.picker_combo.set_submenus(Some(pages));
+        // The list is the menu's Labels page (depth 0); its Create label
+        // page opens after it, at depth 1.
+        self.areas.labels.picker_combo.set_nested_submenus(Some(pages), 1);
         pages.press_only(create::CREATE);
     }
 

@@ -62,8 +62,11 @@ pub(super) fn panel<V: 'static>(
         list.width,
     );
     let list_id = list.id.clone();
-    if let Some(pages) = &state.submenus {
-        // A new opening of the list starts at its root page.
+    if let Some(pages) = &state.submenus
+        && state.submenu_depth == 0
+    {
+        // A new opening of the list starts at its root page (a list that is
+        // a menu's page leaves its menu's path alone).
         pages.follow(&Rc::downgrade(&state.cycle));
     }
     let compact = surface == Surface::Sheet;

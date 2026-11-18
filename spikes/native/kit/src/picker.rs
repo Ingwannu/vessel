@@ -444,6 +444,10 @@ pub struct ComboboxState {
     tip_places: RowPlaces,
     /// Pages its rows open beside it ([`ComboboxState::set_submenus`]).
     submenus: Option<crate::submenu::Submenus>,
+    /// The depth its rows' pages open at: 0 for a list that is its menu's
+    /// root, more for a list that is itself a menu's page
+    /// ([`ComboboxState::set_nested_submenus`]).
+    submenu_depth: usize,
 }
 
 /// Each row's tooltip place, by row, the same one frame after frame (a
@@ -486,6 +490,7 @@ impl ComboboxState {
             tips: crate::Tooltips::new(),
             tip_places: RowPlaces::default(),
             submenus: None,
+            submenu_depth: 0,
         }
     }
 
@@ -494,6 +499,20 @@ impl ComboboxState {
     /// press on an open page is not outside the list.
     pub fn set_submenus(&mut self, submenus: Option<&crate::submenu::Submenus>) {
         self.submenus = submenus.cloned();
+        self.submenu_depth = 0;
+    }
+
+    /// As [`set_submenus`](Self::set_submenus) for a list that is itself a
+    /// page of a menu (a row menu's Labels page, TRACKER 792): its rows'
+    /// pages open at `depth`, after its own, and its opening leaves the
+    /// menu's path alone (the menu owns it, and the list's page is on it).
+    pub fn set_nested_submenus(
+        &mut self,
+        submenus: Option<&crate::submenu::Submenus>,
+        depth: usize,
+    ) {
+        self.submenus = submenus.cloned();
+        self.submenu_depth = depth;
     }
 
     /// Replace the provider header's leading artwork as its list changes.

@@ -20,7 +20,8 @@ pub(super) fn page_row<V: 'static>(
     wash: Hsla,
     cx: &mut Context<'_, V>,
 ) -> Stateful<Div> {
-    let open = pages.is_open(page, 0);
+    let depth = state.submenu_depth;
+    let open = pages.is_open(page, depth);
     let page = crate::submenu::PageId::from(page.to_owned());
     let hover_lease = state.render_lease();
     let press_lease = hover_lease.clone();
@@ -39,9 +40,9 @@ pub(super) fn page_row<V: 'static>(
                 return;
             }
             if *inside {
-                hovered.hover_open(&hovered_page, 0, window, cx);
+                hovered.hover_open(&hovered_page, depth, window, cx);
             } else {
-                hovered.hover_close(0, window, cx);
+                hovered.hover_close(depth, window, cx);
             }
         }))
         .on_mouse_down(
@@ -54,7 +55,7 @@ pub(super) fn page_row<V: 'static>(
         )
         .on_click(cx.listener(move |view: &mut V, _event, _window, cx| {
             if get(view).accepts(&click_lease) {
-                pressed.open(&page, 0);
+                pressed.open(&page, depth);
                 cx.notify();
             }
         }))
@@ -62,3 +63,5 @@ pub(super) fn page_row<V: 'static>(
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod nested_tests;
