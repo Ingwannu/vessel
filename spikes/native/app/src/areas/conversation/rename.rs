@@ -278,24 +278,23 @@ impl Shell {
         self.areas.conversation.rename_sends = attempt;
         rename.attempt = attempt;
         self.areas.conversation.rename_dialog.focus(window, cx);
-        let sent = match target {
-            None => self.layout_send_rename(title),
-            // Only to the session the dialog was opened for: the act goes
-            // to the session shown now (the legacy seat), which may have
-            // gone or changed while the dialog was open.
-            Some((machine, session)) => {
-                let still = self
-                    .areas
-                    .conversation
-                    .shown
-                    .as_ref()
-                    .is_some_and(|shown| shown.machine == machine && shown.session == session);
-                if still {
-                    self.act(Act::Rename(title));
+        let sent =
+            match target {
+                None => self.layout_send_rename(title),
+                // Only to the session the dialog was opened for: the act goes
+                // to the session shown now (the legacy seat), which may have
+                // gone or changed while the dialog was open.
+                Some((machine, session)) => {
+                    let still =
+                        self.areas.conversation.shown.as_ref().is_some_and(|shown| {
+                            shown.machine == machine && shown.session == session
+                        });
+                    if still {
+                        self.act(Act::Rename(title));
+                    }
+                    still
                 }
-                still
-            }
-        };
+            };
         if sent {
             Self::rename_deadline(attempt, cx);
         } else {
@@ -335,9 +334,12 @@ impl Shell {
         if answer.kind == ActKind::Rename
             && let Ok(Acted::Session(info)) = &answer.result
             && let Some(title) = info.title.as_ref()
-            && let Some(open) = self.areas.session.open.as_mut().filter(|open| {
-                open.session == answer.session && open.machine == answer.machine
-            })
+            && let Some(open) = self
+                .areas
+                .session
+                .open
+                .as_mut()
+                .filter(|open| open.session == answer.session && open.machine == answer.machine)
         {
             title.as_str().clone_into(&mut open.title);
         }

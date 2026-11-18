@@ -14,7 +14,12 @@ use vessel_proto::{ErrorCode, HarnessKind, SessionInfo, SessionMode, SessionSpec
 
 /// The shell, its session, two openers that can hold the keys, and what
 /// the shell asked the link.
-struct Probe(Entity<Shell>, SessionId, [FocusHandle; 2], Receiver<Command>);
+struct Probe(
+    Entity<Shell>,
+    SessionId,
+    [FocusHandle; 2],
+    Receiver<Command>,
+);
 
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
@@ -295,14 +300,20 @@ fn a_taken_rename_hands_the_keys_back_to_its_opener(cx: &mut TestAppContext) {
     );
     frame(&probe, cx);
     assert_eq!(state(&probe, cx), None);
-    assert!(opener_focused(&probe, cx, 0), "the opener has the keys again");
+    assert!(
+        opener_focused(&probe, cx, 0),
+        "the opener has the keys again"
+    );
     // The next opening remembers its own opener: Cancel goes back there.
     focus_opener(&probe, cx, 1);
     update(&probe, cx, Shell::open_rename);
     frame(&probe, cx);
     update(&probe, cx, Shell::cancel_rename);
     cx.run_until_parked();
-    assert!(opener_focused(&probe, cx, 1), "Cancel returns to the new opener");
+    assert!(
+        opener_focused(&probe, cx, 1),
+        "Cancel returns to the new opener"
+    );
 }
 
 #[gpui::test]
@@ -311,10 +322,18 @@ fn a_rename_is_not_sent_to_a_session_that_is_no_longer_shown(cx: &mut TestAppCon
     update(&probe, cx, Shell::open_rename);
     typed(&probe, cx, "Fix the basket");
     // The session went from the page while the dialog was open.
-    update(&probe, cx, |shell, _, _| shell.areas.conversation.shown = None);
+    update(&probe, cx, |shell, _, _| {
+        shell.areas.conversation.shown = None
+    });
     update(&probe, cx, Shell::rename_pressed);
-    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
-    assert_eq!(renames_sent(&probe, cx), 0, "nothing goes to another session");
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
+    assert_eq!(
+        renames_sent(&probe, cx),
+        0,
+        "nothing goes to another session"
+    );
     assert_eq!(
         state(&probe, cx),
         Some((
@@ -337,7 +356,9 @@ fn a_rename_stops_waiting_after_its_deadline(cx: &mut TestAppContext) {
     cx.executor()
         .advance_clock(RENAME_DEADLINE.saturating_add(std::time::Duration::from_secs(1)));
     cx.run_until_parked();
-    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
     assert_eq!(
         state(&probe, cx).map(|(_, save, error, pending)| (save, error, pending)),
         Some((true, Some(words.rename_timeout().to_owned()), false))
