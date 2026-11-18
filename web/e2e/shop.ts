@@ -1,12 +1,12 @@
 // A session in the fleet's `shop` repository (e2e/repos.ts) and its code
 // panel's tabs, shared by the specs that read the panel.
 
-import { type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
 
 import { choose, newSessionPage } from "./kit";
 
 /** The session panel's tab named `name`. */
-export function panelTab(page: Page, name: string) {
+export function panelTab(page: Page, name: string): Locator {
   return page
     .getByRole("tablist", { name: "Session panel" })
     .getByRole("tab", { name });
