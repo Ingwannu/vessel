@@ -16,7 +16,7 @@
 //! - Rulings (coordinator, 2026-11-17): compact only, the wide "…" is
 //!   TRACKER 795. The session's actions move to each switcher row's menu,
 //!   after Paseo's tab items. No second "…" in the header. Import session
-//!   joins "…" once 777 is in a package base.
+//!   joins "…" once 777 is in a package base (base 14.32 has it).
 //! - Alternatives: keep the tab head at compact and drop only the bar (not
 //!   Paseo's row); keep the session's "…" beside the workspace's (two "…").
 //! - Choice: the header draws the session's heading
@@ -234,9 +234,11 @@ pub(super) fn overlay(
     })
 }
 
-/// What "…" offers: Paseo's workspace actions that Vessel performs. New
-/// browser tab and the terminal profiles are left out, as Paseo leaves them
-/// out where it cannot create them.
+/// What "…" offers: Paseo's workspace actions that Vessel performs (Copy
+/// workspace path, Import session). New browser tab and the terminal
+/// profiles are left out, as Paseo leaves them out where it cannot create
+/// them; Copy branch name too, since Vessel knows only the branch a session
+/// started on, and Show setup, which Vessel has no page for.
 fn actions_menu(
     shell: &Shell,
     tokens: &Tokens,
@@ -250,12 +252,17 @@ fn actions_menu(
     let words = shell.words.layout();
     let mut copy = MenuItem::new(words.copy_workspace_path().to_owned());
     copy.disabled = workspace_path(shell).is_none();
-    let items = [copy];
+    // Paseo's order: Copy workspace path, then Import session.
+    let items = [copy, MenuItem::new(shell.words.history().title().to_owned())];
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.layout.compact.actions,
-        chose: Rc::new(|shell: &mut Shell, _index, _window, cx| {
-            if let Some(path) = workspace_path(shell) {
-                cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(path));
+        chose: Rc::new(|shell: &mut Shell, index, window, cx| {
+            if index == 0 {
+                if let Some(path) = workspace_path(shell) {
+                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(path));
+                }
+            } else {
+                shell.open_import_for_workspace(window, cx);
             }
         }),
     };

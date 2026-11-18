@@ -278,3 +278,19 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
         assert_eq!(workspace_path(shell).as_deref(), Some("/work/shop"));
     });
 }
+
+#[gpui::test]
+fn import_session_opens_the_sheet_for_this_host_and_folder(cx: &mut TestAppContext) {
+    let (probe, cx) = compact(cx);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.0.update(cx, |shell, cx| {
+            let session = shell.areas.session.open.as_ref().unwrap().session;
+            shell.areas.conversation.info = Some(Box::new(info(session)));
+            shell.open_import_for_workspace(window, cx);
+        });
+    });
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        assert!(probe.0.read(cx).areas.import.is_open());
+    });
+}

@@ -75,6 +75,12 @@ pub(crate) struct ImportArea {
 }
 
 impl ImportArea {
+    /// Whether the sheet is open (another area's test asks).
+    #[cfg(test)]
+    pub(crate) const fn is_open(&self) -> bool {
+        self.open
+    }
+
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             open: false,

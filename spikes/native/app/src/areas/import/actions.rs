@@ -28,6 +28,29 @@ impl Shell {
         self.open_import_for(host, None, window, cx);
     }
 
+    /// Paseo's workspace header Import session (TRACKER 789, the compact
+    /// header's "…"): the open session's host and folder, so the sheet
+    /// reads "This workspace" with "Show all".
+    pub(crate) fn open_import_for_workspace(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let host = self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .map(|open| open.machine.clone());
+        let cwd = self
+            .areas
+            .conversation
+            .info
+            .as_deref()
+            .and_then(|info| info.spec.cwd.clone());
+        self.open_import_for(host, cwd, window, cx);
+    }
+
     /// Open for `host` (the chooser first without one) and, from a
     /// workspace, its folder (`cwd`, "This workspace" with "Show all").
     pub(super) fn open_import_for(
