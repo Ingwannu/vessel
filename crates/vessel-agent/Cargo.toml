@@ -30,7 +30,8 @@ uuid.workspace = true
 # Temporary homes and owner-only directories (the Codex contract test, the
 # Claude driver's MCP file tests).
 tempfile.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
+# `test-util`: a ranked listing's load budgets are checked on a paused clock.
+tokio = { workspace = true, features = ["rt-multi-thread", "time", "test-util"] }
 vessel-testkit.workspace = true
 
 [lints]

@@ -26,6 +26,8 @@ pub(crate) async fn history(target: &Target, history: History) -> Result<(), Cli
             profile: history.profile.clone(),
             cwd,
             cursor: history.more,
+            limit: None,
+            query: None,
         })
         .await?;
     let import = Import {
@@ -120,6 +122,8 @@ mod tests {
                     title: Some("third".parse().unwrap()),
                     updated_at: DateTime::from_timestamp(1_700_000_000, 0),
                     in_vessel: Some(session),
+                    first_prompt: None,
+                    last_prompt: None,
                 },
                 HistoryEntry {
                     harness_session: HarnessSessionId::new("past-1"),
@@ -127,9 +131,12 @@ mod tests {
                     title: None,
                     updated_at: None,
                     in_vessel: None,
+                    first_prompt: None,
+                    last_prompt: None,
                 },
             ],
             next: Some("2~".to_owned()),
+            already_imported: None,
         };
         let harness = HarnessRef::Known(HarnessKind::ClaudeCode);
         let import = Import {
@@ -147,6 +154,7 @@ mod tests {
         let empty = AgentHistoryPage {
             conversations: Vec::new(),
             next: None,
+            already_imported: None,
         };
         assert_eq!(text(&empty, &import), "no conversations\n");
     }

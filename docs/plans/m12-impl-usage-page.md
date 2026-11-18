@@ -132,6 +132,23 @@ coordinator as a separate parity item.
 - Tests: delivery.test.ts (both rules, nextDelivery), composer-words.test.ts (placeholders), conversation.spec
   (Queue while a permission waits: box enabled, placeholder, "Interrupt and send"), app.spec (box enabled).
 
+## TRACKER 790: the node's ranked history listing (ADR 0109)
+
+- What: `agent.history` with `limit` and `query` answers Paseo's import-sheet listing: the newest conversations
+  not already on the node, each with its first and last prompt (loaded on the listing connection within
+  Paseo's 30 s and 60 s budgets, kept per account while unchanged), the query matched on the node, and
+  `already_imported`. Four listings run at once and sixteen wait. The protocol number was assigned at its
+  node-line merge: 29.
+- Where: `vessel-proto/src/history.rs` (fields, `RANKED_HISTORY_PROTOCOL`), `rpc/since.rs`;
+  `vessel-agent/src/history.rs` (the connection: `ranked_with`), `history/loads.rs` (`AcpSource`, the
+  loads) and `history/ranked.rs` (the ranking, budgets, `Previews`, `Gathered`); `vessel-session` `ranked_history`; `vessel-node`
+  `service/history.rs` (checks, the known set, sorting) and `service/history/places.rs`.
+- Tests: `ranked/tests.rs` and `places.rs` on a paused clock; `service/history.rs` unit tests;
+  `tests/e2e/history.rs` against `fake-acp`; the rpc `since` test.
+- Next: the native sheet (app line) asks the ranked listing when the node speaks it. It drops its client
+  queue and client filter, shows the preview line and debounces search by 200 ms. Its read deadline (90 s)
+  grows to cover a wait for a place.
+
 ## Next
 
 - The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).
