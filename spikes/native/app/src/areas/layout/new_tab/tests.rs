@@ -94,7 +94,7 @@ fn owner(probe: &Entity<Probe>, cx: &mut VisualTestContext) -> Owner {
                 .root()
                 .panes()
                 .into_iter()
-                .find_map(|pane| pane.focused()))
+                .find_map(vessel_app_view::layout::Pane::focused))
         })
         .unwrap()
         .unwrap();

@@ -206,7 +206,7 @@ fn pane_view(
         ),
         None => super::new_tab::panel(
             shell,
-            super::new_tab::Owner::Pane(workspace.clone(), id),
+            &super::new_tab::Owner::Pane(workspace.clone(), id),
             tokens,
             window,
             cx,

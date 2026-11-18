@@ -175,14 +175,14 @@ fn ready(groups: &[Group]) -> Vec<(usize, Launch)> {
 /// The panel for `owner`.
 pub(super) fn panel(
     shell: &Shell,
-    owner: Owner,
+    owner: &Owner,
     tokens: &Tokens,
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let groups = groups(shell, window);
     let keys = &shell.areas.layout.new_tab;
-    let owns = keys.owner.as_ref() == Some(&owner);
+    let owns = keys.owner.as_ref() == Some(owner);
     let lit = (owns && keys.focus.is_focused(window)).then_some(keys.row);
     let rail = groups.into_iter().fold(
         div()
@@ -192,9 +192,9 @@ pub(super) fn panel(
             .flex()
             .flex_col()
             .gap(px(S12)),
-        |rail, group| rail.child(group_view(group, &owner, lit, tokens, cx)),
+        |rail, group| rail.child(group_view(group, owner, lit, tokens, cx)),
     );
-    let id = match &owner {
+    let id = match owner {
         Owner::Tab(_, tab) => format!("new-tab-panel-tab-{}", tab.get()),
         Owner::Pane(_, pane) => format!("new-tab-panel-pane-{}", pane.get()),
     };
