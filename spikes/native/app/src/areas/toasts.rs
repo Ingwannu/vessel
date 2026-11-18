@@ -30,6 +30,15 @@ impl Shell {
         cx.notify();
     }
 
+    /// Paseo's `toast.copied(label)`: "Copied {label}" (`layout-copied`, its
+    /// `common.states.copiedLabel`) as a copied toast, for every copy that
+    /// says so (TRACKER 804).
+    pub(crate) fn toast_copied(&mut self, label: &str, cx: &mut Context<'_, Self>) {
+        let words = self.words.layout();
+        let text = words.copied(label).unwrap_or_else(|_| label.to_owned());
+        self.toast(text, ToastTone::Copied, cx);
+    }
+
     fn schedule_toast(wake: ToastWake, cx: &mut Context<'_, Self>) {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(wake.after()).await;
@@ -84,6 +93,7 @@ pub(crate) fn render(
         },
         Some(hover),
         tokens,
+        window,
     );
     Some(toast_layer(card, chrome::HEIGHT.mul_add(1.0, GAP), window))
 }

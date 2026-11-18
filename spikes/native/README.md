@@ -619,6 +619,16 @@ close control, a leading mark per look (success `CircleCheck` in the accent,
 copied in the foreground, Info16 for the git guidance, an error's `Alert` with
 a destructive hairline), as wide as its words in Paseo's boundary;
 `toast_layer` places the one card under the title bar.
+A copy says so as Paseo's copied toast (TRACKER 804): `Shell::toast_copied`
+words it "Copied {label}" / "{label} 복사됨" (`layout-copied`, Paseo's
+`common.states.copiedLabel`) with Paseo's labels (Agent ID, Terminal ID, File
+path, resume command, Workspace path, diagnostic) and, for Vessel's own copies,
+sentence-case ones in the same pattern (Session link, Preferences path); the
+sidebar's row copy keeps Paseo's own sidebar words, "Path copied". The session
+bar's Copy ID is Paseo's "Copy agent id". The diagnostic, session link and
+preferences path copies were frame notices that re-worded on a language
+change; a toast, as in Paseo, is not re-worded. Copies Paseo leaves silent
+(the explorer's paths) and inline states (the pairing link) stay as they are.
 
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.

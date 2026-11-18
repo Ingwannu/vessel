@@ -49,6 +49,8 @@ pub struct SidebarWords {
     pub show_ended: &'static str,
     // A session row's menu.
     pub copy_path: &'static str,
+    /// Its toast (Paseo's `sidebar.workspace.toasts.pathCopied`).
+    pub path_copied: &'static str,
     /// Its workspace's labels page (Paseo's `workspaceLabels.title`).
     pub labels: &'static str,
     /// The menu's title as a phone's sheet (Paseo's
@@ -129,6 +131,7 @@ const EN: SidebarWords = SidebarWords {
     activity: "Last activity",
     show_ended: "Show ended sessions",
     copy_path: "Copy path",
+    path_copied: "Path copied",
     labels: "Labels",
     row_actions: "Session actions",
     settings: "Settings",
@@ -164,6 +167,7 @@ const KO: SidebarWords = SidebarWords {
     activity: "마지막 활동",
     show_ended: "끝난 세션 표시",
     copy_path: "경로 복사",
+    path_copied: "경로가 복사되었습니다",
     labels: "라벨",
     row_actions: "세션 작업",
     settings: "설정",

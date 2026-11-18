@@ -12,6 +12,7 @@ use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement, px};
 use vessel_app_view::layout::{
     AgentRole, CloseScope, LayoutMode, OpenIntent, PaneId, Placement, Position, Target,
 };
+use vessel_app_view::toasts::ToastTone;
 use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 
 struct Probe(Entity<Shell>);
@@ -313,6 +314,19 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
             Some("/work/shop")
         );
     });
+    // Its copy says so as Paseo's (TRACKER 804): "Copied Workspace path".
+    probe.update(cx, |probe, cx| {
+        probe.0.update(cx, Shell::copy_workspace_path);
+    });
+    probe.read_with(cx, |probe, cx| {
+        let said = probe.0.read(cx).areas.toasts.shown().cloned();
+        let said = said.map(|toast| (toast.text, toast.tone));
+        // Fluent isolates the label (U+2068 .. U+2069).
+        let expected = "Copied \u{2068}Workspace path\u{2069}".to_owned();
+        assert_eq!(said, Some((expected, ToastTone::Copied)));
+    });
+    let copied = cx.read_from_clipboard().and_then(|item| item.text());
+    assert_eq!(copied.as_deref(), Some("/work/shop"));
 }
 
 #[gpui::test]
