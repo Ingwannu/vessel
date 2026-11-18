@@ -9,7 +9,8 @@ the `item` and `field` styles), `components/ui/menu/menu-sub.tsx`,
 `menu-geometry.ts`.
 
 Status: plan approved by the coordinator (2026-11-18), including the bare
-`PickerPlace::Popover` taking the phone form; being built.
+`PickerPlace::Popover` taking the phone form; built (see "As built"),
+frames to the coordinator.
 
 ## Paseo
 
@@ -107,3 +108,39 @@ Details to keep:
 
 At 1280 (the flyout beside the Labels flyout: empty, typed, saving, a
 failure) and at 390 (the sheet page), dark English and light Korean.
+
+## As built
+
+- kit `menu::page`: `FormPage` and `form_rows` (the field in a row's box,
+  the body, the separator, the action row from `row_body`, the hint),
+  `form_flyout` (the popover surface for `submenu::flyout`) and
+  `form_sheet` (a phone's page, below). The field's border is the accent
+  while its focus handle is focused: a field focused before its first
+  frame hears no focus event, so the page reads the handle, not an event.
+- kit combobox: a list placed under a menu's page sets its own pages one
+  level deeper (`set_nested_submenus(pages, depth)`), so the Labels list
+  opens its Create label page at depth 1 and its own opening no longer
+  resets the menu's Labels page (`follow_pages` only at depth 0).
+- On a phone the page is drawn by `form_sheet`: the menu sheet's look
+  (surface0, the handle, the list's title row with its chevron leading
+  back to the list), over the sheet scrim, with the dialog's focus owner
+  for its keys and its return of focus. It replaces the Labels sheet the
+  way Paseo's `MenuSheetHeader` page does: no close button. The bare
+  picker on a wide window has no flyout chain, so its page is the kit
+  dialog with the header's way back.
+
+Differences, named:
+- Vessel's sheet title row (791's, the menu's and the list's) is drawn
+  for both pages: a 16 chevron, 6 apart, 10 above and below, a rule
+  under it (Paseo's `MenuSheetHeader`: an 18 chevron in a 24 box, 8
+  apart, 4 above and 12 below, no rule).
+- The page does not pan down to close (the dialog's fitting sheet did
+  not either); the scrim closes the menu and the title row goes back.
+- A failure reads Vessel's existing labels failure words ("Could not
+  update labels. Try again."), not Paseo's "Unable to update label".
+- The Labels list has no separator above Create label (Paseo draws one
+  when there are labels): the kit combobox has no separator row (791).
+  Proposed as a follow-up.
+- An answer that arrives after the call's deadline still lands: the
+  label appears in the list while the page keeps the draft and its
+  failure, as Paseo's list follows the host's labels.

@@ -60,9 +60,7 @@ mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
 pub use draw::{Content, Layer, Width, menu, menu_right, menu_with};
 pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
-pub use page::{
-    FormAct, FormPage, FormSheet, ROW_TEXT_INSET, form_flyout, form_rows, form_sheet,
-};
+pub use page::{FormAct, FormPage, FormSheet, ROW_TEXT_INSET, form_flyout, form_rows, form_sheet};
 pub use trigger::{
     TriggerPresentation, TriggerProfile, TriggerSizing, trigger, trigger_presented, trigger_space,
     trigger_visual_size, trigger_with,
