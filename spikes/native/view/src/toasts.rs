@@ -210,7 +210,7 @@ impl Toasts {
 
 #[cfg(test)]
 fn at(now: Instant, millis: u64) -> Instant {
-    now + Duration::from_millis(millis)
+    now.checked_add(Duration::from_millis(millis)).unwrap()
 }
 
 #[cfg(test)]
