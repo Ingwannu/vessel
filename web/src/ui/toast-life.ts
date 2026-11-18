@@ -4,8 +4,10 @@
 // pointer resting on the card holds the life it has left.
 //
 // [Decision Log]
-// - Purpose: TRACKER 802. Paseo shows one toast; the page kept a stack (a
-//   quarter of the window, scrolling) in which each toast ran its own 4 s.
+// - Purpose: TRACKER 802. Paseo shows one toast with its own duration
+//   (2.2 s, an error 3.2 s, `null` until dismissed); the page kept a
+//   scrolling stack in which each success ran 4 s and each error stayed
+//   until its close button.
 // - Existing: `ui/toasts.tsx` held a list and one timer per toast; the
 //   host's placement and its dock-anchored bottom edge (TRACKER 796,
 //   styles/feedback.css) stay as they are.
@@ -14,29 +16,38 @@
 //   slot, numbered toasts, one timer restarted for each new toast.
 // - Choice: 2, as plain module state outside React so that it is tested
 //   under node (the page's vitest runs without a DOM).
-// - Costs: a toast that arrives while another is being read replaces it,
-//   an error that waits for its dismissal too (Paseo's rule). The lives
-//   stay the page's (DESIGN.md §6.10), not Paseo's 2.2 s and 3.2 s.
+// - The default variant is `success`, not Paseo's `default`: nearly every
+//   page toast reports a finished action, which Paseo shows as success; a
+//   notice that is neither passes `default`.
+// - Costs: a toast that arrives while another is read replaces it, an
+//   error too, and an error leaves by itself after 3.2 s (Paseo's rule).
 import { Store } from "../data/store";
 
-export type ToastTone = "ok" | "error";
+/** Paseo's toast variants (`ToastVariant`). */
+export type ToastVariant = "default" | "info" | "success" | "warning" | "error";
 
 export interface Toast {
   readonly id: number;
-  readonly tone: ToastTone;
+  readonly variant: ToastVariant;
   readonly text: string;
+  /** Paseo's `copied` toast: success, its mark in the text colour. */
+  readonly copied: boolean;
 }
 
-/** How long each tone stays up by itself; `null` waits for a dismissal. */
-const LIFE_MS: Readonly<Record<ToastTone, number | null>> = {
-  ok: 4000,
-  error: null,
-};
+export interface ToastOptions {
+  /** How long it stays by itself; `null` until dismissed. */
+  readonly durationMs?: number | null;
+}
+
+/** Paseo's `DEFAULT_DURATION_MS`, and its `toast.error` duration. */
+export const TOAST_LIFE_MS = 2200;
+export const ERROR_TOAST_LIFE_MS = 3200;
 
 /** The toast up, if any. */
 export const shownToast = new Store<Toast | null>(null);
 
 let next = 1;
+let life: number | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let deadline: number | null = null;
 let remaining = 0;
@@ -51,6 +62,7 @@ function stop(): void {
 export function dismissToast(id: number): void {
   if (shownToast.get()?.id !== id) return;
   stop();
+  life = null;
   remaining = 0;
   shownToast.set(null);
 }
@@ -64,15 +76,37 @@ function run(id: number, ms: number): void {
   }, ms);
 }
 
-/** Say `text`, in place of the toast up. */
-export function toast(text: string, tone: ToastTone = "ok"): void {
+function show(
+  text: string,
+  variant: ToastVariant,
+  copied: boolean,
+  options: ToastOptions,
+): () => void {
   const id = next;
   next += 1;
   stop();
   remaining = 0;
-  shownToast.set({ id, tone, text });
-  const life = LIFE_MS[tone];
-  if (life !== null) run(id, life);
+  const fallback = variant === "error" ? ERROR_TOAST_LIFE_MS : TOAST_LIFE_MS;
+  life = options.durationMs === undefined ? fallback : options.durationMs;
+  shownToast.set({ id, variant, text, copied });
+  if (life !== null) run(id, Math.max(0, life));
+  return () => {
+    dismissToast(id);
+  };
+}
+
+/** Say `text`, in place of the toast up; the returned call takes it down. */
+export function toast(
+  text: string,
+  variant: ToastVariant = "success",
+  options: ToastOptions = {},
+): () => void {
+  return show(text, variant, false, options);
+}
+
+/** Paseo's `toast.copied`: a success whose mark is in the text colour. */
+export function toastCopied(text: string): () => void {
+  return show(text, "success", true, {});
 }
 
 /** A pointer came to rest on toast `id`: its life waits. */
@@ -84,8 +118,6 @@ export function holdToast(id: number): void {
 
 /** The pointer left toast `id`: the life it had left runs on. */
 export function releaseToast(id: number): void {
-  const shown = shownToast.get();
-  if (shown?.id !== id || timer !== null) return;
-  const life = LIFE_MS[shown.tone];
-  if (life !== null) run(id, remaining > 0 ? remaining : life);
+  if (shownToast.get()?.id !== id || timer !== null || life === null) return;
+  run(id, remaining > 0 ? remaining : life);
 }

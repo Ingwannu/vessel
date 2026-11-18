@@ -4,9 +4,16 @@ import { expect, type Locator, type Page } from "@playwright/test";
 /** Toasts said in a row by the fixtures; one stays up (Paseo's host). */
 export const REPEAT_FIXTURE_COUNT = 8;
 export const FOCUS_FRAME_MS = 120;
-// Paseo toast-host: 16px at each side, then a 92% width boundary.
-// A literal measured result keeps this independent of the CSS formula.
-const REFERENCE_NARROW_TOAST = { viewport: 390, card: 329.36 } as const;
+// Paseo toast-host: 16px at each side, then a boundary 92% as wide, at
+// most 480; the card is as wide as its words within it. Literal results
+// keep this independent of the CSS formula.
+const TOAST_BOUNDARY: Readonly<Record<number, number>> = {
+  390: 329.36,
+  800: 480,
+  1280: 480,
+};
+/** The host's room for the card's shadow at each side. */
+const TOAST_SHADOW_ROOM = 12;
 
 async function rectangle(element: Locator) {
   const value = await element.boundingBox();
@@ -41,9 +48,17 @@ export async function clearToastBounds(page: Page): Promise<Locator> {
   const viewport = page.viewportSize();
   if (viewport === null) throw new Error("Expected a fixed fixture viewport");
   const notice = await rectangle(toast);
-  if (viewport.width === REFERENCE_NARROW_TOAST.viewport) {
-    expect(notice.width).toBeCloseTo(REFERENCE_NARROW_TOAST.card, 1);
+  const boundary = TOAST_BOUNDARY[viewport.width];
+  if (boundary !== undefined) {
+    const host = await rectangle(page.locator(".toast-host"));
+    expect(host.width).toBeCloseTo(boundary + TOAST_SHADOW_ROOM * 2, 1);
+    // A short message's card is narrower than the boundary (Paseo's card
+    // takes its words' width, centred).
+    expect(notice.width).toBeLessThan(boundary - 1);
   }
+  // Paseo's copied card: its CheckCircle2 in front, no close button.
+  await expect(toast.locator(".toast-mark .ico-circle-check")).toBeVisible();
+  await expect(toast.getByRole("button")).toHaveCount(0);
   const header = await rectangle(page.getByRole("banner"));
   const prompt = await rectangle(page.getByRole("form", { name: "Prompt" }));
   const next = await rectangle(
@@ -61,9 +76,14 @@ export async function clearToastBounds(page: Page): Promise<Locator> {
   return toast;
 }
 
+/** Freeze the page's clock a second ahead (installing it on first use):
+ * toasts leave after 2.2 s, less than a loaded run may take to measure. */
+export async function pauseClock(page: Page): Promise<void> {
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+}
+
+/** Says the copied toast eight times on a paused clock (pauseClock). */
 export async function repeatedToasts(page: Page): Promise<void> {
-  await page.clock.install();
-  await page.clock.pauseAt(new Date(Date.now() + 1000));
   for (let index = 0; index < REPEAT_FIXTURE_COUNT; index += 1) {
     await copyToast(page, "paused");
     await page.clock.runFor(FOCUS_FRAME_MS);
@@ -84,5 +104,4 @@ export async function repeatedToasts(page: Page): Promise<void> {
     Math.min(prompt.y, next.y),
   );
   await expect(page.locator(".toast")).toBeInViewport({ ratio: 1 });
-  await page.clock.resume();
 }

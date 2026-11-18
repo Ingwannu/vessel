@@ -1026,22 +1026,33 @@ uncopied — then confirm.
 
 Centred below the header, 8px under it, as Paseo's app-shell host
 (`toast-host.tsx`: safe area + header + spacing 2), so feedback stays clear
-of the lower composer and question actions. The stack's bottom edge is
+of the lower composer and question actions. The host's bottom edge is
 anchored to the composer's dock and a prompt menu over it (CSS anchor
 positioning), so no viewport change or growing dock leaves a frame in
 which a toast covers a question control; browsers without anchors keep the
-measured height (`use-toast-clearance.ts`), one rendering step late. Cards retain 320px on a
-wide screen; below 768px they use 92vw up to 480px.
+measured height (`use-toast-clearance.ts`), one rendering step late. The
+card sits in a boundary 92% as wide as the window less 16px a side, at
+most 480px, and is as wide as its words within it; clicks pass through
+the host around it.
 
 One toast at a time, as Paseo's `ToastHost` (`toast-host.tsx` 81-130): a
 new toast replaces the one up and starts its own life (`ui/toast-life.ts`):
-4s for success, an error stays until dismissed; dismissing an older toast
+2.2s (Paseo's `DEFAULT_DURATION_MS`), an error 3.2s, a `durationMs: null`
+toast until the call `toast` returned is made; dismissing an older toast
 leaves the newer one. A mouse resting on the card holds the life it has
-left, and leaving runs the rest (Paseo pauses its timer on hover). The host
-occupies at most a quarter of the viewport height; a long message wraps
-and scrolls. Padding preserves room for the card's shadow.
-`--bg-elevated` + hairline + 3px status bar on the left. `role="status"`
-for success, `role="alert"` for error.
+left, and leaving runs the rest (Paseo pauses its timer on hover).
+
+The card is Paseo's `ToastCard` (`toast-host.tsx` 230-275, 302-333): no
+close button; a leading 18px mark per variant (success `circle-check` in
+the primary colour, a copied toast's in the text colour, info `info` in
+blue-300, warning and error `warn` in amber and the destructive red; the
+default variant none), the message 14px in the text colour, 8 by 12
+inside, radius 16, `--bg-elevated` with a hairline that info, warning and
+error colour, the medium shadow. The page's `toast()` defaults to success
+(it reports a finished action); a notice that is neither passes `default`.
+The host occupies at most a quarter of the viewport height; a long
+message wraps and scrolls. Padding preserves room for the card's shadow.
+`role="status"`, `role="alert"` for warning and error.
 
 ### 6.11 Empty, loading, error
 

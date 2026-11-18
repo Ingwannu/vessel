@@ -1,7 +1,13 @@
 // One affected-state matrix, with a real question and UI-generated feedback.
 // Desktop authentication then resize, not a cold-mobile bootstrap claim.
 import { expect, test } from "@playwright/test";
-import { clearToastBounds, copyToast, repeatedToasts } from "./feedback-kit";
+import {
+  clearToastBounds,
+  copyToast,
+  FOCUS_FRAME_MS,
+  pauseClock,
+  repeatedToasts,
+} from "./feedback-kit";
 import { startSession } from "./kit";
 import { openUi } from "./open";
 import { watchPageErrors } from "./page-errors";
@@ -35,15 +41,18 @@ for (const locale of ["en-US", "ko-KR"]) {
             page.getByRole("region", { name: "Question from the agent" }),
           ).toBeVisible();
           await page.setViewportSize(size);
-          await copyToast(page);
-          const toast = await clearToastBounds(page);
+          // Paused clock: the toast's 2.2 s would not outlast a loaded run.
+          await pauseClock(page);
+          await copyToast(page, "paused");
+          await page.clock.runFor(FOCUS_FRAME_MS);
+          await clearToastBounds(page);
           await page.mouse.move(0, 0);
           const name = `feedback-${locale}-${scheme}-${String(size.width)}x${String(size.height)}`;
           await shot(page, `${name}-toast`);
-          await toast.getByRole("button", { name: "Dismiss" }).click();
           await repeatedToasts(page);
           await page.mouse.move(0, 0);
           await shot(page, `${name}-repeated`);
+          await page.clock.resume();
           expect(
             await page.evaluate(
               () => document.documentElement.scrollWidth > window.innerWidth,

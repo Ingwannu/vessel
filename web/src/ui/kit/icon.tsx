@@ -88,14 +88,15 @@ export const ICON_NAMES = [
   "circle",
   "help",
   "tag",
+  "info",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
 
 /** The sizes the reference draws at: 12 and 13 in dense chrome, 14 in a
- * composer's controls, 15 in menus, 16 in buttons and tabs, 20 for an
- * empty state's mark. */
-export type IconSize = 12 | 13 | 14 | 15 | 16 | 20;
+ * composer's controls, 15 in menus, 16 in buttons and tabs, 18 for a
+ * toast's mark, 20 for an empty state's mark. */
+export type IconSize = 12 | 13 | 14 | 15 | 16 | 18 | 20;
 
 /** A stroke icon in the current text colour. Decorative: the control it
  * sits in carries the name. */

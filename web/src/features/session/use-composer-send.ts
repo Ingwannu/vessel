@@ -179,7 +179,7 @@ export function useComposerSend({
     }
     const current = rows.find((row) => row.id === editing.row.id);
     if (current === undefined) {
-      toast("That message was already sent or removed.");
+      toast("That message was already sent or removed.", "default");
       draft.setText(editing.text);
       setEditing(null);
       return;
@@ -204,9 +204,10 @@ export function useComposerSend({
       if (code === "conflict") {
         toast(
           "This message was changed elsewhere. Update again to replace it with yours.",
+          "default",
         );
       } else if (code === "not_found") {
-        toast("That message was already sent or removed.");
+        toast("That message was already sent or removed.", "default");
         draft.setText(editing.text);
         setEditing(null);
       } else {

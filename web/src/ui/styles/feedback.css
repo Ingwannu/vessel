@@ -2,14 +2,16 @@
 
 /* --- Toasts / empty / skeleton --- */
 
-/* Paseo's app-shell host (toast-host.tsx 199-201, 284-288): under the
-   safe area and the header, its one card spacing 2 below it, centred.
+/* Paseo's app-shell host (toast-host.tsx 199-201, 284-301): under the
+   safe area and the header, its one card spacing 2 below it, centred in a
+   boundary 92% as wide as the window less 16px a side, at most 480px.
    The host starts at the header's bottom (the frame's inset, its 1px edge
    and the title bar: shell/frame.css, frame-top.css) and that gap is its
    top padding; the card's shadow reaches about 4px above it, the sides
-   and bottom keep 12px for it. */
+   and bottom keep 12px for it. Clicks pass through the host around the
+   card (Paseo's `box-none`). */
 .toast-host {
-  --toast-card-width: 320px;
+  --toast-card-width: min(calc((100vw - var(--s-4) * 2) * 0.92), 480px);
   --toast-header-bottom: calc(var(--panel-inset-y) + 1px + var(--topbar-h));
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + var(--toast-header-bottom));
@@ -26,6 +28,7 @@
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
+  pointer-events: none;
   z-index: var(--z-toast);
 }
 
@@ -48,42 +51,78 @@
   }
 }
 
+/* Paseo's ToastCard (toast-host.tsx 230-275, 302-333): as wide as its
+   words up to the boundary, a leading mark, 8 by 12 inside, radius 2xl,
+   surface0 with a hairline, the medium shadow, the message 14 in the
+   text colour. Info, warning and error colour the hairline. */
 .toast {
-  width: 100%;
+  align-self: center;
+  max-width: 100%;
   flex-shrink: 0;
   display: flex;
-  gap: 10px;
-  padding: 10px 12px;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--r-3);
+  border-radius: var(--r-6);
   box-shadow: var(--shadow);
-  font: var(--t-meta);
+  color: var(--text-primary);
+  font: var(--t-body);
+  pointer-events: auto;
 }
 
-.toast::before {
-  content: "";
-  width: 3px;
+.toast.info {
+  border-color: var(--info);
+}
+
+.toast.warning {
+  border-color: var(--warn);
+}
+
+.toast.error {
+  border-color: var(--danger);
+}
+
+/* The mark's colour: success the primary, copied the text colour, info
+   blue, warning amber, error the destructive red (Paseo's icon styles). */
+.toast-mark {
+  display: flex;
   flex-shrink: 0;
-  border-radius: 2px;
-  background: var(--online);
+  align-items: center;
+  justify-content: center;
 }
 
-.toast.error::before {
-  background: var(--danger);
+.toast.success .toast-mark {
+  color: var(--accent);
+}
+
+.toast.success.copied .toast-mark {
+  color: var(--text-primary);
+}
+
+.toast.info .toast-mark {
+  color: var(--info);
+}
+
+.toast.warning .toast-mark {
+  color: var(--warn);
+}
+
+.toast.error .toast-mark {
+  color: var(--danger);
 }
 
 /* A long message wraps, and past the host's height it scrolls instead of
-   reaching down over the composer. Wide cards retain their 320px width. */
-.toast > span {
+   reaching down over the composer. */
+.toast-text {
   min-width: 0;
-  flex: 1;
+  flex-shrink: 1;
   overflow-wrap: anywhere;
 }
 
 @media (max-width: 767px) {
   .toast-host {
-    --toast-card-width: min(calc((100vw - var(--s-4) * 2) * 0.92), 480px);
     --toast-header-bottom: calc(
       var(--panel-inset-phone) + 1px + var(--topbar-h)
     );
