@@ -109,7 +109,11 @@ fn at_the_least_width_the_foot_keeps_labels_on_one_line(cx: &mut TestAppContext)
 /// Where the foot's build and "reload" sit, and the clipped line they share.
 fn foot_parts(
     cx: &mut VisualTestContext,
-) -> (gpui::Bounds<gpui::Pixels>, gpui::Bounds<gpui::Pixels>, gpui::Bounds<gpui::Pixels>) {
+) -> (
+    gpui::Bounds<gpui::Pixels>,
+    gpui::Bounds<gpui::Pixels>,
+    gpui::Bounds<gpui::Pixels>,
+) {
     (
         cx.debug_bounds("sidebar-foot-start").unwrap(),
         cx.debug_bounds("sidebar-foot-build").unwrap(),
