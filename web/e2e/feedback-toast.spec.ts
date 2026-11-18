@@ -48,6 +48,19 @@ for (const colorScheme of ["light", "dark"] as const) {
         (await page.evaluate(() => Date.now())) + HOLD_AFTER_STACK_MS,
       );
       await page.setViewportSize({ width: 390, height: 600 });
+      // Clear of the dock in the very layout the viewport change makes,
+      // with no frame for a measurement to catch up in.
+      expect(
+        await page.evaluate(() => {
+          const stack = document.querySelector(".toast-stack");
+          const dock = document.querySelector(".prompt-dock");
+          if (stack === null || dock === null) return false;
+          return (
+            stack.getBoundingClientRect().bottom <=
+            dock.getBoundingClientRect().top + 0.5
+          );
+        }),
+      ).toBe(true);
       await page.clock.runFor(FOCUS_FRAME_MS);
       const stack = page.locator(".toast-stack");
       await expect(page.locator(".toast")).toHaveCount(STACK_FIXTURE_COUNT);
