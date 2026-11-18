@@ -27,7 +27,7 @@
 // - Cost: Add to chat writes `@path` where Paseo adds an attachment pill;
 //   the page's composer has no file pills, and the agent reads `@path`.
 
-import { useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { withMention } from "../../data/suggest";
@@ -75,7 +75,8 @@ export interface ExplorerTarget {
 /** What the actions do to the tree drawn around them. */
 export interface ExplorerTree {
   open: ReadonlySet<RelPath>;
-  onOpenChange: (open: ReadonlySet<RelPath>) => void;
+  /** A set, or a change of the set as it is when it runs. */
+  onOpenChange: Dispatch<SetStateAction<ReadonlySet<RelPath>>>;
   /** List folder `dir` again: something in it changed. */
   refresh: (dir: RelPath) => void;
   /** Open folder `dir`, listing it if it has not been. */
@@ -233,9 +234,10 @@ export function useExplorerActions(
       }
       refresh(parent);
       if (renamed.entry === "dir") {
-        const moved = renamedOpen(open, renamed.path, to);
-        onOpenChange(moved);
-        for (const dir of moved) {
+        // The open set as it is now: the answer may come after the tree
+        // moved on (the reviewer's note on E2).
+        onOpenChange((now) => renamedOpen(now, renamed.path, to));
+        for (const dir of renamedOpen(open, renamed.path, to)) {
           if (isWithin(dir, to)) refresh(dir);
         }
       }
@@ -266,7 +268,7 @@ export function useExplorerActions(
           return;
         }
         refresh(parentOf(target.path));
-        onOpenChange(withoutWithin(open, target.path));
+        onOpenChange((now) => withoutWithin(now, target.path));
       },
     );
   };

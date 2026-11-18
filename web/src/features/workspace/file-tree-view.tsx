@@ -5,7 +5,14 @@
 // windowed as the timeline's are. A row's right click (or a held touch)
 // opens Paseo's file actions menu (`explorer-menu.tsx`).
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useFleet } from "../../context";
 import {
@@ -131,7 +138,9 @@ export function FileTreeView({
   ignored: boolean;
   /** The folders open, kept by the tab across a file opened. */
   open: ReadonlySet<RelPath>;
-  onOpenChange: (open: ReadonlySet<RelPath>) => void;
+  /** The tab's setter: a set, or a change of the set as it is when it
+   * runs (a rename or a delete answers after the tree may have moved). */
+  onOpenChange: Dispatch<SetStateAction<ReadonlySet<RelPath>>>;
   onFile: (path: RelPath) => void;
 }) {
   const fleet = useFleet();

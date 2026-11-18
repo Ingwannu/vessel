@@ -207,6 +207,23 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
     "plan.md",
   ]);
 
+  // An open folder renamed onto a taken name: the node refuses, and the
+  // tree stays as it was (the folder open under its name, the other one
+  // untouched).
+  menu = await menuOf(page, sketches);
+  await menu.getByRole("menuitem", { name: "Rename" }).click();
+  await page.getByRole("textbox", { name: "Folder name" }).fill("src");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".toast.error")).toContainText("exists already");
+  await expect(sketches).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    tree.getByRole("button", { name: "plan.md", exact: true }),
+  ).toBeVisible();
+  const src = tree.getByRole("button", { name: "src", exact: true });
+  await expect(src).toHaveAttribute("aria-expanded", "false");
+  expect(existsSync(join(shop, "src", "cart.ts"))).toBe(true);
+  expect(existsSync(join(shop, "src", "plan.md"))).toBe(false);
+
   // A folder renamed while open stays open, its files under it.
   menu = await menuOf(page, sketches);
   await menu.getByRole("menuitem", { name: "Rename" }).click();
