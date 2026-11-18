@@ -12,7 +12,9 @@
 //!   line and a refused rename read as on the bar; the kit frame draws the
 //!   title. The title is not a button here: Paseo's compact title is not,
 //!   and Rename is in the tab switcher's row menu. A rename under way puts
-//!   its field in the title's place.
+//!   its field in the title's place, and the line is left out meanwhile
+//!   (the 44 touch field fills the row; the capture pass found them
+//!   overlapping).
 //! - Cost: the line can hold less than the bar's row; every piece truncates.
 
 use vessel_app_kit::theme::spacing::{S0, S1_5};

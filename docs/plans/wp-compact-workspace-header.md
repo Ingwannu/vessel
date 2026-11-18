@@ -132,7 +132,8 @@ Close, Agent log, Kill). Then the content.
   it, over the sheet (`Layer::AboveDialog`), 220 wide. Its rows follow
   Paseo's order: Copy agent id (Copy ID on a terminal, Copy path on a
   file); Rename (the open session's, when it can be renamed: the header's
-  title becomes the field); a rule; Close tabs above, Close tabs below,
+  title becomes the field, without the line under it while it is
+  edited); a rule; Close tabs above, Close tabs below,
   Close other tabs; then Close. On the open session's agent tab, Close is
   the session's Close (a root archives first, as the bar's Close did).
   After a rule come Vessel's own actions that Paseo's tab menu lacks: the

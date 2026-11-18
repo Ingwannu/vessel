@@ -197,7 +197,10 @@ pub(super) fn header(
         .child(more)
         .child(toggle);
     let (title, subtitle, editing) = match heading(shell, tokens, cx) {
-        Some(session) => (session.title, Some(session.line), session.editing),
+        // A rename's touch field is as tall as the title and its line
+        // together; the line comes back when the rename ends.
+        Some(session) if session.editing.is_some() => (session.title, None, session.editing),
+        Some(session) => (session.title, Some(session.line), None),
         None => (String::new(), None, None),
     };
     let row = frame(
