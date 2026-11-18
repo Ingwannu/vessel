@@ -12,7 +12,13 @@ struct Probe {
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
-        let card = toast("toast", self.text.clone(), ToastLook::Error, &tokens, window);
+        let card = toast(
+            "toast",
+            self.text.clone(),
+            ToastLook::Error,
+            &tokens,
+            window,
+        );
         div().size_full().child(toast_layer(card, 40.0, window))
     }
 }
@@ -39,7 +45,10 @@ fn a_long_message_wraps_within_480_on_a_wide_window(cx: &mut TestAppContext) {
     let wide = f32::from(card.size.width);
     let tall = f32::from(card.size.height);
     assert!(wide <= 480.5, "at most 480 across, was {wide}");
-    assert!(wide >= 400.0, "it fills the boundary before it wraps, was {wide}");
+    assert!(
+        wide >= 400.0,
+        "it fills the boundary before it wraps, was {wide}"
+    );
     assert!(tall >= 60.0, "more than one line, was {tall}");
 }
 
