@@ -10,8 +10,9 @@
 //!   tabs below `arrow-right-to-line`, Close other tabs `copy-x`, Close `x`.
 //!   Copy agent id carries the id's first seven characters as its muted
 //!   hint.
-//! - Vessel's extras take the nearest kit glyph (Pin, CircleDot, Circle,
-//!   RotateCw, Archive, ArchiveRestore, Trash2, Copy, FileText, Stop), so
+//! - Vessel's extras take the nearest kit glyph (`Pin`, `CircleDot`,
+//!   `Circle`, `RotateCw`, `Archive`, `ArchiveRestore`, `Trash2`, `Copy`,
+//!   `FileText`, `Stop`), so
 //!   every label starts at one x without a gutter for glyphless rows.
 //! - Not here (TRACKER 797): Copy resume command and Reload agent, the
 //!   terminal and file rows' hints, and one builder shared with the wide

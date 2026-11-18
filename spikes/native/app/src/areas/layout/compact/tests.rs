@@ -2,12 +2,14 @@
 //! lists the tabs, and each row's menu has Paseo's items, then the
 //! session's.
 use super::*;
+use crate::areas::conversation::MenuAction;
+use crate::areas::layout::menu::Action;
 use crate::areas::session::Open;
 use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
 use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement, px};
-use vessel_app_view::layout::{AgentRole, LayoutMode, OpenIntent, Placement};
+use vessel_app_view::layout::{AgentRole, LayoutMode, OpenIntent, Placement, Target};
 use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 
 struct Probe(Entity<Shell>);

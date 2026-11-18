@@ -37,7 +37,9 @@ mod switcher;
 #[cfg(test)]
 mod tests;
 
-use super::{key, with_layout};
+use super::key;
+#[cfg(test)]
+use super::with_layout;
 use crate::areas::conversation::heading;
 use crate::shell::Shell;
 pub(super) use row_menu::row_actions;
