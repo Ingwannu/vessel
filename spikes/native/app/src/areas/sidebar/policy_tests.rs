@@ -138,5 +138,5 @@ fn with_room_the_build_and_its_dot_come_before_reload(cx: &mut TestAppContext) {
     let (line, build, reload) = foot_parts(cx);
     assert_eq!(build.top(), line.top(), "on the line");
     assert!(build.right() <= reload.left());
-    assert!(build.left() >= line.left());
+    assert_eq!(build.left(), line.left(), "the foot starts at the left");
 }

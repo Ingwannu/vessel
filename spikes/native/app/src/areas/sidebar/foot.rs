@@ -36,8 +36,9 @@ const OUT: f32 = -8.0;
 /// - Choice: layout alone. The left part is a reversed, wrapping row one
 ///   line tall that clips: "reload" comes first so it always stays on the
 ///   line; the build with its "·" sits before it when there is room and
-///   otherwise wraps onto the clipped second line. Packed to the end of the
-///   reversed row, the line starts at the left.
+///   otherwise wraps onto the clipped second line. Packed to the physical
+///   start (`justify_start`, not the reversed row's flex start), the line
+///   begins at the left.
 /// - Cost: the hidden build is still laid out (one line below, clipped).
 pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let t = shell.t;
@@ -67,7 +68,7 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
                 .flex()
                 .flex_row_reverse()
                 .flex_wrap()
-                .justify_end()
+                .justify_start()
                 .items_center()
                 .gap(px(spacing::S1_5))
                 .child(
