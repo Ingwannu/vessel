@@ -140,7 +140,10 @@ fn the_switcher_lists_every_tab_and_a_press_shows_that_tab(cx: &mut TestAppConte
     let ids = tab_ids(&probe, cx);
     assert_eq!(ids.len(), 2, "the agent tab and the New tab");
     let [agent, new] = [ids[0], ids[1]];
-    assert!(cx.debug_bounds(selector(format!("compact-tab-row-{}", agent.get()))).is_some());
+    assert!(
+        cx.debug_bounds(selector(format!("compact-tab-row-{}", agent.get())))
+            .is_some()
+    );
     let row = cx
         .debug_bounds(selector(format!("compact-tab-row-{}", new.get())))
         .unwrap();

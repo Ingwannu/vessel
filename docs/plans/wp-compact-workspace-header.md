@@ -83,6 +83,11 @@ Close, Agent log, Kill). Then the content.
 - Q3: compact only. The wide "…" (`WorkspaceHeaderMenuDesktop`) is TRACKER
   795.
 - Q4: the per-tab row menu comes with 789 (Q1 needs it).
+- Titlebar (2026-11-18): keep it at every width. Vessel is a desktop app,
+  and its titlebar carries the window controls and the drag region. Paseo's
+  phone screen has no titlebar only because a phone has no window chrome;
+  Paseo's desktop keeps its frame. So the header row sits under the titlebar,
+  without its own menu island.
 
 ## What was built
 
@@ -145,7 +150,7 @@ Close, Agent log, Kill). Then the content.
 ### Differences kept
 
 - Vessel's titlebar keeps the sidebar menu, so the header has no menu
-  island of its own.
+  island of its own (the coordinator's titlebar ruling).
 - Paseo's menus are bottom sheets on a phone (`compactMode="sheet"`, the
   row menu titled with the tab's label). The kit menu is a popover with
   touch rows, as the bar's "…" was. A sheet form of the kit menu would serve
