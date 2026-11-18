@@ -1,7 +1,7 @@
 // Paseo's usage modal (usage/usage-modal.tsx), opened from the sidebar
-// summary: "Usage" with its actions in the title row (the host filter when
-// more than one machine is connected, Refresh all, the options cog), and
-// the picked machine's cards alone below; the "Plan usage" heading and its
+// summary: "Usage" with its actions in the title row (the kit's
+// HostFilter when more than one machine is connected, Refresh all, the
+// options cog), and the picked machine's cards alone below; the "Plan usage" heading and its
 // caveat belong to the Settings page. N2's quotaModalHost keeps a
 // connected pick that cannot report, so the body can say it needs an
 // update. Picking a host is the person's choice, kept by the bridge
@@ -15,7 +15,7 @@ import { useState } from "react";
 import { useFleetState } from "../../context";
 import { quotaModalHost } from "../../data/account-usage/hosts";
 import { nodeLabel } from "../../data/nodes";
-import { Dialog } from "../../ui/kit";
+import { Dialog, HostFilter } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import {
   Message,
@@ -24,7 +24,6 @@ import {
   updateText,
   usePlanUsage,
 } from "./plan-usage";
-import { UsageHostFilter } from "./usage-host-filter";
 import { useUsageHosts } from "./use-usage-hosts";
 import { useUsagePrefs } from "./use-usage-prefs";
 
@@ -51,10 +50,14 @@ export function UsageModal({
   const actions = (
     <>
       {connected.length > 1 ? (
-        <UsageHostFilter
+        <HostFilter
+          size="sm"
+          align="end"
           hosts={connected.map((candidate) => ({
-            key: candidate.key,
-            name: nodeLabel(candidate, statuses[candidate.key]),
+            value: candidate.key,
+            label: nodeLabel(candidate, statuses[candidate.key]),
+            tone: "ok",
+            status: "Connected",
           }))}
           value={node}
           onChange={(key) => {

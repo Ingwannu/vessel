@@ -34,14 +34,45 @@ import {
 } from "../../data/workspace-labels/manager";
 import { labelKey } from "../../data/workspace-labels/names";
 import { nodeLabel } from "../../data/nodes";
-import { Button, Dialog, IconButton } from "../../ui/kit";
+import {
+  Button,
+  Dialog,
+  HostFilter,
+  type HostOption,
+  IconButton,
+} from "../../ui/kit";
 import { LabelDot } from "./chip";
 import { DeleteLabelDialog } from "./delete-dialog";
 import { LabelEditView } from "./edit-view";
-import { HostFilter } from "./host-filter";
 import { useLabels } from "./use-labels";
 
 type Label = ManagedMachine["labels"][number];
+
+/** The word for a machine the manager cannot edit, in Paseo's terms. */
+function stateWord(state: ManagedMachine["state"]): string {
+  switch (state) {
+    case "online":
+      return "Online";
+    case "offline":
+      return "Offline";
+    case "unsupported":
+      return "Needs update";
+  }
+}
+
+/** The machines for the kit's host filter: the dot green when online, and
+ * why one cannot be edited after its name. */
+function hostOptions(
+  machines: readonly ManagedMachine[],
+): HostOption<ManagedMachine["node"]>[] {
+  return machines.map((machine) => ({
+    value: machine.node,
+    label: machine.name,
+    tone: machine.state === "online" ? "ok" : "neutral",
+    status: stateWord(machine.state),
+    ...(machine.state === "online" ? {} : { detail: stateWord(machine.state) }),
+  }));
+}
 
 /** The manager, drawn by the app's root while it is open. */
 export function LabelManagerHost() {
@@ -215,7 +246,7 @@ function LabelListing({
     <>
       {view.machines.length > 1 && view.node !== null ? (
         <HostFilter
-          machines={view.machines}
+          hosts={hostOptions(view.machines)}
           value={view.node}
           onChange={onMachine}
           disabled={view.pending}

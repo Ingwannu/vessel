@@ -116,54 +116,8 @@
   opacity: 0.5;
 }
 
-/* The manager (Paseo's manager modal). The host pill: its status dot, the
-   name and a chevron, 6px apart, on the raised surface with an edge. */
-.label-host {
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 6px 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-2);
-  background: var(--bg-well);
-  color: var(--text-primary);
-  font: var(--t-control);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.label-host:hover {
-  background: var(--bg-hover);
-}
-
-.label-host[data-popup-open],
-.label-host:active {
-  background: var(--bg-active);
-}
-
-.label-host:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
-.label-host:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-.label-host .ico {
-  color: var(--text-tertiary);
-}
-
-.label-host-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* The manager (Paseo's manager modal). Its host pill is the kit's
+   HostFilter (ui/kit/host-filter.css). */
 /* One left rail: the dot, the name, and the pencil, whose glyph ends on
    the rail. The pencil fades in on hover or focus rather than mounting,
    so the row does not move under the pointer; on touch and on a phone it
