@@ -9,7 +9,8 @@ use gpui::{
 use std::rc::Rc;
 use std::time::Duration;
 
-/// A trigger row ("show") and, while its page is open, the page's flyout.
+/// Two trigger rows ("show", and "other" under it) and, while a page is
+/// open, its flyout.
 struct Probe {
     submenus: Submenus,
     /// The row sits at the window's right edge.
@@ -41,16 +42,38 @@ impl Render for Probe {
                 }
             })
             .child(self.submenus.trigger_probe("show"));
+        let sibling = self.submenus.clone();
+        let other = div()
+            .id("other")
+            .debug_selector(|| "other".to_owned())
+            .absolute()
+            .left(px(left))
+            .top(px(68.0))
+            .w(px(60.0))
+            .h(px(28.0))
+            .on_hover(move |inside: &bool, window, cx| {
+                if *inside {
+                    sibling.hover_open("other", 0, window, cx);
+                } else {
+                    sibling.hover_close(0, window, cx);
+                }
+            })
+            .child(self.submenus.trigger_probe("other"));
         let page = div()
             .debug_selector(|| "page".to_owned())
             .w(px(180.0))
             .h(px(120.0));
         let flyout = self
             .submenus
-            .is_open("show", 0)
-            .then(|| flyout(&self.submenus, "show", 0, 1, page))
-            .flatten();
-        div().size_full().relative().child(row).children(flyout)
+            .path()
+            .current()
+            .and_then(|id| flyout(&self.submenus, id, 0, 1, page));
+        div()
+            .size_full()
+            .relative()
+            .child(row)
+            .child(other)
+            .children(flyout)
     }
 }
 
@@ -130,6 +153,24 @@ fn leaving_closes_after_the_grace_unless_the_pointer_reaches_the_page(cx: &mut T
 }
 
 #[gpui::test]
+fn one_move_from_the_row_into_its_page_keeps_it_open(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    let row = bounds(cx, "row");
+    pointer(cx, row.center());
+    advance(cx, 90);
+    let page = bounds(cx, "page");
+    pointer(cx, page.center());
+    advance(cx, 600);
+    assert!(open(&view, cx));
+    // A press inside holds it past the pointer's leaving.
+    cx.simulate_click(page.center(), Modifiers::none());
+    cx.run_until_parked();
+    pointer(cx, nowhere());
+    advance(cx, 600);
+    assert!(open(&view, cx));
+}
+
+#[gpui::test]
 fn a_press_only_page_opens_on_press_and_hover_does_not_close_it(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, false);
     view.update(cx, |probe, _| probe.submenus.press_only("show"));
@@ -178,4 +219,68 @@ fn a_new_opening_of_the_menu_starts_at_the_root(cx: &mut TestAppContext) {
         probe.submenus.follow(&Rc::downgrade(&second));
         assert!(!probe.submenus.is_open("show", 0));
     });
+}
+
+#[gpui::test]
+fn a_press_asks_its_screen_once_to_move_the_keys_in_and_hover_never(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    let row = bounds(cx, "row");
+    pointer(cx, row.center());
+    advance(cx, 90);
+    view.update(cx, |probe, _| {
+        assert!(probe.submenus.is_open("show", 0));
+        assert!(!probe.submenus.pressed("show"));
+        probe.submenus.open("show", 0);
+        assert!(probe.submenus.pressed("show"));
+        assert!(probe.submenus.take_pressed("show"));
+        assert!(!probe.submenus.take_pressed("show"));
+        // Closed before its screen took the keys: nothing left to take.
+        probe.submenus.open("show", 0);
+        assert!(probe.submenus.back());
+        assert!(!probe.submenus.back());
+        assert!(!probe.submenus.pressed("show"));
+    });
+}
+
+#[gpui::test]
+fn a_page_holding_the_keys_outlasts_the_grace_until_it_closes(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    view.update(cx, |probe, cx| {
+        probe.submenus.open("show", 0);
+        assert!(probe.submenus.take_pressed("show"));
+        cx.notify();
+    });
+    cx.run_until_parked();
+    let row = bounds(cx, "row");
+    pointer(cx, row.center());
+    pointer(cx, nowhere());
+    advance(cx, 600);
+    assert!(open(&view, cx));
+    // Closed by its own Escape (Back), the hold goes: hover rules again.
+    view.update(cx, |probe, _| assert!(probe.submenus.back()));
+    pointer(cx, row.center());
+    advance(cx, 90);
+    assert!(open(&view, cx));
+    pointer(cx, nowhere());
+    advance(cx, 260);
+    assert!(!open(&view, cx));
+}
+
+#[gpui::test]
+fn sliding_onto_a_sibling_row_swaps_the_page(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, false);
+    let row = bounds(cx, "row");
+    let other = bounds(cx, "other");
+    pointer(cx, row.center());
+    advance(cx, 90);
+    assert!(open(&view, cx));
+    pointer(cx, other.center());
+    advance(cx, 90);
+    view.read_with(cx, |probe, _| {
+        assert!(probe.submenus.is_open("other", 0));
+        assert!(!probe.submenus.is_open("show", 0));
+    });
+    // Its own grace does not close it under the resting pointer.
+    advance(cx, 400);
+    view.read_with(cx, |probe, _| assert!(probe.submenus.is_open("other", 0)));
 }

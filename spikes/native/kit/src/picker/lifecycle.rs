@@ -30,6 +30,40 @@ impl ComboboxState {
         }
     }
 
+    /// Open it as a page beside its menu (a flyout, [`crate::submenu`]): its
+    /// search emptied, showing `search` while empty; its rows and search take
+    /// presses, while the keys stay with the menu that opened it (no focus
+    /// moves, none is returned on close) until [`Self::take_keys`].
+    pub fn open_beside(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
+        self.return_to = crate::focus::ReturnFocus::default();
+        self.cycle = Rc::new(());
+        self.open = true;
+        self.highlighted = None;
+        self.highlighted_label = None;
+        self.search.clear(window, cx);
+        if let Some(placeholder) = search {
+            self.search.set_placeholder(placeholder, window, cx);
+        }
+    }
+
+    /// Take the keys for a list open beside its menu (its page opened by a
+    /// press or Enter): its search, or the list, holds them, and the menu's
+    /// focus returns when it closes.
+    pub fn take_keys(&mut self, search: bool, window: &mut Window, cx: &mut App) {
+        // Open already, so remember the menu's focus here (an opening's
+        // capture skips an open list); holding them already (another page
+        // pressed into the same list), the menu's focus stays the return.
+        if !self.focus.contains_focused(window, cx) {
+            self.return_to = crate::focus::ReturnFocus::default();
+            self.return_to.remember(window, cx);
+        }
+        if search {
+            self.search.focus(window, cx);
+        } else {
+            self.focus.focus(window, cx);
+        }
+    }
+
     /// Close it (no longer `const`: it drops the highlighted row's label).
     pub fn close(&mut self) {
         self.open = false;

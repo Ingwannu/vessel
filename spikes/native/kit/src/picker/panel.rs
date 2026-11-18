@@ -15,6 +15,7 @@ use super::rows::{note_row, rows_list, title_row};
 use super::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, EDGE, LIFT, OFFSET, Side, room, search_row,
 };
+use crate::dialog::sheet_handle;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
@@ -111,11 +112,13 @@ pub(super) fn panel<V: 'static>(
         .flatten();
     let room = room(anchor, header.side, window);
     panel = match surface {
+        // Gorhom's handle on Paseo's combobox sheet, the kit's sheets' one.
         Surface::Sheet => panel
             .w_full()
             .max_h(gpui::relative(0.9))
             .rounded_t(px(popup::SHEET_RADIUS))
-            .pb(px(16.0)),
+            .pb(px(16.0))
+            .child(sheet_handle(tokens.neutral.foreground_extra_muted)),
         Surface::Popover | Surface::Flyout => {
             let popover = panel
                 .w(px(width))

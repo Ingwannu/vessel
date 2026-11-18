@@ -1,7 +1,6 @@
 //! Isolated canonical workspace fixtures; compiled UI, no live registry or RPC.
 use super::*;
 use gpui::TestAppContext;
-use vessel_app_kit::ui::{point, px};
 use vessel_app_link::Link;
 use vessel_app_view::{
     connection::{ConnectionEpochs, MachineKey},
@@ -46,13 +45,13 @@ fn labels_workspace_picker_stays_open_and_waits_for_registry_assignment_projecti
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(
+        assert!(shell.labels_picker_open(
             target.clone(),
             vec![label().name],
             EditAccess::Editable,
             window,
             cx,
-        );
+        ));
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         assert!(
             overlay(
@@ -117,7 +116,13 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(
+            target.clone(),
+            Vec::new(),
+            EditAccess::Editable,
+            window,
+            cx,
+        ));
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(opening, window, cx);
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
@@ -196,7 +201,13 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(
+            target.clone(),
+            Vec::new(),
+            EditAccess::Editable,
+            window,
+            cx,
+        ));
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(opening, window, cx);
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
@@ -279,14 +290,20 @@ fn labels_replaced_create_field_cannot_deliver_queued_text_to_its_successor(
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(
+            target.clone(),
+            Vec::new(),
+            EditAccess::Editable,
+            window,
+            cx,
+        ));
         let first = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(first, window, cx);
         let source = shell.areas.labels.picker.as_ref().unwrap().name.id();
         cx.defer_in(window, move |shell, _window, cx| {
             field_changed(shell, source, "stale editor text", cx);
         });
-        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx));
         let next = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(next, window, cx);
         assert_ne!(
@@ -310,7 +327,7 @@ fn labels_old_create_visit_cannot_submit_or_close_a_later_create_visit(cx: &mut 
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx));
         let list = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(list, window, cx);
         let first = shell.areas.labels.picker.as_ref().unwrap().opening;
@@ -333,21 +350,17 @@ fn labels_old_create_visit_cannot_submit_or_close_a_later_create_visit(cx: &mut 
     });
 }
 
-#[gpui::test]
-fn labels_picker_opens_at_the_row_menu_on_the_side_with_room(cx: &mut TestAppContext) {
-    crate::shell::language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(Shell::without_io);
-    shell.update_in(cx, |shell, window, cx| {
-        let target = install(shell);
-        let side = |shell: &Shell| shell.areas.labels.picker.as_ref().unwrap().side;
-        let height = f32::from(window.viewport_size().height);
-        let high = point(px(40.0), px(height.mul_add(0.25, 0.0)));
-        let low = point(px(40.0), px(height.mul_add(0.75, 0.0)));
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
-        shell.labels_picker_place(Some(high), window);
-        assert_eq!(side(shell), Side::Below);
-        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
-        shell.labels_picker_place(Some(low), window);
-        assert_eq!(side(shell), Side::Above);
-    });
+impl Shell {
+    /// The open picker's Create row chosen, as a press on it does: for the
+    /// row menu's tests, outside the area.
+    pub(crate) fn labels_picker_create_now(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(picker) = &self.areas.labels.picker {
+            let opening = picker.opening;
+            self.labels_picker_create(opening, window, cx);
+        }
+    }
 }

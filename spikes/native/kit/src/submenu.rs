@@ -125,18 +125,42 @@ struct Inner {
     surfaces: HashMap<usize, Probe>,
     /// Pages a press opens and hover does not (forms).
     press_only: Vec<PageId>,
+    /// A page a press or Enter opened, until its screen takes the keys.
+    pressed: Option<PageId>,
+    /// The open page the person works in (its screen moved the keys into
+    /// it, or a press landed inside it): hover neither closes it nor swaps
+    /// it for a sibling (keys would be left on a list no longer drawn); its
+    /// own Escape, a press on another row or the menu's close ends it.
+    keyed: Option<PageId>,
     opening: Option<Timer>,
+    /// The page `opening` will open, while it is pending.
+    opening_page: Option<PageId>,
     closing: Option<Timer>,
     /// The menu opening this path belongs to.
     cycle: Option<Weak<()>>,
 }
 
 impl Inner {
+    /// A press-only page or one holding the keys is open (`keyed` is
+    /// settled: it names an open page or none).
     fn held(&self) -> bool {
-        self.path
-            .pages()
-            .iter()
-            .any(|page| self.press_only.contains(page))
+        self.keyed.is_some()
+            || self
+                .path
+                .pages()
+                .iter()
+                .any(|page| self.press_only.contains(page))
+    }
+
+    /// Drop the keys' hold once its page is no longer open.
+    fn settle_keys(&mut self) {
+        let closed = self
+            .keyed
+            .as_ref()
+            .is_some_and(|page| !self.path.pages().contains(page));
+        if closed {
+            self.keyed = None;
+        }
     }
 }
 
@@ -180,8 +204,35 @@ impl Submenus {
     pub fn open(&self, page: &str, depth: usize) {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
+        inner.opening_page = None;
         inner.closing = None;
-        inner.path.open(&PageId::from(page.to_owned()), depth);
+        let page = PageId::from(page.to_owned());
+        inner.path.open(&page, depth);
+        inner.settle_keys();
+        inner.pressed = Some(page);
+    }
+
+    /// Whether `page` was opened by a press or Enter since last asked: its
+    /// screen moves the keys into it (a page the pointer opened leaves them
+    /// with the menu, as Paseo's flyouts do).
+    #[must_use = "true once: the screen moves the keys into the page"]
+    pub fn take_pressed(&self, page: &str) -> bool {
+        let taken = self.pressed(page);
+        if taken {
+            let mut inner = self.0.borrow_mut();
+            inner.keyed = inner.pressed.take();
+        }
+        taken
+    }
+
+    /// Whether `page` was opened by a press or Enter and its screen has
+    /// not taken the keys yet ([`take_pressed`](Self::take_pressed)).
+    #[must_use]
+    pub fn pressed(&self, page: &str) -> bool {
+        let inner = self.0.borrow();
+        // A page closed since (Back, the grace) no longer wants the keys.
+        inner.pressed.as_deref() == Some(page)
+            && inner.path.pages().iter().any(|open| **open == *page)
     }
 
     /// Back one page; false at the root.
@@ -189,50 +240,82 @@ impl Submenus {
     pub fn back(&self) -> bool {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
+        inner.opening_page = None;
         inner.closing = None;
-        inner.path.back()
+        let back = inner.path.back();
+        inner.settle_keys();
+        back
     }
 
     /// Close every page (the menu closed).
     pub fn close_all(&self) {
         let mut inner = self.0.borrow_mut();
         inner.opening = None;
+        inner.opening_page = None;
         inner.closing = None;
         inner.path = MenuPath::default();
         inner.surfaces.clear();
+        inner.pressed = None;
+        inner.keyed = None;
     }
 
     /// Cut the path back to the pages that still exist.
     pub fn prune(&self, exists: impl Fn(&PageId) -> bool) {
-        self.0.borrow_mut().path.prune(exists);
+        let mut inner = self.0.borrow_mut();
+        inner.path.prune(exists);
+        inner.settle_keys();
     }
 
     /// The pointer came to rest on `page`'s row: open it after
-    /// [`HOVER_OPEN`], unless it is press-only.
+    /// [`HOVER_OPEN`], unless it is press-only or a page holds the keys.
     pub fn hover_open(&self, page: &str, depth: usize, window: &Window, cx: &App) {
         let page = PageId::from(page.to_owned());
         let mut inner = self.0.borrow_mut();
         inner.closing = None;
-        if inner.press_only.contains(&page) {
+        if inner.press_only.contains(&page) || inner.keyed.is_some() {
             inner.opening = None;
+            inner.opening_page = None;
             return;
         }
+        inner.opening_page = Some(page.clone());
         let timer = self.after(HOVER_OPEN, window, cx, move |inner| {
+            inner.opening_page = None;
             inner.path.open(&page, depth);
+            inner.settle_keys();
         });
         inner.opening = Some(timer);
     }
 
     /// The pointer left a row or flyout at `depth`: close what it opened
-    /// after [`HOVER_CLOSE`], unless a press-only page is open.
+    /// after [`HOVER_CLOSE`], unless a press-only page or one holding the
+    /// keys is open.
     pub fn hover_close(&self, depth: usize, window: &Window, cx: &App) {
+        // Left the row straight into its flyout: in one pointer move the
+        // flyout (drawn on top) hears its entering before the row its
+        // leaving, so the cancel came first and this close must not start.
+        let at = window.mouse_position();
+        let into_flyout = self.contains(at);
         let mut inner = self.0.borrow_mut();
+        // Left straight onto a sibling page's row, which heard its entering
+        // first: its pending opening swaps the branch; cancelling it or
+        // closing under it would leave neither page open.
+        let onto_sibling = inner
+            .opening_page
+            .as_ref()
+            .and_then(|page| inner.triggers.get(page))
+            .and_then(|probe| probe.get())
+            .is_some_and(|row| row.contains(&at));
+        if onto_sibling {
+            return;
+        }
         inner.opening = None;
-        if inner.held() {
+        inner.opening_page = None;
+        if inner.held() || into_flyout {
             return;
         }
         let timer = self.after(HOVER_CLOSE, window, cx, move |inner| {
             inner.path.close(depth);
+            inner.settle_keys();
         });
         inner.closing = Some(timer);
     }
@@ -240,6 +323,15 @@ impl Submenus {
     /// The pointer is inside a flyout: keep it.
     pub fn cancel_close(&self) {
         self.0.borrow_mut().closing = None;
+    }
+
+    /// A press landed inside `page`'s flyout: hold it (see `keyed`).
+    fn hold(&self, page: &PageId) {
+        let mut inner = self.0.borrow_mut();
+        if inner.path.pages().contains(page) {
+            inner.closing = None;
+            inner.keyed = Some(page.clone());
+        }
     }
 
     /// Whether `at` lies on an open flyout: not an outside press for the
@@ -350,6 +442,8 @@ pub fn flyout(
     let at = point(px(OVERLAP.mul_add(-1.0, f32::from(row.right()))), row.top());
     let probe = submenus.surface_probe(depth);
     let entered = submenus.clone();
+    let pressed = submenus.clone();
+    let held = PageId::from(page.to_owned());
     let surface = div()
         .id(ElementId::Name(SharedString::from(format!(
             "submenu-{page}"
@@ -363,6 +457,7 @@ pub fn flyout(
                 entered.hover_close(depth, window, cx);
             }
         })
+        .capture_any_mouse_down(move |_event, _window, _cx| pressed.hold(&held))
         .child(content)
         .child(crate::picker::anchor_probe(&probe));
     let placed = anchored()

@@ -11,6 +11,11 @@
 //!   current while the picker is open (`follow.rs`).
 //! - Tradeoff: a session with no workspace membership (an older one) has no
 //!   Labels item.
+//! - Place (TRACKER 791): the row menu's Labels page shows the list beside
+//!   the menu (`PickerPlace::Beside`, drawn in its flyout, keys with the
+//!   menu until a press or Enter opens the page) or, on a phone, as the
+//!   canonical picker's sheet with the page's way back (`Page`); the
+//!   canonical entry draws it on its own (`Popover`).
 
 mod create;
 mod draw;
@@ -18,8 +23,8 @@ mod draw;
 mod tests;
 
 use vessel_app_kit::field::FieldId;
-use vessel_app_kit::ui::{AnyElement, Bounds, Context, Pixels, Point, Window};
-use vessel_app_kit::{DialogState, Side, TextField};
+use vessel_app_kit::ui::{AnyElement, Context, Window};
+use vessel_app_kit::{DialogState, TextField};
 use vessel_app_link::labels::{Answer, Command, Event};
 use vessel_app_view::labels::{
     Assignment, EditAccess, Failure, HostState, Label, Name, Picker, PickerPage, WorkspaceTarget,
@@ -41,12 +46,39 @@ pub(super) struct WorkspacePicker {
     dialog: DialogState,
     error: Option<Failure>,
     applied_editability: Option<EditAccess>,
-    /// Which side of its anchor the list opens on.
-    side: Side,
+    /// Where its list is drawn.
+    place: PickerPlace,
+}
+
+/// Where the workspace picker's list is drawn (TRACKER 791).
+#[derive(Clone)]
+pub(crate) enum PickerPlace {
+    /// Its own popover at a point (a phone's sheet).
+    Popover,
+    /// The row menu's Labels page beside the menu, drawn in its flyout
+    /// ([`super::picker_beside`]).
+    Beside,
+    /// The row menu's Labels page on a phone: the sheet that replaces the
+    /// menu's, its title row leading back with `back`.
+    Page(vessel_app_kit::picker::Back<Shell>),
+}
+
+/// Where a row menu's Labels picker is, for the menu to follow it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RowPicker {
+    /// None open beside or as a page of a menu.
+    None,
+    /// Its list is up.
+    Open,
+    /// Its Create dialog is up, the list closed behind it.
+    Dialog,
+    /// Dismissed by the person (Escape, the scrim): its menu closes too.
+    Dismissed,
 }
 
 impl Shell {
-    /// The sole intended entry for canonical workspace row/header owners.
+    /// The sole intended entry for canonical workspace row/header owners;
+    /// false when it cannot open now (the area's error says why).
     pub(crate) fn labels_picker_open(
         &mut self,
         target: WorkspaceTarget,
@@ -54,24 +86,61 @@ impl Shell {
         access: EditAccess,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
+        self.labels_picker_start(target, assigned, access, PickerPlace::Popover, window, cx)
+    }
+
+    /// The picker at `place`: as a menu's page it is the canonical picker
+    /// (its list holds the keys) given the page's way back; beside its
+    /// menu the list takes presses and leaves the keys with the menu.
+    pub(crate) fn labels_picker_open_in(
+        &mut self,
+        target: WorkspaceTarget,
+        assigned: Vec<Name>,
+        access: EditAccess,
+        place: PickerPlace,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        if matches!(place, PickerPlace::Beside) {
+            return self.labels_picker_start(target, assigned, access, place, window, cx);
+        }
+        let opened = self.labels_picker_open(target, assigned, access, window, cx);
+        if let Some(picker) = self.areas.labels.picker.as_mut().filter(|_| opened) {
+            picker.place = place;
+        }
+        opened
+    }
+
+    fn labels_picker_start(
+        &mut self,
+        target: WorkspaceTarget,
+        assigned: Vec<Name>,
+        access: EditAccess,
+        place: PickerPlace,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
         let state = &mut self.areas.labels;
         // Hiding the manager cannot discard an accepted operation.
         if state.manager.state().busy() {
             state.error = Some(Failure::Pending);
-            return;
+            return false;
         }
         let opening = match state.tickets.issue() {
             Ok(ticket) => Opening::new(ticket),
             Err(failure) => {
                 state.error = Some(failure);
-                return;
+                return false;
             }
         };
         state.opening = None;
-        state
-            .picker_combo
-            .open(Some(self.words.labels().search()), window, cx);
+        let search = Some(self.words.labels().search());
+        if matches!(place, PickerPlace::Beside) {
+            state.picker_combo.open_beside(search, window, cx);
+        } else {
+            state.picker_combo.open(search, window, cx);
+        }
         let name = name_field("", window, cx);
         state.picker = Some(WorkspacePicker {
             visible: true,
@@ -86,24 +155,33 @@ impl Shell {
             dialog: DialogState::new(cx),
             error: None,
             applied_editability: None,
-            side: Side::Below,
+            place,
         });
         cx.notify();
+        true
     }
 
-    /// Places the open picker at `at`, where the row's menu was: Paseo's
-    /// Labels page replaces that menu in place. It opens below the point,
-    /// or above it from the window's lower half, where the list has room.
-    pub(super) fn labels_picker_place(&mut self, at: Option<Point<Pixels>>, window: &Window) {
+    /// Close a row menu's Labels picker (its page closed).
+    pub(crate) fn labels_row_picker_close(&mut self) {
         let state = &mut self.areas.labels;
-        state
-            .picker_combo
-            .set_anchor(at.map(|at| Bounds::from_corners(at, at)));
-        if let Some(picker) = &mut state.picker {
-            let middle = f32::from(window.viewport_size().height).mul_add(0.5, 0.0);
-            let lower = at.is_some_and(|at| f32::from(at.y) > middle);
-            picker.side = if lower { Side::Above } else { Side::Below };
+        if state
+            .picker
+            .as_ref()
+            .is_some_and(|picker| !matches!(picker.place, PickerPlace::Popover))
+        {
+            state.picker = None;
+            state.picker_combo.close();
         }
+    }
+
+    /// Move the keys into a row menu's Labels list (its page opened by a
+    /// press or Enter): its search holds them, the menu's return on close.
+    pub(crate) fn labels_row_picker_keys(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.labels.picker_combo.take_keys(true, window, cx);
     }
 
     /// Registry projection is authoritative; unary assignment replies only settle.
@@ -323,9 +401,38 @@ pub(super) fn overlay(
     draw::overlay(shell, tokens, window, cx)
 }
 
+/// The list inside the row menu's Labels flyout (TRACKER 791).
+pub(super) fn beside(
+    shell: &Shell,
+    tokens: &vessel_app_kit::Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    draw::beside(shell, tokens, window, cx)
+}
+
 impl super::Labels {
     /// The open picker's target, for the followed registry to refresh.
     pub(super) fn picker_target(&self) -> Option<WorkspaceTarget> {
         self.picker.as_ref().map(|picker| picker.target.clone())
+    }
+
+    /// Where a row menu's Labels picker is: none, its list up, its Create
+    /// dialog up, or dismissed (hidden, or its list closed on its own).
+    pub(crate) fn row_picker(&self) -> RowPicker {
+        let Some(picker) = &self.picker else {
+            return RowPicker::None;
+        };
+        if matches!(picker.place, PickerPlace::Popover) {
+            return RowPicker::None;
+        }
+        let listing = matches!(picker.page, PickerPage::Listing);
+        if !picker.visible || (listing && !self.picker_combo.is_open()) {
+            RowPicker::Dismissed
+        } else if listing {
+            RowPicker::Open
+        } else {
+            RowPicker::Dialog
+        }
     }
 }

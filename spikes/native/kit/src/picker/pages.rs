@@ -23,6 +23,7 @@ pub(super) fn page_row<V: 'static>(
     let open = pages.is_open(page, 0);
     let page = crate::submenu::PageId::from(page.to_owned());
     let hover_lease = state.render_lease();
+    let press_lease = hover_lease.clone();
     let click_lease = hover_lease.clone();
     let hovered = pages.clone();
     let pressed = pages.clone();
@@ -43,9 +44,14 @@ pub(super) fn page_row<V: 'static>(
                 hovered.hover_close(0, window, cx);
             }
         }))
-        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-            cx.stop_propagation();
-        })
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(move |view: &mut V, _event, _window, cx| {
+                if get(view).accepts(&press_lease) {
+                    cx.stop_propagation();
+                }
+            }),
+        )
         .on_click(cx.listener(move |view: &mut V, _event, _window, cx| {
             if get(view).accepts(&click_lease) {
                 pressed.open(&page, 0);

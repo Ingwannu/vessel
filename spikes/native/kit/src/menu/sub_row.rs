@@ -18,6 +18,10 @@ pub(super) struct Rows<'a, V> {
     pub(super) tokens: &'a Tokens,
     pub(super) surfaces: &'a Surfaces,
     pub(super) narrow: bool,
+    /// The menu is a phone's sheet: its pages open by a press only (a page
+    /// replaces the sheet, so one opened under a resting pointer would take
+    /// the press meant for the row).
+    pub(super) sheet: bool,
 }
 
 /// `item`'s row: one that opens a page when the menu has submenus, else
@@ -38,6 +42,7 @@ pub(super) fn any_row<V: 'static>(
                 state: rows.state,
                 surfaces: rows.surfaces,
                 narrow: rows.narrow,
+                hover: !rows.sheet,
             },
             rows.handlers.state,
             cx,
@@ -63,6 +68,8 @@ struct SubRow<'a> {
     state: &'a MenuState,
     surfaces: &'a Surfaces,
     narrow: bool,
+    /// Pointer rest opens the page (off in a phone's sheet).
+    hover: bool,
 }
 
 // Paseo's `MenuSubTrigger`: the decision's value and a chevron at the right;
@@ -82,6 +89,7 @@ fn sub_row<V: 'static>(
         state,
         surfaces,
         narrow,
+        hover,
     } = *row;
     let open = submenus.is_open(page, 0);
     let highlighted = state.highlighted == Some(index);
@@ -119,10 +127,8 @@ fn sub_row<V: 'static>(
         let hovered = submenus.clone();
         let pressed = submenus.clone();
         let hovered_page = page.clone();
-        element = element
-            .cursor_pointer()
-            .hover(move |style| style.bg(wash))
-            .on_hover(cx.listener(move |view: &mut V, inside: &bool, window, cx| {
+        let on_hover = hover.then(|| {
+            cx.listener(move |view: &mut V, inside: &bool, window, cx| {
                 if !get(view).accepts(&hover_lease) {
                     return;
                 }
@@ -131,7 +137,13 @@ fn sub_row<V: 'static>(
                 } else {
                     hovered.hover_close(0, window, cx);
                 }
-            }))
+            })
+        });
+        element = element.cursor_pointer().hover(move |style| style.bg(wash));
+        if let Some(listener) = on_hover {
+            element = element.on_hover(listener);
+        }
+        element = element
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(move |view: &mut V, _event, _window, cx| {
