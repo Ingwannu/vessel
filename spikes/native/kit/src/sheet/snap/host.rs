@@ -97,6 +97,11 @@ impl SheetState {
             .frame(height, Instant::now(), cx.reduce_motion());
         let motion = Rc::clone(&active.motion);
         drop(retained);
+        if matches!(sampled, Frame::PendingLayout) && !slide_in {
+            // A content-sized sheet is measured where it is drawn: draw it
+            // once more so its drag knows its height.
+            window.request_animation_frame();
+        }
         let geometry = match sampled {
             Frame::Visible(geometry) => Some(geometry),
             Frame::PendingLayout | Frame::Closed => None,

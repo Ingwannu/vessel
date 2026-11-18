@@ -53,6 +53,11 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
         cx.notify();
     });
     cx.run_until_parked();
+    // The frame after the sheet's first measures it (no frame loop here).
+    cx.update(|window, cx| {
+        let _ran = window.simulate_next_frame(cx);
+    });
+    cx.run_until_parked();
     (view, cx)
 }
 
