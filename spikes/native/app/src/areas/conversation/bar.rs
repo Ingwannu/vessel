@@ -7,8 +7,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
     AnyElement, ClickEvent, Context, Div, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
-    Window, div, px,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{MenuItem, Tokens, Type, TypeExt as _, breakpoint, popup};
 use vessel_app_view::ConversationWords;

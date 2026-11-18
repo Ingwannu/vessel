@@ -12,7 +12,10 @@ fn builds_the_resume_command_of_each_cli_as_paseo() {
         known(HarnessKind::ClaudeCode).as_deref(),
         Ok("claude --resume 4f1c2a")
     );
-    assert_eq!(known(HarnessKind::Codex).as_deref(), Ok("codex resume 4f1c2a"));
+    assert_eq!(
+        known(HarnessKind::Codex).as_deref(),
+        Ok("codex resume 4f1c2a")
+    );
     assert_eq!(
         known(HarnessKind::OpenCode).as_deref(),
         Ok("opencode --session 4f1c2a")
@@ -42,5 +45,8 @@ fn says_the_id_is_missing_before_the_command() {
         resume_command(Some(&HarnessRef::Added(added)), Some(&id)),
         Err(ResumeUnavailable::NoCommand)
     );
-    assert_eq!(resume_command(None, Some(&id)), Err(ResumeUnavailable::NoCommand));
+    assert_eq!(
+        resume_command(None, Some(&id)),
+        Err(ResumeUnavailable::NoCommand)
+    );
 }

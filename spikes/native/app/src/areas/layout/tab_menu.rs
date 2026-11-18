@@ -131,7 +131,10 @@ pub(super) fn entries(shell: &Shell, tab: TabId, surface: Surface) -> Vec<(Actio
         )),
         Target::File { .. } => items.push((
             Action::Copy(Copied::FilePath),
-            led(MenuItem::new(words.copy_file_path().to_owned()), Glyph::Copy),
+            led(
+                MenuItem::new(words.copy_file_path().to_owned()),
+                Glyph::Copy,
+            ),
         )),
         Target::NewTab
         | Target::Draft(_)

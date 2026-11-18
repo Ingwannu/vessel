@@ -101,7 +101,12 @@ fn choose(
     probe.update_in(cx, |probe, window, cx| {
         probe.0.update(cx, |shell, cx| {
             chose(shell, tab, action, window, cx);
-            shell.areas.toasts.list().last().map(|toast| toast.text.clone())
+            shell
+                .areas
+                .toasts
+                .list()
+                .last()
+                .map(|toast| toast.text.clone())
         })
     })
 }
@@ -187,7 +192,9 @@ fn an_agent_leads_with_paseos_two_copies_and_a_terminal_with_its_hinted_id(
 fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppContext) {
     let (probe, cx) = open(cx);
     let ([mine, other, _], other_session) = probe.read_with(cx, |probe, _| (probe.1, probe.2));
-    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
     // The open session before its agent named its own session.
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, _| {

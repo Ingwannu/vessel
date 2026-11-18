@@ -132,9 +132,7 @@ fn a_title_longer_than_the_bar_shrinks_and_keeps_both_dots_inside(cx: &mut TestA
 }
 
 #[gpui::test]
-fn the_session_dots_open_on_a_click_and_offer_assistive_tech_their_click(
-    cx: &mut TestAppContext,
-) {
+fn the_session_dots_open_on_a_click_and_offer_assistive_tech_their_click(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (probe, cx) = cx.add_window_view(fixture);
     cx.simulate_resize(gpui::size(px(1280.0), px(800.0)));
@@ -145,7 +143,9 @@ fn the_session_dots_open_on_a_click_and_offer_assistive_tech_their_click(
     cx.run_until_parked();
     // GPUI's real accessibility snapshot, read only around this name: the
     // node offers Click (it has a click listener), whatever the key order.
-    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    let words = probe
+        .read_with(cx, |probe, cx| probe.0.read(cx).words)
+        .layout();
     let tree = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
     let name = format!(r#""label": "{}""#, words.session_actions());
     let aria = tree
