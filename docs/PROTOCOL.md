@@ -108,7 +108,8 @@ Assigned 31 (`RELOAD_PROTOCOL`, `PROTOCOL_VERSION` 31) at its node-line merge, t
 - New record `reloaded { harness_session, appended }`, once the agent is ready again. The `appended` records
   after it are what the agent's own history has beyond the log; they are added only when the log's user
   prompts are exactly the history's first ones (ADR 0110). An older peer reads it as a `harness_log` line
-  `vessel: the agent was reloaded` (with the count when records were added) at the same sequence.
+  `vessel: the agent was reloaded` (with the count when records were added) at the same sequence. A parked
+  session's reload records `woken` just before it, so the park ends as a wake's does for every peer.
 - The minimum protocol remains 2. The store schema is unchanged.
 
 ## Version 30 (2026-11-18, milestone 12): Paseo's title limits (impl U, TRACKER 801, ADR 0022's amendment)

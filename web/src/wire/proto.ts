@@ -12456,3 +12456,8 @@ export type Written = {
  * Bytes received so far; the next piece starts here.
  */
 received: number, };
+
+/**
+ * `session.reload` and the `reloaded` record (ADR 0110).
+ */
+export const RELOAD_PROTOCOL = 31;

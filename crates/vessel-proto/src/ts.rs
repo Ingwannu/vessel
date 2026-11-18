@@ -27,6 +27,14 @@
 //!   impl writes; the generated file's diff shows such a change in review.
 //! - Handles are branded and every primitive alias is classified
 //!   (`aliases`, with its own Decision Log).
+//! - Protocol thresholds the page compares with a node's version are
+//!   values, not types, so ts-rs cannot see them; [`PROTOCOLS`] lists them
+//!   and the file ends with one constant each. A page's hand copy could
+//!   keep a drafted number after the integrator assigns another (ADR 0110's
+//!   Costs named that drift); a listed one moves with the Rust constant and
+//!   the drift check. A threshold not yet assigned (`None`) is `null`.
+//!   Thresholds the page still copies by hand move here as their rows are
+//!   touched.
 
 mod aliases;
 
@@ -347,6 +355,31 @@ pub fn check_strict(generated: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Protocol thresholds the web UI reads, each with what it gates; the
+/// declarations end with one constant per entry ([`protocols`]).
+pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[(
+    "RELOAD_PROTOCOL",
+    crate::reload::RELOAD_PROTOCOL,
+    "`session.reload` and the `reloaded` record (ADR 0110).",
+)];
+
+/// The constants of [`PROTOCOLS`], as the end of the declarations file.
+#[must_use]
+pub fn protocols() -> String {
+    let mut text = String::new();
+    for (name, version, gates) in PROTOCOLS {
+        let value = version.map_or_else(|| "null".to_owned(), |version| version.get().to_string());
+        text.push_str("\n/**\n * ");
+        text.push_str(gates);
+        text.push_str("\n */\nexport const ");
+        text.push_str(name);
+        text.push_str(" = ");
+        text.push_str(&value);
+        text.push_str(";\n");
+    }
+    text
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -361,7 +394,7 @@ mod tests {
             unclassified.is_empty(),
             "classify these in ts/aliases.rs: {unclassified:?}"
         );
-        let generated = declarations.render(None);
+        let generated = declarations.render(None) + &protocols();
         check_strict(&generated).unwrap();
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../..")

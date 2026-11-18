@@ -103,6 +103,16 @@ impl NotReloadable {
     }
 }
 
+/// Not thiserror's `#[from]`: that would make the refusal the error's
+/// source as well as its words, and the wire message, which appends every
+/// source, would say the reason twice (the coordinator's note on the visual
+/// lane's frame, 2026-11-18).
+impl From<NotReloadable> for crate::error::SessionError {
+    fn from(refusal: NotReloadable) -> Self {
+        Self::NotReloadable(refusal)
+    }
+}
+
 impl From<crate::NotResumable> for NotReloadable {
     /// An ended session's refusal (`session.resume`'s), as a reload's.
     fn from(refusal: crate::NotResumable) -> Self {
