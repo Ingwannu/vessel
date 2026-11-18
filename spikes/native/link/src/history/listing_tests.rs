@@ -37,6 +37,7 @@ async fn history_uses_the_selected_account_folder_and_unmodified_cursor() {
                 scope: request.scope.clone(),
                 ticket: request.ticket,
                 cursor: Some(Cursor::parse("opaque:input".into()).unwrap()),
+                ranked: None,
             },
         )
         .await
@@ -87,6 +88,7 @@ async fn an_empty_filtered_page_can_still_offer_another_page() {
                 scope: request.scope,
                 ticket: request.ticket,
                 cursor: None,
+                ranked: None,
             },
         )
         .await
@@ -113,6 +115,7 @@ async fn old_peer_is_refused_without_sending_an_unknown_history_method() {
                 scope: request.scope,
                 ticket: request.ticket,
                 cursor: None,
+                ranked: None,
             },
         )
         .await
@@ -142,4 +145,61 @@ fn a_remote_page_cannot_persist_an_oversized_continuation() {
 
 async fn bounded_answer(selected: &crate::connections::SelectedConnection, request: Ask) -> Reply {
     crate::testing::phase("history adapter result", answer(selected, request)).await
+}
+
+/// ADR 0109: a ranked ask carries Paseo's limit and the search and no
+/// cursor; the node's prompts and its already-imported count reach the view.
+#[tokio::test]
+async fn a_ranked_read_asks_its_limit_and_search_and_keeps_the_prompts() {
+    crate::testing::within(async {
+        let entry = HistoryEntry {
+            harness_session: HarnessSessionId::new("native"),
+            cwd: "/work/original".into(),
+            title: None,
+            updated_at: None,
+            in_vessel: None,
+            first_prompt: Some("fix the build".into()),
+            last_prompt: Some("and the tests".into()),
+        };
+        let peer = peer::connect(vec![peer::Behaviour::Page(AgentHistoryPage {
+            conversations: vec![entry],
+            next: None,
+            already_imported: Some(3),
+        })])
+        .await;
+        let request = batch(peer.client.node().id);
+        let Reply::Listed { result, .. } = bounded_answer(
+            &peer::admitted(&peer).2,
+            Ask::List {
+                scope: request.scope.clone(),
+                ticket: request.ticket,
+                cursor: None,
+                ranked: Some(vessel_app_view::history::Ranked {
+                    limit: 45,
+                    query: Some("build".into()),
+                }),
+            },
+        )
+        .await
+        else {
+            panic!("history receipt")
+        };
+        let listed = result.unwrap();
+        assert_eq!(listed.already_imported, 3);
+        let projected = listed.entries.first().unwrap();
+        assert_eq!(projected.first_prompt.as_deref(), Some("fix the build"));
+        assert_eq!(projected.preview(), Some("and the tests"));
+        assert_eq!(projected.shown_title(), Some("fix the build"));
+        {
+            let calls = peer.calls.lock().unwrap();
+            let Some(Call::GetAgentHistory(call)) = calls.first() else {
+                panic!("agent.history")
+            };
+            assert_eq!(call.limit, Some(45));
+            assert_eq!(call.query.as_deref(), Some("build"));
+            assert_eq!(call.cursor, None);
+        }
+        peer.finish().await;
+    })
+    .await;
 }

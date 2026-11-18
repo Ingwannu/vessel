@@ -18,6 +18,9 @@ use vessel_proto::HarnessRef;
 /// Paseo's row margin: the fill reaches 8 past the content on both sides.
 const PULL: f32 = -8.0;
 
+/// Paseo's `rowPreview` line height.
+const PREVIEW_LINE: f32 = 20.0;
+
 /// The rows, 4 apart (Paseo's `listRow` bottom padding).
 pub(super) fn list(
     shell: &Shell,
@@ -32,8 +35,10 @@ pub(super) fn list(
 }
 
 /// A pressable row: the agent's mark (16, 2 down), then the title with its
-/// time (or "Importing...") on the right, and the folder only when the list
-/// is not limited to one. Its fill reaches 8 past the text on both sides.
+/// time (or "Importing...") on the right, from a ranked host the prompt
+/// preview (Paseo's `rowPreview`: two lines, 14 muted, 20 high; "No prompt
+/// preview" when the node read none), and the folder only when the list is
+/// not limited to one. Its fill reaches 8 past the text on both sides.
 fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
     let area = &shell.areas.import;
     let words = shell.words.history();
@@ -47,10 +52,16 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
     let act = listener(shell, action);
     // Paseo's testID: the provider and its id (two agents may share an id).
     let selector = format!("history-row-{}-{}", item.harness, entry.id.as_str());
+    // Paseo's `getSessionTitle`: the title, else the first prompt.
     let title = entry
-        .title
-        .as_ref()
-        .map_or_else(|| words.untitled().to_owned(), ToString::to_string);
+        .shown_title()
+        .map_or_else(|| words.untitled().to_owned(), str::to_owned);
+    let preview = area.model.ranked().then(|| {
+        entry
+            .preview()
+            .map_or_else(|| words.no_prompt().to_owned(), str::to_owned)
+    });
+    let preview_selector = format!("history-preview-{}-{}", item.harness, entry.id.as_str());
     let meta = if importing {
         Some(words.importing().to_owned())
     } else {
@@ -107,6 +118,17 @@ fn row(shell: &Shell, item: &Row<'_>, tokens: &Tokens, cx: &mut Context<'_, Shel
                 .flex_col()
                 .gap(px(S1))
                 .child(heading(title, meta, tokens))
+                .children(preview.map(|preview| {
+                    div()
+                        .debug_selector(move || preview_selector.clone())
+                        .min_w_0()
+                        .type_(Type::Body)
+                        .line_height(px(vessel_app_kit::fonts::ui(PREVIEW_LINE)))
+                        .text_color(tokens.neutral.foreground_muted)
+                        .line_clamp(2)
+                        .text_ellipsis()
+                        .child(preview)
+                }))
                 .when(!area.model.scoped(), |content| {
                     content.child(
                         div()

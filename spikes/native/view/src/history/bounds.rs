@@ -20,6 +20,9 @@ pub(super) fn admit(existing: &[Entry], incoming: &[Entry]) -> Result<(), Proble
                 .saturating_add(entry.id.as_str().len())
                 .saturating_add(entry.cwd.as_os_str().len())
                 .saturating_add(entry.title.as_ref().map_or(0, |title| title.as_str().len()))
+                // A ranked listing's prompts (ADR 0109), as a node sent them.
+                .saturating_add(entry.first_prompt.as_ref().map_or(0, String::len))
+                .saturating_add(entry.last_prompt.as_ref().map_or(0, String::len))
         });
     if bytes > MAX_RETAINED_BYTES {
         Err(Problem::Capacity)
