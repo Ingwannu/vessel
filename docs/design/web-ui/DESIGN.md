@@ -1010,8 +1010,9 @@ black in the light theme. xterm.js takes them as its theme.
 
 ### 6.9 Dialogs
 
-The kit's `Dialog`, the reference's base dialog: centred, 512px (`lg`,
-640px), the popup surface (§4.6) at radius 10, 16px inside. Title 15px /
+The kit's `Dialog`, the reference's base dialog: centred, 520px (Paseo's
+adaptive modal card; `lg`, 640px), the popup surface (§4.6) at radius 10,
+16px inside. Title 15px /
 600; a ghost close button at the top right. Footer right-aligned, ghost
 Cancel then one primary. The scrim is `--overlay`, no blur. Base UI
 gives `role="dialog"`, `aria-modal`, the label, the focus trap, the
@@ -1028,6 +1029,18 @@ it opens, as Paseo does not focus the search.
 
 Dimmer click and Escape cancel, unless a pairing invite is live and
 uncopied — then confirm.
+
+Compact (below 600px, §3) a dialog is Paseo's `AdaptiveModalSheet`
+(TRACKER 787): a sheet from the bottom as wide as the window, its top
+corners at 16, a 32 by 4 handle 8px under its edge, over black at 45%;
+65% of the window tall, its footer at its foot. A drag on the handle or
+the header raises it to 90% (past halfway, or flung up), lowers it to 65%,
+or closes it (well below 65%, or flung down from there); a text field
+taking focus raises it to 90% (Gorhom's keyboard "extend"). It takes focus
+itself on open, not its first field, so no keyboard opens until a field is
+pressed. `sheet="content"` is Paseo's `ContextWindowSheet`: as tall as
+what it holds, at most 80%; the context ring opens its figures in one at a
+compact width (a press; the hover card elsewhere).
 
 ### 6.10 Toasts
 

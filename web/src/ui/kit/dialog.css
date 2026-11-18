@@ -37,7 +37,8 @@
 .dialog {
   display: flex;
   flex-direction: column;
-  width: min(512px, 100%);
+  /* Paseo's adaptive modal card: at most 520 wide. */
+  width: min(520px, 100%);
   max-height: 100%;
   background: var(--popup-bg);
   border: 1px solid var(--popup-edge);
@@ -172,9 +173,91 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+/* The sheet's handle: Gorhom's indicator (Paseo themes it zinc 600, the
+   page's nearest neutral is the tertiary text), 32 by 4 under 8px; drawn
+   at a compact width only. */
+.dialog-handle {
+  display: none;
+  flex: none;
+  justify-content: center;
+  padding-top: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.dialog-handle::before {
+  content: "";
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--text-tertiary);
+}
+
+/* Compact (TRACKER 787): Paseo's AdaptiveModalSheet, a sheet from the
+   bottom as wide as the window, its top corners at 16, over black at 45%;
+   65% of the window tall, 90% once raised (sheet-drag.ts), its footer at
+   its foot. `fit` is Paseo's ContextWindowSheet: as tall as its content,
+   at most 80%. A drag writes its height and offset inline. */
+@media (--compact) {
+  .dialog-backdrop.adaptive {
+    background: rgb(0 0 0 / 45%);
+  }
+
+  .dialog-viewport.adaptive {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog-viewport.adaptive .dialog {
+    width: 100%;
+    height: 65dvh;
+    max-height: 90dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+    transition:
+      height 250ms var(--ease),
+      translate 250ms var(--ease);
+  }
+
+  .dialog-viewport.adaptive .dialog[data-snap="high"] {
+    height: 90dvh;
+  }
+
+  .dialog-viewport.adaptive .dialog.fit {
+    height: auto;
+    max-height: 80dvh;
+  }
+
+  .dialog-viewport.adaptive .dialog[data-starting-style],
+  .dialog-viewport.adaptive .dialog[data-ending-style] {
+    opacity: 1;
+    scale: 1;
+    translate: 0 100%;
+  }
+
+  .dialog-viewport.adaptive .dialog.dragging {
+    transition: none;
+  }
+
+  .dialog-viewport.adaptive .dialog-handle {
+    display: flex;
+  }
+
+  /* The header drags the sheet too, as the handle does. */
+  .dialog-viewport.adaptive .dialog-h {
+    touch-action: none;
+  }
+
+  .dialog-viewport.adaptive .dialog:not(.fit) .dialog-b {
+    flex: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dialog,
-  .dialog-backdrop {
+  .dialog-backdrop,
+  .dialog-viewport.adaptive .dialog {
     transition: none;
   }
 }

@@ -64,13 +64,16 @@ function compactMedia(): Plugin {
     name: "vessel-compact-media",
     enforce: "pre",
     transform(code, id) {
-      if (!id.endsWith(".css") || id.includes("/node_modules/")) {
+      // A stylesheet imported with a query (`?inline`, `?url`) is still
+      // one of ours.
+      const path = id.split("?")[0] ?? id;
+      if (!path.endsWith(".css") || path.includes("/node_modules/")) {
         return null;
       }
       const at = spelled.exec(code);
       if (at !== null) {
         throw new Error(
-          `${id}: "${at[0]}" spells the compact width; write @media ${COMPACT_MEDIA_NAME}`,
+          `${path}: "${at[0]}" spells the compact width; write @media ${COMPACT_MEDIA_NAME}`,
         );
       }
       return code.includes(COMPACT_MEDIA_NAME)
