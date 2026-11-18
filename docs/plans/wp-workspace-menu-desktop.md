@@ -114,3 +114,13 @@ than the bar shrinks and ends in "…" (the bar's `truncate`); re-take
 en-dark-1280-menu-long-title, after a rename to a 116-character title. Tests
 added: an 80-character title shows whole at 1280; a 200-character one
 shrinks and keeps both "…" inside the bar.
+
+Coordinator visual PASS (2026-11-18) on cedbb8921's frames and the
+long-title re-take. Rulings with it: the title limits copy Paseo (prompt cut
+60, explicit title up to 200) as TRACKER 801 on the node line; the tab label
+keeping the old title after a rename goes into TRACKER 800.
+
+Gates on 8a3af846d (build VM, ordinary lane): strict (fonts, fmt, quality,
+clippy) 0; app 311 passed, 0 failed, 2 ignored; wasm32 check of link and
+app 0, no warnings. On cedbb8921 (kit and view unchanged since): kit 366;
+view 1296 lib tests and every integration suite.
