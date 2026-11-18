@@ -163,9 +163,8 @@ impl Toasts {
         let clock = self.clock.as_mut().filter(|clock| clock.id == id)?;
         match (&clock.phase, hover) {
             (Phase::Running { since, remaining }, ToastHover::Enter) => {
-                clock.phase = Phase::Paused(
-                    remaining.saturating_sub(now.saturating_duration_since(*since)),
-                );
+                clock.phase =
+                    Phase::Paused(remaining.saturating_sub(now.saturating_duration_since(*since)));
                 None
             }
             (Phase::Paused(remaining), ToastHover::Leave) => {
@@ -180,8 +179,9 @@ impl Toasts {
                     after: remaining,
                 })
             }
-            (Phase::Running { .. }, ToastHover::Leave)
-            | (Phase::Paused(_), ToastHover::Enter) => None,
+            (Phase::Running { .. }, ToastHover::Leave) | (Phase::Paused(_), ToastHover::Enter) => {
+                None
+            }
         }
     }
 
