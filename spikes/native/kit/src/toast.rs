@@ -138,9 +138,13 @@ pub fn toast_with(
         .rounded(px(16.0))
         .shadow(popup::shadow_md(tokens))
         .children(mark(look, tokens))
+        // The words take their own width and only shrink (Paseo's message:
+        // `flexShrink: 1`). A zero basis (`flex_1`) let the card's measured
+        // width round below the words' and wrap the last one ("Copied
+        // Session link" on two lines with room to spare).
         .child(
             div()
-                .flex_1()
+                .flex_shrink_1()
                 .min_w_0()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
