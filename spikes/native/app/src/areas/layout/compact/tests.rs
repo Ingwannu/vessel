@@ -321,10 +321,9 @@ fn workspace_actions_copy_the_sessions_folder_once_it_is_known(cx: &mut TestAppC
     probe.read_with(cx, |probe, cx| {
         let said = probe.0.read(cx).areas.toasts.shown().cloned();
         let said = said.map(|toast| (toast.text, toast.tone));
-        assert_eq!(
-            said,
-            Some(("Copied Workspace path".to_owned(), ToastTone::Copied))
-        );
+        // Fluent isolates the label (U+2068 .. U+2069).
+        let expected = "Copied \u{2068}Workspace path\u{2069}".to_owned();
+        assert_eq!(said, Some((expected, ToastTone::Copied)));
     });
     let copied = cx.read_from_clipboard().and_then(|item| item.text());
     assert_eq!(copied.as_deref(), Some("/work/shop"));

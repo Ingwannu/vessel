@@ -19,7 +19,9 @@ fn copied_toast_while_report_clipboard_and_input_stay_the_same(cx: &mut gpui::Te
                 .toasts
                 .shown()
                 .map(|toast| (toast.text.as_str(), toast.tone));
-            assert_eq!(said, Some(("Copied diagnostic", ToastTone::Copied)));
+            // Fluent isolates the label (U+2068 .. U+2069).
+            let expected = "Copied \u{2068}diagnostic\u{2069}";
+            assert_eq!(said, Some((expected, ToastTone::Copied)));
             assert_eq!(shell.notice, None);
         },
         |shell| &shell.areas.session.composer,

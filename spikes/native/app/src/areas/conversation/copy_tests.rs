@@ -24,10 +24,9 @@ fn copy_agent_id_copies_the_session_and_says_so_in_paseos_words(cx: &mut TestApp
         shell.menu_chose(MenuAction::CopyId, window, cx);
         let said = shell.areas.toasts.shown().cloned();
         let said = said.map(|toast| (toast.text, toast.tone));
-        assert_eq!(
-            said,
-            Some(("Copied Agent ID".to_owned(), ToastTone::Copied))
-        );
+        // Fluent isolates the label (U+2068 .. U+2069).
+        let expected = "Copied \u{2068}Agent ID\u{2069}".to_owned();
+        assert_eq!(said, Some((expected, ToastTone::Copied)));
         assert_eq!(shell.notice, None);
         let row = shell.t.lang.conversation().copy_agent_id();
         assert_eq!(row, "Copy agent id");

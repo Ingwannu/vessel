@@ -47,7 +47,9 @@ fn real_language_dispatch_refreshes_hint_without_changing_input_or_copy(
                 .toasts
                 .shown()
                 .map(|toast| (toast.text.as_str(), toast.tone));
-            assert_eq!(said, Some(("Copied Preferences path", ToastTone::Copied)));
+            // Fluent isolates the label (U+2068 .. U+2069).
+            let expected = "Copied \u{2068}Preferences path\u{2069}";
+            assert_eq!(said, Some((expected, ToastTone::Copied)));
             assert_eq!(shell.notice, None);
             assert_eq!(
                 shell.areas.settings.general.hint.as_ref(),
