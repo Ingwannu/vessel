@@ -130,3 +130,36 @@ fn a_title_longer_than_the_bar_shrinks_and_keeps_both_dots_inside(cx: &mut TestA
     assert!(title.right() <= dots.left(), "{title:?} {dots:?}");
     assert!(dots.right() <= bar.right(), "{dots:?} {bar:?}");
 }
+
+#[gpui::test]
+fn the_session_dots_open_on_a_click_and_offer_assistive_tech_their_click(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    cx.simulate_resize(gpui::size(px(1280.0), px(800.0)));
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    probe.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    // GPUI's real accessibility snapshot, read only around this name: the
+    // node offers Click (it has a click listener), whatever the key order.
+    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
+    let tree = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    let name = format!(r#""label": "{}""#, words.session_actions());
+    let aria = tree
+        .split("\"aria\"")
+        .filter_map(|node| node.split('}').next())
+        .find(|aria| aria.contains(&name))
+        .expect("the session dots are named");
+    assert!(aria.contains("\"Click\""), "Click is offered");
+    // A pointer's press and release (what assistive tech's Click sends)
+    // open the menu once: it stays open.
+    let dots = cx.debug_bounds("session-actions-button").unwrap();
+    cx.simulate_click(dots.center(), Modifiers::none());
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        assert!(probe.0.read(cx).areas.conversation.menu.is_open());
+    });
+}

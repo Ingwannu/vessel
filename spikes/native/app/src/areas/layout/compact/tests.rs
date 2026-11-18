@@ -2,8 +2,7 @@
 //! lists the tabs, and each row's menu has Paseo's items, then the
 //! session's.
 use super::*;
-use crate::areas::conversation::MenuAction;
-use crate::areas::layout::menu::Action;
+use crate::areas::layout::menu::{Action, Copied, Surface};
 use crate::areas::session::Open;
 use crate::routes::Route;
 use crate::shell::language_tests;
@@ -108,6 +107,11 @@ fn selector(text: String) -> &'static str {
     text.leak()
 }
 
+/// A switcher row's menu: the shared tab menu (TRACKER 797) on its surface.
+fn row_actions(shell: &Shell, tab: TabId) -> Vec<(Action, MenuItem)> {
+    super::super::tab_menu::entries(shell, tab, Surface::Switcher)
+}
+
 fn labels(items: &[(Action, MenuItem)]) -> Vec<String> {
     items
         .iter()
@@ -207,6 +211,7 @@ fn the_agent_rows_menu_has_paseos_items_then_the_sessions(cx: &mut TestAppContex
         assert_eq!(
             labels(&items),
             [
+                words.copy_resume_command(),
                 words.copy_agent_id(),
                 words.close_above(),
                 words.close_below(),
@@ -218,13 +223,14 @@ fn the_agent_rows_menu_has_paseos_items_then_the_sessions(cx: &mut TestAppContex
         // Paseo's 16 glyph on every row; Copy agent id's hint is the id's
         // first seven characters.
         assert!(items.iter().all(|(_, item)| item.leading.is_some()));
-        let hint = items.first().and_then(|(_, item)| item.value.clone());
+        let hint = items.get(1).and_then(|(_, item)| item.value.clone());
         assert_eq!(hint.map(|hint| hint.len()), Some(7));
         let groups: Vec<bool> = items.iter().map(|(_, item)| item.starts_group).collect();
-        assert_eq!(groups, [false, true, false, false, true, false]);
+        assert_eq!(groups, [false, false, true, false, false, true, false]);
+        // The tab's own copy, the same press as on the wide strip.
         assert!(matches!(
-            items.first(),
-            Some((Action::Session(MenuAction::CopyId), _))
+            items.get(1),
+            Some((Action::Copy(Copied::AgentId), _))
         ));
         // The New tab: Paseo's closes only, Close itself last.
         let passive = row_actions(shell, ids[1]);

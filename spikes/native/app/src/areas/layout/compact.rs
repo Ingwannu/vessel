@@ -24,7 +24,8 @@
 //!   and one island: the switcher trigger (`ToolbarButton::count`), "…" and
 //!   the code panel toggle, all in the toolbar's touch chrome. The
 //!   switcher is the kit dialog's sheet; each row's "…" opens the tab menu
-//!   (`menu`, surface `Switcher`) over it.
+//!   (`tab_menu`, shared with the wide strip since TRACKER 797, surface
+//!   `Switcher`) over it.
 //! - Cost and differences: Vessel's titlebar keeps the sidebar menu, so the
 //!   header has no menu island of its own. Paseo's menus are sheets on a
 //!   phone; the kit's are popovers with touch rows, as the bar's was. The
@@ -32,7 +33,6 @@
 //!   has none of. The header's island uses the toolbar's
 //!   header-island profile (Paseo's large chrome: 16 glyphs, round).
 
-mod row_menu;
 mod switcher;
 #[cfg(test)]
 mod tests;
@@ -43,7 +43,6 @@ use super::with_layout;
 use super::workspace_menu::{self, Header};
 use crate::areas::conversation::heading;
 use crate::shell::Shell;
-pub(super) use row_menu::row_actions;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;

@@ -1,29 +1,40 @@
 //! Menus use the same typed operations and close planning as keyboard commands.
 //!
-//! One tab menu serves two surfaces: a tab's context menu in the tab strip,
-//! and, below the compact width, the "…" of a row in the tab switcher
-//! (TRACKER 789, `compact::row_actions`), which also carries the session's
-//! own actions and opens over the switcher's sheet.
+//! One tab menu serves two surfaces (TRACKER 797, `tab_menu::entries`): a
+//! tab's context menu in the tab strip, and, below the compact width, the
+//! "…" of a row in the tab switcher (TRACKER 789), which opens over the
+//! switcher's sheet. Both are Paseo's 220 wide.
 use super::with_layout;
 use crate::areas::conversation::MenuAction;
 use crate::shell::Shell;
 use vessel_app_kit::menu::{Content, Layer, menu_with};
 use vessel_app_kit::ui::{AnyElement, Context, Window, px};
 use vessel_app_kit::{MenuHandlers, MenuItem, Tokens};
-use vessel_app_view::layout::{CloseEffect, CloseScope, LayoutAction, TabId, Target};
+use vessel_app_view::layout::{CloseEffect, CloseScope, LayoutAction, LayoutKey, TabId};
 
-/// Paseo's tab menu `width` (workspace-tab-trailing-accessory.tsx).
-const SWITCHER_WIDTH: f32 = 220.0;
+/// Paseo's tab menu `width` (`DROPDOWN_WIDTH`, workspace-desktop-tabs-row.tsx;
+/// workspace-tab-trailing-accessory.tsx).
+const WIDTH: f32 = 220.0;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Action {
-    Copy,
+    /// Put the tab's id or path on the clipboard.
+    Copy(Copied),
+    /// Put the agent's resume command on the clipboard.
+    CopyResume,
+    /// Rename the open session's agent.
     Rename,
     Close(CloseScope),
     /// A Session action (the bar's menu), on the open session's agent tab.
     Session(MenuAction),
-    /// The open session's rename, in the compact header's title.
-    SessionRename,
+}
+
+/// What a copy row copies, for its toast.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Copied {
+    AgentId,
+    TerminalId,
+    FilePath,
 }
 
 /// Where the tab menu was opened.
@@ -34,58 +45,6 @@ pub(super) enum Surface {
     Strip,
     /// A row's "…" in the compact tab switcher.
     Switcher,
-}
-
-fn actions(shell: &Shell, tab: TabId) -> Vec<(Action, MenuItem)> {
-    if shell.areas.layout.menu_surface == Surface::Switcher {
-        return super::compact::row_actions(shell, tab);
-    }
-    let words = shell.words.layout();
-    let target = with_layout(shell, |layout| {
-        Ok(layout.tab(tab).map(|tab| tab.target().clone()))
-    })
-    .ok()
-    .flatten();
-    let Some(target) = target else {
-        return Vec::new();
-    };
-    let mut items = Vec::new();
-    if matches!(
-        target,
-        Target::Agent(_) | Target::Terminal(_) | Target::File { .. }
-    ) {
-        let label = if matches!(target, Target::File { .. }) {
-            words.copy_path()
-        } else {
-            words.copy_id()
-        };
-        items.push((Action::Copy, MenuItem::new(label.to_owned())));
-    }
-    if matches!(target, Target::Agent(_))
-        && matches!(
-            super::key(shell),
-            Ok(vessel_app_view::layout::LayoutKey::Workspace { .. })
-        )
-    {
-        items.push((Action::Rename, MenuItem::new(words.rename().to_owned())));
-    }
-    let local = with_layout(shell, |layout| {
-        layout
-            .request_close(tab)
-            .map(|plan| plan.effect() == CloseEffect::Local)
-    })
-    .unwrap_or(false);
-    if local {
-        for (scope, label) in [
-            (CloseScope::Before, words.close_left()),
-            (CloseScope::After, words.close_right()),
-            (CloseScope::Others, words.close_others()),
-            (CloseScope::Current, words.close()),
-        ] {
-            items.push(close_item(shell, tab, scope, label));
-        }
-    }
-    items
 }
 
 /// A close row, disabled when it would close nothing or anything that is
@@ -118,7 +77,7 @@ pub(super) fn overlay(
     }
     let workspace = workspace.clone();
     let tab = *tab;
-    let actions = actions(shell, tab);
+    let actions = super::tab_menu::entries(shell, tab, shell.areas.layout.menu_surface);
     let items: Vec<_> = actions.iter().map(|(_, item)| item.clone()).collect();
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.layout.menu,
@@ -132,29 +91,20 @@ pub(super) fn overlay(
             chose(shell, tab, *action, window, cx);
         }),
     };
-    let narrow = vessel_app_kit::breakpoint::phone(window);
-    match shell.areas.layout.menu_surface {
-        Surface::Strip => vessel_app_kit::menu(
-            "layout-tab-menu",
-            &shell.areas.layout.menu,
-            &items,
-            &handlers,
-            tokens,
-            narrow,
-            cx,
-        ),
-        // Over the switcher's sheet (a dialog), at Paseo's width.
-        Surface::Switcher => menu_with(
-            Content::new("layout-tab-menu", &items)
-                .with_layer(Layer::AboveDialog)
-                .with_width(px(SWITCHER_WIDTH)),
-            &shell.areas.layout.menu,
-            &handlers,
-            tokens,
-            narrow,
-            cx,
-        ),
-    }
+    let content = Content::new("layout-tab-menu", &items).with_width(px(WIDTH));
+    let content = match shell.areas.layout.menu_surface {
+        Surface::Strip => content,
+        // Over the switcher's sheet (a dialog).
+        Surface::Switcher => content.with_layer(Layer::AboveDialog),
+    };
+    menu_with(
+        content,
+        &shell.areas.layout.menu,
+        &handlers,
+        tokens,
+        vessel_app_kit::breakpoint::phone(window),
+        cx,
+    )
 }
 
 pub(super) fn chose(
@@ -165,15 +115,17 @@ pub(super) fn chose(
     cx: &mut Context<'_, Shell>,
 ) {
     match action {
-        Action::Rename => shell.layout_start_rename(tab, window, cx),
-        Action::Copy => {
-            let target = with_layout(shell, |layout| {
-                Ok(layout.tab(tab).map(|tab| tab.target().clone()))
-            })
-            .ok()
-            .flatten();
-            if let Some(text) = target.as_ref().and_then(copy_text) {
-                cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(text));
+        Action::Copy(copied) => shell.tab_menu_copy(tab, copied, cx),
+        Action::CopyResume => shell.tab_menu_copy_resume(tab, cx),
+        Action::Rename => {
+            shell.compact_close_switcher(window, cx);
+            // A workspace layout's rename carries the original node's
+            // authority and waits for its answer; elsewhere the session's
+            // own rename dialog (789), as the header's title opens it.
+            if matches!(super::key(shell), Ok(LayoutKey::Workspace { .. })) {
+                shell.layout_start_rename(tab, window, cx);
+            } else {
+                shell.rename_from_header(window, cx);
             }
         }
         Action::Close(scope) => {
@@ -188,30 +140,5 @@ pub(super) fn chose(
             }
             shell.menu_chose(action, window, cx);
         }
-        Action::SessionRename => {
-            shell.compact_close_switcher(window, cx);
-            shell.rename_from_header(window, cx);
-        }
-    }
-}
-
-/// What Copy puts on the clipboard for a tab.
-fn copy_text(target: &Target) -> Option<String> {
-    match target {
-        Target::Agent(id) => Some(id.to_string()),
-        Target::Terminal(id) => Some(id.to_string()),
-        Target::File { path, .. } => Some(path.as_str().to_owned()),
-        Target::NewTab
-        | Target::Draft(_)
-        | Target::ProviderSubagent { .. }
-        | Target::Browser(_)
-        | Target::Changes
-        | Target::Files
-        | Target::Scripts
-        | Target::PullRequest
-        | Target::WorkingDiff
-        | Target::Plugin { .. }
-        | Target::Setup(_)
-        | Target::CommitDiff(_) => None,
     }
 }

@@ -6,8 +6,8 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, MouseButton,
-    MouseDownEvent, ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
+    AnyElement, ClickEvent, Context, Div, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
     Window, div, px,
 };
 use vessel_app_kit::{MenuItem, Tokens, Type, TypeExt as _, breakpoint, popup};
@@ -139,7 +139,7 @@ fn actions_button(
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let surfaces = popup::Surfaces::of(tokens);
-    div()
+    let button = div()
         .id("session-actions")
         .role(gpui::Role::Button)
         .aria_label(shell.words.layout().session_actions().to_owned())
@@ -152,14 +152,18 @@ fn actions_button(
         .text_color(tokens.neutral.foreground_muted)
         .cursor_pointer()
         .hover(move |style| style.bg(surfaces.surface2))
-        .on_mouse_down(
-            MouseButton::Left,
-            cx.listener(|shell, event: &MouseDownEvent, window, cx| {
-                shell.open_actions(event.position, window, cx);
-                cx.stop_propagation();
-            }),
-        )
-        .child(glyph(Glyph::More, 16.0, tokens.neutral.foreground_muted))
+        // A click, not a press: GPUI offers assistive tech its Click action
+        // only on an element with a click listener (it then sends a press
+        // and a release), so a pointer and a screen reader open it by the
+        // one path, once.
+        .on_click(cx.listener(|shell, event: &ClickEvent, window, cx| {
+            shell.open_actions(event.position(), window, cx);
+            cx.stop_propagation();
+        }))
+        .child(glyph(Glyph::More, 16.0, tokens.neutral.foreground_muted));
+    #[cfg(test)]
+    let button = button.debug_selector(|| "session-actions-button".to_owned());
+    button
 }
 
 /// The bar's word for a released agent, quiet as an idle session is, or

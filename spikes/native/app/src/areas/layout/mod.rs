@@ -21,6 +21,7 @@ mod resize;
 #[cfg(test)]
 pub(crate) mod residents;
 mod sheets;
+mod tab_menu;
 mod workspace_menu;
 
 use crate::shell::Shell;
