@@ -8,9 +8,9 @@ use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Render, TestAppContext, VisualTestContext};
 use vessel_app_kit::ui::{Entity, IntoElement, Window, div};
+use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_app_view::layout::{AgentRole, LayoutMode, OpenIntent, Placement};
 use vessel_app_view::{Card, Machine, Reach};
-use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_proto::{
     AgentAbilities, ErrorCode, HarnessKind, HarnessSessionId, ProtocolVersion, SessionInfo,
     SessionMode, SessionSpec, TerminalId,
@@ -315,7 +315,9 @@ fn laptop(other: SessionId, protocol: Option<ProtocolVersion>, loads: bool) -> M
 
 fn put_laptop(probe: &Entity<Probe>, cx: &mut VisualTestContext, machine: Machine) {
     probe.update(cx, |probe, cx| {
-        probe.0.update(cx, |shell, _| shell.fleet.machines = vec![machine]);
+        probe
+            .0
+            .update(cx, |shell, _| shell.fleet.machines = vec![machine]);
     });
 }
 
@@ -369,7 +371,11 @@ fn reload_agent_follows_close_other_tabs_with_paseos_tooltip_where_its_node_can(
         })
     };
     // A connected node older than the reload protocol: none.
-    put_laptop(&probe, cx, laptop(session, Some(ProtocolVersion::new(30)), true));
+    put_laptop(
+        &probe,
+        cx,
+        laptop(session, Some(ProtocolVersion::new(30)), true),
+    );
     assert!(!offered(&probe, cx));
     // A disconnected one: offered, as Paseo's (a press says so).
     put_laptop(&probe, cx, laptop(session, None, true));
@@ -400,9 +406,14 @@ fn answered(
             );
             // A success goes on to the conversation; a failure is the
             // toast's alone.
-            assert_eq!(passed.is_some(), shell.areas.toasts.shown().is_some_and(
-                |toast| toast.tone == ToastTone::Ok
-            ));
+            assert_eq!(
+                passed.is_some(),
+                shell
+                    .areas
+                    .toasts
+                    .shown()
+                    .is_some_and(|toast| toast.tone == ToastTone::Ok)
+            );
             shell
                 .areas
                 .toasts
@@ -430,15 +441,25 @@ fn reload_holds_its_toast_until_the_answer_says_how_it_went(cx: &mut TestAppCont
             if machine == "laptop" && acted == session
     ));
     // Paseo's `durationMs: null`: still up long after any toast's life.
-    cx.executor().advance_clock(std::time::Duration::from_secs(60));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_secs(60));
     cx.run_until_parked();
     let up = probe.read_with(cx, |probe, cx| {
-        probe.0.read(cx).areas.toasts.shown().map(|toast| (toast.text.clone(), toast.tone))
+        probe
+            .0
+            .read(cx)
+            .areas
+            .toasts
+            .shown()
+            .map(|toast| (toast.text.clone(), toast.tone))
     });
     assert_eq!(up, held);
     let reloaded = info(session, HarnessKind::Codex, Some("9e8d"));
     let said = answered(&probe, cx, session, Ok(Acted::Session(Box::new(reloaded))));
-    assert_eq!(said, Some((words.reloaded_agent().to_owned(), ToastTone::Ok)));
+    assert_eq!(
+        said,
+        Some((words.reloaded_agent().to_owned(), ToastTone::Ok))
+    );
     // A refusal says the node's words; none, Paseo's line.
     let refused = ActFailed {
         code: Some(ErrorCode::Conflict),
