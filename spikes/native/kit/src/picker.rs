@@ -444,6 +444,8 @@ pub struct ComboboxState {
     tip_places: RowPlaces,
     /// Pages its rows open beside it ([`ComboboxState::set_submenus`]).
     submenus: Option<crate::submenu::Submenus>,
+    /// The depth its rows' pages open at (`pages.rs`).
+    submenu_depth: usize,
 }
 
 /// Each row's tooltip place, by row, the same one frame after frame (a
@@ -486,14 +488,8 @@ impl ComboboxState {
             tips: crate::Tooltips::new(),
             tip_places: RowPlaces::default(),
             submenus: None,
+            submenu_depth: 0,
         }
-    }
-
-    /// Rows with a [`ComboRow::page`] open it beside the list through
-    /// `submenus` (a wide window; `None` keeps pages the screen's own), and a
-    /// press on an open page is not outside the list.
-    pub fn set_submenus(&mut self, submenus: Option<&crate::submenu::Submenus>) {
-        self.submenus = submenus.cloned();
     }
 
     /// Replace the provider header's leading artwork as its list changes.

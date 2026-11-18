@@ -1,5 +1,5 @@
 /* Narrow windows (DESIGN.md §3): forms and two-column pages stack. The
-   sidebar's rail and drawer are features/shell's. */
+   sidebar's width and its compact sheet are features/shell's. */
 @media (max-width: 1099px) {
   .grid-2 {
     grid-template-columns: 1fr;

@@ -57,10 +57,8 @@ pub(super) fn beside(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let picker = shell.areas.labels.picker.as_ref()?;
-    if !picker.visible
-        || !matches!(picker.place, PickerPlace::Beside)
-        || !matches!(picker.page, PickerPage::Listing)
-    {
+    // The list stays while its Create label page is open beside it.
+    if !picker.visible || !matches!(picker.place, PickerPlace::Beside) {
         return None;
     }
     let (header, rows, handlers) = list(shell, picker, tokens, cx);
@@ -115,9 +113,15 @@ fn list(
         });
         choices.push(Choice::Toggle(entry.label, assignment));
     }
+    // Paseo's create row keeps the label rows' leading column (a muted
+    // Plus). Beside the row menu it leads to its page (TRACKER 792, press
+    // only); a sheet's list opens the Create label sheet.
     rows.push(ComboRow {
         disabled: !online,
         opens: true,
+        leading: Some(Leading::SmallGlyph(vessel_app_kit::assets::Glyph::Plus)),
+        page: matches!(picker.place, PickerPlace::Beside)
+            .then(|| super::create::CREATE.to_owned().into()),
         ..ComboRow::new(shell.words.labels().create())
     });
     choices.push(Choice::Create);

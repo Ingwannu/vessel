@@ -88,3 +88,8 @@ labels-changed = The selected connection changed. Try again.
 
 # Canonical workspace caller marks the registry target inactive or read-only; connecting cannot unlock it.
 labels-read-only = Labels cannot be changed in this workspace.
+
+# Create label page (TRACKER 792): the row that creates it (Paseo's workspaceLabels.createConfirm).
+labels-create-confirm = Create
+# Create label page: that row while the host answers (Paseo's workspaceLabels.creating).
+labels-creating = Creating…

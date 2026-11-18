@@ -193,6 +193,10 @@
   --r-6: 16px;
 
   --sidebar-w: 240px;
+  /* Paseo's desktop sidebar (desktop-sidebar-layout.ts): never narrower
+     than 200, and never so wide that the page keeps less than 400. */
+  --sidebar-min-w: 200px;
+  --center-min-w: 400px;
   /* The title bar inside the framed page. */
   --topbar-h: 36px;
   /* How far the framed page sits in from the window: nothing on the

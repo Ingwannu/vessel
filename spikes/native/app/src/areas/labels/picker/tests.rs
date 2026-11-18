@@ -351,6 +351,16 @@ fn labels_old_create_visit_cannot_submit_or_close_a_later_create_visit(cx: &mut 
 }
 
 impl Shell {
+    /// What is typed in the open picker's Create label name (TRACKER 792):
+    /// for the row menu's tests.
+    pub(crate) fn labels_create_name(&self, cx: &vessel_app_kit::ui::App) -> Option<String> {
+        let picker = self.areas.labels.picker.as_ref()?;
+        match picker.page {
+            PickerPage::Listing => None,
+            PickerPage::Creating(_) | PickerPage::Submitting { .. } => Some(picker.name.text(cx)),
+        }
+    }
+
     /// The open picker's Create row chosen, as a press on it does: for the
     /// row menu's tests, outside the area.
     pub(crate) fn labels_picker_create_now(
