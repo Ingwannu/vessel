@@ -79,7 +79,11 @@ def check(root: Path) -> None:
     with sqlite3.connect(f"file:{root / 'laptop/vessel.db'}?mode=ro", uri=True) as db:
         rows = db.execute("SELECT title, pinned, archived_at FROM sessions").fetchall()
     assert len(rows) >= 8, "many-session shell shape missing"
-    assert sum(bool(title) and len(title) >= 70 for title, _, _ in rows) >= 8, "long-title shell shape missing"
+    # The titles come from each session's first prompt, which the node cuts
+    # at SessionTitle::FROM_PROMPT_CHARS: 60 since protocol 30 (row 329,
+    # Paseo's provisional title), 80 before. 60 is the longest a seeded
+    # title can be on any node, and still long enough to fill the sidebar.
+    assert sum(bool(title) and len(title) >= 60 for title, _, _ in rows) >= 8, "long-title shell shape missing"
     assert any(title and "한국어" in title for title, _, _ in rows), "Korean shell shape missing"
     assert sum(bool(pinned) for _, pinned, _ in rows) >= 2, "pinned shell shape missing"
     assert sum(archived is not None for _, _, archived in rows) >= 2, "archive shell shape missing"
