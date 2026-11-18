@@ -1,8 +1,8 @@
 //! Projects' own icons (ADR 0112; Paseo's `projects/icon-cache.ts` and
 //! `ProjectIconView`): each project's `project.icon` asked once when its
 //! machine's list first names it, drawn in the sidebar's project rows and
-//! Settings > Projects where the initial tile was; the tile stays for a
-//! project without one and on an older machine.
+//! Settings > Projects; a project without one (or on an older machine)
+//! gets Paseo's lettered identity square (TRACKER 809).
 //!
 //! [Decision Log]
 //! - Purpose: projects marked as Paseo marks them.
@@ -19,9 +19,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gpui::{Image, ImageFormat, ObjectFit, StyledImage as _, img};
+use vessel_app_kit::theme::identity::{self, Hue};
 use vessel_app_kit::theme::spacing;
-use vessel_app_kit::ui::{AnyElement, IntoElement as _, Styled as _, px};
-use vessel_app_kit::{Tokens, initial_of, initial_tile};
+use vessel_app_kit::ui::{AnyElement, IntoElement as _, ParentElement as _, Styled as _, div, px};
 use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::workspace::host_folders::offered;
 use vessel_app_view::workspace::problem::Problem;
@@ -108,21 +108,58 @@ impl Shell {
     }
 }
 
-/// `project`'s mark: its icon, else its initial on a tile (16).
+/// Paseo's mark at a compact width (`densityIconProps("md")`: 20; 16 is
+/// the kit's `S4`), and its square's corners, a quarter of its side.
+const COMPACT_MARK: f32 = 20.0;
+const CORNER: f32 = 4.0;
+const COMPACT_CORNER: f32 = 5.0;
+/// Paseo's letter on the square (`projectIconFallbackText`).
+const LETTER: f32 = 9.0;
+
+/// Paseo's placeholder initial (`projectIconPlaceholderLabelFromDisplayName`
+/// then its first character, upper-cased): the last `/` segment's.
+fn initial(name: &str) -> String {
+    let trimmed = name.trim();
+    let last = trimmed
+        .split('/')
+        .rfind(|segment| !segment.is_empty())
+        .unwrap_or(trimmed);
+    last.chars()
+        .next()
+        .map(char::to_uppercase)
+        .map_or_else(String::new, Iterator::collect)
+}
+
+/// `project`'s mark (TRACKER 809, Paseo's `ProjectIconView`): its icon,
+/// else its lettered identity square (the fill keyed by the project's id,
+/// a white 9 letter); 16 square, 20 at a compact width.
 pub(super) fn mark(
     shell: &Shell,
     machine: &str,
     project: ProjectId,
     name: &str,
-    tokens: &Tokens,
+    compact: bool,
 ) -> AnyElement {
+    let side = if compact { COMPACT_MARK } else { spacing::S4 };
     match shell.areas.workspace.icons.icon(machine, project) {
         Some(image) => img(Arc::clone(image))
-            .size(px(spacing::S4))
+            .size(px(side))
             .flex_none()
             .object_fit(ObjectFit::Contain)
             .into_any_element(),
-        None => initial_tile(initial_of(name), tokens).into_any_element(),
+        None => div()
+            .size(px(side))
+            .flex_none()
+            .flex()
+            .items_center()
+            .justify_center()
+            .rounded(px(if compact { COMPACT_CORNER } else { CORNER }))
+            .bg(identity::fill(Hue::of_key(&project.to_string())))
+            .text_size(px(LETTER))
+            .line_height(px(side))
+            .text_color(gpui::white())
+            .child(initial(name))
+            .into_any_element(),
     }
 }
 

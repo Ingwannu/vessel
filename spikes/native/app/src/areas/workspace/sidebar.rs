@@ -97,6 +97,7 @@ impl Shell {
 pub(crate) fn projects(
     shell: &Shell,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let words = shell.words();
@@ -122,7 +123,7 @@ pub(crate) fn projects(
             entries.push(Entry {
                 machine: machine.name.clone(),
                 project: project.id,
-                mark: super::project_icons::mark(shell, &machine.name, project.id, &name, tokens),
+                mark: super::project_icons::mark(shell, &machine.name, project.id, &name, compact),
                 name,
                 state: match project.state {
                     ProjectState::Ready => None,

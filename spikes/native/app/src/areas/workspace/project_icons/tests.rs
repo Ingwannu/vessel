@@ -132,3 +132,11 @@ fn an_older_machine_keeps_the_initial_tiles(cx: &mut TestAppContext) {
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[test]
+fn the_square_takes_paseos_initial() {
+    assert_eq!(initial("shop"), "S");
+    assert_eq!(initial(" acme/web-app "), "W");
+    assert_eq!(initial("한글-프로젝트"), "한");
+    assert_eq!(initial("  "), "");
+}

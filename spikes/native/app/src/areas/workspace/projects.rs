@@ -398,7 +398,8 @@ fn list_body(
         Some(ProjectsView::Ready(list)) => {
             let mut list_rows = rows(tokens);
             for (index, project) in list.projects.iter().enumerate() {
-                list_rows = list_rows.child(project_row(shell, index, project, tokens, cx));
+                list_rows =
+                    list_rows.child(project_row(shell, index, project, tokens, compact, cx));
             }
             list_rows
         }
@@ -442,6 +443,7 @@ fn project_row(
     index: usize,
     project: &ProjectInfo,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let words = shell.words();
@@ -460,7 +462,7 @@ fn project_row(
             &shell.projects_machine().unwrap_or_default(),
             project.id,
             &name,
-            tokens,
+            compact,
         ))
         .child(title(name, tokens));
     let mut controls = div();
