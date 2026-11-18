@@ -1,8 +1,8 @@
-# ADR 0110: Folder suggestions from the node's home in Add project, and project icons, as Paseo's
+# ADR 0112: Folder suggestions from the node's home in Add project, and project icons, as Paseo's
 
-Status: proposed (impl F, 2026-11-18, TRACKER catalogue F-F17/F-F46; the number is a draft until the
-coordinator assigns one). Narrows one stated difference of ADR 0083 for one new method: `file.suggest`
-stays root-scoped.
+Status: accepted with conditions by the coordinator on 2026-11-18 (impl F, TRACKER catalogue
+F-F17/F-F46; number 0112 assigned). Amends ADR 0083 for `folder.suggest` only: `file.suggest` keeps its
+rule that it never searches the home.
 
 ## Context
 
@@ -37,13 +37,18 @@ no icon lookup (`file.inspect` is folder metadata).
   4. A new method for the home search (Operate), and a new project icon method (Read, inside the
      project's root).
 - Choice: 4.
-  - `folder.suggest {query, limit?}` (Operate): folders under the node user's home, Paseo's constants
-    and skip list, `~/Library` skipped on macOS; a query that is an absolute or `~/` path lists that
-    folder's children (Paseo's exact-path retrieval) when it lies under the home; paths come back
-    absolute with the home shown as `~` for drawing. Never files, never outside the home.
+  - `folder.suggest {query, limit?}` (Operate): folders only, rooted at the node user's home, Paseo's
+    limits and skip list, `~/Library` skipped on macOS; the walk is bounded in time and in entries
+    scanned; a link is never followed out of the home; the answer holds folder paths only, never a file
+    name. A query that is an absolute or `~/` path lists that folder's subfolders (Paseo's exact-path
+    retrieval) when it lies under the home; paths come back absolute, with the home shown as `~` for
+    drawing.
   - `project.icon {project}` (Read): Paseo's patterns and folders inside the registered project's root
-    (the existing root checks; links are not followed out), square only, at most 32 KiB, the bytes and
-    their type, or none. Custom icons (Paseo's `project-custom-icon.ts`) are not in this ADR.
+    only (the existing root checks; links are not followed out), square only, at most 32 KiB; the type
+    is decided by the bytes (PNG, ICO or SVG signatures), never by the file name; the bytes and that
+    type, or none. Every client draws an icon only as an image (an `img` from a blob or data address on
+    the page, an image element in the native app), never as inline SVG markup, and the page gives it the
+    type the node decided. Custom icons (Paseo's `project-custom-icon.ts`) are not in this ADR.
   - One protocol number for both, assigned at the node-line merge; an older node offers neither (the
     clients hide the suggestions and draw the folder mark).
   - Callers: native Add project's path field (debounced, Paseo's rows: the short path, the folder above
