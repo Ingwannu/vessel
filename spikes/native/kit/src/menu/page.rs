@@ -98,6 +98,7 @@ pub fn form_rows<V: 'static>(
     act: FormAct<V>,
     narrow: bool,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, V>,
 ) -> Div {
     let surfaces = Surfaces::of(tokens);
@@ -113,7 +114,7 @@ pub fn form_rows<V: 'static>(
         .py(px(spacing::S1))
         .rounded(px(popup::ROW_RADIUS))
         .border_1()
-        .border_color(if page.field.holds_keys() {
+        .border_color(if page.field.holds_keys(window, cx) {
             neutral.border_accent
         } else {
             neutral.border

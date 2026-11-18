@@ -435,9 +435,10 @@ pub(super) fn overlay(
 pub(super) fn create_beside(
     shell: &Shell,
     tokens: &vessel_app_kit::Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    create::beside(shell, tokens, cx)
+    create::beside(shell, tokens, window, cx)
 }
 
 /// The list inside the row menu's Labels flyout (TRACKER 791).

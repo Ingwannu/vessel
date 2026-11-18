@@ -34,6 +34,7 @@ fn rows(
     picker: &WorkspacePicker,
     tokens: &Tokens,
     narrow: bool,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<Div> {
     let state = &shell.areas.labels;
@@ -75,7 +76,7 @@ fn rows(
     let act: FormAct<Shell> =
         Rc::new(move |shell, _window, cx| shell.labels_picker_submit(opening, cx));
     Some(
-        form_rows(page, act, narrow, tokens, cx)
+        form_rows(page, act, narrow, tokens, window, cx)
             .debug_selector(|| "workspace-label-create".to_owned())
             // Escape returns to the list, as the sheet's back and Paseo's
             // `goBack` do.
@@ -110,13 +111,14 @@ fn hint(shell: &Shell, picker: &WorkspacePicker) -> Option<&'static str> {
 pub(super) fn beside(
     shell: &Shell,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let picker = shell.areas.labels.picker.as_ref()?;
     if !picker.visible || !matches!(picker.place, PickerPlace::Beside) {
         return None;
     }
-    let rows = rows(shell, picker, tokens, false, cx)?;
+    let rows = rows(shell, picker, tokens, false, window, cx)?;
     Some(
         form_flyout(
             "workspace-label-create-page",
@@ -141,7 +143,7 @@ pub(super) fn overlay(
         return None;
     }
     let narrow = vessel_app_kit::breakpoint::phone(window);
-    let rows = rows(shell, picker, tokens, narrow, cx)?;
+    let rows = rows(shell, picker, tokens, narrow, window, cx)?;
     let opening = picker.opening;
     let content = DialogContent {
         title: shell.words.labels().create().into(),

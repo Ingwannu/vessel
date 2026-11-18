@@ -386,7 +386,7 @@ pub(super) fn render(
         );
         if rows.pages.is_open(CREATE_PAGE, 1) {
             drawn.extend(
-                create_beside(shell, tokens, cx)
+                create_beside(shell, tokens, window, cx)
                     .and_then(|page| flyout(&rows.pages, CREATE_PAGE, 1, 1, page)),
             );
         }

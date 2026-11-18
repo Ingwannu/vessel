@@ -13,7 +13,7 @@ struct Probe {
 }
 
 impl Render for Probe {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let page = FormPage::new(&self.field, self.action.clone())
             .with_body(div().debug_selector(|| "probe-body".to_owned()).h(px(20.0)))
@@ -21,7 +21,7 @@ impl Render for Probe {
         let act: FormAct<Self> = Rc::new(|probe: &mut Self, _window, _cx| {
             probe.pressed = probe.pressed.saturating_add(1);
         });
-        let rows = form_rows(page, act, false, &tokens, cx);
+        let rows = form_rows(page, act, false, &tokens, window, cx);
         div()
             .size_full()
             .child(form_flyout("probe-page", rows, px(220.0), &tokens))

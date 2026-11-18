@@ -35,7 +35,10 @@ impl TextField {
     }
 
     /// Whether it holds the keys now: its box's border turns the accent.
-    pub(crate) fn holds_keys(&self) -> bool {
-        self.focused.get()
+    /// Read from its focus handle, not the focus events' flag: a field made
+    /// and given the keys before its first frame (a page's name) hears no
+    /// focus event.
+    pub(crate) fn holds_keys(&self, window: &gpui::Window, cx: &App) -> bool {
+        self.focus_handle(cx).is_focused(window)
     }
 }

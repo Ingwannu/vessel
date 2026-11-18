@@ -225,9 +225,10 @@ impl Shell {
 pub(crate) fn create_beside(
     shell: &Shell,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
-    picker::create_beside(shell, tokens, cx)
+    picker::create_beside(shell, tokens, window, cx)
 }
 
 /// A row menu's Labels page beside the menu: the picker's list, for the
