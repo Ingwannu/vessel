@@ -252,4 +252,8 @@ glyph_inventory! {
     Files => "kit/files.svg",
     /// The new-tab menu's Browser (Paseo's launcher `Globe`).
     Globe => "kit/globe.svg",
+    /// The import sheet's empty state (Paseo `SheetEmptyState`, Lucide `Inbox`).
+    Inbox => "kit/inbox.svg",
+    /// The import sheet's "All" provider filter (Paseo's filter pill, Lucide `Layers`).
+    Layers => "kit/layers.svg",
 }

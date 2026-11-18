@@ -17,6 +17,7 @@ pub struct DialogInput {
     header_back: Option<HeaderBack>,
     header_actions: Option<AnyElement>,
     header_search: Option<HeaderSearch>,
+    header_subtitle: Option<AnyElement>,
 }
 
 impl DialogContent {
@@ -29,6 +30,7 @@ impl DialogContent {
             header_back: None,
             header_actions: Some(actions.into_any_element()),
             header_search: None,
+            header_subtitle: None,
         }
     }
 
@@ -52,6 +54,7 @@ impl From<DialogContent> for DialogInput {
             header_back: None,
             header_actions: None,
             header_search: None,
+            header_subtitle: None,
         }
     }
 }
@@ -61,6 +64,7 @@ pub(super) struct HeaderParts {
     pub(super) back: Option<HeaderBack>,
     pub(super) actions: Option<AnyElement>,
     pub(super) search: Option<HeaderSearch>,
+    pub(super) subtitle: Option<AnyElement>,
 }
 
 impl DialogInput {
@@ -79,6 +83,14 @@ impl DialogInput {
         self
     }
 
+    /// Paseo's `SheetHeader.subtitle`: the owner's line under the title, in
+    /// the title group (gap 4), such as the import sheet's scope.
+    #[must_use]
+    pub fn with_header_subtitle(mut self, subtitle: impl IntoElement) -> Self {
+        self.header_subtitle = Some(subtitle.into_any_element());
+        self
+    }
+
     pub(super) fn parts(self) -> (DialogContent, HeaderParts) {
         (
             self.content,
@@ -86,6 +98,7 @@ impl DialogInput {
                 back: self.header_back,
                 actions: self.header_actions,
                 search: self.header_search,
+                subtitle: self.header_subtitle,
             },
         )
     }

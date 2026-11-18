@@ -1,50 +1,75 @@
-//! Own-history import sheet; rules live in view, existing calls in link.
+//! Paseo's import sheet (`import-session-sheet.tsx`, `use-import-session.tsx`
+//! and the host chooser): the rules live in view's `Sheet`, the calls in link.
+//!
+//! [Decision Log] TRACKER 777 (2026-11-17)
+//! - Purpose: the coordinator's rulings: Paseo's behaviour, not W2's. A row
+//!   press imports that one session, closes the sheet and opens it; every
+//!   available agent of the host is read in parallel and merged; a provider
+//!   pill filters the merged list on the client.
+//! - Before: W2's three stacked pickers (machine, agent, account) over one
+//!   scope, checkbox rows, an Import selected / Cancel footer and a virtual
+//!   list fixed at 30 % of the window.
+//! - Alternatives: keep the pickers beside a provider pill (two ways to choose
+//!   a provider, ruled out); keep the virtual list inside the dialog body (a
+//!   second scroller under the compact sheet, whose drag hands off to the
+//!   body's own scroll).
+//! - Choice: the host comes from the caller (the new-session page's machine);
+//!   without one the sheet's first page is Paseo's "Import from host", which
+//!   skips itself when one host is connected, as `useHostChooser` does. Rows
+//!   are drawn in the dialog body, which scrolls and hands its scroll to the
+//!   sheet's drag. A finished import is opened on the next frame with a
+//!   window (`settle_import`), as `settle_sessions` opens a located session.
+//! - Cost: rows are not virtualised. The per-provider limits (at most 200)
+//!   bound what is drawn.
 
 mod actions;
 mod draw;
+mod filter;
+mod hosts;
 mod intent;
-mod pickers;
 mod rows;
 #[cfg(test)]
 mod tests;
 pub(crate) use draw::{entry, render};
 
+use crate::areas::session::Open;
 use crate::shell::Shell;
 use gpui::FocusHandle;
 use std::rc::Rc;
 use vessel_app_kit::dialog::DialogState;
+use vessel_app_kit::field::SearchField;
+use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_kit::{ComboboxState, TextField, VirtualList};
+use vessel_app_kit::{ComboboxState, Tooltips};
 use vessel_app_view::devices::{Ticket, Tickets};
-use vessel_app_view::history::{History, Problem, Scope};
+use vessel_app_view::history::{Problem, Sheet};
 use vessel_app_view::matcher::Query;
-use vessel_proto::{HarnessSessionId, ProfileInfo};
 
+/// The sheet's two pages (Paseo's host chooser, then the sheet itself).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Picker {
-    Machine,
-    Agent,
-    Account,
+pub(super) enum Page {
+    /// "Import from host": no host was in context.
+    Hosts,
+    /// The sessions of the chosen host.
+    Sessions,
 }
 
-/// The sheet's controls and prepared projection, independent from a route.
+/// The sheet's controls and state, independent from a route.
 pub(crate) struct ImportArea {
     pub(super) open: bool,
-    pub(super) model: History,
-    pub(super) search: TextField,
+    pub(super) page: Page,
+    pub(super) model: Sheet,
+    pub(super) search: SearchField,
     pub(super) query: Query,
-    pub(super) visible: Vec<HarnessSessionId>,
-    pub(super) list: VirtualList,
     pub(super) dialog: DialogState,
-    pub(super) picker: ComboboxState,
-    pub(super) choosing: Option<Picker>,
-    pub(super) machine_anchor: vessel_app_kit::select::Anchor,
-    pub(super) agent_anchor: vessel_app_kit::select::Anchor,
-    pub(super) account_anchor: vessel_app_kit::select::Anchor,
-    pub(super) profiles: Result<Vec<ProfileInfo>, Problem>,
-    pub(super) profile_request: Option<(Scope, Ticket)>,
+    pub(super) filter: ComboboxState,
+    pub(super) filter_anchor: vessel_app_kit::select::Anchor,
+    pub(super) tips: Tooltips,
+    pub(super) refresh_place: Place,
     pub(super) tickets: Tickets,
     pub(super) failure: Option<Problem>,
+    /// The imported session, opened on the next frame with a window.
+    pub(super) opened: Option<Open>,
     pub(super) prior: Option<FocusHandle>,
     pub(super) visit: Option<Ticket>,
 }
@@ -53,41 +78,35 @@ impl ImportArea {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             open: false,
-            model: History::default(),
-            search: TextField::with_change(
+            page: Page::Sessions,
+            model: Sheet::default(),
+            search: SearchField::new(
                 "",
-                |_, _, _, _| {},
                 |shell: &mut Shell, text, cx| {
                     shell.areas.import.query = Query::new(&text);
-                    shell.areas.import.reproject();
                     cx.notify();
                 },
                 window,
                 cx,
             ),
             query: Query::new(""),
-            visible: Vec::new(),
-            list: VirtualList::new(false),
             dialog: DialogState::new(cx),
-            picker: ComboboxState::new(window, cx),
-            choosing: None,
-            machine_anchor: Rc::default(),
-            agent_anchor: Rc::default(),
-            account_anchor: Rc::default(),
-            profiles: Ok(Vec::new()),
-            profile_request: None,
+            filter: ComboboxState::new(window, cx),
+            filter_anchor: Rc::default(),
+            tips: Tooltips::new(),
+            refresh_place: Rc::default(),
             tickets: Tickets::default(),
             failure: None,
+            opened: None,
             prior: None,
             visit: None,
         }
     }
 
-    /// One persistent ticket source prevents close/reopen and scope ABA.
+    /// One persistent ticket source fences every rendered intention to the
+    /// opening (and page and host) it was drawn for, including A -> B -> A.
     fn advance_visit(&mut self) -> bool {
-        // A model/reply/visit replacement retires the shared engine opening too.
-        self.picker.close();
-        self.choosing = None;
+        self.filter.close();
         if let Ok(ticket) = self.tickets.next_ticket() {
             self.visit = Some(ticket);
             true
@@ -97,44 +116,18 @@ impl ImportArea {
             false
         }
     }
-
-    /// All scope changes share the visit fence, including A -> B -> A.
-    fn choose(&mut self, scope: Scope) -> bool {
-        if self.model.importing() {
-            return false;
-        }
-        if self.model.scope() != Some(&scope) && !self.advance_visit() {
-            return false;
-        }
-        self.model.choose(scope);
-        true
-    }
-
-    fn reproject(&mut self) {
-        let visible: Vec<_> = self
-            .model
-            .filtered(&self.query)
-            .into_iter()
-            .map(|entry| entry.id.clone())
-            .collect();
-        // Appending an older page must not put the person back at the top.
-        if visible.starts_with(&self.visible) {
-            let old = self.visible.len();
-            self.list
-                .splice(old..old, visible.len().saturating_sub(old));
-            self.list.changed(0..old);
-        } else {
-            self.list.reset(visible.len());
-        }
-        self.visible = visible;
-    }
 }
 
-/// Refresh retained placeholders without changing search text or selection.
+/// The search's placeholder follows the page and the language.
 pub(crate) fn refresh_words(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let words = shell.words.history();
+    let placeholder = match shell.areas.import.page {
+        Page::Hosts => words.search_hosts(),
+        Page::Sessions => words.search(),
+    };
     shell
         .areas
         .import
         .search
-        .set_placeholder(shell.words.history().search(), window, cx);
+        .set_placeholder(placeholder, window, cx);
 }

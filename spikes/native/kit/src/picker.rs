@@ -31,8 +31,7 @@
 //! - Cost: no type-ahead without the search row (Paseo has none either),
 //!   no favourites (GOAT's), no animation.
 
-use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+use std::{cell::Cell, cell::RefCell, rc::Rc};
 
 use gpui::prelude::*;
 use gpui::{
@@ -42,10 +41,9 @@ use gpui::{
 
 use crate::assets::Glyph;
 use crate::field::TextField;
-use crate::fonts::Type;
 use crate::popup::Surfaces;
-use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
+use crate::{fonts::Type, theme::Tokens};
 
 mod focus;
 mod keys;
@@ -290,6 +288,8 @@ pub enum Leading {
     SmallGlyph(Glyph),
     /// An official agent mark, or the generic bot when unknown.
     AgentMark(Option<crate::agent_mark::Artwork>),
+    /// Paseo's import filter: the same mark at 14, muted, in the 14 column.
+    SmallAgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
     Dot(Hsla),
     /// A project's mark: its initial on a tile ([`initial_tile`]).
