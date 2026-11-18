@@ -117,8 +117,9 @@ fn one_header_row_as_wide_as_the_window_with_the_switcher_in_the_touch_frame(
     let (_probe, cx) = compact(cx);
     let header = cx.debug_bounds("compact-workspace-header").unwrap();
     let frame = cx.debug_bounds("compact-frame").unwrap();
-    // The kit's compact frame: 8 over a 56 row, full width, at the top.
-    assert_eq!(header.size, gpui::size(px(390.0), px(64.0)));
+    // The kit's compact frame: 8 over a 56 row, at the top, as wide as the
+    // pane (inside the pane's 1 rule on its right).
+    assert_eq!(header.size, gpui::size(px(389.0), px(64.0)));
     assert_eq!(header.origin, frame.origin);
     assert!(cx.debug_bounds("layout-main-pane-controls").is_none());
     // "…" in the toolbar's touch frame, at the row's middle.
