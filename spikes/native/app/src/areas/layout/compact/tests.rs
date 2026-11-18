@@ -9,7 +9,9 @@ use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
 use vessel_app_kit::ui::{Entity, InteractiveElement as _, IntoElement, px};
-use vessel_app_view::layout::{AgentRole, LayoutMode, OpenIntent, Placement, Target};
+use vessel_app_view::layout::{
+    AgentRole, CloseScope, LayoutMode, OpenIntent, PaneId, Placement, Position, Target,
+};
 use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 
 struct Probe(Entity<Shell>);
@@ -316,5 +318,74 @@ fn import_session_opens_the_sheet_for_this_host_and_folder(cx: &mut TestAppConte
     cx.run_until_parked();
     probe.read_with(cx, |probe, cx| {
         assert!(probe.0.read(cx).areas.import.is_open());
+    });
+}
+
+#[gpui::test]
+fn with_two_panes_the_switcher_is_the_focused_panes_and_closes_only_there(cx: &mut TestAppContext) {
+    let (probe, cx) = compact(cx);
+    let before = tab_ids(&probe, cx);
+    // A second pane (made wide, kept at compact) with two New tabs, focused.
+    let (side, first, second) = probe.update(cx, |probe, cx| {
+        probe.0.update(cx, |shell, _cx| {
+            with_layout(shell, |layout| {
+                let side = layout.split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)?;
+                let mut open = || {
+                    layout.open(
+                        Target::NewTab,
+                        OpenIntent::New,
+                        Placement::Pane(side),
+                        AgentRole::Unknown,
+                        LayoutMode::SplitPanes,
+                    )
+                };
+                let first = open()?;
+                let second = open()?;
+                layout.select(second)?;
+                Ok((side, first, second))
+            })
+            .unwrap()
+        })
+    });
+    cx.run_until_parked();
+    // Paseo's tabs = focusedPaneTabState.tabs: the other pane's are not
+    // listed, and the count badge counts the same list.
+    assert_eq!(tab_ids(&probe, cx), [first, second]);
+    // Close tabs above, chosen on the second row, closes the first only.
+    probe.update_in(cx, |probe, window, cx| {
+        probe.0.update(cx, |shell, cx| {
+            let items = row_actions(shell, second);
+            let above = items
+                .iter()
+                .find(|(action, _)| matches!(action, Action::Close(CloseScope::Before)))
+                .map(|(action, item)| (*action, item.disabled));
+            assert!(matches!(above, Some((_, false))), "enabled: one tab above");
+            if let Some((action, _)) = above {
+                super::super::menu::chose(shell, second, action, window, cx);
+            }
+        });
+    });
+    cx.run_until_parked();
+    assert_eq!(tab_ids(&probe, cx), [second]);
+    probe.read_with(cx, |probe, cx| {
+        let main = with_layout(probe.0.read(cx), |layout| {
+            Ok(layout
+                .root()
+                .panes()
+                .into_iter()
+                .find(|pane| pane.id() == PaneId::MAIN)
+                .map(|pane| pane.tabs().to_vec()))
+        })
+        .unwrap();
+        assert_eq!(main, Some(before), "the other pane is left alone");
+        let side_open = with_layout(probe.0.read(cx), |layout| {
+            Ok(layout
+                .root()
+                .panes()
+                .into_iter()
+                .any(|pane| pane.id() == side))
+        })
+        .unwrap();
+        assert!(side_open);
     });
 }
