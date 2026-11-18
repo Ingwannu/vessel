@@ -12,6 +12,7 @@ import { useSettingsPlace } from "../data/settings-place";
 import { AgentsSection } from "../features/machines/agents-section";
 import { MachinesSection } from "../features/machines/machines-section";
 import { AboutSection } from "../features/settings/about";
+import { DiagnosticsSection } from "../features/diagnostics/diagnostics-section";
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
 import { GeneralSection } from "../features/settings/general";
@@ -67,6 +68,8 @@ export function SettingsPage(): ReactElement | null {
       return <DevicesSection machine={place.machine} />;
     case "sync":
       return <SyncSection machine={place.machine} />;
+    case "diagnostics":
+      return <DiagnosticsSection />;
     case "about":
       return <AboutSection />;
   }

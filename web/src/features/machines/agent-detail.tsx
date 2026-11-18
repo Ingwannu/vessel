@@ -22,6 +22,7 @@ import type { NodeKey } from "../../wire/bridge";
 import { agentKey } from "../../data/agents";
 import type { HarnessOptions, HarnessRef } from "../../wire/proto";
 import { Badge, Banner, Row, RowList, Skeleton } from "../../ui/kit";
+import { AgentDiagnosticButton } from "../diagnostics/agent-diagnostic";
 import { FactValue, SettingsSection } from "../settings/settings-page";
 
 export function AgentDetail({
@@ -42,7 +43,10 @@ export function AgentDetail({
   const shown = agentHeadline(status);
   return (
     <>
-      <SettingsSection title={`${name} on ${label}`}>
+      <SettingsSection
+        title={`${name} on ${label}`}
+        action={<AgentDiagnosticButton machine={machine} agent={agent} />}
+      >
         <RowList label={`${name} on ${label}`}>
           <Row
             title="Status"
