@@ -1,56 +1,67 @@
-// Toasts (DESIGN.md §6.10): below the header, clear of the lower composer
-// and dock. Success leaves after 4 s; errors are dismissed.
+// Toasts (DESIGN.md §6.10): one at a time below the header, clear of the
+// lower composer and dock, as Paseo's ToastHost and ToastCard
+// (toast-host.tsx 81-130, 230-275). A new toast replaces the one up and
+// runs its own life (toast-life.ts); the card has no close button.
 
-import { Store, useStore } from "../data/store";
-import { IconButton } from "./kit";
+import { useStore } from "../data/store";
+import { Icon, type IconName } from "./kit";
+import {
+  holdToast,
+  releaseToast,
+  shownToast,
+  type ToastVariant,
+} from "./toast-life";
 import { useToastClearance } from "./use-toast-clearance";
 
-interface Toast {
-  id: number;
-  tone: "ok" | "error";
-  text: string;
-}
+export {
+  ERROR_TOAST_LIFE_MS,
+  TOAST_LIFE_MS,
+  toast,
+  toastCopied,
+} from "./toast-life";
 
-const toasts = new Store<readonly Toast[]>([]);
-let next = 1;
-
-export function toast(text: string, tone: "ok" | "error" = "ok"): void {
-  const id = next;
-  next += 1;
-  toasts.update((list) => [...list, { id, tone, text }]);
-  if (tone === "ok") {
-    setTimeout(() => {
-      dismiss(id);
-    }, 4000);
-  }
-}
-
-function dismiss(id: number): void {
-  toasts.update((list) => list.filter((item) => item.id !== id));
-}
+/** Paseo's leading mark per variant (CheckCircle2, Info, AlertTriangle);
+ * its default variant has none. */
+const MARKS: Readonly<Record<ToastVariant, IconName | null>> = {
+  default: null,
+  info: "info",
+  success: "circle-check",
+  warning: "warn",
+  error: "warn",
+};
 
 export function Toasts() {
-  const list = useStore(toasts, (value) => value);
-  const host = useToastClearance(list.length > 0);
+  const shown = useStore(shownToast, (value) => value);
+  const host = useToastClearance(shown !== null);
+  const mark = shown === null ? null : MARKS[shown.variant];
+  const urgent = shown?.variant === "error" || shown?.variant === "warning";
+  // One card for whichever toast is up, keyed by its role and not by
+  // toast: a replacement changes the words of the live region in place,
+  // as Paseo's single surface (a new node per toast may go unannounced);
+  // a change between status and alert is a new region.
   return (
-    <div ref={host} className="toast-stack">
-      {list.map((item) => (
+    <div ref={host} className="toast-host">
+      {shown === null ? null : (
         <div
-          key={item.id}
-          className={item.tone === "error" ? "toast error" : "toast"}
-          role={item.tone === "error" ? "alert" : "status"}
+          key={urgent ? "alert" : "status"}
+          className={`toast ${shown.variant}${shown.copied ? " copied" : ""}`}
+          role={urgent ? "alert" : "status"}
+          // Paseo holds the life on hover only (web); a touch is not a rest.
+          onPointerEnter={(event) => {
+            if (event.pointerType !== "touch") holdToast(shown.id);
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType !== "touch") releaseToast(shown.id);
+          }}
         >
-          <span>{item.text}</span>
-          <IconButton
-            label="Dismiss"
-            icon="close"
-            size="xs"
-            onClick={() => {
-              dismiss(item.id);
-            }}
-          />
+          {mark === null ? null : (
+            <span className="toast-mark">
+              <Icon name={mark} size={18} />
+            </span>
+          )}
+          <span className="toast-text">{shown.text}</span>
         </div>
-      ))}
+      )}
     </div>
   );
 }

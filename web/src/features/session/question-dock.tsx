@@ -81,7 +81,7 @@ export function QuestionDock({
         }
         setProblem(outcome.problem.message);
       } else if (code === "conflict" || code === "not_found") {
-        toast("This question was already answered elsewhere.");
+        toast("This question was already answered elsewhere.", "default");
       } else {
         toast(outcome.problem.message, "error");
       }

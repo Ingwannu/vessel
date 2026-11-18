@@ -69,6 +69,9 @@
   --warn: var(--st-review);
   --danger: light-dark(#9d0006, #fb4934);
   --interrupt: var(--text-tertiary);
+  /* Paseo's palette.blue[300] in both themes: its info toast's edge and
+     mark (toast-host.tsx 72, 309). */
+  --info: #93c5fd;
 
   /* The read-only quota bar: Paseo's surface3/4 in its default light/dark
      themes. Status/muted fills retain this page's existing palette. */
