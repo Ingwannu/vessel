@@ -91,12 +91,23 @@ fn shift_f10_and_the_menu_key_open_the_focused_tabs_menu(cx: &mut TestAppContext
     });
     // The opening itself, then the keys that ask for it.
     let opened = shell.update_in(cx, |shell, window, cx| {
-        let opened = shell.layout_tab_menu_from_keyboard(window, cx);
-        shell.areas.layout.menu.close();
-        opened
+        shell.layout_tab_menu_from_keyboard(window, cx)
     });
     assert!(opened, "the focused tab's menu opens under it");
+    cx.run_until_parked();
+    assert_eq!(menu_on(&shell, cx), Some(agent), "and stays open a frame");
+    shell.update(cx, |shell, _| shell.areas.layout.menu.close());
+    cx.run_until_parked();
     cx.simulate_keystrokes("shift-f10");
+    let seen = shell.read_with(cx, |shell, _| {
+        let area = &shell.areas.layout;
+        (
+            area.menu.is_open(),
+            area.menu_surface,
+            area.menu_tab.as_ref().map(|(_, tab)| *tab),
+        )
+    });
+    assert_eq!(seen, (true, Surface::Strip, Some(agent)), "after the key");
     cx.run_until_parked();
     assert_eq!(menu_on(&shell, cx), Some(agent));
     // It holds the session's own actions, as the bar's "…" did.
