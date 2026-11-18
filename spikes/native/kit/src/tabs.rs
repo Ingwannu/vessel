@@ -104,7 +104,16 @@ pub fn tab(
         .when(!chosen, |tab| {
             tab.cursor_pointer().hover(move |style| style.bg(hover))
         })
-        .child(label.into())
+        // One line with a tail ellipsis, as Paseo's tab label: wrapped so it
+        // can shrink below its words when a caller caps the tab's width (a
+        // bare text child keeps its full width and was cut mid-letter).
+        .child(
+            div()
+                .debug_selector(|| "tab-label".to_owned())
+                .min_w(px(0.0))
+                .truncate()
+                .child(label.into()),
+        )
         .children(count.filter(|count| *count > 0).map(|count| {
             div()
                 .type_(Type::Meta)
@@ -115,7 +124,38 @@ pub fn tab(
 
 #[cfg(test)]
 mod tests {
-    use super::count_text;
+    use super::{count_text, tab};
+    use crate::{Scheme, SchemeChoice, Tokens};
+    use gpui::{
+        Context, InteractiveElement as _, IntoElement, ParentElement as _, Render, Styled as _,
+        TestAppContext, Window, div, px,
+    };
+
+    struct Probe;
+    impl Render for Probe {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
+            let tokens = Tokens::of(Scheme::Dark);
+            let long = "Review the shell's command palette with long session titles";
+            div().child(
+                tab("long", long, false, None, &tokens)
+                    .debug_selector(|| "probe-tab".to_owned())
+                    .max_w(px(128.0)),
+            )
+        }
+    }
+
+    #[gpui::test]
+    fn a_long_label_ends_inside_its_capped_tab(cx: &mut TestAppContext) {
+        cx.update(|cx| crate::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap());
+        let (_view, cx) = cx.add_window_view(|_window, _cx| Probe);
+        cx.run_until_parked();
+        let chip = cx.debug_bounds("probe-tab").unwrap();
+        let label = cx.debug_bounds("tab-label").unwrap();
+        assert_eq!(chip.size.width, px(128.0));
+        // Inside the chip's 8 inset: the words end in an ellipsis there.
+        assert!(label.right() <= chip.right(), "{label:?} in {chip:?}");
+        assert!(label.left() >= chip.left(), "{label:?} in {chip:?}");
+    }
 
     #[test]
     fn writes_a_count_as_a_tab_does() {

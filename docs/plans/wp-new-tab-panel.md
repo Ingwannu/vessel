@@ -128,6 +128,20 @@ Details:
   "…"; the tab menu's own Copy agent id covers it. The row, its action
   and its words go.
 
+## Also in this branch
+
+- Package base 14.48 merged. TRACKER 804 had reworded the dead Copy
+  session id row (Copy agent id, a copied toast) and added its test
+  (`conversation::copy_tests`); the row goes as planned, with that test.
+  The tab menu's own Copy agent id and its toast stay (`layout::tab_menu`).
+- The rename field's limit from the node's protocol (TRACKER 801; the 800
+  plan's follow-up).
+- A strip tab's label is one line with a tail ellipsis, as Paseo's: the
+  kit tab wraps its words in a box that may shrink (`min_w(0)`,
+  `truncate`), so a tab capped at 128 ends in "…" instead of a cut letter
+  (the coordinator, from the 700 frames). Test: kit `tabs::tests`
+  `a_long_label_ends_inside_its_capped_tab`.
+
 ## Tests
 
 - app `layout::new_tab::tests`: groups and order (built-ins in Paseo's
