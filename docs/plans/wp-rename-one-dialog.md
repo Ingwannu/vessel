@@ -74,6 +74,18 @@ Status: built and gated; frames with the coordinator.
   the field at the next frame. gpui-base draws a read-only field's caret
   (only a disabled one hides it, and dims its text), and its patches are
   slotted, so the dialog moves the focus instead.
+- App review return (2026-11-18), fixed:
+  - R1: success closed the dialog without acknowledging it, so the keys
+    stayed on its undrawn focus and the next opening kept the old opener.
+    Now a close without a window (an answer, another session) sets
+    `rename_closed`, and the next frame calls `DialogState::dismissed`:
+    the opener has the keys again, a newer focus is kept.
+  - R2: the session's act goes to the session shown when it is sent. The
+    dialog sends only while that is still its own session; otherwise it
+    says "Unable to save" at once and does not wait.
+  - P3: a send waits at most 30 s (`RENAME_DEADLINE`), then says the
+    layout rename's timeout words and lets Cancel work: the act has no
+    deadline of its own. An answer after it still names the open session.
 - Dialog: Paseo's rename field profile (`TextField::rename_element`),
   limited to `SessionTitle::MAX_CHARS` (the kit's new
   `TextField::set_max_chars`; TRACKER 801 brings Paseo's 200). "Name is
@@ -115,7 +127,10 @@ limit comes from it and the connected node's protocol instead of
   a refusal keeps the typed title with the node's words and not under the
   bar, success closes and renames the open session; no caret while waiting
   (the field is not focused) and the field has the keys again after a
-  failure; the field stops at the node's longest title.
+  failure; the field stops at the node's longest title; a taken rename
+  hands the keys back to its opener and the next opening's Cancel returns
+  to its own; nothing is sent when the session is no longer shown (Unable
+  to save, not waiting); the deadline ends the wait with the timeout words.
 - app `layout::rename::tests`: a workspace rename takes only its own
   ticket's answer, names the card and closes; a refusal keeps the typed
   title with the layout's words.
@@ -129,13 +144,7 @@ limit comes from it and the connected node's protocol instead of
 
 ## Status
 
-Coordinator visual PASS (2026-11-18) on c4e51bad5's frames, with three
-fixes made in 0e0e23701 (Korean "이름 변경", no placeholder, no caret while
-waiting).
-
-Merged with package base 14.41 (33d2d6615, protocol 29) at a93ca4d15.
-Gates on 0e0e23701 (build VM, ordinary lane): the whole native gate
-(fonts, fmt, quality, clippy, build, test: 2314 passed, 0 failed, 2 ignored
-across kit, app, link and view) 0; wasm32 check of link and app 0, no
-warnings. Re-takes on the base14.41 fleet (export of 0e0e23701):
-ko-light-1280-rename-required and en-dark-1280-rename-saving.
+Coordinator visual PASS (2026-11-18) with three fixes (0e0e23701); re-takes
+on the base14.41 fleet. App review RETURN (R1, R2; P3 optional), all three
+fixed. Merged with package base 14.42 (e52e8a597) at d662f1d59; gates on
+the final head are in the notes and the hand-over.
