@@ -46,6 +46,7 @@ use crate::widgets::TypeExt as _;
 use crate::{fonts::Type, theme::Tokens};
 
 mod focus;
+mod inline;
 mod keys;
 mod lifecycle;
 mod pages;
@@ -54,6 +55,7 @@ mod rows;
 mod send;
 #[cfg(test)]
 mod sheet_drag_tests;
+pub use inline::combobox_inline;
 pub use send::{SendKind, send_button};
 
 /// Paseo's compact width: below it pickers are sheets and controls are
@@ -650,40 +652,6 @@ pub fn combobox<V: 'static>(
             .children(tips)
             .into_any_element(),
     )
-}
-
-/// The list inside a flyout, a page beside its menu ([`crate::submenu`]):
-/// the same panel, placed by [`crate::submenu::flyout`]; a press outside it
-/// is its menu's to judge.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "a list is drawn from its state, its content, its handlers and the window's size"
-)]
-pub fn combobox_inline<V: 'static>(
-    id: impl Into<ElementId>,
-    state: &ComboboxState,
-    header: &ComboHeader,
-    rows: &[ComboRow],
-    handlers: &ComboHandlers<V>,
-    width: f32,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, V>,
-) -> Option<AnyElement> {
-    if !state.open {
-        return None;
-    }
-    let list = panel::List {
-        id: id.into(),
-        state,
-        header,
-        rows,
-        handlers,
-        width,
-    };
-    let drawn = panel::panel(&list, panel::Surface::Flyout, tokens, window, cx);
-    let tips = state.tips.render(tokens);
-    Some(div().child(drawn).children(tips).into_any_element())
 }
 
 fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {
