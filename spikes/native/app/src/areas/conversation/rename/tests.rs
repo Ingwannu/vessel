@@ -45,7 +45,7 @@ fn the_dialog_opens_prefilled_and_saves_only_another_valid_title(cx: &mut TestAp
         cx.add_window_view(|window, cx| Probe(cx.new(|cx| Shell::without_io(window, cx))));
     probe.update_in(cx, |probe, window, cx| {
         probe.0.update(cx, |shell, cx| {
-            shell.start_rename("Fix the cart", window, cx)
+            shell.start_rename("Fix the cart", window, cx);
         });
     });
     cx.run_until_parked();
