@@ -163,20 +163,21 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
   await expect(page.locator(".toast.error")).toContainText("exists already");
   expect(readFileSync(join(shop, "README.md"), "utf8")).toBe(readme);
 
-  // A folder, then a file in it, which opens.
+  // A folder, then a file in it, which opens (names the shop fixture
+  // does not hold: it has notes/todo.md, e2e/repos.ts).
   menu = await menuOf(page, space);
   await menu.getByRole("menuitem", { name: "New folder" }).click();
-  await page.getByRole("textbox", { name: "Folder name" }).fill("notes");
+  await page.getByRole("textbox", { name: "Folder name" }).fill("sketches");
   await page.keyboard.press("Enter");
-  const notes = tree.getByRole("button", { name: "notes", exact: true });
-  await expect(notes).toBeVisible();
-  expect(existsSync(join(shop, "notes"))).toBe(true);
-  menu = await menuOf(page, notes);
+  const sketches = tree.getByRole("button", { name: "sketches", exact: true });
+  await expect(sketches).toBeVisible();
+  expect(existsSync(join(shop, "sketches"))).toBe(true);
+  menu = await menuOf(page, sketches);
   await menu.getByRole("menuitem", { name: "New file" }).click();
   await page.getByRole("textbox", { name: "File name" }).fill("todo.md");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "All files" })).toBeVisible();
-  expect(readFileSync(join(shop, "notes", "todo.md"), "utf8")).toBe("");
+  expect(readFileSync(join(shop, "sketches", "todo.md"), "utf8")).toBe("");
   await page.getByRole("button", { name: "All files" }).click();
 
   // Rename, typed in the row: the whole name selected to retype.
@@ -190,7 +191,7 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
   await expect(
     tree.getByRole("button", { name: "plan.md", exact: true }),
   ).toBeVisible();
-  expect(readdirSync(join(shop, "notes"))).toEqual(["plan.md"]);
+  expect(readdirSync(join(shop, "sketches"))).toEqual(["plan.md"]);
 
   // Duplicate: the node's copy beside it.
   menu = await menuOf(
@@ -201,17 +202,17 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
   await expect(
     tree.getByRole("button", { name: "plan copy.md", exact: true }),
   ).toBeVisible();
-  expect(readdirSync(join(shop, "notes")).sort()).toEqual([
+  expect(readdirSync(join(shop, "sketches")).sort()).toEqual([
     "plan copy.md",
     "plan.md",
   ]);
 
   // A folder renamed while open stays open, its files under it.
-  menu = await menuOf(page, notes);
+  menu = await menuOf(page, sketches);
   await menu.getByRole("menuitem", { name: "Rename" }).click();
-  await page.getByRole("textbox", { name: "Folder name" }).fill("notes-2");
+  await page.getByRole("textbox", { name: "Folder name" }).fill("sketches-2");
   await page.keyboard.press("Enter");
-  const renamed = tree.getByRole("button", { name: "notes-2", exact: true });
+  const renamed = tree.getByRole("button", { name: "sketches-2", exact: true });
   await expect(renamed).toHaveAttribute("aria-expanded", "true");
   await expect(
     tree.getByRole("button", { name: "plan.md", exact: true }),
@@ -221,10 +222,10 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
   menu = await menuOf(page, renamed);
   await menu.getByRole("menuitem", { name: "Delete" }).click();
   const ask = page.getByRole("dialog", { name: "Delete folder?" });
-  await expect(ask).toContainText('"notes-2" will be permanently deleted.');
+  await expect(ask).toContainText('"sketches-2" will be permanently deleted.');
   await ask.getByRole("button", { name: "Cancel" }).click();
   await expect(ask).toHaveCount(0);
-  expect(existsSync(join(shop, "notes-2"))).toBe(true);
+  expect(existsSync(join(shop, "sketches-2"))).toBe(true);
   menu = await menuOf(page, renamed);
   await menu.getByRole("menuitem", { name: "Delete" }).click();
   await page
@@ -232,5 +233,5 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
     .getByRole("button", { name: "Delete" })
     .click();
   await expect(renamed).toHaveCount(0);
-  expect(existsSync(join(shop, "notes-2"))).toBe(false);
+  expect(existsSync(join(shop, "sketches-2"))).toBe(false);
 });
