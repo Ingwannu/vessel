@@ -33,7 +33,7 @@ pub use node::{BookName, InvalidBookName, InvalidNodeKey, NodeKey};
 pub use prefs::{
     ActionId, AgentDefaults, AgentKind, Alerts, Appearance, Bindings, Bounded, ChoiceKey,
     ChoiceKeyTooLong, Choices, ChoicesError, CodeSize, Composer, ContentWidth, ConversationDisplay,
-    Draft, DraftKey, DraftText, DraftTooLong, DraftsState, Grouping, InterfaceSize,
+    Draft, DraftKey, DraftText, DraftTooLong, DraftsState, ExplorerSort, Grouping, InterfaceSize,
     InvalidActionId, InvalidKeyBinding, Kept, KeyBinding, LabelPick, LabelPicks, LaunchOnly,
     Layout, MAX_ACTIONS, MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS,
     MAX_MACHINES, MAX_USAGE_PINS, MachineDefaults, Notifications, OutOfRange, Panel,

@@ -1529,9 +1529,19 @@ project".
   bound), the switch to "Search in files" (lines by content, under their
   file, the first 500), "Show ignored files", and Refresh (the open
   folders listed again; they stay open across a file opened and closed).
+  While the tree shows, Paseo's sort trigger sits after the field: the
+  order's word ("Name", "Modified", "Size") and a 12px chevron; a press
+  moves to the next. The order is kept by the bridge with the panels
+  (`layout.explorer_sort`), so every tab and launch shows the same; a
+  node older than the file panels protocol sorts by name and shows no
+  trigger.
 - The tree: 28px rows, 6px in and 16px more per level, a folder's open
   or closed mark or a file's, 13px names; a folder is listed when first
   opened; past 5,000 entries a line says to find by name. Windowed.
+  Folders first, then the chosen order (Paseo's `sortExplorerEntries`):
+  by name as people read it, by last change (newest first) or by size
+  (largest first); Modified and Size inspect each shown folder
+  (`file.inspect`).
 - A file: a 36px head (back, the path with its folders muted, Edit), its
   lines numbered in syntax colour, windowed, the next page read as the
   reader nears the end; a line found by content is put in the middle of

@@ -254,6 +254,9 @@ impl PrefsDoc {
                 body.appearance.make_read().conversation.set(*conversation);
             }
             PreferenceChange::SidebarPanel(panel) => body.layout.make_read().sidebar.set(*panel),
+            PreferenceChange::ExplorerSort(sort) => {
+                body.layout.make_read().explorer_sort.set(*sort);
+            }
             PreferenceChange::InspectorPanel(panel) => {
                 body.layout.make_read().inspector.set(*panel);
             }

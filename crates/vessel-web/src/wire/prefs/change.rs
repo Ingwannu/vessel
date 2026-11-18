@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
-    ActionId, Alerts, Bindings, Choices, CodeSize, ContentWidth, ConversationDisplay, Grouping,
-    InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme, TurnDelivery, UsageDisplay,
-    UsagePins,
+    ActionId, Alerts, Bindings, Choices, CodeSize, ContentWidth, ConversationDisplay, ExplorerSort,
+    Grouping, InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme, TurnDelivery,
+    UsageDisplay, UsagePins,
 };
 #[cfg(doc)]
 use super::{
@@ -41,6 +41,8 @@ pub enum PreferenceChange {
     SidebarPanel(Panel),
     /// [`Layout::inspector`].
     InspectorPanel(Panel),
+    /// [`Layout::explorer_sort`].
+    ExplorerSort(ExplorerSort),
     /// [`Composer::send`].
     Send(SendKey),
     /// [`Composer::delivery`].

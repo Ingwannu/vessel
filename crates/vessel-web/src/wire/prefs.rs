@@ -260,6 +260,9 @@ pub struct Layout {
     pub sidebar: Panel,
     /// The inspector (a session's summary).
     pub inspector: Panel,
+    /// How the Files tab's tree orders a folder's entries (Paseo's
+    /// `explorerSortOption`, kept with its panels).
+    pub explorer_sort: ExplorerSort,
 }
 
 /// Whether a panel shows.
@@ -272,6 +275,22 @@ pub enum Panel {
     Shown,
     /// Hidden.
     Hidden,
+}
+
+/// The order of a folder's entries in the Files tab's tree: folders first,
+/// then by name, by last change (newest first) or by size (largest first),
+/// as Paseo's file explorer sorts.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum ExplorerSort {
+    /// By name.
+    #[default]
+    Name,
+    /// By last change, newest first.
+    Modified,
+    /// By size, largest first.
+    Size,
 }
 
 /// The composer.
@@ -462,7 +481,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }

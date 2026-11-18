@@ -18,6 +18,7 @@ import type {
   GrepCase,
   GrepMode,
   GrepResult,
+  InspectedDirectory,
   ObservedFile,
   RelPath,
   WorkspaceRoot,
@@ -119,6 +120,25 @@ export function deletePath(
 ): Promise<Outcome<null>> {
   return attempt(() =>
     fleet.bridge.call(node, "file.delete", { root, path, recursive }),
+  );
+}
+
+/** Each entry of folder `directory` with when it last changed and its
+ * size (`file.inspect`, the file panels protocol): the Files tab's Modified
+ * and Size orders. */
+export function inspectDir(
+  fleet: Fleet,
+  node: NodeKey,
+  root: WorkspaceRoot,
+  directory: RelPath,
+  ignored: boolean,
+): Promise<Outcome<InspectedDirectory>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "file.inspect", {
+      root,
+      directory,
+      ignored: ignored ? "include" : "exclude",
+    }),
   );
 }
 

@@ -3,6 +3,8 @@ import { describe, expect, test } from "vitest";
 import type { DirEntry } from "../../wire/proto";
 import {
   absolutePath,
+  nextSort,
+  sortedEntries,
   isWithin,
   nameProblem,
   renamedOpen,
@@ -113,5 +115,55 @@ describe("open folders after a rename or a delete", () => {
 
   test("deleted: the folder and those inside it go", () => {
     expect([...withoutWithin(open, "src")].sort()).toEqual(["docs", "srcs"]);
+  });
+});
+
+describe("Paseo's explorer orders (tree.ts sortExplorerEntries)", () => {
+  const entries: DirEntry[] = [
+    { name: "b.txt", kind: "file" },
+    { name: "src", kind: "dir" },
+    { name: "a.txt", kind: "file" },
+    { name: "C.txt", kind: "file" },
+    { name: "docs", kind: "dir" },
+  ];
+  const facts = new Map([
+    ["a.txt", { modified: 100, size: 3000 }],
+    ["b.txt", { modified: 300, size: 10 }],
+    ["C.txt", { modified: 200, size: 500 }],
+    ["src", { modified: 50, size: null }],
+    ["docs", { modified: 400, size: null }],
+  ]);
+  const names = (by: "name" | "modified" | "size") =>
+    sortedEntries(entries, "", { by, facts }).map((entry) => entry.name);
+
+  test("folders first, then by name as people read it", () => {
+    expect(names("name")).toEqual(["docs", "src", "a.txt", "b.txt", "C.txt"]);
+  });
+
+  test("Modified: newest first; Size: largest first", () => {
+    expect(names("modified")).toEqual([
+      "docs",
+      "src",
+      "b.txt",
+      "C.txt",
+      "a.txt",
+    ]);
+    expect(names("size")).toEqual(["src", "docs", "a.txt", "C.txt", "b.txt"]);
+  });
+
+  test("an entry the node gave no time for goes last", () => {
+    const some = new Map([["a.txt", { modified: 1, size: 1 }]]);
+    const sorted = sortedEntries(entries, "", { by: "modified", facts: some });
+    expect(sorted.map((entry) => entry.name).slice(2)).toEqual([
+      "a.txt",
+      "b.txt",
+      "C.txt",
+    ]);
+  });
+
+  test("a press moves Name, Modified, Size, then Name again", () => {
+    expect(nextSort("name")).toBe("modified");
+    expect(nextSort("modified")).toBe("size");
+    expect(nextSort("size")).toBe("name");
   });
 });

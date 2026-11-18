@@ -7,7 +7,16 @@
 // files (New file, New folder, Rename typed in the tree, Duplicate,
 // Delete after Paseo's question), leaving `shop` as it was.
 
-import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { expect, type Locator, type Page, test } from "@playwright/test";
@@ -251,4 +260,55 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
     .click();
   await expect(renamed).toHaveCount(0);
   expect(existsSync(join(shop, "sketches-2"))).toBe(false);
+});
+
+test("the sort trigger orders a folder by name, last change or size, as Paseo's", async ({
+  page,
+}) => {
+  const env = loadEnv();
+  const shop = realpathSync(join(env.root, "repos", "shop"));
+  // Three files whose names, times and sizes each order differently.
+  const folder = join(shop, "sorting");
+  mkdirSync(folder, { recursive: true });
+  const made = [
+    { name: "a.txt", size: 3000, at: 1_700_000_100 },
+    { name: "b.txt", size: 10, at: 1_700_000_300 },
+    { name: "c.txt", size: 500, at: 1_700_000_200 },
+  ];
+  for (const file of made) {
+    const path = join(folder, file.name);
+    writeFileSync(path, "x".repeat(file.size));
+    utimesSync(path, file.at, file.at);
+  }
+  try {
+    await openUi(page);
+    await startInShop(page, "Local", "Sort the files");
+    await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
+    await panelTab(page, "Files").click();
+    const tree = page.getByRole("region", { name: "Files" });
+    await tree.getByRole("button", { name: "sorting", exact: true }).click();
+    const order = () =>
+      tree.getByRole("button", { name: /^[abc]\.txt$/ }).allInnerTexts();
+    const sort = page.getByRole("button", { name: /^Sort: / });
+    await expect(sort).toHaveText("Name");
+    await expect.poll(order).toEqual(["a.txt", "b.txt", "c.txt"]);
+    await sort.click();
+    await expect(sort).toHaveText("Modified");
+    await expect.poll(order).toEqual(["b.txt", "c.txt", "a.txt"]);
+    await sort.click();
+    await expect(sort).toHaveText("Size");
+    await expect.poll(order).toEqual(["a.txt", "c.txt", "b.txt"]);
+    // Kept by the bridge: the next Files tab opens in the same order.
+    await panelTab(page, "Changes").click();
+    await panelTab(page, "Files").click();
+    await expect(page.getByRole("button", { name: /^Sort: / })).toHaveText(
+      "Size",
+    );
+    await page.getByRole("button", { name: /^Sort: / }).click();
+    await expect(page.getByRole("button", { name: /^Sort: / })).toHaveText(
+      "Name",
+    );
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 });

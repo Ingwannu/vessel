@@ -23,11 +23,12 @@ import {
 } from "../../data/workspace/file-tree";
 import { listDir } from "../../data/workspace/files";
 import { Icon, Spinner } from "../../ui/kit";
-import type { NodeKey } from "../../wire/bridge";
+import type { ExplorerSort, NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
 import { useWindow } from "../session/use-window";
 import { WindowRow } from "../session/window-row";
 import { DeleteConfirm, EntryMenu, NameRow, SpaceMenu } from "./explorer-menu";
+import { useEntryFacts } from "./use-entry-facts";
 import {
   type ExplorerActions,
   useExplorerActions,
@@ -124,6 +125,7 @@ export function FileTreeView({
   folder,
   session,
   ignored,
+  sort,
   open,
   onOpenChange,
   onFile,
@@ -136,6 +138,8 @@ export function FileTreeView({
   session: SessionId;
   /** Whether files git ignores are listed too. */
   ignored: boolean;
+  /** The order of a folder's entries (Paseo's explorer sort). */
+  sort: ExplorerSort;
   /** The folders open, kept by the tab across a file opened. */
   open: ReadonlySet<RelPath>;
   /** The tab's setter: a set, or a change of the set as it is when it
@@ -187,9 +191,10 @@ export function FileTreeView({
       onFile,
     },
   );
+  const facts = useEntryFacts(node, root, ignored, listings, sort);
   const rows = useMemo(
-    () => withEdit(treeRows(listings, open), actions.edit),
-    [listings, open, actions.edit],
+    () => withEdit(treeRows(listings, open, { by: sort, facts }), actions.edit),
+    [listings, open, sort, facts, actions.edit],
   );
   const windowed = useWindow(rows, null, { follow: false });
   const { scroller, span } = windowed;
