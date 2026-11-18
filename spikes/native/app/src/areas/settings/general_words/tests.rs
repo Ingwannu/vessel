@@ -101,7 +101,7 @@ fn changed_language_uses_the_prepared_safe_position_fallback() {
             prepared.hint.as_ref(),
             "Preference storage information is unavailable."
         );
-        prepared.refresh(ko, &kept, &mut None);
+        prepared.refresh(ko, &kept);
         assert_eq!(
             prepared.hint.as_ref(),
             "환경설정 보관 정보를 표시할 수 없습니다."
