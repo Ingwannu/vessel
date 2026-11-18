@@ -433,3 +433,66 @@ fn with_two_panes_the_switcher_is_the_focused_panes_and_closes_only_there(cx: &m
         assert!(side_open);
     });
 }
+
+/// At 700 the window is a desktop's: the bar and the strip are drawn, and
+/// Paseo's menus there are popovers (its one compact width is 600; the
+/// app reviewer on TRACKER 798, the coordinator's ruling).
+fn wide(cx: &mut TestAppContext) -> (Entity<Probe>, &mut gpui::VisualTestContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    cx.simulate_resize(gpui::size(px(700.0), px(844.0)));
+    cx.run_until_parked();
+    cx.update(|window, _| {
+        assert_eq!(super::super::mode(window), LayoutMode::SplitPanes);
+        assert!(!vessel_app_kit::breakpoint::phone(window));
+    });
+    (probe, cx)
+}
+
+/// The open menu is a popover: its first row is the menu's 220 less its
+/// insets, not the window's width.
+fn assert_popover(cx: &mut gpui::VisualTestContext) {
+    cx.update(|window, cx| {
+        let _ran = window.simulate_next_frame(cx);
+    });
+    cx.run_until_parked();
+    let row = cx.debug_bounds("menu-row-0").unwrap();
+    assert!(row.size.width <= px(220.0), "{row:?}");
+}
+
+#[gpui::test]
+fn at_700_workspace_actions_is_a_popover(cx: &mut TestAppContext) {
+    let (probe, cx) = wide(cx);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.0.update(cx, |shell, cx| {
+            let at = vessel_app_kit::ui::point(px(600.0), px(40.0));
+            shell.areas.layout.workspace_menu.menu.open(at, window, cx);
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+    assert_popover(cx);
+}
+
+#[gpui::test]
+fn at_700_a_strip_tabs_menu_is_a_popover(cx: &mut TestAppContext) {
+    let (probe, cx) = wide(cx);
+    let ids = tab_ids(&probe, cx);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.0.update(cx, |shell, cx| {
+            // As a right press on the strip tab opens it (`draw::tab_view`).
+            let workspace = super::super::key(shell).unwrap();
+            let area = &mut shell.areas.layout;
+            area.menu_surface = Surface::Strip;
+            area.menu_tab = Some((workspace, ids[0]));
+            let at = vessel_app_kit::ui::point(px(40.0), px(40.0));
+            area.menu.open(at, window, cx);
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        assert!(probe.0.read(cx).areas.layout.menu.is_open());
+    });
+    assert_popover(cx);
+}

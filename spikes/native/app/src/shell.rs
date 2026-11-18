@@ -310,8 +310,9 @@ impl Render for Shell {
         self.settle_areas(window, cx);
         self.terminal_present(window, cx);
         let tokens = tokens(cx);
-        // Sidebar form is independent of global phone chrome. Navigation
-        // or docking closes its sheet; the titlebar keeps the global policy.
+        // The sidebar's form is its own decision (the view's budget); the
+        // phone chrome switches at the same width (600, TRACKER 798).
+        // Navigation or docking closes its sheet.
         let phone = vessel_app_kit::breakpoint::phone(window);
         let sidebar = areas::sidebar::arrangement(self, window);
         let sheet_form = matches!(sidebar, vessel_app_view::panels::SidebarLayout::Sheet);

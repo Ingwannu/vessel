@@ -1,5 +1,6 @@
-//! Real shell rendering at the sidebar boundary; global phone chrome stays
-//! independent. The shared pure budget tests cover every numeric branch.
+//! Real shell rendering at the sidebar boundary, which the phone chrome
+//! shares (600, TRACKER 798). The shared pure budget tests cover every
+//! numeric branch.
 use super::arrangement;
 use crate::routes::Route;
 use crate::shell::{Shell, language_tests};
@@ -79,11 +80,10 @@ fn root_docks_requested_sidebar_at_exact_six_hundred_without_explorer_or_setting
 }
 
 #[gpui::test]
-fn settings_keeps_current_phone_form_and_wide_navigation_until_frame_fallback(
-    cx: &mut TestAppContext,
-) {
+fn settings_takes_its_phone_form_below_the_one_compact_width(cx: &mut TestAppContext) {
     language_tests::init(cx);
-    for (width, sheet) in [(650.0, true), (800.0, false)] {
+    // Settings folds at the one compact width, as every route (TRACKER 798).
+    for (width, sheet) in [(590.0, true), (650.0, false), (800.0, false)] {
         let (shell, cx) = setup(cx, width, Route::Settings);
         cx.update(|window, cx| {
             shell.read_with(cx, |shell, _| {

@@ -112,6 +112,15 @@ fn key(shell: &Shell) -> Result<LayoutKey, LayoutError> {
         session: open.session,
     })
 }
+// The kit's phone form (sheets, touch sizes) and the layout's Compact switch
+// at one width, as Paseo's compact does (below `md`, 600; TRACKER 798). The
+// view cannot depend on the kit, so the app, which sees both, holds them
+// equal here.
+const _: () = assert!(
+    vessel_app_kit::breakpoint::PHONE.to_bits()
+        == vessel_app_view::layout::COMPACT_LAYOUT_WIDTH.to_bits()
+);
+
 pub(crate) fn mode(window: &Window) -> LayoutMode {
     LayoutMode::for_width(
         f32::from(window.viewport_size().width),
