@@ -240,7 +240,10 @@ fn every_label_starts_on_one_rail(cx: &mut TestAppContext) {
     let ends: Vec<Pixels> = BUILT_INS
         .iter()
         .chain(&PROFILES)
-        .map(|id| cx.debug_bounds(format!("new-tab-icon-{id}").leak()).unwrap())
+        .map(|id| {
+            cx.debug_bounds(format!("new-tab-icon-{id}").leak())
+                .unwrap()
+        })
         .map(|icon| icon.right())
         .collect();
     assert!(ends.windows(2).all(|pair| pair[0] == pair[1]), "{ends:?}");
