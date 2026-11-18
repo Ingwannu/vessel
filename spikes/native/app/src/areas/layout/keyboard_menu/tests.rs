@@ -81,6 +81,21 @@ fn menu_on(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<TabId> {
 fn shift_f10_and_the_menu_key_open_the_focused_tabs_menu(cx: &mut TestAppContext) {
     let (shell, cx, agent) = page(cx, 1280.0);
     assert_eq!(menu_on(&shell, cx), None);
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.route, Route::Session);
+        assert!(shell.global_shortcuts_enabled());
+        assert!(
+            shell.areas.layout.tab_place(agent).get().is_some(),
+            "the strip drew the tab"
+        );
+    });
+    // The opening itself, then the keys that ask for it.
+    let opened = shell.update_in(cx, |shell, window, cx| {
+        let opened = shell.layout_tab_menu_from_keyboard(window, cx);
+        shell.areas.layout.menu.close();
+        opened
+    });
+    assert!(opened, "the focused tab's menu opens under it");
     cx.simulate_keystrokes("shift-f10");
     cx.run_until_parked();
     assert_eq!(menu_on(&shell, cx), Some(agent));

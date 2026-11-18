@@ -15,8 +15,13 @@ use vessel_proto::{SessionId, WorkspaceId};
 struct Probe(Entity<Shell>);
 
 impl Render for Probe {
-    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
-        div()
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = vessel_app_kit::tokens(cx);
+        self.0.update(cx, |shell, cx| {
+            div().children(crate::areas::conversation::rename_dialog(
+                shell, &tokens, window, cx,
+            ))
+        })
     }
 }
 

@@ -136,7 +136,8 @@ fn the_dialog_opens_prefilled_and_asks_for_a_name(cx: &mut TestAppContext) {
         state(&probe, cx).and_then(|(_, _, error, _)| error),
         Some(words.name_required().to_owned())
     );
-    typed(&probe, cx, "Fix the basket");
+    // Typing (a real edit: a programmatic text sends no change) clears it.
+    cx.simulate_input("Fix the basket");
     assert_eq!(
         state(&probe, cx).map(|(_, save, error, _)| (save, error)),
         Some((true, None)),
