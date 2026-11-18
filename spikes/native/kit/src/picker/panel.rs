@@ -120,7 +120,8 @@ pub(super) fn panel<V: 'static>(
         // Gorhom's handle on Paseo's combobox sheet, the kit's sheets' one.
         Surface::Sheet => panel
             .w_full()
-            .max_h(gpui::relative(0.9))
+            // At most 90% of the window: `held` keeps that limit.
+            .min_h_0()
             .rounded_t(px(popup::SHEET_RADIUS))
             .pb(px(16.0))
             .child(handle(tokens, drag.as_ref())),
@@ -171,6 +172,9 @@ fn held(state: &ComboboxState, arrived: AnyElement) -> AnyElement {
     div()
         .relative()
         .w_full()
+        .max_h(gpui::relative(0.9))
+        .flex()
+        .flex_col()
         .top(state.sheet.offset())
         .child(arrived)
         .child(state.sheet.panel_probe())

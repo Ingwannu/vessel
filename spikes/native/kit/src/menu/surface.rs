@@ -63,7 +63,9 @@ pub(super) fn sheet(panel: Stateful<Div>, title: SharedString, tokens: &Tokens) 
     let surfaces = Surfaces::of(tokens);
     panel
         .w_full()
-        .max_h(gpui::relative(0.8))
+        // At most 80% of the window: the drag's wrapper holds that limit
+        // (`SheetBoundary`), the panel shrinks into it.
+        .min_h_0()
         .bg(surfaces.surface0)
         .border_1()
         .border_color(tokens.neutral.border)
@@ -173,6 +175,9 @@ impl RenderOnce for SheetBoundary {
         let panel = div()
             .relative()
             .w_full()
+            .max_h(gpui::relative(0.8))
+            .flex()
+            .flex_col()
             .top(self.sheet.offset())
             .child(self.panel)
             .child(self.sheet.panel_probe())

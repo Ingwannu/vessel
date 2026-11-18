@@ -79,6 +79,16 @@ fn a_phone_menu_with_a_sheet_title_comes_up_from_the_bottom(cx: &mut TestAppCont
 }
 
 #[gpui::test]
+fn the_sheet_is_as_tall_as_its_rows(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, true);
+    let row = labels_row(&view, cx);
+    let panel = view
+        .read_with(cx, |probe, _| probe.menu.sheet.panel_bounds())
+        .unwrap();
+    assert!(panel.bottom() >= row.bottom());
+}
+
+#[gpui::test]
 fn without_a_sheet_title_a_phone_keeps_the_popover(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, false);
     let (width, _) = window_size(cx);
