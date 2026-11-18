@@ -7,6 +7,7 @@ use crate::shell::language_tests;
 use gpui::{AppContext as _, Render, TestAppContext, VisualTestContext};
 use vessel_app_kit::ui::{Entity, IntoElement, Window, div};
 use vessel_app_link::workspace::layout::{Answer, Ask};
+use vessel_app_view::layout::RenameTicket;
 use vessel_app_view::board::CardDetail;
 use vessel_app_view::{Attention, Card, Machine, Phrase, Reach};
 use vessel_proto::{SessionId, WorkspaceId};

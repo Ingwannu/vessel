@@ -22,8 +22,8 @@
 //!     alias and id, answered by ticket (`layout_renamed`);
 //!   - otherwise the session's own act (`Act::Rename`), answered by the act
 //!     for this machine and session (`rename_acted`).
-//!   The field is the kit's rename profile, limited to the node's longest
-//!   title (`SessionTitle::MAX_CHARS`; TRACKER 801 brings Paseo's 200).
+//! - Field: the kit's rename profile, limited to the node's longest title
+//!   (`SessionTitle::MAX_CHARS`; TRACKER 801 brings Paseo's 200).
 //! - Cost: an answer closes the dialog without a window, so focus is not
 //!   handed back to the opener (as the settings page's rename). A session's
 //!   own refusal is said in the dialog only, not again under the bar's
@@ -105,7 +105,9 @@ impl ConversationArea {
         }
     }
 
-    /// The layout an open form was opened from, which it holds.
+    /// The layout an open form was opened from, which it holds (the staged
+    /// layout preferences read it).
+    #[cfg(test)]
     pub(crate) fn rename_workspace(&self) -> Option<&vessel_app_view::layout::LayoutKey> {
         match self.rename.as_ref().map(|rename| &rename.route) {
             Some(Route::Layout(route)) => Some(route.workspace()),

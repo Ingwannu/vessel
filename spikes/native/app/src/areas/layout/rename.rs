@@ -32,6 +32,7 @@ pub(crate) struct LayoutRoute {
 
 impl LayoutRoute {
     /// The layout it was opened from (kept while the form is open).
+    #[cfg(test)]
     pub(crate) const fn workspace(&self) -> &LayoutKey {
         &self.workspace
     }
