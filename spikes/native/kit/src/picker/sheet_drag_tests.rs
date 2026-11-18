@@ -3,7 +3,8 @@
 use super::*;
 use crate::{Scheme, Tokens};
 use gpui::{
-    Entity, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext, div, point, px, size,
+    Entity, Modifiers, MouseButton, Point, Render, TestAppContext, VisualTestContext, div, point, px,
+    size,
 };
 
 struct Probe {

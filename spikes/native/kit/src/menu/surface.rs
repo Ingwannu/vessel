@@ -32,8 +32,8 @@ use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, Context, Div, MouseButton, MouseDownEvent, SharedString, Stateful, Window,
-    anchored, div, point, px,
+    AnyElement, App, Context, Div, ElementId, MouseButton, MouseDownEvent, SharedString, Stateful,
+    Window, anchored, div, point, px,
 };
 use std::rc::Rc;
 
@@ -115,9 +115,28 @@ pub(super) fn scrim<V: 'static>(
 /// A press on the scrim.
 pub(super) type ScrimPress = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App)>;
 
+/// A phone's sheet: it rises over the standard length, as the list's
+/// does, and its drag closes the menu.
+pub(super) fn sheet_surface<V: 'static>(
+    panel: Stateful<Div>,
+    arrival: ElementId,
+    state: &MenuState,
+    get: fn(&mut V) -> &mut MenuState,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    let panel = popup::appear(arrival, panel, crate::motion::STANDARD).into_any_element();
+    SheetBoundary {
+        panel,
+        on_scrim: Box::new(scrim(state, get, cx)),
+        sheet: Rc::clone(&state.sheet),
+        on_release: released(state, get, cx),
+    }
+    .into_any_element()
+}
+
 /// A pan down the sheet that ends past its stop closes the menu, as a
 /// press on the scrim does (Paseo's `enablePanDownToClose`).
-pub(super) fn released<V: 'static>(
+fn released<V: 'static>(
     state: &MenuState,
     get: fn(&mut V) -> &mut MenuState,
     cx: &mut Context<'_, V>,

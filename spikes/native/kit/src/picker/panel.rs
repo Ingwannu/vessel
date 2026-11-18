@@ -159,17 +159,22 @@ pub(super) fn panel<V: 'static>(
     )
     .into_any_element();
     if compact {
-        // Drawn as far below its stop as the drag holds it, and measured.
-        div()
-            .relative()
-            .w_full()
-            .top(state.sheet.offset())
-            .child(arrived)
-            .child(state.sheet.panel_probe())
-            .into_any_element()
+        held(state, arrived)
     } else {
         arrived
     }
+}
+
+/// On a sheet: drawn as far below its stop as the drag holds it, and
+/// measured for it.
+fn held(state: &ComboboxState, arrived: AnyElement) -> AnyElement {
+    div()
+        .relative()
+        .w_full()
+        .top(state.sheet.offset())
+        .child(arrived)
+        .child(state.sheet.panel_probe())
+        .into_any_element()
 }
 
 /// A sheet's drag (TRACKER 799, `sheet::snap::host`): this frame of it and
