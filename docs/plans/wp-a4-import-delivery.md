@@ -1,5 +1,9 @@
 # A4 first product packet: own-history import and actual queued delivery
 
+> The app side of this packet (multi-select rows, the `History` model and
+> "no navigation after a receipt") is superseded by TRACKER 777
+> (`wp-import-sheet-parity.md`, 2026-11-17). Link delivery is unchanged.
+
 ## Current bounded validation
 
 Exact031f60215331f168e85ce12bfd6024f7e2ec2b5d passed both requested remote

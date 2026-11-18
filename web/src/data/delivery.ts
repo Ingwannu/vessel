@@ -21,9 +21,17 @@
 //   steer), the default from the preference (Paseo's "Default send"),
 //   the other way with the modifier, as all three do. The other way of
 //   queue is steer where the agent can and interrupt where it cannot; of
-//   steer and interrupt, queue (Paseo's pairs). An agent that cannot
-//   steer queues instead and the button says so; the person's choice is
-//   kept for the next agent that can.
+//   steer and interrupt, queue (Paseo's pairs). The person's choice is
+//   kept for the next agent that can steer.
+// - TRACKER 794, Paseo's two rules, as the native app has them
+//   (view/src/session/delivery.rs `send_delivery`): a Steer the agent
+//   cannot take replaces the turn (Paseo's server,
+//   `steerOrReplaceActiveTurn`; the page used to queue it), and a Queue
+//   while a permission waits interrupts (Paseo's
+//   `resolveActiveSendBehavior`: the turn is parked on the request, so a
+//   queued message would be stranded). The box stays usable while a
+//   permission waits, as Paseo's does. Both are deliveries the node
+//   already takes; the button says why it differs from the choice.
 // - Between turns a held queue (the person stopped a turn) does not take
 //   a new message: it starts now, and what was held stays held until the
 //   person resumes it (agent-orchestrator's "an empty queue is never
@@ -60,7 +68,13 @@ export interface SendState {
   /** Whether the node refused a steer for this session ("method not
    * found" from an agent that said it could). */
   steerRefused: boolean;
+  /** Whether a permission request waits for the person's answer. */
+  permissionWaits: boolean;
 }
+
+/** Why a message does not go the chosen way: the agent cannot steer
+ * (the turn is replaced), or a permission waits (a Queue interrupts). */
+export type DeliveryFallback = "cannot-steer" | "permission-waits";
 
 /** What the button does. */
 export type SendPlan =
@@ -77,7 +91,7 @@ export type SendPlan =
       kind: "deliver";
       delivery: Delivery;
       alternate: Delivery | null;
-      fallback: "cannot-steer" | null;
+      fallback: DeliveryFallback | null;
     };
 
 /** Whether the agent can take a message into a running turn. */
@@ -108,15 +122,36 @@ export function sendPlan(state: SendState): SendPlan {
     };
   }
   const steers = canSteer(state);
-  const wanted: Delivery = state.preferred;
-  const delivery = wanted === "steer" && !steers ? "queue" : wanted;
+  const chosen: Delivery = state.preferred;
+  const delivery: Delivery =
+    chosen === "queue"
+      ? state.permissionWaits
+        ? "interrupt"
+        : "queue"
+      : chosen === "steer" && !steers
+        ? "interrupt"
+        : chosen;
   return {
     kind: "deliver",
     delivery,
     alternate:
       delivery === "queue" ? (steers ? "steer" : "interrupt") : "queue",
-    fallback: delivery === wanted ? null : "cannot-steer",
+    fallback:
+      delivery === chosen
+        ? null
+        : chosen === "queue"
+          ? "permission-waits"
+          : "cannot-steer",
   };
+}
+
+/** The delivery a message would take while a turn runs, whatever the box
+ * holds now, so the empty box can say what Enter will do; `null` between
+ * turns and on a node before protocol 10. */
+export function nextDelivery(state: SendState): Delivery | null {
+  if (!state.inTurn) return null;
+  const plan = sendPlan({ ...state, filled: true });
+  return plan.kind === "deliver" ? plan.delivery : null;
 }
 
 /** Between turns: `queue` keeps the order of what already waits and

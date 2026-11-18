@@ -1,5 +1,10 @@
 # Import selectors on the shared per-open picker
 
+> Superseded by TRACKER 777 (`wp-import-sheet-parity.md`, 2026-11-17): the
+> coordinator ruled that the sheet follows Paseo, so these stacked machine,
+> agent and account pickers were removed. The fences below (per-opening
+> capture, `history_fleet`, `history_retired`) carry over to the new sheet.
+
 This is a separate consumer follow-up to the adopted minimum import sheet.
 Automatic Open remains parked; selecting an account or target never navigates,
 reloads another session, clears a composer or changes a managed relationship.

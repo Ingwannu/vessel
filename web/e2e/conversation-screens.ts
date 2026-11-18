@@ -64,12 +64,13 @@ async function picture(page: Page): Promise<Buffer> {
 async function queue(page: Page, scheme: Scheme): Promise<void> {
   await startSession(page, "laptop", "Structured", "wait");
   await expect(timeline(page).getByText("turn 1")).toBeVisible();
+  // Send steers by default (ADR 0108): the other way queues.
   await text(page).fill("Also update the board's tests for the archive lane");
-  await text(page).press("Enter");
+  await text(page).press("ControlOrMeta+Enter");
   await text(page).fill(
     "Then run the whole end-to-end suite and tell me what fails",
   );
-  await text(page).press("Enter");
+  await text(page).press("ControlOrMeta+Enter");
   await text(page).fill("Look at the reducer's index before you change it");
   await expect(
     page.getByRole("region", { name: "2 queued messages" }),
@@ -81,17 +82,17 @@ async function queue(page: Page, scheme: Scheme): Promise<void> {
   // The button's tooltip, and the other way while the modifier is held.
   await page
     .getByRole("form", { name: "Prompt" })
-    .getByRole("button", { name: "Queue message" })
+    .getByRole("button", { name: "Steer message" })
     .hover();
   await expect(page.locator(".tooltip")).toBeVisible();
   await shot(page, `a12-send-tooltip-${scheme}`);
   await page.keyboard.down("Control");
   await expect(
     page.getByRole("form", { name: "Prompt" }).getByRole("button", {
-      name: "Steer message",
+      name: "Queue message",
     }),
   ).toBeVisible();
-  await shot(page, `a13-send-steer-held-${scheme}`);
+  await shot(page, `a13-send-queue-held-${scheme}`);
   await page.keyboard.up("Control");
   // Editing one in the box.
   await text(page).fill("");

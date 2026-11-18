@@ -66,9 +66,65 @@ reset", "No prompt will be sent automatically. Continue when the account is read
 - The e2e fleet has no saved login, so the notice is covered by unit tests (`session-notice.test.ts`,
   `limit-notice.test.tsx`) and by a capture on the recorded usage fixture.
 
+## P2: kept choices, pins, the sidebar summary and the modal (ADR 0107)
+
+- Bridge (vessel-web): `wire/prefs/usage.rs` (UsageDisplay, UsagePin, UsagePins bounded at 32,
+  UsagePreferences), `Preferences.usage`, `SidebarView.usage`, changes SidebarUsage / UsageDisplay /
+  UsageHost / UsagePins; the keeper's `usage` section (keep/prefs_doc/sections.rs) and tests
+  (keep/prefs_doc/usage_tests.rs: an older document reads as the defaults and is not rewritten for them;
+  each change writes only its field; `[]` pins nothing, null follows the defaults; an unreadable field is
+  kept as written). Generated `web/src/wire/bridge.ts` follows.
+- Page: `data/prefs-change.ts` applies the four changes; `features/usage/use-usage-prefs.ts` reads them;
+  `usage-options.tsx` is Paseo's options popover (340 px, no visible heading on wide screens; SettingsSwitch
+  rows with label and hint left and the control right, hairlines between: the lookup with our consent hint,
+  "Summary in sidebar" / "Pinned windows show in the sidebar footer", the "Percentages" row);
+  `data/account-usage/pins.ts` is Paseo's pin rules (defaults: windows marked for the summary, else each
+  source's first with a percent; the first edit keeps the shown defaults); window rows are pin toggles while
+  the summary is on (`quota-card.tsx`).
+- `sidebar-usage.tsx`: Paseo's sidebar item above the sidebar's foot (marks, meters/percents/short labels,
+  the richest layout that fits, measured off screen with N2's quotaPinnedLayout); it follows the picked host,
+  then the active machine, then the first that reports (N2's quotaSummaryHost). A click opens
+  `usage-modal.tsx`: Paseo's "Usage" dialog, its title row holding the actions (the HostFilter pill when more
+  than one machine is connected, `usage-host-filter.tsx`; Refresh all; the options cog) and its body the cards
+  alone (no "Plan usage" heading or caveat, which are the Settings page's). Picking a host writes the host
+  preference. Settings and the modal share `usePlanUsage`, `PlanControls` and `PlanContent`.
+- Kit: `Popover` takes `showTitle={false}` (the title still names the popup) and the `settings` width (340);
+  `Dialog` takes title-row `actions` (before Close).
+
+## TRACKER 793: the default turn delivery is Steer (ADR 0108)
+
+Not usage, but this track's next item (coordinator, 2026-11-17). The bridge's `TurnDelivery` default and the page's
+`DEFAULT_PREFERENCES` move from Queue to Steer together; the sparse keeper means a document that never set the
+delivery reads as Steer and one that chose Queue keeps it (no migration). The empty box's placeholder now says what
+Enter will do (`nextDelivery` in data/delivery.ts), which it did not for Steer before. The conversation e2e sets Queue
+in Settings for the queue cases and puts Steer back; the screens harness queues with the modifier. The page still
+queues where the agent cannot steer (its stated fallback); native and Paseo replace the turn there, reported to the
+coordinator as a separate parity item.
+
+## TRACKER 794: Paseo's two delivery rules on the page
+
+[Decision Log] (ADR-light: no wire change; both are deliveries the node already takes)
+- Purpose: a message sent during a turn goes as on Paseo and the native app (view/src/session/delivery.rs
+  `send_delivery`), not by the page's own rules.
+- Constraint: the page queued a Steer the agent could not take, and disabled the box while a permission waited, so
+  the Queue-behind-a-permission case could not arise.
+- Alternatives: keep the queue fallback (gentler, but the person chose to reach the agent now); keep the box
+  disabled during a permission (then a Queue cannot be stranded, but the person cannot redirect a turn parked on a
+  request, which Paseo and native allow).
+- Choice (data/delivery.ts `sendPlan`):
+  - Steer the agent cannot take (or once refused) -> Interrupt, fallback `cannot-steer` ("cannot steer: this
+    replaces the turn").
+  - Queue while a permission waits -> Interrupt, fallback `permission-waits` ("A permission waits: this stops the
+    turn instead of queueing"); Steer and Interrupt go as chosen; the other way stays Queue.
+  - The box stays usable while a permission waits on nodes from protocol 10 (before 10 nothing can be sent during
+    a turn, so it stays disabled with "Answer the permission to continue"); the placeholder says what Enter will
+    do (`nextDelivery`).
+- Costs: a Steer to an agent without steering now stops its turn where it used to wait (the button says so); the
+  page's other way of Queue stays Steer where the agent can (Paseo's is Interrupt), left as it was.
+- Tests: delivery.test.ts (both rules, nextDelivery), composer-words.test.ts (placeholders), conversation.spec
+  (Queue while a permission waits: box enabled, placeholder, "Interrupt and send"), app.spec (box enabled).
+
 ## Next
 
-- P2 (ADR 0107, coordinator approved): the bridge preference document gains a `usage` section shaped like the
-  native view/src/prefs/usage.rs (display, host, pins) plus PreferenceChange UsageDisplay/UsageHost/UsagePins
-  and the sidebar visibility flag; old documents load with Used, no host, no pins. Then the sidebar summary
-  (pins, N2's quotaPinnedLayout) and the usage modal on the page.
+- The native test's copy of the page fixture gains the bridge's new fields (app line, separate packet).
+- Captures of P2/P3 (summary, modal, pins, session hover card) to the coordinator.

@@ -1,6 +1,9 @@
-//! Key routing for the one menu renderer; no placement or area action policy.
-use super::{Direction, MenuHandlers, MenuItem, RenderLease, keyboard_choice};
-use gpui::{Context, KeyDownEvent, Window};
+//! Key and outside-press routing for the one menu renderer; no placement or
+//! area action policy.
+use super::draw::Layer;
+use super::{Direction, MenuHandlers, MenuItem, MenuState, RenderLease, keyboard_choice};
+use crate::submenu::Submenus;
+use gpui::{App, Context, KeyDownEvent, MouseDownEvent, Window};
 use std::rc::Rc;
 
 // Input routing stays separate from surface drawing; both menu entry points
@@ -9,6 +12,9 @@ pub(super) struct KeyMenu<V> {
     pub(super) handlers: MenuHandlers<V>,
     pub(super) items: Rc<[MenuItem]>,
     pub(super) lease: RenderLease,
+    /// The menu's submenus, when it has any: Enter on a row that opens a
+    /// page opens it.
+    pub(super) submenus: Option<Submenus>,
 }
 
 pub(super) fn keyboard<V: 'static>(
@@ -22,6 +28,7 @@ pub(super) fn keyboard<V: 'static>(
         handlers,
         items,
         lease,
+        submenus,
     } = input;
     let Some(key) = MenuKey::of(event) else {
         return;
@@ -46,7 +53,12 @@ pub(super) fn keyboard<V: 'static>(
             menu.step(items, Direction::Previous);
         }
         MenuKey::Choose => {
-            if let Some(index) = keyboard_choice(menu, items) {
+            let page = super::selected_index(items, menu.highlighted)
+                .and_then(|index| items.get(index))
+                .and_then(|item| item.opens.as_ref());
+            if let (Some(page), Some(submenus)) = (page, submenus) {
+                submenus.open(page, 0);
+            } else if let Some(index) = keyboard_choice(menu, items) {
                 if !menu.same_cycle(lease) {
                     return;
                 }
@@ -84,4 +96,37 @@ impl MenuKey {
             _other => None,
         }
     }
+}
+
+/// A press outside the menu, and outside its open pages (a press there
+/// belongs to the menu): close it. A stale frame's press is contained.
+pub(super) fn outside<V: 'static>(
+    state: &MenuState,
+    get: fn(&mut V) -> &mut MenuState,
+    layer: Layer,
+    pages: Option<Submenus>,
+    cx: &mut Context<'_, V>,
+) -> impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static {
+    let lease = state.render_lease();
+    cx.listener(move |view: &mut V, _event: &MouseDownEvent, window, cx| {
+        if pages
+            .as_ref()
+            .is_some_and(|pages| pages.contains(window.mouse_position()))
+        {
+            return;
+        }
+        if !get(view).accepts(&lease) {
+            if layer == Layer::AboveDialog {
+                // A stale nested menu still contains this press; forwarding
+                // along A's path could dismiss the dialog underneath B.
+                cx.stop_propagation();
+            }
+            return;
+        }
+        get(view).close_and_restore(window, cx);
+        if layer == Layer::AboveDialog {
+            cx.stop_propagation();
+        }
+        cx.notify();
+    })
 }

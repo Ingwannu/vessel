@@ -20,8 +20,10 @@ import { SidebarProjects } from "../projects/sidebar-projects";
 import { PHONE, useMedia } from "./use-media";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
+import { SidebarUsage } from "../usage/sidebar-usage";
 import { SidebarSettings } from "./sidebar-settings";
 import { SidebarStatuses } from "./sidebar-statuses";
+import { SidebarWorkspaces } from "./sidebar-workspaces";
 import { useShortcutWords } from "../shortcuts/use-keys";
 import { machineInView, useNewSession } from "./use-new-session";
 
@@ -117,9 +119,12 @@ export function Sidebar({
         <SidebarSettings current={where.segments[1] ?? null} />
       ) : grouping === "machine" ? (
         <SidebarMachines />
+      ) : grouping === "workspace" ? (
+        <SidebarWorkspaces />
       ) : (
         <SidebarStatuses />
       )}
+      <SidebarUsage />
       <div className="side-foot">
         <Link className={rowClass(inSettings)} to="/settings">
           <Icon name="settings" size={16} />

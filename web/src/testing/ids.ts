@@ -30,6 +30,8 @@ import type {
   UsageAccountKey,
   UsageReportId,
   UsageSourceId,
+  WorkspaceId,
+  WorkspaceLabelGeneration,
   WorktreeId,
 } from "../wire/proto";
 
@@ -61,6 +63,8 @@ interface Handles {
   UsageAccountKey: UsageAccountKey;
   UsageReportId: UsageReportId;
   UsageSourceId: UsageSourceId;
+  WorkspaceId: WorkspaceId;
+  WorkspaceLabelGeneration: WorkspaceLabelGeneration;
   WorktreeId: WorktreeId;
 }
 

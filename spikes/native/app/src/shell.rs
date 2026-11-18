@@ -295,6 +295,7 @@ impl Shell {
     fn settle_areas(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.settle_settings(window);
         self.settle_sessions(window, cx);
+        self.settle_import(window, cx);
         self.settle_session_lifecycle(window, cx);
         self.settle_labels(cx);
     }

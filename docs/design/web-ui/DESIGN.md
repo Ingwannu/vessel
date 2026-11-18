@@ -949,7 +949,11 @@ button; the owner asked for one.)
 - First answer wins (protocol). Another follower's answer clears the
   prompt here too, and the line says how it ended. A later click errors
   with conflict: a toast says so, the history stays.
-- The composer under it is disabled while it waits, its placeholder
+- The composer under it stays usable while it waits (Paseo's; TRACKER
+  794): a message then goes by the delivery rules below, a Queue
+  stopping the turn instead (it would be stranded behind the request),
+  and the placeholder says so. On a node before protocol 10, where
+  nothing can be sent during a turn, it is disabled, its placeholder
   "Answer the permission to continue".
 
 **A question the agent asks** (protocol 10, `question_asked`) takes the
@@ -1005,6 +1009,13 @@ gives `role="dialog"`, `aria-modal`, the label, the focus trap, the
 scroll lock and the inert page. Focus moves in on open (the first field
 in the body, else the last footer button) and back to the opener on
 close. The command palette (§6.13) is a dialog on the same scrim.
+
+A dialog with a second view or a list to search is paged (Paseo's sheet
+header; the label manager): an optional back arrow before the title, and
+an optional search under the title, unboxed (a 16px muted search icon, 8px
+to the text, no fill, no clear button). Its header sits on a rule, and its
+footer on another. A paged dialog with a search keeps focus on itself when
+it opens, as Paseo does not focus the search.
 
 Dimmer click and Escape cancel, unless a pairing invite is live and
 uncopied — then confirm.
@@ -1155,7 +1166,7 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Popup surface | shared by Select, Menu, Combobox, Popover, Tooltip: `--popup-bg`, radius 10, 4px padding, `--popup-edge`, `--popup-shadow`; at most 320px wide and the window less 32px; long lists scroll inside under a thin bar; motion §4.7. Placed below its trigger 6px away, flipped and shifted at the window's edge (8px from it) |
 | Option row | 13px / 1.5 (about 32px), 8px by 6px, radius 8; secondary text at rest; highlighted on the 4% wash in the primary colour; chosen or open on the 7% wash; a muted detail at the right (12px, tertiary, cut first); a group's heading 10px, tracked, tertiary. A row reached from the keyboard also takes the ring, inside it |
 | Select | trigger: the secondary button's raised surface (an edge 5% darker, the inset bevel), 13px, the value then its detail, a chevron that turns over 300ms while open; `ghost`: no fill until hover. `md` 32px, `sm` 28px; `fill` or `fit` width. The list is at least the trigger's width, below it, not over it |
-| Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px, `wide`), checkbox rows (16px box, radius 6), radio groups (a check at the right; values that share a group under its heading), submenus (the current value and a chevron), separators, a danger row; `narrow` is 256px (a composer's agent menu). `MenuSwitchItem`: a setting's row with a switch at the right, 12px text, 8px by 12px, keeping the menu open; `MenuNote`: a line of tertiary text that is not a choice |
+| Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px, `wide`), checkbox rows (16px box, radius 6), radio groups (a check at the right; values that share a group under its heading), submenus (the current value and a chevron; the flyout opens to the right of its row, 5px over it, top-aligned, clamped into the window and never flipped, as Paseo's), separators, a danger row; `narrow` is 256px (a composer's agent menu). `MenuSwitchItem`: a setting's row with a switch at the right, 12px text, 8px by 12px, keeping the menu open; `MenuNote`: a line of tertiary text that is not a choice |
 | Combobox | a field shell (§6.2) whose suggestions are option rows, at least the field's width; it takes any text. `ghost`: no fill or edge at rest, the 4% wash on hover, the shell while focused (a composer's tray) |
 | Popover | the popup surface with 16px inside, 256, 320 or 384px wide (GOAT's), a 13px semibold title |
 | Tooltip | 12px on the popup fill, no edge, 6px by 12px, radius 8, a 10px arrow; after 400ms of hover or on keyboard focus; a shortcut after the words. Never takes the pointer |
@@ -1274,14 +1285,19 @@ approval (§6.7):
   square, "Stop turn" (it stops that turn, `cancel_turn`, and the
   node's queue holds). While a turn runs with text: what Settings ›
   General's "Default send" says (Paseo's setting, `composer.delivery`,
-  kept by the bridge): "Queue message" (an arrow, the default), "Steer
-  message" (a turning arrow) or "Interrupt and send". The other way is
+  kept by the bridge): "Queue message" (an arrow), "Steer message" (a
+  turning arrow, the default since ADR 0108, as Paseo's and the native
+  app's) or "Interrupt and send". The other way is
   one modifier away: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter
   (⌘/Ctrl+Shift+Enter where ⌘/Ctrl+Enter is the send key), and the icon
   and label turn while the modifier is held; the other way of queue is
   steer, of steer and interrupt queue. Steer is offered only where the
   agent says it takes it (`abilities.steer`), and an agent that refuses
-  it once is not offered it again while the session's page is open. Its tooltip says what
+  it once is not offered it again while the session's page is open; a
+  Steer chosen for an agent that cannot take it replaces the turn
+  (Paseo's `steerOrReplaceActiveTurn`, as the native app), and a Queue
+  while a permission waits interrupts, each with a line under the label
+  that says why (TRACKER 794). Its tooltip says what
   it does and the other way: "Sends when the agent finishes its turn",
   "Ctrl+↵ or Ctrl+click: steer message". With a queued prompt open in
   the box it is "Update queued message". A held queue (after Stop) does

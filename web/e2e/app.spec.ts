@@ -174,7 +174,8 @@ test("a structured session runs a turn and answers its permission", async ({
   await expect(
     timeline(page).getByText("Waiting on permission · Run fake tool"),
   ).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeDisabled();
+  // The box stays usable while the permission waits (TRACKER 794, Paseo's).
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeEnabled();
   await prompt.getByRole("button", { name: "Allow" }).click();
   await expect(prompt).toBeHidden();
   await expect(timeline(page).getByText(/Turn ended · end turn/)).toBeVisible();
