@@ -2,10 +2,15 @@
    §2.2): one grey surface holding the sidebar and the framed page. */
 
 /* The sidebar and the margin around the page are one surface, so the
-   sidebar has no edge; the page is a framed surface set into it. */
+   sidebar has no edge; the page is a framed surface set into it. Its
+   width is Paseo's (resolveDesktopSidebarWidth, TRACKER 806): the whole
+   sidebar at its width, narrowed down to 200 so the page keeps 400; no
+   rail of icons. Compact (below 600) it is a sheet (sidebar.css). */
 .app {
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  grid-template-columns:
+    clamp(var(--sidebar-min-w), 100vw - var(--center-min-w), var(--sidebar-w))
+    minmax(0, 1fr);
   height: 100vh;
   background: var(--bg-shell);
 }
