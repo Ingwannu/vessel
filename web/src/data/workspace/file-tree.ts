@@ -89,3 +89,15 @@ export function foldersOf(path: RelPath): RelPath[] {
     .slice(0, -1)
     .map((_, index) => parts.slice(0, index + 1).join("/"));
 }
+
+/** `path` in the folder `folder` on the node, as the node writes paths
+ * (Paseo's Copy path: the workspace root joined): a Windows folder keeps
+ * its backslashes. */
+export function absolutePath(folder: string, path: RelPath): string {
+  const windows = folder.includes("\\") && !folder.includes("/");
+  const separator = windows ? "\\" : "/";
+  const base = folder.replace(/[\\/]+$/, "");
+  if (path === "") return base === "" ? separator : base;
+  const relative = windows ? path.replaceAll("/", "\\") : path;
+  return `${base}${separator}${relative}`;
+}

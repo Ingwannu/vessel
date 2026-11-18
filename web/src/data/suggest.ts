@@ -98,17 +98,27 @@ export function applyCommand(
   return replaceWord(text, trigger, `/${name}`);
 }
 
+/** File `path` as the composer's `@` names it: quoted when it holds a
+ * space or a quote. */
+export function fileMention(path: string): string {
+  return /\s|"/.test(path) ? `@"${path.replaceAll('"', '\\"')}"` : `@${path}`;
+}
+
 /** Choose file `path` for `trigger`. */
 export function applyFile(
   text: string,
   trigger: Trigger,
   path: string,
 ): Applied {
-  return replaceWord(
-    text,
-    trigger,
-    /\s|"/.test(path) ? `@"${path.replaceAll('"', '\\"')}"` : `@${path}`,
-  );
+  return replaceWord(text, trigger, fileMention(path));
+}
+
+/** `draft` with file `path` named after what is in it (the Explorer's Add
+ * to chat), a space either side so it stays a word of its own. */
+export function withMention(draft: string, path: string): string {
+  const mention = `${fileMention(path)} `;
+  if (draft.trim() === "") return mention;
+  return /\s$/.test(draft) ? `${draft}${mention}` : `${draft} ${mention}`;
 }
 
 /** A found file's path split for drawing: the folder (dimmed) and the

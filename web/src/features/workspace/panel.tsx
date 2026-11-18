@@ -92,6 +92,12 @@ export function WorkspacePanel({
       ? root.project
       : (session.workspace?.project ?? null);
   const project = owner === null ? null : projectIn(projects, owner);
+  // The root's folder: the project's; a worktree's is where the node
+  // started the session (its cwd).
+  const folder =
+    root.kind === "project"
+      ? (project?.root ?? null)
+      : (session.spec.cwd ?? null);
   const open = (path: RelPath) => {
     onOpened({ path, goTo: null });
   };
@@ -109,6 +115,7 @@ export function WorkspacePanel({
       key={rootKey(root)}
       node={node}
       root={root}
+      folder={folder}
       session={session.id}
       opened={opened}
       onOpened={onOpened}
