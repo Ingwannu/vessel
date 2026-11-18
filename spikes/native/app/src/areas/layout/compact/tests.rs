@@ -322,9 +322,7 @@ fn import_session_opens_the_sheet_for_this_host_and_folder(cx: &mut TestAppConte
 }
 
 #[gpui::test]
-fn with_two_panes_the_switcher_is_the_focused_panes_and_closes_only_there(
-    cx: &mut TestAppContext,
-) {
+fn with_two_panes_the_switcher_is_the_focused_panes_and_closes_only_there(cx: &mut TestAppContext) {
     let (probe, cx) = compact(cx);
     let before = tab_ids(&probe, cx);
     // A second pane (made wide, kept at compact) with two New tabs, focused.
@@ -381,7 +379,11 @@ fn with_two_panes_the_switcher_is_the_focused_panes_and_closes_only_there(
         .unwrap();
         assert_eq!(main, Some(before), "the other pane is left alone");
         let side_open = with_layout(probe.0.read(cx), |layout| {
-            Ok(layout.root().panes().into_iter().any(|pane| pane.id() == side))
+            Ok(layout
+                .root()
+                .panes()
+                .into_iter()
+                .any(|pane| pane.id() == side))
         })
         .unwrap();
         assert!(side_open);
