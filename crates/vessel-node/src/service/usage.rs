@@ -39,6 +39,18 @@ impl NodeService {
                 ErrorCode::InvalidRequest,
                 "choose a day or week for machine or agent usage; only session usage has a sequence cursor",
             ));
+        } else {
+            // The same barrier across every live session, bounded
+            // (`sessions::settled`): a turn end a person has seen must not
+            // race a machine or agent total.
+            let late = self.sessions.settled().await;
+            if !late.is_empty() {
+                tracing::warn!(
+                    ?late,
+                    "usage read before these sessions' stores caught up (waited {:?})",
+                    crate::sessions::settled::SETTLE
+                );
+            }
         }
         let mut report = self
             .sessions
