@@ -148,6 +148,25 @@ coordinator as a separate parity item.
 - Next: the native sheet (app line) asks the ranked listing when the node speaks it. It drops its client
   queue and client filter, shows the preview line and debounces search by 200 ms. Its read deadline (90 s)
   grows to cover a wait for a place.
+## TRACKER 801: Paseo's title limits (ADR 0022's amendment)
+
+- What changed:
+  - Typed titles go up to 200 characters, behind `LONG_TITLES_PROTOCOL` (drafted as 30, assigned at merge).
+  - Older peers get any title over 120 cut to its first 120 characters, through `SessionTitle::for_protocol`
+    in every existing projection plus `rpc/older/titles.rs`.
+  - Calls carrying a longer title need the number (`Call::since`).
+  - Prompt titles are now the first line, blanks folded, cut at 60, for every peer.
+- The page:
+  - `titles.ts` `titleMax(protocol)`;
+  - the rename field reads the node's protocol;
+  - `titleFromPrompt` folds blanks and cuts at 60.
+- The native rename field (TRACKER 800) uses `SessionTitle::max_chars_for`.
+- Tests:
+  - title.rs: the limits, the cut, and `max_chars_for`;
+  - `rpc/since/titles.rs`: every call kind, and through an envelope;
+  - `rpc/older/titles.rs`: an older peer decodes a session holding a 150-character title; a rename event; a
+    terminal;
+  - `titles.test.ts`.
 
 ## Next
 

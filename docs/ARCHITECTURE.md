@@ -472,8 +472,9 @@ In the crate table's order.
   after, one definition for the runtime and the store). 9: the agent's
   config options (`options`:
   `SessionOption` with a closed category and kind, `unknown` for a later
-  kind; `OptionChoice`), `SessionTitle` (parsed: one line, at most 120
-  characters; from a prompt, cut at 80), `options_changed` and `renamed`
+  kind; `OptionChoice`), `SessionTitle` (parsed: one line, at most 200
+  characters, 120 to a peer before `LONG_TITLES_PROTOCOL`; from a prompt,
+  its blanks folded, cut at 60; TRACKER 801), `options_changed` and `renamed`
   with their stand-ins, `harness.options`, `session.options`,
   `session.set_option`, `session.rename`. 10: the conversation
   (`conversation`: delivery and the queue, the agent's commands and

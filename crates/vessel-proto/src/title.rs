@@ -17,11 +17,22 @@
 //!   trimmed, not empty, at most [`SessionTitle::MAX_CHARS`] characters,
 //!   no control characters; anything else is refused, not cut, so a
 //!   client never shows another title than the one it sent) and by
-//!   [`SessionTitle::from_prompt`] (the first non-empty line, its control
-//!   characters made spaces, cut at [`SessionTitle::FROM_PROMPT_CHARS`]:
-//!   a prompt was never meant as a title, so it is cut rather than
-//!   refused). Decoding goes through the parse, so a bad title on the wire
-//!   or in the store is a decode error, never a value.
+//!   [`SessionTitle::from_prompt`] (the first non-empty line, its runs of
+//!   blanks and control characters made one space, cut at
+//!   [`SessionTitle::FROM_PROMPT_CHARS`] with no ellipsis: a prompt was
+//!   never meant as a title, so it is cut rather than refused; Paseo's
+//!   `deriveInitialAgentTitle`, TRACKER 801). Decoding goes through the
+//!   parse, so a bad title on the wire or in the store is a decode error,
+//!   never a value.
+//! - Longer typed titles (TRACKER 801, amending ADR 0022): Paseo allows
+//!   200 (`MAX_EXPLICIT_AGENT_TITLE_CHARS`) where Vessel allowed 120. A
+//!   peer decodes a title through this parse, so an older one refuses any
+//!   frame holding a longer title. From [`LONG_TITLES_PROTOCOL`] the
+//!   limit is [`SessionTitle::MAX_CHARS`]. Below it a client sends at most
+//!   [`SessionTitle::LEGACY_MAX_CHARS`] (`Call::since`), and every reply
+//!   or event holding a longer title reaches it cut to that many characters
+//!   ([`SessionTitle::for_protocol`]). The store keeps the whole title.
+//!   Clients read their limit from [`SessionTitle::max_chars_for`].
 //! - Characters, not bytes: a Korean title is cut where a person counts.
 //!   `char`s, not grapheme clusters, so no dependency; a cut may split a
 //!   combining sequence, which only the last character of a long line
@@ -35,6 +46,13 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+
+use crate::node::ProtocolVersion;
+
+/// The protocol from which a title may be longer than
+/// [`SessionTitle::LEGACY_MAX_CHARS`] (TRACKER 801). Drafted as 30; the
+/// integrator assigns the number at merge, in merge order.
+pub const LONG_TITLES_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(30));
 
 /// A session's title: one line of text a person reads.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -74,30 +92,73 @@ impl fmt::Display for InvalidTitle {
 impl std::error::Error for InvalidTitle {}
 
 impl SessionTitle {
-    /// The longest title a person may give, in characters.
-    pub const MAX_CHARS: usize = 120;
+    /// The longest title a person may give, in characters (Paseo's
+    /// `MAX_EXPLICIT_AGENT_TITLE_CHARS`; 120 before TRACKER 801).
+    pub const MAX_CHARS: usize = 200;
 
-    /// Where a title taken from a prompt is cut, in characters.
-    pub const FROM_PROMPT_CHARS: usize = 80;
+    /// The longest title a peer before [`LONG_TITLES_PROTOCOL`] decodes.
+    pub const LEGACY_MAX_CHARS: usize = 120;
 
-    /// The title a prompt gives an untitled session: its first non-empty
-    /// line, trimmed, control characters (tabs) as spaces, cut at
-    /// [`FROM_PROMPT_CHARS`](Self::FROM_PROMPT_CHARS) characters. `None`
-    /// when the text has no such line.
+    /// The longest title a client may send to, and reads from, a peer
+    /// speaking `protocol`: what a rename or a create field allows.
+    #[must_use]
+    pub const fn max_chars_for(protocol: ProtocolVersion) -> usize {
+        match LONG_TITLES_PROTOCOL {
+            Some(since) if protocol.get() >= since.get() => Self::MAX_CHARS,
+            Some(_) | None => Self::LEGACY_MAX_CHARS,
+        }
+    }
+
+    /// Whether a peer before [`LONG_TITLES_PROTOCOL`] could not decode it.
+    #[must_use]
+    pub fn is_long(&self) -> bool {
+        self.0.chars().count() > Self::LEGACY_MAX_CHARS
+    }
+
+    /// This title as a peer speaking `protocol` decodes it: for one before
+    /// [`LONG_TITLES_PROTOCOL`], its first
+    /// [`LEGACY_MAX_CHARS`](Self::LEGACY_MAX_CHARS) characters, trimmed;
+    /// `None` when it reads the title as it is.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        let most = Self::max_chars_for(protocol);
+        if self.0.chars().count() <= most {
+            return None;
+        }
+        let cut: String = self.0.chars().take(most).collect();
+        Some(Self(Arc::from(cut.trim_end())))
+    }
+
+    /// [`for_protocol`](Self::for_protocol) of an optional title: the
+    /// field's new value, or `None` when it stays as it is.
+    #[must_use]
+    pub fn optional_for_protocol(
+        title: Option<&Self>,
+        protocol: ProtocolVersion,
+    ) -> Option<Option<Self>> {
+        title
+            .and_then(|title| title.for_protocol(protocol))
+            .map(Some)
+    }
+
+    /// Where a title taken from a prompt is cut, in characters (Paseo's
+    /// `MAX_INITIAL_AGENT_TITLE_CHARS`, 60; it was 80 before TRACKER 801).
+    pub const FROM_PROMPT_CHARS: usize = 60;
+
+    /// The title a prompt gives an untitled session (Paseo's
+    /// `deriveInitialAgentTitle`): its first non-empty line, each run of
+    /// white space or control characters (tabs) made one space, cut at
+    /// [`FROM_PROMPT_CHARS`](Self::FROM_PROMPT_CHARS) characters with no
+    /// ellipsis, trimmed. `None` when the text has no such line.
     #[must_use]
     pub fn from_prompt(text: &str) -> Option<Self> {
         let line = text.lines().map(str::trim).find(|line| !line.is_empty())?;
-        let cut: String = line
-            .chars()
-            .map(|character| {
-                if character.is_control() {
-                    ' '
-                } else {
-                    character
-                }
-            })
-            .take(Self::FROM_PROMPT_CHARS)
-            .collect();
+        let folded = line
+            .split(|character: char| character.is_whitespace() || character.is_control())
+            .filter(|word| !word.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let cut: String = folded.chars().take(Self::FROM_PROMPT_CHARS).collect();
         let title = cut.trim_end();
         (!title.is_empty()).then(|| Self(Arc::from(title)))
     }
@@ -170,8 +231,8 @@ impl TitleOrigin {
     #[must_use]
     pub(crate) const fn for_protocol(
         self,
-        protocol: crate::ProtocolVersion,
-        assigned: Option<crate::ProtocolVersion>,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
     ) -> Self {
         match assigned {
             Some(since) if protocol.get() >= since.get() => self,
@@ -203,9 +264,64 @@ mod tests {
             "characters, not bytes"
         );
         assert_eq!(
-            "a".repeat(121).parse::<SessionTitle>(),
-            Err(InvalidTitle::TooLong { chars: 121 })
+            "a".repeat(201).parse::<SessionTitle>(),
+            Err(InvalidTitle::TooLong { chars: 201 })
         );
+        assert!(
+            "a".repeat(150).parse::<SessionTitle>().is_ok(),
+            "Paseo's 200, not the old 120"
+        );
+    }
+
+    #[test]
+    fn a_client_reads_its_limit_from_the_peers_protocol() {
+        let long_titles = LONG_TITLES_PROTOCOL.expect("drafted");
+        assert_eq!(
+            SessionTitle::max_chars_for(long_titles),
+            SessionTitle::MAX_CHARS
+        );
+        assert_eq!(
+            SessionTitle::max_chars_for(crate::PROTOCOL_VERSION),
+            SessionTitle::MAX_CHARS
+        );
+        let older = ProtocolVersion::new(long_titles.get().saturating_sub(1));
+        assert_eq!(
+            SessionTitle::max_chars_for(older),
+            SessionTitle::LEGACY_MAX_CHARS
+        );
+        assert!(long_titles <= crate::PROTOCOL_VERSION);
+    }
+
+    #[test]
+    fn an_older_peer_gets_a_long_title_cut_to_what_it_decodes() {
+        let long_titles = LONG_TITLES_PROTOCOL.expect("drafted");
+        let older = ProtocolVersion::new(long_titles.get().saturating_sub(1));
+        let long: SessionTitle = format!("{} tail", "가".repeat(147)).parse().unwrap();
+        assert_eq!(long.as_str().chars().count(), 152);
+        assert!(long.is_long());
+        assert_eq!(
+            long.for_protocol(long_titles),
+            None,
+            "a current peer reads it whole"
+        );
+        let cut = long.for_protocol(older).unwrap();
+        assert_eq!(cut.as_str().chars().count(), SessionTitle::LEGACY_MAX_CHARS);
+        assert!(!cut.is_long());
+        // A cut ending in a blank drops it, so the title stays trimmed.
+        let spaced: SessionTitle = format!("{} {}", "a".repeat(119), "b".repeat(30))
+            .parse()
+            .unwrap();
+        assert_eq!(
+            spaced.for_protocol(older).unwrap().as_str(),
+            "a".repeat(119)
+        );
+        let short: SessionTitle = "Fix the build".parse().unwrap();
+        assert_eq!(short.for_protocol(older), None);
+        assert_eq!(
+            SessionTitle::optional_for_protocol(Some(&long), older),
+            Some(Some(cut))
+        );
+        assert_eq!(SessionTitle::optional_for_protocol(None, older), None);
     }
 
     #[test]
@@ -217,12 +333,19 @@ mod tests {
     }
 
     #[test]
-    fn a_prompt_gives_its_first_line_cut_at_eighty() {
+    fn a_prompt_gives_its_first_line_folded_and_cut_at_sixty() {
         let title = SessionTitle::from_prompt("\n\n  Fix the failing test\tin ci  \nthen push");
         assert_eq!(
             title.as_ref().map(SessionTitle::as_str),
             Some("Fix the failing test in ci")
         );
+        // Runs of blanks and tabs fold to one space, as Paseo's `\s+`.
+        let folded = SessionTitle::from_prompt("Fix   the\t\t build\u{2003}now").unwrap();
+        assert_eq!(folded.as_str(), "Fix the build now");
+        // Cut at 60 with no ellipsis, the space before the cut dropped.
+        let words = SessionTitle::from_prompt(&"word ".repeat(20)).unwrap();
+        assert_eq!(words.as_str(), "word ".repeat(12).trim_end());
+        assert!(!words.as_str().ends_with('…'));
         assert_eq!(SessionTitle::from_prompt("  \n \r\n"), None);
         let long = SessionTitle::from_prompt(&"한".repeat(100)).unwrap();
         assert_eq!(

@@ -3,6 +3,8 @@
 Status: accepted, 2026-11-11 (milestone 10, track C,
 `docs/plans/backend-m10.md`; the contract is protocol 9,
 `crates/vessel-proto/src/options.rs` and `title.rs`).
+Amended 2026-11-18 for TRACKER 801 (the title limits, Paseo's; see
+"Amendment: Paseo's title limits" at the end).
 
 ## Context
 
@@ -96,8 +98,9 @@ Questions:
   `current_mode_update`. The session logs each as `options_changed`, the
   whole list. `session.options` answers from the driver.
 - **Titles are `SessionTitle` (2).** A typed title is trimmed, one line,
-  at most 120 characters, refused otherwise; a title from a prompt is its
-  first non-empty line, cut at 80. `SessionInfo.title` is the one truth
+  at most 120 characters (200 since the amendment below), refused
+  otherwise; a title from a prompt is its first non-empty line, cut at 80
+  (60, its blanks folded, since the amendment). `SessionInfo.title` is the one truth
   for the current title: `spec.title` when asked for at creation, then
   the first prompt's line for an untitled structured session, then each
   `session.rename`; each change is a `renamed` record, and the store's
@@ -147,3 +150,51 @@ Questions:
   actor publishes it once the move is over.
 - Options the agent reports of a kind ACP adds later are left out until
   Vessel maps them.
+
+## Amendment: Paseo's title limits (TRACKER 801, 2026-11-18)
+
+[Decision Log]
+- Purpose: Vessel's titles behave like Paseo's.
+  - A typed title may be up to 200 characters (Paseo's
+    `MAX_EXPLICIT_AGENT_TITLE_CHARS`, `agent-title-limits.ts`).
+  - The title a first prompt gives is its first non-empty line, with each
+    run of white space folded to one space, cut at 60 with no ellipsis
+    (`create-agent-title.ts`, `MAX_INITIAL_AGENT_TITLE_CHARS`). Vessel cut
+    at 80 and allowed 120.
+- Constraint: a title decodes through its parse, so a peer built before
+  this change refuses a frame holding a title over 120 characters. That
+  peer may be the CLI, a native build or a fleet member, and the refusal
+  would drop its connection. The store keeps whole titles, and titles
+  stored before stay valid (the limit only grew).
+- Alternatives:
+  - (a) 200 with no gate: older Rust peers break on the first long title.
+  - (b) keep 120: differs from Paseo.
+  - (c) a lenient decode: older builds are already shipped with the strict
+    one.
+- Choice:
+  - `SessionTitle::MAX_CHARS` is 200, `FROM_PROMPT_CHARS` is 60, and
+    `LEGACY_MAX_CHARS` is 120, all behind one number,
+    `LONG_TITLES_PROTOCOL`. It was drafted as 30 and is assigned at merge.
+  - A call carrying a title over 120 needs that number (`Call::since`):
+    `session.create` and saved-prompt and schedule templates through their
+    spec, `session.rename`, `terminal.create`, `terminal.rename` and
+    `workspace.rename`.
+  - For a peer below it, every reply or event carrying a title gets the
+    title cut to its first 120 characters, trimmed
+    (`SessionTitle::for_protocol`). This covers sessions and their asked
+    title, the `renamed` event, saved prompts and schedules, the inbox,
+    terminals, workspaces and the registry snapshot.
+  - Clients read their limit from `SessionTitle::max_chars_for(protocol)`
+    (the page's `titleMax`), so the native rename field (TRACKER 800) uses
+    the same rule.
+  - The prompt cut is not gated: a shorter title is readable by every peer.
+- Costs:
+  - An older peer sees a long title's first 120 characters while the node
+    holds all of it.
+  - A rename made from that peer replaces the whole title with what it
+    sends.
+  - Project-file terminal names (ADR 0066) follow the 200 limit. Their wire
+    form is still behind `PROJECT_FILE_KEYS` (unassigned), so no peer
+    receives them yet. Assigning that number must add their projection.
+  - Agent history titles (ADR 0053) are prompt titles, at most 60.
+

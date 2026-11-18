@@ -68,6 +68,24 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 30 (2026-11-18, milestone 12): Paseo's title limits (impl U, TRACKER 801, ADR 0022's amendment)
+
+Drafted as 30 (`LONG_TITLES_PROTOCOL`), after 29 (the ranked history listing) merged first. The integrator assigns the number at merge, in merge order. No method,
+event or record is added.
+
+- `SessionTitle` takes up to 200 characters (it was 120).
+  - A call carrying a longer-than-120 title needs this protocol (`Call::since`): `session.create`, saved-prompt
+    and schedule templates, `session.rename`, `terminal.create`, `terminal.rename` and `workspace.rename`. An
+    older node would refuse the whole call.
+  - A peer below this protocol receives every title over 120 characters cut to its first 120, trimmed. That
+    covers sessions (current and asked titles), `renamed` events, saved prompts, schedules, the inbox,
+    terminals, workspaces and the registry snapshot. Its parse would otherwise refuse the frame.
+  - The node stores whole titles.
+  - Clients take their limit from `SessionTitle::max_chars_for(protocol)`.
+- Not gated, for every peer: a title taken from a prompt is its first non-empty line, with each run of white
+  space or control characters folded to one space, cut at 60 characters (it was 80).
+- The minimum protocol remains 2. The store schema is unchanged; stored titles stay valid.
+
 ## Version 29 (2026-11-18, milestone 12): a ranked history listing (impl U, TRACKER 790, ADR 0109)
 
 Assigned 29 (`RANKED_HISTORY_PROTOCOL`) at its node-line merge, the next free number in merge order. No
@@ -91,7 +109,6 @@ this protocol (`Call::since`). An older node would ignore them and answer the ag
   place did not free within 90 s.
 - A cursor listing is unchanged and loads nothing. The minimum protocol remains 2, and the store schema is
   unchanged.
-
 ## Version 28 (2026-11-16, milestone 12): workspace labels (W10b A6, ADR 0086)
 
 Protocol 28 introduces the host-local workspace label catalog and its ordered

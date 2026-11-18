@@ -5,6 +5,7 @@ use crate::agent::ContentBlock;
 use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
 use crate::session::{SessionInput, SessionMode};
+use crate::title::SessionTitle;
 
 use super::Call;
 
@@ -322,9 +323,37 @@ impl Call {
             | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
+        // A title longer than an older node decodes (TRACKER 801): it would
+        // refuse the whole call, or, forwarded, fail the hop.
+        let required = if self.carries_long_title() {
+            required.max(crate::LONG_TITLES_PROTOCOL?)
+        } else {
+            required
+        };
         templates::on(self).map_or(Some(required), |spec| {
             templates::required(required, spec, crate::lifecycle_version::SINCE)
         })
+    }
+
+    /// Whether this call asks a title longer than
+    /// [`SessionTitle::LEGACY_MAX_CHARS`]: a session's (created, renamed,
+    /// or in a saved prompt's or a schedule's template), a terminal's or a
+    /// workspace's.
+    fn carries_long_title(&self) -> bool {
+        let long = |title: Option<&SessionTitle>| title.is_some_and(SessionTitle::is_long);
+        if let Self::RenameSession(request) = self {
+            return request.title.is_long();
+        }
+        if let Self::CreateTerminal(request) = self {
+            return long(request.title.as_ref());
+        }
+        if let Self::RenameTerminal(request) = self {
+            return request.title.is_long();
+        }
+        if let Self::RenameWorkspace(request) = self {
+            return long(request.title.as_ref());
+        }
+        long(templates::on(self).and_then(|spec| spec.title.as_ref()))
     }
 }
 
@@ -400,3 +429,6 @@ mod requirement_tests {
         assert!(failures.is_empty(), "{}", failures.join("\n"));
     }
 }
+
+#[cfg(test)]
+mod titles;
