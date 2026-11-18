@@ -206,7 +206,8 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
     let said = choose(&probe, cx, mine, Action::CopyResume);
     assert_eq!(said.as_deref(), Some(words.resume_id_unavailable()));
     assert_eq!(clipboard(cx), None);
-    // Once it did: Paseo's template for Claude Code.
+    // Once it did: Paseo's template for Claude Code, and its "Copied …"
+    // (built by the same catalog call, Fluent's isolation marks included).
     probe.update(cx, |probe, cx| {
         probe.0.update(cx, |shell, _| {
             if let Some(info) = shell.areas.conversation.info.as_mut() {
@@ -215,7 +216,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, mine, Action::CopyResume);
-    assert_eq!(said.as_deref(), Some("Copied resume command"));
+    assert_eq!(said, words.copied(words.copied_resume_command()).ok());
     assert_eq!(clipboard(cx).as_deref(), Some("claude --resume 4f1c2a"));
     // Another agent's tab reads its card: Codex's command.
     let card = |kind| {
@@ -241,7 +242,7 @@ fn copy_resume_command_copies_the_clis_command_or_says_why_not(cx: &mut TestAppC
         });
     });
     let said = choose(&probe, cx, other, Action::CopyResume);
-    assert_eq!(said.as_deref(), Some("Copied resume command"));
+    assert_eq!(said, words.copied(words.copied_resume_command()).ok());
     assert_eq!(clipboard(cx).as_deref(), Some("codex resume 9e8d"));
     // Gemini has no template in Paseo's table.
     probe.update(cx, |probe, cx| {
@@ -259,10 +260,13 @@ fn the_id_copies_put_the_tabs_id_on_the_clipboard_and_say_so(cx: &mut TestAppCon
     let (probe, cx) = open(cx);
     let ([_, other, terminal], session, shell_id) =
         probe.read_with(cx, |probe, _| (probe.1, probe.2, probe.3));
+    // Paseo's "Copied …", built by the same catalog call (so Fluent's
+    // isolation marks around the label match).
+    let words = probe.read_with(cx, |probe, cx| probe.0.read(cx).words).layout();
     let said = choose(&probe, cx, other, Action::Copy(Copied::AgentId));
-    assert_eq!(said.as_deref(), Some("Copied Agent ID"));
+    assert_eq!(said, words.copied(words.copied_agent_id()).ok());
     assert_eq!(clipboard(cx), Some(session.to_string()));
     let said = choose(&probe, cx, terminal, Action::Copy(Copied::TerminalId));
-    assert_eq!(said.as_deref(), Some("Copied Terminal ID"));
+    assert_eq!(said, words.copied(words.copied_terminal_id()).ok());
     assert_eq!(clipboard(cx), Some(shell_id.to_string()));
 }
