@@ -11,7 +11,8 @@ carries the node op (`session.reload`, protocol 31, ADR 0110, impl U's row
 `workspace.tabs.toasts.reloadingAgent`, `reloadedAgent`,
 `failedToReloadAgent`). The page's own row: `web/src/data/reload.ts`.
 
-Status: plan sent to the coordinator; being built.
+Status: plan approved by the coordinator (2026-11-18) with one ruling
+(below); built and gated; frames with the coordinator.
 
 ## Paseo
 
@@ -63,9 +64,14 @@ kit menu row has no tooltip; a toast always times out.
     machine, the toasts on its answer.
 - Why: the menu's tooltip stays the kit's business (no caller threads a
   controller), and the reload toast lasts exactly as long as Paseo's.
-- Pros, cons and impact: one more act; the row is hidden on an older node
-  or a disconnected one (the page hides it the same way), where Paseo shows
-  it and toasts "host disconnected" on a press.
+- Pros, cons and impact: one more act; the row is hidden on a connected
+  node older than 31 (Paseo has no such node).
+
+Ruling (coordinator, 2026-11-18): copy Paseo for the disconnected case:
+the row shows on a disconnected node and a press toasts Paseo's
+`workspace.terminal.hostDisconnected` ("Host is not connected", en and ko)
+as an error. Hidden only on a connected node older than protocol 31 (and,
+as the page, for an agent that cannot load its conversation).
 
 ## Tests
 
@@ -85,3 +91,40 @@ kit menu row has no tooltip; a toast always times out.
 1280 dark English: the strip's tab menu with Reload agent and its tooltip;
 "Reloading agent..." and "Reloaded agent"; a failure. 390: the switcher's
 row menu with Reload agent. Light Korean, the same.
+
+## As built
+
+- link: `Act::Reload` → `ReloadSession`, answered `Acted::Session`;
+  `ActKind::Reload`.
+- view: `session::reload_offer(protocol, cannot_load)` → `ReloadOffer`
+  (`Hidden`, `Disconnected`, `Ready`); `CardDetail::cannot_load` (serde
+  default false, left out when false); `ToastTone::Plain` (Paseo's default
+  variant: words alone, 2.2 s) and `Toasts::hold` (no clock: stays until the
+  next toast replaces it). Words: `layout-reload-agent`,
+  `-reload-agent-tooltip`, `-reloading-agent`, `-reloaded-agent`,
+  `-failed-to-reload-agent`, `-host-disconnected`, en and ko from Paseo.
+- kit: `MenuItem::tooltip` / `with_tooltip`; `menu::tip` (the menu state's
+  own `Tooltips` and a place per row; the tip drawn after the surface in
+  the menu's layer, its holder out of the flow); tooltip `Side::Right` and
+  `Configuration::menu_row()` (250 ms; 10 from the row's edge, which is 11
+  from the row's place, measured inside its 1-point border);
+  `Tooltips::render_in_layer` and `dismiss` (an opening takes down the last
+  tip); the card has a `tooltip-card` selector.
+- app: `layout/tab_menu/reload.rs`: the row after Close other tabs on an
+  agent tab (its card's machine, else the open session's), the press, and
+  `tab_menu_reload_acted` in the event chain before the conversation: a
+  success puts the session in its card and toasts "Reloaded agent", then
+  goes on to the conversation; a failure toasts the node's words, else
+  "Failed to reload agent", and stops there.
+
+## Differences
+
+- The failure toast shows the node's words as they come (English in a
+  Korean window), as Paseo shows an error's message; one line, cut with an
+  ellipsis like every Vessel toast. A turn that ignores its cancel gives
+  "the session's agent cannot be reloaded: the running turn did not end
+  after its cancel; it goes on: …" with the reason said twice by the node.
+- Paseo refetches the timeline after the reload; Vessel's log is live, and
+  the `reloaded` record arrives on it (the conversation reads it but does
+  not draw it yet, package base 14.54).
+- No tooltip on a phone's sheet (Paseo's `enabledOnMobile={false}`).
