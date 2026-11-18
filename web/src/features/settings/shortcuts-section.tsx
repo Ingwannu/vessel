@@ -75,7 +75,7 @@ export function ShortcutsSection() {
             outcome.ok
               ? said
               : "Could not save. Your previous shortcuts are still active.",
-            outcome.ok ? "ok" : "error",
+            outcome.ok ? "success" : "error",
           );
         },
       );
@@ -281,7 +281,7 @@ export function ShortcutsSection() {
                         outcome.ok
                           ? "Keyboard shortcuts restored to their original keys."
                           : "Could not reset shortcuts. Try again.",
-                        outcome.ok ? "ok" : "error",
+                        outcome.ok ? "success" : "error",
                       );
                     },
                   );
