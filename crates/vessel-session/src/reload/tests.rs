@@ -265,3 +265,15 @@ fn a_gather_past_its_bytes_adds_nothing() {
         Outcome::Nothing(line) if line.contains("64 MiB")
     ));
 }
+
+#[test]
+fn a_refusal_says_its_reason_once() {
+    let error = crate::error::SessionError::from(super::NotReloadable::TurnDidNotEnd);
+    assert_eq!(
+        error.to_string(),
+        "the session's agent cannot be reloaded: the running turn did not end after its cancel; \
+         it goes on"
+    );
+    // The wire message appends every source: there is none to repeat it.
+    assert!(std::error::Error::source(&error).is_none());
+}
