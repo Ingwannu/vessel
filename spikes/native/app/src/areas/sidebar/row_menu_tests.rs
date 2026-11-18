@@ -142,9 +142,7 @@ fn resting_on_labels_shows_the_picker_beside_and_leaves_the_keys_with_the_menu(
 /// The Labels list's rules, as drawn (`combobox-rule-{row}`).
 fn rules(cx: &mut VisualTestContext) -> Vec<Bounds<Pixels>> {
     (0..16_usize)
-        .filter_map(|row| {
-            cx.debug_bounds(format!("combobox-rule-{row}").leak())
-        })
+        .filter_map(|row| cx.debug_bounds(format!("combobox-rule-{row}").leak()))
         .collect()
 }
 
