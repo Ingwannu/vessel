@@ -5,6 +5,9 @@
 
 use std::time::Duration;
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
+use vessel_proto::workspace::host_folders::{
+    FolderSuggestions, GetProjectIcon, ProjectIcon, SuggestFolders,
+};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, DuplicatedFileEntry, FileBytePage, ObserveFile, ObservedFile, ReadFileBytes,
 };
@@ -68,6 +71,28 @@ impl NodeClient {
         &self,
         request: ObserveFile,
     ) -> Result<ObservedFile, WorkspaceFileCallError> {
+        file_call(self, request).await
+    }
+
+    /// Folders under the node user's home for Add project (ADR 0112).
+    ///
+    /// # Errors
+    /// An older peer, a principal without `operate`, a bad query.
+    pub async fn suggest_host_folders(
+        &self,
+        request: SuggestFolders,
+    ) -> Result<FolderSuggestions, WorkspaceFileCallError> {
+        file_call(self, request).await
+    }
+
+    /// A project's own icon, or none (ADR 0112).
+    ///
+    /// # Errors
+    /// An older peer, an unknown project.
+    pub async fn project_icon(
+        &self,
+        request: GetProjectIcon,
+    ) -> Result<ProjectIcon, WorkspaceFileCallError> {
         file_call(self, request).await
     }
 

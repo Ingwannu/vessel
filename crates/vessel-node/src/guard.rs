@@ -325,6 +325,9 @@ untargeted!(
     vessel_proto::workspace::ListProjects,
     vessel_proto::workspace::GetProject,
     vessel_proto::workspace::AddProject,
+    // ADR 0112: no session's (the home's folders, a project's icon).
+    vessel_proto::workspace::host_folders::SuggestFolders,
+    vessel_proto::workspace::host_folders::GetProjectIcon,
     vessel_proto::workspace::CloneProject,
     vessel_proto::workspace::InitProject,
     vessel_proto::workspace::RemoveProject,

@@ -32,8 +32,10 @@ use crate::paths::{PathError, Root, Target};
 
 pub mod binary;
 pub mod duplicate;
+pub mod host_folders;
 pub mod inspect;
 pub mod observe;
+pub mod project_icon;
 pub mod suggestions;
 
 /// The most entries a listing holds.

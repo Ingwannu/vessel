@@ -165,6 +165,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::GetProject
         | Method::RemoveProject
         | Method::ProjectCommands
+        | Method::ProjectIcon
         | Method::ListSnapshots => json!({"project":id}),
         Method::AddProject | Method::InitProject => json!({"path":"/fixture"}),
         Method::CloneProject => {
@@ -209,6 +210,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::DuplicateFileEntry => json!({"root":root,"path":"sample.rs"}),
         Method::ObserveFile => json!({"root":root,"path":"sample.rs","after":null}),
         Method::InspectDirectory => json!({"root":root,"directory":"","ignored":"include"}),
+        Method::SuggestFolders => json!({"query":"code"}),
         Method::SuggestEntries => {
             json!({"root":root,"directory":"","query":"","kinds":"both","matching":"fuzzy","limit":null})
         }

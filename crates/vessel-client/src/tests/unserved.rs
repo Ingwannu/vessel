@@ -165,6 +165,8 @@ macro_rules! methods {
             park_session: vessel_proto::parking::ParkSession => SessionInfo;
             wake_session: vessel_proto::parking::WakeSession => SessionInfo;
             reload_session: vessel_proto::reload::ReloadSession => SessionInfo;
+            suggest_folders: vessel_proto::workspace::host_folders::SuggestFolders => vessel_proto::workspace::host_folders::FolderSuggestions;
+            project_icon: vessel_proto::workspace::host_folders::GetProjectIcon => vessel_proto::workspace::host_folders::ProjectIcon;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;
