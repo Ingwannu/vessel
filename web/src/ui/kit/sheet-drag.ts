@@ -124,7 +124,7 @@ export function useSheetDrag(
   const end = (event: PointerEvent<HTMLElement>, released: boolean) => {
     const now = drag.current;
     const element = sheet.current;
-    if (now === null || now.pointer !== event.pointerId || element === null) {
+    if (now?.pointer !== event.pointerId || element === null) {
       return;
     }
     drag.current = null;
@@ -171,7 +171,7 @@ export function useSheetDrag(
     onPointerMove: (event) => {
       const now = drag.current;
       const element = sheet.current;
-      if (now === null || now.pointer !== event.pointerId || element === null) {
+      if (now?.pointer !== event.pointerId || element === null) {
         return;
       }
       const elapsed = event.timeStamp - now.at;
@@ -187,8 +187,8 @@ export function useSheetDrag(
         now.shown,
         window.innerHeight,
       );
-      element.style.height = `${String(height)}px`;
-      element.style.translate = `0 ${String(offset)}px`;
+      element.style.setProperty("height", `${String(height)}px`);
+      element.style.setProperty("translate", `0 ${String(offset)}px`);
     },
     onPointerUp: (event) => {
       end(event, true);

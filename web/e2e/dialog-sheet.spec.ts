@@ -25,8 +25,9 @@ async function settled(dialog: Locator) {
     const box = await dialog.boundingBox();
     expect(box).not.toBeNull();
     const height = box?.height ?? 0;
-    expect(Math.abs(height - last)).toBeLessThan(0.5);
+    const moved = Math.abs(height - last);
     last = height;
+    expect(moved).toBeLessThan(0.5);
   }).toPass({ intervals: [120, 120, 120, 250, 500] });
   const box = await dialog.boundingBox();
   if (box === null) throw new Error("the dialog has no box");
