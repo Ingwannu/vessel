@@ -123,12 +123,14 @@ pub(super) fn released<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> OnRelease {
     let lease = state.render_lease();
-    Rc::new(cx.listener(move |view: &mut V, release: &Release, window, cx| {
-        if *release == Release::Pan(Stop::Closed) && get(view).accepts(&lease) {
-            get(view).close_and_restore(window, cx);
-            cx.notify();
-        }
-    }))
+    Rc::new(
+        cx.listener(move |view: &mut V, release: &Release, window, cx| {
+            if *release == Release::Pan(Stop::Closed) && get(view).accepts(&lease) {
+                get(view).close_and_restore(window, cx);
+                cx.notify();
+            }
+        }),
+    )
 }
 
 /// The sheet at the window's bottom over the scrim, laid out where the

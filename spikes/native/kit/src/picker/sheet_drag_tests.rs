@@ -28,7 +28,15 @@ impl Render for Probe {
             ..crate::select::header()
         };
         let list = combobox(
-            "drag-list", &self.list, &header, &rows, &handlers, 240.0, &tokens, window, cx,
+            "drag-list",
+            &self.list,
+            &header,
+            &rows,
+            &handlers,
+            240.0,
+            &tokens,
+            window,
+            cx,
         );
         div().size_full().children(list)
     }
@@ -69,7 +77,10 @@ fn drag_down(cx: &mut VisualTestContext, from: Point<Pixels>, distance: f32) {
 
 /// A point on the handle: centred, 6 below the panel's top.
 fn on_handle(panel: Bounds<Pixels>) -> Point<Pixels> {
-    point(panel.center().x, px(f32::from(panel.top()).mul_add(1.0, 6.0)))
+    point(
+        panel.center().x,
+        px(f32::from(panel.top()).mul_add(1.0, 6.0)),
+    )
 }
 
 #[gpui::test]
@@ -93,7 +104,10 @@ fn its_rows_pulled_down_from_their_top_close_it_too(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx);
     let panel = panel(&view, cx);
     // Near the bottom: the last row, under the title.
-    let at = point(panel.center().x, px(f32::from(panel.bottom()).mul_add(1.0, -30.0)));
+    let at = point(
+        panel.center().x,
+        px(f32::from(panel.bottom()).mul_add(1.0, -30.0)),
+    );
     drag_down(cx, at, 600.0);
     view.read_with(cx, |probe, _| assert!(!probe.list.is_open()));
 }
