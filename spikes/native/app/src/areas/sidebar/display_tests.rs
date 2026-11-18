@@ -60,8 +60,13 @@ fn a_page_opened_by_enter_takes_the_keys_and_escape_leads_back_to_the_list(
         menu.list.set_submenus(Some(&menu.pages));
         menu.list.open(None, window, cx);
         menu.page_list.open_beside(None, window, cx);
-        // Enter on the Grouping row, as its key handler does.
-        menu.pages.open("grouping", 0);
+        cx.notify();
+    });
+    cx.run_until_parked();
+    // Enter on the Grouping row, as its key handler does (after the list's
+    // first frame, which starts its pages at the root).
+    shell.update(cx, |shell, cx| {
+        shell.areas.sidebar.display.pages.open("grouping", 0);
         cx.notify();
     });
     cx.run_until_parked();
