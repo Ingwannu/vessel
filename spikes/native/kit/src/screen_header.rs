@@ -12,10 +12,8 @@
 //! - Cost: no drag integration.
 //! - Subtitle (TRACKER 789, the compact workspace header): Paseo's
 //!   `CompactHeader` takes a line under its title, and its title then reads
-//!   one step smaller (14 rather than 16). The caller supplies the line, and
-//!   may put a field in the title's place while the title is edited (the
-//!   session's rename); the frame keeps the row, the islands and the
-//!   title's ink and weight.
+//!   one step smaller (14 rather than 16). The caller supplies the line; the
+//!   frame keeps the row, the islands and the title's ink and weight.
 
 use crate::{Tokens, Type, TypeExt as _, assets::Glyph, fonts, picker, theme::spacing};
 use gpui::prelude::*;
@@ -40,8 +38,6 @@ pub struct Content {
     pub actions: Option<AnyElement>,
     /// A line under the title (Paseo's `subtitle`); the title is then 14.
     pub subtitle: Option<AnyElement>,
-    /// The caller's field in the title's place while the title is edited.
-    pub editing: Option<AnyElement>,
 }
 impl std::fmt::Debug for Content {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -123,21 +119,17 @@ pub fn frame(content: Content, density: Density, tokens: &Tokens) -> Div {
         leading,
         actions,
         subtitle,
-        editing,
     } = content;
     let size = title_size(geometry, subtitle.is_some());
-    let title = editing.unwrap_or_else(|| {
-        div()
-            .min_w_0()
-            .flex_shrink(1.0)
-            .type_(Type::Body)
-            .text_size(px(fonts::ui(size)))
-            .font_weight(geometry.weight)
-            .text_color(paint.title)
-            .truncate()
-            .child(picker::one_line(&title))
-            .into_any_element()
-    });
+    let title = div()
+        .min_w_0()
+        .flex_shrink(1.0)
+        .type_(Type::Body)
+        .text_size(px(fonts::ui(size)))
+        .font_weight(geometry.weight)
+        .text_color(paint.title)
+        .truncate()
+        .child(picker::one_line(&title));
     let title = div()
         .flex()
         .flex_col()
@@ -216,7 +208,6 @@ pub fn screen_header(
             leading: None,
             actions: action_slot(actions),
             subtitle: None,
-            editing: None,
         },
         if narrow {
             Density::Compact
@@ -256,7 +247,6 @@ pub fn compact_header(
             leading: Some(menu.into_any_element()),
             actions: action_slot(actions),
             subtitle: None,
-            editing: None,
         },
         Density::Compact,
         tokens,
@@ -379,7 +369,6 @@ mod frame_regression {
                 leading: None,
                 actions: None,
                 subtitle: None,
-                editing: None,
             },
             Density::Desktop,
             &Tokens::of(Scheme::Light),

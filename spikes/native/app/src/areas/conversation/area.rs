@@ -125,6 +125,8 @@ pub(crate) struct ConversationArea {
     /// The confirm open, if any.
     pub(crate) confirm: Option<Confirm>,
     pub(crate) dialog: DialogState,
+    /// The rename dialog's focus (`rename`).
+    pub(crate) rename_dialog: DialogState,
     /// The title, while it is renamed in place.
     pub(crate) rename: Option<rename::Rename>,
     /// The prompts, for the outline rail.
@@ -200,6 +202,7 @@ impl ConversationArea {
             menu_rows: Vec::new(),
             confirm: None,
             dialog: DialogState::new(cx),
+            rename_dialog: DialogState::new(cx),
             rename: None,
             queue_edit: None,
             answering: None,

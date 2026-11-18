@@ -29,21 +29,23 @@
 //!   header has no menu island of its own. Paseo's menus are sheets on a
 //!   phone; the kit's are popovers with touch rows, as the bar's was. The
 //!   dialog's sheet keeps its close button, which Paseo's combobox sheet
-//!   has none of. The header's glyphs are the toolbar's 14, not Paseo's 16.
+//!   has none of. The header's island uses the toolbar's
+//!   header-island profile (Paseo's large chrome: 16 glyphs, round).
 
+mod row_menu;
 mod switcher;
 #[cfg(test)]
 mod tests;
 
-use super::menu::{Action, close_item};
+pub(super) use row_menu::row_actions;
 use super::{key, with_layout};
-use crate::areas::conversation::{MenuAction, heading, session_menu_item, session_menu_rows};
+use crate::areas::conversation::heading;
 use crate::shell::Shell;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::menu::{Content, menu_with};
+use vessel_app_kit::menu::{Content, LeadingSize, menu_with};
 use vessel_app_kit::screen_header::{Content as HeaderContent, Density, frame};
 use vessel_app_kit::toolbar_button::{
     Disclosure, Selection, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
@@ -57,7 +59,7 @@ use vessel_app_kit::{
     ButtonState, ControlSizing, DialogState, MenuHandlers, MenuItem, MenuState, Tokens,
     anchor_probe,
 };
-use vessel_app_view::layout::{CloseScope, Layout, Pane, PaneId, TabId, Target};
+use vessel_app_view::layout::{Layout, Pane, PaneId, TabId};
 
 /// Paseo's workspace menu `width`.
 const ACTIONS_WIDTH: f32 = 220.0;
@@ -127,7 +129,8 @@ pub(super) fn header(
     let words = shell.words.layout();
     let area = &shell.areas.layout.compact;
     let count = tabs(layout).len();
-    let config = ToolbarConfig::new(ControlSizing::Touch, ButtonState::Enabled);
+    // Paseo's header island: the large chrome (16 glyphs), round.
+    let config = ToolbarConfig::new(ControlSizing::Touch, ButtonState::Enabled).header_island();
     let switch_label = words
         .switch_tabs(&count.to_string())
         .unwrap_or_else(|_| words.workspace_tabs().to_owned());
@@ -196,12 +199,9 @@ pub(super) fn header(
         .child(switch)
         .child(more)
         .child(toggle);
-    let (title, subtitle, editing) = match heading(shell, tokens, cx) {
-        // A rename's touch field is as tall as the title and its line
-        // together; the line comes back when the rename ends.
-        Some(session) if session.editing.is_some() => (session.title, None, session.editing),
-        Some(session) => (session.title, Some(session.line), None),
-        None => (String::new(), None, None),
+    let (title, subtitle) = match heading(shell, tokens) {
+        Some(session) => (session.title, Some(session.line)),
+        None => (String::new(), None),
     };
     let row = frame(
         HeaderContent {
@@ -209,7 +209,6 @@ pub(super) fn header(
             leading: None,
             actions: Some(island.into_any_element()),
             subtitle,
-            editing,
         },
         Density::Compact,
         tokens,
@@ -251,12 +250,15 @@ fn actions_menu(
         return None;
     }
     let words = shell.words.layout();
-    let mut copy = MenuItem::new(words.copy_workspace_path().to_owned());
+    let mut copy = MenuItem::new(words.copy_workspace_path().to_owned())
+        .with_leading_at(Glyph::Copy, LeadingSize::Regular);
     copy.disabled = workspace_path(shell).is_none();
-    // Paseo's order: Copy workspace path, then Import session.
+    // Paseo's order: Copy workspace path, then Import session, each led
+    // by its 16 glyph.
     let items = [
         copy,
-        MenuItem::new(shell.words.history().title().to_owned()),
+        MenuItem::new(shell.words.history().title().to_owned())
+            .with_leading_at(Glyph::Import, LeadingSize::Regular),
     ];
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.layout.compact.actions,
@@ -289,112 +291,6 @@ fn workspace_path(shell: &Shell) -> Option<String> {
         .as_deref()
         .and_then(|info| info.spec.cwd.as_ref())
         .map(|cwd| cwd.display().to_string())
-}
-
-/// A switcher row's menu: Paseo's tab items (its copy, Rename, the closes),
-/// then, on the open session's agent tab, the session's own actions that
-/// Paseo's tab menu lacks (its marks, Copy link, Agent log, Kill).
-pub(super) fn row_actions(shell: &Shell, tab: TabId) -> Vec<(Action, MenuItem)> {
-    let words = shell.words.layout();
-    let Some(target) = with_layout(shell, |layout| {
-        Ok(layout.tab(tab).map(|tab| tab.target().clone()))
-    })
-    .ok()
-    .flatten() else {
-        return Vec::new();
-    };
-    let open = shell.areas.session.open.as_ref().map(|open| open.session);
-    let session_tab = matches!(&target, Target::Agent(id) if Some(*id) == open);
-    let session_rows = if session_tab {
-        session_menu_rows(shell)
-    } else {
-        Vec::new()
-    };
-    let mut items = Vec::new();
-    match target {
-        Target::Agent(_) if session_tab => items.push((
-            Action::Session(MenuAction::CopyId),
-            MenuItem::new(words.copy_agent_id().to_owned()),
-        )),
-        Target::Agent(_) => items.push((
-            Action::Copy,
-            MenuItem::new(words.copy_agent_id().to_owned()),
-        )),
-        Target::Terminal(_) => {
-            items.push((Action::Copy, MenuItem::new(words.copy_id().to_owned())));
-        }
-        Target::File { .. } => {
-            items.push((Action::Copy, MenuItem::new(words.copy_path().to_owned())));
-        }
-        Target::NewTab
-        | Target::Draft(_)
-        | Target::ProviderSubagent { .. }
-        | Target::Browser(_)
-        | Target::Changes
-        | Target::Files
-        | Target::Scripts
-        | Target::PullRequest
-        | Target::WorkingDiff
-        | Target::Plugin { .. }
-        | Target::Setup(_)
-        | Target::CommitDiff(_) => {}
-    }
-    let renamable = shell
-        .areas
-        .conversation
-        .info
-        .as_deref()
-        .is_some_and(vessel_app_view::session::can_rename);
-    if session_tab && renamable {
-        items.push((
-            Action::SessionRename,
-            MenuItem::new(words.rename().to_owned()),
-        ));
-    }
-    // Paseo's separator, then the closes: above, below, the others, this.
-    let closes = items.len();
-    for (scope, label) in [
-        (CloseScope::Before, words.close_above()),
-        (CloseScope::After, words.close_below()),
-        (CloseScope::Others, words.close_others()),
-    ] {
-        items.push(close_item(shell, tab, scope, label));
-    }
-    if session_tab {
-        // The agent's own Close follows the session's lifecycle policy (a
-        // root archives first), as the bar's Close did.
-        if session_rows.contains(&MenuAction::Close) {
-            let mut item = session_menu_item(shell, MenuAction::Close);
-            item.label = words.close().to_owned().into();
-            items.push((Action::Session(MenuAction::Close), item));
-        }
-    } else {
-        items.push(close_item(shell, tab, CloseScope::Current, words.close()));
-    }
-    group_from(&mut items, closes);
-    // Vessel's extras, after Paseo's items.
-    let extras = items.len();
-    items.extend(
-        session_rows
-            .into_iter()
-            .filter(|action| !matches!(action, MenuAction::CopyId | MenuAction::Close))
-            .map(|action| {
-                let mut item = session_menu_item(shell, action);
-                item.starts_group = false;
-                (Action::Session(action), item)
-            }),
-    );
-    group_from(&mut items, extras);
-    items
-}
-
-/// A rule above row `at`, when rows come before it.
-fn group_from(items: &mut [(Action, MenuItem)], at: usize) {
-    if at > 0
-        && let Some((_, item)) = items.get_mut(at)
-    {
-        item.starts_group = true;
-    }
 }
 
 impl Shell {

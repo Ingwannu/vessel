@@ -416,6 +416,17 @@ impl Glyph {
             Self::Layers => line_glyph!(
                 r#"<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/>"#
             ),
+            // Lucide's own sources (lucide-icons/lucide, icons/*.svg) at the
+            // provider's 1.5 (TRACKER 789, the tab menu's closes).
+            Self::ArrowLeftToLine => line_glyph!(
+                r#"<path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/>"#
+            ),
+            Self::ArrowRightToLine => line_glyph!(
+                r#"<path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/>"#
+            ),
+            Self::CopyX => line_glyph!(
+                r#"<path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/><rect x="8" y="8" width="14" height="14" rx="2"/><path d="m12.5 12.5 5 5"/><path d="m12.5 17.5 5-5"/>"#
+            ),
         }
     }
 }

@@ -89,7 +89,9 @@ pub struct MenuItem {
     /// it opens the page, never closes the menu and never reaches the caller.
     pub opens: Option<crate::submenu::PageId>,
     /// The current value of that page's decision, muted before the chevron
-    /// (Paseo's `MenuSubTrigger` `value`: "Grouping  Project ›").
+    /// (Paseo's `MenuSubTrigger` `value`: "Grouping  Project ›"); on a row
+    /// that opens no page, a muted hint at its end (Paseo's `hint`: Copy
+    /// agent id's first seven characters).
     pub value: Option<SharedString>,
 }
 impl MenuItem {

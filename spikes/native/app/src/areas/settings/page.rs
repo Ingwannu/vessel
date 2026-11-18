@@ -163,7 +163,6 @@ pub(crate) fn header(
             leading: Some(button.into_any_element()),
             actions: None,
             subtitle: None,
-            editing: None,
         },
         if compact {
             vessel_app_kit::screen_header::Density::Compact

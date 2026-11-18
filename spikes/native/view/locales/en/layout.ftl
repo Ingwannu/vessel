@@ -105,3 +105,5 @@ layout-tab-menu-for = Open menu for { $label }
 layout-explorer-open = Open Explorer sidebar
 # Compact header: the code panel toggle while the panel is open (Paseo's explorerSidebar.close).
 layout-explorer-close = Close Explorer sidebar
+# Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
+layout-rename-agent = Rename agent

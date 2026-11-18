@@ -8,13 +8,10 @@
 //! - Reference: Paseo's `CompactHeader`: the title, one line, over a
 //!   subtitle line, both as wide as the row leaves them.
 //! - Choice: the bar's own pieces (`status_badge`, `parked_chip`,
-//!   `lost_line`, `rename_field`), so the state, the released chip, the lost
-//!   line and a refused rename read as on the bar; the kit frame draws the
-//!   title. The title is not a button here: Paseo's compact title is not,
-//!   and Rename is in the tab switcher's row menu. A rename under way puts
-//!   its field in the title's place, and the line is left out meanwhile
-//!   (the 44 touch field fills the row; the capture pass found them
-//!   overlapping).
+//!   `lost_line`), so the state, the released chip, the lost line and a
+//!   refused rename read as on the bar; the kit frame draws the title. The
+//!   title is not a button here: Paseo's compact title is not, and Rename
+//!   is in the tab switcher's row menu (the rename dialog, `rename`).
 //! - Cost: the line can hold less than the bar's row; every piece truncates.
 
 use vessel_app_kit::theme::spacing::{S0, S1_5};
@@ -25,7 +22,7 @@ use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::session::{can_rename, park_state, session_name};
 use vessel_proto::SessionStatus;
 
-use super::bar::{lost_line, parked_chip, rename_field, status_badge};
+use super::bar::{lost_line, parked_chip, status_badge};
 use crate::shell::Shell;
 
 /// What the compact header shows of the session.
@@ -35,16 +32,10 @@ pub(crate) struct Heading {
     /// The line under it: the state, where it runs, a lost connection, a
     /// refused rename.
     pub(crate) line: AnyElement,
-    /// The rename's field, while the title is renamed.
-    pub(crate) editing: Option<AnyElement>,
 }
 
 /// The session's heading; `None` without an open session.
-pub(crate) fn heading(
-    shell: &Shell,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Option<Heading> {
+pub(crate) fn heading(shell: &Shell, tokens: &Tokens) -> Option<Heading> {
     let open = shell.areas.session.open.as_ref()?;
     let area = &shell.areas.conversation;
     let words = shell.t.lang.conversation();
@@ -91,7 +82,6 @@ pub(crate) fn heading(
     Some(Heading {
         title: shown_title(shell),
         line,
-        editing: rename_field(shell, tokens, true, cx),
     })
 }
 

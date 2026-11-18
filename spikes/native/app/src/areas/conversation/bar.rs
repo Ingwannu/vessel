@@ -6,7 +6,7 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, KeyDownEvent, MouseButton,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, MouseButton,
     MouseDownEvent, ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
     Window, div, px,
 };
@@ -76,7 +76,7 @@ pub(crate) fn bar(
         .px(px(12.0))
         .border_b_1()
         .border_color(surfaces.border_accent)
-        .child(title_element(shell, title, renamable, tokens, narrow, cx))
+        .child(title_element(title, renamable, tokens, cx))
         .children(badge)
         .children(parked)
         .child(
@@ -217,19 +217,14 @@ pub(super) fn lost_line(shell: &Shell, tokens: &Tokens, narrow: bool) -> Option<
     )
 }
 
-/// The title: a field while it is renamed, a button that starts the
-/// rename while the session lives, else text.
+/// The title: a button that opens the rename dialog while the session
+/// lives, else text.
 fn title_element(
-    shell: &Shell,
     title: String,
     renamable: bool,
     tokens: &Tokens,
-    narrow: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if let Some(field) = rename_field(shell, tokens, narrow, cx) {
-        return field;
-    }
     let text = div()
         .min_w(px(0.0))
         .truncate()
@@ -251,30 +246,6 @@ fn title_element(
         }))
         .child(title)
         .into_any_element()
-}
-
-/// The title's field while it is renamed; Escape leaves the title as it
-/// was.
-pub(super) fn rename_field(
-    shell: &Shell,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let rename = shell.areas.conversation.rename.as_ref()?;
-    Some(
-        div()
-            .w(px(if narrow { 200.0 } else { 320.0 }))
-            .flex_shrink_0()
-            .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
-                if event.keystroke.key == "escape" {
-                    shell.cancel_rename(cx);
-                    cx.stop_propagation();
-                }
-            }))
-            .child(rename.field.element(tokens, narrow, cx))
-            .into_any_element(),
-    )
 }
 
 /// The menu's rows, as their actions say.

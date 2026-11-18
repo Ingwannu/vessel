@@ -210,6 +210,11 @@ fn the_agent_rows_menu_has_paseos_items_then_the_sessions(cx: &mut TestAppContex
                 shell.t.lang.conversation().kill(),
             ]
         );
+        // Paseo's 16 glyph on every row; Copy agent id's hint is the id's
+        // first seven characters.
+        assert!(items.iter().all(|(_, item)| item.leading.is_some()));
+        let hint = items.first().and_then(|(_, item)| item.value.clone());
+        assert_eq!(hint.map(|hint| hint.len()), Some(7));
         let groups: Vec<bool> = items.iter().map(|(_, item)| item.starts_group).collect();
         assert_eq!(groups, [false, true, false, false, true, false]);
         assert!(matches!(

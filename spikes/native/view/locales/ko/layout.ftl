@@ -105,3 +105,5 @@ layout-tab-menu-for = { $label }의 메뉴 열기
 layout-explorer-open = 사이드 패널 열기
 # Compact header: the code panel toggle while the panel is open (Paseo's explorerSidebar.close).
 layout-explorer-close = 사이드 패널 닫기
+# Rename dialog title for a session (Paseo's workspace.tabs.menu.renameAgent).
+layout-rename-agent = 에이전트 이름 변경

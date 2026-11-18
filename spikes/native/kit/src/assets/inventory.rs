@@ -256,4 +256,10 @@ glyph_inventory! {
     Inbox => "kit/inbox.svg",
     /// The import sheet's "All" provider filter (Paseo's filter pill, Lucide `Layers`).
     Layers => "kit/layers.svg",
+    /// The tab menu's Close tabs above (Paseo's tab menu, Lucide `ArrowLeftToLine`).
+    ArrowLeftToLine => "kit/arrow-left-to-line.svg",
+    /// The tab menu's Close tabs below (Paseo's tab menu, Lucide `ArrowRightToLine`).
+    ArrowRightToLine => "kit/arrow-right-to-line.svg",
+    /// The tab menu's Close other tabs (Paseo's tab menu, Lucide `CopyX`).
+    CopyX => "kit/copy-x.svg",
 }

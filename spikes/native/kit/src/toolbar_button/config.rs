@@ -7,6 +7,8 @@ const POINTER_FRAME: Pixels = px(20.0);
 const COMPACT_FRAME: Pixels = px(32.0);
 const FIXED_GLYPH: Pixels = crate::loading::Points::FOURTEEN.pixels();
 const COMPACT_GLYPH: Pixels = crate::loading::Points::EIGHTEEN.pixels();
+/// Paseo's `iconButtonChromeGlyphSize("large")`: `ICON_SIZE.md`.
+const LARGE_GLYPH: Pixels = crate::loading::Points::SIXTEEN.pixels();
 const DISABLED_OPACITY: f32 = 0.5;
 const ENABLED_OPACITY: f32 = 1.0;
 
@@ -33,6 +35,7 @@ pub struct ToolbarConfig {
     availability: ButtonState,
     selection: Selection,
     disclosure: Disclosure,
+    island: bool,
 }
 impl ToolbarConfig {
     /// Create an unselected, closed small toolbar action for the actual layout.
@@ -43,7 +46,21 @@ impl ToolbarConfig {
             availability,
             selection: Selection::Unselected,
             disclosure: Disclosure::Closed,
+            island: false,
         }
+    }
+    /// Paseo's header island (`IconButtonChromeProvider value="header-island"`,
+    /// TRACKER 789): its icon actions take the large chrome, a 16 glyph, and a
+    /// round hitbox and highlight. The frame stays the toolbar's (32 on touch,
+    /// Paseo's `COMPACT_LARGE_ICON_BUTTON_SIZE`); every other toolbar keeps
+    /// its 14 glyph and its square corners.
+    #[must_use]
+    pub const fn header_island(mut self) -> Self {
+        self.island = true;
+        self
+    }
+    pub(crate) const fn island(self) -> bool {
+        self.island
     }
     /// Reflect the owner's current selection without allocating local state.
     #[must_use]
@@ -108,6 +125,8 @@ impl ToolbarInk {
 enum GlyphSizing {
     Fixed,
     Adaptive,
+    /// The header island's large chrome: 16 at both sizings.
+    Large,
 }
 /// One shared vector and its explicit source mapping. Workspace rail icons are
 /// fixed14; the source helper alone adapts to18 in the compact layout.
@@ -133,8 +152,14 @@ impl ToolbarIcon {
         self.sizing = GlyphSizing::Adaptive;
         self
     }
+    /// The header island's 16 (`ToolbarConfig::header_island`).
+    pub(super) const fn large(mut self) -> Self {
+        self.sizing = GlyphSizing::Large;
+        self
+    }
     pub(super) const fn size(self, sizing: ControlSizing) -> Pixels {
         match (self.sizing, sizing) {
+            (GlyphSizing::Large, ControlSizing::Pointer | ControlSizing::Touch) => LARGE_GLYPH,
             (GlyphSizing::Adaptive, ControlSizing::Touch) => COMPACT_GLYPH,
             (GlyphSizing::Fixed, ControlSizing::Pointer | ControlSizing::Touch)
             | (GlyphSizing::Adaptive, ControlSizing::Pointer) => FIXED_GLYPH,

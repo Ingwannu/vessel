@@ -480,4 +480,6 @@ mod launch_role_tests;
 #[cfg(test)]
 mod sheet_role_tests;
 #[cfg(test)]
+mod tab_menu_role_tests;
+#[cfg(test)]
 mod viewport_role_tests;
