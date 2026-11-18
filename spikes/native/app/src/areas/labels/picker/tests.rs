@@ -45,13 +45,13 @@ fn labels_workspace_picker_stays_open_and_waits_for_registry_assignment_projecti
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(
+        assert!(shell.labels_picker_open(
             target.clone(),
             vec![label().name],
             EditAccess::Editable,
             window,
             cx,
-        );
+        ));
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         assert!(
             overlay(
@@ -116,7 +116,13 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(
+            target.clone(),
+            Vec::new(),
+            EditAccess::Editable,
+            window,
+            cx,
+        ));
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(opening, window, cx);
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
@@ -195,7 +201,13 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(
+            target.clone(),
+            Vec::new(),
+            EditAccess::Editable,
+            window,
+            cx,
+        ));
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(opening, window, cx);
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
@@ -278,14 +290,20 @@ fn labels_replaced_create_field_cannot_deliver_queued_text_to_its_successor(
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(
+            target.clone(),
+            Vec::new(),
+            EditAccess::Editable,
+            window,
+            cx,
+        ));
         let first = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(first, window, cx);
         let source = shell.areas.labels.picker.as_ref().unwrap().name.id();
         cx.defer_in(window, move |shell, _window, cx| {
             field_changed(shell, source, "stale editor text", cx);
         });
-        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx));
         let next = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(next, window, cx);
         assert_ne!(
@@ -309,7 +327,7 @@ fn labels_old_create_visit_cannot_submit_or_close_a_later_create_visit(cx: &mut 
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         let target = install(shell);
-        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        assert!(shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx));
         let list = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(list, window, cx);
         let first = shell.areas.labels.picker.as_ref().unwrap().opening;

@@ -190,9 +190,10 @@ impl Shell {
             }
             RowAct::Mark(MarkAction::Pin) => self.act_on_card(&card, Act::Mark(Mark::Pin)),
             RowAct::Mark(MarkAction::Unpin) => self.act_on_card(&card, Act::Mark(Mark::Unpin)),
-            RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete) => {}
-            // A page of the menu: the menu opens it, never choosing it.
-            RowAct::Labels => {}
+            // Labels is a page of the menu: the menu opens it, never choosing
+            // it.
+            RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete)
+            | RowAct::Labels => {}
         }
         cx.notify();
     }
@@ -232,8 +233,6 @@ impl Shell {
                 }
             }
             (true, RowPicker::Open) => self.row_menu_labels_keys(phone, window, cx),
-            // Back from the dialog the list holds the keys again.
-            (true, RowPicker::Dialog) => {}
             (true, RowPicker::Dismissed) => {
                 self.labels_row_picker_close();
                 let rows = &mut self.areas.sidebar.rows;
@@ -244,7 +243,8 @@ impl Shell {
             (false, RowPicker::Open | RowPicker::Dialog | RowPicker::Dismissed) => {
                 self.labels_row_picker_close();
             }
-            (false, RowPicker::None) => {}
+            // The dialog's own Back returns to the list, which takes the keys.
+            (true, RowPicker::Dialog) | (false, RowPicker::None) => {}
         }
         cx.notify();
     }
