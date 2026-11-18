@@ -162,6 +162,44 @@ fn create_label_has_paseos_rule_above_it_while_labels_are_shown(cx: &mut TestApp
     assert!(rules(cx).is_empty());
 }
 
+/// Every `aria` object of GPUI's real accessibility snapshot, as text (its
+/// values here hold no braces); no raw snapshot is printed.
+fn arias(cx: &mut VisualTestContext) -> Vec<String> {
+    let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    json.split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .collect()
+}
+
+#[gpui::test]
+fn the_labels_list_is_paseos_menu_its_labels_saying_their_check(cx: &mut TestAppContext) {
+    let (shell, cx, _sent) = opened(cx, 1280.0);
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    let row = labels_row(&shell, cx);
+    cx.simulate_click(row.center(), Modifiers::none());
+    cx.run_until_parked();
+    shell.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    let arias = arias(cx);
+    let menu_items: Vec<&String> = arias
+        .iter()
+        .filter(|aria| aria.contains(r#""MenuItem""#))
+        .collect();
+    // The row menu's own rows and the list's are menu items (TRACKER 808).
+    let named = |name: &str| {
+        let label = format!(r#""label": "{name}""#);
+        menu_items.iter().find(|aria| aria.contains(&label)).copied()
+    };
+    assert!(named("Labels").is_some_and(|aria| aria.contains(r#""expanded": true"#)));
+    let create = named("Create label").unwrap();
+    assert!(!create.contains("toggled"), "Create label draws no check");
+    // At least one label, saying checked or not.
+    assert!(menu_items.iter().any(|aria| aria.contains(r#""toggled""#)));
+}
+
 /// The Labels list's Create label row, as drawn.
 fn create_row(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Bounds<Pixels> {
     shell

@@ -1,5 +1,6 @@
-//! Test support: the button nodes of GPUI's real accessibility snapshot, by
-//! role and name only. No raw snapshot is printed.
+//! Test support: the nodes of GPUI's real accessibility snapshot, by role,
+//! name and the few states a control says (TRACKER 808: toggled, expanded,
+//! the actions it takes). No raw snapshot is printed.
 use gpui::{VisualTestContext, Window};
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -8,6 +9,21 @@ use std::collections::BTreeMap;
 struct Aria {
     role: String,
     label: Option<String>,
+    toggled: Option<String>,
+    expanded: Option<bool>,
+    #[serde(default)]
+    on_action: Vec<String>,
+}
+
+/// One node as assistive technology meets it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct A11yNode {
+    pub(crate) label: Option<String>,
+    /// "True" or "False" when it says a checked state.
+    pub(crate) toggled: Option<String>,
+    pub(crate) expanded: Option<bool>,
+    /// The actions it takes ("Click", "Focus").
+    pub(crate) actions: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -40,4 +56,22 @@ pub(crate) fn button_names(window: &Window) -> Option<Vec<Option<String>>> {
         .collect();
     names.sort();
     Some(names)
+}
+
+/// Every node with `role`, by name; `None` while the adapter is inactive.
+pub(crate) fn nodes(window: &Window, role: &str) -> Option<Vec<A11yNode>> {
+    let snapshot: Snapshot = serde_json::from_str(&window.debug_a11y_tree_json()?).ok()?;
+    let mut nodes: Vec<A11yNode> = snapshot
+        .nodes
+        .into_values()
+        .filter(|node| node.aria.role == role)
+        .map(|node| A11yNode {
+            label: node.aria.label,
+            toggled: node.aria.toggled,
+            expanded: node.aria.expanded,
+            actions: node.aria.on_action,
+        })
+        .collect();
+    nodes.sort_by(|a, b| a.label.cmp(&b.label));
+    Some(nodes)
 }
