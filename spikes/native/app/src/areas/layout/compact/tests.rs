@@ -207,7 +207,8 @@ fn the_agent_rows_menu_has_paseos_items_then_the_sessions(cx: &mut TestAppContex
         let shell = probe.0.read(cx);
         let words = shell.words.layout();
         // Before the node described the session: no Rename, no Close, and
-        // Kill while it may live.
+        // Kill while it may live. Its machine is not connected here, so
+        // Reload agent is offered, as Paseo's (TRACKER 803).
         let items = row_actions(shell, ids[0]);
         assert_eq!(
             labels(&items),
@@ -217,6 +218,7 @@ fn the_agent_rows_menu_has_paseos_items_then_the_sessions(cx: &mut TestAppContex
                 words.close_above(),
                 words.close_below(),
                 words.close_others(),
+                words.reload_agent(),
                 shell.words.sessions().copy_link(),
                 shell.t.lang.conversation().kill(),
             ]
@@ -227,7 +229,10 @@ fn the_agent_rows_menu_has_paseos_items_then_the_sessions(cx: &mut TestAppContex
         let hint = items.get(1).and_then(|(_, item)| item.value.clone());
         assert_eq!(hint.map(|hint| hint.len()), Some(7));
         let groups: Vec<bool> = items.iter().map(|(_, item)| item.starts_group).collect();
-        assert_eq!(groups, [false, false, true, false, false, true, false]);
+        assert_eq!(
+            groups,
+            [false, false, true, false, false, false, true, false]
+        );
         // The tab's own copy, the same press as on the wide strip.
         assert!(matches!(
             items.get(1),

@@ -69,6 +69,11 @@ pub struct CardDetail {
     /// before this was, or before the agent named it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub harness_session: Option<HarnessSessionId>,
+    /// Its agent said it cannot load a conversation (the node's
+    /// `abilities.resume` false): the tab menu offers no "Reload agent"
+    /// (TRACKER 803). False on a card kept before this was.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub cannot_load: bool,
 }
 
 impl Card {
@@ -162,6 +167,10 @@ impl Card {
             pull_request: session.pull_request.clone(),
             next_seq: Some(session.next_seq),
             harness_session: session.harness_session.clone(),
+            cannot_load: session
+                .abilities
+                .as_ref()
+                .is_some_and(|abilities| !abilities.resume),
             created_at: session.created_at,
             active_at: session
                 .board

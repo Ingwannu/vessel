@@ -30,6 +30,18 @@ impl Shell {
         cx.notify();
     }
 
+    /// Say `text` in a toast that stays until the next replaces it (Paseo's
+    /// `durationMs: null`): "Reloading agent..." until the host answers.
+    pub(crate) fn toast_hold(
+        &mut self,
+        text: impl Into<String>,
+        tone: ToastTone,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let _id = self.areas.toasts.hold(text, tone);
+        cx.notify();
+    }
+
     /// Paseo's `toast.copied(label)`: "Copied {label}" (`layout-copied`, its
     /// `common.states.copiedLabel`) as a copied toast, for every copy that
     /// says so (TRACKER 804).
@@ -73,6 +85,7 @@ pub(crate) fn render(
     let said = shell.areas.toasts.shown()?;
     let id = said.id;
     let look = match said.tone {
+        ToastTone::Plain => ToastLook::Plain,
         ToastTone::Ok => ToastLook::Success,
         ToastTone::Copied => ToastLook::Copied,
         ToastTone::Info => ToastLook::Info,
