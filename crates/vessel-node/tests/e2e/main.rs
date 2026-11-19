@@ -76,6 +76,8 @@ mod forking;
 #[cfg(test)]
 mod history;
 #[cfg(test)]
+mod host_folders;
+#[cfg(test)]
 mod inbox;
 #[cfg(test)]
 #[cfg(unix)]

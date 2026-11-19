@@ -32,6 +32,7 @@ import type { ProjectId, ProjectInfo, SessionInfo } from "../../wire/proto";
 import { SessionMark } from "../shell/session-mark";
 import { rowClass } from "../shell/sidebar";
 import { useNewSession } from "../shell/use-new-session";
+import { ProjectIcon } from "./project-icon";
 
 /** Projects listed before "Show N more", and sessions under one. */
 const PROJECTS = 10;
@@ -109,7 +110,14 @@ function MachineProjects({
               }}
             >
               <span className="project-mark" aria-hidden="true">
-                <Icon name={isOpen ? "folder-open" : "folder"} size={14} />
+                <ProjectIcon
+                  node={node}
+                  project={project.id}
+                  size={14}
+                  fallback={
+                    <Icon name={isOpen ? "folder-open" : "folder"} size={14} />
+                  }
+                />
                 <Icon name="chevron" size={14} />
               </span>
               <span className="label">{project.name}</span>

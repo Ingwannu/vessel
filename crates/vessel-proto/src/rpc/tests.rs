@@ -281,6 +281,7 @@ const WORKSPACE_FAMILIES_LATER: &[&str] = &[
     "file.duplicate",
     "file.observe",
     "file.suggest",
+    "project.icon",
 ];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
@@ -578,6 +579,35 @@ fn the_reload_method_knows_its_version_scope_and_shape() {
     assert!(Method::ReloadSession.forwardable());
 }
 
+/// ADR 0112's methods, assigned 32 (`HOST_FOLDERS_PROTOCOL`): the home's
+/// folders for those who may add a project, a project's icon for those who
+/// may read it.
+const HOST_FOLDERS_METHODS: &[(&str, Scope)] = &[
+    ("folder.suggest", Scope::Operate),
+    ("project.icon", Scope::Read),
+];
+
+#[test]
+fn folder_suggestions_and_icons_know_their_version_scope_and_shape() {
+    use crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL;
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == HOST_FOLDERS_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(method.forwardable(), "{method:?}");
+        })
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, HOST_FOLDERS_METHODS);
+    assert_eq!(HOST_FOLDERS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -796,6 +826,8 @@ const FORWARDABLE: &[&str] = &[
     "workspace.label.inspect_delete",
     "workspace.label.delete",
     "session.reload",
+    "folder.suggest",
+    "project.icon",
 ];
 
 #[test]

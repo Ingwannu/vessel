@@ -158,8 +158,9 @@ Devices are sections there too (milestone 10, track W2).
   sidebar hides with its shortcut (`⌘B`) or the title bar's button, and
   stays hidden across launches (ADR 0028).
 - **Projects** (agent-orchestrator's project tree), above the machines:
-  each connected machine's projects, a 32px row each (a folder whose mark
-  turns into a chevron on hover, the name, the machine in the passive ink
+  each connected machine's projects, a 32px row each (the project's own
+  icon, else a folder, whose mark turns into a chevron on hover, the
+  name, the machine in the passive ink
   when two or more machines have projects, the live count), the first ten
   then "Show N more projects". A row opens to its live sessions, 14px in;
   its "+" (on hover) starts a session there (the new-session page opens
@@ -339,8 +340,9 @@ move between sections. Compact, the column's padding is 12px.
 - **Projects** (Paseo's projects, agent-orchestrator's add-project
   flow): "Projects on <machine>" with the machine picker and "Add
   project" (Add a folder…, Clone a repository…, Start a new project…);
-  a row per project (its folder, its state while it clones or after a
-  clone failed, its default branch or "no git"); the machine's git when
+  a row per project (its own icon, else the folder mark; its folder, its
+  state while it clones or after a clone failed, its default branch or
+  "no git"); the machine's git when
   it is missing or too old, as a warning above. The chosen project's
   detail under the list: Folder, Default branch, Added; Commands (what
   its `vessel.toml` names for a new worktree and as scripts and

@@ -14,6 +14,7 @@ mod exec_path;
 mod file_terminals;
 mod files;
 mod git;
+pub mod host_folders;
 mod panel;
 pub mod panel_files;
 mod path;
