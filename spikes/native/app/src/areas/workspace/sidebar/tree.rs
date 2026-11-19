@@ -25,7 +25,7 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::status_mark::{SLOT_HEIGHT, icon_box};
-use vessel_app_kit::theme::SidebarSurfaces;
+use vessel_app_kit::theme::{SidebarSurfaces, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
     ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, div,
@@ -82,7 +82,7 @@ pub(crate) fn heading(
             .flex()
             .flex_row()
             .items_center()
-            .gap(px(2.0))
+            .gap(px(spacing::S0_5))
             .child(trigger)
             .child(add_project(tokens, cx)),
     )
