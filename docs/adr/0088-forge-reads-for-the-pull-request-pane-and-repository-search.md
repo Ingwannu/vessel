@@ -3,9 +3,10 @@
 Status: proposed (implementer G, 2026-11-19; the coordinator's rulings of
 the same day). The number is the reservation "forge node gaps (G1)" of the
 parity plan, which had no file. Part 1 (`forge.repos`) was drafted as
-36 and assigned protocol 35 (`REPOSITORY_SEARCH_PROTOCOL`) at its node-line merge, the
-next free number in merge order. Parts 2 to 4 get their own drafted number with
-their packet. The integrator assigns the real numbers at merge.
+36 and assigned protocol 35 (`REPOSITORY_SEARCH_PROTOCOL`) at its
+node-line merge, the next free number in merge order. Parts 2 to 4 are
+drafted together as protocol 36 (`PULL_REQUEST_PANE_PROTOCOL`). The
+integrator assigns the real numbers at merge.
 
 ## Context
 
@@ -29,10 +30,11 @@ TRACKER 431-433, 440):
   conversation comments and review threads (path, line, resolved,
   outdated, review), with times and authors; GraphQL first:100 per kind
   and 100 comments per thread; `truncated` when any page had more.
-- `checkout.forge.get_check_details` (`checkout-session.ts:1287`): one
-  check run's output, its annotations (at most 20 pages), the failed jobs
-  of its workflow run (at most 5) and the tail of each job's log (200
-  lines, 16 KiB, a UTF-8 safe suffix).
+- `checkout.forge.get_check_details` (`checkout-session.ts:1287`,
+  `github-service.ts:2234-2330`): one check run's output, one page of 20
+  annotations, one page of 100 jobs of its workflow run, the failed ones
+  (failure, cancelled, timed out, action required; at most 5) and the tail
+  of each failed job's log (200 lines, 16 KiB, a UTF-8 safe suffix).
 
 Vessel's node reaches GitHub with its own HTTP client and the machine's
 token (ADR 0029), never `gh` per call. A pull request is reached through
@@ -81,15 +83,20 @@ search.
   search holds only search on that host; any other limit answer still
   holds the whole host (secondary limits are the account's).
 
-### 2. Every check on `pr.get` (its own drafted protocol)
+### 2. Every check on `pr.get` (protocol 36, drafted)
 
 `Checks` gains `runs: Vec<CheckRun>`, every context of the head as read
 (at most 100). `CheckRun` gains optional `run` (the check run's id),
-`workflow`, `started_at` and `completed_at`. All are optional serde fields:
-an older client ignores them, an older node omits them, and `failing`
-keeps its meaning.
+`workflow_run` (its GitHub Actions run's id), `workflow`, `started_at` and
+`completed_at`. `PullSummary`, the row every client lists, gains optional
+`tally: CheckTally { passed, failed, pending }`, the counts `Checks`
+already has: Paseo's sidebar fills its check glyph by quarters of
+completed over total, and a row has no list of runs (sending up to 100
+runs a row in a listing every client polls was rejected). All are optional
+serde fields: an older client ignores them, an older node omits them, and
+`failing` keeps its meaning.
 
-### 3. `pr.timeline { session }` (its own drafted protocol)
+### 3. `pr.timeline { session }` (protocol 36, drafted)
 
 `read`, open to agents as `pr.get` is, held to the same session rule. One
 GraphQL query: reviews (100), comments (100), review threads (100, each
@@ -100,17 +107,25 @@ answer carries `access` as `pr.get`, the items in Paseo's stable order
 4 MiB body bound also bounds the answer; a larger answer is `unreachable`
 with no partial list.
 
-### 4. `pr.check { session, run }` (its own drafted protocol)
+### 4. `pr.check { session, run }` (protocol 36, drafted)
 
-`read`, as `pr.timeline`. `run` must be a check of the session's pull
-request head, as the last read named it. The node never reads a check
-that a client names freely. The answer has the check run's output (title,
-summary, text), annotations (at most 20 pages of 50), the failed jobs of
-its workflow run (at most 5) and each job's log tail.
+`read`, as `pr.timeline`. Both are held to the caller's ownership of the
+session, as `pr.get`'s refresh is (each is a forge request on demand).
+`run` must be a check of the session's pull request head, as the
+watcher's last read named it; the node never reads a check that a client
+names freely, and an unnamed one answers no report. The answer has the
+check run's output (title, summary, text), one page of 20 annotations,
+the failed jobs of its workflow run (at most 5, from one page of 100) and
+each job's log tail; a log that cannot be read leaves its job without one
+(Paseo attaches what it has). `truncated` when a page was full or more
+jobs failed than are read.
 
 The job log is `GET …/actions/jobs/{id}/logs`, which GitHub answers with
-a 302 to signed blob storage on another origin. This is the one exception
-to ADR 0029's same-origin rule:
+a 302 to signed blob storage on another origin (GitHub Enterprise Server
+may answer the log itself: read as any answer). The API request goes
+through the client as every request does, which keeps a redirect's
+`Location` instead of following it. This is the one exception to ADR
+0029's same-origin rule:
 
 - the node follows exactly one redirect, only to `https` (never `http`),
   and sends that request WITHOUT the `Authorization` header (the signed

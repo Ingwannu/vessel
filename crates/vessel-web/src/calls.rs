@@ -203,6 +203,8 @@ const fn forwardable(method: Method) -> bool {
         | Method::SearchRepositories
         | Method::ListPullRequests
         | Method::GetPullRequest
+        | Method::GetPullTimeline
+        | Method::GetCheckDetails
         | Method::OpenPullRequest
         | Method::MergePullRequest
         | Method::SetFeedback

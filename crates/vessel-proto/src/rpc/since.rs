@@ -262,6 +262,8 @@ impl Call {
             | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
+            | Self::GetPullTimeline(_)
+            | Self::GetCheckDetails(_)
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)

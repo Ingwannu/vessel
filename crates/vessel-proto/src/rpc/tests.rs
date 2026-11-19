@@ -689,7 +689,7 @@ fn the_repository_search_knows_its_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, REPOSITORY_SEARCH_METHODS);
-    assert_eq!(REPOSITORY_SEARCH_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(REPOSITORY_SEARCH_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     // The limit and the query are checked when the request is decoded.
     for params in [
         serde_json::json!({"query": "a", "limit": 51}),
@@ -700,6 +700,38 @@ fn the_repository_search_knows_its_version_scope_and_shape() {
         );
         assert!(refused.is_err());
     }
+}
+
+/// ADR 0088's pane reads, drafted as 36 (`PULL_REQUEST_PANE_PROTOCOL`):
+/// reads, as `pr.get`.
+const PULL_REQUEST_PANE_METHODS: &[(&str, Scope)] =
+    &[("pr.timeline", Scope::Read), ("pr.check", Scope::Read)];
+
+#[test]
+fn the_pane_reads_know_their_version_scope_and_shape() {
+    use crate::forge::PULL_REQUEST_PANE_PROTOCOL;
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == PULL_REQUEST_PANE_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(method.forwardable(), "{method:?}");
+        })
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, PULL_REQUEST_PANE_METHODS);
+    assert_eq!(PULL_REQUEST_PANE_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // A check run is a positive number, checked when the request is decoded.
+    let refused = serde_json::from_value::<Call>(serde_json::json!({
+        "method": "pr.check",
+        "params": {"session": crate::SessionId::random(), "run": 0},
+    }));
+    assert!(refused.is_err());
 }
 
 #[test]
@@ -925,6 +957,8 @@ const FORWARDABLE: &[&str] = &[
     "agent.diagnostic",
     "project.create_directory",
     "forge.repos",
+    "pr.timeline",
+    "pr.check",
 ];
 
 #[test]

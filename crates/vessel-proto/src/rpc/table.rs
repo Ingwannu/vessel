@@ -473,6 +473,10 @@ macro_rules! method_table {
             CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::registry::PROJECT_DIRECTORY_PROTOCOL), unary]: $crate::registry::CreateProjectDirectory => $crate::workspace::ProjectInfo;
             /// The signed-in account's GitHub repositories, or a search, for Add project (ADR 0088).
             SearchRepositories / search_repositories / "forge.repos" [Operate, (pending $crate::forge::REPOSITORY_SEARCH_PROTOCOL), unary]: $crate::forge::SearchRepositories => $crate::forge::RepositoryList;
+            /// A session's pull request's reviews, comments and review threads, as Paseo's pane (ADR 0088).
+            GetPullTimeline / pull_timeline / "pr.timeline" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetPullTimeline => $crate::forge::PullTimeline;
+            /// One check of a session's pull request, with its failed jobs' log tails (ADR 0088).
+            GetCheckDetails / check_details / "pr.check" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetCheckDetails => $crate::forge::CheckDetails;
         }
     };
 }

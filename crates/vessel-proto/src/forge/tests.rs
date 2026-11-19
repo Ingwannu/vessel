@@ -23,6 +23,7 @@ fn summary() -> PullSummary {
         review: ReviewDecision::ChangesRequested,
         mergeable: Mergeable::Blocked,
         updated_at: DateTime::<Utc>::UNIX_EPOCH,
+        tally: None,
     }
 }
 
@@ -95,5 +96,36 @@ fn a_merge_names_its_pull_request_and_head() {
     assert_eq!(
         serde_json::from_str::<MergePullRequest>(&json).unwrap(),
         merge
+    );
+}
+
+#[test]
+fn a_row_s_tally_is_its_checks_counts_and_optional_on_the_wire() {
+    let mut checks = Checks::unknown();
+    assert_eq!(CheckTally::of(&checks), None, "nothing counted");
+    checks.passed = 7;
+    checks.pending = 2;
+    assert_eq!(
+        CheckTally::of(&checks),
+        Some(CheckTally {
+            passed: 7,
+            failed: 0,
+            pending: 2,
+        })
+    );
+    let older = serde_json::to_value(summary()).unwrap();
+    assert!(older.get("tally").is_none(), "none is left out");
+    let mut newer = summary();
+    newer.tally = CheckTally::of(&checks);
+    let sent = serde_json::to_value(&newer).unwrap();
+    assert_eq!(
+        sent["tally"],
+        serde_json::json!({"passed": 7, "failed": 0, "pending": 2})
+    );
+    assert_eq!(serde_json::from_value::<PullSummary>(sent).unwrap(), newer);
+    assert_eq!(
+        serde_json::from_value::<PullSummary>(older).unwrap().tally,
+        None,
+        "an older node's summary reads without one"
     );
 }

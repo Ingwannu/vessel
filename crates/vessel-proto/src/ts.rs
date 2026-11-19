@@ -388,6 +388,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::forge::REPOSITORY_SEARCH_PROTOCOL,
         "`forge.repos`: GitHub repository search for Add project (ADR 0088).",
     ),
+    (
+        "PULL_REQUEST_PANE_PROTOCOL",
+        crate::forge::PULL_REQUEST_PANE_PROTOCOL,
+        "`pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

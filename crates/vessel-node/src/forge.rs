@@ -29,6 +29,7 @@ mod calls;
 mod feedback;
 mod folder;
 mod hosts;
+mod pane;
 mod poll;
 mod schedule;
 mod view;

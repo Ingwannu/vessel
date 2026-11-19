@@ -56,6 +56,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::DetachSession
         | Method::DeleteSession
         | Method::GetPullRequest
+        | Method::GetPullTimeline
         | Method::ParkSession
         | Method::WakeSession
         | Method::ReloadSession
@@ -215,6 +216,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::SuggestFolders => json!({"query":"code"}),
         Method::CreateProjectDirectory => json!({"parent":"/fixture","name":"sample"}),
         Method::SearchRepositories => json!({"query":"vessel","limit":30}),
+        Method::GetCheckDetails => json!({"session": id, "run": 42}),
         Method::SuggestEntries => {
             json!({"root":root,"directory":"","query":"","kinds":"both","matching":"fuzzy","limit":null})
         }
