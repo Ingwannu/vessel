@@ -110,6 +110,10 @@ const fn refused(method: Method) -> bool {
         | Method::SetServiceExposure
         | Method::ListWorkspaceLabels | Method::AssignWorkspaceLabel | Method::UpdateWorkspaceLabel | Method::InspectWorkspaceLabelDelete | Method::DeleteWorkspaceLabel | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::AddProject
+        // Add project's folder suggestions and the icons a person sees
+        // (ADR 0112): a person's, as Add project is.
+        | Method::SuggestFolders
+        | Method::ProjectIcon
         | Method::GetSkillsStatus
         | Method::ReconcileSkills
         | Method::UninstallSkills

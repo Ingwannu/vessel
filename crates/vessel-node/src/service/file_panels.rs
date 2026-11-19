@@ -4,6 +4,9 @@
 use std::{future::Future, sync::Arc, time::Duration};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
+use vessel_proto::workspace::host_folders::{
+    FolderSuggestions, GetProjectIcon, ProjectIcon, SuggestFolders,
+};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, DuplicatedFileEntry, FileBytePage, ObserveFile, ObservedFile, ReadFileBytes,
 };
@@ -98,6 +101,28 @@ impl NodeService {
     ) -> Result<EntrySuggestions, WireError> {
         let workspaces = Arc::clone(&self.workspaces);
         self.run_file_work(async move { workspaces.suggest_entries(request).await })
+            .await
+    }
+
+    /// `folder.suggest` (ADR 0112): a bounded walk on the file workers.
+    pub(crate) async fn suggest_folders(
+        &self,
+        _: &Connection,
+        request: SuggestFolders,
+    ) -> Result<FolderSuggestions, WireError> {
+        let workspaces = Arc::clone(&self.workspaces);
+        self.run_file_work(async move { workspaces.suggest_folders(request).await })
+            .await
+    }
+
+    /// `project.icon` (ADR 0112): a bounded read on the file workers.
+    pub(crate) async fn project_icon(
+        &self,
+        _: &Connection,
+        request: GetProjectIcon,
+    ) -> Result<ProjectIcon, WireError> {
+        let workspaces = Arc::clone(&self.workspaces);
+        self.run_file_work(async move { workspaces.project_icon(request).await })
             .await
     }
 

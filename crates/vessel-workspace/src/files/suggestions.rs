@@ -30,7 +30,7 @@ const SEARCHABLE_HIDDEN: &[&str] = &[
     ".vscode",
 ];
 /// Generated trees excluded by the reference even outside git repositories.
-const IGNORED_NAMES: &[&str] = &[
+pub(super) const IGNORED_NAMES: &[&str] = &[
     "node_modules",
     "venv",
     "env",

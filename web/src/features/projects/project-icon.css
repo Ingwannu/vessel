@@ -1,0 +1,8 @@
+/* A project's own icon (project-icon.tsx): sized to the mark it replaces,
+   never clipped or rounded (Paseo leaves a person's mark as drawn). */
+
+.project-icon {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}
