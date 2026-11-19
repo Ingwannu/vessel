@@ -44,6 +44,9 @@ use crate::popup::MENU_RADIUS;
 use crate::theme::{COMMAND_SCRIM, Tokens, spacing};
 use crate::widgets::TypeExt as _;
 
+#[cfg(test)]
+mod a11y_tests;
+
 /// Paseo's back-button slot width and a mark's slot width.
 const SLOT: f32 = 18.0;
 /// Paseo's `iconSize.lg`: the title row's least height.
@@ -64,6 +67,9 @@ pub struct FlowHint {
 
 /// What the sheet holds.
 pub struct FlowSheetFrame {
+    /// The panel's name for assistive technology (the page's "Add project:
+    /// <page>").
+    pub label: SharedString,
     /// The page's title.
     pub title: SharedString,
     /// The machine or other context beside it, muted.
@@ -145,9 +151,12 @@ fn title_row<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> Div {
     let neutral = tokens.neutral;
+    let back_name = crate::control_names(cx).back.clone();
     let back = frame.back.then(|| {
         div()
             .id("flow-sheet-back")
+            .role(gpui::Role::Button)
+            .aria_label(back_name)
             .w(px(SLOT))
             .h(px(TITLE_ROW))
             .flex_none()
@@ -280,6 +289,8 @@ pub fn flow_sheet<V: 'static>(
         .children(frame.results);
     let panel = div()
         .id("flow-sheet")
+        .role(gpui::Role::Dialog)
+        .aria_label(frame.label.clone())
         .w(px(WIDTH))
         .max_w(relative(0.92))
         .max_h(relative(0.8))
@@ -350,12 +361,15 @@ impl std::fmt::Debug for FlowRow {
     }
 }
 
-/// One row; the owner adds its click.
+/// One row, a button named by its title; the owner adds its click, and
+/// only to a row that can be chosen (a disabled row offers no Click).
 pub fn flow_row(id: impl Into<ElementId>, row: FlowRow, tokens: &Tokens) -> Stateful<Div> {
     let neutral = tokens.neutral;
     let wash = neutral.surface1;
     div()
         .id(id)
+        .role(gpui::Role::Button)
+        .aria_label(row.title.clone())
         .flex()
         .flex_row()
         .items_center()

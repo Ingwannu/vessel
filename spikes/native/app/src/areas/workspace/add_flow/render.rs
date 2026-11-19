@@ -259,6 +259,7 @@ pub(crate) fn render(
     let field_shown = words.placeholder(page.kind.id()).is_some();
     let field = sheet.field.bare(tokens, cx);
     let frame = FlowSheetFrame {
+        label: words.sheet_label(page.kind.id()).into(),
         title: words.page_title(page.kind.id()).into(),
         context: open
             .flow

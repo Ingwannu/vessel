@@ -279,6 +279,23 @@ impl AddFlowWords {
         }
     }
 
+    /// The sheet's name for assistive technology: "Add project", then the
+    /// page's title on a later page (the page's "Add project: <page>").
+    #[must_use]
+    pub fn sheet_label(&self, page: PageId) -> String {
+        match page {
+            PageId::Method => self.add_project.to_owned(),
+            PageId::Host
+            | PageId::DirectorySearch
+            | PageId::GithubSearch
+            | PageId::GithubLocation
+            | PageId::NewDirectoryParent
+            | PageId::NewDirectoryName => {
+                format!("{}: {}", self.add_project, self.page_title(page))
+            }
+        }
+    }
+
     /// A page's field placeholder; the method page has no field.
     #[must_use]
     pub const fn placeholder(&self, page: PageId) -> Option<&'static str> {

@@ -199,6 +199,12 @@ impl Shell {
         let page = open.flow.page();
         let placeholder = words.placeholder(page.kind.id()).unwrap_or_default();
         sheet.field.set_placeholder(placeholder, window, cx);
+        // Named by what it asks for; the method page's hidden field, which
+        // only keeps the keys, by the page's title.
+        let name = words
+            .placeholder(page.kind.id())
+            .unwrap_or_else(|| words.page_title(page.kind.id()));
+        sheet.field.set_accessible_label(name, cx);
         sheet.field.set_text(&page.field, window, cx);
         sheet.field.focus(window, cx);
         sheet
@@ -214,10 +220,13 @@ impl Shell {
         let sheet = &self.areas.workspace.add_flow;
         if let Some(open) = &sheet.open {
             let words = self.t.lang.add_flow();
-            let placeholder = words
-                .placeholder(open.flow.page().kind.id())
-                .unwrap_or_default();
-            sheet.field.set_placeholder(placeholder, window, cx);
+            let page = open.flow.page().kind.id();
+            let placeholder = words.placeholder(page);
+            sheet
+                .field
+                .set_placeholder(placeholder.unwrap_or_default(), window, cx);
+            let name = placeholder.unwrap_or_else(|| words.page_title(page));
+            sheet.field.set_accessible_label(name, cx);
         }
     }
 
