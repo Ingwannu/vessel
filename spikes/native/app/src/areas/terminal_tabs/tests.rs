@@ -173,7 +173,7 @@ fn terminal_creates_a_shell_whose_tab_replaces_the_new_tab(cx: &mut TestAppConte
         });
         // The New tab tab became the terminal's (Paseo's `replace`).
         assert_eq!(new_tab_left, Some(Target::Terminal(terminal)));
-        assert_eq!(super::label(shell, terminal), "Terminal");
+        assert_eq!(label(shell, terminal), "Terminal");
     });
     let asked = sent(&probe, cx);
     assert!(matches!(

@@ -24,7 +24,7 @@ use vessel_app_view::layout::Target;
 use vessel_app_view::terminal_tabs::Trouble;
 
 use super::{PaneKey, Stage, pane_key};
-use crate::areas::layout::PanelContext;
+use crate::areas::layout::registry::PanelContext;
 use crate::areas::terminal::convert;
 use crate::areas::terminal::font_size;
 use crate::areas::terminal::scroll::Step;
