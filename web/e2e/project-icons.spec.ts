@@ -39,7 +39,7 @@ test("a project's own icon is its mark, else its lettered square", async ({
   if (!cli(["project", "list"]).includes("iconed")) {
     cli(["project", "add", folder]);
   }
-  await openUi(page);
+  const origin = await openUi(page);
   const side = page.locator(".side-project", {
     has: page.getByRole("button", { name: /^iconed\b/ }),
   });
@@ -58,7 +58,8 @@ test("a project's own icon is its mark, else its lettered square", async ({
   await expect(shop.locator(".project-identity")).toHaveText("S");
   await expect(shop.locator("img")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Add project" }).first().click();
+  // Settings › Projects (the sidebar's "+" opens Add project's sheet).
+  await page.goto(`${origin}/settings/projects?machine=laptop`);
   const rows = page.getByRole("list", { name: "Projects" });
   const row = rows.getByRole("listitem").filter({
     has: page.getByRole("button", { name: "iconed", exact: true }),

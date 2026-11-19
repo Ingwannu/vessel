@@ -163,6 +163,7 @@ impl Method {
             | Self::SuggestEntries
             | Self::SuggestFolders
             | Self::ProjectIcon
+            | Self::CreateProjectDirectory
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir

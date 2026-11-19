@@ -57,11 +57,13 @@ impl From<DirectoryName> for String {
     }
 }
 
-/// Create a single empty directory, register it, and do not initialize Git.
+/// `project.create_directory` (ADR 0113): create a single empty directory,
+/// register it, and do not initialize Git.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CreateProjectDirectory {
-    /// Existing absolute parent on the selected node; never a client-local path.
+    /// An existing folder on the selected node: absolute, or starting with
+    /// `~` or `~/` for the node user's home; never a client-local path.
     pub parent: PathBuf,
     /// One component, checked while decoding before filesystem mutation.
     pub name: DirectoryName,

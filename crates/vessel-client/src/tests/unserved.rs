@@ -169,6 +169,7 @@ macro_rules! methods {
             project_icon: vessel_proto::workspace::host_folders::GetProjectIcon => vessel_proto::workspace::host_folders::ProjectIcon;
             agent_diagnostic: vessel_proto::agents::GetAgentDiagnostic => vessel_proto::agents::AgentDiagnostic;
             node_log: vessel_proto::diagnostics::ReadNodeLog => vessel_proto::diagnostics::NodeLog;
+            create_project_directory: vessel_proto::registry::CreateProjectDirectory => vessel_proto::workspace::ProjectInfo;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;
