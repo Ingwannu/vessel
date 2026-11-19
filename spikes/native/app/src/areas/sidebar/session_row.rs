@@ -27,9 +27,11 @@
 //! - The shortcut number (Paseo's `SidebarWorkspaceShortcutBadge`) at the
 //!   title's end while the jump modifier is held (`shortcut_badges_visible`),
 //!   for the first nine rows in the order the keys walk; it hides the kebab.
-//! - Differences, named: the hover card (TRACKER 810) and the rows under
-//!   their project (TRACKER 682) are their own items; Paseo's "creating"
-//!   title (92%) has no state here.
+//! - Under a project's header (TRACKER 682) the row takes the same indent
+//!   as under a machine or a status (Paseo's `rowIndented`: every grouped
+//!   row on one rail).
+//! - Differences, named: the hover card (TRACKER 810) is its own item;
+//!   Paseo's "creating" title (92%) has no state here.
 
 use gpui::{FontWeight, linear_color_stop, linear_gradient};
 use vessel_app_kit::assets::Glyph;
@@ -53,7 +55,8 @@ use crate::shell::Shell;
 /// `density.rowHeight`).
 const ROW: f32 = 36.0;
 const ROW_TOUCH: f32 = 44.0;
-/// Its left padding under a group header (Paseo's `rowIndented`: 8 + 8).
+/// Its left padding under a group header (Paseo's `rowIndented`: 8 + 8,
+/// one rail for every grouping: a machine, a status, a project).
 const INDENT: f32 = 16.0;
 /// The title's line.
 const TITLE_LINE: f32 = 20.0;

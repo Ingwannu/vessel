@@ -20,6 +20,12 @@ use vessel_proto::SessionId;
 
 use crate::board::{Card, Fleet, Phrase};
 
+mod announce;
+mod tone;
+
+pub use announce::{Announce, Seen, Unseen, announce};
+pub use tone::samples;
+
 /// Why the app tells the person.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NoticeKind {
@@ -85,6 +91,11 @@ pub fn notices(before: &Fleet, after: &Fleet) -> Vec<Notice> {
             let then = *was.get(&(card.machine.as_str(), card.session))?;
             let kind = match (doing(card), then) {
                 (Doing::NeedsYou, Doing::Working | Doing::Resting) => NoticeKind::NeedsYou,
+                // A failure is not announced (Paseo never notifies an
+                // error; ADR 0114): it stays on the card and in the inbox.
+                (Doing::Resting, Doing::Working) if card.detail.process == Phrase::Failed => {
+                    return None;
+                }
                 (Doing::Resting, Doing::Working) => NoticeKind::Finished,
                 (Doing::NeedsYou, Doing::NeedsYou)
                 | (Doing::Working, Doing::NeedsYou | Doing::Working | Doing::Resting)

@@ -313,9 +313,10 @@ fn beside(
     flyout(&menu.pages, &id, 0, 3, list)
 }
 
-/// An option's leading mark (Paseo's: a host, a dashed circle).
+/// An option's leading mark (Paseo's: a folder, a host, a dashed circle).
 const fn glyph(mark: OptionMark) -> Glyph {
     match mark {
+        OptionMark::Project => Glyph::Folder,
         OptionMark::Machine => Glyph::Server,
         OptionMark::Status => Glyph::CircleDot,
     }

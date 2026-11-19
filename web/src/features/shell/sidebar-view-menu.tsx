@@ -7,6 +7,7 @@
 
 import { useFleet } from "../../context";
 import { prefer, prefs } from "../../data/prefs";
+import { pageGrouping } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { labelManager } from "../../data/workspace-labels/hub";
 import {
@@ -44,7 +45,7 @@ export function SidebarViewMenu() {
     >
       <MenuGroup label="Grouping">
         <MenuRadioGroup
-          value={view.group}
+          value={pageGrouping(view.group)}
           onChange={(group) => {
             change({ set: "sidebar_group", value: group });
           }}

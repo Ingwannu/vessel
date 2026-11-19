@@ -630,6 +630,21 @@ preferences path copies were frame notices that re-worded on a language
 change; a toast, as in Paseo, is not re-worded. Copies Paseo leaves silent
 (the explorer's paths) and inline states (the pairing link) stay as they are.
 
+The system's notifications are ADR 0114's. `areas::notify` diffs each change
+of the fleet (`view::notices`) and applies Paseo's rules (`notices::announce`):
+- a notice is told unless the window is active and showing that session;
+- a failure is never told;
+- Settings › Notifications chooses the system notification, the sound, both or
+  nothing.
+
+The notification goes through GPUI's system notification API (Linux D-Bus,
+Windows toast; none on macOS). Its tag is opaque and mapped in the process, so
+a click activates the window and opens the session. The sound is the page's
+two tones, played by link (`link::sound`, `cpal`, Linux and Windows). The
+window's title counts the notices since the window was last active. One open
+app does not know of another, so each may notify until the node's claim
+(ADR 0089, TRACKER 815) decides one recipient.
+
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
 The ordinary header and compact callback entry points delegate to it.
@@ -851,7 +866,9 @@ jobs; one build at a time.
 
 Linux needs the X11 and Wayland development libraries GPUI links
 (`libxkbcommon-dev`, `libwayland-dev`, `libxcb*-dev`, `libfontconfig-dev`)
-and, to run, a Vulkan driver (Mesa's is enough).
+and ALSA's (`libasound2-dev`, for cpal's notification tones, ADR 0114);
+to run, a Vulkan driver (Mesa's is enough) and `libasound.so.2`
+(`libasound2`).
 
 The gate of this workspace (the main workspace's lints are copied into
 its manifest), run from `spikes/native` with its pinned toolchain

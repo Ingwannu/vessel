@@ -21,7 +21,7 @@
 use gpui::{AppContext as _, Bounds, px, size};
 use vessel_app_kit::SchemeChoice;
 
-use crate::{LABEL, shell};
+use crate::shell;
 
 /// Start the app in the page that loaded it.
 pub(crate) fn main() {
@@ -47,7 +47,7 @@ pub(crate) fn main() {
             // The canvas fills the page whatever the bounds say; the
             // desktop's options are kept so the window is described once.
             let bounds = Bounds::centered(None, size(px(1280.0), px(800.0)), cx);
-            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
+            let options = vessel_app_kit::chrome::window_options(crate::window_title(), bounds);
             let opened = cx.open_window(options, |window, cx| {
                 let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
                 vessel_app_kit::root(shell, window, cx)

@@ -43,6 +43,13 @@ fn a_page_checks_the_choice_in_effect_and_only_grouping_carries_marks() {
             .collect::<Vec<_>>(),
         vec![
             (
+                "프로젝트",
+                RowKind::Choice {
+                    checked: false,
+                    mark: Some(OptionMark::Project)
+                }
+            ),
+            (
                 "머신",
                 RowKind::Choice {
                     checked: true,
@@ -91,7 +98,13 @@ fn choosing_opens_a_page_flips_the_switch_or_sets_and_closes() {
         Some(DisplayAct::Flip(PreferenceChange::SidebarEnded(true)))
     );
     assert_eq!(
-        DisplayPage::Grouping.choose(1, now),
+        DisplayPage::Grouping.choose(0, now),
+        Some(DisplayAct::Choose(PreferenceChange::SidebarGroup(
+            Grouping::Project
+        )))
+    );
+    assert_eq!(
+        DisplayPage::Grouping.choose(2, now),
         Some(DisplayAct::Choose(PreferenceChange::SidebarGroup(
             Grouping::Status
         )))
