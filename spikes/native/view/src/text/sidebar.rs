@@ -3,6 +3,7 @@
 //! in English and Korean. See `text/mod.rs` for the convention.
 
 use super::Lang;
+use crate::attention::Bucket;
 use crate::prefs::{Grouping, SessionSort};
 use crate::sidebar::SessionMark;
 
@@ -57,6 +58,25 @@ pub struct SidebarWords {
     /// `sidebar.workspace.actions.menu`, "Workspace actions"; a Vessel row is
     /// a session).
     pub row_actions: &'static str,
+    // A row's status (Paseo's `sidebar.statusBucket`), said by a project's
+    // badge.
+    needs_input: &'static str,
+    failed: &'static str,
+    ready_to_review: &'static str,
+    bucket_working: &'static str,
+    done: &'static str,
+    // A project's row (Paseo's `sidebar.project`).
+    /// Its plus's tooltip (`sidebar.workspace.actions.newWorkspace`).
+    pub new_workspace: &'static str,
+    /// Its kebab's name and its phone sheet's title (`actions.menu`).
+    pub project_actions: &'static str,
+    pub open_project_settings: &'static str,
+    pub remove_project: &'static str,
+    /// The remove row while the node removes it (`actions.removing`).
+    pub removing_project: &'static str,
+    pub remove_project_title: &'static str,
+    pub remove_confirm: &'static str,
+    pub cancel: &'static str,
     // The foot.
     pub settings: &'static str,
     pub back: &'static str,
@@ -93,6 +113,42 @@ impl SidebarWords {
         match sort {
             SessionSort::Created => self.created,
             SessionSort::Activity => self.activity,
+        }
+    }
+
+    /// A status bucket's name (Paseo's `getStatusBucketLabel`).
+    #[must_use]
+    pub const fn bucket(&self, bucket: Bucket) -> &'static str {
+        match bucket {
+            Bucket::NeedsInput => self.needs_input,
+            Bucket::Failed => self.failed,
+            Bucket::Working => self.bucket_working,
+            Bucket::Review => self.ready_to_review,
+            Bucket::Done => self.done,
+        }
+    }
+
+    /// The remove question's words (`confirmations.removeMessage`).
+    #[must_use]
+    pub fn remove_project_body(&self, name: &str) -> String {
+        match self.lang {
+            Lang::En => {
+                format!("Remove \"{name}\" from the sidebar?\n\nFiles on disk will not be changed.")
+            }
+            Lang::Ko => {
+                format!(
+                    "\"{name}\"을(를) 사이드바에서 제거할까요?\n\n디스크의 파일은 변경되지 않습니다."
+                )
+            }
+        }
+    }
+
+    /// The plus's name (`sidebar.workspace.actions.createWorkspaceFor`).
+    #[must_use]
+    pub fn create_workspace_for(&self, name: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Create a new workspace for {name}"),
+            Lang::Ko => format!("{name}을(를) 위한 새 워크스페이스 생성"),
         }
     }
 
@@ -134,6 +190,19 @@ const EN: SidebarWords = SidebarWords {
     path_copied: "Path copied",
     labels: "Labels",
     row_actions: "Session actions",
+    needs_input: "Needs input",
+    failed: "Failed",
+    ready_to_review: "Ready to review",
+    bucket_working: "Working",
+    done: "Done",
+    new_workspace: "New workspace",
+    project_actions: "Project actions",
+    open_project_settings: "Open project settings",
+    remove_project: "Remove project",
+    removing_project: "Removing...",
+    remove_project_title: "Remove project?",
+    remove_confirm: "Remove",
+    cancel: "Cancel",
     settings: "Settings",
     back: "Back",
     theme: "Theme",
@@ -170,6 +239,19 @@ const KO: SidebarWords = SidebarWords {
     path_copied: "경로가 복사되었습니다",
     labels: "라벨",
     row_actions: "세션 작업",
+    needs_input: "입력 필요",
+    failed: "실패",
+    ready_to_review: "검토 대기",
+    bucket_working: "실행 중",
+    done: "완료",
+    new_workspace: "새 워크스페이스",
+    project_actions: "프로젝트 작업",
+    open_project_settings: "프로젝트 설정 열기",
+    remove_project: "프로젝트 제거",
+    removing_project: "제거하는 중...",
+    remove_project_title: "프로젝트를 제거할까요?",
+    remove_confirm: "제거",
+    cancel: "취소",
     settings: "설정",
     back: "뒤로",
     theme: "테마",

@@ -27,13 +27,15 @@ use vessel_app_view::prefs::SidebarView;
 use vessel_app_view::sidebar::SidebarMachine;
 
 use super::layout::EndTarget;
-use super::{INSET, more_row};
+use super::session_row::RowExtras;
+use super::{INSET, Numbers, more_row};
 use crate::routes::Route;
 use crate::shell::Shell;
 
 /// Every machine's group, in the book's order.
 pub(super) fn groups(
     view: SidebarView,
+    numbers: &Numbers,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
@@ -48,6 +50,7 @@ pub(super) fn groups(
         list = list.child(group(
             machine,
             EndTarget::at(index, final_machine),
+            numbers,
             shell,
             tokens,
             touch,
@@ -61,6 +64,7 @@ pub(super) fn groups(
 fn group(
     listed: &SidebarMachine<'_>,
     end: EndTarget,
+    numbers: &Numbers,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
@@ -70,7 +74,11 @@ fn group(
     let machine = listed.machine;
     let final_session = listed.sessions.len().checked_sub(1);
     for (index, card) in listed.sessions.iter().enumerate() {
-        let row = super::session_row::session_row(card, None, shell, tokens, touch, cx);
+        let extras = RowExtras {
+            machine: None,
+            number: numbers.of(card),
+        };
+        let row = super::session_row::session_row(card, extras, shell, tokens, touch, cx);
         let target = if listed.more == 0 {
             end.and(EndTarget::at(index, final_session))
         } else {

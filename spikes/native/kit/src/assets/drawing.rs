@@ -427,6 +427,19 @@ impl Glyph {
             Self::CopyX => line_glyph!(
                 r#"<path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/><rect x="8" y="8" width="14" height="14" rx="2"/><path d="m12.5 12.5 5 5"/><path d="m12.5 17.5 5-5"/>"#
             ),
+            // Paseo's ring (`status-ring/geometry.ts`): a 12 ring of stroke
+            // 1.5 around the 6 dot, the stroke centred 5.25 from the middle.
+            Self::StatusRingTrack => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" stroke="black" stroke-width="1.5"><circle cx="6" cy="6" r="5.25"/></svg>"#
+            }
+            // A top border on a round box: the arc between the two upper
+            // diagonals (45 degrees either side of twelve), butt ends.
+            Self::StatusRingHead => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" stroke="black" stroke-width="1.5"><path d="M2.288 2.288A5.25 5.25 0 0 1 9.712 2.288"/></svg>"#
+            }
+            Self::StatusAlertMarks => {
+                stroked_glyph!("2", r#"<path d="M12 8v4"/><path d="M12 16h.01"/>"#)
+            }
         }
     }
 }

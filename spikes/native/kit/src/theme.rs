@@ -23,7 +23,9 @@ pub const COMMAND_SCRIM: u32 = 0x0000_0080;
 /// A form summary's light fill: GOAT's zinc25 (OKLCH .992, 0, 0) at its
 /// nearest 8-bit sRGB value, as `rgb` takes it.
 pub const SUMMARY_LIGHT: u32 = 0x00fc_fcfc;
+mod sidebar;
 mod status;
+pub use sidebar::SidebarSurfaces;
 pub use status::{Signal, Status};
 
 use gpui::{Hsla, rgb, rgba};

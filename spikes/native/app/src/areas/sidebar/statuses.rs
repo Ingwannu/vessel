@@ -14,7 +14,8 @@ use vessel_app_view::prefs::SidebarView;
 use vessel_app_view::sidebar::{SIDEBAR_STATUS_SESSIONS, SidebarStatus};
 
 use super::layout::EndTarget;
-use super::{INSET, more_row};
+use super::session_row::RowExtras;
+use super::{INSET, Numbers, more_row};
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -22,6 +23,7 @@ use crate::shell::Shell;
 /// when there are none.
 pub(super) fn groups(
     view: SidebarView,
+    numbers: &Numbers,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
@@ -42,7 +44,7 @@ pub(super) fn groups(
     let final_group = groups.len().checked_sub(1);
     for (group_index, group) in groups.iter().enumerate() {
         let end = EndTarget::at(group_index, final_group);
-        list = list.child(status_group(group, end, shell, tokens, touch, cx));
+        list = list.child(status_group(group, end, numbers, shell, tokens, touch, cx));
     }
     list
 }
@@ -51,6 +53,7 @@ pub(super) fn groups(
 fn status_group(
     group: &SidebarStatus<'_>,
     end: EndTarget,
+    numbers: &Numbers,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
@@ -65,14 +68,11 @@ fn status_group(
     );
     let last = group.sessions.len().checked_sub(1);
     for (index, card) in group.sessions.iter().enumerate() {
-        let row = super::session_row::session_row(
-            card,
-            Some(card.machine.as_str()),
-            shell,
-            tokens,
-            touch,
-            cx,
-        );
+        let extras = RowExtras {
+            machine: Some(card.machine.as_str()),
+            number: numbers.of(card),
+        };
+        let row = super::session_row::session_row(card, extras, shell, tokens, touch, cx);
         let target = if group.more == 0 {
             end.and(EndTarget::at(index, last))
         } else {

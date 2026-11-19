@@ -31,6 +31,11 @@ pub struct CardDetail {
     /// registry names no row for it (ADR 0106's derived membership).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<ProjectId>,
+    /// The project it runs in, in its folder or in one of its worktrees
+    /// (protocol 10): what the sidebar's project row counts for its status
+    /// badge (TRACKER 662). `project` is the folder's case alone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runs_in: Option<RunsIn>,
     /// The profile it runs with now (protocol 5).
     pub profile: Option<String>,
     /// The provider's model it runs, when the node says.
@@ -74,6 +79,44 @@ pub struct CardDetail {
     /// (TRACKER 803). False on a card kept before this was.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub cannot_load: bool,
+}
+
+/// Where a session runs in a project (protocol 10).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RunsIn {
+    /// The project's own folder, at its root or a folder in it.
+    Checkout(ProjectId),
+    /// One of the project's worktrees.
+    Worktree(ProjectId),
+}
+
+impl RunsIn {
+    /// Where `session` runs, when its node placed it in a project.
+    fn of(session: &SessionInfo) -> Option<Self> {
+        session.workspace.as_ref().map(|workspace| {
+            if workspace.worktree.is_some() {
+                Self::Worktree(workspace.project)
+            } else {
+                Self::Checkout(workspace.project)
+            }
+        })
+    }
+
+    /// The project.
+    #[must_use]
+    pub const fn project(self) -> ProjectId {
+        match self {
+            Self::Checkout(project) | Self::Worktree(project) => project,
+        }
+    }
+
+    /// The project, when it runs in the project's own folder.
+    const fn checkout(self) -> Option<ProjectId> {
+        match self {
+            Self::Checkout(project) => Some(project),
+            Self::Worktree(_) => None,
+        }
+    }
 }
 
 impl Card {
@@ -142,11 +185,8 @@ impl Card {
                 .as_ref()
                 .and_then(|workspace| workspace.branch.as_ref())
                 .map(ToString::to_string),
-            project: session
-                .workspace
-                .as_ref()
-                .filter(|workspace| workspace.worktree.is_none())
-                .map(|workspace| workspace.project),
+            project: RunsIn::of(session).and_then(RunsIn::checkout),
+            runs_in: RunsIn::of(session),
             profile: session
                 .profile
                 .as_ref()

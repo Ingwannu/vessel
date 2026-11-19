@@ -262,4 +262,13 @@ glyph_inventory! {
     ArrowRightToLine => "kit/arrow-right-to-line.svg",
     /// The tab menu's Close other tabs (Paseo's tab menu, Lucide `CopyX`).
     CopyX => "kit/copy-x.svg",
+    /// The running status ring's closed track (Paseo's `StatusRing`, on its
+    /// own 12 grid); its renderer applies the track's alpha.
+    StatusRingTrack => "kit/status-ring-track.svg",
+    /// The running status ring's moving quarter: the top quarter of the
+    /// track, as Paseo's top border on a round box draws it.
+    StatusRingHead => "kit/status-ring-head.svg",
+    /// The needs-input alert's marks (Lucide `CircleAlert`'s two strokes at
+    /// its 2 stroke), drawn over its disc in the disc's knockout colour.
+    StatusAlertMarks => "kit/status-alert-marks.svg",
 }

@@ -16,7 +16,7 @@ mod tree;
 
 pub use actions::CardActions;
 pub use archive::{ARCHIVE_PAGE, ArchivePage, search_archive};
-pub use card::CardDetail;
+pub use card::{CardDetail, RunsIn};
 pub use deal::{Board, TICK};
 pub use tone::{Origin, Tone, agent_mark};
 pub use tree::Row;

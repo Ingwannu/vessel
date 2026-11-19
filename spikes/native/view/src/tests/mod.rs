@@ -31,6 +31,7 @@ mod settings;
 mod shortcuts;
 mod sidebar;
 mod sidebar_display;
+mod sidebar_status;
 mod sync;
 mod toasts;
 mod tree;

@@ -27,14 +27,28 @@
 //!   lists every host's projects in the sidebar itself (its Display menu
 //!   filters them; there is no "all" screen), so the count and what the
 //!   press shows are now the same rows.
+//! - The row as Paseo's project row (TRACKER 662, `ProjectHeaderRow`,
+//!   `ProjectLeadingVisual`): the mark in a slot as tall as the title's
+//!   line, the project's status as a badge on its corner (`kit::
+//!   status_mark`, the most urgent of its sessions), an 8 spinner in its
+//!   place while the project is removed; at its end, shown on hover and
+//!   always on a phone, "New workspace" (a new chat in a new worktree, for
+//!   a git project) and the project's menu (`actions`); the sidebar's
+//!   fills (Paseo's dark theme hovers on `surface1`, not `surface3`).
+//!   Paseo never fills a project header as selected; neither does this.
+//!   The mark is TRACKER 809's (`project_icons::mark`, 16, 20 on a
+//!   phone), the badge hanging from its box.
 
 use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::loading::{Points, Size, activity_indicator};
+use vessel_app_kit::status_mark::{Knockout, SLOT_HEIGHT, icon_box, marked, status_badge};
+use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _,
-    Window, div, px,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::settings::Section;
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::ProjectState;
@@ -42,6 +56,10 @@ use vessel_proto::workspace::ProjectState;
 use super::PlacePick;
 use crate::routes::Route;
 use crate::shell::Shell;
+
+mod actions;
+
+pub(crate) use actions::{Origin, ProjectRows, layers};
 
 /// Rows shown before "All projects".
 const SHOWN: usize = 8;
@@ -53,6 +71,8 @@ struct Entry {
     name: String,
     /// Why it cannot be started in, in words (`None`: ready).
     state: Option<String>,
+    /// Whether it is a git repository (it can have worktrees).
+    git: bool,
     /// Its icon, or its initial on a tile (`project_icons`).
     mark: AnyElement,
 }
@@ -125,6 +145,7 @@ pub(crate) fn projects(
                 project: project.id,
                 mark: super::project_icons::mark(shell, &machine.name, project.id, &name, compact),
                 name,
+                git: project.git,
                 state: match project.state {
                     ProjectState::Ready => None,
                     ProjectState::Cloning { .. }
@@ -156,7 +177,12 @@ pub(crate) fn projects(
     let unfolded = shell.areas.workspace.projects_unfolded;
     let shown = if unfolded { total } else { SHOWN };
     for (index, entry) in entries.into_iter().take(shown).enumerate() {
-        section = section.child(project_row(index, entry, machines_with > 1, tokens, cx));
+        let row = Row {
+            index,
+            show_machine: machines_with > 1,
+            compact,
+        };
+        section = section.child(project_row(row, entry, shell, tokens, cx));
     }
     if total > SHOWN {
         let words = if unfolded {
@@ -165,7 +191,7 @@ pub(crate) fn projects(
             format!("{} ({total})", labels.all_projects)
         };
         section = section.child(
-            base_row("sidebar-all-projects", tokens)
+            base_row("sidebar-all-projects", compact, tokens)
                 .child(
                     div()
                         .flex_1()
@@ -183,14 +209,15 @@ pub(crate) fn projects(
     Some(section.into_any_element())
 }
 
-/// Paseo's sidebar hover surface (`surfaceSidebarHover`: the third
-/// surface in the dark, the first in the light).
+/// Paseo's sidebar hover surface (`surfaceSidebarHover`).
 const fn hover(tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
-    match tokens.scheme {
-        Scheme::Dark => tokens.neutral.surface3,
-        Scheme::Light => tokens.neutral.surface1,
-    }
+    SidebarSurfaces::of(tokens).hover
 }
+
+/// A row's least height, on a wide window and on a phone (Paseo's
+/// `density.rowHeight`).
+const ROW: f32 = 36.0;
+const ROW_COMPACT: f32 = 44.0;
 
 /// Paseo's section header: the title at 8 from the edge, 12 and muted;
 /// its action a 24 square at the end.
@@ -231,12 +258,12 @@ fn header(title: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> 
 }
 
 /// A row's frame: Paseo's `projectRow`.
-fn base_row(id: impl Into<vessel_app_kit::ui::ElementId>, tokens: &Tokens) -> Stateful<Div> {
+fn base_row(id: impl Into<ElementId>, compact: bool, tokens: &Tokens) -> Stateful<Div> {
     let wash = hover(tokens);
     let pressed = tokens.neutral.surface2;
     div()
         .id(id)
-        .min_h(px(36.0))
+        .min_h(px(if compact { ROW_COMPACT } else { ROW }))
         .flex()
         .flex_row()
         .items_center()
@@ -250,10 +277,20 @@ fn base_row(id: impl Into<vessel_app_kit::ui::ElementId>, tokens: &Tokens) -> St
         .active(move |style| style.bg(pressed))
 }
 
-fn project_row(
+/// Where a row sits and how it is drawn.
+#[derive(Debug, Clone, Copy)]
+struct Row {
     index: usize,
-    entry: Entry,
+    /// More than one machine has projects: a ready row names its machine.
     show_machine: bool,
+    /// A phone's width.
+    compact: bool,
+}
+
+fn project_row(
+    row: Row,
+    entry: Entry,
+    shell: &Shell,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
@@ -263,20 +300,53 @@ fn project_row(
         project,
         name,
         state,
+        git,
         mark,
     } = entry;
     let ready = state.is_none();
     let trailing: Option<SharedString> = state
         .map(Into::into)
-        .or_else(|| show_machine.then(|| machine.clone().into()));
+        .or_else(|| row.show_machine.then(|| machine.clone().into()));
+    let group: SharedString = format!("sidebar-project-{machine}-{project}").into();
+    let target = actions::Target {
+        machine: machine.clone(),
+        project,
+        name: name.clone(),
+    };
+    let removing = shell.areas.workspace.sidebar.is_removing(&machine, project);
+    let leading = if removing {
+        archiving(&group, row.compact, tokens)
+    } else {
+        let words = shell.t.lang.sidebar();
+        let knockout = Knockout {
+            group: group.clone(),
+            selected: false,
+        };
+        let badge = shell
+            .fleet
+            .project_bucket(&machine, project, shell.prefs.settings.sidebar)
+            .and_then(|bucket| {
+                status_badge(
+                    ElementId::Name(format!("{group}-status").into()),
+                    crate::areas::sidebar::status_mark(bucket),
+                    words.bucket(bucket),
+                    &knockout,
+                    tokens,
+                )
+            });
+        marked(mark, row.compact, badge).into_any_element()
+    };
+    let new_workspace = (ready && git).then(|| target.clone());
     base_row(
-        vessel_app_kit::ui::ElementId::NamedInteger(
+        ElementId::NamedInteger(
             "sidebar-project".into(),
-            u64::try_from(index).unwrap_or(u64::MAX),
+            u64::try_from(row.index).unwrap_or(u64::MAX),
         ),
+        row.compact,
         tokens,
     )
-    .child(mark)
+    .group(group.clone())
+    .child(leading)
     .child(
         div()
             .flex_1()
@@ -293,6 +363,15 @@ fn project_row(
             .text_color(neutral.foreground_extra_muted)
             .child(trailing)
     }))
+    .child(actions::trailing(
+        &target,
+        new_workspace.as_ref(),
+        &group,
+        row.compact,
+        shell,
+        tokens,
+        cx,
+    ))
     .on_click(cx.listener(move |this, _event, window, cx| {
         if ready {
             this.chat_in_project(machine.clone(), project, window, cx);
@@ -301,4 +380,22 @@ fn project_row(
         }
     }))
     .when(!ready, |row| row.opacity(0.8))
+}
+
+/// Paseo's 8 activity indicator in the mark's slot while the project is
+/// removed (`ProjectLeadingVisual` `isArchiving`).
+fn archiving(group: &SharedString, compact: bool, tokens: &Tokens) -> AnyElement {
+    div()
+        .w(px(icon_box(compact)))
+        .h(px(SLOT_HEIGHT))
+        .flex_none()
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(activity_indicator(
+            ElementId::Name(format!("{group}-removing").into()),
+            Size::Numeric(Points::EIGHT),
+            tokens.neutral.foreground_muted,
+        ))
+        .into_any_element()
 }

@@ -47,7 +47,7 @@ use crate::shell::Shell;
 pub(crate) use card::card_items;
 pub(crate) use facts::dialog as facts_dialog;
 pub(crate) use form::{base_list, dialog as form_dialog};
-pub(crate) use link::link;
+pub(crate) use link::{link, state_glyph_sized};
 
 /// The most new commits the form's description lists (`gh` lists them
 /// all; a branch far ahead gives a description nobody reads).

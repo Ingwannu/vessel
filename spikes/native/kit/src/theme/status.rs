@@ -26,6 +26,13 @@ pub struct Status {
     /// Paseo's `statusDotRunning`: what is under way now (a task started,
     /// a running dot), blue at hue 250.
     pub running_dot: Hsla,
+    /// Paseo's `statusDotSuccess`: a sidebar row whose finished work waits
+    /// to be seen (its `attention` bucket).
+    pub success_dot: Hsla,
+    /// Paseo's `statusDotDanger`: a sidebar row whose agent failed.
+    pub danger_dot: Hsla,
+    /// Paseo's `statusDotWarning`: a sidebar row that needs input.
+    pub warning_dot: Hsla,
     /// Success, such as access granted or a finished run.
     pub success: Signal,
     /// A state that needs attention.
@@ -44,6 +51,9 @@ impl Status {
                 blue_300: rgb(0x0093_c5fd).into(),
                 amber_500: rgb(0x00f5_9e0b).into(),
                 running_dot: rgb(0x0026_8ae0).into(),
+                success_dot: rgb(0x0029_9f51).into(),
+                danger_dot: rgb(0x00f1_2e2f).into(),
+                warning_dot: rgb(0x00b3_7824).into(),
                 success: Signal {
                     foreground: rgb(0x003e_704a).into(),
                     tint: rgba(0x3e70_4a1f).into(),
@@ -62,6 +72,9 @@ impl Status {
                 blue_300: rgb(0x0093_c5fd).into(),
                 amber_500: rgb(0x00f5_9e0b).into(),
                 running_dot: rgb(0x005c_aaf6).into(),
+                success_dot: rgb(0x0035_c264).into(),
+                danger_dot: rgb(0x00f7_796d).into(),
+                warning_dot: rgb(0x00db_932e).into(),
                 success: Signal {
                     foreground: rgb(0x006c_b17b).into(),
                     tint: rgba(0x6cb1_7b29).into(),
@@ -88,5 +101,20 @@ mod tests {
         for scheme in [Scheme::Light, Scheme::Dark] {
             assert_eq!(Status::of(scheme).red_300, rgb(0x00fc_a5a5).into());
         }
+    }
+
+    #[test]
+    fn sidebar_status_dots_are_paseos_status_dot_band() {
+        // Paseo styles/theme.ts statusDot* (light 206-209, dark 214-217).
+        let light = Status::of(Scheme::Light);
+        assert_eq!(light.success_dot, rgb(0x0029_9f51).into());
+        assert_eq!(light.danger_dot, rgb(0x00f1_2e2f).into());
+        assert_eq!(light.warning_dot, rgb(0x00b3_7824).into());
+        assert_eq!(light.running_dot, rgb(0x0026_8ae0).into());
+        let dark = Status::of(Scheme::Dark);
+        assert_eq!(dark.success_dot, rgb(0x0035_c264).into());
+        assert_eq!(dark.danger_dot, rgb(0x00f7_796d).into());
+        assert_eq!(dark.warning_dot, rgb(0x00db_932e).into());
+        assert_eq!(dark.running_dot, rgb(0x005c_aaf6).into());
     }
 }
