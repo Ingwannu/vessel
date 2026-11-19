@@ -86,6 +86,8 @@ pub struct GetProjectIcon {
 }
 
 /// What an icon's bytes are, decided from the bytes (never the file name).
+/// Closed on the wire: a type added later needs a projection for older
+/// peers (an older client cannot read an unknown variant).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]

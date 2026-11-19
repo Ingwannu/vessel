@@ -4235,6 +4235,8 @@ bytes: IconBytes, };
 
 /**
  * What an icon's bytes are, decided from the bytes (never the file name).
+ * Closed on the wire: a type added later needs a projection for older
+ * peers (an older client cannot read an unknown variant).
  */
 export type IconType = "png" | "ico" | "svg";
 
