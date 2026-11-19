@@ -81,6 +81,8 @@ pub mod sync;
 pub mod usage;
 #[cfg(target_arch = "wasm32")]
 mod web;
+#[cfg(test)]
+mod web_dispatch_tests;
 pub mod workspace;
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
