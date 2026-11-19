@@ -22,7 +22,12 @@ fn name_is_usable(name: &str) -> bool {
 }
 
 impl Shell {
-    pub(super) fn add_flow_clone(&mut self, machine: &str, parent: String, cx: &mut Context<'_, Self>) {
+    pub(super) fn add_flow_clone(
+        &mut self,
+        machine: &str,
+        parent: String,
+        cx: &mut Context<'_, Self>,
+    ) {
         let words = self.t.lang.add_flow();
         let Some(open) = &mut self.areas.workspace.add_flow.open else {
             return;
