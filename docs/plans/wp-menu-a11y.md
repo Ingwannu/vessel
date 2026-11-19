@@ -11,7 +11,7 @@ Paseo 0.15.4 (`1c00b365c`): `components/ui/menu/menu-item.tsx` (the row's
 whose name is its visible word).
 
 Status: plan approved by the coordinator (2026-11-18) with a ruling on
-list rows (below); built.
+list rows (below); built and gated on 14.61; frames with the coordinator.
 
 ## Paseo
 
