@@ -1,0 +1,61 @@
+/* Paseo's ScrollableCodeSurface for a diagnostic's text (ADR 0111):
+   monospace, selectable, scrolling within the dialog. */
+.diagnostic-text {
+  max-height: 480px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--border-faint);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font: var(--t-mono);
+  white-space: pre;
+  user-select: text;
+}
+
+.diagnostic-wait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.diagnostic-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostic-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+/* Paseo's logs modal (desktop-updates-section.tsx `modalBody`, `rowHint`,
+   `logOutput`): the path above the contents, spacing[3] apart; the
+   contents wrap, muted, at fontSize.sm with lineHeight 18, monospace. */
+.node-log-body {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.node-log-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px / 18px var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.node-log-output {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px / 18px var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

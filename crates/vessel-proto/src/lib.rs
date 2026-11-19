@@ -189,6 +189,9 @@ pub use transfer::{
 pub const DEFAULT_PORT: u16 = 7077;
 
 #[cfg(test)]
+mod wire_fixtures;
+
+#[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 

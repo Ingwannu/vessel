@@ -16,6 +16,7 @@ import { sessionName } from "../../data/titles";
 import type { BookNode } from "../../wire/bridge";
 import { Badge, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
+import { NodeLogRow } from "../diagnostics/node-log";
 import { FactValue, SettingsSection } from "../settings/settings-page";
 
 /** Live sessions listed here before "all on the board". */
@@ -100,6 +101,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
               </FactValue>
             }
           />
+          <NodeLogRow machine={node.key} />
         </RowList>
       </SettingsSection>
       {harnesses === undefined ? null : (

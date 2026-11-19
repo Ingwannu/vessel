@@ -43,7 +43,7 @@ fn actual_queued_sources_survive_abort_and_deadline_without_releasing_capacity()
         phase("occupy the actual blocking pool", registered)
             .await
             .unwrap();
-        let mut cancelled = Box::pin(state.collect(lifecycle));
+        let mut cancelled = Box::pin(state.collect(lifecycle, false));
         assert!(
             std::future::poll_fn(|cx| Poll::Ready(cancelled.as_mut().poll(cx).is_pending())).await
         );
@@ -51,7 +51,7 @@ fn actual_queued_sources_survive_abort_and_deadline_without_releasing_capacity()
         for _ in 1..MAX_DIAGNOSTIC_COLLECTIONS {
             let report = phase(
                 "actual collector response deadline",
-                state.collect(lifecycle),
+                state.collect(lifecycle, false),
             )
             .await
             .unwrap();
@@ -74,7 +74,7 @@ fn actual_queued_sources_survive_abort_and_deadline_without_releasing_capacity()
         }
         let refused = phase(
             "capacity retained by actual source jobs",
-            state.collect(lifecycle),
+            state.collect(lifecycle, false),
         )
         .await
         .unwrap_err();

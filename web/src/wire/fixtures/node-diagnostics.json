@@ -1,0 +1,306 @@
+{
+  "collected_at": "2026-11-18T21:00:00Z",
+  "node": {
+    "id": "6f1c2a8e-3b7d-4c55-9a1e-2f0b8c4d7e91",
+    "version": {
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "prerelease": false,
+      "build_metadata": false
+    },
+    "os": "linux",
+    "arch": "x86_64",
+    "state": "serving",
+    "uptime": 3600000,
+    "home": "redacted"
+  },
+  "process": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": {
+      "pid": 4242,
+      "parent": 1,
+      "memory": {
+        "state": "available",
+        "at": "2026-11-18T21:00:00Z",
+        "value": {
+          "resident_bytes": {
+            "value": 52428800,
+            "saturated": false
+          },
+          "virtual_bytes": {
+            "value": 1073741824,
+            "saturated": false
+          }
+        }
+      }
+    }
+  },
+  "store": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": {
+      "expected_schema": 23,
+      "observed_schema": 23,
+      "sessions": {
+        "total": {
+          "value": 12,
+          "saturated": false
+        },
+        "live": {
+          "value": 3,
+          "saturated": false
+        },
+        "ended": {
+          "value": 9,
+          "saturated": false
+        }
+      }
+    }
+  },
+  "agents": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": [
+      {
+        "id": {
+          "kind": "builtin",
+          "harness": "claude-code"
+        },
+        "executable": "found",
+        "structured": {
+          "state": "available"
+        },
+        "terminal": {
+          "state": "available"
+        },
+        "sign_in": {
+          "state": "present"
+        },
+        "version": {
+          "major": 2,
+          "minor": 0,
+          "patch": 14,
+          "prerelease": false,
+          "build_metadata": false
+        },
+        "checked_at": "2026-11-18T20:58:00Z",
+        "stale": false
+      },
+      {
+        "id": {
+          "kind": "custom",
+          "slot": 1
+        },
+        "executable": "missing",
+        "structured": {
+          "state": "unavailable",
+          "reason": {
+            "reason": "missing_executable"
+          }
+        },
+        "terminal": {
+          "state": "unknown",
+          "reason": {
+            "reason": "not_checked"
+          }
+        },
+        "sign_in": {
+          "state": "unknown",
+          "reason": {
+            "reason": "not_installed"
+          }
+        },
+        "version": null,
+        "checked_at": null,
+        "stale": false
+      }
+    ]
+  },
+  "sessions": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": {
+      "live": {
+        "value": 3,
+        "saturated": false
+      },
+      "parked": {
+        "value": 1,
+        "saturated": false
+      }
+    }
+  },
+  "listeners": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": {
+      "local_kind": "socket",
+      "local": "bound",
+      "direct": "disabled"
+    }
+  },
+  "relays": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": {
+      "configured": {
+        "connecting": {
+          "value": 0,
+          "saturated": false
+        },
+        "registered": {
+          "value": 1,
+          "saturated": false
+        },
+        "refused": {
+          "value": 0,
+          "saturated": false
+        },
+        "stopped": {
+          "value": 0,
+          "saturated": false
+        },
+        "unrecognized": {
+          "value": 0,
+          "saturated": false
+        }
+      },
+      "callback": {
+        "connecting": {
+          "value": 0,
+          "saturated": false
+        },
+        "registered": {
+          "value": 0,
+          "saturated": false
+        },
+        "refused": {
+          "value": 0,
+          "saturated": false
+        },
+        "stopped": {
+          "value": 0,
+          "saturated": false
+        },
+        "unrecognized": {
+          "value": 0,
+          "saturated": false
+        }
+      }
+    }
+  },
+  "recent_failures": {
+    "state": "available",
+    "at": "2026-11-18T21:00:00Z",
+    "value": {
+      "coverage": "local_rpc_completions",
+      "observed_since": "2026-11-18T20:00:00Z",
+      "entries": [
+        {
+          "code": "not_found",
+          "at": "2026-11-18T20:59:30Z"
+        }
+      ],
+      "omitted": {
+        "value": 0,
+        "saturated": false
+      }
+    }
+  },
+  "more": {
+    "system": {
+      "state": "available",
+      "at": "2026-11-18T21:00:00Z",
+      "value": {
+        "cpus": {
+          "value": 8,
+          "saturated": false
+        },
+        "load": {
+          "one": 42,
+          "five": 105,
+          "fifteen": 7
+        },
+        "memory": {
+          "available_bytes": {
+            "value": 8589934592,
+            "saturated": false
+          },
+          "total_bytes": {
+            "value": 17179869184,
+            "saturated": false
+          }
+        }
+      }
+    },
+    "disk": {
+      "state": "available",
+      "at": "2026-11-18T21:00:00Z",
+      "value": {
+        "available_bytes": {
+          "value": 107374182400,
+          "saturated": false
+        },
+        "total_bytes": {
+          "value": 512110190592,
+          "saturated": false
+        }
+      }
+    },
+    "workspaces": {
+      "state": "unavailable",
+      "reason": "read_failed"
+    },
+    "activity": {
+      "state": "available",
+      "at": "2026-11-18T21:00:00Z",
+      "value": {
+        "builtin": [
+          {
+            "harness": "claude-code",
+            "live": {
+              "value": 2,
+              "saturated": false
+            }
+          },
+          {
+            "harness": "codex",
+            "live": {
+              "value": 1,
+              "saturated": false
+            }
+          }
+        ],
+        "added": {
+          "value": 0,
+          "saturated": false
+        },
+        "waiting": {
+          "value": 1,
+          "saturated": false
+        }
+      }
+    },
+    "tools": {
+      "state": "available",
+      "at": "2026-11-18T21:00:00Z",
+      "value": {
+        "git": {
+          "state": "found",
+          "version": {
+            "major": 2,
+            "minor": 43,
+            "patch": 0,
+            "prerelease": false,
+            "build_metadata": false
+          }
+        },
+        "gh": {
+          "state": "missing"
+        }
+      }
+    }
+  }
+}

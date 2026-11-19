@@ -126,6 +126,11 @@ fn lines(seen: &[EventRecord]) -> Vec<&str> {
         .collect()
 }
 
+/// Where the last record `event` matches is in `seen`.
+fn last(seen: &[EventRecord], event: impl Fn(&SessionEvent) -> bool) -> Option<usize> {
+    seen.iter().rposition(|record| event(&record.event))
+}
+
 /// Nothing new: the log has the history's prompts, so `reloaded` adds
 /// nothing and says nothing; the agent was started with `session/load` on
 /// the same conversation and goes on.
@@ -139,6 +144,11 @@ async fn a_reload_with_nothing_new_keeps_the_conversation() {
         let mut running = asked(&client, &fixture, Some("lined")).await;
         let (appended, _) = reload(&client, &mut running).await;
         assert_eq!(appended, 0);
+        // A running session was not parked: no `woken`.
+        assert_eq!(
+            last(&running.seen, |event| matches!(event, SessionEvent::Woken)),
+            None
+        );
         assert!(
             !lines(&running.seen)
                 .iter()
@@ -276,15 +286,20 @@ async fn a_turn_that_does_not_end_is_kept() {
         })
         .await;
         let before = client.session(running.id).await.unwrap();
+        let refused = client
+            .call(ReloadSession {
+                session: running.id,
+            })
+            .await;
+        let Err(vessel_rpc::CallError::Remote(error)) = refused else {
+            panic!("a refusal from the node: {refused:?}");
+        };
+        assert_eq!(error.code, ErrorCode::Conflict);
+        // Its reason once (the coordinator's note on the visual lane's frame).
         assert_eq!(
-            code(
-                client
-                    .call(ReloadSession {
-                        session: running.id
-                    })
-                    .await
-            ),
-            ErrorCode::Conflict
+            error.message,
+            "the session's agent cannot be reloaded: the running turn did not end after its \
+             cancel; it goes on"
         );
         let info = client.session(running.id).await.unwrap();
         assert_eq!(info.status, SessionStatus::Running);
@@ -378,6 +393,14 @@ async fn a_parked_session_is_reloaded() {
         assert!(parked.parked.is_some());
         let (appended, _) = reload(&client, &mut running).await;
         assert_eq!(appended, 0);
+        // The park ends with `woken`, as a wake's does (a peer below the
+        // reload protocol pairs it with `parked`), then `reloaded`.
+        let seen = &running.seen;
+        let parked_at = last(seen, |event| matches!(event, SessionEvent::Parked { .. }));
+        let woken_at = last(seen, |event| matches!(event, SessionEvent::Woken));
+        let reloaded_at = last(seen, |event| matches!(event, SessionEvent::Reloaded { .. }));
+        assert!(parked_at.is_some(), "{seen:?}");
+        assert!(parked_at < woken_at && woken_at < reloaded_at, "{seen:?}");
         let info = client.session(running.id).await.unwrap();
         assert!(info.parked.is_none());
         let conversation = info.harness_session.unwrap();

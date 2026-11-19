@@ -68,6 +68,28 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 33 (2026-11-19, milestone 12): the diagnostics wire (impl U, TRACKER 568, 67, 87, 567, 569, ADR 0111)
+
+Assigned 33 (`DIAGNOSTICS_WIRE_PROTOCOL`, `PROTOCOL_VERSION` 33) at its node-line merge, the next free number in merge order.
+
+- `agent.diagnostic { agent, profile? }` (`read`, forwardable, unary; refused to an agent) answers an
+  `AgentDiagnostic`: title, command (source, program, an added agent's arguments), every match for the program
+  on the node's search path, `installed`, `signed_in`, a new probe's steps (`spawn`, `initialize`, `session`,
+  the agent's own version, how long it took) and the catalogue's status (`ready { models }`, `error { message }`
+  or `unavailable`). The probe runs unless a refresh of the same agent finished under 5 seconds ago (then its
+  answer is given), and its answer is what `harness.options` takes next. Paths have the node user's home folded
+  to `~`. An unknown agent or profile is `not_found`.
+- `node.log { lines? }` (`admin`, not forwardable, unary; refused to an agent) answers `NodeLog`: `file { path,
+  lines, cut }` for the file this node's standard error is (`logs/vesseld.log` or `logs/vessel-service.log`;
+  the last 100 lines unless asked, 1 to 1000, read from at most its last 64 KiB, each line at most 4 KiB,
+  without terminal escapes or control characters but a tab), or `no_file { writes_to: terminal | elsewhere }`. `lines: 0` or more than 1000 is `invalid_request`.
+- `node.diagnostics` gains `more { system, disk, workspaces, activity, tools }`, each a section like the others
+  (numbers and closed states: CPUs, load average in hundredths, memory, the data directory's file system,
+  projects and workspaces, live sessions by built-in agent and those waiting on a permission, `git` and `gh`
+  versions). It is sent only to a peer at 33 or later; older peers get the report they read today.
+- `web/src/wire/proto.ts` ends with the generated `DIAGNOSTICS_WIRE_PROTOCOL` after `RELOAD_PROTOCOL`; the
+  text the Rust renderers make of a report and an agent's diagnostic is held in `web/src/wire/fixtures/`.
+
 ## Version 32 (2026-11-18, milestone 12): folder suggestions from the home and project icons (impl F, F-F17/F-F46, ADR 0112)
 
 Assigned 32 (`HOST_FOLDERS_PROTOCOL`, `PROTOCOL_VERSION` 32) at its node-line merge, the next free number in merge order.
@@ -108,7 +130,8 @@ Assigned 31 (`RELOAD_PROTOCOL`, `PROTOCOL_VERSION` 31) at its node-line merge, t
 - New record `reloaded { harness_session, appended }`, once the agent is ready again. The `appended` records
   after it are what the agent's own history has beyond the log; they are added only when the log's user
   prompts are exactly the history's first ones (ADR 0110). An older peer reads it as a `harness_log` line
-  `vessel: the agent was reloaded` (with the count when records were added) at the same sequence.
+  `vessel: the agent was reloaded` (with the count when records were added) at the same sequence. A parked
+  session's reload records `woken` just before it, so the park ends as a wake's does for every peer.
 - The minimum protocol remains 2. The store schema is unchanged.
 
 ## Version 30 (2026-11-18, milestone 12): Paseo's title limits (impl U, TRACKER 801, ADR 0022's amendment)

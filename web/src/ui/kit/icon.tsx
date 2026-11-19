@@ -59,6 +59,7 @@ export const ICON_NAMES = [
   "git-fork",
   "file",
   "file-code",
+  "stethoscope",
   "folder-open",
   "folder-plus",
   "undo",
