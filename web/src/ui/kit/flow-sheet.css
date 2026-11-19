@@ -62,6 +62,12 @@
   font-size: 14px;
 }
 
+.flow-sheet-input:focus-visible {
+  /* Paseo's input has no outline; the page's global ring would draw one
+     after keyboard focus (as the palette's input, it opts out). */
+  outline: none;
+}
+
 .flow-sheet-input::placeholder {
   color: var(--text-tertiary);
 }
@@ -140,10 +146,16 @@
   font-size: 12px;
 }
 
+/* Paseo's Shortcut badge: 4 by 2 inside, radius 6, its surface3 at half
+   (here the ink at 7%), the keys 12 in the foreground. */
 .flow-sheet-hint kbd {
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: var(--bg-active);
   color: var(--text-primary);
   font-family: inherit;
   font-size: 12px;
+  line-height: 16px;
 }
 
 /* Paseo shows the hints only with a hardware keyboard. */

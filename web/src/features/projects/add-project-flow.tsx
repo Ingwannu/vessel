@@ -35,6 +35,7 @@ import {
 } from "react";
 
 import { useFleet, useFleetState } from "../../context";
+import { currentPlatform } from "../../data/shortcuts/platform";
 import { useStore } from "../../data/store";
 import {
   moveAddProjectSelection,
@@ -236,10 +237,13 @@ function AddProjectFlow({
       }
       footer={
         <>
-          <FlowHint keys={["Up", "Down"]} action="Navigate" />
-          <FlowHint keys={["Enter"]} action="Select" />
           <FlowHint
-            keys={["Esc"]}
+            keys={currentPlatform() === "mac" ? "↑↓" : "↑+↓"}
+            action="Navigate"
+          />
+          <FlowHint keys="⏎" action="Select" />
+          <FlowHint
+            keys="Esc"
             action={state.pages.length > 1 ? "Back" : "Close"}
           />
         </>

@@ -134,14 +134,14 @@ export function FlowSheet({
   );
 }
 
-/** One footer hint: its keys, then what they do (shown only where a
- * keyboard is likely, as Paseo's `useHardwareKeyboardPresent`). */
-export function FlowHint({ keys, action }: { keys: string[]; action: string }) {
+/** One footer hint: its keys in one badge, written as Paseo's
+ * `formatShortcut` writes them (`↑↓` on a Mac, `↑+↓` elsewhere, `⏎`,
+ * `Esc`), then what they do (shown only where a keyboard is likely, as
+ * Paseo's `useHardwareKeyboardPresent`). */
+export function FlowHint({ keys, action }: { keys: string; action: string }) {
   return (
     <span className="flow-sheet-hint">
-      {keys.map((key) => (
-        <kbd key={key}>{key}</kbd>
-      ))}
+      <kbd>{keys}</kbd>
       <span>{action}</span>
     </span>
   );
