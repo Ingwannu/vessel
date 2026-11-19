@@ -31,3 +31,33 @@ fn controls_keep_the_existing_english_and_korean_sentences() {
     assert_eq!(en.copied_label(), "diagnostic");
     assert_eq!(ko.copied_label(), "진단");
 }
+
+#[test]
+fn the_new_dialogs_say_paseos_words_in_both_languages() {
+    let en = Translator::get(Locale::from_tag("en").unwrap())
+        .unwrap()
+        .diagnostics();
+    let ko = Translator::get(Locale::from_tag("ko").unwrap())
+        .unwrap()
+        .diagnostics();
+    assert_eq!(en.running(), "Running diagnostic...");
+    assert_eq!(en.step_app(), "App");
+    assert_eq!(en.agent(), "Diagnostic");
+    assert_eq!(ko.agent(), "진단");
+    assert_eq!(en.agent_none(), "No diagnostic available");
+    assert_eq!(en.log_title(), "Log file");
+    assert_eq!(en.log_unavailable(), "Log path unavailable");
+    assert_eq!(en.log_dialog(), "Node logs");
+    assert_eq!(en.log_empty(), "(log file is empty)");
+    assert_eq!(ko.log_empty(), "(로그 파일이 비어 있음)");
+    assert_eq!(en.log_copied(), "Log path copied.");
+    // Fluent isolates a value (U+2068 .. U+2069).
+    assert_eq!(
+        en.step_running("laptop").unwrap(),
+        "\u{2068}laptop\u{2069}: running"
+    );
+    assert_eq!(
+        en.problem_refused("forbidden").unwrap(),
+        "The node refused it (\u{2068}forbidden\u{2069})."
+    );
+}

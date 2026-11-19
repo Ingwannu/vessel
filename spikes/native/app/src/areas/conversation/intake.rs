@@ -5,8 +5,7 @@
 
 use vessel_app_link::{ActAnswer, ActFailed, ActKind, Acted};
 use vessel_app_view::timeline::{Folds, Live, Logs, outline};
-use vessel_proto::parking::Parked;
-use vessel_proto::{EventRecord, SessionEvent, SessionId};
+use vessel_proto::{EventRecord, SessionId};
 
 use super::ConversationArea;
 use super::area::Followup;
@@ -158,15 +157,6 @@ impl ConversationArea {
         let Some(info) = self.info.as_mut() else {
             return;
         };
-        for record in records {
-            if let SessionEvent::Parked { reason, .. } = &record.event {
-                info.parked = Some(Parked {
-                    since: record.at,
-                    reason: reason.clone(),
-                });
-            } else if matches!(record.event, SessionEvent::Woken) {
-                info.parked = None;
-            }
-        }
+        info.parked = vessel_app_view::session::parked_after(info.parked.take(), records);
     }
 }
