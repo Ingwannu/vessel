@@ -31,6 +31,7 @@ impl<'a> About<'a> {
             Role::Checksums => self.role_checksums(),
             Role::Terminal => self.role_terminal(),
             Role::Accents => self.role_accents(),
+            Role::Sound => self.role_sound(),
             Role::Face => self.role_face(),
             Role::CodeFace => self.role_code_face(),
             Role::Hangul => self.role_hangul(),

@@ -42,6 +42,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.notify_fleet(&earlier, cx);
                 self.history_fleet(&earlier);
                 self.devices_fleet();
                 self.offers_fleet(&earlier);

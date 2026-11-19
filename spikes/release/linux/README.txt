@@ -1,8 +1,9 @@
 Vessel {LABEL} — Linux x86-64 (glibc)
 
 [한국어]
-- 압축을 풀고 ./vessel-app 을 실행합니다. X11 또는 Wayland 데스크톱과
-  Vulkan 드라이버(Mesa 것으로 충분)가 필요합니다.
+- 압축을 풀고 ./vessel-app 을 실행합니다. X11 또는 Wayland 데스크톱,
+  Vulkan 드라이버(Mesa 것으로 충분), 알림 소리용 ALSA 라이브러리
+  libasound.so.2(Debian·Ubuntu 패키지 libasound2)가 필요합니다.
 - 처음 열면 "머신 추가"(영어 환경에서는 "Add a machine") 화면이 나옵니다.
   추가할 머신에서 `vessel node pair` 를 실행해 나온 링크를 붙여 넣고 Enter,
   화면의 키가 그 머신이 링크와 함께 출력한 키와 같은지 확인하고, 미리
@@ -15,8 +16,9 @@ Vessel {LABEL} — Linux x86-64 (glibc)
 - {UPDATES_KO}
 
 [English]
-- Unpack and run ./vessel-app. It needs an X11 or Wayland desktop and a
-  Vulkan driver (Mesa's is enough).
+- Unpack and run ./vessel-app. It needs an X11 or Wayland desktop, a
+  Vulkan driver (Mesa's is enough) and the ALSA library libasound.so.2
+  for the notification sounds (package libasound2 on Debian and Ubuntu).
 - With no machine yet, the app opens on "Add a machine" ("머신 추가" in
   Korean): paste the link `vessel node pair` prints on the machine to add,
   press Enter, check that the key shown is the key the machine printed with

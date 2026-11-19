@@ -77,6 +77,9 @@ about-role-terminal = Reading a terminal program's output
 # Under a bundled software name: its accents role. Keep short.
 about-role-accents = Find's folding of accents
 
+# Under a bundled software name: its sound role (a notice's tones). Keep short.
+about-role-sound = Playing a notice's sound
+
 # Under a bundled software name: its face role. Keep short.
 about-role-face = Geist, the app's face
 

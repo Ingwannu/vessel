@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import type { DisplayStatus, SessionInfo } from "../wire/proto";
-import { notices, noticeTitle, titleWith } from "./notices";
+import { notices, noticeTitle, titleWith, told } from "./notices";
 import { fixtureId } from "../testing/ids";
 
 function session(
@@ -108,4 +108,38 @@ test("titles", () => {
   expect(noticeTitle("needs-you")).toBe("Session needs you");
   expect(titleWith("Vessel", 2)).toBe("(2) Vessel");
   expect(titleWith("Vessel", 0)).toBe("Vessel");
+});
+
+describe("what is told (ADR 0114, Paseo's rule)", () => {
+  const lab = fixtureId("NodeKey", "lab");
+  const desk = fixtureId("NodeKey", "desk");
+  const found = [
+    ...notices(lab, [session("a", "working")], [session("a", "blocked")]),
+    ...notices(lab, [session("b", "working")], [session("b", "idle")]),
+    ...notices(desk, [session("a", "working")], [session("a", "idle")]),
+  ];
+  const a = fixtureId("SessionId", "a");
+
+  test("in front on a session, only that session's notice is dropped", () => {
+    const kept = told(found, { front: true, shown: { node: lab, id: a } });
+    expect(kept.map((notice) => [notice.node, notice.session.id])).toEqual([
+      [lab, fixtureId("SessionId", "b")],
+      [desk, a],
+    ]);
+  });
+
+  test("away, or in front elsewhere, everything is told", () => {
+    expect(
+      told(found, { front: false, shown: { node: lab, id: a } }),
+    ).toHaveLength(3);
+    expect(told(found, { front: true, shown: null })).toHaveLength(3);
+  });
+
+  test("a failure is not announced", () => {
+    const failed: SessionInfo = {
+      ...session("a", "idle", false),
+      status: { state: "failed", message: "the agent did not start" },
+    };
+    expect(notices(lab, [session("a", "working")], [failed])).toEqual([]);
+  });
 });

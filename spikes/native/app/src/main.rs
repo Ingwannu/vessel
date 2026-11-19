@@ -48,6 +48,21 @@ pub(crate) const LABEL: &str = match option_env!("VESSEL_BUILD_LABEL") {
     None => "dev",
 };
 
+/// The window's title as it opens; the notices' count goes before it
+/// (`areas::notify`).
+pub(crate) fn window_title() -> String {
+    format!("Vessel {LABEL}")
+}
+
+/// The app's identity for the system's notifications (Windows' app user
+/// model id, the name on Linux's). Labelled builds share one; a dev build
+/// has its own, so its notifications never replace the installed app's.
+#[cfg(not(target_arch = "wasm32"))]
+const APP_ID: &str = match option_env!("VESSEL_BUILD_LABEL") {
+    Some(_) => "Vessel.App",
+    None => "Vessel.App.Dev",
+};
+
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     // stderr as before, and a file the owner can send (the release
@@ -74,10 +89,12 @@ fn main() {
                 return;
             }
             motion::follow(cx);
+            // Before any window or notification, as GPUI asks (ADR 0114).
+            cx.set_app_identity(APP_ID, "Vessel");
             // The kept Animations setting, before the first frame.
             motion::animations(prefs.settings.appearance.animations.on(), cx);
             let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
+            let options = vessel_app_kit::chrome::window_options(window_title(), bounds);
             let opened = cx.open_window(options, |window, cx| {
                 motion::note_renderer(window, cx);
                 let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
@@ -144,7 +161,7 @@ fn pairing_browser_words_capture() {
             vessel_app_kit::init(cx, scheme_choice()).unwrap();
             cx.on_window_closed(|cx, _closed| cx.quit()).detach();
             let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
+            let options = vessel_app_kit::chrome::window_options(window_title(), bounds);
             let _window = cx
                 .open_window(options, |window, cx| {
                     let shell = cx.new(|cx| {

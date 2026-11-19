@@ -304,6 +304,7 @@ impl Shell {
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let started = crate::region::begin(self, cx);
+        areas::notify::retitle(self, window);
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
