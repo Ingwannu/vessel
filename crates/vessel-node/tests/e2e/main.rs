@@ -94,6 +94,8 @@ mod parking;
 #[cfg(test)]
 mod profiles;
 #[cfg(test)]
+mod project_directory;
+#[cfg(test)]
 mod prompts;
 #[cfg(test)]
 mod registration;

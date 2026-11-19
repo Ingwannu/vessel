@@ -465,6 +465,8 @@ macro_rules! method_table {
             SuggestFolders / suggest_folders / "folder.suggest" [Operate, (pending $crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL), unary]: $crate::workspace::host_folders::SuggestFolders => $crate::workspace::host_folders::FolderSuggestions;
             /// A project's own icon, inside its root, as Paseo's (ADR 0112).
             ProjectIcon / project_icon / "project.icon" [Read, (pending $crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL), unary]: $crate::workspace::host_folders::GetProjectIcon => $crate::workspace::host_folders::ProjectIcon;
+            /// One new empty folder made a project, as Paseo's New directory (ADR 0113).
+            CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::registry::PROJECT_DIRECTORY_PROTOCOL), unary]: $crate::registry::CreateProjectDirectory => $crate::workspace::ProjectInfo;
         }
     };
 }

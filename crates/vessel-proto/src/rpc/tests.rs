@@ -282,6 +282,7 @@ const WORKSPACE_FAMILIES_LATER: &[&str] = &[
     "file.observe",
     "file.suggest",
     "project.icon",
+    "project.create_directory",
 ];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
@@ -605,7 +606,38 @@ fn folder_suggestions_and_icons_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, HOST_FOLDERS_METHODS);
-    assert_eq!(HOST_FOLDERS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(HOST_FOLDERS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+}
+
+/// ADR 0113's method, drafted as 34 (`PROJECT_DIRECTORY_PROTOCOL`): a new
+/// empty folder made a project, for those who may add one.
+const PROJECT_DIRECTORY_METHODS: &[(&str, Scope)] = &[("project.create_directory", Scope::Operate)];
+
+#[test]
+fn the_new_directory_method_knows_its_version_scope_and_shape() {
+    use crate::registry::PROJECT_DIRECTORY_PROTOCOL;
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == PROJECT_DIRECTORY_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(method.forwardable(), "{method:?}");
+        })
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, PROJECT_DIRECTORY_METHODS);
+    assert_eq!(PROJECT_DIRECTORY_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // The name is checked when the request is decoded.
+    let refused = serde_json::from_value::<Call>(serde_json::json!({
+        "method": "project.create_directory",
+        "params": {"parent": "~", "name": "../escape"},
+    }));
+    assert!(refused.is_err());
 }
 
 #[test]
@@ -828,6 +860,7 @@ const FORWARDABLE: &[&str] = &[
     "session.reload",
     "folder.suggest",
     "project.icon",
+    "project.create_directory",
 ];
 
 #[test]

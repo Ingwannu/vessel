@@ -68,6 +68,24 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 34 (drafted, 2026-11-19, milestone 12): a new project directory, and `~` in project paths (impl F, TRACKER 234 and 242-243, ADR 0113)
+
+Drafted as 34 (`PROJECT_DIRECTORY_PROTOCOL`, `PROTOCOL_VERSION` 34; 33 is drafted by ADR 0111); the number is
+assigned at the node-line merge. The method is unary and forwardable; an agent principal is refused it.
+
+- `project.create_directory { parent, name }` (`operate`) answers the new project (`ProjectInfo`, `git: false`,
+  `Ready`): Paseo's New directory. `name` is one folder name (not empty, no leading or trailing white space, not
+  `.` or `..`, no separator or NUL, not absolute), refused when the request is decoded. `parent` must be an
+  existing folder, absolute or written `~`/`~/…`. The node makes the one folder (never its parents, never a Git
+  repository), checks it against the refused roots as every project root, and registers it; when registering
+  fails it removes the folder again and answers the failure (naming a removal that failed too). A parent that is
+  missing, relative or refused is `invalid_request`; a folder that exists, or the projects' bound, `conflict`;
+  any other disk failure `internal` with the disk's words.
+- From this protocol `project.add`'s `path` and `project.clone`'s `parent` may also start with `~` (alone or
+  before `/`), the node user's home (the home `folder.suggest` walks); `~user` stays relative and refused. A
+  client sends `~` paths only to a peer of this protocol; older nodes refuse them as relative.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 32 (2026-11-18, milestone 12): folder suggestions from the home and project icons (impl F, F-F17/F-F46, ADR 0112)
 
 Assigned 32 (`HOST_FOLDERS_PROTOCOL`, `PROTOCOL_VERSION` 32) at its node-line merge, the next free number in merge order.

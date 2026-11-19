@@ -320,7 +320,10 @@ impl Reply {
             // Folder suggestions and icons (ADR 0112): refused below their
             // protocol before dispatch, like the file panels.
             | Self::SuggestFolders(_)
-            | Self::ProjectIcon(_) => None,
+            | Self::ProjectIcon(_)
+            // A new project directory (ADR 0113): refused below its protocol
+            // before dispatch.
+            | Self::CreateProjectDirectory(_) => None,
         }
     }
 }

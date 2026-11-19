@@ -114,6 +114,8 @@ const fn refused(method: Method) -> bool {
         // (ADR 0112): a person's, as Add project is.
         | Method::SuggestFolders
         | Method::ProjectIcon
+        // A new project directory (ADR 0113): a person's, as Add project is.
+        | Method::CreateProjectDirectory
         | Method::GetSkillsStatus
         | Method::ReconcileSkills
         | Method::UninstallSkills
