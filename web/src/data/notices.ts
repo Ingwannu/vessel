@@ -69,11 +69,39 @@ export function notices(
     const now = doing(session);
     if (now === "needs-you" && then !== "needs-you") {
       found.push({ kind: "needs-you", node, session });
-    } else if (now === "resting" && then === "working") {
+    } else if (
+      now === "resting" &&
+      then === "working" &&
+      // A failure is not announced (Paseo never notifies an error, ADR
+      // 0114): it stays on the card and in the inbox.
+      session.status.state !== "failed"
+    ) {
       found.push({ kind: "finished", node, session });
     }
   }
   return found;
+}
+
+/** Where the person is looking: whether the page is in front (visible
+ * and focused), and the session it shows. */
+export interface Seen {
+  front: boolean;
+  shown: { node: NodeKey; id: string } | null;
+}
+
+/** The notices to tell (ADR 0114, Paseo's `notifyAgentAttention`): all
+ * but one for the session shown while the page is in front. In front on
+ * another session, a notice is still told. */
+export function told(found: readonly Notice[], seen: Seen): Notice[] {
+  return found.filter(
+    (notice) =>
+      !(
+        seen.front &&
+        seen.shown !== null &&
+        seen.shown.node === notice.node &&
+        seen.shown.id === notice.session.id
+      ),
+  );
 }
 
 /** A notice's title, in GOAT's words with Vessel's "session". */
