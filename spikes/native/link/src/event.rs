@@ -58,6 +58,8 @@ pub enum Event {
     NodeSettings(node_settings::Answer),
     /// A diagnostics call answered, with its identity.
     Diagnostics(crate::diagnostics::Answer),
+    /// A plugin call answered, with its identity.
+    Plugins(crate::plugins::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.

@@ -30,6 +30,7 @@ impl Shell {
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
+            Event::Plugins(answer) => return self.plugins_answer(answer, cx),
             Event::Fleet(fleet) => {
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every

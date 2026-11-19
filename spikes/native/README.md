@@ -645,6 +645,19 @@ window's title counts the notices since the window was last active. One open
 app does not know of another, so each may notify until the node's claim
 (ADR 0089, TRACKER 815) decides one recipient.
 
+Settings › Plugins is ADR 0115's, as Paseo's host Plugins page: the trust
+notice, the machine's "Enable plugins" switch (`node.set_settings`'
+`plugins_enabled`), install from a directory, each installation's switch and
+"…" menu (Logs, Reload, Remove with its question) and the logs dialog. Its
+decisions are `view::plugins` (the page's state order, which answer belongs to
+which request, what to ask next); `link::plugins` asks the node; the area
+draws (`app/src/areas/settings/plugins/`). The page opens for a machine and
+its connection while the section is shown, and long-polls `plugin.watch` to
+list again on a change (Paseo's `plugin_catalog_changed`). A machine below
+`PLUGINS_PROTOCOL` shows "Update this machine to manage plugins" and is never
+asked. A plugin failure shows the node's own words (Paseo's error message):
+they are about the person's own code on their own machine.
+
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
 The ordinary header and compact callback entry points delegate to it.

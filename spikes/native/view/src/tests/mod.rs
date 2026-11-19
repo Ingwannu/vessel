@@ -24,6 +24,7 @@ mod notices;
 mod options;
 mod overview;
 mod palette;
+mod plugins;
 mod prefs;
 mod resume;
 mod search;

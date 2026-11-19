@@ -111,6 +111,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Diagnostics(ask) => {
             Event::Diagnostics(ask.refused(diagnostics_problem(unsent.why)))
         }
+        Command::Plugins(ask) => Event::Plugins(ask.refused(plugins_problem(unsent.why))),
         Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
@@ -176,6 +177,19 @@ fn diagnostics_problem(why: Rejected) -> vessel_app_view::diagnostics::Problem {
     use vessel_app_view::diagnostics::Problem;
     match why {
         Rejected::Full => Problem::Refused(ErrorCode::Unavailable),
+        Rejected::Closed => Problem::Offline,
+    }
+}
+
+/// A plugin call never sent: a full queue is the node's "busy, try again",
+/// a stopped link no connection (nothing was sent either way).
+const fn plugins_problem(why: Rejected) -> vessel_app_view::plugins::Problem {
+    use vessel_app_view::plugins::Problem;
+    match why {
+        Rejected::Full => Problem::Refused {
+            code: ErrorCode::Unavailable,
+            message: None,
+        },
         Rejected::Closed => Problem::Offline,
     }
 }

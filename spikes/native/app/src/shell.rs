@@ -294,6 +294,7 @@ impl Shell {
     /// changed since the last one (kept out of `render` for its length).
     fn settle_areas(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.settle_settings(window);
+        self.settle_plugins(window, cx);
         self.settle_sessions(window, cx);
         self.settle_import(window, cx);
         self.settle_session_lifecycle(window, cx);

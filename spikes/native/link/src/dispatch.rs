@@ -44,6 +44,7 @@ impl State {
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
+            Command::Plugins(ask) => self.plugins(ask).await,
             Command::Devices {
                 context,
                 ticket,

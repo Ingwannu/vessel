@@ -68,6 +68,8 @@ pub enum Command {
     NodeSettings(node_settings::Ask),
     /// A diagnostics call to one machine (ADR 0111).
     Diagnostics(crate::diagnostics::Ask),
+    /// A plugin call to one machine (ADR 0115).
+    Plugins(crate::plugins::Ask),
     /// Read-only sharing status for one selected machine.
     Sync {
         /// Its parsed node-book identity.
