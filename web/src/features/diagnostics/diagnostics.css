@@ -34,3 +34,28 @@
   gap: 8px;
   color: var(--text-secondary);
 }
+
+/* Paseo's logs modal (desktop-updates-section.tsx `modalBody`, `rowHint`,
+   `logOutput`): the path above the contents, spacing[3] apart; the
+   contents wrap, muted, at fontSize.sm with lineHeight 18, monospace. */
+.node-log-body {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.node-log-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px / 18px var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.node-log-output {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px / 18px var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

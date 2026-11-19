@@ -31,7 +31,7 @@ export function sectionIcon(section: SettingsSection): IconName {
     case "sync":
       return "sync";
     case "diagnostics":
-      return "file-code";
+      return "stethoscope";
     case "about":
       return "home";
   }

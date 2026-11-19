@@ -191,14 +191,19 @@ The report's readers:
   `vesseld.log.1`) answers `elsewhere`, and the page says only that the log is not a file the node keeps. The path is shown with the home folded to `~`.
 - Bounds: the last `lines` (default 100, Paseo's; at most 1000), from at most the last 64 KiB of the file,
   each line cut at 4 KiB; the reply says when it was cut. A line is sent as text: a terminal's escape
-  sequences (colours) and other control characters but a tab are dropped (the node's own logging writes no
-  colours to a file, but a wrapper or a test fixture may).
+  sequences (colours) and other control characters but a tab are dropped. At the source, the node's own
+  logging (`daemon_logging`) and its fixtures write colours only to a terminal, so a background node's
+  `vesseld.log` (its standard error, opened by `attach/start.rs`) holds none. An older build's file or a
+  wrapper's may still hold them, and the page drops them again (`data/log-lines.ts`).
 - Process diagnostics stay in the report (part 3 adds nothing to them): the pid, parent, memory and uptime
   ADR 0074 collects are Paseo's `ProcessDiagnostics`.
 - Clients, with Paseo's words: a machine's settings have "Log file" (the path, or where the node writes
   instead, or "Log path unavailable" when the call is refused), "Copy path" (toast "Log path copied.") and
-  "Open logs", a dialog "Node logs" with the path and the lines, or "(log file is empty)". The row asks for
-  one line to learn the path; the dialog asks for the default 100.
+  "Open logs". The "Node logs" dialog is Paseo's logs modal: the path (or "Log path unavailable" when the call
+  fails) above the contents (or "(log file is empty)"), 12 px apart, the contents wrapped, muted, 12 px
+  monospace on 18 px lines. The row asks for one line to learn the path; the dialog asks for the default 100.
+- Settings › Diagnostics' mark is Paseo's Stethoscope (lucide, on the set's 16-unit grid). The app
+  diagnostic's dialog shows its steps until the text exists, then only the text, as Paseo's sheet does.
 - An agent's card (Settings › Agents) gains Paseo's "Diagnostic" button (a file mark) beside its title,
   on a machine at protocol 33: a dialog "Diagnostic" asks when it opens and on Refresh, shows "Running
   diagnostic..." until the first answer, then the text, with Copy ("Copied diagnostic").

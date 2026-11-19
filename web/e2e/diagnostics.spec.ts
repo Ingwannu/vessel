@@ -11,13 +11,12 @@ test("the app diagnostic asks each machine and shows one text", async ({
   await page.goto(`${origin}/settings/diagnostics`);
   await page.getByRole("button", { name: "Run" }).click();
   const dialog = page.getByRole("dialog", { name: "App diagnostic" });
-  await expect(dialog.getByTestId("app-diagnostic-steps")).toContainText(
-    "Page: done",
-  );
   const text = dialog.getByTestId("diagnostic-text");
   await expect(text).toContainText("Vessel page diagnostics", {
     timeout: 30_000,
   });
+  // The steps or the text, never both (Paseo's sheet).
+  await expect(dialog.getByTestId("app-diagnostic-steps")).toHaveCount(0);
   await expect(text).toContainText("Machine: laptop");
   await expect(text).toContainText("Vessel diagnostics");
   await expect(text).toContainText("Tools");

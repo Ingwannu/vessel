@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { nodeLog } from "../../data/calls";
+import { logText } from "../../data/log-lines";
 import type { Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import { DIAGNOSTICS_WIRE_PROTOCOL, type NodeLog } from "../../wire/proto";
@@ -138,19 +139,23 @@ function NodeLogDialog({
           <Spinner />
           {LOG_WORDS.loading}
         </p>
-      ) : !log.ok ? (
-        <p className="diagnostic-wait">{log.problem.message}</p>
       ) : (
-        <>
-          <p className="diagnostic-wait">{writesTo(log.value)}</p>
-          {log.value.state === "file" ? (
-            <pre className="diagnostic-text" data-testid="node-log-lines">
-              {log.value.lines.length === 0
-                ? LOG_WORDS.empty
-                : log.value.lines.join("\n")}
+        // Paseo's logs modal: the path (or "Log path unavailable") above the
+        // contents (or "(log file is empty)"), wrapped, muted, monospace.
+        <div className="node-log-body">
+          <p className="node-log-hint">
+            {log.ok ? writesTo(log.value) : LOG_WORDS.unavailable}
+          </p>
+          {!log.ok || log.value.state === "file" ? (
+            <pre className="node-log-output" data-testid="node-log-lines">
+              {log.ok &&
+              log.value.state === "file" &&
+              log.value.lines.length > 0
+                ? logText(log.value.lines)
+                : LOG_WORDS.empty}
             </pre>
           ) : null}
-        </>
+        </div>
       )}
     </Dialog>
   );
