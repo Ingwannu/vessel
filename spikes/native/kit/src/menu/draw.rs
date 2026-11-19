@@ -491,4 +491,5 @@ pub(super) fn row_body(
                 .truncate()
                 .child(crate::picker::one_line(item.words())),
         )
+        .map(|row| super::a11y::named(row, item))
 }
