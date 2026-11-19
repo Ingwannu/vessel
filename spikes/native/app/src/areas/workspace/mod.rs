@@ -160,6 +160,8 @@ impl Shell {
             }
             Answer::Forgot { project, result } => {
                 self.project_removal_answered(machine, project, result, cx);
+                // A removed project's fold goes with it.
+                self.folds_listed(machine);
             }
             Answer::Commands {
                 project,
