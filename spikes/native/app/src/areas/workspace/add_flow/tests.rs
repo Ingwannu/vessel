@@ -8,7 +8,7 @@ use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::Event;
 use vessel_app_link::testing::Scenario;
-use vessel_app_link::workspace::Answer;
+use vessel_app_link::workspace::{Answer, Form};
 use vessel_app_view::machine_book::Name;
 use vessel_proto::workspace::host_folders::{HOST_FOLDERS_PROTOCOL, SuggestedFolder};
 use vessel_proto::{Call, Outcome, Reply};

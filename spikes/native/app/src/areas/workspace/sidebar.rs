@@ -79,8 +79,8 @@ struct Entry {
 
 impl Shell {
     /// Start a new chat in `project` on `machine`: the composer, the
-    /// project in its tray.
-    fn chat_in_project(
+    /// project in its tray (also Add project's success).
+    pub(super) fn chat_in_project(
         &mut self,
         machine: String,
         project: ProjectId,
