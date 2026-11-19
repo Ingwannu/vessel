@@ -163,12 +163,12 @@ impl Shell {
         let Some(target) = self.areas.workspace.sidebar.target.take() else {
             return;
         };
-        match index {
-            0 => self.show_project_settings(&target, window, cx),
-            _ => {
-                self.areas.workspace.sidebar.confirm = Some(target);
-                self.areas.workspace.sidebar.dialog.focus(window, cx);
-            }
+        // The menu's rows: Open project settings, then Remove project.
+        if index == 0 {
+            self.show_project_settings(&target, window, cx);
+        } else {
+            self.areas.workspace.sidebar.confirm = Some(target);
+            self.areas.workspace.sidebar.dialog.focus(window, cx);
         }
         cx.notify();
     }
@@ -311,7 +311,7 @@ pub(super) fn trailing(
         .role(gpui::Role::Button)
         .aria_label(words.create_workspace_for(&target.name))
         .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-            cx.stop_propagation()
+            cx.stop_propagation();
         })
         .on_click(cx.listener(move |this, _event, window, cx| {
             cx.stop_propagation();
@@ -350,7 +350,9 @@ pub(super) fn trailing(
             this.project_menu_open(opened.clone(), event.position, window, cx);
         }),
     )
-    .on_click(|_event, _window, cx| cx.stop_propagation());
+    .on_click(|_event, _window, cx| {
+        cx.stop_propagation();
+    });
     div()
         .flex()
         .flex_row()
@@ -368,7 +370,7 @@ fn icon_button(
     id: ElementId,
     glyph: Glyph,
     size: f32,
-    side: f32,
+    square: f32,
     wash: vessel_app_kit::ui::Hsla,
     tokens: &Tokens,
 ) -> vessel_app_kit::ui::Stateful<Div> {
@@ -377,7 +379,7 @@ fn icon_button(
     div()
         .id(id)
         .group(group.clone())
-        .size(px(side))
+        .size(px(square))
         .flex_none()
         .flex()
         .items_center()

@@ -130,8 +130,8 @@ pub(super) fn session_row(
         .items_start()
         .gap(px(spacing::S2))
         .child(title)
-        .children(match extras.number {
-            Some(number) => Some(shortcut_number(number, tokens)),
+        .child(match extras.number {
+            Some(number) => shortcut_number(number, tokens),
             None => dots(
                 card,
                 group.clone(),
@@ -227,7 +227,7 @@ fn dots(
     hovered_fill: Hsla,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
+) -> AnyElement {
     let target = card.clone();
     let size = if touch { DOTS_TOUCH } else { DOTS };
     let button = div()
@@ -254,7 +254,7 @@ fn dots(
             }),
         );
     if touch {
-        return Some(button.into_any_element());
+        return button.into_any_element();
     }
     let scrim = div()
         .absolute()
@@ -267,24 +267,22 @@ fn dots(
             linear_color_stop(hovered_fill.opacity(0.0), 0.0),
             linear_color_stop(hovered_fill, SCRIM_SOLID),
         ));
-    Some(
-        div()
-            .absolute()
-            .top_0()
-            .right_0()
-            .h(px(TITLE_LINE))
-            .flex()
-            .flex_row()
-            .justify_end()
-            .when(!menu_open, |overlay| {
-                overlay
-                    .opacity(0.0)
-                    .group_hover(group, |style| style.opacity(1.0))
-            })
-            .when(!menu_open, |overlay| overlay.child(scrim))
-            .child(button)
-            .into_any_element(),
-    )
+    div()
+        .absolute()
+        .top_0()
+        .right_0()
+        .h(px(TITLE_LINE))
+        .flex()
+        .flex_row()
+        .justify_end()
+        .when(!menu_open, |overlay| {
+            overlay
+                .opacity(0.0)
+                .group_hover(group, |style| style.opacity(1.0))
+        })
+        .when(!menu_open, |overlay| overlay.child(scrim))
+        .child(button)
+        .into_any_element()
 }
 
 /// The jump's number at the title's end (Paseo's shortcut badge: 18 tall,

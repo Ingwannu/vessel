@@ -156,17 +156,19 @@ fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
     cx.run_until_parked();
     shell.update(cx, |_, cx| cx.notify());
     cx.run_until_parked();
-    let mut said: Vec<String> = cx.update(|window, _| {
-        let tree: serde_json::Value =
-            serde_json::from_str(&window.debug_a11y_tree_json().unwrap()).unwrap();
-        tree["nodes"]
-            .as_object()
-            .unwrap()
-            .values()
-            .filter(|node| node["aria"]["role"] == "Status")
-            .map(|node| node["aria"]["label"].as_str().unwrap().to_owned())
-            .collect()
-    });
+    // Every `aria` object of GPUI's real snapshot, as text (as the sort
+    // trigger's test reads it): the statuses' names.
+    let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    let mut said: Vec<String> = json
+        .split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .filter(|aria| aria.contains("\"role\":\"Status\""))
+        .filter_map(|aria| {
+            let (_, label) = aria.split_once("\"label\":\"")?;
+            label.split_once('"').map(|(label, _)| label.to_owned())
+        })
+        .collect();
     said.sort();
     // shop: working over done; docs: its session needs input; site: none,
     // so no badge.
