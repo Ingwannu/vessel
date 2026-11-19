@@ -227,9 +227,7 @@ export function sidebarStatuses(
  * grouping (TRACKER 682, Paseo's default) is drawn as Machine until the
  * page has its own (TRACKER 812), so a document the app wrote still
  * reads here. */
-export function pageGrouping(
-  group: Grouping,
-): Exclude<Grouping, "project"> {
+export function pageGrouping(group: Grouping): Exclude<Grouping, "project"> {
   return group === "project" ? "machine" : group;
 }
 

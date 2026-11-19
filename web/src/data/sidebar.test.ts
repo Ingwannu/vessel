@@ -158,8 +158,14 @@ describe("the native app's Project grouping (TRACKER 682)", () => {
     expect(pageGrouping("project")).toBe("machine");
     expect(pageGrouping("status")).toBe("status");
     expect(pageGrouping("workspace")).toBe("workspace");
-    const asProject = sidebarOrder(STATE, { ...DEFAULT_VIEW, group: "project" });
-    const asMachine = sidebarOrder(STATE, { ...DEFAULT_VIEW, group: "machine" });
+    const asProject = sidebarOrder(STATE, {
+      ...DEFAULT_VIEW,
+      group: "project",
+    });
+    const asMachine = sidebarOrder(STATE, {
+      ...DEFAULT_VIEW,
+      group: "machine",
+    });
     expect(asProject.map((row) => row.id)).toEqual(
       asMachine.map((row) => row.id),
     );
