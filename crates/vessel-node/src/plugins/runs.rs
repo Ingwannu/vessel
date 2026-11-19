@@ -10,6 +10,31 @@ use super::rows::{host_line, read_manifest};
 use super::{PluginError, Plugins, Run, host};
 
 impl Plugins {
+    /// At node start: run every enabled installation that is not running
+    /// yet, when plugins are on (Paseo's `start`); failures are recorded on
+    /// their rows.
+    pub(super) async fn start_enabled(&self) {
+        let Ok(_change) = self.change().await else {
+            return;
+        };
+        let ids: Vec<PluginId> = {
+            let state = self.state();
+            if !state.switch {
+                return;
+            }
+            state
+                .rows
+                .iter()
+                .filter(|(_, row)| row.saved.enabled && matches!(row.run, Run::Stopped))
+                .map(|(id, _)| id.clone())
+                .collect()
+        };
+        for id in &ids {
+            let _recorded = self.start_one(id).await;
+        }
+        self.bump();
+    }
+
     /// Bring the runs in line with the latest wanted switch.
     pub(super) async fn apply_switch(&self) {
         let Ok(_change) = self.change().await else {

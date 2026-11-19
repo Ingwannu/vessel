@@ -68,6 +68,13 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "service.set_exposure",
             // ADR 0111: a node's own log is its administrators'.
             "node.log",
+            "plugin.logs",
+            "plugin.inspect",
+            "plugin.install",
+            "plugin.enable",
+            "plugin.disable",
+            "plugin.reload",
+            "plugin.remove",
         ]
     );
     assert_eq!(
