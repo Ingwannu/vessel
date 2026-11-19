@@ -190,6 +190,9 @@ const fn forwardable(method: Method) -> bool {
         // project icons, unary as the file panels.
         | Method::SuggestFolders
         | Method::ProjectIcon
+        // ADR 0113: Add project's New directory (`operate` on the node),
+        // unary as `project.add`.
+        | Method::CreateProjectDirectory
         | Method::WriteFile
         | Method::CreateDir
         | Method::RenamePath
@@ -394,6 +397,19 @@ mod tests {
             assert!(method.since().is_some(), "{method:?}");
             assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
         }
+    }
+
+    #[test]
+    fn a_new_project_directory_forwards_at_its_protocol() {
+        assert!(forwardable(Method::CreateProjectDirectory));
+        assert_eq!(
+            Method::CreateProjectDirectory.since(),
+            vessel_proto::registry::PROJECT_DIRECTORY_PROTOCOL
+        );
+        assert_eq!(
+            Method::CreateProjectDirectory.shape(),
+            vessel_proto::MethodShape::Unary
+        );
     }
 
     #[test]

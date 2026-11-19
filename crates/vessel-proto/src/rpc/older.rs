@@ -278,6 +278,7 @@ impl Reply {
             | Self::SuggestEntries(_)
             | Self::SuggestFolders(_)
             | Self::ProjectIcon(_)
+            | Self::CreateProjectDirectory(_)
             | Self::ReadFile(_)
             | Self::WriteFile(_)
             | Self::CreateDir(_)

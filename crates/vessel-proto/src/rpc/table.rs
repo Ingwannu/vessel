@@ -469,6 +469,8 @@ macro_rules! method_table {
             GetAgentDiagnostic / agent_diagnostic / "agent.diagnostic" [Read, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::agents::GetAgentDiagnostic => $crate::agents::AgentDiagnostic;
             /// The last lines of the node's own log, for its administrators (ADR 0111).
             ReadNodeLog / node_log / "node.log" [Admin, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::diagnostics::ReadNodeLog => $crate::diagnostics::NodeLog;
+            /// One new empty folder made a project, as Paseo's New directory (ADR 0113).
+            CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::registry::PROJECT_DIRECTORY_PROTOCOL), unary]: $crate::registry::CreateProjectDirectory => $crate::workspace::ProjectInfo;
         }
     };
 }
