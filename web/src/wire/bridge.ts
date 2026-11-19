@@ -328,7 +328,7 @@ message: string, };
 /**
  * What the sidebar groups sessions by.
  */
-export type Grouping = "machine" | "status" | "workspace";
+export type Grouping = "machine" | "status" | "workspace" | "project";
 
 /**
  * The interface's text size: whole pixels, 12 to 20 (14 by default).
