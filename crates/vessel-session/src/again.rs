@@ -198,6 +198,16 @@ pub enum NotResumable {
     NoConversation,
 }
 
+/// Not thiserror's `#[from]`: that would make the refusal the error's
+/// source as well as its words, and the wire message, which appends every
+/// source, would say the reason twice (as `NotReloadable`'s did; the node
+/// reviewer's note on row 334).
+impl From<NotResumable> for SessionError {
+    fn from(refusal: NotResumable) -> Self {
+        Self::NotResumable(refusal)
+    }
+}
+
 /// The conversation `info`'s session would resume, if it can start again.
 /// A session stored before protocol 10 has no recorded abilities: it is
 /// tried, and the agent's handshake decides.
@@ -421,5 +431,17 @@ mod tests {
             ..AgentAbilities::default()
         });
         assert_eq!(resumable(&structured), Ok(&conversation));
+    }
+
+    #[test]
+    fn a_refusal_says_its_reason_once() {
+        let error = SessionError::from(NotResumable::Terminal);
+        assert_eq!(
+            error.to_string(),
+            "the session cannot start again: a terminal session cannot start again; its \
+             harness's own interface owns it"
+        );
+        // The wire message appends every source: there is none to repeat it.
+        assert!(std::error::Error::source(&error).is_none());
     }
 }

@@ -3,7 +3,7 @@ use super::*;
 use chrono::DateTime;
 use vessel_proto::diagnostics::{
     DiagnosticArch, DiagnosticHome, DiagnosticNode, DiagnosticOs, DiagnosticReportFields,
-    DiagnosticUnavailable,
+    DiagnosticSection, DiagnosticUnavailable,
 };
 use vessel_proto::{DurationMs, NodeId, NodeState};
 const PRIVATE: &str = "PRIVATE-DIAGNOSTIC-OUTPUT-CANARY";
@@ -31,6 +31,7 @@ fn report() -> DiagnosticReport {
         listeners: missing(),
         relays: missing(),
         recent_failures: missing(),
+        more: None,
     })
     .unwrap()
 }

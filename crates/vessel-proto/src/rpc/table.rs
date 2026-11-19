@@ -465,6 +465,10 @@ macro_rules! method_table {
             SuggestFolders / suggest_folders / "folder.suggest" [Operate, (pending $crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL), unary]: $crate::workspace::host_folders::SuggestFolders => $crate::workspace::host_folders::FolderSuggestions;
             /// A project's own icon, inside its root, as Paseo's (ADR 0112).
             ProjectIcon / project_icon / "project.icon" [Read, (pending $crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL), unary]: $crate::workspace::host_folders::GetProjectIcon => $crate::workspace::host_folders::ProjectIcon;
+            /// One agent's diagnostic with a new probe of its catalogue, as Paseo's provider diagnostic (ADR 0111).
+            GetAgentDiagnostic / agent_diagnostic / "agent.diagnostic" [Read, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::agents::GetAgentDiagnostic => $crate::agents::AgentDiagnostic;
+            /// The last lines of the node's own log, for its administrators (ADR 0111).
+            ReadNodeLog / node_log / "node.log" [Admin, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::diagnostics::ReadNodeLog => $crate::diagnostics::NodeLog;
         }
     };
 }

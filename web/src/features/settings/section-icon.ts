@@ -30,6 +30,8 @@ export function sectionIcon(section: SettingsSection): IconName {
       return "monitor";
     case "sync":
       return "sync";
+    case "diagnostics":
+      return "stethoscope";
     case "about":
       return "home";
   }

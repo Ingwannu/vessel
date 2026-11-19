@@ -139,9 +139,12 @@ async fn run(args: Args) -> Result<(), Error> {
 #[tokio::main]
 async fn main() -> ExitCode {
     let args = Args::parse();
+    // Colours only on a terminal, as the node's own logging
+    // (`daemon_logging`), so a log file a fixture writes holds no escapes.
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
         .with_target(false)
+        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
         .init();
     match run(args).await {
         Ok(()) => ExitCode::SUCCESS,

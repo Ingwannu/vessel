@@ -82,7 +82,7 @@ async fn two_node_reports_follow_their_own_runtime_store_and_admitted_identity()
                 .service
                 .0
                 .diagnostics
-                .collect(&a.secure.service.0.lifecycle),
+                .collect(&a.secure.service.0.lifecycle, false),
         )
         .await
         .unwrap();
@@ -92,7 +92,7 @@ async fn two_node_reports_follow_their_own_runtime_store_and_admitted_identity()
                 .service
                 .0
                 .diagnostics
-                .collect(&b.secure.service.0.lifecycle),
+                .collect(&b.secure.service.0.lifecycle, false),
         )
         .await
         .unwrap();

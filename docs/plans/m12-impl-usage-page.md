@@ -176,7 +176,8 @@ coordinator as a separate parity item.
     grace); the agent is stopped and started with `session/load` and a fresh launch (profile, MCP servers, a
     new credential and token), in one actor step.
   - A parked session is started; an ended one is started again.
-  - It answers the `SessionInfo`. The `reloaded` record has a log-line stand-in for older peers.
+  - It answers the `SessionInfo`. The `reloaded` record has a log-line stand-in for older peers; a parked
+    session's reload records `woken` just before it (row 332 note).
 - The history (coordinator's ruling C, "R2"): the replay is gathered within 60 s, 20,000 events and 64 MiB of
   serialized size (the byte bound the coordinator asked for before merge). Only what
   lies beyond the log's exact user prompts is appended: whole messages, 2,000 records at most. Otherwise
@@ -188,9 +189,52 @@ coordinator as a separate parity item.
   - `fake-acp` `FAKE_ACP_REPLAY_FIRST` and the `deaf` prompt.
 - The page: "Reload agent" in the session's actions (`data/reload.ts`, icon `refresh`, the rotate-cw drawing).
   It has Paseo's tooltip and its toasts: "Reloading agent..." until the answer, then "Reloaded agent", or the
-  node's message, else "Failed to reload agent".
+  node's message, else "Failed to reload agent". On a machine that is not connected the row stays and a press
+  toasts "Host is not connected" (diagnostics packet's first commit); it is hidden only on a connected machine
+  below protocol 31.
 - Native: the row is the visual lane's, after this node op lands. The native usage `binding_epoch` list
   should gain `reloaded`, as the page's `BINDING` did.
+
+## The diagnostics wire (ADR 0111; TRACKER 568, 67, 87, 567, 569)
+
+- First commit: row 332's two open notes. A parked reload records `woken` just before `reloaded`; the page
+  reads `RELOAD_PROTOCOL` from the wire declarations, which now end with generated protocol constants
+  (`vessel_proto::ts::PROTOCOLS`).
+- Node (protocol 33, `DIAGNOSTICS_WIRE_PROTOCOL`, assigned at merge):
+  - `agent.diagnostic`: `service/agent_diagnostic.rs`, with `Probes::refresh` (the diagnostic's forced probe,
+    kept for `harness.options`) and `Lookup::find_all`.
+  - The report's `more` sections: `diagnostics/more.rs`, `SessionRuntime::diagnostic_activity`,
+    `DataDir::space`. Sent only to peers at 33 (`DiagnosticReport::for_protocol`).
+  - `node.log`: `service/node_log.rs`, `DataDir::node_log_files` (`data_dir/logs.rs`, which now also holds
+    `open_node_log`).
+  - Renderers: `vessel_proto::diagnostics::text` (the CLI now uses it) and `AgentDiagnostic::text`, held to
+    `web/src/wire/fixtures/` (the `ts` step rewrites the text files).
+- Tests: proto fixtures and words; node unit tests (parsers, the log's file and tail, the refresh); the real
+  collector's sections; e2e `agent_diagnostic.rs` (a ready agent probed again and kept, agents that cannot run
+  here, the log for administrators, agents refused).
+- The page row (on the node row): Settings › Diagnostics (`features/diagnostics/diagnostics-section.tsx`,
+  `data/app-diagnostic.ts`: a run per open or Refresh, a row per step, then the text), an agent card's
+  "Diagnostic" (`agent-diagnostic.tsx`) and a machine's "Log file" row with its "Node logs" dialog
+  (`node-log.tsx`), all through `DiagnosticTextDialog` (Copy, Refresh, "Running diagnostic..."). Calls in
+  `data/calls.ts`. Tests: `app-diagnostic.test.ts`, `diagnostic-text.test.ts`, e2e `diagnostics.spec.ts`.
+- Row 334 passed (node reviewer, 2026-11-19); its notes in one more commit:
+  - `REFRESH_FLOOR` (5 s): refreshes back to back share one probe, so a `read` viewer cannot keep the node
+    starting an agent;
+  - the page says only that a node's log is "not a file it keeps" when the answer is `elsewhere`;
+  - `DIAGNOSTICS_PROTOCOL` and `HOST_FOLDERS_PROTOCOL` are generated too, and the page's two hand copies
+    are gone;
+  - `NotResumable`, like `NotReloadable`, is no longer its error's source, so `session.resume`'s refusal
+    says its reason once (exact text in e2e `resume.rs`).
+  - Found in the frames: the usage fixture logged with colours into its file, so `node.log` showed escape
+    bytes. The fixture now logs as the daemon does (colours only on a terminal), and `node.log` drops a
+    terminal's escapes and control characters.
+- The coordinator's verdict on row 334's page (RETURN, 3 items), fixed on top:
+  - the app diagnostic shows its steps or its text, never both;
+  - Node logs is Paseo's logs modal: path or "Log path unavailable", then the contents or "(log file is
+    empty)", wrapped, muted, 12/18 monospace. The page drops terminal escapes too (`data/log-lines.ts`), and
+    the forge fixture logs like the daemon (colours only on a terminal);
+  - the Diagnostics section's mark is lucide's Stethoscope.
+- Then the native row (app line, after the node row merges and the lead adopts it), with frames.
 
 ## Next
 
