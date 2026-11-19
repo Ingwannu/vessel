@@ -5,7 +5,10 @@
 use std::rc::Rc;
 
 use gpui::prelude::*;
-use gpui::{AnyElement, Context, Div, ElementId, MouseButton, SharedString, div, px};
+use gpui::{
+    AnyElement, Context, Div, ElementId, MouseButton, Role, SharedString, Stateful, Toggled, div,
+    px,
+};
 
 use super::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, glyph, initial_tile, one_line,
@@ -14,6 +17,41 @@ use crate::assets::Glyph;
 use crate::fonts::Type;
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
+
+/// What a list's row is to assistive technology (TRACKER 808), as Paseo
+/// builds the list: a combobox's option is a button with no checked state
+/// (`ComboboxItem`, `combobox.tsx` 298); a list Paseo draws as a menu (the
+/// Labels list, `workspace-labels/picker.tsx`) has menu items, and a row
+/// there that draws a check says checked or not (`menu-item.tsx` 298-342).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum RowRole {
+    /// A combobox's option: a button named by its words.
+    #[default]
+    Button,
+    /// A menu's row that draws no check (Create label).
+    MenuItem,
+    /// A menu's row that draws a check, on or off (a label).
+    CheckedItem,
+}
+
+/// `row`'s role, its checked state where it draws a check, and its name:
+/// its label, then its detail on the same line.
+fn named(element: Stateful<Div>, row: &ComboRow) -> Stateful<Div> {
+    let element = match row.role {
+        RowRole::Button => element.role(Role::Button),
+        RowRole::MenuItem => element.role(Role::MenuItem),
+        RowRole::CheckedItem => element.role(Role::MenuItem).aria_toggled(if row.checked {
+            Toggled::True
+        } else {
+            Toggled::False
+        }),
+    };
+    let name: SharedString = match &row.detail {
+        Some(detail) => format!("{} {detail}", row.label).into(),
+        None => row.label.clone(),
+    };
+    element.aria_label(name)
+}
 
 /// The rows, under their headings, or the words for none.
 pub(super) fn rows_list<V: 'static>(
@@ -341,6 +379,7 @@ pub(super) fn combo_row<V: 'static>(
             u64::try_from(index).unwrap_or(u64::MAX),
         ))
         .debug_selector(move || format!("combobox-row-{index}"))
+        .map(|element| named(element, row))
         .flex()
         .flex_row()
         .items_center()
@@ -422,13 +461,13 @@ pub(super) fn combo_row<V: 'static>(
 
 /// Bind one enabled row through the same captured opening; layout stays above.
 fn enabled_row<V: 'static>(
-    element: gpui::Stateful<Div>,
+    element: Stateful<Div>,
     index: usize,
     state: &ComboboxState,
     handlers: &ComboHandlers<V>,
     wash: gpui::Hsla,
     cx: &mut Context<'_, V>,
-) -> gpui::Stateful<Div> {
+) -> Stateful<Div> {
     let chose = Rc::clone(&handlers.chose);
     let get = handlers.state;
     let lease = state.render_lease();
@@ -449,6 +488,8 @@ fn enabled_row<V: 'static>(
         }))
 }
 
+#[cfg(test)]
+mod role_tests;
 #[cfg(test)]
 mod separator_tests;
 #[cfg(test)]

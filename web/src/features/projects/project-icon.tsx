@@ -1,12 +1,14 @@
-// A project's own icon where the page draws a project (the sidebar's
-// project rows, Settings > Projects), else the folder mark it had (ADR
-// 0112; Paseo's `ProjectIconView` draws the image sized, never clipped).
+// A project's mark where the page draws a project (the sidebar's project
+// rows, Settings > Projects): its own icon (ADR 0112), else Paseo's
+// lettered identity square (TRACKER 809, `data/identity.ts`). Paseo's
+// `ProjectIconView` draws the image sized, never clipped.
 
 import "./project-icon.css";
 
 import { type ReactElement, useEffect, useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
+import { identityFill, projectInitial } from "../../data/identity";
 import {
   hasProjectIcons,
   projectIcon,
@@ -41,29 +43,38 @@ export function useProjectIcon(
   return offered ? address : null;
 }
 
-/** The icon at `size`, or `fallback` (the folder mark). The image takes
- * the `ico` class so a row's hover swap treats it as the mark. */
+/** The project's mark (TRACKER 809, Paseo's `ProjectIconView`): its own
+ * icon, else its lettered identity square; 16 square, 20 at a compact
+ * width (Paseo's `densityIconProps("md")`). Not the kit's `ico` (its
+ * fill and mask would show behind a transparent icon); the sidebar's swap
+ * takes any mark (`sidebar-projects.css`). */
 export function ProjectIcon({
   node,
   project,
-  size,
-  fallback,
+  name,
 }: {
   node: NodeKey;
   project: ProjectId;
-  size: 14 | 16;
-  fallback: ReactElement;
+  name: string;
 }): ReactElement {
   const address = useProjectIcon(node, project);
-  if (address === null) return fallback;
+  if (address === null) {
+    return (
+      <span
+        className="project-identity"
+        aria-hidden="true"
+        style={{ backgroundColor: identityFill(project) }}
+      >
+        {projectInitial(name)}
+      </span>
+    );
+  }
   return (
     <img
-      className="ico project-icon"
+      className="project-icon"
       src={address}
       alt=""
       aria-hidden="true"
-      width={size}
-      height={size}
       draggable={false}
     />
   );

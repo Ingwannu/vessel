@@ -170,6 +170,9 @@ struct Walk<'home> {
     scanned: usize,
     more: bool,
     found: Vec<Found>,
+    /// A folder whose name holds the query was found (Paseo's confident
+    /// result), set as it is found so the check costs nothing per folder.
+    named: bool,
 }
 
 fn search(home: &Path, query: &str, limit: usize, time: Duration) -> FolderSuggestions {
@@ -195,6 +198,7 @@ fn search(home: &Path, query: &str, limit: usize, time: Duration) -> FolderSugge
         scanned: 0,
         more: false,
         found: Vec::new(),
+        named: false,
     };
     let exact = (plan.rooted && !plan.normalized.is_empty())
         .then(|| inside(&home, &home.join(plan.normalized.trim_end_matches('/'))))
@@ -296,15 +300,8 @@ impl Walk<'_> {
 
     /// Paseo's `hasConfidentResult` after its threshold: a folder whose
     /// name holds the query.
-    fn confident(&self) -> bool {
-        self.scanned >= CONFIDENT_AFTER
-            && self.found.iter().any(|found| {
-                found
-                    .path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.to_lowercase().contains(&self.query))
-            })
+    const fn confident(&self) -> bool {
+        self.scanned >= CONFIDENT_AFTER && self.named
     }
 
     fn consider(&mut self, path: PathBuf, depth: usize) {
@@ -318,6 +315,10 @@ impl Walk<'_> {
             crate::find::score(&self.needle, &lower, &original)
         };
         if let Some(score) = score {
+            self.named |= path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.to_lowercase().contains(&self.query));
             self.found.push(Found { score, depth, path });
         }
     }

@@ -5,7 +5,7 @@
 //! a time, and one refused is asked again with the next listing.
 use super::source_tests::{prepare, ready, root, setup};
 use super::*;
-use gpui::TestAppContext;
+use gpui::{AppContext as _, ParentElement as _, TestAppContext};
 use vessel_app_link::Event;
 use vessel_app_link::testing::Scenario;
 use vessel_app_link::workspace::Answer;
@@ -200,6 +200,71 @@ fn a_machine_without_the_file_panels_sorts_by_name_and_asks_nothing(cx: &mut Tes
         );
         scene.close(shell.fixture_link()).unwrap();
     });
+}
+
+/// Only the sort trigger, drawn for the shell (TRACKER 808).
+struct TriggerProbe(gpui::Entity<Shell>);
+
+impl gpui::Render for TriggerProbe {
+    fn render(
+        &mut self,
+        _window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> impl gpui::IntoElement {
+        let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+        let trigger = self
+            .0
+            .update(cx, |shell, cx| sort::trigger(shell, &tokens, cx));
+        vessel_app_kit::ui::div().children(trigger)
+    }
+}
+
+/// Every `aria` object of GPUI's real accessibility snapshot, as text.
+fn arias(cx: &mut gpui::VisualTestContext) -> Vec<String> {
+    let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    json.split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .collect()
+}
+
+#[gpui::test]
+fn the_sort_trigger_is_a_button_named_by_its_order(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let name = vessel_app_view::machine_book::Name::parse("fixture").unwrap();
+    let (link, mut scene) = Scenario::start(&name).unwrap();
+    let (probe, cx) = cx.add_window_view(move |window, cx| {
+        TriggerProbe(cx.new(|cx| Shell::with_test_link(window, cx, link)))
+    });
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    shell.update_in(cx, |shell, _window, _cx| {
+        let original = scene.context();
+        let (session, project) = prepare(shell, &original);
+        for machine in &mut shell.fleet.machines {
+            machine.protocol = FILE_PANELS_PROTOCOL;
+        }
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+    });
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    probe.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    let button = |arias: &[String], word: &str| {
+        let label = format!(r#""label": "{word}""#);
+        arias
+            .iter()
+            .any(|aria| aria.contains(&label) && aria.contains(r#""Button""#))
+    };
+    // Paseo's word for the order shown, which a press moves on.
+    assert!(button(&arias(cx), "Name"));
+    shell.update(cx, |shell, _| {
+        shell.prefs.settings.layout.explorer_sort = ExplorerSort::Modified;
+    });
+    probe.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    assert!(button(&arias(cx), "Modified"));
 }
 
 /// List folder `dir` of `root` (`""` for the root) with `entries`.
