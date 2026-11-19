@@ -3,7 +3,8 @@
 use std::rc::Rc;
 use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_kit::{
-    ComboHandlers, ComboHeader, ComboRow, Leading, Side, Tokens, combobox, combobox_inline, select,
+    ComboHandlers, ComboHeader, ComboRow, Leading, RowRole, Side, Tokens, combobox,
+    combobox_inline, select,
 };
 use vessel_app_view::labels::{Assignment, Catalog, Label, PickerPage};
 
@@ -107,6 +108,9 @@ fn list(
                 tokens,
             ))),
             checked: entry.assignment == Assignment::Assigned,
+            // Paseo draws this list as a menu: a label is a menu item that
+            // says checked or not (TRACKER 808).
+            role: RowRole::CheckedItem,
             disabled: !online || entry.pending.is_some(),
             trailing: entry.pending.map(|_| shell.words.labels().pending().into()),
             ..ComboRow::new(entry.label.name.as_str().to_owned())
@@ -122,6 +126,7 @@ fn list(
         disabled: !online,
         opens: true,
         separated: true,
+        role: RowRole::MenuItem,
         leading: Some(Leading::SmallGlyph(vessel_app_kit::assets::Glyph::Plus)),
         page: matches!(picker.place, PickerPlace::Beside)
             .then(|| super::create::CREATE.to_owned().into()),

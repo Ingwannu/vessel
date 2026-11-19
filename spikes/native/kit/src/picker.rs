@@ -46,6 +46,7 @@ use crate::widgets::TypeExt as _;
 use crate::{fonts::Type, theme::Tokens};
 
 mod focus;
+mod initial;
 mod inline;
 mod keys;
 mod lifecycle;
@@ -56,8 +57,10 @@ mod rows;
 mod send;
 #[cfg(test)]
 mod sheet_drag_tests;
+pub use initial::{initial_of, initial_tile};
 pub use inline::combobox_inline;
 pub use probe::anchor_probe;
+pub use rows::RowRole;
 pub use send::{SendKind, send_button};
 
 /// Paseo's compact width, the kit's one ([`crate::breakpoint::PHONE`]):
@@ -285,36 +288,6 @@ pub enum Leading {
     Initial(SharedString),
 }
 
-/// A project's mark as Paseo draws one without an icon of its own
-/// (`ProjectIconView`'s fallback): the name's first letter, upper case,
-/// on a 16 tile, 10 high and semibold, muted.
-#[must_use]
-pub fn initial_tile(initial: SharedString, tokens: &Tokens) -> Div {
-    let neutral = tokens.neutral;
-    div()
-        .size(px(16.0))
-        .flex_none()
-        .flex()
-        .items_center()
-        .justify_center()
-        .rounded(px(4.0))
-        .bg(neutral.surface3)
-        .text_size(px(10.0))
-        .line_height(px(16.0))
-        .font_weight(gpui::FontWeight::SEMIBOLD)
-        .text_color(neutral.foreground_muted)
-        .child(initial)
-}
-
-/// A name's initial for [`initial_tile`] (`?` for an empty name).
-#[must_use]
-pub fn initial_of(name: &str) -> SharedString {
-    name.chars().next().map_or_else(
-        || "?".into(),
-        |first| first.to_uppercase().collect::<String>().into(),
-    )
-}
-
 /// One row of a list.
 #[derive(Debug, Clone, PartialEq)]
 #[expect(
@@ -355,6 +328,8 @@ pub struct ComboRow {
     /// A rule above it when a row is shown before it (Paseo's
     /// `MenuSeparator`: Create label after the labels, TRACKER 807).
     pub separated: bool,
+    /// What it is to assistive technology (TRACKER 808).
+    pub role: RowRole,
 }
 
 impl ComboRow {
@@ -375,6 +350,7 @@ impl ComboRow {
             tooltip: None,
             page: None,
             separated: false,
+            role: RowRole::Button,
         }
     }
 }

@@ -109,9 +109,9 @@ pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
 };
 pub use picker::{
-    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
-    anchor_probe, combobox, combobox_inline, glyph, initial_of, initial_tile, pill, pill_parts,
-    send_button,
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, RowRole, SendKind,
+    Side, anchor_probe, combobox, combobox_inline, glyph, initial_of, initial_tile, pill,
+    pill_parts, send_button,
 };
 pub use screen_header::{compact_header, screen_header};
 pub use scroll_viewport::{ScrollState, ScrollViewport, SectionIndex};
