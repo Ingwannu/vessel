@@ -136,9 +136,12 @@ fn terminal_tabs(shell: &Shell) -> Vec<TerminalId> {
     crate::areas::layout::read_layout(shell, &key, |layout| {
         layout
             .tabs()
-            .filter_map(|tab| match tab.target() {
-                Target::Terminal(id) => Some(*id),
-                _ => None,
+            .filter_map(|tab| {
+                if let Target::Terminal(id) = tab.target() {
+                    Some(*id)
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>()
     })
