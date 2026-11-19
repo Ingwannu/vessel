@@ -49,8 +49,8 @@ use crate::shell::Shell;
 mod draw;
 
 pub(crate) use draw::layers;
-pub(super) use draw::trailing;
 use draw::menu_key;
+pub(super) use draw::trailing;
 
 /// The project an action is for.
 #[derive(Debug, Clone, PartialEq, Eq)]
