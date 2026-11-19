@@ -16,7 +16,7 @@
 //! - The fold is kept (`Preferences::folded_projects`), as Paseo keeps its
 //!   collapsed projects; the document the page shares is unchanged until a
 //!   project is folded.
-//! - The ghost row (Paseo's `rowModel.trailingAction` "new_workspace"):
+//! - The ghost row (Paseo's `rowModel.trailingAction`, `new_workspace`):
 //!   for a ready git project, where the header offers New workspace too.
 //! - The heading: the projects section's ("Projects", the plus) with the
 //!   Display trigger, since this list replaces both the section and the

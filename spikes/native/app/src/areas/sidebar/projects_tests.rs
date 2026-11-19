@@ -210,7 +210,7 @@ fn a_header_folds_its_project_kept_and_the_numbers_skip_it(cx: &mut TestAppConte
         assert_eq!(numbered(shell), [Some(3), Some(2), Some(1), Some(4)]);
     });
     shell.update(cx, |shell, cx| {
-        shell.fold_project("fixture", project_id(0), cx)
+        shell.fold_project("fixture", project_id(0), cx);
     });
     shell.read_with(cx, |shell, _| {
         assert!(
@@ -227,7 +227,7 @@ fn a_header_folds_its_project_kept_and_the_numbers_skip_it(cx: &mut TestAppConte
     assert!(header[0].contains(r#""expanded": false"#));
     // Pressed again, it opens.
     shell.update(cx, |shell, cx| {
-        shell.fold_project("fixture", project_id(0), cx)
+        shell.fold_project("fixture", project_id(0), cx);
     });
     shell.read_with(cx, |shell, _| {
         assert!(shell.prefs.settings.folded_projects.is_empty());
