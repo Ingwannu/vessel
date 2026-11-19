@@ -37,6 +37,8 @@ mod files;
 mod found;
 mod frame;
 mod line_syntax;
+mod panels;
+mod panels_view;
 mod search;
 mod shown_source;
 mod sort;
@@ -137,6 +139,8 @@ struct Viewer {
     edit: Option<editing::Editing>,
     /// Its watch while shown (protocol 27, ADR 0105).
     watch: vessel_app_view::workspace::watch::Watch,
+    /// Paseo's built-in panel for it (`panels.rs`).
+    look: panels::Look,
 }
 
 /// What a file shows.

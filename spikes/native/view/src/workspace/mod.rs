@@ -21,6 +21,7 @@ pub mod find;
 pub mod git;
 pub mod git_quick;
 pub mod host_folders;
+pub mod markdown_paths;
 pub mod marks;
 pub mod pace;
 pub mod place;
@@ -34,6 +35,7 @@ pub mod setup_log;
 pub mod size;
 pub mod start;
 pub mod syntax;
+pub mod viewers;
 pub mod watch;
 pub mod worktrees;
 

@@ -33,6 +33,7 @@ mod settings;
 mod shortcuts;
 mod sidebar;
 mod sync;
+mod viewers;
 pub mod workspace;
 
 pub use app::Text;
@@ -51,6 +52,7 @@ pub use palette::PaletteWords;
 pub use settings::SettingsText;
 pub use shortcuts::ShortcutWords;
 pub use sidebar::SidebarWords;
+pub use viewers::ViewerWords;
 
 /// A language the app speaks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

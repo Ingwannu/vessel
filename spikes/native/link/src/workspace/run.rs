@@ -186,6 +186,10 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
             result: super::download::fetch(client, &download).await,
             download,
         },
+        FileAsk::Image(ask) => Answer::ImageRead {
+            result: super::image_bytes::fetch(client, &ask).await,
+            ask,
+        },
     }
 }
 

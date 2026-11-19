@@ -1347,6 +1347,22 @@ facts by path until the root changes (`app/src/areas/workspace/code/sort.rs`,
 order in `view::workspace::file_tree`). A machine below the file panels'
 protocol sorts by name and shows no trigger.
 
+A file opens in Paseo's built-in panel for its name (F-F38, F-F40;
+`view::workspace::viewers`, `app/src/areas/workspace/code/panels.rs`).
+Markdown has the Preview|Source control in its head and opens on Preview
+unless it was opened at a line. The Preview draws the edit's text through
+the kit's Markdown. A relative link opens that file in the Files tab, a
+web link opens in the browser, and an image under the root is read with
+`file.read_bytes`. Past Paseo's native display budget (10 MiB), or when
+read only in part, the Preview says "This file is too large to display".
+On a machine with the file panels' protocol, an image (png, jpg, gif, webp,
+svg) is read whole into memory (`link::workspace::image_bytes`, checked
+against the version's hash). It is drawn fitted to the panel and zoomed as
+the lightbox zooms (`view::composer::viewer` with `Fit::Panel`), and read
+again when the watch sees the file change. HTML stays Source only: the app
+has no web engine (coordinator's ruling 2 of 2026-11-19, until ADR 0020).
+The front matter table waits for yaml-rust2's lock addition.
+
 Add project suggests folders as Paseo's does (ADR 0112): the folder field
 of Settings > Projects' add form asks `folder.suggest` 250 ms after the
 last key, and the machine's folders under its user's home come back as

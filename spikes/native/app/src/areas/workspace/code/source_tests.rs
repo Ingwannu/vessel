@@ -397,6 +397,7 @@ fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
             chosen: None,
             edit: Some(edit),
             watch: vessel_app_view::workspace::watch::Watch::default(),
+            look: super::panels::Look::of(&"a.rs".parse().unwrap(), false, true),
         });
         let replacement = scene
             .reconnect(
@@ -470,6 +471,7 @@ fn a_change_the_watch_sees_reads_the_shown_file_again(cx: &mut TestAppContext) {
             chosen: None,
             edit: Some(edit),
             watch,
+            look: super::panels::Look::of(&path, false, true),
         });
         let changed = ObservedFile::Ready {
             revision: FileRevision {
