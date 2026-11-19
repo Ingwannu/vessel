@@ -82,6 +82,12 @@ pub struct SidebarWords {
     /// they all show (`sidebar.workspace.actions.showMore`, `showLess`).
     pub show_more: &'static str,
     pub show_less: &'static str,
+    // A session row's hover card (TRACKER 810, Paseo's
+    // `workspace.hoverCard`): its name as a group (the coordinator's ruling
+    // for Paseo's leftover "Workspace scripts"), its copy rows, its checks.
+    pub session_details: &'static str,
+    pub copy_branch_name: &'static str,
+    pub checks: &'static str,
     // The foot.
     pub settings: &'static str,
     pub back: &'static str,
@@ -149,6 +155,22 @@ impl SidebarWords {
         }
     }
 
+    /// A pull request's badge, said as a link
+    /// (`workspace.git.pr.accessibility.pullRequest`).
+    #[must_use]
+    pub fn pull_request(&self, number: u64) -> String {
+        match self.lang {
+            Lang::En => format!("Pull request #{number}"),
+            Lang::Ko => format!("풀 리퀘스트 #{number}"),
+        }
+    }
+
+    /// The checks' row, said as a link: its word and their state.
+    #[must_use]
+    pub fn checks_said(&self, state: &str) -> String {
+        format!("{}: {state}", self.checks)
+    }
+
     /// The plus's name (`sidebar.workspace.actions.createWorkspaceFor`).
     #[must_use]
     pub fn create_workspace_for(&self, name: &str) -> String {
@@ -212,6 +234,9 @@ const EN: SidebarWords = SidebarWords {
     cancel: "Cancel",
     show_more: "Show more",
     show_less: "Show less",
+    session_details: "Session details",
+    copy_branch_name: "Copy branch name",
+    checks: "Checks",
     settings: "Settings",
     back: "Back",
     theme: "Theme",
@@ -264,6 +289,9 @@ const KO: SidebarWords = SidebarWords {
     cancel: "취소",
     show_more: "더 보기",
     show_less: "간략히 보기",
+    session_details: "세션 정보",
+    copy_branch_name: "브랜치 이름 복사",
+    checks: "검사",
     settings: "설정",
     back: "뒤로",
     theme: "테마",

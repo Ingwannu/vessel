@@ -50,6 +50,7 @@ pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod hover_card;
 pub mod icon_chrome;
 pub mod loading;
 pub mod menu;
@@ -97,7 +98,7 @@ pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
 pub use control_names::{ControlNames, control_names, set_control_names};
 pub use control_sizing::ControlSizing;
-pub use copy::{CopyLook, copy_button};
+pub use copy::{CopyLook, copied_within, copy_button, copy_for};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{
     Editability, FormMinimum, FormText, FormTextareaPresentation, SearchField, SendOn, TextField,
@@ -105,6 +106,7 @@ pub use field::{
 };
 pub use fonts::Type;
 pub use host_rename::host_rename_button;
+pub use hover_card::HoverCards;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,

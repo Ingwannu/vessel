@@ -82,3 +82,34 @@ placement); `copy` (copy and the check for a moment); `external_link`.
 - Q3 Keyboard. Paseo keeps the card open while keyboard focus is inside it. The native rows are not
   tab stops yet (813 named them for assistive technology only). I propose pointer only in this
   item and keyboard with the rows' focus item.
+
+## Rulings (coordinator, 2026-11-19)
+
+- Q1 (a): the diff stat is left out, a stated difference. In Paseo it is a server field (the
+  workspace descriptor's `diffStat`), not something the card reads, and the node has no such field
+  yet: TRACKER 819 (node descriptor field and live update, then the card and the page). The card's
+  row order keeps its place, after the pull request badge, so 819 only adds a row.
+- Q2: the card is a group named "Session details" / "세션 정보" (Paseo's role `menu` named
+  "Workspace scripts" is left over: its card has no scripts), a stated difference.
+- Q3: pointer only, as Paseo's (a hover card, wide window only). Keyboard is not a Paseo gap; no
+  item.
+- As Paseo's: no card while a drag is under way (TRACKER 811 will need it), none in the narrow
+  layout.
+- Frames: the list above, plus a card on a row near the window's bottom (it stays on screen).
+
+## As built
+
+- kit `hover_card` (`HoverCards`): one card per screen. The pointer's place is kept by trigger key
+  and for the card, so a late leave from another row changes nothing. The 100 ms close only
+  fires while the pointer is on neither. A press on the trigger, `close()` and Escape (a listener
+  for the frame the card is drawn in) close it. Paseo's surface is used, with its own 0/4/8 20%
+  shadow. kit `copy` gains `copied_within` and `copy_for`, so the card's copy rows and the copy
+  button share the one "copied last".
+- view `sidebar::hover` (`Card::hover_details`, `Card::checks_url`, `short_path`): the card's
+  facts, the folder label as Paseo's (a worktree's folder name, else `~` for the home folder),
+  and the checks page (GitHub's `/checks`, else the pull request).
+- app `areas/sidebar/hover_card.rs`: the content (title, pull request link, the diff stat's slot,
+  machine, branch and folder copy rows, checks link row under a rule) and `on_row`. It is wired
+  from `session_row` when not touch and the row's menu is closed. `row_menu_open` closes the card.
+- Differences beyond the rulings: the checks row leads with the pull request's mark (the kit has no
+  forge brand mark) and says the checks' one state; the outward arrow is the kit's `ArrowUpRight`.
