@@ -11,10 +11,11 @@
 //!   the sessions were listed again by machine under it; a session's
 //!   project was not on screen.
 //! - Choice: one list. A project block is Paseo's `ProjectBlock`: its
-//!   header (`workspace::sidebar_tree::header`), its sessions flush with
-//!   the header (Paseo's project rows are not indented), Show more / Show
-//!   less when the limit hides any (Paseo's `SidebarGroupToggleRow`), or
-//!   the New workspace row when it has none; 12 under an open block, so a
+//!   header (`workspace::sidebar_tree::header`), its sessions indented on
+//!   the rail every grouping's rows share (Paseo's `rowIndented`, 16), Show
+//!   more / Show less when the limit hides any (Paseo's
+//!   `SidebarGroupToggleRow`, `indented`), or the New workspace row when it
+//!   has none, both on the same rail; 12 under an open block, so a
 //!   column of folded headers closes up. A machine's sessions in no listed
 //!   project follow as the machine grouping draws them (`machines::group`,
 //!   the coordinator's ruling: an unreachable machine stays in sight).
@@ -48,13 +49,14 @@ use crate::areas::workspace::sidebar_tree;
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The toggle row (Paseo's `SidebarGroupToggleRow`, a session row's box):
-/// its least height, then its padding, corners, gap and chevron.
+/// The toggle row (Paseo's `SidebarGroupToggleRow`, a session row's box,
+/// `indented` as the rows above it): its least height, then its padding,
+/// corners, gap and chevron.
 const TOGGLE: f32 = 36.0;
 const TOGGLE_TOUCH: f32 = 44.0;
 const TOGGLE_BELOW: f32 = 2.0;
 const TOGGLE_Y: f32 = 8.0;
-const TOGGLE_LEFT: f32 = 8.0;
+const TOGGLE_LEFT: f32 = 16.0;
 const TOGGLE_RIGHT: f32 = 12.0;
 const TOGGLE_CORNER: f32 = 8.0;
 const TOGGLE_GAP: f32 = 8.0;
@@ -181,7 +183,6 @@ fn block(
                 let extras = RowExtras {
                     machine: None,
                     number: numbers.of(card),
-                    flush: true,
                 };
                 rows = rows.child(session_row(card, extras, shell, tokens, drawn.touch, cx));
             }

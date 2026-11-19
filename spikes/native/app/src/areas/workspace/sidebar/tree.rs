@@ -43,7 +43,8 @@ use crate::shell::Shell;
 /// The chevron (Paseo's `size={14}`, on a phone too).
 const CHEVRON: f32 = 14.0;
 /// The ghost row (Paseo's `newWorkspaceGhostRow`): a session row's box,
-/// 16 from the left under its header; its plus at the `sm` icon size.
+/// on the grouped rows' rail (16 from the left, its plus in the status
+/// slot's place); its plus at the `sm` icon size.
 const GHOST: f32 = 36.0;
 const GHOST_COMPACT: f32 = 44.0;
 const GHOST_LEFT: f32 = 16.0;

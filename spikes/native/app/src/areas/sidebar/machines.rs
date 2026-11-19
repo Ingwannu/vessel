@@ -78,7 +78,6 @@ pub(super) fn group(
         let extras = RowExtras {
             machine: None,
             number: numbers.of(card),
-            flush: false,
         };
         let row = super::session_row::session_row(card, extras, shell, tokens, touch, cx);
         let target = if listed.more == 0 {

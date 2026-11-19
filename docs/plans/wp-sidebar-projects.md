@@ -146,7 +146,8 @@ Status: plan for the coordinator; nothing built.
   `by_name`, `PROJECT_SESSIONS`): only reachable machines' projects are
   listed; an unreachable machine's sessions wait in its trailing group.
 - App: `areas/sidebar/projects.rs` draws the list (blocks with role group,
-  sessions flush at 8, the toggle row, the trailing machine groups through
+  sessions, the toggle row and the ghost row indented 16 on the rail every
+  grouping's rows share, Paseo's `rowIndented`; the trailing machine groups through
   `machines::group`); `areas/workspace/sidebar/tree.rs` the heading
   ("Projects", the Display trigger, the plus), the header (the project row
   folding, the chevron in `SidebarSurfaces::chevron` on hover,
