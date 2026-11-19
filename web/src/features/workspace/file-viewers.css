@@ -3,8 +3,9 @@
    - a panel's state centred in it: Loading with a spinner, an error in the
      danger ink;
    - the Markdown preview: a 16px gutter around a reading column, its front
-     matter a two-column table (keys in the muted mono ink on the well,
-     values in the ink) 24px above the body; the body as the conversation
+     matter a two-column table (keys mono at 14/20 in the muted ink on the
+     well, values in the ink at the same size, cells 12 by 8) 24px above
+     the body; the body as the conversation
      draws Markdown, with headings, numbered lists, rules and images;
    - the HTML preview: the file in a frame filling the panel on white, as
      a page is drawn;
@@ -61,11 +62,12 @@
   white-space: pre-wrap;
 }
 
+/* Paseo's key: mono at the body's 14/20, the value's size (its
+   frontMatterKey), not the smaller code token. */
 .md-front dt {
   background: var(--bg-well);
   color: var(--text-secondary);
-  font: var(--t-mono);
-  line-height: 20px;
+  font: 400 14px / 20px var(--font-mono);
 }
 
 .md-front dt:not(:first-of-type),
