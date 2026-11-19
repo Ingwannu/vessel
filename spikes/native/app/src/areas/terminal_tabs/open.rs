@@ -63,6 +63,10 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Paseo's `createTerminalDisabled`: one create at a time.
+        if self.terminal_tab_creating() {
+            return;
+        }
         let Ok(workspace) = crate::areas::layout::current_key(self) else {
             return;
         };
@@ -88,6 +92,12 @@ impl Shell {
             machine,
             request: Request::Create { place },
         }));
+    }
+
+    /// Whether a create waits for its answer: New terminal is disabled
+    /// meanwhile (Paseo's `createTerminalDisabled`).
+    pub(crate) const fn terminal_tab_creating(&self) -> bool {
+        !self.areas.terminal_tabs.creating.is_empty()
     }
 
     /// The node answered a create: the tab opens and takes the keyboard,

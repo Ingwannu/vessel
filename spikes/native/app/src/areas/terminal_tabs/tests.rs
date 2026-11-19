@@ -209,6 +209,34 @@ fn a_failed_create_says_so_and_opens_nothing(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn a_second_new_terminal_waits_for_the_first_create(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_tab_new(None, window, cx);
+        assert!(shell.terminal_tab_creating());
+        // Paseo's `createTerminalDisabled`: a press while the first create
+        // waits sends nothing.
+        shell.terminal_tab_new(None, window, cx);
+    });
+    assert_eq!(sent(&probe, cx).len(), 1);
+    shell.update_in(cx, |shell, window, cx| {
+        answer(
+            shell,
+            Reply::Created {
+                place: TerminalPlace::Session { session },
+                result: Err(vessel_app_view::terminal_tabs::Failure::Offline),
+            },
+            cx,
+        );
+        assert!(!shell.terminal_tab_creating());
+        shell.terminal_tab_new(None, window, cx);
+    });
+    assert!(matches!(sent(&probe, cx).as_slice(), [Request::Create { .. }]));
+}
+
+#[gpui::test]
 fn keys_and_a_paste_wait_in_order_until_the_shell_is_live(cx: &mut TestAppContext) {
     let (probe, cx) = open(cx);
     let session = probe.read_with(cx, |probe, _| probe.2);
