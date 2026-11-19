@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { nodeLog } from "../../data/calls";
-import { logText } from "../../data/log-lines";
+import { type LogContents, logContents } from "../../data/log-lines";
 import type { Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import { DIAGNOSTICS_WIRE_PROTOCOL, type NodeLog } from "../../wire/proto";
@@ -141,22 +141,40 @@ function NodeLogDialog({
         </p>
       ) : (
         // Paseo's logs modal: the path (or "Log path unavailable") above the
-        // contents (or "(log file is empty)"), wrapped, muted, monospace.
+        // contents, wrapped, muted, monospace; a failed call's error in
+        // their place.
         <div className="node-log-body">
           <p className="node-log-hint">
             {log.ok ? writesTo(log.value) : LOG_WORDS.unavailable}
           </p>
-          {!log.ok || log.value.state === "file" ? (
-            <pre className="node-log-output" data-testid="node-log-lines">
-              {log.ok &&
-              log.value.state === "file" &&
-              log.value.lines.length > 0
-                ? logText(log.value.lines)
-                : LOG_WORDS.empty}
-            </pre>
-          ) : null}
+          <Contents contents={logContents(log)} />
         </div>
       )}
     </Dialog>
   );
+}
+
+function Contents({ contents }: { contents: LogContents }) {
+  switch (contents.kind) {
+    case "lines":
+      return (
+        <pre className="node-log-output" data-testid="node-log-lines">
+          {contents.text}
+        </pre>
+      );
+    case "empty":
+      return (
+        <pre className="node-log-output" data-testid="node-log-lines">
+          {LOG_WORDS.empty}
+        </pre>
+      );
+    case "error":
+      return (
+        <p className="node-log-error" role="alert">
+          {contents.message}
+        </p>
+      );
+    case "none":
+      return null;
+  }
 }
