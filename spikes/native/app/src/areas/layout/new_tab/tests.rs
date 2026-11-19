@@ -206,8 +206,9 @@ fn a_press_on_a_disabled_row_starts_nothing_and_lights_the_first_ready_row(
     cx: &mut TestAppContext,
 ) {
     let (probe, cx) = at(cx, 1280.0);
-    let terminal = cx.debug_bounds(row("terminal")).unwrap();
-    cx.simulate_click(terminal.center(), Modifiers::none());
+    // Changes waits for its panel (Terminal starts since TRACKER 481).
+    let changes = cx.debug_bounds(row("changes")).unwrap();
+    cx.simulate_click(changes.center(), Modifiers::none());
     cx.run_until_parked();
     let owner = owner(&probe, cx);
     cx.update(|window, cx| {
@@ -272,11 +273,17 @@ fn the_rows_and_the_pencil_are_named_buttons(cx: &mut TestAppContext) {
         let label = format!(r#""label": "{label}""#);
         arias.iter().find(|aria| aria.contains(&label)).cloned()
     };
-    // Paseo's LauncherRow: a button named by its label; Agent starts.
-    let agent = named("Agent").unwrap();
-    assert!(agent.contains(r#""Button""#) && agent.contains(r#""Click""#));
+    // Paseo's LauncherRow: a button named by its label; Agent and
+    // Terminal start.
+    for ready in ["Agent", "Terminal"] {
+        let aria = named(ready).unwrap();
+        assert!(
+            aria.contains(r#""Button""#) && aria.contains(r#""Click""#),
+            "{ready}"
+        );
+    }
     // A disabled row and the disabled pencil are named but offer no Click.
-    for disabled in ["Terminal", "Pi", "Edit profiles"] {
+    for disabled in ["Changes", "Pi", "Edit profiles"] {
         let aria = named(disabled).unwrap();
         assert!(aria.contains(r#""Button""#), "{disabled}");
         assert!(!aria.contains(r#""Click""#), "{disabled}");

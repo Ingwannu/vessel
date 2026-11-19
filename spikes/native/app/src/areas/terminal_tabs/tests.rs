@@ -328,7 +328,7 @@ fn a_list_adds_the_places_shells_and_drops_ended_ones(cx: &mut TestAppContext) {
         // The second ended: its tab goes, as an exited terminal leaves
         // Paseo's list.
         let mut ended = second.clone();
-        ended.status = vessel_proto::session::SessionStatus::Exited { code: Some(0) };
+        ended.status = vessel_proto::SessionStatus::Exited { code: Some(0) };
         shell.terminal_tabs_poll();
         answer(
             shell,

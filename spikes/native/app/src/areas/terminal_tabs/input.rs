@@ -37,7 +37,7 @@ pub(crate) struct TerminalKeys {
 }
 
 impl TerminalKeys {
-    pub(super) const fn new(shell: WeakEntity<Shell>, key: PaneKey) -> Self {
+    pub(super) fn new(shell: WeakEntity<Shell>, key: PaneKey) -> Self {
         Self {
             shell,
             key,
@@ -96,7 +96,7 @@ impl EntityInputHandler for TerminalKeys {
     fn unmark_text(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         self.marked = None;
         self.tell(cx, |shell, key, cx| {
-            shell.terminal_tab_preedit(key, None, cx)
+            shell.terminal_tab_preedit(key, None, cx);
         });
     }
 
@@ -126,7 +126,7 @@ impl EntityInputHandler for TerminalKeys {
         self.marked = (!new_text.is_empty()).then(|| new_text.to_owned());
         let marked = self.marked.clone();
         self.tell(cx, move |shell, key, cx| {
-            shell.terminal_tab_preedit(key, marked, cx)
+            shell.terminal_tab_preedit(key, marked, cx);
         });
     }
 

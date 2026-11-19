@@ -72,7 +72,8 @@ impl Shell {
         };
         let machine = machine.as_str().to_owned();
         if !self.machine_online(&machine) {
-            let words = self.words.terminal_tabs();
+            let translator = self.words;
+            let words = translator.terminal_tabs();
             self.toast(words.host_disconnected(), ToastTone::Error, cx);
             return;
         }
@@ -109,7 +110,8 @@ impl Shell {
         let info = match result {
             Ok(info) => *info,
             Err(_failure) => {
-                let words = self.words.terminal_tabs();
+                let translator = self.words;
+                let words = translator.terminal_tabs();
                 self.toast(words.create_failed(), ToastTone::Error, cx);
                 return;
             }

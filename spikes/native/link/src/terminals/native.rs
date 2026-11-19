@@ -65,7 +65,11 @@ impl crate::State {
                 let task = tokio::spawn(follow(client, machine, terminal, from, events));
                 drop(self.terminal_hub.follows.insert(key, task));
             }
-            request => drop(tokio::spawn(async move {
+            request @ (Request::Create { .. }
+            | Request::List { .. }
+            | Request::Send { .. }
+            | Request::Close { .. }
+            | Request::Unfollow { .. }) => drop(tokio::spawn(async move {
                 let reply = call(&client, request).await;
                 let answer = Answer { machine, reply };
                 let _closed = events.send(Event::Terminals(answer)).await;

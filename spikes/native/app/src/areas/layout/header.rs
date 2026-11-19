@@ -19,16 +19,18 @@
 //!   `open_end`), drawn by `menu_overlay`; the list is the view's launch
 //!   `catalog` (`LaunchPurpose::Primary`, as Paseo's pane row). Each choice
 //!   runs only while the layout it was opened for is still current.
-//! - Launch availability: only Agent can start from here today (the table
-//!   and its reasons are `layout::launch`, shared with the New tab panel).
+//! - Launch availability: Agent and Terminal start from here today (the
+//!   table and its reasons are `layout::launch`, shared with the New tab
+//!   panel).
 //!   Paseo's menu also lists its other groups after a separator: plugin
 //!   panels (none in the native app yet) and the terminal profiles under
 //!   their label with Edit profiles. The New tab panel draws the profiles
 //!   (TRACKER 336); this menu waits for the kit menu's section label.
-//! - Chords: shown only for actions Vessel performs (New tab, both splits).
-//!   The launch shortcuts (`TabAgent`, `NewTerminal`, `TabChanges`,
-//!   `TabFiles`, `TabBrowser`) are bound but not yet performed, so their
-//!   chords would promise nothing; they appear when the actions do.
+//! - Chords: shown only for actions Vessel performs (New tab, both splits,
+//!   Terminal's `NewTerminal`). The other launch shortcuts (`TabAgent`,
+//!   `TabChanges`, `TabFiles`, `TabBrowser`) are bound but not yet
+//!   performed, so their chords would promise nothing; they appear when the
+//!   actions do.
 //! - Not drawn: an empty pane's X. Paseo removes a pane when its last tab
 //!   leaves (`removeTabFromTree`), so no empty pane needs one; the view now
 //!   does the same. Paseo's X in this row is Exit focus mode, and Vessel's
@@ -345,6 +347,10 @@ fn rows(shell: &Shell, kind: MenuKind, window: &Window) -> Vec<(Option<PaneOp>, 
             .map(|(launch, availability)| {
                 let mut item = MenuItem::new(launch::label(shell, launch).to_owned())
                     .with_leading(launch::glyph(launch));
+                // Terminal's chord is performed (TRACKER 354), so it shows.
+                if launch == Launch::Terminal {
+                    item = item.with_shortcut(caps(Action::NewTerminal, shell));
+                }
                 item.disabled = availability != Availability::Ready;
                 (
                     (availability == Availability::Ready).then_some(PaneOp::Launch(launch)),

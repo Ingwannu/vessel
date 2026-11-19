@@ -111,8 +111,8 @@ impl Failure {
 mod tests {
     use super::*;
     use chrono::Utc;
+    use vessel_proto::SessionStatus;
     use vessel_proto::scripts::ScriptName;
-    use vessel_proto::session::SessionStatus;
     use vessel_proto::workspace::ProjectCommand;
     use vessel_proto::{SessionId, SessionTitle};
 
