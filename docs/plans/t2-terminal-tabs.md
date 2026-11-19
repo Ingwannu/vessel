@@ -12,8 +12,12 @@ Read from Paseo 0.15.4 (`packages/app/src`).
 
 - Entry points: the new-tab launcher's Terminal
   (`workspace-tabs/launcher/index.tsx` 137), the pane header's "+" menu,
-  Cmd+Shift+T on macOS and Ctrl+Shift+T elsewhere, the latter off inside a
-  focused terminal (`keyboard/keyboard-shortcuts.ts` 841-860).
+  the compact tab switcher's New terminal
+  (`compact-workspace-header/tab-switcher.tsx` 348), Cmd+Shift+T on macOS
+  and Ctrl+Shift+T elsewhere, the latter off inside a focused terminal
+  (`keyboard/keyboard-shortcuts.ts` 841-860). New terminal is disabled
+  while a create is pending (`workspace-screen.tsx` 3266
+  `createTerminalDisabled`).
 - Create: `screens/workspace/terminals/use-workspace-terminals.ts`
   `createMutation`; a failure is a toast of the reason; the new terminal
   opens as a tab, replacing the New tab tab it was chosen in
@@ -34,6 +38,9 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   (`terminal/runtime/terminal-paste.ts`); input made before attach waits.
 - Size: a focused pane claims its size (`terminal-pane-focus-claim.ts`),
   resizes debounced 100 ms (`TERMINAL_RESIZE_DEBOUNCE_MS`).
+- Reconnect: the stream controller attaches again when the host is back
+  (`terminal/runtime/terminal-stream-controller.ts`), restoring from where
+  the screen stands.
 - Tab: label `terminal.title ?? terminal.name`, fallback "Terminal"
   (`panels/terminal-panel.tsx`); menu: Copy terminal id, Rename, the
   closes, Close.
@@ -60,8 +67,14 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   each fleet read and reconciled into tabs (the layout written only when
   its set of terminal tabs differs).
 - The launch table enables Terminal; the New tab panel passes its tab to
-  replace; Ctrl+Shift+T goes through the layout's shortcut handler; a
+  replace; the compact switcher's New terminal opens one; Ctrl+Shift+T goes
+  through the layout's shortcut handler; one create at a time (a press
+  while one waits does nothing, the switcher's button is disabled); a
   single terminal tab's Close (menu, Ctrl+W) asks first.
+- A follow lost to a dropped connection marks the tab offline (not a
+  terminal error); each fleet read follows such tabs again once their
+  machine reads online, from where their log stands, and the size is
+  claimed again.
 
 ## Stated differences
 
@@ -94,6 +107,11 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   so; keys and a paste wait in order until live and then one send at a
   time; Close asks, Cancel keeps, Close removes the tab and closes on the
   node; a list adds the place's shells and drops an ended one; a focused
-  tab is the shortcuts' terminal scope.
-- Captures run a fleet whose nodes start `/bin/sh` with a scratch home
-  (`scripts/fleet.sh` starts `vesseld` under `env -i`), never a login shell.
+  tab is the shortcuts' terminal scope; a second create waits for the
+  first; a tab whose connection dropped follows again once its machine is
+  back.
+- Unit tests start no shell (the link is a channel). Captures run
+  `scripts/fleet.sh`, whose nodes start under `env -i` with a scratch home:
+  the shell is the account's program by ADR 0031's detection (no `SHELL`),
+  reading no personal rc file and holding no credential from the
+  environment; only harmless commands are typed.
