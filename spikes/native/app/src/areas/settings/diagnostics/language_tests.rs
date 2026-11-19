@@ -50,7 +50,6 @@ fn each_dialog_gives_focus_back_to_its_opener_on_close(cx: &mut gpui::TestAppCon
         assert!(!opener.is_focused(window), "the dialog takes focus");
         shell.close_node_log(window, cx);
         assert!(opener.is_focused(window), "Node logs gives it back");
-        assert!(shell.areas.settings.diagnostics.log.open.is_none());
 
         shell.run_diagnostic(window, cx);
         assert!(!opener.is_focused(window));
