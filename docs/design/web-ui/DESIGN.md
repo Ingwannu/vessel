@@ -338,9 +338,9 @@ move between sections. Compact, the column's padding is 12px.
   state, how it is reached, what it runs on, its Vessel and protocol,
   its id; its agents (each opening its card in Agents); its live
   sessions.
-- **Projects** (Paseo's projects, agent-orchestrator's add-project
-  flow): "Projects on <machine>" with the machine picker and "Add
-  project" (Add a folder…, Clone a repository…, Start a new project…);
+- **Projects** (Paseo's projects): "Projects on <machine>" with the
+  machine picker and "Add project", which opens Paseo's Add project
+  sheet on that machine (below);
   a row per project (its mark as in the sidebar; its folder, its state
   while it clones or after a clone failed, its default branch or "no
   git"); the machine's git when
@@ -352,12 +352,26 @@ move between sections. Compact, the column's padding is 12px.
   state, live sessions, why it was kept; Run setup, Remove…); Snapshots
   (Drop, asked again in place: Keep or "Drop for good"). What the machine
   refuses there (removing a worktree or the project, approving, setup, a
-  drop) is said in a banner until dismissed, not in a toast. Adding:
-  agent-orchestrator's clone dialog (Repository URL, which takes
-  `git@host:org/repo.git` too, Clone into, "Repository will be created at
-  …"); a clone answers at once and its progress and failure are the
-  row's ("Receiving objects · 42%", the reason in words with git's last
-  lines).
+  drop) is said in a banner until dismissed, not in a toast. A clone's
+  progress and failure are the row's ("Receiving objects · 42%", the
+  reason in words with git's last lines).
+- **Add project** (TRACKER 234, Paseo's `add-project-flow.tsx` sheet;
+  docs/plans/wp-add-project-flow.md): opened by the sidebar's Projects
+  "+" (on the only machine, else "Choose machine") and by Settings ›
+  Projects (on its machine). The kit's FlowSheet: 48 from the top, 640
+  wide (at most 92%), at most 80% high; a title row (the back arrow on
+  later pages, the title and the machine, 12), the field (14), rows (an
+  18 slot with a 16 mark, a 14 title and a 12 subtitle, 16 in, 8 high,
+  the active or hovered row on the hover wash, disabled at 50%), and
+  the footer's key hints. Pages: machine, methods (Search for
+  directory, Clone from GitHub, New directory; no Browse on the page),
+  the directory search (the machine's projects' roots, then
+  `folder.suggest`'s folders, a typed path first as "Open this path"),
+  a clone's repository (a URL, or `owner/repo` via HTTPS or SSH) and its
+  destination, and a new directory's parent and name. Up/Down move and
+  wrap, Enter chooses, Esc goes back (closes on the first page).
+  Adding opens a new session in the project; a clone goes to Settings ›
+  Projects, where its progress shows.
 - **Agents**: every agent Vessel drives and every agent added on the
   machine by its command (ADR 0032, by its label, after the four),
   found before not found, as GOAT's provider rows: the agent's letter,

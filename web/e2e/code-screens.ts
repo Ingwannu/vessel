@@ -41,7 +41,7 @@ async function place(
 
 test("the code on the page", async ({ page }) => {
   test.setTimeout(300_000);
-  await openUi(page);
+  const origin = await openUi(page);
 
   // Where it runs: the project and a new worktree from its default branch.
   const box = await newSessionPage(page, "laptop", "Structured");
@@ -149,7 +149,8 @@ test("the code on the page", async ({ page }) => {
   await shot(page, "26-sidebar-projects-dark");
   await page.emulateMedia({ colorScheme: "light" });
   await shot(page, "26b-sidebar-projects");
-  await page.getByRole("button", { name: "Add project" }).click();
+  // Settings › Projects (the sidebar's "+" opens Add project's sheet).
+  await page.goto(`${origin}/settings/projects?machine=laptop`);
   await expect(
     page.getByRole("heading", { name: /^Projects on / }),
   ).toBeVisible();
@@ -160,8 +161,12 @@ test("the code on the page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Worktrees" })).toBeVisible();
   await shot(page, "27-settings-projects", { fullPage: true });
   await page.getByRole("button", { name: "Add project" }).last().click();
-  await page.getByRole("menuitem", { name: "Clone a repository…" }).click();
-  await shot(page, "28-clone-dialog");
+  await page
+    .getByRole("dialog", { name: "Add project: method" })
+    .getByRole("button", { name: /^Clone from GitHub/ })
+    .click();
+  await shot(page, "28-add-project-clone");
+  await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
 
   // A phone: the branch's chip opens the panel as a sheet.
