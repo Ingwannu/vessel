@@ -12,6 +12,30 @@
 //   scan rather than a regular expression (lint refuses control characters
 //   in patterns).
 
+import type { NodeLog } from "../wire/proto";
+import type { Outcome } from "./outcome";
+
+/** What "Node logs" shows below its path line. Paseo opens its modal only
+ * once the logs have arrived, so it never shows a failure; the page opens
+ * the dialog first, so a failed call shows its error instead of the
+ * contents, and "(log file is empty)" stands only for a file with no lines
+ * (the coordinator's ruling on the node reviewer's note, row 334). */
+export type LogContents =
+  | { kind: "lines"; text: string }
+  | { kind: "empty" }
+  | { kind: "error"; message: string }
+  /** The node keeps no log file: its path line says where it writes. */
+  | { kind: "none" };
+
+/** The contents for a `node.log` call's outcome. */
+export function logContents(log: Outcome<NodeLog>): LogContents {
+  if (!log.ok) return { kind: "error", message: log.problem.message };
+  if (log.value.state !== "file") return { kind: "none" };
+  return log.value.lines.length === 0
+    ? { kind: "empty" }
+    : { kind: "lines", text: logText(log.value.lines) };
+}
+
 /** `line` without a terminal's escape sequences or control characters
  * (a tab is kept). */
 export function readableLine(line: string): string {

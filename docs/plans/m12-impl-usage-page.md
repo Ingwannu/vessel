@@ -234,6 +234,9 @@ coordinator as a separate parity item.
     empty)", wrapped, muted, 12/18 monospace. The page drops terminal escapes too (`data/log-lines.ts`), and
     the forge fixture logs like the daemon (colours only on a terminal);
   - the Diagnostics section's mark is lucide's Stethoscope.
+- Visual PASS (coordinator, 2026-11-19); then one follow-up commit on the reviewer's last note. On a failed
+  call, Node logs shows the call's error in the contents' place, and "(log file is empty)" only for an
+  empty file (`logContents`, tested).
 - Then the native row (app line, after the node row merges and the lead adopts it), with frames.
 
 ## Next
