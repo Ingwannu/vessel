@@ -45,7 +45,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::status_mark::{StatusMark, status_slot};
 use vessel_app_kit::theme::{SidebarSurfaces, radius, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, ClickEvent, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
+    AnyElement, ClickEvent, Context, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
     IntoElement, MouseButton, MouseDownEvent, ParentElement as _, SharedString,
     StatefulInteractiveElement as _, Styled as _, div, px, svg,
 };
@@ -116,13 +116,7 @@ pub(super) fn session_row(
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> impl IntoElement {
-    let active = shell.route == Route::Session
-        && shell
-            .areas
-            .session
-            .open
-            .as_ref()
-            .is_some_and(|open| open.session == card.session && open.machine == card.machine);
+    let active = is_open(card, shell);
     let open = Open::of(card);
     let group: SharedString = format!("session-row-{}-{}", card.machine, card.session).into();
     let menu_open = shell.areas.sidebar.rows.is_for(card);
@@ -132,19 +126,7 @@ pub(super) fn session_row(
     let name: SharedString = shell.t.title(&card.title).to_owned().into();
     // The fill a hovered row paints: what the scrim fades into.
     let hovered_fill = if active { fills.selected } else { fills.hover };
-    let title = div()
-        .flex_1()
-        .min_w_0()
-        .overflow_hidden()
-        .whitespace_nowrap()
-        .text_ellipsis()
-        .type_(Type::Label)
-        .font_weight(FontWeight::NORMAL)
-        .line_height(px(TITLE_LINE))
-        .text_color(tokens.neutral.foreground)
-        .opacity(TITLE_REST)
-        .group_hover(group.clone(), |style| style.opacity(1.0))
-        .child(name.clone());
+    let title = title(name.clone(), group.clone(), tokens);
     let title_row = div()
         .relative()
         .flex()
@@ -224,6 +206,35 @@ pub(super) fn session_row(
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);
         }))
+}
+
+/// Whether `card`'s session is the one on screen (its row selected).
+fn is_open(card: &Card, shell: &Shell) -> bool {
+    shell.route == Route::Session
+        && shell
+            .areas
+            .session
+            .open
+            .as_ref()
+            .is_some_and(|open| open.session == card.session && open.machine == card.machine)
+}
+
+/// The title: 14 on 20 in the foreground at 76%, full while the row
+/// (`group`) is hovered, cut with an ellipsis.
+fn title(name: SharedString, group: SharedString, tokens: &Tokens) -> Div {
+    div()
+        .flex_1()
+        .min_w_0()
+        .overflow_hidden()
+        .whitespace_nowrap()
+        .text_ellipsis()
+        .type_(Type::Label)
+        .font_weight(FontWeight::NORMAL)
+        .line_height(px(TITLE_LINE))
+        .text_color(tokens.neutral.foreground)
+        .opacity(TITLE_REST)
+        .group_hover(group, |style| style.opacity(1.0))
+        .child(name)
 }
 
 /// Paseo's bucket as the kit's mark (the project row's badge too).
