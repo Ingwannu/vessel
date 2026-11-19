@@ -88,11 +88,11 @@ pub struct SidebarTree<'a> {
     pub several_machines: bool,
 }
 
-impl SidebarTree<'_> {
+impl<'a> SidebarTree<'a> {
     /// The sessions as drawn, top to bottom: what "session 1 to 9" counts
     /// and "next" and "previous" walk.
     #[must_use]
-    pub fn order(&self) -> Vec<&Card> {
+    pub fn order(&self) -> Vec<&'a Card> {
         let projects = self
             .projects
             .iter()

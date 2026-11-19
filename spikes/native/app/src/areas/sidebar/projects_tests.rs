@@ -148,7 +148,7 @@ fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTe
 
 /// Every `aria` object of GPUI's real snapshot, as text (as the sort
 /// trigger's test reads it), after a fresh frame.
-fn arias(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
+fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
     shell.update(cx, |_, cx| cx.notify());
     cx.update(|window, _| window.refresh());
     cx.run_until_parked();
@@ -176,7 +176,7 @@ fn project_is_the_default_and_each_project_is_a_group_its_header_saying_open(
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.prefs.settings.sidebar.group, Grouping::Project);
     });
-    let arias = arias(&shell, cx);
+    let arias = snapshot(&shell, cx);
     for name in ["shop", "docs", "notes"] {
         assert_eq!(named(&arias, "Group", name).len(), 1, "{name}'s group");
         let header = named(&arias, "Button", name);
@@ -222,7 +222,7 @@ fn a_header_folds_its_project_kept_and_the_numbers_skip_it(cx: &mut TestAppConte
         );
         assert_eq!(numbered(shell), [None, None, Some(1), Some(2)]);
     });
-    let arias = arias(&shell, cx);
+    let arias = snapshot(&shell, cx);
     let header = named(&arias, "Button", "shop");
     assert!(header[0].contains(r#""expanded": false"#));
     // Pressed again, it opens.
@@ -237,7 +237,7 @@ fn a_header_folds_its_project_kept_and_the_numbers_skip_it(cx: &mut TestAppConte
 #[gpui::test]
 fn past_seven_sessions_show_more_then_show_less(cx: &mut TestAppContext) {
     let (shell, cx) = setup(cx, 9);
-    let arias = arias(&shell, cx);
+    let arias = snapshot(&shell, cx);
     assert_eq!(named(&arias, "Button", "Show more").len(), 1);
     assert!(named(&arias, "Button", "Show less").is_empty());
     shell.update(cx, |shell, _| {
@@ -247,7 +247,7 @@ fn past_seven_sessions_show_more_then_show_less(cx: &mut TestAppContext) {
             .shown_all
             .insert(("fixture".to_owned(), project_id(0)));
     });
-    let arias = arias(&shell, cx);
+    let arias = snapshot(&shell, cx);
     assert!(named(&arias, "Button", "Show more").is_empty());
     assert_eq!(named(&arias, "Button", "Show less").len(), 1);
 }
