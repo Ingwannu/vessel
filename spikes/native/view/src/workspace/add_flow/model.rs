@@ -348,19 +348,17 @@ impl Flow {
     /// The field changed: its text, the first row active, no error; a
     /// destination keeps it as its draft, a name as the parent's draft.
     /// The method page has no field.
-    pub fn set_field(&mut self, value: &str) {
+    pub fn set_field(&mut self, value: impl Into<String>) {
         if self.shown.kind.id() == PageId::Method {
             return;
         }
-        value.clone_into(&mut self.shown.field);
+        self.shown.field = value.into();
         self.shown.active = 0;
         self.shown.error = None;
         self.keep_location_draft();
         if let PageKind::NewDirectoryName { machine, parent } = &self.shown.kind {
-            drop(
-                self.name_drafts
-                    .insert((machine.clone(), parent.clone()), value.to_owned()),
-            );
+            let key = (machine.clone(), parent.clone());
+            drop(self.name_drafts.insert(key, self.shown.field.clone()));
         }
     }
 

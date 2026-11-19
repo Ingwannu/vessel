@@ -112,6 +112,7 @@ impl AddFlowSheet {
     }
 
     /// Whether the sheet is open.
+    #[cfg(test)]
     pub(crate) const fn is_open(&self) -> bool {
         self.open.is_some()
     }
@@ -228,7 +229,7 @@ impl Shell {
         if open.flow.page().field == text {
             return;
         }
-        open.flow.set_field(&text);
+        open.flow.set_field(text);
         open.wait = open.wait.wrapping_add(1);
         let wait = open.wait;
         cx.spawn(async move |this, cx| {

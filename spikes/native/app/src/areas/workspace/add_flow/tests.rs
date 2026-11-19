@@ -187,7 +187,7 @@ fn an_older_machine_is_not_asked_and_cannot_make_a_directory(cx: &mut TestAppCon
 
 #[gpui::test]
 fn a_refusal_stays_on_its_page_and_a_success_moves_on(cx: &mut TestAppContext) {
-    let (shell, cx, scene) = setup(cx);
+    let (shell, cx, mut scene) = setup(cx);
     shell.update_in(cx, |shell, window, cx| {
         let name = machine(shell, &scene, PROJECT_DIRECTORY_PROTOCOL);
         shell.open_add_flow(Some(name.clone()), window, cx);
