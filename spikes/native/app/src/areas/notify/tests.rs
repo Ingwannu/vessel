@@ -10,6 +10,7 @@ use vessel_proto::{
     SessionMode, SessionSpec, SessionStatus,
 };
 
+use super::{Readiness, Unavailable, reach};
 use crate::areas::session::Open;
 use crate::routes::Route;
 use crate::shell::{Shell, language_tests};
@@ -199,4 +200,15 @@ fn the_title_counts_while_away(cx: &mut TestAppContext) {
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.areas.notify.unseen.count(), 0);
     });
+}
+
+/// What Settings' test can know before sending: a build without system
+/// notifications, or Linux without a session bus, is an error Alert.
+#[test]
+fn the_test_fails_only_for_what_is_known_before_sending() {
+    let system = |built, bus| Readiness { built, bus };
+    assert_eq!(reach(system(false, true)), Err(Unavailable::Build));
+    assert_eq!(reach(system(false, false)), Err(Unavailable::Build));
+    assert_eq!(reach(system(true, false)), Err(Unavailable::NoBus));
+    assert_eq!(reach(system(true, true)), Ok(()));
 }

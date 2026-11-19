@@ -28,6 +28,10 @@
 //!   - The window's title is written by render, which has the window. A
 //!     fleet event does not, and writing it there would borrow the window
 //!     from inside its own update.
+//!   - Settings' test keeps its result for Paseo's inline Alert. GPUI's
+//!     call returns nothing, so only what is known before sending can
+//!     fail: a build without system notifications, or Linux without a
+//!     session bus.
 //! - Differences until ADR 0089's claims (TRACKER 815): every open app
 //!   decides for itself; no terminal notices; the body is the session's
 //!   name, not Paseo's last-message preview; no macOS banner (the GPUI
@@ -42,7 +46,6 @@ use gpui::{
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::board::Fleet;
 use vessel_app_view::notices::{Notice, NoticeKind, Seen, Unseen, announce, notices, title_with};
-use vessel_app_view::toasts::ToastTone;
 use vessel_proto::SessionId;
 
 use crate::routes::Route;
@@ -68,6 +71,8 @@ pub(crate) struct NotifyArea {
     next: u64,
     /// The title switch's turns, for its motion.
     pub(crate) turns: u64,
+    /// The last test's result, shown under Settings' section.
+    pub(crate) tested: Option<Tested>,
     _activation: Subscription,
 }
 
@@ -107,6 +112,7 @@ impl NotifyArea {
             shown: VecDeque::new(),
             next: 0,
             turns: 0,
+            tested: None,
             _activation: activation,
         }
     }
@@ -211,23 +217,35 @@ impl Shell {
     }
 
     /// Settings' test: a notification and the needs-you sound, as the
-    /// alerts say.
+    /// alerts say. Its result stays under the section until the next
+    /// test (Paseo's inline Alert).
     pub(crate) fn notify_test(&mut self, cx: &mut Context<'_, Self>) {
         let alerts = self.prefs.settings.notifications.alerts;
         let words = self.words.notifications();
-        if alerts.system() {
-            cx.show_system_notification(SystemNotification {
-                tag: format!("vessel-{}-test", self.areas.notify.run).into(),
-                title: words.test_title().into(),
-                body: words.test_body().into(),
-                actions: Vec::new(),
-            });
-        }
-        if alerts.sound() {
+        let system = Readiness::of_this_system();
+        let tested = match (alerts.system(), reach(system)) {
+            (true, Ok(())) => {
+                cx.show_system_notification(SystemNotification {
+                    tag: format!("vessel-{}-test", self.areas.notify.run).into(),
+                    title: words.test_title().into(),
+                    body: words.test_body().into(),
+                    actions: Vec::new(),
+                });
+                Tested::Handed
+            }
+            (true, Err(unavailable)) => Tested::Failed(unavailable),
+            // Sound only: link plays where the build has system
+            // notifications too (Linux, Windows); elsewhere it is a stub,
+            // so saying "sent" would be untrue (the app reviewer, row 338).
+            (false, _) if system.built => Tested::Sounded,
+            (false, _) => Tested::Failed(Unavailable::Build),
+        };
+        if alerts.sound() && !matches!(tested, Tested::Failed(_)) {
             vessel_app_link::sound::play(NoticeKind::NeedsYou);
         }
         if alerts.system() || alerts.sound() {
-            self.toast(words.test_sent(), ToastTone::Ok, cx);
+            self.areas.notify.tested = Some(tested);
+            cx.notify();
         }
     }
 
@@ -247,6 +265,64 @@ impl Shell {
         if let Some(open) = open {
             self.open_session(open, window, cx);
         }
+    }
+}
+
+/// What Settings' test did (Paseo's inline Alert under the section).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Tested {
+    /// The notification was handed to the system.
+    Handed,
+    /// Sound only: the sound was asked for; no notification was sent.
+    Sounded,
+    /// The system cannot show it, and why.
+    Failed(Unavailable),
+}
+
+/// Why this system cannot show a notification, known before sending.
+/// GPUI's call returns nothing, so a failure after it is not seen here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Unavailable {
+    /// This build has no system notifications and no sound (macOS, a
+    /// browser).
+    Build,
+    /// Linux without a session bus: the notification service cannot be
+    /// reached (an SSH login, a bare display).
+    NoBus,
+}
+
+/// What decides whether this system can show a notification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Readiness {
+    /// The build shows system notifications here (Linux, Windows).
+    built: bool,
+    /// Linux only: a session bus is named or at its usual place.
+    bus: bool,
+}
+
+impl Readiness {
+    fn of_this_system() -> Self {
+        // A browser build's `target_os` is `unknown`.
+        let built = cfg!(any(target_os = "linux", target_os = "windows"));
+        let bus = if cfg!(target_os = "linux") {
+            std::env::var_os("DBUS_SESSION_BUS_ADDRESS").is_some()
+                || std::env::var_os("XDG_RUNTIME_DIR")
+                    .is_some_and(|run| std::path::Path::new(&run).join("bus").exists())
+        } else {
+            true
+        };
+        Self { built, bus }
+    }
+}
+
+/// Whether a notification can be handed to the system.
+const fn reach(system: Readiness) -> Result<(), Unavailable> {
+    if !system.built {
+        Err(Unavailable::Build)
+    } else if !system.bus {
+        Err(Unavailable::NoBus)
+    } else {
+        Ok(())
     }
 }
 

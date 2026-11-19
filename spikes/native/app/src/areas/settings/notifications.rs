@@ -20,7 +20,11 @@
 //!     Where this build shows none (macOS, a browser), it says so.
 //!   - Send is off while the alerts are off, as on the page. Paseo's is
 //!     off until the permission is granted.
+//! - The test's result is Paseo's inline Alert under the section (small;
+//!   success, or error with why). With Sound only it says that the sound
+//!   was asked for, since no notification is handed over.
 
+use vessel_app_kit::alert::{Content, Size, Variant, alert};
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div,
@@ -30,6 +34,7 @@ use vessel_app_view::prefs::PreferenceChange;
 
 use super::choices::List;
 use super::general::select_for;
+use crate::areas::notify::{Tested, Unavailable};
 use crate::shell::Shell;
 
 /// The Notifications page.
@@ -97,7 +102,40 @@ pub(crate) fn render(
         .flex_col()
         .child(settings::section(words.sessions(), sessions, tokens))
         .child(settings::section(words.system(), system, tokens))
+        .children(
+            shell
+                .areas
+                .notify
+                .tested
+                .map(|tested| result(shell, tested, tokens)),
+        )
         .into_any_element()
+}
+
+/// Paseo's inline Alert for the last test.
+fn result(shell: &Shell, tested: Tested, tokens: &Tokens) -> AnyElement {
+    let words = shell.words.notifications();
+    let (variant, title, description) = match tested {
+        Tested::Handed => (Variant::Success, words.test_sent(), words.test_handed()),
+        Tested::Sounded => (Variant::Success, words.test_sent(), words.test_sounded()),
+        Tested::Failed(Unavailable::Build) => {
+            (Variant::Error, words.test_failed(), words.delivery_none())
+        }
+        Tested::Failed(Unavailable::NoBus) => {
+            (Variant::Error, words.test_failed(), words.test_no_bus())
+        }
+    };
+    alert(
+        Content {
+            title: Some(title.to_owned().into()),
+            description: Some(div().child(description.to_owned()).into_any_element()),
+            action: None,
+        },
+        variant,
+        Size::Small,
+        tokens,
+    )
+    .into_any_element()
 }
 
 /// Where this build's system notifications go.

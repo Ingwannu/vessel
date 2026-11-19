@@ -76,4 +76,11 @@ fn the_rows_have_their_words_in_both_languages() {
     assert_eq!(en.test_sent(), "Test notification sent");
     assert_eq!(ko.test_sent(), "시험 알림을 보냈습니다");
     assert_eq!(en.untitled(), "Untitled session");
+    assert_eq!(en.test_hint(), "Send a notification using these settings");
+    assert_eq!(
+        en.test_handed(),
+        "Vessel handed the notification to the operating system."
+    );
+    assert_eq!(en.test_failed(), "Unable to send test notification");
+    assert_eq!(ko.test_failed(), "시험 알림을 보내지 못했습니다");
 }

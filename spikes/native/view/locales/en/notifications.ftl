@@ -40,14 +40,14 @@ notifications-delivery-linux = Shown by the desktop's notification service.
 # Delivery row on Windows. No values.
 notifications-delivery-windows = Shown as Windows notifications.
 
-# Delivery row where this build has no system notifications (macOS, a browser). No values.
-notifications-delivery-none = This build cannot show system notifications here. Sound only is still available.
+# Delivery row, and the test's error, where this build has no system notifications and no sound (macOS, a browser). No values.
+notifications-delivery-none = This build cannot show system notifications or play their sound here.
 
 # Row label for the test button's row; keep short. No values.
 notifications-test = Test notification
 
 # Hint below the test row. No values.
-notifications-test-hint = Send one with these settings.
+notifications-test-hint = Send a notification using these settings
 
 # Button that sends a test notification; keep short. No values.
 notifications-test-send = Send
@@ -58,8 +58,20 @@ notifications-test-title = Vessel notification test
 # Body of the test system notification. No values.
 notifications-test-body = If you can see this, notifications work.
 
-# Toast after the test was handed to the system (Paseo's words). No values.
+# Inline Alert title after a test (Paseo's words). No values.
 notifications-test-sent = Test notification sent
 
 # Body of a session notification whose session has no name yet. No values.
 notifications-untitled = Untitled session
+
+# Inline Alert description after the test was handed to the system (Paseo's words, "Vessel" for "Paseo"). No values.
+notifications-test-handed = Vessel handed the notification to the operating system.
+
+# Inline Alert description after a Sound only test. No values.
+notifications-test-sounded = Vessel asked this system to play the sound. Sound only sends no notification.
+
+# Inline Alert title when the test could not be sent (Paseo's words). No values.
+notifications-test-failed = Unable to send test notification
+
+# Inline Alert description: Linux without a session bus. No values.
+notifications-test-no-bus = There is no session bus here, so the desktop's notification service cannot be reached.

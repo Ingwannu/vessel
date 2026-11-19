@@ -103,8 +103,11 @@ none to done, or to a stated difference, without waiting on the node.
   - "System notifications", saying where they go: the desktop's notification service on Linux, Windows
     notifications on Windows, and "not available in this build" elsewhere. Paseo's permission row has
     nothing to ask on Linux or Windows.
-  - "Test notification" with Send, showing the page's test text and the needs-you tone, with Paseo's
-    toast words.
+  - "Test notification" with Send, showing the page's test text and playing the needs-you tone. The result
+    is Paseo's inline Alert under the section:
+    - success: "Test notification sent" / "Vessel handed the notification to the operating system.";
+    - error: "Unable to send test notification" and why. Only what is known before sending can fail: a
+      build without system notifications, or Linux without a session bus. GPUI's call returns nothing.
 - **Claims later.** A follow-up row adopts ADR 0089 once its protocol is assigned on the node line:
   `push.presence` heartbeats, `notification.claim` before showing, and terminal attention (G48).
 
@@ -127,7 +130,8 @@ none to done, or to a stated difference, without waiting on the node.
   - Mobile push (J30-J35) does not apply: Vessel has no mobile app, and the page's Web Push is ADR 0041's.
   - On Linux the same session and kind shows another notification, not a replacement (the GPUI Linux
     patch, above).
-  - macOS shows no system notification until the GPUI patch has one.
+  - macOS shows no system notification until the GPUI patch has one, and plays no sound (link has no
+    audio output there); its test is the error Alert with that reason.
 - Impact:
   - New dependency `cpal`, native only. Linux builds need `libasound2-dev`, and Linux runs need
     `libasound.so.2`; the release packages must name it. No change on wasm32.
