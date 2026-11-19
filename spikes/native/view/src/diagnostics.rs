@@ -25,6 +25,16 @@
 
 use crate::board::{Machine, Reach};
 
+mod call;
+mod log;
+mod run;
+mod sheet;
+
+pub use call::Problem;
+pub use log::{LogContents, log_contents};
+pub use run::{NodePart, Run, Step, StepOf, StepState};
+pub use sheet::{Sheet, SheetBody};
+
 /// The app's side of the report.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppFacts {
@@ -69,8 +79,19 @@ pub enum Renderer {
 /// The whole report: the app, then each machine in the book's order.
 #[must_use]
 pub fn report(app: &AppFacts, machines: &[Machine]) -> String {
+    compose(app, machines, &[])
+}
+
+/// The report with what each machine said of itself (`nodes`, by the
+/// machines' order; `None` where it said nothing) below its own section.
+fn compose(app: &AppFacts, machines: &[Machine], nodes: &[Option<String>]) -> String {
     let mut sections = vec![app_section(app, machines.len())];
-    sections.extend(machines.iter().map(machine_section));
+    for (index, machine) in machines.iter().enumerate() {
+        sections.push(machine_section(machine));
+        if let Some(Some(node)) = nodes.get(index) {
+            sections.push(node.clone());
+        }
+    }
     let text = sections.join("\n\n");
     // A home of "/" (or none) would turn every path into "~…": left alone.
     let text = match app
@@ -223,6 +244,8 @@ fn names_a_secret(name: &str) -> bool {
     SECRET_KEYS.iter().any(|key| name.contains(key))
 }
 
+#[cfg(test)]
+mod views_tests;
 #[cfg(test)]
 #[path = "diagnostics/words_tests.rs"]
 mod words_tests;
