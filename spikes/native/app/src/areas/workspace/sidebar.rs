@@ -36,9 +36,8 @@
 //!   a git project) and the project's menu (`actions`); the sidebar's
 //!   fills (Paseo's dark theme hovers on `surface1`, not `surface3`).
 //!   Paseo never fills a project header as selected; neither does this.
-//!   The lettered square is 16 at every width until TRACKER 809's mark
-//!   (16, 20 on a phone) replaces it; on a phone it sits in the middle of
-//!   the 20 box the badge hangs from.
+//!   The mark is TRACKER 809's (`project_icons::mark`, 16, 20 on a
+//!   phone), the badge hanging from its box.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::loading::{Points, Size, activity_indicator};
@@ -49,7 +48,7 @@ use vessel_app_kit::ui::{
     IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph, initial_of, initial_tile};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::settings::Section;
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::ProjectState;
@@ -74,6 +73,8 @@ struct Entry {
     state: Option<String>,
     /// Whether it is a git repository (it can have worktrees).
     git: bool,
+    /// Its icon, or its initial on a tile (`project_icons`).
+    mark: AnyElement,
 }
 
 impl Shell {
@@ -138,10 +139,12 @@ pub(crate) fn projects(
             machines_with = machines_with.saturating_add(1);
         }
         for project in &list.projects {
+            let name = project.name.to_string();
             entries.push(Entry {
                 machine: machine.name.clone(),
                 project: project.id,
-                name: project.name.to_string(),
+                mark: super::project_icons::mark(shell, &machine.name, project.id, &name, compact),
+                name,
                 git: project.git,
                 state: match project.state {
                     ProjectState::Ready => None,
@@ -298,6 +301,7 @@ fn project_row(
         name,
         state,
         git,
+        mark,
     } = entry;
     let ready = state.is_none();
     let trailing: Option<SharedString> = state
@@ -330,12 +334,7 @@ fn project_row(
                     tokens,
                 )
             });
-        marked(
-            initial_tile(initial_of(&name), tokens).into_any_element(),
-            row.compact,
-            badge,
-        )
-        .into_any_element()
+        marked(mark, row.compact, badge).into_any_element()
     };
     let new_workspace = (ready && git).then(|| target.clone());
     base_row(

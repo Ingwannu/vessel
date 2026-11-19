@@ -5,6 +5,7 @@ use vessel_app_view::workspace::file_panels::DownloadFailure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
+use vessel_proto::workspace::host_folders::{FolderSuggestions, IconImage};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, DuplicatedFileEntry, ObserveFile, ObservedFile,
 };
@@ -53,6 +54,20 @@ pub enum Answer {
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
     Project(ProjectInfo),
+    /// Add project's folders for what was typed (ADR 0112).
+    Folders {
+        /// The query asked.
+        query: String,
+        /// The folders, or why not.
+        result: Result<FolderSuggestions, Problem>,
+    },
+    /// A project's own icon, or none (ADR 0112).
+    Icon {
+        /// Which project.
+        project: ProjectId,
+        /// The icon, or why not.
+        result: Result<Option<IconImage>, Problem>,
+    },
     /// A project added, cloned or started (or why not).
     Took {
         /// Which form asked.
@@ -324,6 +339,14 @@ fn project_refused(ask: ProjectAsk, problem: &Problem) -> Answer {
         ProjectAsk::Approve(ask) => Answer::Commands {
             project: ask.project,
             approved: Some((ask.digest, ask.approved)),
+            result: no(problem),
+        },
+        ProjectAsk::SuggestFolders(ask) => Answer::Folders {
+            query: ask.query.as_str().to_owned(),
+            result: no(problem),
+        },
+        ProjectAsk::Icon(project) => Answer::Icon {
+            project,
             result: no(problem),
         },
     }

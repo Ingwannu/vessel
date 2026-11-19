@@ -1,8 +1,38 @@
-/* A project's own icon (project-icon.tsx): sized to the mark it replaces,
-   never clipped or rounded (Paseo leaves a person's mark as drawn). */
+/* A project's mark (project-icon.tsx): its own icon, sized to the mark and
+   never clipped or rounded (Paseo leaves a person's mark as drawn), or
+   Paseo's lettered identity square: the fill from data/identity.ts, a
+   white 9px letter, corners a quarter of its side. 16 square, 20 at a
+   compact width (Paseo's densityIconProps("md")). */
 
-.project-icon {
+.project-icon,
+.project-identity {
   display: block;
   flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.project-icon {
   object-fit: contain;
+}
+
+.project-identity {
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 9px;
+  line-height: 1;
+}
+
+@media (--compact) {
+  .project-icon,
+  .project-identity {
+    width: 20px;
+    height: 20px;
+  }
+
+  .project-identity {
+    border-radius: 5px;
+  }
 }

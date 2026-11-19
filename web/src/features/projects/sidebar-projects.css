@@ -1,5 +1,6 @@
 /* "Projects" in the sidebar (sidebar-projects.tsx), agent-orchestrator's
-   project rows: 32px, the folder's mark swapping to a chevron on hover
+   project rows: 32px, the project's mark (its icon or lettered square,
+   project-icon.css) swapping to a chevron on hover
    (turned when open), the name, the machine in the passive ink when
    several have projects, the live count; a "+" 4px from the right on
    hover; the open project's sessions 14px in. The group takes at most
@@ -46,30 +47,37 @@
   place-items: center;
 }
 
-.project-mark > .ico {
+/* The mark is 20 at a compact width (project-icon.css). */
+@media (--compact) {
+  .project-mark {
+    flex-basis: 20px;
+  }
+}
+
+.project-mark > * {
   grid-area: 1 / 1;
   transition:
     opacity var(--d-2) var(--ease),
     transform var(--d-2) var(--ease);
 }
 
-.project-mark > .ico:last-child {
+.project-mark > *:last-child {
   opacity: 0;
   transform: scale(0.8);
 }
 
-.nav-item.project:hover .project-mark > .ico:first-child,
-.nav-item.project:focus-visible .project-mark > .ico:first-child {
+.nav-item.project:hover .project-mark > *:first-child,
+.nav-item.project:focus-visible .project-mark > *:first-child {
   opacity: 0;
 }
 
-.nav-item.project:hover .project-mark > .ico:last-child,
-.nav-item.project:focus-visible .project-mark > .ico:last-child {
+.nav-item.project:hover .project-mark > *:last-child,
+.nav-item.project:focus-visible .project-mark > *:last-child {
   opacity: 1;
   transform: scale(1);
 }
 
-.nav-item.project[aria-expanded="true"] .project-mark > .ico:last-child {
+.nav-item.project[aria-expanded="true"] .project-mark > *:last-child {
   transform: rotate(90deg);
 }
 
@@ -108,7 +116,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-mark > .ico,
+  .project-mark > *,
   .project-actions {
     transition: none;
   }

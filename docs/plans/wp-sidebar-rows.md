@@ -1,7 +1,8 @@
 # Project row and workspace row, as Paseo's sidebar (TRACKER 662/663)
 
 Visual lane, 2026-11-19. Planned on package base 14.61 (`c2b8cb67`),
-built on 14.63 (`786a4ed3`). Reference:
+built on 14.63 (`786a4ed3`), merged with 14.66 (`f8928581`: TRACKER
+809's project mark, which the badge now hangs from). Reference:
 pinned Paseo 0.15.4 (`1c00b365c`): `components/sidebar/project-leading-visual.tsx`,
 `components/sidebar/sidebar-workspace-row-content.tsx`,
 `utils/sidebar-project-row-model.ts`, `components/sidebar-workspace-list.tsx`
@@ -139,8 +140,5 @@ line when there are any, the kebab on hover.
 - The project menu has no Open in new window or Open in file manager
   (Paseo's desktop shell's); the plus's tooltip has no shortcut (no
   binding for a new worktree).
-- Until TRACKER 809's mark (16, 20 on a phone) lands, the lettered square
-  is 16 everywhere; on a phone it sits in the middle of the 20 box the
-  badge hangs from.
 - Needs input also covers the board's own needs-you reasons (failing
   checks, requested changes), which Paseo has not.

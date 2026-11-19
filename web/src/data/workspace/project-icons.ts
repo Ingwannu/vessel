@@ -10,10 +10,14 @@
 //   origin each launch) and its policy allows images from itself and
 //   `data:` only; an SVG must never be put into the page as markup.
 // - Choice: a promise per node and project in memory, so every row of
-//   one project shares one call; the answer becomes a `data:` address
-//   with the node's content type, drawn by an `img`, which runs no script
-//   and reaches nothing. A failed call or no icon is `null`: the folder
-//   mark stays, as on a node older than the protocol.
+//   one project shares one call (a failed call is dropped and asked again
+//   by the next row drawn); the calls go on the node's background file
+//   work line (`file-work.ts`), as the node refuses file work beyond its
+//   four slots at once. The answer becomes a `data:` address with the
+//   node's content type, drawn by an `img`, which runs no script and
+//   reaches nothing. A failed call or no icon is `null`: the lettered
+//   identity square stays (TRACKER 809), as on a node older than the
+//   protocol.
 // - Cost: an icon changed on disk shows on the next page load (Paseo
 //   refreshes its cache when the project's files change).
 
@@ -21,6 +25,7 @@ import type { NodeKey } from "../../wire/bridge";
 import type { IconImage, IconType, ProjectId } from "../../wire/proto";
 import type { Fleet } from "../fleet";
 import { attempt } from "../outcome";
+import { inBackground } from "./file-work";
 
 /** `project.icon`'s protocol: a copy of vessel-proto's
  * `HOST_FOLDERS_PROTOCOL` (assigned 32 at its node-line merge);
@@ -55,10 +60,16 @@ export function projectIcon(
   const key = `${node}\u0000${project}`;
   const known = asked.get(key);
   if (known !== undefined) return known;
-  const answer = attempt(() =>
-    fleet.bridge.call(node, "project.icon", { project }),
+  const answer = inBackground(node, () =>
+    attempt(() => fleet.bridge.call(node, "project.icon", { project })),
   ).then((outcome) => {
-    const icon = outcome.ok ? outcome.value.icon : null;
+    // A failed call is asked again by the next row drawn; only an answer
+    // (an icon or none) is kept for the page load.
+    if (!outcome.ok) {
+      asked.delete(key);
+      return null;
+    }
+    const icon = outcome.value.icon;
     return icon === undefined || icon === null ? null : iconAddress(icon);
   });
   asked.set(key, answer);

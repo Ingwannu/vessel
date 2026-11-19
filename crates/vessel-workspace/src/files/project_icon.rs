@@ -225,9 +225,10 @@ fn matches(name: &str, pattern: &str) -> bool {
 }
 
 /// The file's bytes when it is a regular file of at most
-/// [`MAX_ICON_BYTES`], opened without following a link and judged on the
-/// opened handle (`crate::regular`), so a swap after the search cannot
-/// lead out of the root.
+/// [`MAX_ICON_BYTES`], opened without following a link in its last part
+/// and judged on the opened handle (`crate::regular`). A folder on the way
+/// swapped for a link after the search is the race ADR 0027 accepts for
+/// every root check (a process of the same user can race them).
 fn read(path: &Path) -> Option<Vec<u8>> {
     let file = crate::regular::open(path).ok()??;
     let budget = u64::try_from(MAX_ICON_BYTES).ok()?;
