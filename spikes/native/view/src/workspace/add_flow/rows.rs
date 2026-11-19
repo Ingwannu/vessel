@@ -12,7 +12,7 @@ use super::options::{
 };
 use super::paths::{DirectoryOption, directory_options, shorten_path};
 
-/// The mark a row draws (Paseo's lucide icons; `Drive` is its HardDrive).
+/// The mark a row draws (Paseo's lucide icons; `Drive` is its `HardDrive`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RowMark {
     /// A machine.

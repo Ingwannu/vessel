@@ -175,7 +175,7 @@ fn title_row<V: 'static>(
         .child(
             div()
                 .min_w_0()
-                .flex_shrink()
+                .flex_shrink(1.0)
                 .truncate()
                 .text_color(neutral.foreground)
                 .child(frame.title.clone()),
@@ -183,7 +183,7 @@ fn title_row<V: 'static>(
         .children(frame.context.clone().map(|context| {
             div()
                 .min_w_0()
-                .flex_shrink()
+                .flex_shrink(1.0)
                 .truncate()
                 .text_color(neutral.foreground_muted)
                 .child(context)
@@ -272,7 +272,7 @@ pub fn flow_sheet<V: 'static>(
         });
     let results = div()
         .id("flow-sheet-results")
-        .flex_shrink()
+        .flex_shrink(1.0)
         .min_h(px(0.0))
         .overflow_y_scroll()
         .track_scroll(&frame.scroll)

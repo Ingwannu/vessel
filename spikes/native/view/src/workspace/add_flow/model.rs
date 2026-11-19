@@ -11,6 +11,10 @@ use std::collections::HashMap;
 
 /// A machine the sheet may add to, and which ways it offers.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "one flag per way of adding, Paseo's host capabilities as the page's AddProjectMachine has them; each is independent"
+)]
 pub struct Machine {
     /// The machine's name in the book (its key).
     pub name: String,
