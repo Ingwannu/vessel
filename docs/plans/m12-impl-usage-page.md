@@ -228,6 +228,12 @@ coordinator as a separate parity item.
   - Found in the frames: the usage fixture logged with colours into its file, so `node.log` showed escape
     bytes. The fixture now logs as the daemon does (colours only on a terminal), and `node.log` drops a
     terminal's escapes and control characters.
+- The coordinator's verdict on row 334's page (RETURN, 3 items), fixed on top:
+  - the app diagnostic shows its steps or its text, never both;
+  - Node logs is Paseo's logs modal: path or "Log path unavailable", then the contents or "(log file is
+    empty)", wrapped, muted, 12/18 monospace. The page drops terminal escapes too (`data/log-lines.ts`), and
+    the forge fixture logs like the daemon (colours only on a terminal);
+  - the Diagnostics section's mark is lucide's Stethoscope.
 - Then the native row (app line, after the node row merges and the lead adopts it), with frames.
 
 ## Next

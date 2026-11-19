@@ -37,7 +37,7 @@ export function DiagnosticTextDialog({
   running: boolean;
   onRefresh: () => void;
   onClose: () => void;
-  /** Rows shown before the text (the app diagnostic's steps). */
+  /** Rows shown until the text exists (the app diagnostic's steps). */
   progress?: ReactNode;
 }) {
   const copy = () => {
@@ -76,14 +76,15 @@ export function DiagnosticTextDialog({
         </>
       }
     >
-      {progress}
+      {/* Either the progress or the text, never both (Paseo's sheet:
+          `diagnostic ? <ScrollableCodeSurface> : <SurfaceCard>`). */}
       {text === null ? (
-        progress === undefined ? (
+        (progress ?? (
           <p className="diagnostic-wait">
             <Spinner />
             {DIAGNOSTIC_WORDS.running}
           </p>
-        ) : null
+        ))
       ) : (
         <pre className="diagnostic-text" data-testid="diagnostic-text">
           {text === "" ? DIAGNOSTIC_WORDS.empty : text}
