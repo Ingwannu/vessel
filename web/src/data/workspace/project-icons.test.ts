@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Bridge } from "../../bridge/client";
 import { fixtureId } from "../../testing/ids";
 import { Fleet } from "../fleet";
+import { BACKGROUND_SLOTS } from "./file-work";
 
 import {
   HOST_FOLDERS_PROTOCOL,
@@ -30,9 +31,9 @@ describe("project icons (ADR 0112)", () => {
     expect(hasProjectIcons(HOST_FOLDERS_PROTOCOL)).toBe(true);
   });
 
-  it("asks one node one icon at a time, and goes on past a refusal", async () => {
+  it("asks a node's icons on its background line, and goes on past a refusal", async () => {
     // The node refuses file work beyond four slots at once (`busy`): five
-    // projects asked together must reach it one after another.
+    // projects asked together reach it at most `BACKGROUND_SLOTS` at once.
     const fleet = new Fleet(
       new Bridge(
         { kind: "bootstrap", key: "a".repeat(64) },
@@ -58,6 +59,6 @@ describe("project icons (ADR 0112)", () => {
     );
     expect(answers).toEqual([null, null, null, null, null]);
     expect(call).toHaveBeenCalledTimes(5);
-    expect(most).toBe(1);
+    expect(most).toBe(BACKGROUND_SLOTS);
   });
 });

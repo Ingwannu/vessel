@@ -11,12 +11,13 @@
 //   `data:` only; an SVG must never be put into the page as markup.
 // - Choice: a promise per node and project in memory, so every row of
 //   one project shares one call (a failed call is dropped and asked again
-//   by the next row drawn); the calls to one node go one at a time, as
-//   the node refuses file work beyond its four slots at once. The answer
-//   becomes a `data:` address with the node's content type, drawn by an
-//   `img`, which runs no script and reaches nothing. A failed call or no
-//   icon is `null`: the lettered identity square stays (TRACKER 809), as
-//   on a node older than the protocol.
+//   by the next row drawn); the calls go on the node's background file
+//   work line (`file-work.ts`), as the node refuses file work beyond its
+//   four slots at once. The answer becomes a `data:` address with the
+//   node's content type, drawn by an `img`, which runs no script and
+//   reaches nothing. A failed call or no icon is `null`: the lettered
+//   identity square stays (TRACKER 809), as on a node older than the
+//   protocol.
 // - Cost: an icon changed on disk shows on the next page load (Paseo
 //   refreshes its cache when the project's files change).
 
@@ -24,6 +25,7 @@ import type { NodeKey } from "../../wire/bridge";
 import type { IconImage, IconType, ProjectId } from "../../wire/proto";
 import type { Fleet } from "../fleet";
 import { attempt } from "../outcome";
+import { inBackground } from "./file-work";
 
 /** `project.icon`'s protocol: a copy of vessel-proto's
  * `HOST_FOLDERS_PROTOCOL` (assigned 32 at its node-line merge);
@@ -48,18 +50,6 @@ export function iconAddress(icon: IconImage): string {
 
 const asked = new Map<string, Promise<string | null>>();
 
-/** Each node's last call in line: one `project.icon` out per node at a
- * time, since the node serves file work on four slots and refuses a fifth
- * at once (`busy`); a sidebar of many projects asked together lost icons. */
-const lines = new Map<NodeKey, Promise<unknown>>();
-
-function inLine<T>(node: NodeKey, call: () => Promise<T>): Promise<T> {
-  const before = lines.get(node) ?? Promise.resolve();
-  const run = before.then(call, call);
-  lines.set(node, run);
-  return run;
-}
-
 /** `project`'s icon on `node` as an address, or `null` (none, or the call
  * failed); one call per project and page load. */
 export function projectIcon(
@@ -70,7 +60,7 @@ export function projectIcon(
   const key = `${node}\u0000${project}`;
   const known = asked.get(key);
   if (known !== undefined) return known;
-  const answer = inLine(node, () =>
+  const answer = inBackground(node, () =>
     attempt(() => fleet.bridge.call(node, "project.icon", { project })),
   ).then((outcome) => {
     // A failed call is asked again by the next row drawn; only an answer
