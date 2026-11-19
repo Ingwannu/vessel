@@ -312,6 +312,14 @@ impl Link {
                     reached: None,
                 }),
             })),
+            Command::Terminals(ask) => self.terminals(ask),
+        }
+    }
+
+    /// A browser has no terminals: each call answers offline.
+    fn terminals(&self, ask: crate::terminals::Ask) {
+        if let Some(answer) = ask.refused(vessel_app_view::terminal_tabs::Failure::Offline) {
+            self.emit(Event::Terminals(answer));
         }
     }
 

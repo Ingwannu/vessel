@@ -66,6 +66,17 @@ pub(super) enum Owner {
     Pane(LayoutKey, PaneId),
 }
 
+impl Owner {
+    /// The New tab tab a launch from this panel replaces (Paseo's
+    /// `replace` destination); a pane with no tab replaces nothing.
+    const fn replaced(&self) -> Option<TabId> {
+        match self {
+            Self::Tab(_, tab) => Some(*tab),
+            Self::Pane(..) => None,
+        }
+    }
+}
+
 /// The panels' one focus handle, the panel that owns it and its
 /// highlighted row (an index over every row, always a ready one).
 pub(super) struct Keys {
@@ -136,8 +147,9 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
         rows: tabs,
     }];
     // The node's profiles do not reach the app yet; Paseo shows the
-    // shipped ones when it has no configuration. They start as Terminal
-    // does, so they are disabled while Terminal is.
+    // shipped ones when it has no configuration. A profile runs its own
+    // program, which `terminal.create` cannot start yet (ADR 0117), so they
+    // stay disabled while Terminal starts a shell.
     let profiles: Vec<Row> = Profiles::shipped()
         .map(|shipped| {
             shipped
@@ -355,6 +367,7 @@ fn row_view(
     };
     let surface2 = neutral.surface2;
     let pressed = owner.clone();
+    let replaced = owner.replaced();
     let index = row.index;
     body.cursor_pointer()
         .hover(move |style| style.bg(surface2))
@@ -367,7 +380,7 @@ fn row_view(
             }),
         )
         .on_click(cx.listener(move |shell, _event, window, cx| {
-            launch::run(shell, chosen, window, cx);
+            launch::run(shell, chosen, replaced, window, cx);
         }))
         .into_any_element()
 }
@@ -418,7 +431,14 @@ impl Shell {
             }
             "enter" => {
                 if let Some((_, chosen)) = at.and_then(|at| rows.get(at)) {
-                    launch::run(self, *chosen, window, cx);
+                    let replaced = self
+                        .areas
+                        .layout
+                        .new_tab
+                        .owner
+                        .as_ref()
+                        .and_then(Owner::replaced);
+                    launch::run(self, *chosen, replaced, window, cx);
                 }
                 true
             }

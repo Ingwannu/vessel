@@ -32,6 +32,7 @@ pub(crate) mod settings;
 pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
 pub(crate) mod terminal;
+pub(crate) mod terminal_tabs;
 pub(crate) mod toasts;
 pub(crate) mod usage;
 pub(crate) mod workspace;
@@ -74,6 +75,8 @@ pub(crate) struct Areas {
     pub(crate) regions: crate::region::Regions,
     /// A terminal session's screen (ADR 0073).
     pub(crate) terminal: terminal::TerminalArea,
+    /// A workspace's shells as tabs (TRACKER 481, 482).
+    pub(crate) terminal_tabs: terminal_tabs::TerminalTabs,
 }
 
 impl Areas {
@@ -126,6 +129,7 @@ impl Areas {
             composer_shell: composer_shell::ComposerShellArea::default(),
             regions: crate::region::Regions::default(),
             terminal: terminal::TerminalArea::new(cx),
+            terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, drafts, window, cx);

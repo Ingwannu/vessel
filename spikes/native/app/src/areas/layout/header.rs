@@ -385,7 +385,7 @@ impl PaneAction {
                     shell.layout_result(result, cx);
                 }
             }
-            PaneOp::Launch(chosen) => launch::run(shell, chosen, window, cx),
+            PaneOp::Launch(chosen) => launch::run(shell, chosen, None, window, cx),
         }
     }
 }

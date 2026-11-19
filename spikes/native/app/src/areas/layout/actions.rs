@@ -100,6 +100,17 @@ impl Shell {
                     tab.map_or_else(|| Ok(Vec::new()), |tab| layout.close_plans(tab, scope))
                 });
                 match plans {
+                    // One terminal tab: its owner asks first (TRACKER 342).
+                    Ok(plans) if crate::areas::terminal_tabs::closes_terminal(&plans) => {
+                        match (super::key(self), plans.into_iter().next()) {
+                            (Ok(workspace), Some(plan)) => {
+                                self.terminal_tab_ask_close(workspace, plan, window, cx);
+                                Ok(())
+                            }
+                            (Err(error), _) => Err(error),
+                            (Ok(_), None) => Err(LayoutError::InvalidState),
+                        }
+                    }
                     Ok(plans) => self.layout_close_plans(plans, cx),
                     Err(error) => Err(error),
                 }

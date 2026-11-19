@@ -9,13 +9,15 @@ use vessel_app_view::terminal::grid::Scroll;
 
 #[derive(Debug, Default)]
 /// Fractional gesture rows retained between pointer or touch events.
-pub(super) struct Wheel(f32);
+pub(crate) struct Wheel(f32);
 
 /// A single gesture cannot advance farther than the grid's wire count.
 const MAX_GESTURE_ROWS: u16 = u16::MAX;
 
-enum Step {
+pub(crate) enum Step {
+    /// Back into history by this many rows.
     Earlier(Scroll),
+    /// Toward the live screen by this many rows.
     Later(Scroll),
 }
 
@@ -30,7 +32,7 @@ impl Wheel {
         clippy::cast_sign_loss,
         reason = "finite absolute whole rows are clamped before conversion; scrollback fits u32"
     )]
-    fn step(&mut self, delta: Pixels, cell: CellSize) -> Option<Step> {
+    pub(crate) fn step(&mut self, delta: Pixels, cell: CellSize) -> Option<Step> {
         let height = f32::from(cell.height);
         let pixels = f32::from(delta);
         if !pixels.is_finite() || !height.is_finite() || height <= 0.0 {
