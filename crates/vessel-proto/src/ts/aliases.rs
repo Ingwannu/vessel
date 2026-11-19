@@ -143,6 +143,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("DeviceId", Alias::Handle),
     ("DiagnosticProcessId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
+    ("DirectoryName", Alias::Named),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
     ("EnvName", Alias::Named),

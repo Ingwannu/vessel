@@ -1,12 +1,13 @@
 //! Projects: the node's record of them, read back when the node starts,
 //! listed, waited on and forgotten, and the lookups the other workspace
 //! modules make in it (protocol 10, ADR 0027). Adding a project is
-//! `adding`'s; what a project's file would run, and its approval, is
-//! `commands`'.
+//! `adding`'s, a new empty one `directory`'s (ADR 0113); what a project's
+//! file would run, and its approval, is `commands`'.
 
 mod adding;
 pub(super) mod admission;
 mod commands;
+mod directory;
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;

@@ -18,6 +18,7 @@ import { Banner, Button, Sheet } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
 import { useNotices } from "../notifications/use-notices";
 import { PaletteHost } from "../palette/palette";
+import { AddProjectFlowHost } from "../projects/add-project-flow";
 import { useShortcutListener } from "../shortcuts/listener";
 import { FrameTop } from "./frame-top";
 import { Sidebar } from "./sidebar";
@@ -85,6 +86,7 @@ export function Shell(): ReactElement {
         </Sheet>
       ) : null}
       <PaletteHost />
+      <AddProjectFlowHost />
       <Toasts />
     </>
   );

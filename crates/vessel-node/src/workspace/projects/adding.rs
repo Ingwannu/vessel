@@ -17,9 +17,9 @@ use super::short;
 use crate::workspace::{MAX_PROJECTS, ProjectEntry, WorkspaceError, Workspaces, policy};
 
 impl Workspaces {
-    /// Add the folder `path` (absolute, existing) as a project: the
-    /// repository's top level when it is inside one. A root already known
-    /// answers that project.
+    /// Add the folder `path` (absolute, existing; a leading `~` is the
+    /// home, ADR 0113) as a project: the repository's top level when it is
+    /// inside one. A root already known answers that project.
     ///
     /// # Errors
     /// `invalid_request` for a path that is not an absolute folder or a
@@ -29,7 +29,7 @@ impl Workspaces {
         path: PathBuf,
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
-        let folder = existing_folder(path).await?;
+        let folder = existing_folder(self.home_expanded(path)).await?;
         self.refuse_git_dir(&folder).await?;
         let (root, git) = match &self.git {
             Some(git) => match git.toplevel(&folder).await? {
@@ -116,7 +116,8 @@ impl Workspaces {
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
         let git = self.git()?.clone();
-        let parent = existing_folder(parent).await?;
+        // A leading `~` is the home (ADR 0113).
+        let parent = existing_folder(self.home_expanded(parent)).await?;
         let folder: FolderName = match folder {
             Some(folder) => folder,
             None => url
@@ -215,7 +216,7 @@ impl Workspaces {
         Ok(())
     }
 
-    async fn insert_project(
+    pub(super) async fn insert_project(
         self: &Arc<Self>,
         root: PathBuf,
         git: bool,
@@ -291,7 +292,7 @@ impl Workspaces {
 }
 
 /// `path`, resolved, when it is an absolute folder.
-async fn existing_folder(path: PathBuf) -> Result<PathBuf, WorkspaceError> {
+pub(super) async fn existing_folder(path: PathBuf) -> Result<PathBuf, WorkspaceError> {
     if !path.is_absolute() {
         return Err(WorkspaceError::Invalid(
             "the folder must be an absolute path".to_owned(),

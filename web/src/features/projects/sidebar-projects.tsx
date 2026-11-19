@@ -10,7 +10,7 @@
 
 import "./sidebar-projects.css";
 
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
@@ -25,6 +25,7 @@ import {
   useProjects,
 } from "../../data/workspace/project-store";
 import { useStore } from "../../data/store";
+import { openAddProject } from "../../data/workspace/add-project/request";
 import { wantedPlace } from "../../data/workspace/wanted-place";
 import { Icon, IconButton, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
@@ -181,7 +182,6 @@ function MachineProjects({
 }
 
 export function SidebarProjects() {
-  const navigate = useNavigate();
   const book = useFleetState((state) => state.book);
   // Rows name their machine only when two or more machines have projects.
   const holding = useStore(
@@ -216,10 +216,7 @@ export function SidebarProjects() {
             icon="plus"
             size="xs"
             onClick={() => {
-              void navigate({
-                to: "/settings/$section",
-                params: { section: "projects" },
-              });
+              openAddProject();
             }}
           />
         </Tooltip>
