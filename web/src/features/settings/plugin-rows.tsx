@@ -124,9 +124,9 @@ function PluginRow({
           <Badge tone={look.tone}>{look.word}</Badge>
         </span>
       }
-      detail={
-        hinted ? { description: <PluginHint plugin={plugin} /> } : undefined
-      }
+      {...(hinted
+        ? { detail: { description: <PluginHint plugin={plugin} /> } }
+        : {})}
       control={
         <div
           className="plugin-controls"
