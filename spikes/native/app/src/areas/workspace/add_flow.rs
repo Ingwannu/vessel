@@ -29,11 +29,11 @@ mod tests;
 
 use std::collections::HashMap;
 
+use gpui::ScrollHandle;
 use vessel_app_kit::TextField;
 use vessel_app_kit::command::CommandKey;
 use vessel_app_kit::focus::ReturnFocus;
 use vessel_app_kit::theme::spacing;
-use gpui::ScrollHandle;
 use vessel_app_kit::ui::{Context, Window, point, px};
 use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::workspace::add_flow::model::{
