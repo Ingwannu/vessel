@@ -25,6 +25,9 @@ pub(super) enum Action {
     /// Rename the open session's agent.
     Rename,
     Close(CloseScope),
+    /// Start the agent tab's agent again on its conversation
+    /// (`session.reload`, TRACKER 803).
+    Reload,
     /// A Session action (the bar's menu), on the open session's agent tab.
     Session(MenuAction),
 }
@@ -139,6 +142,7 @@ pub(super) fn chose(
             shell.layout_select(tab, cx);
             let _handled = shell.run_layout_action(LayoutAction::Close(scope), window, cx);
         }
+        Action::Reload => shell.tab_menu_reload(tab, cx),
         Action::Session(action) => {
             // Copies leave the switcher open; anything that opens a
             // confirm, a log or the page's next screen closes it first.

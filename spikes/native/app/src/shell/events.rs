@@ -85,6 +85,7 @@ impl Shell {
                 if let Some(answer) = self
                     .board_acted(answer, cx)
                     .and_then(|answer| self.option_acted(answer, cx))
+                    .and_then(|answer| self.tab_menu_reload_acted(answer, cx))
                 {
                     self.acted(answer, cx);
                 }

@@ -33,6 +33,9 @@ pub const INFO_LIFE: Duration = Duration::from_millis(3200);
 /// What a toast says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToastTone {
+    /// Words alone (Paseo's default variant): "Reloading agent..." while
+    /// the host answers (TRACKER 803).
+    Plain,
     /// Something went as asked (Paseo's `success`).
     Ok,
     /// Something was copied (Paseo's `toast.copied`).
@@ -48,7 +51,7 @@ impl ToastTone {
     #[must_use]
     pub const fn life(self) -> Duration {
         match self {
-            Self::Ok | Self::Copied => TOAST_LIFE,
+            Self::Plain | Self::Ok | Self::Copied => TOAST_LIFE,
             Self::Info => INFO_LIFE,
             Self::Error => ERROR_LIFE,
         }
@@ -144,6 +147,22 @@ impl Toasts {
         }
     }
 
+    /// Show `text` in place of the toast up, with no life of its own: it
+    /// stays until another toast replaces it or it is dismissed (Paseo's
+    /// `durationMs: null`, "Reloading agent..." waiting for the node's
+    /// answer, TRACKER 803). Its id; there is no wake to schedule.
+    pub fn hold(&mut self, text: impl Into<String>, tone: ToastTone) -> u64 {
+        self.last = self.last.saturating_add(1);
+        let id = self.last;
+        self.shown = Some(Toast {
+            id,
+            tone,
+            text: text.into(),
+        });
+        self.clock = None;
+        id
+    }
+
     /// Take toast `id` away; one already gone or replaced is no matter.
     pub fn dismiss(&mut self, id: u64) {
         if self.shown.as_ref().is_some_and(|toast| toast.id == id) {
@@ -222,6 +241,7 @@ mod clock_tests {
         let mut toasts = Toasts::default();
         let now = Instant::now();
         for (tone, millis) in [
+            (ToastTone::Plain, 2200),
             (ToastTone::Ok, 2200),
             (ToastTone::Copied, 2200),
             (ToastTone::Info, 3200),
@@ -230,6 +250,24 @@ mod clock_tests {
             let wake = toasts.push("Words", tone, now);
             assert_eq!(wake.after(), Duration::from_millis(millis));
         }
+    }
+
+    #[test]
+    fn a_held_toast_stays_through_hover_and_any_old_wake_until_the_next_replaces_it() {
+        let mut toasts = Toasts::default();
+        let now = Instant::now();
+        let earlier = toasts.push("Copied", ToastTone::Copied, now);
+        let id = toasts.hold("Reloading agent...", ToastTone::Plain);
+        assert_eq!(toasts.wake(earlier, at(now, 60_000)), None);
+        assert_eq!(toasts.hover(id, ToastHover::Enter, now), None);
+        assert_eq!(toasts.hover(id, ToastHover::Leave, now), None);
+        assert_eq!(toasts.shown().map(|toast| toast.id), Some(id));
+        let wake = toasts.push("Reloaded agent", ToastTone::Ok, at(now, 60_000));
+        assert_eq!(wake.after(), TOAST_LIFE);
+        assert_eq!(
+            toasts.shown().map(|toast| toast.text.as_str()),
+            Some("Reloaded agent")
+        );
     }
 
     #[test]

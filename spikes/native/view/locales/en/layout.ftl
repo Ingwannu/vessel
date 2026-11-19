@@ -127,6 +127,18 @@ layout-copied-workspace-path = Workspace path
 layout-resume-id-unavailable = Resume ID not available
 # Toast: the agent's CLI has no known resume command (Paseo's resumeCommandUnavailable).
 layout-resume-command-unavailable = Resume command not available
+# Tab menu: start the agent again on its conversation, picking up skills, MCPs and login (Paseo's workspace.tabs.menu.reloadAgent).
+layout-reload-agent = Reload agent
+# Tab menu: Reload agent's tooltip (Paseo's workspace.tabs.menu.reloadAgentTooltip).
+layout-reload-agent-tooltip = Reload agent to update skills, MCPs or login status.
+# Toast while the host reloads the agent, until its answer (Paseo's workspace.tabs.toasts.reloadingAgent).
+layout-reloading-agent = Reloading agent...
+# Toast: the agent was reloaded (Paseo's workspace.tabs.toasts.reloadedAgent).
+layout-reloaded-agent = Reloaded agent
+# Toast: the reload failed and the host gave no words (Paseo's workspace.tabs.toasts.failedToReloadAgent).
+layout-failed-to-reload-agent = Failed to reload agent
+# Toast: Reload agent pressed while the session's host is not connected (Paseo's workspace.terminal.hostDisconnected).
+layout-host-disconnected = Host is not connected
 # Rename dialog: the title is empty (Paseo's common.errors.nameRequired).
 layout-name-required = Name is required
 # Rename dialog: Rename's label while the rename waits for the host (Paseo's renameModal.saving).

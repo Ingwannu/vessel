@@ -579,7 +579,7 @@ fn the_reload_method_knows_its_version_scope_and_shape() {
     assert!(Method::ReloadSession.forwardable());
 }
 
-/// ADR 0112's methods, drafted as 32 (`HOST_FOLDERS_PROTOCOL`): the home's
+/// ADR 0112's methods, assigned 32 (`HOST_FOLDERS_PROTOCOL`): the home's
 /// folders for those who may add a project, a project's icon for those who
 /// may read it.
 const HOST_FOLDERS_METHODS: &[(&str, Scope)] = &[

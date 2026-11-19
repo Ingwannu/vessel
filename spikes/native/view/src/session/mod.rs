@@ -4,6 +4,7 @@
 mod delivery;
 mod marks;
 mod parking;
+mod reload;
 mod resume;
 mod titles;
 
@@ -13,6 +14,7 @@ pub use marks::{
     is_archived, is_live, mark_actions, read_through,
 };
 pub use parking::{ParkState, park_state};
+pub use reload::{ReloadOffer, reload_offer};
 pub use resume::{ResumeUnavailable, resume_command};
 pub use titles::{
     can_rename, check_title, folder_name, has_title, session_name, title_from_prompt,

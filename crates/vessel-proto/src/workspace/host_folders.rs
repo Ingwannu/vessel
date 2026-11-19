@@ -32,8 +32,8 @@ use crate::id::ProjectId;
 
 /// The protocol of `folder.suggest` and `project.icon` (ADR 0112), both at
 /// once: each client hides the suggestions and draws the folder mark on an
-/// older peer. Drafted as the next free number; the integrator assigns it
-/// in merge order.
+/// older peer. Assigned 32 at its node-line merge, the next free number in
+/// merge order.
 pub const HOST_FOLDERS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(32));
 
 /// Paseo's icon budget (`project-icon.ts` `MAX_ICON_SIZE`).

@@ -68,9 +68,9 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 32 (drafted, 2026-11-18, milestone 12): folder suggestions from the home and project icons (impl F, F-F17/F-F46, ADR 0112)
+## Version 32 (2026-11-18, milestone 12): folder suggestions from the home and project icons (impl F, F-F17/F-F46, ADR 0112)
 
-Drafted as 32 (`HOST_FOLDERS_PROTOCOL`, `PROTOCOL_VERSION` 32); the number is assigned at the node-line merge.
+Assigned 32 (`HOST_FOLDERS_PROTOCOL`, `PROTOCOL_VERSION` 32) at its node-line merge, the next free number in merge order.
 Both methods are unary and forwardable; an agent principal is refused both.
 
 - `folder.suggest { query, limit? }` (`operate`) answers `{ folders: [{ path, shown }], more }`: folders under the

@@ -23,6 +23,7 @@ import {
   Banner,
   Button,
   EmptyState,
+  Icon,
   IconButton,
   Menu,
   MenuItem,
@@ -37,6 +38,7 @@ import { MachinePicker } from "../machines/machine-picker";
 import { SettingsPage, SettingsSection } from "../settings/settings-page";
 import { type AddWay, AddProjectDialog } from "./add-project-dialog";
 import { ProjectDetail } from "./project-detail";
+import { ProjectIcon } from "./project-icon";
 
 const LEAD =
   "The folders a machine works in. A session runs in a project's folder as it is, or in a worktree of its own on a new branch.";
@@ -144,7 +146,18 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
               <Row
                 key={project.id}
                 selected={project.id === open}
-                mark={{ icon: "folder" }}
+                mark={{
+                  node: (
+                    <span className="row-icon">
+                      <ProjectIcon
+                        node={node.key}
+                        project={project.id}
+                        size={16}
+                        fallback={<Icon name="folder" size={16} />}
+                      />
+                    </span>
+                  ),
+                }}
                 title={
                   <button
                     type="button"

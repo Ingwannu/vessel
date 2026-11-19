@@ -49,7 +49,7 @@ no icon lookup (`file.inspect` is folder metadata).
     type, or none. Every client draws an icon only as an image (an `img` from a blob or data address on
     the page, an image element in the native app), never as inline SVG markup, and the page gives it the
     type the node decided. Custom icons (Paseo's `project-custom-icon.ts`) are not in this ADR.
-  - One protocol number for both, assigned at the node-line merge; an older node offers neither (the
+  - One protocol number for both, 32, assigned at the node-line merge; an older node offers neither (the
     clients hide the suggestions and draw the folder mark).
   - Callers: native Add project's path field (debounced, Paseo's rows: the short path, the folder above
     it), and project icons where the native app and the page draw a project (projects list, sidebar
@@ -68,7 +68,7 @@ no icon lookup (`file.inspect` is folder metadata).
 The search never leaves the home and never returns files (Paseo's `includeFiles` is not used by its Add
 project flow); Read principals get no folder suggestions (Paseo has one owner principal).
 
-## Implementation notes (node, drafted protocol 32)
+## Implementation notes (node, protocol 32)
 
 - `vessel_proto::workspace::host_folders` holds both methods' types and `HOST_FOLDERS_PROTOCOL`; the disk work is
   `vessel_workspace::files::host_folders` and `files::project_icon`, run on the node's file workers (the same
