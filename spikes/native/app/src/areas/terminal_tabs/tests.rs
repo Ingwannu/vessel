@@ -233,7 +233,10 @@ fn a_second_new_terminal_waits_for_the_first_create(cx: &mut TestAppContext) {
         assert!(!shell.terminal_tab_creating());
         shell.terminal_tab_new(None, window, cx);
     });
-    assert!(matches!(sent(&probe, cx).as_slice(), [Request::Create { .. }]));
+    assert!(matches!(
+        sent(&probe, cx).as_slice(),
+        [Request::Create { .. }]
+    ));
 }
 
 #[gpui::test]
@@ -269,7 +272,12 @@ fn a_tab_that_lost_its_machine_follows_again_once_it_is_back(cx: &mut TestAppCon
             machine: "laptop".to_owned(),
             terminal,
         };
-        let stage = shell.areas.terminal_tabs.panes.get(&key).map(|pane| pane.stage);
+        let stage = shell
+            .areas
+            .terminal_tabs
+            .panes
+            .get(&key)
+            .map(|pane| pane.stage);
         assert!(matches!(stage, Some(Stage::Offline)));
         // The next fleet read finds the machine online.
         shell.terminal_tabs_rejoin();
