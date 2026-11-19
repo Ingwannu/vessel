@@ -11,6 +11,7 @@ import { useFleet, useFleetState } from "../../context";
 import { isLive } from "../../data/format";
 import { selectedNode } from "../../data/nodes";
 import { prefs } from "../../data/prefs";
+import { pageGrouping } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
@@ -54,7 +55,9 @@ export function Sidebar({
   );
   const open = useNewSession();
   const inSettings = place === "settings";
-  const grouping = useStore(prefs, (state) => state.values.sidebar.group);
+  const grouping = useStore(prefs, (state) =>
+    pageGrouping(state.values.sidebar.group),
+  );
   const newKeys = useShortcutWords("new-session");
   // A compact window (below 600px, as Paseo) has no sidebar beside the
   // page: it opens as a sheet (sidebar.css).

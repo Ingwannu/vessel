@@ -119,3 +119,38 @@ Status: plan for the coordinator; nothing built.
 - app: a press folds and unfolds; the chevron is the leading visual on
   hover (a11y: the header says expanded); folded projects survive a
   restart (the document); Show more / Show less.
+
+## Rulings (coordinator, 2026-11-19)
+
+- Q1: `project` is added to the shared grouping value in the bridge in
+  this item, so the document never holds a native-only value. The page
+  reads `project` as its Machine view (`pageGrouping`) until its own item
+  (TRACKER 812, page Project grouping).
+- Q2: Project is the native default, as Paseo's. Existing users keep the
+  value they chose; only an unset value takes the new default. The page's
+  Machine default is a stated difference until 812.
+- Q3: one trailing group per machine for sessions with no project, headed
+  by the machine's name and state; an unreachable machine stays visible.
+- Accepted differences: two headers for a project on two machines; Paseo's
+  dragged project order is TRACKER 811 (after 810); projects sort by name
+  until then.
+
+## As built
+
+- Bridge and page: `Grouping::Project` in `crates/vessel-web` (generated
+  `web/src/wire/bridge.ts`); the page maps it to Machine (`pageGrouping`
+  in `web/src/data/sidebar.ts`, used by the list and the Display menu).
+- Native document: `Grouping` defaults to `Project`; folded projects in
+  `folded_projects` (native only, left out while empty, read leniently).
+- View: `sidebar::tree` (`Fleet::sidebar_tree`, `SidebarTree::order`,
+  `by_name`, `PROJECT_SESSIONS`): only reachable machines' projects are
+  listed; an unreachable machine's sessions wait in its trailing group.
+- App: `areas/sidebar/projects.rs` draws the list (blocks with role group,
+  sessions flush at 8, the toggle row, the trailing machine groups through
+  `machines::group`); `areas/workspace/sidebar/tree.rs` the heading
+  ("Projects", the Display trigger, the plus), the header (the project row
+  folding, the chevron in `SidebarSurfaces::chevron` on hover,
+  `aria_expanded`) and the ghost row. The shortcut numbers count the tree
+  as drawn. Show more is kept in memory only, as Paseo's.
+- A header that is not ready (cloning, failed, missing) keeps opening its
+  page in Settings and draws no chevron.

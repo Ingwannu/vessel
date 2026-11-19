@@ -12,8 +12,8 @@ use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
     ActionId, AgentKind, Bindings, Choices, ContentWidth, ExplorerSort, Grouping, InvalidActionId,
     InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
-    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme,
-    TurnDelivery,
+    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget,
+    SidebarView, Theme, TurnDelivery,
 };
 
 /// The page/bridge defaults, byte for byte the bridge's `defaults_are_the_contracts`
@@ -44,8 +44,11 @@ fn defaults_are_the_contracts() {
     // word 39) and has no `sidebar.labels`: the page's workspace label filter
     // is not on the native sidebar, and a page document's filter is ignored
     // when read. Both steer a turn sent while one runs (Paseo's default; the
-    // owner's word 45 here, ADR 0108 on the page). Every other byte of its
-    // defaults comes from that fixture.
+    // owner's word 45 here, ADR 0108 on the page). It groups the sidebar by
+    // project, Paseo's default (TRACKER 682), where the page and the bridge
+    // still default to machine (the page draws project as machine until
+    // TRACKER 812). Every other byte of its defaults comes from that
+    // fixture.
     let native_default = DEFAULT
         .replacen(&format!(",{USAGE}"), "", 1)
         .replacen(r#","usage":false"#, "", 1)
@@ -55,18 +58,61 @@ fn defaults_are_the_contracts() {
             r#""conversation":"full""#,
             r#""conversation":"full","animations":"on""#,
             1,
-        );
+        )
+        .replacen(r#""group":"machine""#, r#""group":"project""#, 1);
     assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
     assert_eq!(
         serde_json::from_str::<Preferences>(&native_default).unwrap(),
         values
     );
-    // The page's document reads as the defaults.
-    assert_eq!(
-        serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
-        values
-    );
+    // The page's document reads as the defaults but for the grouping it
+    // names: a stored choice is kept, only a missing one takes Project.
+    let page = serde_json::from_str::<Preferences>(DEFAULT).unwrap();
+    assert_eq!(page.sidebar.group, Grouping::Machine);
+    let page = Preferences {
+        sidebar: SidebarView {
+            group: Grouping::Project,
+            ..page.sidebar
+        },
+        ..page
+    };
+    assert_eq!(page, values);
     assert_eq!(serde_json::from_str::<Preferences>("{}").unwrap(), values);
+}
+
+/// The native default grouping is Project (TRACKER 682); a document that
+/// names another keeps it, one that names none takes Project, and
+/// `project` reads and writes as the bridge spells it.
+#[test]
+fn project_is_the_default_grouping_and_a_stored_choice_is_kept() {
+    let missing: Preferences = serde_json::from_str(r#"{"sidebar":{"sort":"created"}}"#).unwrap();
+    assert_eq!(missing.sidebar.group, Grouping::Project);
+    let machine: Preferences = serde_json::from_str(r#"{"sidebar":{"group":"machine"}}"#).unwrap();
+    assert_eq!(machine.sidebar.group, Grouping::Machine);
+    let project: Preferences = serde_json::from_str(r#"{"sidebar":{"group":"project"}}"#).unwrap();
+    assert_eq!(project.sidebar.group, Grouping::Project);
+    assert!(
+        serde_json::to_string(&project)
+            .unwrap()
+            .contains(r#""group":"project""#)
+    );
+}
+
+/// Folded projects are written only while one is folded, and read back.
+#[test]
+fn folded_projects_are_kept_only_when_there_are_some() {
+    let mut values = Preferences::default();
+    assert!(!serde_json::to_string(&values).unwrap().contains("folded_projects"));
+    let project = vessel_proto::ProjectId::random();
+    values.folded_projects.toggle("laptop", project);
+    assert!(values.folded_projects.contains("laptop", project));
+    let text = serde_json::to_string(&values).unwrap();
+    assert!(text.contains("folded_projects"), "{text}");
+    let read: Preferences = serde_json::from_str(&text).unwrap();
+    assert!(read.folded_projects.contains("laptop", project));
+    assert!(!read.folded_projects.contains("build-server", project));
+    values.folded_projects.toggle("laptop", project);
+    assert!(values.folded_projects.is_empty());
 }
 
 /// Ended sessions: a document without the field lists them (Paseo's, and

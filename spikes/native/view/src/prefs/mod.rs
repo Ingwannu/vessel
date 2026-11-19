@@ -24,6 +24,7 @@
 mod appearance;
 mod change;
 mod explorer;
+mod folds;
 mod keys;
 mod language;
 mod send;
@@ -44,6 +45,7 @@ pub use appearance::{
 };
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
 pub use explorer::ExplorerSort;
+pub use folds::{FoldedProject, FoldedProjects};
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};
 pub use send::{EnterPress, send_key_label, sends, sends_other};
 
@@ -140,6 +142,9 @@ pub struct Preferences {
         skip_serializing_if = "crate::sidebar::navigation::Navigation::is_empty"
     )]
     pub sidebar_navigation: crate::sidebar::navigation::Navigation,
+    /// The projects folded in the sidebar's project tree (native only).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "FoldedProjects::is_empty")]
+    pub folded_projects: FoldedProjects,
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,
@@ -327,11 +332,18 @@ where
 }
 
 /// What the sidebar groups sessions by.
+///
+/// The native default is Project, Paseo's (TRACKER 682); the page's and
+/// the bridge's is still Machine, the page drawing Project as Machine
+/// until TRACKER 812. A stored choice is kept: only a document without
+/// one takes the default.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Grouping {
-    /// Their machine.
+    /// Their project, each project heading its sessions.
     #[default]
+    Project,
+    /// Their machine.
     Machine,
     /// Their status.
     Status,

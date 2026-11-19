@@ -178,7 +178,7 @@ impl Shell {
     }
 
     /// A new chat in a new worktree of the project (Paseo's new workspace).
-    fn new_workspace_in(
+    pub(super) fn new_workspace_in(
         &mut self,
         target: &Target,
         window: &mut Window,

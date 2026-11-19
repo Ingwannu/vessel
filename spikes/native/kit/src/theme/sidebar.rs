@@ -14,7 +14,7 @@
 //!   light theme's rule), brighter than Paseo's dark sidebar.
 
 use super::{Scheme, Tokens};
-use gpui::Hsla;
+use gpui::{Hsla, rgb};
 
 /// A sidebar row's fills, in one theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -45,6 +45,14 @@ impl SidebarSurfaces {
             pressed: neutral.surface2,
         }
     }
+
+    /// The chevron a hovered project header shows in its mark's place
+    /// (TRACKER 682): Paseo's `ProjectInlineChevron` paints the literal
+    /// `#9ca3af` in both themes, not a theme colour.
+    #[must_use]
+    pub fn chevron() -> Hsla {
+        rgb(0x009c_a3af).into()
+    }
 }
 
 #[cfg(test)]
@@ -66,5 +74,11 @@ mod tests {
         assert_eq!(fills.hover, dark.neutral.surface1);
         assert_eq!(fills.selected, dark.neutral.surface2);
         assert_eq!(fills.pressed, dark.neutral.surface2);
+    }
+
+    #[test]
+    fn the_project_chevron_is_paseos_literal_grey() {
+        // project-leading-visual.tsx `ProjectInlineChevron`: #9ca3af.
+        assert_eq!(SidebarSurfaces::chevron(), Hsla::from(rgb(0x009c_a3af)));
     }
 }

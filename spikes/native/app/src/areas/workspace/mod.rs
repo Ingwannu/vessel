@@ -41,6 +41,7 @@ pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::layers as sidebar_project_layers;
 pub(crate) use sidebar::projects as sidebar_projects;
+pub(crate) use sidebar::tree as sidebar_tree;
 pub(crate) use start_card::render as start_card;
 
 use crate::shell::Shell;

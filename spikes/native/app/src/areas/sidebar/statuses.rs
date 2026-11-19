@@ -71,6 +71,7 @@ fn status_group(
         let extras = RowExtras {
             machine: Some(card.machine.as_str()),
             number: numbers.of(card),
+            flush: false,
         };
         let row = super::session_row::session_row(card, extras, shell, tokens, touch, cx);
         let target = if group.more == 0 {

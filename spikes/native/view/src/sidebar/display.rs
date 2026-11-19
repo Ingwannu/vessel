@@ -30,7 +30,7 @@ pub enum DisplayPage {
     /// The decisions.
     #[default]
     Root,
-    /// Grouping: by machine or by status.
+    /// Grouping: by project, machine or status.
     Grouping,
     /// The order within a group.
     Sort,
@@ -39,6 +39,8 @@ pub enum DisplayPage {
 /// What leads an option (Paseo's option icons; the app picks the glyph).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OptionMark {
+    /// Grouping by project (Paseo's folder).
+    Project,
     /// Grouping by machine (Paseo's host mark).
     Machine,
     /// Grouping by status (Paseo's dashed circle).
@@ -166,7 +168,8 @@ impl DisplayPage {
 }
 
 /// The groupings, in the menu's order, with their marks.
-const GROUPINGS: [(Grouping, OptionMark); 2] = [
+const GROUPINGS: [(Grouping, OptionMark); 3] = [
+    (Grouping::Project, OptionMark::Project),
     (Grouping::Machine, OptionMark::Machine),
     (Grouping::Status, OptionMark::Status),
 ];

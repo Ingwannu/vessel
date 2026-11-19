@@ -23,7 +23,7 @@
 //   "next/previous session" walk (`sidebarOrder`), so a key goes where
 //   the eye already is.
 
-import type { NodeKey, SidebarView } from "../wire/bridge";
+import type { Grouping, NodeKey, SidebarView } from "../wire/bridge";
 import { DEFAULT_PREFERENCES } from "./prefs-change";
 import type { SessionInfo } from "../wire/proto";
 import { placement } from "./board";
@@ -223,13 +223,23 @@ export function sidebarStatuses(
   }).filter((group) => group.sessions.length > 0);
 }
 
+/** The grouping the page draws for `group`: the native app's Project
+ * grouping (TRACKER 682, Paseo's default) is drawn as Machine until the
+ * page has its own (TRACKER 812), so a document the app wrote still
+ * reads here. */
+export function pageGrouping(
+  group: Grouping,
+): Exclude<Grouping, "project"> {
+  return group === "project" ? "machine" : group;
+}
+
 /** The sessions as the sidebar shows them, top to bottom: what "session
  * 1 to 9" counts and "next" and "previous" walk. */
 export function sidebarOrder(
   state: FleetState,
   view: SidebarView,
 ): SidebarSession[] {
-  switch (view.group) {
+  switch (pageGrouping(view.group)) {
     case "machine":
       return sidebarMachines(state, view).flatMap(
         (machine) => machine.sessions,

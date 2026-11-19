@@ -4,6 +4,7 @@ import type { SessionInfo } from "../wire/proto";
 import type { FleetState } from "./fleet";
 import {
   DEFAULT_VIEW,
+  pageGrouping,
   sessionMark,
   sidebarMachines,
   sidebarOrder,
@@ -149,6 +150,19 @@ describe("the view the person chose", () => {
     );
     expect(stepSession(order, null, -1)?.id).toBe("aaaa");
     expect(stepSession([], null, 1)).toBeNull();
+  });
+});
+
+describe("the native app's Project grouping (TRACKER 682)", () => {
+  it("is drawn and walked as the Machine view until the page has its own", () => {
+    expect(pageGrouping("project")).toBe("machine");
+    expect(pageGrouping("status")).toBe("status");
+    expect(pageGrouping("workspace")).toBe("workspace");
+    const asProject = sidebarOrder(STATE, { ...DEFAULT_VIEW, group: "project" });
+    const asMachine = sidebarOrder(STATE, { ...DEFAULT_VIEW, group: "machine" });
+    expect(asProject.map((row) => row.id)).toEqual(
+      asMachine.map((row) => row.id),
+    );
   });
 });
 

@@ -27,9 +27,10 @@
 //! - The shortcut number (Paseo's `SidebarWorkspaceShortcutBadge`) at the
 //!   title's end while the jump modifier is held (`shortcut_badges_visible`),
 //!   for the first nine rows in the order the keys walk; it hides the kebab.
-//! - Differences, named: the hover card (TRACKER 810) and the rows under
-//!   their project (TRACKER 682) are their own items; Paseo's "creating"
-//!   title (92%) has no state here.
+//! - Under a project's header (TRACKER 682) the row sits on the header's
+//!   rail, 8 from the edge, as Paseo's project rows do.
+//! - Differences, named: the hover card (TRACKER 810) is its own item;
+//!   Paseo's "creating" title (92%) has no state here.
 
 use gpui::{FontWeight, linear_color_stop, linear_gradient};
 use vessel_app_kit::assets::Glyph;
@@ -53,8 +54,10 @@ use crate::shell::Shell;
 /// `density.rowHeight`).
 const ROW: f32 = 36.0;
 const ROW_TOUCH: f32 = 44.0;
-/// Its left padding under a group header (Paseo's `rowIndented`: 8 + 8).
+/// Its left padding under a group header (Paseo's `rowIndented`: 8 + 8),
+/// and under a project's header (Paseo's `workspaceRow`: 8).
 const INDENT: f32 = 16.0;
+const FLUSH: f32 = 8.0;
 /// The title's line.
 const TITLE_LINE: f32 = 20.0;
 /// The title at rest and hovered.
@@ -95,6 +98,10 @@ pub(super) struct RowExtras<'a> {
     pub(super) machine: Option<&'a str>,
     /// Its shortcut number, while the badges show.
     pub(super) number: Option<usize>,
+    /// Under a project's header: on the header's rail, 8 from the edge
+    /// (Paseo's project rows sit flush; only a status group's are
+    /// indented, `rowIndented`).
+    pub(super) flush: bool,
 }
 
 /// `card`'s row.
@@ -172,7 +179,7 @@ pub(super) fn session_row(
         .flex_col()
         .justify_center()
         .py(px(spacing::S2))
-        .pl(px(INDENT))
+        .pl(px(if extras.flush { FLUSH } else { INDENT }))
         .pr(px(spacing::S3))
         .rounded(px(radius::R2))
         .when(active, |row| row.bg(fills.selected))

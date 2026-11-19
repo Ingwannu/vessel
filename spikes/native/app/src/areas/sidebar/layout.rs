@@ -34,19 +34,24 @@ impl Layout {
 
 /// These three measured sections keep their natural heights, without a
 /// second scroller or a project/session height budget.
+/// Grouped by project the list carries its own heading (`heading` none).
 pub(super) fn body(
     state: &Layout,
     projects: Option<AnyElement>,
-    heading: Div,
+    heading: Option<Div>,
     groups: Div,
 ) -> impl IntoElement {
     let projects = match projects {
         Some(projects) => div().pb(px(spacing::S3)).child(projects),
         None => div(),
     };
+    let heading = match heading {
+        Some(heading) => div().pb(px(spacing::S3)).child(heading),
+        None => div(),
+    };
     ScrollViewport::new("sidebar-body", &state.scroll)
         .section(projects)
-        .section(div().pb(px(spacing::S3)).child(heading))
+        .section(heading)
         .section(groups)
         .element()
 }
