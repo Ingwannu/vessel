@@ -210,9 +210,7 @@ pub(crate) fn render(
     } else {
         let numbers = Numbers::of_shell(shell, shell.shortcut_badges_visible(window, cx));
         match view.group {
-            Grouping::Project => {
-                projects::groups(view, &numbers, phone, shell, tokens, touch, cx)
-            }
+            Grouping::Project => projects::groups(view, &numbers, phone, shell, tokens, touch, cx),
             Grouping::Machine => machines::groups(view, &numbers, shell, tokens, touch, cx),
             Grouping::Status => statuses::groups(view, &numbers, shell, tokens, touch, cx),
         }
@@ -279,7 +277,11 @@ fn sections(
     if shell.prefs.settings.sidebar.group == Grouping::Project {
         let trigger = display::trigger(shell, tokens, cx);
         let heading = crate::areas::workspace::sidebar_tree::heading(shell, trigger, tokens, cx);
-        (None, None, div().flex().flex_col().child(heading).child(list))
+        (
+            None,
+            None,
+            div().flex().flex_col().child(heading).child(list),
+        )
     } else {
         (
             projects(shell, tokens, phone, cx),

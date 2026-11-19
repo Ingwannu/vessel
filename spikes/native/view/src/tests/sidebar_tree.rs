@@ -79,12 +79,37 @@ fn book() -> (Fleet, HashMap<String, ProjectsView>) {
         ),
         machine("build-server", false, &[]),
     ]);
-    place(&mut fleet, "laptop", "a1", Some(RunsIn::Checkout(project_id(0))));
-    place(&mut fleet, "laptop", "a2", Some(RunsIn::Worktree(project_id(0))));
-    place(&mut fleet, "laptop", "a3", Some(RunsIn::Checkout(project_id(2))));
+    place(
+        &mut fleet,
+        "laptop",
+        "a1",
+        Some(RunsIn::Checkout(project_id(0))),
+    );
+    place(
+        &mut fleet,
+        "laptop",
+        "a2",
+        Some(RunsIn::Worktree(project_id(0))),
+    );
+    place(
+        &mut fleet,
+        "laptop",
+        "a3",
+        Some(RunsIn::Checkout(project_id(2))),
+    );
     place(&mut fleet, "laptop", "a4", None);
-    place(&mut fleet, "laptop", "a5", Some(RunsIn::Checkout(project_id(9))));
-    place(&mut fleet, "gpu-box", "b1", Some(RunsIn::Checkout(project_id(3))));
+    place(
+        &mut fleet,
+        "laptop",
+        "a5",
+        Some(RunsIn::Checkout(project_id(9))),
+    );
+    place(
+        &mut fleet,
+        "gpu-box",
+        "b1",
+        Some(RunsIn::Checkout(project_id(3))),
+    );
     let lists = HashMap::from([
         (
             "laptop".to_owned(),
@@ -272,7 +297,10 @@ fn the_open_session_past_the_limit_leads_its_project() {
     assert_eq!(shop.leading.map(|card| card.session), Some(id("08")));
     assert_eq!(shop.sessions.len(), PROJECT_SESSIONS);
     assert!(shop.can_toggle);
-    assert_eq!(shorts(&tree.order()).first().map(String::as_str), Some("08"));
+    assert_eq!(
+        shorts(&tree.order()).first().map(String::as_str),
+        Some("08")
+    );
 }
 
 #[test]

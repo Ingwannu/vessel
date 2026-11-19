@@ -102,7 +102,11 @@ fn project_is_the_default_grouping_and_a_stored_choice_is_kept() {
 #[test]
 fn folded_projects_are_kept_only_when_there_are_some() {
     let mut values = Preferences::default();
-    assert!(!serde_json::to_string(&values).unwrap().contains("folded_projects"));
+    assert!(
+        !serde_json::to_string(&values)
+            .unwrap()
+            .contains("folded_projects")
+    );
     let project = vessel_proto::ProjectId::random();
     values.folded_projects.toggle("laptop", project);
     assert!(values.folded_projects.contains("laptop", project));

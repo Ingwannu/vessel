@@ -32,8 +32,8 @@ use vessel_app_kit::status_mark::icon_box;
 use vessel_app_kit::theme::{SidebarSurfaces, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, SharedString, Stateful,
-    StatefulInteractiveElement as _, Styled as _, div, px, svg,
+    IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
+    Styled as _, div, px, svg,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
@@ -116,7 +116,8 @@ pub(super) fn groups(
             touch,
         };
         let block = block(project, drawn, numbers, shell, tokens, cx);
-        list = list.child(EndTarget::at(index, final_project).wrap(block, &shell.areas.sidebar.layout));
+        list = list
+            .child(EndTarget::at(index, final_project).wrap(block, &shell.areas.sidebar.layout));
     }
     if !tree.machines.is_empty() {
         let mut loose = div().flex().flex_col().gap(px(spacing::S3_5));

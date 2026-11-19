@@ -89,10 +89,7 @@ fn session(index: u16, project: Option<ProjectId>) -> Card {
 }
 
 /// shop holds `in_shop` sessions, notes one, and one is in no project.
-fn setup(
-    cx: &mut TestAppContext,
-    in_shop: u16,
-) -> (Entity<Shell>, &mut VisualTestContext) {
+fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTestContext) {
     language_tests::init(cx);
     let saved = Rc::new(RefCell::new(None));
     let window = cx.update(|cx| {
@@ -101,8 +98,9 @@ fn setup(
             move |window, cx| {
                 let shell = cx.new(|cx| {
                     let mut shell = Shell::without_io(window, cx);
-                    let mut sessions: Vec<Card> =
-                        (0..in_shop).map(|index| session(index, Some(project_id(0)))).collect();
+                    let mut sessions: Vec<Card> = (0..in_shop)
+                        .map(|index| session(index, Some(project_id(0))))
+                        .collect();
                     sessions.push(session(100, Some(project_id(2))));
                     sessions.push(session(101, None));
                     shell.fleet = Fleet {
@@ -211,7 +209,9 @@ fn a_header_folds_its_project_kept_and_the_numbers_skip_it(cx: &mut TestAppConte
         // project (docs has none).
         assert_eq!(numbered(shell), [Some(3), Some(2), Some(1), Some(4)]);
     });
-    shell.update(cx, |shell, cx| shell.fold_project("fixture", project_id(0), cx));
+    shell.update(cx, |shell, cx| {
+        shell.fold_project("fixture", project_id(0), cx)
+    });
     shell.read_with(cx, |shell, _| {
         assert!(
             shell
@@ -226,7 +226,9 @@ fn a_header_folds_its_project_kept_and_the_numbers_skip_it(cx: &mut TestAppConte
     let header = named(&arias, "Button", "shop");
     assert!(header[0].contains(r#""expanded": false"#));
     // Pressed again, it opens.
-    shell.update(cx, |shell, cx| shell.fold_project("fixture", project_id(0), cx));
+    shell.update(cx, |shell, cx| {
+        shell.fold_project("fixture", project_id(0), cx)
+    });
     shell.read_with(cx, |shell, _| {
         assert!(shell.prefs.settings.folded_projects.is_empty());
     });

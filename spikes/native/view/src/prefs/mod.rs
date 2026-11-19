@@ -143,7 +143,10 @@ pub struct Preferences {
     )]
     pub sidebar_navigation: crate::sidebar::navigation::Navigation,
     /// The projects folded in the sidebar's project tree (native only).
-    #[serde(deserialize_with = "lenient", skip_serializing_if = "FoldedProjects::is_empty")]
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "FoldedProjects::is_empty"
+    )]
     pub folded_projects: FoldedProjects,
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]

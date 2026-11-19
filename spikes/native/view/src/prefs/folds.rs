@@ -38,7 +38,9 @@ impl FoldedProjects {
     /// Whether `project` on `machine` is folded.
     #[must_use]
     pub fn contains(&self, machine: &str, project: ProjectId) -> bool {
-        self.0.iter().any(|folded| folded.machine == machine && folded.project == project)
+        self.0
+            .iter()
+            .any(|folded| folded.machine == machine && folded.project == project)
     }
 
     /// Fold it when open, open it when folded.
