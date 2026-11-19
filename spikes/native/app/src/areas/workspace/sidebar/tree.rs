@@ -92,7 +92,12 @@ impl Shell {
             .get(machine)
             .and_then(ProjectsView::list)
             .filter(|list| !list.more)
-            .map(|list| list.projects.iter().map(|project| project.id).collect::<Vec<_>>())
+            .map(|list| {
+                list.projects
+                    .iter()
+                    .map(|project| project.id)
+                    .collect::<Vec<_>>()
+            })
         else {
             return;
         };
