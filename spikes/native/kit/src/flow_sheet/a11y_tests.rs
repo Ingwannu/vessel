@@ -60,16 +60,29 @@ fn the_sheet_its_rows_and_back_are_named(cx: &mut TestAppContext) {
     activate(cx);
     redraw(&view, cx);
     let (dialogs, buttons) = cx.update(|window, _| {
-        (nodes(window, "Dialog").unwrap(), nodes(window, "Button").unwrap())
+        (
+            nodes(window, "Dialog").unwrap(),
+            nodes(window, "Button").unwrap(),
+        )
     });
     assert_eq!(
-        dialogs.iter().map(|node| node.label.as_deref()).collect::<Vec<_>>(),
+        dialogs
+            .iter()
+            .map(|node| node.label.as_deref())
+            .collect::<Vec<_>>(),
         [Some("Add project: Search for directory")]
     );
-    let named = |name: &str| buttons.iter().find(|node| node.label.as_deref() == Some(name));
+    let named = |name: &str| {
+        buttons
+            .iter()
+            .find(|node| node.label.as_deref() == Some(name))
+    };
     let open = named("Search for directory").expect("a selectable row is a named button");
     assert!(open.actions.iter().any(|action| action == "Click"));
     let closed = named("New directory").expect("a disabled row is still a named button");
     assert!(!closed.actions.iter().any(|action| action == "Click"));
-    assert!(named("Back").is_some(), "the back arrow is a button named Back");
+    assert!(
+        named("Back").is_some(),
+        "the back arrow is a button named Back"
+    );
 }
