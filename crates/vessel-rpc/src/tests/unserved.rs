@@ -171,6 +171,11 @@ macro_rules! methods {
             rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
             agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
             detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
+            inbox_attention: vessel_proto::inbox_attention::GetInboxAttention => Vec<vessel_proto::inbox_attention::SessionAttention>;
+            read_inbox_through: vessel_proto::inbox_attention::ReadInboxThrough => Ack;
+            claim_notification: vessel_proto::notifications::ClaimNotification => vessel_proto::notifications::NotificationClaim;
+            clear_terminal_attention: vessel_proto::notifications::ClearTerminalAttention => vessel_proto::notifications::TerminalAttention;
+            report_terminal_activity: vessel_proto::notifications::ReportTerminalActivity => vessel_proto::notifications::TerminalAttention;
         }
     };
 }

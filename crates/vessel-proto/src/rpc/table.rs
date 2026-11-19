@@ -471,6 +471,16 @@ macro_rules! method_table {
             ReadNodeLog / node_log / "node.log" [Admin, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::diagnostics::ReadNodeLog => $crate::diagnostics::NodeLog;
             /// One new empty folder made a project, as Paseo's New directory (ADR 0113).
             CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::registry::PROJECT_DIRECTORY_PROTOCOL), unary]: $crate::registry::CreateProjectDirectory => $crate::workspace::ProjectInfo;
+            /// Claim one local delivery opportunity for this authenticated connection.
+            ClaimNotification / claim_notification / "notification.claim" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClaimNotification => $crate::notifications::NotificationClaim;
+            /// Clear only the terminal attention revision actually observed.
+            ClearTerminalAttention / clear_terminal_attention / "terminal.attention_clear" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClearTerminalAttention => $crate::notifications::TerminalAttention;
+            /// Report explicit activity for an owned or capability-bound terminal.
+            ReportTerminalActivity / report_terminal_activity / "terminal.activity" [Operate, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ReportTerminalActivity => $crate::notifications::TerminalAttention;
+            /// Authoritative per-session inbox badges, independent of the loaded page.
+            GetInboxAttention / inbox_attention / "inbox.attention" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::GetInboxAttention => Vec<$crate::inbox_attention::SessionAttention>;
+            /// Mark observed attention read without granting general session operations.
+            ReadInboxThrough / read_inbox_through / "inbox.read" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::ReadInboxThrough => $crate::Ack;
         }
     };
 }

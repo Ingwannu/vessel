@@ -1645,6 +1645,22 @@ only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
 
+### Connected attention admission (ADR 0089)
+
+`vessel-proto::notifications` owns exact session-cursor and terminal-revision
+contracts. `vessel-node::push` elects one direct connection through its existing
+presence policy. `vessel-store::notification_claims` commits session admissions
+with the writer and bounds them by inbox retention through a cascading foreign
+key. `vessel-session::terminals` owns semantic activity and once-only terminal
+revision admission in the existing info watch. No PTY parser, push sender or
+notification content is duplicated; clients display only a generic local notice.
+Passive read callers acquire the same transferable marking lease before a task
+is retained; accepted work owns it through durable and live publication. Local
+final authority/source checks share one borrowed-connection read transaction.
+The shared notification SQL consumes canonical current Parentage before paging
+and within source/lease admission, without replacing immutable Creator audit.
+The feature's protocol remains unassigned until reviewed integration, so added
+fields are projected away and methods are refused across old and current peers.
 
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public

@@ -16,6 +16,8 @@ use crate::ring::{Follow, FollowError, Ring};
 #[derive(Debug)]
 pub(crate) struct Shared {
     pub(crate) info: watch::Sender<TerminalInfo>,
+    pub(crate) attention_claim:
+        Mutex<Option<vessel_proto::notifications::TerminalAttentionRevision>>,
     pub(crate) ring: Mutex<Ring>,
     /// A shell's input; scripts take none.
     pub(crate) input: Option<PtyInput>,
