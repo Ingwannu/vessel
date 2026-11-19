@@ -1577,6 +1577,32 @@ project".
   sides' text only when the edit read the whole file, and each side
   names the start of its content hash, which two versions of one minute
   and like size would not tell apart otherwise.
+- Paseo's built-in panels pick how a file shows by its name
+  (`data/workspace/file-panels.ts`; F-F38, F-F39, F-F40;
+  `docs/plans/wp-file-viewers.md`). Markdown (`md`, `markdown`) and HTML
+  (`html`, `htm`) have Paseo's Preview|Source control (the kit's small
+  Segmented, "File view") in the head before Edit; they open on Preview,
+  or on Source when opened at a line (each later line asked for turns to
+  Source again). Edit turns to Source; the Preview draws the open edit.
+  The Markdown preview: a 16px gutter around a 78ch reading column, the
+  front matter (`---` YAML at the top, read as Paseo reads it) as a
+  two-column table 24px above the body (keys mono in the secondary ink on
+  the well, a hairline between rows, radius 8), the body as the
+  conversation draws Markdown plus headings, numbered lists, rules and
+  images; a relative link is a button that opens that file here, an image
+  under the root is read through the node and drawn from a `data:` URL,
+  a web image is its words as a web link. The HTML preview: the file in a
+  frame on white filling the panel, `sandbox` with no permissions and
+  Paseo's preview policy put first, so it fetches nothing and its scripts
+  do not run. Images (`png`, `jpg`, `jpeg`, `gif`, `webp`, `svg`, on a
+  node with the file panels protocol): "Loading file..." with a 16px
+  spinner, the node's refusal in the danger ink, or the image fitted and
+  centred; the wheel zooms at the cursor, two fingers pinch, a drag pans
+  once zoomed, a double click fits again, scale 1 to 8; Zoom in, Zoom out
+  and Reset view (16px icon buttons on the elevated fill, 4px apart, 8px
+  in from the top right corner) show while the pointer or the focus is in
+  the image, always on a touch screen. The file's watch re-reads it, and
+  the preview or the image follows.
 
 **A selection to the composer.** Lines selected in a diff or a file show
 agent-orchestrator's floating "Add to chat" beside the selection's end;
@@ -2122,6 +2148,15 @@ control, GOAT), on purpose:
     protocol 10) where agent-orchestrator archives a session when it
     ends: a Vessel session can be started again, and archiving is the
     person's choice.
+34. **The Files tab's previews stay inside the page's policy**
+    (`docs/plans/wp-file-viewers.md`, the coordinator's rulings of
+    2026-11-19). An HTML preview's scripts do not run (Paseo's frame
+    allows them; running them needs a separate preview origin, TRACKER
+    814); images are `data:` URLs read through the node, not a file URL;
+    a Markdown image from the web is a link, not loaded; a link or image
+    outside the workspace root is not followed (the node serves files
+    under the root only). PDF is not built in (Paseo ships it as a
+    plugin).
 
 
 ### Shared quota meter
