@@ -325,7 +325,12 @@ fn body(
 ) -> gpui::Stateful<gpui::Div> {
     div().id("dialog-body").flex().flex_col()
         // The body yields to the card's cap so long text cannot hide actions.
-        .flex_auto().min_h(px(0.0)).overflow_y_scroll()
+        // It scrolls on its own axis only: GPUI hands every wheel event to
+        // each scroll area under the cursor and turns a sideways wheel into
+        // a vertical one for a vertical-only area, so a code block that
+        // scrolls sideways inside a dialog moved the dialog down too (the
+        // native diagnostics, row 337).
+        .flex_auto().min_h(px(0.0)).overflow_y_scroll().restrict_scroll_to_axis()
         .map(|body| match sheet { Some(sheet) => body.track_scroll(&sheet.scroll), None => body })
         .when(sheet.is_some(), Styled::relative)
         .gap(px(16.0)).when(spacing == BodySpacing::Inset, |body| body.p(px(INSIDE))).type_(Type::Body)
