@@ -43,7 +43,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize, DialogState, Tokens,
-    Tooltips, Type, TypeExt as _, breakpoint, button, button_with_kind, dialog,
+    Tooltips, Type, TypeExt as _, anchor_probe, breakpoint, button, button_with_kind, dialog,
 };
 use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::toasts::ToastTone;
@@ -149,8 +149,14 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let rows = &mut self.areas.workspace.sidebar;
+        // Under the kebab, its right edge on the kebab's (Paseo's
+        // `align="end"`), once the kebab has been drawn.
+        let kebab = rows.place(&menu_key(&target)).get();
         rows.target = Some(target);
-        rows.menu.open(at, window, cx);
+        match kebab {
+            Some(bounds) => rows.menu.open_end(bounds, window, cx),
+            None => rows.menu.open(at, window, cx),
+        }
         cx.notify();
     }
 
@@ -277,6 +283,11 @@ impl Shell {
     }
 }
 
+/// The kebab's name, and its place's key.
+fn menu_key(target: &Target) -> String {
+    format!("sidebar-project-{}-{}-menu", target.machine, target.project)
+}
+
 /// The row's end: the plus (when `new_workspace`), then the kebab.
 pub(super) fn trailing(
     target: &Target,
@@ -332,8 +343,9 @@ pub(super) fn trailing(
     } else {
         (ACTION, KEBAB)
     };
+    let key = menu_key(target);
     let kebab = icon_button(
-        ElementId::Name(format!("{group}-menu").into()),
+        ElementId::Name(key.clone().into()),
         Glyph::MoreVertical,
         mark,
         side,
@@ -352,7 +364,9 @@ pub(super) fn trailing(
     )
     .on_click(|_event, _window, cx| {
         cx.stop_propagation();
-    });
+    })
+    .relative()
+    .child(anchor_probe(&rows.place(&key)));
     div()
         .flex()
         .flex_row()
