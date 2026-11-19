@@ -15,8 +15,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use chrono::Utc;
 use vessel_proto::forge::{
     Checks, ChecksState, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, MergeMethod, Mergeable,
-    PullNumber, PullRequest, PullState, PullSummary, PullTitle, RefusedReason, RepoRef,
-    ReviewDecision, Reviews,
+    PullNumber, PullRequest, PullState, PullSummary, PullTitle, RefusedReason, RepoLimit, RepoRef,
+    Repository, ReviewDecision, Reviews,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -62,6 +62,8 @@ struct State {
     merged: VecDeque<(PullNumber, MergeMethod, CommitId)>,
     /// What the forge has each branch at (`pushed`).
     heads: HashMap<BranchName, CommitId>,
+    /// What `forge.repos` lists (ADR 0088), newest first when asked.
+    repositories: Vec<Repository>,
 }
 
 impl State {
@@ -125,6 +127,14 @@ impl FakeForge {
                 let _old = state.repo_failures.remove(&repo);
             }
         }
+    }
+
+    /// List `repository` in the account's repositories and in searches
+    /// (ADR 0088); the same path again replaces it.
+    pub fn list_repository(&self, repository: Repository) {
+        let mut state = self.state();
+        state.repositories.retain(|known| known.path != repository.path);
+        state.repositories.push(repository);
     }
 
     /// Refuse a correctly pinned merge of this pull request, without

@@ -1,5 +1,6 @@
-//! The machine's `gh`, asked for a host's token (ADR 0029). Nothing else
-//! of `gh` is used: requests are this crate's own.
+//! The machine's `gh`, asked for a host's token (ADR 0029) and how it
+//! clones (ADR 0088). Nothing else of `gh` is used: requests are this
+//! crate's own.
 //!
 //! [Decision Log]
 //! - Purpose: most people who use GitHub from a terminal are signed in
@@ -11,6 +12,9 @@
 //!   trap), prompts and the update check off; ten seconds, two at once.
 //!   Its standard output is the token and is never logged; its standard
 //!   error is reduced to a [`GhState`].
+//! - `gh config get git_protocol` (ADR 0088) runs the same way: the
+//!   repositories a search lists clone as the machine's `gh` would, as in
+//!   Paseo; anything but `ssh`, or a failure, is `https`.
 //! - Rejected: every call through `gh api` (Paseo): a process per request
 //!   (about 30 ms of CPU each), and no control of conditional requests,
 //!   time limits per request or rate-limit headers short of parsing its
@@ -26,6 +30,23 @@ use vessel_proc::{CommandSpec, Signal, Spawned};
 use vessel_proto::forge::{ForgeHost, GhState};
 
 use crate::token::Token;
+
+/// How the machine clones from GitHub (`gh config get git_protocol`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloneProtocol {
+    /// `https://github.com/owner/name`.
+    Https,
+    /// `git@github.com:owner/name.git`.
+    Ssh,
+}
+
+/// What one run of `gh` gave.
+struct Ran {
+    /// Its exit code (`None`: ended by a signal).
+    code: Option<i32>,
+    out: Vec<u8>,
+    err: Vec<u8>,
+}
 
 /// How long `gh` may take.
 const TIME: Duration = Duration::from_secs(10);
@@ -63,14 +84,18 @@ impl Gh {
     /// the hosts they are for (`EnvTokens`); `gh` answers only from the
     /// logins it stores per host.
     fn token_spec(&self, host: &ForgeHost) -> CommandSpec {
+        self.spec(&["auth", "token", "--hostname", host.as_str()])
+    }
+
+    /// `gh` with `args`, under the rules every run keeps.
+    fn spec(&self, args: &[&str]) -> CommandSpec {
         crate::token::SIGN_IN_VARIABLES
             .iter()
             .chain(std::iter::once(&"GH_HOST"))
             .fold(
                 CommandSpec::new(&self.program)
                     .cwd(&self.folder)
-                    .args(["auth", "token", "--hostname"])
-                    .arg(host.as_str()),
+                    .args(args.iter().copied()),
                 CommandSpec::env_remove,
             )
             .env("GH_DEBUG", "")
@@ -79,27 +104,35 @@ impl Gh {
             .env("NO_COLOR", "1")
     }
 
-    /// `host`'s token, or what stopped `gh` giving one.
-    ///
-    /// # Errors
-    /// [`GhState::SignedOut`] when `gh` has none for `host`,
-    /// [`GhState::Failed`] when it could not run or took too long.
-    pub async fn token(&self, host: &ForgeHost) -> Result<Token, GhState> {
-        let _slot = self
-            .slots
-            .acquire()
-            .await
-            .map_err(|_closed| GhState::Failed)?;
-        let spec = self.token_spec(host);
+    /// How the machine clones from `host`: `ssh` only when `gh` says so
+    /// (Paseo's `resolveConfiguredCloneProtocol`).
+    pub async fn git_protocol(&self, host: &ForgeHost) -> CloneProtocol {
+        let spec = self.spec(&["config", "get", "git_protocol", "--host", host.as_str()]);
+        match self.run(&spec).await {
+            Some(ran)
+                if ran.code == Some(0)
+                    && String::from_utf8_lossy(&ran.out)
+                        .trim()
+                        .eq_ignore_ascii_case("ssh") =>
+            {
+                CloneProtocol::Ssh
+            }
+            Some(_) | None => CloneProtocol::Https,
+        }
+    }
+
+    /// Run `spec` within the time and the slots; `None` when it could not
+    /// start or took too long (it is then killed and reaped).
+    async fn run(&self, spec: &CommandSpec) -> Option<Ran> {
+        let _slot = self.slots.acquire().await.ok()?;
         let Spawned {
             mut child,
             stdin,
             stdout,
             stderr,
-        } = vessel_proc::spawn(&spec).map_err(|error| {
-            tracing::debug!(%error, "could not start gh");
-            GhState::Failed
-        })?;
+        } = vessel_proc::spawn(spec)
+            .inspect_err(|error| tracing::debug!(%error, "could not start gh"))
+            .ok()?;
         drop(stdin);
         let read = async {
             let (out, err) = tokio::join!(read_some(stdout), read_some(stderr));
@@ -111,28 +144,38 @@ impl Gh {
                 tracing::debug!(%error, "gh had already ended");
             }
             let _reaped = child.wait().await;
-            return Err(GhState::Failed);
+            return None;
         };
-        match code {
-            Ok(Some(0)) => Token::new(&String::from_utf8_lossy(&out)).ok_or(GhState::SignedOut),
-            Ok(_) => {
-                // Its words only to tell signed out from broken; the
-                // token is never in them (it printed none).
-                let said = String::from_utf8_lossy(&err).to_ascii_lowercase();
-                if said.contains("no oauth token")
-                    || said.contains("not logged")
-                    || said.contains("gh auth login")
-                {
-                    Err(GhState::SignedOut)
-                } else {
-                    tracing::debug!("gh auth token failed");
-                    Err(GhState::Failed)
-                }
-            }
-            Err(error) => {
-                tracing::debug!(%error, "could not wait for gh");
-                Err(GhState::Failed)
-            }
+        let code = code
+            .inspect_err(|error| tracing::debug!(%error, "could not wait for gh"))
+            .ok()?;
+        Some(Ran { code, out, err })
+    }
+
+    /// `host`'s token, or what stopped `gh` giving one.
+    ///
+    /// # Errors
+    /// [`GhState::SignedOut`] when `gh` has none for `host`,
+    /// [`GhState::Failed`] when it could not run or took too long.
+    pub async fn token(&self, host: &ForgeHost) -> Result<Token, GhState> {
+        let ran = self
+            .run(&self.token_spec(host))
+            .await
+            .ok_or(GhState::Failed)?;
+        if ran.code == Some(0) {
+            return Token::new(&String::from_utf8_lossy(&ran.out)).ok_or(GhState::SignedOut);
+        }
+        // Its words only to tell signed out from broken; the token is never
+        // in them (it printed none).
+        let said = String::from_utf8_lossy(&ran.err).to_ascii_lowercase();
+        if said.contains("no oauth token")
+            || said.contains("not logged")
+            || said.contains("gh auth login")
+        {
+            Err(GhState::SignedOut)
+        } else {
+            tracing::debug!("gh auth token failed");
+            Err(GhState::Failed)
         }
     }
 }
@@ -181,6 +224,28 @@ mod tests {
         assert_eq!(failed.token(&host).await.unwrap_err(), GhState::Failed);
         let missing = Gh::new(temp.path().join("nowhere"), temp.path().to_path_buf());
         assert_eq!(missing.token(&host).await.unwrap_err(), GhState::Failed);
+    }
+
+    #[tokio::test]
+    async fn gh_s_clone_protocol_is_ssh_only_when_it_says_so() {
+        let host: ForgeHost = "github.com".parse().unwrap();
+        let ssh_dir = tempfile::tempdir().unwrap();
+        let ssh = fake(
+            ssh_dir.path(),
+            "[ \"$1 $2 $3 $4 $5\" = \"config get git_protocol --host github.com\" ] && echo SSH",
+        );
+        assert_eq!(ssh.git_protocol(&host).await, CloneProtocol::Ssh);
+        let unset_dir = tempfile::tempdir().unwrap();
+        let unset = fake(unset_dir.path(), "echo");
+        assert_eq!(unset.git_protocol(&host).await, CloneProtocol::Https);
+        let broken_dir = tempfile::tempdir().unwrap();
+        let broken = fake(broken_dir.path(), "echo ssh; exit 1");
+        assert_eq!(broken.git_protocol(&host).await, CloneProtocol::Https);
+        let missing = Gh::new(
+            unset_dir.path().join("nowhere"),
+            unset_dir.path().to_path_buf(),
+        );
+        assert_eq!(missing.git_protocol(&host).await, CloneProtocol::Https);
     }
 
     /// `gh` answers from the environment's tokens first (an enterprise

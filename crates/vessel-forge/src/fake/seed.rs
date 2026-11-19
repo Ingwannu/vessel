@@ -6,8 +6,11 @@ use std::io::Read as _;
 use std::path::Path;
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use vessel_proto::forge::{Checks, ForgeKind, MergeMethod, PullRequest, RepoRef};
+use vessel_proto::forge::{
+    Checks, ForgeKind, MergeMethod, PullRequest, RepoDescription, RepoRef, Visibility,
+};
 
 use super::{Failure, FakeForge};
 
@@ -96,6 +99,20 @@ struct Repository {
     #[serde(default)]
     failure: Option<Failure>,
     pulls: Vec<Pull>,
+    /// How `forge.repos` lists it (ADR 0088); every seeded repository is
+    /// listed, public and with no description unless said.
+    #[serde(default)]
+    listing: Listing,
+}
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Listing {
+    #[serde(default)]
+    description: Option<RepoDescription>,
+    #[serde(default)]
+    visibility: Option<Visibility>,
+    #[serde(default)]
+    updated_at: Option<DateTime<Utc>>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -209,6 +226,9 @@ impl Seed {
             .collect();
         let forge = FakeForge::fixture(known);
         for entry in self.repositories {
+            if let Some(listed) = listed(&entry) {
+                forge.list_repository(listed);
+            }
             forge.fail_repository(entry.repo.clone(), entry.failure);
             for item in entry.pulls {
                 if matches!(item.merge, Merge::Refused) {
@@ -227,6 +247,19 @@ impl Seed {
         }
         forge
     }
+}
+
+/// How `forge.repos` lists a seeded repository: cloned over `https` from
+/// its own host; `None` when that makes no clone URL.
+fn listed(entry: &Repository) -> Option<vessel_proto::forge::Repository> {
+    let url = format!("https://{}/{}", entry.repo.host, entry.repo.path);
+    Some(vessel_proto::forge::Repository {
+        path: entry.repo.path.clone(),
+        description: entry.listing.description.clone(),
+        visibility: entry.listing.visibility.unwrap_or(Visibility::Public),
+        updated_at: entry.listing.updated_at.unwrap_or(DateTime::UNIX_EPOCH),
+        clone_url: url.parse().ok()?,
+    })
 }
 
 #[cfg(test)]

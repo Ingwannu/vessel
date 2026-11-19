@@ -471,6 +471,8 @@ macro_rules! method_table {
             ReadNodeLog / node_log / "node.log" [Admin, (pending $crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL), unary]: $crate::diagnostics::ReadNodeLog => $crate::diagnostics::NodeLog;
             /// One new empty folder made a project, as Paseo's New directory (ADR 0113).
             CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::registry::PROJECT_DIRECTORY_PROTOCOL), unary]: $crate::registry::CreateProjectDirectory => $crate::workspace::ProjectInfo;
+            /// The signed-in account's GitHub repositories, or a search, for Add project (ADR 0088).
+            SearchRepositories / search_repositories / "forge.repos" [Read, (pending $crate::forge::REPOSITORY_SEARCH_PROTOCOL), unary]: $crate::forge::SearchRepositories => $crate::forge::RepositoryList;
         }
     };
 }
