@@ -20,6 +20,7 @@ mod log;
 mod node;
 mod nodes;
 pub(crate) mod parity;
+mod plugins;
 mod search;
 mod terminals;
 mod usage;
@@ -36,6 +37,7 @@ pub(crate) use inbox::InboxCommand;
 pub(crate) use log::{Log, LogMode};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
+pub(crate) use plugins::PluginCommand;
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
 pub(crate) use usage::{LookupChoice, Period, UsageCommand};
@@ -213,6 +215,12 @@ pub(crate) enum Command {
     Prompt {
         #[command(subcommand)]
         command: PromptCommand,
+    },
+    /// The node's plugins (ADR 0115): list, install from a directory,
+    /// enable, disable, reload, remove, logs, and `init` for a new one.
+    Plugin {
+        #[command(subcommand)]
+        command: PluginCommand,
     },
     /// Serve the web UI on this machine and open it in the browser: every
     /// node in your book, their sessions, the fleet and devices. It runs

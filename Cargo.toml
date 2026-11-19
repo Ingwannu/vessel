@@ -262,6 +262,9 @@ notify = "8"
 # encryption and VAPID signatures only; delivery uses our existing client.
 # ADR 0041 lists the dependency/licence and primitive provenance.
 web-push-native = { version = "0.5", default-features = false }
+# Plugin manifests' `requirements.vessel` (ADR 0115): already in the lock
+# through rustc_version; the widely used range implementation, std only.
+semver = "1"
 which = "7"
 # Wipes the node's secret key from memory when it is dropped: the key pair
 # (vessel-secure) and the bytes read from `node.key` (vessel-store).

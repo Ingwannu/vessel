@@ -327,7 +327,18 @@ impl Reply {
             | Self::ProjectIcon(_)
             // A new project directory (ADR 0113): refused below its protocol
             // before dispatch.
-            | Self::CreateProjectDirectory(_) => None,
+            | Self::CreateProjectDirectory(_)
+            // The plugin manager (ADR 0115): refused below its protocol
+            // before dispatch.
+            | Self::ListPlugins(_)
+            | Self::GetPluginLogs(_)
+            | Self::InspectPlugin(_)
+            | Self::InstallPlugin(_)
+            | Self::EnablePlugin(_)
+            | Self::DisablePlugin(_)
+            | Self::ReloadPlugin(_)
+            | Self::RemovePlugin(_)
+            | Self::WatchPlugins(_) => None,
         }
     }
 }

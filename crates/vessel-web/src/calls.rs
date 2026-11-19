@@ -268,6 +268,16 @@ const fn forwardable(method: Method) -> bool {
         // Protocol 12: the node's settings (the change needs `admin`).
         | Method::GetNodeSettings
         | Method::SetNodeSettings
+        // ADR 0115: the host's Plugins page (management needs `admin`).
+        | Method::ListPlugins
+        | Method::GetPluginLogs
+        | Method::InspectPlugin
+        | Method::InstallPlugin
+        | Method::EnablePlugin
+        | Method::DisablePlugin
+        | Method::ReloadPlugin
+        | Method::RemovePlugin
+        | Method::WatchPlugins
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession

@@ -383,6 +383,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::registry::PROJECT_DIRECTORY_PROTOCOL,
         "`project.create_directory`, and `~` in project paths (ADR 0113).",
     ),
+    (
+        "PLUGINS_PROTOCOL",
+        crate::plugins::PLUGINS_PROTOCOL,
+        "The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

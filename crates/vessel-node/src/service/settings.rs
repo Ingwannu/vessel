@@ -28,7 +28,8 @@ impl NodeService {
                 .validate_metadata(metadata)
                 .map_err(|error| WireError::new(ErrorCode::InvalidRequest, error.to_string()))?;
         }
-        self.settings.change(request).await.map_err(|error| {
+        let switch = request.plugins_enabled;
+        let settings = self.settings.change(request).await.map_err(|error| {
             let code = match error {
                 SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
                     ErrorCode::InvalidRequest
@@ -42,6 +43,11 @@ impl NodeService {
                 tracing::warn!(%error, "node settings not kept");
             }
             WireError::new(code, error.to_string())
-        })
+        })?;
+        // The plugin switch (ADR 0115) applies at once, once it is kept.
+        if switch.is_some() {
+            self.plugins_switched(settings.plugins_enabled);
+        }
+        Ok(settings)
     }
 }

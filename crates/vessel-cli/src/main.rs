@@ -30,6 +30,7 @@ mod node_ctl;
 mod nodes;
 mod pair;
 mod parity;
+mod plugins;
 mod presentation;
 mod project_commands;
 mod remote;
@@ -138,6 +139,7 @@ async fn cli() -> ExitCode {
         | Command::Usage { .. }
         | Command::Schedule { .. }
         | Command::Prompt { .. }
+        | Command::Plugin { .. }
         | Command::Init(_)
         | Command::Mcp
         | Command::Inbox { .. }

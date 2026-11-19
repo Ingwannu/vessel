@@ -948,7 +948,7 @@ zone: TimeZoneName, } | { "kind": "unknown" };
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.side_open", "params": OpenSideQuestion } | { "method": "session.side_prompt", "params": PromptSideQuestion } | { "method": "session.side_reset", "params": ResetSideQuestion } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.self", "params": GetDeviceSelf } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.published", "params": GetPublished } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "usage.query", "params": QueryUsage } | { "method": "push.key", "params": GetPushKey } | { "method": "push.subscribe", "params": SubscribePush } | { "method": "push.unsubscribe", "params": UnsubscribePush } | { "method": "push.presence", "params": ReportPushPresence } | { "method": "inbox.list", "params": ListInbox } | { "method": "inbox.get", "params": GetInboxEntry } | { "method": "inbox.mark", "params": MarkInbox } | { "method": "usage.limits", "params": GetUsageLimits } | { "method": "usage.lookup", "params": SetUsageLookup } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession } | { "method": "agent.history", "params": GetAgentHistory } | { "method": "session.detach", "params": DetachSession } | { "method": "workspace.registry", "params": GetRegistry } | { "method": "workspace.list", "params": ListWorkspaces } | { "method": "workspace.get", "params": GetWorkspace } | { "method": "workspace.rename", "params": RenameWorkspace } | { "method": "workspace.pin", "params": PinWorkspace } | { "method": "workspace.release_automation", "params": ReleaseWorkspaceAutomation } | { "method": "git.compare", "params": CompareGit } | { "method": "git.compare_file", "params": CompareGitFile } | { "method": "node.diagnostics", "params": GetDiagnostics } | { "method": "file.inspect", "params": InspectDirectory } | { "method": "file.read_bytes", "params": ReadFileBytes } | { "method": "file.duplicate", "params": DuplicateFileEntry } | { "method": "file.observe", "params": ObserveFile } | { "method": "file.suggest", "params": SuggestEntries } | { "method": "skills.status", "params": GetSkillsStatus } | { "method": "skills.reconcile", "params": ReconcileSkills } | { "method": "skills.uninstall", "params": UninstallSkills } | { "method": "skills.save_selection", "params": SaveSkillsSelection } | { "method": "skills.import_selection", "params": ImportSkillsSelection } | { "method": "usage.reports", "params": ListUsageReports } | { "method": "usage.inspect", "params": InspectUsageReport } | { "method": "usage.source_lookup", "params": SetUsageSourceLookup } | { "method": "workspace.label.list", "params": ListWorkspaceLabels } | { "method": "workspace.label.assign", "params": AssignWorkspaceLabel } | { "method": "workspace.label.update", "params": UpdateWorkspaceLabel } | { "method": "workspace.label.inspect_delete", "params": InspectWorkspaceLabelDelete } | { "method": "workspace.label.delete", "params": DeleteWorkspaceLabel } | { "method": "workspace.script.list", "params": WorkspaceScriptQuery } | { "method": "workspace.script.start", "params": StartWorkspaceScript } | { "method": "workspace.script.stop", "params": StopWorkspaceScript } | { "method": "workspace.script.restart", "params": RestartWorkspaceScript } | { "method": "workspace.service.env", "params": GetWorkspaceServiceEnv } | { "method": "service.settings", "params": GetServiceSettings } | { "method": "service.set_gateway", "params": SetServiceGateway } | { "method": "service.set_exposure", "params": SetServiceExposure } | { "method": "session.reload", "params": ReloadSession } | { "method": "folder.suggest", "params": SuggestFolders } | { "method": "project.icon", "params": GetProjectIcon } | { "method": "agent.diagnostic", "params": GetAgentDiagnostic } | { "method": "node.log", "params": ReadNodeLog } | { "method": "project.create_directory", "params": CreateProjectDirectory };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.side_open", "params": OpenSideQuestion } | { "method": "session.side_prompt", "params": PromptSideQuestion } | { "method": "session.side_reset", "params": ResetSideQuestion } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.self", "params": GetDeviceSelf } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.published", "params": GetPublished } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "usage.query", "params": QueryUsage } | { "method": "push.key", "params": GetPushKey } | { "method": "push.subscribe", "params": SubscribePush } | { "method": "push.unsubscribe", "params": UnsubscribePush } | { "method": "push.presence", "params": ReportPushPresence } | { "method": "inbox.list", "params": ListInbox } | { "method": "inbox.get", "params": GetInboxEntry } | { "method": "inbox.mark", "params": MarkInbox } | { "method": "usage.limits", "params": GetUsageLimits } | { "method": "usage.lookup", "params": SetUsageLookup } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession } | { "method": "agent.history", "params": GetAgentHistory } | { "method": "session.detach", "params": DetachSession } | { "method": "workspace.registry", "params": GetRegistry } | { "method": "workspace.list", "params": ListWorkspaces } | { "method": "workspace.get", "params": GetWorkspace } | { "method": "workspace.rename", "params": RenameWorkspace } | { "method": "workspace.pin", "params": PinWorkspace } | { "method": "workspace.release_automation", "params": ReleaseWorkspaceAutomation } | { "method": "git.compare", "params": CompareGit } | { "method": "git.compare_file", "params": CompareGitFile } | { "method": "node.diagnostics", "params": GetDiagnostics } | { "method": "file.inspect", "params": InspectDirectory } | { "method": "file.read_bytes", "params": ReadFileBytes } | { "method": "file.duplicate", "params": DuplicateFileEntry } | { "method": "file.observe", "params": ObserveFile } | { "method": "file.suggest", "params": SuggestEntries } | { "method": "skills.status", "params": GetSkillsStatus } | { "method": "skills.reconcile", "params": ReconcileSkills } | { "method": "skills.uninstall", "params": UninstallSkills } | { "method": "skills.save_selection", "params": SaveSkillsSelection } | { "method": "skills.import_selection", "params": ImportSkillsSelection } | { "method": "usage.reports", "params": ListUsageReports } | { "method": "usage.inspect", "params": InspectUsageReport } | { "method": "usage.source_lookup", "params": SetUsageSourceLookup } | { "method": "workspace.label.list", "params": ListWorkspaceLabels } | { "method": "workspace.label.assign", "params": AssignWorkspaceLabel } | { "method": "workspace.label.update", "params": UpdateWorkspaceLabel } | { "method": "workspace.label.inspect_delete", "params": InspectWorkspaceLabelDelete } | { "method": "workspace.label.delete", "params": DeleteWorkspaceLabel } | { "method": "workspace.script.list", "params": WorkspaceScriptQuery } | { "method": "workspace.script.start", "params": StartWorkspaceScript } | { "method": "workspace.script.stop", "params": StopWorkspaceScript } | { "method": "workspace.script.restart", "params": RestartWorkspaceScript } | { "method": "workspace.service.env", "params": GetWorkspaceServiceEnv } | { "method": "service.settings", "params": GetServiceSettings } | { "method": "service.set_gateway", "params": SetServiceGateway } | { "method": "service.set_exposure", "params": SetServiceExposure } | { "method": "session.reload", "params": ReloadSession } | { "method": "folder.suggest", "params": SuggestFolders } | { "method": "project.icon", "params": GetProjectIcon } | { "method": "agent.diagnostic", "params": GetAgentDiagnostic } | { "method": "node.log", "params": ReadNodeLog } | { "method": "project.create_directory", "params": CreateProjectDirectory } | { "method": "plugin.list", "params": ListPlugins } | { "method": "plugin.logs", "params": GetPluginLogs } | { "method": "plugin.inspect", "params": InspectPlugin } | { "method": "plugin.install", "params": InstallPlugin } | { "method": "plugin.enable", "params": EnablePlugin } | { "method": "plugin.disable", "params": DisablePlugin } | { "method": "plugin.reload", "params": ReloadPlugin } | { "method": "plugin.remove", "params": RemovePlugin } | { "method": "plugin.watch", "params": WatchPlugins };
 
 /**
  * What `fleet.callback` answers.
@@ -964,6 +964,11 @@ relays: Array<RouteUrl>,
  * A ticket for the member's key, with `relays`.
  */
 ticket?: RelayTicket | null, };
+
+/**
+ * A one-line accessible label for a contribution or control.
+ */
+export type Caption = string;
 
 /**
  * Resume identity is scoped to one catalog service generation.
@@ -1566,6 +1571,11 @@ attachment: AttachmentRef, };
  * SHA-256 of a file's content, hexadecimal.
  */
 export type ContentHash = string & { readonly __brand: "ContentHash" };
+
+/**
+ * Bounded multiline display content; core never evaluates it as code.
+ */
+export type ContentText = string;
 
 /**
  * Scope and age of every answer, including empty answers.
@@ -2819,6 +2829,16 @@ more: boolean, };
 export type DirectoryName = string;
 
 /**
+ * `plugin.disable`: save the installation as disabled and stop it.
+ * Needs `admin`.
+ */
+export type DisablePlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
+
+/**
  * `git.discard`: drop local changes.
  */
 export type Discard = { 
@@ -2915,6 +2935,16 @@ path: RelPath, };
  * A duration in whole milliseconds.
  */
 export type DurationMs = number;
+
+/**
+ * `plugin.enable`: save the installation as enabled and start it when
+ * plugins are on. Needs `admin`.
+ */
+export type EnablePlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
 
 /**
  * Why a schedule ended.
@@ -3921,6 +3951,15 @@ export type GetNode = null;
 export type GetNodeSettings = Record<symbol, never>;
 
 /**
+ * `plugin.logs`: an installation's retained log tail. Needs `admin`.
+ */
+export type GetPluginLogs = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
+
+/**
  * `project.get`: one project, at once or after its next change.
  */
 export type GetProject = { 
@@ -4824,6 +4863,16 @@ directory: RelPath,
 ignored: IgnoredEntries, };
 
 /**
+ * `plugin.inspect`: read a directory's manifest without installing it.
+ * Needs `admin` (it reads a path on the node).
+ */
+export type InspectPlugin = { 
+/**
+ * An absolute path, or one starting with `~`.
+ */
+path: string, };
+
+/**
  * Exact opaque report lookup shares the list's account resolver.
  */
 export type InspectUsageReport = { 
@@ -4971,6 +5020,26 @@ state: InstallState, };
  * What an install puts in place.
  */
 export type InstallPart = "harness" | "adapter";
+
+/**
+ * `plugin.install`: install from Paseo's source string. Needs `admin`.
+ * This protocol takes a directory (absolute or `~`, optionally
+ * `:<relative subpath>`); other source kinds are refused until managed
+ * sources land.
+ */
+export type InstallPlugin = { 
+/**
+ * Paseo's source string.
+ */
+source: string, 
+/**
+ * The installation id; the manifest's when absent.
+ */
+id?: PluginId, 
+/**
+ * A Git ref; refused for a directory, as Paseo refuses it.
+ */
+ref?: string, };
 
 /**
  * An install's state.
@@ -5457,6 +5526,11 @@ export type ListNodes = null;
 export type ListPeers = null;
 
 /**
+ * `plugin.list`: every installation on this node. Needs `read`.
+ */
+export type ListPlugins = Record<symbol, never>;
+
+/**
  * `port.list`: the listeners found, at once or after the next change.
  */
 export type ListPorts = { 
@@ -5654,9 +5728,55 @@ file: FilePath,
 range: Range, };
 
 /**
+ * Diagnostic content is never part of a scoped catalog/list failure response.
+ */
+export type LogEntry = { 
+/**
+ * Stable row identity within a node lifetime.
+ */
+sequence: LogSequence, 
+/**
+ * UTC receipt time, not helper-supplied log clock.
+ */
+at: string, 
+/**
+ * Core lifecycle or private helper stderr.
+ */
+stream: LogStream, 
+/**
+ * Management-only text; Debug and Display are deliberately redacted.
+ */
+message: LogText, 
+/**
+ * Explicit evidence that an overlong line lost its suffix.
+ */
+truncation: LogTruncation, };
+
+/**
+ * Per-installation increasing diagnostic identity; never wraps into an older row.
+ */
+export type LogSequence = number;
+
+/**
  * Where a node without a log file writes.
  */
 export type LogSink = "terminal" | "elsewhere";
+
+/**
+ * Keep stream identity rather than parsing a string in a renderer.
+ */
+export type LogStream = "host" | "stderr";
+
+/**
+ * Diagnostics are display data, not a command or an error message safe for
+ * scoped clients. Ambient tracing must log metadata only, never this value.
+ */
+export type LogText = string;
+
+/**
+ * An overlong line is explicit UI metadata rather than a silently shortened result.
+ */
+export type LogTruncation = "complete" | "prefix_retained";
 
 /**
  * A call edge anchored at its caller's source sites.
@@ -5908,7 +6028,7 @@ providers: Array<MetadataProvider>, };
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "session.detach" | "workspace.registry" | "workspace.list" | "workspace.get" | "workspace.rename" | "workspace.pin" | "workspace.release_automation" | "git.compare" | "git.compare_file" | "node.diagnostics" | "file.inspect" | "file.read_bytes" | "file.duplicate" | "file.observe" | "file.suggest" | "skills.status" | "skills.reconcile" | "skills.uninstall" | "skills.save_selection" | "skills.import_selection" | "usage.reports" | "usage.inspect" | "usage.source_lookup" | "workspace.label.list" | "workspace.label.assign" | "workspace.label.update" | "workspace.label.inspect_delete" | "workspace.label.delete" | "workspace.script.list" | "workspace.script.start" | "workspace.script.stop" | "workspace.script.restart" | "workspace.service.env" | "service.settings" | "service.set_gateway" | "service.set_exposure" | "session.reload" | "folder.suggest" | "project.icon" | "agent.diagnostic" | "node.log" | "project.create_directory";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "session.detach" | "workspace.registry" | "workspace.list" | "workspace.get" | "workspace.rename" | "workspace.pin" | "workspace.release_automation" | "git.compare" | "git.compare_file" | "node.diagnostics" | "file.inspect" | "file.read_bytes" | "file.duplicate" | "file.observe" | "file.suggest" | "skills.status" | "skills.reconcile" | "skills.uninstall" | "skills.save_selection" | "skills.import_selection" | "usage.reports" | "usage.inspect" | "usage.source_lookup" | "workspace.label.list" | "workspace.label.assign" | "workspace.label.update" | "workspace.label.inspect_delete" | "workspace.label.delete" | "workspace.script.list" | "workspace.script.start" | "workspace.script.stop" | "workspace.script.restart" | "workspace.service.env" | "service.settings" | "service.set_gateway" | "service.set_exposure" | "session.reload" | "folder.suggest" | "project.icon" | "agent.diagnostic" | "node.log" | "project.create_directory" | "plugin.list" | "plugin.logs" | "plugin.inspect" | "plugin.install" | "plugin.enable" | "plugin.disable" | "plugin.reload" | "plugin.remove" | "plugin.watch";
 
 /**
  * A media type without parameters, `type/subtype`, lower case
@@ -6171,7 +6291,12 @@ restart_recovery?: RestartRecovery,
  * Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
  * `None` means this peer cannot generate.
  */
-metadata?: MetadataSettings, };
+metadata?: MetadataSettings, 
+/**
+ * Whether installed plugins run on this node (ADR 0115, Paseo's
+ * `pluginsEnabled`, default off); hidden below `PLUGINS_PROTOCOL`.
+ */
+plugins_enabled?: boolean, };
 
 /**
  * Whether a node is taking new work.
@@ -6647,6 +6772,106 @@ export type PlanPriority = "high" | "medium" | "low";
  * Progress of a plan entry.
  */
 export type PlanStatus = "pending" | "in_progress" | "completed";
+
+/**
+ * A number that moves on every plugin change on this node: an install, a
+ * removal, a saved intent, a status, the switch, a catalog or settings.
+ * Starts at zero for each node start.
+ */
+export type PluginGeneration = number;
+
+/**
+ * An installation id; configuration may assign a different id to the same directory.
+ */
+export type PluginId = string;
+
+/**
+ * Reply to `plugin.inspect`: the manifest's identity.
+ */
+export type PluginInspection = { 
+/**
+ * The manifest's id, the default installation id.
+ */
+id: PluginId, 
+/**
+ * The manifest's name.
+ */
+name?: Caption, 
+/**
+ * The manifest's description.
+ */
+description?: ContentText, };
+
+/**
+ * Reply to `plugin.list`, in installation id order.
+ */
+export type PluginList = { 
+/**
+ * One row per installation.
+ */
+plugins: Array<PluginListItem>, };
+
+/**
+ * One installation as Paseo's `PluginListItem`.
+ */
+export type PluginListItem = { 
+/**
+ * The installation id (config key), not necessarily the manifest's.
+ */
+id: PluginId, 
+/**
+ * The manifest's name.
+ */
+name?: Caption, 
+/**
+ * The manifest's description.
+ */
+description?: ContentText, 
+/**
+ * The manifest's icon path, relative to the plugin's directory.
+ */
+icon?: string, 
+/**
+ * The directory on the node; only for an Admin caller.
+ */
+path?: string, 
+/**
+ * Where its files come from.
+ */
+source: PluginSourceKind, 
+/**
+ * The saved intent, independent of the node's global switch.
+ */
+enabled: boolean, 
+/**
+ * What runs now.
+ */
+status: PluginStatus, 
+/**
+ * Why it failed, in the node's words; only for an Admin caller.
+ */
+error?: string, };
+
+/**
+ * Reply to `plugin.logs`, oldest first.
+ */
+export type PluginLogs = { 
+/**
+ * At most Paseo's 500 entries and 256 KiB (`MAX_LOG_*`).
+ */
+entries: Array<LogEntry>, };
+
+/**
+ * Where an installation's files come from. Directory only until managed
+ * sources land (ADR 0115, P4); a later kind is a new variant at its own
+ * protocol.
+ */
+export type PluginSourceKind = "directory";
+
+/**
+ * Paseo's three states of an installation (`PluginStatusSchema`).
+ */
+export type PluginStatus = "running" | "disabled" | "failed";
 
 /**
  * `port.list`'s answer.
@@ -7955,6 +8180,16 @@ expected: RegistryRevision,
 source: BlockedSource, };
 
 /**
+ * `plugin.reload`: stop it and start it again from disk; may end
+ * failed, as Paseo's. Needs `admin`.
+ */
+export type ReloadPlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
+
+/**
  * `profile.reload` (protocol 5): read `profiles.toml` again. If it does
  * not parse, the node keeps the profiles it had and the error says where.
  * Answers with the profiles now in effect. Needs `Admin`.
@@ -8006,6 +8241,16 @@ export type RemoveAgent = {
  * Which agent.
  */
 name: AgentName, };
+
+/**
+ * `plugin.remove`: stop it and forget it, with its settings and logs;
+ * a directory source is left on disk. Needs `admin`.
+ */
+export type RemovePlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
 
 /**
  * `project.remove`: forget a project (its files stay).
@@ -8133,7 +8378,7 @@ title: SessionTitle | null, };
 /**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.side_open", "result": SessionInfo } | { "method": "session.side_prompt", "result": Delivered } | { "method": "session.side_reset", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.self", "result": DeviceSelf } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.published", "result": FleetPublished } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "usage.query", "result": UsageReport } | { "method": "push.key", "result": PushKey } | { "method": "push.subscribe", "result": PushLease } | { "method": "push.unsubscribe", "result": Ack } | { "method": "push.presence", "result": Ack } | { "method": "inbox.list", "result": InboxPage } | { "method": "inbox.get", "result": InboxEntry | null } | { "method": "inbox.mark", "result": Ack } | { "method": "usage.limits", "result": UsageLimits } | { "method": "usage.lookup", "result": ExternalLookup } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo } | { "method": "agent.history", "result": AgentHistoryPage } | { "method": "session.detach", "result": DetachedSession } | { "method": "workspace.registry", "result": RegistrySnapshot } | { "method": "workspace.list", "result": Array<WorkspaceDescriptor> } | { "method": "workspace.get", "result": WorkspaceDescriptor } | { "method": "workspace.rename", "result": WorkspaceDescriptor } | { "method": "workspace.pin", "result": WorkspaceDescriptor } | { "method": "workspace.release_automation", "result": WorkspaceDescriptor } | { "method": "git.compare", "result": GitCompared<DiffSummary> } | { "method": "git.compare_file", "result": GitCompared<FileDiff> } | { "method": "node.diagnostics", "result": DiagnosticReport } | { "method": "file.inspect", "result": InspectedDirectory } | { "method": "file.read_bytes", "result": FileBytePage } | { "method": "file.duplicate", "result": DuplicatedFileEntry } | { "method": "file.observe", "result": ObservedFile } | { "method": "file.suggest", "result": EntrySuggestions } | { "method": "skills.status", "result": SkillsSnapshot } | { "method": "skills.reconcile", "result": SkillsSnapshot } | { "method": "skills.uninstall", "result": SkillsSnapshot } | { "method": "skills.save_selection", "result": SkillsSaved } | { "method": "skills.import_selection", "result": SkillsImported } | { "method": "usage.reports", "result": UsageReports } | { "method": "usage.inspect", "result": UsageReportLookup } | { "method": "usage.source_lookup", "result": UsageSourceDescriptor } | { "method": "workspace.label.list", "result": CatalogList } | { "method": "workspace.label.assign", "result": WorkspaceLabelAssigned } | { "method": "workspace.label.update", "result": WorkspaceLabelUpdated } | { "method": "workspace.label.inspect_delete", "result": WorkspaceLabelDeleted } | { "method": "workspace.label.delete", "result": WorkspaceLabelDeleted } | { "method": "workspace.script.list", "result": WorkspaceScriptQueryResult } | { "method": "workspace.script.start", "result": WorkspaceScriptOutcome } | { "method": "workspace.script.stop", "result": WorkspaceScriptOutcome } | { "method": "workspace.script.restart", "result": WorkspaceScriptOutcome } | { "method": "workspace.service.env", "result": ServiceEnvPlan } | { "method": "service.settings", "result": ServicesAdminSettings } | { "method": "service.set_gateway", "result": ServiceSettingsOutcome } | { "method": "service.set_exposure", "result": ServiceSettingsOutcome } | { "method": "session.reload", "result": SessionInfo } | { "method": "folder.suggest", "result": FolderSuggestions } | { "method": "project.icon", "result": ProjectIcon } | { "method": "agent.diagnostic", "result": AgentDiagnostic } | { "method": "node.log", "result": NodeLog } | { "method": "project.create_directory", "result": ProjectInfo };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.side_open", "result": SessionInfo } | { "method": "session.side_prompt", "result": Delivered } | { "method": "session.side_reset", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.self", "result": DeviceSelf } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.published", "result": FleetPublished } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "usage.query", "result": UsageReport } | { "method": "push.key", "result": PushKey } | { "method": "push.subscribe", "result": PushLease } | { "method": "push.unsubscribe", "result": Ack } | { "method": "push.presence", "result": Ack } | { "method": "inbox.list", "result": InboxPage } | { "method": "inbox.get", "result": InboxEntry | null } | { "method": "inbox.mark", "result": Ack } | { "method": "usage.limits", "result": UsageLimits } | { "method": "usage.lookup", "result": ExternalLookup } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo } | { "method": "agent.history", "result": AgentHistoryPage } | { "method": "session.detach", "result": DetachedSession } | { "method": "workspace.registry", "result": RegistrySnapshot } | { "method": "workspace.list", "result": Array<WorkspaceDescriptor> } | { "method": "workspace.get", "result": WorkspaceDescriptor } | { "method": "workspace.rename", "result": WorkspaceDescriptor } | { "method": "workspace.pin", "result": WorkspaceDescriptor } | { "method": "workspace.release_automation", "result": WorkspaceDescriptor } | { "method": "git.compare", "result": GitCompared<DiffSummary> } | { "method": "git.compare_file", "result": GitCompared<FileDiff> } | { "method": "node.diagnostics", "result": DiagnosticReport } | { "method": "file.inspect", "result": InspectedDirectory } | { "method": "file.read_bytes", "result": FileBytePage } | { "method": "file.duplicate", "result": DuplicatedFileEntry } | { "method": "file.observe", "result": ObservedFile } | { "method": "file.suggest", "result": EntrySuggestions } | { "method": "skills.status", "result": SkillsSnapshot } | { "method": "skills.reconcile", "result": SkillsSnapshot } | { "method": "skills.uninstall", "result": SkillsSnapshot } | { "method": "skills.save_selection", "result": SkillsSaved } | { "method": "skills.import_selection", "result": SkillsImported } | { "method": "usage.reports", "result": UsageReports } | { "method": "usage.inspect", "result": UsageReportLookup } | { "method": "usage.source_lookup", "result": UsageSourceDescriptor } | { "method": "workspace.label.list", "result": CatalogList } | { "method": "workspace.label.assign", "result": WorkspaceLabelAssigned } | { "method": "workspace.label.update", "result": WorkspaceLabelUpdated } | { "method": "workspace.label.inspect_delete", "result": WorkspaceLabelDeleted } | { "method": "workspace.label.delete", "result": WorkspaceLabelDeleted } | { "method": "workspace.script.list", "result": WorkspaceScriptQueryResult } | { "method": "workspace.script.start", "result": WorkspaceScriptOutcome } | { "method": "workspace.script.stop", "result": WorkspaceScriptOutcome } | { "method": "workspace.script.restart", "result": WorkspaceScriptOutcome } | { "method": "workspace.service.env", "result": ServiceEnvPlan } | { "method": "service.settings", "result": ServicesAdminSettings } | { "method": "service.set_gateway", "result": ServiceSettingsOutcome } | { "method": "service.set_exposure", "result": ServiceSettingsOutcome } | { "method": "session.reload", "result": SessionInfo } | { "method": "folder.suggest", "result": FolderSuggestions } | { "method": "project.icon", "result": ProjectIcon } | { "method": "agent.diagnostic", "result": AgentDiagnostic } | { "method": "node.log", "result": NodeLog } | { "method": "project.create_directory", "result": ProjectInfo } | { "method": "plugin.list", "result": PluginList } | { "method": "plugin.logs", "result": PluginLogs } | { "method": "plugin.inspect", "result": PluginInspection } | { "method": "plugin.install", "result": PluginListItem } | { "method": "plugin.enable", "result": PluginListItem } | { "method": "plugin.disable", "result": PluginListItem } | { "method": "plugin.reload", "result": PluginListItem } | { "method": "plugin.remove", "result": Ack } | { "method": "plugin.watch", "result": PluginGeneration };
 
 /**
  * A repository's path on its forge: `owner/name`, or GitLab's
@@ -10105,7 +10350,11 @@ drivers?: SetAgentDrivers | null,
  * Strict generated-name patch; an empty list resets automatic selection.
  * Refused until `GENERATED_NAMES` is assigned at integration.
  */
-metadata?: MetadataSettings | null, };
+metadata?: MetadataSettings | null, 
+/**
+ * Turn installed plugins on or off on this node, at once (ADR 0115).
+ */
+plugins_enabled?: boolean | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -12257,6 +12506,17 @@ export type WatchFleet = {
 after: Generation, };
 
 /**
+ * `plugin.watch`: wait for a generation other than `after`. A long poll:
+ * the node answers when one is published, or with its current generation
+ * when its wait limit passes, and the client asks again. Needs `read`.
+ */
+export type WatchPlugins = { 
+/**
+ * The generation the client has.
+ */
+after: PluginGeneration, };
+
+/**
  * An error returned in place of a response.
  */
 export type WireError = { 
@@ -12846,3 +13106,8 @@ export const DIAGNOSTICS_WIRE_PROTOCOL = 33;
  * `project.create_directory`, and `~` in project paths (ADR 0113).
  */
 export const PROJECT_DIRECTORY_PROTOCOL = 34;
+
+/**
+ * The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).
+ */
+export const PLUGINS_PROTOCOL = 35;

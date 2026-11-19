@@ -68,6 +68,7 @@ mod log;
 mod marks;
 mod mutation_time;
 mod node_key;
+mod plugin_files;
 mod push;
 mod push_key;
 mod reader;

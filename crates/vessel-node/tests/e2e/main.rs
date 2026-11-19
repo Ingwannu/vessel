@@ -94,6 +94,8 @@ mod options;
 mod page_wire;
 mod parking;
 #[cfg(test)]
+mod plugins;
+#[cfg(test)]
 mod profiles;
 #[cfg(test)]
 mod project_directory;
