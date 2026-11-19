@@ -1,0 +1,166 @@
+/* FlowSheet (flow-sheet.tsx): Paseo's Add project panel values
+   (`add-project-flow.tsx` styles, pinned 0.15.4) in the page's colours. */
+
+.flow-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  /* Paseo's rgba(0, 0, 0, 0.5) in both themes. */
+  background: rgb(0 0 0 / 50%);
+}
+
+.flow-sheet-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 48px;
+}
+
+.flow-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 640px;
+  max-width: 92%;
+  max-height: 80%;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--popup-bg);
+  /* Paseo's shadow lg: 12 down, 24 blur (black at 40% in dark). */
+  box-shadow: 0 12px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
+  color: var(--text-primary);
+  outline: none;
+}
+
+.flow-sheet-header {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.flow-sheet-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.flow-sheet-input {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+
+.flow-sheet-input:focus-visible {
+  /* Paseo's input has no outline; the page's global ring would draw one
+     after keyboard focus (as the palette's input, it opts out). */
+  outline: none;
+}
+
+.flow-sheet-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.flow-sheet-back {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.flow-sheet-back:hover,
+.flow-sheet-back:active {
+  color: var(--text-primary);
+}
+
+.flow-sheet-titles {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.flow-sheet-title,
+.flow-sheet-context {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-sheet-title {
+  flex-shrink: 1;
+  color: var(--text-primary);
+}
+
+.flow-sheet-context {
+  flex-shrink: 1;
+  color: var(--text-tertiary);
+}
+
+.flow-sheet-results {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-width: none;
+}
+
+.flow-sheet-footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.flow-sheet-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* Paseo's Shortcut badge: 4 by 2 inside, radius 6, its surface3 at half
+   (here the ink at 7%), the keys 12 in the foreground. */
+.flow-sheet-hint kbd {
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: var(--bg-active);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Paseo shows the hints only with a hardware keyboard. */
+@media (hover: none) {
+  .flow-sheet-hint {
+    display: none;
+  }
+}

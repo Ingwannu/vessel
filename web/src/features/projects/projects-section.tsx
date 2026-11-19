@@ -1,8 +1,7 @@
-// Settings › Projects (Paseo's projects in its settings, agent-
-// orchestrator's add-project flow): a machine's projects as rows, the
-// way to add one at the heading's right (a folder, a clone, a new one),
-// the machine's git when it cannot be used, and the chosen project's
-// detail under the list.
+// Settings › Projects (Paseo's projects in its settings): a machine's
+// projects as rows, Add project at the heading's right (Paseo's sheet,
+// on this machine: add-project-flow.tsx, TRACKER 234), the machine's git
+// when it cannot be used, and the chosen project's detail under the list.
 
 import "./projects.css";
 
@@ -11,6 +10,7 @@ import { useState } from "react";
 import { useFleet, useFleetState } from "../../context";
 import { machineFor } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
+import { openAddProject } from "../../data/workspace/add-project/request";
 import { loadProjects, useProjects } from "../../data/workspace/project-store";
 import { removeProject } from "../../data/workspace/projects";
 import {
@@ -35,7 +35,6 @@ import type { NodeKey } from "../../wire/bridge";
 import type { ProjectId, ProjectInfo } from "../../wire/proto";
 import { MachinePicker } from "../machines/machine-picker";
 import { SettingsPage, SettingsSection } from "../settings/settings-page";
-import { type AddWay, AddProjectDialog } from "./add-project-dialog";
 import { ProjectDetail } from "./project-detail";
 import { ProjectIcon } from "./project-icon";
 
@@ -60,7 +59,6 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
   const selected = useFleetState((state) => state.selected);
   const node = machineFor(book ?? [], machine, selected);
   const projects = useProjects(fleet, node?.key ?? null);
-  const [adding, setAdding] = useState<AddWay | null>(null);
   const [open, setOpen] = useState<ProjectId | null>(null);
   // A removal the node refused, in words under the list until dismissed.
   const [failure, setFailure] = useState<string | null>(null);
@@ -79,39 +77,16 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
   const list = projects.kind === "ready" ? projects.list.projects : [];
   const chosen = list.find((project) => project.id === open) ?? null;
   const add = (
-    <Menu
-      align="end"
-      trigger={
-        <Button variant="ghost" size="xs" icon="plus">
-          Add project
-        </Button>
-      }
+    <Button
+      variant="ghost"
+      size="xs"
+      icon="plus"
+      onClick={() => {
+        openAddProject(node.key);
+      }}
     >
-      <MenuItem
-        icon="folder"
-        onSelect={() => {
-          setAdding("folder");
-        }}
-      >
-        Add a folder…
-      </MenuItem>
-      <MenuItem
-        icon="git-fork"
-        onSelect={() => {
-          setAdding("clone");
-        }}
-      >
-        Clone a repository…
-      </MenuItem>
-      <MenuItem
-        icon="folder-plus"
-        onSelect={() => {
-          setAdding("init");
-        }}
-      >
-        Start a new project…
-      </MenuItem>
-    </Menu>
+      Add project
+    </Button>
   );
   const git =
     projects.kind === "ready" ? gitSupportWords(projects.list.git) : null;
@@ -137,7 +112,8 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
           <p className="settings-empty">{projects.problem.message}</p>
         ) : list.length === 0 ? (
           <EmptyState title="No projects yet" icon="folder" action={add}>
-            Add a folder of {label}, clone a repository there, or start one.
+            Add a folder of {label}, clone a repository there, or make a new
+            one.
           </EmptyState>
         ) : (
           <RowList label="Projects">
@@ -252,16 +228,6 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
           node={node.key}
           label={label}
           project={chosen}
-        />
-      )}
-      {adding === null ? null : (
-        <AddProjectDialog
-          node={node.key}
-          label={label}
-          way={adding}
-          onClose={() => {
-            setAdding(null);
-          }}
         />
       )}
     </SettingsPage>
