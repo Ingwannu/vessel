@@ -83,8 +83,7 @@ none to done, or to a stated difference, without waiting on the node.
     is in front on another session. The page today shows notices only while it is away; it changes to
     this rule.
   - One notice per transition. The same tag (machine, session, kind) replaces an earlier notification
-    where the platform does (Windows, the page's browsers). The GPUI Linux patch does not, which is a
-    stated difference below.
+    (Windows, Linux, the page's browsers).
   - The window or tab title counts the notices since the app was last active, when the title switch is
     on.
 - **Native delivery:**
@@ -128,8 +127,6 @@ none to done, or to a stated difference, without waiting on the node.
   - The OS notification text is generic: the session's name, not Paseo's last-message preview. Native
     fleet cards do not carry the last message, and ADR 0089 keeps OS text free of content.
   - Mobile push (J30-J35) does not apply: Vessel has no mobile app, and the page's Web Push is ADR 0041's.
-  - On Linux the same session and kind shows another notification, not a replacement (the GPUI Linux
-    patch, above).
   - macOS shows no system notification until the GPUI patch has one, and plays no sound (link has no
     audio output there); its test is the error Alert with that reason.
 - Impact:
@@ -154,9 +151,9 @@ none to done, or to a stated difference, without waiting on the node.
   Windows patch registers the id under `HKCU\Software\Classes\AppUserModelId`.
 - **Tags.** Each tag is `vessel-<random run id>-<n>`. It carries no machine, session or path. The last 64
   tags are mapped in the process. The same (machine, session, kind) reuses its tag. Windows replaces
-  the earlier toast by tag. The GPUI Linux patch does not pass the tag on as `replaces_id`, and its
-  dismiss does nothing, so Linux shows a second notification. The D-Bus record of the frames shows
-  this. It is a stated difference; the fix belongs in the release track's patch. A click on a known
+  the earlier toast by tag. On Linux the GPUI patch passes the tag's id as `replaces_id` and dismiss
+  calls `CloseNotification` (patch 16 in spikes/release/patches, TRACKER 818, 2026-11-19). Before it,
+  the D-Bus record of the frames showed a second notification for the same tag. A click on a known
   tag activates the window and opens the session;
   an unknown tag only activates the window.
 - **Sound.** One sound per change of the fleet: needs-you if any, else finished. Ten sessions ending in
