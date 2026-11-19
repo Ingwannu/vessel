@@ -33,7 +33,7 @@ impl Render for Probe {
             field: div().into_any_element(),
             field_shown: true,
             results: vec![open.into_any_element(), closed.into_any_element()],
-            scroll: gpui::ScrollHandle::new(),
+            scroll: ScrollHandle::new(),
             hints: Vec::new(),
         };
         let handlers = FlowHandlers {
