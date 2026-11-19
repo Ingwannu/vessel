@@ -1,6 +1,7 @@
 //! Projects' icons through the real link (`Scenario`): each listed project
-//! asked once on a machine speaking the protocol, the answer kept as an
-//! image or as none; an older machine is not asked.
+//! asked once on a machine speaking the protocol, one ask out at a time,
+//! the answer kept as an image or as none, a refusal asked again with the
+//! next list; an older machine is not asked.
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::Event;
@@ -75,7 +76,15 @@ fn each_listed_project_is_asked_once_and_kept_as_an_image_or_none(cx: &mut TestA
             kind: IconType::Svg,
             bytes: IconBytes::new(b"<svg viewBox='0 0 1 1'/>".to_vec().into()).unwrap(),
         };
-        // The asks go out together; their order on the wire is the link's.
+        // One ask is out for the machine, the others wait for its answer
+        // (the node's file work refuses beyond four at once); their order
+        // on the wire is the link's.
+        let icons = &shell.areas.workspace.icons;
+        assert!(icons.out.contains(&name));
+        assert_eq!(
+            icons.waiting.get(&name).map(VecDeque::len),
+            Some(ids.len().saturating_sub(1))
+        );
         let mut asked = Vec::new();
         for _ in 0..ids.len() {
             let Call::ProjectIcon(ask) = scene.request(shell.fixture_link()).unwrap() else {
@@ -102,7 +111,7 @@ fn each_listed_project_is_asked_once_and_kept_as_an_image_or_none(cx: &mut TestA
         assert!(icons.icon(&name, first).is_some());
         assert!(icons.icon(&name, second).is_none());
         // Listed again: nothing asked again.
-        assert!(shell.workspace_answer(&name, Answer::Projects(Ok(projects)), cx));
+        assert!(shell.workspace_answer(&name, Answer::Projects(Ok(projects.clone())), cx));
         let calls = scene.transcript(shell.fixture_link()).unwrap();
         assert_eq!(
             calls
@@ -111,6 +120,21 @@ fn each_listed_project_is_asked_once_and_kept_as_an_image_or_none(cx: &mut TestA
                 .count(),
             2
         );
+        // A refusal (the node's file work busy) is forgotten: the next list
+        // asks it again.
+        shell.project_icon_read(&name, first, Err(Problem::Gone("busy".to_owned())));
+        assert!(shell.workspace_answer(&name, Answer::Projects(Ok(projects)), cx));
+        assert!(
+            matches!(scene.request(shell.fixture_link()).unwrap(), Call::ProjectIcon(ask) if ask.project == first)
+        );
+        scene
+            .reply(
+                shell.fixture_link(),
+                Outcome::Ok(Reply::ProjectIcon(ProjectIcon { icon: None })),
+            )
+            .unwrap();
+        let (machine, answer) = workspace_answer(&mut scene, shell);
+        assert!(shell.workspace_answer(&machine, answer, cx));
         scene.close(shell.fixture_link()).unwrap();
     });
 }
