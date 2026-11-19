@@ -19,9 +19,9 @@
 //!     window forward and opens the session. An unknown or older tag (from
 //!     an earlier run, or past 64) only brings the window forward.
 //!   - The same session and kind reuses its tag. Windows then replaces
-//!     the earlier toast. The GPUI Linux patch does not map a tag to the
-//!     server's `replaces_id`, so Linux shows another one (seen on the
-//!     D-Bus record, ADR 0114). That patch is the release track's.
+//!     the earlier toast, and Linux the earlier notification (the GPUI
+//!     Linux patch maps the tag to the server's `replaces_id`, patch 16,
+//!     TRACKER 818).
 //!   - One sound per change of the fleet: needs-you if any, else finished.
 //!     Ten sessions finishing in one read sound once, not ten times over
 //!     each other. (The page plays one for each notice.)

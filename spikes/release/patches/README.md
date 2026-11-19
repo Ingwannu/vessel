@@ -140,9 +140,10 @@ had SHA-256
 `7c6ffd2dce7b75cce0bb3382994912f84c2a05389a4a236bb8bd72cb098fc083`.
 Removed from the copy: its `Cargo.lock` (unused for a dependency).
 
-Changed: `src/linux/x11/client.rs` and `src/linux/x11/xim_handler.rs`,
-each marked `MODIFIED by Vessel` at the top and `Vessel patch` at each
-change.
+Changed: `src/linux/x11/client.rs`, `src/linux/x11/xim_handler.rs` and
+`src/linux/system_notifications.rs`, each marked `MODIFIED by Vessel` at
+the top and `Vessel patch` at each change. Added: `tests/fake_notifyd.py`,
+the test server of change 16 (`ADDED by Vessel` at its top).
 
 ### 3. One XIM input context per window
 
@@ -200,6 +201,50 @@ change.
 - Wayland is not changed: the pinned crate's `zwp_text_input_v3` client
   composes in place (sway nested on Xvfb, fcitx5 over input-method-v2:
   한그 drawn with the syllable underlined, then 한글 committed).
+
+### 16. A tag replaces its notification on Linux, and dismiss closes it
+
+- Purpose: the app gives each (machine, session, kind) one tag
+  (ADR 0114), so a session that finishes twice shows one notification,
+  as on Windows, and a notice the app has read leaves the shade.
+- Upstream's constraint: `show` never set the D-Bus `replaces_id`, so the
+  same tag showed a second notification; and `dismiss` did nothing,
+  because `wait_for_action` consumes notify-rust's handle, which is the
+  only way to call `CloseNotification` (it has no close by id). Seen in
+  impl U's ADR 0114 proof: the stand-in server recorded `replaces: 0` for
+  the same session and kind (TRACKER 818).
+- Alternatives:
+  1. Call `CloseNotification` through another D-Bus client (`ashpd`'s
+     `zbus`, or a direct `zbus`): `ashpd` is optional in this crate (the
+     `x11`/`wayland` features), and a direct dependency changes the lock.
+  2. Wait with notify-rust's `handle_action(id)`: it opens a connection
+     per call and unwraps its errors (a panic in the waiter thread).
+  3. **This change**: the thread that shows a notification records its
+     id and keeps its handle in a map by tag, shared with `show` and
+     `dismiss`; it waits with `wait_for_action_async(&self)`, so the
+     handle stays usable. `show` passes the tag's id as `replaces_id`;
+     `dismiss` takes the handle and calls `close_async`
+     (`CloseNotification`) on its own thread.
+- Why 3: the same crate, connection and handle as upstream; no new
+  dependency or lock change; the change is one file.
+- Duplicate answers: a server that replaces keeps the id, so the old
+  notification's waiter and the new one's both hear the id's signals.
+  The newer `show` marks the older one superseded (same id only), and a
+  superseded waiter does not answer, so one click gives one response. A
+  server that returns a new id instead leaves two notifications on
+  screen, and both still answer (same tag either way).
+- Limits: a `show` before the previous one's `Notify` returned does not
+  know its id and shows another; a `dismiss` in that window closes
+  nothing. The app shows one notice per transition, seconds apart.
+- Cost: one more file to re-apply at every GPUI pin; a replaced
+  notification's waiter thread lives until that id closes or is clicked.
+- Verified: `cargo test --locked -p gpui-pre-linux --lib --
+  system_notifications` (run on the gate VM). It starts a private
+  `dbus-daemon` and the stand-in server, and a child run of the test
+  binary on that bus shows tag a twice, clicks it, then shows tag b and
+  dismisses it. The server's record: `id 1 replaces 0`, `id 1 replaces 1`,
+  `id 2 replaces 0`, `closed 2`. The click gives exactly one response.
+  Needs `dbus-daemon`, `dbus-send` and Python's `dbus` and `gi` there.
 
 ## `gpui-base` 0.8.1
 
