@@ -164,10 +164,11 @@ pub(crate) fn projects(
     }
     let labels = words.labels();
     let total = entries.len();
-    let mut section = div()
-        .flex()
-        .flex_col()
-        .child(header(labels.projects, labels.add_project, tokens, cx));
+    let mut section =
+        div()
+            .flex()
+            .flex_col()
+            .child(header(labels.projects, labels.add_project, tokens, cx));
     if entries.is_empty() {
         section = section.child(
             div()
@@ -255,11 +256,7 @@ fn section_header(title: &'static str, tokens: &Tokens) -> Div {
 
 /// The header's plus: Paseo's Add project sheet (TRACKER 234), named for
 /// assistive technology as the button it is.
-fn add_project(
-    name: &'static str,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Stateful<Div> {
+fn add_project(name: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
     let wash = hover(tokens);
     div()
         .id("sidebar-add-project")
