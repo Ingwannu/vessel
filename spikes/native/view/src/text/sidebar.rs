@@ -136,7 +136,9 @@ impl SidebarWords {
                 format!("Remove \"{name}\" from the sidebar?\n\nFiles on disk will not be changed.")
             }
             Lang::Ko => {
-                format!("\"{name}\"을(를) 사이드바에서 제거할까요?\n\n디스크의 파일은 변경되지 않습니다.")
+                format!(
+                    "\"{name}\"을(를) 사이드바에서 제거할까요?\n\n디스크의 파일은 변경되지 않습니다."
+                )
             }
         }
     }

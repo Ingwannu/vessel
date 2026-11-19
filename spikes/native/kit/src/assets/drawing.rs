@@ -437,7 +437,9 @@ impl Glyph {
             Self::StatusRingHead => {
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" stroke="black" stroke-width="1.5"><path d="M2.288 2.288A5.25 5.25 0 0 1 9.712 2.288"/></svg>"#
             }
-            Self::StatusAlertMarks => stroked_glyph!("2", r#"<path d="M12 8v4"/><path d="M12 16h.01"/>"#),
+            Self::StatusAlertMarks => {
+                stroked_glyph!("2", r#"<path d="M12 8v4"/><path d="M12 16h.01"/>"#)
+            }
         }
     }
 }

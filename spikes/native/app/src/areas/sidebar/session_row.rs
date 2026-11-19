@@ -35,9 +35,9 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::status_mark::{StatusMark, status_slot};
 use vessel_app_kit::theme::{SidebarSurfaces, radius, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
-    IntoElement, MouseButton, MouseDownEvent, ParentElement as _, SharedString,
-    StatefulInteractiveElement as _, Styled as _, div, px, svg,
+    AnyElement, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement,
+    MouseButton, MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _,
+    Styled as _, div, px, svg,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
@@ -132,7 +132,15 @@ pub(super) fn session_row(
         .child(title)
         .children(match extras.number {
             Some(number) => Some(shortcut_number(number, tokens)),
-            None => dots(card, group.clone(), touch, menu_open, hovered_fill, tokens, cx),
+            None => dots(
+                card,
+                group.clone(),
+                touch,
+                menu_open,
+                hovered_fill,
+                tokens,
+                cx,
+            ),
         });
     let content = div()
         .flex()
@@ -140,7 +148,12 @@ pub(super) fn session_row(
         .flex_1()
         .min_w_0()
         .child(title_row)
-        .children(super::row_meta::meta_line(card, extras.machine, shell, tokens));
+        .children(super::row_meta::meta_line(
+            card,
+            extras.machine,
+            shell,
+            tokens,
+        ));
     div()
         .id(ElementId::Name(format!("session-{}", card.session).into()))
         .group(group)

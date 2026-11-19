@@ -26,8 +26,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Div, FluentBuilder as _, IntoElement as _, ParentElement as _, Styled as _, div,
-    px,
+    AnyElement, Div, FluentBuilder as _, IntoElement as _, ParentElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
@@ -65,11 +64,7 @@ pub(super) fn meta_line(
     if let Some(machine) = machine {
         items.push(Item::Host(machine.to_owned()));
     }
-    let pull = card
-        .detail
-        .pull_request
-        .as_deref()
-        .and_then(CardPull::of);
+    let pull = card.detail.pull_request.as_deref().and_then(CardPull::of);
     if let Some(pull) = pull {
         items.push(Item::Pull(pull));
         if let Some(checks) = pull.checks {
@@ -172,6 +167,11 @@ fn with_glyph(mark: AnyElement, words: String) -> Div {
         .gap(px(GLYPH_GAP))
         .min_w_0()
         .child(mark)
-        .child(div().min_w_0().overflow_hidden().text_ellipsis().child(words))
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(words),
+        )
 }
-

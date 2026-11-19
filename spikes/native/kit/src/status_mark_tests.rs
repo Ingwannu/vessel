@@ -59,7 +59,10 @@ fn geometry_is_paseos_budget() {
     // The ring: the 6 dot, then a 1.5 gap and a 1.5 stroke each side.
     assert_eq!(4.0_f32.mul_add(1.5, FILLED_DOT).to_bits(), RING.to_bits());
     // Its frame: one more each side, the knockout margin.
-    assert_eq!(2.0_f32.mul_add(RING_INSET, RING).to_bits(), RING_FRAME.to_bits());
+    assert_eq!(
+        2.0_f32.mul_add(RING_INSET, RING).to_bits(),
+        RING_FRAME.to_bits()
+    );
     // `getStatusRingOffset(-4, 12)`: the shell's corner offset, less half
     // what the frame outgrows the shell by.
     let offset = (-0.5_f32).mul_add(RING_FRAME, 0.5_f32.mul_add(BADGE, BADGE_OFFSET));

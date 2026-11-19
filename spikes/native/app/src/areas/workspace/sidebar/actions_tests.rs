@@ -5,7 +5,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use gpui::{AppContext as _, Context, Entity, IntoElement, Render, TestAppContext, VisualTestContext, Window, point, size};
+use gpui::{
+    AppContext as _, Context, Entity, IntoElement, Render, TestAppContext, VisualTestContext,
+    Window, point, size,
+};
 use vessel_app_kit::ui::px;
 use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_view::toasts::ToastTone;
@@ -13,7 +16,9 @@ use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::{Attention, Card, Fleet, Lang, Machine, Reach};
 use vessel_proto::workspace::{GitSupport, GitVersion, ProjectInfo, ProjectList, ProjectState};
-use vessel_proto::{HarnessKind, ProjectId, SessionId, SessionInfo, SessionMode, SessionSpec, SessionStatus};
+use vessel_proto::{
+    HarnessKind, ProjectId, SessionId, SessionInfo, SessionMode, SessionSpec, SessionStatus,
+};
 
 use super::{Origin, Target};
 use crate::shell::{Shell, language_tests};
@@ -196,7 +201,13 @@ fn remove_asks_first_then_the_row_spins_until_the_node_answers(cx: &mut TestAppC
         shell.project_removal_answered("fixture", project_id(0), Ok(()), cx);
     });
     shell.read_with(cx, |shell, _| {
-        assert!(!shell.areas.workspace.sidebar.is_removing("fixture", project_id(0)));
+        assert!(
+            !shell
+                .areas
+                .workspace
+                .sidebar
+                .is_removing("fixture", project_id(0))
+        );
         let list = shell.areas.workspace.projects.get("fixture").unwrap();
         assert!(list.project(&project_id(0)).is_none());
         assert_eq!(shell.notice, None);
@@ -216,11 +227,21 @@ fn a_refused_removal_from_the_row_is_a_toast_and_the_row_stays(cx: &mut TestAppC
         );
     });
     shell.read_with(cx, |shell, _| {
-        assert!(!shell.areas.workspace.sidebar.is_removing("fixture", project_id(1)));
+        assert!(
+            !shell
+                .areas
+                .workspace
+                .sidebar
+                .is_removing("fixture", project_id(1))
+        );
         let list = shell.areas.workspace.projects.get("fixture").unwrap();
         assert!(list.project(&project_id(1)).is_some());
         let toast = shell.areas.toasts.shown().unwrap();
         assert_eq!(toast.tone, ToastTone::Error);
-        assert!(toast.text.starts_with("docs was not removed: "), "{}", toast.text);
+        assert!(
+            toast.text.starts_with("docs was not removed: "),
+            "{}",
+            toast.text
+        );
     });
 }

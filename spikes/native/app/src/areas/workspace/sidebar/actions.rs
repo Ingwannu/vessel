@@ -38,8 +38,8 @@ use vessel_app_kit::theme::{SidebarSurfaces, radius};
 use vessel_app_kit::tooltip::{Configuration, Delay, Offset, Place, Side};
 use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point,
-    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
+    IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize, DialogState, Tokens,
@@ -154,7 +154,12 @@ impl Shell {
         cx.notify();
     }
 
-    fn project_menu_chose(&mut self, index: usize, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn project_menu_chose(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let Some(target) = self.areas.workspace.sidebar.target.take() else {
             return;
         };
@@ -191,7 +196,12 @@ impl Shell {
     }
 
     /// A new chat in a new worktree of the project (Paseo's new workspace).
-    fn new_workspace_in(&mut self, target: &Target, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn new_workspace_in(
+        &mut self,
+        target: &Target,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         self.chat_in_project(target.machine.clone(), target.project, window, cx);
         self.choose_place(PlacePick::Isolation(PlaceMode::Worktree), window, cx);
     }
@@ -211,7 +221,12 @@ impl Shell {
 
     /// Ask `machine` to forget `project`, its row spinning until it
     /// answers.
-    pub(crate) fn remove_project_from(&mut self, machine: &str, project: ProjectId, origin: Origin) {
+    pub(crate) fn remove_project_from(
+        &mut self,
+        machine: &str,
+        project: ProjectId,
+        origin: Origin,
+    ) {
         let _was = self
             .areas
             .workspace
@@ -295,7 +310,9 @@ pub(super) fn trailing(
         )
         .role(gpui::Role::Button)
         .aria_label(words.create_workspace_for(&target.name))
-        .on_mouse_down(MouseButton::Left, |_event, _window, cx| cx.stop_propagation())
+        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
+            cx.stop_propagation()
+        })
         .on_click(cx.listener(move |this, _event, window, cx| {
             cx.stop_propagation();
             this.new_workspace_in(&pressed, window, cx);

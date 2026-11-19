@@ -152,9 +152,9 @@ pub fn status_slot(
         StatusMark::Running => slot.child(ring(id, None, tokens)),
         StatusMark::NeedsInput => slot.child(alert(tokens)),
         StatusMark::Attention => slot.child(dot(FILLED_DOT, status.success_dot)),
-        StatusMark::Done => slot.child(
-            dot(FILLED_DOT, tokens.neutral.foreground_extra_muted).opacity(IDLE_OPACITY),
-        ),
+        StatusMark::Done => {
+            slot.child(dot(FILLED_DOT, tokens.neutral.foreground_extra_muted).opacity(IDLE_OPACITY))
+        }
         StatusMark::Failed => slot
             .child(vector(
                 kind,
@@ -248,7 +248,12 @@ pub fn status_badge(
         .justify_center()
         .role(gpui::Role::Status)
         .aria_label(label);
-    Some(knockout.fill(shell, tokens).child(inside).into_any_element())
+    Some(
+        knockout
+            .fill(shell, tokens)
+            .child(inside)
+            .into_any_element(),
+    )
 }
 
 /// Paseo's running ring: the frame (filled as the row behind it when it
