@@ -64,7 +64,7 @@ fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
                 shell.update_layout(
                     &key,
                     |layout| {
-                        layout.open(
+                        let _agent = layout.open(
                             Target::Agent(session),
                             OpenIntent::Reveal,
                             Placement::Focused,
