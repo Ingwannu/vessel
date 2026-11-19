@@ -218,7 +218,8 @@ pub(super) fn add_form(
 /// Paseo's folder rows for what the field holds: a 16 folder mark in an
 /// 18 slot, the path with the home as `~` (14, the ink), the whole path
 /// under it when it differs (12, muted, 2 down); 16 in, 8 high, 12 apart;
-/// the hovered row on the first surface.
+/// the hovered row one surface above the card (Paseo's rows hover on
+/// `surface1` over its `surface0` sheet; this card is `surface1`).
 fn suggestions(
     shell: &Shell,
     typed: &str,
@@ -230,7 +231,7 @@ fn suggestions(
         return None;
     }
     let neutral = tokens.neutral;
-    let wash = neutral.surface1;
+    let wash = neutral.surface2;
     let mut list = div().flex().flex_col().py(px(spacing::S2));
     for (index, folder) in found.folders.iter().enumerate() {
         let whole = folder.path.display().to_string();
