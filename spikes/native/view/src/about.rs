@@ -55,6 +55,8 @@ pub enum Role {
     Logs,
     /// Find's folding of accents.
     Accents,
+    /// A notice's sound (ADR 0114).
+    Sound,
     /// Pairing links as QR codes.
     QrCodes,
     /// Checking that a downloaded file is whole.
@@ -125,6 +127,7 @@ pub const BUNDLED: &[Bundled] = &[
     krate("serde_json", "MIT OR Apache-2.0", Role::Data),
     krate("sys-locale", "MIT OR Apache-2.0", Role::Language),
     krate("thiserror", "MIT OR Apache-2.0", Role::Errors),
+    krate("cpal", "Apache-2.0", Role::Sound),
     krate("tokio", "MIT", Role::Network),
     krate("tracing", "MIT", Role::Logs),
     krate("tracing-subscriber", "MIT", Role::Logs),

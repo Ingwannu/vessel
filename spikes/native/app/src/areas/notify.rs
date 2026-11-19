@@ -1,0 +1,279 @@
+//! The system's notifications, the notice sound and the window title's
+//! count (ADR 0114; TRACKER J12-J29, J54-J55), as Paseo's desktop
+//! notifications, on GPUI's system notification API.
+//!
+//! [Decision Log]
+//! - Purpose: a session that starts to need the person, or finishes,
+//!   reaches them while they are elsewhere, and a click takes them to it.
+//! - Existing assets: the diff and the rules are view's
+//!   (`notices::notices`, `notices::announce`). The patched GPUI shows
+//!   notifications on Linux (D-Bus) and Windows (toasts, its app id
+//!   registered by the patch), and calls back on a click. The sound is
+//!   link's (`sound::play`).
+//! - Choice:
+//!   - Each change of the fleet is diffed against the one before. What
+//!     the rules keep is shown, sounded and counted.
+//!   - A notification carries an opaque tag: a random run id and a
+//!     counter, never a name or a path. The tag is mapped to its session
+//!     in this process, for the last 64. A click on a known tag brings the
+//!     window forward and opens the session. An unknown or older tag (from
+//!     an earlier run, or past 64) only brings the window forward.
+//!   - The same session and kind reuses its tag, so the system replaces
+//!     the earlier notification rather than stacking another.
+//!   - One sound per change of the fleet: needs-you if any, else finished.
+//!     Ten sessions finishing in one read sound once, not ten times over
+//!     each other. (The page plays one for each notice.)
+//!   - The window's title is written by render, which has the window. A
+//!     fleet event does not, and writing it there would borrow the window
+//!     from inside its own update.
+//! - Differences until ADR 0089's claims (TRACKER 815): every open app
+//!   decides for itself; no terminal notices; the body is the session's
+//!   name, not Paseo's last-message preview; no macOS banner (the GPUI
+//!   patches have none).
+
+use std::collections::VecDeque;
+
+use gpui::{
+    AnyWindowHandle, App, SharedString, Subscription, SystemNotification,
+    SystemNotificationResponse, WeakEntity,
+};
+use vessel_app_kit::ui::{Context, Window};
+use vessel_app_view::board::Fleet;
+use vessel_app_view::notices::{Notice, NoticeKind, Seen, Unseen, announce, notices, title_with};
+use vessel_app_view::toasts::ToastTone;
+use vessel_proto::SessionId;
+
+use crate::routes::Route;
+use crate::shell::Shell;
+
+/// How many notifications a click still opens the session of.
+const KEPT: usize = 64;
+
+/// The notifier's state, the shell's.
+pub(crate) struct NotifyArea {
+    /// The window is the active one.
+    active: bool,
+    /// The notices the title counts.
+    unseen: Unseen,
+    /// The window's title as opened; the count goes before it.
+    base: SharedString,
+    /// The title render writes next.
+    title: Option<SharedString>,
+    /// This run's part of every tag.
+    run: SharedString,
+    /// The tags shown, oldest first.
+    shown: VecDeque<Shown>,
+    next: u64,
+    /// The title switch's turns, for its motion.
+    pub(crate) turns: u64,
+    _activation: Subscription,
+}
+
+impl std::fmt::Debug for NotifyArea {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NotifyArea")
+            .field("active", &self.active)
+            .field("unseen", &self.unseen)
+            .field("shown", &self.shown.len())
+            .finish_non_exhaustive()
+    }
+}
+
+/// A notification shown, and its session.
+#[derive(Debug)]
+struct Shown {
+    tag: SharedString,
+    machine: String,
+    session: SessionId,
+    kind: NoticeKind,
+}
+
+impl NotifyArea {
+    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        let activation = cx.observe_window_activation(window, Shell::notify_activation);
+        let shell = cx.weak_entity();
+        let handle = window.window_handle();
+        cx.on_system_notification_response(move |response, cx| {
+            clicked(&shell, handle, &response, cx);
+        });
+        Self {
+            active: window.is_window_active(),
+            unseen: Unseen::default(),
+            base: crate::window_title().into(),
+            title: None,
+            run: SessionId::random().to_string().into(),
+            shown: VecDeque::new(),
+            next: 0,
+            turns: 0,
+            _activation: activation,
+        }
+    }
+
+    /// The tag for `notice`: its earlier one, or a new one.
+    fn tag(&mut self, notice: &Notice) -> SharedString {
+        let earlier = self.shown.iter().position(|shown| {
+            shown.machine == notice.machine
+                && shown.session == notice.session
+                && shown.kind == notice.kind
+        });
+        if let Some(kept) = earlier.and_then(|at| self.shown.remove(at)) {
+            let tag = kept.tag.clone();
+            self.shown.push_back(kept);
+            return tag;
+        }
+        self.next = self.next.wrapping_add(1);
+        let tag: SharedString = format!("vessel-{}-{}", self.run, self.next).into();
+        if self.shown.len() >= KEPT {
+            let _oldest = self.shown.pop_front();
+        }
+        self.shown.push_back(Shown {
+            tag: tag.clone(),
+            machine: notice.machine.clone(),
+            session: notice.session,
+            kind: notice.kind,
+        });
+        tag
+    }
+
+    /// The session a tag was shown for.
+    fn target(&self, tag: &str) -> Option<(&str, SessionId)> {
+        self.shown
+            .iter()
+            .find(|shown| shown.tag == tag)
+            .map(|shown| (shown.machine.as_str(), shown.session))
+    }
+}
+
+impl Shell {
+    /// The window became active or not: coming back clears the count.
+    fn notify_activation(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let area = &mut self.areas.notify;
+        area.active = window.is_window_active();
+        if area.active && area.unseen.back() {
+            area.title = Some(area.base.clone());
+            cx.notify();
+        }
+    }
+
+    /// Between two reads of the machines: show, sound and count what
+    /// started to need the person or finished (ADR 0114).
+    pub(crate) fn notify_fleet(&mut self, earlier: &Fleet, cx: &mut Context<'_, Self>) {
+        let found = notices(earlier, &self.fleet);
+        if found.is_empty() {
+            return;
+        }
+        let settings = self.prefs.settings.notifications;
+        let shown = self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .filter(|_| self.route == Route::Session)
+            .map(|open| (open.machine.as_str(), open.session));
+        let area = &mut self.areas.notify;
+        if area.unseen.found(found.len(), area.active, settings.title) {
+            area.title = Some(title_with(&area.base, area.unseen.count()).into());
+            cx.notify();
+        }
+        let seen = Seen {
+            active: area.active,
+            shown,
+        };
+        let told = announce(found, seen, settings.alerts);
+        let words = self.words.notifications();
+        for one in told.iter().filter(|one| one.system) {
+            let notice = &one.notice;
+            let body = if notice.title.is_empty() {
+                words.untitled().to_owned()
+            } else {
+                notice.title.clone()
+            };
+            cx.show_system_notification(SystemNotification {
+                tag: area.tag(notice),
+                title: self.t.lang.notices().title(notice.kind).into(),
+                body: body.into(),
+                actions: Vec::new(),
+            });
+        }
+        let sound = told
+            .iter()
+            .filter(|one| one.sound)
+            .map(|one| one.notice.kind)
+            .min_by_key(|kind| match kind {
+                NoticeKind::NeedsYou => 0,
+                NoticeKind::Finished => 1,
+            });
+        if let Some(kind) = sound {
+            vessel_app_link::sound::play(kind);
+        }
+    }
+
+    /// Settings' test: a notification and the needs-you sound, as the
+    /// alerts say.
+    pub(crate) fn notify_test(&mut self, cx: &mut Context<'_, Self>) {
+        let alerts = self.prefs.settings.notifications.alerts;
+        let words = self.words.notifications();
+        if alerts.system() {
+            cx.show_system_notification(SystemNotification {
+                tag: format!("vessel-{}-test", self.areas.notify.run).into(),
+                title: words.test_title().into(),
+                body: words.test_body().into(),
+                actions: Vec::new(),
+            });
+        }
+        if alerts.sound() {
+            vessel_app_link::sound::play(NoticeKind::NeedsYou);
+        }
+        if alerts.system() || alerts.sound() {
+            self.toast(words.test_sent(), ToastTone::Ok, cx);
+        }
+    }
+
+    /// A click on one of this run's notifications: open its session.
+    fn notice_clicked(&mut self, tag: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some((machine, session)) = self.areas.notify.target(tag) else {
+            return;
+        };
+        let open = self
+            .fleet
+            .machines
+            .iter()
+            .filter(|known| known.name == machine)
+            .flat_map(|known| &known.sessions)
+            .find(|card| card.session == session)
+            .map(crate::areas::session::Open::of);
+        if let Some(open) = open {
+            self.open_session(open, window, cx);
+        }
+    }
+}
+
+/// Render's part: the title the last change asked for.
+pub(crate) fn retitle(shell: &mut Shell, window: &mut Window) {
+    if let Some(title) = shell.areas.notify.title.take() {
+        window.set_window_title(&title);
+    }
+}
+
+/// A click on a notification, from the system: bring the window forward,
+/// then open the session the tag was shown for.
+fn clicked(
+    shell: &WeakEntity<Shell>,
+    handle: AnyWindowHandle,
+    response: &SystemNotificationResponse,
+    cx: &mut App,
+) {
+    cx.activate(true);
+    let done = handle.update(cx, |_root, window, cx| {
+        window.activate_window();
+        shell.update(cx, |shell, cx| {
+            shell.notice_clicked(&response.tag, window, cx);
+        })
+    });
+    if !matches!(done, Ok(Ok(()))) {
+        tracing::debug!("a notification's click found no window");
+    }
+}
+
+#[cfg(test)]
+mod tests;
