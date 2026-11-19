@@ -55,8 +55,9 @@ search.
   the node that no other `read` call gives (`forge.status` names the login,
   `pr.*` stays within a session's repository). ADR 0112 made
   `folder.suggest` `operate` for the same reason, and the call's one caller
-  ends in `project.clone`, which is `operate` (node review R1). `query` is at most 256 characters, one line; the node trims
-  it. `limit` is 1 to 50, default 20 (Paseo's server default).
+  ends in `project.clone`, which is `operate` (node review R1). `query` is
+  at most 256 characters, one line; the node trims it. `limit` is 1 to 50,
+  default 20 (Paseo's server default).
 - It answers `RepositoryList { access, repositories }`. `access` is the
   existing `ForgeAccess` of `github.com`: `ready` when it read, else
   `signed_out { gh }` (`gh: missing` is Paseo's "gh is not installed",
@@ -64,21 +65,23 @@ search.
   `unreachable` (Paseo's "error"). Clients word these as Paseo does.
 - `Repository { path, description?, visibility, updated_at, clone_url }`
   (Paseo's numeric id and bare name are left out: the owner/name path is
-  unique in one answer and the name is its last segment): `path` is owner/name (`RepoPath`), `description` one line
-  of at most 350 characters (GitHub's own maximum), `visibility` public,
-  private, internal or unknown, `clone_url` a `CloneUrl` that
-  `project.clone` takes as it is.
+  unique in one answer and the name is its last segment): `path` is
+  owner/name (`RepoPath`), `description` one line of at most 350
+  characters (GitHub's own maximum), `visibility` public, private,
+  internal or unknown, `clone_url` a `CloneUrl` that `project.clone` takes
+  as it is.
 - The empty query is `GET /user/repos?affiliation=owner&sort=pushed`
   (the account's own repositories, newest first, as `gh repo list`); text
   is `GET /search/repositories?q=…&sort=updated&order=desc`; `per_page` =
   limit for both. github.com only, as Paseo.
 - The clone protocol is `gh config get git_protocol --host github.com`,
   run with the same hygiene as `gh auth token` (no shell, the node's data
-  folder, ten seconds, two at once) and kept a minute per host, so a person
-  typing a search does not run `gh` per keystroke (Paseo reads it per
-  search). `ssh` gives `ssh_url`
-  (`git@github.com:o/r.git`); anything else, a missing `gh` or a failure,
-  gives `html_url` (`https://github.com/o/r`), as Paseo.
+  folder, ten seconds, two at once). An answer it gave is kept a minute
+  per host (a `gh` that could not start or timed out is not kept), so a
+  person typing a search does not run `gh` per keystroke (Paseo reads it
+  per search). `ssh` gives `ssh_url` (`git@github.com:o/r.git`); anything
+  else, a missing `gh` or a failure, gives `html_url`
+  (`https://github.com/o/r`), as Paseo.
 - Search has its own GitHub quota (30 a minute). A limit answer to a
   search holds only search on that host; any other limit answer still
   holds the whole host (secondary limits are the account's).
