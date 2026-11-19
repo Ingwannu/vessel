@@ -255,9 +255,7 @@ impl AddFlowWords {
             RowNote::ParentDirectory(parent) => fill(self.parent_directory, &[parent.as_str()]),
             RowNote::Method(method) => match method {
                 MethodNote::FindOn(machine) => fill(self.find_on, &[machine.as_str()]),
-                MethodNote::BrowseIn => {
-                    fill(self.browse_in, &[self.file_manager_name(manager)])
-                }
+                MethodNote::BrowseIn => fill(self.browse_in, &[self.file_manager_name(manager)]),
                 MethodNote::CloneNeedsUpdate => self.clone_needs_update.to_owned(),
                 MethodNote::CloneSearch => self.clone_search.to_owned(),
                 MethodNote::CloneByHand => self.enter_repository.to_owned(),
@@ -339,15 +337,24 @@ mod tests {
     #[test]
     fn values_go_where_each_language_reads_them() {
         let note = RowNote::Method(MethodNote::FindOn("laptop".to_owned()));
-        assert_eq!(EN.note(&note, FileManager::Other), "Find a directory on laptop");
-        assert_eq!(KO.note(&note, FileManager::Other), "laptop에서 디렉터리 찾기");
+        assert_eq!(
+            EN.note(&note, FileManager::Other),
+            "Find a directory on laptop"
+        );
+        assert_eq!(
+            KO.note(&note, FileManager::Other),
+            "laptop에서 디렉터리 찾기"
+        );
         let browse = RowNote::Method(MethodNote::BrowseIn);
         assert_eq!(
             EN.note(&browse, FileManager::Finder),
             "Choose or create a directory in Finder"
         );
         assert_eq!(
-            EN.title(&RowTitle::RepositoryVia("getpaseo/paseo".to_owned(), CloneProtocol::Ssh)),
+            EN.title(&RowTitle::RepositoryVia(
+                "getpaseo/paseo".to_owned(),
+                CloneProtocol::Ssh
+            )),
             "getpaseo/paseo via SSH"
         );
         assert_eq!(fill("{} and {}", &["a"]), "a and ");

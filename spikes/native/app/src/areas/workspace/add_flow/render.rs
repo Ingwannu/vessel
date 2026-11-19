@@ -18,7 +18,6 @@ use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, SharedString, StatefulInteractiveElement as _, Window,
 };
-use vessel_app_view::workspace::words::add_flow::{AddFlowWords, FileManager};
 use vessel_app_view::workspace::add_flow::model::{PageId, PageKind};
 use vessel_app_view::workspace::add_flow::options::join_directory_path;
 use vessel_app_view::workspace::add_flow::paths::shorten_path;
@@ -27,6 +26,7 @@ use vessel_app_view::workspace::add_flow::rows::{
 };
 use vessel_app_view::workspace::host_folders::offered;
 use vessel_app_view::workspace::projects::ProjectsView;
+use vessel_app_view::workspace::words::add_flow::{AddFlowWords, FileManager};
 
 use super::{Open, reads_tilde};
 use crate::shell::Shell;
@@ -138,7 +138,9 @@ const fn file_manager() -> FileManager {
 fn mark(row: &Row, tokens: &Tokens) -> AnyElement {
     let color = tokens.neutral.foreground_muted;
     let which = match row.mark {
-        RowMark::Github => return forge_mark(Forge::GitHub, Size::Sixteen, tokens).into_any_element(),
+        RowMark::Github => {
+            return forge_mark(Forge::GitHub, Size::Sixteen, tokens).into_any_element();
+        }
         RowMark::Machine => Glyph::Monitor,
         RowMark::Plus => Glyph::Plus,
         RowMark::Search => Glyph::Search,
@@ -152,7 +154,11 @@ fn mark(row: &Row, tokens: &Tokens) -> AnyElement {
 
 /// The footer's keys, as Paseo's `formatShortcut` writes them here.
 fn hints(words: &AddFlowWords, depth: usize) -> Vec<FlowHint> {
-    let arrows = if cfg!(target_os = "macos") { "\u{2191}\u{2193}" } else { "\u{2191}+\u{2193}" };
+    let arrows = if cfg!(target_os = "macos") {
+        "\u{2191}\u{2193}"
+    } else {
+        "\u{2191}+\u{2193}"
+    };
     vec![
         FlowHint {
             keys: arrows.into(),
@@ -169,7 +175,12 @@ fn hints(words: &AddFlowWords, depth: usize) -> Vec<FlowHint> {
     ]
 }
 
-fn results(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Vec<AnyElement> {
+fn results(
+    shell: &Shell,
+    open: &Open,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
     let words = shell.t.lang.add_flow();
     let page = open.flow.page();
     let found = search(shell, open);
@@ -208,7 +219,10 @@ fn results(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, She
             FlowRow {
                 mark: mark(&row, tokens),
                 title: words.title(&row.title).into(),
-                subtitle: row.note.as_ref().map(|note| words.note(note, manager).into()),
+                subtitle: row
+                    .note
+                    .as_ref()
+                    .map(|note| words.note(note, manager).into()),
                 active: index == active,
                 disabled: row.disabled,
             },
@@ -246,7 +260,10 @@ pub(crate) fn render(
     let field = sheet.field.bare(tokens, cx);
     let frame = FlowSheetFrame {
         title: words.page_title(page.kind.id()).into(),
-        context: open.flow.machine().map(|machine| machine.label.clone().into()),
+        context: open
+            .flow
+            .machine()
+            .map(|machine| machine.label.clone().into()),
         back: open.flow.depth() > 1,
         field,
         field_shown,

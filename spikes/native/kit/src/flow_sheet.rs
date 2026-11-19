@@ -31,8 +31,8 @@
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, Context, Div, ElementId, MouseButton, ScrollHandle, SharedString, Stateful,
-    Window, anchored, deferred, div, point, px, relative, rgba,
+    AnyElement, Context, Div, ElementId, MouseButton, ScrollHandle, SharedString, Stateful, Window,
+    anchored, deferred, div, point, px, relative, rgba,
 };
 use gpui_base::input::{Enter, Escape, MoveDown, MoveUp};
 
@@ -114,7 +114,11 @@ impl<V: 'static> std::fmt::Debug for FlowHandlers<V> {
     }
 }
 
-fn keys<V: 'static>(panel: Stateful<Div>, handlers: FlowHandlers<V>, cx: &mut Context<'_, V>) -> Stateful<Div> {
+fn keys<V: 'static>(
+    panel: Stateful<Div>,
+    handlers: FlowHandlers<V>,
+    cx: &mut Context<'_, V>,
+) -> Stateful<Div> {
     panel
         .capture_action(cx.listener(move |view: &mut V, _: &MoveUp, window, cx| {
             cx.stop_propagation();
@@ -151,7 +155,11 @@ fn title_row<V: 'static>(
             .items_center()
             .justify_center()
             .cursor_pointer()
-            .child(glyph(Glyph::ArrowLeft, spacing::S4, neutral.foreground_muted))
+            .child(glyph(
+                Glyph::ArrowLeft,
+                spacing::S4,
+                neutral.foreground_muted,
+            ))
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
                 (handlers.back)(view, window, cx);
             }))
@@ -249,7 +257,10 @@ pub fn flow_sheet<V: 'static>(
         .relative()
         .child(title_row(&frame, handlers, tokens, cx))
         .child(if frame.field_shown {
-            div().py(px(spacing::S1)).type_(Type::Body).child(frame.field)
+            div()
+                .py(px(spacing::S1))
+                .type_(Type::Body)
+                .child(frame.field)
         } else {
             div()
                 .absolute()

@@ -77,13 +77,9 @@ async fn project(hub: &Hub, client: &NodeClient, reply: &Reply, ask: ProjectAsk)
                 .await
                 .map(|icon| icon.icon),
         },
-        ProjectAsk::CreateDirectory(ask) => took(
-            hub,
-            client,
-            reply,
-            Form::Directory,
-            call(client, ask).await,
-        ),
+        ProjectAsk::CreateDirectory(ask) => {
+            took(hub, client, reply, Form::Directory, call(client, ask).await)
+        }
     }
 }
 

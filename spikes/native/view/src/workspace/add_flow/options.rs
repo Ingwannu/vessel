@@ -122,7 +122,9 @@ pub fn base_name(path: &str) -> &str {
 /// `/` (Paseo's `^([^\s/]+)\/([^\s/]+)$`).
 fn shorthand(text: &str) -> Option<(&str, &str)> {
     let (owner, name) = text.split_once('/')?;
-    let part = |part: &str| !part.is_empty() && !part.contains(['/']) && !part.contains(char::is_whitespace);
+    let part = |part: &str| {
+        !part.is_empty() && !part.contains(['/']) && !part.contains(char::is_whitespace)
+    };
     (part(owner) && part(name)).then_some((owner, name))
 }
 
@@ -203,7 +205,14 @@ pub fn join_directory_path(parent: &str, name: &str) -> String {
 #[must_use]
 pub fn suggested_parents(project_paths: &[String]) -> Vec<String> {
     let mut parents: Vec<String> = Vec::new();
-    let usual = ["~/dev", "~/Developer", "~/src", "~/projects", "~/workspace", "~"];
+    let usual = [
+        "~/dev",
+        "~/Developer",
+        "~/src",
+        "~/projects",
+        "~/workspace",
+        "~",
+    ];
     let candidates = project_paths
         .iter()
         .filter_map(|path| parent_directory(path))
@@ -248,7 +257,11 @@ pub struct CloneLocation {
 /// Each parent once (a home path and its `~` form are one), with the
 /// folder the clone would make there.
 #[must_use]
-pub fn clone_locations(parents: &[String], repository_name: &str, existing: &[String]) -> Vec<CloneLocation> {
+pub fn clone_locations(
+    parents: &[String],
+    repository_name: &str,
+    existing: &[String],
+) -> Vec<CloneLocation> {
     let existing: Vec<String> = existing.iter().map(|path| path_identity(path)).collect();
     let mut seen: Vec<String> = Vec::new();
     let mut locations = Vec::new();

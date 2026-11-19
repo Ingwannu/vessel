@@ -32,12 +32,12 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
+pub(crate) use add_flow::render as add_flow_sheet;
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
 #[cfg(test)]
 pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
-pub(crate) use add_flow::render as add_flow_sheet;
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::layers as sidebar_project_layers;
@@ -88,7 +88,6 @@ impl Workspace {
         }
     }
 }
-
 
 impl Shell {
     /// The workspace's words, in the person's language.

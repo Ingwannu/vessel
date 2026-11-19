@@ -48,7 +48,12 @@ fn type_keys(shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext, keys
     for key in keys {
         let key = (*key).to_owned();
         shell.update_in(cx, |shell, window, cx| {
-            shell.areas.workspace.add_flow.field.set_text(&key, window, cx);
+            shell
+                .areas
+                .workspace
+                .add_flow
+                .field
+                .set_text(&key, window, cx);
             shell.add_flow_typed(key, cx);
         });
     }
@@ -81,11 +86,17 @@ fn folders_are_asked_for_the_latest_key_kept_with_their_machine_and_added(cx: &m
     // The page's first ask (the empty field) is answered first.
     shell.update_in(cx, |shell, _window, _cx| {
         let first = scene.request(shell.fixture_link());
-        assert!(matches!(&first, Ok(Call::SuggestFolders(ask)) if ask.query.as_str().is_empty()), "{first:?}");
+        assert!(
+            matches!(&first, Ok(Call::SuggestFolders(ask)) if ask.query.as_str().is_empty()),
+            "{first:?}"
+        );
         scene
             .reply(
                 shell.fixture_link(),
-                Outcome::Ok(Reply::SuggestFolders(FolderSuggestions { folders: Vec::new(), more: false })),
+                Outcome::Ok(Reply::SuggestFolders(FolderSuggestions {
+                    folders: Vec::new(),
+                    more: false,
+                })),
             )
             .unwrap();
         let _first = workspace_answer(&mut scene, shell);
@@ -146,19 +157,30 @@ fn search_loading(shell: &Shell, open: &Open) -> bool {
 fn an_older_machine_is_not_asked_and_cannot_make_a_directory(cx: &mut TestAppContext) {
     let (shell, cx, mut scene) = setup(cx);
     shell.update_in(cx, |shell, window, cx| {
-        let older = HOST_FOLDERS_PROTOCOL.map(|needs| ProtocolVersion::new(needs.get().saturating_sub(1)));
+        let older =
+            HOST_FOLDERS_PROTOCOL.map(|needs| ProtocolVersion::new(needs.get().saturating_sub(1)));
         let _name = machine(shell, &scene, older);
         shell.open_add_flow(None, window, cx);
         let rows = render::rows_of(shell);
-        let directory = rows.iter().find(|row| row.action == RowAction::Method(Method::NewDirectory));
+        let directory = rows
+            .iter()
+            .find(|row| row.action == RowAction::Method(Method::NewDirectory));
         assert!(directory.is_some_and(|row| row.disabled));
-        assert!(!rows.iter().any(|row| row.action == RowAction::Method(Method::Browse)));
+        assert!(
+            !rows
+                .iter()
+                .any(|row| row.action == RowAction::Method(Method::Browse))
+        );
         shell.add_flow_choose(RowAction::Method(Method::DirectorySearch), window, cx);
     });
     type_keys(&shell, cx, &["code"]);
     shell.update_in(cx, |shell, _window, _cx| {
         let calls = scene.transcript(shell.fixture_link()).unwrap();
-        assert!(!calls.iter().any(|call| matches!(call, Call::SuggestFolders(_))));
+        assert!(
+            !calls
+                .iter()
+                .any(|call| matches!(call, Call::SuggestFolders(_)))
+        );
         scene.close(shell.fixture_link()).unwrap();
     });
 }
@@ -174,12 +196,36 @@ fn a_refusal_stays_on_its_page_and_a_success_moves_on(cx: &mut TestAppContext) {
         assert_eq!(page_id(shell), Some(PageId::NewDirectoryName));
         // Paseo's check before asking.
         shell.add_flow_key(CommandKey::Enter, window, cx);
-        let error = |shell: &Shell| shell.areas.workspace.add_flow.open.as_ref().and_then(|open| open.flow.page().error.clone());
+        let error = |shell: &Shell| {
+            shell
+                .areas
+                .workspace
+                .add_flow
+                .open
+                .as_ref()
+                .and_then(|open| open.flow.page().error.clone())
+        };
         assert_eq!(error(shell).as_deref(), Some("Enter a directory name"));
-        shell.areas.workspace.add_flow.field.set_text("sketch", window, cx);
+        shell
+            .areas
+            .workspace
+            .add_flow
+            .field
+            .set_text("sketch", window, cx);
         shell.add_flow_typed("sketch".to_owned(), cx);
         shell.add_flow_key(CommandKey::Enter, window, cx);
-        assert!(shell.areas.workspace.add_flow.open.as_ref().unwrap().flow.page().submitting);
+        assert!(
+            shell
+                .areas
+                .workspace
+                .add_flow
+                .open
+                .as_ref()
+                .unwrap()
+                .flow
+                .page()
+                .submitting
+        );
         shell.took_project(&name, Form::Directory, Err(Problem::Unsent));
         assert!(error(shell).is_some());
         assert_eq!(page_id(shell), Some(PageId::NewDirectoryName));

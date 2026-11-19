@@ -262,7 +262,11 @@ fn location_rows(inputs: &Inputs<'_>, repository: &Repository) -> Vec<Row> {
         None => parents,
     };
     let filtered: Vec<String> = inputs
-        .usable(directory_options(&ordered, inputs.suggested, &inputs.page.field))
+        .usable(directory_options(
+            &ordered,
+            inputs.suggested,
+            &inputs.page.field,
+        ))
         .into_iter()
         .map(|option| option.path)
         .collect();

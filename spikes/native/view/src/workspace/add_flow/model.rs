@@ -214,8 +214,10 @@ impl Flow {
     /// machine page (so Back from the methods closes).
     #[must_use]
     pub fn open(machines: Vec<Machine>, preferred: Option<&str>) -> Self {
-        let shown = initial(&machines, preferred)
-            .map_or_else(|| Page::new(PageKind::Host), |machine| method_page(&machine.name));
+        let shown = initial(&machines, preferred).map_or_else(
+            || Page::new(PageKind::Host),
+            |machine| method_page(&machine.name),
+        );
         Self {
             machines,
             under: Vec::new(),

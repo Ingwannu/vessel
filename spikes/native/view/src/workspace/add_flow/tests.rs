@@ -9,8 +9,8 @@ use super::model::{
     move_selection,
 };
 use super::options::{
-    Method, MethodNote, clone_locations, clone_remote, filter_machines, methods,
-    suggested_parents, typed_repositories,
+    Method, MethodNote, clone_locations, clone_remote, filter_machines, methods, suggested_parents,
+    typed_repositories,
 };
 use super::paths::{DirectoryOption, directory_options, is_openable, shorten_path, suggestions};
 use super::rows::{Empty, Inputs, RowAction, RowNote, RowTitle, empty, rows};
@@ -91,7 +91,10 @@ fn back_restores_the_field_and_the_row() {
     assert!(flow.back());
     let page = flow.page();
     assert_eq!(page.kind, PageKind::Host);
-    assert_eq!((page.field.as_str(), page.active, &page.error), ("rem", 1, &None));
+    assert_eq!(
+        (page.field.as_str(), page.active, &page.error),
+        ("rem", 1, &None)
+    );
 }
 
 #[test]
@@ -125,7 +128,10 @@ fn a_destination_comes_back_with_its_field_and_row() {
     flow.set_active(2);
     assert!(flow.back());
     flow.open_github_location("host-1", repository());
-    assert_eq!((flow.page().field.as_str(), flow.page().active), ("~/dev", 2));
+    assert_eq!(
+        (flow.page().field.as_str(), flow.page().active),
+        ("~/dev", 2)
+    );
 }
 
 #[test]
@@ -144,7 +150,10 @@ fn progress_and_errors_land_only_on_the_page_shown() {
     flow.open_directory_search("host-1");
     flow.fail(PageId::DirectorySearch, "x".to_owned());
     flow.set_field("~/c");
-    assert_eq!((flow.page().field.as_str(), &flow.page().error), ("~/c", &None));
+    assert_eq!(
+        (flow.page().field.as_str(), &flow.page().error),
+        ("~/c", &None)
+    );
 }
 
 #[test]
@@ -167,7 +176,14 @@ fn methods_needing_an_update_stay_listed_and_browse_is_local_only() {
     };
     let listed = methods(&old);
     let ids: Vec<Method> = listed.iter().map(|option| option.method).collect();
-    assert_eq!(ids, [Method::DirectorySearch, Method::Github, Method::NewDirectory]);
+    assert_eq!(
+        ids,
+        [
+            Method::DirectorySearch,
+            Method::Github,
+            Method::NewDirectory
+        ]
+    );
     assert_eq!(
         listed.get(1).map(|option| (&option.note, option.disabled)),
         Some((&MethodNote::CloneNeedsUpdate, true))
@@ -188,7 +204,12 @@ fn paseos_four_methods_in_its_order() {
     let ids: Vec<Method> = listed.iter().map(|option| option.method).collect();
     assert_eq!(
         ids,
-        [Method::DirectorySearch, Method::Browse, Method::Github, Method::NewDirectory]
+        [
+            Method::DirectorySearch,
+            Method::Browse,
+            Method::Github,
+            Method::NewDirectory
+        ]
     );
     let notes: Vec<&MethodNote> = listed.iter().map(|option| &option.note).collect();
     assert_eq!(
@@ -205,7 +226,12 @@ fn paseos_four_methods_in_its_order() {
 #[test]
 fn machines_filter_by_label_or_name() {
     let all = [local(), remote()];
-    let names = |found: Vec<&Machine>| found.into_iter().map(|m| m.name.clone()).collect::<Vec<_>>();
+    let names = |found: Vec<&Machine>| {
+        found
+            .into_iter()
+            .map(|m| m.name.clone())
+            .collect::<Vec<_>>()
+    };
     assert_eq!(names(filter_machines(&all, " rem ")), ["host-2"]);
     assert_eq!(names(filter_machines(&all, "host-1")), ["host-1"]);
     assert_eq!(filter_machines(&all, "").len(), 2);
@@ -225,37 +251,72 @@ fn typed_repositories_are_a_remote_or_owner_repo_twice() {
     );
     let pair = typed_repositories("getpaseo/paseo");
     let protocols: Vec<Option<CloneProtocol>> = pair.iter().map(|repo| repo.protocol).collect();
-    assert_eq!(protocols, [Some(CloneProtocol::Https), Some(CloneProtocol::Ssh)]);
+    assert_eq!(
+        protocols,
+        [Some(CloneProtocol::Https), Some(CloneProtocol::Ssh)]
+    );
     assert!(pair.iter().all(|repo| repo.clone_url == "getpaseo/paseo"));
     assert!(typed_repositories("paseo").is_empty());
     let urls: Vec<String> = pair.iter().map(clone_remote).collect();
     assert_eq!(
         urls,
-        ["https://github.com/getpaseo/paseo.git", "git@github.com:getpaseo/paseo.git"]
+        [
+            "https://github.com/getpaseo/paseo.git",
+            "git@github.com:getpaseo/paseo.git"
+        ]
     );
 }
 
 #[test]
 fn destinations_show_the_clone_and_keep_the_parent() {
-    let found = clone_locations(&strings(&["~/dev", "~/workspace"]), "paseo", &strings(&["~/workspace/paseo"]));
+    let found = clone_locations(
+        &strings(&["~/dev", "~/workspace"]),
+        "paseo",
+        &strings(&["~/workspace/paseo"]),
+    );
     let shown: Vec<(&str, &str, bool)> = found
         .iter()
-        .map(|location| (location.parent.as_str(), location.path.as_str(), location.exists))
+        .map(|location| {
+            (
+                location.parent.as_str(),
+                location.path.as_str(),
+                location.exists,
+            )
+        })
         .collect();
     assert_eq!(
         shown,
-        [("~/dev", "~/dev/paseo", false), ("~/workspace", "~/workspace/paseo", true)]
+        [
+            ("~/dev", "~/dev/paseo", false),
+            ("~/workspace", "~/workspace/paseo", true)
+        ]
     );
     let once = clone_locations(&strings(&["/Users/moboudra/dev", "~/dev"]), "dotfiles", &[]);
     assert_eq!(once.len(), 1);
-    assert_eq!(once.first().map(|l| l.parent.as_str()), Some("/Users/moboudra/dev"));
+    assert_eq!(
+        once.first().map(|l| l.parent.as_str()),
+        Some("/Users/moboudra/dev")
+    );
 }
 
 #[test]
 fn parents_are_the_projects_folders_then_paseos_places() {
     assert_eq!(
-        suggested_parents(&strings(&["/home/me/code/shop", "/home/me/code/site", "/srv/app"])),
-        ["/home/me/code", "/srv", "~/dev", "~/Developer", "~/src", "~/projects", "~/workspace", "~"]
+        suggested_parents(&strings(&[
+            "/home/me/code/shop",
+            "/home/me/code/site",
+            "/srv/app"
+        ])),
+        [
+            "/home/me/code",
+            "/srv",
+            "~/dev",
+            "~/Developer",
+            "~/src",
+            "~/projects",
+            "~/workspace",
+            "~"
+        ]
     );
 }
 
@@ -264,9 +325,16 @@ fn directory_rows_follow_paseos_picker() {
     let recent = strings(&["/home/me/code/shop", "/home/me/notes", "/srv/app"]);
     let mut with_repeats = recent.clone();
     with_repeats.extend(strings(&["/srv/app", " "]));
-    assert_eq!(suggestions(&with_repeats, &strings(&["/home/me/other"]), ""), recent);
     assert_eq!(
-        suggestions(&recent, &strings(&["/home/me/code/shop", "/home/me/code/shop-api"]), "shop"),
+        suggestions(&with_repeats, &strings(&["/home/me/other"]), ""),
+        recent
+    );
+    assert_eq!(
+        suggestions(
+            &recent,
+            &strings(&["/home/me/code/shop", "/home/me/code/shop-api"]),
+            "shop"
+        ),
         ["/home/me/code/shop", "/home/me/code/shop-api"]
     );
     assert_eq!(suggestions(&recent, &[], "~/"), recent);
@@ -274,9 +342,18 @@ fn directory_rows_follow_paseos_picker() {
         typed,
         path: path.to_owned(),
     };
-    assert_eq!(directory_options(&recent, &[], "/opt/new"), [option(true, "/opt/new")]);
-    assert_eq!(directory_options(&recent, &[], "/srv/app"), [option(false, "/srv/app")]);
-    assert_eq!(directory_options(&recent, &[], "notes"), [option(false, "/home/me/notes")]);
+    assert_eq!(
+        directory_options(&recent, &[], "/opt/new"),
+        [option(true, "/opt/new")]
+    );
+    assert_eq!(
+        directory_options(&recent, &[], "/srv/app"),
+        [option(false, "/srv/app")]
+    );
+    assert_eq!(
+        directory_options(&recent, &[], "notes"),
+        [option(false, "/home/me/notes")]
+    );
     // Separators ignored on the retry: `blank page` finds `blankpage`.
     assert_eq!(
         suggestions(&strings(&["/home/me/blankpage"]), &[], "blank page"),
@@ -306,12 +383,25 @@ fn remotes_are_read_as_paseo_reads_them() {
     ] {
         assert!(git_remote::is_complete(repo), "{repo}");
     }
-    for repo in ["owner/repo", "owner/repo.git", "", "git://github.com/owner/repo", "ftp://host/repo", "file:///tmp/repo"] {
+    for repo in [
+        "owner/repo",
+        "owner/repo.git",
+        "",
+        "git://github.com/owner/repo",
+        "ftp://host/repo",
+        "file:///tmp/repo",
+    ] {
         assert!(!git_remote::is_complete(repo), "{repo}");
     }
     let port = |remote: &str| git_remote::location(remote).and_then(|location| location.port);
-    assert_eq!(port("https://home-git.example.com:60443/team/repo.git").as_deref(), Some("60443"));
-    assert_eq!(port("http://internal.example.com:3000/team/repo.git").as_deref(), Some("3000"));
+    assert_eq!(
+        port("https://home-git.example.com:60443/team/repo.git").as_deref(),
+        Some("60443")
+    );
+    assert_eq!(
+        port("http://internal.example.com:3000/team/repo.git").as_deref(),
+        Some("3000")
+    );
     assert_eq!(port("https://github.com/acme/repo.git"), None);
     assert_eq!(port("git@host.example.com:team/repo.git"), None);
     assert_eq!(
@@ -331,8 +421,14 @@ fn remotes_are_read_as_paseo_reads_them() {
         git_remote::github_repository("git@github.com:getpaseo/paseo.git").as_deref(),
         Some("getpaseo/paseo")
     );
-    assert_eq!(git_remote::github_repository("https://gitlab.com/a/b.git"), None);
-    assert_eq!(git_remote::github_repository("https://github.com/a/b/c"), None);
+    assert_eq!(
+        git_remote::github_repository("https://gitlab.com/a/b.git"),
+        None
+    );
+    assert_eq!(
+        git_remote::github_repository("https://github.com/a/b/c"),
+        None
+    );
 }
 
 #[test]
@@ -353,13 +449,25 @@ fn rows_are_typed_and_older_machines_get_no_tilde() {
         tilde,
     };
     let listed = rows(&inputs(true));
-    assert_eq!(listed.first().map(|row| &row.action), Some(&RowAction::AddPath("~/code".to_owned())));
-    assert_eq!(listed.first().and_then(|row| row.note.clone()), Some(RowNote::OpenThisPath));
+    assert_eq!(
+        listed.first().map(|row| &row.action),
+        Some(&RowAction::AddPath("~/code".to_owned()))
+    );
+    assert_eq!(
+        listed.first().and_then(|row| row.note.clone()),
+        Some(RowNote::OpenThisPath)
+    );
     assert_eq!(
         listed.get(1).map(|row| (&row.title, &row.note)),
-        Some((&RowTitle::Text("~/code".to_owned()), &Some(RowNote::Text("/home/me/code".to_owned()))))
+        Some((
+            &RowTitle::Text("~/code".to_owned()),
+            &Some(RowNote::Text("/home/me/code".to_owned()))
+        ))
     );
     let older = rows(&inputs(false));
     assert_eq!(older.len(), 1);
-    assert_eq!(older.first().map(|row| &row.action), Some(&RowAction::AddPath("/home/me/code".to_owned())));
+    assert_eq!(
+        older.first().map(|row| &row.action),
+        Some(&RowAction::AddPath("/home/me/code".to_owned()))
+    );
 }

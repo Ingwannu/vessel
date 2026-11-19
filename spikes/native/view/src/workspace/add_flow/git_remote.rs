@@ -110,7 +110,9 @@ fn url(trimmed: &str) -> Option<Location> {
     let end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
     let (authority, after) = rest.split_at_checked(end)?;
     let path = after.split(['?', '#']).next().unwrap_or_default();
-    let host_port = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let host_port = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
     let (host, port) = match host_port.rsplit_once(':') {
         Some((host, "")) => (host, None),
         Some((host, port)) if port.bytes().all(|byte| byte.is_ascii_digit()) => {
@@ -159,7 +161,10 @@ pub fn github_repository(remote: &str) -> Option<String> {
     if !GITHUB_HOSTS.contains(&location.host.as_str()) {
         return None;
     }
-    let mut segments = location.path.split('/').filter(|segment| !segment.is_empty());
+    let mut segments = location
+        .path
+        .split('/')
+        .filter(|segment| !segment.is_empty());
     let (Some(owner), Some(name), None) = (segments.next(), segments.next(), segments.next())
     else {
         return None;

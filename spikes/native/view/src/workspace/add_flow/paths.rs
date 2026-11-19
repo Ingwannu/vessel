@@ -139,7 +139,11 @@ pub fn suggestions(recent: &[String], machine: &[String], query: &str) -> Vec<St
 /// The directory rows: a typed openable path not among the suggestions
 /// first, then the suggestions.
 #[must_use]
-pub fn directory_options(recent: &[String], machine: &[String], query: &str) -> Vec<DirectoryOption> {
+pub fn directory_options(
+    recent: &[String],
+    machine: &[String],
+    query: &str,
+) -> Vec<DirectoryOption> {
     let suggested = suggestions(recent, machine, query);
     let typed = query.trim();
     let first = (is_openable(typed) && !suggested.iter().any(|path| path == typed)).then(|| {
@@ -150,6 +154,10 @@ pub fn directory_options(recent: &[String], machine: &[String], query: &str) -> 
     });
     first
         .into_iter()
-        .chain(suggested.into_iter().map(|path| DirectoryOption { typed: false, path }))
+        .chain(
+            suggested
+                .into_iter()
+                .map(|path| DirectoryOption { typed: false, path }),
+        )
         .collect()
 }

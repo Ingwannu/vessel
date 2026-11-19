@@ -203,9 +203,10 @@ impl Shell {
         sheet.field.set_placeholder(placeholder, window, cx);
         sheet.field.set_text(&page.field, window, cx);
         sheet.field.focus(window, cx);
-        sheet
-            .scroll
-            .set_offset(vessel_app_kit::ui::point(vessel_app_kit::ui::px(0.0), vessel_app_kit::ui::px(0.0)));
+        sheet.scroll.set_offset(vessel_app_kit::ui::point(
+            vessel_app_kit::ui::px(0.0),
+            vessel_app_kit::ui::px(0.0),
+        ));
         self.add_flow_ask_folders();
         cx.notify();
     }
@@ -216,7 +217,9 @@ impl Shell {
         let sheet = &self.areas.workspace.add_flow;
         if let Some(open) = &sheet.open {
             let words = self.t.lang.add_flow();
-            let placeholder = words.placeholder(open.flow.page().kind.id()).unwrap_or_default();
+            let placeholder = words
+                .placeholder(open.flow.page().kind.id())
+                .unwrap_or_default();
             sheet.field.set_placeholder(placeholder, window, cx);
         }
     }
@@ -235,7 +238,13 @@ impl Shell {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(PAUSE).await;
             let _gone = this.update(cx, |shell, cx| {
-                let current = shell.areas.workspace.add_flow.open.as_ref().map(|open| open.wait);
+                let current = shell
+                    .areas
+                    .workspace
+                    .add_flow
+                    .open
+                    .as_ref()
+                    .map(|open| open.wait);
                 if current == Some(wait) {
                     shell.add_flow_ask_folders();
                     cx.notify();
@@ -330,7 +339,13 @@ impl Shell {
                 cx.notify();
             }
             CommandKey::Enter => {
-                let page = self.areas.workspace.add_flow.open.as_ref().map(|open| open.flow.page().clone());
+                let page = self
+                    .areas
+                    .workspace
+                    .add_flow
+                    .open
+                    .as_ref()
+                    .map(|open| open.flow.page().clone());
                 let Some(page) = page else {
                     return;
                 };
@@ -365,7 +380,12 @@ impl Shell {
     }
 
     /// A row chosen, by Enter or a click.
-    fn add_flow_choose(&mut self, action: RowAction, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn add_flow_choose(
+        &mut self,
+        action: RowAction,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let Some(open) = &mut self.areas.workspace.add_flow.open else {
             return;
         };
@@ -433,7 +453,14 @@ impl Shell {
             Ok(url) => url,
             Err(refused) => {
                 let said = format!("{refused}");
-                open.flow.fail(PageId::GithubLocation, if said.is_empty() { words.cannot_clone.to_owned() } else { said });
+                open.flow.fail(
+                    PageId::GithubLocation,
+                    if said.is_empty() {
+                        words.cannot_clone.to_owned()
+                    } else {
+                        said
+                    },
+                );
                 cx.notify();
                 return;
             }
@@ -476,7 +503,8 @@ impl Shell {
             .then(|| DirectoryName::parse(&name).ok())
             .flatten();
         let Some(name) = parsed else {
-            open.flow.fail(PageId::NewDirectoryName, words.enter_name.to_owned());
+            open.flow
+                .fail(PageId::NewDirectoryName, words.enter_name.to_owned());
             cx.notify();
             return;
         };
@@ -555,7 +583,11 @@ impl Shell {
             After::Chat { machine, project } => self.chat_in_project(machine, project, window, cx),
             After::Projects(machine) => {
                 self.areas.settings.machine = Some(machine);
-                self.open_settings(Some(vessel_app_view::settings::Section::Projects), window, cx);
+                self.open_settings(
+                    Some(vessel_app_view::settings::Section::Projects),
+                    window,
+                    cx,
+                );
             }
         }
         cx.notify();
