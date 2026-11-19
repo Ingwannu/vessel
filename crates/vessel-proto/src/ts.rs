@@ -359,9 +359,19 @@ pub fn check_strict(generated: &str) -> Result<(), String> {
 /// declarations end with one constant per entry ([`protocols`]).
 pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
     (
+        "DIAGNOSTICS_PROTOCOL",
+        crate::diagnostics::DIAGNOSTICS_PROTOCOL,
+        "`node.diagnostics` (ADR 0074).",
+    ),
+    (
         "RELOAD_PROTOCOL",
         crate::reload::RELOAD_PROTOCOL,
         "`session.reload` and the `reloaded` record (ADR 0110).",
+    ),
+    (
+        "HOST_FOLDERS_PROTOCOL",
+        crate::workspace::host_folders::HOST_FOLDERS_PROTOCOL,
+        "`folder.suggest` and `project.icon` (ADR 0112).",
     ),
     (
         "DIAGNOSTICS_WIRE_PROTOCOL",

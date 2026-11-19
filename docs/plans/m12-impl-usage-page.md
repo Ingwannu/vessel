@@ -217,6 +217,17 @@ coordinator as a separate parity item.
   "Diagnostic" (`agent-diagnostic.tsx`) and a machine's "Log file" row with its "Node logs" dialog
   (`node-log.tsx`), all through `DiagnosticTextDialog` (Copy, Refresh, "Running diagnostic..."). Calls in
   `data/calls.ts`. Tests: `app-diagnostic.test.ts`, `diagnostic-text.test.ts`, e2e `diagnostics.spec.ts`.
+- Row 334 passed (node reviewer, 2026-11-19); its notes in one more commit:
+  - `REFRESH_FLOOR` (5 s): refreshes back to back share one probe, so a `read` viewer cannot keep the node
+    starting an agent;
+  - the page says only that a node's log is "not a file it keeps" when the answer is `elsewhere`;
+  - `DIAGNOSTICS_PROTOCOL` and `HOST_FOLDERS_PROTOCOL` are generated too, and the page's two hand copies
+    are gone;
+  - `NotResumable`, like `NotReloadable`, is no longer its error's source, so `session.resume`'s refusal
+    says its reason once (exact text in e2e `resume.rs`).
+  - Found in the frames: the usage fixture logged with colours into its file, so `node.log` showed escape
+    bytes. The fixture now logs as the daemon does (colours only on a terminal), and `node.log` drops a
+    terminal's escapes and control characters.
 - Then the native row (app line, after the node row merges and the lead adopts it), with frames.
 
 ## Next

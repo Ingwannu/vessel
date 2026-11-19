@@ -44,6 +44,21 @@ fn a_tail_keeps_the_last_lines_and_says_what_it_left_out() {
 }
 
 #[test]
+fn a_tail_shows_text_without_a_terminal_s_escapes() {
+    let folder = tempfile::tempdir().unwrap();
+    let path = folder.path().join("vesseld.log");
+    std::fs::write(
+        &path,
+        "\u{1b}[2m2026\u{1b}[0m \u{1b}[32m INFO\u{1b}[0m started\tok\u{7}\u{1b}c\n",
+    )
+    .unwrap();
+    assert_eq!(
+        tail(&path, 100).unwrap(),
+        (vec!["2026  INFO started\tok".to_owned()], false)
+    );
+}
+
+#[test]
 fn a_tail_reads_only_the_end_of_a_large_log_and_cuts_long_lines() {
     let folder = tempfile::tempdir().unwrap();
     let path = folder.path().join("vesseld.log");

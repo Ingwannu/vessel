@@ -125,12 +125,38 @@ pub(super) fn tail(path: &Path, lines: u32) -> std::io::Result<(Vec<String>, boo
     let lines = kept
         .into_iter()
         .map(|line| {
-            let bounded = bounded_text(line, MAX_LOG_LINE_BYTES);
-            cut |= bounded.len() < line.len();
+            let shown = readable(line);
+            let bounded = bounded_text(&shown, MAX_LOG_LINE_BYTES);
+            cut |= bounded.len() < shown.len();
             bounded
         })
         .collect();
     Ok((lines, cut))
+}
+
+/// `line` without a terminal's escape sequences or other control
+/// characters (a tab is kept). The page shows the log as text and a person
+/// pastes it elsewhere; a log written with colours (the node's own logging
+/// turns them off when its standard error is not a terminal, but a wrapper
+/// or a test fixture may not) would otherwise show their bytes.
+fn readable(line: &str) -> String {
+    let mut shown = String::with_capacity(line.len());
+    let mut chars = line.chars();
+    while let Some(next) = chars.next() {
+        if next == '\u{1b}' {
+            if chars.next() == Some('[') {
+                // Parameters and intermediates, up to one final byte.
+                for part in chars.by_ref() {
+                    if ('\u{40}'..='\u{7e}').contains(&part) {
+                        break;
+                    }
+                }
+            }
+        } else if next == '\t' || !next.is_control() {
+            shown.push(next);
+        }
+    }
+    shown
 }
 
 #[cfg(test)]

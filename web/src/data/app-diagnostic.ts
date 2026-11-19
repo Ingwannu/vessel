@@ -19,9 +19,6 @@
 import type { DiagnosticReport } from "../wire/proto";
 import { nodeReportText } from "./node-diagnostics";
 
-/** `node.diagnostics`'s protocol (ADR 0074). */
-export const NODE_DIAGNOSTICS_PROTOCOL = 24;
-
 /** What the page says of itself. */
 export interface PageFacts {
   /** When the diagnostic was collected (ISO 8601). */

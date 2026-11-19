@@ -115,9 +115,12 @@ async fn run(args: Args) -> Result<(), Error> {
 }
 #[tokio::main]
 async fn main() -> ExitCode {
+    // Colours only on a terminal, as the node's own logging
+    // (`daemon_logging`): the fixture's log is read back by `node.log`.
     tracing_subscriber::fmt()
         .with_writer(io::stderr)
         .with_target(false)
+        .with_ansi(std::io::IsTerminal::is_terminal(&io::stderr()))
         .init();
     match run(Args::parse()).await {
         Ok(()) => ExitCode::SUCCESS,

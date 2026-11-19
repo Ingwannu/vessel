@@ -12803,9 +12803,19 @@ export type Written = {
 received: number, };
 
 /**
+ * `node.diagnostics` (ADR 0074).
+ */
+export const DIAGNOSTICS_PROTOCOL = 24;
+
+/**
  * `session.reload` and the `reloaded` record (ADR 0110).
  */
 export const RELOAD_PROTOCOL = 31;
+
+/**
+ * `folder.suggest` and `project.icon` (ADR 0112).
+ */
+export const HOST_FOLDERS_PROTOCOL = 32;
 
 /**
  * `agent.diagnostic`, `node.log` and the report's added sections (ADR 0111).

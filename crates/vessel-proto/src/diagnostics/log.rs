@@ -71,7 +71,8 @@ pub enum NodeLog {
 pub enum LogSink {
     /// A terminal: it was started in the foreground.
     Terminal,
-    /// Something else (a service manager's journal, a pipe); not readable
-    /// here.
+    /// Anything but a terminal or one of the node's own log files (a
+    /// service manager's journal, `/dev/null`, a file it was redirected to,
+    /// a rotated `vesseld.log.1`); not readable here.
     Elsewhere,
 }

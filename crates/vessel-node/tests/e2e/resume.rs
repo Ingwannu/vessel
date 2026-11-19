@@ -298,6 +298,16 @@ async fn refusals_leave_the_session_as_it_was() {
             ErrorCode::NotFound
         );
         refused(terminal, ErrorCode::Unsupported).await;
+        // Its reason once (the node reviewer's note on row 334).
+        let Err(vessel_rpc::CallError::Remote(error)) = client.resume_session(terminal).await
+        else {
+            panic!("a refusal from the node");
+        };
+        assert_eq!(
+            error.message,
+            "the session cannot start again: a terminal session cannot start again; its \
+             harness's own interface owns it"
+        );
         let cannot = client.session(no_load).await.unwrap();
         assert!(cannot.abilities.is_some_and(|abilities| !abilities.resume));
         refused(no_load, ErrorCode::Unsupported).await;

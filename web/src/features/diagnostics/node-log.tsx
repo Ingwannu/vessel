@@ -34,7 +34,7 @@ export function writesTo(log: NodeLog): string {
   if (log.state === "file") return log.path;
   return log.writes_to === "terminal"
     ? "This node writes its log to the terminal it was started in."
-    : "This node writes its log elsewhere (a service manager's journal).";
+    : "This node's log is not a file it keeps (a service manager's journal, for one).";
 }
 
 /** The row, on a machine speaking the protocol; nothing otherwise. */
