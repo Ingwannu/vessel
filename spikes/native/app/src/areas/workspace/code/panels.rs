@@ -81,7 +81,9 @@ pub(super) struct ImagePanel {
     /// The last point of a drag.
     pub(super) dragged: Option<vessel_app_view::composer::viewer::Position>,
     /// The panel's bounds as last laid out (the zoom's canvas).
-    pub(super) canvas: std::rc::Rc<std::cell::Cell<Option<vessel_app_kit::ui::Bounds<vessel_app_kit::ui::Pixels>>>>,
+    pub(super) canvas: std::rc::Rc<
+        std::cell::Cell<Option<vessel_app_kit::ui::Bounds<vessel_app_kit::ui::Pixels>>>,
+    >,
 }
 
 /// An image's bytes as drawn.
@@ -103,7 +105,7 @@ pub(super) struct Pictures {
     /// Named by the renderer, not asked yet.
     wanted: Arc<Mutex<Vec<String>>>,
     /// Asked or held, by the name the document gives.
-    held: Arc<Mutex<HashMap<String, Option<ImageSource>>>>,
+    held: Arc<Mutex<HashMap<String, Option<Arc<Image>>>>>,
     /// The document's names for each file asked (two spellings of one
     /// file are read once).
     names: Arc<Mutex<HashMap<RelPath, Vec<String>>>>,
@@ -118,8 +120,8 @@ impl Pictures {
 
     fn source(&self, name: &str) -> ImageSource {
         let held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some(Some(source)) = held.get(name) {
-            return source.clone();
+        if let Some(Some(image)) = held.get(name) {
+            return ImageSource::Image(Arc::clone(image));
         }
         if !held.contains_key(name) {
             self.wanted
@@ -127,13 +129,15 @@ impl Pictures {
                 .unwrap_or_else(PoisonError::into_inner)
                 .push(name.to_owned());
         }
-        // Nothing to draw yet: an empty image, never a path on this computer.
-        ImageSource::Image(Arc::new(Image::from_bytes(ImageFormat::Png, Vec::new())))
+        // Nothing to draw yet (GPUI's "still loading"), never a path on
+        // this computer.
+        ImageSource::Custom(Arc::new(|_, _| None))
     }
 
     /// The names met since the last call, each once.
     fn drain(&self) -> Vec<String> {
-        let wanted = std::mem::take(&mut *self.wanted.lock().unwrap_or_else(PoisonError::into_inner));
+        let wanted =
+            std::mem::take(&mut *self.wanted.lock().unwrap_or_else(PoisonError::into_inner));
         let mut held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
         wanted
             .into_iter()
@@ -161,7 +165,7 @@ impl Pictures {
             .unwrap_or_default();
         let mut held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
         for name in names {
-            let _before = held.insert(name, Some(ImageSource::Image(Arc::clone(image))));
+            let _before = held.insert(name, Some(Arc::clone(image)));
         }
     }
 }
@@ -187,7 +191,9 @@ impl Shell {
         version: Option<FileVersion>,
     ) {
         let panel = &mut self.areas.workspace.code;
-        let Some((machine, root)) = panel.root().map(|(machine, root)| (machine.to_owned(), *root))
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
         else {
             return;
         };
@@ -233,7 +239,8 @@ impl Shell {
         let Some(kind) = image_kind(ask.path.as_str()) else {
             return;
         };
-        let decoded = result.map(|read| Arc::new(Image::from_bytes(format(kind), read.bytes.to_vec())));
+        let decoded =
+            result.map(|read| Arc::new(Image::from_bytes(format(kind), read.bytes.to_vec())));
         if viewer.path == ask.path {
             if let Some(image) = viewer.look.image.as_mut() {
                 image.state = match decoded {
@@ -253,7 +260,9 @@ impl Shell {
     /// that are files of the root.
     pub(super) fn preview_pictures(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let panel = &self.areas.workspace.code;
-        let Some((machine, root)) = panel.root().map(|(machine, root)| (machine.to_owned(), *root))
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
         else {
             return;
         };
@@ -271,7 +280,10 @@ impl Shell {
             if image_kind(path.as_str()).is_none() || !pictures.name(name, &path) {
                 continue;
             }
-            self.ask(&machine, Ask::File(FileAsk::Image(ReadImage { root, path })));
+            self.ask(
+                &machine,
+                Ask::File(FileAsk::Image(ReadImage { root, path })),
+            );
             asked = true;
         }
         if asked {

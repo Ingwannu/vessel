@@ -70,7 +70,9 @@ fn has_scheme(source: &str) -> bool {
     source.split_once(':').is_some_and(|(scheme, _)| {
         let mut chars = scheme.chars();
         scheme.len() >= 2
-            && chars.next().is_some_and(|first| first.is_ascii_alphabetic())
+            && chars
+                .next()
+                .is_some_and(|first| first.is_ascii_alphabetic())
             && chars.all(|character| {
                 character.is_ascii_alphanumeric() || matches!(character, '+' | '.' | '-')
             })
@@ -119,7 +121,10 @@ pub fn target(target: &str, from: &RelPath, folder: Option<&str>) -> Target {
         return Target::None;
     }
     let drive = path.get(1..3) == Some(":/")
-        && path.chars().next().is_some_and(|first| first.is_ascii_alphabetic());
+        && path
+            .chars()
+            .next()
+            .is_some_and(|first| first.is_ascii_alphabetic());
     let parts = if path.starts_with('/') || drive {
         let Some(folder) = folder else {
             return Target::None;
@@ -132,7 +137,10 @@ pub fn target(target: &str, from: &RelPath, folder: Option<&str>) -> Target {
         if full.len() <= base.len() || !base.iter().zip(&full).all(|(a, b)| a == b) {
             return Target::None;
         }
-        full.into_iter().skip(base.len()).map(str::to_owned).collect::<Vec<_>>()
+        full.into_iter()
+            .skip(base.len())
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
     } else {
         let directory = from.as_str().split('/').collect::<Vec<_>>();
         let directory = directory

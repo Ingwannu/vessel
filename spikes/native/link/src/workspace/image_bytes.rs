@@ -30,7 +30,10 @@ use super::download::failure;
 use super::{ImageBytes, ReadImage};
 
 /// Fetch the image `ask` names into memory.
-pub(super) async fn fetch(client: &NodeClient, ask: &ReadImage) -> Result<ImageBytes, DownloadFailure> {
+pub(super) async fn fetch(
+    client: &NodeClient,
+    ask: &ReadImage,
+) -> Result<ImageBytes, DownloadFailure> {
     let kept = Arc::new(Mutex::new(Vec::new()));
     let into = Arc::clone(&kept);
     let revision = client

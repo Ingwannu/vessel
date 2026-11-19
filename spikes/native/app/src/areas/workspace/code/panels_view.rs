@@ -20,8 +20,8 @@ use vessel_app_kit::theme::spacing;
 use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig};
 use vessel_app_kit::ui::{
     AnyElement, Bounds, Context, InteractiveElement as _, IntoElement as _, MouseButton,
-    ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window, canvas,
-    div, px,
+    ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window, canvas, div,
+    px,
 };
 use vessel_app_kit::{ButtonState, ControlSizing, Tokens};
 use vessel_app_view::composer::viewer::{
@@ -56,6 +56,7 @@ pub(super) fn side_control(
     };
     Some(
         segmented(SegmentSize::Small)
+            .id("code-side")
             .role(gpui::Role::RadioGroup)
             .aria_label(words.file_view)
             .child(one("code-side-preview", Side::Preview, words.preview, cx))
@@ -192,17 +193,19 @@ pub(super) fn image(
         .relative()
         .overflow_hidden()
         .role(gpui::Role::Image)
-        .child(canvas(
-            move |bounds, window, _cx| {
-                if probe.get() != Some(bounds) {
-                    probe.set(Some(bounds));
-                    window.refresh();
-                }
-            },
-            |_, (), _, _| {},
-        )
-        .absolute()
-        .size_full());
+        .child(
+            canvas(
+                move |bounds, window, _cx| {
+                    if probe.get() != Some(bounds) {
+                        probe.set(Some(bounds));
+                        window.refresh();
+                    }
+                },
+                |_, (), _, _| {},
+            )
+            .absolute()
+            .size_full(),
+        );
     if let Some((content, canvas_size, decoded)) = drawn {
         let viewport = image
             .viewport
@@ -217,7 +220,9 @@ pub(super) fn image(
                 .h(px(viewport.size().height()))
                 .object_fit(ObjectFit::Contain),
         );
-        cx.defer_in(window, move |shell, _window, _cx| shell.image_fitted(viewport));
+        cx.defer_in(window, move |shell, _window, _cx| {
+            shell.image_fitted(viewport)
+        });
     }
     element
         .on_hover(cx.listener(|shell, hovered: &bool, _window, cx| {
@@ -292,9 +297,27 @@ fn toolbar(
     };
     let scale = image.viewport.map(Viewport::scale);
     let actions = [
-        ("code-image-zoom-in", Glyph::ZoomIn, Zoom::In, words.zoom_in, scale.is_some_and(|v| v < MAX_SCALE)),
-        ("code-image-zoom-out", Glyph::ZoomOut, Zoom::Out, words.zoom_out, scale.is_some_and(|v| v > MIN_SCALE)),
-        ("code-image-reset", Glyph::Scan, Zoom::Reset, words.reset_view, scale.is_some_and(|v| v != MIN_SCALE)),
+        (
+            "code-image-zoom-in",
+            Glyph::ZoomIn,
+            Zoom::In,
+            words.zoom_in,
+            scale.is_some_and(|v| v < MAX_SCALE),
+        ),
+        (
+            "code-image-zoom-out",
+            Glyph::ZoomOut,
+            Zoom::Out,
+            words.zoom_out,
+            scale.is_some_and(|v| v > MIN_SCALE),
+        ),
+        (
+            "code-image-reset",
+            Glyph::Scan,
+            Zoom::Reset,
+            words.reset_view,
+            scale.is_some_and(|v| v != MIN_SCALE),
+        ),
     ];
     div()
         .absolute()
@@ -303,18 +326,41 @@ fn toolbar(
         .flex()
         .gap(px(spacing::S1))
         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-        .children(actions.into_iter().map(|(id, glyph, zoom, label, enabled)| {
-            let availability = if enabled { ButtonState::Enabled } else { ButtonState::Disabled };
-            ToolbarButton::viewport(id, label, glyph, ToolbarConfig::new(sizing, availability), presence, tokens)
-                .on_click(cx.listener(move |shell, _, _window, cx| shell.image_zoom(zoom, cx)))
-        }))
+        .children(
+            actions
+                .into_iter()
+                .map(|(id, glyph, zoom, label, enabled)| {
+                    let availability = if enabled {
+                        ButtonState::Enabled
+                    } else {
+                        ButtonState::Disabled
+                    };
+                    ToolbarButton::viewport(
+                        id,
+                        label,
+                        glyph,
+                        ToolbarConfig::new(sizing, availability),
+                        presence,
+                        tokens,
+                    )
+                    .on_click(cx.listener(move |shell, _, _window, cx| shell.image_zoom(zoom, cx)))
+                }),
+        )
         .into_any_element()
 }
 
 impl Shell {
     /// The image panel of the file shown, if it has one.
     fn shown_image(&mut self) -> Option<&mut ImagePanel> {
-        self.areas.workspace.code.files.viewer.as_mut()?.look.image.as_mut()
+        self.areas
+            .workspace
+            .code
+            .files
+            .viewer
+            .as_mut()?
+            .look
+            .image
+            .as_mut()
     }
 
     /// The viewport drawn this frame, kept for the next input.
