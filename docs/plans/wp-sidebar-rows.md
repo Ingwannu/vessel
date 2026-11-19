@@ -11,7 +11,8 @@ pinned Paseo 0.15.4 (`1c00b365c`): `components/sidebar/project-leading-visual.ts
 impl F's TRACKER 809 owns the project's mark itself (its icon, else its
 lettered square); this item draws around it and does not redo it.
 
-Status: rulings in (below); built, gates and frames to follow.
+Status: rulings in (below); built and gated on 14.66 (`8fe892df`:
+native 2397 passed, wasm32 check green); frames with the coordinator.
 
 ## Visible differences: the project row (662)
 
@@ -124,9 +125,13 @@ line when there are any, the kebab on hover.
   needs-input alert), `theme::SidebarSurfaces` (Paseo's sidebar fills
   per theme), the status dot colours, three glyphs, `Points::EIGHT`.
 - app: the session row (`sidebar/session_row.rs`, `row_meta.rs`): W1,
-  W3-W6 and the vertical kebab over the title's end with Paseo's scrim;
+  W3-W6 and the vertical kebab over the title's end with Paseo's scrim
+  (Paseo's trigger margins: 2 from the title, pulled 7 right, on a phone
+  a 32 box with an 18 glyph centred on the title's line and pulled 14
+  right, so the row stays 44);
   the project row (`workspace/sidebar.rs`, `sidebar/actions.rs`): P1-P5,
-  the dark hover fixed (it was the light theme's `surface3`).
+  the dark hover fixed (it was the light theme's `surface3`); its menu
+  opens under the kebab, end-aligned (Paseo's `align="end"`).
 - P4: Paseo never fills its project header as selected
   (`selected={false}`); the row presses to `surface2` as before.
 - W2 dropped as ruled.
