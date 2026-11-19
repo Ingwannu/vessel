@@ -69,14 +69,14 @@ export function usePlugins(machine: NodeKey, supported: boolean): PluginsHold {
 
   useEffect(() => {
     if (!supported) return;
-    let live = true;
+    const ended = new AbortController();
     void (async () => {
       const first = await watchPlugins(fleet, machine, Number.MAX_SAFE_INTEGER);
       if (!first.ok) return;
       let seen = first.value;
-      while (live) {
+      while (!ended.signal.aborted) {
         const next = await watchPlugins(fleet, machine, seen);
-        if (!live || !next.ok) return;
+        if (ended.signal.aborted || !next.ok) return;
         if (next.value !== seen) {
           seen = next.value;
           load();
@@ -84,7 +84,7 @@ export function usePlugins(machine: NodeKey, supported: boolean): PluginsHold {
       }
     })();
     return () => {
-      live = false;
+      ended.abort();
     };
   }, [fleet, machine, supported, load]);
 

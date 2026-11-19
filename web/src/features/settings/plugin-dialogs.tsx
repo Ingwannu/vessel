@@ -37,9 +37,17 @@ export function PluginLogsDialog({
       setFetching(false);
     });
   }, [fleet, machine, plugin.id]);
+  // The first read when the dialog opens; Refresh reads again. The state is
+  // set only in the answer's callback, never during the effect itself.
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let current = true;
+    void pluginLogs(fleet, machine, plugin.id).then((outcome) => {
+      if (current) setLogs(outcome);
+    });
+    return () => {
+      current = false;
+    };
+  }, [fleet, machine, plugin.id]);
   let content: ReactNode;
   if (logs === null) {
     content = <p className="plugin-logs-state">{PLUGIN_WORDS.logsLoading}</p>;
