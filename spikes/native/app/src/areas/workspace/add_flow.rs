@@ -199,7 +199,9 @@ impl Shell {
         sheet.field.set_placeholder(placeholder, window, cx);
         sheet.field.set_text(&page.field, window, cx);
         sheet.field.focus(window, cx);
-        sheet.scroll.set_offset(point(px(spacing::S0), px(spacing::S0)));
+        sheet
+            .scroll
+            .set_offset(point(px(spacing::S0), px(spacing::S0)));
         self.add_flow_ask_folders();
         cx.notify();
     }
