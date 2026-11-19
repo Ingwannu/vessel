@@ -1,7 +1,5 @@
 //! The page's `markdown-paths.test.ts` cases.
 
-use std::str::FromStr as _;
-
 use super::*;
 
 fn rel(path: &str) -> RelPath {

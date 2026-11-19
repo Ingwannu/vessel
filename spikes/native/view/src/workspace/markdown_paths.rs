@@ -56,7 +56,7 @@ fn normalized<'a>(parts: impl IntoIterator<Item = &'a str>) -> Option<Vec<&'a st
         match part {
             "" | "." => {}
             ".." => {
-                kept.pop()?;
+                let _parent = kept.pop()?;
             }
             _ => kept.push(part),
         }
@@ -130,15 +130,19 @@ pub fn target(target: &str, from: &RelPath, folder: Option<&str>) -> Target {
             return Target::None;
         };
         let folder = folder.replace('\\', "/");
-        let (Some(base), Some(full)) = (normalized(folder.split('/')), normalized(path.split('/')))
+        let (Some(root_parts), Some(path_parts)) =
+            (normalized(folder.split('/')), normalized(path.split('/')))
         else {
             return Target::None;
         };
-        if full.len() <= base.len() || !base.iter().zip(&full).all(|(a, b)| a == b) {
+        if path_parts.len() <= root_parts.len()
+            || !root_parts.iter().zip(&path_parts).all(|(a, b)| a == b)
+        {
             return Target::None;
         }
-        full.into_iter()
-            .skip(base.len())
+        path_parts
+            .into_iter()
+            .skip(root_parts.len())
             .map(str::to_owned)
             .collect::<Vec<_>>()
     } else {
