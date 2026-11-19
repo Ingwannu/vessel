@@ -2,10 +2,9 @@
 //! Never render an RPC/connection error's Display or cause chain for this command.
 use crate::{args::Target, connect::connect};
 mod error;
-mod text;
 pub(crate) use error::CommandError;
 use std::fmt::{self, Write as _};
-use vessel_proto::diagnostics::{DiagnosticCount, DiagnosticReport, DiagnosticSection};
+use vessel_proto::diagnostics::DiagnosticReport;
 
 /// Complete single-node text/JSON export budget, excluding shell framing.
 const MAX_EXPORT_BYTES: usize = 128 * 1024;
@@ -49,28 +48,6 @@ pub(crate) async fn command(target: &Target, output: Output) -> Result<(), Comma
         .await
         .map_err(CommandError::Write)
 }
-fn count(value: DiagnosticCount) -> String {
-    if value.is_saturated() {
-        format!("{}+ (saturated)", value.get())
-    } else {
-        value.get().to_string()
-    }
-}
-fn section<T>(
-    out: &mut Text,
-    title: &str,
-    section: &DiagnosticSection<T>,
-    render: impl FnOnce(&mut Text, &T) -> fmt::Result,
-) -> fmt::Result {
-    writeln!(out, "{title}")?;
-    match section {
-        DiagnosticSection::Available { at, value } => {
-            writeln!(out, "  Observed at: {at}")?;
-            render(out, value)
-        }
-        DiagnosticSection::Unavailable { reason } => writeln!(out, "  Unavailable: {reason:?}"),
-    }
-}
 fn render(report: &DiagnosticReport, output: Output) -> Result<String, OutputError> {
     match output {
         Output::Json => {
@@ -80,7 +57,13 @@ fn render(report: &DiagnosticReport, output: Output) -> Result<String, OutputErr
             }
             Ok(value)
         }
-        Output::Text => Ok(text::report(report)?),
+        // The text every Rust client renders (ADR 0111), within this
+        // command's export budget.
+        Output::Text => {
+            let mut out = Text::default();
+            out.write_str(&vessel_proto::diagnostics::text::report(report))?;
+            Ok(out.0)
+        }
     }
 }
 

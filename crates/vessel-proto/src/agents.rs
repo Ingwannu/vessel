@@ -27,6 +27,7 @@
 mod added;
 mod calls;
 mod catalogue;
+mod diagnostic;
 mod install;
 mod name;
 mod older;
@@ -39,6 +40,10 @@ pub use added::{
 };
 pub use calls::{AddAgent, ListAgents, RemoveAgent};
 pub use catalogue::{Catalogue, CatalogueEntry, CatalogueRun, CatalogueVariable, GetCatalogue};
+pub use diagnostic::{
+    AgentDiagnostic, AgentProbe, CatalogStatus, CommandSource, DiagnosticCommand,
+    GetAgentDiagnostic, MAX_MATCHES, MAX_TEXT, MAX_TITLE, ProbeStep, bounded_text,
+};
 pub use install::{InstallAgent, InstallJob, InstallOutput, InstallState, ReadInstall};
 pub use name::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use older::{READS_ADDED_AGENTS, readable, unreadable};

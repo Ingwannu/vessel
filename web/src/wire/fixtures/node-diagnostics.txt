@@ -1,0 +1,87 @@
+Vessel diagnostics
+  Collected at: 2026-11-18T21:00:00Z
+  Node: 6f1c2a8e-3b7d-4c55-9a1e-2f0b8c4d7e91
+  Version: 0.0.0
+  Platform: linux / x86_64
+  State: serving
+  Uptime: 3600000 ms
+  Home: ~
+
+Daemon process
+  Observed at: 2026-11-18T21:00:00Z
+  PID: 4242
+  Parent: 1
+  Resident bytes: 52428800
+  Virtual bytes: 1073741824
+
+Store
+  Observed at: 2026-11-18T21:00:00Z
+  Supported schema: 23
+  Observed schema: 23
+  Sessions: 12 total / 3 live / 9 ended
+
+Agents
+  Observed at: 2026-11-18T21:00:00Z
+  builtin (harness: claude-code)
+    Program: found
+    Conversations: available
+    Terminal: available
+    Sign-in: present
+    Version: 2.0.14
+    Checked at: 2026-11-18T20:58:00Z
+    Stale: no
+  custom (slot: 1)
+    Program: missing
+    Conversations: unavailable (reason: missing executable)
+    Terminal: unknown (reason: not checked)
+    Sign-in: unknown (reason: not installed)
+    Version: unknown
+    Checked at: never
+    Stale: no
+
+Runtime sessions
+  Observed at: 2026-11-18T21:00:00Z
+  Live: 3
+  Parked: 1
+
+Listeners
+  Observed at: 2026-11-18T21:00:00Z
+  Local kind: socket
+  Local: bound
+  Direct: disabled
+
+Relays
+  Observed at: 2026-11-18T21:00:00Z
+  Configured: 0 connecting / 1 registered / 0 refused / 0 stopped / 0 unknown
+  Callback: 0 connecting / 0 registered / 0 refused / 0 stopped / 0 unknown
+
+Recent failures
+  Observed at: 2026-11-18T21:00:00Z
+  Coverage: local rpc completions
+  Since: 2026-11-18T20:00:00Z
+  Omitted: 0
+  2026-11-18T20:59:30Z: not found
+
+System
+  Observed at: 2026-11-18T21:00:00Z
+  CPU cores: 8
+  Load avg: 0.42 1.05 0.07
+  Memory available: 8589934592 of 17179869184 bytes
+
+Disk
+  Observed at: 2026-11-18T21:00:00Z
+  Data directory: ~
+  Available: 107374182400 of 512110190592 bytes
+
+Workspaces
+  Unavailable: read failed
+
+Activity
+  Observed at: 2026-11-18T21:00:00Z
+  Live by agent: claude-code 2, codex 1
+  Waiting on a permission: 1
+
+Tools
+  Observed at: 2026-11-18T21:00:00Z
+  git: found, version 2.43.0
+  gh: missing

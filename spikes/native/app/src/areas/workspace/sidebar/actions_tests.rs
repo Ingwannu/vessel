@@ -6,8 +6,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use gpui::{
-    AppContext as _, Context, Entity, IntoElement, Render, TestAppContext, VisualTestContext,
-    Window, point, size,
+    AppContext as _, Context, Entity, FocusHandle, InteractiveElement as _, IntoElement,
+    ParentElement as _, Render, Styled as _, TestAppContext, VisualTestContext, Window, point,
+    size,
 };
 use vessel_app_kit::ui::px;
 use vessel_app_kit::{Scheme, Tokens};
@@ -25,13 +26,19 @@ use crate::shell::{Shell, language_tests};
 
 struct Probe {
     shell: Entity<Shell>,
+    /// A stand-in for whatever had the keys before the menu (the composer).
+    opener: FocusHandle,
 }
 
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
-        self.shell.update(cx, |shell, cx| {
+        let sidebar = self.shell.update(cx, |shell, cx| {
             crate::areas::sidebar::render(shell, &Tokens::of(Scheme::Dark), false, window, cx)
-        })
+        });
+        gpui::div()
+            .size_full()
+            .child(gpui::div().track_focus(&self.opener).size(px(10.0)))
+            .child(sidebar)
     }
 }
 
@@ -87,7 +94,7 @@ fn session(index: u16, project: ProjectId, attention: Attention) -> Card {
     card
 }
 
-fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, FocusHandle, &mut VisualTestContext) {
     language_tests::init(cx);
     let saved = Rc::new(RefCell::new(None));
     let window = cx.update(|cx| {
@@ -121,8 +128,9 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
                         .insert("fixture".to_owned(), projects());
                     shell
                 });
-                *saved.borrow_mut() = Some(shell.clone());
-                let probe = cx.new(|_| Probe { shell });
+                let opener = cx.focus_handle();
+                *saved.borrow_mut() = Some((shell.clone(), opener.clone()));
+                let probe = cx.new(|_| Probe { shell, opener });
                 vessel_app_kit::root(probe, window, cx)
             }
         })
@@ -136,8 +144,8 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
         window.draw(cx).clear(cx);
     });
     cx.run_until_parked();
-    let shell = saved.borrow().as_ref().unwrap().clone();
-    (shell, cx)
+    let (shell, opener) = saved.borrow().as_ref().unwrap().clone();
+    (shell, opener, cx)
 }
 
 fn shop() -> Target {
@@ -150,7 +158,7 @@ fn shop() -> Target {
 
 #[gpui::test]
 fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
-    let (shell, cx) = setup(cx);
+    let (shell, _opener, cx) = setup(cx);
     let handle = cx.update(|window, _| window.window_handle());
     assert!(cx.simulate_accessibility_activation(handle));
     cx.run_until_parked();
@@ -174,11 +182,70 @@ fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
     // shop: working over done; docs: its session needs input; site: none,
     // so no badge.
     assert_eq!(said, ["Needs input", "Working"]);
+    // Each project's kebab is a button named "Project actions" that takes a
+    // Click (its click opens the menu, R2).
+    let kebabs: Vec<&str> = json
+        .split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria))
+        .filter(|aria| aria.contains(r#""label": "Project actions""#))
+        .collect();
+    assert_eq!(kebabs.len(), 3);
+    assert!(kebabs.iter().all(|aria| aria.contains(r#""Button""#)));
+    assert!(kebabs.iter().all(|aria| aria.contains(r#""Click""#)));
+}
+
+#[gpui::test]
+fn a_click_alone_opens_the_project_menu_once(cx: &mut TestAppContext) {
+    let (shell, _opener, cx) = setup(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        // No press went down first: assistive technology's Click.
+        shell.project_menu_activate(shop(), point(px(200.0), px(200.0)), window, cx);
+        assert!(shell.areas.workspace.sidebar.menu_is_for(&shop()));
+        // The click that ends a pointer's press leaves it open.
+        shell.project_menu_activate(shop(), point(px(200.0), px(200.0)), window, cx);
+        assert!(shell.areas.workspace.sidebar.menu_is_for(&shop()));
+    });
+}
+
+#[gpui::test]
+fn the_remove_question_gives_the_keys_back_when_it_closes(cx: &mut TestAppContext) {
+    let (shell, opener, cx) = setup(cx);
+    cx.update(|window, cx| opener.focus(window, cx));
+    let ask = |cx: &mut VisualTestContext| {
+        shell.update_in(cx, |shell, window, cx| {
+            shell.project_menu_open(shop(), point(px(200.0), px(200.0)), window, cx);
+            // The menu gives the keys back to its opener before it runs a
+            // choice (menu/draw.rs).
+            opener.focus(window, cx);
+            shell.project_menu_chose(1, window, cx);
+        });
+        cx.run_until_parked();
+    };
+    ask(cx);
+    cx.update(|window, cx| {
+        assert!(!opener.is_focused(window));
+        assert!(window.focused(cx).is_some());
+    });
+    // Cancel: the keys go back.
+    shell.update_in(cx, |shell, window, cx| {
+        shell.project_remove_dismiss(window, cx);
+    });
+    cx.run_until_parked();
+    cx.update(|window, _| assert!(opener.is_focused(window)));
+    // A second question remembers the opener afresh; Remove gives them back.
+    ask(cx);
+    cx.update(|window, _| assert!(!opener.is_focused(window)));
+    shell.update_in(cx, |shell, window, cx| {
+        shell.project_remove_confirmed(window, cx);
+    });
+    cx.run_until_parked();
+    cx.update(|window, _| assert!(opener.is_focused(window)));
 }
 
 #[gpui::test]
 fn remove_asks_first_then_the_row_spins_until_the_node_answers(cx: &mut TestAppContext) {
-    let (shell, cx) = setup(cx);
+    let (shell, _opener, cx) = setup(cx);
     shell.update_in(cx, |shell, window, cx| {
         shell.project_menu_open(shop(), point(px(200.0), px(200.0)), window, cx);
         // The menu's second row: Remove project.
@@ -219,7 +286,7 @@ fn remove_asks_first_then_the_row_spins_until_the_node_answers(cx: &mut TestAppC
 
 #[gpui::test]
 fn a_refused_removal_from_the_row_is_a_toast_and_the_row_stays(cx: &mut TestAppContext) {
-    let (shell, cx) = setup(cx);
+    let (shell, _opener, cx) = setup(cx);
     shell.update(cx, |shell, cx| {
         shell.remove_project_from("fixture", project_id(1), Origin::Sidebar);
         shell.project_removal_answered(

@@ -61,6 +61,11 @@ refused a session that was not live or was parked, and dropped the replay.
        store (the hand-over), so the prompts read from the store are all of them.
   - The record: `reloaded { harness_session, appended }` once the agent is ready again. An older peer reads it
     as `vessel: the agent was reloaded` (with the count when records were added), at the same sequence.
+  - A parked session's reload records `woken` just before `reloaded` (the node reviewer's note on row 332).
+    The park ends as a wake's does, so a reader that pairs `parked` with `woken`, such as a peer below this
+    protocol that reads `reloaded` only as a line, sees it end. `woken` alone was considered: it would drop
+    the count and the line that say where the records after it come from, and a parked reload would read
+    unlike a live one. Usage takes both as a wake's restart (setting the phase twice changes nothing).
   - The history (ruling C, R2):
     - Instead of being dropped, the replay is gathered, bounded by 60 s, 20,000 events and 64 MiB of their
       serialized size (counted, not kept). Past any bound the gather stops and drops what it held.
@@ -102,12 +107,16 @@ refused a session that was not live or was parked, and dropped the replay.
 
 ## Costs
 
-- `RELOAD_PROTOCOL` is a new number (assigned 31 at merge). The page's copy (`web/src/data/reload.ts`) must
-  stay equal to it.
-- The page offers the row on every structured session whose agent can load a conversation, on machines
-  speaking this protocol, as Paseo offers it on every agent tab; the node's refusal is the failure toast. The
-  row sits in the session's actions menu, since the page has no tab menu. The native row is the visual lane's,
-  after this node op lands.
+- `RELOAD_PROTOCOL` is a new number (assigned 31 at merge). The page reads it from the wire declarations,
+  which end with the protocol thresholds `vessel_proto::ts::PROTOCOLS` lists (generated, so it stays equal to
+  the Rust constant; the first draft kept a hand copy). Other thresholds the page still copies by hand move
+  there as their rows are touched.
+- The page offers the row on every structured session whose agent can load a conversation, as Paseo offers
+  it on every agent tab; it is hidden only on a connected machine below this protocol. On a machine that is
+  not connected the row stays and a press says "Host is not connected" as an error, as Paseo's
+  (`workspace.terminal.hostDisconnected`; the coordinator, 2026-11-18). The node's refusal is the failure
+  toast. The row sits in the session's actions menu, since the page has no tab menu. The native row is the
+  visual lane's, after this node op lands, with the same rule.
 - No store schema change. A parked state is still not persisted.
 
 ## Tests
@@ -123,7 +132,8 @@ refused a session that was not live or was parked, and dropped the replay.
   `FAKE_ACP_LOAD_FAILS_IF`, the `deaf` prompt):
   - the three history cases;
   - an archived session unarchived and started again;
-  - a parked session reloaded (running, not parked, `reloaded`, its next prompt on the loaded conversation);
+  - a parked session reloaded (running, not parked, `woken` then `reloaded`, its next prompt on the loaded
+    conversation), and no `woken` for a live one;
   - a reloaded agent that cannot load (`FAKE_ACP_LOAD_FAILS_IF`): a live session `spawn_failed` and ended
     `failed` with its log kept, then reloaded again once the agent can load; a parked one left parked with a
     failed wake's reason;

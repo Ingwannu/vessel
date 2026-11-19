@@ -97,7 +97,9 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::SetNodeSettings
         | Method::ListInbox
         | Method::Diagnostics
+        | Method::ReadNodeLog
         | Method::ListWorkspaceLabels => json!({}),
+        Method::GetAgentDiagnostic => json!({"agent":"codex"}),
         Method::AssignWorkspaceLabel => {
             json!({"workspace":id,"label":{"name":"Ready","color":"violet"},"assignment":"assigned"})
         }

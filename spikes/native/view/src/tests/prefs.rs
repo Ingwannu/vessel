@@ -17,8 +17,9 @@ use crate::prefs::{
 };
 
 /// The page/bridge defaults, byte for byte the bridge's `defaults_are_the_contracts`
-/// (crates/vessel-web/src/wire/prefs.rs) with the usage section of ADR 0107.
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
+/// (crates/vessel-web/src/wire/prefs.rs): the usage section of ADR 0107, the
+/// page's Steer default of ADR 0108 and the sidebar's empty label filter.
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
 
 /// The usage section both documents share (ADR 0107).
 const USAGE: &str = r#""usage":{"display":"used","host":null,"pins":null}"#;
@@ -40,32 +41,30 @@ fn defaults_are_the_contracts() {
     // and keeps whether the sidebar shows the summary in its sidebar
     // navigation instead of the bridge's `sidebar.usage`. The native document
     // adds two explicit fields (the language, and Appearance's Animations,
-    // word 39) and differs in one stated default: a turn sent while one runs
-    // steers it (Paseo's default, the owner's word 45), where the page and
-    // the bridge still queue it (TRACKER 793). Every other byte of its
+    // word 39) and has no `sidebar.labels`: the page's workspace label filter
+    // is not on the native sidebar, and a page document's filter is ignored
+    // when read. Both steer a turn sent while one runs (Paseo's default; the
+    // owner's word 45 here, ADR 0108 on the page). Every other byte of its
     // defaults comes from that fixture.
     let native_default = DEFAULT
         .replacen(&format!(",{USAGE}"), "", 1)
         .replacen(r#","usage":false"#, "", 1)
+        .replacen(r#","labels":[]"#, "", 1)
         .replacen('{', &format!(r#"{{{USAGE},"language":"system","#), 1)
         .replacen(
             r#""conversation":"full""#,
             r#""conversation":"full","animations":"on""#,
             1,
-        )
-        .replacen(r#""delivery":"queue""#, r#""delivery":"steer""#, 1);
+        );
     assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
     assert_eq!(
         serde_json::from_str::<Preferences>(&native_default).unwrap(),
         values
     );
-    // The page's document reads as the defaults with its own stated
-    // delivery: the one difference, kept as written.
-    let mut page_default = values.clone();
-    page_default.composer.delivery = TurnDelivery::Queue;
+    // The page's document reads as the defaults.
     assert_eq!(
         serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
-        page_default
+        values
     );
     assert_eq!(serde_json::from_str::<Preferences>("{}").unwrap(), values);
 }

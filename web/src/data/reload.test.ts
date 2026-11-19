@@ -1,14 +1,9 @@
 import { describe, expect, test } from "vitest";
 
 import { fixtureId } from "../testing/ids";
-import type { SessionInfo } from "../wire/proto";
+import { RELOAD_PROTOCOL, type SessionInfo } from "../wire/proto";
 import { liveSession } from "./fixtures/machines";
-import {
-  canReload,
-  RELOAD_PROTOCOL,
-  RELOAD_WORDS,
-  reloadFailure,
-} from "./reload";
+import { canReload, RELOAD_WORDS, reloadFailure } from "./reload";
 
 const LOADED: SessionInfo = {
   ...liveSession,
@@ -19,7 +14,10 @@ describe("who is offered Reload agent", () => {
   test("a structured session with a conversation, from the reload protocol on", () => {
     expect(canReload(LOADED, RELOAD_PROTOCOL)).toBe(true);
     expect(canReload(LOADED, RELOAD_PROTOCOL - 1)).toBe(false);
-    expect(canReload(LOADED, null)).toBe(false);
+  });
+
+  test("on a machine not connected too, as Paseo keeps its row", () => {
+    expect(canReload(LOADED, null)).toBe(true);
   });
 
   test("an ended session too: the node starts it again", () => {
@@ -68,6 +66,7 @@ describe("Paseo's words", () => {
       reloading: "Reloading agent...",
       reloaded: "Reloaded agent",
       failed: "Failed to reload agent",
+      disconnected: "Host is not connected",
     });
   });
 

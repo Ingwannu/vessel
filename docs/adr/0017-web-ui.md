@@ -258,6 +258,10 @@ Option 3.
 - One file holds every wire type, so names must not clash: M6's
   `lsp::Call` is `LspCall` there (a TypeScript-only rename), and a
   generic type (`lsp::Page<T>`) is declared once for all its uses.
+- The file ends with the protocol thresholds the page compares with a
+  node's version, as constants (`vessel_proto::ts::PROTOCOLS`; TRACKER
+  803 began it with `RELOAD_PROTOCOL`), so a threshold assigned at merge
+  reaches the page without a hand copy.
 - The bridge forwards M6's `lsp.*` calls like any read; the page does
   not use them yet.
 

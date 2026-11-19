@@ -309,6 +309,10 @@ impl Reply {
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
             | Self::Diagnostics(_)
+            // ADR 0111's calls need protocol 33, so never reach a peer below
+            // 11; an agent's diagnostic names its agent as `agent.status` does.
+            | Self::GetAgentDiagnostic(_)
+            | Self::ReadNodeLog(_)
             | Self::SearchMessages(_)
             // File-panel replies (protocol 27) cannot reach an older peer: the
             // node refuses these calls below 27 before dispatch, like newer families.

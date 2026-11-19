@@ -5,12 +5,8 @@ import { fixtureId } from "../../testing/ids";
 import { Fleet } from "../fleet";
 import { BACKGROUND_SLOTS } from "./file-work";
 
-import {
-  HOST_FOLDERS_PROTOCOL,
-  hasProjectIcons,
-  iconAddress,
-  projectIcon,
-} from "./project-icons";
+import { HOST_FOLDERS_PROTOCOL } from "../../wire/proto";
+import { hasProjectIcons, iconAddress, projectIcon } from "./project-icons";
 
 describe("project icons (ADR 0112)", () => {
   it("draws the node's bytes with the type the node decided", () => {
