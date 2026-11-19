@@ -53,5 +53,10 @@ async fn seeded_repositories_list_newest_first_and_search_by_path_or_description
         .unwrap();
     assert_eq!(one.len(), 1);
     forge.fail(Some(Failure::SignedOut));
-    assert!(forge.repositories(&host, "", RepoLimit::DEFAULT).await.is_err());
+    assert!(
+        forge
+            .repositories(&host, "", RepoLimit::DEFAULT)
+            .await
+            .is_err()
+    );
 }

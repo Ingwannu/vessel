@@ -133,7 +133,9 @@ impl FakeForge {
     /// (ADR 0088); the same path again replaces it.
     pub fn list_repository(&self, repository: Repository) {
         let mut state = self.state();
-        state.repositories.retain(|known| known.path != repository.path);
+        state
+            .repositories
+            .retain(|known| known.path != repository.path);
         state.repositories.push(repository);
     }
 

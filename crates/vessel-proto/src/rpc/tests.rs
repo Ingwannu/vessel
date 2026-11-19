@@ -694,8 +694,9 @@ fn the_repository_search_knows_its_version_scope_and_shape() {
         serde_json::json!({"query": "a", "limit": 51}),
         serde_json::json!({"query": "a\nb"}),
     ] {
-        let refused =
-            serde_json::from_value::<Call>(serde_json::json!({"method": "forge.repos", "params": params}));
+        let refused = serde_json::from_value::<Call>(
+            serde_json::json!({"method": "forge.repos", "params": params}),
+        );
         assert!(refused.is_err());
     }
 }

@@ -42,7 +42,11 @@ async fn a_person_lists_and_searches_the_account_s_repositories() {
         let owner = fixture.connect(&node).await;
         let all = owner.call(SearchRepositories::default()).await.unwrap();
         assert!(matches!(all.access, ForgeAccess::Ready { .. }), "{all:?}");
-        let paths: Vec<_> = all.repositories.iter().map(|row| row.path.as_str()).collect();
+        let paths: Vec<_> = all
+            .repositories
+            .iter()
+            .map(|row| row.path.as_str())
+            .collect();
         assert_eq!(paths, ["owner/vessel", "owner/other", "owner/older"]);
         let found = owner
             .call(SearchRepositories {
@@ -51,8 +55,16 @@ async fn a_person_lists_and_searches_the_account_s_repositories() {
             })
             .await
             .unwrap();
-        let paths: Vec<_> = found.repositories.iter().map(|row| row.path.as_str()).collect();
-        assert_eq!(paths, ["owner/vessel"], "the newest match, as many as asked");
+        let paths: Vec<_> = found
+            .repositories
+            .iter()
+            .map(|row| row.path.as_str())
+            .collect();
+        assert_eq!(
+            paths,
+            ["owner/vessel"],
+            "the newest match, as many as asked"
+        );
         forge.fail(Some(Failure::SignedOut));
         let out = owner.call(SearchRepositories::default()).await.unwrap();
         assert!(out.repositories.is_empty());

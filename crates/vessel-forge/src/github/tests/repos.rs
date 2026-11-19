@@ -33,8 +33,7 @@ const FOUND: &str = r#"{"total_count":2,"incomplete_results":false,"items":[
 "html_url":"https://github.com/someone/vessel","ssh_url":"git@github.com:someone/vessel.git",
 "updated_at":"2026-11-10T01:00:00Z"}]}"#;
 
-const OWN_KEY: &str =
-    "GET /user/repos?affiliation=owner&sort=pushed&direction=desc&per_page=30";
+const OWN_KEY: &str = "GET /user/repos?affiliation=owner&sort=pushed&direction=desc&per_page=30";
 const SEARCH_KEY: &str =
     "GET /search/repositories?q=vessel+app&sort=updated&order=desc&per_page=30";
 
@@ -46,15 +45,25 @@ fn limit() -> RepoLimit {
 async fn the_account_s_own_repositories_list_in_https_without_bad_rows() {
     let (shared, github, repo) = stand().await;
     set(&shared, OWN_KEY, StatusCode::OK, &[], OWN);
-    let rows = github.repositories(&repo.host, "  ", limit()).await.unwrap();
+    let rows = github
+        .repositories(&repo.host, "  ", limit())
+        .await
+        .unwrap();
     let paths: Vec<_> = rows.iter().map(|row| row.path.as_str()).collect();
-    assert_eq!(paths, ["owner/vessel", "owner/tools"], "a bad name is left out");
+    assert_eq!(
+        paths,
+        ["owner/vessel", "owner/tools"],
+        "a bad name is left out"
+    );
     assert_eq!(rows[0].visibility, Visibility::Private);
     assert_eq!(
         rows[0].description.as_ref().map(RepoDescription::as_str),
         Some("Agents on every machine")
     );
-    assert_eq!(rows[0].clone_url.as_str(), "https://github.com/owner/vessel");
+    assert_eq!(
+        rows[0].clone_url.as_str(),
+        "https://github.com/owner/vessel"
+    );
     assert_eq!(
         rows[1].visibility,
         Visibility::Private,
@@ -86,9 +95,15 @@ async fn a_search_clones_in_ssh_when_gh_says_so_and_keeps_the_limit() {
         .await
         .unwrap();
     assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].clone_url.as_str(), "git@github.com:org/vessel-app.git");
+    assert_eq!(
+        rows[0].clone_url.as_str(),
+        "git@github.com:org/vessel-app.git"
+    );
     assert_eq!(rows[0].visibility, Visibility::Internal);
-    assert!(rows[1].description.is_none(), "an empty description is none");
+    assert!(
+        rows[1].description.is_none(),
+        "an empty description is none"
+    );
     let one = {
         set(
             &shared,
