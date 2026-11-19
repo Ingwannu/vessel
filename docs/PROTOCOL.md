@@ -72,9 +72,10 @@ requires the handler, as for every assigned or pending row.
 
 Drafted 36 (`REPOSITORY_SEARCH_PROTOCOL`, `PROTOCOL_VERSION` 36), the next after impl P's drafted 35; the
 integrator assigns it in merge order. The method is unary and forwardable; an agent principal is refused it, as
-`forge.status` (the node's sign-in is a person's).
+`forge.status` (the node's sign-in is a person's). It is `operate`, not `read`: the answer includes the account's
+private repositories, and its one caller ends in `project.clone` (`operate`), as `folder.suggest` (ADR 0112).
 
-- `forge.repos { query, limit }` (`read`) answers `RepositoryList { access, repositories }`: Paseo's
+- `forge.repos { query, limit }` (`operate`) answers `RepositoryList { access, repositories }`: Paseo's
   `workspace.github.search_repositories`. `query` is one line of at most 256 characters (the node trims it);
   empty lists the signed-in account's own repositories, newest first (`gh repo list`), text searches GitHub
   sorted by update (`gh search repos --sort updated --order desc`). `limit` is 1 to 50, default 20; both are

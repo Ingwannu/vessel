@@ -1,6 +1,7 @@
 //! GitHub repository search end to end (ADR 0088, `forge.repos`): the
 //! person's list and search come from the node's forge, bounded by the
-//! asked limit; a signed-out forge answers why, with no rows.
+//! asked limit; a signed-out forge answers why, with no rows; a device
+//! that may only read is refused (the answer holds private repositories).
 
 use std::sync::Arc;
 
@@ -10,6 +11,9 @@ use vessel_proto::forge::{
     ForgeAccess, GhState, RepoLimit, Repository, SearchRepositories, Visibility,
 };
 
+use vessel_proto::{ErrorCode, Scope};
+
+use crate::agents::code;
 use crate::support::{Fixture, within};
 
 fn listed(path: &str, description: Option<&str>, seconds: i64) -> Repository {
@@ -79,6 +83,38 @@ async fn a_person_lists_and_searches_the_account_s_repositories() {
             "{:?}",
             out.access
         );
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_reader_is_refused_and_an_operator_lists() {
+    within(async {
+        let forge = FakeForge::new();
+        forge.list_repository(listed("owner/private", Some("Not for readers"), 1_000));
+        let fixture = Fixture::new();
+        let forge_for = Arc::clone(&forge);
+        let node = fixture
+            .start_with(|config| {
+                config.forge = vessel_node::ForgeSetup {
+                    custom: Some(forge_for),
+                    ..vessel_node::ForgeSetup::default()
+                };
+                crate::secure::advertise_placeholder_route(config);
+            })
+            .await;
+        let owner = fixture.connect(&node).await;
+        let reader = crate::side_questions::access::device(&owner, &node, vec![Scope::Read]).await;
+        assert_eq!(
+            code(reader.call(SearchRepositories::default()).await),
+            ErrorCode::Forbidden
+        );
+        let operator =
+            crate::side_questions::access::device(&owner, &node, vec![Scope::Read, Scope::Operate])
+                .await;
+        let listed = operator.call(SearchRepositories::default()).await.unwrap();
+        assert_eq!(listed.repositories.len(), 1);
+        node.stop().await.unwrap();
     })
     .await;
 }

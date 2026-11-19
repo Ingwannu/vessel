@@ -667,8 +667,9 @@ fn the_new_directory_method_knows_its_version_scope_and_shape() {
 }
 
 /// ADR 0088's first method, drafted as 36 (`REPOSITORY_SEARCH_PROTOCOL`):
-/// the account's GitHub repositories for Add project, a read.
-const REPOSITORY_SEARCH_METHODS: &[(&str, Scope)] = &[("forge.repos", Scope::Read)];
+/// the account's GitHub repositories for Add project, `operate` (they
+/// include private ones; its one caller ends in `project.clone`).
+const REPOSITORY_SEARCH_METHODS: &[(&str, Scope)] = &[("forge.repos", Scope::Operate)];
 
 #[test]
 fn the_repository_search_knows_its_version_scope_and_shape() {

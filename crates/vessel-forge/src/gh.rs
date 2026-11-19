@@ -20,9 +20,10 @@
 //!   time limits per request or rate-limit headers short of parsing its
 //!   output.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, Mutex, PoisonError};
+use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 use tokio::sync::Semaphore;
@@ -54,6 +55,9 @@ const TIME: Duration = Duration::from_secs(10);
 const AT_ONCE: usize = 2;
 /// The most of its output read: a token is short.
 const OUTPUT: u64 = 16 * 1024;
+/// How long a host's clone protocol is kept: a person typing a search asks
+/// it per debounced keystroke (node review of ADR 0088, note 2).
+const KEEP_PROTOCOL: Duration = Duration::from_secs(60);
 
 /// The machine's `gh`.
 #[derive(Debug, Clone)]
@@ -61,6 +65,8 @@ pub struct Gh {
     program: PathBuf,
     folder: PathBuf,
     slots: Arc<Semaphore>,
+    /// Each host's clone protocol, and when it was read.
+    protocols: Arc<Mutex<HashMap<ForgeHost, (CloneProtocol, Instant)>>>,
 }
 
 impl Gh {
@@ -72,6 +78,7 @@ impl Gh {
             program,
             folder,
             slots: Arc::new(Semaphore::new(AT_ONCE)),
+            protocols: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -107,8 +114,18 @@ impl Gh {
     /// How the machine clones from `host`: `ssh` only when `gh` says so
     /// (Paseo's `resolveConfiguredCloneProtocol`).
     pub async fn git_protocol(&self, host: &ForgeHost) -> CloneProtocol {
+        let kept = self
+            .protocols
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(host)
+            .filter(|(_, at)| at.elapsed() < KEEP_PROTOCOL)
+            .map(|(protocol, _)| *protocol);
+        if let Some(protocol) = kept {
+            return protocol;
+        }
         let spec = self.spec(&["config", "get", "git_protocol", "--host", host.as_str()]);
-        match self.run(&spec).await {
+        let protocol = match self.run(&spec).await {
             Some(ran)
                 if ran.code == Some(0)
                     && String::from_utf8_lossy(&ran.out)
@@ -118,7 +135,13 @@ impl Gh {
                 CloneProtocol::Ssh
             }
             Some(_) | None => CloneProtocol::Https,
-        }
+        };
+        let _old = self
+            .protocols
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(host.clone(), (protocol, Instant::now()));
+        protocol
     }
 
     /// Run `spec` within the time and the slots; `None` when it could not
@@ -234,6 +257,9 @@ mod tests {
             ssh_dir.path(),
             "[ \"$1 $2 $3 $4 $5\" = \"config get git_protocol --host github.com\" ] && echo SSH",
         );
+        assert_eq!(ssh.git_protocol(&host).await, CloneProtocol::Ssh);
+        // Kept a minute: gh is not asked again (its program is gone).
+        std::fs::remove_file(ssh_dir.path().join("gh")).unwrap();
         assert_eq!(ssh.git_protocol(&host).await, CloneProtocol::Ssh);
         let unset_dir = tempfile::tempdir().unwrap();
         let unset = fake(unset_dir.path(), "echo");
