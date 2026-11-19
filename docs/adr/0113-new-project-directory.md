@@ -3,9 +3,8 @@
 Status: proposed (impl F, 2026-11-19; TRACKER 242-243 for the Add project
 sheet, TRACKER 234; the coordinator's ruling 1 of
 `docs/plans/wp-add-project-flow.md`). The coordinator recorded 0113 as this
-ADR's number. The protocol is drafted as 34 (`PROJECT_DIRECTORY_PROTOCOL`),
-the next after ADR 0111's 33; the integrator assigns it at the node-line
-merge.
+ADR's number. The protocol, 34 (`PROJECT_DIRECTORY_PROTOCOL`),
+the next after ADR 0111's 33, was assigned at the node-line merge.
 
 ## Context
 

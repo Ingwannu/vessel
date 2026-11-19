@@ -1,6 +1,6 @@
 //! Independent project/workspace registry contracts (ADR 0082).
 //! No IO or inferred cwd identity. The six metadata calls are protocol 25;
-//! `project.create_directory` is drafted as protocol 34 (ADR 0113); the
+//! `project.create_directory` is protocol 34 (ADR 0113); the
 //! other values here have no method row and remain unavailable.
 
 mod automation;
@@ -45,8 +45,8 @@ pub const PROJECT_WORKSPACE_REGISTRY: Option<ProtocolVersion> = Some(ProtocolVer
 /// `project.create_directory` (ADR 0113): one new empty folder made a
 /// project, as Paseo's New directory; from the same protocol the node
 /// expands a leading `~` in that call's parent, `project.add`'s path and
-/// `project.clone`'s parent. Drafted as 34 (the next after ADR 0111's 33);
-/// the integrator assigns it in merge order.
+/// `project.clone`'s parent. Assigned 34 at its node-line merge, the next
+/// free number after ADR 0111's 33.
 pub const PROJECT_DIRECTORY_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(34));
 
 #[cfg(test)]

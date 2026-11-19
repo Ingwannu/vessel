@@ -635,7 +635,7 @@ fn the_diagnostics_wire_methods_know_their_version_scope_and_shape() {
     assert!(!Method::ReadNodeLog.forwardable());
 }
 
-/// ADR 0113's method, drafted as 34 (`PROJECT_DIRECTORY_PROTOCOL`): a new
+/// ADR 0113's method, assigned 34 (`PROJECT_DIRECTORY_PROTOCOL`): a new
 /// empty folder made a project, for those who may add one.
 const PROJECT_DIRECTORY_METHODS: &[(&str, Scope)] = &[("project.create_directory", Scope::Operate)];
 
