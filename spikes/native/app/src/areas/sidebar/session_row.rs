@@ -30,6 +30,13 @@
 //! - Under a project's header (TRACKER 682) the row takes the same indent
 //!   as under a machine or a status (Paseo's `rowIndented`: every grouped
 //!   row on one rail).
+//! - To assistive technology (TRACKER 813, the app reviewer's P3): the row
+//!   is a button named by its title and selected while its session is open
+//!   (Paseo's `accessibilityRole="button"`, `aria-selected`); its status
+//!   slot a status named by Paseo's bucket label (`getStatusBucketLabel`),
+//!   done included; its kebab a button named "Session actions" (the menu's
+//!   sheet title; Paseo's "Workspace actions", a Vessel row is a session)
+//!   whose Click opens the menu once, as the project row's kebab.
 //! - Differences, named: the hover card (TRACKER 810) is its own item;
 //!   Paseo's "creating" title (92%) has no state here.
 
@@ -38,8 +45,8 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::status_mark::{StatusMark, status_slot};
 use vessel_app_kit::theme::{SidebarSurfaces, radius, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement,
-    MouseButton, MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _,
+    AnyElement, ClickEvent, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
+    IntoElement, MouseButton, MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _,
     Styled as _, div, px, svg,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
@@ -121,6 +128,8 @@ pub(super) fn session_row(
     let menu_open = shell.areas.sidebar.rows.is_for(card);
     let pressed = card.clone();
     let fills = SidebarSurfaces::of(tokens);
+    let words = shell.t.lang.sidebar();
+    let name: SharedString = shell.t.title(&card.title).to_owned().into();
     // The fill a hovered row paints: what the scrim fades into.
     let hovered_fill = if active { fills.selected } else { fills.hover };
     let title = div()
@@ -135,7 +144,7 @@ pub(super) fn session_row(
         .text_color(tokens.neutral.foreground)
         .opacity(TITLE_REST)
         .group_hover(group.clone(), |style| style.opacity(1.0))
-        .child(shell.t.title(&card.title).to_owned());
+        .child(name.clone());
     let title_row = div()
         .relative()
         .flex()
@@ -148,9 +157,12 @@ pub(super) fn session_row(
             None => dots(
                 card,
                 group.clone(),
-                touch,
-                menu_open,
-                hovered_fill,
+                Dots {
+                    touch,
+                    menu_open,
+                    hovered_fill,
+                    label: words.row_actions,
+                },
                 tokens,
                 cx,
             ),
@@ -170,6 +182,11 @@ pub(super) fn session_row(
     div()
         .id(ElementId::Name(format!("session-{}", card.session).into()))
         .group(group)
+        // A button named by its title, selected while open (Paseo's row:
+        // `accessibilityRole="button"`, `aria-selected`; TRACKER 813).
+        .role(gpui::Role::Button)
+        .aria_label(name)
+        .aria_selected(active)
         .min_h(px(if touch { ROW_TOUCH } else { ROW }))
         .flex()
         .flex_col()
@@ -191,6 +208,7 @@ pub(super) fn session_row(
                 .child(status_slot(
                     ElementId::Name(format!("session-status-{}", card.session).into()),
                     mark(card.bucket()),
+                    words.bucket(card.bucket()),
                     kind_glyph(card.workspace_kind()),
                     touch,
                     tokens,
@@ -229,19 +247,39 @@ const fn kind_glyph(kind: WorkspaceKind) -> Glyph {
     }
 }
 
+/// How the kebab is drawn.
+#[derive(Debug, Clone, Copy)]
+struct Dots {
+    /// Drawn on touch: always shown, keeping its room.
+    touch: bool,
+    /// Its menu is open: shown.
+    menu_open: bool,
+    /// The fill a hovered row paints, which the scrim fades into.
+    hovered_fill: Hsla,
+    /// Its name ("Session actions", the menu's title as a sheet).
+    label: &'static str,
+}
+
 /// The row's kebab: always shown on touch (keeping its room) or while its
 /// menu is open; else over the title's end while the row is hovered, the
-/// title fading into the row's fill under it.
+/// title fading into the row's fill under it. A button named for its menu;
+/// a click (assistive technology's, or a pointer's press ending) opens the
+/// menu once, as the project row's kebab (TRACKER 813).
 fn dots(
     card: &Card,
     group: SharedString,
-    touch: bool,
-    menu_open: bool,
-    hovered_fill: Hsla,
+    look: Dots,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    let Dots {
+        touch,
+        menu_open,
+        hovered_fill,
+        label,
+    } = look;
     let target = card.clone();
+    let activated = card.clone();
     let (size, mark, right) = if touch {
         (DOTS_TOUCH, DOTS_MARK_TOUCH, DOTS_RIGHT_TOUCH)
     } else {
@@ -265,6 +303,8 @@ fn dots(
                 .size(px(mark))
                 .text_color(tokens.neutral.foreground_muted),
         )
+        .role(gpui::Role::Button)
+        .aria_label(label)
         // Its own press: the row's click (open the session) does not run.
         .on_mouse_down(
             MouseButton::Left,
@@ -272,7 +312,11 @@ fn dots(
                 cx.stop_propagation();
                 this.row_menu_open(&target, event.position, window, cx);
             }),
-        );
+        )
+        .on_click(cx.listener(move |this, event: &ClickEvent, window, cx| {
+            cx.stop_propagation();
+            this.row_menu_activate(&activated, event.position(), window, cx);
+        }));
     if touch {
         return button.into_any_element();
     }

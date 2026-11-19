@@ -491,3 +491,5 @@ mod numbers_tests;
 mod policy_tests;
 #[cfg(test)]
 mod projects_tests;
+#[cfg(test)]
+mod session_row_tests;

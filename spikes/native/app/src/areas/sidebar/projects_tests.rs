@@ -36,7 +36,7 @@ impl Render for Probe {
     }
 }
 
-fn project_id(index: u16) -> ProjectId {
+pub(super) fn project_id(index: u16) -> ProjectId {
     format!("{index:08x}-0000-4000-8000-00000000000a")
         .parse()
         .unwrap()
@@ -89,7 +89,7 @@ fn session(index: u16, project: Option<ProjectId>) -> Card {
 }
 
 /// shop holds `in_shop` sessions, notes one, and one is in no project.
-fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTestContext) {
     language_tests::init(cx);
     let saved = Rc::new(RefCell::new(None));
     let window = cx.update(|cx| {
@@ -148,7 +148,7 @@ fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTe
 
 /// Every `aria` object of GPUI's real snapshot, as text (as the sort
 /// trigger's test reads it), after a fresh frame.
-fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
+pub(super) fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
     shell.update(cx, |_, cx| cx.notify());
     cx.update(|window, _| window.refresh());
     cx.run_until_parked();
@@ -159,7 +159,7 @@ fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
         .collect()
 }
 
-fn named<'a>(arias: &'a [String], role: &str, name: &str) -> Vec<&'a String> {
+pub(super) fn named<'a>(arias: &'a [String], role: &str, name: &str) -> Vec<&'a String> {
     let role = format!(r#""{role}""#);
     let label = format!(r#""label": "{name}""#);
     arias

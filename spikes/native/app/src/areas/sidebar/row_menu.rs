@@ -165,6 +165,21 @@ impl Shell {
         cx.notify();
     }
 
+    /// The kebab activated by a click (a pointer's press already opened
+    /// the menu on its way down; assistive technology clicks only): open
+    /// the menu unless it is already open for this row.
+    pub(super) fn row_menu_activate(
+        &mut self,
+        card: &Card,
+        at: Point<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.areas.sidebar.rows.is_for(card) {
+            self.row_menu_open(card, at, window, cx);
+        }
+    }
+
     fn row_menu_chose(&mut self, index: usize, window: &mut Window, cx: &mut Context<'_, Self>) {
         let Some(target) = self.areas.sidebar.rows.target.take() else {
             return;
