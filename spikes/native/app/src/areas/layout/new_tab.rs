@@ -5,9 +5,10 @@
 //! - Purpose and intent: an empty pane offers what the pane header's "+"
 //!   offers, in Paseo's form: a centred rail of grouped launcher rows.
 //! - Existing implementation and constraints: the pane drew "Choose what to
-//!   open in this pane." and a New agent button. Only Agent can start today
-//!   (`layout::launch`); the app knows no plugin panels and no node terminal
-//!   profiles; Settings › Terminals is not drawn.
+//!   open in this pane." and a New agent button. Agent and Terminal (a
+//!   shell, TRACKER 481) can start (`layout::launch`); the app knows no
+//!   plugin panels and no node terminal profiles; Settings › Terminals is
+//!   not drawn.
 //! - Alternatives considered: more buttons under the line (not Paseo); the
 //!   "+" menu's rows in the pane (a menu's look, not the panel's).
 //! - Chosen approach: the view's catalog and `layout::launch` for the

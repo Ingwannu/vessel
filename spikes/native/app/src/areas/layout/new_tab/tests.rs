@@ -186,12 +186,13 @@ fn the_arrows_stay_on_ready_rows_and_enter_opens_the_new_agent_page(cx: &mut Tes
         });
     });
     cx.run_until_parked();
-    for key in ["down", "down", "up"] {
+    // Agent (0) and Terminal (1) are the ready rows: the arrows skip the
+    // waiting ones and wrap between the two.
+    for (key, row) in [("down", 1), ("down", 0), ("up", 1), ("up", 0)] {
         cx.simulate_keystrokes(key);
         cx.run_until_parked();
-        // Agent is the only ready row: the arrows wrap onto it.
         probe.read_with(cx, |probe, cx| {
-            assert_eq!(probe.0.read(cx).areas.layout.new_tab.row, 0, "{key}");
+            assert_eq!(probe.0.read(cx).areas.layout.new_tab.row, row, "{key}");
         });
     }
     cx.simulate_keystrokes("enter");
