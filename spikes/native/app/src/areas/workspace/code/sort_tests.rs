@@ -213,7 +213,7 @@ impl gpui::Render for TriggerProbe {
         let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
         let trigger = self
             .0
-            .update(cx, |shell, cx| super::sort::trigger(shell, &tokens, cx));
+            .update(cx, |shell, cx| sort::trigger(shell, &tokens, cx));
         vessel_app_kit::ui::div().children(trigger)
     }
 }
