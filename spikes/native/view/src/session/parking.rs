@@ -18,8 +18,8 @@
 //! - Cost: the node's own board phrase for the session (idle, or awaiting
 //!   a pull request) gives way to it while the agent is released.
 
-use vessel_proto::SessionInfo;
-use vessel_proto::parking::ParkReason;
+use vessel_proto::parking::{ParkReason, Parked};
+use vessel_proto::{EventRecord, SessionEvent, SessionInfo};
 
 /// How a session's agent is parked, as the screens tell it apart.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,3 +44,26 @@ pub fn park_state(session: &SessionInfo) -> Option<ParkState> {
         ParkReason::Idle | ParkReason::Asked | ParkReason::Unknown => ParkState::Released,
     })
 }
+
+/// Whether a session is parked after `records`, from `parked` before them:
+/// a `parked` record parks it and a `woken` one wakes it, in order. A reload
+/// of a parked session records `woken` before `reloaded` (row 334, ADR 0110),
+/// so it needs no arm here; a live reload was never parked.
+#[must_use]
+pub fn parked_after(parked: Option<Parked>, records: &[EventRecord]) -> Option<Parked> {
+    records.iter().fold(parked, |parked, record| {
+        if let SessionEvent::Parked { reason } = &record.event {
+            Some(Parked {
+                since: record.at,
+                reason: reason.clone(),
+            })
+        } else if matches!(record.event, SessionEvent::Woken) {
+            None
+        } else {
+            parked
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests;

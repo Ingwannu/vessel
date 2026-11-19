@@ -101,7 +101,23 @@ pub(super) fn render(
     }
     card = card.children(added_arguments(agent, inventory, shell, tokens, window, cx));
     card = card.children(installers(agent, shell, tokens, window, cx));
-    settings::section(words.details(), card, tokens)
+    // Paseo's provider "Diagnostic", beside the agent's details (ADR 0111).
+    let diagnostic = shell
+        .areas
+        .settings
+        .agents
+        .machine
+        .as_ref()
+        .and_then(|machine| {
+            crate::areas::settings::diagnostics::diagnostic_button(
+                agent,
+                machine.as_str(),
+                shell,
+                tokens,
+                cx,
+            )
+        });
+    settings::section_with_trailing(words.details(), card, diagnostic, tokens)
 }
 
 fn added_arguments(
