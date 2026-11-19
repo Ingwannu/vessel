@@ -213,6 +213,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::ObserveFile => json!({"root":root,"path":"sample.rs","after":null}),
         Method::InspectDirectory => json!({"root":root,"directory":"","ignored":"include"}),
         Method::SuggestFolders => json!({"query":"code"}),
+        Method::CreateProjectDirectory => json!({"parent":"/fixture","name":"sample"}),
         Method::SuggestEntries => {
             json!({"root":root,"directory":"","query":"","kinds":"both","matching":"fuzzy","limit":null})
         }

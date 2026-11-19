@@ -378,6 +378,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::diagnostics::DIAGNOSTICS_WIRE_PROTOCOL,
         "`agent.diagnostic`, `node.log` and the report's added sections (ADR 0111).",
     ),
+    (
+        "PROJECT_DIRECTORY_PROTOCOL",
+        crate::registry::PROJECT_DIRECTORY_PROTOCOL,
+        "`project.create_directory`, and `~` in project paths (ADR 0113).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

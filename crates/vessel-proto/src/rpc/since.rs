@@ -251,6 +251,7 @@ impl Call {
             | Self::SuggestEntries(_)
             | Self::SuggestFolders(_)
             | Self::ProjectIcon(_)
+            | Self::CreateProjectDirectory(_)
             | Self::ReadFile(_)
             | Self::CreateDir(_)
             | Self::RenamePath(_)
