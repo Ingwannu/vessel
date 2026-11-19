@@ -6,7 +6,7 @@
 // opens the usage modal.
 import "./sidebar-usage.css";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 import { type QuotaMark, quotaCards } from "../../data/account-usage/cards";
 import { quotaSummaryHost } from "../../data/account-usage/hosts";
@@ -23,13 +23,15 @@ import { useAccountReader, useQuotaClock } from "./use-account-usage";
 import { useUsageHosts } from "./use-usage-hosts";
 import { useUsagePrefs } from "./use-usage-prefs";
 
-interface SummaryWindow {
+/** A pinned window, as the line draws it. */
+export interface SummaryWindow {
   key: string;
   percent: QuotaPercent;
   tone: QuotaTone;
   short: string;
 }
-interface SummarySource {
+/** A source and its pinned windows, as the line draws them. */
+export interface SummarySource {
   key: string;
   mark: QuotaMark | null;
   windows: SummaryWindow[];
@@ -48,10 +50,6 @@ function SummaryLine({ node }: { node: NodeKey }) {
   const { usage } = useUsagePrefs();
   const { now, locale } = useQuotaClock();
   const [open, setOpen] = useState(false);
-  const line = useRef<HTMLSpanElement>(null);
-  const labels = useRef<HTMLSpanElement>(null);
-  const percents = useRef<HTMLSpanElement>(null);
-  const [layout, setLayout] = useState<QuotaPinnedLayout>("labels");
   const sources: SummarySource[] = [];
   if (read.kind === "ready") {
     const pins = effectivePins(usage.pins, read.reports, usage.display);
@@ -75,6 +73,43 @@ function SummaryLine({ node }: { node: NodeKey }) {
         sources.push({ key: card.key, mark: card.mark, windows });
     }
   }
+  if (sources.length === 0) return null;
+  return (
+    <>
+      <SummaryRow
+        sources={sources}
+        locale={locale}
+        onOpen={() => {
+          setOpen(true);
+        }}
+      />
+      {open ? (
+        <UsageModal
+          initial={node}
+          onClose={() => {
+            setOpen(false);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** The row from its sources, in the richest layout that fits it; also
+ * the kit gallery's specimen at the sidebar's width. */
+export function SummaryRow({
+  sources,
+  locale,
+  onOpen,
+}: {
+  sources: readonly SummarySource[];
+  locale: string;
+  onOpen: () => void;
+}) {
+  const line = useRef<HTMLSpanElement>(null);
+  const labels = useRef<HTMLSpanElement>(null);
+  const percents = useRef<HTMLSpanElement>(null);
+  const [layout, setLayout] = useState<QuotaPinnedLayout>("labels");
   const count = sources.reduce((sum, source) => sum + source.windows.length, 0);
   // Paseo re-renders after onLayout reports the widths; here they are read
   // before paint, and again whenever the row resizes.
@@ -98,38 +133,25 @@ function SummaryLine({ node }: { node: NodeKey }) {
       observer.disconnect();
     };
   }, [count, sources.length, locale]);
-  if (sources.length === 0) return null;
   return (
-    <>
-      <button
-        type="button"
-        className="side-usage"
-        aria-label="Open usage"
-        onClick={() => {
-          setOpen(true);
-        }}
-      >
-        <span ref={line} className="side-usage-line">
-          <Line sources={sources} layout={layout} locale={locale} />
+    <button
+      type="button"
+      className="side-usage"
+      aria-label="Open usage"
+      onClick={onOpen}
+    >
+      <span ref={line} className="side-usage-line">
+        <Line sources={sources} layout={layout} locale={locale} />
+      </span>
+      <span className="side-usage-measure" aria-hidden="true">
+        <span ref={labels}>
+          <Line sources={sources} layout="labels" locale={locale} />
         </span>
-        <span className="side-usage-measure" aria-hidden="true">
-          <span ref={labels}>
-            <Line sources={sources} layout="labels" locale={locale} />
-          </span>
-          <span ref={percents}>
-            <Line sources={sources} layout="percents" locale={locale} />
-          </span>
+        <span ref={percents}>
+          <Line sources={sources} layout="percents" locale={locale} />
         </span>
-      </button>
-      {open ? (
-        <UsageModal
-          initial={node}
-          onClose={() => {
-            setOpen(false);
-          }}
-        />
-      ) : null}
-    </>
+      </span>
+    </button>
   );
 }
 
@@ -142,36 +164,49 @@ function Line({
   layout: QuotaPinnedLayout;
   locale: string;
 }) {
+  // Paseo's PinnedUsageLine: every item a direct child of the one row,
+  // packed from the left; only the meter slots grow (in "meters"), so the
+  // meters share the leftover width and nothing else spreads or is cut.
   return sources.map((source, index) => (
-    <span
-      key={source.key}
-      className={index === 0 ? "side-usage-source" : "side-usage-source gap"}
-    >
-      {source.mark === null ? (
-        <Icon name="plan" size={14} />
-      ) : (
-        <ProviderMark name={source.mark} size={14} />
-      )}
-      {source.windows.map((window) => (
-        <span key={window.key} className="side-usage-window">
-          {layout === "meters" ? (
-            <span className="side-usage-meter">
-              <QuotaMeter
-                value={window.percent}
-                label={window.short}
-                tone={window.tone}
-                emphasis="quiet"
-              />
+    <Fragment key={source.key}>
+      <span
+        className={index === 0 ? "side-usage-source" : "side-usage-source gap"}
+      >
+        {source.mark === null ? (
+          <Icon name="plan" size={14} />
+        ) : (
+          <ProviderMark name={source.mark} size={14} />
+        )}
+      </span>
+      {source.windows.map((window, windowIndex) => {
+        const lead = windowIndex === 0 ? "after-mark" : "after-window";
+        return (
+          <Fragment key={window.key}>
+            {layout === "meters" ? (
+              <span className={`side-usage-meter ${lead}`}>
+                <QuotaMeter
+                  value={window.percent}
+                  label={window.short}
+                  tone={window.tone}
+                  emphasis="quiet"
+                />
+              </span>
+            ) : null}
+            <span
+              className={
+                layout === "meters"
+                  ? "side-usage-percent"
+                  : `side-usage-percent ${lead}`
+              }
+            >
+              {window.percent.format(locale)}
+              {layout === "percents" || window.short === "" ? null : (
+                <span className="side-usage-label">{` ${window.short}`}</span>
+              )}
             </span>
-          ) : null}
-          <span className="side-usage-percent">
-            {window.percent.format(locale)}
-            {layout === "percents" || window.short === "" ? null : (
-              <span className="side-usage-label">{` ${window.short}`}</span>
-            )}
-          </span>
-        </span>
-      ))}
-    </span>
+          </Fragment>
+        );
+      })}
+    </Fragment>
   ));
 }

@@ -212,8 +212,10 @@ The report's readers:
 - Clients, with Paseo's words: a machine's settings have "Log file" (the path, or where the node writes
   instead, or "Log path unavailable" when the call is refused), "Copy path" (toast "Log path copied.") and
   "Open logs". The "Node logs" dialog is Paseo's logs modal: the path (or "Log path unavailable" when the call
-  fails) above the contents (or "(log file is empty)"), 12 px apart, the contents wrapped, muted, 12 px
-  monospace on 18 px lines. The row asks for one line to learn the path; the dialog asks for the default 100.
+  fails) above the contents, 12 px apart, the contents wrapped, muted, 12 px monospace on 18 px lines.
+  "(log file is empty)" stands only for a file with no lines. On a failed call the call's error takes the
+  contents' place (Paseo's `rowError` colour). Paseo opens its modal once the logs have arrived, so it never
+  shows a failure there; the page opens the dialog first, so it must say what happened. The row asks for one line to learn the path; the dialog asks for the default 100.
 - Settings › Diagnostics' mark is Paseo's Stethoscope (lucide, on the set's 16-unit grid). The app
   diagnostic's dialog shows its steps until the text exists, then only the text, as Paseo's sheet does.
 - An agent's card (Settings › Agents) gains Paseo's "Diagnostic" button (a file mark) beside its title,

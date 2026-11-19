@@ -59,3 +59,12 @@
   overflow-wrap: anywhere;
   user-select: text;
 }
+
+/* A failed call's error in the contents' place (Paseo's `rowError`:
+   statusDanger, fontSize.sm). */
+.node-log-error {
+  margin: 0;
+  color: var(--danger);
+  font: 400 12px / 18px var(--font-sans);
+  overflow-wrap: anywhere;
+}

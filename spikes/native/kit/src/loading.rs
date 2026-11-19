@@ -30,6 +30,9 @@ impl Points {
         self.0
     }
 
+    /// The sidebar project row's archiving indicator (Paseo's
+    /// `ProjectLeadingVisual`, `ActivityIndicator size={8}`).
+    pub const EIGHT: Self = Self(px(8.0));
     /// `ProviderRow`/`StatusIndicator`'s explicit numeric10 refresh indicator.
     pub const TEN: Self = Self(px(10.0));
     /// Pane toolbar helper's explicit pointer glyph size.

@@ -39,6 +39,7 @@ pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
+pub(crate) use sidebar::layers as sidebar_project_layers;
 pub(crate) use sidebar::projects as sidebar_projects;
 pub(crate) use start_card::render as start_card;
 
@@ -64,6 +65,8 @@ pub(crate) struct Workspace {
     pub(crate) icons: project_icons::ProjectIcons,
     /// Each machine's background file work (`background.rs`).
     pub(crate) background: background::Background,
+    /// The sidebar's project rows: their menu, question and removals.
+    pub(crate) sidebar: sidebar::ProjectRows,
 }
 
 impl Workspace {
@@ -77,6 +80,7 @@ impl Workspace {
             projects_unfolded: false,
             icons: project_icons::ProjectIcons::default(),
             background: background::Background::default(),
+            sidebar: sidebar::ProjectRows::new(cx),
         }
     }
 }
@@ -152,7 +156,9 @@ impl Shell {
                 self.background_answered(machine);
                 self.project_icon_read(machine, project, result);
             }
-            Answer::Forgot { project, result } => self.forgot_project(machine, project, result),
+            Answer::Forgot { project, result } => {
+                self.project_removal_answered(machine, project, result, cx);
+            }
             Answer::Commands {
                 project,
                 approved,
