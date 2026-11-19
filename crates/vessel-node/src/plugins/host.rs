@@ -136,7 +136,7 @@ pub(crate) async fn start(
         .wait_for(|state| !matches!(state, RuntimeState::Starting))
         .await
         .map(|state| matches!(*state, RuntimeState::Running { .. }));
-    if ready == Ok(true) {
+    if matches!(ready, Ok(true)) {
         return Ok(Started::Helper(supervisor));
     }
     // It stopped before ready: the supervisor's result says why.

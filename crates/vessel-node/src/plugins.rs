@@ -226,8 +226,9 @@ impl Plugins {
     /// Every installation, in id order; `admin` adds paths and errors.
     pub(crate) async fn list(&self, admin: bool) -> PluginList {
         let mut settled = self.inner.settled.subscribe();
-        let _waited =
-            tokio::time::timeout(SETTLE_LIMIT, settled.wait_for(|settled| *settled)).await;
+        let _settled = tokio::time::timeout(SETTLE_LIMIT, settled.wait_for(|settled| *settled))
+            .await
+            .is_ok_and(|settled| settled.is_ok());
         let state = self.state();
         PluginList {
             plugins: state

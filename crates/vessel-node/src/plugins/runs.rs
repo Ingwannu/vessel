@@ -145,9 +145,12 @@ impl Plugins {
         attempt: u64,
         mut state: watch::Receiver<RuntimeState>,
     ) {
-        let _stopped = state
+        // A closed sender also means the actor ended; the row is checked
+        // either way. The watch reference is not kept across the awaits below.
+        let _ended = state
             .wait_for(|state| matches!(state, RuntimeState::Stopped))
-            .await;
+            .await
+            .is_ok();
         let supervisor = {
             let mut rows = self.state();
             match rows.rows.get_mut(&plugin) {
