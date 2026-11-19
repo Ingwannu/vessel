@@ -244,9 +244,7 @@ pub(crate) fn overlay(
             shell.terminal_tabs_reconcile(crate::areas::layout::mode(window), cx);
         });
     }
-    if shell.areas.terminal_tabs.confirm.is_none() {
-        return None;
-    }
+    let _asked = shell.areas.terminal_tabs.confirm.as_ref()?;
     let words = shell.words.terminal_tabs();
     let narrow = breakpoint::phone(window);
     let footer = vec![
