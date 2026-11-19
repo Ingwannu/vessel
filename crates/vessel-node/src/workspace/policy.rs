@@ -211,7 +211,11 @@ const fn refused(method: Method) -> bool {
         | Method::DisablePlugin
         | Method::ReloadPlugin
         | Method::RemovePlugin
-        | Method::DetachSession => true,
+        | Method::DetachSession
+        | Method::ReadInboxThrough
+        | Method::GetInboxAttention
+        | Method::ClaimNotification
+        | Method::ClearTerminalAttention => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -362,6 +366,7 @@ const fn refused(method: Method) -> bool {
         | Method::ListPorts
         | Method::ListInbox
         | Method::GetInboxEntry
+        | Method::ReportTerminalActivity
         | Method::MarkInbox
         | Method::Diagnostics
         | Method::GetPushKey

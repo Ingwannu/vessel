@@ -491,6 +491,16 @@ macro_rules! method_table {
             RemovePlugin / remove_plugin / "plugin.remove" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::RemovePlugin => $crate::Ack;
             /// Wait for the plugin generation to move, a long poll as fleet.watch (ADR 0115).
             WatchPlugins / watch_plugins / "plugin.watch" [Read, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::WatchPlugins => $crate::plugins::PluginGeneration;
+            /// Claim one local delivery opportunity for this authenticated connection.
+            ClaimNotification / claim_notification / "notification.claim" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClaimNotification => $crate::notifications::NotificationClaim;
+            /// Clear only the terminal attention revision actually observed.
+            ClearTerminalAttention / clear_terminal_attention / "terminal.attention_clear" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClearTerminalAttention => $crate::notifications::TerminalAttention;
+            /// Report explicit activity for an owned or capability-bound terminal.
+            ReportTerminalActivity / report_terminal_activity / "terminal.activity" [Operate, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ReportTerminalActivity => $crate::notifications::TerminalAttention;
+            /// Authoritative per-session inbox badges, independent of the loaded page.
+            GetInboxAttention / inbox_attention / "inbox.attention" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::GetInboxAttention => Vec<$crate::inbox_attention::SessionAttention>;
+            /// Mark observed attention read without granting general session operations.
+            ReadInboxThrough / read_inbox_through / "inbox.read" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::ReadInboxThrough => $crate::Ack;
         }
     };
 }

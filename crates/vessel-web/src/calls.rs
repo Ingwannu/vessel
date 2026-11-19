@@ -250,6 +250,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::DeletePrompt
         | Method::ListInbox
         | Method::GetInboxEntry
+        | Method::ReadInboxThrough
+        | Method::GetInboxAttention
+        | Method::ClaimNotification
+        | Method::ClearTerminalAttention
+        | Method::ReportTerminalActivity
         | Method::MarkInbox
         | Method::Diagnostics
         // ADR 0111: an agent's diagnostic and the node's log.

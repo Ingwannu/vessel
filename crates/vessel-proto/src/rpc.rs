@@ -44,6 +44,7 @@ use serde::{Deserialize, Serialize};
 use crate::device::Scope;
 use crate::error::WireError;
 use crate::node::ProtocolVersion;
+use crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL;
 
 mod contract;
 mod frames;
@@ -69,6 +70,7 @@ mod methods;
 
 // The table itself is in `table.rs` (`method_table!`, exported at the crate
 // root); this invocation generates this module's enums and `Handler`.
+
 crate::method_table!(rpc_methods);
 
 /// Result of a call.

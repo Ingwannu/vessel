@@ -51,12 +51,16 @@ impl NodeService {
     }
     /// Watch transport closure once per registered connection, using the
     /// existing subscription tracker so shutdown also releases presence.
-    pub(crate) fn report_push_presence(
+    pub(crate) async fn report_push_presence(
         &self,
         connection: &Connection,
         report: ReportPushPresence,
-    ) -> std::future::Ready<Result<Ack, WireError>> {
-        std::future::ready(self.record_push_presence(connection, report))
+    ) -> Result<Ack, WireError> {
+        let ack = self.record_push_presence(connection, report)?;
+        if let Principal::Device { id, .. } = connection.principal() {
+            self.push.renew(*id).await.map_err(|error| error.wire())?;
+        }
+        Ok(ack)
     }
     fn record_push_presence(
         &self,

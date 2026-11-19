@@ -20,6 +20,8 @@
 //!   agent's; 32 ended kept, the oldest forgotten first.
 
 mod env;
+mod producer;
+pub(crate) use producer::{ActivityProducer, producer_auth, producer_env};
 mod ports;
 mod registry;
 mod scripts;
@@ -131,6 +133,7 @@ fn always_removed() -> impl Iterator<Item = OsString> {
 /// What a terminal needs from the node to run.
 #[derive(Debug, Clone)]
 pub(crate) struct Runner {
+    pub(crate) endpoint: crate::ipc::Endpoint,
     pub(crate) config: Arc<TerminalsConfig>,
     pub(crate) shutdown: CancellationToken,
     pub(crate) tasks: TaskTracker,
