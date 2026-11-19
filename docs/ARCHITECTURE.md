@@ -303,7 +303,8 @@ web/src/data/     stores (useSyncExternalStore), the timeline reducer (tool call
                   every call a screen makes as a typed function giving one `Outcome` (outcome.ts:
                   calls.ts for sessions, book.ts for the book's edits); what /new chooses
                   (new-session, agent-choices, options, picks) and what Settings decides
-                  (machines, pairing, agent-status, devices, sync, welcome), each decision once;
+                  (machines, pairing, agent-status, devices, sync, welcome, plugins: ADR
+                  0115's page state, install field and words), each decision once;
                   milestone 11's track W: the preferences the bridge keeps (prefs, prefs-change,
                   theme) and the drafts (drafts), the shortcuts' registry, matcher and edits
                   (shortcuts/), find and the outline (find, outline), recall, notices and alerts,
@@ -325,7 +326,8 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   to a row by key through it, drawn or not, and window-pin.ts holds it in place
                   while heights are measured), board, settings/ (the
                   frame and its sections, General, Appearance, Shortcuts with its recorder,
-                  Notifications), machines/ (Machines, Agents, the add-machine dialog),
+                  Notifications, Plugins: a machine's plugins as Paseo's host Plugins page,
+                  use-plugins.ts long-polling `plugin.watch`), machines/ (Machines, Agents, the add-machine dialog),
                   projects/ (Settings › Projects, the sidebar's projects, adding one, the
                   approval of its commands, removing a worktree that would lose work),
                   workspace/ (the code panel, a chunk loaded when Changes or Files opens: the

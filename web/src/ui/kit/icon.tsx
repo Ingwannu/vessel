@@ -90,6 +90,7 @@ export const ICON_NAMES = [
   "help",
   "tag",
   "info",
+  "blocks",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
