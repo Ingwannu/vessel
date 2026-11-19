@@ -144,6 +144,7 @@ impl Shell {
                     .workspace
                     .projects
                     .insert(machine.to_owned(), ProjectsView::listed(result));
+                self.folds_listed(machine);
                 self.ask_project_icons(machine);
             }
             Answer::Project(project) => {

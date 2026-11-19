@@ -397,11 +397,13 @@ fn project_row(
         tokens,
         cx,
     ))
-    .when_some(fold, |row, folded| {
-        row.role(gpui::Role::Button)
-            .aria_label(label)
-            .aria_expanded(!folded)
-    })
+    // A button named by the project wherever it is drawn (TRACKER 813, the
+    // app reviewer's note on 682): a ready header in the tree folds and says
+    // whether it is open; elsewhere a press starts a chat or, not ready,
+    // opens its page in Settings.
+    .role(gpui::Role::Button)
+    .aria_label(label)
+    .when_some(fold, |row, folded| row.aria_expanded(!folded))
     .on_click(cx.listener(move |this, _event, window, cx| {
         if fold.is_some() {
             this.fold_project(&machine, project, cx);

@@ -29,3 +29,16 @@ role status and is named by Paseo's bucket label (`getStatusBucketLabel`).
 - app `session_row_tests`: rows named by their titles, kebabs named and taking a Click, slots and
   badges said as statuses; a Click alone opens a row's menu once.
 - app `actions_tests` badge test counts the session slots too.
+
+## Folded in from the app reviewer's notes on TRACKER 682 (coordinator, 2026-11-19)
+
+- A project row is a button named by its project wherever it is drawn; a ready header in the
+  project tree also says whether it is open (`aria_expanded`). A row that is not ready (cloning, a
+  failed clone, its folder gone) opens its page in Settings and says no expanded state.
+- `folded_projects` is kept tidy: a whole project list (`more` false) drops the folds of projects
+  it no longer holds (`FoldedProjects::keep_listed`, on each list read and after a removal), a
+  machine renamed in the book keeps its folds under the new name, a forgotten machine's go. The
+  preferences are saved only when a fold changed.
+- Tests: view `folds_follow_the_lists_and_the_book`; app
+  `a_header_not_ready_is_a_button_named_by_it_that_does_not_fold`,
+  `a_whole_list_drops_the_folds_of_projects_it_no_longer_holds`.

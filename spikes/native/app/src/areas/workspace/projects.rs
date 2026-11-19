@@ -219,6 +219,7 @@ impl Shell {
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
                     view.forgot(&project);
                 }
+                self.folds_listed(machine);
                 let page = &mut self.areas.workspace.page;
                 if page
                     .detail
