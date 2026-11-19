@@ -281,6 +281,8 @@ pub enum Form {
     Clone,
     /// Start a new project.
     New,
+    /// A new empty directory (ADR 0113).
+    Directory,
 }
 
 impl Ask {
@@ -349,6 +351,7 @@ fn project_refused(ask: ProjectAsk, problem: &Problem) -> Answer {
             project,
             result: no(problem),
         },
+        ProjectAsk::CreateDirectory(_) => took_failed(Form::Directory, problem),
     }
 }
 

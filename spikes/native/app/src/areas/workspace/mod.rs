@@ -1,6 +1,6 @@
 //! Projects, worktrees, git and files (track F): Settings > Projects with
-//! a project's detail, the commands approval, a worktree's removal, the
-//! sidebar's projects; the place picker the composer's tray embeds, the
+//! a project's detail, Add project's sheet, the commands approval, a
+//! worktree's removal, the sidebar's projects; the place picker the composer's tray embeds, the
 //! worktree start's card, and the code panel beside a session.
 //!
 //! What these screens mean is `view::workspace`'s; what they ask of a
@@ -8,6 +8,7 @@
 //! one `Event::Workspace`, dispatched here by [`Shell::workspace_answer`]);
 //! their words are `Lang::workspace()`'s.
 
+mod add_flow;
 mod approval;
 mod background;
 mod book;
@@ -25,7 +26,6 @@ mod widgets;
 
 use std::collections::HashMap;
 
-use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
@@ -37,6 +37,7 @@ pub(crate) use code::FindRefused;
 #[cfg(test)]
 pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
+pub(crate) use add_flow::render as add_flow_sheet;
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::layers as sidebar_project_layers;
@@ -51,6 +52,8 @@ pub(crate) struct Workspace {
     pub(crate) projects: HashMap<String, ProjectsView>,
     /// Settings > Projects.
     pub(crate) page: projects::Page,
+    /// Add project's sheet.
+    pub(crate) add_flow: add_flow::AddFlowSheet,
     /// The composer tray's place.
     pub(crate) place: place::DraftPlace,
     /// A start in a project, in flight.
@@ -73,7 +76,8 @@ impl Workspace {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             projects: HashMap::new(),
-            page: projects::Page::new(window, cx),
+            page: projects::Page::new(),
+            add_flow: add_flow::AddFlowSheet::new(window, cx),
             place: place::DraftPlace::new(window, cx),
             start: None,
             code: code::CodePanel::new(window, cx),
@@ -85,11 +89,6 @@ impl Workspace {
     }
 }
 
-/// A one-line field whose Enter does nothing of its own (a form's fields;
-/// the form's button submits).
-pub(super) fn field(window: &mut Window, cx: &mut Context<'_, Shell>) -> TextField {
-    TextField::new("", |_shell: &mut Shell, _text, _window, _cx| {}, window, cx)
-}
 
 impl Shell {
     /// The workspace's words, in the person's language.
@@ -123,6 +122,7 @@ impl Shell {
                 .insert(machine.clone(), ProjectsView::Loading);
             self.ask(&machine, Ask::Project(ProjectAsk::List));
         }
+        self.add_flow_fleet();
     }
 
     /// A machine answered a workspace ask. Returns whether what is drawn
@@ -151,7 +151,7 @@ impl Shell {
                 }
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
-            Answer::Folders { query, result } => self.folders_suggested(machine, &query, result),
+            Answer::Folders { query, result } => self.add_flow_folders(machine, &query, result),
             Answer::Icon { project, result } => {
                 self.background_answered(machine);
                 self.project_icon_read(machine, project, result);

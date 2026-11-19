@@ -94,11 +94,10 @@ impl Shell {
         self.go(Route::Draft, window, cx);
     }
 
-    /// Settings > Projects on `machine`, its add menu open when `add`.
+    /// Settings > Projects on `machine`.
     fn projects_page(
         &mut self,
         machine: Option<String>,
-        add: bool,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -106,9 +105,6 @@ impl Shell {
             self.areas.settings.machine = machine;
         }
         self.open_settings(Some(Section::Projects), window, cx);
-        if add {
-            self.open_add_menu();
-        }
     }
 }
 
@@ -251,8 +247,7 @@ fn header(title: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> 
                 .hover(move |style| style.bg(wash))
                 .child(glyph(Glyph::Plus, 14.0, neutral.foreground_muted))
                 .on_click(cx.listener(|this, _event, window, cx| {
-                    let machine = this.projects_machine();
-                    this.projects_page(machine, true, window, cx);
+                    this.open_add_flow(None, window, cx);
                 })),
         )
 }
@@ -376,7 +371,7 @@ fn project_row(
         if ready {
             this.chat_in_project(machine.clone(), project, window, cx);
         } else {
-            this.projects_page(Some(machine.clone()), false, window, cx);
+            this.projects_page(Some(machine.clone()), window, cx);
         }
     }))
     .when(!ready, |row| row.opacity(0.8))

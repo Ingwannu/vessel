@@ -8,6 +8,7 @@
 //! One module per subject, as the page has them; the words of all of them
 //! are [`words`]'s (`text/workspace/`), one table per language.
 
+pub mod add_flow;
 pub mod branch_name;
 pub mod changes;
 pub mod command_changes;
