@@ -66,6 +66,8 @@ pub enum Command {
     },
     /// Read or change a machine's own settings.
     NodeSettings(node_settings::Ask),
+    /// A diagnostics call to one machine (ADR 0111).
+    Diagnostics(crate::diagnostics::Ask),
     /// Read-only sharing status for one selected machine.
     Sync {
         /// Its parsed node-book identity.

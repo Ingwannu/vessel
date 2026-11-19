@@ -1,4 +1,4 @@
-//! The real copy handler, retained report and live language refresh without
+//! The real copy handler, no run started, and live language refresh without
 //! I/O; a copy says so in Paseo's copied toast (TRACKER 804).
 use vessel_app_view::toasts::ToastTone;
 
@@ -12,7 +12,6 @@ fn copied_toast_while_report_clipboard_and_input_stay_the_same(cx: &mut gpui::Te
     language_tests::preserves(
         cx,
         |shell, _window, cx| {
-            shell.areas.settings.diagnostics.report = Some(REPORT.to_owned());
             shell.copy_diagnostic(REPORT, cx);
             let said = shell
                 .areas
@@ -26,10 +25,7 @@ fn copied_toast_while_report_clipboard_and_input_stay_the_same(cx: &mut gpui::Te
         },
         |shell| &shell.areas.session.composer,
         |shell| {
-            assert_eq!(
-                shell.areas.settings.diagnostics.report.as_deref(),
-                Some(REPORT)
-            );
+            assert!(shell.areas.settings.diagnostics.run.is_none());
         },
     );
     cx.update(|cx| {
