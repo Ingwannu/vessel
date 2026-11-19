@@ -23,7 +23,6 @@ import {
   Banner,
   Button,
   EmptyState,
-  Icon,
   IconButton,
   Menu,
   MenuItem,
@@ -152,8 +151,7 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
                       <ProjectIcon
                         node={node.key}
                         project={project.id}
-                        size={16}
-                        fallback={<Icon name="folder" size={16} />}
+                        name={project.name}
                       />
                     </span>
                   ),
