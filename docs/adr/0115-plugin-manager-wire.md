@@ -77,7 +77,15 @@ client data; Paseo's TypeScript entries do not run here." (stated difference).
   `USERPROFILE`); no token, pairing link, harness home or secret. The
   installation's identity comes in `initialize` (its address), not in the
   environment (amended at implementation: the supervisor refuses any other
-  name, so `VESSEL_PLUGIN_ID`/`_DIR` of the draft are not set).
+  name, so `VESSEL_PLUGIN_ID`/`_DIR` of the draft are not set). The names
+  are matched without case (Windows' `Path`); `HOME` is the node user's home
+  the node was configured with, never the node process's own value. Proven
+  by `plugins::host::tests::no_credential_shaped_variable_reaches_a_helper`
+  (the launch built from a node environment holding `ANTHROPIC_API_KEY`,
+  `OPENAI_API_KEY`, `GH_TOKEN`, `GITHUB_TOKEN`, `VESSEL_TOKEN` and other
+  names with TOKEN, KEY, SECRET, PASSWORD or AUTH keeps none of them) and
+  `plugins::tests::a_real_helper_sees_no_credential_the_node_has` (a real
+  helper prints its environment; none of those names or values is in it).
 - Status `running | disabled | failed` (Paseo's three). Running = the helper
   answered `Ready` within the request deadline (30 s) with a valid document, or
   a client-only plugin's document validated. Failed carries a node-made

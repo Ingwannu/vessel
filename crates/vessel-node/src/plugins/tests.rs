@@ -392,3 +392,66 @@ async fn a_helper_runs_until_disabled_and_a_failing_one_is_failed_with_its_reaso
     assert!(error.is_some());
     fixture.finish().await;
 }
+
+/// The coordinator's check on ADR 0115: a real helper, started while the
+/// node's own environment holds API keys and tokens, sees none of them;
+/// it prints its whole environment to stderr, which the log tail keeps.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_real_helper_sees_no_credential_the_node_has() {
+    use vessel_proto::plugins::{PluginAddress, RuntimeGeneration};
+
+    use super::host::tests::{credential_shaped, node_vars};
+
+    let fixture = Fixture::new();
+    std::fs::create_dir_all(fixture.home()).unwrap();
+    let script = String::from_utf8(helper_script(2, false))
+        .unwrap()
+        .replacen("#!/bin/sh\n", "#!/bin/sh\nenv >&2\n", 1);
+    helper_plugin(&fixture, "envcheck", script.as_bytes());
+    let directory = fixture.home().join("envcheck");
+    let manifest = super::manifest::read(&directory, &semver::Version::new(0, 0, 0)).unwrap();
+    let env = super::host::LaunchEnv::from_vars(&fixture.home(), node_vars("/usr/bin:/bin"));
+    let logs = vessel_plugin::SharedLogs::default();
+    let address = PluginAddress {
+        node: NodeId::random(),
+        plugin: id("envcheck"),
+        generation: RuntimeGeneration::random(),
+    };
+    let started = super::host::start(
+        &manifest,
+        &directory,
+        address,
+        &logs,
+        &env,
+        &CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    let super::host::Started::Helper(helper) = started else {
+        panic!("a server plugin starts a helper");
+    };
+    // Shutdown drains the helper's stderr into the tail before it returns.
+    let _exit = helper.shutdown().await;
+    let lines: Vec<String> = logs
+        .snapshot()
+        .unwrap()
+        .iter()
+        .filter(|entry| entry.stream == LogStream::Stderr)
+        .map(|entry| entry.message.as_str().to_owned())
+        .collect();
+    assert!(
+        lines.iter().any(|line| line == "PATH=/usr/bin:/bin"),
+        "{lines:?}"
+    );
+    let home = format!("HOME={}", fixture.home().display());
+    assert!(lines.contains(&home), "{lines:?}");
+    for line in &lines {
+        let name = line.split('=').next().unwrap_or_default();
+        assert!(!credential_shaped(name), "{name} reached the helper");
+        assert!(
+            !line.contains("canary"),
+            "a credential's value reached the helper"
+        );
+    }
+}

@@ -54,9 +54,25 @@ pub(crate) struct LaunchEnv {
 impl LaunchEnv {
     /// From the node's process environment and the node user's home.
     pub(crate) fn from_node(home: &Path) -> Self {
-        let passed = PASSED
-            .iter()
-            .filter_map(|name| std::env::var_os(name).map(|value| (*name, value)))
+        Self::from_vars(home, std::env::vars_os())
+    }
+
+    /// Keep, of `vars`, only the [`PASSED`] names (compared without case,
+    /// as Windows compares them); everything else, a token or an API key
+    /// the node itself was given included, stays with the node.
+    pub(crate) fn from_vars(
+        home: &Path,
+        vars: impl IntoIterator<Item = (OsString, OsString)>,
+    ) -> Self {
+        let passed = vars
+            .into_iter()
+            .filter_map(|(name, value)| {
+                let name = name.to_str()?;
+                PASSED
+                    .iter()
+                    .find(|passed| passed.eq_ignore_ascii_case(name))
+                    .map(|passed| (*passed, value))
+            })
             .collect();
         Self {
             passed,
@@ -173,6 +189,12 @@ fn prepare(
     directory: &Path,
     env: &LaunchEnv,
 ) -> Result<PreparedCommand, StartError> {
+    PreparedCommand::new(spec(command, directory, env)?)
+        .map_err(|refusal| StartError::Program(refusal.to_string()))
+}
+
+/// The command, its directory and its cleared environment.
+fn spec(command: &[String], directory: &Path, env: &LaunchEnv) -> Result<CommandSpec, StartError> {
     let (program, arguments) = command
         .split_first()
         .ok_or_else(|| StartError::Program("the program is missing".to_owned()))?;
@@ -187,7 +209,7 @@ fn prepare(
     for (name, value) in &env.passed {
         spec = spec.env(*name, value);
     }
-    PreparedCommand::new(spec).map_err(|refusal| StartError::Program(refusal.to_string()))
+    Ok(spec)
 }
 
 /// The program: a path with a separator is inside `directory` (after links
@@ -216,7 +238,7 @@ fn resolve(program: &str, directory: &Path, env: &LaunchEnv) -> Result<PathBuf, 
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
 
     #[test]
@@ -245,6 +267,86 @@ mod tests {
             resolve("missing-program-name", &directory, &env),
             Err(StartError::Program(_))
         ));
+    }
+
+    /// Names a credential is kept under: none may reach a helper, even
+    /// when the node has it set (ADR 0115, coordinator's check).
+    pub(in crate::plugins) const CREDENTIALS: &[(&str, &str)] = &[
+        ("ANTHROPIC_API_KEY", "canary-anthropic"),
+        ("OPENAI_API_KEY", "canary-openai"),
+        ("GH_TOKEN", "canary-gh"),
+        ("GITHUB_TOKEN", "canary-github"),
+        ("VESSEL_TOKEN", "canary-vessel"),
+        ("AWS_SECRET_ACCESS_KEY", "canary-aws"),
+        ("DATABASE_PASSWORD", "canary-password"),
+        ("SSH_AUTH_SOCK", "canary-auth"),
+        ("NPM_CONFIG__AUTH", "canary-npm"),
+        ("Path_Secret_Key", "canary-mixed-case"),
+    ];
+
+    /// Whether `name` looks like it holds a credential.
+    pub(in crate::plugins) fn credential_shaped(name: &str) -> bool {
+        let upper = name.to_ascii_uppercase();
+        ["TOKEN", "KEY", "SECRET", "PASSWORD", "AUTH"]
+            .iter()
+            .any(|part| upper.contains(part))
+    }
+
+    /// A node environment with every platform variable and every
+    /// credential above.
+    pub(in crate::plugins) fn node_vars(path: &str) -> Vec<(OsString, OsString)> {
+        let mut vars: Vec<(OsString, OsString)> = CREDENTIALS
+            .iter()
+            .map(|(name, value)| ((*name).into(), (*value).into()))
+            .collect();
+        vars.extend(
+            [
+                ("Path", path),
+                ("LANG", "C.UTF-8"),
+                ("LC_ALL", "C.UTF-8"),
+                ("HOME", "/node-home-is-not-passed"),
+                ("TMPDIR", "/tmp/node"),
+                ("RUST_LOG", "debug"),
+            ]
+            .iter()
+            .map(|(name, value)| ((*name).into(), (*value).into())),
+        );
+        vars
+    }
+
+    #[test]
+    fn no_credential_shaped_variable_reaches_a_helper() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("helper"), b"").unwrap();
+        let env = LaunchEnv::from_vars(root.path(), node_vars("/usr/bin"));
+        let spec = spec(&["./helper".to_owned()], root.path(), &env).unwrap();
+        assert_eq!(spec.environment, vessel_proc::Environment::Clear);
+        let names: Vec<String> = spec
+            .env
+            .iter()
+            .map(|(name, _)| name.to_string_lossy().into_owned())
+            .collect();
+        for name in &names {
+            assert!(
+                PASSED.contains(&name.as_str()) || name == "HOME",
+                "{name} is not a platform variable"
+            );
+            assert!(!credential_shaped(name), "{name} reached the helper");
+        }
+        assert!(names.contains(&"PATH".to_owned()), "{names:?}");
+        for (name, value) in &spec.env {
+            let vessel_proc::EnvValue::Set(value) = value else {
+                panic!("{name:?} is removed rather than set");
+            };
+            let value = value.to_string_lossy();
+            assert!(!value.contains("canary"), "{name:?} carries a credential");
+            assert!(
+                !value.contains("node-home-is-not-passed"),
+                "HOME is the node user's home"
+            );
+        }
+        assert!(credential_shaped("GH_TOKEN") && credential_shaped("openai_api_key"));
+        assert!(!credential_shaped("PATH") && !credential_shaped("LANG"));
     }
 
     #[test]
