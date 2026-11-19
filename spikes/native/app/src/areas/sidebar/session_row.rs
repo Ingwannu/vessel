@@ -22,7 +22,8 @@
 //! - Its menu (`row_menu`): Paseo's vertical kebab over the title's end on
 //!   hover, the row's hover fill fading the title into it (Paseo's 48
 //!   scrim, solid from 55%); always shown on touch, where it keeps its room
-//!   (32 square) and needs no scrim; a right press anywhere on the row.
+//!   (a 32 square centred on the title's line, so the row stays 44) and
+//!   needs no scrim; a right press anywhere on the row.
 //! - The shortcut number (Paseo's `SidebarWorkspaceShortcutBadge`) at the
 //!   title's end while the jump modifier is held (`shortcut_badges_visible`),
 //!   for the first nine rows in the order the keys walk; it hides the kebab.
@@ -62,8 +63,17 @@ const TITLE_REST: f32 = 0.76;
 /// `xs` 32).
 const DOTS: f32 = 18.0;
 const DOTS_TOUCH: f32 = 32.0;
-/// Its mark (Paseo's `sm` density icon).
+/// Its mark (Paseo's `sm` density icon: 14, 18 on touch).
 const DOTS_MARK: f32 = 14.0;
+const DOTS_MARK_TOUCH: f32 = 18.0;
+/// Its margins (Paseo's `trigger`): 2 from the title; on touch the 32 box
+/// centred on the title's 20 line (-6 above); the box pulled right through
+/// the glyph's unpainted edge onto the row's rail (-7, -14 on touch).
+/// Negative literals: sizes take no arithmetic.
+const DOTS_LEFT: f32 = 2.0;
+const DOTS_TOP_TOUCH: f32 = -6.0;
+const DOTS_RIGHT: f32 = -7.0;
+const DOTS_RIGHT_TOUCH: f32 = -14.0;
 /// Its corners (Paseo's 4).
 const DOTS_CORNER: f32 = 4.0;
 /// The scrim fading the title into the kebab (`SCRIM_WIDTH`), solid from
@@ -229,10 +239,17 @@ fn dots(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let target = card.clone();
-    let size = if touch { DOTS_TOUCH } else { DOTS };
+    let (size, mark, right) = if touch {
+        (DOTS_TOUCH, DOTS_MARK_TOUCH, DOTS_RIGHT_TOUCH)
+    } else {
+        (DOTS, DOTS_MARK, DOTS_RIGHT)
+    };
     let button = div()
         .id(ElementId::Name(format!("session-menu-{}", card.session).into()))
         .size(px(size))
+        .ml(px(DOTS_LEFT))
+        .mr(px(right))
+        .when(touch, |button| button.mt(px(DOTS_TOP_TOUCH)))
         .flex_none()
         .flex()
         .items_center()
@@ -242,7 +259,7 @@ fn dots(
         .child(
             svg()
                 .path(Glyph::MoreVertical.path())
-                .size(px(DOTS_MARK))
+                .size(px(mark))
                 .text_color(tokens.neutral.foreground_muted),
         )
         // Its own press: the row's click (open the session) does not run.
