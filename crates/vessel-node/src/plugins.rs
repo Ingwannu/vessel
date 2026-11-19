@@ -213,7 +213,7 @@ impl Plugins {
         let starting = plugins.clone();
         drop(tasks.spawn(async move {
             starting.apply_switch().await;
-            starting.inner.settled.send_replace(true);
+            let _was = starting.inner.settled.send_replace(true);
         }));
         let stopping = plugins.clone();
         drop(tasks.spawn(async move {
@@ -399,7 +399,7 @@ impl Plugins {
 
     /// The switch was saved as `on`: apply it in the background.
     pub(crate) fn set_switch(&self, on: bool) {
-        self.inner.wanted_switch.send_replace(on);
+        let _was = self.inner.wanted_switch.send_replace(on);
         let plugins = self.clone();
         drop(self.inner.tasks.spawn(async move {
             plugins.apply_switch().await;

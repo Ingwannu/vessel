@@ -21,7 +21,6 @@
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 use vessel_plugin::{PreparedCommand, RuntimeState, SharedLogs, Supervisor};
@@ -117,8 +116,9 @@ pub(crate) enum StartError {
 /// What runs for a started installation.
 #[derive(Debug)]
 pub(crate) enum Started {
-    /// A client document and no process.
-    Client(Arc<ClientDocument>),
+    /// A client document that validated, and no process. The catalog
+    /// (ADR 0115, P3) keeps the document; this packet only checks it.
+    Client,
     /// A helper that answered ready.
     Helper(Supervisor),
 }
@@ -137,12 +137,12 @@ pub(crate) async fn start(
         None => None,
     };
     let Some(command) = &manifest.server else {
-        let document = client.ok_or_else(|| {
+        let _validated: ClientDocument = client.ok_or_else(|| {
             StartError::Manifest(
                 "it names neither a server command nor a client document".to_owned(),
             )
         })?;
-        return Ok(Started::Client(Arc::new(document)));
+        return Ok(Started::Client);
     };
     let launch = prepare(command, directory, env)?;
     let supervisor = Supervisor::spawn(launch, address, logs.clone(), parent)

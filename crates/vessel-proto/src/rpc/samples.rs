@@ -107,7 +107,6 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::RemovePlugin => json!({"plugin":"sample"}),
         Method::InspectPlugin => json!({"path":"/fixture/plugin"}),
         Method::InstallPlugin => json!({"source":"/fixture/plugin","id":"sample"}),
-        Method::WatchPlugins => json!({"after":0}),
         Method::GetAgentDiagnostic => json!({"agent":"codex"}),
         Method::AssignWorkspaceLabel => {
             json!({"workspace":id,"label":{"name":"Ready","color":"violet"},"assignment":"assigned"})
@@ -121,7 +120,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         }
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
-        Method::WatchFleet => json!({"after":0}),
+        Method::WatchFleet | Method::WatchPlugins => json!({"after":0}),
         Method::ReportApplied => json!({"generation":0}),
         Method::JoinFleet => json!({"link":pairing_link(),"grant":[]}),
         Method::Forward => json!({"node":id,"call":{"method":"node.info","params":null}}),

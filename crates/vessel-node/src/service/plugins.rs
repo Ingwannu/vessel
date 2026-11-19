@@ -26,12 +26,18 @@ impl NodeService {
     }
 
     /// `plugin.logs`: one installation's retained log tail.
+    #[expect(
+        clippy::unused_async,
+        reason = "every call has the same async shape, so the guard's rows are uniform"
+    )]
     pub(crate) async fn plugin_logs(
         &self,
         _: &Connection,
         request: GetPluginLogs,
     ) -> Result<PluginLogs, WireError> {
-        self.plugins.logs(&request.plugin).map_err(wire)
+        self.plugins
+            .logs(&request.plugin)
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.inspect`: a directory's manifest identity.
@@ -40,7 +46,10 @@ impl NodeService {
         _: &Connection,
         request: InspectPlugin,
     ) -> Result<PluginInspection, WireError> {
-        self.plugins.inspect(&request.path).await.map_err(wire)
+        self.plugins
+            .inspect(&request.path)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.install`: from a directory; started when plugins are on.
@@ -52,7 +61,7 @@ impl NodeService {
         self.plugins
             .install(&request.source, request.id, request.reference.as_deref())
             .await
-            .map_err(wire)
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.enable`.
@@ -61,7 +70,10 @@ impl NodeService {
         _: &Connection,
         request: EnablePlugin,
     ) -> Result<PluginListItem, WireError> {
-        self.plugins.enable(&request.plugin).await.map_err(wire)
+        self.plugins
+            .enable(&request.plugin)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.disable`.
@@ -70,7 +82,10 @@ impl NodeService {
         _: &Connection,
         request: DisablePlugin,
     ) -> Result<PluginListItem, WireError> {
-        self.plugins.disable(&request.plugin).await.map_err(wire)
+        self.plugins
+            .disable(&request.plugin)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.reload`.
@@ -79,7 +94,10 @@ impl NodeService {
         _: &Connection,
         request: ReloadPlugin,
     ) -> Result<PluginListItem, WireError> {
-        self.plugins.reload(&request.plugin).await.map_err(wire)
+        self.plugins
+            .reload(&request.plugin)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.remove`.
@@ -92,7 +110,7 @@ impl NodeService {
             .remove(&request.plugin)
             .await
             .map(|()| Ack)
-            .map_err(wire)
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.watch`: a long poll on the plugin generation.
@@ -121,8 +139,8 @@ fn administers(principal: &Principal) -> bool {
 }
 
 /// The wire kind of each plugin error; the message is the node's sentence.
-fn wire(error: PluginError) -> WireError {
-    let code = match &error {
+fn wire(error: &PluginError) -> WireError {
+    let code = match error {
         PluginError::NotInstalled(_) => ErrorCode::NotFound,
         PluginError::Exists(_) | PluginError::Disabled(_) | PluginError::Off => ErrorCode::Conflict,
         PluginError::Source(_) | PluginError::Manifest(_) => ErrorCode::InvalidRequest,

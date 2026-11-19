@@ -63,7 +63,7 @@ impl Fixture {
 
     async fn finish(self) {
         self.stop.cancel();
-        self.tasks.close();
+        let _closed = self.tasks.close();
         self.tasks.wait().await;
     }
 }
@@ -109,7 +109,7 @@ async fn until(plugins: &Plugins, plugin: &str, wanted: PluginStatus) {
 async fn a_client_only_plugin_installs_disabled_while_off_and_runs_when_switched_on() {
     let fixture = Fixture::new();
     let plugins = fixture.host(false).await;
-    fixture.plugin(
+    let _directory = fixture.plugin(
         "night",
         &client_only("night"),
         &[("client.json", EMPTY_CLIENT.as_bytes())],
@@ -208,7 +208,7 @@ async fn enable_disable_reload_and_remove_follow_paseo() {
 #[tokio::test]
 async fn installations_are_kept_owner_only_and_start_again_with_the_node() {
     let fixture = Fixture::new();
-    fixture.plugin(
+    let _directory = fixture.plugin(
         "night",
         &client_only("night"),
         &[("client.json", EMPTY_CLIENT.as_bytes())],
@@ -250,7 +250,7 @@ async fn refusals_say_why() {
         plugins.inspect("~/paseo").await,
         Err(PluginError::Manifest(super::ManifestError::Paseo))
     ));
-    fixture.plugin(
+    let _directory = fixture.plugin(
         "night",
         &client_only("night"),
         &[("client.json", EMPTY_CLIENT.as_bytes())],
@@ -260,7 +260,7 @@ async fn refusals_say_why() {
         "night"
     );
     // A client document that does not validate leaves the row failed.
-    fixture.plugin(
+    let _directory = fixture.plugin(
         "broken",
         &client_only("broken"),
         &[("client.json", b"{\"methods\":7}")],
@@ -295,7 +295,7 @@ async fn watch_answers_a_newer_generation_after_a_change() {
         let plugins = plugins.clone();
         tokio::spawn(async move { plugins.watch(before).await })
     };
-    fixture.plugin(
+    let _directory = fixture.plugin(
         "night",
         &client_only("night"),
         &[("client.json", EMPTY_CLIENT.as_bytes())],

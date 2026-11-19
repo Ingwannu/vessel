@@ -110,7 +110,7 @@ impl Plugins {
     ) {
         let watched = match &started {
             host::Started::Helper(supervisor) => Some(supervisor.handle().subscribe()),
-            host::Started::Client(_) => None,
+            host::Started::Client => None,
         };
         let late = {
             let mut state = self.state();
@@ -118,7 +118,7 @@ impl Plugins {
                 Some(row) if row.attempt == attempt => {
                     row.run = match started {
                         host::Started::Helper(supervisor) => Run::Helper(supervisor),
-                        host::Started::Client(_) => Run::Client,
+                        host::Started::Client => Run::Client,
                     };
                     None
                 }

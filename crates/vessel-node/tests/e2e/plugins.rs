@@ -87,7 +87,7 @@ async fn a_person_installs_switches_on_and_removes_a_plugin() {
         }
         assert!(running);
 
-        owner
+        let _removed = owner
             .call(RemovePlugin {
                 plugin: "night".parse().unwrap(),
             })
