@@ -245,6 +245,10 @@ impl Method {
             // Forking and rewinding act on a session as a prompt does.
             | Self::ForkSession
             | Self::RewindSession
+            // ADR 0089: a terminal's attention is acted on where the
+            // terminal is, as its other calls are.
+            | Self::ClearTerminalAttention
+            | Self::ReportTerminalActivity
             // An agent's history there, to import from it there (ADR
             // 0053): it needs `operate`, as the import does.
             | Self::GetAgentHistory => true,
@@ -264,6 +268,11 @@ impl Method {
             | Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
+            // ADR 0089: badges, inbox reads and the recipient claim belong to
+            // the connection that is present on that node, never a hop.
+            | Self::GetInboxAttention
+            | Self::ReadInboxThrough
+            | Self::ClaimNotification
             | Self::ReportPushPresence
             | Self::AddAgent
             | Self::GetCatalogue

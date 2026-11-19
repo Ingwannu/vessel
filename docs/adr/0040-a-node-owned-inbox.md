@@ -154,3 +154,22 @@ Every fleet hop must decode its full typed call. The common recursive
 `Call::since` rule applies to the inbox too; checking only the envelope's
 version would expose protocol 21 relays to protocol 22 methods. No scope or
 forwardability policy changes with this correction.
+
+## Attention badges and exact-entry reads (ADR 0089)
+
+`inbox.seen` and `SessionInfo.marks.unread` are separate projections. The
+session mark is a log watermark/explicit unread flag; the inbox removes
+resolved requests and retains outcomes. "Like session marks" means shared
+persistence, not identical values. Exact-entry marking never advances the
+session watermark or marks another pending permission/question read.
+
+`inbox.attention` reads at most 256 distinct requested sessions in one SQL
+snapshot, including all rows outside the loaded head page. Each existing
+session has independent unread/waiting/current-failed counts; missing sessions are omitted.
+The native badge consumes this rollup, not partial rows or log marks.
+`inbox.read` is a direct-person, Read-scoped passive clear through an observed
+exclusive watermark. It reuses the existing marks transaction/order lock,
+vetoes current live/durable requests, and refuses future watermarks. It grants
+no pin/archive/unread/input operation. Both calls remain pending under ADR 0089's
+single protocol constant. Mark/read changes publish committed inbox wakeups;
+clients refresh authoritative snapshots rather than predicting other devices.

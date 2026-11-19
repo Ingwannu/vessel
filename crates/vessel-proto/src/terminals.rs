@@ -32,6 +32,7 @@ use crate::terminal::TerminalSize;
 use crate::title::SessionTitle;
 use crate::workspace::{ProjectCommand, RelPath};
 
+mod older;
 mod requests;
 
 pub use requests::{
@@ -175,6 +176,9 @@ pub struct TerminalInfo {
     /// Changes with every field but the two sequence numbers, for
     /// `terminal.get`'s `changed_from`.
     pub revision: u64,
+    /// Explicit semantic activity; absent on older nodes (ADR 0089).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attention: Option<crate::notifications::TerminalAttention>,
 }
 
 impl TerminalInfo {
@@ -187,6 +191,11 @@ impl TerminalInfo {
         kind: TerminalKind,
         created_at: DateTime<Utc>,
     ) -> Self {
+        let activity = if matches!(&kind, TerminalKind::Shell { .. }) {
+            crate::notifications::TerminalActivity::Untracked
+        } else {
+            crate::notifications::TerminalActivity::Unknown
+        };
         Self {
             id,
             place,
@@ -202,6 +211,12 @@ impl TerminalInfo {
             oldest_seq: EventSeq::ZERO,
             next_seq: EventSeq::ZERO,
             revision: 0,
+            attention: Some(crate::notifications::TerminalAttention {
+                terminal: id,
+                revision: crate::notifications::TerminalAttentionRevision::default(),
+                activity,
+                changed_at: created_at,
+            }),
         }
     }
 

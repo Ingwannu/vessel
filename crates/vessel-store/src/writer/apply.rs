@@ -31,6 +31,11 @@ pub(super) fn apply(
 ) -> Answer {
     match write {
         Write::WorkspaceLabels(write) => workspace_labels::apply(transaction, *write, effects),
+        Write::NotificationClaim {
+            authority,
+            source,
+            done,
+        } => notification_claim(transaction, authority, source, done),
         Write::Create { info, done } => session_answer(transaction, info.id, done, |connection| {
             log::create_session(connection, &info)
         }),
@@ -61,8 +66,17 @@ pub(super) fn apply(
             at,
             residence,
             done,
-        } => marks_answer(transaction, session, done, |connection| {
+        } => marks_answer(transaction, effects, session, done, |connection| {
             marks::mark(connection, session, mark, at, residence)
+        }),
+        Write::ReadAttention {
+            session,
+            through,
+            at,
+            residence,
+            done,
+        } => marks_answer(transaction, effects, session, done, |connection| {
+            read_attention(connection, session, through, at, residence)
         }),
         Write::Detach { session, at, done } => {
             let applied = isolated(transaction, |connection| {
@@ -81,7 +95,7 @@ pub(super) fn apply(
             session,
             next,
             done,
-        } => marks_answer(transaction, session, done, |connection| {
+        } => marks_answer(transaction, effects, session, done, |connection| {
             again::reopen(connection, session, next)
         }),
         Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
@@ -91,9 +105,17 @@ pub(super) fn apply(
             mark,
             residence,
             done,
-        } => session_answer(transaction, mark.key.session, done, |connection| {
-            crate::inbox::mark(connection, &mark, residence)
-        }),
+        } => {
+            // ADR 0089: an inbox change wakes the attention observers once the
+            // batch commits, on top of the session's mutation clock.
+            let applied = isolated(transaction, |connection| {
+                with_clock(connection, mark.key.session, |connection| {
+                    crate::inbox::mark(connection, &mark, residence)
+                })
+            });
+            effects.attention |= applied.is_ok();
+            Answer::Session(done, applied)
+        }
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
@@ -151,6 +173,49 @@ fn placement(
     )
 }
 
+// Keep the claim's existing savepoint and post-commit answer unchanged while
+// leaving the canonical writer dispatch below its per-function size budget.
+fn notification_claim(
+    transaction: &mut Transaction<'_>,
+    authority: crate::NotificationAuthority,
+    source: crate::PushAttention,
+    done: Done<crate::LocalAdmission>,
+) -> Answer {
+    Answer::NotificationClaim(
+        done,
+        isolated(transaction, |connection| {
+            crate::notification_claims::claim(connection, authority, source)
+        }),
+    )
+}
+
+/// `inbox.read` (ADR 0089): a passive Read mark, refused while a request
+/// waits, through the same marks write and session mutation clock as
+/// `session.mark`'s Read, so `residence` decides whether the clock ticks.
+fn read_attention(
+    connection: &Connection,
+    session: SessionId,
+    through: vessel_proto::EventSeq,
+    at: chrono::DateTime<chrono::Utc>,
+    residence: crate::Residence,
+) -> Result<vessel_proto::KeptMarks, StoreError> {
+    let waiting: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM inbox WHERE session=?1 AND waiting=1)",
+        [session.to_string()],
+        |row| row.get(0),
+    )?;
+    if waiting {
+        return Err(StoreError::AttentionWaiting);
+    }
+    marks::mark(
+        connection,
+        session,
+        vessel_proto::Mark::Read { through },
+        at,
+        residence,
+    )
+}
+
 // State-only writes keep the same savepoint and acknowledgement boundary,
 // apart from the session writes that also drive retention.
 fn write_answer(
@@ -202,9 +267,18 @@ fn append(
     indexer.keep(session, advanced);
     let _first = effects.touched.insert(session);
     effects.ended |= now_ended;
-    effects.attention |= records
-        .iter()
-        .any(|record| record.event.asks_for_attention());
+    // ADR 0089: what changes a session's attention wakes its observers.
+    effects.attention |= records.iter().any(|record| {
+        record.event.asks_for_attention()
+            || matches!(
+                &record.event,
+                vessel_proto::SessionEvent::Agent {
+                    event: vessel_proto::AgentEvent::PermissionResolved { .. }
+                        | vessel_proto::AgentEvent::QuestionResolved { .. }
+                        | vessel_proto::AgentEvent::TurnStarted { .. }
+                } | vessel_proto::SessionEvent::Rewound { .. }
+            )
+    });
     Ok(SessionCommit::new((), updated_at))
 }
 
@@ -244,8 +318,12 @@ fn session_answer(
     Answer::Session(done, applied)
 }
 
+/// A marks write with the session's mutation clock. A committed change
+/// also wakes the attention observers (ADR 0089): a mark, a reopen or an
+/// `inbox.read` can change a session's badges.
 fn marks_answer(
     transaction: &mut Transaction<'_>,
+    effects: &mut Effects,
     session: SessionId,
     done: Done<SessionCommit<vessel_proto::KeptMarks>>,
     operation: impl FnOnce(&Connection) -> Result<vessel_proto::KeptMarks, StoreError>,
@@ -253,5 +331,6 @@ fn marks_answer(
     let applied = isolated(transaction, |connection| {
         with_clock(connection, session, operation)
     });
+    effects.attention |= applied.is_ok();
     Answer::Marked(done, applied)
 }

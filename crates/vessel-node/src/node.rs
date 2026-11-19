@@ -35,7 +35,7 @@ use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
 use crate::guard::Guarded;
 use crate::identity;
-use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
+use crate::ipc::{self, Endpoint, LocalGateway, LocalListener};
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
@@ -172,12 +172,8 @@ impl Node {
             )
         });
         relays.serve(secure.clone(), connections.clone());
-        let gateway = LocalGateway {
-            rpc,
-            token,
-            connections,
-            agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
-        };
+        let gateway =
+            LocalGateway::new(rpc, token, connections, agents, &secure, config.rpc.clone());
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
@@ -390,6 +386,7 @@ async fn core(
     // Terminals beside sessions (protocol 11, ADR 0031): the node's tasks,
     // so its stop ends them and waits for their ends; memory only.
     let terminals = Terminals::new(Runner {
+        endpoint: Endpoint::of(&config.data_dir, id),
         config: Arc::new(config.terminals.clone()),
         shutdown: stop.clone(),
         tasks: tasks.clone(),
@@ -435,7 +432,8 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let features = setup::feature_state(config, (id, &settings), store, &tasks, &stop).await?;
+    let features =
+        setup::feature_state(config, (id, &settings), store, &terminals, &tasks, &stop).await?;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         workspace_labels: features.labels,
         lsp,

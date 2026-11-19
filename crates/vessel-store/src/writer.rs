@@ -66,6 +66,12 @@ pub(crate) enum WriteOp {
 pub(crate) enum Write {
     /// Accepted label writes belong to the serial publication actor.
     WorkspaceLabels(Box<crate::workspace_labels::Write>),
+    /// One elected person's exact local notification admission.
+    NotificationClaim {
+        authority: crate::NotificationAuthority,
+        source: crate::PushAttention,
+        done: Done<crate::LocalAdmission>,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create {
@@ -110,6 +116,15 @@ pub(crate) enum Write {
         session: SessionId,
         at: DateTime<Utc>,
         done: Done<vessel_proto::subagents::DetachedSession>,
+    },
+    /// Narrow passive read; reuses marks after an atomic pending-request
+    /// veto, with `session.mark`'s residence rule for the mutation clock.
+    ReadAttention {
+        session: SessionId,
+        through: EventSeq,
+        at: DateTime<Utc>,
+        residence: crate::Residence,
+        done: Done<SessionCommit<KeptMarks>>,
     },
     /// Delete an ended session whole (protocol 10).
     Delete { session: SessionId, done: Done },
@@ -213,6 +228,10 @@ enum Answer {
             StoreError,
         >,
     ),
+    NotificationClaim(
+        Done<crate::LocalAdmission>,
+        Result<crate::LocalAdmission, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Session(
         Done<SessionCommit<()>>,
@@ -240,6 +259,7 @@ impl Answer {
             Self::LabelUpdated(done, result) => done.send(after(failed, result)).is_ok(),
             Self::LabelDeleted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::NotificationClaim(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Session(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
