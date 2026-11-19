@@ -36,7 +36,7 @@ impl Render for Probe {
     }
 }
 
-fn project_id(index: u16) -> ProjectId {
+pub(super) fn project_id(index: u16) -> ProjectId {
     format!("{index:08x}-0000-4000-8000-00000000000a")
         .parse()
         .unwrap()
@@ -89,7 +89,10 @@ fn session(index: u16, project: Option<ProjectId>) -> Card {
 }
 
 /// shop holds `in_shop` sessions, notes one, and one is in no project.
-fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn setup(
+    cx: &mut TestAppContext,
+    in_shop: u16,
+) -> (Entity<Shell>, &mut VisualTestContext) {
     language_tests::init(cx);
     let saved = Rc::new(RefCell::new(None));
     let window = cx.update(|cx| {
@@ -148,7 +151,7 @@ fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTe
 
 /// Every `aria` object of GPUI's real snapshot, as text (as the sort
 /// trigger's test reads it), after a fresh frame.
-fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
+pub(super) fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
     shell.update(cx, |_, cx| cx.notify());
     cx.update(|window, _| window.refresh());
     cx.run_until_parked();
@@ -159,7 +162,7 @@ fn snapshot(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
         .collect()
 }
 
-fn named<'a>(arias: &'a [String], role: &str, name: &str) -> Vec<&'a String> {
+pub(super) fn named<'a>(arias: &'a [String], role: &str, name: &str) -> Vec<&'a String> {
     let role = format!(r#""{role}""#);
     let label = format!(r#""label": "{name}""#);
     arias
@@ -250,4 +253,52 @@ fn past_seven_sessions_show_more_then_show_less(cx: &mut TestAppContext) {
     let arias = snapshot(&shell, cx);
     assert!(named(&arias, "Button", "Show more").is_empty());
     assert_eq!(named(&arias, "Button", "Show less").len(), 1);
+}
+
+/// The fixture machine's list, read.
+fn ready(shell: &mut Shell) -> &mut ProjectList {
+    match shell.areas.workspace.projects.get_mut("fixture") {
+        Some(ProjectsView::Ready(list)) => list,
+        _ => panic!("the fixture's list is read"),
+    }
+}
+
+#[gpui::test]
+fn a_header_not_ready_is_a_button_named_by_it_that_does_not_fold(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx, 2);
+    shell.update(cx, |shell, cx| {
+        ready(shell).projects[2].state = ProjectState::Missing;
+        cx.notify();
+    });
+    let arias = snapshot(&shell, cx);
+    let header = named(&arias, "Button", "notes");
+    assert_eq!(header.len(), 1);
+    assert!(!header[0].contains("expanded"), "{}", header[0]);
+}
+
+#[gpui::test]
+fn a_whole_list_drops_the_folds_of_projects_it_no_longer_holds(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx, 2);
+    shell.update(cx, |shell, cx| {
+        shell.fold_project("fixture", project_id(0), cx);
+        shell.fold_project("fixture", project_id(1), cx);
+        // shop went on the node: the next list holds docs and notes.
+        let _shop = ready(shell).projects.remove(0);
+        shell.folds_listed("fixture");
+        let folds = &shell.prefs.settings.folded_projects;
+        assert!(!folds.contains("fixture", project_id(0)));
+        assert!(folds.contains("fixture", project_id(1)));
+        // A list cut short drops nothing: docs may be past the cut.
+        let cut = ready(shell);
+        cut.more = true;
+        let _docs = cut.projects.remove(0);
+        shell.folds_listed("fixture");
+        assert!(
+            shell
+                .prefs
+                .settings
+                .folded_projects
+                .contains("fixture", project_id(1))
+        );
+    });
 }
