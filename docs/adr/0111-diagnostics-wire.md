@@ -184,6 +184,9 @@ The report's readers:
   - The app diagnostic's dialog: Paseo's progress card while any machine is asked, then only the text. The
     first progress row is "App" for Paseo's "Client" (the coordinator's word). Copy and Refresh are the
     title row's icon actions.
+  - The diagnostic texts (the app's and an agent's) keep each line whole and scroll sideways, as Paseo's
+    `ScrollableCodeSurface` (`horizontal` by default) and the page do. Node logs wraps, as Paseo's plain
+    `Text` does (the coordinator's ruling on row 337).
   - An agent's "Diagnostic" sits beside its details on Settings › Agents (from 33). Its sheet is
     `view::diagnostics::Sheet`. A failure takes the text's place in the app's words for its code.
   - Overview's "Node" section holds the "Log file" row and "Node logs" (from 33).

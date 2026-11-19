@@ -177,10 +177,14 @@ pub(super) fn dialog(
             words.running(),
             tokens,
         ),
-        SheetBody::Text(text) => super::code_surface(text.to_owned(), tokens),
-        SheetBody::Failed(problem) => {
-            super::code_surface(super::problem_words(problem, shell), tokens)
+        SheetBody::Text(text) => {
+            super::code_surface("agent-diagnostic-text", text.to_owned(), tokens)
         }
+        SheetBody::Failed(problem) => super::code_surface(
+            "agent-diagnostic-text",
+            super::problem_words(problem, shell),
+            tokens,
+        ),
         SheetBody::None => note(None, words.agent_none(), tokens),
     };
     let actions = super::title_actions(

@@ -24,8 +24,8 @@ use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk};
 use vessel_app_kit::ui::{
-    AnyElement, ClipboardItem, Context, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, ClipboardItem, Context, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonState, ControlSizing, Tokens, Type, TypeExt as _, assets::Glyph, outline_button, settings,
@@ -227,7 +227,7 @@ fn run_dialog(
     let text = run.text();
     let body = text.clone().map_or_else(
         || progress(&run.steps(), shell, tokens),
-        |text| code_surface(text, tokens),
+        |text| code_surface("settings-diagnostic-text", text, tokens),
     );
     let actions = title_actions(
         "settings-diagnostic",
@@ -312,18 +312,32 @@ fn dot(colour: vessel_app_kit::ui::Hsla) -> AnyElement {
         .into_any_element()
 }
 
-/// A diagnostic's text as Paseo's code surface: one block of code text
-/// that wraps, selectable by copying the whole.
-fn code_surface(text: String, tokens: &Tokens) -> AnyElement {
+/// A diagnostic's text as Paseo's `ScrollableCodeSurface` (its default
+/// `horizontal`): each line stays whole and the surface scrolls sideways;
+/// the page keeps the lines whole too (the coordinator's ruling on row
+/// 337). A vertical wheel passes to the dialog's own scroll
+/// (`restrict_scroll_to_axis`), so the text scrolls down as before.
+/// `id` keys the sideways scroll; Node logs wraps instead (Paseo's plain
+/// `Text`).
+fn code_surface(id: &'static str, text: String, tokens: &Tokens) -> AnyElement {
     div()
+        .id(id)
+        .flex()
+        .overflow_x_scroll()
+        .restrict_scroll_to_axis()
         .p(px(spacing::S3))
         .rounded(px(vessel_app_kit::theme::radius::R2))
         .bg(tokens.neutral.surface1)
         .border_1()
         .border_color(tokens.neutral.border)
-        .type_(Type::Mono)
-        .text_color(tokens.neutral.foreground)
-        .child(text)
+        .child(
+            div()
+                .flex_none()
+                .whitespace_nowrap()
+                .type_(Type::Mono)
+                .text_color(tokens.neutral.foreground)
+                .child(text),
+        )
         .into_any_element()
 }
 
