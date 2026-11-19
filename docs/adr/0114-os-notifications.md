@@ -83,7 +83,8 @@ none to done, or to a stated difference, without waiting on the node.
     is in front on another session. The page today shows notices only while it is away; it changes to
     this rule.
   - One notice per transition. The same tag (machine, session, kind) replaces an earlier notification
-    rather than stacking.
+    where the platform does (Windows, the page's browsers). The GPUI Linux patch does not, which is a
+    stated difference below.
   - The window or tab title counts the notices since the app was last active, when the title switch is
     on.
 - **Native delivery:**
@@ -124,6 +125,8 @@ none to done, or to a stated difference, without waiting on the node.
   - The OS notification text is generic: the session's name, not Paseo's last-message preview. Native
     fleet cards do not carry the last message, and ADR 0089 keeps OS text free of content.
   - Mobile push (J30-J35) does not apply: Vessel has no mobile app, and the page's Web Push is ADR 0041's.
+  - On Linux the same session and kind shows another notification, not a replacement (the GPUI Linux
+    patch, above).
   - macOS shows no system notification until the GPUI patch has one.
 - Impact:
   - New dependency `cpal`, native only. Linux builds need `libasound2-dev`, and Linux runs need
@@ -146,8 +149,11 @@ none to done, or to a stated difference, without waiting on the node.
   build is `Vessel.App.Dev`, so a dev build's notifications never replace the installed app's. The
   Windows patch registers the id under `HKCU\Software\Classes\AppUserModelId`.
 - **Tags.** Each tag is `vessel-<random run id>-<n>`. It carries no machine, session or path. The last 64
-  tags are mapped in the process. The same (machine, session, kind) reuses its tag, so the system
-  replaces the earlier notification. A click on a known tag activates the window and opens the session;
+  tags are mapped in the process. The same (machine, session, kind) reuses its tag. Windows replaces
+  the earlier toast by tag. The GPUI Linux patch does not pass the tag on as `replaces_id`, and its
+  dismiss does nothing, so Linux shows a second notification. The D-Bus record of the frames shows
+  this. It is a stated difference; the fix belongs in the release track's patch. A click on a known
+  tag activates the window and opens the session;
   an unknown tag only activates the window.
 - **Sound.** One sound per change of the fleet: needs-you if any, else finished. Ten sessions ending in
   one read sound once. The page plays one per notice, which is a stated difference.
