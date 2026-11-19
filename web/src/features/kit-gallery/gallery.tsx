@@ -35,6 +35,7 @@ import { Display } from "./display";
 import { Fields } from "./fields";
 import { Popups } from "./popups";
 import { QuotaMeters } from "./quota-meters";
+import { SidebarUsageSpecimen } from "./sidebar-usage";
 
 export function Gallery() {
   const preference = useTheme();
@@ -69,6 +70,7 @@ export function Gallery() {
         <Conversation />
         <Display />
         <QuotaMeters />
+        <SidebarUsageSpecimen />
       </main>
     </TooltipProvider>
   );

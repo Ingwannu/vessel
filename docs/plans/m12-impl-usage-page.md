@@ -93,6 +93,13 @@ for values kept from before a reset, and "Resetting now" for a current read (for
   preference. Settings and the modal share `usePlanUsage`, `PlanControls` and `PlanContent`.
 - Kit: `Popover` takes `showTitle={false}` (the title still names the popup) and the `settings` width (340);
   `Dialog` takes title-row `actions` (before Close).
+- P2 r3 (coordinator, 2026-11-19): the summary line spread its items across the row and cut the last window at
+  240, since each source and window grew (`flex: 1`). The line is now Paseo's `PinnedUsageLine`: marks, meter
+  slots and percents are direct children of one row, packed from the left with Paseo's gaps (12 between
+  sources, 6 after a mark, 8 between windows); only a meter slot grows, and only in "meters". `SummaryRow` is
+  the row without its data, and the kit gallery holds it at 240 with the r3 frame's three sources. e2e
+  `sidebar-usage.spec.ts` checks it in a browser: it fits whole, no item reaches past the row, and each gap is
+  Paseo's.
 
 ## TRACKER 793: the default turn delivery is Steer (ADR 0108)
 

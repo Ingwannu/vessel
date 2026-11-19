@@ -1,0 +1,6 @@
+/* The sidebar's column at its desktop width (Paseo's 240), on its own
+   surface, so the summary row is laid out as in the sidebar. */
+.kit-sidebar-usage {
+  width: 240px;
+  background: var(--bg-sidebar);
+}
