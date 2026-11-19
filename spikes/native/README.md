@@ -851,7 +851,9 @@ jobs; one build at a time.
 
 Linux needs the X11 and Wayland development libraries GPUI links
 (`libxkbcommon-dev`, `libwayland-dev`, `libxcb*-dev`, `libfontconfig-dev`)
-and, to run, a Vulkan driver (Mesa's is enough).
+and ALSA's (`libasound2-dev`, for cpal's notification tones, ADR 0114);
+to run, a Vulkan driver (Mesa's is enough) and `libasound.so.2`
+(`libasound2`).
 
 The gate of this workspace (the main workspace's lints are copied into
 its manifest), run from `spikes/native` with its pinned toolchain
