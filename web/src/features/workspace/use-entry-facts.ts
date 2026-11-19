@@ -10,16 +10,18 @@
 //   `file.inspect` (protocol 27) gives both for one folder. Name needs
 //   neither, so a tree in Name order asks nothing more of the node.
 // - Choice: a folder is inspected when its listing arrives (or arrives
-//   again: a refresh, a change made from the menu) and the order needs it;
-//   a folder whose inspection fails keeps no facts and its entries sort
-//   last, as entries the node gave no time for.
+//   again: a refresh, a change made from the menu) and the order needs it,
+//   waiting on the node's background file work line
+//   (`data/workspace/entry-facts.ts`); a folder whose inspection fails
+//   keeps no facts and its entries sort last, as entries the node gave no
+//   time for, until the next pass asks it again.
 // - Cost: one more call per folder shown while Modified or Size is chosen.
 
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
+import { inspectListed } from "../../data/workspace/entry-facts";
 import type { EntryFacts, Listing } from "../../data/workspace/file-tree";
-import { inspectDir } from "../../data/workspace/files";
 import type { ExplorerSort, NodeKey } from "../../wire/bridge";
 import type { RelPath, WorkspaceRoot } from "../../wire/proto";
 
@@ -40,18 +42,17 @@ export function useEntryFacts(
   const asked = useRef(new Map<RelPath, Listing>());
   useEffect(() => {
     if (sort === "name") return;
-    for (const [dir, listing] of listings) {
-      if (listing.kind !== "listed" || asked.current.get(dir) === listing) {
-        continue;
-      }
-      asked.current.set(dir, listing);
-      void inspectDir(fleet, node, root, dir, ignored).then((outcome) => {
-        // A slower answer for an older listing of the folder must not
-        // overwrite the newer one's facts.
-        if (!outcome.ok || asked.current.get(dir) !== listing) return;
+    void inspectListed(
+      fleet,
+      node,
+      root,
+      ignored,
+      listings,
+      asked.current,
+      (entries) => {
         setFacts((known) => {
           const next = new Map(known);
-          for (const entry of outcome.value.entries) {
+          for (const entry of entries) {
             next.set(entry.path, {
               modified: entry.modified,
               size: entry.size,
@@ -59,8 +60,8 @@ export function useEntryFacts(
           }
           return next;
         });
-      });
-    }
+      },
+    );
   }, [fleet, node, root, ignored, listings, sort]);
   return facts;
 }
