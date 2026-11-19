@@ -23,6 +23,7 @@
 //! - Cost: a third language is a third implementation; a new variant on
 //!   the wire is two arms to write.
 
+pub mod add_flow;
 mod comparison_lists;
 mod en;
 mod ko;
@@ -64,17 +65,6 @@ pub struct RefusalWords<'a> {
     pub paths: &'a [RelPath],
     /// Text to show as it came (a hook's output, the remote's message).
     pub output: Option<&'a str>,
-}
-
-/// Which way a project is added (the add form's three titles and hints).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AddForm {
-    /// A folder on the machine.
-    Folder,
-    /// A repository cloned into a folder.
-    Clone,
-    /// A new repository in an empty folder.
-    New,
 }
 
 /// The workspace's table of `lang`.
@@ -209,9 +199,6 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn discard_says(&self, path: &str, branch: &str) -> String;
     /// A snapshot not dropped.
     fn snapshot_not_dropped(&self, name: &str, why: &str) -> String;
-    /// The add form's help line: `clone_target` is the folder and the
-    /// repository's name a clone lands in, when both are known.
-    fn add_hint(&self, form: AddForm, machine: &str, clone_target: Option<(&str, &str)>) -> String;
     /// The approval dialog's first paragraph.
     fn approval_copy(&self, place: &str, scripts: bool) -> String;
     /// Where a project's setup runs ("in each new worktree of shop on laptop").

@@ -19,7 +19,7 @@ use gpui::prelude::*;
 use gpui::{App, Context, Entity, Focusable as _, Window};
 #[cfg(test)]
 use gpui::{div, px};
-use gpui_base::input::{InputState, TextareaState};
+use gpui_base::input::{InputAccessibility, InputState, TextareaState};
 
 pub mod composer_hooks;
 pub mod composer_layout;
@@ -189,6 +189,17 @@ impl TextField {
             Kind::Lines(state, _) => state.update(cx, |state, cx| {
                 state.set_placeholder(placeholder, window, cx);
             }),
+        }
+    }
+
+    /// Name a one-line field for assistive technology, where no label
+    /// beside it does (a sheet's search field named by what it asks for);
+    /// its role stays a text input. A field of lines keeps its own name.
+    pub fn set_accessible_label(&self, label: &str, cx: &mut App) {
+        if let Kind::Line(state) = &self.kind {
+            let accessibility = InputAccessibility::new(Some(gpui::Role::TextInput))
+                .with_label(Some(label.to_owned().into()));
+            state.update(cx, |state, _| state.set_accessibility(accessibility));
         }
     }
 

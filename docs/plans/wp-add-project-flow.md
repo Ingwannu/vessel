@@ -144,8 +144,9 @@ Steps (each its own packet and gate):
    Projects' "Add project" and the shortcut row's `agent.new` where it
    exists; on success "New session here" for the project. Frames: 1280
    and 390, dark and light, each page and state.
-3. Model and sheet, native: the same, plus Browse on this computer's own
-   machine (GPUI's folder prompt), then `project.add`. Frames as above.
+3. Model and sheet, native: the same (`view::workspace::add_flow`,
+   `areas/workspace/add_flow`, the kit's `flow_sheet`); Browse waits on
+   TRACKER 816 (ruling 5). Frames as above.
 4. Node: `project.create_directory {parent, name}` as Paseo's (one
    `mkdir`, name rules, registration, `rmdir` on failure, its errors),
    ADR, the next protocol number; then the New directory pages on both
@@ -174,7 +175,8 @@ Steps (each its own packet and gate):
 5. Browse: native only, on this computer's own machine (Paseo: Electron
    on its local daemon); the page shows no Browse, as Paseo's browser web.
    Its description says the platform's file manager instead of Finder off
-   macOS (question 4).
+   macOS (question 4). Until TRACKER 816 the native app cannot tell which
+   machine is this computer, so it hides Browse too (ruling 5).
 6. Completion: Paseo opens its new-workspace screen; Vessel opens a new
    session in the project (the page's "New session here", the native
    `chat_in_project`), the closest screen it has.
@@ -218,5 +220,15 @@ Steps (each its own packet and gate):
    order; Git init is noted as a possible extra after parity.
 4. Browse names the platform's own file manager (Finder on macOS, File
    Explorer on Windows, the file manager on Linux), a stated difference.
+
+5. Native Browse (2026-11-19): the first native packet ships the other
+   three methods with Browse hidden, as on the page. TRACKER 816, after
+   the file viewers, marks the app's own machine (a loopback route first,
+   else the node's hostname equal to this computer's), keeps
+   `board::Machine` changes minimal and names the tracks it touches; then
+   Browse turns on with the system folder chooser (`prompt_for_paths`).
+6. Page frames (2026-11-19): the structure passed; the field draws no
+   focus ring and the footer's keys are Paseo's Shortcut badges (`↑↓` on
+   macOS, `↑+↓` elsewhere, `⏎`, `Esc`), both sides.
 
 The other differences were accepted.
