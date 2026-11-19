@@ -112,14 +112,15 @@ pub(crate) fn heading(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    section_header(shell.words().labels().projects, tokens).child(
+    let labels = shell.words().labels();
+    section_header(labels.projects, tokens).child(
         div()
             .flex()
             .flex_row()
             .items_center()
             .gap(px(spacing::S0_5))
             .child(trigger)
-            .child(add_project(tokens, cx)),
+            .child(add_project(labels.add_project, tokens, cx)),
     )
 }
 

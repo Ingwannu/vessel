@@ -100,8 +100,8 @@ impl Entry {
 
 impl Shell {
     /// Start a new chat in `project` on `machine`: the composer, the
-    /// project in its tray.
-    fn chat_in_project(
+    /// project in its tray (also Add project's success).
+    pub(super) fn chat_in_project(
         &mut self,
         machine: String,
         project: ProjectId,
@@ -115,11 +115,10 @@ impl Shell {
         self.go(Route::Draft, window, cx);
     }
 
-    /// Settings > Projects on `machine`, its add menu open when `add`.
+    /// Settings > Projects on `machine`.
     fn projects_page(
         &mut self,
         machine: Option<String>,
-        add: bool,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -127,9 +126,6 @@ impl Shell {
             self.areas.settings.machine = machine;
         }
         self.open_settings(Some(Section::Projects), window, cx);
-        if add {
-            self.open_add_menu();
-        }
     }
 }
 
@@ -168,10 +164,11 @@ pub(crate) fn projects(
     }
     let labels = words.labels();
     let total = entries.len();
-    let mut section = div()
-        .flex()
-        .flex_col()
-        .child(header(labels.projects, tokens, cx));
+    let mut section =
+        div()
+            .flex()
+            .flex_col()
+            .child(header(labels.projects, labels.add_project, tokens, cx));
     if entries.is_empty() {
         section = section.child(
             div()
@@ -229,8 +226,13 @@ const ROW_COMPACT: f32 = 44.0;
 
 /// Paseo's section header: the title at 8 from the edge, 12 and muted;
 /// its action a 24 square at the end.
-fn header(title: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    section_header(title, tokens).child(add_project(tokens, cx))
+fn header(
+    title: &'static str,
+    add: &'static str,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    section_header(title, tokens).child(add_project(add, tokens, cx))
 }
 
 /// The section header's frame and title, its actions to follow.
@@ -252,8 +254,9 @@ fn section_header(title: &'static str, tokens: &Tokens) -> Div {
         )
 }
 
-/// The header's plus: Settings > Projects with its add menu.
-fn add_project(tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
+/// The header's plus: Paseo's Add project sheet (TRACKER 234), named for
+/// assistive technology as the button it is.
+fn add_project(name: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
     let wash = hover(tokens);
     div()
         .id("sidebar-add-project")
@@ -264,10 +267,11 @@ fn add_project(tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
         .rounded(px(6.0))
         .cursor_pointer()
         .hover(move |style| style.bg(wash))
+        .role(gpui::Role::Button)
+        .aria_label(name)
         .child(glyph(Glyph::Plus, 14.0, tokens.neutral.foreground_muted))
         .on_click(cx.listener(|this, _event, window, cx| {
-            let machine = this.projects_machine();
-            this.projects_page(machine, true, window, cx);
+            this.open_add_flow(None, window, cx);
         }))
 }
 
@@ -410,7 +414,7 @@ fn project_row(
         } else if ready {
             this.chat_in_project(machine.clone(), project, window, cx);
         } else {
-            this.projects_page(Some(machine.clone()), false, window, cx);
+            this.projects_page(Some(machine.clone()), window, cx);
         }
     }))
     .when(!ready, |row| row.opacity(0.8))

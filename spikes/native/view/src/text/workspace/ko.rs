@@ -10,7 +10,7 @@ use vessel_proto::workspace::{
     WorktreeRefusal,
 };
 
-use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
+use super::{Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
 use crate::workspace::command_changes::{Change, Compared, ComparedWith, ScriptLine};
@@ -581,23 +581,6 @@ impl WorkspaceWords for Ko {
 
     fn snapshot_not_dropped(&self, name: &str, why: &str) -> String {
         format!("{name}의 스냅숏을 삭제하지 못했습니다: {why}")
-    }
-
-    fn add_hint(&self, form: AddForm, machine: &str, clone_target: Option<(&str, &str)>) -> String {
-        match (form, clone_target) {
-            (AddForm::Clone, None) => {
-                format!("{machine}의 폴더입니다. 저장소는 그 안의 폴더에 들어갑니다.")
-            }
-            (AddForm::Clone, Some((folder, name))) => {
-                format!("저장소는 {folder}/{name}에 만들어집니다.")
-            }
-            (AddForm::New, _) => {
-                format!("{machine}의 비어 있거나 새 폴더입니다. git이 그곳에 저장소를 시작합니다.")
-            }
-            (AddForm::Folder, _) => format!(
-                "{machine}의 절대 경로 폴더입니다. 저장소 안이면 저장소의 최상위가 프로젝트가 됩니다."
-            ),
-        }
     }
 
     fn approval_copy(&self, place: &str, scripts: bool) -> String {
