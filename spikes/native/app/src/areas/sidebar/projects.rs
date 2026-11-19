@@ -243,8 +243,12 @@ fn toggle(
         .items_center()
         .gap(px(TOGGLE_GAP))
         .cursor_pointer()
-        .hover(move |style| style.bg(fills.hover))
-        .active(move |style| style.bg(fills.pressed))
+        // The words take the row's own hover: a text colour set by a group
+        // hover is fixed when the words are laid out, before the pointer is
+        // known (the plus and the chevron are painted, so theirs follow).
+        .text_color(neutral.foreground_muted)
+        .hover(move |style| style.bg(fills.hover).text_color(neutral.foreground))
+        .active(move |style| style.bg(fills.pressed).text_color(neutral.foreground))
         .role(gpui::Role::Button)
         .aria_label(label)
         .child(
@@ -260,20 +264,12 @@ fn toggle(
                         .size(px(if touch { CHEVRON_TOUCH } else { CHEVRON }))
                         .flex_none()
                         .text_color(neutral.foreground_muted)
-                        .group_hover(group.clone(), move |style| {
+                        .group_hover(group, move |style| {
                             style.text_color(neutral.foreground)
                         }),
                 ),
         )
-        .child(
-            div()
-                .min_w_0()
-                .truncate()
-                .type_(Type::Body)
-                .text_color(neutral.foreground_muted)
-                .group_hover(group, move |style| style.text_color(neutral.foreground))
-                .child(label),
-        )
+        .child(div().min_w_0().truncate().type_(Type::Body).child(label))
         .on_click(cx.listener(move |this, _event, _window, cx| {
             let shown = &mut this.areas.sidebar.shown_all;
             if !shown.remove(&key) {

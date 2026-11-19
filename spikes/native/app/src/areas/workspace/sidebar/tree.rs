@@ -191,8 +191,11 @@ pub(crate) fn ghost(
             .items_center()
             .gap(px(GHOST_GAP))
             .cursor_pointer()
-            .hover(move |style| style.bg(fills.hover))
-            .active(move |style| style.bg(fills.pressed))
+            // The words take the row's own hover (a group hover's text
+            // colour is fixed when the words are laid out).
+            .text_color(neutral.foreground_muted)
+            .hover(move |style| style.bg(fills.hover).text_color(neutral.foreground))
+            .active(move |style| style.bg(fills.pressed).text_color(neutral.foreground))
             .role(gpui::Role::Button)
             .aria_label(label)
             .child(
@@ -208,7 +211,7 @@ pub(crate) fn ghost(
                             .size(px(plus))
                             .flex_none()
                             .text_color(neutral.foreground_muted)
-                            .group_hover(group.clone(), move |style| {
+                            .group_hover(group, move |style| {
                                 style.text_color(neutral.foreground)
                             }),
                     ),
@@ -218,8 +221,6 @@ pub(crate) fn ghost(
                     .min_w_0()
                     .truncate()
                     .type_(Type::Body)
-                    .text_color(neutral.foreground_muted)
-                    .group_hover(group, move |style| style.text_color(neutral.foreground))
                     .child(words.new_workspace),
             )
             .on_click(cx.listener(move |this, _event, window, cx| {
