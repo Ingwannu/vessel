@@ -91,6 +91,15 @@ impl Shell {
         cx.notify();
     }
 
+    /// Close the app diagnostic, giving focus back to what opened it (the
+    /// app reviewer's R1 on row 337: `DialogState::dismissed`).
+    pub(super) fn close_app_diagnostic(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.settings.diagnostics;
+        state.run = None;
+        state.dialog.dismissed(window, cx);
+        cx.notify();
+    }
+
     /// A diagnostics call answered: to the run, the agent's sheet or the
     /// log, whichever asked with its ticket (one source for all three).
     pub(crate) fn diagnostics_answer(&mut self, answer: Answer) {
@@ -250,7 +259,7 @@ fn run_dialog(
         tokens,
         window,
         compact,
-        |shell: &mut Shell, _window, _cx| shell.areas.settings.diagnostics.run = None,
+        Shell::close_app_diagnostic,
         cx,
     ))
 }
@@ -354,34 +363,13 @@ fn title_actions(
 ) -> AnyElement {
     let (text, running) = shown;
     let words = shell.words.diagnostics();
-    let state = |enabled: bool| {
-        ToolbarConfig::new(
-            ControlSizing::from_compact(compact),
-            if enabled {
-                ButtonState::Enabled
-            } else {
-                ButtonState::Disabled
-            },
-        )
-    };
-    let copy = ToolbarButton::new(
-        (id, 0_usize),
-        words.copy_label(),
-        ToolbarIcon::new(Glyph::Copy, ToolbarInk::ExtraMuted).adaptive(),
-        state(text.is_some()),
-        tokens,
-    )
-    .on_click(cx.listener(move |shell, _event, _window, cx| {
-        if let Some(text) = &text {
-            shell.copy_diagnostic(text, cx);
-        }
-    }));
+    let copy = copy_action((id, 0_usize), text, shell, tokens, compact, cx);
     let again = if running {
         ToolbarButton::loading(
             (id, 1_usize),
             words.refreshing_label(),
             ToolbarInk::ExtraMuted,
-            state(false),
+            config(false, compact),
             tokens,
         )
     } else {
@@ -389,7 +377,7 @@ fn title_actions(
             (id, 1_usize),
             words.refresh_label(),
             ToolbarIcon::new(Glyph::RotateCw, ToolbarInk::ExtraMuted).adaptive(),
-            state(true),
+            config(true, compact),
             tokens,
         )
     }
@@ -401,6 +389,44 @@ fn title_actions(
         .child(copy)
         .child(again)
         .into_any_element()
+}
+
+/// A title-row icon button's sizing and state.
+fn config(enabled: bool, compact: bool) -> ToolbarConfig {
+    ToolbarConfig::new(
+        ControlSizing::from_compact(compact),
+        if enabled {
+            ButtonState::Enabled
+        } else {
+            ButtonState::Disabled
+        },
+    )
+}
+
+/// The title row's Copy: the text shown, with Paseo's copied toast
+/// ("Copied diagnostic"); disabled without text.
+fn copy_action(
+    id: impl Into<vessel_app_kit::ui::ElementId>,
+    text: Option<String>,
+    shell: &Shell,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let enabled = text.is_some();
+    ToolbarButton::new(
+        id,
+        shell.words.diagnostics().copy_label(),
+        ToolbarIcon::new(Glyph::Copy, ToolbarInk::ExtraMuted).adaptive(),
+        config(enabled, compact),
+        tokens,
+    )
+    .on_click(cx.listener(move |shell, _event, _window, cx| {
+        if let Some(text) = &text {
+            shell.copy_diagnostic(text, cx);
+        }
+    }))
+    .into_any_element()
 }
 
 /// A call's failure, as the screen says it.

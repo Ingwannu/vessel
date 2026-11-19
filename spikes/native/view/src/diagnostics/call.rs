@@ -20,6 +20,17 @@ pub enum Problem {
 }
 
 impl Problem {
+    /// Whether asking again may answer: no connection, no answer in time,
+    /// or a node too busy (the queue's `unavailable`). A refusal such as
+    /// `forbidden` or `unsupported` stays until the machine changes.
+    #[must_use]
+    pub const fn transient(self) -> bool {
+        matches!(
+            self,
+            Self::Offline | Self::TimedOut | Self::Refused(ErrorCode::Unavailable)
+        )
+    }
+
     /// Its words in the copied report, which is fixed English technical
     /// text (Paseo's is too): the code in the wire words' rule, never the
     /// node's text.

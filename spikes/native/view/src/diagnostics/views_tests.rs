@@ -64,3 +64,12 @@ fn the_logs_say_empty_only_for_an_empty_file_and_a_failure_as_one() {
         LogContents::Error(Problem::Offline)
     );
 }
+
+#[test]
+fn only_an_answer_that_may_change_is_transient() {
+    assert!(Problem::Offline.transient());
+    assert!(Problem::TimedOut.transient());
+    assert!(Problem::Refused(ErrorCode::Unavailable).transient());
+    assert!(!Problem::Refused(ErrorCode::Forbidden).transient());
+    assert!(!Problem::Refused(ErrorCode::Unsupported).transient());
+}

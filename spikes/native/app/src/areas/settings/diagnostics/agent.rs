@@ -66,7 +66,7 @@ impl State {
 
 impl Shell {
     /// Open the sheet for `agent` on `machine`, asking at once.
-    fn open_agent_diagnostic(
+    pub(super) fn open_agent_diagnostic(
         &mut self,
         machine: MachineKey,
         agent: HarnessRef,
@@ -91,6 +91,19 @@ impl Shell {
                 profile: None,
             },
         }));
+        cx.notify();
+    }
+
+    /// Close the sheet, giving focus back to what opened it (the app
+    /// reviewer's R1 on row 337: `DialogState::dismissed`).
+    pub(super) fn close_agent_diagnostic(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.settings.diagnostics.agent;
+        state.open = None;
+        state.dialog.dismissed(window, cx);
         cx.notify();
     }
 
@@ -208,7 +221,7 @@ pub(super) fn dialog(
         tokens,
         window,
         compact,
-        |shell: &mut Shell, _window, _cx| shell.areas.settings.diagnostics.agent.open = None,
+        Shell::close_agent_diagnostic,
         cx,
     ))
 }

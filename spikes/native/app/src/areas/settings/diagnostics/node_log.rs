@@ -19,6 +19,12 @@
 //!   - The coordinator's truthfulness rule: a failed call shows why, and
 //!     "(log file is empty)" stands only for an empty file
 //!     (`view::diagnostics::log_contents`).
+//!   - The row reads again after an answer that may change (no connection,
+//!     no answer in time, a busy node) and on a new connection; a path or a
+//!     refusal such as `forbidden` is kept (the app reviewer's R2 on row 337).
+//! - Stated difference: a Copy icon in the dialog's title row copies the
+//!   lines shown, with the diagnostics' copied toast. Paseo's log text is
+//!   selectable, and GPUI text is not (the coordinator's ruling on row 337).
 
 use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog as draw};
 use vessel_app_kit::theme::spacing;
@@ -30,6 +36,7 @@ use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_link::Command;
 use vessel_app_link::diagnostics::{Ask, Request};
 use vessel_app_view::board::{Machine, Reach};
+use vessel_app_view::connection::ConnectionEpoch;
 use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::diagnostics::{LogContents, Problem, log_contents};
 use vessel_app_view::settings::Section;
@@ -40,6 +47,9 @@ use crate::shell::Shell;
 /// One read of a machine's log: its ticket while asked, then its answer.
 struct Read {
     machine: String,
+    /// The connection it was asked over (the row's): a new connection to
+    /// the machine reads again.
+    epoch: Option<ConnectionEpoch>,
     asking: Option<Ticket>,
     answer: Option<Result<NodeLog, Problem>>,
 }
@@ -48,6 +58,18 @@ impl Read {
     fn asks(&self, machine: &MachineKey, ticket: Ticket) -> bool {
         self.machine == machine.as_str() && self.asking == Some(ticket)
     }
+}
+
+/// Whether the row asks `machine` (over `epoch`) again, given its last read:
+/// none for it yet, another connection since, or an answer that may change
+/// on asking (`Problem::transient`). A path, or a refusal such as
+/// `forbidden`, is kept; a read still asked is waited for (the app
+/// reviewer's R2 on row 337).
+fn asks_again(read: Option<&Read>, machine: &str, epoch: Option<ConnectionEpoch>) -> bool {
+    let Some(read) = read.filter(|read| read.machine == machine && read.epoch == epoch) else {
+        return true;
+    };
+    read.asking.is_none() && matches!(&read.answer, Some(Err(problem)) if problem.transient())
 }
 
 /// The row's read, the dialog's read and its dialog.
@@ -96,8 +118,10 @@ fn speaks(machine: &Machine) -> bool {
 }
 
 impl Shell {
-    /// On Overview, ask the chosen machine for its log's path, once per
-    /// machine chosen.
+    /// On Overview, ask the chosen machine for its log's path: once per
+    /// machine and connection, and again after an answer that may change
+    /// (`asks_again`). A machine that does not answer `node.log` now (not
+    /// connected) drops what the row knew of it.
     pub(crate) fn log_row_load(&mut self) {
         if self.areas.settings.section != Section::Overview {
             return;
@@ -105,17 +129,24 @@ impl Shell {
         let Some(machine) = super::super::choices::chosen_machine(self) else {
             return;
         };
-        if !speaks(machine) {
+        let (name, epoch, speaks) = (
+            machine.name.clone(),
+            machine.connection_epoch,
+            speaks(machine),
+        );
+        let state = &mut self.areas.settings.diagnostics;
+        if !speaks {
+            if state
+                .log
+                .row
+                .as_ref()
+                .is_some_and(|read| read.machine == name)
+            {
+                state.log.row = None;
+            }
             return;
         }
-        let name = machine.name.clone();
-        let state = &mut self.areas.settings.diagnostics;
-        if state
-            .log
-            .row
-            .as_ref()
-            .is_some_and(|read| read.machine == name)
-        {
+        if !asks_again(state.log.row.as_ref(), &name, epoch) {
             return;
         }
         let Ok(ticket) = state.tickets.next_ticket() else {
@@ -123,6 +154,7 @@ impl Shell {
         };
         state.log.row = Some(Read {
             machine: name.clone(),
+            epoch,
             asking: Some(ticket),
             answer: None,
         });
@@ -134,13 +166,19 @@ impl Shell {
     }
 
     /// Open the dialog for `machine`, asking for the default lines.
-    fn open_node_log(&mut self, machine: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(super) fn open_node_log(
+        &mut self,
+        machine: &str,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let state = &mut self.areas.settings.diagnostics;
         let Ok(ticket) = state.tickets.next_ticket() else {
             return;
         };
         state.log.open = Some(Read {
             machine: machine.to_owned(),
+            epoch: None,
             asking: Some(ticket),
             answer: None,
         });
@@ -150,6 +188,15 @@ impl Shell {
             ticket,
             request: Request::Log { lines: None },
         }));
+        cx.notify();
+    }
+
+    /// Close the dialog, giving focus back to what opened it (the app
+    /// reviewer's R1 on row 337: `DialogState::dismissed`).
+    pub(super) fn close_node_log(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.settings.diagnostics.log;
+        state.open = None;
+        state.dialog.dismissed(window, cx);
         cx.notify();
     }
 
@@ -293,6 +340,16 @@ pub(super) fn dialog(
                 .children(contents)
         }
     };
+    let compact = crate::areas::draft::compact(window);
+    // Paseo's log text is selectable; GPUI text is not, so a Copy of the
+    // lines shown stands in for it in the title row (a stated difference,
+    // the coordinator's ruling on row 337).
+    let shown = if let Some(LogContents::Lines(text)) = read.answer.as_ref().map(log_contents) {
+        Some(text)
+    } else {
+        None
+    };
+    let copy = super::copy_action("node-log-copy", shown, shell, tokens, compact, cx);
     let content = DialogContent {
         title: words.log_dialog().into(),
         body: body.into_any_element(),
@@ -301,11 +358,11 @@ pub(super) fn dialog(
     };
     Some(draw(
         &state.dialog,
-        content,
+        content.with_header_actions(copy),
         tokens,
         window,
-        crate::areas::draft::compact(window),
-        |shell: &mut Shell, _window, _cx| shell.areas.settings.diagnostics.log.open = None,
+        compact,
+        Shell::close_node_log,
         cx,
     ))
 }
@@ -321,3 +378,6 @@ fn output(text: String, tokens: &Tokens) -> AnyElement {
         .child(text)
         .into_any_element()
 }
+
+#[cfg(test)]
+mod tests;
