@@ -89,7 +89,10 @@ fn session(index: u16, project: Option<ProjectId>) -> Card {
 }
 
 /// shop holds `in_shop` sessions, notes one, and one is in no project.
-pub(super) fn setup(cx: &mut TestAppContext, in_shop: u16) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn setup(
+    cx: &mut TestAppContext,
+    in_shop: u16,
+) -> (Entity<Shell>, &mut VisualTestContext) {
     language_tests::init(cx);
     let saved = Rc::new(RefCell::new(None));
     let window = cx.update(|cx| {

@@ -46,8 +46,8 @@ use vessel_app_kit::status_mark::{StatusMark, status_slot};
 use vessel_app_kit::theme::{SidebarSurfaces, radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, ClickEvent, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
-    IntoElement, MouseButton, MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _,
-    Styled as _, div, px, svg,
+    IntoElement, MouseButton, MouseDownEvent, ParentElement as _, SharedString,
+    StatefulInteractiveElement as _, Styled as _, div, px, svg,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
