@@ -155,6 +155,7 @@ fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
     assert!(cx.simulate_accessibility_activation(handle));
     cx.run_until_parked();
     shell.update(cx, |_, cx| cx.notify());
+    cx.update(|window, _| window.refresh());
     cx.run_until_parked();
     // Every `aria` object of GPUI's real snapshot, as text (as the sort
     // trigger's test reads it): the statuses' names.
@@ -163,9 +164,9 @@ fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
         .split("\"aria\":")
         .skip(1)
         .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
-        .filter(|aria| aria.contains("\"role\":\"Status\""))
+        .filter(|aria| aria.contains(r#""role": "Status""#))
         .filter_map(|aria| {
-            let (_, label) = aria.split_once("\"label\":\"")?;
+            let (_, label) = aria.split_once(r#""label": ""#)?;
             label.split_once('"').map(|(label, _)| label.to_owned())
         })
         .collect();
