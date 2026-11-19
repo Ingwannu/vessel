@@ -31,6 +31,15 @@ pub struct CardDetail {
     /// registry names no row for it (ADR 0106's derived membership).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<ProjectId>,
+    /// The project it runs in, at its root, in a folder or in one of its
+    /// worktrees (protocol 10): what the sidebar's project row counts for
+    /// its status badge (TRACKER 662). `project` is the same without the
+    /// worktrees.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub in_project: Option<ProjectId>,
+    /// Whether it runs in one of that project's worktrees.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub in_worktree: bool,
     /// The profile it runs with now (protocol 5).
     pub profile: Option<String>,
     /// The provider's model it runs, when the node says.
@@ -147,6 +156,14 @@ impl Card {
                 .as_ref()
                 .filter(|workspace| workspace.worktree.is_none())
                 .map(|workspace| workspace.project),
+            in_project: session
+                .workspace
+                .as_ref()
+                .map(|workspace| workspace.project),
+            in_worktree: session
+                .workspace
+                .as_ref()
+                .is_some_and(|workspace| workspace.worktree.is_some()),
             profile: session
                 .profile
                 .as_ref()

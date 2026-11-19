@@ -42,8 +42,11 @@ mod foot;
 mod layout;
 mod machines;
 mod row_menu;
+mod row_meta;
 mod session_row;
 mod statuses;
+
+pub(crate) use session_row::mark as status_mark;
 
 /// A row's inset from the sidebar's padding (the page's 10, between the
 /// kit's 8 and 12 steps).
@@ -52,6 +55,38 @@ const INSET: f32 = 10.0;
 /// `spacing::S1` taken back (a negative literal, since the workspace
 /// denies arithmetic on sizes).
 const HEADING_BACK: f32 = -4.0;
+
+/// How many rows the jump keys reach (Paseo's 1 to 9).
+const NUMBERED: usize = 9;
+
+/// The rows' shortcut numbers while the jump modifier is held: the first
+/// nine of the order the keys walk (`Fleet::sidebar_order`), else none.
+pub(super) struct Numbers(Vec<(String, vessel_proto::SessionId)>);
+
+impl Numbers {
+    fn of_shell(shell: &Shell, shown: bool) -> Self {
+        if !shown {
+            return Self(Vec::new());
+        }
+        Self(
+            shell
+                .fleet
+                .sidebar_order(shell.prefs.settings.sidebar)
+                .into_iter()
+                .take(NUMBERED)
+                .map(|card| (card.machine.clone(), card.session))
+                .collect(),
+        )
+    }
+
+    /// `card`'s number, counted from 1.
+    pub(super) fn of(&self, card: &vessel_app_view::Card) -> Option<usize> {
+        self.0
+            .iter()
+            .position(|(machine, session)| *machine == card.machine && *session == card.session)
+            .and_then(|index| index.checked_add(1))
+    }
+}
 
 /// The sidebar's own state: its tooltips, and where each unreachable
 /// machine's line is drawn (by machine name).
@@ -131,7 +166,7 @@ pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let t = shell.t;
@@ -162,9 +197,10 @@ pub(crate) fn render(
                 .child(t.no_machines),
         )
     } else {
+        let numbers = Numbers::of_shell(shell, shell.shortcut_badges_visible(window, cx));
         match view.group {
-            Grouping::Machine => machines::groups(view, shell, tokens, touch, cx),
-            Grouping::Status => statuses::groups(view, shell, tokens, touch, cx),
+            Grouping::Machine => machines::groups(view, &numbers, shell, tokens, touch, cx),
+            Grouping::Status => statuses::groups(view, &numbers, shell, tokens, touch, cx),
         }
     };
     div()
@@ -181,7 +217,7 @@ pub(crate) fn render(
         )
         .child(layout::body(
             &shell.areas.sidebar.layout,
-            projects(shell, tokens, cx),
+            projects(shell, tokens, vessel_app_kit::breakpoint::phone(window), cx),
             heading(shell, tokens, cx),
             list,
         ))
@@ -210,6 +246,9 @@ pub(crate) fn render(
         .children(shell.areas.sidebar.tips.render(tokens))
         .children(display::menu(shell, tokens, window, cx))
         .children(row_menu::render(shell, tokens, touch, window, cx))
+        .children(crate::areas::workspace::sidebar_project_layers(
+            shell, tokens, window, cx,
+        ))
 }
 
 /// The list's heading, as Paseo's section header: what the list is
@@ -340,9 +379,10 @@ const fn schedules(
 fn projects(
     shell: &Shell,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
-    crate::areas::workspace::sidebar_projects(shell, tokens, cx)
+    crate::areas::workspace::sidebar_projects(shell, tokens, compact, cx)
 }
 
 fn row(
@@ -404,5 +444,7 @@ pub(crate) fn nav_row(
         .child(label)
 }
 
+#[cfg(test)]
+mod numbers_tests;
 #[cfg(test)]
 mod policy_tests;

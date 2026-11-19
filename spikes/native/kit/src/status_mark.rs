@@ -192,6 +192,9 @@ pub fn marked(mark: AnyElement, compact: bool, badge: Option<AnyElement>) -> Div
                 .relative()
                 .size(side)
                 .flex_none()
+                .flex()
+                .items_center()
+                .justify_center()
                 .child(mark)
                 .children(badge),
         )
@@ -218,6 +221,7 @@ pub fn status_badge(
             // that separates it from the mark.
             return Some(
                 div()
+                    .id(ElementId::NamedChild(Arc::new(id.clone()), "anchor".into()))
                     .absolute()
                     .right(px(RING_OFFSET))
                     .bottom(px(RING_OFFSET))

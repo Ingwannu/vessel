@@ -31,7 +31,7 @@ pub(super) fn state_glyph(phase: PullPhase, tokens: &Tokens) -> AnyElement {
 }
 
 /// [`state_glyph`] at `size` (a card's meta row draws it at 12).
-pub(super) fn state_glyph_sized(phase: PullPhase, size: f32, tokens: &Tokens) -> AnyElement {
+pub(crate) fn state_glyph_sized(phase: PullPhase, size: f32, tokens: &Tokens) -> AnyElement {
     let status = tokens.status();
     let (which, colour) = match phase {
         PullPhase::Open => (Glyph::PullRequest, status.success.foreground),

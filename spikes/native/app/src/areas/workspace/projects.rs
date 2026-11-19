@@ -184,7 +184,7 @@ impl Shell {
 
     pub(super) fn forget_project(&mut self, project: ProjectId, cx: &mut Context<'_, Self>) {
         if let Some(machine) = self.projects_machine() {
-            self.ask(&machine, Ask::Project(ProjectAsk::Remove(project)));
+            self.remove_project_from(&machine, project, super::sidebar::Origin::Page);
         }
         cx.notify();
     }

@@ -1,6 +1,7 @@
 # Project row and workspace row, as Paseo's sidebar (TRACKER 662/663)
 
-Visual lane, 2026-11-19. On package base 14.61 (`c2b8cb67`). Reference:
+Visual lane, 2026-11-19. Planned on package base 14.61 (`c2b8cb67`),
+built on 14.63 (`786a4ed3`). Reference:
 pinned Paseo 0.15.4 (`1c00b365c`): `components/sidebar/project-leading-visual.tsx`,
 `components/sidebar/sidebar-workspace-row-content.tsx`,
 `utils/sidebar-project-row-model.ts`, `components/sidebar-workspace-list.tsx`
@@ -9,7 +10,7 @@ pinned Paseo 0.15.4 (`1c00b365c`): `components/sidebar/project-leading-visual.ts
 impl F's TRACKER 809 owns the project's mark itself (its icon, else its
 lettered square); this item draws around it and does not redo it.
 
-Status: plan sent to the coordinator; nothing built yet.
+Status: rulings in (below); built, gates and frames to follow.
 
 ## Visible differences: the project row (662)
 
@@ -94,3 +95,52 @@ line when there are any, the kebab on hover.
   mark; the row's title, meta line, indent and badge as listed.
 - Pros, cons and impact: both rows change look; frames at 1280 and 390,
   dark English and light Korean, with a project in each status.
+
+## Rulings (coordinator, 2026-11-19)
+
+- Q1: this item draws the rows in today's groupings (machine, status):
+  P1-P5, W1, W3-W6. Grouping by project, with P6's chevron and the rows
+  under their project, is TRACKER 682 (next, plan first: it may need the
+  node's link from a project to its sessions).
+- Q2: no agent mark, as Paseo; not a named difference. The status slot
+  leads the row as Paseo's W1.
+- Q3: the hover card is TRACKER 810, after 682.
+- Frames: 1280 and 390, dark English and light Korean, each status shown
+  (running ring, needs input, failed, attention, done) and a project
+  being removed.
+
+## As built
+
+- view: `Card::bucket` (Paseo's bucket in `attention::Bucket`, which held
+  Paseo's five already: needs input from the board's needs-you, failed
+  from a failed process, running from work or a start, attention from
+  unread, else done); `Fleet::project_bucket` (the fold over a project's
+  listed sessions on its machine, through the card's new `in_project`,
+  the project a session runs in, worktrees included); `workspace_kind`;
+  the words (Paseo's bucket names, the project row's menu and question).
+- kit: `status_mark` (the workspace slot, the badge on a mark with its
+  knockout following the row's hover and press, the running ring, the
+  needs-input alert), `theme::SidebarSurfaces` (Paseo's sidebar fills
+  per theme), the status dot colours, three glyphs, `Points::EIGHT`.
+- app: the session row (`sidebar/session_row.rs`, `row_meta.rs`): W1,
+  W3-W6 and the vertical kebab over the title's end with Paseo's scrim;
+  the project row (`workspace/sidebar.rs`, `sidebar/actions.rs`): P1-P5,
+  the dark hover fixed (it was the light theme's `surface3`).
+- P4: Paseo never fills its project header as selected
+  (`selected={false}`); the row presses to `surface2` as before.
+- W2 dropped as ruled.
+
+## Differences, named
+
+- The rings turn from when each is drawn (Paseo's share one clock).
+- The change request on the meta line says, it does not link (the
+  board's card and the Changes tab open it); Paseo's services item has no
+  source here; its branch and project items are off by default.
+- The project menu has no Open in new window or Open in file manager
+  (Paseo's desktop shell's); the plus's tooltip has no shortcut (no
+  binding for a new worktree).
+- Until TRACKER 809's mark (16, 20 on a phone) lands, the lettered square
+  is 16 everywhere; on a phone it sits in the middle of the 20 box the
+  badge hangs from.
+- Needs input also covers the board's own needs-you reasons (failing
+  checks, requested changes), which Paseo has not.

@@ -37,6 +37,7 @@ pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
+pub(crate) use sidebar::layers as sidebar_project_layers;
 pub(crate) use sidebar::projects as sidebar_projects;
 pub(crate) use start_card::render as start_card;
 
@@ -58,6 +59,8 @@ pub(crate) struct Workspace {
     /// The sidebar's projects unfolded past their first rows ("All
     /// projects (N)" pressed).
     pub(crate) projects_unfolded: bool,
+    /// The sidebar's project rows: their menu, question and removals.
+    pub(crate) sidebar: sidebar::ProjectRows,
 }
 
 impl Workspace {
@@ -69,6 +72,7 @@ impl Workspace {
             start: None,
             code: code::CodePanel::new(window, cx),
             projects_unfolded: false,
+            sidebar: sidebar::ProjectRows::new(cx),
         }
     }
 }
@@ -138,7 +142,9 @@ impl Shell {
                 }
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
-            Answer::Forgot { project, result } => self.forgot_project(machine, project, result),
+            Answer::Forgot { project, result } => {
+                self.project_removal_answered(machine, project, result, cx);
+            }
             Answer::Commands {
                 project,
                 approved,

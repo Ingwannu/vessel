@@ -1,0 +1,226 @@
+//! A project row (TRACKER 662) drawn by the real sidebar: its badge says
+//! the most urgent of its sessions as a status; Remove asks first, the row
+//! spins until the node answers, and the answer is said as Paseo's row
+//! says it (nothing when done, a toast when refused).
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use gpui::{AppContext as _, Context, Entity, IntoElement, Render, TestAppContext, VisualTestContext, Window, point, size};
+use vessel_app_kit::ui::px;
+use vessel_app_kit::{Scheme, Tokens};
+use vessel_app_view::toasts::ToastTone;
+use vessel_app_view::workspace::problem::Problem;
+use vessel_app_view::workspace::projects::ProjectsView;
+use vessel_app_view::{Attention, Card, Fleet, Lang, Machine, Reach};
+use vessel_proto::workspace::{GitSupport, GitVersion, ProjectInfo, ProjectList, ProjectState};
+use vessel_proto::{HarnessKind, ProjectId, SessionId, SessionInfo, SessionMode, SessionSpec, SessionStatus};
+
+use super::{Origin, Target};
+use crate::shell::{Shell, language_tests};
+
+struct Probe {
+    shell: Entity<Shell>,
+}
+
+impl Render for Probe {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        self.shell.update(cx, |shell, cx| {
+            crate::areas::sidebar::render(shell, &Tokens::of(Scheme::Dark), false, window, cx)
+        })
+    }
+}
+
+fn project_id(index: u16) -> ProjectId {
+    format!("{index:08x}-0000-4000-8000-00000000000a")
+        .parse()
+        .unwrap()
+}
+
+fn projects() -> ProjectsView {
+    let at = "2026-11-19T08:00:00Z".parse().unwrap();
+    ProjectsView::Ready(ProjectList {
+        git: GitSupport::Found {
+            version: GitVersion::MINIMUM,
+        },
+        more: false,
+        projects: ["shop", "docs", "site"]
+            .into_iter()
+            .zip(0_u16..)
+            .map(|(name, index)| ProjectInfo {
+                id: project_id(index),
+                name: name.parse().unwrap(),
+                root: format!("/fixture/{name}").into(),
+                git: true,
+                default_branch: None,
+                state: ProjectState::Ready,
+                created_at: at,
+                revision: 1,
+            })
+            .collect(),
+    })
+}
+
+/// A live session in `project`, doing `attention`.
+fn session(index: u16, project: ProjectId, attention: Attention) -> Card {
+    let at = "2026-11-19T08:00:00Z".parse().unwrap();
+    let id: SessionId = format!("{index:08x}-0000-4000-8000-00000000000b")
+        .parse()
+        .unwrap();
+    let spec = SessionSpec::new(
+        HarnessKind::ClaudeCode,
+        SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        },
+    );
+    let mut info = SessionInfo::new(id, spec, at);
+    info.status = SessionStatus::Running;
+    let mut card = Card::from_session("fixture", &info);
+    card.attention = attention;
+    card.detail.in_project = Some(project);
+    card
+}
+
+fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+    language_tests::init(cx);
+    let saved = Rc::new(RefCell::new(None));
+    let window = cx.update(|cx| {
+        cx.open_window(gpui::WindowOptions::default(), {
+            let saved = Rc::clone(&saved);
+            move |window, cx| {
+                let shell = cx.new(|cx| {
+                    let mut shell = Shell::without_io(window, cx);
+                    shell.fleet = Fleet {
+                        machines: vec![Machine {
+                            connection_epoch: None,
+                            node: None,
+                            name: "fixture".to_owned(),
+                            reach: Reach::Online,
+                            sessions: vec![
+                                session(0, project_id(0), Attention::Working),
+                                session(1, project_id(0), Attention::AtRest),
+                                session(2, project_id(1), Attention::NeedsYou),
+                            ],
+                            agents: Vec::new(),
+                            protocol: Some(vessel_proto::PROTOCOL_VERSION),
+                            version: None,
+                        }],
+                        read_at: None,
+                    };
+                    shell.t = Lang::En.text();
+                    let _previous = shell
+                        .areas
+                        .workspace
+                        .projects
+                        .insert("fixture".to_owned(), projects());
+                    shell
+                });
+                *saved.borrow_mut() = Some(shell.clone());
+                let probe = cx.new(|_| Probe { shell });
+                vessel_app_kit::root(probe, window, cx)
+            }
+        })
+        .unwrap()
+    });
+    let cx = VisualTestContext::from_window(window.into(), cx).into_mut();
+    cx.run_until_parked();
+    cx.simulate_resize(size(px(1280.0), px(800.0)));
+    cx.update(|window, cx| {
+        window.activate_window();
+        window.draw(cx).clear(cx);
+    });
+    cx.run_until_parked();
+    let shell = saved.borrow().as_ref().unwrap().clone();
+    (shell, cx)
+}
+
+fn shop() -> Target {
+    Target {
+        machine: "fixture".to_owned(),
+        project: project_id(0),
+        name: "shop".to_owned(),
+    }
+}
+
+#[gpui::test]
+fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    shell.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    let mut said: Vec<String> = cx.update(|window, _| {
+        let tree: serde_json::Value =
+            serde_json::from_str(&window.debug_a11y_tree_json().unwrap()).unwrap();
+        tree["nodes"]
+            .as_object()
+            .unwrap()
+            .values()
+            .filter(|node| node["aria"]["role"] == "Status")
+            .map(|node| node["aria"]["label"].as_str().unwrap().to_owned())
+            .collect()
+    });
+    said.sort();
+    // shop: working over done; docs: its session needs input; site: none,
+    // so no badge.
+    assert_eq!(said, ["Needs input", "Working"]);
+}
+
+#[gpui::test]
+fn remove_asks_first_then_the_row_spins_until_the_node_answers(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.project_menu_open(shop(), point(px(200.0), px(200.0)), window, cx);
+        // The menu's second row: Remove project.
+        shell.project_menu_chose(1, window, cx);
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let rows = &shell.areas.workspace.sidebar;
+        assert_eq!(rows.confirm, Some(shop()));
+        assert!(!rows.is_removing("fixture", project_id(0)));
+    });
+    shell.update_in(cx, |shell, window, cx| {
+        shell.project_remove_confirmed(window, cx);
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let rows = &shell.areas.workspace.sidebar;
+        assert_eq!(rows.confirm, None);
+        assert!(rows.is_removing("fixture", project_id(0)));
+    });
+    // Done: the row goes, quietly.
+    shell.update(cx, |shell, cx| {
+        shell.project_removal_answered("fixture", project_id(0), Ok(()), cx);
+    });
+    shell.read_with(cx, |shell, _| {
+        assert!(!shell.areas.workspace.sidebar.is_removing("fixture", project_id(0)));
+        let list = shell.areas.workspace.projects.get("fixture").unwrap();
+        assert!(list.project(&project_id(0)).is_none());
+        assert_eq!(shell.notice, None);
+    });
+}
+
+#[gpui::test]
+fn a_refused_removal_from_the_row_is_a_toast_and_the_row_stays(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    shell.update(cx, |shell, cx| {
+        shell.remove_project_from("fixture", project_id(1), Origin::Sidebar);
+        shell.project_removal_answered(
+            "fixture",
+            project_id(1),
+            Err(Problem::Gone("the connection dropped".to_owned())),
+            cx,
+        );
+    });
+    shell.read_with(cx, |shell, _| {
+        assert!(!shell.areas.workspace.sidebar.is_removing("fixture", project_id(1)));
+        let list = shell.areas.workspace.projects.get("fixture").unwrap();
+        assert!(list.project(&project_id(1)).is_some());
+        let toast = shell.areas.toasts.shown().unwrap();
+        assert_eq!(toast.tone, ToastTone::Error);
+        assert!(toast.text.starts_with("docs was not removed: "), "{}", toast.text);
+    });
+}
