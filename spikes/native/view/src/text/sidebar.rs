@@ -42,6 +42,7 @@ pub struct SidebarWords {
     // The Display menu.
     pub display: &'static str,
     pub grouping: &'static str,
+    by_project: &'static str,
     by_machine: &'static str,
     by_status: &'static str,
     pub sort: &'static str,
@@ -77,6 +78,10 @@ pub struct SidebarWords {
     pub remove_project_title: &'static str,
     pub remove_confirm: &'static str,
     pub cancel: &'static str,
+    /// The row ending a project's truncated sessions, and the same row once
+    /// they all show (`sidebar.workspace.actions.showMore`, `showLess`).
+    pub show_more: &'static str,
+    pub show_less: &'static str,
     // The foot.
     pub settings: &'static str,
     pub back: &'static str,
@@ -102,6 +107,7 @@ impl SidebarWords {
     #[must_use]
     pub const fn group(&self, group: Grouping) -> &'static str {
         match group {
+            Grouping::Project => self.by_project,
             Grouping::Machine => self.by_machine,
             Grouping::Status => self.by_status,
         }
@@ -180,6 +186,7 @@ const EN: SidebarWords = SidebarWords {
     ended: "Ended",
     display: "Display",
     grouping: "Grouping",
+    by_project: "Project",
     by_machine: "Machine",
     by_status: "Status",
     sort: "Sort",
@@ -203,6 +210,8 @@ const EN: SidebarWords = SidebarWords {
     remove_project_title: "Remove project?",
     remove_confirm: "Remove",
     cancel: "Cancel",
+    show_more: "Show more",
+    show_less: "Show less",
     settings: "Settings",
     back: "Back",
     theme: "Theme",
@@ -229,6 +238,7 @@ const KO: SidebarWords = SidebarWords {
     ended: "끝남",
     display: "보기",
     grouping: "묶기",
+    by_project: "프로젝트",
     by_machine: "머신",
     by_status: "상태",
     sort: "정렬",
@@ -252,6 +262,8 @@ const KO: SidebarWords = SidebarWords {
     remove_project_title: "프로젝트를 제거할까요?",
     remove_confirm: "제거",
     cancel: "취소",
+    show_more: "더 보기",
+    show_less: "간략히 보기",
     settings: "설정",
     back: "뒤로",
     theme: "테마",
