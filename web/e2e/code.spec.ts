@@ -292,7 +292,7 @@ test("lines selected in a diff go into the session's draft as a reference", asyn
   await expect(prompt).toHaveValue(/"src\/cart\.ts"#L\d+-L\d+ \(new side\)/);
 });
 
-test("projects are added from Settings, and a failed clone says why", async ({
+test("projects are added from Paseo's sheet, and a failed clone says why", async ({
   page,
 }) => {
   const env = loadEnv();
@@ -302,30 +302,49 @@ test("projects are added from Settings, and a failed clone says why", async ({
   const parent = join(env.root, "clones");
   mkdirSync(parent, { recursive: true });
   const origin = await openUi(page);
-  await page.getByRole("button", { name: "Add project" }).click();
+  await page.goto(`${origin}/settings/projects?machine=laptop`);
   await expect(
     page.getByRole("heading", { name: "Projects on laptop" }),
   ).toBeVisible();
-  // A folder.
+  // A folder: Settings' Add project opens the sheet on this machine's
+  // methods; a typed path is the first row ("Open this path").
   await page.getByRole("button", { name: "Add project" }).last().click();
-  await page.getByRole("menuitem", { name: "Add a folder…" }).click();
-  const add = page.getByRole("dialog", { name: "Add a folder" });
-  await add.getByRole("textbox", { name: "Folder" }).fill(folder);
-  await add.getByRole("button", { name: "Add" }).click();
-  const rows = page.getByRole("list", { name: "Projects" });
+  const sheet = page.getByRole("dialog", { name: /^Add project: / });
+  await expect(sheet).toHaveAccessibleName("Add project: method");
+  await sheet.getByRole("button", { name: /^Search for directory/ }).click();
+  await expect(sheet).toHaveAccessibleName("Add project: directory-search");
+  // The field, filled: keys typed before the page's field takes focus
+  // would go nowhere.
+  const field = sheet.getByRole("textbox");
+  await field.fill(folder);
   await expect(
-    rows.getByRole("button", { name: "added", exact: true }),
+    sheet.getByRole("button", { name: /Open this path/ }),
   ).toBeVisible();
-  // A clone of nothing: it starts, then fails, and the page says why.
+  await page.keyboard.press("Enter");
+  // Added: the sheet closes on a new session in the project.
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("combobox", { name: "Project" })).toHaveText(
+    /added/,
+  );
+  // A clone of nothing, by its URL: the destination is typed, the folder
+  // the clone makes is the row; it starts, then fails, and Settings says
+  // why.
+  await page.goto(`${origin}/settings/projects?machine=laptop`);
   await page.getByRole("button", { name: "Add project" }).last().click();
-  await page.getByRole("menuitem", { name: "Clone a repository…" }).click();
-  const clone = page.getByRole("dialog", { name: "Clone a Git repository" });
-  await clone
-    .getByRole("textbox", { name: "Repository URL" })
-    .fill("http://127.0.0.1:9/nothing.git");
-  await clone.getByRole("textbox", { name: "Clone into" }).fill(parent);
-  await expect(clone).toContainText(`${parent}/nothing`);
-  await clone.getByRole("button", { name: "Clone" }).click();
+  await sheet.getByRole("button", { name: /^Clone from GitHub/ }).click();
+  await expect(sheet).toHaveAccessibleName("Add project: github-search");
+  await field.fill("http://127.0.0.1:9/nothing.git");
+  await sheet
+    .getByRole("button", { name: /Clone this repository URL/ })
+    .click();
+  await expect(sheet).toHaveAccessibleName("Add project: github-location");
+  await field.fill(parent);
+  await sheet
+    .getByRole("button", { name: new RegExp(`Parent directory: ${parent}$`) })
+    .first()
+    .click();
+  await expect(sheet).toBeHidden();
+  const rows = page.getByRole("list", { name: "Projects" });
   await expect(rows.getByText("Clone failed", { exact: true })).toBeVisible({
     timeout: 60_000,
   });

@@ -1,6 +1,7 @@
-//! Protocol 10's project calls (track B, ADR 0027): routing only; the work
-//! is `crate::workspace`'s.
+//! Protocol 10's project calls (track B, ADR 0027) and protocol 34's new
+//! directory (ADR 0113): routing only; the work is `crate::workspace`'s.
 
+use vessel_proto::registry::CreateProjectDirectory;
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, GetProject, GetProjectCommands, InitProject,
     ListProjects, ProjectCommands, ProjectInfo, ProjectList, RemoveProject,
@@ -80,6 +81,19 @@ impl NodeService {
     ) -> Result<ProjectInfo, WireError> {
         self.workspaces
             .init_project(request.path, request.name)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
+    /// `project.create_directory` (ADR 0113): one new empty folder, made a
+    /// project without Git.
+    pub(crate) async fn create_project_directory(
+        &self,
+        _: &Connection,
+        request: CreateProjectDirectory,
+    ) -> Result<ProjectInfo, WireError> {
+        self.workspaces
+            .create_project_directory(request.parent, request.name)
             .await
             .map_err(|error| wire(&error))
     }
