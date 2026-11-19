@@ -32,7 +32,8 @@ use std::collections::HashMap;
 use vessel_app_kit::TextField;
 use vessel_app_kit::command::CommandKey;
 use vessel_app_kit::focus::ReturnFocus;
-use vessel_app_kit::ui::{Context, ScrollHandle, Window};
+use vessel_app_kit::theme::spacing;
+use vessel_app_kit::ui::{Context, ScrollHandle, Window, point, px};
 use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::workspace::add_flow::model::{
     Direction, Flow, Machine, PageId, move_selection,
@@ -198,10 +199,7 @@ impl Shell {
         sheet.field.set_placeholder(placeholder, window, cx);
         sheet.field.set_text(&page.field, window, cx);
         sheet.field.focus(window, cx);
-        sheet.scroll.set_offset(vessel_app_kit::ui::point(
-            vessel_app_kit::ui::px(0.0),
-            vessel_app_kit::ui::px(0.0),
-        ));
+        sheet.scroll.set_offset(point(px(spacing::S0), px(spacing::S0)));
         self.add_flow_ask_folders();
         cx.notify();
     }
