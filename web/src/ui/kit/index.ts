@@ -21,6 +21,7 @@ export { Combobox, type Suggestion } from "./combobox";
 export { CommandLine } from "./command-line";
 export { type Command, CommandPalette } from "./command";
 export { Dialog, type DialogSize } from "./dialog";
+export { FlowHint, FlowSheet } from "./flow-sheet";
 export { EmptyState } from "./empty-state";
 export { useFilePicker } from "./file-picker";
 export { Field, FieldGroup } from "./field";
