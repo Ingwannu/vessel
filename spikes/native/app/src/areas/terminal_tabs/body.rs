@@ -13,8 +13,8 @@ use vessel_app_kit::terminal_grid::cell_size;
 use vessel_app_kit::theme::spacing::{S1, S3, S4};
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    MouseButton, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, canvas,
-    div, point, px,
+    MouseButton, ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window,
+    canvas, div, point, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, DialogContent, DialogSize, Tokens, Type, TypeExt as _, breakpoint,
@@ -212,7 +212,7 @@ fn preedit(
     let pane = shell.areas.terminal_tabs.pane(key)?;
     // The cursor's cell inside the pane's own box (its origin at zero).
     let room = gpui::Bounds {
-        origin: point(px(0.0), px(0.0)),
+        origin: point(Pixels::ZERO, Pixels::ZERO),
         size: pane.probe.get()?.size,
     };
     let at = shell.terminal_tab_cursor(key, room, cx)?;
