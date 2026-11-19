@@ -13,6 +13,7 @@
 //!   example lands with plugin RPC (ADR 0115, P3), when a helper has calls
 //!   to answer. It writes files only and downloads nothing.
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use vessel_proto::plugins::{
@@ -168,20 +169,21 @@ fn log_text(logs: &PluginLogs) -> String {
     if logs.entries.is_empty() {
         return "(no log lines)\n".to_owned();
     }
-    logs.entries
-        .iter()
-        .map(|entry| {
-            let stream = match entry.stream {
-                LogStream::Host => "vessel",
-                LogStream::Stderr => "stderr",
-            };
-            format!(
-                "{} {stream} {}\n",
-                entry.at.format("%Y-%m-%dT%H:%M:%SZ"),
-                entry.message.as_str()
-            )
-        })
-        .collect()
+    let mut text = String::new();
+    for entry in &logs.entries {
+        let stream = match entry.stream {
+            LogStream::Host => "vessel",
+            LogStream::Stderr => "stderr",
+        };
+        // Writing to a String cannot fail.
+        let _written = writeln!(
+            text,
+            "{} {stream} {}",
+            entry.at.format("%Y-%m-%dT%H:%M:%SZ"),
+            entry.message.as_str()
+        );
+    }
+    text
 }
 
 #[derive(serde::Serialize)]
