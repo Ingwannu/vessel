@@ -16,14 +16,14 @@
 //!   unread work, else done; a project's is the fold over its listed
 //!   sessions on that machine (archived never, ended ones when shown).
 //! - Cost: a project's sessions are those whose node names the project
-//!   (`in_project`, protocol 10); a session started outside any project
+//!   (`runs_in`, protocol 10); a session started outside any project
 //!   counts for none.
 
 use vessel_proto::ProjectId;
 
 use super::listed;
 use crate::attention::{AgentContribution, Bucket, workspace};
-use crate::board::{Card, Fleet, Phrase};
+use crate::board::{Card, Fleet, Phrase, RunsIn};
 use crate::prefs::SidebarView;
 
 /// What a session runs in, for the glyph a failed row shows (Paseo's
@@ -60,10 +60,10 @@ impl Card {
     /// What it runs in.
     #[must_use]
     pub const fn workspace_kind(&self) -> WorkspaceKind {
-        match (self.detail.in_project, self.detail.in_worktree) {
-            (Some(_), true) => WorkspaceKind::Worktree,
-            (Some(_), false) => WorkspaceKind::Checkout,
-            (None, _) => WorkspaceKind::Folder,
+        match self.detail.runs_in {
+            Some(RunsIn::Worktree(_)) => WorkspaceKind::Worktree,
+            Some(RunsIn::Checkout(_)) => WorkspaceKind::Checkout,
+            None => WorkspaceKind::Folder,
         }
     }
 }
@@ -82,7 +82,7 @@ impl Fleet {
         let machine = self.machines.iter().find(|each| each.name == machine)?;
         let sessions = listed(&machine.sessions, view)
             .into_iter()
-            .filter(|card| card.detail.in_project == Some(project))
+            .filter(|card| card.detail.runs_in.map(RunsIn::project) == Some(project))
             .map(|card| AgentContribution::Root(card.bucket()));
         workspace(sessions, [])
     }

@@ -27,7 +27,7 @@ fn words(mark: StatusMark) -> &'static str {
 struct Probe;
 
 impl Render for Probe {
-    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let knockout = Knockout {
             group: "row".into(),

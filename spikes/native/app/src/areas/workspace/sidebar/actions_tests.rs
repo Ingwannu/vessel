@@ -83,7 +83,7 @@ fn session(index: u16, project: ProjectId, attention: Attention) -> Card {
     info.status = SessionStatus::Running;
     let mut card = Card::from_session("fixture", &info);
     card.attention = attention;
-    card.detail.in_project = Some(project);
+    card.detail.runs_in = Some(vessel_app_view::board::RunsIn::Checkout(project));
     card
 }
 

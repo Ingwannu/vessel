@@ -6,7 +6,7 @@ use vessel_proto::{ProjectId, SessionStatus};
 
 use super::fixture::{fleet, machine, session};
 use crate::attention::Bucket;
-use crate::board::{Attention, Phrase};
+use crate::board::{Attention, Phrase, RunsIn};
 use crate::prefs::SidebarView;
 use crate::sidebar::status::WorkspaceKind;
 use crate::{Card, Fleet};
@@ -71,13 +71,12 @@ fn a_project_says_its_most_urgent_listed_session() {
         let [unread, working, needing] = cards(&mut fleet) else {
             panic!("three sessions");
         };
-        unread.detail.in_project = Some(project);
+        unread.detail.runs_in = Some(RunsIn::Checkout(project));
         unread.detail.marks.unread = true;
-        working.detail.in_project = Some(project);
-        working.detail.in_worktree = true;
+        working.detail.runs_in = Some(RunsIn::Worktree(project));
         working.attention = Attention::Working;
         // Another project's need is not this one's.
-        needing.detail.in_project = Some(other);
+        needing.detail.runs_in = Some(RunsIn::Checkout(other));
         needing.attention = Attention::NeedsYou;
     }
     assert_eq!(
@@ -105,8 +104,9 @@ fn what_a_session_runs_in_names_its_glyph() {
     let mut fleet = book();
     let card = first(&mut fleet);
     assert_eq!(card.workspace_kind(), WorkspaceKind::Folder);
-    card.detail.in_project = Some(ProjectId::random());
+    let project = ProjectId::random();
+    card.detail.runs_in = Some(RunsIn::Checkout(project));
     assert_eq!(card.workspace_kind(), WorkspaceKind::Checkout);
-    card.detail.in_worktree = true;
+    card.detail.runs_in = Some(RunsIn::Worktree(project));
     assert_eq!(card.workspace_kind(), WorkspaceKind::Worktree);
 }
