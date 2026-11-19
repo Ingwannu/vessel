@@ -160,6 +160,9 @@ struct Files {
     /// Each entry's time and size by path, from `file.inspect`, while the
     /// order needs them.
     facts: HashMap<RelPath, EntryFacts>,
+    /// Folders whose inspection failed, asked again when the next folder
+    /// is listed (`sort.rs`).
+    refused: HashSet<RelPath>,
     rows: Vec<TreeRow>,
     list: VirtualList,
     viewer: Option<Viewer>,
@@ -218,6 +221,7 @@ impl CodePanel {
                 open: HashSet::new(),
                 sort: ExplorerSort::Name,
                 facts: HashMap::new(),
+                refused: HashSet::new(),
                 rows: Vec::new(),
                 list: VirtualList::new(false),
                 viewer: None,
@@ -259,6 +263,7 @@ impl CodePanel {
             self.changes.relist();
             self.files.listings.clear();
             self.files.facts.clear();
+            self.files.refused.clear();
             self.files.viewer = None;
             self.files.relist();
         }

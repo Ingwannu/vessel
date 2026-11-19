@@ -12,13 +12,13 @@
 //!   SVG rasterised by the image decoder), 16 square, contained, never
 //!   clipped or rounded (Paseo leaves a person's mark as drawn). Asked once
 //!   per machine and project for the app's run; a failed ask is no icon.
-//! - Asks go one at a time per machine (the node's file work has four
-//!   slots and refuses beyond them at once); a refused ask is asked again
-//!   when the machine's list is read again.
+//! - Asks go on the machine's background line (`background.rs`: the
+//!   node's file work has four slots and refuses beyond them at once); a
+//!   refused ask is asked again when the machine's list is read again.
 //! - Cost: an icon changed on disk shows on the next start (Paseo refreshes
 //!   on file changes); a machine renamed asks again under its new name.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use gpui::{Image, ImageFormat, ObjectFit, StyledImage as _, img};
@@ -33,15 +33,11 @@ use vessel_proto::workspace::host_folders::{IconImage, IconType};
 
 use crate::shell::Shell;
 
-/// Each machine's projects' icons: asked (absent until answered, `None`
-/// for none), and each machine's queue of asks. One ask is out per machine
-/// at a time: the node serves file work on four slots and refuses a fifth
-/// at once (`busy`), so a list of many projects asked together lost icons.
+/// Each machine's projects' icons: asked (absent until asked, `None`
+/// until answered or for none).
 #[derive(Default)]
 pub(crate) struct ProjectIcons {
     by: HashMap<(String, ProjectId), Option<Arc<Image>>>,
-    waiting: HashMap<String, VecDeque<ProjectId>>,
-    out: HashSet<String>,
 }
 
 impl ProjectIcons {
@@ -50,21 +46,11 @@ impl ProjectIcons {
             .get(&(machine.to_owned(), project))
             .and_then(Option::as_ref)
     }
-
-    /// The next ask for `machine`, when none is out.
-    fn next(&mut self, machine: &str) -> Option<ProjectId> {
-        if self.out.contains(machine) {
-            return None;
-        }
-        let project = self.waiting.get_mut(machine)?.pop_front()?;
-        let _out = self.out.insert(machine.to_owned());
-        Some(project)
-    }
 }
 
 impl Shell {
-    /// Queue the icon of each of `machine`'s listed projects not asked yet,
-    /// and ask the first when none is out.
+    /// Ask the icon of each of `machine`'s listed projects not asked yet,
+    /// on the machine's background line.
     pub(super) fn ask_project_icons(&mut self, machine: &str) {
         let speaks = self
             .fleet
@@ -91,26 +77,19 @@ impl Shell {
             .map(|project| project.id)
             .filter(|project| !asked.contains_key(&(machine.to_owned(), *project)))
             .collect();
-        let icons = &mut self.areas.workspace.icons;
         for project in unasked {
-            let _asked = icons.by.insert((machine.to_owned(), project), None);
-            icons
-                .waiting
-                .entry(machine.to_owned())
-                .or_default()
-                .push_back(project);
-        }
-        self.ask_next_icon(machine);
-    }
-
-    fn ask_next_icon(&mut self, machine: &str) {
-        if let Some(project) = self.areas.workspace.icons.next(machine) {
-            self.ask(machine, Ask::Project(ProjectAsk::Icon(project)));
+            let _asked = self
+                .areas
+                .workspace
+                .icons
+                .by
+                .insert((machine.to_owned(), project), None);
+            self.ask_in_background(machine, Ask::Project(ProjectAsk::Icon(project)));
         }
     }
 
     /// `project`'s icon arrived (or why not: no icon; a refusal is asked
-    /// again with the machine's next list), and the next ask goes out.
+    /// again with the machine's next list).
     pub(super) fn project_icon_read(
         &mut self,
         machine: &str,
@@ -118,7 +97,6 @@ impl Shell {
         result: Result<Option<IconImage>, Problem>,
     ) {
         let icons = &mut self.areas.workspace.icons;
-        let _done = icons.out.remove(machine);
         match result {
             Ok(icon) => {
                 let image = icon.map(|icon| {
@@ -135,7 +113,6 @@ impl Shell {
                 let _forgotten = icons.by.remove(&(machine.to_owned(), project));
             }
         }
-        self.ask_next_icon(machine);
     }
 }
 

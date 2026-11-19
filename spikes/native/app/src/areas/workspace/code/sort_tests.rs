@@ -1,7 +1,8 @@
 //! The Files tree's order (`sort.rs`) through the real link: Name asks
 //! nothing more of the machine; Modified inspects each listed folder and
 //! orders by its answer; Size uses the facts already there; an answer for
-//! a folder no longer listed is dropped.
+//! a folder no longer listed is dropped; many folders are inspected two at
+//! a time, and one refused is asked again with the next listing.
 use super::source_tests::{prepare, ready, root, setup};
 use super::*;
 use gpui::TestAppContext;
@@ -14,7 +15,7 @@ use vessel_proto::workspace::directory_metadata::{
 };
 use vessel_proto::workspace::panel_files::{FILE_PANELS_PROTOCOL, FileSize};
 use vessel_proto::workspace::{DirEntry, DirListing, EntryKind, ListDir};
-use vessel_proto::{Call, Outcome, Reply};
+use vessel_proto::{Call, ErrorCode, Outcome, Reply, WireError};
 
 fn entry(name: &str, kind: EntryKind) -> DirEntry {
     DirEntry {
@@ -197,6 +198,110 @@ fn a_machine_without_the_file_panels_sorts_by_name_and_asks_nothing(cx: &mut Tes
                 .iter()
                 .any(|call| matches!(call, Call::InspectDirectory(_)))
         );
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+/// List folder `dir` of `root` (`""` for the root) with `entries`.
+fn read(shell: &mut Shell, root: WorkspaceRoot, dir: &str, entries: Vec<DirEntry>) {
+    let list = ListDir {
+        root,
+        dir: if dir.is_empty() {
+            RelPath::root()
+        } else {
+            dir.parse().unwrap()
+        },
+        ignored: true,
+    };
+    shell.folder_read(
+        &list,
+        Ok(DirListing {
+            entries,
+            more: false,
+        }),
+    );
+}
+
+/// Answer the machine's next `file.inspect` (refused as busy for folder
+/// `busy`, else with no facts) and hand the answer to the shell; returns
+/// the folder it asked.
+fn answer_inspection(
+    scene: &mut Scenario,
+    shell: &mut Shell,
+    busy: Option<&str>,
+    cx: &mut Context<'_, Shell>,
+) -> String {
+    let Call::InspectDirectory(ask) = scene.request(shell.fixture_link()).unwrap() else {
+        panic!("expected file.inspect");
+    };
+    let outcome = if busy == Some(ask.directory.to_string().as_str()) {
+        Outcome::Err(WireError::new(
+            ErrorCode::Unavailable,
+            "workspace file operations are busy",
+        ))
+    } else {
+        Outcome::Ok(Reply::InspectDirectory(InspectedDirectory {
+            entries: Vec::new(),
+            more: false,
+        }))
+    };
+    scene.reply(shell.fixture_link(), outcome).unwrap();
+    let (from, answer) = workspace_answer(scene, shell);
+    assert!(shell.workspace_answer(&from, answer, cx));
+    ask.directory.to_string()
+}
+
+#[gpui::test]
+fn many_folders_are_inspected_two_at_a_time_and_a_refused_one_again(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, _window, cx| {
+        let original = scene.context();
+        let (session, project) = prepare(shell, &original);
+        for machine in &mut shell.fleet.machines {
+            machine.protocol = FILE_PANELS_PROTOCOL;
+        }
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let root = WorkspaceRoot::Project { project };
+        let folders = ["d1", "d2", "d3", "d4"];
+        let dirs = folders.iter().map(|name| entry(name, EntryKind::Dir));
+        read(shell, root, "", dirs.collect());
+        for name in folders {
+            read(shell, root, name, vec![entry("x.txt", EntryKind::File)]);
+        }
+        let machine = shell.areas.workspace.code.root().unwrap().0.to_owned();
+        let line = |shell: &Shell| {
+            let background = &shell.areas.workspace.background;
+            (background.out(&machine), background.waiting(&machine))
+        };
+
+        // Modified with the root and four folders listed: two inspections
+        // out, three waiting (the node refuses a fifth file work at once).
+        shell.prefs.settings.layout.explorer_sort = ExplorerSort::Modified;
+        shell.explorer_sorted();
+        assert_eq!(line(shell), (2, 3));
+        let mut asked = Vec::new();
+        for _ in 0..5 {
+            asked.push(answer_inspection(&mut scene, shell, Some("d2"), cx));
+            assert!(line(shell).0 <= 2);
+        }
+        asked.sort();
+        asked.dedup();
+        assert_eq!(asked.len(), 5);
+        assert_eq!(line(shell), (0, 0));
+        let refused = &shell.areas.workspace.code.files.refused;
+        assert!(refused.contains(&"d2".parse::<RelPath>().unwrap()));
+
+        // The next folder listed asks the refused one again.
+        read(shell, root, "d1", vec![entry("y.txt", EntryKind::File)]);
+        let mut again = vec![
+            answer_inspection(&mut scene, shell, None, cx),
+            answer_inspection(&mut scene, shell, None, cx),
+        ];
+        again.sort();
+        assert_eq!(again, ["d1", "d2"]);
+        assert!(shell.areas.workspace.code.files.refused.is_empty());
+        assert_eq!(line(shell), (0, 0));
         scene.close(shell.fixture_link()).unwrap();
     });
 }

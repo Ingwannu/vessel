@@ -1,5 +1,5 @@
 //! Projects' icons through the real link (`Scenario`): each listed project
-//! asked once on a machine speaking the protocol, one ask out at a time,
+//! asked once on a machine speaking the protocol, two asks out at a time,
 //! the answer kept as an image or as none, a refusal asked again with the
 //! next list; an older machine is not asked.
 use super::*;
@@ -37,7 +37,7 @@ fn list() -> ProjectList {
             version: GitVersion::MINIMUM,
         },
         more: false,
-        projects: (1_u8..=2)
+        projects: (1_u8..=5)
             .map(|index| ProjectInfo {
                 id: format!("{index:08x}-0000-4000-8000-000000000000")
                     .parse()
@@ -76,14 +76,13 @@ fn each_listed_project_is_asked_once_and_kept_as_an_image_or_none(cx: &mut TestA
             kind: IconType::Svg,
             bytes: IconBytes::new(b"<svg viewBox='0 0 1 1'/>".to_vec().into()).unwrap(),
         };
-        // One ask is out for the machine, the others wait for its answer
-        // (the node's file work refuses beyond four at once); their order
-        // on the wire is the link's.
-        let icons = &shell.areas.workspace.icons;
-        assert!(icons.out.contains(&name));
+        // Two asks are out for the machine, the others wait for an answer
+        // (`background.rs`: the node's file work refuses beyond four at
+        // once); their order on the wire is the link's.
+        let background = &shell.areas.workspace.background;
         assert_eq!(
-            icons.waiting.get(&name).map(VecDeque::len),
-            Some(ids.len().saturating_sub(1))
+            (background.out(&name), background.waiting(&name)),
+            (2, ids.len().saturating_sub(2))
         );
         let mut asked = Vec::new();
         for _ in 0..ids.len() {
@@ -118,7 +117,7 @@ fn each_listed_project_is_asked_once_and_kept_as_an_image_or_none(cx: &mut TestA
                 .iter()
                 .filter(|call| matches!(call, Call::ProjectIcon(_)))
                 .count(),
-            2
+            ids.len()
         );
         // A refusal (the node's file work busy) is forgotten: the next list
         // asks it again.

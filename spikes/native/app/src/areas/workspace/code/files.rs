@@ -130,9 +130,10 @@ impl Shell {
         let _was = panel.files.listings.insert(ask.dir.clone(), listing);
         panel.files.relist();
         // A new look at the folder: its times and sizes again, when the
-        // order needs them (`sort.rs`).
+        // order needs them, and those of folders refused before (`sort.rs`).
         if listed {
             self.inspect_folder(&ask.dir);
+            self.inspect_refused();
         }
     }
 
