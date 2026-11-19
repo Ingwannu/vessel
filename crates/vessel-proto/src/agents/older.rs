@@ -236,6 +236,7 @@ impl Reply {
             // pull request names its session by id, a terminal the session
             // it is beside by id; none carries a session's agent.
             | Self::ForgeStatus(_)
+            | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
             | Self::OpenPullRequest(_)

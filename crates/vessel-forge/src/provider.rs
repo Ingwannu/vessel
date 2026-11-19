@@ -29,7 +29,7 @@ use std::pin::Pin;
 use chrono::{DateTime, Utc};
 use vessel_proto::forge::{
     CheckName, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod, PullBody,
-    PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoRef,
+    PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoLimit, RepoRef, Repository,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -334,4 +334,15 @@ pub trait Forge: Send + Sync + fmt::Debug {
 
     /// Whether `login` may write to `repo` (feedback quotes only those).
     fn can_write<'a>(&'a self, repo: &'a RepoRef, login: &'a ForgeLogin) -> Answer<'a, bool>;
+
+    /// The signed-in account's own repositories on `host` when `query` is
+    /// empty, else the forge's search for it; newest first, at most
+    /// `limit`, each with the clone URL the machine is set up for (ADR
+    /// 0088). A person's call.
+    fn repositories<'a>(
+        &'a self,
+        host: &'a ForgeHost,
+        query: &'a str,
+        limit: RepoLimit,
+    ) -> Answer<'a, Vec<Repository>>;
 }

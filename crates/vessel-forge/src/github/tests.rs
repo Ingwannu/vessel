@@ -2,6 +2,7 @@
 //! the GraphQL read, opening and merging, rate limits, refusals, and the
 //! token only in its header. No request leaves the machine.
 
+mod repos;
 mod stand;
 
 use axum::http::StatusCode;
