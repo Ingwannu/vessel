@@ -46,6 +46,13 @@ impl Shell {
         }));
     }
 
+    /// A fleet read: the shown workspace's shells are listed again, and
+    /// tabs that lost their machine follow again.
+    pub(crate) fn terminal_tabs_on_fleet(&mut self) {
+        self.terminal_tabs_poll();
+        self.terminal_tabs_rejoin();
+    }
+
     /// Tabs that lost their machine follow again once it reads online
     /// (Paseo's stream controller attaches again on reconnect), from where
     /// their log stands, and claim their size again.
