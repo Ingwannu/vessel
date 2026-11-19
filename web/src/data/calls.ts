@@ -21,10 +21,13 @@
 
 import type { NodeKey, StreamState } from "../wire/bridge";
 import type {
+  AgentDiagnostic,
+  DiagnosticReport,
   EventRecord,
   EventSeq,
   HarnessRef,
   HarnessOptions,
+  NodeLog,
   OptionChoice,
   PermissionId,
   PermissionOptionId,
@@ -49,6 +52,37 @@ export function probeOptions(
   return attempt(() =>
     fleet.bridge.call(node, "harness.options", { harness, profile }),
   );
+}
+
+/** `harness`'s diagnostic under `profile` (`null`: its default), with a
+ * new probe of what it offers (ADR 0111; protocol 33). */
+export function agentDiagnostic(
+  fleet: Fleet,
+  node: NodeKey,
+  agent: HarnessRef,
+  profile: string | null,
+): Promise<Outcome<AgentDiagnostic>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "agent.diagnostic", { agent, profile }),
+  );
+}
+
+/** `node`'s report of itself (ADR 0074; protocol 24). */
+export function nodeDiagnostics(
+  fleet: Fleet,
+  node: NodeKey,
+): Promise<Outcome<DiagnosticReport>> {
+  return attempt(() => fleet.bridge.call(node, "node.diagnostics", {}));
+}
+
+/** The last `lines` of `node`'s own log (`null`: its default, 100), for
+ * a connection that may administer it (ADR 0111; protocol 33). */
+export function nodeLog(
+  fleet: Fleet,
+  node: NodeKey,
+  lines: number | null,
+): Promise<Outcome<NodeLog>> {
+  return attempt(() => fleet.bridge.call(node, "node.log", { lines }));
 }
 
 /** Start a session. */

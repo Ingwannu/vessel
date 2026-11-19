@@ -327,6 +327,8 @@ impl Reply {
             | Self::DeletePrompt(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
+            | Self::GetAgentDiagnostic(_)
+            | Self::ReadNodeLog(_)
             | Self::GetWorkspaceServiceEnv(_)
             | Self::GetServiceSettings(_)
             | Self::SetServiceGateway(_)

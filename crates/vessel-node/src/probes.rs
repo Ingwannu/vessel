@@ -37,6 +37,14 @@ use crate::readiness::Said;
 /// How long a probe's answer is reused.
 pub(crate) const FRESH: Duration = Duration::from_secs(600);
 
+/// How long a refresh's answer stands for the next refresh. `agent.diagnostic`
+/// is `read` and always refreshes, so without it a paired viewer pressing
+/// Refresh could keep the node starting an agent back to back (one at a
+/// time per key); with it, at most one start per key in this window, and a
+/// person who just signed in waits these seconds at most (the node
+/// reviewer's note on row 334).
+pub(crate) const REFRESH_FLOOR: Duration = Duration::from_secs(5);
+
 /// What a probe's answer depends on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ProbeKey {
@@ -70,6 +78,8 @@ struct Probed {
     finished: Instant,
     version: HarnessVersion,
     outcome: Answer,
+    /// Whether a refresh asked for it ([`Probes::refresh`]).
+    refreshed: bool,
 }
 
 /// What one probe found: the options the agent offers (`harness.options`)
@@ -112,13 +122,7 @@ impl Probes {
         probe: impl AsyncFnOnce() -> Answer,
     ) -> Answer {
         let asked = Instant::now();
-        let slot = Arc::clone(
-            self.slots
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .entry(key)
-                .or_default(),
-        );
+        let slot = self.slot(key);
         // A `tokio` lock held across the probe on purpose: it is what makes
         // concurrent callers of one key share one probe (see the module's
         // Decision Log). Each key has its own, so other keys never wait.
@@ -133,8 +137,52 @@ impl Probes {
             finished: Instant::now(),
             version,
             outcome: outcome.clone(),
+            refreshed: false,
         });
         outcome
+    }
+
+    /// `key`'s answer from a new probe, whatever is kept: an agent's
+    /// diagnostic refreshes its catalogue (ADR 0111, Paseo's forced refresh
+    /// of one provider). It takes the answer of a probe of the key that
+    /// finished while it waited, or of a refresh under [`REFRESH_FLOOR`]
+    /// ago for the same version; otherwise it probes, and keeps the answer
+    /// for later callers as [`Self::answer`] does (a failure is still never
+    /// reused by `answer`).
+    pub(crate) async fn refresh(
+        &self,
+        key: ProbeKey,
+        version: HarnessVersion,
+        probe: impl AsyncFnOnce() -> Answer,
+    ) -> Answer {
+        let asked = Instant::now();
+        let slot = self.slot(key);
+        let mut slot = slot.lock().await;
+        if let Some(last) = &slot.last
+            && last.refreshes(asked, version.as_ref())
+        {
+            return last.outcome.clone();
+        }
+        let outcome = probe().await;
+        slot.last = Some(Probed {
+            finished: Instant::now(),
+            version,
+            outcome: outcome.clone(),
+            refreshed: true,
+        });
+        outcome
+    }
+
+    /// `key`'s slot, added when it has none. The map's lock is held only
+    /// here, never across an `.await`.
+    fn slot(&self, key: ProbeKey) -> Arc<tokio::sync::Mutex<Slot>> {
+        Arc::clone(
+            self.slots
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .entry(key)
+                .or_default(),
+        )
     }
 }
 
@@ -150,6 +198,16 @@ impl Probed {
         self.outcome.options.is_ok()
             && self.version.as_ref() == version
             && self.finished.elapsed() < FRESH
+    }
+
+    /// Whether this stands for a refresh asked at `asked` of a harness now
+    /// at `version`: the probe the caller waited for, or a refresh that
+    /// finished under [`REFRESH_FLOOR`] ago, whatever it found.
+    fn refreshes(&self, asked: Instant, version: Option<&String>) -> bool {
+        self.finished > asked
+            || (self.refreshed
+                && self.version.as_ref() == version
+                && self.finished.elapsed() < REFRESH_FLOOR)
     }
 }
 
@@ -234,5 +292,48 @@ mod tests {
         assert_eq!(started.load(Ordering::SeqCst), 1, "waiters share it");
         let _again = probes.answer(key(), None, failing).await;
         assert_eq!(started.load(Ordering::SeqCst), 2, "a later caller retries");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_refresh_probes_even_when_fresh_and_its_answer_is_kept() {
+        let probes = Probes::new(PathBuf::new());
+        let started = AtomicUsize::new(0);
+        let probe = async || {
+            let _first = started.fetch_add(1, Ordering::SeqCst);
+            ok()
+        };
+        let version = || Some("1.0".to_owned());
+        let _first = probes.answer(key(), version(), probe).await;
+        let refreshed = probes.refresh(key(), version(), probe).await;
+        assert_eq!(options(refreshed), Ok(answer()));
+        assert_eq!(started.load(Ordering::SeqCst), 2, "fresh, yet probed again");
+        // `harness.options` next takes the refreshed answer.
+        let _kept = probes.answer(key(), version(), probe).await;
+        assert_eq!(started.load(Ordering::SeqCst), 2, "the refresh is kept");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn refreshes_back_to_back_share_one_probe_until_the_floor_passes() {
+        let probes = Probes::new(PathBuf::new());
+        let started = AtomicUsize::new(0);
+        let failing = async || {
+            let _first = started.fetch_add(1, Ordering::SeqCst);
+            Answer {
+                options: Err(WireError::new(ErrorCode::SpawnFailed, "not signed in")),
+                said: Err(crate::readiness::HandshakeFailure::Exited),
+            }
+        };
+        let _first = probes.refresh(key(), None, failing).await;
+        let again = probes.refresh(key(), None, failing).await;
+        assert!(again.options.is_err());
+        assert_eq!(started.load(Ordering::SeqCst), 1, "within the floor");
+        let _upgraded = probes.refresh(key(), Some("1.1".to_owned()), failing).await;
+        assert_eq!(started.load(Ordering::SeqCst), 2, "a new version probes");
+        tokio::time::advance(REFRESH_FLOOR).await;
+        let _later = probes.refresh(key(), Some("1.1".to_owned()), failing).await;
+        assert_eq!(started.load(Ordering::SeqCst), 3, "after it: probed again");
+        // `harness.options` still never reuses the failure.
+        let _options = probes.answer(key(), Some("1.1".to_owned()), failing).await;
+        assert_eq!(started.load(Ordering::SeqCst), 4);
     }
 }

@@ -1,0 +1,79 @@
+[
+  {
+    "agent": "claude-code",
+    "profile": "claude-code",
+    "title": "Claude Code",
+    "command": { "source": "built_in", "program": "claude" },
+    "matches": ["~/.local/bin/claude", "/usr/local/bin/claude"],
+    "installed": {
+      "state": "found",
+      "path": "~/.local/bin/claude",
+      "version": "2.0.14",
+      "structured": { "state": "available" }
+    },
+    "signed_in": { "state": "yes" },
+    "probe": {
+      "spawn": { "state": "ok" },
+      "initialize": { "state": "ok" },
+      "session": { "state": "ok" },
+      "agent_version": "0.9.1",
+      "took": 1834
+    },
+    "status": { "state": "ready", "models": 5 },
+    "checked_at": "2026-11-18T21:00:00Z"
+  },
+  {
+    "agent": { "added": "local-coder" },
+    "profile": "local-coder",
+    "title": "Local Coder (ACP)",
+    "command": {
+      "source": "added",
+      "program": "npx",
+      "args": ["-y", "local-coder", "--acp"]
+    },
+    "matches": [],
+    "installed": { "state": "missing", "program": "npx" },
+    "signed_in": {
+      "state": "unknown",
+      "reason": { "reason": "not_installed" }
+    },
+    "probe": {
+      "spawn": { "state": "failed", "reason": "cannot start the agent" },
+      "initialize": { "state": "not_reached" },
+      "session": { "state": "not_reached" },
+      "took": 3
+    },
+    "status": { "state": "unavailable" },
+    "checked_at": "2026-11-18T21:00:00Z"
+  },
+  {
+    "agent": "open-code",
+    "profile": "work",
+    "title": "OpenCode",
+    "command": { "source": "built_in", "program": "opencode" },
+    "matches": ["~/.opencode/bin/opencode"],
+    "installed": {
+      "state": "found",
+      "path": "~/.opencode/bin/opencode",
+      "structured": { "state": "available" }
+    },
+    "signed_in": {
+      "state": "unknown",
+      "reason": { "reason": "timed_out", "after": 60000 }
+    },
+    "probe": {
+      "spawn": { "state": "ok" },
+      "initialize": {
+        "state": "failed",
+        "reason": "the agent did not complete the ACP handshake within 60 s"
+      },
+      "session": { "state": "not_reached" },
+      "took": 60012
+    },
+    "status": {
+      "state": "error",
+      "message": "the agent did not complete the ACP handshake within 60 s"
+    },
+    "checked_at": "2026-11-18T21:00:00Z"
+  }
+]

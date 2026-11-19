@@ -22,17 +22,18 @@
 //   refreshes its cache when the project's files change).
 
 import type { NodeKey } from "../../wire/bridge";
-import type { IconImage, IconType, ProjectId } from "../../wire/proto";
+import {
+  HOST_FOLDERS_PROTOCOL,
+  type IconImage,
+  type IconType,
+  type ProjectId,
+} from "../../wire/proto";
 import type { Fleet } from "../fleet";
 import { attempt } from "../outcome";
 import { inBackground } from "./file-work";
 
-/** `project.icon`'s protocol: a copy of vessel-proto's
- * `HOST_FOLDERS_PROTOCOL` (assigned 32 at its node-line merge);
- * the two must stay equal. */
-export const HOST_FOLDERS_PROTOCOL = 32;
-
-/** Whether a node speaking `protocol` answers `project.icon`. */
+/** Whether a node speaking `protocol` answers `project.icon`
+ * (`HOST_FOLDERS_PROTOCOL`, generated from vessel-proto's). */
 export function hasProjectIcons(protocol: number | null): boolean {
   return protocol !== null && protocol >= HOST_FOLDERS_PROTOCOL;
 }

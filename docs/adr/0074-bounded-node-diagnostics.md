@@ -4,6 +4,14 @@ Status: proposed, 2026-11-14. Merged on the node line 2026-11-15 and
 assigned protocol 24 (`DIAGNOSTICS_PROTOCOL = Some(24)`); the `None` text
 below describes its review checkpoint.
 
+Extended by ADR 0111 (2026-11-18): the report gains Paseo's System, Disk,
+Workspaces, Agents ("Activity") and Tools sections for peers at protocol 33,
+the CLI's text moves to `vessel_proto::diagnostics::text`, and the node's log
+is its own `admin` call (`node.log`), never part of this report. ADR 0111
+supersedes one sentence here: the report runs `git --version` and
+`gh --version` (fixed programs, 3 s each, numbers kept); it still runs no
+agent, sign-in command, shell or network probe.
+
 ## Context and reference evidence
 
 The app already has an app-side Diagnostics report. It does not yet ask each

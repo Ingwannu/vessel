@@ -2,7 +2,10 @@
 //! Source owners omit private paths, arbitrary text and credentials.
 use super::SessionRuntime;
 use std::sync::PoisonError;
-use vessel_proto::diagnostics::{DiagnosticCount, DiagnosticRuntimeSessions};
+use vessel_proto::diagnostics::{
+    DiagnosticActivity, DiagnosticAgentCount, DiagnosticCount, DiagnosticRuntimeSessions,
+};
+use vessel_proto::{DisplayStatus, HarnessKind, HarnessRef};
 
 impl SessionRuntime {
     /// Borrow live and parked counts without cloning session descriptions.
@@ -27,6 +30,52 @@ impl SessionRuntime {
             }
         }
         counts
+    }
+
+    /// Live sessions by agent and how many wait on a permission (ADR 0111,
+    /// Paseo's "Agents" section). Added agents are counted together: their
+    /// names are a person's words (ADR 0074).
+    #[must_use]
+    pub fn diagnostic_activity(&self) -> DiagnosticActivity {
+        let one = DiagnosticCount::new(1);
+        let handles = self.sessions.read().unwrap_or_else(PoisonError::into_inner);
+        let mut builtin = [DiagnosticCount::default(); HarnessKind::ALL.len()];
+        let mut activity = DiagnosticActivity {
+            builtin: Vec::new(),
+            added: DiagnosticCount::default(),
+            waiting: DiagnosticCount::default(),
+        };
+        for handle in handles.values() {
+            let source = handle.watch_info();
+            let info = source.borrow();
+            if !info.status.is_live() {
+                continue;
+            }
+            match &info.spec.harness {
+                HarnessRef::Known(kind) => {
+                    if let Some(at) = HarnessKind::ALL.iter().position(|known| known == kind)
+                        && let Some(count) = builtin.get_mut(at)
+                    {
+                        *count = count.saturating_add(one);
+                    }
+                }
+                HarnessRef::Added(_) => activity.added = activity.added.saturating_add(one),
+            }
+            if info
+                .board
+                .as_ref()
+                .is_some_and(|board| board.display_status == DisplayStatus::Blocked)
+            {
+                activity.waiting = activity.waiting.saturating_add(one);
+            }
+        }
+        activity.builtin = HarnessKind::ALL
+            .into_iter()
+            .zip(builtin)
+            .filter(|(_kind, live)| live.get() > 0)
+            .map(|(harness, live)| DiagnosticAgentCount { harness, live })
+            .collect();
+        activity
     }
 }
 
@@ -140,6 +189,14 @@ mod tests {
             let both = fixture.runtime.diagnostic_counts();
             assert_eq!(both.live.get(), 2);
             assert_eq!(both.parked.get(), 0);
+            // ADR 0111: by agent, none waiting on a permission.
+            let activity = fixture.runtime.diagnostic_activity();
+            let [claude] = activity.builtin.as_slice() else {
+                panic!("one agent: {activity:?}");
+            };
+            assert_eq!(claude.harness, HarnessKind::ClaudeCode);
+            assert_eq!(claude.live.get(), 2);
+            assert_eq!((activity.added.get(), activity.waiting.get()), (0, 0));
             let parked = first.park().await.unwrap();
             assert!(parked.parked.is_some());
             let after_park = fixture.runtime.diagnostic_counts();
@@ -150,6 +207,8 @@ mod tests {
             assert!(fixture.runtime.get(second.id()).is_some());
             let retained = fixture.runtime.diagnostic_counts();
             assert_eq!(retained.live.get(), 1);
+            let after = fixture.runtime.diagnostic_activity();
+            assert_eq!(after.builtin.first().unwrap().live.get(), 1);
             assert_eq!(retained.parked.get(), 1);
             fixture.runtime.shutdown().await;
             first_drain.await.unwrap();
