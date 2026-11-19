@@ -70,6 +70,7 @@ pub mod creation;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod diagnostics;
 pub mod history;
 pub mod labels;
 pub mod mentions;

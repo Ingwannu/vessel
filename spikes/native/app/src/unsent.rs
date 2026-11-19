@@ -107,10 +107,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             ticket,
             ask,
         } => Event::Devices(ask.rejected(context, ticket, devices::rejected(unsent.why))),
-        Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
-            Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
-            Rejected::Closed => idle_release::Problem::Offline,
-        })),
+        Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(idle_problem(unsent.why))),
+        Command::Diagnostics(ask) => {
+            Event::Diagnostics(ask.refused(diagnostics_problem(unsent.why)))
+        }
         Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
@@ -161,6 +161,23 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// A machine-settings request never sent, as its page says it.
+fn idle_problem(why: Rejected) -> idle_release::Problem {
+    match why {
+        Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
+        Rejected::Closed => idle_release::Problem::Offline,
+    }
+}
+
+/// A diagnostics call never sent, as its dialog says it.
+fn diagnostics_problem(why: Rejected) -> vessel_app_view::diagnostics::Problem {
+    use vessel_app_view::diagnostics::Problem;
+    match why {
+        Rejected::Full => Problem::Refused(ErrorCode::Unavailable),
+        Rejected::Closed => Problem::Offline,
+    }
 }
 
 /// A creation the link gave back: a full queue or a stopped link.

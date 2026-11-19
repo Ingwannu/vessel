@@ -70,6 +70,9 @@ impl Shell {
     }
 
     pub(crate) fn agent_load(&mut self, again: bool, cx: &mut Context<'_, Self>) {
+        // Settings' one load hook (arriving, choosing a machine or a section,
+        // a fleet read) also reads Overview's log row (ADR 0111).
+        self.log_row_load();
         if self.areas.settings.section != vessel_app_view::settings::Section::Providers {
             self.areas.settings.agents.defaults.close();
             self.areas.settings.agents.tips = vessel_app_kit::tooltip::Tooltips::new();

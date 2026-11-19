@@ -83,6 +83,34 @@ mod tests {
         assert!(!expected.admits(None, Some((&machine, session))));
         assert!(!expected.admits(Some(&expected), None));
     }
+    /// A parked session's reload records `woken`, then `reloaded` (row 334,
+    /// ADR 0110): the binding starts again at the reload, as at a wake.
+    #[test]
+    fn a_parked_reload_starts_the_binding_at_its_reloaded_record() {
+        let record = |seq: u64, event: SessionEvent| EventRecord {
+            seq: EventSeq::new(seq),
+            at: chrono::DateTime::UNIX_EPOCH,
+            event,
+        };
+        let records = [
+            record(
+                4,
+                SessionEvent::Parked {
+                    reason: vessel_proto::parking::ParkReason::Idle,
+                },
+            ),
+            record(5, SessionEvent::Woken),
+            record(
+                6,
+                SessionEvent::Reloaded {
+                    harness_session: vessel_proto::HarnessSessionId::new("conversation"),
+                    appended: 0,
+                },
+            ),
+        ];
+        assert_eq!(binding_epoch(&records), Some(EventSeq::new(6)));
+    }
+
     #[test]
     fn provider_and_profile_changes_replace_the_binding_epoch() {
         let records = [
