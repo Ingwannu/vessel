@@ -117,6 +117,16 @@ fn speaks(machine: &Machine) -> bool {
             .is_some_and(|(spoken, since)| spoken >= since)
 }
 
+/// Drop what the row read of `name`, which does not answer `node.log` now,
+/// so a later connection reads from nothing (the app reviewer's R2 on row
+/// 337). Another machine's read stays: the row shows the chosen machine
+/// only, and changing the choice is not a disconnection.
+fn forget(row: &mut Option<Read>, name: &str) {
+    if row.as_ref().is_some_and(|read| read.machine == name) {
+        *row = None;
+    }
+}
+
 impl Shell {
     /// On Overview, ask the chosen machine for its log's path: once per
     /// machine and connection, and again after an answer that may change
@@ -136,14 +146,7 @@ impl Shell {
         );
         let state = &mut self.areas.settings.diagnostics;
         if !speaks {
-            if state
-                .log
-                .row
-                .as_ref()
-                .is_some_and(|read| read.machine == name)
-            {
-                state.log.row = None;
-            }
+            forget(&mut state.log.row, &name);
             return;
         }
         if !asks_again(state.log.row.as_ref(), &name, epoch) {

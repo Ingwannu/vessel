@@ -1,16 +1,18 @@
 //! When the Log file row asks its machine again (the app reviewer's R2 on
 //! row 337): after an answer that may change, or on a new connection;
-//! never while asked, nor after a path or a lasting refusal.
+//! never while asked, nor after a path or a lasting refusal. A machine that
+//! is not online, or older than `node.log`, is not asked and drops its row.
 
 use std::path::PathBuf;
 
+use vessel_app_view::board::{Machine, NodeVersion, Reach};
 use vessel_app_view::connection::{ConnectionEpoch, ConnectionEpochs, MachineKey};
 use vessel_app_view::devices::Tickets;
 use vessel_app_view::diagnostics::Problem;
-use vessel_proto::ErrorCode;
 use vessel_proto::diagnostics::NodeLog;
+use vessel_proto::{ErrorCode, ProtocolVersion};
 
-use super::{Read, asks_again};
+use super::{Read, asks_again, forget, speaks};
 
 fn epoch(epochs: &mut ConnectionEpochs) -> ConnectionEpoch {
     epochs
@@ -94,5 +96,44 @@ fn a_new_connection_reads_again_even_after_a_path() {
     assert!(
         asks_again(Some(&kept), "fixture", Some(after)),
         "offline, then online again"
+    );
+}
+
+fn machine(reach: Reach, protocol: u32) -> Machine {
+    Machine {
+        node: None,
+        connection_epoch: None,
+        name: "fixture".to_owned(),
+        reach,
+        sessions: Vec::new(),
+        agents: Vec::new(),
+        protocol: Some(ProtocolVersion::new(protocol)),
+        version: Some(NodeVersion::new("0.1.0")),
+    }
+}
+
+#[test]
+fn a_machine_that_is_not_online_is_not_asked_and_drops_its_row() {
+    assert!(speaks(&machine(Reach::Online, 33)));
+    assert!(
+        !speaks(&machine(Reach::Unreachable("no answer".to_owned()), 33)),
+        "not online"
+    );
+    assert!(!speaks(&machine(Reach::Online, 32)), "older than node.log");
+    let mut epochs = ConnectionEpochs::default();
+    let now = epoch(&mut epochs);
+    let path = NodeLog::File {
+        path: PathBuf::from("~/.vessel/logs/vesseld.log"),
+        lines: Vec::new(),
+        cut: false,
+    };
+    let mut row = Some(read(now, Some(Ok(path))));
+    forget(&mut row, "another");
+    assert!(row.is_some(), "another machine's read stays");
+    forget(&mut row, "fixture");
+    assert!(row.is_none(), "its own read goes");
+    assert!(
+        asks_again(row.as_ref(), "fixture", Some(now)),
+        "back online, it reads from nothing"
     );
 }
