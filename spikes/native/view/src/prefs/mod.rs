@@ -272,6 +272,23 @@ pub enum Alerts {
     SystemAndSound,
 }
 
+impl Alerts {
+    /// Every way, in the order Settings offers them (the page's select).
+    pub const ALL: [Self; 4] = [Self::Off, Self::System, Self::Sound, Self::SystemAndSound];
+
+    /// Whether the system's notification is shown.
+    #[must_use]
+    pub const fn system(self) -> bool {
+        matches!(self, Self::System | Self::SystemAndSound)
+    }
+
+    /// Whether the sound plays.
+    #[must_use]
+    pub const fn sound(self) -> bool {
+        matches!(self, Self::Sound | Self::SystemAndSound)
+    }
+}
+
 /// How the sidebar lists sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]

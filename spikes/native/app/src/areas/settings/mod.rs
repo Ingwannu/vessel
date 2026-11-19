@@ -43,6 +43,7 @@ mod host_agents;
 mod language;
 mod motion;
 mod nav;
+mod notifications;
 mod overview;
 pub(crate) mod page;
 mod prefer;
@@ -163,6 +164,7 @@ pub(crate) struct Anchors {
     code: Anchor,
     width: Anchor,
     display: Anchor,
+    alerts: Anchor,
 }
 
 impl Anchors {
@@ -175,6 +177,7 @@ impl Anchors {
             List::Code => &self.code,
             List::Width => &self.width,
             List::Display => &self.display,
+            List::Alerts => &self.alerts,
         }
     }
 }
@@ -255,7 +258,8 @@ impl Shell {
             | List::Interface
             | List::Code
             | List::Width
-            | List::Display => drawn.map(|bounds| select::end_aligned(bounds, select::WIDTH)),
+            | List::Display
+            | List::Alerts => drawn.map(|bounds| select::end_aligned(bounds, select::WIDTH)),
         };
         state.list.set_anchor(at);
         state.list.open(None, window, cx);
@@ -445,7 +449,8 @@ pub(crate) const fn applied(list: List) -> bool {
         | List::Interface
         | List::Code
         | List::Width
-        | List::Display => true,
+        | List::Display
+        | List::Alerts => true,
     }
 }
 
@@ -474,7 +479,8 @@ fn list(
         | List::Interface
         | List::Code
         | List::Width
-        | List::Display => (select::header(), select::WIDTH),
+        | List::Display
+        | List::Alerts => (select::header(), select::WIDTH),
     };
     combobox(
         "settings-list",

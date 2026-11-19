@@ -21,6 +21,7 @@ pub(crate) mod git;
 pub(crate) mod import;
 pub(crate) mod labels;
 pub(crate) mod layout;
+pub(crate) mod notify;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
@@ -74,6 +75,9 @@ pub(crate) struct Areas {
     pub(crate) regions: crate::region::Regions,
     /// A terminal session's screen (ADR 0073).
     pub(crate) terminal: terminal::TerminalArea,
+    /// The system's notifications, the notice sound and the title's
+    /// count (ADR 0114).
+    pub(crate) notify: notify::NotifyArea,
 }
 
 impl Areas {
@@ -126,6 +130,7 @@ impl Areas {
             composer_shell: composer_shell::ComposerShellArea::default(),
             regions: crate::region::Regions::default(),
             terminal: terminal::TerminalArea::new(cx),
+            notify: notify::NotifyArea::new(window, cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, drafts, window, cx);

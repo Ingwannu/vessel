@@ -46,6 +46,7 @@ const ROLE_SENTENCES: &[(Role, &str, &str)] = &[
         "Find's folding of accents",
         "찾기의 악센트 접기",
     ),
+    (Role::Sound, "Playing a notice's sound", "알림 소리 재생"),
     (Role::Face, "Geist, the app's face", "Geist, 앱의 글꼴"),
     (
         Role::CodeFace,
