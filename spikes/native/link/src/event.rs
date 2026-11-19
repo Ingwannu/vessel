@@ -56,6 +56,8 @@ pub enum Event {
     Sync(sync::Answer),
     /// A machine's settings in force, after a read or a change.
     NodeSettings(node_settings::Answer),
+    /// A diagnostics call answered, with its identity.
+    Diagnostics(crate::diagnostics::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.

@@ -13,7 +13,7 @@ pub use marks::{
     CONVERSATION_PROTOCOL, ENDS_BESIDE_PROTOCOL, MarkAction, ReadView, can_start_again,
     is_archived, is_live, mark_actions, read_through,
 };
-pub use parking::{ParkState, park_state};
+pub use parking::{ParkState, park_state, parked_after};
 pub use reload::{ReloadOffer, reload_offer};
 pub use resume::{ResumeUnavailable, resume_command};
 pub use titles::{

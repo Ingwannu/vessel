@@ -43,6 +43,7 @@ impl State {
             Command::CodeSource(request) => self.code_source(request).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
+            Command::Diagnostics(ask) => self.diagnostics(ask).await,
             Command::Devices {
                 context,
                 ticket,

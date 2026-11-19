@@ -161,6 +161,11 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 ),
             ))),
+            Command::Diagnostics(ask) => self.emit(Event::Diagnostics(ask.refused(
+                vessel_app_view::diagnostics::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                ),
+            ))),
             Command::RetireConnection(_tag) => {}
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {

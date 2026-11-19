@@ -177,8 +177,20 @@ The report's readers:
   per machine its name, protocol and version and its report; "Status: unsupported by this node" below
   protocol 24, "Status: machine is not connected" when it is not, the call's error otherwise. The page has
   no desktop half, so Paseo's desktop sections have no counterpart.
-- The native app's diagnostic asks each connected machine through the staged adapter and adds the same
-  rows and text (it asked none until now).
+- The native app's diagnostic now asks each connected machine. Before, it asked none.
+  - The calls: `link::diagnostics`, one task per call, answered as an event that carries the machine and the
+    page's ticket. Failures cross as codes only, the Devices page's rule.
+  - The run's state: `view::diagnostics::Run`.
+  - The app diagnostic's dialog: Paseo's progress card while any machine is asked, then only the text. The
+    first progress row is "App" for Paseo's "Client" (the coordinator's word). Copy and Refresh are the
+    title row's icon actions.
+  - The diagnostic texts (the app's and an agent's) keep each line whole and scroll sideways, as Paseo's
+    `ScrollableCodeSurface` (`horizontal` by default) and the page do. Node logs wraps, as Paseo's plain
+    `Text` does (the coordinator's ruling on row 337).
+  - An agent's "Diagnostic" sits beside its details on Settings › Agents (from 33). Its sheet is
+    `view::diagnostics::Sheet`. A failure takes the text's place in the app's words for its code.
+  - Overview's "Node" section holds the "Log file" row and "Node logs" (from 33).
+    `view::diagnostics::log_contents` keeps the same truthfulness rule as the page.
 
 ### 4. The node's log (TRACKER 569)
 
