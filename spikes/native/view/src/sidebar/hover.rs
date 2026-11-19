@@ -79,11 +79,13 @@ impl Card {
             .as_deref()
             .and_then(|pull| pull.summary.as_ref());
         let card_pull = self.detail.pull_request.as_deref().and_then(CardPull::of);
-        let pull = card_pull.zip(summary).map(|(card_pull, summary)| HoverPull {
-            number: card_pull.number,
-            phase: card_pull.phase,
-            url: summary.url.as_str().to_owned(),
-        });
+        let pull = card_pull
+            .zip(summary)
+            .map(|(card_pull, summary)| HoverPull {
+                number: card_pull.number,
+                phase: card_pull.phase,
+                url: summary.url.as_str().to_owned(),
+            });
         HoverDetails {
             pull,
             machine: self.machine.clone(),
@@ -220,7 +222,10 @@ mod tests {
             details.folder.path,
             "/home/dev/.vessel/worktrees/shop/fix-cart"
         );
-        assert_eq!(details.checks.map(|checks| checks.state), Some(CardChecks::Failed));
+        assert_eq!(
+            details.checks.map(|checks| checks.state),
+            Some(CardChecks::Failed)
+        );
         assert_eq!(
             card.checks_url().as_deref(),
             Some("https://github.com/acme/widgets/pull/42/checks")

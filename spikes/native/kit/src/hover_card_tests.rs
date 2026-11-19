@@ -36,7 +36,10 @@ impl Render for Probe {
             .gap(px(40.0))
             .child(self.trigger("A", &self.a))
             .child(self.trigger("B", &self.b))
-            .children(self.cards.render(content, "Session details", 260.0, &tokens))
+            .children(
+                self.cards
+                    .render(content, "Session details", 260.0, &tokens),
+            )
     }
 }
 
@@ -61,7 +64,9 @@ fn advance(cx: &VisualTestContext, duration: Duration) {
 }
 
 fn shown(view: &gpui::Entity<Probe>, cx: &mut VisualTestContext) -> Option<String> {
-    view.read_with(cx, |probe, _| probe.cards.shown().map(|key| key.to_string()))
+    view.read_with(cx, |probe, _| {
+        probe.cards.shown().map(|key| key.to_string())
+    })
 }
 
 #[gpui::test]

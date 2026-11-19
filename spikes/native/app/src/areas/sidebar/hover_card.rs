@@ -66,7 +66,12 @@ fn key(card: &Card) -> String {
 
 /// `row` shows `card`'s hover card while the pointer is on it, when
 /// `enabled` (a pointer on a wide window, the row's menu closed).
-pub(super) fn on_row(row: Stateful<Div>, card: &Card, enabled: bool, shell: &Shell) -> Stateful<Div> {
+pub(super) fn on_row(
+    row: Stateful<Div>,
+    card: &Card,
+    enabled: bool,
+    shell: &Shell,
+) -> Stateful<Div> {
     let key = key(card);
     let sidebar = &shell.areas.sidebar;
     sidebar
@@ -109,9 +114,11 @@ fn content(card: &Card, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, She
         body = body.child(pull_row(pull, shell, tokens, cx));
     }
     // TRACKER 819: the diff stat's row goes here, after the pull request's.
-    body = body.child(row().child(glyph(Glyph::Server, GLYPH, neutral.foreground_muted)).child(
-        words_of(details.machine).text_color(neutral.foreground_muted),
-    ));
+    body = body.child(
+        row()
+            .child(glyph(Glyph::Server, GLYPH, neutral.foreground_muted))
+            .child(words_of(details.machine).text_color(neutral.foreground_muted)),
+    );
     if let Some(branch) = details.branch {
         let copy = Copy {
             id: "hover-card-branch",
@@ -186,7 +193,12 @@ fn swapped(mark: AnyElement, hovered: Glyph, group: &SharedString, tokens: &Toke
 
 /// The pull request's badge: its state's mark and its number, a link to
 /// its page.
-fn pull_row(pull: HoverPull, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
+fn pull_row(
+    pull: HoverPull,
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Stateful<Div> {
     let neutral = tokens.neutral;
     let number = pull.number.get();
     let group: SharedString = "hover-card-pull".into();

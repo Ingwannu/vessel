@@ -52,11 +52,7 @@ fn dressed(cx: &mut VisualTestContext, shell: &gpui::Entity<crate::shell::Shell>
 }
 
 /// The pointer onto `card`'s row, where the sidebar last drew it.
-fn hover_row(
-    cx: &mut VisualTestContext,
-    shell: &gpui::Entity<crate::shell::Shell>,
-    card: &Card,
-) {
+fn hover_row(cx: &mut VisualTestContext, shell: &gpui::Entity<crate::shell::Shell>, card: &Card) {
     cx.run_until_parked();
     let bounds = shell
         .read_with(cx, |shell, _| {

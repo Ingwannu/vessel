@@ -154,7 +154,11 @@ impl HoverCards {
     /// The key of the card shown, if any.
     #[must_use]
     pub fn shown(&self) -> Option<SharedString> {
-        self.state.borrow().shown.as_ref().map(|shown| shown.key.clone())
+        self.state
+            .borrow()
+            .shown
+            .as_ref()
+            .map(|shown| shown.key.clone())
     }
 
     /// Close the card (its trigger's menu opening, a drag starting).
