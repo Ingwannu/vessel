@@ -191,7 +191,10 @@ fn the_labels_list_is_paseos_menu_its_labels_saying_their_check(cx: &mut TestApp
     // The row menu's own rows and the list's are menu items (TRACKER 808).
     let named = |name: &str| {
         let label = format!(r#""label": "{name}""#);
-        menu_items.iter().find(|aria| aria.contains(&label)).copied()
+        menu_items
+            .iter()
+            .find(|aria| aria.contains(&label))
+            .copied()
     };
     assert!(named("Labels").is_some_and(|aria| aria.contains(r#""expanded": true"#)));
     let create = named("Create label").unwrap();

@@ -59,8 +59,8 @@ mod send;
 mod sheet_drag_tests;
 pub use initial::{initial_of, initial_tile};
 pub use inline::combobox_inline;
-pub use rows::RowRole;
 pub use probe::anchor_probe;
+pub use rows::RowRole;
 pub use send::{SendKind, send_button};
 
 /// Paseo's compact width, the kit's one ([`crate::breakpoint::PHONE`]):
