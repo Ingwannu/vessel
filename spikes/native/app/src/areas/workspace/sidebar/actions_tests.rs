@@ -210,7 +210,7 @@ fn remove_asks_first_then_the_row_spins_until_the_node_answers(cx: &mut TestAppC
                 .sidebar
                 .is_removing("fixture", project_id(0))
         );
-        let list = shell.areas.workspace.projects.get("fixture").unwrap();
+        let list = &shell.areas.workspace.projects["fixture"];
         assert!(list.project(&project_id(0)).is_none());
         assert_eq!(shell.notice, None);
     });
@@ -236,7 +236,7 @@ fn a_refused_removal_from_the_row_is_a_toast_and_the_row_stays(cx: &mut TestAppC
                 .sidebar
                 .is_removing("fixture", project_id(1))
         );
-        let list = shell.areas.workspace.projects.get("fixture").unwrap();
+        let list = &shell.areas.workspace.projects["fixture"];
         assert!(list.project(&project_id(1)).is_some());
         let toast = shell.areas.toasts.shown().unwrap();
         assert_eq!(toast.tone, ToastTone::Error);
