@@ -228,13 +228,17 @@ fn the_remove_question_gives_the_keys_back_when_it_closes(cx: &mut TestAppContex
         assert!(window.focused(cx).is_some());
     });
     // Cancel: the keys go back.
-    shell.update_in(cx, |shell, window, cx| shell.project_remove_dismiss(window, cx));
+    shell.update_in(cx, |shell, window, cx| {
+        shell.project_remove_dismiss(window, cx)
+    });
     cx.run_until_parked();
     cx.update(|window, _| assert!(opener.is_focused(window)));
     // A second question remembers the opener afresh; Remove gives them back.
     ask(cx);
     cx.update(|window, _| assert!(!opener.is_focused(window)));
-    shell.update_in(cx, |shell, window, cx| shell.project_remove_confirmed(window, cx));
+    shell.update_in(cx, |shell, window, cx| {
+        shell.project_remove_confirmed(window, cx)
+    });
     cx.run_until_parked();
     cx.update(|window, _| assert!(opener.is_focused(window)));
 }

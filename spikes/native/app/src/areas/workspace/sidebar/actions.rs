@@ -37,9 +37,10 @@ use vessel_app_kit::menu::{Content, ItemStatus, MenuHandlers, MenuItem, MenuStat
 use vessel_app_kit::theme::{SidebarSurfaces, radius};
 use vessel_app_kit::tooltip::{Configuration, Delay, Offset, Place, Side};
 use vessel_app_kit::ui::{
-    AnyElement, App, ClickEvent, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
+    AnyElement, App, ClickEvent, Context, Div, ElementId, FluentBuilder as _,
+    InteractiveElement as _, IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _,
+    Pixels, Point, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    svg,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize, DialogState, Tokens,
