@@ -461,13 +461,13 @@ pub(super) fn combo_row<V: 'static>(
 
 /// Bind one enabled row through the same captured opening; layout stays above.
 fn enabled_row<V: 'static>(
-    element: gpui::Stateful<Div>,
+    element: Stateful<Div>,
     index: usize,
     state: &ComboboxState,
     handlers: &ComboHandlers<V>,
     wash: gpui::Hsla,
     cx: &mut Context<'_, V>,
-) -> gpui::Stateful<Div> {
+) -> Stateful<Div> {
     let chose = Rc::clone(&handlers.chose);
     let get = handlers.state;
     let lease = state.render_lease();

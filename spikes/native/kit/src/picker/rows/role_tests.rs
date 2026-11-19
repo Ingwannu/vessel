@@ -15,8 +15,8 @@ impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let row = |label: &str, role: RowRole, checked: bool| ComboRow {
-            role,
             checked,
+            role,
             ..ComboRow::new(label.to_owned())
         };
         let rows = vec![
