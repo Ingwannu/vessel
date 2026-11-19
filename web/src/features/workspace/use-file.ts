@@ -81,6 +81,12 @@ export interface OpenFile {
 
 type TextRead = Extract<FileText, { kind: "text" }>;
 
+/** A version as one string, to tell two apart: the content's hash where
+ * the node gave one, else (a file over 8 MiB) its size and time. */
+export function versionKey(version: FileVersion): string {
+  return version.hash ?? `${String(version.size)} ${String(version.modified)}`;
+}
+
 /** Whether two reads are of one version: by the content's hash where both
  * have one, else (a file over 8 MiB) by its size and time. */
 function sameVersion(a: FileVersion, b: FileVersion): boolean {

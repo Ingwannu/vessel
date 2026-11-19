@@ -77,11 +77,16 @@ export function FilesTab({
         key={`${rootKey(root)} ${opened.path}`}
         node={node}
         root={root}
+        folder={folder}
         session={session}
         path={opened.path}
         goTo={opened.goTo}
+        filePanels={sortable}
         onBack={() => {
           onOpened(null);
+        }}
+        onOpenFile={(path) => {
+          open(path, null);
         }}
       />
     );

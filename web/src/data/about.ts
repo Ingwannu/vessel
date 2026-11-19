@@ -42,6 +42,7 @@ export const BUNDLED: readonly Bundled[] = [
   { name: "react", licence: "MIT", role: "The page" },
   { name: "react-dom", licence: "MIT", role: "The page" },
   { name: "react-markdown", licence: "MIT", role: "Agents' replies" },
+  { name: "yaml", licence: "ISC", role: "Markdown files' front matter" },
 ];
 
 /** Vessel's own licence (`LICENSE.md`, ADR 0014). */
