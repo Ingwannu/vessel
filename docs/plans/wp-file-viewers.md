@@ -125,7 +125,9 @@ viewers take from the existing watch. No node change is needed.
 - Live: the file's existing watch (`use-disk.ts`) re-reads the file; the
   Preview draws the new text, the image is read again for the new
   version (`versionKey`). A Preview reads the pages not read yet, since
-  it draws the whole file.
+  it draws the whole file, up to Paseo's web display budget (50 MiB,
+  `PREVIEW_LIMIT`); past it the Preview says "This file is too large to
+  display", as Paseo's text panel does (node reviewer's note, 2026-11-19).
 - Tests: unit tests per data module; `web/e2e/viewers.spec.ts` (each
   panel, Source beside Preview, a line target, a relative link, the
   frame's script not running, zoom and fit, a new image on disk);

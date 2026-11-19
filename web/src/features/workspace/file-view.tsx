@@ -23,6 +23,7 @@ import {
   filePanelOf,
   hasPreview,
   imageType,
+  previewFits,
 } from "../../data/workspace/file-panels";
 import { nodeError } from "../../data/workspace/root";
 import type { Saved } from "../../data/workspace/save";
@@ -88,6 +89,10 @@ export function FileView({
   const image = panel === "image" && filePanels ? imageType(path) : null;
   const [side, setSide] = useSide(goTo);
   const previewing = preview !== null && side === "preview";
+  // Past Paseo's display budget the Preview says so instead of reading
+  // the whole file; Source still reads it a page at a time.
+  const tooLargeToPreview =
+    text.kind === "text" && !previewFits(text.version.size);
   const editing = draft !== null;
   const dirty =
     editing && (text.kind !== "text" || draft !== text.lines.join("\n"));
@@ -106,10 +111,10 @@ export function FileView({
   const partial = text.kind === "text" && text.next !== null;
   const { whole } = file;
   useEffect(() => {
-    if (previewing && partial) {
+    if (previewing && partial && !tooLargeToPreview) {
       void whole();
     }
-  }, [previewing, partial, whole]);
+  }, [previewing, partial, tooLargeToPreview, whole]);
 
   const save = (force: boolean) => {
     if (draft === null || saving) {
@@ -212,6 +217,10 @@ export function FileView({
         />
       ) : text.kind === "binary" ? (
         <EmptyState title="Binary file preview is not available." icon="file">
+          {sizeWord(text.version.size)}
+        </EmptyState>
+      ) : previewing && tooLargeToPreview ? (
+        <EmptyState title="This file is too large to display" icon="file">
           {sizeWord(text.version.size)}
         </EmptyState>
       ) : previewing ? (

@@ -5,6 +5,8 @@ import {
   filePanelOf,
   hasPreview,
   imageType,
+  PREVIEW_LIMIT,
+  previewFits,
 } from "./file-panels";
 
 describe("the panel a file opens in (Paseo's catalog)", () => {
@@ -40,5 +42,10 @@ describe("the panel a file opens in (Paseo's catalog)", () => {
     expect(imageType("logo.SVG")).toBe("image/svg+xml");
     expect(imageType("photo.jpg")).toBe("image/jpeg");
     expect(imageType("main.rs")).toBeNull();
+  });
+
+  it("draws a Preview up to Paseo's 50 MiB display budget", () => {
+    expect(previewFits(PREVIEW_LIMIT)).toBe(true);
+    expect(previewFits(PREVIEW_LIMIT + 1)).toBe(false);
   });
 });

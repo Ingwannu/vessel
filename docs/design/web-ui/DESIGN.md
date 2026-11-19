@@ -1584,6 +1584,9 @@ project".
   Segmented, "File view") in the head before Edit; they open on Preview,
   or on Source when opened at a line (each later line asked for turns to
   Source again). Edit turns to Source; the Preview draws the open edit.
+  A Preview reads the whole file; past Paseo's web display budget (50
+  MiB) it says "This file is too large to display" with the size, and
+  Source still reads it a page at a time.
   The Markdown preview: a 16px gutter around a 78ch reading column, the
   front matter (`---` YAML at the top, read as Paseo reads it) as a
   two-column table 24px above the body (keys mono in the secondary ink on

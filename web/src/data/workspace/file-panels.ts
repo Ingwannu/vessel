@@ -64,3 +64,14 @@ export function hasPreview(panel: FilePanel): panel is PreviewPanel {
 export function imageType(path: string): string | null {
   return IMAGE_TYPES[fileExtension(path)] ?? null;
 }
+
+/** The largest file a Preview draws: Paseo's web display budget
+ * (`source/readonly/presentation.ts`, 50 MiB), past which its text panel
+ * says the file is too large to display. A Preview reads the whole file,
+ * so a larger one is left to Source, which reads it a page at a time. */
+export const PREVIEW_LIMIT = 50 * 1024 * 1024;
+
+/** Whether a file of `size` bytes is drawn in its Preview. */
+export function previewFits(size: number): boolean {
+  return size <= PREVIEW_LIMIT;
+}
