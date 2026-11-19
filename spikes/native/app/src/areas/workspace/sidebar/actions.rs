@@ -37,7 +37,7 @@ use vessel_app_kit::menu::{Content, ItemStatus, MenuHandlers, MenuItem, MenuStat
 use vessel_app_kit::theme::{SidebarSurfaces, radius};
 use vessel_app_kit::tooltip::{Configuration, Delay, Offset, Place, Side};
 use vessel_app_kit::ui::{
-    AnyElement, App, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    AnyElement, App, ClickEvent, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
     IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, SharedString,
     StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
 };
@@ -212,17 +212,39 @@ impl Shell {
         self.choose_place(PlacePick::Isolation(PlaceMode::Worktree), window, cx);
     }
 
-    fn project_remove_dismiss(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.areas.workspace.sidebar.confirm = None;
+    /// The question closed unanswered (Cancel, Escape, the scrim, the
+    /// sheet let go): the keys go back to whoever had them before the menu,
+    /// and the dialog's cycle and sheet start fresh next time.
+    fn project_remove_dismiss(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let rows = &mut self.areas.workspace.sidebar;
+        rows.confirm = None;
+        rows.dialog.dismissed(window, cx);
         cx.notify();
     }
 
-    fn project_remove_confirmed(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(target) = self.areas.workspace.sidebar.confirm.take() else {
+    fn project_remove_confirmed(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let rows = &mut self.areas.workspace.sidebar;
+        let Some(target) = rows.confirm.take() else {
             return;
         };
+        rows.dialog.dismissed(window, cx);
         self.remove_project_from(&target.machine, target.project, Origin::Sidebar);
         cx.notify();
+    }
+
+    /// The kebab activated by a click (a pointer's press already opened
+    /// the menu on its way down; assistive technology clicks only): open
+    /// the menu unless it is already open for this project.
+    fn project_menu_activate(
+        &mut self,
+        target: Target,
+        at: Point<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.areas.workspace.sidebar.menu_is_for(&target) {
+            self.project_menu_open(target, at, window, cx);
+        }
     }
 
     /// Ask `machine` to forget `project`, its row spinning until it
@@ -338,6 +360,7 @@ pub(super) fn trailing(
         hidden(button, false)
     });
     let opened = target.clone();
+    let activated = target.clone();
     let (side, mark) = if compact {
         (ACTION_COMPACT, KEBAB_COMPACT)
     } else {
@@ -362,9 +385,12 @@ pub(super) fn trailing(
             this.project_menu_open(opened.clone(), event.position, window, cx);
         }),
     )
-    .on_click(|_event, _window, cx| {
+    // A click (assistive technology's Click action, or the end of a
+    // pointer's press) opens it too, once.
+    .on_click(cx.listener(move |this, event: &ClickEvent, window, cx| {
         cx.stop_propagation();
-    })
+        this.project_menu_activate(activated.clone(), event.position(), window, cx);
+    }))
     .relative()
     .child(anchor_probe(&rows.place(&key)));
     div()
