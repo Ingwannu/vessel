@@ -11,11 +11,11 @@ import {
   appDiagnosticText,
   diagnosticSteps,
   type MachineDiagnostic,
-  NODE_DIAGNOSTICS_PROTOCOL,
 } from "../../data/app-diagnostic";
 import { nodeDiagnostics } from "../../data/calls";
 import type { FleetState } from "../../data/fleet";
 import type { NodeKey } from "../../wire/bridge";
+import { DIAGNOSTICS_PROTOCOL } from "../../wire/proto";
 import { nodeLabel } from "../../data/nodes";
 import { Button, Row, RowList, Spinner, StatusDot } from "../../ui/kit";
 import { SettingsPage, SettingsSection } from "../settings/settings-page";
@@ -76,7 +76,7 @@ function starting(state: FleetState): MachineDiagnostic[] {
       protocol: status.protocol,
       version: status.node.version,
     };
-    return status.protocol < NODE_DIAGNOSTICS_PROTOCOL
+    return status.protocol < DIAGNOSTICS_PROTOCOL
       ? { ...facts, state: "unsupported" }
       : { ...facts, state: "running" };
   });

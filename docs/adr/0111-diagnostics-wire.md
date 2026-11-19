@@ -137,10 +137,16 @@ Vessel has, today:
   separate setting here.
 - States as a page shows them: asking (the card says so while it waits), the options, or the probe's error
   with its message; "not installed" and "no conversations here" are the agent's status. Unchanged.
-- The diagnostic's refresh (`Probes::refresh`): it waits for the key's slot like any caller, then always
-  probes and keeps the answer, success or failure, in the slot. A later `harness.options` takes that
-  answer as it would any recent one (a failure is never reused, as before). Vessel has no catalogue
-  subscription, so "published" means the next caller sees it.
+- The diagnostic's refresh (`Probes::refresh`): it waits for the key's slot like any caller, then probes
+  and keeps the answer, success or failure, in the slot. A later `harness.options` takes that answer as
+  it would any recent one (a failure is never reused, as before). Vessel has no catalogue subscription,
+  so "published" means the next caller sees it.
+- A floor (`REFRESH_FLOOR`, 5 s; the node reviewer's note on row 334): `agent.diagnostic` is `read`, as
+  Paseo's is `daemon.read`, so a paired viewer pressing Refresh could keep the node starting an agent back
+  to back. A refresh takes, instead of probing, the answer of a probe that finished while it waited for the
+  slot, or of a refresh of the same version that finished under 5 s ago, whatever it found. One agent
+  start per key per 5 s at most; the cost is a person who signs in and presses Refresh within 5 s seeing
+  the previous answer once, and such a reply's "Probe took" is how long this call waited (near zero).
 
 ### 3. The rest of the node report (TRACKER 567)
 
@@ -180,10 +186,13 @@ The report's readers:
   there, as for `node.stop`).
 - Which file: on Unix, the file this node's standard error is (compared by device and inode with
   `logs/vesseld.log` and `logs/vessel-service.log` in its data directory, through `/dev/fd/2`); elsewhere,
-  `logs/vesseld.log` when it exists. An old file a node no longer writes is never taken for its log. A node writing to a terminal or the journal answers that it has no log
-  file, saying where it writes. The path is shown with the home folded to `~`.
+  `logs/vesseld.log` when it exists. An old file a node no longer writes is never taken for its log. A node whose standard error is a terminal answers `terminal`;
+  anything else that is not one of those two files (the journal, `/dev/null`, a redirect, a rotated
+  `vesseld.log.1`) answers `elsewhere`, and the page says only that the log is not a file the node keeps. The path is shown with the home folded to `~`.
 - Bounds: the last `lines` (default 100, Paseo's; at most 1000), from at most the last 64 KiB of the file,
-  each line cut at 4 KiB; the reply says when it was cut.
+  each line cut at 4 KiB; the reply says when it was cut. A line is sent as text: a terminal's escape
+  sequences (colours) and other control characters but a tab are dropped (the node's own logging writes no
+  colours to a file, but a wrapper or a test fixture may).
 - Process diagnostics stay in the report (part 3 adds nothing to them): the pid, parent, memory and uptime
   ADR 0074 collects are Paseo's `ProcessDiagnostics`.
 - Clients, with Paseo's words: a machine's settings have "Log file" (the path, or where the node writes
@@ -216,7 +225,7 @@ The report's readers:
   report against fixtures shared with the page's tests; the report's new sections absent below the new
   protocol.
 - `vessel-node`: `Probes::refresh` replaces a fresh answer and its result is what `harness.options` reads
-  next; e2e `agent.diagnostic` for a ready fake agent, a missing one, an unknown one and one whose probe
+  next; refreshes back to back share one probe until the floor passes; e2e `agent.diagnostic` for a ready fake agent, a missing one, an unknown one and one whose probe
   fails; the report's sections on Linux; `node.log` for a background node's file, a missing file, the
   line and byte bounds, and refusal without `Admin`.
 - The page: the dialogs' states (running, text, error, empty, copy, refresh) and the Settings rows; e2e on

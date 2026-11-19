@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  HOST_FOLDERS_PROTOCOL,
-  hasProjectIcons,
-  iconAddress,
-} from "./project-icons";
+import { HOST_FOLDERS_PROTOCOL } from "../../wire/proto";
+import { hasProjectIcons, iconAddress } from "./project-icons";
 
 describe("project icons (ADR 0112)", () => {
   it("draws the node's bytes with the type the node decided", () => {
