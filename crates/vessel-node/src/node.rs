@@ -330,8 +330,7 @@ async fn core(
         },
     ));
     let relays = Arc::new(Relays::new(Arc::clone(keypair), stop.clone()));
-    // A home mints its members' tickets from its relays' token
-    // (`fleet.callback`).
+    // A home mints its members' tickets from its relays' token (`fleet.callback`).
     let home_relays = relaying.map(|(token, tls)| {
         relays.link_configured(&config.relays, &token, &tls);
         fleet::HomeRelays {
@@ -436,7 +435,7 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let features = setup::feature_state(config, store, &tasks, &stop).await?;
+    let features = setup::feature_state(config, (id, &settings), store, &tasks, &stop).await?;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         workspace_labels: features.labels,
         lsp,
@@ -474,6 +473,7 @@ async fn core(
         push: features.push,
         settings: Arc::clone(&settings),
         limits: features.limits,
+        plugins: features.plugins,
     })));
     automation::schedules::start(
         commands,

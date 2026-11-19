@@ -98,7 +98,16 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListInbox
         | Method::Diagnostics
         | Method::ReadNodeLog
+        | Method::ListPlugins
         | Method::ListWorkspaceLabels => json!({}),
+        Method::GetPluginLogs
+        | Method::EnablePlugin
+        | Method::DisablePlugin
+        | Method::ReloadPlugin
+        | Method::RemovePlugin => json!({"plugin":"sample"}),
+        Method::InspectPlugin => json!({"path":"/fixture/plugin"}),
+        Method::InstallPlugin => json!({"source":"/fixture/plugin","id":"sample"}),
+        Method::WatchPlugins => json!({"after":0}),
         Method::GetAgentDiagnostic => json!({"agent":"codex"}),
         Method::AssignWorkspaceLabel => {
             json!({"workspace":id,"label":{"name":"Ready","color":"violet"},"assignment":"assigned"})

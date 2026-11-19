@@ -79,6 +79,11 @@ pub(crate) enum NodeCommand {
         /// until this build offers it). Repeat for several agents.
         #[arg(long, value_name = "AGENT=acp|direct", value_parser = driver)]
         driver: Vec<(HarnessKind, AgentDriver)>,
+        /// Run installed plugins on this node, or stop them all (ADR 0115;
+        /// off by default). Plugins are trusted code with the node user's
+        /// access.
+        #[arg(long, value_enum)]
+        plugins: Option<super::Switch>,
     },
 }
 
