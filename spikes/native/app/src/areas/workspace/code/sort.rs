@@ -150,7 +150,9 @@ impl Shell {
 
 /// Paseo's sort trigger: the order's word and a 12 chevron, 24 high, 4
 /// in, a hover on the sidebar's hover surface; a press moves to the next
-/// order. Nothing where the machine cannot say times and sizes.
+/// order. Nothing where the machine cannot say times and sizes. A button
+/// named by its word, as Paseo's `Pressable` is named by its text (TRACKER
+/// 808).
 pub(super) fn trigger(
     shell: &Shell,
     tokens: &Tokens,
@@ -171,6 +173,8 @@ pub(super) fn trigger(
     Some(
         div()
             .id("files-sort-trigger")
+            .role(gpui::Role::Button)
+            .aria_label(word)
             .flex()
             .flex_row()
             .flex_none()

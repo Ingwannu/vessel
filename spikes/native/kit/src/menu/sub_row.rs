@@ -115,6 +115,8 @@ fn sub_row<V: 'static>(
             surfaces.foreground_muted,
         ));
     let mut element = row_body(index, item, paint, narrow)
+        // Whether its page is open (TRACKER 808: GPUI has no has-popup).
+        .aria_expanded(open)
         .relative()
         .when(open, move |element| element.bg(wash))
         .child(trailing)
