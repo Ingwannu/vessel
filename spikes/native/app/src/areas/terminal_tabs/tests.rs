@@ -237,6 +237,50 @@ fn a_second_new_terminal_waits_for_the_first_create(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn a_tab_that_lost_its_machine_follows_again_once_it_is_back(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let info = shell_info(session);
+    let terminal = info.id;
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_tab_new(None, window, cx);
+        answer(
+            shell,
+            Reply::Created {
+                place: TerminalPlace::Session { session },
+                result: Ok(Box::new(info)),
+            },
+            cx,
+        );
+    });
+    let _created_and_followed = sent(&probe, cx);
+    shell.update_in(cx, |shell, _window, cx| {
+        // The connection dropped while the fleet still reads it online.
+        answer(
+            shell,
+            Reply::Lost {
+                terminal,
+                failure: vessel_app_view::terminal_tabs::Failure::Offline,
+            },
+            cx,
+        );
+        let key = PaneKey {
+            machine: "laptop".to_owned(),
+            terminal,
+        };
+        let stage = shell.areas.terminal_tabs.panes.get(&key).map(|pane| pane.stage);
+        assert!(matches!(stage, Some(Stage::Offline)));
+        // The next fleet read finds the machine online.
+        shell.terminal_tabs_rejoin();
+    });
+    assert!(matches!(
+        sent(&probe, cx).as_slice(),
+        [Request::Follow { terminal: followed, .. }] if *followed == terminal
+    ));
+}
+
+#[gpui::test]
 fn keys_and_a_paste_wait_in_order_until_the_shell_is_live(cx: &mut TestAppContext) {
     let (probe, cx) = open(cx);
     let session = probe.read_with(cx, |probe, _| probe.2);

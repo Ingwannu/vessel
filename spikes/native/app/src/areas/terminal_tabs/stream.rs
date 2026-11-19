@@ -7,7 +7,7 @@ use vessel_app_kit::ui::Context;
 use vessel_app_link::Command;
 use vessel_app_link::terminals::{Answer, Ask, Reply, Request};
 use vessel_app_view::terminal::{Focus, Others, QueryDuty, TerminalModel, query_duty};
-use vessel_app_view::terminal_tabs::Trouble;
+use vessel_app_view::terminal_tabs::{Failure, Trouble};
 use vessel_proto::{EventRecord, TerminalId};
 
 use super::{PaneKey, Stage};
@@ -44,6 +44,27 @@ impl Shell {
                 from,
             },
         }));
+    }
+
+    /// Tabs that lost their machine follow again once it reads online
+    /// (Paseo's stream controller attaches again on reconnect), from where
+    /// their log stands, and claim their size again.
+    pub(crate) fn terminal_tabs_rejoin(&mut self) {
+        let back: Vec<PaneKey> = self
+            .areas
+            .terminal_tabs
+            .panes
+            .iter()
+            .filter(|(_, pane)| pane.stage == Stage::Offline)
+            .map(|(key, _)| key.clone())
+            .filter(|key| self.machine_online(&key.machine))
+            .collect();
+        for key in back {
+            if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key) {
+                pane.sent_size = None;
+            }
+            self.terminal_tab_follow(&key);
+        }
     }
 
     /// The next send of `key`'s sender, when none is in flight.
@@ -98,7 +119,10 @@ impl Shell {
             }
             Reply::Lost { terminal, failure } => {
                 let key = key(terminal);
-                if self.machine_online(&key.machine) {
+                // A dropped connection is the host's, not the terminal's:
+                // the tab follows again once the machine is back
+                // (`terminal_tabs_rejoin`).
+                if failure != Failure::Offline && self.machine_online(&key.machine) {
                     self.terminal_tab_trouble(&key, failure.trouble(), cx);
                 } else if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key) {
                     pane.stage = Stage::Offline;

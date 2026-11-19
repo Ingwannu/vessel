@@ -31,8 +31,10 @@ impl Shell {
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Fleet(fleet) => {
-                // The shown workspace's shells are listed on each read.
+                // The shown workspace's shells are listed on each read,
+                // and tabs that lost their machine follow again.
                 self.terminal_tabs_poll();
+                self.terminal_tabs_rejoin();
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every
                 // 2 s, measured by the coordinator on 0.0.0.0.13).
