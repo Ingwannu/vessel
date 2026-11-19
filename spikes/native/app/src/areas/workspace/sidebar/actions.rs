@@ -172,7 +172,7 @@ impl Shell {
         else {
             return;
         };
-        self.projects_page(Some(target.machine.clone()), false, window, cx);
+        self.projects_page(Some(target.machine.clone()), window, cx);
         self.areas.workspace.page.detail = Some(Detail::new(info.id));
         self.load_detail(&target.machine, &info);
     }
