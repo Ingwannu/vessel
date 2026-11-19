@@ -84,22 +84,6 @@ export function cloneProject(
   );
 }
 
-/** Start a new project: create `path` if needed (it must be empty) and
- * run `git init` there. */
-export function initProject(
-  fleet: Fleet,
-  node: NodeKey,
-  path: string,
-  name: string | null,
-): Promise<Outcome<ProjectInfo>> {
-  return attempt(() =>
-    fleet.bridge.call(node, "project.init", {
-      path,
-      ...(name === null ? {} : { name }),
-    }),
-  );
-}
-
 /** Forget a project; its files stay. Refused while it has worktrees or
  * live sessions; a clone still running is stopped. */
 export function removeProject(
