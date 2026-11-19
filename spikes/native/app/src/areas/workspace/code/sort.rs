@@ -16,8 +16,11 @@
 //!   Modified or Size is chosen, and every listed folder when one of them
 //!   is chosen after Name (between the two the facts are already there);
 //!   an answer for a root no longer shown, or a folder no longer listed,
-//!   is dropped. A folder whose inspection fails keeps no facts: its
-//!   entries sort last. The order is kept on the tab (`Files::sort`) so the
+//!   is dropped. Inspections wait on the machine's background line
+//!   (`background.rs`: the node refuses file work beyond four at once). A
+//!   folder whose inspection fails keeps no facts, its entries sorting
+//!   last, until the next folder listed asks it again (as the page's next
+//!   pass does). The order is kept on the tab (`Files::sort`) so the
 //!   many places that draw the tree again need no preferences; it is read
 //!   again when the root's machine is known (`code_read_tab`) and when the
 //!   preference changes.
@@ -98,6 +101,7 @@ impl Shell {
         if self.explorer_sort() == ExplorerSort::Name {
             return;
         }
+        let _asked = self.areas.workspace.code.files.refused.remove(dir);
         let Some((machine, root)) = self
             .areas
             .workspace
@@ -107,7 +111,7 @@ impl Shell {
         else {
             return;
         };
-        self.ask(
+        self.ask_in_background(
             &machine,
             Ask::File(FileAsk::Inspect(InspectDirectory {
                 root,
@@ -115,6 +119,20 @@ impl Shell {
                 ignored: IgnoredEntries::Include,
             })),
         );
+    }
+
+    /// Ask again for the folders whose inspection failed, those still
+    /// listed.
+    pub(super) fn inspect_refused(&mut self) {
+        let files = &mut self.areas.workspace.code.files;
+        let refused: Vec<RelPath> = files
+            .refused
+            .drain()
+            .filter(|dir| matches!(files.listings.get(dir), Some(Listing::Listed(_))))
+            .collect();
+        for dir in refused {
+            self.inspect_folder(&dir);
+        }
     }
 
     /// A folder's times and sizes arrived.
@@ -133,6 +151,7 @@ impl Shell {
             return;
         }
         let Ok(inspected) = result else {
+            let _new = panel.files.refused.insert(ask.directory.clone());
             return;
         };
         for entry in inspected.entries {

@@ -1330,6 +1330,25 @@ facts by path until the root changes (`app/src/areas/workspace/code/sort.rs`,
 order in `view::workspace::file_tree`). A machine below the file panels'
 protocol sorts by name and shows no trigger.
 
+Add project suggests folders as Paseo's does (ADR 0112): the folder field
+of Settings > Projects' add form asks `folder.suggest` 250 ms after the
+last key, and the machine's folders under its user's home come back as
+Paseo's rows under the field (the path with the home as `~`, the whole
+path under it); a row chosen in Add a folder adds it, in the other forms it
+fills the field (`app/src/areas/workspace/projects/add.rs`). Projects show
+their own icon (`project.icon`, asked once per project when a machine's
+list first names it), else Paseo's lettered identity square (its ten
+fills keyed by the project's id, `kit::theme::identity::Hue::of_key`, as
+the page keys them), 16 square and 20 at a phone's width, in the sidebar
+and in Settings > Projects (`app/src/areas/workspace/project_icons.rs`).
+A machine below the protocol keeps the plain field and draws the squares.
+Icons and the Files tree's inspections are background file work: they
+wait on one line per machine, two out at a time
+(`app/src/areas/workspace/background.rs`), since the node serves file work
+on four slots and refuses a fifth at once; a person's own file action keeps
+a slot. A folder whose inspection was refused is asked again with the next
+folder listed.
+
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.

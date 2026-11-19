@@ -4,6 +4,7 @@ use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::is_cloning;
 use vessel_app_view::workspace::save::save_text;
 use vessel_client::NodeClient;
+use vessel_proto::workspace::host_folders::GetProjectIcon;
 use vessel_proto::workspace::{
     GetStatus, ListBranches, ListProjects, ListSnapshots, ListStashes, ProjectInfo, ReadFile,
     RemoveProject, RunSetup, WriteExpect, WriteFile,
@@ -65,6 +66,16 @@ async fn project(hub: &Hub, client: &NodeClient, reply: &Reply, ask: ProjectAsk)
             project: ask.project,
             approved: Some((ask.digest.clone(), ask.approved)),
             result: call(client, ask).await,
+        },
+        ProjectAsk::SuggestFolders(ask) => Answer::Folders {
+            query: ask.query.as_str().to_owned(),
+            result: call(client, ask).await,
+        },
+        ProjectAsk::Icon(project) => Answer::Icon {
+            project,
+            result: call(client, GetProjectIcon { project })
+                .await
+                .map(|icon| icon.icon),
         },
     }
 }

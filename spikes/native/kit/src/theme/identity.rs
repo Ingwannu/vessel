@@ -120,6 +120,35 @@ struct Tone {
     dark: u32,
 }
 
+impl Hue {
+    /// Paseo's `deriveIdentityColorName`: its `hashIdentityKey` (31 times,
+    /// over each character's first UTF-16 unit, kept to 32 bits) into the
+    /// reference order. A project's lettered square keys it by the
+    /// project's id, as the page does, so both colour a project alike.
+    #[must_use]
+    pub fn of_key(key: &str) -> Self {
+        let hash = key.chars().fold(0_u32, |hash, character| {
+            let mut units = [0_u16; 2];
+            let first = character
+                .encode_utf16(&mut units)
+                .first()
+                .copied()
+                .unwrap_or_default();
+            hash.wrapping_mul(31).wrapping_add(u32::from(first))
+        });
+        let count = u32::try_from(Self::ALL.len()).unwrap_or(1);
+        let index = usize::try_from(hash.checked_rem(count).unwrap_or(0)).unwrap_or(0);
+        Self::ALL.get(index).copied().unwrap_or(Self::Violet)
+    }
+}
+
+/// The solid fill behind a white letter (Paseo's `identityColor`, a
+/// project's lettered square), the same in both schemes.
+#[must_use]
+pub fn fill(hue: Hue) -> Hsla {
+    rgb(hue.tone().fill).into()
+}
+
 /// Foreground ink for identity glyphs/text; the scheme chooses the contrast band.
 #[must_use]
 pub fn foreground(hue: Hue, scheme: Scheme) -> Hsla {
@@ -143,6 +172,24 @@ pub fn tint(hue: Hue) -> Hsla {
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
+
+    #[test]
+    fn a_key_takes_the_hue_paseos_hash_gives_it() {
+        // Paseo's `deriveIdentityColorName` over the same keys (the page's
+        // `identity.test.ts` holds the same four).
+        assert_eq!(
+            Hue::of_key("00000001-0000-4000-8000-000000000000"),
+            Hue::Blue
+        );
+        assert_eq!(
+            Hue::of_key("8b015dc1-ab79-482e-866e-f36ceb7d5dfa"),
+            Hue::Orange
+        );
+        assert_eq!(Hue::of_key("한글"), Hue::Pink);
+        assert_eq!(Hue::of_key("😀x"), Hue::Red);
+        let violet: Hsla = rgb(0x007a_6aa8).into();
+        assert_eq!(fill(Hue::Violet), violet);
+    }
 
     #[test]
     fn identities_keep_distinct_ink_bands_and_exact_theme_independent_tint_alpha() {

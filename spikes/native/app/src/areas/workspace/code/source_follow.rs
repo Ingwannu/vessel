@@ -55,6 +55,7 @@ impl Shell {
         panel.changes.relist();
         panel.files.listings.clear();
         panel.files.facts.clear();
+        panel.files.refused.clear();
         panel.files.open.clear();
         panel.files.viewer = None;
         panel.files.relist();

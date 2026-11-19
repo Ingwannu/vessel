@@ -42,6 +42,8 @@ pub(crate) struct Page {
     error: Option<String>,
     /// A removal the node refused, until dismissed.
     failure: Option<String>,
+    /// The folder field's suggestions (`add`, ADR 0112).
+    suggestions: add::Suggestions,
 }
 
 impl Page {
@@ -50,11 +52,18 @@ impl Page {
             detail: None,
             menu: false,
             adding: None,
-            path: super::field(window, cx),
+            path: TextField::with_change(
+                "",
+                |_shell: &mut Shell, _text, _window, _cx| {},
+                Shell::add_path_changed,
+                window,
+                cx,
+            ),
             url: super::field(window, cx),
             busy: false,
             error: None,
             failure: None,
+            suggestions: add::Suggestions::default(),
         }
     }
 }
@@ -99,6 +108,7 @@ impl Shell {
         page.adding = Some(form);
         page.error = None;
         page.path.clear(window, cx);
+        page.suggestions = add::Suggestions::default();
         page.url.clear(window, cx);
         let placeholder = match form {
             AddForm::Clone => labels.parent_placeholder,
@@ -372,7 +382,7 @@ fn list_body(
         body = body.child(add_menu(shell, tokens, cx));
     }
     if let Some(form) = state.adding {
-        body = body.child(add_form(shell, machine, form, tokens, compact, cx));
+        body = body.child(add::add_form(shell, machine, form, tokens, compact, cx));
     }
     body = body.child(match view {
         None | Some(ProjectsView::Loading) => empty(labels.loading, tokens),
@@ -388,7 +398,8 @@ fn list_body(
         Some(ProjectsView::Ready(list)) => {
             let mut list_rows = rows(tokens);
             for (index, project) in list.projects.iter().enumerate() {
-                list_rows = list_rows.child(project_row(shell, index, project, tokens, cx));
+                list_rows =
+                    list_rows.child(project_row(shell, index, project, tokens, compact, cx));
             }
             list_rows
         }
@@ -432,12 +443,13 @@ fn project_row(
     index: usize,
     project: &ProjectInfo,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let words = shell.words();
     let opened = project.clone();
     let name = project.name.to_string();
-    // Paseo's project row: the project's mark (its initial on a tile, 16),
+    // Paseo's project row: the project's mark (`project_icons::mark`, 16),
     // its name, its state as a badge, a chevron; the whole row opens the
     // project's page.
     let title_line = div()
@@ -445,9 +457,12 @@ fn project_row(
         .flex_row()
         .items_center()
         .gap(px(12.0))
-        .child(vessel_app_kit::initial_tile(
-            vessel_app_kit::initial_of(&name),
-            tokens,
+        .child(super::project_icons::mark(
+            shell,
+            &shell.projects_machine().unwrap_or_default(),
+            project.id,
+            &name,
+            compact,
         ))
         .child(title(name, tokens));
     let mut controls = div();
@@ -511,105 +526,6 @@ fn add_menu(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
     menu
 }
 
-/// The add form, in place: a clone's URL, the folder, the help line, the
-/// node's refusal, Cancel and the form's verb.
-fn add_form(
-    shell: &Shell,
-    machine: &str,
-    form: AddForm,
-    tokens: &Tokens,
-    compact: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let words = shell.words();
-    let labels = words.labels();
-    let state = &shell.areas.workspace.page;
-    let (heading, verb, folder_label) = match form {
-        AddForm::Folder => (labels.title_add_folder, labels.add, labels.folder),
-        AddForm::Clone => (labels.title_clone, labels.clone, labels.clone_into),
-        AddForm::New => (labels.title_new, labels.create, labels.folder),
-    };
-    let url = state.url.text(cx);
-    let path = state.path.text(cx);
-    let folder = path.trim().trim_end_matches(['/', '\\']);
-    let name = repository_name(&url);
-    let target = name
-        .filter(|_| !folder.is_empty())
-        .map(|name| (folder, name));
-    let ready = !state.busy && !folder.is_empty() && (form != AddForm::Clone || name.is_some());
-    let mut card = div()
-        .flex()
-        .flex_col()
-        .gap(px(10.0))
-        .p(px(14.0))
-        .rounded(px(vessel_app_kit::theme::radius::R4))
-        .border_1()
-        .border_color(tokens.neutral.border)
-        .bg(tokens.neutral.surface1)
-        .child(div().type_(Type::Title).child(heading));
-    if form == AddForm::Clone {
-        let url_field = state.url.element(tokens, compact, cx);
-        card = card.child(labelled(labels.repository_url, url_field, tokens));
-    }
-    let path_field = state.path.element(tokens, compact, cx);
-    card = card
-        .child(labelled(folder_label, path_field, tokens))
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.add_hint(form, machine, target)),
-        );
-    if let Some(error) = &state.error {
-        card = card.child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.destructive)
-                .child(error.clone()),
-        );
-    }
-    card.child(
-        div()
-            .flex()
-            .flex_row()
-            .justify_end()
-            .gap(px(8.0))
-            .child(
-                button("add-cancel", labels.cancel, false, tokens).on_click(cx.listener(
-                    |this, _event, _window, cx| {
-                        this.areas.workspace.page.adding = None;
-                        cx.notify();
-                    },
-                )),
-            )
-            .child(
-                button("add-submit", verb, true, tokens)
-                    .when(!ready, |button| button.opacity(0.5))
-                    .on_click(cx.listener(|this, _event, _window, cx| this.submit_add(cx))),
-            ),
-    )
-}
-
-/// A field with its label above it.
-fn labelled(
-    label: &'static str,
-    field: impl vessel_app_kit::ui::IntoElement,
-    tokens: &Tokens,
-) -> Div {
-    div()
-        .flex()
-        .flex_col()
-        .gap(px(4.0))
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(label),
-        )
-        .child(field)
-}
-
-use vessel_app_kit::ui::FluentBuilder as _;
-
+mod add;
 #[cfg(test)]
 mod language_tests;

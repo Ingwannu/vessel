@@ -181,7 +181,7 @@ pub(crate) fn render(
         )
         .child(layout::body(
             &shell.areas.sidebar.layout,
-            projects(shell, tokens, cx),
+            projects(shell, tokens, vessel_app_kit::breakpoint::phone(window), cx),
             heading(shell, tokens, cx),
             list,
         ))
@@ -340,9 +340,10 @@ const fn schedules(
 fn projects(
     shell: &Shell,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
-    crate::areas::workspace::sidebar_projects(shell, tokens, cx)
+    crate::areas::workspace::sidebar_projects(shell, tokens, compact, cx)
 }
 
 fn row(

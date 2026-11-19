@@ -9,11 +9,13 @@
 //! their words are `Lang::workspace()`'s.
 
 mod approval;
+mod background;
 mod book;
 mod code;
 mod detail;
 mod place;
 mod place_rows;
+mod project_icons;
 mod projects;
 mod remove;
 mod sidebar;
@@ -58,6 +60,10 @@ pub(crate) struct Workspace {
     /// The sidebar's projects unfolded past their first rows ("All
     /// projects (N)" pressed).
     pub(crate) projects_unfolded: bool,
+    /// Projects' own icons (ADR 0112).
+    pub(crate) icons: project_icons::ProjectIcons,
+    /// Each machine's background file work (`background.rs`).
+    pub(crate) background: background::Background,
 }
 
 impl Workspace {
@@ -69,6 +75,8 @@ impl Workspace {
             start: None,
             code: code::CodePanel::new(window, cx),
             projects_unfolded: false,
+            icons: project_icons::ProjectIcons::default(),
+            background: background::Background::default(),
         }
     }
 }
@@ -131,6 +139,7 @@ impl Shell {
                     .workspace
                     .projects
                     .insert(machine.to_owned(), ProjectsView::listed(result));
+                self.ask_project_icons(machine);
             }
             Answer::Project(project) => {
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
@@ -138,6 +147,11 @@ impl Shell {
                 }
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
+            Answer::Folders { query, result } => self.folders_suggested(machine, &query, result),
+            Answer::Icon { project, result } => {
+                self.background_answered(machine);
+                self.project_icon_read(machine, project, result);
+            }
             Answer::Forgot { project, result } => self.forgot_project(machine, project, result),
             Answer::Commands {
                 project,
@@ -178,7 +192,10 @@ impl Shell {
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             Answer::Observed { ask, result } => self.file_observed(&ask, result, cx),
             Answer::Duplicated { ask, result } => self.entry_duplicated(&ask, result),
-            Answer::Inspected { ask, result } => self.folder_inspected(&ask, result),
+            Answer::Inspected { ask, result } => {
+                self.background_answered(machine);
+                self.folder_inspected(&ask, result);
+            }
             Answer::Downloaded { result, .. } => self.file_downloaded(result, cx),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
