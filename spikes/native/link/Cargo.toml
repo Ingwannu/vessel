@@ -46,3 +46,8 @@ tokio = { version = "1", default-features = false, features = ["sync"] }
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 vessel-rpc.workspace = true
 tokio = { workspace = true, features = ["io-util", "test-util"] }
+
+# The desktop audio owner (ADR 0114 tones; ADR 0080's voice shares it).
+# Browser builds play their own sound; other systems have none yet.
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+cpal.workspace = true

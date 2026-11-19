@@ -77,11 +77,22 @@ pub mod mentions;
 pub mod node_settings;
 pub mod search;
 pub mod sessions;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+pub mod sound;
+/// A notice's sound where link has no audio output yet (ADR 0114): macOS
+/// and the browser build play nothing.
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+pub mod sound {
+    /// Nothing to play here.
+    pub const fn play(_kind: vessel_app_view::notices::NoticeKind) {}
+}
 pub mod sync;
 pub mod terminals;
 pub mod usage;
 #[cfg(target_arch = "wasm32")]
 mod web;
+#[cfg(test)]
+mod web_dispatch_tests;
 pub mod workspace;
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;

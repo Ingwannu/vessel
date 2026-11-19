@@ -215,11 +215,14 @@ jobs:
       VESSEL_BUILD_LABEL: ${{ needs.label.outputs.label }}
     steps:
       - uses: actions/checkout@v4
-      - name: Libraries GPUI links on Linux
+      - name: Libraries GPUI and the notification sound link on Linux
+        # libasound2-dev: cpal's ALSA backend (alsa-sys) for the notification
+        # tones (ADR 0114); without it the build stops at alsa-sys.
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxkbcommon-x11-dev libxkbcommon-dev \
-            libwayland-dev libvulkan-dev libx11-xcb-dev libxcb1-dev libfontconfig-dev libfreetype-dev
+            libwayland-dev libvulkan-dev libx11-xcb-dev libxcb1-dev libfontconfig-dev libfreetype-dev \
+            libasound2-dev
       - uses: actions/setup-node@v4
         with:
           node-version: "24"

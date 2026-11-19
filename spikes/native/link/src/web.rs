@@ -24,14 +24,16 @@ use std::cell::RefCell;
 use std::fmt;
 use std::str::FromStr;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use tokio::sync::mpsc;
 use vessel_app_view::machine_book::Name;
-use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::PairingLink;
 
+use crate::attachments::Files;
 use crate::demo::Demo;
-use crate::{ActAnswer, ActFailed, CHANNEL, Command, Event, Rejected, Unsent};
+use crate::{CHANNEL, Command, Event, Rejected, Unsent};
+
+mod refuse;
 
 /// The most events one command is answered with (a start: the fleet and
 /// the card; a prompt: the records and the delivery).
@@ -85,165 +87,31 @@ impl Link {
         }
     }
 
-    /// The demo's records for a prompt, with files or without: a browser
-    /// sends none, so both commands answer the same way.
-    fn demo_prompt(
-        &self,
-        session: vessel_proto::SessionId,
-        text: &str,
-        now: chrono::DateTime<Utc>,
-    ) {
-        let records = self.demo.borrow_mut().prompt(&session, text, now);
-        self.emit(Event::Records { session, records });
-        self.emit(Event::Sent { session });
-    }
-
+    /// Answer `command` at once: the demo's own records, a node's refusal
+    /// for what the demo cannot do ([`refuse`]), or nothing.
+    ///
+    /// One arm per command and no catch-all, so a new command does not
+    /// build here until it is answered (`web_dispatch_tests` keeps that).
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
-            Command::CodeSource(request) => {
-                self.emit(Event::CodeSource(Box::new(request.refused(Problem::Older))))
-            }
-            Command::Usage(ask) => self.emit(Event::Usage(
-                ask.refused(vessel_app_view::usage::RequestFailure::Unsupported),
-            )),
-            Command::SessionAccess(access) => self.emit(access.refused(ActFailed {
-                code: Some(vessel_proto::ErrorCode::Unsupported),
-                message: "Authenticated session navigation requires a native connection".to_owned(),
-            })),
-            Command::SessionLifecycle(request) => self.emit(Event::SessionLifecycle(
-                crate::sessions::lifecycle::Answer {
-                    ticket: request.ticket,
-                    result: Err(crate::sessions::lifecycle::Failure::Unsent),
-                },
-            )),
-            Command::Sessions(ask) => self.emit(Event::Sessions(
-                ask.refused(crate::sessions::Failure::Offline),
-            )),
-            Command::Create(ask) => self.emit(Event::Creation(
-                ask.refused(vessel_app_view::creation::Failure::Unsupported),
-            )),
-            Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
-                ask,
-                vessel_app_view::history::Problem::Unsupported,
-            ))),
-            Command::Labels(request) => self.emit(Event::Labels(
-                request.refused(vessel_app_view::labels::Failure::Unsupported),
-            )),
-            Command::Agents {
-                machine, request, ..
-            } => self.emit(Event::Agents {
-                machine,
-                request,
-                answer: Err(crate::agents::AgentsError::NoTransport),
-            }),
-
-            Command::Devices {
-                context,
-                ticket,
-                ask,
-            } => self.emit(Event::Devices(ask.rejected(
-                context,
-                ticket,
-                vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
-            ))),
-            Command::Machines(ask) => self.emit(Event::Machines(
-                ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
-            )),
-            Command::Sync { ticket, .. } => self.emit(Event::Sync(crate::sync::Answer {
-                ticket,
-                result: Err(vessel_app_view::sync::Problem::Refused(
-                    vessel_proto::ErrorCode::Unsupported,
-                )),
-            })),
-            Command::NodeSettings(ask) => self.emit(Event::NodeSettings(ask.refused(
-                vessel_app_view::idle_release::Problem::Refused(
-                    vessel_proto::ErrorCode::Unsupported,
-                ),
-            ))),
-            Command::Diagnostics(ask) => self.emit(Event::Diagnostics(ask.refused(
-                vessel_app_view::diagnostics::Problem::Refused(
-                    vessel_proto::ErrorCode::Unsupported,
-                ),
-            ))),
-            Command::RetireConnection(_tag) => {}
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);
                 self.emit(Event::Records { session, records });
             }
             Command::Prompt { session, text, .. } => self.demo_prompt(session, &text, now),
-            Command::Files(crate::attachments::Files::Prompt(with)) => {
-                self.demo_prompt(with.session, &with.text, now);
-            }
-            // A browser has no files to send yet (track P's row c).
-            Command::Files(crate::attachments::Files::Send(attach)) => {
-                self.emit(Event::Files(crate::attachments::Answer::Upload {
-                    message: attach.message,
-                    session: attach.session,
-                    key: attach.key,
-                    step: crate::attachments::Step::Failed {
-                        problem: vessel_app_view::composer::tray::Problem::Node(
-                            "The browser's demo takes no files".to_owned(),
-                        ),
-                        again: vessel_app_view::composer::tray::Again::Never,
-                    },
-                }));
-            }
-            // Nor any sent file to read back.
-            Command::Files(crate::attachments::Files::Capabilities(ask)) => {
-                self.emit(Event::Files(crate::attachments::Answer::Capabilities {
-                    ask,
-                    result: Err(crate::attachments::CapabilityFailure::Offline),
-                }))
-            }
-            Command::Files(crate::attachments::Files::Wake(wake)) => {
-                self.emit(Event::Files(crate::attachments::Answer::Woke {
-                    message: wake.message,
-                    session: wake.session,
-                    outcome: crate::attachments::WakeOutcome::Refused,
-                }));
-            }
-            Command::Files(crate::attachments::Files::Read(sent)) => {
-                self.emit(Event::Files(crate::attachments::Answer::Read {
-                    sent,
-                    bytes: None,
-                }));
-            }
-            Command::Files(crate::attachments::Files::Create(_)) => self.emit(Event::Failed(
-                "The browser's demo takes no files".to_owned(),
-            )),
             Command::Start {
                 machine,
                 harness,
                 prompt,
                 ..
-            } => {
-                let started = self
-                    .demo
-                    .borrow_mut()
-                    .start(&machine, &harness, &prompt, now);
-                match started {
-                    Some(card) => {
-                        self.emit(Event::Fleet(self.demo.borrow().fleet(now)));
-                        self.emit(Event::Started(card));
-                    }
-                    None => self.emit(Event::Failed(
-                        "The browser's demo has no room for another conversation".to_owned(),
-                    )),
-                }
-            }
+            } => self.demo_start(&machine, &harness, &prompt, now),
             Command::Options { machine, harness } => self.emit(Event::Options {
                 machine,
                 harness,
                 outcome: Ok(crate::demo::options()),
             }),
-            // The demo's turns end as they start: nothing runs to stop; a
-            // browser keeps no files.
-            Command::Stop { .. }
-            | Command::SavePrefs(_)
-            | Command::KeepCommands { .. }
-            | Command::SaveDrafts(_) => {}
             Command::Answer {
                 session,
                 id,
@@ -253,73 +121,90 @@ impl Link {
                 let records = self.demo.borrow_mut().answer(&session, id, option, now);
                 self.emit(Event::Records { session, records });
             }
-            Command::Pair { .. } => self.emit(Event::PairFailed(
-                vessel_app_view::pairing::PairProblem::Browser,
-            )),
-            // The demo's sessions are its own records, not a node's: an act
-            // on one, starting one again or a workspace ask is refused as a
-            // node refuses what it does not support, on the control it is
-            // about.
+            Command::Files(files) => self.files(files, now),
+            // The demo's turns end as they start: nothing runs to stop; a
+            // browser keeps no files and holds no connection to retire.
+            Command::Stop { .. }
+            | Command::SavePrefs(_)
+            | Command::KeepCommands { .. }
+            | Command::SaveDrafts(_)
+            | Command::RetireConnection(_) => {}
+            Command::CodeSource(request) => self.emit(refuse::code_source(request)),
+            Command::Usage(ask) => self.emit(refuse::usage(ask)),
+            Command::SessionAccess(access) => self.emit(refuse::session_access(access)),
+            Command::SessionLifecycle(request) => self.emit(refuse::session_lifecycle(&request)),
+            Command::Sessions(ask) => self.emit(refuse::sessions(ask)),
+            Command::Create(ask) => self.emit(refuse::create(ask)),
+            Command::History(ask) => self.emit(refuse::history(ask)),
+            Command::Labels(request) => self.emit(refuse::labels(request)),
+            Command::Agents {
+                machine, request, ..
+            } => self.emit(refuse::agents(machine, request)),
+            Command::Devices {
+                context,
+                ticket,
+                ask,
+            } => self.emit(refuse::devices(context, ticket, ask)),
+            Command::Machines(ask) => self.emit(refuse::machines(ask)),
+            Command::Sync { ticket, .. } => self.emit(refuse::sync(ticket)),
+            Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
+            Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
+            Command::Pair { .. } => self.emit(refuse::pair()),
             Command::Act {
                 machine,
                 session,
                 act,
-            } => self.emit(Event::Acted(ActAnswer {
-                terminal: act.terminal_opening().cloned(),
-                machine,
-                session,
-                kind: act.kind(),
-                result: Err(ActFailed {
-                    code: Some(vessel_proto::ErrorCode::Unsupported),
-                    message: "The browser's demo takes no session actions".to_owned(),
-                }),
-            })),
-            Command::Resume { session, .. } => self.emit(Event::ResumeFailed {
-                session,
-                why: "The browser's demo cannot start a session again".to_owned(),
-            }),
-            Command::Workspace { machine, ask } => self.emit(Event::Workspace {
-                machine,
-                answer: ask.refused(&Problem::Node {
-                    code: vessel_proto::ErrorCode::Unsupported,
-                    message: "The browser's demo has no projects".to_owned(),
-                }),
-            }),
-            // The demo fleet keeps no search index: every machine finds
-            // nothing.
-            Command::Files(crate::attachments::Files::Suggest(crate::mentions::Ask::Root(ask))) => {
-                self.emit(Event::Files(crate::attachments::Answer::Root(
-                    crate::mentions::RootAnswer {
-                        ask,
-                        result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
-                    },
-                )))
+            } => self.emit(refuse::act(machine, session, &act)),
+            Command::Resume { session, .. } => self.emit(refuse::resume(session)),
+            Command::Workspace { machine, ask } => self.emit(refuse::workspace(machine, ask)),
+            Command::Search(ask) => self.emit(refuse::search(ask)),
+            Command::Terminals(ask) => {
+                if let Some(event) = refuse::terminals(ask) {
+                    self.emit(event);
+                }
             }
-            Command::Files(crate::attachments::Files::Suggest(
-                crate::mentions::Ask::Suggestions(request),
-            )) => self.emit(Event::Files(crate::attachments::Answer::Suggestions(
-                crate::mentions::Answer {
-                    request,
-                    result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
-                },
-            ))),
-            Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
-                machine: ask.machine,
-                ticket: ask.ticket,
-                result: Ok(vessel_proto::search::SearchPage {
-                    hits: Vec::new(),
-                    next: None,
-                    reached: None,
-                }),
-            })),
-            Command::Terminals(ask) => self.terminals(ask),
         }
     }
 
-    /// A browser has no terminals: each call answers offline.
-    fn terminals(&self, ask: crate::terminals::Ask) {
-        if let Some(answer) = ask.refused(vessel_app_view::terminal_tabs::Failure::Offline) {
-            self.emit(Event::Terminals(answer));
+    /// The file commands: a prompt with files is the demo's prompt (a
+    /// browser sends none), the rest are refused.
+    fn files(&self, files: Files, now: DateTime<Utc>) {
+        match files {
+            Files::Prompt(with) => self.demo_prompt(with.session, &with.text, now),
+            Files::Send(attach) => self.emit(refuse::send(attach)),
+            Files::Capabilities(ask) => self.emit(refuse::capabilities(ask)),
+            Files::Wake(wake) => self.emit(refuse::wake(wake)),
+            Files::Read(sent) => self.emit(refuse::read(sent)),
+            Files::Create(_) => self.emit(refuse::create_files()),
+            Files::Suggest(ask) => self.emit(refuse::suggest(ask)),
+        }
+    }
+
+    /// The demo's records for a prompt, with files or without: a browser
+    /// sends none, so both commands answer the same way.
+    fn demo_prompt(&self, session: vessel_proto::SessionId, text: &str, now: DateTime<Utc>) {
+        let records = self.demo.borrow_mut().prompt(&session, text, now);
+        self.emit(Event::Records { session, records });
+        self.emit(Event::Sent { session });
+    }
+
+    /// A new demo conversation: the fleet and its card, or why not.
+    fn demo_start(
+        &self,
+        machine: &str,
+        harness: &vessel_proto::HarnessRef,
+        prompt: &str,
+        now: DateTime<Utc>,
+    ) {
+        let started = self.demo.borrow_mut().start(machine, harness, prompt, now);
+        match started {
+            Some(card) => {
+                self.emit(Event::Fleet(self.demo.borrow().fleet(now)));
+                self.emit(Event::Started(card));
+            }
+            None => self.emit(Event::Failed(
+                "The browser's demo has no room for another conversation".to_owned(),
+            )),
         }
     }
 

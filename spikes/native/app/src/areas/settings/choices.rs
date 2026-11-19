@@ -5,7 +5,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::SharedString;
 use vessel_app_kit::{ComboRow, Leading, Tokens};
 use vessel_app_view::prefs::{
-    CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, PreferenceChange, SendKey,
+    Alerts, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, PreferenceChange, SendKey,
     TurnDelivery, send_key_label,
 };
 use vessel_app_view::{Machine, Reach};
@@ -29,6 +29,8 @@ pub(crate) enum List {
     Width,
     /// How a conversation shows tool calls.
     Display,
+    /// How a session's notice is told (ADR 0114).
+    Alerts,
 }
 
 /// The default send's choices in the order Paseo's list offers them
@@ -91,7 +93,20 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
             .chat()
             .display_choice(appearance.conversation)
             .to_owned(),
+        List::Alerts => alerts_label(shell, shell.prefs.settings.notifications.alerts),
     }
+}
+
+/// A way of telling, in Settings' words (the page's `alertsLabel`).
+fn alerts_label(shell: &Shell, alerts: Alerts) -> String {
+    let words = shell.words.notifications();
+    match alerts {
+        Alerts::Off => words.alerts_off(),
+        Alerts::System => words.alerts_system(),
+        Alerts::Sound => words.alerts_sound(),
+        Alerts::SystemAndSound => words.alerts_both(),
+    }
+    .to_owned()
 }
 
 /// The General delivery trigger borrows its cached message, including pseudo
@@ -177,6 +192,15 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
                 )
             })
             .collect(),
+        List::Alerts => Alerts::ALL
+            .into_iter()
+            .map(|alerts| {
+                row(
+                    alerts_label(shell, alerts),
+                    alerts == settings.notifications.alerts,
+                )
+            })
+            .collect(),
     }
 }
 
@@ -206,6 +230,10 @@ pub(crate) fn change(list: List, index: usize) -> Option<PreferenceChange> {
             .get(index)
             .copied()
             .map(PreferenceChange::Conversation),
+        List::Alerts => Alerts::ALL
+            .get(index)
+            .copied()
+            .map(PreferenceChange::Alerts),
     }
 }
 

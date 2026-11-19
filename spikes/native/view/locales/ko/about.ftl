@@ -77,6 +77,9 @@ about-role-terminal = 터미널 프로그램의 출력 읽기
 # Under a bundled software name: its accents role. Keep short.
 about-role-accents = 찾기의 악센트 접기
 
+# Under a bundled software name: its sound role (a notice's tones). Keep short.
+about-role-sound = 알림 소리 재생
+
 # Under a bundled software name: its face role. Keep short.
 about-role-face = Geist, 앱의 글꼴
 

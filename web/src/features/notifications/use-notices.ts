@@ -1,29 +1,33 @@
 // Telling the person about sessions they are not looking at (DESIGN.md
-// §7.7): between two polls of a machine's sessions, what started to need
-// them or finished (data/notices.ts) becomes, while the page is not in
-// front, the browser's notification, a sound and a count in the tab's
-// title, as Settings › Notifications says.
+// §7.7, ADR 0114): between two polls of a machine's sessions, what
+// started to need them or finished (data/notices.ts) becomes the
+// browser's notification and a sound, as Settings › Notifications says,
+// unless the page is in front showing that session (Paseo's rule,
+// `told`). While the page is not in front, the tab's title counts them.
 //
-// "Not in front" is GOAT's: the page hidden, or its window not focused.
-// The count is of notices since the page was last in front, and clears
-// when it is. A system notification carries a tag per session and kind,
-// so two tabs of this page show it once; clicking it opens the session.
+// "In front" is GOAT's: the page visible and its window focused. The
+// count is of notices since the page was last in front, and clears when
+// it is. A system notification carries a tag per session and kind, so
+// two tabs of this page show it once; clicking it opens the session.
 
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useFleet } from "../../context";
 import { playsSound, showsSystem } from "../../data/alerts";
 import {
   type Notice,
+  type Seen,
   noticeTitle,
   notices,
   titleWith,
+  told,
 } from "../../data/notices";
 import { prefs } from "../../data/prefs";
 import { sessionName } from "../../data/titles";
 import { playNotice, unlockSound } from "./sound";
 import { entriesOf } from "../../data/records";
+import { shownSession, useWhere } from "../../data/where";
 
 function away(): boolean {
   return document.visibilityState !== "visible" || !document.hasFocus();
@@ -34,6 +38,13 @@ function away(): boolean {
 export function useNotices(): void {
   const fleet = useFleet();
   const navigate = useNavigate();
+  const where = useWhere();
+  // The session shown, read by the poll's callback at its time; kept
+  // after each render (a ref is not written while rendering).
+  const shown = useRef<Seen["shown"]>(null);
+  useEffect(() => {
+    shown.current = shownSession(where);
+  });
   useEffect(() => {
     const base = document.title;
     let before = fleet.store.get().sessions;
@@ -72,11 +83,12 @@ export function useNotices(): void {
         return previous === undefined ? [] : notices(node, previous, list);
       });
       before = after;
-      if (found.length === 0 || !away()) {
+      if (found.length === 0) {
         return;
       }
-      found.forEach(tell);
-      if (prefs.get().values.notifications.title) {
+      const front = !away();
+      told(found, { front, shown: shown.current }).forEach(tell);
+      if (!front && prefs.get().values.notifications.title) {
         unseen += found.length;
         document.title = titleWith(base, unseen);
       }

@@ -66,13 +66,14 @@ jobs:
       # What GPUI links (libxcb, libxkbcommon, libxkbcommon-x11) and the
       # headers its font and Wayland crates may look for. No display and no
       # Vulkan: the gate's tests run headless (the one window capture is
-      # #[ignore]).
+      # #[ignore]). libasound2-dev: cpal's ALSA backend (alsa-sys) for the
+      # notification tones (ADR 0114); without it the build stops at alsa-sys.
       - name: GPUI's system libraries
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             pkg-config libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev \
-            libfontconfig-dev libfreetype-dev libwayland-dev
+            libfontconfig-dev libfreetype-dev libwayland-dev libasound2-dev
       # The faces (spikes/native/README.md, "Build, run, gate").
       - uses: actions/setup-node@v4
         with:

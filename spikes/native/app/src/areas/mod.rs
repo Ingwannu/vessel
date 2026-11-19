@@ -21,6 +21,7 @@ pub(crate) mod git;
 pub(crate) mod import;
 pub(crate) mod labels;
 pub(crate) mod layout;
+pub(crate) mod notify;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
@@ -77,6 +78,9 @@ pub(crate) struct Areas {
     pub(crate) terminal: terminal::TerminalArea,
     /// A workspace's shells as tabs (TRACKER 481, 482).
     pub(crate) terminal_tabs: terminal_tabs::TerminalTabs,
+    /// The system's notifications, the notice sound and the title's
+    /// count (ADR 0114).
+    pub(crate) notify: notify::NotifyArea,
 }
 
 impl Areas {
@@ -130,6 +134,7 @@ impl Areas {
             regions: crate::region::Regions::default(),
             terminal: terminal::TerminalArea::new(cx),
             terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
+            notify: notify::NotifyArea::new(window, cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, drafts, window, cx);
