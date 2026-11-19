@@ -37,7 +37,7 @@ use std::time::Duration;
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, BoxShadow, KeyDownEvent, MouseButton, SharedString, Stateful, Task, Window,
-    anchored, canvas, deferred, div, point, px, rgba,
+    anchored, canvas, deferred, div, point, px,
 };
 
 use crate::picker::anchor_probe;
@@ -56,6 +56,8 @@ const MARGIN: f32 = 8.0;
 /// row (`paddingTop: spacing[2]`).
 const CORNER: f32 = 8.0;
 const TOP: f32 = 8.0;
+/// Its shadow's strength (`shadowOpacity: 0.2`).
+const SHADOW_ALPHA: f32 = 0.2;
 
 /// The card shown, where the pointer is, and the timer that will close
 /// the card.
@@ -222,7 +224,7 @@ impl HoverCards {
 /// down, 8 of blur), the same in both themes.
 fn shadow() -> Vec<BoxShadow> {
     vec![BoxShadow {
-        color: rgba(0x0000_0033).into(),
+        color: gpui::black().opacity(SHADOW_ALPHA),
         offset: point(px(0.0), px(4.0)),
         blur_radius: px(8.0),
         spread_radius: px(0.0),

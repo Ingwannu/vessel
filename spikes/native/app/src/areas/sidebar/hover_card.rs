@@ -131,9 +131,12 @@ fn content(card: &Card, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, She
     };
     body = body.child(copy_row(copy, tokens, cx));
     if let (Some(checks), Some(url)) = (details.checks, card.checks_url()) {
-        body = body
-            .child(div().h(px(1.0)).bg(neutral.border))
-            .child(checks_row(checks, url, shell, tokens, cx));
+        // Under Paseo's 1 rule in `border`.
+        body = body.child(
+            checks_row(checks, url, shell, tokens, cx)
+                .border_t_1()
+                .border_color(neutral.border),
+        );
     }
     body
 }
