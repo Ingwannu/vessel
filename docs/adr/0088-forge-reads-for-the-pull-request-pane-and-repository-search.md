@@ -44,7 +44,7 @@ search.
 
 ## Decision
 
-### 1. `forge.repos` (protocol 36, drafted)
+### 1. `forge.repos` (protocol 35)
 
 - Unary `forge.repos { query?, limit? }` (`operate`; forwardable; refused
   to an agent principal, as `forge.status`: the node's sign-in is a
