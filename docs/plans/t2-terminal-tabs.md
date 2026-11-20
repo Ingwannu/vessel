@@ -175,6 +175,10 @@ grid (long press, grips, floating Copy and Paste) is the phone app's later
 - Settings > Terminal: "Terminal scrollback" (0 through 1,000,000, default
   10,000), a number field that commits on Enter or when it loses the
   keyboard; open tabs and the session terminal screen take it at once.
+  It is stored in the native preferences as a `terminal` section written
+  only once it differs from the default, so the default document stays the
+  page's contract; a stored value is read as Paseo's schema reads it
+  (clamped, a fraction floored, anything else the default).
 - Accessibility (P1 review note 1): the tab's keyboard target is a text
   input named "Terminal input"; the counter is a status named "Find
   matches".
