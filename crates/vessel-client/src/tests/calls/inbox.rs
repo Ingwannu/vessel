@@ -107,6 +107,7 @@ async fn inbox_and_push_public_calls_send_no_frame_to_the_previous_protocol() {
         (
             client
                 .report_push_presence(ReportPushPresence {
+                    idle_age: None,
                     focus: PushFocus::Background,
                     activity: PushActivity::Unchanged,
                 })

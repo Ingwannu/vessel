@@ -57,6 +57,7 @@ function ChangesBody({
   onWhitespace,
   onOpen,
   defaultBranch,
+  view,
 }: {
   node: NodeKey;
   session: SessionId;
@@ -67,15 +68,25 @@ function ChangesBody({
   onWhitespace: (on: boolean) => void;
   onOpen: (path: RelPath) => void;
   defaultBranch: string | null;
+  view: "changes" | "diff";
 }) {
   const changes = useChanges(node, root, scope, whitespace);
   const git = useGit(node, root, changes.took, changes.refresh);
   const [dialog, setDialog] = useState<GitDialog | null>(null);
   const [discarding, setDiscarding] = useState<FileChange | null>(null);
-  const [closed, setClosed] = useState<ReadonlySet<RelPath>>(() => new Set());
+  const [toggled, setToggled] = useState<ReadonlySet<RelPath>>(() => new Set());
   const summary = changes.summary;
   const files = summary.kind === "ready" ? summary.summary.files : [];
   const counts = totals(files);
+  const closed =
+    view === "changes"
+      ? new Set(
+          files
+            .filter((file) => !toggled.has(file.path))
+            .map((file) => file.path),
+        )
+      : toggled;
+  const collapsed = closed.size > 0;
   const status = changes.status;
   const untracked = (path: RelPath) =>
     status?.files.some(
@@ -122,33 +133,19 @@ function ChangesBody({
             />
           </Tooltip>
           <Tooltip
-            label={
-              closed.size === 0 ? "Collapse all files" : "Expand all files"
-            }
+            label={collapsed ? "Expand all files" : "Collapse all files"}
           >
             <IconButton
-              label={
-                closed.size === 0 ? "Collapse all files" : "Expand all files"
-              }
-              icon={closed.size === 0 ? "fold" : "unfold"}
+              label={collapsed ? "Expand all files" : "Collapse all files"}
+              icon={collapsed ? "unfold" : "fold"}
               size="xs"
               variant="ghost"
               onClick={() => {
-                setClosed(
-                  closed.size === 0
-                    ? new Set(files.map((file) => file.path))
-                    : new Set(),
+                const all = (view === "changes") === collapsed;
+                setToggled(
+                  all ? new Set(files.map((file) => file.path)) : new Set(),
                 );
               }}
-            />
-          </Tooltip>
-          <Tooltip label="Refresh">
-            <IconButton
-              label="Refresh"
-              icon="refresh"
-              size="xs"
-              variant="ghost"
-              onClick={changes.refresh}
             />
           </Tooltip>
         </span>
@@ -201,7 +198,7 @@ function ChangesBody({
               onOpen(change.path);
             },
             onToggle: (change) => {
-              setClosed((before) => {
+              setToggled((before) => {
                 const next = new Set(before);
                 if (!next.delete(change.path)) {
                   next.add(change.path);
@@ -249,6 +246,7 @@ export function ChangesTab({
   root,
   onOpen,
   defaultBranch,
+  view,
 }: {
   node: NodeKey;
   session: SessionId;
@@ -256,11 +254,14 @@ export function ChangesTab({
   onOpen: (path: RelPath) => void;
   /** The project's default branch, for the commit dialog's warning. */
   defaultBranch: string | null;
+  view: "changes" | "diff";
 }) {
   // A worktree's work is everything since its base (agent-orchestrator's
   // "Changes"); a project's own folder starts at what is not committed.
   const [scope, setScope] = useState<DiffScope>(
-    root.kind === "worktree" ? { kind: "base" } : { kind: "uncommitted" },
+    root.kind === "worktree" && view === "changes"
+      ? { kind: "base" }
+      : { kind: "uncommitted" },
   );
   const [whitespace, setWhitespace] = useState(false);
   return (
@@ -275,6 +276,7 @@ export function ChangesTab({
       onWhitespace={setWhitespace}
       onOpen={onOpen}
       defaultBranch={defaultBranch}
+      view={view}
     />
   );
 }

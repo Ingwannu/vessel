@@ -7,12 +7,12 @@
 //!   unhandled routes are runtime 404s); Zed's `TypeId`-keyed handler map
 //!   with `downcast().unwrap()` (dynamic typing at the core); Paseo's
 //!   request id inside each payload with one predicate scan per pending call.
-//! - Choice: one table (`method_table!` in table.rs, expanded through
-//!   `rpc_methods!` below) generates `Method`, the `Call`
-//!   and `Reply` enums, the `Request` impls binding each request to its
-//!   response, a `Handler` trait with one method per call, and `dispatch`,
-//!   an exhaustive `match`. Correlation ids live in the frame, not the
-//!   payload.
+//! - Choice: one table (`method_table!` in table.rs, continued in
+//!   table/rest.rs, expanded through `rpc_methods!` below) generates
+//!   `Method`, the `Call` and `Reply` enums, the `Request` impls binding
+//!   each request to its response, a `Handler` trait with one method per
+//!   call, and `dispatch`, an exhaustive `match`. Correlation ids live in
+//!   the frame, not the payload.
 //! - Cost: adding a method means editing this table (deliberate: it is the
 //!   one place the protocol is defined) and every `Handler` implementation.
 //!
@@ -67,8 +67,9 @@ pub use shape::MethodShape;
 #[macro_use]
 mod methods;
 
-// The table itself is in `table.rs` (`method_table!`, exported at the crate
-// root); this invocation generates this module's enums and `Handler`.
+// The table itself is in `table.rs` and `table/rest.rs` (`method_table!`,
+// exported at the crate root; new rows go at the end of `table/rest.rs`);
+// this invocation generates this module's enums and `Handler`.
 crate::method_table!(rpc_methods);
 
 /// Result of a call.

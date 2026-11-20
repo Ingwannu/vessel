@@ -97,6 +97,19 @@ impl Call {
                     .fold(5, u32::max)
             }),
             Self::ReadEvents(request) => request.wait.map(|_| 6),
+            Self::ReportPushPresence(request) => {
+                let terminal = match request.focus {
+                    crate::push::PushFocus::Terminal { .. } => true,
+                    crate::push::PushFocus::Session { .. }
+                    | crate::push::PushFocus::Elsewhere
+                    | crate::push::PushFocus::Background => false,
+                };
+                if terminal || request.idle_age.is_some() {
+                    Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
             // `notify` came in 11: an older node would deliver the prompt
             // and never tell anyone.
             Self::PromptSession(request) => request.notify.then_some(11),
@@ -302,6 +315,8 @@ impl Call {
             | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
+            | Self::GetPullTimeline(_)
+            | Self::GetCheckDetails(_)
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
@@ -345,6 +360,11 @@ impl Call {
             | Self::DeletePrompt(_)
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
+            | Self::ReadInboxThrough(_)
+            | Self::GetInboxAttention(_)
+            | Self::ClaimNotification(_)
+            | Self::ClearTerminalAttention(_)
+            | Self::ReportTerminalActivity(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
             | Self::GetAgentDiagnostic(_)
@@ -352,7 +372,6 @@ impl Call {
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
-            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)

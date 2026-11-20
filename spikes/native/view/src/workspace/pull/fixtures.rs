@@ -24,6 +24,7 @@ pub(crate) fn whole() -> PullRequest {
             pending: 0,
             truncated: false,
             failing: vec![],
+            runs: vec![],
         },
         reviews: Reviews {
             approved: true,
@@ -57,5 +58,6 @@ pub(crate) fn summary(state: PullState, draft: bool) -> PullSummary {
         review: ReviewDecision::None,
         mergeable: Mergeable::Mergeable,
         updated_at: Utc.with_ymd_and_hms(2026, 11, 14, 9, 0, 0).unwrap(),
+        tally: None,
     }
 }

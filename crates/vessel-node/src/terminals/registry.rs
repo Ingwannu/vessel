@@ -13,6 +13,7 @@ use vessel_session::terminals::TerminalHandle;
 use super::scripts::Plan;
 use super::{MAX_ENDED, MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION, Runner};
 
+mod attention;
 mod ending;
 mod listed;
 use crate::workspace::Occupant;
@@ -38,6 +39,7 @@ pub(crate) struct Entry {
     /// session in a project counts against the project too, which its
     /// place alone does not say).
     pub(crate) owner: Owner,
+    producer: Option<producers::Producer>,
     /// The connection whose pane sizes it (ADR 0116, `crate::size_owner`).
     pub(crate) size_owner: crate::size_owner::Slot,
 }
@@ -86,6 +88,9 @@ pub(crate) enum TerminalsError {
     /// A request the node refuses as written.
     #[error("{0}")]
     Invalid(String),
+    /// The OS random source could not mint a terminal activity capability.
+    #[error("the terminal activity credential could not be created")]
+    Random(#[source] getrandom::Error),
     /// The shell did not start.
     #[error("the shell could not be started: {0}")]
     Spawn(String),
@@ -104,6 +109,7 @@ impl TerminalsError {
     /// The error a client sees.
     pub(crate) fn wire(self) -> WireError {
         let code = match &self {
+            Self::Random(_) => ErrorCode::Internal,
             Self::NotFound(_) => ErrorCode::NotFound,
             Self::Limit(_) | Self::ShuttingDown => ErrorCode::Unavailable,
             Self::Forbidden(_) => ErrorCode::Forbidden,
@@ -125,6 +131,7 @@ pub(crate) struct Terminals {
     /// The sessions whose end is watched for agents' terminals, one task
     /// each however many terminals.
     watching: Mutex<HashSet<SessionId>>,
+    attention_changes: tokio::sync::watch::Sender<()>,
     /// `terminal.list`'s revision (ADR 0116, `listed`).
     listed: Arc<tokio::sync::watch::Sender<u64>>,
 }
@@ -159,6 +166,7 @@ impl Terminals {
             runner,
             state: Arc::default(),
             watching: Mutex::default(),
+            attention_changes: tokio::sync::watch::Sender::new(()),
             listed: Arc::new(tokio::sync::watch::channel(0).0),
         })
     }
@@ -249,11 +257,13 @@ impl Terminals {
         plan: Option<Arc<Plan>>,
     ) {
         let id = handle.id();
+        let changes = handle.watch();
         self.follow_listed(&handle);
         let entry = Entry {
             handle,
             plan,
             owner: reservation.owner.clone(),
+            producer: None,
             size_owner: Arc::default(),
         };
         let mut state = self.state();
@@ -276,6 +286,7 @@ impl Terminals {
         }
         drop(state);
         drop(reservation);
+        self.watch_attention(changes);
         self.list_moved();
     }
 
@@ -291,7 +302,10 @@ impl Terminals {
     /// Forget one (it has ended, or is being closed).
     pub(crate) fn forget(&self, id: TerminalId) {
         let forgotten = self.state().entries.remove(&id);
-        if forgotten.is_some() {
+        if let Some(entry) = forgotten {
+            if let Some(producer) = entry.producer {
+                producer.close();
+            }
             self.list_moved();
         }
     }
@@ -397,3 +411,5 @@ impl Terminals {
         }
     }
 }
+
+mod producers;

@@ -108,3 +108,57 @@ impl NodeService {
         Ok(Some(entry))
     }
 }
+
+impl NodeService {
+    pub(crate) async fn inbox_attention(
+        &self,
+        _: &Connection,
+        request: vessel_proto::inbox_attention::GetInboxAttention,
+    ) -> Result<Vec<vessel_proto::inbox_attention::SessionAttention>, WireError> {
+        use vessel_proto::inbox_attention::ATTENTION_BATCH;
+        // Bound the request before allocating the distinct-id set. Even an
+        // invalid decoded frame must not scale that work beyond this policy.
+        if request.sessions.len() > ATTENTION_BATCH
+            || request
+                .sessions
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                != request.sessions.len()
+        {
+            return Err(WireError::new(
+                ErrorCode::InvalidRequest,
+                format!("request at most {ATTENTION_BATCH} distinct sessions for inbox attention"),
+            ));
+        }
+        self.sessions
+            .store()
+            .inbox_attention(request.sessions)
+            .await
+            .map_err(|error| wire(&error.into()))
+    }
+}
+
+impl NodeService {
+    pub(crate) async fn read_inbox_through(
+        &self,
+        connection: &Connection,
+        request: vessel_proto::inbox_attention::ReadInboxThrough,
+    ) -> Result<Ack, WireError> {
+        match connection.principal() {
+            crate::principal::Principal::Owner | crate::principal::Principal::Device { .. } => {}
+            crate::principal::Principal::Agent { .. }
+            | crate::principal::Principal::Delegated { .. } => {
+                return Err(WireError::new(
+                    ErrorCode::Forbidden,
+                    "only a person's directly paired app can read attention",
+                ));
+            }
+        }
+        self.sessions
+            .read_attention(request.session, request.through)
+            .await
+            .map(|()| Ack)
+            .map_err(|error| wire(&error))
+    }
+}

@@ -19,6 +19,12 @@ mod workspace_registry;
 /// Keep package placement outside the full migration list's shrinking budget.
 const WORKSPACE_LABELS_SCHEMA: usize = mutation_time::MUTATION_TIME_SCHEMA.saturating_add(1);
 
+/// ADR 0089's notification claims (schema 24) follow the labels. On the
+/// staging line they followed the listing (`BACKGROUND_SCHEMA`); rebased
+/// onto the node line they append after its two newer migrations, so no
+/// released version changes meaning.
+const NOTIFICATION_CLAIMS_SCHEMA: usize = WORKSPACE_LABELS_SCHEMA.saturating_add(1);
+
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;
 pub(super) use diagnostics::{DiagnosticSchemaError, version as diagnostic_version};

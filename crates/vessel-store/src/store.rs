@@ -9,6 +9,7 @@ mod diagnostics;
 pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
 mod forge;
 mod inbox;
+mod notification_claims;
 mod placement;
 mod push;
 mod registry;
