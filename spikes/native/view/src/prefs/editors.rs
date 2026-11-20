@@ -103,17 +103,17 @@ mod tests {
         let ids = [ProjectId::random(), ProjectId::random()];
         let project = |n: usize| ids[n];
         let mut editors = PreferredEditors::default();
-        assert!(editors.set("laptop", project(1), TargetId::Zed));
-        assert!(!editors.set("laptop", project(1), TargetId::Zed));
-        assert!(editors.set("laptop", project(1), TargetId::VsCode));
-        assert!(editors.set("desk", project(1), TargetId::Cursor));
-        assert_eq!(editors.get("laptop", project(1)), Some(TargetId::VsCode));
-        assert_eq!(editors.get("desk", project(1)), Some(TargetId::Cursor));
-        assert_eq!(editors.get("laptop", project(2)), None);
+        assert!(editors.set("laptop", project(0), TargetId::Zed));
+        assert!(!editors.set("laptop", project(0), TargetId::Zed));
+        assert!(editors.set("laptop", project(0), TargetId::VsCode));
+        assert!(editors.set("desk", project(0), TargetId::Cursor));
+        assert_eq!(editors.get("laptop", project(0)), Some(TargetId::VsCode));
+        assert_eq!(editors.get("desk", project(0)), Some(TargetId::Cursor));
+        assert_eq!(editors.get("laptop", project(1)), None);
         assert!(editors.rename_machine("laptop", "work"));
-        assert_eq!(editors.get("work", project(1)), Some(TargetId::VsCode));
+        assert_eq!(editors.get("work", project(0)), Some(TargetId::VsCode));
         assert!(editors.keep_listed("work", &[]));
-        assert_eq!(editors.get("work", project(1)), None);
+        assert_eq!(editors.get("work", project(0)), None);
         assert!(editors.forget_machine("desk"));
         assert!(editors.is_empty());
     }
