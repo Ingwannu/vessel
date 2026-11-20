@@ -13331,4 +13331,4 @@ export const SHARED_TERMINALS_PROTOCOL = 37;
 /**
  * The diff stat on `workspace.list` and `workspace.get` (ADR 0120).
  */
-export const DIFF_STAT_PROTOCOL = null;
+export const DIFF_STAT_PROTOCOL = 38;
