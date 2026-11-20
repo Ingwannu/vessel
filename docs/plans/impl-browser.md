@@ -145,6 +145,11 @@ also attempts WebSockets to two dedicated private peers. The fixture confirms
 each request reached the policy proxy as an upgrade or CONNECT and received
 a refusal. Live runs are pending.
 
+An additional request sends the controlled `localhost` name to the actual
+policy proxy's system resolver. Its marker requires a real refusal, and the
+fixture holds that port for both loopback address families to observe any
+direct Chromium connection.
+
 The separate WebTransport fixture creates disposable H3 peers on loopback.
 The first uses a verified ephemeral TLS certificate and must answer a real
 WebTransport CONNECT. The second starts with independent zeroed counters

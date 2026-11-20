@@ -16,6 +16,8 @@ const REFUSAL_DEADLINE: Duration = Duration::from_secs(2);
 const REFUSED_HTTP: &[u8; 12] = b"HTTP/1.1 403";
 const REFUSAL_PATH: &str = "/fixture-refused";
 const REDIRECTED_PATH: &str = "/fixture-refused-after-redirect";
+const RESOLVED_PATH: &str = "/fixture-refused-after-resolution";
+const RESOLVED_MARKER: &str = "Fixture resolved loopback refused";
 const EMBEDDED_PATH: &str = "/fixture-refused-embedded";
 const WORKER_PATH: &str = "/fixture-refused-worker";
 const WEBSOCKET_PATH: &str = "/fixture-private-socket";
@@ -57,6 +59,8 @@ impl Routes {
                 visit(page, &route, marker).await?;
             }
         }
+        let source = format!("http://localhost:{}{RESOLVED_PATH}", self.canaries[0].address.port());
+        visit(page, &source, RESOLVED_MARKER).await?;
         Ok(())
     }
 
@@ -120,25 +124,35 @@ impl Routes {
         let path = uri.path();
         if !matches!(
             path,
-            REFUSAL_PATH | REDIRECTED_PATH | EMBEDDED_PATH | WORKER_PATH
+            REFUSAL_PATH | REDIRECTED_PATH | RESOLVED_PATH | EMBEDDED_PATH | WORKER_PATH
         ) || uri.query().is_some()
         {
             return None;
         }
-        let destination = uri.authority()?.as_str().parse::<SocketAddr>().ok()?;
-        let canary = self
-            .canaries
-            .iter()
-            .find(|item| item.address == destination)?;
+        let authority = uri.authority()?;
+        let marker = if path == RESOLVED_PATH {
+            if authority.host() != "localhost"
+                || authority.port_u16() != Some(self.canaries[0].address.port())
+            {
+                return None;
+            }
+            RESOLVED_MARKER
+        } else {
+            let destination = authority.as_str().parse::<SocketAddr>().ok()?;
+            let canary = self
+                .canaries
+                .iter()
+                .find(|item| item.address == destination)?;
+            if path == REDIRECTED_PATH {
+                canary.refused_after_redirect
+            } else {
+                canary.refused
+            }
+        };
         let request = format!(
-            "GET http://{destination}{path} HTTP/1.1\r\nHost: {destination}\r\nConnection: close\r\n\r\n"
+            "GET http://{authority}{path} HTTP/1.1\r\nHost: {authority}\r\nConnection: close\r\n\r\n"
         );
         let refused = read_refusal(self.proxy, &request).await;
-        let marker = if path == REDIRECTED_PATH {
-            canary.refused_after_redirect
-        } else {
-            canary.refused
-        };
         Some(if refused { Ok(marker) } else { Err(StatusCode::BAD_GATEWAY) })
     }
 }
@@ -184,7 +198,7 @@ async fn read_refusal(proxy: SocketAddr, request: &str) -> bool {
 
 pub(super) struct NetworkFixture {
     proxy: PublicProxy,
-    stream_peers: [TcpListener; 4],
+    stream_peers: [TcpListener; 5],
     datagram_peers: [std::net::UdpSocket; 2],
     routes: Routes,
 }
@@ -193,6 +207,9 @@ impl NetworkFixture {
     pub(super) async fn start() -> Self {
         let ipv4 = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let ipv6 = TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).unwrap();
+        let named_port = ipv4.local_addr().unwrap().port();
+        let named_peer_v6 = TcpListener::bind((Ipv6Addr::LOCALHOST, named_port)).unwrap();
+        let _checked = positive_control(&named_peer_v6).await;
         let websocket4 = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let websocket6 = TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).unwrap();
         let udp4 = checked_datagram(Ipv4Addr::LOCALHOST.into()).await;
@@ -219,7 +236,7 @@ impl NetworkFixture {
         };
         Self {
             proxy,
-            stream_peers: [ipv4, ipv6, websocket4, websocket6],
+            stream_peers: [ipv4, ipv6, websocket4, websocket6, named_peer_v6],
             datagram_peers: [udp4, udp6],
             routes,
         }
