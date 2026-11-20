@@ -14,14 +14,14 @@ use super::{Opening, PluginError, Plugins, WATCH_LIMIT};
 
 const EMPTY_CLIENT: &str = r#"{"methods":[],"contributions":[],"themes":[]}"#;
 
-struct Fixture {
+pub(super) struct Fixture {
     root: tempfile::TempDir,
     tasks: TaskTracker,
     stop: CancellationToken,
 }
 
 impl Fixture {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             root: tempfile::tempdir().unwrap(),
             tasks: TaskTracker::new(),
@@ -33,11 +33,11 @@ impl Fixture {
         DataDir::new(self.root.path().join("data"))
     }
 
-    fn home(&self) -> PathBuf {
+    pub(super) fn home(&self) -> PathBuf {
         self.root.path().join("home")
     }
 
-    async fn host(&self, switch: bool) -> Plugins {
+    pub(super) async fn host(&self, switch: bool) -> Plugins {
         std::fs::create_dir_all(self.home()).unwrap();
         Plugins::start(Opening {
             node: NodeId::random(),
@@ -51,7 +51,7 @@ impl Fixture {
     }
 
     /// A plugin directory under the home with `manifest` and `files`.
-    fn plugin(&self, name: &str, manifest: &str, files: &[(&str, &[u8])]) -> PathBuf {
+    pub(super) fn plugin(&self, name: &str, manifest: &str, files: &[(&str, &[u8])]) -> PathBuf {
         let directory = self.home().join(name);
         std::fs::create_dir_all(&directory).unwrap();
         std::fs::write(directory.join("vessel-plugin.json"), manifest).unwrap();
@@ -61,7 +61,7 @@ impl Fixture {
         directory
     }
 
-    async fn finish(self) {
+    pub(super) async fn finish(self) {
         self.stop.cancel();
         let _closed = self.tasks.close();
         self.tasks.wait().await;
@@ -73,11 +73,11 @@ fn write_file(path: &Path, contents: &[u8]) {
     std::fs::write(path, contents).unwrap();
 }
 
-fn id(text: &str) -> PluginId {
+pub(super) fn id(text: &str) -> PluginId {
     text.parse().unwrap()
 }
 
-fn client_only(id: &str) -> String {
+pub(super) fn client_only(id: &str) -> String {
     format!(r#"{{"id":"{id}","name":"Night","description":"A theme","client":"client.json"}}"#)
 }
 
@@ -92,7 +92,7 @@ async fn status(plugins: &Plugins, plugin: &str) -> Option<PluginStatus> {
 }
 
 /// Wait until `plugin` has `wanted` (a switch applies in the background).
-async fn until(plugins: &Plugins, plugin: &str, wanted: PluginStatus) {
+pub(super) async fn until(plugins: &Plugins, plugin: &str, wanted: PluginStatus) {
     let mut generation = PluginGeneration::default();
     for _ in 0..40 {
         if status(plugins, plugin).await == Some(wanted) {

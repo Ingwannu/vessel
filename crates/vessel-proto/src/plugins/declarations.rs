@@ -264,8 +264,10 @@ pub enum ControlContent {
 }
 
 /// A choice option carries a stable value independent of translated labels.
+/// In TypeScript `PluginChoiceOption`: a question's `ChoiceOption` already
+/// has the name in the generated declarations.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "PluginChoiceOption"))]
 #[serde(deny_unknown_fields)]
 pub struct ChoiceOption {
     /// Stable submitted value.

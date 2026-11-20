@@ -267,6 +267,8 @@ impl Call {
             | Self::ReloadPlugin(_)
             | Self::RemovePlugin(_)
             | Self::WatchPlugins(_)
+            | Self::GetPluginCatalog(_)
+            | Self::InvokePlugin(_)
             | Self::ReadFile(_)
             | Self::CreateDir(_)
             | Self::RenamePath(_)

@@ -35,6 +35,7 @@
 //!   change, agents refused); this module keeps paths and errors private
 //!   unless asked for an administrator's view.
 
+mod catalog;
 mod host;
 mod manifest;
 mod rows;
@@ -55,10 +56,12 @@ use tokio_util::task::TaskTracker;
 use vessel_plugin::{SharedLogs, Supervisor};
 use vessel_proto::NodeId;
 use vessel_proto::plugins::{
-    PluginGeneration, PluginId, PluginInspection, PluginList, PluginListItem, PluginLogs,
+    ClientDocument, PluginAddress, PluginGeneration, PluginId, PluginInspection, PluginList,
+    PluginListItem, PluginLogs,
 };
 use vessel_store::DataDir;
 
+pub(crate) use catalog::CallFailure;
 pub(crate) use manifest::ManifestError;
 pub(crate) use source::SourceError;
 
@@ -103,6 +106,24 @@ pub(crate) enum PluginError {
     /// The node is stopping.
     #[error("the node is stopping")]
     Stopping,
+    /// Invoke on an installation that is not running (stopped, failed, or
+    /// plugins are off).
+    #[error("plugin is not running: {0}")]
+    NotRunning(PluginId),
+    /// Invoke on a client-only installation: no helper, no methods.
+    #[error("plugin {0} has no helper program, so it has no methods")]
+    NoMethods(PluginId),
+    /// A method call failed, in a class safe for any administrator.
+    #[error("plugin {id} could not run that: {failure}")]
+    Call {
+        /// Which.
+        id: PluginId,
+        /// Why.
+        failure: catalog::CallFailure,
+    },
+    /// The running declarations exceed the node's catalog budget.
+    #[error("the plugin catalog could not be built: {0}")]
+    Catalog(String),
 }
 
 /// The node's plugins.
@@ -147,7 +168,11 @@ struct Row {
 #[derive(Debug)]
 enum Run {
     Stopped,
-    Client,
+    /// A client-only installation: its document is its catalog entry.
+    Client {
+        address: PluginAddress,
+        document: Arc<ClientDocument>,
+    },
     Helper(Supervisor),
 }
 
@@ -230,10 +255,7 @@ impl Plugins {
 
     /// Every installation, in id order; `admin` adds paths and errors.
     pub(crate) async fn list(&self, admin: bool) -> PluginList {
-        let mut settled = self.inner.settled.subscribe();
-        let _settled = tokio::time::timeout(SETTLE_LIMIT, settled.wait_for(|settled| *settled))
-            .await
-            .is_ok_and(|settled| settled.is_ok());
+        self.settled().await;
         let state = self.state();
         PluginList {
             plugins: state

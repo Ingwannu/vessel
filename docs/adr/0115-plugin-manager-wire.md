@@ -55,7 +55,8 @@ client data; Paseo's TypeScript entries do not run here." (stated difference).
   without a restart: on, every enabled installation starts; off, every one
   stops. Hidden from peers below the protocol.
 - Installations are a node-owned file `<home>/plugins/installations.json`
-  (`{id: {source: {kind: directory, path, subpath?}, enabled}}`), owner-only
+  (`{id: {source: {kind: directory, path}, enabled}}`; a directory source is
+  one absolute path, a subdirectory already named in it), owner-only
   (0600, directory 0700), written atomically by the plugin service alone. Not
   in `settings.json`: that file has its own writer, and two writers to one
   file is what ADR 0079's single namespace was meant to avoid; the namespace
@@ -168,6 +169,69 @@ has calls to answer; a helper that only says ready teaches nothing.)
 - Tests use local bare git repositories, local tarballs and a loopback
   registry only; no test reaches the network.
 
+### Catalog and invoke (2026-11-20, P3a; coordinator ruling 2026-11-20)
+
+Protocol drafted as the next after the manager's (`PLUGIN_CATALOG_PROTOCOL`,
+assigned at merge).
+
+| Method | Scope | Request -> reply |
+|---|---|---|
+| `plugin.catalog` | Read | `{}` -> `{generation, catalog: ClientCatalog, may_invoke}` |
+| `plugin.invoke` | Admin | `{plugin, generation, method, input, context}` -> `{output}` |
+
+- Purpose: Paseo's clients read a host's catalog (`plugin.catalog.get`) and
+  call a plugin's methods (`plugin.rpc.invoke`); the page and the app need
+  both so a machine's plugin themes, Command Center items and slash commands
+  reach them.
+- The catalog holds every running installation, and only those (stopped,
+  failed, disabled and plugins-off installations are absent). A client-only
+  installation's entry is the `client` document read at its start. A helper's
+  entry is the document it declared in `ready` (or a later
+  `client_changed`); a `client` file beside a helper is checked but not
+  served. The reviewed `ClientCatalog` admits the set (owner, duplicates,
+  128 installations, 256 themes, 4 MiB); a set over the budget is refused as
+  a whole (`internal`) rather than trimmed. `required_client` is the catalog
+  protocol. The first answer after node start waits for the start-up settle,
+  as `plugin.list` does. `generation` is `plugin.watch`'s count, so a client
+  watches from the catalog it holds and reads it again when the count moves;
+  a helper that declares again moves the count.
+- The client file is opened only after its real path (links resolved) is
+  found inside the plugin directory's real path; a link that leads outside
+  fails the start ("it leads outside the plugin directory"). Asset paths
+  (`client`, `icon`) are at most 1 KiB.
+- Scope (coordinator ruling): `plugin.catalog` needs `read`. This is a
+  difference from Paseo's `daemon.manage`: Vessel has scopes Paseo does not,
+  and a Read device must still draw a machine's themes and the shape of its
+  commands. The catalog is declarative data with bounded strings, no paths
+  and no code. `plugin.invoke` needs `admin` and is refused to agents: a
+  method runs plugin code with the node's access. Clients show invoke-bound
+  items only on devices holding `admin`: the reply's `may_invoke` says so,
+  since a client does not otherwise know which scopes its credential
+  holds.
+- Invoke reaches only a running helper. A client-only installation answers
+  `not_found` ("it has no helper program, so it has no methods"). A stopped
+  or failed installation answers `unavailable`. As ADR 0079 asks of an
+  action, a call carries the run (`generation`, from the catalog entry's
+  address) and the context it was taken in (`global`; a `workspace`, which
+  in Vessel is a project or one of its worktrees, as a session's
+  `workspace` names it; or an `agent`, a session with its project and
+  worktree); a call from a run that has since been
+  replaced answers `conflict` ("read it again"). The helper receives
+  `{input, context}`, the context objects Paseo's `onSelect` and `onSubmit`
+  get. The supervisor's actor checks
+  that the running generation declared the method (`not_found` otherwise),
+  admits the input within the helper payload budget (1 MiB, `invalid_request`
+  over it), and keeps its own deadline. A helper's failure reaches the
+  caller only as a class: refused `invalid_request`; callback failed
+  `internal` ("its log may say why"); busy, restarting, stopping or timed out
+  `unavailable`. The helper's diagnostic text is never in a reply (ADR 0079);
+  what it writes to stderr is in its log.
+- Text a caller sends to the manager is bounded before the plugin host sees
+  it: a source or a path 4 KiB, a ref 256 bytes (`invalid_request`).
+- Plugin settings (Paseo's `PluginSettingsStore`) are a separate note before
+  their code; screens, panels, sidebar items, header buttons and composer
+  pills are P3b.
+
 ## Alternatives
 
 - Install Paseo plugins unchanged by running Node.js and esbuild on the node
@@ -192,6 +256,9 @@ has calls to answer; a helper that only says ready teaches nothing.)
   poll instead of status pushes, path and error shown to Admin callers only,
   built-in plugins are core features (usage fetchers), no `PaseoApi`
   (a narrow broker is a later record).
-- Not in this record: RPC, plugin settings, the client catalog and
-  contributions (P3, P3b), lifecycle hooks (P5), agent tools, providers,
-  usage sources, timeline and attachments (P6).
+- The catalog and invoke (2026-11-20) add two methods at their own protocol,
+  with the same tables; `plugin.catalog` is a stated scope difference from
+  Paseo (Read instead of `daemon.manage`).
+- Not in this record: plugin settings (their own note first), screens and
+  other surfaces (P3b), lifecycle hooks (P5), agent tools, providers, usage
+  sources, timeline and attachments (P6).
