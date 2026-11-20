@@ -28,7 +28,8 @@ use vessel_app_kit::TextField;
 use vessel_app_kit::field::FieldId;
 use vessel_app_view::terminal::grid::{Generation, TextAt};
 use vessel_app_view::terminal::{
-    FIND_LIMIT, Finder, FoundMatch, MAX_FIND_QUERY, first_from, next_of, previous_of,
+    FIND_LIMIT, Finder, FoundMatch, MAX_FIND_QUERY, TerminalModel, first_from, next_of,
+    previous_of,
 };
 
 use super::PaneKey;
@@ -300,7 +301,7 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        let grid = pane.model.as_ref().map(|model| model.grid());
+        let grid = pane.model.as_ref().map(TerminalModel::grid);
         let Some(find) = pane.find.as_mut() else {
             return;
         };
@@ -359,7 +360,7 @@ impl Shell {
     ) -> Option<Stepped> {
         let pane = self.areas.terminal_tabs.panes.get_mut(key)?;
         let find = pane.find.as_mut().filter(|find| find.ticket == ticket)?;
-        let Some(grid) = pane.model.as_ref().map(|model| model.grid()) else {
+        let Some(grid) = pane.model.as_ref().map(TerminalModel::grid) else {
             return Some(Stepped::Away);
         };
         let finder = find.finder.as_mut()?;
@@ -389,7 +390,7 @@ impl Shell {
             return;
         };
         if let (Some(grid), Some(find)) =
-            (pane.model.as_ref().map(|model| model.grid()), &pane.find)
+            (pane.model.as_ref().map(TerminalModel::grid), &pane.find)
             && let Some(found) = find.current.and_then(|at| find.matches.get(at))
         {
             let scroll = pane.viewport.offset(grid);

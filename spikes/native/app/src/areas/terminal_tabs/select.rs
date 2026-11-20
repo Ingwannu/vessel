@@ -19,7 +19,7 @@
 
 use gpui::{ClipboardItem, MouseDownEvent, Pixels, Point};
 use vessel_app_view::terminal::grid::{Scroll, Shown, TextAt};
-use vessel_app_view::terminal::{SelectBy, Selection};
+use vessel_app_view::terminal::{SelectBy, Selection, TerminalModel};
 
 use super::PaneKey;
 use crate::shell::Shell;
@@ -69,7 +69,7 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        let Some(grid) = pane.model.as_ref().map(|model| model.grid()) else {
+        let Some(grid) = pane.model.as_ref().map(TerminalModel::grid) else {
             return;
         };
         let (shown, cols) = (grid.shown(), grid.size().cols());
@@ -81,11 +81,7 @@ impl Shell {
             kept.selection.extend(at);
         } else {
             let by = SelectBy::of_clicks(event.click_count);
-            pane.selected = Some(Selected {
-                selection: Selection::new(at, by),
-                shown,
-                cols,
-            });
+            pane.selected = Some(Selected::on(Selection::new(at, by), grid));
         }
         pane.selecting = true;
         pane.marked();
@@ -115,7 +111,7 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        if let Some(grid) = pane.model.as_ref().map(|model| model.grid()) {
+        if let Some(grid) = pane.model.as_ref().map(TerminalModel::grid) {
             match edge {
                 Edge::Above => pane.viewport.earlier(Scroll(1), grid),
                 Edge::Below => pane.viewport.later(Scroll(1), grid),
@@ -157,7 +153,7 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get(key) else {
             return false;
         };
-        let Some(grid) = pane.model.as_ref().map(|model| model.grid()) else {
+        let Some(grid) = pane.model.as_ref().map(TerminalModel::grid) else {
             return false;
         };
         let Some(kept) = live_selection(pane.selected, grid) else {
@@ -185,6 +181,7 @@ impl Shell {
 
     /// The cell under `position` on `key`'s screen, clamped into it, and
     /// whether the pointer is above or below the screen.
+    #[expect(clippy::float_arithmetic, reason = "a pointer's place in cells")]
     fn terminal_tab_cell(
         &self,
         key: &PaneKey,
@@ -196,8 +193,8 @@ impl Shell {
         let cell = pane.grid.read(cx).cell;
         let grid = pane.model.as_ref()?.grid();
         let size = grid.size();
-        let x = f32::from(position.x - bounds.origin.x);
-        let y = f32::from(position.y - bounds.origin.y);
+        let x = f32::from(position.x) - f32::from(bounds.origin.x);
+        let y = f32::from(position.y) - f32::from(bounds.origin.y);
         let edge = if y < 0.0 {
             Edge::Above
         } else if y >= f32::from(cell.height) * f32::from(size.rows()) {
@@ -227,6 +224,7 @@ pub(super) fn live_selection(
     clippy::as_conversions,
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
+    clippy::float_arithmetic,
     reason = "floored and clamped to 0 ..= count - 1 before the cast"
 )]
 fn whole(offset: f32, size: f32, count: u16) -> u16 {

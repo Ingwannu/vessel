@@ -31,6 +31,7 @@ const GAP: f32 = 4.0;
 /// The rows and columns the bar covers from the pane's top right, for
 /// `cell` sized cells: the frame's inset, the widget's padding and border
 /// and the field.
+#[expect(clippy::float_arithmetic, reason = "the bar's size in pixels, from its constants")]
 pub(super) fn covered(cell: vessel_app_kit::terminal_grid::CellSize) -> (u16, u16) {
     let height = INSET + PADDING * 2.0 + 2.0 + FIELD_HEIGHT;
     let width = INSET + WIDTH;
@@ -44,7 +45,8 @@ pub(super) fn covered(cell: vessel_app_kit::terminal_grid::CellSize) -> (u16, u1
     clippy::as_conversions,
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
-    reason = "rounded up and clamped to 0 ..= u16::MAX before the cast"
+    clippy::float_arithmetic,
+    reason = "a length in cells, rounded up and clamped to 0 ..= u16::MAX before the cast"
 )]
 fn cells(length: f32, cell: f32) -> u16 {
     if cell <= 0.0 {
@@ -65,24 +67,6 @@ pub(super) fn bar(
     let find = pane.find.as_ref()?;
     let words = shell.words.terminal_tabs();
     let surfaces = popup::Surfaces::of(tokens);
-    let count = match find.count() {
-        Count::Nothing => String::new(),
-        Count::None => words.find_none().to_owned(),
-        Count::Total(total) => words.find_total(&total).unwrap_or(total),
-        Count::At(current, total) => words
-            .find_position(&current, &total)
-            .unwrap_or_else(|_| format!("{current} / {total}")),
-    };
-    let can_move = find.can_move();
-    let state = if can_move {
-        ButtonState::Enabled
-    } else {
-        ButtonState::Disabled
-    };
-    let config = ToolbarConfig::new(ControlSizing::Pointer, state);
-    let close_config = ToolbarConfig::new(ControlSizing::Pointer, ButtonState::Enabled);
-    let (previous, next, close) = (key.clone(), key.clone(), key.clone());
-    let keys = key.clone();
     let field = div()
         .flex_1()
         .min_w_0()
@@ -103,8 +87,9 @@ pub(super) fn bar(
                 .flex_none()
                 .type_(Type::Meta)
                 .text_color(surfaces.foreground_muted)
-                .child(count),
+                .child(counter(shell, find)),
         );
+    let keys = key.clone();
     let widget = div()
         .w(px(WIDTH))
         .max_w_full()
@@ -119,70 +104,17 @@ pub(super) fn bar(
         .rounded(px(radius::R2))
         .shadow(popup::shadow_md(tokens))
         .on_key_down(cx.listener(move |shell, event: &KeyDownEvent, window, cx| {
-            let stroke = &event.keystroke;
-            match stroke.key.as_str() {
-                "escape" => {
-                    shell.terminal_find_close(&keys, window, cx);
-                    cx.stop_propagation();
-                }
-                "enter" if stroke.modifiers.shift => {
-                    shell.terminal_find_move(&keys, false, cx);
-                    cx.stop_propagation();
-                }
-                "f" if stroke.modifiers.secondary(cx)
-                    && !stroke.modifiers.shift
-                    && !stroke.modifiers.alt =>
-                {
-                    shell.terminal_find_open(&keys, window, cx);
-                    cx.stop_propagation();
-                }
-                _ => {}
-            }
+            bar_key(shell, &keys, event, window, cx);
         }))
         .child(field)
-        .child(
-            ToolbarButton::new(
-                element("terminal-find-previous", key),
-                words.find_previous().to_owned(),
-                ToolbarIcon::new(Glyph::ArrowUp, ToolbarInk::Muted),
-                config,
-                tokens,
-            )
-            .on_click(listen(cx, move |shell, _window, cx| {
-                shell.terminal_find_move(&previous, false, cx);
-            })),
-        )
-        .child(
-            ToolbarButton::new(
-                element("terminal-find-next", key),
-                words.find_next().to_owned(),
-                ToolbarIcon::new(Glyph::ArrowDown, ToolbarInk::Muted),
-                config,
-                tokens,
-            )
-            .on_click(listen(cx, move |shell, _window, cx| {
-                shell.terminal_find_move(&next, true, cx);
-            })),
-        )
-        .child(
-            ToolbarButton::new(
-                element("terminal-find-close", key),
-                words.find_close().to_owned(),
-                ToolbarIcon::new(Glyph::Close, ToolbarInk::Muted),
-                close_config,
-                tokens,
-            )
-            .on_click(listen(cx, move |shell, window, cx| {
-                shell.terminal_find_close(&close, window, cx);
-            })),
-        );
+        .children(buttons(shell, key, find.can_move(), tokens, cx));
     Some(
         div()
             .absolute()
             .left_0()
             .right_0()
-            .when(find.bottom, |overlay| overlay.bottom_0())
-            .when(!find.bottom, |overlay| overlay.top_0())
+            .when(find.bottom, gpui::Styled::bottom_0)
+            .when(!find.bottom, gpui::Styled::top_0)
             .flex()
             .flex_row()
             .justify_end()
@@ -190,6 +122,97 @@ pub(super) fn bar(
             .child(widget)
             .into_any_element(),
     )
+}
+
+/// What the counter says (Paseo's `terminal/find/index.tsx` 100-106).
+fn counter(shell: &Shell, find: &super::find::PaneFind) -> String {
+    let words = shell.words.terminal_tabs();
+    match find.count() {
+        Count::Nothing => String::new(),
+        Count::None => words.find_none().to_owned(),
+        Count::Total(total) => words.find_total(&total).unwrap_or(total),
+        Count::At(current, total) => words
+            .find_position(&current, &total)
+            .unwrap_or_else(|_| format!("{current} / {total}")),
+    }
+}
+
+/// The bar's keys: Escape closes, Shift+Enter goes back (Enter is the
+/// field's own submit), Mod+F selects the field again.
+fn bar_key(
+    shell: &mut Shell,
+    key: &PaneKey,
+    event: &KeyDownEvent,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
+    let stroke = &event.keystroke;
+    match stroke.key.as_str() {
+        "escape" => {
+            shell.terminal_find_close(key, window, cx);
+            cx.stop_propagation();
+        }
+        "enter" if stroke.modifiers.shift => {
+            shell.terminal_find_move(key, false, cx);
+            cx.stop_propagation();
+        }
+        "f" if stroke.modifiers.secondary(cx) && !stroke.modifiers.shift && !stroke.modifiers.alt => {
+            shell.terminal_find_open(key, window, cx);
+            cx.stop_propagation();
+        }
+        _ => {}
+    }
+}
+
+/// Previous and next (only while there are matches), and close.
+fn buttons(
+    shell: &Shell,
+    key: &PaneKey,
+    can_move: bool,
+    tokens: &Tokens,
+    cx: &Context<'_, Shell>,
+) -> [ToolbarButton; 3] {
+    let words = shell.words.terminal_tabs();
+    let state = if can_move {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    };
+    let config = ToolbarConfig::new(ControlSizing::Pointer, state);
+    let close_config = ToolbarConfig::new(ControlSizing::Pointer, ButtonState::Enabled);
+    let (previous, next, close) = (key.clone(), key.clone(), key.clone());
+    [
+        ToolbarButton::new(
+            element("terminal-find-previous", key),
+            words.find_previous().to_owned(),
+            ToolbarIcon::new(Glyph::ArrowUp, ToolbarInk::Muted),
+            config,
+            tokens,
+        )
+        .on_click(listen(cx, move |shell, _window, cx| {
+            shell.terminal_find_move(&previous, false, cx);
+        })),
+        ToolbarButton::new(
+            element("terminal-find-next", key),
+            words.find_next().to_owned(),
+            ToolbarIcon::new(Glyph::ArrowDown, ToolbarInk::Muted),
+            config,
+            tokens,
+        )
+        .on_click(listen(cx, move |shell, _window, cx| {
+            shell.terminal_find_move(&next, true, cx);
+        })),
+        ToolbarButton::new(
+            element("terminal-find-close", key),
+            words.find_close().to_owned(),
+            ToolbarIcon::new(Glyph::Close, ToolbarInk::Muted),
+            close_config,
+            tokens,
+        )
+        .on_click(listen(cx, move |shell, window, cx| {
+            shell.terminal_find_close(&close, window, cx);
+        })),
+    ]
 }
 
 /// A button's click as a shell call.
