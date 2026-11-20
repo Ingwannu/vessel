@@ -3886,7 +3886,6 @@ dependencies = [
  "hyper-util",
  "jiff",
  "log",
- "notify",
  "reqwest",
  "rusqlite",
  "rustls",

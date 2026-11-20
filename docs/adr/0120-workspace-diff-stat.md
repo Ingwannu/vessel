@@ -1,13 +1,14 @@
 # ADR 0120: Workspace diff stat
 
 Status: proposed (impl K, 2026-11-20; TRACKER 819). The coordinator
-assigned 0120 and approved the plan: the count is served, not stored on
-the registry row; one watcher per directory; Paseo's comparison,
-including `origin/<branch>` while the checkout is already on the base.
-The protocol is drafted 37 (`DIFF_STAT_PROTOCOL` in
-`vessel_proto::registry`). The constant stays `None` until the
-integrator assigns the number at merge. This record does not add a
-protocol version section.
+assigned 0120 and approved the plan, then ruled on the node review that
+a folder is recounted every 15 seconds while a client is interested,
+with no recursive OS watch. The count is served, not stored on the
+registry row. The comparison is Paseo's, including `origin/<branch>`
+while the checkout is already on the base. The protocol is drafted 37
+(`DIFF_STAT_PROTOCOL` in `vessel_proto::registry`). The constant stays
+`None` until the integrator assigns the number at merge. This record
+does not add a protocol version section.
 
 ## Context
 
@@ -52,20 +53,31 @@ call can wait even though that answer had no row to hang the number
 on.
 
 While `DIFF_STAT_PROTOCOL` is `None`, list and get do not attach the
-fields, do not wait, and do not watch. `Reply::for_protocol` also
+fields, do not wait, and do not count. `Reply::for_protocol` also
 strips the fields for a peer below the assigned version, so assigning
 the constant is what turns the feature on.
 
-One recursive watch per canonical directory, shared by every workspace
-in that directory, dropped 60 seconds after the last list or get that
-named it. At most 1000 directories; past that a further folder is
-answered as null and is not watched. Writes settle for one second.
-Access events and paths under `node_modules`, `target`, `.git/objects`,
-and `.git/logs` do not dirty the count. A directory that is not a git
-checkout, or whose watch did not start, is counted again after 15
-seconds and is not watched. The book lock is not held across an await.
-The watch task holds the workspaces and the book, not the service that
+A folder is counted when a served client lists or gets it, and again
+every 15 seconds while that interest lasts. Interest ends 60 seconds
+after the last such request; the slot and its task then go. There is
+no recursive directory watch. One inotify instance per folder would
+spend the node's watch budget, and the walk would include trees the
+count ignores. At most four counts run at once, under the shared git
+pool of eight local slots, so a person's status, diff, or commit still
+has room. A count that finds git busy, or that times out, keeps the
+last stored value and tries again on the next pass. Null is stored
+only when the folder is not a git checkout, there is no comparison
+(detached, or `origin/<branch>` does not resolve), or both sides are
+zero. At most 1000 folders; past that a further folder is answered as
+null and is not counted. The book lock is not held across an await.
+The count task holds the workspaces and the book, not the service that
 owns both.
+
+Unstaged edits can take up to 15 seconds to show, where Paseo shows
+them after a 1 second debounce. A stage or a commit waits for the same
+recount. The node's file observer builds one watch per request and
+drops it, so there is no shared instance a count can add `.git/HEAD`
+and `.git/index` to without a new inotify thread per folder.
 
 The count reuses the base-scope numstat (`Git::changes`, untracked
 files capped at 500, the file list capped at 5000). A missing line
@@ -94,6 +106,6 @@ hidden when the stat is null.
 Sidebar trailing "diff", the composer Changes pill, and the archive
 warning are not part of 819.
 
-A list or get waits on one generation for every watched directory, so
-a change in one folder wakes a read of another. That is the cost of
-not inventing a second revision per workspace.
+A list or get waits on one generation for every counted folder, so a
+change in one folder wakes a read of another. That is the cost of not
+inventing a second revision per workspace.

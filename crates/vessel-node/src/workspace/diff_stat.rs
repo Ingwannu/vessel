@@ -1,36 +1,39 @@
 //! Served line counts for `workspace.list` and `workspace.get` (ADR 0120).
 //!
-//! One watch per canonical folder, shared by the workspaces in it, dropped
-//! [`INTEREST`] after the last request. Writes settle for [`DEBOUNCE`]. A
-//! folder that is not a git repository, or whose watch did not start, is
-//! counted again after [`CACHE`] and is not watched. At most [`MAX_SLOTS`]
-//! folders are watched. Zero on both sides, and a failed read, are stored
-//! as none. The generation moves only when a stored count changes,
-//! including the first time it is stored.
+//! A folder a served client has asked about is counted again every
+//! [`CACHE`], and dropped [`INTEREST`] after the last request. At most
+//! [`LIMIT`] counts run at once, under the shared git pool. Git being
+//! busy or out of time keeps the last count. At most [`MAX_SLOTS`]
+//! folders. Both sides zero, no comparison, and a folder that is not a
+//! git checkout are stored as none. The generation moves only when a
+//! stored count changes, including the first time it is stored.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
-use notify::{Event, RecursiveMode, Watcher};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::registry::DiffStat;
 use vessel_proto::workspace::WorkspaceRoot;
+use vessel_workspace::GitError;
 
 use super::Workspaces;
 
 mod count;
 
-/// How long a burst of writes settles before a new count.
-const DEBOUNCE: Duration = Duration::from_secs(1);
-/// How often a folder with no watch is counted again.
+/// How often an interested folder is counted again.
 const CACHE: Duration = Duration::from_secs(15);
-/// How long a folder stays watched after the last list or get.
+/// How long a folder is counted after the last list or get.
 const INTEREST: Duration = Duration::from_secs(60);
-/// The most folders watched at once.
+/// Counts running at once.
+///
+/// The shared git pool has eight local slots. Four leaves room for a
+/// person's status, diff, or commit. Paseo counts four at a time.
+const LIMIT: usize = 4;
+/// The most folders counted at once.
 const MAX_SLOTS: usize = 1000;
 
 #[derive(Debug)]
@@ -71,37 +74,53 @@ struct Shared {
     book: Mutex<Book>,
     changed: watch::Sender<u64>,
     stop: CancellationToken,
+    counts: Arc<Semaphore>,
+    cache: Duration,
+    interest: Duration,
+}
+
+/// What one count pass decided.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Answer {
+    /// A finished answer. None is a real empty comparison.
+    Count(Option<DiffStat>),
+    /// Git did not answer. The stored count stays.
+    Keep,
+    /// Not a git checkout. Stored as none.
+    Plain,
+}
+
+#[derive(Debug, Clone)]
+enum Reader {
+    Live(Arc<Workspaces>),
+    #[cfg(test)]
+    Wait(watch::Receiver<Option<Answer>>),
 }
 
 /// The node's served diff stats.
 ///
-/// Watch tasks hold [`Workspaces`] and [`Shared`], not this value, so
+/// Count tasks hold [`Workspaces`] and [`Shared`], not this value, so
 /// dropping the service can cancel them.
 #[derive(Debug)]
 pub(crate) struct DiffStats {
     shared: Arc<Shared>,
     tasks: TaskTracker,
-    workspaces: Arc<Workspaces>,
+    reader: Reader,
 }
 
 impl DiffStats {
-    /// Watches start on the first request and stop with `workspaces`.
+    /// Counts start on the first request and stop with `workspaces`.
     #[must_use]
     pub(crate) fn start(workspaces: Arc<Workspaces>) -> Self {
         let stop = workspaces.stopping().child_token();
-        let (changed, _receiver) = watch::channel(0);
         Self {
-            shared: Arc::new(Shared {
-                book: Mutex::new(Book::default()),
-                changed,
-                stop,
-            }),
+            shared: Arc::new(fresh(stop, CACHE, INTEREST)),
             tasks: TaskTracker::new(),
-            workspaces,
+            reader: Reader::Live(workspaces),
         }
     }
 
-    /// Remember interest in each folder and start a watch for one that is
+    /// Remember interest in each folder and start a count for one that is
     /// new. One key per input, in order, canonical when the folder exists.
     #[must_use]
     pub(crate) async fn note(&self, roots: &[(PathBuf, WorkspaceRoot)]) -> Vec<PathBuf> {
@@ -134,7 +153,7 @@ impl DiffStats {
             .is_none_or(|slot| slot.seen)
     }
 
-    /// The stored count. None when it is null or the folder is not watched.
+    /// The stored count. None when it is null or the folder is not counted.
     #[must_use]
     pub(crate) fn stat(&self, key: &Path) -> Option<DiffStat> {
         lock(&self.shared.book)
@@ -147,6 +166,21 @@ impl DiffStats {
     #[must_use]
     pub(crate) fn subscribe(&self) -> watch::Receiver<u64> {
         self.shared.changed.subscribe()
+    }
+
+    /// A count whose answers the test sends, with no git and no workspace.
+    #[cfg(test)]
+    fn scripted(cache: Duration, interest: Duration) -> (Self, watch::Sender<Option<Answer>>) {
+        let (tx, rx) = watch::channel(None);
+        let stop = CancellationToken::new();
+        (
+            Self {
+                shared: Arc::new(fresh(stop, cache, interest)),
+                tasks: TaskTracker::new(),
+                reader: Reader::Wait(rx),
+            },
+            tx,
+        )
     }
 
     fn observe(&self, keys: &[PathBuf], roots: &[(PathBuf, WorkspaceRoot)]) {
@@ -181,9 +215,9 @@ impl DiffStats {
         }
         for (key, epoch) in start {
             let shared = Arc::clone(&self.shared);
-            let workspaces = Arc::clone(&self.workspaces);
+            let reader = self.reader.clone();
             drop(self.tasks.spawn(async move {
-                watch_cwd(key, epoch, shared, workspaces).await;
+                follow(key, epoch, shared, reader).await;
             }));
         }
     }
@@ -196,104 +230,113 @@ impl Drop for DiffStats {
     }
 }
 
+fn fresh(stop: CancellationToken, cache: Duration, interest: Duration) -> Shared {
+    let (changed, _receiver) = watch::channel(0);
+    Shared {
+        book: Mutex::new(Book::default()),
+        changed,
+        stop,
+        counts: Arc::new(Semaphore::new(LIMIT)),
+        cache,
+        interest,
+    }
+}
+
 fn lock(book: &Mutex<Book>) -> MutexGuard<'_, Book> {
     book.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-enum Folder {
-    Git,
-    Plain,
-}
-
-enum Wake {
-    Stop,
-    Quiet,
-    Event,
-    Closed,
-}
-
-struct Watch {
-    watcher: Option<Box<notify::RecommendedWatcher>>,
-    events: Option<mpsc::Receiver<()>>,
-}
-
-impl Watch {
-    const fn empty() -> Self {
-        Self {
-            watcher: None,
-            events: None,
-        }
+/// Whether list or get waits for a count.
+///
+/// A delegated caller never waits. The first read waits while a folder
+/// has not been counted. A later read waits when it already has this
+/// generation.
+#[must_use]
+pub(crate) fn should_wait(
+    changed_from: Option<u64>,
+    generation: u64,
+    pending: bool,
+    delegated: bool,
+) -> bool {
+    if delegated {
+        return false;
     }
-
-    fn clear(&mut self) {
-        self.watcher = None;
-        self.events = None;
-    }
-
-    fn ensure(&mut self, dir: &Path) {
-        if self.watcher.is_some() {
-            return;
-        }
-        let Some((watcher, events)) = arm(dir) else {
-            return;
-        };
-        self.watcher = Some(watcher);
-        self.events = Some(events);
-    }
+    let same = changed_from.is_some_and(|revision| revision == generation);
+    same || (changed_from.is_none() && pending)
 }
 
-async fn watch_cwd(key: PathBuf, epoch: u64, shared: Arc<Shared>, workspaces: Arc<Workspaces>) {
-    let mut directory = Watch::empty();
+async fn follow(key: PathBuf, epoch: u64, shared: Arc<Shared>, reader: Reader) {
     loop {
         if shared.stop.is_cancelled() || retire(&shared, &key, epoch) {
             break;
         }
-        refresh(&workspaces, &shared, &key, &mut directory).await;
+        let answer = match root_of(&shared, &key) {
+            Some(root) => answer_for(&reader, &shared, root).await,
+            None => Answer::Plain,
+        };
+        remember(&shared, &key, answer);
         if shared.stop.is_cancelled() || retire(&shared, &key, epoch) {
             break;
         }
-        match wait(&shared.stop, &mut directory).await {
-            Wake::Stop => break,
-            Wake::Quiet | Wake::Closed => directory.clear(),
-            Wake::Event => {
-                if let Some(events) = directory.events.as_mut() {
-                    settle(&shared.stop, events).await;
-                }
-            }
+        let Some(asked) = asked_at(&shared, &key, epoch) else {
+            break;
+        };
+        let Some(pause) = pause_for(asked, shared.cache, shared.interest) else {
+            let _done = retire(&shared, &key, epoch);
+            break;
+        };
+        tokio::select! {
+            () = shared.stop.cancelled() => break,
+            () = tokio::time::sleep(pause) => {}
         }
     }
 }
 
-async fn refresh(workspaces: &Workspaces, shared: &Shared, key: &Path, directory: &mut Watch) {
-    let (folder, stat) = match root_of(shared, key) {
-        Some(root) => read_root(workspaces, root).await,
-        None => (Folder::Plain, None),
-    };
-    remember(shared, key, stat);
-    match folder {
-        Folder::Git => directory.ensure(key),
-        Folder::Plain => directory.clear(),
+async fn answer_for(reader: &Reader, shared: &Shared, root: WorkspaceRoot) -> Answer {
+    match reader {
+        Reader::Live(workspaces) => read_root(workspaces, shared, root).await,
+        #[cfg(test)]
+        Reader::Wait(answers) => scripted_answer(answers.clone()).await,
     }
 }
 
-async fn read_root(workspaces: &Workspaces, root: WorkspaceRoot) -> (Folder, Option<DiffStat>) {
+async fn read_root(workspaces: &Workspaces, shared: &Shared, root: WorkspaceRoot) -> Answer {
     let resolved = match workspaces.resolve(root).await {
         Ok(resolved) if resolved.git => resolved,
-        Ok(_) => return (Folder::Plain, None),
+        Ok(_) => return Answer::Plain,
         Err(error) => {
             tracing::debug!(%error, "diff stat: the workspace folder is not available");
-            return (Folder::Plain, None);
+            return Answer::Keep;
         }
     };
     let git = match workspaces.git() {
         Ok(git) => git,
         Err(error) => {
             tracing::debug!(%error, "diff stat: git is not available");
-            return (Folder::Plain, None);
+            return Answer::Plain;
         }
     };
-    let stat = count::stat_in(git, resolved.root.path(), resolved.base.as_ref()).await;
-    (Folder::Git, stat)
+    let Some(held) = permit(shared).await else {
+        return Answer::Keep;
+    };
+    let answer = classify(count::stat_in(git, resolved.root.path(), resolved.base.as_ref()).await);
+    drop(held);
+    answer
+}
+
+async fn permit(shared: &Shared) -> Option<OwnedSemaphorePermit> {
+    Arc::clone(&shared.counts).acquire_owned().await.ok()
+}
+
+fn classify(result: Result<Option<DiffStat>, GitError>) -> Answer {
+    match result {
+        Ok(stat) => Answer::Count(stat),
+        Err(GitError::Unexpected { what: "base" }) => Answer::Count(None),
+        Err(error) => {
+            tracing::debug!(%error, "diff stat: git did not answer; the last count stays");
+            Answer::Keep
+        }
+    }
 }
 
 fn root_of(shared: &Shared, key: &Path) -> Option<WorkspaceRoot> {
@@ -303,7 +346,12 @@ fn root_of(shared: &Shared, key: &Path) -> Option<WorkspaceRoot> {
         .and_then(|slot| slot.roots.last().copied())
 }
 
-fn remember(shared: &Shared, key: &Path, stat: Option<DiffStat>) {
+fn remember(shared: &Shared, key: &Path, answer: Answer) {
+    let stat = match answer {
+        Answer::Keep => return,
+        Answer::Plain => None,
+        Answer::Count(stat) => stat,
+    };
     let generation = {
         let mut book = lock(&shared.book);
         book.publish(key, stat)
@@ -323,113 +371,84 @@ fn retire(shared: &Shared, key: &Path, epoch: u64) -> bool {
     if slot.epoch != epoch {
         return true;
     }
-    if slot.asked.elapsed() < INTEREST {
+    if slot.asked.elapsed() < shared.interest {
         return false;
     }
     let _removed = book.slots.remove(key);
     true
 }
 
-async fn wait(stop: &CancellationToken, directory: &mut Watch) -> Wake {
-    tokio::select! {
-        () = stop.cancelled() => Wake::Stop,
-        wake = listen(directory) => wake,
+fn asked_at(shared: &Shared, key: &Path, epoch: u64) -> Option<Instant> {
+    let book = lock(&shared.book);
+    let slot = book.slots.get(key)?;
+    (slot.epoch == epoch).then_some(slot.asked)
+}
+
+/// How long to wait before the next count.
+///
+/// None when interest has already ended, so the task retires instead of
+/// sleeping.
+fn pause_for(asked: Instant, cache: Duration, interest: Duration) -> Option<Duration> {
+    let left = interest.checked_sub(asked.elapsed())?;
+    if left.is_zero() {
+        None
+    } else {
+        Some(cache.min(left))
     }
 }
 
-async fn listen(directory: &mut Watch) -> Wake {
-    let Some(events) = directory.events.as_mut() else {
-        tokio::time::sleep(CACHE).await;
-        return Wake::Quiet;
-    };
-    match events.recv().await {
-        Some(()) => Wake::Event,
-        None => Wake::Closed,
-    }
-}
-
-async fn settle(stop: &CancellationToken, events: &mut mpsc::Receiver<()>) {
+#[cfg(test)]
+async fn scripted_answer(mut answers: watch::Receiver<Option<Answer>>) -> Answer {
     loop {
-        tokio::select! {
-            () = stop.cancelled() => return,
-            () = tokio::time::sleep(DEBOUNCE) => return,
-            received = events.recv() => {
-                if received.is_none() {
-                    return;
-                }
-            }
+        if let Some(answer) = *answers.borrow_and_update() {
+            return answer;
+        }
+        if answers.changed().await.is_err() {
+            return Answer::Keep;
         }
     }
-}
-
-fn arm(dir: &Path) -> Option<(Box<notify::RecommendedWatcher>, mpsc::Receiver<()>)> {
-    let (tx, rx) = mpsc::channel(1);
-    let mut watcher =
-        match notify::recommended_watcher(move |event: Result<Event, notify::Error>| {
-            if event.as_ref().is_ok_and(ignored) {
-                return;
-            }
-            let _sent = tx.try_send(());
-        }) {
-            Ok(watcher) => watcher,
-            Err(error) => {
-                tracing::debug!(%error, "diff stat: the directory watch did not start");
-                return None;
-            }
-        };
-    if let Err(error) = watcher.watch(dir, RecursiveMode::Recursive) {
-        tracing::debug!(%error, "diff stat: the directory watch did not start");
-        return None;
-    }
-    Some((Box::new(watcher), rx))
-}
-
-fn ignored(event: &Event) -> bool {
-    if event.kind.is_access() {
-        return true;
-    }
-    !event.paths.is_empty() && event.paths.iter().map(PathBuf::as_path).all(skipped)
-}
-
-/// `node_modules`, `target`, and git's object and log stores.
-fn skipped(path: &Path) -> bool {
-    let mut under_git = false;
-    for part in path.components() {
-        let name = part.as_os_str();
-        if name == "node_modules" || name == "target" {
-            return true;
-        }
-        if under_git && (name == "objects" || name == "logs") {
-            return true;
-        }
-        under_git = name == ".git";
-    }
-    false
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::{Path, PathBuf};
-    use std::time::Instant;
+    use std::time::{Duration, Instant};
 
+    use tokio_util::sync::CancellationToken;
+    use vessel_proto::ProjectId;
     use vessel_proto::registry::DiffStat;
+    use vessel_proto::workspace::WorkspaceRoot;
+    use vessel_workspace::GitError;
 
-    use super::{Book, Slot, skipped};
+    use super::{
+        Answer, Book, CACHE, DiffStats, INTEREST, LIMIT, Slot, classify, fresh, lock, pause_for,
+        permit, remember, retire, should_wait,
+    };
+
+    fn slot_at(asked: Instant) -> Slot {
+        Slot {
+            epoch: 0,
+            roots: Vec::new(),
+            seen: false,
+            stat: None,
+            asked,
+        }
+    }
+
+    fn folder() -> (PathBuf, WorkspaceRoot) {
+        (
+            PathBuf::from("/no/such/vessel-diff-stat"),
+            WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+        )
+    }
 
     #[test]
     fn publish_bumps_for_the_first_null_and_then_only_on_a_change() {
         let mut book = Book::default();
         let key = PathBuf::from("repo");
-        let _previous = book.slots.insert(
-            key.clone(),
-            Slot {
-                epoch: 0,
-                roots: Vec::new(),
-                seen: false,
-                stat: None,
-                asked: Instant::now(),
-            },
-        );
+        let _previous = book.slots.insert(key.clone(), slot_at(Instant::now()));
         assert_eq!(book.publish(&key, None), Some(1));
         assert_eq!(book.publish(&key, None), None);
         let stat = DiffStat {
@@ -454,14 +473,204 @@ mod tests {
     }
 
     #[test]
-    fn dependency_and_git_object_paths_do_not_dirty_the_count() {
-        assert!(skipped(Path::new("/repo/node_modules/pkg/index.js")));
-        assert!(skipped(Path::new("/repo/target/debug/vessel")));
-        assert!(skipped(Path::new("/repo/.git/objects/ab/cd")));
-        assert!(skipped(Path::new("/repo/.git/logs/HEAD")));
-        assert!(!skipped(Path::new("/repo/.git/HEAD")));
-        assert!(!skipped(Path::new("/repo/src/main.rs")));
-        assert!(!skipped(Path::new("/repo/target-not/file")));
-        assert!(!skipped(Path::new("/repo/node_modules_backup/file")));
+    fn the_pause_is_the_cache_until_interest_runs_out() {
+        let now = Instant::now();
+        assert_eq!(pause_for(now, CACHE, INTEREST), Some(CACHE));
+        let almost = now.checked_sub(Duration::from_secs(50)).unwrap();
+        let left = pause_for(almost, CACHE, INTEREST).unwrap();
+        assert!(left <= Duration::from_secs(10));
+        assert!(left > Duration::from_secs(9));
+        let done = now.checked_sub(INTEREST).unwrap();
+        assert_eq!(pause_for(done, CACHE, INTEREST), None);
+    }
+
+    #[test]
+    fn interest_removes_the_slot_and_a_newer_task_is_left_in_place() {
+        let shared = fresh(CancellationToken::new(), CACHE, INTEREST);
+        let key = PathBuf::from("repo");
+        let old = Instant::now().checked_sub(INTEREST).unwrap();
+        let _previous = lock(&shared.book).slots.insert(key.clone(), slot_at(old));
+        assert!(retire(&shared, &key, 0));
+        assert!(!lock(&shared.book).slots.contains_key(&key));
+
+        let _previous = lock(&shared.book)
+            .slots
+            .insert(key.clone(), slot_at(Instant::now()));
+        assert!(!retire(&shared, &key, 0));
+        assert!(lock(&shared.book).slots.contains_key(&key));
+        {
+            let mut book = lock(&shared.book);
+            let Some(slot) = book.slots.get_mut(&key) else {
+                panic!("the slot was removed");
+            };
+            slot.epoch = 2;
+        }
+        assert!(retire(&shared, &key, 0));
+        assert!(lock(&shared.book).slots.contains_key(&key));
+    }
+
+    #[test]
+    fn a_busy_answer_keeps_the_stored_count_and_a_real_null_replaces_it() {
+        let shared = fresh(CancellationToken::new(), CACHE, INTEREST);
+        let key = PathBuf::from("repo");
+        let _previous = lock(&shared.book)
+            .slots
+            .insert(key.clone(), slot_at(Instant::now()));
+        let stat = DiffStat {
+            additions: 1,
+            deletions: 0,
+        };
+        remember(&shared, &key, Answer::Count(Some(stat)));
+        let generation = lock(&shared.book).generation;
+        remember(&shared, &key, Answer::Keep);
+        assert_eq!(lock(&shared.book).slots[&key].stat, Some(stat));
+        assert_eq!(lock(&shared.book).generation, generation);
+        remember(&shared, &key, Answer::Count(None));
+        assert!(lock(&shared.book).slots[&key].stat.is_none());
+        assert!(lock(&shared.book).generation > generation);
+    }
+
+    #[test]
+    fn a_busy_or_timed_out_count_is_kept_and_a_missing_base_is_null() {
+        assert_eq!(classify(Ok(None)), Answer::Count(None));
+        let stat = DiffStat {
+            additions: 1,
+            deletions: 0,
+        };
+        assert_eq!(classify(Ok(Some(stat))), Answer::Count(Some(stat)));
+        assert_eq!(classify(Err(GitError::Busy)), Answer::Keep);
+        assert_eq!(
+            classify(Err(GitError::TimedOut {
+                after: Duration::from_secs(1),
+            })),
+            Answer::Keep
+        );
+        assert_eq!(
+            classify(Err(GitError::Unexpected { what: "base" })),
+            Answer::Count(None)
+        );
+        assert_eq!(classify(Err(GitError::Closed)), Answer::Keep);
+    }
+
+    #[test]
+    fn a_first_read_waits_until_counted_and_a_delegate_does_not() {
+        assert!(should_wait(None, 0, true, false));
+        assert!(!should_wait(None, 1, false, false));
+        assert!(should_wait(Some(4), 4, false, false));
+        assert!(!should_wait(Some(3), 4, false, false));
+        assert!(!should_wait(None, 0, true, true));
+        assert!(!should_wait(Some(4), 4, true, true));
+    }
+
+    #[tokio::test]
+    async fn a_quiet_folder_is_dropped_after_interest() {
+        let interest = Duration::from_millis(80);
+        let (stats, tx) = DiffStats::scripted(Duration::from_millis(20), interest);
+        tx.send(Some(Answer::Plain)).unwrap();
+        let (path, root) = folder();
+        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        assert!(lock(&stats.shared.book).slots.contains_key(&path));
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline && lock(&stats.shared.book).slots.contains_key(&path) {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(
+            !lock(&stats.shared.book).slots.contains_key(&path),
+            "the slot stays after interest"
+        );
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline && !stats.tasks.is_empty() {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(stats.tasks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn the_first_count_wakes_a_waiter_and_the_next_one_does_too() {
+        let (stats, tx) = DiffStats::scripted(Duration::from_millis(40), Duration::from_secs(30));
+        let (path, root) = folder();
+        let mut changed = stats.subscribe();
+        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        assert!(!stats.ready(&path));
+        assert!(should_wait(None, stats.generation(), true, false));
+
+        let stat = DiffStat {
+            additions: 2,
+            deletions: 1,
+        };
+        tx.send(Some(Answer::Count(Some(stat)))).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), changed.changed())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(stats.ready(&path));
+        assert_eq!(stats.stat(&path), Some(stat));
+        let generation = stats.generation();
+        assert_eq!(generation, 1);
+        assert!(should_wait(Some(generation), generation, false, false));
+        assert!(!should_wait(Some(generation), generation, false, true));
+
+        let mut again = stats.subscribe();
+        let next = DiffStat {
+            additions: 4,
+            deletions: 1,
+        };
+        tx.send(Some(Answer::Count(Some(next)))).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), again.changed())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(stats.stat(&path), Some(next));
+        assert!(stats.generation() > generation);
+    }
+
+    #[tokio::test]
+    async fn the_loop_keeps_the_count_when_the_next_read_is_busy() {
+        let (stats, tx) = DiffStats::scripted(Duration::from_millis(40), Duration::from_secs(30));
+        let (path, root) = folder();
+        let stat = DiffStat {
+            additions: 1,
+            deletions: 2,
+        };
+        tx.send(Some(Answer::Count(Some(stat)))).unwrap();
+        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline && stats.stat(&path) != Some(stat) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert_eq!(stats.stat(&path), Some(stat));
+        let generation = stats.generation();
+        tx.send(Some(Answer::Keep)).unwrap();
+        tokio::time::sleep(Duration::from_millis(120)).await;
+        assert_eq!(stats.stat(&path), Some(stat));
+        assert_eq!(stats.generation(), generation);
+        tx.send(Some(Answer::Count(None))).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline && stats.generation() == generation {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(stats.stat(&path).is_none());
+        assert!(stats.ready(&path));
+        assert!(stats.generation() > generation);
+    }
+
+    #[tokio::test]
+    async fn at_most_four_counts_hold_a_slot() {
+        let (stats, tx) = DiffStats::scripted(CACHE, INTEREST);
+        drop(tx);
+        let mut held = Vec::new();
+        for _slot in 0..LIMIT {
+            held.push(permit(&stats.shared).await.unwrap());
+        }
+        let shared = std::sync::Arc::clone(&stats.shared);
+        let mut waiting = tokio::spawn(async move { permit(&shared).await });
+        let blocked = tokio::time::timeout(Duration::from_millis(500), &mut waiting).await;
+        assert!(blocked.is_err(), "a fifth count took a slot");
+        drop(held);
+        let acquired = tokio::time::timeout(Duration::from_secs(2), waiting)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(acquired.is_some());
     }
 }

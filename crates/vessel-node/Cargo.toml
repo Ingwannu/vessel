@@ -109,9 +109,6 @@ sha2.workspace = true
 # workspace through vessel-store.
 subtle.workspace = true
 thiserror.workspace = true
-# One recursive directory watch per served diff stat (ADR 0120).
-# Already in the workspace (vessel-workspace).
-notify.workspace = true
 tokio = { workspace = true, features = ["io-std"] }
 # `fleet.toml`: typed reading, and `vessel fleet init` writing it with
 # correct quoting; already in the workspace (the node book).

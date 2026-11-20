@@ -4,7 +4,7 @@ use std::path::Path;
 
 use vessel_proto::registry::DiffStat;
 use vessel_proto::workspace::{BranchName, DiffScope, FileChange, RefName, WorktreeBase};
-use vessel_workspace::Git;
+use vessel_workspace::{Git, GitError};
 
 /// What a checkout is compared with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,53 +17,48 @@ pub(super) enum Compared {
 
 /// The count for `dir`.
 ///
-/// None when git cannot answer or there is no comparison.
+/// `Ok(None)` is a real empty answer: no comparison, or both sides zero.
+/// An error means git did not answer, and the caller keeps the last count.
 #[must_use]
-pub(super) async fn stat_in(git: &Git, dir: &Path, base: Option<&RefName>) -> Option<DiffStat> {
-    let status = match git.status(dir).await {
-        Ok(status) => status,
-        Err(error) => {
-            tracing::debug!(%error, "diff stat: git status failed");
-            return None;
-        }
-    };
+pub(super) async fn stat_in(
+    git: &Git,
+    dir: &Path,
+    base: Option<&RefName>,
+) -> Result<Option<DiffStat>, GitError> {
+    let status = git.status(dir).await?;
     let branch = status.branch.as_ref().map(BranchName::as_str);
     let base_name = base.map(RefName::as_str);
-    let scope = match compared(branch, base_name)? {
-        Compared::Base => DiffScope::Base { base: None },
-        Compared::Origin => origin_scope(git, dir, branch?).await?,
+    let scope = match compared(branch, base_name) {
+        None => return Ok(None),
+        Some(Compared::Base) => DiffScope::Base { base: None },
+        Some(Compared::Origin) => {
+            let Some(branch) = branch else {
+                return Ok(None);
+            };
+            match origin_scope(git, dir, branch).await? {
+                Some(scope) => scope,
+                None => return Ok(None),
+            }
+        }
     };
     let fallback = base.cloned().map(|name| WorktreeBase::Ref { name });
-    let resolved = match git.resolve_scope(dir, &scope, fallback.as_ref()).await {
-        Ok(resolved) => resolved,
-        Err(error) => {
-            tracing::debug!(%error, "diff stat: the comparison did not resolve");
-            return None;
-        }
-    };
-    match git.changes(dir, &resolved, false).await {
-        Ok(summary) => counted(&summary.files),
-        Err(error) => {
-            tracing::debug!(%error, "diff stat: git diff failed");
-            None
-        }
-    }
+    let resolved = git.resolve_scope(dir, &scope, fallback.as_ref()).await?;
+    let summary = git.changes(dir, &resolved, false).await?;
+    Ok(counted(&summary.files))
 }
 
-async fn origin_scope(git: &Git, dir: &Path, branch: &str) -> Option<DiffScope> {
-    let name = origin_name(branch)?;
+async fn origin_scope(git: &Git, dir: &Path, branch: &str) -> Result<Option<DiffScope>, GitError> {
+    let Some(name) = origin_name(branch) else {
+        return Ok(None);
+    };
     match git
         .resolve(dir, &WorktreeBase::Ref { name: name.clone() })
-        .await
+        .await?
     {
-        Ok(Some(_commit)) => Some(DiffScope::Base {
+        Some(_commit) => Ok(Some(DiffScope::Base {
             base: Some(WorktreeBase::Ref { name }),
-        }),
-        Ok(None) => None,
-        Err(error) => {
-            tracing::debug!(%error, "diff stat: the upstream ref did not resolve");
-            None
-        }
+        })),
+        None => Ok(None),
     }
 }
 
@@ -237,18 +232,33 @@ mod tests {
         run(&env, &dir, &["add", "README.md"]);
         run(&env, &dir, &["commit", "-q", "-m", "first"]);
         let base: RefName = "main".parse().unwrap();
-        assert!(super::stat_in(&git, &dir, Some(&base)).await.is_none());
+        assert!(
+            super::stat_in(&git, &dir, Some(&base))
+                .await
+                .unwrap()
+                .is_none()
+        );
         std::fs::write(dir.join("README.md"), "hello\nworld\n").unwrap();
-        assert!(super::stat_in(&git, &dir, Some(&base)).await.is_none());
+        assert!(
+            super::stat_in(&git, &dir, Some(&base))
+                .await
+                .unwrap()
+                .is_none()
+        );
         run(&env, &dir, &["checkout", "-q", "-b", "feature"]);
         assert_eq!(
-            super::stat_in(&git, &dir, Some(&base)).await,
+            super::stat_in(&git, &dir, Some(&base)).await.unwrap(),
             Some(DiffStat {
                 additions: 1,
                 deletions: 0
             })
         );
         run(&env, &dir, &["checkout", "-q", "--detach"]);
-        assert!(super::stat_in(&git, &dir, Some(&base)).await.is_none());
+        assert!(
+            super::stat_in(&git, &dir, Some(&base))
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 }

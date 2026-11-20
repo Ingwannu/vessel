@@ -17,7 +17,7 @@
 
 use super::templates::changed;
 use crate::inbox::{InboxEntry, InboxPage};
-use crate::registry::{RegistrySnapshot, ServedWorkspace, WorkspaceDescriptor, serves_diff_stat};
+use crate::registry::{DIFF_STAT_PROTOCOL, RegistrySnapshot, ServedWorkspace, WorkspaceDescriptor};
 use crate::scripts::{ScriptList, ScriptRunOutcome};
 use crate::terminals::{TerminalInfo, TerminalList, TerminalSubscribed};
 use crate::{ProtocolVersion, SessionTitle};
@@ -121,8 +121,20 @@ pub(super) fn served(
     workspace: &ServedWorkspace,
     protocol: ProtocolVersion,
 ) -> Option<ServedWorkspace> {
+    served_since(workspace, protocol, DIFF_STAT_PROTOCOL)
+}
+
+/// [`served`] against the version passed in.
+///
+/// The production cut uses [`DIFF_STAT_PROTOCOL`], which stays unassigned
+/// until merge. A test passes its own version and sees both sides.
+fn served_since(
+    workspace: &ServedWorkspace,
+    protocol: ProtocolVersion,
+    since: Option<ProtocolVersion>,
+) -> Option<ServedWorkspace> {
     let title = SessionTitle::optional_for_protocol(workspace.workspace.title.as_ref(), protocol);
-    let strip = !serves_diff_stat(protocol)
+    let strip = !since.is_some_and(|since| protocol >= since)
         && (workspace.diff_stat.is_some() || workspace.stat_revision.is_some());
     if title.is_none() && !strip {
         return None;
@@ -143,7 +155,15 @@ pub(super) fn served_list(
     list: &[ServedWorkspace],
     protocol: ProtocolVersion,
 ) -> Option<Vec<ServedWorkspace>> {
-    changed(list, |workspace| served(workspace, protocol))
+    served_list_since(list, protocol, DIFF_STAT_PROTOCOL)
+}
+
+fn served_list_since(
+    list: &[ServedWorkspace],
+    protocol: ProtocolVersion,
+    since: Option<ProtocolVersion>,
+) -> Option<Vec<ServedWorkspace>> {
+    changed(list, |workspace| served_since(workspace, protocol, since))
 }
 
 /// The registry snapshot: its label rule first, then its workspaces'
@@ -371,5 +391,48 @@ mod tests {
             );
             assert_eq!(reply.for_protocol(crate::PROTOCOL_VERSION), None);
         }
+    }
+
+    fn served_row() -> ServedWorkspace {
+        ServedWorkspace {
+            workspace: WorkspaceDescriptor {
+                id: crate::WorkspaceId::random(),
+                project: crate::ProjectId::random(),
+                path: "/work/app".into(),
+                title: None,
+                automation: crate::registry::WorkspaceAutomation::Allowed,
+                pin: crate::registry::WorkspacePin::Unpinned,
+                backing: crate::registry::WorkspaceBacking::Local,
+                lifecycle: crate::registry::WorkspaceLifecycle::Active,
+                visibility: crate::registry::WorkspaceVisibility::Foreground,
+                created_at: DateTime::UNIX_EPOCH,
+                revision: crate::registry::RegistryRevision::ZERO,
+            },
+            diff_stat: Some(crate::registry::DiffStat {
+                additions: 3,
+                deletions: 1,
+            }),
+            stat_revision: Some(crate::registry::DiffStatRevision::of(2)),
+        }
+    }
+
+    #[test]
+    fn an_older_peer_loses_the_diff_stat_and_a_current_peer_keeps_it() {
+        let row = served_row();
+        let since = Some(ProtocolVersion::new(37));
+        let below = ProtocolVersion::new(36);
+        let at = ProtocolVersion::new(37);
+        let older = served_since(&row, below, since).unwrap();
+        assert!(older.diff_stat.is_none());
+        assert!(older.stat_revision.is_none());
+        assert_eq!(older.workspace.path, row.workspace.path);
+        assert!(served_since(&row, at, since).is_none());
+        let listed = served_list_since(std::slice::from_ref(&row), below, since).unwrap();
+        assert!(listed[0].diff_stat.is_none());
+        assert!(listed[0].stat_revision.is_none());
+        assert!(served_list_since(std::slice::from_ref(&row), at, since).is_none());
+        let stripped = served(&row, below).unwrap();
+        assert!(stripped.diff_stat.is_none());
+        assert!(stripped.stat_revision.is_none());
     }
 }

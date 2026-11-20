@@ -55,7 +55,7 @@ use vessel_store::{Store, StoreError};
 use vessel_workspace::find::Indexes;
 use vessel_workspace::{Git, GitSetup};
 
-pub(crate) use diff_stat::DiffStats;
+pub(crate) use diff_stat::{DiffStats, should_wait};
 pub(crate) use error::WorkspaceError;
 pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
