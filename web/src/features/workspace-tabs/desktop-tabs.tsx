@@ -148,6 +148,7 @@ export function DesktopTabs(props: TabChromeProps) {
         })}
       </div>
       <Menu
+        align="end"
         trigger={
           <IconButton
             icon="plus"

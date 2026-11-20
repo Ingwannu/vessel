@@ -2,7 +2,6 @@
 // Keep the compact and desktop actions on the same vocabulary.
 
 const en = {
-  tabs: "Tabs",
   workspace: "Workspace tabs",
   agent: "Agent",
   terminal: "Terminal",
@@ -64,8 +63,7 @@ const en = {
 };
 
 const ko: typeof en = {
-  tabs: "탭",
-  workspace: "작업 공간 탭",
+  workspace: "워크스페이스 탭",
   agent: "에이전트",
   terminal: "터미널",
   changes: "변경 사항",

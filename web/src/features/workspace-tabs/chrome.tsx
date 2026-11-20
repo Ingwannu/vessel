@@ -3,7 +3,7 @@ import "./chrome.css";
 import { useState } from "react";
 
 import { tabKey } from "../../data/workspace/tab-layout";
-import { Button, Dialog, IconButton, Menu } from "../../ui/kit";
+import { Button, Dialog, Icon, IconButton, Menu } from "../../ui/kit";
 import { useMedia } from "../shell/use-media";
 import {
   menuRows,
@@ -80,7 +80,8 @@ function CompactTabs(props: TabChromeProps) {
       </div>
       {open ? (
         <Dialog
-          title={words.tabs}
+          title={words.workspace}
+          sheet="content"
           hideClose
           onClose={() => {
             setOpen(false);
@@ -131,6 +132,9 @@ function CompactTabs(props: TabChromeProps) {
                   >
                     <TabTitle item={item} />
                   </Button>
+                  <span className="workspace-switcher-check">
+                    {selected ? <Icon name="check" size={14} /> : null}
+                  </span>
                   <Menu
                     trigger={
                       <IconButton

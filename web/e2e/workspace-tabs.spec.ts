@@ -65,7 +65,10 @@ test("a standalone terminal accepts input and closes through the compact switche
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: /Switch tabs/ }).click();
-  const switcher = page.getByRole("dialog", { name: "Tabs", exact: true });
+  const switcher = page.getByRole("dialog", {
+    name: "Workspace tabs",
+    exact: true,
+  });
   await expect(
     switcher.getByRole("button", { name: "Terminal", exact: true }),
   ).toHaveAttribute("aria-current", "true");

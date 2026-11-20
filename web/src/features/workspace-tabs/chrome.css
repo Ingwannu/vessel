@@ -22,6 +22,7 @@
 
 .workspace-tab-strip {
   display: flex;
+  flex: 1;
   align-items: center;
   min-width: 0;
   overflow-x: auto;
@@ -35,12 +36,12 @@
   align-items: center;
   min-width: 0;
   max-width: 190px;
-  height: 35px;
-  border-bottom: 2px solid transparent;
+  height: 28px;
+  border-radius: var(--r-2);
 }
 
 .workspace-tab[data-selected="true"] {
-  border-bottom-color: var(--accent);
+  background: var(--bg-active);
   color: var(--text-primary);
 }
 
@@ -134,13 +135,17 @@
 
 .workspace-switcher-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 14px auto;
   align-items: center;
   border-radius: var(--r-2);
 }
 
 .workspace-switcher-row[data-selected="true"] {
   background: var(--bg-surface);
+}
+
+.workspace-switcher-check {
+  color: var(--text-secondary);
 }
 
 .workspace-switcher-row > :first-child {
