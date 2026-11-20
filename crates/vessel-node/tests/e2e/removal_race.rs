@@ -70,6 +70,7 @@ async fn a_terminal_and_its_worktree_s_removal_never_both_win() {
                 owner.call(RemoveWorktree {
                     worktree: worktree.id,
                     if_lost: IfLost::Discard,
+                    end_terminals: false,
                 })
             );
             match (opened, removal.unwrap()) {
@@ -85,6 +86,7 @@ async fn a_terminal_and_its_worktree_s_removal_never_both_win() {
                         .call(RemoveWorktree {
                             worktree: worktree.id,
                             if_lost: IfLost::Discard,
+                            end_terminals: false,
                         })
                         .await
                         .unwrap();

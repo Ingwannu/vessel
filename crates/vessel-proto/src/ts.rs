@@ -408,6 +408,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::forge::PULL_REQUEST_PANE_PROTOCOL,
         "`pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).",
     ),
+    (
+        "WORKSPACE_TERMINALS_PROTOCOL",
+        crate::terminals::WORKSPACE_TERMINALS_PROTOCOL,
+        "Terminals in a worktree or an unregistered folder, and `worktree.remove`'s `end_terminals` (ADR 0121).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.
