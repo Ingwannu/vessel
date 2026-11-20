@@ -497,7 +497,7 @@ async fn server(
                     }
                 }
                 let Some(server) = &mut process else { break; };
-                let mut reply = work.reply;
+                let reply = work.reply;
                 let result = tokio::select! {
                     () = shutdown.cancelled() => break,
                     result = tokio::time::timeout(config.request_timeout, server.query(work.query, &watcher)) => result.unwrap_or(Err(Error::Timeout)),
