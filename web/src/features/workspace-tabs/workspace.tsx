@@ -66,7 +66,6 @@ export function Workspace({
   const state = useWorkspace(node, anchor, root, projects, scope, words);
   const { active, actions, lifecycle, layout, markDirty, openFile, select } =
     state;
-
   const items = layout.tabs.map((tab): TabItem => {
     const key = tabKey(tab);
     const dirty = state.dirty.has(key);
@@ -115,7 +114,9 @@ export function Workspace({
     select({ kind: "agent", id: heading.id });
     setSummaryOpen(true);
   };
-  const closeSummary = () => setSummaryOpen(false);
+  const closeSummary = () => {
+    setSummaryOpen(false);
+  };
   const openChanges = () => {
     select({ kind: "changes" });
   };
@@ -125,7 +126,6 @@ export function Workspace({
       : root.kind === "worktree"
         ? { kind: "worktree", worktree: root.worktree }
         : { kind: "project", project: root.project };
-
   const openChat = () => {
     select({ kind: "agent", id: anchor.id });
   };
