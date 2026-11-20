@@ -9,6 +9,7 @@ import { formatDiffCount } from "../../data/workspace/diff-stat";
 import { workspaceOf } from "../../data/workspace-labels/groups";
 import type { NodeKey } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
+import { sidebarWords } from "../shell/sidebar-words";
 import { useDiffStats } from "../shell/use-diff-stats";
 import { OpenChanges } from "../workspace/workspace-chat";
 import { useLabels } from "../workspace-labels/use-labels";
@@ -38,7 +39,7 @@ export function DiffStatPill({
     <button
       type="button"
       className="composer-diff-pill"
-      aria-label="Open Changes tab"
+      aria-label={sidebarWords(navigator.language).openChanges}
       onClick={open}
     >
       <span className="workspace-card-add">
