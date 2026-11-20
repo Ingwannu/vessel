@@ -85,6 +85,7 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     } else if matches!(
         method,
         Method::ForgeStatus
+            | Method::SearchRepositories
             | Method::ListPullRequests
             | Method::MergePullRequest
             | Method::SetFeedback
@@ -179,6 +180,9 @@ const fn refused(method: Method) -> bool {
         // is a person's to decide, as is what is sent into a session; the
         // node's sign-in and the whole list are a person's view.
         | Method::ForgeStatus
+        // The account's GitHub repositories (ADR 0088): the node's sign-in
+        // is a person's, as `forge.status`.
+        | Method::SearchRepositories
         | Method::ListPullRequests
         | Method::MergePullRequest
         | Method::SetFeedback
@@ -465,6 +469,7 @@ mod tests {
             Method::RunScript,
             Method::RestartScript,
             Method::ForgeStatus,
+            Method::SearchRepositories,
             Method::ListPullRequests,
             Method::MergePullRequest,
             Method::SetFeedback,

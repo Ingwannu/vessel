@@ -51,13 +51,14 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::settings::Section;
 use vessel_proto::ProjectId;
-use vessel_proto::workspace::ProjectState;
+use vessel_proto::workspace::{ProjectInfo, ProjectState};
 
 use super::PlacePick;
 use crate::routes::Route;
 use crate::shell::Shell;
 
 mod actions;
+pub(crate) mod tree;
 
 pub(crate) use actions::{Origin, ProjectRows, layers};
 
@@ -77,10 +78,30 @@ struct Entry {
     mark: AnyElement,
 }
 
+impl Entry {
+    fn of(shell: &Shell, machine: &str, project: &ProjectInfo, compact: bool) -> Self {
+        let name = project.name.to_string();
+        Self {
+            machine: machine.to_owned(),
+            project: project.id,
+            mark: super::project_icons::mark(shell, machine, project.id, &name, compact),
+            name,
+            git: project.git,
+            state: match project.state {
+                ProjectState::Ready => None,
+                ProjectState::Cloning { .. }
+                | ProjectState::CloneFailed { .. }
+                | ProjectState::Missing
+                | ProjectState::Unknown => shell.words().project_state(&project.state),
+            },
+        }
+    }
+}
+
 impl Shell {
     /// Start a new chat in `project` on `machine`: the composer, the
-    /// project in its tray.
-    fn chat_in_project(
+    /// project in its tray (also Add project's success).
+    pub(super) fn chat_in_project(
         &mut self,
         machine: String,
         project: ProjectId,
@@ -94,11 +115,10 @@ impl Shell {
         self.go(Route::Draft, window, cx);
     }
 
-    /// Settings > Projects on `machine`, its add menu open when `add`.
+    /// Settings > Projects on `machine`.
     fn projects_page(
         &mut self,
         machine: Option<String>,
-        add: bool,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -106,9 +126,6 @@ impl Shell {
             self.areas.settings.machine = machine;
         }
         self.open_settings(Some(Section::Projects), window, cx);
-        if add {
-            self.open_add_menu();
-        }
     }
 }
 
@@ -139,21 +156,7 @@ pub(crate) fn projects(
             machines_with = machines_with.saturating_add(1);
         }
         for project in &list.projects {
-            let name = project.name.to_string();
-            entries.push(Entry {
-                machine: machine.name.clone(),
-                project: project.id,
-                mark: super::project_icons::mark(shell, &machine.name, project.id, &name, compact),
-                name,
-                git: project.git,
-                state: match project.state {
-                    ProjectState::Ready => None,
-                    ProjectState::Cloning { .. }
-                    | ProjectState::CloneFailed { .. }
-                    | ProjectState::Missing
-                    | ProjectState::Unknown => words.project_state(&project.state),
-                },
-            });
+            entries.push(Entry::of(shell, &machine.name, project, compact));
         }
     }
     if !any_list {
@@ -161,10 +164,11 @@ pub(crate) fn projects(
     }
     let labels = words.labels();
     let total = entries.len();
-    let mut section = div()
-        .flex()
-        .flex_col()
-        .child(header(labels.projects, tokens, cx));
+    let mut section =
+        div()
+            .flex()
+            .flex_col()
+            .child(header(labels.projects, labels.add_project, tokens, cx));
     if entries.is_empty() {
         section = section.child(
             div()
@@ -181,6 +185,7 @@ pub(crate) fn projects(
             index,
             show_machine: machines_with > 1,
             compact,
+            fold: None,
         };
         section = section.child(project_row(row, entry, shell, tokens, cx));
     }
@@ -221,9 +226,17 @@ const ROW_COMPACT: f32 = 44.0;
 
 /// Paseo's section header: the title at 8 from the edge, 12 and muted;
 /// its action a 24 square at the end.
-fn header(title: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let neutral = tokens.neutral;
-    let wash = hover(tokens);
+fn header(
+    title: &'static str,
+    add: &'static str,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    section_header(title, tokens).child(add_project(add, tokens, cx))
+}
+
+/// The section header's frame and title, its actions to follow.
+fn section_header(title: &'static str, tokens: &Tokens) -> Div {
     div()
         .min_h(px(36.0))
         .flex()
@@ -236,25 +249,30 @@ fn header(title: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> 
         .child(
             div()
                 .type_(Type::Meta)
-                .text_color(neutral.foreground_muted)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(title),
         )
-        .child(
-            div()
-                .id("sidebar-add-project")
-                .size(px(24.0))
-                .flex()
-                .items_center()
-                .justify_center()
-                .rounded(px(6.0))
-                .cursor_pointer()
-                .hover(move |style| style.bg(wash))
-                .child(glyph(Glyph::Plus, 14.0, neutral.foreground_muted))
-                .on_click(cx.listener(|this, _event, window, cx| {
-                    let machine = this.projects_machine();
-                    this.projects_page(machine, true, window, cx);
-                })),
-        )
+}
+
+/// The header's plus: Paseo's Add project sheet (TRACKER 234), named for
+/// assistive technology as the button it is.
+fn add_project(name: &'static str, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
+    let wash = hover(tokens);
+    div()
+        .id("sidebar-add-project")
+        .size(px(24.0))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(6.0))
+        .cursor_pointer()
+        .hover(move |style| style.bg(wash))
+        .role(gpui::Role::Button)
+        .aria_label(name)
+        .child(glyph(Glyph::Plus, 14.0, tokens.neutral.foreground_muted))
+        .on_click(cx.listener(|this, _event, window, cx| {
+            this.open_add_flow(None, window, cx);
+        }))
 }
 
 /// A row's frame: Paseo's `projectRow`.
@@ -285,6 +303,9 @@ struct Row {
     show_machine: bool,
     /// A phone's width.
     compact: bool,
+    /// In the project tree (TRACKER 682): whether it is folded. A ready
+    /// header's press folds it, its mark gives way to the chevron on hover.
+    fold: Option<bool>,
 }
 
 fn project_row(
@@ -313,6 +334,7 @@ fn project_row(
         project,
         name: name.clone(),
     };
+    let label: SharedString = name.clone().into();
     let removing = shell.areas.workspace.sidebar.is_removing(&machine, project);
     let leading = if removing {
         archiving(&group, row.compact, tokens)
@@ -335,6 +357,13 @@ fn project_row(
                 )
             });
         marked(mark, row.compact, badge).into_any_element()
+    };
+    // In the tree a ready header folds; its chevron takes the mark's place
+    // on hover (Paseo's `ProjectLeadingVisual` `showChevron`).
+    let fold = row.fold.filter(|_| ready);
+    let leading = match fold {
+        Some(folded) => tree::with_chevron(leading, folded, &group, row.compact),
+        None => leading,
     };
     let new_workspace = (ready && git).then(|| target.clone());
     base_row(
@@ -372,11 +401,20 @@ fn project_row(
         tokens,
         cx,
     ))
+    // A button named by the project wherever it is drawn (TRACKER 813, the
+    // app reviewer's note on 682): a ready header in the tree folds and says
+    // whether it is open; elsewhere a press starts a chat or, not ready,
+    // opens its page in Settings.
+    .role(gpui::Role::Button)
+    .aria_label(label)
+    .when_some(fold, |row, folded| row.aria_expanded(!folded))
     .on_click(cx.listener(move |this, _event, window, cx| {
-        if ready {
+        if fold.is_some() {
+            this.fold_project(&machine, project, cx);
+        } else if ready {
             this.chat_in_project(machine.clone(), project, window, cx);
         } else {
-            this.projects_page(Some(machine.clone()), false, window, cx);
+            this.projects_page(Some(machine.clone()), window, cx);
         }
     }))
     .when(!ready, |row| row.opacity(0.8))

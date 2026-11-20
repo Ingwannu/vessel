@@ -179,9 +179,13 @@ fn each_projects_badge_says_its_most_urgent_session(cx: &mut TestAppContext) {
         })
         .collect();
     said.sort();
-    // shop: working over done; docs: its session needs input; site: none,
-    // so no badge.
-    assert_eq!(said, ["Needs input", "Working"]);
+    // The badges: shop working over done; docs, its session needs input;
+    // site has none, so no badge. Each session's slot says its own too
+    // (TRACKER 813): working, done, needs input.
+    assert_eq!(
+        said,
+        ["Done", "Needs input", "Needs input", "Working", "Working"]
+    );
     // Each project's kebab is a button named "Project actions" that takes a
     // Click (its click opens the menu, R2).
     let kebabs: Vec<&str> = json

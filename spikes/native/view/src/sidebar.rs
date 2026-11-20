@@ -5,8 +5,9 @@
 //!
 //! [Decision Log] The sidebar's view, as the page has it (milestone 11,
 //! track W; ported in milestone 12, track S)
-//! - Grouping by machine (the default) or by status (Paseo's buckets in
-//!   the board's words: Needs you, Working, Idle, Ended); sorting by
+//! - Grouping by project (the native default since TRACKER 682, Paseo's;
+//!   `tree`), by machine or by status (Paseo's buckets in the board's
+//!   words: Needs you, Working, Idle, Ended); sorting by
 //!   creation (the default) or by last activity; ended sessions listed
 //!   unless the person hides them (Paseo's; the page hid them by default,
 //!   see `prefs::SidebarView::default`). An archived session is never
@@ -29,6 +30,7 @@ use crate::prefs::{Grouping, SessionSort, SidebarView};
 pub mod display;
 pub mod navigation;
 pub mod status;
+pub mod tree;
 
 /// How many of a machine's sessions the sidebar lists before "N more":
 /// the sidebar is a way to switch, not a second board.
@@ -172,7 +174,10 @@ impl Fleet {
     #[must_use]
     pub fn sidebar_order(&self, view: SidebarView) -> Vec<&Card> {
         match view.group {
-            Grouping::Machine => self
+            // The project tree's order needs the machines' project lists and
+            // the folds, which the fleet does not hold: `SidebarTree::order`.
+            // Without them the machine order is the closest.
+            Grouping::Project | Grouping::Machine => self
                 .sidebar_machines(view, SIDEBAR_SESSIONS)
                 .into_iter()
                 .flat_map(|machine| machine.sessions)

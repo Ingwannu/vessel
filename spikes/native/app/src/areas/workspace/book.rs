@@ -83,12 +83,14 @@ impl Shell {
             to.clone_into(&mut start.machine);
         }
         workspace.code.machine_renamed(from, to);
+        self.tidy_folds(|folds| folds.rename_machine(from, to));
         if listed {
             self.ask(to, Ask::Project(ProjectAsk::List));
         }
     }
 
     fn workspace_forgot(&mut self, name: &str) {
+        self.tidy_folds(|folds| folds.forget_machine(name));
         let workspace = &mut self.areas.workspace;
         let _was = workspace.projects.remove(name);
         workspace.place.machine_forgot(name);

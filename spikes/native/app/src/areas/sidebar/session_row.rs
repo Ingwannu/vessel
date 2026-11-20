@@ -27,18 +27,27 @@
 //! - The shortcut number (Paseo's `SidebarWorkspaceShortcutBadge`) at the
 //!   title's end while the jump modifier is held (`shortcut_badges_visible`),
 //!   for the first nine rows in the order the keys walk; it hides the kebab.
-//! - Differences, named: the hover card (TRACKER 810) and the rows under
-//!   their project (TRACKER 682) are their own items; Paseo's "creating"
-//!   title (92%) has no state here.
+//! - Under a project's header (TRACKER 682) the row takes the same indent
+//!   as under a machine or a status (Paseo's `rowIndented`: every grouped
+//!   row on one rail).
+//! - To assistive technology (TRACKER 813, the app reviewer's P3): the row
+//!   is a button named by its title and selected while its session is open
+//!   (Paseo's `accessibilityRole="button"`, `aria-selected`); its status
+//!   slot a status named by Paseo's bucket label (`getStatusBucketLabel`),
+//!   done included; its kebab a button named "Session actions" (the menu's
+//!   sheet title; Paseo's "Workspace actions", a Vessel row is a session)
+//!   whose Click opens the menu once, as the project row's kebab.
+//! - Differences, named: the hover card (TRACKER 810) is its own item;
+//!   Paseo's "creating" title (92%) has no state here.
 
 use gpui::{FontWeight, linear_color_stop, linear_gradient};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::status_mark::{StatusMark, status_slot};
 use vessel_app_kit::theme::{SidebarSurfaces, radius, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement,
-    MouseButton, MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _,
-    Styled as _, div, px, svg,
+    AnyElement, ClickEvent, Context, Div, ElementId, FluentBuilder as _, Hsla,
+    InteractiveElement as _, IntoElement, MouseButton, MouseDownEvent, ParentElement as _,
+    SharedString, StatefulInteractiveElement as _, Styled as _, div, px, svg,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
@@ -53,7 +62,8 @@ use crate::shell::Shell;
 /// `density.rowHeight`).
 const ROW: f32 = 36.0;
 const ROW_TOUCH: f32 = 44.0;
-/// Its left padding under a group header (Paseo's `rowIndented`: 8 + 8).
+/// Its left padding under a group header (Paseo's `rowIndented`: 8 + 8,
+/// one rail for every grouping: a machine, a status, a project).
 const INDENT: f32 = 16.0;
 /// The title's line.
 const TITLE_LINE: f32 = 20.0;
@@ -106,33 +116,17 @@ pub(super) fn session_row(
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> impl IntoElement {
-    let active = shell.route == Route::Session
-        && shell
-            .areas
-            .session
-            .open
-            .as_ref()
-            .is_some_and(|open| open.session == card.session && open.machine == card.machine);
+    let active = is_open(card, shell);
     let open = Open::of(card);
     let group: SharedString = format!("session-row-{}-{}", card.machine, card.session).into();
     let menu_open = shell.areas.sidebar.rows.is_for(card);
     let pressed = card.clone();
     let fills = SidebarSurfaces::of(tokens);
+    let words = shell.t.lang.sidebar();
+    let name: SharedString = shell.t.title(&card.title).to_owned().into();
     // The fill a hovered row paints: what the scrim fades into.
     let hovered_fill = if active { fills.selected } else { fills.hover };
-    let title = div()
-        .flex_1()
-        .min_w_0()
-        .overflow_hidden()
-        .whitespace_nowrap()
-        .text_ellipsis()
-        .type_(Type::Label)
-        .font_weight(FontWeight::NORMAL)
-        .line_height(px(TITLE_LINE))
-        .text_color(tokens.neutral.foreground)
-        .opacity(TITLE_REST)
-        .group_hover(group.clone(), |style| style.opacity(1.0))
-        .child(shell.t.title(&card.title).to_owned());
+    let title = title(name.clone(), group.clone(), tokens);
     let title_row = div()
         .relative()
         .flex()
@@ -145,9 +139,12 @@ pub(super) fn session_row(
             None => dots(
                 card,
                 group.clone(),
-                touch,
-                menu_open,
-                hovered_fill,
+                Dots {
+                    touch,
+                    menu_open,
+                    hovered_fill,
+                    label: words.row_actions,
+                },
                 tokens,
                 cx,
             ),
@@ -167,6 +164,11 @@ pub(super) fn session_row(
     div()
         .id(ElementId::Name(format!("session-{}", card.session).into()))
         .group(group)
+        // A button named by its title, selected while open (Paseo's row:
+        // `accessibilityRole="button"`, `aria-selected`; TRACKER 813).
+        .role(gpui::Role::Button)
+        .aria_label(name)
+        .aria_selected(active)
         .min_h(px(if touch { ROW_TOUCH } else { ROW }))
         .flex()
         .flex_col()
@@ -188,6 +190,7 @@ pub(super) fn session_row(
                 .child(status_slot(
                     ElementId::Name(format!("session-status-{}", card.session).into()),
                     mark(card.bucket()),
+                    words.bucket(card.bucket()),
                     kind_glyph(card.workspace_kind()),
                     touch,
                     tokens,
@@ -203,6 +206,35 @@ pub(super) fn session_row(
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);
         }))
+}
+
+/// Whether `card`'s session is the one on screen (its row selected).
+fn is_open(card: &Card, shell: &Shell) -> bool {
+    shell.route == Route::Session
+        && shell
+            .areas
+            .session
+            .open
+            .as_ref()
+            .is_some_and(|open| open.session == card.session && open.machine == card.machine)
+}
+
+/// The title: 14 on 20 in the foreground at 76%, full while the row
+/// (`group`) is hovered, cut with an ellipsis.
+fn title(name: SharedString, group: SharedString, tokens: &Tokens) -> Div {
+    div()
+        .flex_1()
+        .min_w_0()
+        .overflow_hidden()
+        .whitespace_nowrap()
+        .text_ellipsis()
+        .type_(Type::Label)
+        .font_weight(FontWeight::NORMAL)
+        .line_height(px(TITLE_LINE))
+        .text_color(tokens.neutral.foreground)
+        .opacity(TITLE_REST)
+        .group_hover(group, |style| style.opacity(1.0))
+        .child(name)
 }
 
 /// Paseo's bucket as the kit's mark (the project row's badge too).
@@ -226,19 +258,39 @@ const fn kind_glyph(kind: WorkspaceKind) -> Glyph {
     }
 }
 
+/// How the kebab is drawn.
+#[derive(Debug, Clone, Copy)]
+struct Dots {
+    /// Drawn on touch: always shown, keeping its room.
+    touch: bool,
+    /// Its menu is open: shown.
+    menu_open: bool,
+    /// The fill a hovered row paints, which the scrim fades into.
+    hovered_fill: Hsla,
+    /// Its name ("Session actions", the menu's title as a sheet).
+    label: &'static str,
+}
+
 /// The row's kebab: always shown on touch (keeping its room) or while its
 /// menu is open; else over the title's end while the row is hovered, the
-/// title fading into the row's fill under it.
+/// title fading into the row's fill under it. A button named for its menu;
+/// a click (assistive technology's, or a pointer's press ending) opens the
+/// menu once, as the project row's kebab (TRACKER 813).
 fn dots(
     card: &Card,
     group: SharedString,
-    touch: bool,
-    menu_open: bool,
-    hovered_fill: Hsla,
+    look: Dots,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    let Dots {
+        touch,
+        menu_open,
+        hovered_fill,
+        label,
+    } = look;
     let target = card.clone();
+    let activated = card.clone();
     let (size, mark, right) = if touch {
         (DOTS_TOUCH, DOTS_MARK_TOUCH, DOTS_RIGHT_TOUCH)
     } else {
@@ -262,6 +314,8 @@ fn dots(
                 .size(px(mark))
                 .text_color(tokens.neutral.foreground_muted),
         )
+        .role(gpui::Role::Button)
+        .aria_label(label)
         // Its own press: the row's click (open the session) does not run.
         .on_mouse_down(
             MouseButton::Left,
@@ -269,7 +323,11 @@ fn dots(
                 cx.stop_propagation();
                 this.row_menu_open(&target, event.position, window, cx);
             }),
-        );
+        )
+        .on_click(cx.listener(move |this, event: &ClickEvent, window, cx| {
+            cx.stop_propagation();
+            this.row_menu_activate(&activated, event.position(), window, cx);
+        }));
     if touch {
         return button.into_any_element();
     }

@@ -141,6 +141,13 @@ pub(super) fn workspace(machine: String, ask: crate::workspace::Ask) -> Event {
 }
 
 /// The demo fleet keeps no search index: every machine finds nothing.
+/// A browser has no terminals: each call answers offline; dropping a
+/// follow has nothing to answer.
+pub(super) fn terminals(ask: crate::terminals::Ask) -> Option<Event> {
+    ask.refused(vessel_app_view::terminal_tabs::Failure::Offline)
+        .map(Event::Terminals)
+}
+
 pub(super) fn search(ask: crate::search::Ask) -> Event {
     Event::Searched(crate::search::Answer {
         machine: ask.machine,

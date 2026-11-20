@@ -88,6 +88,7 @@ pub mod sound {
     pub const fn play(_kind: vessel_app_view::notices::NoticeKind) {}
 }
 pub mod sync;
+pub mod terminals;
 pub mod usage;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -226,6 +227,7 @@ impl Link {
             sync_calls: sync::Hub::default(),
             usage_calls: usage::Hub::default(),
             session_navigation: sessions::Hub::default(),
+            terminal_hub: terminals::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -297,6 +299,8 @@ struct State {
     sync_calls: sync::Hub,
     usage_calls: usage::Hub,
     session_navigation: sessions::Hub,
+    /// The terminal tabs' follows (`terminals`).
+    terminal_hub: terminals::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).

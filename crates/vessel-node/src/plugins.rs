@@ -25,8 +25,11 @@
 //!   error while the row stays failed (Paseo's `startExplicit` throws); at
 //!   node start and when the switch turns on, a failure is only recorded
 //!   (Paseo's `startConfigured`).
-//! - The switch is applied by a task that reads the latest wanted value
-//!   when it gets the change lock, so quick toggles end in the last one.
+//! - The saved switch is in force from node start; a start-up task then
+//!   runs the enabled installations not already running (Paseo's
+//!   `start`), so an install made first is not started twice. A later
+//!   switch is applied by a task that reads the latest wanted value when
+//!   it gets the change lock, so quick toggles end in the last one.
 //! - Trust: everything started here is trusted, unsandboxed code (ADR 0079).
 //!   Callers are checked before they reach this module (Admin for every
 //!   change, agents refused); this module keeps paths and errors private
@@ -200,7 +203,9 @@ impl Plugins {
                 version: rows::node_version().clone(),
                 changes: tokio::sync::Mutex::new(()),
                 state: Mutex::new(State {
-                    switch: false,
+                    // In force from the first moment, so a change made
+                    // before the start-up task runs sees plugins as on.
+                    switch,
                     rows,
                 }),
                 generation: watch::Sender::new(PluginGeneration::default()),
@@ -212,7 +217,7 @@ impl Plugins {
         };
         let starting = plugins.clone();
         drop(tasks.spawn(async move {
-            starting.apply_switch().await;
+            starting.start_enabled().await;
             let _was = starting.inner.settled.send_replace(true);
         }));
         let stopping = plugins.clone();

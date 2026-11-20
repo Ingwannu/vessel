@@ -172,13 +172,13 @@ impl Shell {
         else {
             return;
         };
-        self.projects_page(Some(target.machine.clone()), false, window, cx);
+        self.projects_page(Some(target.machine.clone()), window, cx);
         self.areas.workspace.page.detail = Some(Detail::new(info.id));
         self.load_detail(&target.machine, &info);
     }
 
     /// A new chat in a new worktree of the project (Paseo's new workspace).
-    fn new_workspace_in(
+    pub(super) fn new_workspace_in(
         &mut self,
         target: &Target,
         window: &mut Window,

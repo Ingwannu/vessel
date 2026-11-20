@@ -1,8 +1,8 @@
 //! The sidebar: the routes (`routes::Route::NAV`), a slot for the
 //! projects ([`projects`], the workspace track's), the sessions listed as
-//! the Display menu says (by machine or by status, `machines`,
-//! `statuses`), adding a machine, and the foot (DESIGN.md section 6: rows
-//! on the shell, no edge of its own).
+//! the Display menu says (by project, by machine or by status:
+//! `projects`, `machines`, `statuses`), adding a machine, and the foot
+//! (DESIGN.md section 6: rows on the shell, no edge of its own).
 //!
 //! [Decision Log]
 //! - Purpose: the page's and Paseo's sidebar: the person chooses how
@@ -41,6 +41,7 @@ mod display;
 mod foot;
 mod layout;
 mod machines;
+mod projects;
 mod row_menu;
 mod row_meta;
 mod session_row;
@@ -68,10 +69,16 @@ impl Numbers {
         if !shown {
             return Self(Vec::new());
         }
+        // The tree's order needs the machines' project lists and the folds
+        // (`projects::order`); the other groupings' is the fleet's.
+        let order = match shell.prefs.settings.sidebar.group {
+            Grouping::Project => projects::order(shell),
+            Grouping::Machine | Grouping::Status => {
+                shell.fleet.sidebar_order(shell.prefs.settings.sidebar)
+            }
+        };
         Self(
-            shell
-                .fleet
-                .sidebar_order(shell.prefs.settings.sidebar)
+            order
                 .into_iter()
                 .take(NUMBERED)
                 .map(|card| (card.machine.clone(), card.session))
@@ -101,6 +108,8 @@ pub(crate) struct SidebarState {
     display: display::DisplayMenu,
     /// A session row's menu.
     rows: row_menu::RowMenu,
+    /// The projects whose Show more was pressed (not kept, as Paseo's).
+    shown_all: projects::ShownAll,
     /// Its right edge, dragged to resize it.
     pub(crate) edge: PanelEdge,
 }
@@ -114,6 +123,7 @@ impl SidebarState {
             page_tips: Tooltips::new(),
             display: display::DisplayMenu::new(window, cx),
             rows: row_menu::RowMenu::new(cx),
+            shown_all: projects::ShownAll::new(),
             edge: PanelEdge::new(),
         }
     }
@@ -188,6 +198,7 @@ pub(crate) fn render(
     // Paseo's Search row, after the pages (track S's, `areas::palette`).
     nav = nav.child(crate::areas::palette::sidebar_row(shell, tokens, touch, cx));
     let view = shell.prefs.settings.sidebar;
+    let phone = vessel_app_kit::breakpoint::phone(window);
     let list = if shell.loaded && shell.fleet.machines.is_empty() {
         div().child(
             div()
@@ -199,10 +210,12 @@ pub(crate) fn render(
     } else {
         let numbers = Numbers::of_shell(shell, shell.shortcut_badges_visible(window, cx));
         match view.group {
+            Grouping::Project => projects::groups(view, &numbers, phone, shell, tokens, touch, cx),
             Grouping::Machine => machines::groups(view, &numbers, shell, tokens, touch, cx),
             Grouping::Status => statuses::groups(view, &numbers, shell, tokens, touch, cx),
         }
     };
+    let (projects_slot, heading, list) = sections(shell, tokens, phone, list, cx);
     div()
         .size_full()
         .flex()
@@ -217,8 +230,8 @@ pub(crate) fn render(
         )
         .child(layout::body(
             &shell.areas.sidebar.layout,
-            projects(shell, tokens, vessel_app_kit::breakpoint::phone(window), cx),
-            heading(shell, tokens, cx),
+            projects_slot,
+            heading,
             list,
         ))
         .child(
@@ -251,13 +264,41 @@ pub(crate) fn render(
         ))
 }
 
+/// The body's sections: the projects, the list's heading, the list.
+/// Grouped by project, the tree is the projects section and the list in
+/// one, under one heading (`workspace::sidebar_tree::heading`).
+fn sections(
+    shell: &Shell,
+    tokens: &Tokens,
+    phone: bool,
+    list: Div,
+    cx: &mut Context<'_, Shell>,
+) -> (Option<vessel_app_kit::ui::AnyElement>, Option<Div>, Div) {
+    if shell.prefs.settings.sidebar.group == Grouping::Project {
+        let trigger = display::trigger(shell, tokens, cx);
+        let heading = crate::areas::workspace::sidebar_tree::heading(shell, trigger, tokens, cx);
+        (
+            None,
+            None,
+            div().flex().flex_col().child(heading).child(list),
+        )
+    } else {
+        (
+            projects(shell, tokens, phone, cx),
+            Some(heading(shell, tokens, cx)),
+            list,
+        )
+    }
+}
+
 /// The list's heading, as Paseo's section header: what the list is
 /// ("Machines", or "Sessions" grouped by status, the page's words) and the
 /// Display menu's trigger at its right.
 fn heading(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.sidebar();
     let title = match shell.prefs.settings.sidebar.group {
-        Grouping::Machine => words.machines,
+        // The tree has its own heading; this one is not drawn with it.
+        Grouping::Project | Grouping::Machine => words.machines,
         Grouping::Status => words.sessions,
     };
     div()
@@ -448,3 +489,7 @@ pub(crate) fn nav_row(
 mod numbers_tests;
 #[cfg(test)]
 mod policy_tests;
+#[cfg(test)]
+mod projects_tests;
+#[cfg(test)]
+mod session_row_tests;

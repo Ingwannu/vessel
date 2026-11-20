@@ -128,12 +128,16 @@ impl Knockout {
 }
 
 /// A workspace row's leading slot (Paseo's `WorkspaceStatusIndicator`):
-/// the icon box wide and the title's line tall. `kind`: the workspace's
-/// glyph a failed one shows under its red dot (Paseo draws it only then).
+/// the icon box wide and the title's line tall. `label`: the bucket's name
+/// (Paseo's `getStatusBucketLabel`), said as a status, done included, so a
+/// screen reader hears what each row is doing (TRACKER 813). `kind`: the
+/// workspace's glyph a failed one shows under its red dot (Paseo draws it
+/// only then).
 #[must_use]
 pub fn status_slot(
     id: impl Into<ElementId>,
     mark: StatusMark,
+    label: impl Into<SharedString>,
     kind: Glyph,
     compact: bool,
     tokens: &Tokens,
@@ -141,6 +145,9 @@ pub fn status_slot(
     let id: ElementId = id.into();
     let status = tokens.status();
     let slot = div()
+        .id(ElementId::NamedChild(Arc::new(id.clone()), "status".into()))
+        .role(gpui::Role::Status)
+        .aria_label(label)
         .relative()
         .w(px(icon_box(compact)))
         .h(px(SLOT_HEIGHT))

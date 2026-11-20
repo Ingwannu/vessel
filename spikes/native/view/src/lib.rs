@@ -63,6 +63,7 @@ pub mod sidebar;
 pub mod slider;
 pub mod sync;
 pub mod terminal;
+pub mod terminal_tabs;
 #[cfg(test)]
 mod tests;
 mod text;

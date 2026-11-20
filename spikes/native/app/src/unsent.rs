@@ -151,6 +151,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
+        Command::Terminals(ask) => return settle_terminals(ask),
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Files(command) => return settle_files(command, words),
         Command::Open { .. }
@@ -162,6 +163,15 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// A terminal tab's request never sent settles as if its machine were not
+/// connected; an unfollow waits on nothing.
+fn settle_terminals(ask: vessel_app_link::terminals::Ask) -> Settle {
+    ask.refused(vessel_app_view::terminal_tabs::Failure::Offline)
+        .map_or(Settle::Ignore, |answer| {
+            Settle::Answer(Box::new(Event::Terminals(answer)))
+        })
 }
 
 /// A machine-settings request never sent, as its page says it.

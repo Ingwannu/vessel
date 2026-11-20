@@ -1,5 +1,5 @@
-//! The sidebar grouped by machine (the Display menu's "Machine", the
-//! default): each machine of the book with its state, then its first
+//! The sidebar grouped by machine (the Display menu's "Machine"; the
+//! default until TRACKER 682): each machine of the book with its state, then its first
 //! listed sessions (`Fleet::sidebar_machines`: ended ones only when asked
 //! for, pinned first, in the chosen order), then "N more", which opens the
 //! board on that machine (the page's `sidebar-machines.tsx`).
@@ -60,8 +60,9 @@ pub(super) fn groups(
     list
 }
 
-/// A machine's name, its state, and its listed sessions.
-fn group(
+/// A machine's name, its state, and its listed sessions (grouped by
+/// project too, for its sessions in no listed project).
+pub(super) fn group(
     listed: &SidebarMachine<'_>,
     end: EndTarget,
     numbers: &Numbers,
