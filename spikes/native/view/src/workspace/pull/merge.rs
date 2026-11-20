@@ -70,6 +70,7 @@ pub fn merge_methods(pull: &PullRequest, status: &GitStatus) -> Vec<MergeMethod>
         review: _,
         mergeable,
         updated_at: _,
+        tally: _,
     } = summary;
     let open = *state == PullState::Open && !draft;
     let mergeable = matches!(mergeable, Mergeable::Mergeable | Mergeable::Unstable);
