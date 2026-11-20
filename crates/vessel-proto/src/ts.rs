@@ -413,6 +413,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::terminals::WORKSPACE_TERMINALS_PROTOCOL,
         "Terminals in a worktree or an unregistered folder, and `worktree.remove`'s `end_terminals` (ADR 0121).",
     ),
+    (
+        "PLUGIN_CATALOG_PROTOCOL",
+        crate::plugins::PLUGIN_CATALOG_PROTOCOL,
+        "`plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.
