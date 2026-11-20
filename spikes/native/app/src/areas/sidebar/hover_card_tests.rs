@@ -7,11 +7,11 @@ use gpui::{Modifiers, TestAppContext, VisualTestContext, point, size};
 use vessel_app_kit::ui::px;
 use vessel_app_link::Link;
 use vessel_app_view::{Card, Fleet, Lang, Machine, Reach};
-use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 use vessel_proto::forge::{
     ChecksState, ForgeAccess, ForgeKind, Mergeable, PullNumber, PullState, PullSummary, PullTitle,
     RepoRef, ReviewDecision, SessionPullRequest,
 };
+use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 
 use super::key;
 use crate::areas::sidebar::projects_tests::{named, setup, snapshot};
@@ -140,7 +140,11 @@ fn no_card_comes_back_with_the_sidebar_when_the_pointer_moved_off(cx: &mut TestA
             options: Vec::new(),
         },
     );
-    let info = SessionInfo::new(SessionId::random(), spec, "2026-11-19T08:00:00Z".parse().unwrap());
+    let info = SessionInfo::new(
+        SessionId::random(),
+        spec,
+        "2026-11-19T08:00:00Z".parse().unwrap(),
+    );
     let card = Card::from_session("fixture", &info);
     shell.update(cx, |shell, cx| {
         shell.t = Lang::En.text();
@@ -160,7 +164,9 @@ fn no_card_comes_back_with_the_sidebar_when_the_pointer_moved_off(cx: &mut TestA
         cx.notify();
     });
     hover_row(cx, &shell, &card);
-    shell.read_with(cx, |shell, _| assert!(shell.areas.sidebar.cards.shown().is_some()));
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.areas.sidebar.cards.shown().is_some())
+    });
     // Hidden by its key, the pointer into the conversation, shown again.
     shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
     cx.run_until_parked();
@@ -170,6 +176,8 @@ fn no_card_comes_back_with_the_sidebar_when_the_pointer_moved_off(cx: &mut TestA
     cx.run_until_parked();
     shell.update(cx, |_, cx| cx.notify());
     cx.run_until_parked();
-    shell.read_with(cx, |shell, _| assert!(shell.areas.sidebar.cards.shown().is_none()));
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.areas.sidebar.cards.shown().is_none())
+    });
     assert!(cx.debug_bounds("hover-card").is_none());
 }

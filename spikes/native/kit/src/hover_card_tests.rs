@@ -165,9 +165,7 @@ fn a_card_whose_trigger_is_no_longer_drawn_closes(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn a_card_does_not_come_back_with_its_trigger_under_a_pointer_elsewhere(
-    cx: &mut TestAppContext,
-) {
+fn a_card_does_not_come_back_with_its_trigger_under_a_pointer_elsewhere(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, true);
     let a = cx.debug_bounds("A").unwrap();
     move_to(cx, a.center());
