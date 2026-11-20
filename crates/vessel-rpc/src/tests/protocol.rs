@@ -257,7 +257,7 @@ async fn creation_labels_are_never_sent_to_an_older_node() {
             .unwrap();
     };
     let (reply, ()) = tokio::join!(client.call(GetNode), permitted);
-    reply.unwrap();
+    let _node = reply.unwrap();
 }
 
 #[tokio::test]

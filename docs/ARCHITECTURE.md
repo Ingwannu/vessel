@@ -1263,7 +1263,7 @@ binaries keep that feature off. No new external crate or schema is needed.
 
 ## Session creation labels (ADR 0063)
 
-`vessel-proto::lifecycle` validates the bounded label map before creation.
+`vessel-proto::labels` validates the bounded label map before creation.
 `SessionSpec.labels` retains what creation asked; `SessionInfo.labels`
 starts with it, while the store keeps a distinct current-label column.
 Import copies that current map. Older peers receive infos without labels,

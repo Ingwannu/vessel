@@ -4,9 +4,7 @@
 use vessel_proto::SessionLabels;
 use vessel_store::{Column, StoreConfig, StoreError};
 
-#[cfg(test)]
-#[path = "support/fixtures.rs"]
-mod fixtures;
+use super::fixtures;
 
 fn labels(text: &str) -> SessionLabels {
     serde_json::from_str(text).unwrap()
@@ -36,12 +34,13 @@ async fn an_invalid_label_column_is_not_accepted_as_an_empty_map() {
     let session = fixtures::new_session(0);
     store.create_session(session.clone()).await.unwrap();
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection
+    let changed = connection
         .execute(
             "UPDATE sessions SET labels = ?1 WHERE id = ?2",
             rusqlite::params![r#"{"vessel.reserved":"value"}"#, session.id.to_string()],
         )
         .unwrap();
+    assert_eq!(changed, 1);
     assert!(matches!(
         store.session(session.id).await,
         Err(StoreError::Corrupt {

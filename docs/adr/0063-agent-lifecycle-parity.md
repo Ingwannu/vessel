@@ -270,8 +270,10 @@ Vessel does not copy it.
   empty ones at every ingress. Reason: creation, updates and filters
   share one validated identity instead of disagreeing about a key.
 - Paseo formats labels using `Object.entries` (`update.ts:144-149`).
-  Vessel orders by key. Reason: storage and display stay deterministic
-  regardless of the sender's map construction order.
+  Vessel orders by key and uses comma-space separators in human summaries.
+  Reason: storage and display stay deterministic regardless of the sender's
+  map construction order, and summaries follow the existing CLI list style
+  (`vessel-cli/src/devices.rs`, scope summaries). The wire map is unchanged.
 - Paseo deletes one key with `null` (`applyLabelPatch`,
   `agent-manager.ts:631`). The CLI and MCP send only strings. Vessel's
   public patch only sets keys. Reason: the public surface has no

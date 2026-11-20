@@ -834,3 +834,7 @@ async fn a_sessions_title_and_choices_follow_its_records_across_a_reopen() {
         }])
     );
 }
+
+#[cfg(test)]
+#[path = "log/labels.rs"]
+mod labels;

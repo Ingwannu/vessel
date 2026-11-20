@@ -40,7 +40,13 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   a label must not change identity between creation and discovery.
 - Paseo displays `Object.entries(labels)` (`update.ts:144-149`). Vessel
   uses canonical key order so stored metadata and summaries have a
-  deterministic order regardless of how a sender built the map.
+  deterministic order regardless of how a sender built the map. Human
+  summaries use comma-space, following existing device-scope lists in
+  `vessel-cli/src/devices.rs`; Paseo's formatter joins with a bare comma.
+- Paseo's provider-history import (`import.ts:110-123`) maps to
+  `vessel run --structured --resume ID --label key=value`. Vessel's
+  separate `session.import` transfer path copies the source's current
+  label map when it starts the imported session, as it copies the title.
 - CLI update refuses an empty name, an empty `--thinking`, and combining
   `--thinking` with `--name` or `--label`
   (`update.ts:152-197`). Labels alone are a metadata update.
@@ -143,6 +149,16 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 
 No external crate. The standard library and the types above hold the
 bounds, the map and the timestamps.
+
+The existing row decoder also reuses each wire type's serde validator for
+bare text columns through a consuming string deserializer. This retains
+column-specific corruption errors without JSON tree adapters, and keeps
+the session row mapping short as the current-label column is added.
+
+The larger creation payload is boxed only inside the existing RPC driver's
+command queue, matching its already boxed session subject. A small command
+factory keeps cancellation/unsubscribe slots compact without changing wire
+frames, request handling or the public client API.
 
 ## Slices
 

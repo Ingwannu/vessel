@@ -23,7 +23,7 @@ pub(super) fn exported(
     let info = info.for_protocol(protocol)?;
     let mut older = value.clone();
     if let TransferDetail::Session { info: nested, .. } = &mut older.detail {
-        *nested = Box::new(info);
+        **nested = info;
     }
     Some(older)
 }
@@ -35,7 +35,7 @@ pub(super) fn imported(
 ) -> Option<SessionImported> {
     let info = value.session.as_ref()?.for_protocol(protocol)?;
     let mut older = value.clone();
-    older.session = Some(Box::new(info));
+    *older.session.as_deref_mut()? = info;
     Some(older)
 }
 
@@ -43,7 +43,7 @@ pub(super) fn imported(
 pub(super) fn prompt(value: &SavedPrompt, protocol: ProtocolVersion) -> Option<SavedPrompt> {
     let session = spec(value.session.as_ref()?, protocol)?;
     let mut older = value.clone();
-    older.session = Some(Box::new(session));
+    *older.session.as_deref_mut()? = session;
     Some(older)
 }
 
@@ -60,7 +60,7 @@ pub(super) fn schedule(value: &ScheduleInfo, protocol: ProtocolVersion) -> Optio
     };
     let mut older = value.clone();
     if let ScheduleTarget::NewSession { spec, .. } = &mut older.definition.target {
-        *spec = Box::new(session);
+        **spec = session;
     }
     Some(older)
 }
