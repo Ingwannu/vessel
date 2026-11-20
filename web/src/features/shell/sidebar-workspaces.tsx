@@ -3,10 +3,11 @@
 // workspaces, their label chips under the name, a row menu with the
 // Labels picker, and their sessions under them (data/workspace-labels/
 // groups.ts decides who belongs where and what the filter keeps). On a
-// wide window with a fine pointer, the name opens the workspace card.
+// wide window with a fine pointer, the name opens the workspace card,
+// which sits 4px to the right of the row.
 
 import { Link } from "@tanstack/react-router";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 
 import { useFleetState } from "../../context";
 import { prefs } from "../../data/prefs";
@@ -146,12 +147,20 @@ function WorkspaceHead({
   const workspace = row.id;
   const name = <span className="label">{row.title}</span>;
   const folder = row.folder;
+  const anchor = useRef<HTMLDivElement>(null);
   return (
     <div className="side-workspace">
-      <div className="nav-item workspace">
+      <div className="nav-item workspace" ref={anchor}>
         <Icon name={workspace === null ? "list" : "folder"} size={16} />
         {cards && folder !== null ? (
-          <HoverCard trigger={name} side="right" align="start" width="sm">
+          <HoverCard
+            trigger={name}
+            side="right"
+            align="start"
+            width="sm"
+            sideOffset={4}
+            anchor={anchor}
+          >
             <WorkspaceCard
               title={row.title}
               machine={row.machine}

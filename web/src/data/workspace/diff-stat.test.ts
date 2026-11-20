@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { DIFF_STAT_PROTOCOL } from "../../wire/proto";
+import { DIFF_STAT_PROTOCOL, type PullSummary } from "../../wire/proto";
 import {
   diffStatChangedFrom,
   diffStatServed,
   formatDiffCount,
   nextStatRevision,
+  pullOf,
   sharedBranch,
   sharedPull,
   statsByWorkspace,
@@ -64,10 +65,39 @@ describe("the served diff stat (ADR 0120)", () => {
       path: "team/app",
       number: 12,
       checks: "passing",
+      counts: null,
+      url: null,
     };
     expect(sharedPull([null, undefined])).toBeNull();
     expect(sharedPull([null, one])).toEqual(one);
     expect(sharedPull([one, { ...one, checks: "failing" }])).toEqual(one);
     expect(sharedPull([one, { ...one, number: 13 }])).toBeNull();
+  });
+
+  it("reads check counts only when the summary carries a tally", () => {
+    const summary: PullSummary = {
+      repo: { kind: "github", host: "github.com", path: "team/app" },
+      number: 12,
+      url: "https://github.com/team/app/pull/12",
+      title: "Keyboard order",
+      state: "open",
+      draft: false,
+      head_commit: "a".repeat(40),
+      checks: "passing",
+      review: "approved",
+      mergeable: "mergeable",
+      updated_at: "2026-11-20T00:00:00Z",
+    };
+    expect(pullOf(summary)?.counts).toBeNull();
+    const counted = {
+      ...summary,
+      tally: { passed: 3, failed: 1, pending: 2 },
+    } as PullSummary;
+    expect(pullOf(counted)?.counts).toEqual({
+      passed: 3,
+      failed: 1,
+      pending: 2,
+    });
+    expect(pullOf(counted)?.url).toBe("https://github.com/team/app/pull/12");
   });
 });

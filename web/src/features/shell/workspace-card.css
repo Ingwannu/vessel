@@ -35,6 +35,10 @@
   white-space: nowrap;
 }
 
+.workspace-card-row > .ico {
+  flex: none;
+}
+
 .workspace-card-diff {
   display: flex;
   gap: var(--s-2);
@@ -49,9 +53,61 @@
   color: var(--danger);
 }
 
-.workspace-card-row .btn {
+.workspace-card-copy,
+.workspace-card-link {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.workspace-card-copy:hover,
+.workspace-card-copy[data-copied="true"],
+.workspace-card-link:hover {
+  color: var(--text-primary);
+}
+
+.workspace-card-copy:focus {
+  outline: none;
+}
+
+.workspace-card-copy:focus-visible,
+.workspace-card-link:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+.workspace-card-checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.workspace-card-rule {
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.workspace-card-pills {
+  display: flex;
   flex: none;
+  gap: var(--s-2);
   margin-left: auto;
+  overflow: visible;
+}
+
+.workspace-card-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
 }
 
 .workspace-card-ok {
@@ -60,4 +116,8 @@
 
 .workspace-card-bad {
   color: var(--danger);
+}
+
+.workspace-card-pending {
+  color: var(--warn);
 }

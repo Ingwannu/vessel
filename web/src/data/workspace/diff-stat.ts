@@ -108,7 +108,16 @@ export function pullOf(
     path: summary.repo.path,
     number: summary.number,
     checks: summary.checks,
+    counts: countsOf(summary),
+    url: summary.url === "" ? null : summary.url,
   };
+}
+
+/** Passed, failed and pending, as protocol 39's check tally. */
+export interface CheckCounts {
+  passed: number;
+  failed: number;
+  pending: number;
 }
 
 /** One pull request the workspace's summaries agree on. */
@@ -118,6 +127,36 @@ export interface SharedPull {
   path: string;
   number: number;
   checks: string;
+  /** Null until a node sends protocol 39's tally. */
+  counts: CheckCounts | null;
+  url: string | null;
+}
+
+/** Protocol 39 adds `tally` to the summary. This tree's declaration
+ * does not have the field, so it is read only when a node sent it. */
+function countsOf(summary: PullSummary): CheckCounts | null {
+  const raw: unknown = summary;
+  if (typeof raw !== "object" || raw === null || !("tally" in raw)) {
+    return null;
+  }
+  const tally = raw.tally;
+  if (typeof tally !== "object" || tally === null) {
+    return null;
+  }
+  const counts = tally as {
+    passed?: unknown;
+    failed?: unknown;
+    pending?: unknown;
+  };
+  const { passed, failed, pending } = counts;
+  if (
+    typeof passed !== "number" ||
+    typeof failed !== "number" ||
+    typeof pending !== "number"
+  ) {
+    return null;
+  }
+  return { passed, failed, pending };
 }
 
 /** The pull request every summary agrees on, or null.
