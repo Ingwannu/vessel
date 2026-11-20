@@ -189,7 +189,7 @@ fn args(target: TargetId, request: &Checked) -> Vec<OsString> {
     }
 }
 
-/// JetBrains' `--line N` and `--column N`, each when given.
+/// The `--line N` and `--column N` of `JetBrains` IDEs, each when given.
 fn line_flags(request: &Checked) -> Vec<OsString> {
     let mut flags = Vec::new();
     if let Some(line) = request.line {

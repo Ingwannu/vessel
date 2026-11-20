@@ -123,7 +123,7 @@ pub enum TargetId {
     AndroidStudio,
     /// Xcode (listed only for a workspace it can open).
     Xcode,
-    /// IntelliJ IDEA.
+    /// `IntelliJ` IDEA.
     IntellijIdea,
     /// Aqua.
     Aqua,
