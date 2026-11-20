@@ -55,6 +55,8 @@ impl Method {
     ///   `session.wake`: it acts on one session's agent.
     /// - ADR 0111: `agent.diagnostic` is forwardable as `agent.status` is;
     ///   `node.log` is not, a node's administration.
+    /// - ADR 0115: no `plugin.*` call is forwardable: plugins are a node's
+    ///   administration, managed on the node itself as `node.settings` is.
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -278,6 +280,15 @@ impl Method {
             | Self::ImportSkillsSelection
             | Self::GetNodeSettings
             | Self::SetNodeSettings
+            | Self::ListPlugins
+            | Self::GetPluginLogs
+            | Self::InspectPlugin
+            | Self::InstallPlugin
+            | Self::EnablePlugin
+            | Self::DisablePlugin
+            | Self::ReloadPlugin
+            | Self::RemovePlugin
+            | Self::WatchPlugins
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice

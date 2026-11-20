@@ -1,7 +1,8 @@
 //! Plugin identity and native declarative contracts (ADR 0079).
 //!
-//! These values perform no I/O and grant no authority. Calls stay unregistered
-//! until their node service, clients and shared pending-method mechanism exist.
+//! These values perform no I/O and grant no authority. The manager calls
+//! (ADR 0115, `manage`) are registered at [`PLUGINS_PROTOCOL`]; the helper
+//! frames stay private to the node.
 
 mod address;
 mod attachment;
@@ -13,6 +14,7 @@ mod hook;
 mod identity;
 mod json_error;
 mod logs;
+mod manage;
 mod payload;
 mod process;
 mod theme;
@@ -34,11 +36,19 @@ pub use logs::{
     InvalidLogText, LogEntry, LogSequence, LogStream, LogText, LogTruncation, MAX_LOG_BYTES,
     MAX_LOG_ENTRIES, MAX_LOG_LINE_BYTES,
 };
+pub use manage::{
+    DisablePlugin, EnablePlugin, GetPluginLogs, InspectPlugin, InstallPlugin, ListPlugins,
+    PluginGeneration, PluginInspection, PluginList, PluginListItem, PluginLogs, PluginSourceKind,
+    PluginStatus, ReloadPlugin, RemovePlugin, WatchPlugins,
+};
 pub use theme::{Appearance, HexColor, ThemeColors, ThemeContribution};
 
-/// The integrator assigns this only after management, lifecycle and native
-/// declarations have real consumers. No current peer may use pending calls.
-pub const PLUGINS: Option<crate::ProtocolVersion> = None;
+/// The plugin manager calls (ADR 0115): `plugin.list`, `plugin.logs`,
+/// `plugin.inspect`, `plugin.install`, `plugin.enable`, `plugin.disable`,
+/// `plugin.reload`, `plugin.remove`, `plugin.watch`, and the node settings'
+/// `plugins_enabled`. Drafted as 35; assigned 36 at its node-line merge,
+/// after ADR 0088's `forge.repos` took 35.
+pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(36));
 
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,

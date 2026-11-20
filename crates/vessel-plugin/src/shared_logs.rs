@@ -4,7 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use tokio::sync::watch;
-use vessel_proto::plugins::{HelperToNode, LogEntry, LogSequence, LogStream, LogTruncation};
+use vessel_proto::plugins::{
+    HelperToNode, LogEntry, LogSequence, LogStream, LogText, LogTruncation,
+};
 
 use crate::{
     log_tail::{LogTail, StderrLines},
@@ -47,6 +49,25 @@ impl SharedLogs {
             .lock()
             .map(|tail| tail.snapshot())
             .map_err(|_poisoned| RuntimeError::Logs)
+    }
+
+    /// One trusted lifecycle line from the node's plugin host ("loading",
+    /// "ready", "stopping", "stopped"), Paseo's `[paseo]` entries (ADR 0115).
+    ///
+    /// # Errors
+    /// Refuses an unavailable store or an exhausted sequence.
+    pub fn host(&self, message: LogText) -> Result<(), RuntimeError> {
+        let mut tail = self.tail.lock().map_err(|_poisoned| RuntimeError::Logs)?;
+        let _sequence = tail
+            .push(
+                Utc::now(),
+                LogStream::Host,
+                message,
+                LogTruncation::Complete,
+            )
+            .map_err(RuntimeError::LogIdentity)?;
+        self.publish(&tail);
+        Ok(())
     }
 
     pub(crate) fn helper_diagnostic(&self, message: &HelperToNode) -> Result<(), RuntimeError> {
@@ -112,5 +133,22 @@ impl SharedLogs {
             *current = latest;
             true
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_lines_are_kept_as_host_entries_and_published() {
+        let logs = SharedLogs::default();
+        let revisions = logs.subscribe();
+        logs.host("[vessel] loading".parse().unwrap()).unwrap();
+        let entries = logs.snapshot().unwrap();
+        let first = entries.first().unwrap();
+        assert_eq!(first.stream, LogStream::Host);
+        assert_eq!(first.message.as_str(), "[vessel] loading");
+        assert_eq!(*revisions.borrow(), Some(first.sequence));
     }
 }

@@ -69,6 +69,14 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Usage { command } => crate::usage::run(target, command).await,
         Command::Schedule { command } => automation::schedule(target, command).await,
         Command::Prompt { command } => automation::prompt(target, command).await,
+        Command::Plugin { command } => {
+            Box::pin(crate::plugins::command(
+                target,
+                command,
+                cli.output.presentation(),
+            ))
+            .await
+        }
         Command::Attach { session, from } => {
             let connected = connect(target).await?;
             let info = session.resolve(&connected.client).await?;
@@ -132,14 +140,21 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             read_only,
         } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
-        NodeCommand::Settings { park_after, driver } => {
+        NodeCommand::Settings {
+            park_after,
+            driver,
+            plugins,
+        } => {
             let client = connect(target).await?.client;
             let drivers = driver_change(&driver)?;
-            let settings = if park_after.is_some() || drivers.is_some() {
+            let plugins_enabled = plugins.map(|switch| switch == crate::args::Switch::On);
+            let settings = if park_after.is_some() || drivers.is_some() || plugins_enabled.is_some()
+            {
                 client
                     .call(SetNodeSettings {
                         park_after,
                         drivers,
+                        plugins_enabled,
                         ..SetNodeSettings::default()
                     })
                     .await?

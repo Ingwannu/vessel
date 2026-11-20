@@ -1,0 +1,10 @@
+terminal-tabs-fallback = 터미널
+terminal-tabs-host-disconnected = 호스트가 연결되어 있지 않습니다
+terminal-tabs-exited = 터미널이 종료되었습니다
+terminal-tabs-not-found = 터미널을 찾을 수 없습니다
+terminal-tabs-unable-to-subscribe = 터미널을 구독할 수 없습니다
+terminal-tabs-create-failed = 터미널을 만들지 못했습니다
+terminal-tabs-close-title = 터미널을 닫을까요?
+terminal-tabs-close-message = 이 터미널에서 실행 중인 프로세스가 즉시 중지됩니다.
+terminal-tabs-close = 닫기
+terminal-tabs-cancel = 취소

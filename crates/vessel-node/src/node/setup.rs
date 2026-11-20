@@ -151,10 +151,12 @@ pub(super) struct FeatureState {
     pub(super) push: Arc<crate::push::Push>,
     pub(super) limits: crate::limits::Limits,
     pub(super) labels: crate::workspace_labels::Labels,
+    pub(super) plugins: crate::plugins::Plugins,
 }
 
 pub(super) async fn feature_state(
     config: &Config,
+    (node, settings): (NodeId, &Arc<crate::settings::Settings>),
     store: &vessel_store::Store,
     tasks: &tokio_util::task::TaskTracker,
     stop: &CancellationToken,
@@ -170,10 +172,23 @@ pub(super) async fn feature_state(
     let labels = crate::workspace_labels::Labels::open(store.clone())
         .await
         .map_err(NodeError::WorkspaceLabels)?;
+    // The plugin host (ADR 0115): reads its installations and, when plugins
+    // are on, starts them in the background; it stops every helper with the
+    // node, joined by `tasks`.
+    let plugins = crate::plugins::Plugins::start(crate::plugins::Opening {
+        node,
+        data: config.data_dir.clone(),
+        home: config.harness_env.user_home().to_path_buf(),
+        switch: settings.current().await.plugins_enabled,
+        tasks: tasks.clone(),
+        stop: stop.clone(),
+    })
+    .await;
     Ok(FeatureState {
         push,
         limits,
         labels,
+        plugins,
     })
 }
 

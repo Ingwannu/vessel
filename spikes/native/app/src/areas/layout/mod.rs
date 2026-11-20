@@ -105,6 +105,29 @@ impl LayoutArea {
         }
     }
 }
+/// The shown workspace's layout key (a session's today), for the areas
+/// that own a panel's resource (the terminal tabs).
+pub(crate) fn current_key(shell: &Shell) -> Result<LayoutKey, LayoutError> {
+    key(shell)
+}
+/// Read `key`'s layout without changing the book; a layout not kept reads
+/// as `T`'s default.
+pub(crate) fn read_layout<T: Default>(
+    shell: &Shell,
+    key: &LayoutKey,
+    read: impl FnOnce(&Layout) -> T,
+) -> T {
+    initialized(shell);
+    shell
+        .areas
+        .layout
+        .book
+        .borrow()
+        .as_ref()
+        .and_then(|book| book.get(key))
+        .map(read)
+        .unwrap_or_default()
+}
 fn key(shell: &Shell) -> Result<LayoutKey, LayoutError> {
     let open = shell
         .areas

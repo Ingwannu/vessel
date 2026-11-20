@@ -63,6 +63,7 @@ pub(super) fn render(
                 .into_any_element()
         }
         Target::Draft(_) => crate::areas::draft::workspace_panel(shell, panel, tokens, window, cx),
+        Target::Terminal(_) => crate::areas::terminal_tabs::panel(shell, panel, tokens, window, cx),
         Target::NewTab => super::new_tab::panel(
             shell,
             &super::new_tab::Owner::Tab(panel.workspace.clone(), panel.tab),
@@ -72,7 +73,6 @@ pub(super) fn render(
         ),
         Target::Agent(_)
         | Target::ProviderSubagent { .. }
-        | Target::Terminal(_)
         | Target::Browser(_)
         | Target::Changes
         | Target::Files

@@ -89,6 +89,7 @@ mod metadata_export;
 mod models;
 mod node;
 mod persist;
+mod plugins;
 mod principal;
 mod probes;
 mod profiles;
