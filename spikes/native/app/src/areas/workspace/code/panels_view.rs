@@ -163,7 +163,9 @@ fn front_matter(rows: &[FrontMatterRow], tokens: &Tokens) -> Option<AnyElement> 
                 .flex()
                 .flex_row()
                 .items_stretch()
-                .when(index > 0, |line| line.border_t_1().border_color(neutral.border))
+                .when(index > 0, |line| {
+                    line.border_t_1().border_color(neutral.border)
+                })
                 .child(
                     div()
                         .flex_basis(relative(KEY_SHARE))

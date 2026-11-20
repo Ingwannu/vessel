@@ -179,9 +179,7 @@ fn scalar(value: &Yaml) -> Option<String> {
 fn real(text: &str) -> String {
     match Yaml::Real(text.to_owned()).as_f64() {
         Some(number) if number.is_nan() => "NaN".to_owned(),
-        Some(number) if number.is_infinite() && number.is_sign_positive() => {
-            "Infinity".to_owned()
-        }
+        Some(number) if number.is_infinite() && number.is_sign_positive() => "Infinity".to_owned(),
         Some(number) if number.is_infinite() => "-Infinity".to_owned(),
         Some(number) => number.to_string(),
         None => text.to_owned(),
