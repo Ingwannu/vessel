@@ -30,7 +30,11 @@ fn the_least_recently_loaded_goes_first_past_the_count() {
     let previews = Previews::default();
     let start = Instant::now();
     let ids: Vec<String> = (0..MAX_DOCUMENTS)
-        .map(|nth| previews.put(&format!("panel-{nth}"), bytes(1), start).unwrap())
+        .map(|nth| {
+            previews
+                .put(&format!("panel-{nth}"), bytes(1), start)
+                .unwrap()
+        })
         .collect();
     let later = after(start, Duration::from_secs(1), 1);
     let first = ids.first().unwrap();
@@ -65,9 +69,15 @@ fn a_document_left_idle_is_dropped() {
     // Loaded at `IDLE`: kept until `IDLE` after that.
     let second = after(start, IDLE, 2);
     assert!(previews.show(&id, second).is_some());
-    let past = after(second, IDLE, 1).checked_add(Duration::from_secs(1)).unwrap();
+    let past = after(second, IDLE, 1)
+        .checked_add(Duration::from_secs(1))
+        .unwrap();
     assert!(previews.show(&id, past).is_none());
-    assert!(previews.show("0123456789abcdef0123456789abcdef", start).is_none());
+    assert!(
+        previews
+            .show("0123456789abcdef0123456789abcdef", start)
+            .is_none()
+    );
 }
 
 #[test]

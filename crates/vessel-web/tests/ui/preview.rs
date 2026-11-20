@@ -33,7 +33,11 @@ async fn a_posted_document_is_framed_under_its_own_sandboxed_policy() {
     // Without the session key, or from another origin: refused.
     let (code, _headers, _body) = http(
         ui.address,
-        &post(&ui.host(), &format!("Origin: {}\r\n{slot}", ui.origin()), DOCUMENT),
+        &post(
+            &ui.host(),
+            &format!("Origin: {}\r\n{slot}", ui.origin()),
+            DOCUMENT,
+        ),
     )
     .await;
     assert_eq!(code, 401);
@@ -55,7 +59,10 @@ async fn a_posted_document_is_framed_under_its_own_sandboxed_policy() {
     assert_eq!(code, 200, "{body}");
     assert_eq!(header(&headers, "content-type"), Some("application/json"));
     let placed: serde_json::Value = serde_json::from_str(&body).unwrap();
-    let url = placed.get("url").and_then(serde_json::Value::as_str).unwrap();
+    let url = placed
+        .get("url")
+        .and_then(serde_json::Value::as_str)
+        .unwrap();
     let id = url.strip_prefix("/preview/").unwrap();
     assert_eq!(id.len(), 32);
     assert!(id.bytes().all(|byte| byte.is_ascii_hexdigit()));

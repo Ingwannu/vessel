@@ -100,7 +100,10 @@ impl Previews {
             return Err(Refused::TooLarge);
         }
         let id = fresh_id().ok_or(Refused::NoId)?;
-        let mut documents = self.documents.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut documents = self
+            .documents
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         documents.retain(|_, kept| kept.slot != slot && !expired(kept, now));
         while documents.len() >= MAX_DOCUMENTS
             || total(&documents).saturating_add(body.len()) > MAX_BYTES
@@ -127,7 +130,10 @@ impl Previews {
 
     /// The document `id`, if it is kept; its idle time starts again.
     pub(crate) fn show(&self, id: &str, now: Instant) -> Option<Bytes> {
-        let mut documents = self.documents.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut documents = self
+            .documents
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         documents.retain(|_, kept| !expired(kept, now));
         let kept = documents.get_mut(id)?;
         kept.used = now;
