@@ -91,5 +91,5 @@ fn counts(
 
 fn press(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     cx.stop_propagation();
-    shell.layout_open_changes(window, cx);
+    shell.open_code_changes(window, cx);
 }
