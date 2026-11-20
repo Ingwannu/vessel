@@ -105,6 +105,12 @@ unic-langid = "0.9.6"
 uuid = "1"
 # Dev-only: verify that cached plain-message access performs zero allocations.
 allocation-counter = "0.8.1"
+# A Markdown file's front matter in the Files tab's preview, read as Paseo
+# reads it (a full YAML 1.2 parser; the page uses the `yaml` package).
+# Pinned exactly; without its default `encoding` feature (no encoding_rs).
+# Adds hashlink 0.12.2 to the lock; arraydeque and hashbrown 0.17 are
+# already locked. Only view/src/workspace/front_matter.rs uses it.
+yaml-rust2 = { version = "=0.13.0", default-features = false }
 
 vessel-app-view = { path = "view" }
 vessel-app-link = { path = "link" }
