@@ -49,7 +49,7 @@ pub(super) const DOWNLOAD_NAME: &str = "vessel-browser-fixture-download.txt";
 
 #[derive(Clone)]
 struct FixtureState {
-    routes: Routes,
+    routes: Arc<Routes>,
     sent_attachment: Arc<AtomicBool>,
     refused_websockets: Arc<[AtomicBool; 2]>,
     policy: Arc<PolicyOrigin>,
@@ -63,14 +63,18 @@ pub(super) struct FixtureProxy {
     refused_websockets: Arc<[AtomicBool; 2]>,
 }
 impl FixtureProxy {
-    pub(super) fn start(listener: TcpListener, routes: Routes, policy: Arc<PolicyOrigin>) -> Self {
+    pub(super) fn start(
+        listener: TcpListener,
+        routes: &Arc<Routes>,
+        policy: Arc<PolicyOrigin>,
+    ) -> Self {
         let stop = CancellationToken::new();
         let guard = stop.clone().drop_guard();
         let closing = stop.clone();
         let sent_attachment = Arc::new(AtomicBool::new(false));
         let refused_websockets = Arc::new([AtomicBool::new(false), AtomicBool::new(false)]);
         let state = FixtureState {
-            routes,
+            routes: Arc::clone(routes),
             sent_attachment: Arc::clone(&sent_attachment),
             refused_websockets: Arc::clone(&refused_websockets),
             policy,
@@ -142,7 +146,7 @@ async fn document(State(state): State<FixtureState>, request: Request<Body>) -> 
             Err(error) => error.into_response(),
         };
     }
-    if let Some(response) = state.policy.serve(&parts.uri, state.routes) {
+    if let Some(response) = state.policy.serve(&parts.uri, &state.routes) {
         return response;
     }
     if parts.uri.host() != Some("fixture.test") {
@@ -217,7 +221,7 @@ pub(super) enum ExerciseError {
 pub(super) async fn exercise(
     client: &Client,
     events: &mut Events,
-    routes: Routes,
+    routes: &Routes,
     policy: &PolicyOrigin,
 ) -> Result<Observed, ExerciseError> {
     let viewport = ViewportSize {
@@ -283,7 +287,7 @@ pub(super) async fn exercise(
 async fn observe_policy(
     page: &mut Page,
     events: &mut Events,
-    routes: Routes,
+    routes: &Routes,
     policy: &PolicyOrigin,
 ) -> Result<(), ExerciseError> {
     // Keep the diagnostic's raw event queue serviced just as the actor does

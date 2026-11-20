@@ -152,6 +152,8 @@ async fn listen(
     cancel: CancellationToken,
     preparation: Preparation,
 ) -> Result<(), ProxyError> {
+    // Unwinding the policy task must revoke admission just like a clean exit.
+    let _announce_stop = cancel.clone().drop_guard();
     let tasks = TaskTracker::new();
     let capacity = Arc::new(Semaphore::new(MAX_PROXY_CONNECTIONS));
     let result = loop {

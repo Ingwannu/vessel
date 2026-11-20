@@ -104,7 +104,7 @@ impl PolicyOrigin {
         &self.origin
     }
 
-    pub(super) fn serve(&self, uri: &Uri, routes: Routes) -> Option<Response> {
+    pub(super) fn serve(&self, uri: &Uri, routes: &Routes) -> Option<Response> {
         if uri.authority()?.as_str() != self.authority || uri.query().is_some() {
             return None;
         }
@@ -144,17 +144,17 @@ impl PolicyOrigin {
     }
 }
 
-fn ice_script(routes: Routes) -> String {
+fn ice_script(routes: &Routes) -> String {
     let urls = serde_json::to_string(&routes.ice_urls().collect::<Vec<_>>()).unwrap();
     format!("const urls = {urls};\n{ICE_PROBE}")
 }
 
-fn websocket_script(routes: Routes) -> String {
+fn websocket_script(routes: &Routes) -> String {
     let urls = serde_json::to_string(&routes.websocket_urls()).unwrap();
     format!("const urls = {urls};\n{WEBSOCKET_PROBE}")
 }
 
-fn script(routes: Routes, worker: bool, source: &str) -> String {
+fn script(routes: &Routes, worker: bool, source: &str) -> String {
     let probes = serde_json::to_string(&routes.expected_reads(worker)).unwrap();
     format!("const probes = {probes};\n{READ_CANARIES}\n{source}")
 }

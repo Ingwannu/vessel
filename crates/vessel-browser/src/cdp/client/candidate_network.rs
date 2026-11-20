@@ -2,6 +2,7 @@
 
 use std::io::ErrorKind;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener};
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::http::{Method, StatusCode, Uri, header, request::Parts};
@@ -24,7 +25,6 @@ const WEBSOCKET_PATH: &str = "/fixture-private-socket";
 const REDIRECTS: [&str; 2] = ["/fixture-redirect-v4", "/fixture-redirect-v6"];
 const DATAGRAM_CONTROL: &[u8] = b"local fixture";
 
-#[derive(Clone, Copy)]
 pub(super) struct Routes {
     proxy: SocketAddr,
     canaries: [Canary; 2],
@@ -222,7 +222,7 @@ pub(super) struct NetworkFixture {
     proxy: PublicProxy,
     stream_peers: [TcpListener; 5],
     datagram_peers: [std::net::UdpSocket; 2],
-    routes: Routes,
+    routes: Arc<Routes>,
 }
 
 impl NetworkFixture {
@@ -260,12 +260,12 @@ impl NetworkFixture {
             proxy,
             stream_peers: [ipv4, ipv6, websocket4, websocket6, named_peer_v6],
             datagram_peers: [udp4, udp6],
-            routes,
+            routes: Arc::new(routes),
         }
     }
 
-    pub(super) const fn routes(&self) -> Routes {
-        self.routes
+    pub(super) const fn routes(&self) -> &Arc<Routes> {
+        &self.routes
     }
 
     pub(super) const fn policy(&self) -> &PublicProxy {

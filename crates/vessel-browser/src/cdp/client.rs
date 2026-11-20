@@ -165,7 +165,7 @@ impl Events {
     #[cfg(all(test, target_os = "linux"))]
     async fn during_fixture<T>(
         &mut self,
-        operation: impl std::future::Future<Output = T>,
+        operation: impl Future<Output = T>,
     ) -> Result<T, CdpError> {
         tokio::pin!(operation);
         loop {
