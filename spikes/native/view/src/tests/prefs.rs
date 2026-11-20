@@ -517,3 +517,29 @@ fn animations_are_kept_changed_alone_and_lenient() {
         serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
     assert_eq!(unknown.appearance.animations, Animations::On);
 }
+
+#[test]
+fn folds_follow_the_lists_and_the_book() {
+    use crate::prefs::FoldedProjects;
+    use vessel_proto::ProjectId;
+    let (shop, docs) = (ProjectId::random(), ProjectId::random());
+    let mut folds = FoldedProjects::default();
+    folds.toggle("laptop", shop);
+    folds.toggle("laptop", docs);
+    folds.toggle("gpu-box", shop);
+    // A whole list without shop drops laptop's fold of it, nothing else.
+    assert!(folds.keep_listed("laptop", &[docs]));
+    assert!(!folds.contains("laptop", shop));
+    assert!(folds.contains("laptop", docs));
+    assert!(folds.contains("gpu-box", shop));
+    assert!(!folds.keep_listed("laptop", &[docs]));
+    // A rename keeps the folds under the new name.
+    assert!(folds.rename_machine("laptop", "workstation"));
+    assert!(folds.contains("workstation", docs));
+    assert!(!folds.contains("laptop", docs));
+    assert!(!folds.rename_machine("laptop", "elsewhere"));
+    // A forgotten machine's folds go.
+    assert!(folds.forget_machine("gpu-box"));
+    assert!(!folds.contains("gpu-box", shop));
+    assert!(!folds.forget_machine("gpu-box"));
+}

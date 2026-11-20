@@ -1,6 +1,6 @@
 //! The status marks against Paseo's geometry and in GPUI's real
-//! accessibility tree: a badge says its bucket as a status, a done project
-//! has no badge, every status draws in a workspace's slot.
+//! accessibility tree: a badge and a workspace's slot say their bucket as
+//! a status, a done project has no badge, every status draws in a slot.
 use super::*;
 use crate::a11y_snapshot::{activate, nodes};
 use crate::{Scheme, Tokens};
@@ -40,6 +40,7 @@ impl Render for Probe {
                 .child(status_slot(
                     ("slot", index),
                     mark,
+                    words(mark),
                     Glyph::FolderGit,
                     false,
                     &tokens,
@@ -89,7 +90,7 @@ fn a_done_project_has_no_badge_and_every_other_status_has_one() {
 }
 
 #[gpui::test]
-fn each_badge_says_its_bucket_as_a_status(cx: &mut TestAppContext) {
+fn each_badge_and_each_slot_says_its_bucket_as_a_status(cx: &mut TestAppContext) {
     cx.update(|cx| {
         crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap();
         cx.set_reduce_motion(true);
@@ -105,13 +106,20 @@ fn each_badge_says_its_bucket_as_a_status(cx: &mut TestAppContext) {
         .map(|node| node.label)
         .collect();
     said.sort();
-    assert_eq!(
-        said,
-        [
-            Some("Failed".to_owned()),
-            Some("Needs input".to_owned()),
-            Some("Ready to review".to_owned()),
-            Some("Working".to_owned()),
-        ]
-    );
+    // Every slot (done included, TRACKER 813) and every badge but done's.
+    let expected: Vec<Option<String>> = [
+        "Done",
+        "Failed",
+        "Failed",
+        "Needs input",
+        "Needs input",
+        "Ready to review",
+        "Ready to review",
+        "Working",
+        "Working",
+    ]
+    .into_iter()
+    .map(|label| Some(label.to_owned()))
+    .collect();
+    assert_eq!(said, expected);
 }

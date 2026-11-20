@@ -33,7 +33,9 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_link::Command;
+use vessel_app_view::prefs::FoldedProjects;
 use vessel_app_view::sidebar::tree::SidebarProject;
+use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::ProjectState;
 
@@ -69,6 +71,38 @@ impl Shell {
         self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         cx.notify();
     }
+
+    /// Keep the folds in step with the projects and the book (the app
+    /// reviewer's note on 682): `change` says whether one changed, and only
+    /// then are the preferences saved.
+    pub(crate) fn tidy_folds(&mut self, change: impl FnOnce(&mut FoldedProjects) -> bool) {
+        if change(&mut self.prefs.settings.folded_projects) {
+            self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
+        }
+    }
+
+    /// `machine`'s list was read whole: its folds of projects it no longer
+    /// holds go. A list cut short (`more`) leaves them, since a project
+    /// past the cut is not gone.
+    pub(crate) fn folds_listed(&mut self, machine: &str) {
+        let Some(listed) = self
+            .areas
+            .workspace
+            .projects
+            .get(machine)
+            .and_then(ProjectsView::list)
+            .filter(|list| !list.more)
+            .map(|list| {
+                list.projects
+                    .iter()
+                    .map(|project| project.id)
+                    .collect::<Vec<_>>()
+            })
+        else {
+            return;
+        };
+        self.tidy_folds(|folds| folds.keep_listed(machine, &listed));
+    }
 }
 
 /// The list's heading: "Projects", the Display menu's trigger, the plus.
@@ -78,14 +112,15 @@ pub(crate) fn heading(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    section_header(shell.words().labels().projects, tokens).child(
+    let labels = shell.words().labels();
+    section_header(labels.projects, tokens).child(
         div()
             .flex()
             .flex_row()
             .items_center()
             .gap(px(spacing::S0_5))
             .child(trigger)
-            .child(add_project(tokens, cx)),
+            .child(add_project(labels.add_project, tokens, cx)),
     )
 }
 

@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use vessel_proto::registry::CreateProjectDirectory;
 use vessel_proto::workspace::directory_metadata::InspectDirectory;
 use vessel_proto::workspace::host_folders::SuggestFolders;
 use vessel_proto::workspace::panel_files::{DuplicateFileEntry, ObserveFile};
@@ -58,6 +59,8 @@ pub enum ProjectAsk {
     SuggestFolders(SuggestFolders),
     /// `project.icon` (ADR 0112).
     Icon(ProjectId),
+    /// `project.create_directory` (ADR 0113): Add project's New directory.
+    CreateDirectory(CreateProjectDirectory),
 }
 
 /// The worktree asks.

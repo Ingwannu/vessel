@@ -1363,18 +1363,28 @@ again when the watch sees the file change. HTML stays Source only: the app
 has no web engine (coordinator's ruling 2 of 2026-11-19, until ADR 0020).
 The front matter table waits for yaml-rust2's lock addition.
 
-Add project suggests folders as Paseo's does (ADR 0112): the folder field
-of Settings > Projects' add form asks `folder.suggest` 250 ms after the
-last key, and the machine's folders under its user's home come back as
-Paseo's rows under the field (the path with the home as `~`, the whole
-path under it); a row chosen in Add a folder adds it, in the other forms it
-fills the field (`app/src/areas/workspace/projects/add.rs`). Projects show
+Add project is Paseo's sheet (TRACKER 234, docs/plans/wp-add-project-flow.md):
+the sidebar's "+", the composer's "Add project" row and Settings > Projects
+open it over the window (`kit::flow_sheet`, Paseo's panel); its pages are
+the machine (when more than one is online), the methods in Paseo's order
+(Search for directory, Clone from GitHub, New directory; Browse waits on
+TRACKER 816), a directory search, a repository typed as a URL or
+`owner/repo` and its destination, and a new directory's parent and name
+(`project.create_directory`, ADR 0113). The pages' behaviour is
+`view::workspace::add_flow` (the page's model, same cases); the sheet asks
+and draws (`app/src/areas/workspace/add_flow.rs`). On a search page the
+field asks `folder.suggest` (ADR 0112) 250 ms after the last key, and the
+answer counts only for the machine and text it was asked for; a success
+opens a new chat in the project, a clone Settings > Projects with its
+progress. A machine below protocol 34 gets no `~` paths and New directory
+says to update it. Projects show
 their own icon (`project.icon`, asked once per project when a machine's
 list first names it), else Paseo's lettered identity square (its ten
 fills keyed by the project's id, `kit::theme::identity::Hue::of_key`, as
 the page keys them), 16 square and 20 at a phone's width, in the sidebar
 and in Settings > Projects (`app/src/areas/workspace/project_icons.rs`).
-A machine below the protocol keeps the plain field and draws the squares.
+A machine below protocol 32 lists only its projects' roots and a typed
+path, and draws the squares.
 Icons and the Files tree's inspections are background file work: they
 wait on one line per machine, two out at a time
 (`app/src/areas/workspace/background.rs`), since the node serves file work

@@ -204,13 +204,16 @@ test("a shown file follows the disk; an open edit keeps its text under Paseo's a
       .getByRole("list", { name: "Files found" })
       .getByRole("button", { name: /todo\.md/ })
       .click();
-    const first = page.locator(".f-line").first();
-    await expect(first).toContainText("pay with a card");
+    // A Markdown file opens on its Preview (Paseo's built-in panel).
+    const preview = page.getByTestId("markdown-preview");
+    await expect(preview).toContainText("pay with a card");
     // Changed elsewhere while shown: the view follows, nothing pressed.
     writeFileSync(file, "- pay by bank transfer\n");
-    await expect(first).toContainText("pay by bank transfer");
-    // An open edit keeps its text; the alert offers both ways out.
+    await expect(preview).toContainText("pay by bank transfer");
+    // An open edit (on the Source side) keeps its text; the alert offers
+    // both ways out.
     await page.getByRole("button", { name: "Edit", exact: true }).click();
+    const first = page.locator(".f-line").first();
     const editor = page.getByRole("textbox", { name: "Edit notes/todo.md" });
     await editor.fill("- mine\n");
     writeFileSync(file, "- pay in cash\n");

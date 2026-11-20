@@ -8,7 +8,7 @@ use vessel_proto::workspace::{
     WorktreeRefusal,
 };
 
-use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
+use super::{Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
 use crate::workspace::command_changes::{Change, Compared, ComparedWith, ScriptLine};
@@ -600,23 +600,6 @@ impl WorkspaceWords for En {
 
     fn snapshot_not_dropped(&self, name: &str, why: &str) -> String {
         format!("The snapshot of {name} was not dropped: {why}")
-    }
-
-    fn add_hint(&self, form: AddForm, machine: &str, clone_target: Option<(&str, &str)>) -> String {
-        match (form, clone_target) {
-            (AddForm::Clone, None) => {
-                format!("A folder on {machine}; the repository gets a folder inside it.")
-            }
-            (AddForm::Clone, Some((folder, name))) => {
-                format!("Repository will be created at {folder}/{name}.")
-            }
-            (AddForm::New, _) => {
-                format!("An empty or new folder on {machine}; git starts a repository there.")
-            }
-            (AddForm::Folder, _) => format!(
-                "An absolute folder on {machine}; inside a repository, its top level is the project."
-            ),
-        }
     }
 
     fn approval_copy(&self, place: &str, scripts: bool) -> String {

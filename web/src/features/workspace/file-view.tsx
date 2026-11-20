@@ -6,27 +6,30 @@
 // (GOAT's banner: reload from disk, or overwrite). The file's watch
 // (ADR 0105) follows the disk with no edit open; with one open, or when
 // the file is gone, Paseo's conflict alert says so under the head.
+//
+// Paseo's built-in panels (F-F38, F-F39, F-F40;
+// docs/plans/wp-file-viewers.md) pick how the file shows by its name:
+// Markdown and HTML have a Preview beside their Source, opened on Preview
+// unless the file was opened at a line (each later line asked for turns
+// to Source again); an image is drawn, zoomable, from its bytes on a node
+// that reads them (`file.read_bytes`); anything else is its Source. The
+// Preview draws the edit while one is open, as Paseo's draws its buffer.
 
 import "./files.css";
 
 import { useEffect, useState } from "react";
 
-import { splitPath } from "../../data/workspace/changes";
+import {
+  filePanelOf,
+  hasPreview,
+  imageType,
+  previewFits,
+} from "../../data/workspace/file-panels";
 import { nodeError } from "../../data/workspace/root";
 import type { Saved } from "../../data/workspace/save";
 import { sizeWord } from "../../data/workspace/size";
 import { languageOf } from "../../data/workspace/syntax-languages";
-import {
-  Banner,
-  Button,
-  Dialog,
-  EmptyState,
-  Icon,
-  IconButton,
-  Skeleton,
-  TextArea,
-  Tooltip,
-} from "../../ui/kit";
+import { Banner, EmptyState, Skeleton } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type {
   FileVersion,
@@ -34,25 +37,42 @@ import type {
   SessionId,
   WorkspaceRoot,
 } from "../../wire/proto";
-import { type DiskChange, FileChangeAlert } from "./file-change-alert";
+import {
+  type DiskChange,
+  FileChangeAlert,
+  ReloadDialog,
+} from "./file-change-alert";
 import { FileConflict } from "./file-conflict";
+import { FileEditor } from "./file-editor";
+import { FileHead, useSide } from "./file-head";
+import { FileImage } from "./file-image";
 import { FileLines } from "./file-lines";
-import { useFile, WRITE_LIMIT } from "./use-file";
+import { FilePreview } from "./file-preview";
+import { useFile, versionKey, WRITE_LIMIT } from "./use-file";
 
 export function FileView({
   node,
   root,
+  folder,
   session,
   path,
   goTo,
+  filePanels,
   onBack,
+  onOpenFile,
 }: {
   node: NodeKey;
   root: WorkspaceRoot;
+  /** The root's folder on the node, when known. */
+  folder: string | null;
   session: SessionId;
   path: RelPath;
   goTo: { line: number; seq: number } | null;
+  /** The node reads files' bytes (`file.read_bytes`): images are drawn. */
+  filePanels: boolean;
   onBack: () => void;
+  /** Open another file of the workspace (a Markdown link). */
+  onOpenFile: (path: RelPath) => void;
 }) {
   const file = useFile(node, root, path);
   const [draft, setDraft] = useState<string | null>(null);
@@ -62,9 +82,17 @@ export function FileView({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [confirmReload, setConfirmReload] = useState(false);
-  const { dir, name } = splitPath(path);
   const language = languageOf(path);
   const text = file.text;
+  const panel = filePanelOf(path);
+  const preview = hasPreview(panel) ? panel : null;
+  const image = panel === "image" && filePanels ? imageType(path) : null;
+  const [side, setSide] = useSide(goTo);
+  const previewing = preview !== null && side === "preview";
+  // Past Paseo's display budget the Preview says so instead of reading
+  // the whole file; Source still reads it a page at a time.
+  const tooLargeToPreview =
+    text.kind === "text" && !previewFits(text.version.size);
   const editing = draft !== null;
   const dirty =
     editing && (text.kind !== "text" || draft !== text.lines.join("\n"));
@@ -78,6 +106,15 @@ export function FileView({
       refresh();
     }
   }, [disk, draft, refresh]);
+
+  // A Preview draws the whole file: the pages not read yet are read.
+  const partial = text.kind === "text" && text.next !== null;
+  const { whole } = file;
+  useEffect(() => {
+    if (previewing && partial && !tooLargeToPreview) {
+      void whole();
+    }
+  }, [previewing, partial, tooLargeToPreview, whole]);
 
   const save = (force: boolean) => {
     if (draft === null || saving) {
@@ -123,6 +160,7 @@ export function FileView({
             }
           : null;
   const edit = () => {
+    setSide("source");
     void file.whole().then((whole) => {
       if (whole !== null) {
         setSaved(null);
@@ -134,66 +172,29 @@ export function FileView({
 
   return (
     <div className="file-view">
-      <div className="file-head">
-        <Tooltip label="All files">
-          <IconButton
-            label="All files"
-            icon="back"
-            size="xs"
-            variant="ghost"
-            onClick={onBack}
-          />
-        </Tooltip>
-        <Icon name="file" size={14} />
-        <span className="file-crumb">
-          <bdi>
-            <span className="d-dir">{dir}</span>
-            <span className="d-name">{name}</span>
-          </bdi>
-        </span>
-        {dirty ? (
-          <span className="file-dirty" aria-label="Unsaved changes" />
-        ) : null}
-        <span className="file-head-end">
-          {editing ? (
-            <>
-              <Button
-                size="xs"
-                variant="ghost"
-                icon="close"
-                onClick={() => {
-                  setDraft(null);
-                  setSaved(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="xs"
-                variant="primary"
-                busy={saving}
-                disabled={!dirty}
-                onClick={() => {
-                  save(false);
-                }}
-              >
-                Save
-              </Button>
-            </>
-          ) : text.kind === "text" ? (
-            <Tooltip label={tooBig ? "File is too large to edit" : "Edit"}>
-              <IconButton
-                label="Edit"
-                icon="edit"
-                size="xs"
-                variant="ghost"
-                disabled={tooBig}
-                onClick={edit}
-              />
-            </Tooltip>
-          ) : null}
-        </span>
-      </div>
+      <FileHead
+        path={path}
+        dirty={dirty}
+        editing={editing}
+        saving={saving}
+        edit={
+          text.kind !== "text" || image !== null
+            ? undefined
+            : tooBig
+              ? null
+              : edit
+        }
+        side={preview !== null && text.kind === "text" ? side : null}
+        onSide={setSide}
+        onBack={onBack}
+        onCancel={() => {
+          setDraft(null);
+          setSaved(null);
+        }}
+        onSave={() => {
+          save(false);
+        }}
+      />
       {change === null ? null : <FileChangeAlert change={change} />}
       {text.kind === "loading" ? (
         <div className="changes-pad">
@@ -205,33 +206,44 @@ export function FileView({
             ? "It is gone, or it is outside this folder."
             : text.problem.message}
         </EmptyState>
+      ) : image !== null ? (
+        <FileImage
+          node={node}
+          root={root}
+          path={path}
+          name={path.split("/").pop() ?? path}
+          type={image}
+          version={versionKey(text.version)}
+        />
       ) : text.kind === "binary" ? (
         <EmptyState title="Binary file preview is not available." icon="file">
           {sizeWord(text.version.size)}
         </EmptyState>
+      ) : previewing && tooLargeToPreview ? (
+        <EmptyState title="This file is too large to display" icon="file">
+          {sizeWord(text.version.size)}
+        </EmptyState>
+      ) : previewing ? (
+        <FilePreview
+          panel={preview}
+          node={node}
+          root={root}
+          folder={folder}
+          path={path}
+          text={draft ?? text.lines.join("\n")}
+          version={versionKey(text.version)}
+          onOpenFile={onOpenFile}
+        />
       ) : draft !== null ? (
-        <div
-          className="file-editor"
-          onKeyDown={(event) => {
-            if (
-              (event.metaKey || event.ctrlKey) &&
-              event.key.toLowerCase() === "s"
-            ) {
-              event.preventDefault();
-              save(false);
-            }
+        <FileEditor
+          path={path}
+          draft={draft}
+          saving={saving}
+          onChange={setDraft}
+          onSave={() => {
+            save(false);
           }}
-        >
-          <TextArea
-            look="bare"
-            mono
-            fill
-            value={draft}
-            onChange={setDraft}
-            readOnly={saving}
-            aria-label={`Edit ${path}`}
-          />
-        </div>
+        />
       ) : (
         <FileLines
           session={session}
@@ -265,29 +277,12 @@ export function FileView({
         </div>
       ) : null}
       {confirmReload ? (
-        <Dialog
-          title="Reload from disk?"
-          onClose={() => {
+        <ReloadDialog
+          onCancel={() => {
             setConfirmReload(false);
           }}
-          footer={
-            <>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setConfirmReload(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button variant="danger-solid" onClick={reloadFromDisk}>
-                Reload
-              </Button>
-            </>
-          }
-        >
-          <p className="dialog-copy">Your local changes will be lost.</p>
-        </Dialog>
+          onReload={reloadFromDisk}
+        />
       ) : null}
     </div>
   );

@@ -1,25 +1,21 @@
-//! Settings > Projects (Paseo's projects in its settings, agent-
-//! orchestrator's add-project flow; the page's `projects-section.tsx`): a
-//! machine's projects as rows, the way to add one at the heading's right (a
-//! folder, a clone, a new one), the machine's git when it cannot be used,
-//! and the chosen project's detail under the list.
+//! Settings > Projects (Paseo's projects in its settings; the page's
+//! `projects-section.tsx`): a machine's projects as rows, Add project at
+//! the heading's right (Paseo's sheet, `add_flow`), the machine's git when
+//! it cannot be used, and the chosen project's detail under the list.
 //!
-//! Different from the page, for now: the add menu and the add form open in
-//! place under the heading (the kit's menu and dialog are track C's and not
-//! in yet); the row's "…" menu is a Remove button for the same reason; a
-//! success is said in the frame's foot (the app has no toasts yet).
+//! Different from the page, for now: the row's "…" menu is a Remove button
+//! (the kit's menu is track C's and not in yet); a removal is said in the
+//! frame's foot (the app has no toasts yet).
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
     ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
-use vessel_app_link::workspace::{Ask, Form, ProjectAsk};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::projects::{ProjectsView, repository_name};
-use vessel_app_view::workspace::words::AddForm;
+use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_proto::ProjectId;
-use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo, ProjectState};
+use vessel_proto::workspace::{ProjectInfo, ProjectState};
 
 use super::detail::{self, Detail};
 use super::widgets::{Tone, badge, banner, divided, empty, row, rows, section, title};
@@ -29,41 +25,15 @@ use crate::shell::Shell;
 pub(crate) struct Page {
     /// The project whose detail is open.
     pub(crate) detail: Option<Detail>,
-    /// Whether the add menu is open.
-    menu: bool,
-    /// The add form open, if one.
-    adding: Option<AddForm>,
-    /// The form's fields.
-    path: TextField,
-    url: TextField,
-    /// Whether the form's call is out.
-    busy: bool,
-    /// Why the form's last call failed.
-    error: Option<String>,
     /// A removal the node refused, until dismissed.
     failure: Option<String>,
-    /// The folder field's suggestions (`add`, ADR 0112).
-    suggestions: add::Suggestions,
 }
 
 impl Page {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             detail: None,
-            menu: false,
-            adding: None,
-            path: TextField::with_change(
-                "",
-                |_shell: &mut Shell, _text, _window, _cx| {},
-                Shell::add_path_changed,
-                window,
-                cx,
-            ),
-            url: super::field(window, cx),
-            busy: false,
-            error: None,
             failure: None,
-            suggestions: add::Suggestions::default(),
         }
     }
 }
@@ -81,115 +51,11 @@ impl Shell {
             .map(|machine| machine.name.clone())
     }
 
-    /// Open the add menu (the composer's "Add project" row).
-    pub(super) fn open_add_menu(&mut self) {
-        let page = &mut self.areas.workspace.page;
-        page.detail = None;
-        page.adding = None;
-        page.menu = true;
-    }
-
-    /// Translate labels retained by an open form without changing its values.
+    /// Translate the Add project sheet's field placeholder without
+    /// changing what it holds (the sheet keeps its page across a language
+    /// change).
     pub(crate) fn refresh_project_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let page = &self.areas.workspace.page;
-        let labels = self.words().labels();
-        let placeholder = match page.adding {
-            Some(AddForm::Clone) => labels.parent_placeholder,
-            Some(AddForm::Folder | AddForm::New) | None => labels.folder_placeholder,
-        };
-        page.path.set_placeholder(placeholder, window, cx);
-        page.url.set_placeholder(labels.url_placeholder, window, cx);
-    }
-
-    fn open_add(&mut self, form: AddForm, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let labels = self.words().labels();
-        let page = &mut self.areas.workspace.page;
-        page.menu = false;
-        page.adding = Some(form);
-        page.error = None;
-        page.path.clear(window, cx);
-        page.suggestions = add::Suggestions::default();
-        page.url.clear(window, cx);
-        let placeholder = match form {
-            AddForm::Clone => labels.parent_placeholder,
-            AddForm::Folder | AddForm::New => labels.folder_placeholder,
-        };
-        page.path.set_placeholder(placeholder, window, cx);
-        page.url.set_placeholder(labels.url_placeholder, window, cx);
-        match form {
-            AddForm::Clone => page.url.focus(window, cx),
-            AddForm::Folder | AddForm::New => page.path.focus(window, cx),
-        }
-        cx.notify();
-    }
-
-    fn submit_add(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(machine) = self.projects_machine() else {
-            return;
-        };
-        let page = &self.areas.workspace.page;
-        let Some(form) = page.adding else {
-            return;
-        };
-        let path = page.path.text(cx).trim().to_owned();
-        let url = page.url.text(cx).trim().to_owned();
-        if page.busy || path.is_empty() {
-            return;
-        }
-        let ask = match form {
-            AddForm::Folder => ProjectAsk::Add(AddProject {
-                path: path.into(),
-                name: None,
-            }),
-            AddForm::New => ProjectAsk::Init(InitProject {
-                path: path.into(),
-                name: None,
-            }),
-            AddForm::Clone => {
-                if repository_name(&url).is_none() {
-                    return;
-                }
-                match url.parse() {
-                    Ok(url) => ProjectAsk::Clone(CloneProject {
-                        url,
-                        parent: path.into(),
-                        folder: None,
-                        name: None,
-                    }),
-                    Err(refused) => {
-                        self.areas.workspace.page.error = Some(format!("{refused}"));
-                        cx.notify();
-                        return;
-                    }
-                }
-            }
-        };
-        self.ask(&machine, Ask::Project(ask));
-        let page = &mut self.areas.workspace.page;
-        page.busy = true;
-        page.error = None;
-        cx.notify();
-    }
-
-    /// The node answered the add form.
-    pub(super) fn took_project(
-        &mut self,
-        machine: &str,
-        _form: Form,
-        result: Result<ProjectInfo, Problem>,
-    ) {
-        let words = self.words();
-        let page = &mut self.areas.workspace.page;
-        page.busy = false;
-        match result {
-            Ok(project) => {
-                page.adding = None;
-                if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
-                    view.took(project);
-                }
-            }
-            Err(problem) => page.error = Some(words.problem(&problem)),
-        }
+        self.refresh_add_flow_words(window, cx);
     }
 
     pub(super) fn forget_project(&mut self, project: ProjectId, cx: &mut Context<'_, Self>) {
@@ -345,12 +211,11 @@ pub(crate) fn render(
     }
     let mut action = div().flex().flex_row().items_center().gap(px(8.0));
     if view.and_then(ProjectsView::list).is_some() {
+        let target = machine.clone();
         action = action.child(
             button("add-project", labels.add_project, false, tokens).on_click(cx.listener(
-                |this, _event, _window, cx| {
-                    let page = &mut this.areas.workspace.page;
-                    page.menu = !page.menu;
-                    cx.notify();
+                move |this, _event, window, cx| {
+                    this.open_add_flow(Some(target.clone()), window, cx);
                 },
             )),
         );
@@ -365,7 +230,7 @@ pub(crate) fn render(
     column.into_any_element()
 }
 
-/// The section's body: the add menu and form, the list, the banners.
+/// The section's body: the list, the banners.
 fn list_body(
     shell: &Shell,
     machine: &str,
@@ -378,12 +243,6 @@ fn list_body(
     let labels = words.labels();
     let state = &shell.areas.workspace.page;
     let mut body = div().flex().flex_col().gap(px(10.0));
-    if state.menu {
-        body = body.child(add_menu(shell, tokens, cx));
-    }
-    if let Some(form) = state.adding {
-        body = body.child(add::add_form(shell, machine, form, tokens, compact, cx));
-    }
     body = body.child(match view {
         None | Some(ProjectsView::Loading) => empty(labels.loading, tokens),
         Some(ProjectsView::Older) => empty(words.older_machine(machine), tokens),
@@ -501,31 +360,3 @@ fn project_row(
         ))
         .on_click(cx.listener(move |this, _event, _window, cx| this.open_project(&opened, cx)))
 }
-
-/// The add menu's three ways, in place under the heading.
-fn add_menu(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let labels = shell.words().labels();
-    let mut menu = div().flex().flex_row().flex_wrap().gap(px(6.0));
-    for (form, label) in [
-        (AddForm::Folder, labels.add_folder),
-        (AddForm::Clone, labels.clone_repository),
-        (AddForm::New, labels.start_new),
-    ] {
-        menu = menu.child(
-            vessel_app_kit::choice(
-                ElementId::Name(format!("add-{form:?}").into()),
-                label,
-                false,
-                tokens,
-            )
-            .on_click(cx.listener(move |this, _event, window, cx| {
-                this.open_add(form, window, cx);
-            })),
-        );
-    }
-    menu
-}
-
-mod add;
-#[cfg(test)]
-mod language_tests;
