@@ -65,8 +65,10 @@ impl Routes {
     /// request from reaching the actual policy proxy or starting DNS resolution.
     pub(super) async fn try_refusal(&self, uri: &Uri) -> Option<Result<&'static str, StatusCode>> {
         let path = uri.path();
-        if !matches!(path, REFUSAL_PATH | REDIRECTED_PATH | EMBEDDED_PATH | WORKER_PATH)
-            || uri.query().is_some()
+        if !matches!(
+            path,
+            REFUSAL_PATH | REDIRECTED_PATH | EMBEDDED_PATH | WORKER_PATH
+        ) || uri.query().is_some()
         {
             return None;
         }

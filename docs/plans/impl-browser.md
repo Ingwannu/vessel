@@ -118,6 +118,14 @@ fixture-only persistent cookie through the loopback test proxy. This checks
 reuse of a real Chromium profile under the service identity. The recovery
 policy for a live node with an uncertain exit still needs integration.
 
+The selected fixture exported from `1b27514d4` passed in 13.03 s as UID/GID
+1000. It observed a real watched frame, foreign-workspace and stale-input
+refusals, terminal target closure, an actual refused local attachment, a
+held profile lock and the persisted cookie after relaunch. The audit found
+306 owned private entries, no download file or partial download and no
+remaining exact-profile process. The renderer sandbox sampler returned no
+observation. This verifies the staged component against the approved runtime.
+
 The extended fixture sends both direct and redirected requests through the
 actual policy proxy to held IPv4 and IPv6 canary listeners. A controlled
 loopback origin also runs embedded fetches and a real service worker. The

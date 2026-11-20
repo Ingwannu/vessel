@@ -81,9 +81,11 @@ impl PolicyOrigin {
                 script(routes, true, WORKER_PROBE),
             )
                 .into_response(),
-            WORKER_CONTROL => {
-                ([(header::CACHE_CONTROL, "no-store")], "worker positive control").into_response()
-            }
+            WORKER_CONTROL => (
+                [(header::CACHE_CONTROL, "no-store")],
+                "worker positive control",
+            )
+                .into_response(),
             _ => return None,
         };
         Some(response)

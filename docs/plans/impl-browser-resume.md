@@ -46,12 +46,18 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
 - `8efd18a85` passed remote format
   (`impl-browser-node-20261120T043800Z-8efd18a8`). `1b27514d4` passed strict
   browser Clippy (`impl-browser-node-20261120T043906Z-1b27514d`). The exact
-  selected binary export `impl-browser-node-20261120T043922Z-1b27514d` is
-  pending in `/tmp/work/m12-claude-wave/browser-b-export-policy`. It superseded
-  the cancelled queued export `impl-browser-node-20261120T042816Z-082778db`.
+  selected binary export `impl-browser-node-20261120T043922Z-1b27514d` passed
+  and superseded the cancelled export `impl-browser-node-20261120T042816Z-082778db`.
+  The selected live CfT fixture passed 1/0 in 13.03 s under UID/GID 1000.
+  Real actor watch, stale and foreign-workspace refusals, close, download
+  refusal, profile lock and cookie persistence on relaunch all passed. The
+  audit found 306 private owned entries, no named attachment or partial file,
+  and zero remaining exact-profile processes with no cleanup signals.
+  Evidence is in `/tmp/work/m12-claude-wave/browser-b-live-policy`.
 - `71bbd1d20` adds real-browser redirect, subresource and service-worker
-  fixtures over the existing IPv4/IPv6 local proxy refusal harness. Remote
-  format, strict Clippy and runtime checks for that commit are pending.
+  fixtures over the existing IPv4/IPv6 local proxy refusal harness.
+  `b19eab2e6` also fences captured frames across same-loader URL fragment
+  changes. The exact extended format, lint and runtime gates are pending.
 
 ## Review and next work
 
@@ -60,11 +66,9 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Run the exact selected export at the approved CfT path as UID/GID 1000.
-   Confirm the actor's real watched frame, stale input and close, actual
-   download refusal, the held profile and cookie persistence on relaunch.
-   Then format, lint and run the extended network fixture. Keep one remote
-   run queued or running at a time.
+1. Format, lint and run the extended network fixture under the same approved
+   CfT path and UID/GID 1000. Keep one remote run queued or running at a time.
+   Confirm a fresh focused browser suite before handing over the component.
 2. Finish the General network qualification, including real DNS, socket
    and WebTransport coverage. The browser method rows and `BROWSER_PROTOCOL`
    are unassigned. Engine availability waits for qualification and

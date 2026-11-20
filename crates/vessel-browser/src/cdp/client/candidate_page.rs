@@ -3,8 +3,8 @@
 //! This helper owns no workspace/Preview/root authority and permits only its
 //! fixed fixture origin. A successful PNG is transport/geometry evidence;
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
-use super::{Client, Events, SHUTDOWN_TIMEOUT, candidate_network::Routes};
 use super::candidate_policy::PolicyOrigin;
+use super::{Client, Events, SHUTDOWN_TIMEOUT, candidate_network::Routes};
 use crate::page::{Page, PageError, ViewportFrame};
 use crate::targets::{TargetError, Targets};
 use axum::{
@@ -255,7 +255,9 @@ async fn observe_policy(
     let probe = async {
         routes.verify_browser(page).await?;
         policy.verify(page).await?;
-        let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}").parse().unwrap();
+        let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
+            .parse()
+            .unwrap();
         assert!(matches!(
             page.navigate(attachment).await,
             Err(PageError::Navigation)
