@@ -107,7 +107,9 @@ impl FixtureProxy {
             "the browser never requested the attachment"
         );
         assert!(
-            refused_websockets.iter().all(|item| item.load(Ordering::SeqCst)),
+            refused_websockets
+                .iter()
+                .all(|item| item.load(Ordering::SeqCst)),
             "the browser did not reach the policy proxy for both websocket peers"
         );
         drop(guard);
@@ -117,7 +119,9 @@ async fn document(State(state): State<FixtureState>, request: Request<Body>) -> 
     let (parts, body) = request.into_parts();
     drop(body);
     if let Some((index, status)) = state.routes.websocket_refusal(&parts).await {
-        if status == StatusCode::FORBIDDEN && let Some(mark) = state.refused_websockets.get(index) {
+        if status == StatusCode::FORBIDDEN
+            && let Some(mark) = state.refused_websockets.get(index)
+        {
             mark.store(true, Ordering::SeqCst);
         }
         return status.into_response();
@@ -284,18 +288,21 @@ async fn observe_policy(
 ) -> Result<(), ExerciseError> {
     // Keep the diagnostic's raw event queue serviced just as the actor does
     // between commands. No event from a prior route satisfies a page marker.
-    events.during_fixture(async {
-        routes.verify_browser(page).await?;
-        policy.verify(page).await?;
-        let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
-            .parse()
-            .unwrap();
-        match page.navigate(attachment).await {
-            Err(PageError::Navigation) => Ok(()),
-            Err(error) => Err(error.into()),
-            Ok(()) => Err(ExerciseError::DownloadAccepted),
-        }
-    }).await.map_err(PageError::Cdp)?
+    events
+        .during_fixture(async {
+            routes.verify_browser(page).await?;
+            policy.verify(page).await?;
+            let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
+                .parse()
+                .unwrap();
+            match page.navigate(attachment).await {
+                Err(PageError::Navigation) => Ok(()),
+                Err(error) => Err(error.into()),
+                Ok(()) => Err(ExerciseError::DownloadAccepted),
+            }
+        })
+        .await
+        .map_err(PageError::Cdp)?
 }
 
 async fn exercise_input(page: &mut Page, frame: &ViewportFrame) -> Result<(), PageError> {

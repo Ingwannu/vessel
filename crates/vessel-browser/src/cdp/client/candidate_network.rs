@@ -59,7 +59,10 @@ impl Routes {
                 visit(page, &route, marker).await?;
             }
         }
-        let source = format!("http://localhost:{}{RESOLVED_PATH}", self.canaries[0].address.port());
+        let source = format!(
+            "http://localhost:{}{RESOLVED_PATH}",
+            self.canaries[0].address.port()
+        );
         visit(page, &source, RESOLVED_MARKER).await?;
         Ok(())
     }
@@ -91,16 +94,19 @@ impl Routes {
             .map(|peer| format!("ws://{}{WEBSOCKET_PATH}", peer.websocket))
     }
 
-    pub(super) async fn websocket_refusal(
-        &self,
-        request: &Parts,
-    ) -> Option<(usize, StatusCode)> {
-        let destination = request.uri.authority()?.as_str().parse::<SocketAddr>().ok()?;
+    pub(super) async fn websocket_refusal(&self, request: &Parts) -> Option<(usize, StatusCode)> {
+        let destination = request
+            .uri
+            .authority()?
+            .as_str()
+            .parse::<SocketAddr>()
+            .ok()?;
         let index = self
             .canaries
             .iter()
             .position(|peer| peer.websocket == destination)?;
-        let request = if request.method == Method::CONNECT && request.uri.path_and_query().is_none() {
+        let request = if request.method == Method::CONNECT && request.uri.path_and_query().is_none()
+        {
             format!("CONNECT {destination} HTTP/1.1\r\nHost: {destination}\r\n\r\n")
         } else if request.method == Method::GET
             && request.uri.path() == WEBSOCKET_PATH
@@ -110,12 +116,21 @@ impl Routes {
                 .get(header::UPGRADE)
                 .is_some_and(|value| value.as_bytes().eq_ignore_ascii_case(b"websocket"))
         {
-            format!("GET ws://{destination}{WEBSOCKET_PATH} HTTP/1.1\r\nHost: {destination}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n")
+            format!(
+                "GET ws://{destination}{WEBSOCKET_PATH} HTTP/1.1\r\nHost: {destination}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n"
+            )
         } else {
             return None;
         };
         let refused = read_refusal(self.proxy, &request).await;
-        Some((index, if refused { StatusCode::FORBIDDEN } else { StatusCode::BAD_GATEWAY }))
+        Some((
+            index,
+            if refused {
+                StatusCode::FORBIDDEN
+            } else {
+                StatusCode::BAD_GATEWAY
+            },
+        ))
     }
 
     /// This test-only front door prevents any unrelated Chromium background
@@ -153,7 +168,11 @@ impl Routes {
             "GET http://{authority}{path} HTTP/1.1\r\nHost: {authority}\r\nConnection: close\r\n\r\n"
         );
         let refused = read_refusal(self.proxy, &request).await;
-        Some(if refused { Ok(marker) } else { Err(StatusCode::BAD_GATEWAY) })
+        Some(if refused {
+            Ok(marker)
+        } else {
+            Err(StatusCode::BAD_GATEWAY)
+        })
     }
 }
 
@@ -193,7 +212,10 @@ async fn read_refusal(proxy: SocketAddr, request: &str) -> bool {
         let _received = socket.read_exact(&mut status).await?;
         Ok::<_, std::io::Error>(&status == REFUSED_HTTP)
     };
-    matches!(tokio::time::timeout(REFUSAL_DEADLINE, exchange).await, Ok(Ok(true)))
+    matches!(
+        tokio::time::timeout(REFUSAL_DEADLINE, exchange).await,
+        Ok(Ok(true))
+    )
 }
 
 pub(super) struct NetworkFixture {

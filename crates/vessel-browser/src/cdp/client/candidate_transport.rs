@@ -11,8 +11,8 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::browser::{ViewportSide, ViewportSize};
 
-use super::{Client, Events};
 use super::candidate_network::{ProbeError, expect_marker};
+use super::{Client, Events};
 use crate::page::{Page, PageError};
 
 const PAGE_PATH: &str = "/fixture-webtransport";
@@ -75,7 +75,10 @@ impl TransportProbe {
         client: &Client,
         events: &mut Events,
     ) -> Result<(), FixtureError> {
-        events.during_fixture(self.open(client)).await.map_err(PageError::Cdp)?
+        events
+            .during_fixture(self.open(client))
+            .await
+            .map_err(PageError::Cdp)?
     }
 
     async fn open(&self, client: &Client) -> Result<(), FixtureError> {
@@ -107,7 +110,10 @@ impl TransportProbe {
 
     fn response(&self, request: &Request<Body>) -> Response {
         if request.method() != Method::GET
-            || request.uri().authority().map(axum::http::uri::Authority::as_str)
+            || request
+                .uri()
+                .authority()
+                .map(axum::http::uri::Authority::as_str)
                 != Some(self.authority.as_str())
             || request.uri().path() != PAGE_PATH
             || request.uri().query().is_some()

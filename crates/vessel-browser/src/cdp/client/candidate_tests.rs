@@ -142,7 +142,10 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
 async fn approved_candidate_refuses_private_webtransport() {
     tokio::time::timeout(APPROVED_FIXTURE_TIMEOUT, async {
         let Fixture {
-            scope, plan, listener, ..
+            scope,
+            plan,
+            listener,
+            ..
         } = fixture().await;
         let fixture = TransportProbe::configured(listener.local_addr().unwrap().port()).unwrap();
         let stop = CancellationToken::new();
@@ -232,7 +235,10 @@ async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
 async fn exercise_proxy_loss(actor: &Actor, network: &NetworkFixture) -> Result<(), ActorError> {
     let workspace = WorkspaceId::random();
     let side = ViewportSide::try_from(390).unwrap();
-    let viewport = ViewportSize { width: side, height: side };
+    let viewport = ViewportSize {
+        width: side,
+        height: side,
+    };
     let original = "http://fixture.test/".parse().unwrap();
     let tab = actor.open(workspace, original, viewport).await?;
     let mut watched = actor.watch(workspace, tab).await?;
