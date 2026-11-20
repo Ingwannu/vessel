@@ -103,6 +103,8 @@ mod dispatch_tests;
 #[derive(Debug)]
 pub(crate) struct NodeService {
     file_panels: file_panels::FilePanelSlots,
+    /// Terminal-mode sessions' size owners (ADR 0116).
+    session_sizes: crate::size_owner::SessionSizes,
     pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
@@ -201,8 +203,6 @@ pub(crate) struct Parts {
     pub(crate) tidying: Arc<Tidying>,
     pub(crate) forges: Arc<Forges>,
     pub(crate) terminals: Arc<Terminals>,
-    /// Terminal-mode sessions' size owners (ADR 0116).
-    pub(crate) session_sizes: crate::size_owner::SessionSizes,
     pub(crate) ports: Arc<Ports>,
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
