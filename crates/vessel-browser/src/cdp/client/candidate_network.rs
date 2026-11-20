@@ -7,7 +7,7 @@ use std::time::Duration;
 use axum::http::{StatusCode, Uri};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::net::TcpStream;
-use vessel_proto::browser::{RequiredInput, WaitBudget, WaitFor, WaitMatch};
+use vessel_proto::browser::{RequiredInput, WaitBudget, WaitFor, WaitMatch, WaitTimeout};
 
 use crate::page::{Page, PageError};
 use crate::proxy::PublicProxy;
@@ -15,6 +15,10 @@ use crate::proxy::PublicProxy;
 const REFUSAL_DEADLINE: Duration = Duration::from_secs(2);
 const REFUSED_HTTP: &[u8; 12] = b"HTTP/1.1 403";
 const REFUSAL_PATH: &str = "/fixture-refused";
+const REDIRECTED_PATH: &str = "/fixture-refused-after-redirect";
+const EMBEDDED_PATH: &str = "/fixture-refused-embedded";
+const WORKER_PATH: &str = "/fixture-refused-worker";
+const REDIRECTS: [&str; 2] = ["/fixture-redirect-v4", "/fixture-redirect-v6"];
 
 #[derive(Clone, Copy)]
 pub(super) struct Routes {
@@ -26,28 +30,44 @@ pub(super) struct Routes {
 struct Canary {
     address: SocketAddr,
     refused: &'static str,
+    refused_after_redirect: &'static str,
 }
 
 impl Routes {
     pub(super) async fn verify_browser(&self, page: &mut Page) -> Result<(), PageError> {
-        for canary in self.canaries {
-            let url = format!("http://{}{REFUSAL_PATH}", canary.address)
-                .parse()
-                .unwrap();
-            page.navigate(url).await?;
-            let expected = RequiredInput::try_from(canary.refused.to_owned()).unwrap();
-            let matched = page
-                .wait(WaitFor::Text(expected), WaitBudget::Default)
-                .await?;
-            assert_eq!(matched, WaitMatch::Text);
+        for (canary, redirect) in self.canaries.into_iter().zip(REDIRECTS) {
+            let address = canary.url(REFUSAL_PATH);
+            let indirect = format!("http://fixture.test{redirect}");
+            for (route, marker) in [
+                (address, canary.refused),
+                (indirect, canary.refused_after_redirect),
+            ] {
+                page.navigate(route.parse().unwrap()).await?;
+                wait_for(page, marker).await?;
+            }
         }
         Ok(())
+    }
+
+    pub(super) fn redirect(&self, path: &str) -> Option<String> {
+        REDIRECTS
+            .into_iter()
+            .zip(self.canaries)
+            .find_map(|(route, peer)| (path == route).then(|| peer.url(REDIRECTED_PATH)))
+    }
+
+    pub(super) fn expected_reads(&self, worker: bool) -> [(String, &'static str); 2] {
+        let path = if worker { WORKER_PATH } else { EMBEDDED_PATH };
+        self.canaries.map(|peer| (peer.url(path), peer.refused))
     }
 
     /// This test-only front door prevents any unrelated Chromium background
     /// request from reaching the actual policy proxy or starting DNS resolution.
     pub(super) async fn try_refusal(&self, uri: &Uri) -> Option<Result<&'static str, StatusCode>> {
-        if uri.path() != REFUSAL_PATH || uri.query().is_some() {
+        let path = uri.path();
+        if !matches!(path, REFUSAL_PATH | REDIRECTED_PATH | EMBEDDED_PATH | WORKER_PATH)
+            || uri.query().is_some()
+        {
             return None;
         }
         let destination = uri.authority()?.as_str().parse::<SocketAddr>().ok()?;
@@ -55,19 +75,45 @@ impl Routes {
             .canaries
             .iter()
             .find(|item| item.address == destination)?;
-        let reply =
-            tokio::time::timeout(REFUSAL_DEADLINE, read_refusal(self.proxy, destination)).await;
+        let reply = tokio::time::timeout(
+            REFUSAL_DEADLINE,
+            read_refusal(self.proxy, destination, path),
+        )
+        .await;
+        let marker = if path == REDIRECTED_PATH {
+            canary.refused_after_redirect
+        } else {
+            canary.refused
+        };
         Some(match reply {
-            Ok(Ok(true)) => Ok(canary.refused),
+            Ok(Ok(true)) => Ok(marker),
             Ok(Ok(false) | Err(_)) | Err(_) => Err(StatusCode::BAD_GATEWAY),
         })
     }
 }
 
-async fn read_refusal(proxy: SocketAddr, destination: SocketAddr) -> std::io::Result<bool> {
+impl Canary {
+    fn url(self, fixture_path: &str) -> String {
+        format!("http://{}{fixture_path}", self.address)
+    }
+}
+
+pub(super) async fn wait_for(page: &mut Page, marker: &str) -> Result<(), PageError> {
+    let expected = RequiredInput::try_from(marker.to_owned()).unwrap();
+    let budget = WaitBudget::Explicit(WaitTimeout::try_from(3500).unwrap());
+    let matched = page.wait(WaitFor::Text(expected), budget).await?;
+    assert_eq!(matched, WaitMatch::Text);
+    Ok(())
+}
+
+async fn read_refusal(
+    proxy: SocketAddr,
+    destination: SocketAddr,
+    path: &str,
+) -> std::io::Result<bool> {
     let mut socket = TcpStream::connect(proxy).await?;
     let request = format!(
-        "GET http://{destination}{REFUSAL_PATH} HTTP/1.1\r\nHost: {destination}\r\nConnection: close\r\n\r\n"
+        "GET http://{destination}{path} HTTP/1.1\r\nHost: {destination}\r\nConnection: close\r\n\r\n"
     );
     socket.write_all(request.as_bytes()).await?;
     let mut status = [0; REFUSED_HTTP.len()];
@@ -92,10 +138,12 @@ impl NetworkFixture {
                 Canary {
                     address: positive_control(&ipv4).await,
                     refused: "Fixture IPv4 refused",
+                    refused_after_redirect: "Fixture redirected IPv4 refused",
                 },
                 Canary {
                     address: positive_control(&ipv6).await,
                     refused: "Fixture IPv6 refused",
+                    refused_after_redirect: "Fixture redirected IPv6 refused",
                 },
             ],
         };

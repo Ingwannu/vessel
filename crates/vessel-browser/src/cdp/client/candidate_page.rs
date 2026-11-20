@@ -4,6 +4,7 @@
 //! fixed fixture origin. A successful PNG is transport/geometry evidence;
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
 use super::{Client, Events, SHUTDOWN_TIMEOUT, candidate_network::Routes};
+use super::candidate_policy::PolicyOrigin;
 use crate::page::{Page, PageError, ViewportFrame};
 use crate::targets::{TargetError, Targets};
 use axum::{
@@ -47,6 +48,7 @@ pub(super) const DOWNLOAD_NAME: &str = "vessel-browser-fixture-download.txt";
 struct FixtureState {
     routes: Routes,
     sent_attachment: Arc<AtomicBool>,
+    policy: Arc<PolicyOrigin>,
 }
 
 pub(super) struct FixtureProxy {
@@ -56,7 +58,7 @@ pub(super) struct FixtureProxy {
     sent_attachment: Arc<AtomicBool>,
 }
 impl FixtureProxy {
-    pub(super) fn start(listener: TcpListener, routes: Routes) -> Self {
+    pub(super) fn start(listener: TcpListener, routes: Routes, policy: Arc<PolicyOrigin>) -> Self {
         let stop = CancellationToken::new();
         let guard = stop.clone().drop_guard();
         let closing = stop.clone();
@@ -64,6 +66,7 @@ impl FixtureProxy {
         let state = FixtureState {
             routes,
             sent_attachment: Arc::clone(&sent_attachment),
+            policy,
         };
         let actor = tokio::spawn(async move {
             axum::serve(listener, Router::new().fallback(document).with_state(state))
@@ -105,12 +108,25 @@ async fn document(State(state): State<FixtureState>, request: Request<Body>) -> 
     }
     if let Some(refused) = state.routes.try_refusal(&parts.uri).await {
         return match refused {
-            Ok(marker) => ([(header::CACHE_CONTROL, "no-store")], marker).into_response(),
+            Ok(marker) => (
+                [
+                    (header::CACHE_CONTROL, "no-store"),
+                    (header::ACCESS_CONTROL_ALLOW_ORIGIN, state.policy.origin()),
+                ],
+                marker,
+            )
+                .into_response(),
             Err(error) => error.into_response(),
         };
     }
+    if let Some(response) = state.policy.serve(&parts.uri, state.routes) {
+        return response;
+    }
     if parts.uri.host() != Some("fixture.test") {
         return StatusCode::FORBIDDEN.into_response();
+    }
+    if let Some(target) = state.routes.redirect(parts.uri.path()) {
+        return (StatusCode::FOUND, [(header::LOCATION, target)]).into_response();
     }
     if parts.uri.path() == DOWNLOAD_ROUTE {
         state.sent_attachment.store(true, Ordering::SeqCst);
@@ -166,6 +182,7 @@ pub(super) async fn exercise(
     client: &Client,
     events: &mut Events,
     routes: Routes,
+    policy: &PolicyOrigin,
 ) -> Result<Observed, TargetError> {
     let viewport = ViewportSize {
         width: ViewportSide::try_from(WIDTH).unwrap(),
@@ -212,14 +229,7 @@ pub(super) async fn exercise(
     ));
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     let compositor_png = page.probe_compositor(events).await?.size();
-    routes.verify_browser(page).await?;
-    let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
-        .parse()
-        .unwrap();
-    assert!(matches!(
-        page.navigate(attachment).await,
-        Err(PageError::Navigation)
-    ));
+    observe_policy(page, events, routes, policy).await?;
     targets.close(workspace, &browser).await?;
     assert!(matches!(
         targets.owned(workspace, &browser),
@@ -232,6 +242,37 @@ pub(super) async fn exercise(
         full_png,
         compositor_png,
     })
+}
+
+async fn observe_policy(
+    page: &mut Page,
+    events: &mut Events,
+    routes: Routes,
+    policy: &PolicyOrigin,
+) -> Result<(), PageError> {
+    // Keep the diagnostic's raw event queue serviced just as the actor does
+    // between commands. No event from a prior route satisfies a page marker.
+    let probe = async {
+        routes.verify_browser(page).await?;
+        policy.verify(page).await?;
+        let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}").parse().unwrap();
+        assert!(matches!(
+            page.navigate(attachment).await,
+            Err(PageError::Navigation)
+        ));
+        Ok(())
+    };
+    tokio::pin!(probe);
+    loop {
+        tokio::select! {
+            result = &mut probe => return result,
+            event = events.next() => {
+                if event.is_none() {
+                    return Err(PageError::Cdp(super::CdpError::Closed));
+                }
+            }
+        }
+    }
 }
 
 async fn exercise_input(page: &mut Page, frame: &ViewportFrame) -> Result<(), PageError> {

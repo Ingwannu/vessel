@@ -7,6 +7,8 @@ mod candidate_network;
 #[cfg(all(test, target_os = "linux"))]
 mod candidate_page;
 #[cfg(all(test, target_os = "linux"))]
+mod candidate_policy;
+#[cfg(all(test, target_os = "linux"))]
 mod candidate_reuse;
 #[cfg(all(test, target_os = "linux"))]
 mod candidate_tests;

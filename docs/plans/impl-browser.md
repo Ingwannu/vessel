@@ -118,6 +118,16 @@ fixture-only persistent cookie through the loopback test proxy. This checks
 reuse of a real Chromium profile under the service identity. The recovery
 policy for a live node with an uncertain exit still needs integration.
 
+The extended fixture sends both direct and redirected requests through the
+actual policy proxy to held IPv4 and IPv6 canary listeners. A controlled
+loopback origin also runs embedded fetches and a real service worker. The
+worker must retrieve a positive control before reporting the separate canary
+responses. Distinct routes prevent an earlier navigation from satisfying a
+redirect or background request. The fixture front door maps only observed
+policy refusals to its expected marker. The live run is pending. These cases
+leave real DNS rebinding, websocket and UDP/QUIC/WebTransport qualification
+open.
+
 ### Download follow-up
 
 | Owner | Scope | Reference and current difference |

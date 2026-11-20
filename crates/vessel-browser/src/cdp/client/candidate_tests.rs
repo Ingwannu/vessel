@@ -5,6 +5,7 @@
 //! admission is released from a leader/accepted-group cleanup receipt.
 use super::actor::{Actor, ActorError};
 use super::candidate_network::NetworkFixture;
+use super::candidate_policy::PolicyOrigin;
 use super::candidate_reuse;
 use super::owner::Owner;
 use super::*;
@@ -13,6 +14,7 @@ use crate::preparation::Preparation;
 use crate::profile::{Profile, ProfileError};
 use crate::targets::TargetNotice;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{BrowserFailure, HumanInput, ViewportSide, ViewportSize};
@@ -79,13 +81,15 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         } = fixture().await;
         let network = NetworkFixture::start().await;
         let routes = network.routes();
-        let endpoint = ProxyEndpoint::try_from(listener.local_addr().unwrap()).unwrap();
-        let proxy = candidate_page::FixtureProxy::start(listener, routes);
+        let address = listener.local_addr().unwrap();
+        let endpoint = ProxyEndpoint::try_from(address).unwrap();
+        let policy = Arc::new(PolicyOrigin::new(address.port()));
+        let proxy = candidate_page::FixtureProxy::start(listener, routes, Arc::clone(&policy));
         let owner = Owner::spawn(plan).unwrap();
         let run = owner.lifetime();
         let (mut owner, readiness) = owner.attest(&scope).await.unwrap();
         let page = if let Some((client, events)) = owner.controller() {
-            Some(candidate_page::exercise(client, events, routes).await)
+            Some(candidate_page::exercise(client, events, routes, &policy).await)
         } else {
             None
         };
