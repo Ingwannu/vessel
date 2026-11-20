@@ -701,3 +701,4 @@ fn a_listed_tab_not_yet_opened_shows_its_title(cx: &mut TestAppContext) {
 }
 
 mod p3;
+mod places;

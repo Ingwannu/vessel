@@ -36,6 +36,10 @@ pub struct CardDetail {
     /// badge (TRACKER 662). `project` is the folder's case alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runs_in: Option<RunsIn>,
+    /// The worktree it runs in (protocol 10): its terminals' workspace place
+    /// from protocol 40 (ADR 0121).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worktree: Option<vessel_proto::workspace::WorktreeId>,
     /// The profile it runs with now (protocol 5).
     pub profile: Option<String>,
     /// The provider's model it runs, when the node says.
@@ -187,6 +191,10 @@ impl Card {
                 .map(ToString::to_string),
             project: RunsIn::of(session).and_then(RunsIn::checkout),
             runs_in: RunsIn::of(session),
+            worktree: session
+                .workspace
+                .as_ref()
+                .and_then(|workspace| workspace.worktree),
             profile: session
                 .profile
                 .as_ref()
