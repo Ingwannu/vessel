@@ -166,9 +166,7 @@ pub fn first_from(matches: &[FoundMatch], from: TextAt) -> Option<usize> {
 /// The match after `current`, round to the first.
 #[must_use]
 pub const fn next_of(current: usize, count: usize) -> usize {
-    if count == 0 {
-        0
-    } else if current.saturating_add(1) >= count {
+    if current.saturating_add(1) >= count {
         0
     } else {
         current.saturating_add(1)
