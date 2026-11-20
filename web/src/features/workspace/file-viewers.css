@@ -3,8 +3,9 @@
    - a panel's state centred in it: Loading with a spinner, an error in the
      danger ink;
    - the Markdown preview: a 16px gutter around a reading column, its front
-     matter a two-column table (keys in the muted mono ink on the well,
-     values in the ink) 24px above the body; the body as the conversation
+     matter a two-column table (keys mono at 14/20 in the muted ink on the
+     well, values in the ink at the same size, cells 12 by 8) 24px above
+     the body; the body as the conversation
      draws Markdown, with headings, numbered lists, rules and images;
    - the HTML preview: the file in a frame filling the panel on white, as
      a page is drawn;
@@ -53,19 +54,23 @@
   overflow: hidden;
 }
 
+/* Paseo's cells: 14/20 text, key and value alike, scaled with the
+   interface's font size as the body is. */
 .md-front dt,
 .md-front dd {
   margin: 0;
   padding: 8px 12px;
-  line-height: 20px;
+  line-height: calc(20px * var(--ui-scale));
   white-space: pre-wrap;
 }
 
+/* Paseo's key: mono at the body's 14/20, the value's size (its
+   frontMatterKey), not the smaller code token. */
 .md-front dt {
   background: var(--bg-well);
   color: var(--text-secondary);
-  font: var(--t-mono);
-  line-height: 20px;
+  font: 400 calc(14px * var(--ui-scale)) / calc(20px * var(--ui-scale))
+    var(--font-mono);
 }
 
 .md-front dt:not(:first-of-type),
@@ -84,18 +89,18 @@
 }
 
 .md-doc h1 {
-  font-size: 22px;
-  line-height: 28px;
+  font-size: calc(22px * var(--ui-scale));
+  line-height: calc(28px * var(--ui-scale));
 }
 
 .md-doc h2 {
-  font-size: 18px;
-  line-height: 24px;
+  font-size: calc(18px * var(--ui-scale));
+  line-height: calc(24px * var(--ui-scale));
 }
 
 .md-doc :is(h3, h4, h5, h6) {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: calc(14px * var(--ui-scale));
+  line-height: calc(20px * var(--ui-scale));
 }
 
 .md-doc p {

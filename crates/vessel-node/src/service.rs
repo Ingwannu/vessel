@@ -87,6 +87,7 @@ mod usage_reports;
 mod forking;
 mod history;
 mod parking;
+mod plugins;
 mod reload;
 mod search;
 mod settings;
@@ -175,6 +176,8 @@ pub(crate) struct NodeService {
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
     push: Arc<crate::push::Push>,
+    /// The node's plugins (ADR 0115, `crate::plugins`).
+    plugins: crate::plugins::Plugins,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -207,6 +210,7 @@ pub(crate) struct Parts {
     pub(crate) settings: Arc<crate::settings::Settings>,
     pub(crate) push: Arc<crate::push::Push>,
     pub(crate) limits: crate::limits::Limits,
+    pub(crate) plugins: crate::plugins::Plugins,
 }
 
 impl NodeService {
@@ -240,6 +244,7 @@ impl NodeService {
             settings,
             push,
             limits,
+            plugins,
         } = parts;
         let store = sessions.store().clone();
         let readiness = Arc::new(crate::readiness::Readiness::default());
@@ -292,6 +297,7 @@ impl NodeService {
             notices: Arc::default(),
             side_opening: Arc::default(),
             push,
+            plugins,
         }
     }
 

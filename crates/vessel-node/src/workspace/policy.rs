@@ -68,6 +68,17 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     } else if matches!(method, Method::GetAgentDiagnostic | Method::ReadNodeLog) {
         "a diagnostic runs an agent's checks and a node's log is its administrators'; an agent \
          reads `agent.status`"
+    } else if matches!(
+        method,
+        Method::GetPluginLogs
+            | Method::InspectPlugin
+            | Method::InstallPlugin
+            | Method::EnablePlugin
+            | Method::DisablePlugin
+            | Method::ReloadPlugin
+            | Method::RemovePlugin
+    ) {
+        "plugins run trusted code with the node's access; installing, running and reading them          is a person's administration"
     } else if matches!(method, Method::GetAgentHistory) {
         "an agent's own history holds a person's conversations outside Vessel; an agent works \
          with the node's sessions"
@@ -191,6 +202,15 @@ const fn refused(method: Method) -> bool {
         // `agent.status` does, and a node's log is its administrators'.
         | Method::GetAgentDiagnostic
         | Method::ReadNodeLog
+        // The plugin manager (ADR 0115): installing and running trusted
+        // code on the node, and its logs, are a person's administration.
+        | Method::GetPluginLogs
+        | Method::InspectPlugin
+        | Method::InstallPlugin
+        | Method::EnablePlugin
+        | Method::DisablePlugin
+        | Method::ReloadPlugin
+        | Method::RemovePlugin
         | Method::DetachSession => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
@@ -248,6 +268,10 @@ const fn refused(method: Method) -> bool {
         // change needs `admin`, which no agent holds.
         | Method::GetNodeSettings
         | Method::SetNodeSettings
+        // The plugin list and its change poll (ADR 0115): read as
+        // `node.settings`; paths and errors are left out for an agent.
+        | Method::ListPlugins
+        | Method::WatchPlugins
         // Forking and rewinding a session it may operate (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession

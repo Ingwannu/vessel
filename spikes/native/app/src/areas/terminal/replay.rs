@@ -156,7 +156,7 @@ impl Shell {
 }
 
 /// Reflow only after measured geometry differs from the owned model.
-pub(super) fn refit(model: &mut TerminalModel, fit: Option<GridSize>) {
+pub(crate) fn refit(model: &mut TerminalModel, fit: Option<GridSize>) {
     if let Some(fit) = fit
         && model.grid().size() != fit
     {
@@ -165,7 +165,7 @@ pub(super) fn refit(model: &mut TerminalModel, fit: Option<GridSize>) {
 }
 
 /// Preserve byte order across the parser's bounded feed calls.
-pub(super) fn replay_all(model: &mut TerminalModel, bytes: &[u8]) {
+pub(crate) fn replay_all(model: &mut TerminalModel, bytes: &[u8]) {
     let mut rest = bytes;
     while !rest.is_empty() {
         let taken = model.replay(rest).consumed;

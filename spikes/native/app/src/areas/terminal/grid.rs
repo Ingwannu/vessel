@@ -11,16 +11,16 @@ use vessel_app_kit::ui::{Context, IntoElement, Pixels, Render, Window};
 /// The grid view.
 pub(crate) struct TerminalGrid {
     /// What it draws.
-    pub(super) frame: Rc<GridFrame>,
+    pub(crate) frame: Rc<GridFrame>,
     /// One cell's size, measured from the code face.
-    pub(super) cell: CellSize,
+    pub(crate) cell: CellSize,
 }
 
 impl TerminalGrid {
     /// An empty grid until the first frame comes. Its cell is zero until
     /// the screen is measured: a frame with no rows and no cursor draws
     /// only its background, which does not use the cell.
-    pub(super) fn empty() -> Self {
+    pub(crate) fn empty() -> Self {
         Self {
             frame: Rc::new(GridFrame {
                 rows: Vec::new(),

@@ -16,6 +16,7 @@ fn settings() -> NodeSettings {
             }])
             .unwrap(),
         ),
+        plugins_enabled: false,
     }
 }
 
