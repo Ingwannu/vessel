@@ -1,0 +1,37 @@
+[package]
+name = "vessel-phone-core"
+description = "The phone app's core: Vessel's bridge in the app's process, and the app's own book of nodes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+vessel-client.workspace = true
+vessel-proto.workspace = true
+# `TlsConfig`, which `WsDialer::new` takes (vessel-client does not
+# re-export it).
+vessel-relay.workspace = true
+vessel-web.workspace = true
+
+# The roots `wss://` relays are checked against: read from Android's own
+# store here, since `rustls-native-certs` (what `vessel-relay` asks)
+# knows no Android store. Already in the tree through vessel-relay.
+rustls.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+# A real node in the test's process: pairing and connecting are tested
+# against it (AGENTS.md section 8). Its harness lookup is an empty
+# directory (`tests/phone.rs` says why no fake is installed).
+tempfile.workspace = true
+vessel-harness.workspace = true
+vessel-node.workspace = true
+
+[lints]
+workspace = true

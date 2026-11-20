@@ -1,0 +1,137 @@
+# The phone app (milestone 12, track M): a Tauri 2 shell whose Rust core
+# runs Vessel's bridge in-process and whose web view shows the page.
+#
+# A workspace of its own, outside the main one (the root `Cargo.toml`
+# excludes `spikes`), so the main gate neither builds Tauri nor waits for
+# it. It uses the main workspace's crates by path. The lints are the main
+# workspace's, copied as they are (the milestone's rule).
+
+[workspace]
+resolver = "3"
+members = ["core", "app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93"
+license = "LicenseRef-PolyForm-Strict-1.0.0"
+license-file = "../../../../LICENSE.md"
+repository = "https://github.com/Team-WICKED/vessel"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+unused_lifetimes = "warn"
+unused_import_braces = "warn"
+unused_results = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+let_underscore_drop = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+cargo_common_metadata = "allow"
+multiple_crate_versions = "allow"
+
+# Panics and escape hatches: denied outright.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+string_slice = "deny"
+get_unwrap = "deny"
+unwrap_in_result = "deny"
+panic_in_result_fn = "deny"
+exit = "deny"
+mem_forget = "deny"
+dbg_macro = "deny"
+
+# Lossy or surprising arithmetic and conversions
+as_conversions = "deny"
+arithmetic_side_effects = "deny"
+integer_division = "deny"
+float_arithmetic = "deny"
+float_cmp = "deny"
+lossy_float_literal = "deny"
+cast_lossless = "deny"
+
+# Suppressions must be explicit and justified
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+
+# Output goes through `tracing` (the CLI writes to a locked stdout handle instead)
+print_stdout = "deny"
+print_stderr = "deny"
+
+map_err_ignore = "warn"
+let_underscore_must_use = "warn"
+error_impl_error = "warn"
+result_large_err = "warn"
+clone_on_ref_ptr = "warn"
+same_name_method = "warn"
+str_to_string = "warn"
+wildcard_enum_match_arm = "warn"
+
+[workspace.dependencies]
+vessel-client = { path = "../../../crates/vessel-client" }
+vessel-node = { path = "../../../crates/vessel-node" }
+vessel-proto = { path = "../../../crates/vessel-proto" }
+vessel-relay = { path = "../../../crates/vessel-relay" }
+vessel-harness = { path = "../../../crates/vessel-harness" }
+vessel-web = { path = "../../../crates/vessel-web" }
+vessel-phone-core = { path = "core" }
+
+# The same versions as the main workspace's, for the crates both use.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tempfile = "3"
+url = "2.5"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-util = "0.7"
+tracing = "0.1"
+
+# Tauri 2 (MIT or Apache-2.0, ADR 0035): the app crate only. The core
+# never sees a Tauri type.
+tauri = { version = "2.12", default-features = false, features = ["wry", "compression"] }
+tauri-build = { version = "2.5", default-features = false }
+# Logs to logcat on Android (MIT or Apache-2.0); the app crate only.
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "std"] }
+
+# The secure channel's primitives optimised even in debug builds, as the
+# main workspace does (its `Cargo.toml` has the measurements): an
+# unoptimised Noise handshake takes seconds.
+[profile.dev.package.snow]
+opt-level = 3
+
+[profile.dev.package.chacha20poly1305]
+opt-level = 3
+
+[profile.dev.package.chacha20]
+opt-level = 3
+
+[profile.dev.package.poly1305]
+opt-level = 3
+
+[profile.dev.package.curve25519-dalek]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
+# The release as the main
+# workspace's (docs/PERFORMANCE.md): the APK's library is what a phone
+# downloads and loads.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"

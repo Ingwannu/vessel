@@ -1,0 +1,42 @@
+[package]
+name = "vessel-phone"
+description = "Vessel's phone app: a Tauri 2 shell showing the page, with the bridge in its own process"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+# Tauri's Android host loads the library (`cdylib`); its iOS host links
+# it (`staticlib`); `rlib` for the desktop binary below.
+name = "vessel_phone"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+# The same shell on a desktop: only for looking at it without a phone.
+[[bin]]
+name = "vessel-phone"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+vessel-phone-core.workspace = true
+
+tauri.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# The launch address's parse error, typed (Tauri's `Url` is this crate's,
+# already in the tree through Tauri).
+url.workspace = true
+tracing-subscriber.workspace = true
+
+# The app's logs in logcat (Apache-2.0): a `tracing` layer over Android's
+# log, which `tracing-subscriber` cannot write to by itself.
+[target.'cfg(target_os = "android")'.dependencies]
+tracing-logcat = "0.1"
+
+[lints]
+workspace = true

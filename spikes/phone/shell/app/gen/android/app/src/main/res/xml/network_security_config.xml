@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The page comes from the app's own bridge over plain HTTP on loopback
+     (http://vessel-<random>.localhost:<port>/), which Android refuses by
+     default (net::ERR_CLEARTEXT_NOT_PERMITTED, seen in the emulator).
+     Plain HTTP is allowed for loopback names only; everything else keeps
+     Android's default (no cleartext). The app's connections to machines
+     and relays are made by its Rust core, which this policy does not
+     govern; they are end to end encrypted (Noise) either way. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

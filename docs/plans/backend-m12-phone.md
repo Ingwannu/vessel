@@ -117,6 +117,129 @@ What was seen:
   thread), which the example does not use. An app of Vessel's would use
   the host-driven entry.
 
+## The Tauri 2 shell (question 10's fallback): `spikes/phone/shell`
+
+ADR 0036 makes this the fallback, shipped only where the native phone app
+cannot be. It is built and passes its emulator test; build `0.0.0.0.1`
+of it is the first Android build given out.
+
+### What it is
+
+- `core/` (`vessel-phone-core`, no Tauri type): `vessel-web`'s server and
+  bridge started in the app's process on a loopback port the system
+  picks (`Bridge`), and the app's own nodes (`PhoneSource`, the bridge's
+  `NodeSource`): a book in the CLI's format under the app's private
+  files, device credentials beside it (0600 in a 0700 directory),
+  pairing by link with `vessel-client`'s `pair_over`, direct and paired
+  (relay) entries reached through `Pinned` connectors, SSH entries
+  refused with a reason, no "this machine". The first node paired becomes
+  the default. Root certificates for `wss://` relays are read from
+  Android's own store (`Roots`; `rustls-native-certs` knows none there).
+- `app/` (`vessel-phone`, Tauri 2.12): one window at the app's start page
+  (`dist/index.html`, in the APK); each time that page loads, a new
+  launch of the bridge is started and the web view sent there
+  (`launch.rs`, which says why). The web view may navigate only to the
+  start page and the current launch's origin; the page's own CSP keeps its
+  requests there. The build's label is shown for four seconds over the
+  page (an initialisation script; Pretendard first) and is Android's
+  `versionName`; the version code is the label's last number.
+- `app/gen/android/`: Tauri's generated Gradle host, changed: no backup and
+  no device transfer of the app's files, cleartext allowed for loopback
+  names only (`network_security_config.xml`), the content padded by the
+  system bars, the cutout and the keyboard, a warning for an Android
+  System WebView older than 113, the web inspector only in a build made
+  with `VESSEL_WEB_INSPECTOR=1`, the label's version fields.
+- `scripts/`: `icons.sh` (the launcher icon from the brand mark, at build
+  time, adaptive with a monochrome layer), `release-apk.sh` (align, sign
+  with the one key, verify, `SHA256SUMS`), `test-fleet.sh` (a relay and a
+  testkit node on the host for the emulator test).
+
+### What the web view is allowed
+
+No Tauri command. `tauri.conf.json` lists no capability and there is no
+`capabilities/` directory, so every `plugin:` command (Tauri's core ones
+included) is refused, and from the bridge's origin (remote, to Tauri)
+everything is; the app defines no command of its own. Tauri still injects
+its IPC script into every page (read from its source); without a
+capability it reaches nothing. The only Android permission is
+`INTERNET` (sockets, the loopback bridge's included).
+
+### The emulator test (`evidence/shell/`)
+
+Against a testkit node registered at a relay of its own on the host, the
+relay's port forwarded into the emulator (`adb reverse`), the link naming
+only the relay (`test-fleet.sh`):
+
+| Step | Seen |
+|---|---|
+| The page loads | Yes, after two fixes below. The label pill shows. |
+| Pairing by link | The link pasted, the machine's key, id and "Through the relay" shown, named, connected: "desk is ready · Paired · Connected (test-node · Linux x86_64) · Agents found". |
+| Remembered | The machine and its sessions are there after the app is stopped and started again. |
+| A session | Opened from the board; its conversation grew: the prompt, the thought, `echo: 한글 안녕`, a tool call, the plan, a permission asked; Allow completed the call and ended the turn; a second prompt (`plain`) answered. |
+| Hangul in the composer | Gboard's Korean layout composed `한글`, then `한글 안녕`, underlined while composing, into the composer's text area; the value sent was `한글 안녕` (`08-composing-hangeul.png`, `09-composed.png`). |
+| Keyboard | After the insets fix the composer sits above the keyboard (`15-keyboard-clear-of-composer.png`). |
+| Rotate | The page re-laid out in landscape (its desktop rail), same process, nothing reloaded (`17-landscape.png`). |
+| Background, foreground | Home and back: the same page, no new launch (`18-foreground-again.png`). |
+| Widths | 360x800 and 412x915 (`wm size` at 440 dpi): the page's narrow layout, the sidebar as a drawer (`w360x800-*.png`, `w412x915-*.png`). |
+
+Not verified: a real phone; a `wss://` relay (the test relay is `ws://`
+on loopback; the roots code is unit-tested with a public root); QR codes
+(none: a link is pasted); an activity made again by Android in a living
+process (the start-page design is for it; not provoked in the emulator).
+
+### What went wrong on the way, and the fixes
+
+1. **A white page**: the release build refused the bridge's address,
+   `net::ERR_CLEARTEXT_NOT_PERMITTED` (read over the web inspector).
+   Tauri's template allows cleartext in debug builds only. Fixed with a
+   network security config allowing cleartext for `localhost` and its
+   subdomains and `127.0.0.1` only.
+2. **The session screen failed** ("Something went wrong!"): `TypeError:
+   Cannot assign to read only property 'toString'` in the session chunk.
+   Cause: Tauri's `freezePrototype` (set in the first configuration)
+   freezes `Object.prototype`, and a library of the page assigns
+   `toString` on objects (the "override mistake"). Not the WebView's
+   age. Removed; the page is not written for a frozen prototype.
+3. **"The UI was restarted or its identity could not be verified"**: on
+   one cold start the web view loaded the launch address more than once
+   and the page was refused (the bootstrap is single-use). Fixed by the
+   start page and a launch per load of it (`launch.rs`).
+4. **The header under the status bar, the keyboard over the composer and
+   the dialogs' buttons**: Tauri's activity draws edge to edge (Android
+   15 imposes it on apps that target it) and the page knows no inset.
+   Fixed in the activity: the content is padded by the system bars, the
+   cutout and the keyboard.
+5. `adb shell input text` dropped characters of a 328-character link and
+   Gboard's Korean layout turned it into jamo: the test pastes the link
+   through the inspector instead (as a person pastes it).
+
+The emulator's Android System WebView is 113 (no Play updates on this
+image). The page works on it once the above is fixed: nothing it needs
+is newer. The shell warns below 113 (the oldest seen working; older is
+not tried).
+
+### What the page does badly at a phone's width, most harmful first
+
+For the page's owners; not fixed here (the shell's insets fix is the only
+change made for the phone).
+
+1. **Touch targets**: the sidebar's rows, the composer's model and
+   permission pickers and the timeline's disclosure rows are well under
+   44 points (about 28 to 32).
+2. **Landscape**: the composer takes most of the height; about two lines
+   of the conversation stay visible above it.
+3. **Keyboard hints on a touch screen**: "Ctrl+K", "N" beside Search and
+   New session.
+4. **The add-machine dialog** tells the person to run a command "on the
+   other machine" and paste the link: fine on a phone, but there is no way
+   to scan the QR code the CLI prints.
+5. **The link field** has `autocomplete="off"` and `spellcheck="false"`
+   but no `autocapitalize="off"`/`autocorrect="off"`; a typed link can be
+   capitalised by the keyboard (a pasted one is not).
+6. **Untitled sessions** both read "한글 안녕" in the sidebar: the first
+   prompt is the title, so two sessions from one prompt cannot be told
+   apart on a narrow sidebar without their machine and age.
+
 ## Problems met
 
 - The first build failed: the mobile layer's directory has no
