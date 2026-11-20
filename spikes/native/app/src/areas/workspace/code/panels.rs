@@ -304,7 +304,7 @@ impl Shell {
 
 /// What the image panel says when the bytes were not read.
 fn failure_words(
-    words: &'static dyn vessel_app_view::text::workspace::WorkspaceWords,
+    words: &'static dyn vessel_app_view::workspace::words::WorkspaceWords,
     failure: DownloadFailure,
 ) -> String {
     let labels = words.labels();
