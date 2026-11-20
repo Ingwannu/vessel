@@ -4,7 +4,10 @@
 //! fixed fixture origin. A successful PNG is transport/geometry evidence;
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
 use super::candidate_policy::PolicyOrigin;
-use super::{Client, Events, SHUTDOWN_TIMEOUT, candidate_network::Routes};
+use super::{
+    Client, Events, SHUTDOWN_TIMEOUT,
+    candidate_network::{ProbeError, Routes},
+};
 use crate::page::{Page, PageError, ViewportFrame};
 use crate::targets::{TargetError, Targets};
 use axum::{
@@ -178,12 +181,25 @@ pub(super) struct Observed {
     full_png: ImageSize,
     compositor_png: ImageSize,
 }
+
+#[derive(Debug, thiserror::Error)]
+pub(super) enum ExerciseError {
+    #[error(transparent)]
+    Target(#[from] TargetError),
+    #[error(transparent)]
+    Page(#[from] PageError),
+    #[error(transparent)]
+    Policy(#[from] ProbeError),
+    #[error("the fixture's download navigation unexpectedly completed")]
+    DownloadAccepted,
+}
+
 pub(super) async fn exercise(
     client: &Client,
     events: &mut Events,
     routes: Routes,
     policy: &PolicyOrigin,
-) -> Result<Observed, TargetError> {
+) -> Result<Observed, ExerciseError> {
     let viewport = ViewportSize {
         width: ViewportSide::try_from(WIDTH).unwrap(),
         height: ViewportSide::try_from(HEIGHT).unwrap(),
@@ -249,7 +265,7 @@ async fn observe_policy(
     events: &mut Events,
     routes: Routes,
     policy: &PolicyOrigin,
-) -> Result<(), PageError> {
+) -> Result<(), ExerciseError> {
     // Keep the diagnostic's raw event queue serviced just as the actor does
     // between commands. No event from a prior route satisfies a page marker.
     let probe = async {
@@ -258,11 +274,11 @@ async fn observe_policy(
         let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
             .parse()
             .unwrap();
-        assert!(matches!(
-            page.navigate(attachment).await,
-            Err(PageError::Navigation)
-        ));
-        Ok(())
+        match page.navigate(attachment).await {
+            Err(PageError::Navigation) => Ok(()),
+            Err(error) => Err(error.into()),
+            Ok(()) => Err(ExerciseError::DownloadAccepted),
+        }
     };
     tokio::pin!(probe);
     loop {
@@ -270,7 +286,7 @@ async fn observe_policy(
             result = &mut probe => return result,
             event = events.next() => {
                 if event.is_none() {
-                    return Err(PageError::Cdp(super::CdpError::Closed));
+                    return Err(PageError::Cdp(super::CdpError::Closed).into());
                 }
             }
         }

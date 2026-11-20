@@ -5,8 +5,8 @@ use axum::{
     response::{IntoResponse as _, Response},
 };
 
-use super::candidate_network::{Routes, wait_for};
-use crate::page::{Page, PageError};
+use super::candidate_network::{ProbeError, Routes, visit};
+use crate::page::Page;
 
 const EMBEDDED: &str = "/fixture-embedded";
 const WORKER_PAGE: &str = "/fixture-worker";
@@ -114,15 +114,13 @@ impl PolicyOrigin {
         Some(response)
     }
 
-    pub(super) async fn verify(&self, page: &mut Page) -> Result<(), PageError> {
+    pub(super) async fn verify(&self, page: &mut Page) -> Result<(), ProbeError> {
         for (path, marker) in [
             (EMBEDDED, "Fixture embedded traffic refused"),
             (WORKER_PAGE, "Fixture worker traffic refused"),
             (ICE_PAGE, "Fixture ICE completed"),
         ] {
-            let address = format!("{}{path}", self.origin);
-            page.navigate(address.parse().unwrap()).await?;
-            wait_for(page, marker).await?;
+            visit(page, &format!("{}{path}", self.origin), marker).await?;
         }
         Ok(())
     }

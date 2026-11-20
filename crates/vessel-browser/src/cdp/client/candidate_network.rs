@@ -35,8 +35,16 @@ struct Canary {
     refused_after_redirect: &'static str,
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("the local browser fixture did not observe {marker}")]
+pub(super) struct ProbeError {
+    marker: &'static str,
+    #[source]
+    cause: PageError,
+}
+
 impl Routes {
-    pub(super) async fn verify_browser(&self, page: &mut Page) -> Result<(), PageError> {
+    pub(super) async fn verify_browser(&self, page: &mut Page) -> Result<(), ProbeError> {
         for (canary, redirect) in self.canaries.into_iter().zip(REDIRECTS) {
             let address = canary.url(REFUSAL_PATH);
             let indirect = format!("http://fixture.test{redirect}");
@@ -44,8 +52,7 @@ impl Routes {
                 (address, canary.refused),
                 (indirect, canary.refused_after_redirect),
             ] {
-                page.navigate(route.parse().unwrap()).await?;
-                wait_for(page, marker).await?;
+                visit(page, &route, marker).await?;
             }
         }
         Ok(())
@@ -112,7 +119,19 @@ impl Canary {
     }
 }
 
-pub(super) async fn wait_for(page: &mut Page, marker: &str) -> Result<(), PageError> {
+pub(super) async fn visit(
+    page: &mut Page,
+    address: &str,
+    marker: &'static str,
+) -> Result<(), ProbeError> {
+    let probe = async {
+        page.navigate(address.parse().unwrap()).await?;
+        wait_for(page, marker).await
+    };
+    probe.await.map_err(|cause| ProbeError { marker, cause })
+}
+
+async fn wait_for(page: &mut Page, marker: &str) -> Result<(), PageError> {
     let expected = RequiredInput::try_from(marker.to_owned()).unwrap();
     let budget = WaitBudget::Explicit(WaitTimeout::try_from(3500).unwrap());
     let matched = page.wait(WaitFor::Text(expected), budget).await?;
@@ -202,11 +221,10 @@ async fn checked_datagram(ip: std::net::IpAddr) -> std::net::UdpSocket {
         .await
         .unwrap();
     let mut payload = [0; 32];
-    let (received, from) =
-        tokio::time::timeout(REFUSAL_DEADLINE, canary.recv_from(&mut payload))
-            .await
-            .unwrap()
-            .unwrap();
+    let (received, from) = tokio::time::timeout(REFUSAL_DEADLINE, canary.recv_from(&mut payload))
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(from, control.local_addr().unwrap());
     assert_eq!(written, received);
     assert_eq!(payload.get(..received), Some(DATAGRAM_CONTROL));
