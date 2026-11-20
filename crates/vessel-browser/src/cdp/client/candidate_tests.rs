@@ -3,15 +3,14 @@
 //! The exact artifact is run only on the approved host/account. Private fixture
 //! storage stays quarantined at a fresh nonce path; no product profile or engine
 //! admission is released from a leader/accepted-group cleanup receipt.
+use super::super::owner::Owner;
 use super::candidate_network::NetworkFixture;
 use super::*;
-use crate::cdp::{requests, transport};
 use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;
 use crate::profile::{Profile, ProfileError};
 use std::path::PathBuf;
 use tokio::net::TcpListener;
-use vessel_proc::{Child, OwnedGroupExit, Signal};
 
 struct Fixture {
     scope: Preparation,
@@ -60,29 +59,6 @@ async fn fixture() -> Fixture {
     }
 }
 
-async fn stop(client: &Client, child: &mut Child) -> OwnedGroupExit {
-    let close = client.execute(None, requests::CloseBrowser {}).await;
-    let driver = client.shutdown().await;
-    if close.is_err() {
-        child.signal(Signal::Kill).unwrap();
-    }
-    let observed = tokio::time::timeout(SHUTDOWN_TIMEOUT, child.wait_checked()).await;
-    let receipt = match observed {
-        Ok(receipt) => receipt.unwrap(),
-        Err(_deadline) => {
-            child.signal(Signal::Kill).unwrap();
-            let _receipt = tokio::time::timeout(SHUTDOWN_TIMEOUT, child.wait_checked())
-                .await
-                .unwrap()
-                .unwrap();
-            panic!("candidate did not stop within its owned shutdown deadline");
-        }
-    };
-    assert!(close.is_ok(), "owned candidate close was not acknowledged");
-    driver.unwrap();
-    receipt
-}
-
 #[tokio::test]
 #[ignore = "requires the exact exported artifact, approved CFT and non-root runtime account"]
 async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
@@ -97,54 +73,30 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         let network = NetworkFixture::start().await;
         let routes = network.routes();
         let proxy = candidate_page::FixtureProxy::start(listener, routes);
-        let spawned = plan.spawn_for_diagnostic().unwrap();
-        let run = spawned.child.lifetime();
-        let (client, mut events) =
-            Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
-        let mut stderr = spawned.stderr;
-        let stderr = tokio::spawn(async move {
-            let mut sink = tokio::io::sink();
-            tokio::io::copy(&mut stderr, &mut sink).await
-        });
-        let version = client.execute(None, requests::Version {}).await;
-        let (plan, mut child, identity) = scope
-            .run(move || {
-                let child = spawned.child;
-                let identity = plan.verify_started(&child);
-                (plan, child, identity)
-            })
-            .await
-            .unwrap();
-        let page = if identity.is_ok() && version.is_ok() {
-            Some(candidate_page::exercise(&client, &mut events, routes).await)
+        let owner = Owner::spawn(plan).unwrap();
+        let run = owner.lifetime();
+        let (mut owner, readiness) = owner.attest(&scope).await.unwrap();
+        let page = if let Some((client, events)) = owner.controller() {
+            Some(candidate_page::exercise(client, events, routes).await)
         } else {
             None
         };
-        let receipt = stop(&client, &mut child).await;
-        let _discarded_bytes = tokio::time::timeout(SHUTDOWN_TIMEOUT, stderr)
-            .await
-            .unwrap()
-            .unwrap()
-            .unwrap();
+        let receipt = owner.close().await.unwrap();
         proxy.finish().await;
         network.finish().await;
-        let (plan, held) = scope
-            .run(move || {
-                let held = matches!(Profile::prepare(&root, &temporary), Err(ProfileError::Busy));
-                (plan, held)
-            })
+        let held = scope
+            .run(move || matches!(Profile::prepare(&root, &temporary), Err(ProfileError::Busy)))
             .await
             .unwrap();
         scope.finish().await;
-        identity.unwrap();
-        assert_eq!(version.unwrap().product.as_str(), "Chrome/149.0.7827.55");
+        readiness.unwrap();
         assert!(receipt.run().same_run(&run));
         assert_eq!(receipt.code(), Some(0));
         assert!(!run.is_live());
         assert!(held);
         page.unwrap().unwrap().verify();
         // No Profile::release or product capacity reuse is certified here.
-        drop(plan);
+        drop(owner);
     })
     .await
     .unwrap();

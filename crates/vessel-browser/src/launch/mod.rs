@@ -9,7 +9,8 @@ mod identity;
 mod tests;
 
 use crate::profile::Profile;
-use identity::{Candidate, LaunchError};
+use identity::Candidate;
+pub(crate) use identity::LaunchError;
 use std::ffi::OsString;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use vessel_proc::{Child, CommandDiagnostics, CommandSpec};

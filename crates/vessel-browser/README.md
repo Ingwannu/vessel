@@ -17,6 +17,7 @@ Preview requires separate service authority.
 | Module | Owns | Does not grant |
 | --- | --- | --- |
 | `cdp` | Bounded sealed requests, response/session correlation, private framing, retained driver join | A caller-selectable method, realm or debugger endpoint |
+| `cdp::owner` | Linux candidate process, bundle attestation, private pipe and stderr drain through shutdown | Confirmation that every descendant has exited or that the profile can be reused |
 | `delivery` | One atomic winner between pending withdrawal and the first effect | Permission to replay an uncertain command |
 | `page` | One target's revision, geometry, refs and pressed input; cancellation quarantine | Workspace, destination or runtime authority |
 | `input_lane` | Bounded registered profile input work, activation/input ordering and retained stop | A real driver or a process-death receipt |
