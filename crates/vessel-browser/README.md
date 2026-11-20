@@ -20,6 +20,7 @@ Preview requires separate service authority.
 | `cdp::client::owner` | Linux candidate process, bundle attestation, private pipe and stderr drain through shutdown | Confirmation that every descendant has exited or that the profile can be reused |
 | `delivery` | One atomic winner between pending withdrawal and the first effect | Permission to replay an uncertain command |
 | `page` | One target's revision, geometry, refs and pressed input; cancellation quarantine | Workspace, destination or runtime authority |
+| `page::frame` | Same-target, same-document capture and input fencing, with one rate-limited latest-frame slot | Node subscriptions, native decoding or a compositor qualification decision |
 | `input_lane` | Bounded registered profile input work, activation/input ordering and retained stop | A real driver or a process-death receipt |
 | `preparation` | Finite tracked blocking DNS/interface/file inspection through actual completion | Early capacity release when a waiter times out |
 | `network` | Complete public-answer/interface classification and pinned TCP peer | Private Preview reach or UDP isolation |

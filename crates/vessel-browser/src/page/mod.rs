@@ -73,6 +73,7 @@ pub(crate) struct Page {
     revision: BrowserRevision,
     delivery: DeliveryState,
     viewport: ViewportSize,
+    frame_watch: frame::FrameWatch,
     pointer: requests::PointerState,
     pointer_position: Option<vessel_proto::browser::CssPoint>,
     references: crate::references::References<crate::snapshot::Binding>,
@@ -140,6 +141,7 @@ impl Page {
                 revision: BrowserRevision::ZERO,
                 delivery: DeliveryState::Active,
                 viewport,
+                frame_watch: frame::FrameWatch::new(),
                 pointer: requests::PointerState::default(),
                 pointer_position: None,
                 references: crate::references::References::default(),
@@ -170,6 +172,7 @@ impl Page {
         if self.delivery == DeliveryState::Closed {
             return Err(PageError::Closed);
         }
+        self.frame_watch.clear();
         if let Err(error) = self.references.invalidate() {
             self.delivery = DeliveryState::Uncertain;
             return Err(crate::snapshot::SnapshotError::from(error).into());
@@ -201,6 +204,7 @@ impl Page {
             }
             Err(source) => {
                 self.delivery = DeliveryState::Uncertain;
+                self.frame_watch.clear();
                 Err(PageError::Cdp(source))
             }
         }
@@ -297,6 +301,7 @@ impl Page {
             return Ok(());
         }
         self.references.discard();
+        self.frame_watch.clear();
         // The resident owner must keep this value/slot through acknowledgement;
         // cancelling close cannot consume the handle to a still-live target.
         self.delivery = DeliveryState::Uncertain;

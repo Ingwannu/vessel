@@ -60,3 +60,9 @@ refusal checks. The content height was 1221 against the fixture's expected
 The fixture defines the body's formatting context and height, and the final
 assertion reports all three capture sizes together. No profile lock was released
 for reuse in either run.
+
+Each page owns one rate-limited latest-frame slot. Visible subscribers share
+the checked PNG via reference counting. Navigation, resize, uncertain delivery
+and close clear the previous context's pixels. The eventual node watch keeps
+descriptor and terminal notices separate so a lagging frame consumer can skip
+intermediate pixels while still detecting state changes.

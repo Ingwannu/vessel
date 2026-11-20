@@ -124,9 +124,12 @@ pub(super) async fn exercise(
         )
         .await?;
     let snapshot = page.snapshot().await?;
-    let frame = page.viewport_frame().await?;
+    let mut frames = page.subscribe_frames();
+    page.refresh_visible_frame().await?;
+    let frame = frames.borrow_and_update().clone().unwrap();
     let png = frame.image().size();
     exercise_input(&mut page, &frame).await?;
+    assert!(frames.borrow().is_none(), "old document generation stayed visible");
     let changed = page.viewport_frame().await?;
     assert_ne!(changed.image(), frame.image());
     assert!(matches!(
