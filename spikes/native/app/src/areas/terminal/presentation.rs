@@ -17,8 +17,9 @@ impl Shell {
     /// session selection or a guessed loading/readiness phase.
     pub(crate) fn terminal_focused(&self, window: &Window) -> bool {
         self.route == Route::Session
-            && self.areas.terminal.shown.is_some()
-            && self.areas.terminal.focus.is_focused(window)
+            && ((self.areas.terminal.shown.is_some()
+                && self.areas.terminal.focus.is_focused(window))
+                || self.terminal_tab_focused(window))
     }
 
     /// The grid, rather than the hidden conversation composer, owns terminal input focus.

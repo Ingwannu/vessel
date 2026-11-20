@@ -142,6 +142,8 @@ pub enum Event {
     },
     /// A machine answered a search ([`Command::Search`]).
     Searched(search::Answer),
+    /// A machine answered about its terminals, or a followed one moved on.
+    Terminals(crate::terminals::Answer),
 }
 
 /// What an agent on a machine said last time, kept on this device

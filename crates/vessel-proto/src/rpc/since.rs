@@ -118,10 +118,16 @@ impl Call {
             // running the agent over ACP and say nothing.
             Self::SetNodeSettings(request) => {
                 let drivers = request.drivers.map(|_| 18);
+                // The plugin switch (ADR 0115) needs the plugin protocol.
+                let plugins = match request.plugins_enabled {
+                    Some(_) => Some(crate::plugins::PLUGINS_PROTOCOL?.get()),
+                    None => None,
+                };
+                let base = drivers.max(plugins);
                 if request.metadata.is_some() {
-                    Some(crate::GENERATED_NAMES?.get()).max(drivers)
+                    Some(crate::GENERATED_NAMES?.get()).max(base)
                 } else {
-                    drivers
+                    base
                 }
             }
             Self::WriteFile(request) => match request.expect {
@@ -252,6 +258,15 @@ impl Call {
             | Self::SuggestFolders(_)
             | Self::ProjectIcon(_)
             | Self::CreateProjectDirectory(_)
+            | Self::ListPlugins(_)
+            | Self::GetPluginLogs(_)
+            | Self::InspectPlugin(_)
+            | Self::InstallPlugin(_)
+            | Self::EnablePlugin(_)
+            | Self::DisablePlugin(_)
+            | Self::ReloadPlugin(_)
+            | Self::RemovePlugin(_)
+            | Self::WatchPlugins(_)
             | Self::ReadFile(_)
             | Self::CreateDir(_)
             | Self::RenamePath(_)

@@ -50,6 +50,7 @@ fn make_state(
         history_calls: crate::history::Hub::default(),
         sync_calls: crate::sync::Hub::default(),
         session_navigation: crate::sessions::Hub::default(),
+        terminal_hub: crate::terminals::Hub::default(),
         offers: std::sync::Arc::default(),
     }
 }

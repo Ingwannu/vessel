@@ -158,6 +158,11 @@ impl Link {
             Command::Resume { session, .. } => self.emit(refuse::resume(session)),
             Command::Workspace { machine, ask } => self.emit(refuse::workspace(machine, ask)),
             Command::Search(ask) => self.emit(refuse::search(ask)),
+            Command::Terminals(ask) => {
+                if let Some(event) = refuse::terminals(ask) {
+                    self.emit(event);
+                }
+            }
         }
     }
 

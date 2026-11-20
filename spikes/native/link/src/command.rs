@@ -200,4 +200,7 @@ pub enum Command {
     /// Search one machine's messages (`session.search`); answered by
     /// [`Event::Searched`].
     Search(search::Ask),
+    /// A workspace's shell terminals (ADR 0031); answered by
+    /// `Event::Terminals`.
+    Terminals(crate::terminals::Ask),
 }

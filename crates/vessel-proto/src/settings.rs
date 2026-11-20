@@ -50,6 +50,10 @@ pub struct NodeSettings {
     )]
     #[cfg_attr(feature = "ts", ts(as = "Option<MetadataSettings>", optional))]
     pub metadata: Option<MetadataSettings>,
+    /// Whether installed plugins run on this node (ADR 0115, Paseo's
+    /// `pluginsEnabled`, default off); hidden below `PLUGINS_PROTOCOL`.
+    #[serde(default, skip_serializing_if = "core::ops::Not::not")]
+    pub plugins_enabled: bool,
 }
 
 impl NodeSettings {
@@ -60,10 +64,28 @@ impl NodeSettings {
         let recovery =
             self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
         let base = recovery.as_ref().unwrap_or(self);
-        match base.for_protocol_with_names(protocol, crate::GENERATED_NAMES) {
+        let named = match base.for_protocol_with_names(protocol, crate::GENERATED_NAMES) {
             Some(projected) => Some(projected),
             None => recovery,
-        }
+        };
+        let base = named.as_ref().unwrap_or(self);
+        base.for_plugins_protocol(protocol, crate::plugins::PLUGINS_PROTOCOL)
+            .or(named)
+    }
+
+    /// The plugin switch (ADR 0115) stays hidden from a peer below its
+    /// protocol, as the other later fields are.
+    fn for_plugins_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let readable = assigned.is_some_and(|version| protocol >= version);
+        (!readable && self.plugins_enabled).then(|| {
+            let mut older = self.clone();
+            older.plugins_enabled = false;
+            older
+        })
     }
 
     fn for_recovery_protocol(
@@ -217,6 +239,9 @@ pub struct SetNodeSettings {
     /// Refused until `GENERATED_NAMES` is assigned at integration.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<MetadataSettings>,
+    /// Turn installed plugins on or off on this node, at once (ADR 0115).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plugins_enabled: Option<bool>,
 }
 
 #[cfg(test)]
@@ -233,6 +258,7 @@ mod tests {
                 prompt: "custom boundary prompt".parse().unwrap(),
             },
             metadata: None,
+            plugins_enabled: false,
         };
         let required = crate::PROTOCOL_VERSION;
         let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
@@ -251,6 +277,33 @@ mod tests {
             original.for_recovery_protocol(required, Some(required)),
             None
         );
+    }
+
+    /// The plugin switch (ADR 0115) reaches only peers of its protocol and
+    /// is absent from the wire while off.
+    #[test]
+    fn plugin_switch_is_hidden_below_its_protocol_and_absent_while_off() {
+        let off: NodeSettings = serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
+        assert!(!off.plugins_enabled);
+        let on = NodeSettings {
+            plugins_enabled: true,
+            ..off.clone()
+        };
+        assert!(
+            serde_json::to_string(&on)
+                .unwrap()
+                .contains("plugins_enabled")
+        );
+        let required = crate::ProtocolVersion::new(35);
+        let older = crate::ProtocolVersion::new(34);
+        assert_eq!(on.for_plugins_protocol(required, Some(required)), None);
+        assert_eq!(
+            on.for_plugins_protocol(older, Some(required)),
+            Some(off.clone())
+        );
+        assert_eq!(on.for_plugins_protocol(required, None), Some(off));
+        let change: SetNodeSettings = serde_json::from_str(r#"{"plugins_enabled":true}"#).unwrap();
+        assert_eq!(change.plugins_enabled, Some(true));
     }
 
     /// A node of 17 answers without `drivers`: every agent over ACP. A
