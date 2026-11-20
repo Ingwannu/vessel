@@ -65,6 +65,8 @@ impl sql::Registry for CanonicalRegistry {
             | StoreError::Attachment(_)
             | StoreError::OutOfOrder { .. }
             | StoreError::InboxGone
+            | StoreError::NotificationDenied
+            | StoreError::AttentionWaiting
             | StoreError::PushDenied
             | StoreError::PushFull
             | StoreError::CorruptPush { .. }

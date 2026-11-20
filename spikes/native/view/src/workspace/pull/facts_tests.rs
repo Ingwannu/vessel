@@ -64,6 +64,7 @@ fn counts_come_failing_then_running_then_passed_and_only_above_zero() {
         pending: 0,
         truncated: false,
         failing: vec![],
+        runs: vec![],
     };
     assert_eq!(
         check_counts(&checks),
@@ -76,6 +77,7 @@ fn counts_come_failing_then_running_then_passed_and_only_above_zero() {
         pending: 0,
         truncated: false,
         failing: vec![],
+        runs: vec![],
     };
     assert!(check_counts(&none).is_empty());
 }

@@ -6,8 +6,8 @@
 
 use chrono::{DateTime, Utc};
 use vessel_proto::forge::{
-    Checks, ForgeLogin, ForgeUrl, MergeMethod, PullNumber, PullRequest, PullState, PullSummary,
-    PullTitle, RepoRef, Reviews,
+    CheckTally, Checks, ForgeLogin, ForgeUrl, MergeMethod, PullNumber, PullRequest, PullState,
+    PullSummary, PullTitle, RepoRef, Reviews,
 };
 
 use super::super::facts::{self, Context, MergeFacts};
@@ -75,6 +75,7 @@ pub(in crate::github) fn read(
                 review,
                 mergeable,
                 updated_at: pull.updated_at,
+                tally: CheckTally::of(&checks),
             },
             author: pull
                 .author
@@ -220,12 +221,24 @@ fn context(node: ContextNode) -> Option<Context> {
             conclusion,
             details_url,
             started_at,
-        } => Some(Context {
-            state: facts::check_run(&status, conclusion.as_deref()),
-            name,
-            at: started_at,
-            url: details_url,
-        }),
+            completed_at,
+            database_id,
+            check_suite,
+        } => {
+            let workflow_run = check_suite.and_then(|suite| suite.workflow_run);
+            Some(Context {
+                state: facts::check_run(&status, conclusion.as_deref()),
+                name,
+                at: started_at,
+                url: details_url,
+                run: database_id,
+                workflow_run: workflow_run.as_ref().and_then(|run| run.database_id),
+                workflow: workflow_run
+                    .and_then(|run| run.workflow)
+                    .map(|flow| flow.name),
+                completed_at,
+            })
+        }
         ContextNode::StatusContext {
             context,
             state,
@@ -236,6 +249,10 @@ fn context(node: ContextNode) -> Option<Context> {
             name: context,
             at: created_at,
             url: target_url,
+            run: None,
+            workflow_run: None,
+            workflow: None,
+            completed_at: None,
         }),
         ContextNode::Other => None,
     }

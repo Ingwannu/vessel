@@ -307,6 +307,7 @@ mod tests {
                 review: wire::ReviewDecision::Unknown,
                 mergeable,
                 updated_at: at,
+                tally: None,
             },
             author: None,
             head_branch: "topic".parse().unwrap(),

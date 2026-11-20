@@ -184,6 +184,11 @@ forge_text!(
     query_rule
 );
 
+// The pane's forge values (ADR 0088), beside the rest to keep this file
+// in its budget; declared after `forge_text!`, which they use.
+mod items;
+pub use items::{ForgeItemId, ForgePath};
+
 /// The most characters of a title.
 const TITLE: usize = 256;
 /// The most bytes of a description.

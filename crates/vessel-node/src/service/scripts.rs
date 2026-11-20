@@ -180,6 +180,7 @@ impl NodeService {
                     | TerminalsError::Conflict(_)
                     | TerminalsError::Unsupported(_)
                     | TerminalsError::Invalid(_)
+                    | TerminalsError::Random(_)
                     | TerminalsError::Spawn(_)
                     | TerminalsError::ShuttingDown
                     | TerminalsError::Wire(_)) => Err(wire(other)),
