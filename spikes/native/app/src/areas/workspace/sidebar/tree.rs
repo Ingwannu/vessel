@@ -33,7 +33,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 use vessel_app_link::Command;
-use vessel_app_view::prefs::FoldedProjects;
+use vessel_app_view::prefs::ProjectKeyed;
 use vessel_app_view::sidebar::tree::SidebarProject;
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_proto::ProjectId;
@@ -72,19 +72,23 @@ impl Shell {
         cx.notify();
     }
 
-    /// Keep the folds in step with the projects and the book (the app
-    /// reviewer's note on 682): `change` says whether one changed, and only
-    /// then are the preferences saved.
-    pub(crate) fn tidy_folds(&mut self, change: impl FnOnce(&mut FoldedProjects) -> bool) {
-        if change(&mut self.prefs.settings.folded_projects) {
+    /// Keep what is kept per project (its fold, its place in the dragged
+    /// order) in step with the projects and the book (the app reviewer's
+    /// note on 682): `change` runs over each and says whether it changed
+    /// one, and only then are the preferences saved.
+    pub(crate) fn tidy_projects(&mut self, change: impl Fn(&mut dyn ProjectKeyed) -> bool) {
+        let settings = &mut self.prefs.settings;
+        let folds = change(&mut settings.folded_projects);
+        let order = change(&mut settings.project_order);
+        if folds || order {
             self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         }
     }
 
-    /// `machine`'s list was read whole: its folds of projects it no longer
-    /// holds go. A list cut short (`more`) leaves them, since a project
-    /// past the cut is not gone.
-    pub(crate) fn folds_listed(&mut self, machine: &str) {
+    /// `machine`'s list was read whole: what is kept for projects it no
+    /// longer holds goes. A list cut short (`more`) leaves it, since a
+    /// project past the cut is not gone.
+    pub(crate) fn projects_listed(&mut self, machine: &str) {
         let Some(listed) = self
             .areas
             .workspace
@@ -101,7 +105,7 @@ impl Shell {
         else {
             return;
         };
-        self.tidy_folds(|folds| folds.keep_listed(machine, &listed));
+        self.tidy_projects(|kept| kept.keep_listed(machine, &listed));
     }
 }
 
