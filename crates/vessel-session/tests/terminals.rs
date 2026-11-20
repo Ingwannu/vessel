@@ -269,6 +269,7 @@ async fn a_shell_runs_what_is_typed_and_ends_when_killed() {
                     cols: 100,
                     rows: 30,
                 },
+                intent: None,
             })
             .await
             .unwrap();

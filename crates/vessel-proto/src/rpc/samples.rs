@@ -251,7 +251,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::ReadTerminal => json!({"terminal":id,"from":0,"limit":1}),
         Method::SubscribeTerminal => json!({"terminal":id,"from":0}),
         Method::SendTerminal => {
-            json!({"terminal":id,"input":crate::TerminalInput::Resize{size:crate::TerminalSize::default()}})
+            json!({"terminal":id,"input":crate::TerminalInput::Resize{size:crate::TerminalSize::default(),intent:None}})
         }
         Method::RenameTerminal => json!({"terminal":id,"title":"sample"}),
         Method::RunScript => json!({"place":place,"script":"sample"}),
