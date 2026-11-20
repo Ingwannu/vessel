@@ -8661,7 +8661,13 @@ worktree: WorktreeId,
 /**
  * What to do when something would be lost.
  */
-if_lost: IfLost, };
+if_lost: IfLost, 
+/**
+ * End the live terminals in it first (ADR 0121, Paseo's
+ * `killTerminalsForWorkspace`): the client asked the person, showing
+ * how many. Without it a live terminal refuses the removal, as before.
+ */
+end_terminals?: boolean, };
 
 /**
  * `worktree.remove`'s answer.
@@ -12119,7 +12125,15 @@ project: ProjectId,
 /**
  * A folder inside the project's root; the root when absent.
  */
-dir?: RelPath | null, };
+dir?: RelPath | null, } | { "kind": "worktree", 
+/**
+ * Which.
+ */
+worktree: WorktreeId, } | { "kind": "folder", 
+/**
+ * The folder.
+ */
+path: string, };
 
 /**
  * Terminal window size in character cells.
@@ -13882,3 +13896,8 @@ export const DIFF_STAT_PROTOCOL = 38;
  * `pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).
  */
 export const PULL_REQUEST_PANE_PROTOCOL = 39;
+
+/**
+ * Terminals in a worktree or an unregistered folder, and `worktree.remove`'s `end_terminals` (ADR 0121).
+ */
+export const WORKSPACE_TERMINALS_PROTOCOL = 40;
