@@ -22,8 +22,10 @@
 //!   does. Marking unread tells the conversation (track C's seam), so an
 //!   open session does not mark itself read again at once.
 //! - Differences, named: the dots are the kit's horizontal ones (Paseo's
-//!   are vertical; the kit has no vertical mark); no Rename, Copy branch
-//!   name or Open in file manager (no native seam yet); the menu's
+//!   are vertical; the kit has no vertical mark); no Rename or Copy branch
+//!   name (no native seam yet); Open in file manager only for a machine
+//!   whose node runs on this computer (Paseo's desktop offers it for any
+//!   host's path; TRACKER 467, ADR 0123); the menu's
 //!   rows have no leading glyphs (the kit's menu has none). Labels is a
 //!   page of the menu (TRACKER 791, `kit::submenu`): beside it on a wide
 //!   window, the workspace picker's list in its flyout; on a phone the menu
@@ -41,6 +43,7 @@ use vessel_app_kit::submenu::{Submenus, flyout};
 use vessel_app_kit::ui::{AnyElement, App, Context, Pixels, Point, Window};
 use vessel_app_link::Act;
 use vessel_app_view::Card;
+use vessel_app_view::open_targets::Request;
 use vessel_app_view::session::{CONVERSATION_PROTOCOL, MarkAction};
 use vessel_app_view::toasts::ToastTone;
 use vessel_proto::Mark;
@@ -48,6 +51,7 @@ use vessel_proto::Mark;
 use crate::areas::labels::{
     CREATE_PAGE, PickerPlace, RowCreate, RowPicker, create_beside, picker_beside,
 };
+use crate::areas::workspace::OpenOrigin;
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -77,6 +81,8 @@ enum RowAct {
     Mark(MarkAction),
     /// Its workspace's labels (the picker).
     Labels,
+    /// Its folder in this computer's file manager (TRACKER 467).
+    OpenFolder,
 }
 
 impl RowMenu {
@@ -136,6 +142,18 @@ fn acts(shell: &Shell, card: &Card) -> Vec<RowAct> {
         .is_some()
     {
         acts.push(RowAct::Labels);
+    }
+    // Paseo's order: after Labels, before Archive.
+    let here = card
+        .detail
+        .cwd
+        .as_deref()
+        .is_some_and(|folder| std::path::Path::new(folder).is_absolute());
+    if here
+        && shell.machine_here(&card.machine)
+        && shell.areas.workspace.open.file_manager().is_some()
+    {
+        acts.push(RowAct::OpenFolder);
     }
     if marks_taken {
         acts.push(RowAct::Mark(MarkAction::Archive));
@@ -212,12 +230,33 @@ impl Shell {
             }
             RowAct::Mark(MarkAction::Pin) => self.act_on_card(&card, Act::Mark(Mark::Pin)),
             RowAct::Mark(MarkAction::Unpin) => self.act_on_card(&card, Act::Mark(Mark::Unpin)),
+            RowAct::OpenFolder => self.open_card_folder(&card, cx),
             // Labels is a page of the menu: the menu opens it, never choosing
             // it.
             RowAct::Mark(MarkAction::StartAgain | MarkAction::Unarchive | MarkAction::Delete)
             | RowAct::Labels => {}
         }
         cx.notify();
+    }
+
+    /// `card`'s folder in this computer's file manager (Paseo's
+    /// `OpenInFileManagerMenuItem`); a failure says "Couldn't open folder".
+    fn open_card_folder(&self, card: &Card, cx: &mut Context<'_, Self>) {
+        let (Some(folder), Some(manager)) = (
+            card.detail.cwd.as_deref(),
+            self.areas.workspace.open.file_manager(),
+        ) else {
+            return;
+        };
+        let folder = std::path::PathBuf::from(folder);
+        let request = Request {
+            root: folder.clone(),
+            folder,
+            file: None,
+            line: None,
+            column: None,
+        };
+        self.open_in_target(manager, request, OpenOrigin::Sidebar, cx);
     }
 
     /// Follow the menu's Labels page with the workspace picker: opened for
@@ -372,6 +411,9 @@ pub(super) fn render(
                     RowAct::CopyPath => MenuItem::new(words.copy_path),
                     RowAct::Mark(action) => MenuItem::new(said.mark_action(*action)),
                     RowAct::Labels => MenuItem::sub(words.labels, LABELS),
+                    RowAct::OpenFolder => {
+                        MenuItem::new(shell.t.lang.open_targets().open_folder)
+                    }
                 })
                 .collect()
         })

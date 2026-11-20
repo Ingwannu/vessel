@@ -353,6 +353,20 @@ enum Slot {
 }
 
 impl Shell {
+    /// The file the Files tab shows for the open session, for the header's
+    /// Open (Paseo's active file): its path on the machine and the line it
+    /// was opened at.
+    pub(crate) fn code_shown_file(&self) -> Option<(std::path::PathBuf, Option<u32>)> {
+        let panel = &self.areas.workspace.code;
+        let (machine, session) = self.code_session()?;
+        let target = panel.target.as_ref()?;
+        if !panel.open || panel.tab != Tab::Files || target.machine != machine || target.session != session {
+            return None;
+        }
+        let viewer = panel.files.viewer.as_ref()?;
+        Some((target.cwd.as_ref()?.join(viewer.path.as_str()), viewer.goto))
+    }
+
     /// The session the panel should show: the open one.
     fn code_session(&self) -> Option<(String, SessionId)> {
         let open = self.areas.session.open.as_ref()?;

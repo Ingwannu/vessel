@@ -8,6 +8,9 @@
 //!   pixels by [`raster`] (why not GPUI's `img()`: there). Brand minimum
 //!   sizes and clear space win over the requested slot size.
 //! - Cost: compact `OpenCode` slots use the bot; see ADR 0048.
+mod editors;
+#[cfg(test)]
+mod editor_tests;
 mod paths;
 mod raster;
 mod settings;
@@ -59,6 +62,8 @@ enum Geometry {
     Sparkle,
     OpenCode,
     Company,
+    /// An editor's mark, its ink edge to edge in its view box.
+    Editor,
 }
 /// Reviewed embedded bytes, never a URL supplied by the wire.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -104,6 +109,32 @@ vector!(/// Google's Gemini spark in its own gradient, with Google's inset.
 GEMINI, "gemini", GEMINI, GEMINI, Sparkle);
 #[cfg(test)]
 const ALL: [Artwork; 5] = [CLAUDE, CODEX, GEMINI, OPENCODE, COPILOT];
+/// An editor's mark (Open in editor, TRACKER 467): its light and dark
+/// forms from `editors`, cached under `kit/editor-marks/<name>`.
+macro_rules! editor {
+    ($(#[$meta:meta])* $name:ident, $path:literal, $light:ident, $dark:ident) => {
+        $(#[$meta])*
+        pub const $name: Artwork = Artwork {
+            light: Image { path: concat!("kit/editor-marks/", $path, "-light.svg"), bytes: editors::$light.as_bytes() },
+            dark: Image { path: concat!("kit/editor-marks/", $path, "-dark.svg"), bytes: editors::$dark.as_bytes() },
+            geometry: Geometry::Editor,
+        };
+    };
+}
+editor!(/// Cursor's cube (Simple Icons, CC0-1.0).
+CURSOR, "cursor", CURSOR_LIGHT, CURSOR_DARK);
+editor!(/// Microsoft's Visual Studio Code icon, unchanged.
+VSCODE, "vscode", VSCODE, VSCODE);
+editor!(/// Zed's mark (Simple Icons, CC0-1.0).
+ZED, "zed", ZED_LIGHT, ZED_DARK);
+editor!(/// Android Studio's mark (Simple Icons, CC0-1.0).
+ANDROID_STUDIO, "android-studio", ANDROID_STUDIO_LIGHT, ANDROID_STUDIO_DARK);
+editor!(/// Xcode's mark (Simple Icons, CC0-1.0).
+XCODE, "xcode", XCODE, XCODE);
+editor!(/// `WebStorm`'s mark (Simple Icons, CC0-1.0).
+WEBSTORM, "webstorm", WEBSTORM_LIGHT, WEBSTORM_DARK);
+#[cfg(test)]
+const EDITORS: [Artwork; 6] = [CURSOR, VSCODE, ZED, ANDROID_STUDIO, XCODE, WEBSTORM];
 impl Artwork {
     const fn image(self, scheme: Scheme) -> Image {
         match scheme {
@@ -122,6 +153,8 @@ impl Artwork {
             // 192-unit icon, 176-unit spark: the reference's spark fills
             // its 24-unit box edge to edge.
             Geometry::Sparkle => Some(size.points().mul_add(1.090_909_1, 0.0)),
+            // Paseo draws an editor's icon at the slot's size.
+            Geometry::Editor => Some(size.points()),
             Geometry::OpenCode => None,
         }
     }
@@ -137,7 +170,11 @@ impl Artwork {
     }
     fn dimensions(self, size: Size, space: Space) -> Option<(f32, f32)> {
         match self.geometry {
-            Geometry::Spark | Geometry::Blossom | Geometry::Sparkle | Geometry::Company => {
+            Geometry::Spark
+            | Geometry::Blossom
+            | Geometry::Sparkle
+            | Geometry::Company
+            | Geometry::Editor => {
                 let image = self.image_points(size).unwrap_or(size.points());
                 if space == Space::Compact && image > 28.0 {
                     return None;
@@ -227,6 +264,18 @@ fn render(
             .justify_center()
             .child(glyph(Glyph::Bot, fallback_size, fallback))
     }
+}
+/// `art` at 16 in its own colours, centred in a `width` column (a list's
+/// editor marks beside its 16-point glyphs).
+#[must_use]
+pub fn in_column(art: Artwork, width: f32, tokens: &Tokens) -> gpui::AnyElement {
+    use gpui::IntoElement as _;
+    div()
+        .w(px(width))
+        .flex()
+        .justify_center()
+        .child(agent_mark(Some(art), Size::Sixteen, Space::Compact, tokens))
+        .into_any_element()
 }
 /// A forge with an official embedded mark. No node identities enter the kit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

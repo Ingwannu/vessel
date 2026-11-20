@@ -7,7 +7,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     MenuHandlers, MenuItem, Tokens, Type, TypeExt as _, breakpoint, button, glyph, menu,
@@ -94,22 +94,33 @@ pub(super) fn overlays(
     let mut drawn = Vec::new();
     if let Some(target) = &actions.target {
         let chosen = items_for(target);
+        let opens = shell.t.lang.open_targets();
         let mut last_group = None;
         let items: Vec<MenuItem> = chosen
             .iter()
             .map(|action| {
-                let label = match action {
-                    Action::OpenFile => labels.open_file,
-                    Action::CollapseFolder => labels.collapse_folder,
-                    Action::NewFile => labels.new_file,
-                    Action::NewFolder => labels.new_folder,
-                    Action::CopyPath => labels.copy_path,
-                    Action::CopyRelativePath => labels.copy_relative_path,
-                    Action::Download => labels.download,
-                    Action::AddToChat => labels.add_to_chat,
-                    Action::Rename => labels.rename,
-                    Action::Duplicate => labels.duplicate,
-                    Action::Delete => labels.delete,
+                let label: SharedString = match action {
+                    Action::OpenFile => labels.open_file.into(),
+                    Action::CollapseFolder => labels.collapse_folder.into(),
+                    Action::OpenInEditor => target
+                        .editor
+                        .map(|editor| opens.open_in(editor))
+                        .unwrap_or_default()
+                        .into(),
+                    Action::NewFile => labels.new_file.into(),
+                    Action::NewFolder => labels.new_folder.into(),
+                    Action::CopyPath => labels.copy_path.into(),
+                    Action::CopyRelativePath => labels.copy_relative_path.into(),
+                    Action::Reveal => target
+                        .manager
+                        .map(|manager| opens.reveal_in(manager))
+                        .unwrap_or_default()
+                        .into(),
+                    Action::Download => labels.download.into(),
+                    Action::AddToChat => labels.add_to_chat.into(),
+                    Action::Rename => labels.rename.into(),
+                    Action::Duplicate => labels.duplicate.into(),
+                    Action::Delete => labels.delete.into(),
                 };
                 let item = if *action == Action::Delete {
                     MenuItem::danger(label)

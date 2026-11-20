@@ -44,6 +44,7 @@ pub mod matcher;
 pub mod models;
 pub mod notices;
 pub mod offers;
+pub mod open_targets;
 mod options;
 pub mod overview;
 pub mod pairing;
@@ -89,7 +90,7 @@ pub use text::localization;
 pub use text::{
     BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText, GitLabels,
     GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText, NoticeWords,
-    OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    OpenTargetWords, OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     ViewerWords, grouped, meter_tokens, short_tokens,
 };
 
