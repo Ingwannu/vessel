@@ -422,16 +422,16 @@ mod tests {
         let since = Some(ProtocolVersion::new(37));
         let below = ProtocolVersion::new(36);
         let at = ProtocolVersion::new(37);
-        let older = served_since(&row, below, since).unwrap();
+        let older = super::served_since(&row, below, since).unwrap();
         assert!(older.diff_stat.is_none());
         assert!(older.stat_revision.is_none());
         assert_eq!(older.workspace.path, row.workspace.path);
-        assert!(served_since(&row, at, since).is_none());
-        let listed = served_list_since(std::slice::from_ref(&row), below, since).unwrap();
+        assert!(super::served_since(&row, at, since).is_none());
+        let listed = super::served_list_since(std::slice::from_ref(&row), below, since).unwrap();
         assert!(listed[0].diff_stat.is_none());
         assert!(listed[0].stat_revision.is_none());
-        assert!(served_list_since(std::slice::from_ref(&row), at, since).is_none());
-        let stripped = served(&row, below).unwrap();
+        assert!(super::served_list_since(std::slice::from_ref(&row), at, since).is_none());
+        let stripped = super::served(&row, below).unwrap();
         assert!(stripped.diff_stat.is_none());
         assert!(stripped.stat_revision.is_none());
     }
