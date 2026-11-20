@@ -119,6 +119,7 @@ export function useFile(
   node: NodeKey,
   root: WorkspaceRoot,
   path: RelPath,
+  active: boolean,
 ): OpenFile {
   const fleet = useFleet();
   const [text, setText] = useState<FileText>({ kind: "loading" });
@@ -257,7 +258,15 @@ export function useFile(
   }, []);
   const inFlight = useCallback(() => writing.current, []);
   const read = text.kind === "text" || text.kind === "binary";
-  const { disk, settled } = useDisk(node, root, path, read, shown, inFlight);
+  const { disk, settled } = useDisk(
+    node,
+    root,
+    path,
+    active,
+    read,
+    shown,
+    inFlight,
+  );
 
   const reload = useCallback(() => {
     settled();
