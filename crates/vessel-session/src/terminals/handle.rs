@@ -183,7 +183,7 @@ impl TerminalHandle {
                 .write(data.into_bytes())
                 .await
                 .map_err(|_closed| InputError::Ended),
-            TerminalInput::Resize { size } => {
+            TerminalInput::Resize { size, .. } => {
                 pty.resize(WindowSize {
                     cols: size.cols,
                     rows: size.rows,

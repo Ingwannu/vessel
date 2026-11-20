@@ -88,7 +88,35 @@ pub enum TerminalInput {
     Resize {
         /// New size.
         size: TerminalSize,
+        /// Whose size it is (ADR 0116, [`crate::terminals::SHARED_TERMINALS_PROTOCOL`]):
+        /// absent is a claim, as every client below that protocol sends.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        intent: Option<ResizeIntent>,
     },
+}
+
+/// What a resize asks of the size's owner (ADR 0116, Paseo's
+/// `terminal-size-ownership.ts`).
+///
+/// [Decision Log]
+/// - Purpose: two clients showing one terminal (the app and the page, or
+///   two windows) both fit it to their own pane; whatever arrived last won,
+///   so the shell's size flipped as either redrew.
+/// - Choice: Paseo's rule. The client whose pane takes focus or attaches
+///   claims the terminal; its later fits are updates, applied only while it
+///   still owns it; another client's update is dropped (and answered as
+///   done, as Paseo's returns `false` without an error).
+/// - Owner: one connection (its identity, not its client's name), so two
+///   windows of one app do not share it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum ResizeIntent {
+    /// Take the terminal's size: this connection owns it from now on.
+    Claim,
+    /// A later fit of the owner; dropped when another connection claimed
+    /// the terminal since.
+    Update,
 }
 
 /// A chunk of PTY output.

@@ -142,6 +142,9 @@ mod support;
 mod terminal;
 #[cfg(test)]
 #[cfg(unix)]
+mod shared_terminals;
+#[cfg(test)]
+#[cfg(unix)]
 mod terminals;
 #[cfg(test)]
 mod tidying;

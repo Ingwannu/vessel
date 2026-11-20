@@ -103,6 +103,7 @@ mod sessions;
 mod settings;
 mod shutdown;
 mod side_questions;
+mod size_owner;
 mod subscribe;
 mod terminals;
 mod tidying;
@@ -139,14 +140,6 @@ pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 mod speech_audio;
 
 // Every connection's context carries one (`service::Connection::life`).
-// A temporary A10 exception: nothing reads it outside tests until its
-// consumers, workspace D2 Preview and W14, land. The first of them removes
-// this expectation and the one on the accessor.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "A10 exception until D2 Preview or W14 reads the owner and close observer"
-    )
-)]
+// Its first consumer is a terminal's size owner (ADR 0116, `size_owner`);
+// the close observer waits for workspace D2 Preview or W14.
 mod connection_life;

@@ -201,6 +201,8 @@ pub(crate) struct Parts {
     pub(crate) tidying: Arc<Tidying>,
     pub(crate) forges: Arc<Forges>,
     pub(crate) terminals: Arc<Terminals>,
+    /// Terminal-mode sessions' size owners (ADR 0116).
+    pub(crate) session_sizes: crate::size_owner::SessionSizes,
     pub(crate) ports: Arc<Ports>,
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
@@ -253,6 +255,7 @@ impl NodeService {
         Self {
             usage_reports: crate::usage_reports::Registry::default(),
             file_panels: file_panels::FilePanelSlots::default(),
+            session_sizes: crate::size_owner::SessionSizes::default(),
             workspace_labels,
             lsp,
             lsp_roots,
@@ -392,10 +395,6 @@ impl Connection {
     /// context acting for it. A resource the connection owns keeps
     /// `owner()` and `closed()`, never the life: holding the life keeps the
     /// connection's last context from ending it.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "A10 exception until D2 Preview or W14 reads it")
-    )]
     pub(crate) const fn life(&self) -> &ConnectionLife {
         &self.life
     }
