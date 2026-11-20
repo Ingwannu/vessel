@@ -58,7 +58,12 @@ mod tests {
         let en = Translator::get(ENGLISH).unwrap();
         let ko = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
         let now = Utc.with_ymd_and_hms(2026, 11, 19, 10, 0, 0).unwrap();
-        let ago = |minutes: i64| Age::of(now.checked_sub_signed(Duration::minutes(minutes)).unwrap(), now);
+        let ago = |minutes: i64| {
+            Age::of(
+                now.checked_sub_signed(Duration::minutes(minutes)).unwrap(),
+                now,
+            )
+        };
         assert_eq!(Age::JustNow.words(en), "just now");
         assert_eq!(plain(&ago(3).words(en)), "3m ago");
         assert_eq!(plain(&ago(120).words(en)), "2h ago");
