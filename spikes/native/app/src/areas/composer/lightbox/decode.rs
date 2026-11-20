@@ -21,7 +21,7 @@ impl Asset for PreviewDecoder {
     }
 }
 
-pub(super) fn load(
+pub(crate) fn load(
     source: ImageSource,
     window: &mut Window,
     cx: &mut App,

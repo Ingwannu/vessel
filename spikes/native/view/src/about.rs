@@ -114,6 +114,7 @@ pub const BUNDLED: &[Bundled] = &[
     krate("intl-memoizer", "Apache-2.0 OR MIT", Role::Translations),
     krate("unic-langid", "MIT OR Apache-2.0", Role::Translations),
     krate("uuid", "Apache-2.0 OR MIT", Role::Identifiers),
+    krate("yaml-rust2", "MIT OR Apache-2.0", Role::Data),
     krate("gpui-pre", "Apache-2.0", Role::Drawing),
     krate("gpui-pre-platform", "Apache-2.0", Role::Windows),
     krate("gpui-component", "Apache-2.0", Role::Controls),

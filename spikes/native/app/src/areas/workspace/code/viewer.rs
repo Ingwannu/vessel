@@ -72,6 +72,7 @@ pub(super) fn viewer_element(
                 .text_color(neutral.foreground_muted)
                 .child(viewer.path.as_str().to_owned()),
         )
+        .children(super::panels_view::side_control(shell, viewer, tokens, cx))
         .children(viewer.chosen.map(|chosen| {
             vessel_app_kit::button(
                 "code-add-to-chat",
@@ -83,7 +84,13 @@ pub(super) fn viewer_element(
                 this.add_lines_to_chat(window, cx);
             }))
         }));
-    let body: AnyElement = if let Some(editing) = &viewer.edit {
+    // Paseo's panels: the image drawn on a machine that reads its bytes,
+    // a Markdown file's Preview, else its Source.
+    let body: AnyElement = if let Some(image) = &viewer.look.image {
+        super::image_view::image(shell, image, tokens, window, cx)
+    } else if viewer.look.previewing() {
+        super::panels_view::markdown(shell, viewer, tokens, window, cx)
+    } else if let Some(editing) = &viewer.edit {
         super::editing_view::body(shell, editing, tokens, cx)
     } else {
         read_only_body(shell, viewer, tokens, cx)
