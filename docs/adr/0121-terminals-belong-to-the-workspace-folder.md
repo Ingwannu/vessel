@@ -1,9 +1,9 @@
 # ADR 0121: terminals belong to the workspace folder
 
 Status: accepted by the coordinator on 2026-11-20 with two rulings (a project's list holds its project places only;
-a worktree's removal ends its terminals only when the caller acknowledges it). Implementer T2. Protocol drafted 38
-(`WORKSPACE_TERMINALS_PROTOCOL`); the integrator assigns the number at merge. Source: the node review of TRACKER
-817 (R1: closing a finished agent's tab ended a worktree's dev server).
+a worktree's removal ends its terminals only when the caller acknowledges it). Implementer T2. Protocol drafted 39
+(`WORKSPACE_TERMINALS_PROTOCOL`, after the 38 TRACKER 819 takes); the integrator assigns the number at merge.
+Source: the node review of TRACKER 817 (R1: closing a finished agent's tab ended a worktree's dev server).
 
 ## Context
 

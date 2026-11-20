@@ -39,14 +39,15 @@ use crate::node::ProtocolVersion;
 /// Several clients on one node's terminals (ADR 0116): `terminal.list`'s
 /// `changed_from` long poll and its `revision`, and a resize's `intent`
 /// (claim or update) for terminals and terminal-mode sessions alike.
-/// Drafted 37 for review; the integrator assigns the number at merge.
+/// Assigned 37 at its node-line merge, the next free number after the
+/// plugin manager's 36.
 pub const SHARED_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(37));
 
 /// Terminals that belong to a workspace folder (ADR 0121): the `worktree`
 /// and `folder` places, and `worktree.remove`'s `end_terminals`. A peer
-/// below it is never handed a terminal in one of those places. Drafted 38
+/// below it is never handed a terminal in one of those places. Drafted 39
 /// for review; the integrator assigns the number at merge.
-pub const WORKSPACE_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(38));
+pub const WORKSPACE_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(39));
 
 pub use requests::{
     CloseTerminal, CreateTerminal, GetTerminal, KillTerminal, ListTerminals, ReadTerminal,

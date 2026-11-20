@@ -1,8 +1,8 @@
 # ADR 0116: terminal list long poll and resize claim
 
 Status: accepted by the coordinator on 2026-11-20 (long poll instead of a `terminal.watch` stream; claim and update as
-drafted). Implementer T2, packet N1. Protocol drafted 37 (`SHARED_TERMINALS_PROTOCOL`); the integrator assigns the
-number at the node-line merge. TRACKER 481 (list sync), 483 (resize and focus claim); catalogue F-G44, F-G46, F-G49,
+drafted). Implementer T2, packet N1. Protocol 37 (`SHARED_TERMINALS_PROTOCOL`), assigned at its node-line merge on
+2026-11-20. TRACKER 481 (list sync), 483 (resize and focus claim); catalogue F-G44, F-G46, F-G49,
 F-G51. Paseo reference 0.15.4.
 
 ## Context
@@ -74,7 +74,7 @@ the poll at once (a client asking again on each answer would spin) and apply ano
 
 ## Consequences
 
-- Protocol drafted 37, `PROTOCOL_VERSION` 37; both new request fields are optional, the answer field defaults to 0.
+- Protocol 37 (assigned at the node-line merge), `PROTOCOL_VERSION` 37; both new request fields are optional, the answer field defaults to 0.
   The minimum protocol stays 2; the store schema is unchanged.
 - The connection life gets its first consumer: the size owner reads `Connection::life().owner()`; the close observer
   (`closed()`) keeps its dead-code expectation until workspace D2 Preview or W14.
