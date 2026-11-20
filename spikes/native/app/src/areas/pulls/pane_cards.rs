@@ -111,7 +111,7 @@ impl Cards<'_> {
 
     /// The author's initial on their identity colour (Paseo's fallback
     /// avatar), `across` wide.
-    fn avatar(&self, item: &TimelineItem, across: f32) -> AnyElement {
+    fn avatar(item: &TimelineItem, across: f32) -> AnyElement {
         let login = author(item).unwrap_or_default();
         let initial: String = login
             .chars()
@@ -157,7 +157,7 @@ impl Cards<'_> {
             .flex_row()
             .items_center()
             .gap(px(8.0))
-            .child(self.avatar(item, avatar))
+            .child(Self::avatar(item, avatar))
             .child(
                 div()
                     .type_(Type::Body)
@@ -197,7 +197,7 @@ impl Cards<'_> {
     }
 
     /// A body as markdown, keyed by its item so its layout is kept.
-    fn body(&self, item: &TimelineItem) -> Option<AnyElement> {
+    fn markdown(item: &TimelineItem) -> Option<AnyElement> {
         let text = body(item);
         (!text.trim().is_empty()).then(|| {
             vessel_app_kit::markdown(
@@ -213,7 +213,7 @@ impl Cards<'_> {
         let hover = SidebarSurfaces::of(self.tokens).hover;
         let key = item.id().as_str().to_owned();
         let id = SharedString::from(format!("pr-pane-activity-{key}"));
-        let Some(text) = self.body(item) else {
+        let Some(text) = Self::markdown(item) else {
             // Nothing to unfold: a row that opens it on the forge.
             let url = item_url(item);
             return div()
@@ -316,7 +316,7 @@ impl Cards<'_> {
         if !folded {
             card = card
                 .children(
-                    self.body(review)
+                    Self::markdown(review)
                         .map(|text| div().px(px(12.0)).pt(px(8.0)).pb(px(12.0)).child(text)),
                 )
                 .children(
@@ -480,7 +480,7 @@ impl Cards<'_> {
                     .child(self.header_row(item, 16.0, None)),
             )
             .children(
-                self.body(item)
+                Self::markdown(item)
                     .map(|text| div().px(px(12.0)).pt(px(8.0)).child(text)),
             )
             .into_any_element()

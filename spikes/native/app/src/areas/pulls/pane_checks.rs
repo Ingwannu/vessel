@@ -130,9 +130,8 @@ pub(super) fn section(
             tokens,
             cx,
         )),
-        Shown::Every(_) => None,
         Shown::Counts if open => Some(failing(pull, tokens)),
-        Shown::Counts => None,
+        Shown::Every(_) | Shown::Counts => None,
     };
     div()
         .id("pr-pane-checks")
@@ -401,7 +400,7 @@ fn row(
             tokens,
         )
         .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-            cx.stop_propagation()
+            cx.stop_propagation();
         })
         .when(!adding, |button| {
             button.on_click(cx.listener(move |shell, _event, window, cx| {
