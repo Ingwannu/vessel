@@ -97,6 +97,10 @@ Source: the node review of TRACKER 817 (R1: closing a finished agent's tab ended
     `Project` lists leave them out. A first build read them once when the workspace opened, on the premise that no
     new ones are made; the node review (R1) showed the premise false, and the coordinator withdrew that ruling.
     Each tick replaces the list, so a shell an agent opens shows within a tick and one that ends leaves the strip.
+  - A project-root workspace does the same with one read of every terminal a tick, filtered as its project's
+    places (with their folders) or beside its sessions (the node review's follow-up; 817 read the project's place
+    alone). Once agents' shells take their workspace's place (TRACKER 832), they arrive as project or worktree
+    shells; the session read stays for `Session` shells and nodes below that.
   - A node row (the coordinator's) is to give an agent's shell its workspace's place, as Paseo does
     (`paseo-tools.ts:2512`); until then the page reads both.
 - "New terminal" needs no agent from 40. Its "Unarchive an agent…" words remain for nodes below 40.
