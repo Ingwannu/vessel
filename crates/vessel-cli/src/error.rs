@@ -197,6 +197,9 @@ pub(crate) enum CliError {
     /// Arguments that do not fit together.
     #[error("{0}")]
     Usage(&'static str),
+    /// `vessel plugin init` could not write its files (ADR 0115).
+    #[error("{0}")]
+    PluginInit(String),
     /// An install on the node did not succeed (`vessel agents install`).
     #[error("{0}")]
     AgentInstall(String),

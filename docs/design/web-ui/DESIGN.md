@@ -1589,8 +1589,9 @@ project".
   Source still reads it a page at a time.
   The Markdown preview: a 16px gutter around a 78ch reading column, the
   front matter (`---` YAML at the top, read as Paseo reads it) as a
-  two-column table 24px above the body (keys mono in the secondary ink on
-  the well, a hairline between rows, radius 8), the body as the
+  two-column table 24px above the body (keys mono at the value's 14/20 in
+  the secondary ink on the well, cells 12 by 8, a hairline between rows,
+  radius 8), the body as the
   conversation draws Markdown plus headings, numbered lists, rules and
   images; a relative link is a button that opens that file here, an image
   under the root is read through the node and drawn from a `data:` URL,

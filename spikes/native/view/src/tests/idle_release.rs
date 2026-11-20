@@ -22,6 +22,7 @@ fn idle(minutes: u16) -> NodeSettings {
             minutes: IdleMinutes::new(minutes).unwrap(),
         },
         metadata: None,
+        plugins_enabled: false,
     }
 }
 
@@ -31,6 +32,7 @@ fn never() -> NodeSettings {
         drivers: AgentDrivers::default(),
         park_after: ParkAfter::Never,
         metadata: None,
+        plugins_enabled: false,
     }
 }
 
@@ -147,7 +149,8 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
                 open_code: AgentDriver::Acp
             },
             park_after: ParkAfter::Unknown,
-            metadata: None
+            metadata: None,
+            plugins_enabled: false
         })
     ));
     assert_eq!(page.toggle(tickets.next_ticket().unwrap()), None);

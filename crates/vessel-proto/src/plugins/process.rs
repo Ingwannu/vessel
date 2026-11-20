@@ -3,7 +3,7 @@
 //! The initial executable slice supports lifecycle and native invocation only.
 //! Unknown registration families fail decoding; providers, tools and usage must
 //! not be advertised until their owning adapters are connected. This version
-//! is the local helper format, independent of the pending `PLUGINS` feature.
+//! is the local helper format, independent of the public `PLUGINS_PROTOCOL` calls.
 
 use std::num::NonZeroU64;
 
