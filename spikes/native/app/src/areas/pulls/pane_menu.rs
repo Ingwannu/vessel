@@ -14,9 +14,9 @@
 //!   open, and always on a phone (Paseo's `useRevealOnHover`). Rows are
 //!   the kit's (role, name, Click only when choosable, TRACKER 808) with
 //!   Paseo's leading marks.
-//! - Differences: Copy writes the words as plain text (Paseo writes
-//!   rich markdown); Copy is translated (Paseo's says "Copy" in every
-//!   language).
+//! - Differences: Copy puts the markdown source verbatim (Paseo's text
+//!   flavour) but no HTML flavour beside it; Copy is translated (Paseo's
+//!   says "Copy" in every language).
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -33,7 +33,7 @@ use vessel_app_kit::ui::{
     Pixels, Point, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, anchor_probe, breakpoint};
-use vessel_app_view::workspace::pull::card_menu::{CardAct, brand, item_acts, thread_acts};
+use vessel_app_view::workspace::pull::card_menu::{CardAct, brand, copied, item_acts, thread_acts};
 use vessel_app_view::workspace::pull::timeline::Thread;
 use vessel_proto::forge::TimelineItem;
 
@@ -95,14 +95,16 @@ impl CardMenu {
     }
 }
 
-/// An item's words and page.
+/// What Copy copies (the markdown source, `card_menu::copied`) and the
+/// item's page.
 fn parts(item: &TimelineItem) -> (String, Option<String>) {
-    match item {
-        TimelineItem::Review { body, url, .. } | TimelineItem::Comment { body, url, .. } => (
-            body.as_str().trim().to_owned(),
-            url.as_ref().map(|url| url.as_str().to_owned()),
-        ),
-    }
+    let url = match item {
+        TimelineItem::Review { url, .. } | TimelineItem::Comment { url, .. } => url,
+    };
+    (
+        copied(item).unwrap_or_default().to_owned(),
+        url.as_ref().map(|url| url.as_str().to_owned()),
+    )
 }
 
 impl Cards<'_> {

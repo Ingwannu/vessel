@@ -11,9 +11,12 @@
 //!   item something to add (`attach::can_add`, Paseo's
 //!   `canAddPullRequestActivityToChat`), Copy while it has words, Open
 //!   on the forge.
-//! - Difference: Paseo always lists Open; an item the node sends without
-//!   a page has no Open row here (the row would do nothing), and a menu
-//!   with no row draws no kebab.
+//! - Copy puts the item's markdown source on the clipboard as it came,
+//!   untrimmed (the plain-text flavour of Paseo's
+//!   `writeMarkdownToRichClipboard`, pane.tsx 692-694).
+//! - Differences: no HTML flavour beside the text; Paseo always lists
+//!   Open, but an item the node sends without a page has no Open row here
+//!   (the row would do nothing), and a menu with no row draws no kebab.
 
 use vessel_proto::forge::{ForgeKind, RepoRef, TimelineItem};
 
@@ -30,20 +33,29 @@ pub enum CardAct {
     Open,
 }
 
+/// What Copy puts on the clipboard: the item's markdown source verbatim,
+/// when it has words (Paseo offers Copy while `body.trim()` is not empty,
+/// and copies `body` itself).
+#[must_use]
+pub fn copied(item: &TimelineItem) -> Option<&str> {
+    let body = match item {
+        TimelineItem::Review { body, .. } | TimelineItem::Comment { body, .. } => body.as_str(),
+    };
+    (!body.trim().is_empty()).then_some(body)
+}
+
 /// What a comment's or a review's menu offers; `attach`: the session has
 /// a composer to add to (Paseo's `attachEnabled`).
 #[must_use]
 pub fn item_acts(item: &TimelineItem, attach: bool) -> Vec<CardAct> {
-    let (body, url) = match item {
-        TimelineItem::Review { body, url, .. } | TimelineItem::Comment { body, url, .. } => {
-            (body, url)
-        }
+    let url = match item {
+        TimelineItem::Review { url, .. } | TimelineItem::Comment { url, .. } => url,
     };
     let mut acts = Vec::new();
     if attach && can_add(item) {
         acts.push(CardAct::AddToChat);
     }
-    if !body.as_str().trim().is_empty() {
+    if copied(item).is_some() {
         acts.push(CardAct::Copy);
     }
     if url.is_some() {
@@ -140,6 +152,13 @@ mod tests {
             [CardAct::Copy]
         );
         assert!(item_acts(&review(ReviewState::Approved, "", false), true).is_empty());
+    }
+
+    #[test]
+    fn copy_takes_the_markdown_source_as_it_came() {
+        let source = "  Should this cap at **30 seconds**?\n\n```rust\nlet max_delay = 30;\n```\n";
+        assert_eq!(copied(&comment(source, true)), Some(source));
+        assert_eq!(copied(&review(ReviewState::Commented, "\n\t ", true)), None);
     }
 
     #[test]
