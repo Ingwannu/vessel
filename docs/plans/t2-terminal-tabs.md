@@ -187,7 +187,8 @@ grid (long press, grips, floating Copy and Paste) is the phone app's later
 - Stated differences: Paseo's find anchor keeps the inspected line still
   under new output, here a match that output scrolled away is brought back
   when the search runs again; Paseo's scrollback field drops a non-digit as
-  it is typed, here at commit; no context menu (Paseo desktop's is its
+  it is typed, here at commit; Paseo right-aligns the scrollback count,
+  the kit's one-line field reads from the left; no context menu (Paseo desktop's is its
   Electron shell's); size marks of the selection follow the grid, not the
   pixel.
 - Checks: view tests for text addresses, copy, word and line, wide cells,

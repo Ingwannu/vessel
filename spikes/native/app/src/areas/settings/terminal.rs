@@ -11,9 +11,10 @@
 //!   field then shows the stored count. Nothing typed (no digits) keeps the
 //!   count it had. While the field does not have the keyboard it shows the
 //!   stored count.
-//! - Stated difference: Paseo drops a non-digit as it is typed; here it is
+//! - Stated differences: Paseo drops a non-digit as it is typed; here it is
 //!   dropped when the field commits (the field's change callback has no
-//!   window to rewrite the text in).
+//!   window to rewrite the text in). Paseo right-aligns the count; the
+//!   kit's one-line field has no alignment, so it reads from the left.
 
 use gpui::Subscription;
 use vessel_app_kit::ui::{
@@ -25,8 +26,8 @@ use vessel_app_view::terminal::ScrollbackLines;
 
 use crate::shell::Shell;
 
-/// The number field's width.
-const FIELD_WIDTH: f32 = 120.0;
+/// The number field's width (Paseo's `scrollbackInput`).
+const FIELD_WIDTH: f32 = 112.0;
 
 /// The page's state: its field and the commit when the field loses the
 /// keyboard.
@@ -101,7 +102,8 @@ pub(crate) fn render(
     field.set_accessible_label(words.scrollback_label(), cx);
     let control = div()
         .w(px(FIELD_WIDTH))
-        .child(field.input(tokens, cx))
+        // The form field's chrome, as Paseo's `FormTextInput`.
+        .child(field.element(tokens, compact, cx))
         .into_any_element();
     settings::card(tokens)
         .child(settings::row_at(
