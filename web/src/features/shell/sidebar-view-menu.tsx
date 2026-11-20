@@ -23,10 +23,12 @@ import {
 import { toast } from "../../ui/toasts";
 import type { PreferenceChange, SidebarTrailing } from "../../wire/bridge";
 import { LabelFilterMenu } from "../workspace-labels/filter-menu";
+import { sidebarWords } from "./sidebar-words";
 
 export function SidebarViewMenu() {
   const fleet = useFleet();
   const view = useStore(prefs, (state) => state.values.sidebar);
+  const words = sidebarWords(navigator.language);
   const change = (next: PreferenceChange) => {
     void prefer(fleet, next).then((outcome) => {
       if (!outcome.ok) {
@@ -84,15 +86,15 @@ export function SidebarViewMenu() {
         />
       </MenuGroup>
       <MenuSeparator />
-      <MenuGroup label="Show">
+      <MenuGroup label={words.show}>
         <MenuRadioGroup<SidebarTrailing>
           value={view.trailing}
           onChange={(trailing) => {
             change({ set: "sidebar_trailing", value: trailing });
           }}
           options={[
-            { value: "diff", label: "Diff stats" },
-            { value: "timestamp", label: "Last activity" },
+            { value: "diff", label: words.diffStats },
+            { value: "timestamp", label: words.activity },
           ]}
         />
       </MenuGroup>
