@@ -49,6 +49,7 @@ pub mod overview;
 pub mod pairing;
 pub mod palette;
 pub mod panels;
+pub mod plugins;
 pub mod prefs;
 pub mod requests;
 pub mod rewind;

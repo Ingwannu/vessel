@@ -2,7 +2,10 @@
 //! font, cell or cursor phase changed (the session screen's rule, ADR
 //! 0073); its size fitted to the pane and claimed for the shell while the
 //! pane has the keyboard (Paseo's `terminal-pane-focus-claim.ts`: a focused
-//! pane claims its size; resizes settle for 100 ms first).
+//! pane claims its size; resizes settle for 100 ms first). From protocol 37
+//! (ADR 0116) the node keeps one owner per terminal: the pane claims when
+//! it takes the keyboard or attaches, and its later fits are updates the
+//! node drops once another client claimed the shell since.
 
 use std::rc::Rc;
 use std::time::Duration;
@@ -13,6 +16,7 @@ use vessel_app_kit::ui::{App, Bounds, Context, Pixels, point, px, size};
 use vessel_app_view::terminal::GridSize;
 use vessel_app_view::terminal::grid::{Generation, Scroll};
 use vessel_app_view::terminal::paint::rows;
+use vessel_proto::ResizeIntent;
 
 use super::{Blink, PaneKey, Stage};
 use crate::areas::terminal::convert;
@@ -120,8 +124,11 @@ impl Shell {
         self.terminal_tab_draw(key, cx);
     }
 
-    /// Send the pane's size while it has the keyboard and the size differs
-    /// from what was sent (Paseo's focus claim).
+    /// Send the pane's size while it has the keyboard: a claim first after
+    /// it took the keyboard or attached (even at the size last sent, since
+    /// another client may have taken the shell meanwhile), then an update
+    /// whenever the fit differs from what was sent (Paseo's focus claim and
+    /// `terminal-size-ownership.ts`).
     pub(super) fn terminal_tab_claim(&mut self, key: &PaneKey) {
         if self.areas.terminal_tabs.focused.as_ref() != Some(key) {
             return;
@@ -129,14 +136,22 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        let Some(fit) = pane.fit.filter(|fit| pane.sent_size != Some(*fit)) else {
+        let Some(fit) = pane.fit else {
             return;
         };
         if pane.stage != Stage::Live {
             return;
         }
+        let intent = if !pane.claimed {
+            ResizeIntent::Claim
+        } else if pane.sent_size != Some(fit) {
+            ResizeIntent::Update
+        } else {
+            return;
+        };
+        pane.claimed = true;
         pane.sent_size = Some(fit);
-        pane.sender.resize(fit.cols(), fit.rows());
+        pane.sender.resize(fit.cols(), fit.rows(), intent);
         self.terminal_tab_pump(key);
     }
 

@@ -17,8 +17,13 @@
 //!   without end).
 //! - Failures: a send that fails is not repeated (it may have been
 //!   applied); later items still go, in order.
+//! - Sizes (ADR 0116): each names a claim or an update. A size replacing a
+//!   queued claim keeps the claim, so a focus followed at once by a fit
+//!   still takes the terminal.
 
 use std::collections::VecDeque;
+
+use vessel_proto::ResizeIntent;
 
 /// Most characters of keys waiting while a send is in flight.
 pub const MAX_PENDING: usize = 1024 * 1024;
@@ -34,6 +39,9 @@ pub enum Outgoing {
         cols: u16,
         /// Rows.
         rows: u16,
+        /// Whether it takes the terminal's size or is a later fit of its
+        /// owner (ADR 0116; a node below 37 is sent neither).
+        intent: ResizeIntent,
     },
 }
 
@@ -82,20 +90,26 @@ impl TerminalSender {
         Taken::Queued
     }
 
-    /// Queue a size; a size queued just before is replaced.
-    pub fn resize(&mut self, cols: u16, rows: u16) {
+    /// Queue a size; a size queued just before is replaced. A claim it
+    /// replaces stays a claim: the later size is what the claim takes.
+    pub fn resize(&mut self, cols: u16, rows: u16, intent: ResizeIntent) {
         if self.closed {
             return;
         }
         if let Some(Outgoing::Resize {
             cols: last_cols,
             rows: last_rows,
+            intent: last_intent,
         }) = self.items.back_mut()
         {
             *last_cols = cols;
             *last_rows = rows;
+            if intent == ResizeIntent::Claim {
+                *last_intent = ResizeIntent::Claim;
+            }
         } else {
-            self.items.push_back(Outgoing::Resize { cols, rows });
+            self.items
+                .push_back(Outgoing::Resize { cols, rows, intent });
         }
     }
 

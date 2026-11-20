@@ -284,6 +284,8 @@ fn terminal_line(terminal: &TerminalInfo) -> String {
     let place = match &terminal.place {
         TerminalPlace::Session { session } => format!("beside {session}"),
         TerminalPlace::Project { project, .. } => format!("in project {project}"),
+        TerminalPlace::Worktree { worktree } => format!("in worktree {worktree}"),
+        TerminalPlace::Folder { path } => format!("in {}", path.display()),
     };
     let title = terminal
         .title

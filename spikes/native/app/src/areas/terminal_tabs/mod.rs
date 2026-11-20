@@ -28,12 +28,19 @@
 //! - List: the node pushes no list of terminals (ADR 0031); the app asks
 //!   for the open workspace's on each fleet read (every 2 s, as the
 //!   sessions are listed) and after its own create, close or an end, and
-//!   reconciles the tabs as Paseo does on `terminals_changed`.
-//! - Cost and stated differences: a shell another client opened shows
-//!   within one read, not at once; another viewer's resize is not refused
-//!   (no claim/update on the wire until ADR 0116); the tab's label is a
-//!   rename's title, never the shell's own (no OSC title on the node); no
-//!   selection, copy or find (P3), no key bar (P4), no file drop (P7).
+//!   reconciles the tabs as Paseo does on `terminals_changed`. From
+//!   protocol 37 the ask is ADR 0116's long poll: asked again at once from
+//!   the revision it answered while the list moves, so another client's
+//!   shell shows one round trip after it opened.
+//! - Size: from protocol 37 a pane claims the shell's size when it takes
+//!   the keyboard or attaches and sends updates after (ADR 0116), so the
+//!   page and the app on one shell no longer flip its size.
+//! - Cost and stated differences: the list is a long poll, not Paseo's
+//!   push, and below 37 a shell another client opened shows within one
+//!   read; size ownership is per connection, so this app's windows share
+//!   one owner; the tab's label is a rename's title, never the shell's own
+//!   (no OSC title on the node); no selection, copy or find (P3), no key
+//!   bar (P4), no file drop (P7).
 
 mod body;
 mod draw;
@@ -121,6 +128,9 @@ pub(crate) struct Pane {
     fit: Option<GridSize>,
     /// The size last sent to the node.
     sent_size: Option<GridSize>,
+    /// Whether the pane claimed the shell's size (ADR 0116) since it last
+    /// took the keyboard or attached; until then its next size is a claim.
+    claimed: bool,
     settling: Option<Task<()>>,
     drawn: Option<DrawKey>,
     blink: Blink,
@@ -150,18 +160,34 @@ pub(crate) struct Creating {
     mode: vessel_app_view::layout::LayoutMode,
 }
 
+/// A `terminal.list` in flight.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Listing {
+    machine: String,
+    place: TerminalPlace,
+    /// The revision it waits to move from; `None` answers at once.
+    from: Option<u64>,
+}
+
 /// The terminal tabs' state.
 pub(crate) struct TerminalTabs {
     panes: HashMap<PaneKey, Pane>,
     /// Creates sent, oldest first.
     creating: Vec<Creating>,
-    /// The list asked for and not yet answered: one at a time.
-    listing: Option<(String, TerminalPlace)>,
+    /// The list asked for and not yet answered: one at a time for the
+    /// shown place (a long poll for a place no longer shown is left to end).
+    listing: Option<Listing>,
+    /// The shown place's list revision last answered (ADR 0116): a long
+    /// poll asks from it.
+    revision: Option<(String, TerminalPlace, u64)>,
     /// A new terminal's pane takes the keyboard on its first frame.
     focus_next: Option<PaneKey>,
     /// A list of the open workspace's terminals, waiting for a frame (the
     /// layout's reconcile needs the window's layout mode).
     listed: Option<(LayoutKey, Vec<TerminalId>)>,
+    /// The shown place's terminals as last listed: a tab the list added
+    /// and nobody opened yet has no pane, and still shows its title.
+    listed_infos: HashMap<TerminalId, TerminalInfo>,
     /// The Close asked of the person.
     confirm: Option<(LayoutKey, ClosePlan)>,
     pub(crate) dialog: DialogState,
@@ -177,6 +203,8 @@ impl TerminalTabs {
             panes: HashMap::new(),
             creating: Vec::new(),
             listing: None,
+            revision: None,
+            listed_infos: HashMap::new(),
             focus_next: None,
             listed: None,
             confirm: None,
@@ -215,6 +243,7 @@ impl Pane {
             probe: Rc::new(Cell::new(None)),
             fit: None,
             sent_size: None,
+            claimed: false,
             settling: None,
             drawn: None,
             blink: Blink::On,
@@ -242,15 +271,15 @@ pub(crate) fn pane_key(workspace: &LayoutKey, terminal: TerminalId) -> Option<Pa
 }
 
 /// A terminal tab's label: its title, else "Terminal" (Paseo's
-/// `terminal.title ?? terminal.name`, its fallback word).
+/// `terminal.title ?? terminal.name`, its fallback word). A tab not opened
+/// yet takes its title from the last list.
 pub(crate) fn label(shell: &Shell, terminal: TerminalId) -> String {
-    shell
-        .areas
-        .terminal_tabs
-        .panes
+    let tabs = &shell.areas.terminal_tabs;
+    tabs.panes
         .iter()
         .find(|(key, _)| key.terminal == terminal)
         .and_then(|(_, pane)| pane.info.as_ref())
+        .or_else(|| tabs.listed_infos.get(&terminal))
         .and_then(vessel_app_view::terminal_tabs::title)
         .map_or_else(
             || shell.words.terminal_tabs().fallback().to_owned(),

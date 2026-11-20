@@ -96,6 +96,20 @@ impl ScrollState {
             .track_focus(focus)
     }
 
+    /// Move the content `delta` toward the end (toward the start when
+    /// negative), kept within GPUI's measured range; whether it moved. A
+    /// drag held near the viewport's edge scrolls it so (TRACKER 811).
+    #[must_use]
+    pub fn scroll_by(&self, delta: Pixels) -> bool {
+        let offset = self.offset();
+        let next = scrolled_by(offset, delta, self.handle.max_offset());
+        if next == offset {
+            return false;
+        }
+        self.handle.set_offset(next);
+        true
+    }
+
     fn reveal_bounds(&self, target: Bounds<Pixels>) -> bool {
         let offset = self.offset();
         let next = reveal_offset(self.bounds(), target, offset, self.handle.max_offset());
@@ -181,6 +195,17 @@ fn reveal_offset(
     Point {
         x: offset.x,
         y: y.max(-maximum.y.max(px(0.0))).min(px(0.0)),
+    }
+}
+
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "finite on-screen pixel geometry, clamped to GPUI's measured scroll range"
+)]
+fn scrolled_by(offset: Point<Pixels>, delta: Pixels, maximum: Point<Pixels>) -> Point<Pixels> {
+    Point {
+        x: offset.x,
+        y: (offset.y - delta).max(-maximum.y.max(px(0.0))).min(px(0.0)),
     }
 }
 

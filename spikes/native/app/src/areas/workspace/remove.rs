@@ -13,6 +13,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_link::workspace::{Ask, WorktreeAsk};
 use vessel_app_view::workspace::worktrees::{in_use, removal_choices};
+use vessel_proto::WorktreeId;
 use vessel_proto::workspace::{IfLost, KeptReason, RemoveWorktree, WorktreeInfo};
 
 use super::widgets::banner;
@@ -60,12 +61,25 @@ impl Shell {
         removing.busy = Some(if_lost);
         removing.error = None;
         let worktree = removing.worktree.id;
-        self.ask(
-            &machine,
-            Ask::Worktree(WorktreeAsk::Remove(RemoveWorktree { worktree, if_lost })),
-        );
+        self.ask(&machine, Ask::Worktree(remove_ask(worktree, if_lost)));
         cx.notify();
     }
+}
+
+/// `worktree.remove` as this app asks it, from the row's Remove and from
+/// this panel alike.
+///
+/// `end_terminals` stays false (ADR 0121): ending a worktree's live
+/// terminals is the person's choice, made after the app shows how many, and
+/// the native app does not ask it yet. Without it a live terminal refuses
+/// the removal, as before protocol 40. One place, so the day the app asks,
+/// both callers change together.
+pub(super) fn remove_ask(worktree: WorktreeId, if_lost: IfLost) -> WorktreeAsk {
+    WorktreeAsk::Remove(RemoveWorktree {
+        worktree,
+        if_lost,
+        end_terminals: false,
+    })
 }
 
 /// The panel.

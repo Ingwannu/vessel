@@ -20,6 +20,9 @@ use crate::terminals::{CLOSE_WAIT, Owner, TerminalsError};
 pub(super) struct Resolved {
     pub(super) folder: PathBuf,
     pub(super) owner: Owner,
+    /// The place as the terminal keeps it: a folder place's path made
+    /// canonical, so a list by the same folder finds it.
+    pub(super) place: TerminalPlace,
 }
 
 impl NodeService {
@@ -34,6 +37,8 @@ impl NodeService {
         // A terminal beside a session in a project counts against the
         // project too.
         let mut project = place.project();
+        let mut kept = place.clone();
+        let mut in_folder = None;
         let folder = match place {
             TerminalPlace::Session { session } => {
                 let info = self
@@ -78,6 +83,35 @@ impl NodeService {
                     .map_err(|error| TerminalsError::Wire(error.wire()))?;
                 placed.cwd
             }
+            // A worktree's own workspace (ADR 0121): its folder, counted
+            // against its project.
+            TerminalPlace::Worktree { worktree } => {
+                let info = self
+                    .workspaces
+                    .worktree(*worktree)
+                    .map_err(|error| TerminalsError::Wire(error.wire()))?;
+                project = Some(info.project);
+                let placed = self
+                    .workspaces
+                    .place(&SessionPlace::Worktree {
+                        worktree: *worktree,
+                    })
+                    .await
+                    .map_err(|error| TerminalsError::Wire(error.wire()))?;
+                placed.cwd
+            }
+            // An unregistered folder's workspace (ADR 0121): any existing
+            // absolute folder, kept canonical. The projects' refused roots
+            // do not apply: they guard what a file panel may read, and a
+            // home folder is a usual place for a shell.
+            TerminalPlace::Folder { path } => {
+                let folder = canonical_folder(path).await?;
+                kept = TerminalPlace::Folder {
+                    path: folder.clone(),
+                };
+                in_folder = Some(folder.clone());
+                folder
+            }
         };
         Ok(Resolved {
             folder,
@@ -85,7 +119,9 @@ impl NodeService {
                 session: place.session(),
                 project,
                 agent,
+                folder: in_folder,
             },
+            place: kept,
         })
     }
 
@@ -181,6 +217,9 @@ impl NodeService {
             },
             TerminalPlace::Project { project, .. } => (!self.workspaces.has_project(*project))
                 .then(|| TerminalsError::NotFound(handle.id())),
+            // The start held the worktree from removal; a folder has no
+            // owner that could go away.
+            TerminalPlace::Worktree { .. } | TerminalPlace::Folder { .. } => None,
         };
         let Some(refusal) = refusal else {
             return Ok(());
@@ -203,6 +242,25 @@ impl NodeService {
             .hold_folder(folder)
             .map_err(|error| TerminalsError::Wire(error.wire()))
     }
+}
+
+/// `path` as a folder place keeps it: absolute, existing, canonical.
+pub(super) async fn canonical_folder(path: &std::path::Path) -> Result<PathBuf, TerminalsError> {
+    if !path.is_absolute() {
+        return Err(TerminalsError::Invalid(
+            "a folder place is an absolute path".to_owned(),
+        ));
+    }
+    let asked = path.to_path_buf();
+    let found = tokio::task::spawn_blocking(move || {
+        std::fs::canonicalize(&asked)
+            .ok()
+            .filter(|folder| folder.is_dir())
+    })
+    .await
+    .ok()
+    .flatten();
+    found.ok_or_else(|| TerminalsError::Conflict(format!("the folder is gone: {}", path.display())))
 }
 
 /// A start beside an archived session: refused, since archiving ends what
