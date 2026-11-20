@@ -64,7 +64,7 @@ export function menuRows(actions: readonly TabAction[]) {
       icon={action.icon}
       onSelect={action.run}
       disabled={action.disabled ?? false}
-      tone={action.danger ? "danger" : "default"}
+      tone={action.danger === true ? "danger" : "default"}
     >
       {action.label}
     </MenuItem>

@@ -195,3 +195,12 @@
 .workspace-close-copy {
   white-space: pre-line;
 }
+
+.workspace-terminal-error {
+  flex: none;
+  padding: var(--s-2) var(--s-3);
+  border-top: 1px solid var(--border-faint);
+  background: var(--bg-surface);
+  color: var(--danger);
+  font: var(--t-meta);
+}

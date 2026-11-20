@@ -33,6 +33,18 @@ export function childAgent(session: SessionInfo): boolean {
   return session.created_by.kind === "agent" && session.detach_receipt == null;
 }
 
+interface TabLifecycle {
+  confirmation: Confirmation | null;
+  cancel: () => void;
+  confirm: () => void;
+  askClose: (item: TabItem) => void;
+  bulk: (tabs: readonly WorkspaceTab[], title: string) => void;
+  actions: (item: TabItem) => readonly TabAction[];
+  renaming: TabItem | null;
+  cancelRename: () => void;
+  rename: (title: string) => Promise<string | null>;
+}
+
 export function useTabLifecycle(input: {
   node: NodeKey;
   protocol: number | null;
@@ -42,7 +54,7 @@ export function useTabLifecycle(input: {
   remove: (tab: WorkspaceTab) => void;
   forgetTerminal: (id: TerminalId) => void;
   renamedTerminal: (terminal: TerminalInfo) => void;
-}) {
+}): TabLifecycle {
   const { node, words } = input;
   const fleet = useFleet();
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
@@ -189,6 +201,16 @@ export function useTabLifecycle(input: {
     switch (tab.kind) {
       case "agent":
         return [
+          {
+            label: words.copyResume,
+            icon: "copy",
+            disabled: input.session(tab.id)?.spec.mode !== "structured",
+            run: () =>
+              copy(
+                `vessel${node === "_here" ? "" : ` --node ${node}`} session resume ${tab.id}`,
+                words.agent,
+              ),
+          },
           {
             label: words.copyAgent,
             icon: "copy",

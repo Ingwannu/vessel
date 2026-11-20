@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import type { Outcome } from "../../data/outcome";
 import { useFleet } from "../../context";
 import {
   openWorkspaceTerminal,
@@ -18,12 +19,20 @@ import type {
 
 const LIST_INTERVAL_MS = 2_000;
 
+interface WorkspaceTerminals {
+  rows: readonly TerminalInfo[];
+  creating: boolean;
+  create: () => Promise<Outcome<TerminalInfo> | null>;
+  renamed: (terminal: TerminalInfo) => void;
+  forget: (id: TerminalId) => void;
+}
+
 export function useTerminals(
   node: NodeKey,
   place: TerminalPlace,
   sessionIds: ReadonlySet<SessionId>,
   enabled: boolean,
-) {
+): WorkspaceTerminals {
   const fleet = useFleet();
   const [rows, setRows] = useState<readonly TerminalInfo[]>([]);
   const [creating, setCreating] = useState(false);

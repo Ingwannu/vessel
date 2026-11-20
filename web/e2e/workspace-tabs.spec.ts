@@ -52,7 +52,7 @@ test("a standalone terminal accepts input and closes through the compact switche
   const terminal = page.locator(".workspace-terminal .xterm-host");
   await expect(terminal).toBeVisible();
   await terminal.click();
-  await page.keyboard.insertText("printf '%s\\n' work-space-ready");
+  await page.keyboard.insertText("printf '%s%s\\n' work- space-ready");
   await page.keyboard.press("Enter");
   await expect(terminal).toContainText("work-space-ready");
 

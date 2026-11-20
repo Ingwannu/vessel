@@ -31,12 +31,18 @@ function terminalTheme(): ITheme {
   };
 }
 
+interface MountedTerminal {
+  write: (data: Uint8Array) => void;
+  close: () => void;
+}
+
 export function mountTerminal(
   element: HTMLDivElement,
   send: (input: TerminalInput) => Promise<unknown>,
   onSize: (size: TerminalSize) => void,
   onDropped: () => void,
-) {
+  resize: "after-typing" | "on-attach" = "after-typing",
+): MountedTerminal {
   const terminal = new Terminal({
     fontFamily: TERMINAL_FONT,
     // Appearance's code font, a pixel up, as the terminal token is.
@@ -76,13 +82,19 @@ export function mountTerminal(
   fit.fit();
   onSize({ cols: terminal.cols, rows: terminal.rows });
   const sender = new TerminalSender(send, onDropped);
-  let typed = false;
+  let typed = resize === "on-attach";
+  if (resize === "on-attach") {
+    sender.resize(terminal.cols, terminal.rows);
+  }
   const sendSize = () => {
     if (!typed || !element.contains(document.activeElement)) {
       return;
     }
     sender.resize(terminal.cols, terminal.rows);
   };
+  if (resize === "on-attach") {
+    element.addEventListener("focusin", sendSize);
+  }
   const input = userInput(terminal, (data) => {
     const first = !typed;
     typed = true;
@@ -103,6 +115,7 @@ export function mountTerminal(
       stopScheme();
       stopSize();
       observer.disconnect();
+      element.removeEventListener("focusin", sendSize);
       input.dispose();
       sender.close();
       terminal.dispose();

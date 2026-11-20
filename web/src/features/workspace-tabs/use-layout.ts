@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import {
   addDiscovered,
@@ -10,11 +10,16 @@ import {
 } from "../../data/workspace/tab-layout";
 import type { SessionId } from "../../wire/proto";
 
+interface LayoutState {
+  layout: TabLayout;
+  update: Dispatch<SetStateAction<TabLayout>>;
+}
+
 export function useLayout(
   scope: string,
   route: SessionId,
   discovered: readonly WorkspaceTab[],
-) {
+): LayoutState {
   const [layout, update] = useState<TabLayout>(() =>
     addDiscovered(
       enterRoute(loadTabLayout(window.localStorage, scope), route),

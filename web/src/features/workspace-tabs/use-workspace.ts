@@ -12,6 +12,7 @@ import {
   removeTab,
   showTab,
   tabKey,
+  type TabLayout,
   type WorkspaceTab,
 } from "../../data/workspace/tab-layout";
 import { TERMINAL_PROTOCOL } from "../../data/workspace/terminals";
@@ -25,7 +26,7 @@ import type {
   TerminalPlace,
   WorkspaceRoot,
 } from "../../wire/proto";
-import type { TabAction } from "./chrome";
+import type { TabAction } from "./chrome-parts";
 import { childAgent, useTabLifecycle } from "./lifecycle";
 import { useLayout } from "./use-layout";
 import { useTerminals } from "./use-terminals";
@@ -45,6 +46,24 @@ function inRoot(
     : rootKey(placed) === rootKey(root);
 }
 
+interface WorkspaceState {
+  layout: TabLayout;
+  active: WorkspaceTab | undefined;
+  protocol: number | null;
+  visited: ReadonlySet<string>;
+  dirty: ReadonlySet<string>;
+  lines: ReadonlyMap<RelPath, { line: number; seq: number }>;
+  session: (id: SessionId) => SessionInfo | undefined;
+  select: (tab: WorkspaceTab) => void;
+  remove: (tab: WorkspaceTab) => void;
+  markDirty: (key: string, dirty: boolean) => void;
+  lifecycle: ReturnType<typeof useTabLifecycle>;
+  actions: readonly TabAction[];
+  terminals: readonly TerminalInfo[];
+  openFile: (path: RelPath, line: number | null) => void;
+  move: (source: string, target: string, side: "before" | "after") => void;
+}
+
 export function useWorkspace(
   node: NodeKey,
   anchor: SessionInfo,
@@ -52,11 +71,13 @@ export function useWorkspace(
   projects: ProjectsView,
   scope: string,
   words: TabWords,
-) {
+): WorkspaceState {
   const navigate = useNavigate();
   const protocol = useFleetState((state) => {
     const status = state.statuses[node];
-    return status?.state === "connected" ? status.protocol : null;
+    return state.link.kind === "open" && status?.state === "connected"
+      ? status.protocol
+      : null;
   });
   const listed = useFleetState((state) => state.sessions[node] ?? NO_SESSIONS);
   const eligible = useMemo(

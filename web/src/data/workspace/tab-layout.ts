@@ -15,7 +15,10 @@ export type WorkspaceTab =
   | { kind: "agent"; id: SessionId }
   | { kind: "terminal"; id: TerminalId }
   | { kind: "file"; path: RelPath }
-  | { kind: "files" | "changes" | "diff" | "draft" };
+  | { kind: "files" }
+  | { kind: "changes" }
+  | { kind: "diff" }
+  | { kind: "draft" };
 
 export interface TabLayout {
   tabs: readonly WorkspaceTab[];

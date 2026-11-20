@@ -7,9 +7,10 @@ import { useFleet } from "../../context";
 import { decodeBytes } from "../../data/terminal";
 import {
   followWorkspaceTerminal,
+  readWorkspaceTerminal,
   sendWorkspaceTerminal,
 } from "../../data/workspace/terminals";
-import { Banner, Spinner } from "../../ui/kit";
+import { Spinner } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { TerminalId } from "../../wire/proto";
@@ -30,7 +31,7 @@ export function TerminalPane({
   const fleet = useFleet();
   const host = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<StreamState | null>(null);
-  const [received, setReceived] = useState(false);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     const element = host.current;
     if (element === null) {
@@ -41,17 +42,25 @@ export function TerminalPane({
       (input) => sendWorkspaceTerminal(fleet, node, terminal, input),
       () => undefined,
       () => toast(words.dropped, "error"),
+      "on-attach",
     );
     const stop = followWorkspaceTerminal(fleet, node, terminal, {
       record: ({ event }) => {
         if (event.type === "terminal") {
           pane.write(decodeBytes(event.data));
-          setReceived(true);
+          setReady(true);
         }
       },
       state: setStream,
     });
+    let live = true;
+    void readWorkspaceTerminal(fleet, node, terminal).then((result) => {
+      if (live && result.ok) {
+        setReady(true);
+      }
+    });
     return () => {
+      live = false;
       stop();
       pane.close();
     };
@@ -63,12 +72,16 @@ export function TerminalPane({
       {!connected ? (
         <div className="workspace-terminal-state">{words.disconnected}</div>
       ) : stream?.state === "failed" ? (
-        <Banner tone="error">
-          {words.terminalFailed} · {stream.message}
-        </Banner>
+        <div role="alert" className="workspace-terminal-error">
+          {stream.reason === "removed"
+            ? words.terminalMissing
+            : words.terminalFailed}
+        </div>
       ) : stream?.state === "ended" ? (
-        <Banner tone="error">{words.terminalExited}</Banner>
-      ) : !received && stream === null ? (
+        <div role="status" className="workspace-terminal-error">
+          {words.terminalExited}
+        </div>
+      ) : !ready && stream?.state !== "resumed" ? (
         <div
           className="workspace-terminal-state loading"
           aria-label={words.loading}
