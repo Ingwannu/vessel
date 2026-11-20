@@ -319,7 +319,8 @@ web/src/data/     stores (useSyncExternalStore), the timeline reducer (tool call
                   worktree-words), setup's output as lines (setup-log), a diff as numbered rows
                   (diff-rows) and the Changes list (changes), the file tree (file-tree), the
                   git button's action (git-quick), a selection as a draft's reference
-                  (reference), and the lexer for syntax colour (syntax, syntax-languages)
+                  (reference), the lexer for syntax colour (syntax, syntax-languages),
+                  the workspace tab model (tab-layout.ts) and terminal calls (terminals.ts)
 web/src/features/ an area's components and hooks, each stylesheet beside its component: the shell
                   (frame, sidebar), compose (/new, the composer), session (the timeline drawn
                   through a window: only the rows near the view exist; find and the outline go
@@ -337,7 +338,9 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   chat"; and the branch's chip and a
                   worktree's setup card, which the entry and /new use), compose/'s tray and
                   the worktree's start (where-tray, where-place, use-starter,
-                  start-worktree), the session's panel as tabs (inspector, panel-state),
+                  start-worktree), workspace-tabs/ (ADR 0118: an ordered browser-local layout, route
+                  selection, launcher, lifecycle confirmation and pane dispatch), the
+                  session's Summary (inspector),
                   welcome/, shortcuts/ (the one keydown listener and each action's handler),
                   notifications/ (notices, the tone), the command palette (the shell's, with its
                   shortcut; the sidebar's row only opens it), the theme switch, the kit's
@@ -1233,7 +1236,7 @@ captured node/runtime-generation addresses and the small semantic theme
 palette. Its constructors and serde boundary refuse malformed identifiers,
 resource paths masquerading as ids and executable paint content. These
 values do no I/O and add no dependency edge. ADR 0115 adds the manager
-calls (`plugins::manage`, `PLUGINS_PROTOCOL`, drafted 35): list, logs,
+calls (`plugins::manage`, `PLUGINS_PROTOCOL`, protocol 36): list, logs,
 inspect, install, enable, disable, reload, remove and watch, served by the
 node's plugin host. Later native registry and catalog layers consume this
 one contract rather than defining their own plugin identities.
@@ -1648,6 +1651,22 @@ only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
 
+### Connected attention admission (ADR 0089)
+
+`vessel-proto::notifications` owns exact session-cursor and terminal-revision
+contracts. `vessel-node::push` elects one direct connection through its existing
+presence policy. `vessel-store::notification_claims` commits session admissions
+with the writer and bounds them by inbox retention through a cascading foreign
+key. `vessel-session::terminals` owns semantic activity and once-only terminal
+revision admission in the existing info watch. No PTY parser, push sender or
+notification content is duplicated; clients display only a generic local notice.
+Passive read callers acquire the same transferable marking lease before a task
+is retained; accepted work owns it through durable and live publication. Local
+final authority/source checks share one borrowed-connection read transaction.
+The shared notification SQL consumes canonical current Parentage before paging
+and within source/lease admission, without replacing immutable Creator audit.
+The feature's protocol remains unassigned until reviewed integration, so added
+fields are projected away and methods are refused across old and current peers.
 
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public

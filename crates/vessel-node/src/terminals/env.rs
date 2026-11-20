@@ -16,12 +16,15 @@ const AGENT_VARIABLES: [&str; 2] = ["VESSEL_AGENT_SESSION", "VESSEL_NODE_SOCKET"
 
 /// Every credential Vessel itself defines, by name: what a node in a test
 /// (whose environment is not read) removes.
-pub const KNOWN_CREDENTIALS: [&str; 5] = [
+pub const KNOWN_CREDENTIALS: [&str; 8] = [
     "VESSEL_TOKEN",
     "VESSEL_AGENT_SECRET",
     "VESSEL_MODEL_SECRET",
     "VESSEL_AGENT_SESSION",
     "VESSEL_NODE_SOCKET",
+    vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
+    vessel_proto::notifications::TERMINAL_ACTIVITY_SECRET_ENV,
+    vessel_proto::notifications::TERMINAL_ACTIVITY_SOCKET_ENV,
 ];
 
 /// Whether `name` is one of Vessel's credentials: a `VESSEL_*` name ending
@@ -30,6 +33,11 @@ pub const KNOWN_CREDENTIALS: [&str; 5] = [
 fn is_credential(name: &str) -> bool {
     (name.starts_with("VESSEL_") && (name.ends_with("TOKEN") || name.ends_with("SECRET")))
         || AGENT_VARIABLES.contains(&name)
+        || [
+            vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
+            vessel_proto::notifications::TERMINAL_ACTIVITY_SOCKET_ENV,
+        ]
+        .contains(&name)
 }
 
 /// The names to remove from every terminal's environment, given the names

@@ -37,6 +37,28 @@ impl From<u64> for RegistryRevision {
     }
 }
 
+/// The served diff-stat generation (ADR 0120).
+///
+/// Not a [`RegistryRevision`]: a file save must not look like a registry edit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(transparent)]
+pub struct DiffStatRevision(u64);
+
+impl DiffStatRevision {
+    /// A generation the node minted.
+    #[must_use]
+    pub const fn of(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// The number a client sends back as `changed_from`.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 /// A background workspace remains durable but is hidden by default lists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -213,6 +235,11 @@ pub struct ListWorkspaces {
     /// Default foreground only.
     #[serde(default)]
     pub visibility: WorkspaceVisibilityFilter,
+    /// The served diff-stat generation the caller already has (ADR 0120).
+    ///
+    /// The same number waits for the next change. Absent on the first read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changed_from: Option<DiffStatRevision>,
 }
 
 /// Direct identity lookup includes archived records for recovery inspection.
@@ -221,6 +248,11 @@ pub struct ListWorkspaces {
 pub struct GetWorkspace {
     /// Exact host-local workspace identity.
     pub workspace: WorkspaceId,
+    /// The served diff-stat generation the caller already has (ADR 0120).
+    ///
+    /// The same number waits for the next change. Absent on the first read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changed_from: Option<DiffStatRevision>,
 }
 
 /// Manual rename is independent from filesystem/branch names.
