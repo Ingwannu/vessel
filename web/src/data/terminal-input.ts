@@ -7,21 +7,51 @@
 // regression must pass before upgrading xterm. Missing API fails closed.
 import type { IDisposable, Terminal } from "@xterm/xterm";
 
-interface InputCore {
-  _core: {
-    coreService: {
-      onUserInput: (listener: () => void) => IDisposable;
-    };
+type OnUserInput = (listener: () => void) => IDisposable;
+
+/** xterm's internal `onUserInput`, if this build still has it. */
+function onUserInput(terminal: Terminal): OnUserInput | null {
+  const core: unknown = Reflect.get(terminal, "_core");
+  if (typeof core !== "object" || core === null) return null;
+  const service: unknown = Reflect.get(core, "coreService");
+  if (typeof service !== "object" || service === null) return null;
+  const listen: unknown = Reflect.get(service, "onUserInput");
+  if (typeof listen !== "function") return null;
+  return (listener) => {
+    const disposable: unknown = Reflect.apply(listen, service, [listener]);
+    return isDisposable(disposable) ? disposable : { dispose() {} };
   };
 }
 
+function isDisposable(value: unknown): value is IDisposable {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "dispose" in value &&
+    typeof value.dispose === "function"
+  );
+}
+
+/** Send what the user types on `terminal`. Without xterm's provenance
+ * signal nothing is sent at all (the terminal stays view-only), so remote
+ * output can never be echoed back as input. */
 export function userInput(
   terminal: Terminal,
   send: (data: string) => void,
 ): IDisposable {
-  const core = (terminal as Terminal & InputCore)._core.coreService;
+  const listen = onUserInput(terminal);
+  if (listen === null) {
+    console.error(
+      "vessel ui: this xterm has no input provenance; the terminal is view-only",
+    );
+    return {
+      dispose() {
+        // Nothing was subscribed.
+      },
+    };
+  }
   let user = false;
-  const provenance = core.onUserInput(() => {
+  const provenance = listen(() => {
     user = true;
   });
   const data = terminal.onData((text) => {
