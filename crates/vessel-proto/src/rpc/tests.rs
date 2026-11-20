@@ -775,6 +775,7 @@ fn the_pane_reads_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, PULL_REQUEST_PANE_METHODS);
+    // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
     assert!(PULL_REQUEST_PANE_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     // A check run is a positive number, checked when the request is decoded.
     let refused = serde_json::from_value::<Call>(serde_json::json!({
@@ -1669,3 +1670,4 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
 
 mod envelope_versions;
 mod shared_terminals;
+mod workspace_terminals;

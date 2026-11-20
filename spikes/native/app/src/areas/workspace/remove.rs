@@ -62,7 +62,11 @@ impl Shell {
         let worktree = removing.worktree.id;
         self.ask(
             &machine,
-            Ask::Worktree(WorktreeAsk::Remove(RemoveWorktree { worktree, if_lost })),
+            Ask::Worktree(WorktreeAsk::Remove(RemoveWorktree {
+                worktree,
+                if_lost,
+                end_terminals: false,
+            })),
         );
         cx.notify();
     }
