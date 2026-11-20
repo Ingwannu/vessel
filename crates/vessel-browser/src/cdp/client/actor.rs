@@ -2,22 +2,22 @@
 
 use std::sync::Arc;
 
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use vessel_proc::OwnedGroupExit;
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{
-    BrowserEffect, BrowserId, BrowserRevision, BrowserUrl, COMMAND_TIMEOUT, HumanInput,
-    ViewportSize,
+    BrowserEffect, BrowserFailure, BrowserId, BrowserLoad, BrowserRevision, BrowserUrl,
+    COMMAND_TIMEOUT, HumanInput, ViewportSize,
 };
 
 use super::Client;
 use super::owner::{Owner, OwnerError};
 use crate::cdp::wire::{Event, EventKind};
 use crate::delivery::{Attempt, Caller};
-use crate::page::{PageError, ViewportFrame};
-use crate::targets::{TargetError, Targets};
+use crate::page::PageError;
+use crate::targets::{TargetError, TargetWatch, Targets};
 
 const COMMAND_CAPACITY: usize = 64;
 
@@ -45,12 +45,11 @@ pub(super) enum ActorError {
     Page(#[from] PageError),
 }
 
-type Frames = watch::Receiver<Option<Arc<ViewportFrame>>>;
 type Reply<T> = oneshot::Sender<Result<T, ActorError>>;
 
 enum Command {
     Open(BrowserUrl, ViewportSize, Reply<BrowserId>),
-    Watch(BrowserId, Reply<Frames>),
+    Watch(BrowserId, Reply<TargetWatch>),
     Input(BrowserId, BrowserRevision, HumanInput, Reply<()>),
     Navigate(BrowserId, BrowserUrl, Reply<()>),
     Close(BrowserId, Reply<()>),
@@ -102,7 +101,7 @@ impl Actor {
         &self,
         workspace: WorkspaceId,
         browser: BrowserId,
-    ) -> Result<Frames, ActorError> {
+    ) -> Result<TargetWatch, ActorError> {
         self.call(workspace, |reply| Command::Watch(browser, reply))
             .await
     }
@@ -191,24 +190,25 @@ async fn run(
 ) -> Shutdown {
     if let Some((client, events)) = owner.controller() {
         let mut targets = Targets::default();
-        loop {
+        let ended = loop {
             tokio::select! {
-                () = stop.cancelled() => break,
+                () = stop.cancelled() => break BrowserFailure::Closed,
                 next = requests.recv() => {
-                    let Some(queued) = next else { break };
+                    let Some(queued) = next else { break BrowserFailure::Closed };
                     if stop.is_cancelled() {
-                        break;
+                        break BrowserFailure::Closed;
                     }
                     if queued.attempt.start() {
                         handle(&mut targets, client, queued).await;
                     }
                 }
                 next = events.next() => {
-                    let Some(event) = next else { break };
+                    let Some(event) = next else { break BrowserFailure::NoEngine };
                     observe(&mut targets, &event).await;
                 }
             }
-        }
+        };
+        targets.end(ended);
     }
     drop(requests);
     let receipt = owner.close().await;
@@ -234,10 +234,10 @@ async fn handle(targets: &mut Targets, client: &Client, queued: Queued) {
         }
         Command::Watch(browser, reply) => {
             let result = async {
-                let page = targets.owned(workspace, &browser)?;
-                let frames = page.subscribe_frames();
-                page.refresh_visible_frame().await?;
-                Ok(frames)
+                let binding = targets.binding(workspace, &browser)?;
+                let watch = binding.watch();
+                binding.page.refresh_visible_frame().await?;
+                Ok(watch)
             }
             .await;
             let _delivered = reply.send(result);
@@ -257,8 +257,14 @@ async fn handle(targets: &mut Targets, client: &Client, queued: Queued) {
         }
         Command::Navigate(browser, url, reply) => {
             let result = async {
-                targets.owned(workspace, &browser)?.navigate(url).await?;
-                Ok(())
+                let binding = targets.binding(workspace, &browser)?;
+                let result = binding.page.navigate(url).await;
+                let load = match &result {
+                    Ok(()) => BrowserLoad::Loading,
+                    Err(_) => BrowserLoad::Failed(BrowserFailure::Internal),
+                };
+                binding.announce(load);
+                Ok(result?)
             }
             .await;
             let _delivered = reply.send(result);
@@ -275,7 +281,7 @@ async fn handle(targets: &mut Targets, client: &Client, queued: Queued) {
 }
 
 async fn observe(targets: &mut Targets, event: &Event) {
-    let Some(page) = event
+    let Some(binding) = event
         .session()
         .and_then(|session| targets.observing(session))
     else {
@@ -283,15 +289,17 @@ async fn observe(targets: &mut Targets, event: &Event) {
     };
     match event.kind() {
         EventKind::Navigated | EventKind::DocumentOpened | EventKind::WithinDocument => {
-            let _revision = page.invalidate();
+            if binding.page.invalidate().is_ok() {
+                binding.announce(BrowserLoad::Loading);
+            }
         }
         EventKind::Loaded | EventKind::Stopped => {
-            let _captured = page.refresh_visible_frame().await;
+            binding.announce(BrowserLoad::Ready);
+            let _captured = binding.page.refresh_visible_frame().await;
         }
         EventKind::Attached
         | EventKind::Detached
         | EventKind::Crashed
-        | EventKind::Loading
         | EventKind::Screencast
         | EventKind::Dialog
         | EventKind::Console
@@ -302,5 +310,6 @@ async fn observe(targets: &mut Targets, event: &Event) {
         | EventKind::RequestPaused
         | EventKind::Download
         | EventKind::Unknown => {}
+        EventKind::Loading => binding.announce(BrowserLoad::Loading),
     }
 }

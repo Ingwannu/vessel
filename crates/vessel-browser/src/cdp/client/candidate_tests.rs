@@ -13,7 +13,8 @@ use crate::profile::{Profile, ProfileError};
 use std::path::PathBuf;
 use tokio::net::TcpListener;
 use vessel_proto::WorkspaceId;
-use vessel_proto::browser::{HumanInput, ViewportSide, ViewportSize};
+use vessel_proto::browser::{BrowserFailure, HumanInput, ViewportSide, ViewportSize};
+use crate::targets::TargetNotice;
 
 struct Fixture {
     scope: Preparation,
@@ -121,9 +122,10 @@ async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
         actor.watch(WorkspaceId::random(), id.clone()).await,
         Err(ActorError::Target(crate::targets::TargetError::Missing))
     ));
-    let frames = actor.watch(workspace, id.clone()).await?;
-    let frame = frames.borrow().clone().unwrap();
+    let mut watched = actor.watch(workspace, id.clone()).await?;
+    let frame = watched.frames.borrow().clone().unwrap();
     assert_eq!(frame.image().size().width().get(), size.width.get());
+    assert_eq!(frame.revision(), watched.initial.revision);
     actor
         .input(
             workspace,
@@ -151,6 +153,12 @@ async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
         Err(ActorError::Page(crate::page::PageError::StaleFrame))
     ));
     actor.close(workspace, id).await?;
-    assert!(frames.has_changed().is_err());
+    assert!(watched.frames.has_changed().is_err());
+    let ended = loop {
+        if let TargetNotice::Ended(reason) = watched.notices.recv().await.unwrap() {
+            break reason;
+        }
+    };
+    assert_eq!(ended, BrowserFailure::Closed);
     Ok(())
 }

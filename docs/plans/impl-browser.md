@@ -97,3 +97,9 @@ mutations. Shutdown runs inside the actor after cancellation, so losing a
 client waiter cannot drop the retained child or profile. A caller receives a
 typed frame subscription, never the debugger connection. The actor stays
 staged until the node admission path and release qualification are ready.
+
+Discrete load and end notices have their own bounded channel. A visible frame
+replaces the previous frame, while a lagged notice reader receives an explicit
+gap from the broadcast receiver. An acknowledged close publishes a terminal
+notice and drops the frame producer. Actor shutdown settles each watch before
+closing the debugger and owned process.
