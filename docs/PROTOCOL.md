@@ -68,9 +68,9 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 37 (drafted, 2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
+## Version 38 (drafted, 2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
 
-Drafted as 37 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 37), the next after the plugin manager's 36; the number
+Drafted as 38 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 38), the next after the shared terminals' 37; the number
 is assigned at the node-line merge. Both methods are unary and not forwardable.
 
 - `plugin.catalog {}` (`read`) answers `{generation, catalog: {node, installations: [{address, required_client,
@@ -87,6 +87,24 @@ is assigned at the node-line merge. Both methods are unary and not forwardable.
   reply.
 - `plugin.install` and `plugin.inspect` refuse a source or path over 4 KiB and a ref over 256 bytes
   (`invalid_request`).
+- The minimum protocol remains 2. The store schema is unchanged.
+
+## Version 37 (2026-11-20, milestone 12): several clients on one node's terminals (implementer T2, TRACKER 481-483, ADR 0116)
+
+Assigned 37 (`SHARED_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 37) at its node-line merge, the next after the plugin
+manager's 36. No method is added; two calls gain optional fields and one answer a field.
+
+- `terminal.list { place?, changed_from? }`: with `changed_from`, a long poll (at most 30 s, in the caller's wait
+  shares, answered at once when forwarded) until the node's terminal list revision differs, as `terminal.get` and
+  `port.list`. Paseo pushes `terminals_changed`; the long poll gives the same latency without a new frame kind.
+- `TerminalList` gains `revision` (0 from an older node): it moves when a terminal starts, ends (status), is renamed,
+  changes its service state or is forgotten, never for a resize or output. It is read before the list, so a change
+  between the two answers the next poll at once. It is the node's, not a place's.
+- `TerminalInput::Resize` gains `intent?: claim | update` (Paseo's size ownership), for `terminal.send` and a
+  terminal-mode session's `session.send` alike. Absent is a claim. A claim applies and makes its connection the owner;
+  an update applies only from the owner and is otherwise dropped, still answered `Ack`.
+- A client sends `changed_from` or an `intent` only to a node at 37 or later (`Call::since`): an older node would answer
+  the poll at once (a client asking again on each answer would spin) and apply another client's update.
 - The minimum protocol remains 2. The store schema is unchanged.
 
 ## Version 36 (2026-11-20, milestone 12): the plugin manager and directory installs (impl P, CATALOGUE F-M1..F-M39, TRACKER 696, ADR 0115)

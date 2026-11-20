@@ -411,6 +411,7 @@ pub(crate) async fn run(
                 },
                 Outgoing::Resize { cols, rows } => TerminalInput::Resize {
                     size: TerminalSize { cols, rows },
+                    intent: None,
                 },
             };
             client

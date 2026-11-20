@@ -180,8 +180,11 @@ pub struct Surface {
 }
 
 /// Each control has an identity for retained focus and captured edit state.
+/// In TypeScript `PluginControl`: the bridge's declarations say "Control"
+/// as a key's name, and the generator imports every base name its text
+/// mentions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "PluginControl"))]
 #[serde(deny_unknown_fields)]
 pub struct Control {
     /// Unique within the contribution surface, including nested containers.

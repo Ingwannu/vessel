@@ -11,12 +11,7 @@ use super::super::tests::{Fixture, client_only, id, until};
 use super::super::{CallFailure, PluginError};
 
 /// A call to `plugin`'s `method` from the run `generation`, global context.
-fn call(
-    plugin: &str,
-    generation: RuntimeGeneration,
-    method: &str,
-    input: RawJson,
-) -> InvokePlugin {
+fn call(plugin: &str, generation: RuntimeGeneration, method: &str, input: RawJson) -> InvokePlugin {
     InvokePlugin {
         plugin: id(plugin),
         generation,
@@ -63,7 +58,10 @@ async fn the_catalog_holds_running_installations_at_the_watched_generation() {
     let refused = plugins
         .invoke(call("night", generation, "night.read", none()))
         .await;
-    assert!(matches!(refused, Err(PluginError::NoMethods(_))), "{refused:?}");
+    assert!(
+        matches!(refused, Err(PluginError::NoMethods(_))),
+        "{refused:?}"
+    );
     plugins.set_switch(false);
     until(&plugins, "night", PluginStatus::Disabled).await;
     let after = plugins.catalog(true).await.unwrap();
@@ -82,7 +80,10 @@ async fn a_client_file_that_leads_outside_the_directory_does_not_start() {
     let directory = fixture.plugin("night", &client_only("night"), &[]);
     std::os::unix::fs::symlink(&outside, directory.join("client.json")).unwrap();
     let installed = plugins.install("~/night", None, None).await;
-    assert!(matches!(installed, Err(PluginError::Failed { .. })), "{installed:?}");
+    assert!(
+        matches!(installed, Err(PluginError::Failed { .. })),
+        "{installed:?}"
+    );
     let listed = plugins.list(true).await;
     let statuses: Vec<PluginStatus> = listed.plugins.iter().map(|item| item.status).collect();
     assert_eq!(statuses, [PluginStatus::Failed]);
@@ -96,20 +97,22 @@ async fn a_call_to_a_plugin_that_is_not_installed_or_not_running_is_refused() {
     let fixture = Fixture::new();
     let plugins = fixture.host(false).await;
     let any = RuntimeGeneration::random();
-    let missing = plugins
-        .invoke(call("nothing", any, "a.read", none()))
-        .await;
-    assert!(matches!(missing, Err(PluginError::NotInstalled(_))), "{missing:?}");
+    let missing = plugins.invoke(call("nothing", any, "a.read", none())).await;
+    assert!(
+        matches!(missing, Err(PluginError::NotInstalled(_))),
+        "{missing:?}"
+    );
     let _directory = fixture.plugin(
         "night",
         &client_only("night"),
         &[("client.json", THEME_CLIENT.as_bytes())],
     );
     let _item = plugins.install("~/night", None, None).await.unwrap();
-    let stopped = plugins
-        .invoke(call("night", any, "a.read", none()))
-        .await;
-    assert!(matches!(stopped, Err(PluginError::NotRunning(_))), "{stopped:?}");
+    let stopped = plugins.invoke(call("night", any, "a.read", none())).await;
+    assert!(
+        matches!(stopped, Err(PluginError::NotRunning(_))),
+        "{stopped:?}"
+    );
     fixture.finish().await;
 }
 
@@ -135,7 +138,12 @@ async fn a_helper_answers_its_declared_method_and_refuses_an_undeclared_one() {
     let generation = installation.address().generation;
     // A call from an older catalog is refused before the helper sees it.
     let older = plugins
-        .invoke(call("echo", RuntimeGeneration::random(), "echo.read", none()))
+        .invoke(call(
+            "echo",
+            RuntimeGeneration::random(),
+            "echo.read",
+            none(),
+        ))
         .await;
     let Err(PluginError::Call { failure, .. }) = &older else {
         panic!("a call from another run is refused: {older:?}");

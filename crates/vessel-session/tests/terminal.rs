@@ -515,6 +515,7 @@ async fn input_must_match_the_session_mode() {
                         cols: 120,
                         rows: 40,
                     },
+                    intent: None,
                 },
             })
             .await

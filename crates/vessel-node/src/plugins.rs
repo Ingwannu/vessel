@@ -119,7 +119,7 @@ pub(crate) enum PluginError {
         /// Which.
         id: PluginId,
         /// Why.
-        failure: catalog::CallFailure,
+        failure: CallFailure,
     },
     /// The running declarations exceed the node's catalog budget.
     #[error("the plugin catalog could not be built: {0}")]

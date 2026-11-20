@@ -9,8 +9,8 @@ use vessel_proto::plugins::{
     GetPluginCatalog, GetPluginLogs, InstallPlugin, InvokeContext, InvokePlugin, ListPlugins,
     PLUGINS_PROTOCOL, PluginGeneration, PluginStatus, RemovePlugin, WatchPlugins,
 };
-use vessel_proto::{ErrorCode, RawJson, Scope};
 use vessel_proto::settings::SetNodeSettings;
+use vessel_proto::{ErrorCode, RawJson, Scope};
 
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::support::{Fixture, within};
@@ -173,9 +173,18 @@ async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
         assert!(!reader.call(GetPluginCatalog {}).await.unwrap().may_invoke);
         assert!(owner.call(GetPluginCatalog {}).await.unwrap().may_invoke);
         let plugin_id = || "night".parse().unwrap();
-        assert_eq!(code(reader.call(install("~/night")).await), ErrorCode::Forbidden);
         assert_eq!(
-            code(reader.call(GetPluginLogs { plugin: plugin_id() }).await),
+            code(reader.call(install("~/night")).await),
+            ErrorCode::Forbidden
+        );
+        assert_eq!(
+            code(
+                reader
+                    .call(GetPluginLogs {
+                        plugin: plugin_id()
+                    })
+                    .await
+            ),
             ErrorCode::Forbidden
         );
         let catalog = reader.call(GetPluginCatalog {}).await.unwrap();
@@ -200,4 +209,3 @@ async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
     })
     .await;
 }
-
