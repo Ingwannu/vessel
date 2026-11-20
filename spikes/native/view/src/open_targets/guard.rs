@@ -92,7 +92,7 @@ fn resolve(path: &Path, probe: &dyn Probe) -> Result<PathBuf, Refused> {
 /// Windows names a canonical drive path `\\?\C:\…`; editors and Explorer
 /// take `C:\…`. Other forms (`\\?\UNC\…`) are kept as they are.
 fn plain(path: PathBuf) -> PathBuf {
-    let text = path.to_string_lossy();
+    let text = path.to_string_lossy().into_owned();
     let Some(rest) = text.strip_prefix(r"\\?\") else {
         return path;
     };

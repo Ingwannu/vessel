@@ -197,10 +197,6 @@ pub(crate) fn open_button(
 
 /// "Choose editor": the targets with their icons, a check on the
 /// preferred; choosing one keeps it and closes the list.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the list is drawn from the shown workspace, its targets and the frame"
-)]
 fn chooser_list(
     shell: &Shell,
     shown: &Shown,

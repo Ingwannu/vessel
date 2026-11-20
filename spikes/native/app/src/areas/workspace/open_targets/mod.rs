@@ -235,7 +235,8 @@ impl Shell {
         cx.spawn(async move |this, cx| {
             let at = root.clone();
             let targets = cx
-                .background_spawn(async move { list(&*probe, Some(&at)) })
+                .background_executor()
+                .spawn(async move { list(&*probe, Some(&at)) })
                 .await;
             let _gone = this.update(cx, |shell, cx| {
                 shell.areas.workspace.open.keep(root, targets);
@@ -332,7 +333,8 @@ impl Shell {
         cx.spawn(async move |this, cx| {
             let starter = Arc::clone(&launcher);
             let done = cx
-                .background_spawn(async move { prepare(target, &request, &*probe, &*starter) })
+                .background_executor()
+                .spawn(async move { prepare(target, &request, &*probe, &*starter) })
                 .await;
             let _gone = this.update(cx, |shell, cx| match done {
                 Ok(Done::Started) => {}

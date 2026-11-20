@@ -15,10 +15,10 @@ fn every_editor_mark_fills_its_box_in_both_schemes() {
             let view = tree.size();
             let ink = tree.root().abs_bounding_box();
             assert!(ink.left() >= -0.01 && ink.top() >= -0.01, "{}", art.light.path);
-            assert!(ink.right() <= view.width() + 0.01, "{}", art.light.path);
-            assert!(ink.bottom() <= view.height() + 0.01, "{}", art.light.path);
+            assert!(ink.right() <= view.width().mul_add(1.0, 0.01), "{}", art.light.path);
+            assert!(ink.bottom() <= view.height().mul_add(1.0, 0.01), "{}", art.light.path);
             let longest = ink.width().max(ink.height());
-            assert!(longest >= view.width() * 0.8, "{}", art.light.path);
+            assert!(longest >= view.width().mul_add(0.8, 0.0), "{}", art.light.path);
         }
         assert_eq!(art.image_size(Size::Sixteen), gpui::size(gpui::px(16.0), gpui::px(16.0)));
         assert_eq!(art.dimensions(Size::Sixteen, Space::Row), Some((32.0, 16.0)));
