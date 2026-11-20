@@ -146,7 +146,12 @@ pub(crate) fn node_settings(settings: &vessel_proto::settings::NodeSettings) -> 
     })
     .collect::<Vec<_>>()
     .join(", ");
-    format!("park an idle agent: {park_after}\nnew sessions: {drivers}\n")
+    let plugins = if settings.plugins_enabled {
+        "on"
+    } else {
+        "off"
+    };
+    format!("park an idle agent: {park_after}\nnew sessions: {drivers}\nplugins: {plugins}\n")
 }
 
 pub(crate) fn node_status(node: &NodeInfo, sessions: &[SessionInfo], client: &str) -> String {

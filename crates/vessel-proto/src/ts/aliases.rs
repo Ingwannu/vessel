@@ -92,6 +92,11 @@
 //!   where a search goes on (a handle, though a number inside, as
 //!   `CallId` is); `SearchQuery` is what a person types; `SearchLimit` a
 //!   quantity.
+//! - The plugin manager (ADR 0115): `PluginId` is an installation id a
+//!   person types (`--id`), plain; `PluginGeneration` and `LogSequence` are
+//!   counters, quantities; `Caption`, `ContentText` and `LogText` are a
+//!   manifest's name and description and a helper's log line, carried
+//!   content.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,6 +133,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("BranchName", Alias::Named),
     ("BundlePath", Alias::Named),
     ("CallId", Alias::Handle),
+    ("Caption", Alias::Content),
     ("CheckName", Alias::Named),
     ("CloneUrl", Alias::Named),
     ("CodeSize", Alias::Quantity),
@@ -137,6 +143,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CommitMessage", Alias::Named),
     ("ConfigKey", Alias::Named),
     ("ContentHash", Alias::Handle),
+    ("ContentText", Alias::Content),
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
     ("CustomAgentSlot", Alias::Quantity),
@@ -181,6 +188,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
+    ("LogSequence", Alias::Quantity),
+    ("LogText", Alias::Content),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -196,6 +205,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PairingLink", Alias::Secret),
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
+    ("PluginGeneration", Alias::Quantity),
+    ("PluginId", Alias::Named),
     ("PortRange", Alias::Named),
     ("PortScript", Alias::Named),
     ("PresentedToken", Alias::Secret),

@@ -966,6 +966,11 @@ relays: Array<RouteUrl>,
 ticket?: RelayTicket | null, };
 
 /**
+ * A one-line accessible label for a contribution or control.
+ */
+export type Caption = string;
+
+/**
  * Resume identity is scoped to one catalog service generation.
  */
 export type CatalogCursor = { 
@@ -1566,6 +1571,11 @@ attachment: AttachmentRef, };
  * SHA-256 of a file's content, hexadecimal.
  */
 export type ContentHash = string & { readonly __brand: "ContentHash" };
+
+/**
+ * Bounded multiline display content; core never evaluates it as code.
+ */
+export type ContentText = string;
 
 /**
  * Scope and age of every answer, including empty answers.
@@ -2819,6 +2829,16 @@ more: boolean, };
 export type DirectoryName = string;
 
 /**
+ * `plugin.disable`: save the installation as disabled and stop it.
+ * Needs `admin`.
+ */
+export type DisablePlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
+
+/**
  * `git.discard`: drop local changes.
  */
 export type Discard = { 
@@ -2915,6 +2935,16 @@ path: RelPath, };
  * A duration in whole milliseconds.
  */
 export type DurationMs = number;
+
+/**
+ * `plugin.enable`: save the installation as enabled and start it when
+ * plugins are on. Needs `admin`.
+ */
+export type EnablePlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
 
 /**
  * Why a schedule ended.
@@ -3921,6 +3951,15 @@ export type GetNode = null;
 export type GetNodeSettings = Record<symbol, never>;
 
 /**
+ * `plugin.logs`: an installation's retained log tail. Needs `admin`.
+ */
+export type GetPluginLogs = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
+
+/**
  * `project.get`: one project, at once or after its next change.
  */
 export type GetProject = { 
@@ -4824,6 +4863,16 @@ directory: RelPath,
 ignored: IgnoredEntries, };
 
 /**
+ * `plugin.inspect`: read a directory's manifest without installing it.
+ * Needs `admin` (it reads a path on the node).
+ */
+export type InspectPlugin = { 
+/**
+ * An absolute path, or one starting with `~`.
+ */
+path: string, };
+
+/**
  * Exact opaque report lookup shares the list's account resolver.
  */
 export type InspectUsageReport = { 
@@ -4971,6 +5020,26 @@ state: InstallState, };
  * What an install puts in place.
  */
 export type InstallPart = "harness" | "adapter";
+
+/**
+ * `plugin.install`: install from Paseo's source string. Needs `admin`.
+ * This protocol takes a directory (absolute or `~`, optionally
+ * `:<relative subpath>`); other source kinds are refused until managed
+ * sources land.
+ */
+export type InstallPlugin = { 
+/**
+ * Paseo's source string.
+ */
+source: string, 
+/**
+ * The installation id; the manifest's when absent.
+ */
+id?: PluginId, 
+/**
+ * A Git ref; refused for a directory, as Paseo refuses it.
+ */
+ref?: string, };
 
 /**
  * An install's state.
@@ -5457,6 +5526,11 @@ export type ListNodes = null;
 export type ListPeers = null;
 
 /**
+ * `plugin.list`: every installation on this node. Needs `read`.
+ */
+export type ListPlugins = Record<symbol, never>;
+
+/**
  * `port.list`: the listeners found, at once or after the next change.
  */
 export type ListPorts = { 
@@ -5654,9 +5728,55 @@ file: FilePath,
 range: Range, };
 
 /**
+ * Diagnostic content is never part of a scoped catalog/list failure response.
+ */
+export type LogEntry = { 
+/**
+ * Stable row identity within a node lifetime.
+ */
+sequence: LogSequence, 
+/**
+ * UTC receipt time, not helper-supplied log clock.
+ */
+at: string, 
+/**
+ * Core lifecycle or private helper stderr.
+ */
+stream: LogStream, 
+/**
+ * Management-only text; Debug and Display are deliberately redacted.
+ */
+message: LogText, 
+/**
+ * Explicit evidence that an overlong line lost its suffix.
+ */
+truncation: LogTruncation, };
+
+/**
+ * Per-installation increasing diagnostic identity; never wraps into an older row.
+ */
+export type LogSequence = number;
+
+/**
  * Where a node without a log file writes.
  */
 export type LogSink = "terminal" | "elsewhere";
+
+/**
+ * Keep stream identity rather than parsing a string in a renderer.
+ */
+export type LogStream = "host" | "stderr";
+
+/**
+ * Diagnostics are display data, not a command or an error message safe for
+ * scoped clients. Ambient tracing must log metadata only, never this value.
+ */
+export type LogText = string;
+
+/**
+ * An overlong line is explicit UI metadata rather than a silently shortened result.
+ */
+export type LogTruncation = "complete" | "prefix_retained";
 
 /**
  * A call edge anchored at its caller's source sites.
@@ -6171,7 +6291,12 @@ restart_recovery?: RestartRecovery,
  * Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
  * `None` means this peer cannot generate.
  */
-metadata?: MetadataSettings, };
+metadata?: MetadataSettings, 
+/**
+ * Whether installed plugins run on this node (ADR 0115, Paseo's
+ * `pluginsEnabled`, default off); hidden below `PLUGINS_PROTOCOL`.
+ */
+plugins_enabled?: boolean, };
 
 /**
  * Whether a node is taking new work.
@@ -6647,6 +6772,106 @@ export type PlanPriority = "high" | "medium" | "low";
  * Progress of a plan entry.
  */
 export type PlanStatus = "pending" | "in_progress" | "completed";
+
+/**
+ * A number that moves on every plugin change on this node: an install, a
+ * removal, a saved intent, a status, the switch, a catalog or settings.
+ * Starts at zero for each node start.
+ */
+export type PluginGeneration = number;
+
+/**
+ * An installation id; configuration may assign a different id to the same directory.
+ */
+export type PluginId = string;
+
+/**
+ * Reply to `plugin.inspect`: the manifest's identity.
+ */
+export type PluginInspection = { 
+/**
+ * The manifest's id, the default installation id.
+ */
+id: PluginId, 
+/**
+ * The manifest's name.
+ */
+name?: Caption, 
+/**
+ * The manifest's description.
+ */
+description?: ContentText, };
+
+/**
+ * Reply to `plugin.list`, in installation id order.
+ */
+export type PluginList = { 
+/**
+ * One row per installation.
+ */
+plugins: Array<PluginListItem>, };
+
+/**
+ * One installation as Paseo's `PluginListItem`.
+ */
+export type PluginListItem = { 
+/**
+ * The installation id (config key), not necessarily the manifest's.
+ */
+id: PluginId, 
+/**
+ * The manifest's name.
+ */
+name?: Caption, 
+/**
+ * The manifest's description.
+ */
+description?: ContentText, 
+/**
+ * The manifest's icon path, relative to the plugin's directory.
+ */
+icon?: string, 
+/**
+ * The directory on the node; only for an Admin caller.
+ */
+path?: string, 
+/**
+ * Where its files come from.
+ */
+source: PluginSourceKind, 
+/**
+ * The saved intent, independent of the node's global switch.
+ */
+enabled: boolean, 
+/**
+ * What runs now.
+ */
+status: PluginStatus, 
+/**
+ * Why it failed, in the node's words; only for an Admin caller.
+ */
+error?: string, };
+
+/**
+ * Reply to `plugin.logs`, oldest first.
+ */
+export type PluginLogs = { 
+/**
+ * At most Paseo's 500 entries and 256 KiB (`MAX_LOG_*`).
+ */
+entries: Array<LogEntry>, };
+
+/**
+ * Where an installation's files come from. Directory only until managed
+ * sources land (ADR 0115, P4); a later kind is a new variant at its own
+ * protocol.
+ */
+export type PluginSourceKind = "directory";
+
+/**
+ * Paseo's three states of an installation (`PluginStatusSchema`).
+ */
+export type PluginStatus = "running" | "disabled" | "failed";
 
 /**
  * `port.list`'s answer.
@@ -7955,6 +8180,16 @@ expected: RegistryRevision,
 source: BlockedSource, };
 
 /**
+ * `plugin.reload`: stop it and start it again from disk; may end
+ * failed, as Paseo's. Needs `admin`.
+ */
+export type ReloadPlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
+
+/**
  * `profile.reload` (protocol 5): read `profiles.toml` again. If it does
  * not parse, the node keeps the profiles it had and the error says where.
  * Answers with the profiles now in effect. Needs `Admin`.
@@ -8006,6 +8241,16 @@ export type RemoveAgent = {
  * Which agent.
  */
 name: AgentName, };
+
+/**
+ * `plugin.remove`: stop it and forget it, with its settings and logs;
+ * a directory source is left on disk. Needs `admin`.
+ */
+export type RemovePlugin = { 
+/**
+ * Which installation.
+ */
+plugin: PluginId, };
 
 /**
  * `project.remove`: forget a project (its files stay).
@@ -10173,7 +10418,11 @@ drivers?: SetAgentDrivers | null,
  * Strict generated-name patch; an empty list resets automatic selection.
  * Refused until `GENERATED_NAMES` is assigned at integration.
  */
-metadata?: MetadataSettings | null, };
+metadata?: MetadataSettings | null, 
+/**
+ * Turn installed plugins on or off on this node, at once (ADR 0115).
+ */
+plugins_enabled?: boolean | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -12328,6 +12577,17 @@ export type WatchFleet = {
  * The generation the member has.
  */
 after: Generation, };
+
+/**
+ * `plugin.watch`: wait for a generation other than `after`. A long poll:
+ * the node answers when one is published, or with its current generation
+ * when its wait limit passes, and the client asks again. Needs `read`.
+ */
+export type WatchPlugins = { 
+/**
+ * The generation the client has.
+ */
+after: PluginGeneration, };
 
 /**
  * An error returned in place of a response.
