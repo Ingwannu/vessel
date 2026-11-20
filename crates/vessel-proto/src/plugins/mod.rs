@@ -19,6 +19,7 @@ mod logs;
 mod manage;
 mod payload;
 mod process;
+mod settings;
 mod theme;
 
 pub use address::{
@@ -32,7 +33,7 @@ pub use attachment::{
 pub use calls::{GetPluginCatalog, InvokeContext, InvokePlugin, PluginCatalog, PluginOutput};
 pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, FileNamePattern, InvalidPluginValue,
-    PluginId, RpcName, ThemeName,
+    PluginId, RpcName, SettingsId, ThemeName,
 };
 pub use json_error::PluginJsonError;
 pub use logs::{
@@ -43,6 +44,12 @@ pub use manage::{
     DisablePlugin, EnablePlugin, GetPluginLogs, InspectPlugin, InstallPlugin, ListPlugins,
     PluginGeneration, PluginInspection, PluginList, PluginListItem, PluginLogs, PluginSourceKind,
     PluginStatus, ReloadPlugin, RemovePlugin, WatchPlugins,
+};
+pub use settings::{
+    MAX_SETTINGS_DOCUMENTS, MAX_SETTINGS_MESSAGE_BYTES, PluginSettingsRead, PluginSettingsWrite,
+    ReadPluginSettings, ResetPluginSettings, SettingsDeclaration, SettingsDeclarations,
+    SettingsMessage, SettingsNotice, SettingsRevision, SettingsStep, SettingsValueError,
+    SettingsVerdict, SettingsVersion, WritePluginSettings,
 };
 pub use theme::{Appearance, HexColor, ThemeColors, ThemeContribution};
 
@@ -58,6 +65,11 @@ pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::Protoco
 /// merge, the next after the workspace-folder terminals' 40.
 pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
     Some(crate::ProtocolVersion::new(41));
+
+/// The protocol that has plugin settings documents (`plugin.settings.*`,
+/// ADR 0115 "Settings"); drafted, assigned at merge.
+pub const PLUGIN_SETTINGS_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(42));
 
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,

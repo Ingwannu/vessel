@@ -418,6 +418,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::plugins::PLUGIN_CATALOG_PROTOCOL,
         "`plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).",
     ),
+    (
+        "PLUGIN_SETTINGS_PROTOCOL",
+        crate::plugins::PLUGIN_SETTINGS_PROTOCOL,
+        "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

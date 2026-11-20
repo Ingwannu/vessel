@@ -808,7 +808,7 @@ fn the_plugin_catalog_and_invoke_come_after_the_manager() {
         ]
     );
     assert!(PLUGINS_PROTOCOL < PLUGIN_CATALOG_PROTOCOL);
-    assert_eq!(PLUGIN_CATALOG_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(PLUGIN_CATALOG_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
 }
 
 #[test]
@@ -1669,5 +1669,6 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
 }
 
 mod envelope_versions;
+mod plugin_settings;
 mod shared_terminals;
 mod workspace_terminals;
