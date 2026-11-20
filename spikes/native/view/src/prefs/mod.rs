@@ -162,8 +162,12 @@ pub struct Preferences {
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,
-    /// The built-in terminal.
-    #[serde(deserialize_with = "lenient")]
+    /// The built-in terminal. Native only, so written only once it differs
+    /// from its defaults: the default document stays the page's contract.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "TerminalPreferences::is_default"
+    )]
     pub terminal: TerminalPreferences,
 }
 
@@ -175,6 +179,14 @@ pub struct TerminalPreferences {
     /// 1,000,000, default 10,000; a stored value out of range is clamped.
     #[serde(deserialize_with = "lenient")]
     pub scrollback: crate::terminal::ScrollbackLines,
+}
+
+impl TerminalPreferences {
+    /// Whether every value is its default (the section is not written).
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 /// Which panels show.
