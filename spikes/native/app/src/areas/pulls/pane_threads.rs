@@ -4,10 +4,10 @@
 //! replies on a rail, and "Add to chat" for the whole thread), split from
 //! `pane_cards` for the file budget.
 
-use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Hsla, InteractiveElement as _, IntoElement as _, ParentElement as _,
     SharedString, Styled as _, div, px,
@@ -128,18 +128,23 @@ impl Cards<'_> {
             // Paseo's `replyRail`: 12 in, 8 below the root, each reply a
             // rounded card.
             if !replies.is_empty() {
-                block = block.child(div().flex().flex_col().mx(px(spacing::S3)).mt(px(spacing::S2)).children(
-                    replies.iter().map(|reply| {
-                        div()
-                            .mb(px(spacing::S2))
-                            .border_1()
-                            .border_color(neutral.border)
-                            .rounded(px(spacing::S1_5))
-                            .bg(neutral.surface1)
-                            .overflow_hidden()
-                            .child(self.thread_comment(reply))
-                    }),
-                ));
+                block = block.child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .mx(px(spacing::S3))
+                        .mt(px(spacing::S2))
+                        .children(replies.iter().map(|reply| {
+                            div()
+                                .mb(px(spacing::S2))
+                                .border_1()
+                                .border_color(neutral.border)
+                                .rounded(px(spacing::S1_5))
+                                .bg(neutral.surface1)
+                                .overflow_hidden()
+                                .child(self.thread_comment(reply))
+                        })),
+                );
             }
             if self.attach {
                 block = block.child(self.footer(Adds::Thread(thread.key()), cx));
@@ -165,7 +170,10 @@ impl Cards<'_> {
                     .min_h(px(spacing::S8))
                     .child(self.header_row(item, 16.0, None)),
             )
-            .children(Self::markdown(item).map(|text| div().px(px(spacing::S3)).pt(px(spacing::S2)).child(text)))
+            .children(
+                Self::markdown(item)
+                    .map(|text| div().px(px(spacing::S3)).pt(px(spacing::S2)).child(text)),
+            )
             .into_any_element()
     }
 }

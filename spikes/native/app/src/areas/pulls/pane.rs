@@ -18,10 +18,10 @@
 //! - Differences: Paseo's error never says why (always "Failed to refresh
 //!   git state."), kept; the View button is the kit's ghost at Paseo's 24.
 
-use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, FluentBuilder as _, HighlightStyle, InteractiveElement as _,
     IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, StyledText,
