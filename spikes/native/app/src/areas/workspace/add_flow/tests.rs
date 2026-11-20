@@ -297,7 +297,10 @@ fn browse_is_offered_on_this_computer_and_adds_the_folder_picked(cx: &mut TestAp
     cx.simulate_path_prompt_response(|_options| Some(Vec::new()));
     cx.run_until_parked();
     shell.update_in(cx, |shell, window, cx| {
-        assert_eq!(method_error(shell).as_deref(), Some("Unable to browse for a directory"));
+        assert_eq!(
+            method_error(shell).as_deref(),
+            Some("Unable to browse for a directory")
+        );
         shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);
         // One chooser at a time.
         shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);

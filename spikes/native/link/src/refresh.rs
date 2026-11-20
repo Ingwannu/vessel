@@ -37,7 +37,9 @@ impl State {
             }
         };
         self.reconcile_connections(&book).await;
-        let own = hostname::get().ok().and_then(|name| name.into_string().ok());
+        let own = hostname::get()
+            .ok()
+            .and_then(|name| name.into_string().ok());
         let mut this_computer = Vec::new();
         let mut machines = Vec::with_capacity(book.len());
         for (book_name, entry) in book {
@@ -54,7 +56,10 @@ impl State {
             let machine = match reach {
                 Ok(connected) => {
                     let node = connected.client.node();
-                    if own.as_deref().is_some_and(|own| on_this_computer(node, own)) {
+                    if own
+                        .as_deref()
+                        .is_some_and(|own| on_this_computer(node, own))
+                    {
                         this_computer.push(node.id);
                     }
                     self.read_sessions(name, connected).await

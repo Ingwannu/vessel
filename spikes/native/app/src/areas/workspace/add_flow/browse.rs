@@ -105,7 +105,9 @@ impl Shell {
         }
         match picked {
             Picked::Cancelled => return,
-            Picked::Failed => open.flow.fail(PageId::Method, words.cannot_browse.to_owned()),
+            Picked::Failed => open
+                .flow
+                .fail(PageId::Method, words.cannot_browse.to_owned()),
             Picked::Folder(path) => {
                 open.flow.begin(PageId::Method);
                 self.ask(
