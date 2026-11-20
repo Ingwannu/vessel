@@ -1666,7 +1666,8 @@ files with uncommitted changes", "1 commit on no other branch"), then
 they keep it and no live session is in it, Paseo's terminal warning with
 their count ("This will close 2 terminal(s). Any running process in a
 closed terminal will be stopped immediately.") sits above the same
-buttons, which then ask the node to end them first (`end_terminals`).
+buttons as a kit Alert (sm, warning), and those buttons then ask the node
+to end them first (`end_terminals`).
 Paseo ends a worktree's terminals on archive without a word; Vessel asks.
 A live session in it still keeps it, with no warning and both buttons off.
 

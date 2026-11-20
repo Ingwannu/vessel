@@ -67,6 +67,10 @@ describe("removing a worktree its terminals keep (ADR 0121, TRACKER 829)", () =>
     expect(html).toContain(
       "This will close 2 terminal(s). Any running process in a closed terminal will be stopped immediately.",
     );
+    // The kit's Alert, sm warning (a status, not an alert role).
+    expect(html).toContain("alert-sm");
+    expect(html).toContain("alert-warning");
+    expect(html).toContain('role="status"');
     expect(enabled(html, "Discard and remove")).toBe(true);
     expect(enabled(html, "Keep a snapshot and remove")).toBe(true);
     expect(html).not.toContain("End the session in it");

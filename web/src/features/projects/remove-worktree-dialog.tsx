@@ -27,7 +27,7 @@ import {
   keptReasonWords,
   snapshotCovers,
 } from "../../data/workspace/worktree-words";
-import { Banner, Button, Dialog } from "../../ui/kit";
+import { Alert, Banner, Button, Dialog } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
@@ -237,9 +237,12 @@ export function RemoveWorktreeView({
       )}
       {closing === null ? null : (
         // Above the buttons, as Paseo's confirm says the cost before its
-        // button. A Banner until the kit's Alert reaches the node line
-        // (TRACKER 820 moves it with the rest).
-        <Banner tone="warn">{closesTerminals(closing)}</Banner>
+        // button; in the dialog's flow, so the kit's Alert (sm warning).
+        <Alert
+          size="sm"
+          variant="warning"
+          description={closesTerminals(closing)}
+        />
       )}
       {error === null ? null : <Banner tone="error">{error}</Banner>}
     </Dialog>

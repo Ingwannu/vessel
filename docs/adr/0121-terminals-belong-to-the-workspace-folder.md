@@ -99,6 +99,6 @@ Source: the node review of TRACKER 817 (R1: closing a finished agent's tab ended
   - The dialog counts the live terminals at or under the worktree's folder, whatever their place, which is what
     `end_in` ends. It also checks the fleet's sessions for a live one in it.
   - With terminals and no live session, Paseo's bulk-close terminal line with the count sits above the usual
-    buttons, and the removal sends `end_terminals: true`.
+    buttons as the kit's Alert (sm, warning), and the removal sends `end_terminals: true`.
   - With a live session, it is as before.
 
