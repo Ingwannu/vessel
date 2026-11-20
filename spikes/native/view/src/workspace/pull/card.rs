@@ -105,7 +105,9 @@ mod tests {
     //! Paseo's rules: open says only its number; merged and closed say
     //! their state; a failure wins; no checks, no item.
 
-    use vessel_proto::forge::{CheckTally, ChecksState, ForgeAccess, PullState, SessionPullRequest};
+    use vessel_proto::forge::{
+        CheckTally, ChecksState, ForgeAccess, PullState, SessionPullRequest,
+    };
 
     use super::{CardChecks, CardPull, quarters};
     use crate::workspace::pull::PullPhase;

@@ -1,13 +1,15 @@
 //! A session's row to assistive technology (TRACKER 813), in GPUI's real
-//! snapshot: the row is a button named by its title, its status slot a
-//! status named by Paseo's bucket label, its kebab a button named for its
-//! menu that a Click alone opens, once; its checks an image named by
-//! their outcome, drawn as Paseo's ring (TRACKER 426).
+//! snapshot: the row is a button named as Paseo's (its title, its machine
+//! where the row names it, its pull request, its status unless done;
+//! TRACKER 426), its status slot a status named by Paseo's bucket label,
+//! its kebab a button named for its menu that a Click alone opens, once;
+//! its checks an image named by their outcome, drawn as Paseo's ring.
 use gpui::{TestAppContext, point};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::px;
-use vessel_app_view::Attention;
+use vessel_app_view::prefs::Grouping;
 use vessel_app_view::workspace::pull::CardChecks;
+use vessel_app_view::{Attention, Lang};
 use vessel_proto::forge::{
     CheckTally, ChecksState, ForgeAccess, ForgeKind, Mergeable, PullNumber, PullState, PullSummary,
     PullTitle, RepoRef, ReviewDecision, SessionPullRequest,
@@ -41,8 +43,15 @@ fn a_row_is_a_button_named_by_its_title_with_its_status_and_menu(cx: &mut TestAp
         cx.notify();
     });
     let arias = snapshot(&shell, cx);
-    for title in TITLES {
-        assert_eq!(named(&arias, "Button", title).len(), 1, "{title}'s row");
+    // Each row's name ends with its status unless done (Paseo's).
+    let names = [
+        "Fix the cart total, Working",
+        "Sort the order list",
+        "Summarise the meeting, Needs input",
+        "Write the release notes",
+    ];
+    for name in names {
+        assert_eq!(named(&arias, "Button", name).len(), 1, "{name}'s row");
     }
     // Each row's kebab: a button named for its menu, taking a Click.
     let kebabs = named(&arias, "Button", "Session actions");
@@ -145,4 +154,39 @@ fn the_ring_says_the_outcome_or_fills_by_quarters() {
             Glyph::ChecksPie4
         ]
     );
+}
+
+/// The first session titled, needing input, with pull request #42, in a
+/// sidebar grouped by status (so its meta line names its machine), said in
+/// `lang`: the snapshot's nodes.
+fn row_in(cx: &mut TestAppContext, lang: Lang) -> Vec<String> {
+    let (shell, cx) = setup(cx, 2);
+    shell.update(cx, |shell, cx| {
+        shell.t = lang.text();
+        shell.prefs.settings.sidebar.group = Grouping::Status;
+        let card = &mut shell.fleet.machines[0].sessions[0];
+        "Fix the cart total".clone_into(&mut card.title);
+        card.attention = Attention::NeedsYou;
+        card.detail.pull_request = Some(Box::new(running(CheckTally {
+            passed: 1,
+            failed: 0,
+            pending: 1,
+        })));
+        cx.notify();
+    });
+    snapshot(&shell, cx)
+}
+
+#[gpui::test]
+fn a_rows_name_says_paseos_parts_in_english(cx: &mut TestAppContext) {
+    let arias = row_in(cx, Lang::En);
+    let name = "Fix the cart total, fixture, Pull request #42, Needs input";
+    assert_eq!(named(&arias, "Button", name).len(), 1, "{arias:#?}");
+}
+
+#[gpui::test]
+fn a_rows_name_says_paseos_parts_in_korean(cx: &mut TestAppContext) {
+    let arias = row_in(cx, Lang::Ko);
+    let name = "Fix the cart total, fixture, 풀 리퀘스트 #42, 입력 필요";
+    assert_eq!(named(&arias, "Button", name).len(), 1, "{arias:#?}");
 }

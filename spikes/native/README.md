@@ -1365,7 +1365,9 @@ A card shows its number, state and checks under the branch; its hover
 card's checks row (TRACKER 810, 824) leads with the forge's mark and counts
 each state from the summary's tally (`view::sidebar::hover`), and the
 row's checks glyph (TRACKER 426) is Paseo's ring: a check, a cross, or a
-pie filled by quarters from the same tally (`CardPull::quarters`). The fleet's
+pie filled by quarters from the same tally (`CardPull::quarters`); the
+row is named as Paseo's (its title, machine where shown, "Pull request #N",
+status unless done; `SidebarWords::row_name`). The fleet's
 nodes reach no forge (the remotes are bare repositories), so the screens
 there show why a pull request cannot be opened.
 
