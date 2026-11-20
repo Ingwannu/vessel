@@ -87,7 +87,7 @@ pub(super) fn viewer_element(
     // Paseo's panels: the image drawn on a machine that reads its bytes,
     // a Markdown file's Preview, else its Source.
     let body: AnyElement = if let Some(image) = &viewer.look.image {
-        super::panels_view::image(shell, image, tokens, window, cx)
+        super::image_view::image(shell, image, tokens, window, cx)
     } else if viewer.look.previewing() {
         super::panels_view::markdown(shell, viewer, tokens, window, cx)
     } else if let Some(editing) = &viewer.edit {

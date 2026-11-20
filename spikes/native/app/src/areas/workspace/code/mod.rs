@@ -36,6 +36,7 @@ mod elsewhere;
 mod files;
 mod found;
 mod frame;
+mod image_view;
 mod line_syntax;
 mod panels;
 mod panels_view;
