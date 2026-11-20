@@ -61,8 +61,6 @@ pub struct Labels {
     /// close line (`workspace.confirmations.bulk.terminals`), `{terminals}`
     /// the count.
     pub close_terminals_line: &'static str,
-    /// The removal that ends those terminals first.
-    pub close_terminals_and_remove: &'static str,
     pub snapshot_keeps: &'static str,
     pub snapshot_cannot: &'static str,
     pub discard_and_remove: &'static str,

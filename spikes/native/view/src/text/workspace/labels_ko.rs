@@ -54,7 +54,6 @@ pub const KO: Labels = Labels {
     would_lose: "지금 제거하면 잃는 것:",
     end_session_first: "제거하기 전에 안의 세션을 끝내세요(또는 셋업을 기다리세요).",
     close_terminals_line: "터미널 {terminals}개를 닫습니다. 닫히는 터미널에서 실행 중인 프로세스는 즉시 중지됩니다.",
-    close_terminals_and_remove: "터미널을 닫고 제거",
     snapshot_keeps: "스냅숏은 모든 변경과 커밋을 프로젝트 자체의 커밋 하나에 보관하며, 나중에 다시 브랜치로 만들 수 있습니다.",
     snapshot_cannot: "스냅숏으로는 이 모두를 보관할 수 없습니다.",
     discard_and_remove: "버리고 제거",

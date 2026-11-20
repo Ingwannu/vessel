@@ -216,8 +216,10 @@ The page's as-built rules (TRACKER 829) and the node's agent placement (TRACKER 
   or before the upgrade. Those are one plain list per session on each fleet read (`terminal_tabs/beside.rs`).
 - Worktree removal. A worktree the node keeps in use only for its live terminals:
   - the panel counts those terminals at or under its folder, whatever their place;
-  - it says Paseo's bulk close line ("This will close N terminal(s). …", en.ts 727-728);
-  - "Close terminals and remove" reads the count again and sends `end_terminals: true` only when it is unchanged.
+  - it says Paseo's bulk close line ("This will close N terminal(s). …", en.ts 727-728) as the kit's small warning
+    notice above the usual buttons, like the page's Alert (the coordinator's ruling on 829 Q3: no button of its own);
+  - those buttons offer what the other reasons allow (both when there is no other reason, as the page does);
+  - a press reads the count again and sends `end_terminals: true` only when it is unchanged.
   With a live session in the worktree, or below 40, it is as before.
 - P3 app-review notes:
   1. A paste refused past 32 MiB is said once, as a toast. The plan said the trouble line, but that line is the

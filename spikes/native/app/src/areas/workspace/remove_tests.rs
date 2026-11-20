@@ -1,7 +1,7 @@
 //! A worktree kept only by its live terminals (ADR 0121, ruling 2): the
-//! panel counts them, says Paseo's line, and removes with `end_terminals`
-//! only after the count is read again unchanged; a live session or a node
-//! below 40 leaves it as before.
+//! panel counts them, says Paseo's line, and its usual buttons remove with
+//! `end_terminals` only after the count is read again unchanged; a live
+//! session or a node below 40 leaves it as before.
 
 use chrono::Utc;
 use gpui::{AppContext as _, Entity, TestAppContext, VisualTestContext};
@@ -160,8 +160,9 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
         shell.removal_terminals_listed("laptop", Some(&two), cx);
         assert_eq!(removing(shell).terminals, Some(2));
         assert_eq!(closing_terminals(shell, removing(shell)), Some(2));
-        // Pressed: the count is read again before anything is removed.
-        shell.remove_ending_terminals(cx);
+        // Discard pressed: the count is read again before anything is
+        // removed.
+        shell.remove_with(IfLost::Discard, cx);
     });
     assert!(matches!(
         sent(&probe, cx).as_slice(),
@@ -179,9 +180,10 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
         assert_eq!(removing(shell).busy, None);
     });
     assert!(sent(&probe, cx).is_empty());
-    // Pressed again, unchanged: removed with its terminals.
+    // The snapshot pressed, unchanged: removed with its terminals, as
+    // that button asks.
     shell.update_in(cx, |shell, _window, cx| {
-        shell.remove_ending_terminals(cx);
+        shell.remove_with(IfLost::Snapshot, cx);
         shell.removal_terminals_listed("laptop", Some(&three), cx);
     });
     let asked = sent(&probe, cx);
@@ -198,7 +200,7 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
     });
     let removal = removal.unwrap_or_else(|| panic!("{asked:?}"));
     assert_eq!(removal.worktree, worktree.id);
-    assert_eq!(removal.if_lost, IfLost::Keep);
+    assert_eq!(removal.if_lost, IfLost::Snapshot);
     assert!(removal.end_terminals);
 }
 
@@ -235,7 +237,20 @@ fn a_live_session_in_the_worktree_keeps_the_panel_as_before(cx: &mut TestAppCont
             None,
             "a live session keeps it"
         );
+        // A press asks as before: no count, no terminals ended.
+        shell.remove_with(IfLost::Discard, cx);
     });
+    let asked = sent(&probe, cx);
+    assert!(
+        matches!(
+            asked.as_slice(),
+            [Command::Workspace {
+                ask: Ask::Worktree(WorktreeAsk::Remove(remove)),
+                ..
+            }] if remove.if_lost == IfLost::Discard && !remove.end_terminals
+        ),
+        "{asked:?}"
+    );
 }
 
 #[gpui::test]

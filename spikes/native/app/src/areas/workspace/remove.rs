@@ -10,25 +10,28 @@
 //! at or under its folder, whatever their place (what the node's removal
 //! ends), and says Paseo's bulk close line
 //! (`workspace.confirmations.bulk.terminals`, en.ts 727-728) with that
-//! count. The press reads the count again and removes with
-//! `end_terminals: true` only if it is unchanged. A changed count stops
-//! the press and the line says the new one. With a live session in the
-//! worktree it is as before: the node keeps the worktree whatever is
-//! asked. The page does the same (TRACKER 829).
+//! count, as the kit's small warning notice above the usual buttons. Those
+//! buttons then offer what the other reasons allow. A press reads the
+//! count again and removes with `end_terminals: true` only if it is
+//! unchanged. A changed count stops the press and the notice says the new
+//! one. With a live session in the worktree it is as before: the node
+//! keeps the worktree whatever is asked. The page does the same (TRACKER
+//! 829; the coordinator's ruling on 829 Q3: no button of its own).
 
 use std::path::Path;
 
-use vessel_app_kit::theme::{radius, spacing};
+use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div,
-    px,
+    Context, Div, ElementId, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
+use vessel_app_kit::alert::{Content, Size, Variant, alert};
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
 use vessel_app_link::terminals::{Ask as TerminalAsk, Request as TerminalRequest};
 use vessel_app_link::workspace::{Ask, WorktreeAsk};
 use vessel_app_view::terminal_tabs::workspace_places;
-use vessel_app_view::workspace::worktrees::{in_use, removal_choices};
+use vessel_app_view::workspace::worktrees::{choices_ending_terminals, in_use, removal_choices};
 use vessel_proto::WorktreeId;
 use vessel_proto::terminals::TerminalList;
 use vessel_proto::workspace::{IfLost, KeptReason, RemoveWorktree, WorktreeInfo};
@@ -49,8 +52,8 @@ pub(crate) struct Removing {
     /// The live terminals at or under its folder, counted from protocol 40
     /// when the node said it is in use; `None` until counted.
     pub(super) terminals: Option<usize>,
-    /// The count the person saw when pressing "Close terminals and
-    /// remove", while it is read again.
+    /// The count the person saw when pressing a removal that ends them,
+    /// while it is read again.
     pub(super) recount: Option<usize>,
 }
 
@@ -82,18 +85,22 @@ pub(super) fn branch_name(worktree: &WorktreeInfo, detached: &str) -> String {
 }
 
 impl Shell {
+    /// A removal button pressed. When live terminals alone keep the
+    /// worktree, their count is read again first and the removal waits
+    /// for it (`removal_terminals_listed`).
     fn remove_with(&mut self, if_lost: IfLost, cx: &mut Context<'_, Self>) {
         let Some(machine) = self.projects_machine() else {
             return;
         };
-        let Some(removing) = self
+        let closing = self
             .areas
             .workspace
             .page
             .detail
-            .as_mut()
-            .and_then(|detail| detail.removing.as_mut())
-        else {
+            .as_ref()
+            .and_then(|detail| detail.removing.as_ref())
+            .and_then(|removing| closing_terminals(self, removing));
+        let Some(removing) = self.removing_mut() else {
             return;
         };
         if removing.busy.is_some() {
@@ -101,11 +108,19 @@ impl Shell {
         }
         removing.busy = Some(if_lost);
         removing.error = None;
-        let worktree = removing.worktree.id;
-        self.ask(
-            &machine,
-            Ask::Worktree(remove_ask(worktree, if_lost, false)),
-        );
+        if closing.is_some() {
+            removing.recount = closing;
+            self.command(Command::Terminals(TerminalAsk {
+                machine,
+                request: TerminalRequest::ListAll,
+            }));
+        } else {
+            let worktree = removing.worktree.id;
+            self.ask(
+                &machine,
+                Ask::Worktree(remove_ask(worktree, if_lost, false)),
+            );
+        }
         cx.notify();
     }
 
@@ -131,27 +146,6 @@ impl Shell {
                 request: TerminalRequest::ListAll,
             }));
         }
-    }
-
-    /// "Close terminals and remove": read the count again first.
-    fn remove_ending_terminals(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(machine) = self.projects_machine() else {
-            return;
-        };
-        let Some(removing) = self.removing_mut() else {
-            return;
-        };
-        if removing.busy.is_some() {
-            return;
-        }
-        removing.busy = Some(IfLost::Keep);
-        removing.error = None;
-        removing.recount = removing.terminals;
-        self.command(Command::Terminals(TerminalAsk {
-            machine,
-            request: TerminalRequest::ListAll,
-        }));
-        cx.notify();
     }
 
     /// Every terminal answered: the panel's count, and a press waiting for
@@ -182,10 +176,10 @@ impl Shell {
             removing.busy = None;
         }
         let worktree = removing.worktree.id;
-        if go {
+        if go && let Some(if_lost) = removing.busy {
             self.ask(
                 machine,
-                Ask::Worktree(remove_ask(worktree, IfLost::Keep, true)),
+                Ask::Worktree(remove_ask(worktree, if_lost, true)),
             );
         }
         cx.notify();
@@ -234,10 +228,10 @@ pub(super) fn live_in_folder(list: &TerminalList, folder: &Path) -> usize {
 /// `worktree.remove` as this app asks it, from the row's Remove and from
 /// this panel alike.
 ///
-/// `end_terminals` (ADR 0121) is true only from the panel's "Close
-/// terminals and remove", after the person saw how many and the count was
-/// read again. Without it a live terminal refuses the removal, as before
-/// protocol 40.
+/// `end_terminals` (ADR 0121) is true only from this panel while live
+/// terminals alone keep the worktree, after the person saw how many and
+/// the count was read again. Without it a live terminal refuses the
+/// removal, as before protocol 40.
 pub(super) fn remove_ask(
     worktree: WorktreeId,
     if_lost: IfLost,
@@ -260,7 +254,12 @@ pub(super) fn render(
     let words = shell.words();
     let labels = words.labels();
     let branch = branch_name(&removing.worktree, labels.detached);
-    let choices = removal_choices(&removing.reasons);
+    let closing = closing_terminals(shell, removing);
+    let choices = if closing.is_some() {
+        choices_ending_terminals(&removing.reasons)
+    } else {
+        removal_choices(&removing.reasons)
+    };
     let snapshotable = choices.contains(&IfLost::Snapshot);
     let mut reasons = div().flex().flex_col().gap(px(2.0));
     for reason in &removing.reasons {
@@ -270,12 +269,7 @@ pub(super) fn render(
                 .child(format!("\u{2022} {}", words.kept_reason(*reason))),
         );
     }
-    let closing = closing_terminals(shell, removing);
-    let explain = if let Some(count) = closing {
-        labels
-            .close_terminals_line
-            .replace("{terminals}", &count.to_string())
-    } else if in_use(&removing.reasons) {
+    let explain = if closing.is_none() && in_use(&removing.reasons) {
         labels.end_session_first.to_owned()
     } else {
         let snapshot = if snapshotable {
@@ -311,11 +305,21 @@ pub(super) fn render(
                 .text_color(tokens.neutral.foreground_muted)
                 .child(explain),
         );
+    if let Some(count) = closing {
+        // Above the buttons, as Paseo's confirm says the cost before its
+        // button: the kit's notice, as the page's Alert (sm warning).
+        let line = labels
+            .close_terminals_line
+            .replace("{terminals}", &count.to_string());
+        let content = Content {
+            title: None,
+            description: Some(div().child(line).into_any_element()),
+            action: None,
+        };
+        card = card.child(alert(content, Variant::Warning, Size::Small, tokens));
+    }
     if let Some(error) = &removing.error {
         card = card.child(banner(error.clone(), true, None, tokens));
-    }
-    if closing.is_some() {
-        return card.child(closing_buttons(shell, removing, tokens, cx));
     }
     card.child(buttons(shell, removing, snapshotable, &choices, tokens, cx))
 }
@@ -328,47 +332,6 @@ fn closing_terminals(shell: &Shell, removing: &Removing) -> Option<usize> {
         return None;
     }
     removing.terminals.filter(|count| *count > 0)
-}
-
-/// Cancel, and "Close terminals and remove" while nothing is out.
-fn closing_buttons(
-    shell: &Shell,
-    removing: &Removing,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let labels = shell.words().labels();
-    let ready = removing.busy.is_none();
-    div()
-        .flex()
-        .flex_row()
-        .flex_wrap()
-        .justify_end()
-        .gap(px(spacing::S2))
-        .child(
-            button("remove-cancel", labels.cancel, false, tokens).on_click(cx.listener(
-                |this, _event, _window, cx| {
-                    if let Some(detail) = this.areas.workspace.page.detail.as_mut() {
-                        detail.removing = None;
-                    }
-                    cx.notify();
-                },
-            )),
-        )
-        .child(
-            button(
-                "remove-close-terminals",
-                labels.close_terminals_and_remove,
-                true,
-                tokens,
-            )
-            .opacity(if ready { 1.0 } else { 0.5 })
-            .on_click(cx.listener(move |this, _event, _window, cx| {
-                if ready {
-                    this.remove_ending_terminals(cx);
-                }
-            })),
-        )
 }
 
 /// Cancel, discard, and keep a snapshot: each only when the node's reasons
