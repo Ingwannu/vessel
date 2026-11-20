@@ -377,6 +377,7 @@ mod settings_nav_glyph_tests {
         for (glyph, path) in [
             (Glyph::FolderGit, "kit/folder-git.svg"),
             (Glyph::Boxes, "kit/boxes.svg"),
+            (Glyph::Blocks, "kit/blocks.svg"),
         ] {
             assert_eq!(glyph.path(), path);
             assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));

@@ -75,6 +75,7 @@ pub mod history;
 pub mod labels;
 pub mod mentions;
 pub mod node_settings;
+pub mod plugins;
 pub mod search;
 pub mod sessions;
 #[cfg(any(target_os = "linux", target_os = "windows"))]

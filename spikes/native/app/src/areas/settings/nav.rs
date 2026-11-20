@@ -66,17 +66,17 @@ pub(crate) const fn section_glyph(section: Section) -> Glyph {
         Section::Agents => Glyph::Bot,
         Section::Metadata | Section::Models => Glyph::Sparkles,
         Section::Providers => Glyph::Boxes,
+        Section::Plugins => Glyph::Blocks,
         // Stand-ins: Paseo's Files, Globe (Browser), Code2 (Editor), Puzzle
         // (Integrations), Network (Connections), Mic (Voice), Gauge
-        // (Usage), Blocks (Plugins).
+        // (Usage).
         Section::Files => Glyph::File,
         Section::Browser
         | Section::Editor
         | Section::Integrations
         | Section::Connections
         | Section::Voice
-        | Section::Usage
-        | Section::Plugins => Glyph::Sliders,
+        | Section::Usage => Glyph::Sliders,
         // Vessel's own.
         Section::Sync => Glyph::Refresh,
     }
