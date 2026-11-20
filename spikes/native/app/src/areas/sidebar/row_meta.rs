@@ -17,6 +17,12 @@
 //!   warning colour); the labels as one run of chips, pulled left by the
 //!   chip's inset when they lead the line so the first letter sits on the
 //!   title's rail.
+//! - The checks' glyph (TRACKER 426) is Paseo's `CheckIndicator`: one
+//!   ring whose inside changes, a check, a cross, or a pie filling by
+//!   quarters from the node's tally while the run goes on
+//!   (`CardPull::quarters`); the item is named "Checks passed", "Checks
+//!   failed" or "Checks running" (Paseo's `*Accessible` words on its
+//!   wrapper), so the word could go without the state going.
 //! - Differences, named: Paseo's change request is a link to its page (here
 //!   it says, the board's card and the Changes tab open it); Paseo's
 //!   running services item has no Vessel source; its branch and project
@@ -26,7 +32,8 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Div, FluentBuilder as _, IntoElement as _, ParentElement as _, Styled as _, div, px,
+    AnyElement, Div, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
@@ -49,7 +56,8 @@ const HOST_SHRINK: f32 = 100.0;
 enum Item {
     Host(String),
     Pull(CardPull),
-    Checks(CardChecks),
+    /// The checks, their pie's quarters and the item's id.
+    Checks(CardChecks, u8, String),
     Labels(Vec<vessel_app_view::labels::Label>),
 }
 
@@ -68,7 +76,8 @@ pub(super) fn meta_line(
     if let Some(pull) = pull {
         items.push(Item::Pull(pull));
         if let Some(checks) = pull.checks {
-            items.push(Item::Checks(checks));
+            let id = format!("row-checks-{}-{}", card.machine, card.session);
+            items.push(Item::Checks(checks, pull.quarters, id));
         }
     }
     let labels = shell
@@ -126,17 +135,20 @@ fn draw(item: Item, leading: bool, shell: &Shell, tokens: &Tokens) -> AnyElement
             .flex_none()
             .into_any_element()
         }
-        Item::Checks(checks) => {
+        Item::Checks(checks, quarters, id) => {
             let status = tokens.status();
-            let (which, colour) = match checks {
-                CardChecks::Passed => (Glyph::CircleCheck, status.success.foreground),
-                CardChecks::Failed => (Glyph::CircleX, status.error.foreground),
-                CardChecks::Running => (Glyph::CircleDot, status.warning.foreground),
+            let colour = match checks {
+                CardChecks::Passed => status.success.foreground,
+                CardChecks::Failed => status.error.foreground,
+                CardChecks::Running => status.warning.foreground,
             };
             with_glyph(
-                glyph(which, GLYPH, colour).into_any_element(),
+                glyph(indicator(checks, quarters), GLYPH, colour).into_any_element(),
                 checks.words(shell.words).to_owned(),
             )
+            .id(ElementId::Name(id.into()))
+            .role(gpui::Role::Image)
+            .aria_label(shell.t.lang.sidebar().checks_outcome(checks))
             .flex_none()
             .text_color(colour)
             .into_any_element()
@@ -155,6 +167,20 @@ fn draw(item: Item, leading: bool, shell: &Shell, tokens: &Tokens) -> AnyElement
                     .map(|label| crate::areas::labels::chip(label, tokens)),
             )
             .into_any_element(),
+    }
+}
+
+/// Paseo's `CheckIndicator` for `checks`: the ring with a check, a cross,
+/// or a pie filled `quarters` of the way (more than four reads as full).
+pub(super) const fn indicator(checks: CardChecks, quarters: u8) -> Glyph {
+    match (checks, quarters) {
+        (CardChecks::Passed, _) => Glyph::ChecksPassed,
+        (CardChecks::Failed, _) => Glyph::ChecksFailed,
+        (CardChecks::Running, 0) => Glyph::ChecksPie0,
+        (CardChecks::Running, 1) => Glyph::ChecksPie1,
+        (CardChecks::Running, 2) => Glyph::ChecksPie2,
+        (CardChecks::Running, 3) => Glyph::ChecksPie3,
+        (CardChecks::Running, _) => Glyph::ChecksPie4,
     }
 }
 

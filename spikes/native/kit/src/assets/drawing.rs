@@ -453,6 +453,36 @@ impl Glyph {
             Self::StatusAlertMarks => {
                 stroked_glyph!("2", r#"<path d="M12 8v4"/><path d="M12 16h.01"/>"#)
             }
+            // Paseo's `CheckIndicator` (`workspace-meta-row/check-indicator.tsx`,
+            // TRACKER 426): the ring at 2 with half the stroke inside the box
+            // (radius 11), a check or a cross, or a pie of radius 7 filled
+            // clockwise from twelve by quarters (a full one a disc: an arc
+            // whose ends meet paints nothing).
+            Self::ChecksPassed => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M8 12.5l3 3 5.5-6.5"/>"#
+            ),
+            Self::ChecksFailed => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>"#
+            ),
+            Self::ChecksPie0 => stroked_glyph!("2", r#"<circle cx="12" cy="12" r="11"/>"#),
+            Self::ChecksPie1 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M12 12V5a7 7 0 0 1 7 7z" fill="black" stroke="none"/>"#
+            ),
+            Self::ChecksPie2 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M12 12V5a7 7 0 0 1 0 14z" fill="black" stroke="none"/>"#
+            ),
+            Self::ChecksPie3 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M12 12V5a7 7 0 1 1-7 7z" fill="black" stroke="none"/>"#
+            ),
+            Self::ChecksPie4 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><circle cx="12" cy="12" r="7" fill="black" stroke="none"/>"#
+            ),
         }
     }
 }

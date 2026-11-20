@@ -67,7 +67,7 @@ impl Shell {
     }
 
     /// Whether `node` runs on this computer.
-    pub(super) fn on_this_computer(&self, node: Option<NodeId>) -> bool {
+    pub(crate) fn on_this_computer(&self, node: Option<NodeId>) -> bool {
         node.is_some_and(|node| self.areas.workspace.add_flow.this_computer.contains(&node))
     }
 

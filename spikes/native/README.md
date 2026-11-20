@@ -1309,6 +1309,25 @@ after `scripts/fleet.sh start ROOT TARGET`, run
 `bash scripts/mark-fixtures.sh ROOT TARGET`; it checks the node's saved
 bilingual titles and full custom-agent labels before captures.
 
+### Open in editor and reveal (TRACKER 467, ADR 0123)
+
+For a machine whose node runs on this computer (`Event::ThisComputer`),
+the session header has Paseo's split button before the code panel's
+toggle: the preferred target's icon opens the session's folder, or the file
+the Files tab shows at the line it was opened at, and its caret lists
+"Choose editor" with a check on the preferred target (choosing one only
+keeps it, per project, in `preferred_editors`). The Files menu adds "Open
+in <editor>" on folders and "Reveal in <file manager>" on every entry, and
+the sidebar session menu "Open in file manager". The rules are
+`view::open_targets` (Paseo's 25 targets, their commands, install paths
+and arguments, the listing and a path guard: canonical, existing, under
+the session's folder); the app lists and starts off the UI thread through
+one seam (`app/src/areas/workspace/open_targets/launcher.rs`), whose test
+form only records. Editor marks are `agent_mark::CURSOR`, `VSCODE`, `ZED`,
+`ANDROID_STUDIO`, `XCODE` and `WEBSTORM` (sources and terms in
+`docs/design/editor-marks/README.md`); a list draws them with
+`picker::Leading::Artwork` in the glyphs' 16 column.
+
 Machine management uses `view::machine_book` for validated names, edit outcomes
 and safe localized failures, and `link::machines` for the CLI's existing node
 book. `BookFile` is reopened immediately before each atomic edit; the app does
@@ -1363,7 +1382,11 @@ from `view::workspace::pull::card_menu`). Every control is named for
 assistive technology; folds say whether they are open.
 A card shows its number, state and checks under the branch; its hover
 card's checks row (TRACKER 810, 824) leads with the forge's mark and counts
-each state from the summary's tally (`view::sidebar::hover`). The fleet's
+each state from the summary's tally (`view::sidebar::hover`), and the
+row's checks glyph (TRACKER 426) is Paseo's ring: a check, a cross, or a
+pie filled by quarters from the same tally (`CardPull::quarters`); the
+row is named as Paseo's (its title, machine where shown, "Pull request #N",
+status unless done; `SidebarWords::row_name`). The fleet's
 nodes reach no forge (the remotes are bare repositories), so the screens
 there show why a pull request cannot be opened.
 
