@@ -8,8 +8,8 @@
 use std::path::PathBuf;
 
 use vessel_proto::terminals::{TerminalPlace, WORKSPACE_TERMINALS_PROTOCOL};
-use vessel_proto::{ProtocolVersion, SessionId};
 use vessel_proto::workspace::SessionPlace;
+use vessel_proto::{ProtocolVersion, SessionId};
 use vessel_session::SessionHandle;
 use vessel_session::terminals::TerminalHandle;
 

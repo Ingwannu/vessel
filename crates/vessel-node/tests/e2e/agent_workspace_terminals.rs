@@ -17,8 +17,8 @@ use vessel_proto::workspace::{
     AddProject, IfLost, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome, SessionPlace,
 };
 use vessel_proto::{
-    AgentAuth, Call, ClientFrame, ErrorCode, Hello, Mark, Outcome, ProtocolRange,
-    ProtocolVersion, Reply, RequestId, ServerFrame, SessionId, SessionSpec,
+    AgentAuth, Call, ClientFrame, ErrorCode, Hello, Mark, Outcome, ProtocolRange, ProtocolVersion,
+    Reply, RequestId, ServerFrame, SessionId, SessionSpec,
 };
 
 use crate::agents::{as_agent, credential, following, vessel_mcp};
@@ -176,13 +176,8 @@ async fn an_agents_folder_shell_outlives_its_archive_and_an_older_call_stays_bes
         // session, as it named (it could not read a folder place).
         let since = WORKSPACE_TERMINALS_PROTOCOL.unwrap();
         let older = ProtocolVersion::new(since.get().saturating_sub(1));
-        let outcome = agent_call_as_older(
-            &socket,
-            &auth,
-            older,
-            Call::CreateTerminal(beside(session)),
-        )
-        .await;
+        let outcome =
+            agent_call_as_older(&socket, &auth, older, Call::CreateTerminal(beside(session))).await;
         let Outcome::Ok(Reply::CreateTerminal(beside_it)) = outcome else {
             panic!("{outcome:?}");
         };

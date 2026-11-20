@@ -163,6 +163,9 @@ mod workspace;
 #[cfg(test)]
 #[cfg(unix)]
 mod workspace_terminals;
+
+// An agent's shells in its session's workspace (TRACKER 832; Unix: the
+// terminals' shell is `/bin/sh`).
 #[cfg(test)]
 #[cfg(unix)]
 mod agent_workspace_terminals;
