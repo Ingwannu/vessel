@@ -13,6 +13,8 @@ mod candidate_reuse;
 #[cfg(all(test, target_os = "linux"))]
 mod candidate_tests;
 #[cfg(all(test, target_os = "linux"))]
+mod candidate_transport;
+#[cfg(all(test, target_os = "linux"))]
 mod owner;
 #[cfg(test)]
 mod pipe_tests;
@@ -158,6 +160,24 @@ impl Events {
     /// None means the engine connection ended; no fabricated final descriptor follows.
     pub(crate) async fn next(&mut self) -> Option<Event> {
         self.0.recv().await
+    }
+
+    #[cfg(all(test, target_os = "linux"))]
+    async fn during_fixture<T>(
+        &mut self,
+        operation: impl std::future::Future<Output = T>,
+    ) -> Result<T, CdpError> {
+        tokio::pin!(operation);
+        loop {
+            tokio::select! {
+                result = &mut operation => return Ok(result),
+                event = self.next() => {
+                    if event.is_none() {
+                        return Err(CdpError::Closed);
+                    }
+                }
+            }
+        }
     }
 }
 

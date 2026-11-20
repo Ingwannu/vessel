@@ -154,17 +154,19 @@ pub(super) async fn visit(
     address: &str,
     marker: &'static str,
 ) -> Result<(), ProbeError> {
-    let probe = async {
-        page.navigate(address.parse().unwrap()).await?;
-        wait_for(page, marker).await
-    };
-    probe.await.map_err(|cause| ProbeError { marker, cause })
+    page.navigate(address.parse().unwrap())
+        .await
+        .map_err(|cause| ProbeError { marker, cause })?;
+    expect_marker(page, marker).await
 }
 
-async fn wait_for(page: &mut Page, marker: &str) -> Result<(), PageError> {
+pub(super) async fn expect_marker(page: &mut Page, marker: &'static str) -> Result<(), ProbeError> {
     let expected = RequiredInput::try_from(marker.to_owned()).unwrap();
     let budget = WaitBudget::Explicit(WaitTimeout::try_from(3500).unwrap());
-    let matched = page.wait(WaitFor::Text(expected), budget).await?;
+    let matched = page
+        .wait(WaitFor::Text(expected), budget)
+        .await
+        .map_err(|cause| ProbeError { marker, cause })?;
     assert_eq!(matched, WaitMatch::Text);
     Ok(())
 }

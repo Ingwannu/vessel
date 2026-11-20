@@ -7,6 +7,7 @@ use super::actor::{Actor, ActorError};
 use super::candidate_network::NetworkFixture;
 use super::candidate_policy::PolicyOrigin;
 use super::candidate_reuse;
+use super::candidate_transport::TransportProbe;
 use super::owner::Owner;
 use super::*;
 use crate::launch::{Plan, ProxyEndpoint};
@@ -131,6 +132,44 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             .unwrap();
         network.finish().await;
         scope.finish().await;
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires the exact approved artifact and a separately checked loopback H3 peer"]
+async fn approved_candidate_refuses_private_webtransport() {
+    tokio::time::timeout(APPROVED_FIXTURE_TIMEOUT, async {
+        let Fixture {
+            scope, plan, listener, ..
+        } = fixture().await;
+        let fixture = TransportProbe::configured(listener.local_addr().unwrap().port()).unwrap();
+        let stop = CancellationToken::new();
+        let _guard = stop.clone().drop_guard();
+        let proxy = tokio::spawn(fixture.clone().serve(listener, stop.clone()));
+        let owner = Owner::spawn(plan).unwrap();
+        let run = owner.lifetime();
+        let (mut owner, readiness) = owner.attest(&scope).await.unwrap();
+        let observed = if let Some((client, events)) = owner.controller() {
+            Some(fixture.verify(client, events).await)
+        } else {
+            None
+        };
+        let receipt = owner.close().await;
+        stop.cancel();
+        tokio::time::timeout(SHUTDOWN_TIMEOUT, proxy)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        scope.finish().await;
+        let receipt = receipt.unwrap();
+        readiness.unwrap();
+        assert!(receipt.run().same_run(&run));
+        assert_eq!(receipt.code(), Some(0));
+        assert!(!run.is_live());
+        observed.unwrap().unwrap();
     })
     .await
     .unwrap();

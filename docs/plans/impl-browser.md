@@ -143,8 +143,28 @@ ICE gathering completes with controlled STUN and TURN endpoints, then checks
 both held TCP and UDP canaries after positive socket controls. The browser
 also attempts WebSockets to two dedicated private peers. The fixture confirms
 each request reached the policy proxy as an upgrade or CONNECT and received
-a refusal. Live runs are pending. These cases leave real DNS rebinding and
-separate QUIC/WebTransport qualification open.
+a refusal. Live runs are pending.
+
+The separate WebTransport fixture creates disposable H3 peers on loopback.
+The first uses a verified ephemeral TLS certificate and must answer a real
+WebTransport CONNECT. The second starts with independent zeroed counters
+while the same pinned Chromium candidate attempts the connection. The browser
+must report refusal, with no received datagram, handshake or CONNECT at the
+second peer. The Python transport peer uses aioquic 1.8.0 only in the test
+environment. Its standalone positive control observed 5 datagrams, one
+TLS handshake and one WebTransport CONNECT. The browser result is pending.
+[aioquic 1.8.0](https://pypi.org/project/aioquic/1.8.0/).
+
+Run the positive control with
+`python crates/vessel-browser/tests/fixtures/webtransport.py --control-only`
+in an isolated environment with aioquic 1.8.0. The paired run takes
+`--runner`, `--export`, `--commit` and `--out`. The runtime runner checks
+the manifest, build identity, recorded sandbox requirement and approved CfT path
+before invoking only the exact ignored `approved_candidate_refuses_private_webtransport`
+test. Its `webtransport` mode passes the held loopback address and certificate
+digest to that test. The H3 peer writes both sets of counters to
+`webtransport.json`. No host trust store changes. DNS rebinding remains a
+separate qualification case.
 
 ### Download follow-up
 

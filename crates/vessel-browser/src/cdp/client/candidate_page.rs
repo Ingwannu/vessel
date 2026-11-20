@@ -284,7 +284,7 @@ async fn observe_policy(
 ) -> Result<(), ExerciseError> {
     // Keep the diagnostic's raw event queue serviced just as the actor does
     // between commands. No event from a prior route satisfies a page marker.
-    let probe = async {
+    events.during_fixture(async {
         routes.verify_browser(page).await?;
         policy.verify(page).await?;
         let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
@@ -295,18 +295,7 @@ async fn observe_policy(
             Err(error) => Err(error.into()),
             Ok(()) => Err(ExerciseError::DownloadAccepted),
         }
-    };
-    tokio::pin!(probe);
-    loop {
-        tokio::select! {
-            result = &mut probe => return result,
-            event = events.next() => {
-                if event.is_none() {
-                    return Err(PageError::Cdp(super::CdpError::Closed).into());
-                }
-            }
-        }
-    }
+    }).await.map_err(PageError::Cdp)?
 }
 
 async fn exercise_input(page: &mut Page, frame: &ViewportFrame) -> Result<(), PageError> {
