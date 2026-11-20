@@ -95,7 +95,7 @@ impl PolicyOrigin {
     pub(super) fn new(port: u16) -> Self {
         // This socket is the already-held fixture listener. A browser that
         // bypasses its proxy sends an origin-form request and fails here.
-        let authority = format!("localhost:{port}");
+        let authority = format!("127.0.0.1:{port}");
         let origin = format!("http://{authority}");
         Self { authority, origin }
     }

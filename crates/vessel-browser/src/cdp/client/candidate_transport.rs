@@ -65,7 +65,7 @@ impl TransportProbe {
             "<!doctype html><meta charset=utf-8><body><script>const target = {endpoint};\nconst fingerprint = {array};\n{SCRIPT}</script></body>"
         );
         Ok(Self {
-            authority: format!("localhost:{listener_port}"),
+            authority: format!("127.0.0.1:{listener_port}"),
             document,
         })
     }
