@@ -23,6 +23,20 @@ pub(crate) struct Open {
     pub(crate) binding: Option<vessel_app_link::sessions::Binding>,
 }
 
+/// The command that opens a session's follow: the binding's
+/// `SessionAccess::Follow` when the open has one, otherwise `Open`
+/// by book name. The first follow and a reopen after a pause send
+/// this, so a replaced node is refused the same way both times.
+pub(crate) fn follow_command(open: &Open) -> Command {
+    open.binding.clone().map_or_else(
+        || Command::Open {
+            machine: open.machine.clone(),
+            session: open.session,
+        },
+        |binding| Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding)),
+    )
+}
+
 impl Open {
     pub(crate) fn of(card: &Card) -> Self {
         Self {
@@ -63,13 +77,7 @@ impl crate::shell::Shell {
         if !self.terminal_follow(&open, cx) {
             return;
         }
-        self.command(open.binding.clone().map_or_else(
-            || Command::Open {
-                machine: open.machine.clone(),
-                session: open.session,
-            },
-            |binding| Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding)),
-        ));
+        self.command(follow_command(&open));
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();

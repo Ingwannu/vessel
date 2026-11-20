@@ -67,6 +67,18 @@ impl Shown {
     }
 }
 
+/// The last fleet sample of the shown machine's link. One value, so the
+/// area does not grow two more flags. Dropped with the session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LinkSample {
+    /// No fleet read of this session yet. The first read only records it.
+    Unseen,
+    /// The last read said the machine was offline.
+    Offline,
+    /// The last read said the machine was online.
+    Online,
+}
+
 /// The conversation area's state.
 pub(crate) struct ConversationArea {
     /// The session shown, when one is.
@@ -115,6 +127,10 @@ pub(crate) struct ConversationArea {
     /// Said once, in the bar, in the app's words; these only in the line's
     /// tooltip (`bar.rs`). Not a refusal: the node did not answer at all.
     pub(crate) lost: Option<String>,
+    /// The last fleet sample of the shown machine. Unseen until a read,
+    /// and dropped with the session, so the next session's first sample
+    /// is not an edge (`link_edge`).
+    pub(crate) link_sample: LinkSample,
     /// The tooltip of that line and where it is drawn.
     pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The tooltip of the bar's word for a released agent.
@@ -193,6 +209,7 @@ impl ConversationArea {
             tail: tail::Tail::default(),
             fresh: None,
             lost: None,
+            link_sample: LinkSample::Unseen,
             lost_tip: (
                 vessel_app_kit::Tooltips::new(),
                 Rc::new(std::cell::Cell::new(None)),
@@ -255,6 +272,7 @@ impl ConversationArea {
     pub(super) fn clear(&mut self) {
         self.shown = None;
         self.lost = None;
+        self.link_sample = LinkSample::Unseen;
         self.read = read::ReadMarks::default();
         self.rewinding.clear();
         self.forking.clear();
