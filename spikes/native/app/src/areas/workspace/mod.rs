@@ -153,6 +153,9 @@ impl Shell {
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
             Answer::Folders { query, result } => self.add_flow_folders(machine, &query, result),
+            Answer::Repositories { query, result } => {
+                self.add_flow_repositories(machine, &query, result);
+            }
             Answer::Icon { project, result } => {
                 self.background_answered(machine);
                 self.project_icon_read(machine, project, result);

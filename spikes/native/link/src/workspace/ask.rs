@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use vessel_proto::forge::SearchRepositories;
 use vessel_proto::registry::CreateProjectDirectory;
 use vessel_proto::workspace::directory_metadata::InspectDirectory;
 use vessel_proto::workspace::host_folders::SuggestFolders;
@@ -61,6 +62,8 @@ pub enum ProjectAsk {
     Icon(ProjectId),
     /// `project.create_directory` (ADR 0113): Add project's New directory.
     CreateDirectory(CreateProjectDirectory),
+    /// `forge.repos` (ADR 0088): Add project's GitHub repositories.
+    SearchRepositories(SearchRepositories),
 }
 
 /// The worktree asks.

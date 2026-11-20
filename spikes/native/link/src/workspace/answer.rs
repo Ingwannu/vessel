@@ -4,6 +4,7 @@
 use vessel_app_view::workspace::file_panels::DownloadFailure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
+use vessel_proto::forge::RepositoryList;
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
 use vessel_proto::workspace::host_folders::{FolderSuggestions, IconImage};
 use vessel_proto::workspace::panel_files::{
@@ -60,6 +61,13 @@ pub enum Answer {
         query: String,
         /// The folders, or why not.
         result: Result<FolderSuggestions, Problem>,
+    },
+    /// Add project's GitHub repositories for what was typed (ADR 0088).
+    Repositories {
+        /// The query asked.
+        query: String,
+        /// The repositories, or why not.
+        result: Result<RepositoryList, Problem>,
     },
     /// A project's own icon, or none (ADR 0112).
     Icon {
@@ -344,6 +352,10 @@ fn project_refused(ask: ProjectAsk, problem: &Problem) -> Answer {
             result: no(problem),
         },
         ProjectAsk::SuggestFolders(ask) => Answer::Folders {
+            query: ask.query.as_str().to_owned(),
+            result: no(problem),
+        },
+        ProjectAsk::SearchRepositories(ask) => Answer::Repositories {
             query: ask.query.as_str().to_owned(),
             result: no(problem),
         },

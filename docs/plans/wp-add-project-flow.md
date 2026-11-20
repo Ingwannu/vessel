@@ -9,8 +9,9 @@ Impl F, 2026-11-19. Node line head `b274faf8a`, package base 14.65
 (`docs/parity/survey/parts/p1-projects-workspaces.md`).
 
 Status: plan approved by the coordinator (2026-11-19) with the rulings at
-the end. The GitHub search rows wait on TRACKER 440; the rest of the
-GitHub method is built now.
+the end. The GitHub search rows came with TRACKER 440 (`forge.repos`,
+ADR 0088): on the page with its part 1, natively after the sheet's
+adoption, on a machine at its protocol.
 
 ## Paseo
 
@@ -154,7 +155,9 @@ Steps (each its own packet and gate):
 5. Clone from GitHub in Paseo's no-search state on both sides: the manual
    rows (a full remote; `owner/repo` via HTTPS and via SSH) and the
    destination page, over `project.clone`.
-6. After TRACKER 440: the search rows.
+6. After TRACKER 440: the search rows (done: the account's repositories
+   for an empty field, a search for text, 30 rows; the typed rows stay
+   while it searches and under its error, Paseo's rule).
 
 ## Differences (each deliberate)
 

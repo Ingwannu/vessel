@@ -6,6 +6,7 @@
 
 use crate::workspace::add_flow::model::{CloneProtocol, PageId};
 use crate::workspace::add_flow::options::{Method, MethodNote};
+use crate::workspace::add_flow::repositories::SearchError;
 use crate::workspace::add_flow::rows::{Empty, RowNote, RowTitle};
 
 /// The file manager Browse opens (plan difference 10).
@@ -57,6 +58,10 @@ pub struct AddFlowWords {
     pub file_explorer: &'static str,
     pub file_manager: &'static str,
     pub search_failed: &'static str,
+    pub github_failed: &'static str,
+    pub github_unavailable: &'static str,
+    pub gh_missing: &'static str,
+    pub gh_signed_out: &'static str,
     pub not_found: &'static str,
     pub cannot_add: &'static str,
     pub cannot_clone: &'static str,
@@ -116,6 +121,10 @@ pub const EN: AddFlowWords = AddFlowWords {
     file_explorer: "File Explorer",
     file_manager: "the file manager",
     search_failed: "Unable to search directories",
+    github_failed: "Unable to search GitHub repositories",
+    github_unavailable: "GitHub search failed",
+    gh_missing: "GitHub CLI (gh) is not installed or not in PATH",
+    gh_signed_out: "GitHub CLI is not authenticated. Run gh auth login on the machine.",
     not_found: "Directory not found",
     cannot_add: "Unable to add project",
     cannot_clone: "Unable to clone repository",
@@ -169,6 +178,10 @@ pub const KO: AddFlowWords = AddFlowWords {
     file_explorer: "파일 탐색기",
     file_manager: "파일 관리자",
     search_failed: "디렉터리를 검색할 수 없음",
+    github_failed: "GitHub 저장소를 검색할 수 없음",
+    github_unavailable: "GitHub 검색 실패",
+    gh_missing: "GitHub CLI(gh)가 설치되어 있지 않거나 PATH에 없음",
+    gh_signed_out: "GitHub CLI에 로그인되어 있지 않습니다. 머신에서 gh auth login을 실행하세요.",
     not_found: "디렉터리를 찾을 수 없음",
     cannot_add: "프로젝트를 추가할 수 없음",
     cannot_clone: "저장소를 복제할 수 없음",
@@ -209,6 +222,17 @@ const fn transport(protocol: CloneProtocol) -> &'static str {
 }
 
 impl AddFlowWords {
+    /// Why the GitHub page has no search rows (Paseo's words).
+    #[must_use]
+    pub const fn search_error(&self, error: SearchError) -> &'static str {
+        match error {
+            SearchError::Failed => self.github_failed,
+            SearchError::Unavailable => self.github_unavailable,
+            SearchError::GhMissing => self.gh_missing,
+            SearchError::SignedOut => self.gh_signed_out,
+        }
+    }
+
     /// A method's name.
     #[must_use]
     pub const fn method(&self, method: Method) -> &'static str {

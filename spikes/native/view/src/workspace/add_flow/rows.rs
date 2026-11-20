@@ -5,11 +5,11 @@
 
 use std::collections::HashMap;
 
-use super::model::{CloneProtocol, Machine, Page, PageId, PageKind, Repository};
+use super::model::{CloneProtocol, Machine, Origin, Page, PageId, PageKind, Repository};
 use super::options::{
     Method, MethodNote, base_name, clone_locations, filter_machines, methods, suggested_parents,
-    typed_repositories,
 };
+use super::repositories::github_choices;
 use super::paths::{DirectoryOption, directory_options, shorten_path};
 
 /// The mark a row draws (Paseo's lucide icons; `Drive` is its `HardDrive`).
@@ -125,6 +125,8 @@ pub struct Inputs<'a> {
     /// The machine reads a leading `~` (ADR 0113); an older one is sent
     /// no `~` path.
     pub tilde: bool,
+    /// The machine's GitHub search for the field as it is (ADR 0088).
+    pub repositories: &'a [Repository],
 }
 
 impl Inputs<'_> {
@@ -227,24 +229,30 @@ fn directory_rows(inputs: &Inputs<'_>) -> Vec<Row> {
         .collect()
 }
 
-fn repository_rows(query: &str) -> Vec<Row> {
-    typed_repositories(query)
+/// Paseo's GitHub rows: what was typed (unless the search has it), then
+/// the search's, each found row's note its description.
+fn repository_rows(query: &str, found: &[Repository]) -> Vec<Row> {
+    github_choices(query, found)
         .into_iter()
         .map(|repository| {
-            let (title, note) = match repository.protocol {
-                Some(protocol) => (
+            let (title, note) = match (repository.protocol, &repository.origin) {
+                (Some(protocol), _) => (
                     RowTitle::RepositoryVia(repository.name_with_owner.clone(), protocol),
-                    RowNote::CloneVia(protocol),
+                    Some(RowNote::CloneVia(protocol)),
                 ),
-                None => (
+                (None, Origin::Typed) => (
                     RowTitle::Text(repository.name_with_owner.clone()),
-                    RowNote::CloneThisUrl,
+                    Some(RowNote::CloneThisUrl),
+                ),
+                (None, Origin::Found { description }) => (
+                    RowTitle::Text(repository.name_with_owner.clone()),
+                    description.clone().map(RowNote::Text),
                 ),
             };
             Row {
                 id: repository.id.clone(),
                 title,
-                note: Some(note),
+                note,
                 mark: RowMark::Github,
                 disabled: false,
                 action: RowAction::Repository(repository),
@@ -320,7 +328,7 @@ pub fn rows(inputs: &Inputs<'_>) -> Vec<Row> {
         PageKind::Host => host_rows(inputs),
         PageKind::Method { .. } => inputs.machine.map(method_rows).unwrap_or_default(),
         PageKind::DirectorySearch { .. } => directory_rows(inputs),
-        PageKind::GithubSearch { .. } => repository_rows(&inputs.page.field),
+        PageKind::GithubSearch { .. } => repository_rows(&inputs.page.field, inputs.repositories),
         PageKind::GithubLocation { repository, .. } => location_rows(inputs, repository),
         PageKind::NewDirectoryParent { .. } => parent_rows(inputs),
         PageKind::NewDirectoryName { .. } => Vec::new(),
