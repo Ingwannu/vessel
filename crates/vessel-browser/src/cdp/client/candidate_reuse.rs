@@ -107,7 +107,9 @@ fn observe_process(path: &Path, marker: &[u8], group: u32, uid: u32) -> io::Resu
         return Ok(());
     }
     if owned_group {
-        return Err(io::Error::other("the first browser still has a live group member"));
+        return Err(io::Error::other(
+            "the first browser still has a live group member",
+        ));
     }
     if path.metadata()?.uid() != uid
         || !fs::read_to_string(path.join("comm"))?.starts_with("chrome")
@@ -122,7 +124,9 @@ fn observe_process(path: &Path, marker: &[u8], group: u32, uid: u32) -> io::Resu
         return Err(io::ErrorKind::InvalidData.into());
     }
     if arguments.windows(marker.len()).any(|part| part == marker) {
-        return Err(io::Error::other("the first browser still has a live profile process"));
+        return Err(io::Error::other(
+            "the first browser still has a live profile process",
+        ));
     }
     Ok(())
 }
