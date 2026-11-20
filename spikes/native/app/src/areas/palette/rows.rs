@@ -77,7 +77,7 @@ pub(super) const fn glyph_of(target: &Target) -> Glyph {
 pub(super) fn heading(
     group: PaletteGroup,
     entries: &[&Entry],
-    words: &vessel_app_view::text::PaletteWords,
+    words: &vessel_app_view::PaletteWords,
 ) -> SharedString {
     match group {
         PaletteGroup::Plugin(_) => entries
