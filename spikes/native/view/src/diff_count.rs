@@ -6,7 +6,7 @@
 #[must_use]
 pub fn format_diff_count(value: u32) -> String {
     let value = u64::from(value);
-    let (unit, suffix) = if value >= 1_000_000_000 {
+    let (unit, suffix): (u64, &str) = if value >= 1_000_000_000 {
         (1_000_000_000, "b")
     } else if value >= 1_000_000 {
         (1_000_000, "m")

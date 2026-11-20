@@ -67,15 +67,13 @@ pub fn compact_ago(at: DateTime<Utc>, now: DateTime<Utc>) -> String {
     if days < 7 {
         return format!("{days}d");
     }
-    let month = MONTHS
-        .get(usize::from(at.month0()))
-        .copied()
-        .unwrap_or("Jan");
+    let index = usize::try_from(at.month0()).unwrap_or(0);
+    let month = MONTHS.get(index).copied().unwrap_or("Jan");
     format!("{month} {}", at.day())
 }
 
 /// `count / unit`, or zero when `unit` is zero.
-const fn quot(count: i64, unit: i64) -> i64 {
+fn quot(count: i64, unit: i64) -> i64 {
     count.checked_div(unit).unwrap_or(0)
 }
 
