@@ -20,12 +20,12 @@
 
 use std::path::Path;
 
+use vessel_app_kit::alert::{Content, Size, Variant, alert};
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, div, px,
+    Context, Div, ElementId, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, div, px,
 };
-use vessel_app_kit::alert::{Content, Size, Variant, alert};
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
 use vessel_app_link::terminals::{Ask as TerminalAsk, Request as TerminalRequest};
@@ -177,10 +177,7 @@ impl Shell {
         }
         let worktree = removing.worktree.id;
         if go && let Some(if_lost) = removing.busy {
-            self.ask(
-                machine,
-                Ask::Worktree(remove_ask(worktree, if_lost, true)),
-            );
+            self.ask(machine, Ask::Worktree(remove_ask(worktree, if_lost, true)));
         }
         cx.notify();
     }
