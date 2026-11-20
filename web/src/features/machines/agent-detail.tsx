@@ -21,7 +21,7 @@ import { nextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import { agentKey } from "../../data/agents";
 import type { HarnessOptions, HarnessRef } from "../../wire/proto";
-import { Badge, Banner, Row, RowList, Skeleton } from "../../ui/kit";
+import { Alert, Badge, Row, RowList, Skeleton } from "../../ui/kit";
 import { AgentDiagnosticButton } from "../diagnostics/agent-diagnostic";
 import { FactValue, SettingsSection } from "../settings/settings-page";
 
@@ -130,11 +130,22 @@ function Offer({
   if (!answer.ok) {
     return (
       <SettingsSection title="What it offers">
-        <Banner tone="error">
-          {nodeError(answer.problem) === "conflict"
-            ? refusedStart(agent, agents)
-            : `${name} did not say: ${answer.problem.message} ${nextStep(answer.problem)}`}
-        </Banner>
+        {/* Paseo's settings pages: a read that failed is an error Alert in
+            the flow (TRACKER 820); a refused start says it all in one line. */}
+        {nodeError(answer.problem) === "conflict" ? (
+          <Alert
+            size="sm"
+            variant="error"
+            description={refusedStart(agent, agents)}
+          />
+        ) : (
+          <Alert
+            size="sm"
+            variant="error"
+            title={`${name} did not say what it offers`}
+            description={`${answer.problem.message} ${nextStep(answer.problem)}`}
+          />
+        )}
       </SettingsSection>
     );
   }

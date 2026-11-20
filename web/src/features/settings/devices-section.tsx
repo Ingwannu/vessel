@@ -16,7 +16,7 @@ import { nodeLabel } from "../../data/nodes";
 import { nextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import type { DeviceInfo } from "../../wire/proto";
-import { Banner, Button, Row, RowList, Skeleton } from "../../ui/kit";
+import { Alert, Button, Row, RowList, Skeleton } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import { MachinePicker } from "../machines/machine-picker";
 import { InviteCard } from "./invite-card";
@@ -89,17 +89,18 @@ function DevicesOf({ machine, label }: { machine: NodeKey; label: string }) {
         {listed === null ? (
           <Skeleton />
         ) : !listed.ok ? (
-          <Banner
-            tone="error"
-            action={
-              <Button size="sm" onClick={load}>
-                Try again
-              </Button>
-            }
+          // Paseo's settings pages: a list that could not be read is an
+          // error Alert in the flow with an outline Retry (TRACKER 820).
+          <Alert
+            size="sm"
+            variant="error"
+            title="The devices could not be listed"
+            description={`${listed.problem.message} ${nextStep(listed.problem)}`}
           >
-            The devices could not be listed: {listed.problem.message}{" "}
-            {nextStep(listed.problem)}
-          </Banner>
+            <Button size="sm" variant="outline" onClick={load}>
+              Try again
+            </Button>
+          </Alert>
         ) : devices === null || devices.length === 0 ? (
           <p className="settings-empty">
             No devices yet. One paired with a link below shows up here.

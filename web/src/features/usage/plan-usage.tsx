@@ -21,7 +21,7 @@ import type {
   AccountRead,
 } from "../../data/account-usage/reader";
 import type { QuotaDisplay } from "../../data/account-usage/values";
-import { Banner, Button, IconButton, Tooltip } from "../../ui/kit";
+import { Alert, Button, IconButton, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import { SettingsSection } from "../settings/settings-page";
 import { QuotaCardView, type WindowPins } from "./quota-card";
@@ -115,8 +115,26 @@ export function PlanContent({
   const display = useUsagePrefs().usage.display;
   const { now, locale, deviceClock } = useQuotaClock();
   if (plan.ready === null) {
-    return plan.read.kind === "failed" ? (
-      <Banner tone="error">{plan.read.problem.message}</Banner>
+    // Paseo's UsageBody error: an Alert in the flow, its Retry reading the
+    // machine's reports again (TRACKER 820).
+    const read = plan.read;
+    return read.kind === "failed" ? (
+      <Alert
+        size="sm"
+        variant="error"
+        title="Unable to load usage"
+        description={read.problem.message}
+      >
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            plan.reader.open(read.node);
+          }}
+        >
+          Try again
+        </Button>
+      </Alert>
     ) : (
       <Message text="Reading usage…" />
     );
@@ -181,7 +199,8 @@ function PlanBody({
   const prefsOf = useUsagePrefs();
   const problem =
     ready.problem === null ? null : (
-      <Banner tone="error">{ready.problem.message}</Banner>
+      // Paseo's setting error: an Alert, its message only.
+      <Alert variant="error" description={ready.problem.message} />
     );
   if (ready.reports.policy === "off") {
     return (

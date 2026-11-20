@@ -19,7 +19,7 @@ import {
   withConflicts,
 } from "../../data/sync";
 import type { NodeKey } from "../../wire/bridge";
-import { Badge, Banner, Row, RowList, Skeleton } from "../../ui/kit";
+import { Alert, Badge, Row, RowList, Skeleton } from "../../ui/kit";
 import { MachinePicker } from "../machines/machine-picker";
 import { FactValue, SettingsPage, SettingsSection } from "./settings-page";
 
@@ -176,12 +176,21 @@ function SharedBy({ machine, label }: { machine: NodeKey; label: string }) {
       )}
       <SettingsSection title="Machines that pull it">
         {kept.map((member) => (
-          <Banner key={member.device} tone="warn">
-            {member.label} kept its own edit of{" "}
-            {(member.conflicts ?? []).join(", ")}. The shared version is beside
-            it, named <code>.vessel-incoming</code>; Vessel never overwrites a
-            file you changed.
-          </Banner>
+          // Paseo's settings notices: a warning Alert in the flow (TRACKER
+          // 820).
+          <Alert
+            key={member.device}
+            size="sm"
+            variant="warning"
+            description={
+              <>
+                {member.label} kept its own edit of{" "}
+                {(member.conflicts ?? []).join(", ")}. The shared version is
+                beside it, named <code>.vessel-incoming</code>; Vessel never
+                overwrites a file you changed.
+              </>
+            }
+          />
         ))}
         {members.length === 0 ? (
           <p className="settings-empty">

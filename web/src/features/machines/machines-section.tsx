@@ -12,7 +12,7 @@ import { makeDefault } from "../../data/book";
 import { nodeLabel } from "../../data/nodes";
 import { nextStep } from "../../data/outcome";
 import type { BookNode, NodeKey } from "../../wire/bridge";
-import { Banner, Button, EmptyState, RowList, Skeleton } from "../../ui/kit";
+import { Alert, Button, EmptyState, RowList, Skeleton } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import { SettingsPage, SettingsSection } from "../settings/settings-page";
 import { ForgetDialog } from "./forget-dialog";
@@ -62,16 +62,22 @@ export function MachinesSection({ machine }: { machine: NodeKey | undefined }) {
   return (
     <SettingsPage lead="The machines this page reaches. Sessions run on them, each with the agents installed there.">
       {bookError === null ? null : (
-        <Banner
-          tone="error"
-          action={
-            <Button size="sm" onClick={() => void fleet.loadBook()}>
-              Try again
-            </Button>
-          }
+        // Paseo's settings pages: a list that could not be read is an error
+        // Alert in the flow with an outline Retry (TRACKER 820).
+        <Alert
+          size="sm"
+          variant="error"
+          title="The list of machines could not be read"
+          description={bookError}
         >
-          The list of machines could not be read: {bookError}
-        </Banner>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void fleet.loadBook()}
+          >
+            Try again
+          </Button>
+        </Alert>
       )}
       <SettingsSection
         title="Machines"
