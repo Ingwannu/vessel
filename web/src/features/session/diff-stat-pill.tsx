@@ -26,8 +26,7 @@ export function DiffStatPill({
   const snapshot = state.registries[node];
   const workspace =
     snapshot === undefined ? null : workspaceOf(snapshot, session);
-  const stat =
-    workspace === null ? undefined : stats.byNode[node]?.[workspace];
+  const stat = workspace === null ? undefined : stats.byNode[node]?.[workspace];
   if (
     stat == null ||
     open === null ||
