@@ -27,6 +27,9 @@
 //!   combining sequence, which only the last character of a long line
 //!   risks.
 
+mod generated;
+pub use generated::{GeneratedTitle, InvalidGeneratedTitle, MAX_GENERATED_TITLE_UNITS};
+
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
