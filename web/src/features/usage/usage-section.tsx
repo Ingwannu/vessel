@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useFleetState } from "../../context";
 import { machineFor, machineState } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
-import { nextStep } from "../../data/outcome";
+import { withNextStep } from "../../data/outcome";
 import type { UsageRange } from "../../data/usage/calls";
 import {
   usageCoverage,
@@ -147,7 +147,7 @@ function UsageBody({
     case "failed":
       return (
         <p role="alert" className="settings-empty">
-          {read.problem.message} {nextStep(read.problem)}
+          {withNextStep(read.problem)}
         </p>
       );
     case "ready":

@@ -30,7 +30,7 @@ import {
   type PluginStatus,
 } from "../wire/proto";
 import type { Fleet } from "./fleet";
-import { attempt, nextStep, type Outcome } from "./outcome";
+import { attempt, withNextStep, type Outcome } from "./outcome";
 
 /** The words of the section, Paseo's (`settings.plugins.*`). */
 export const PLUGIN_WORDS = {
@@ -122,9 +122,7 @@ export function problemWords(outcome: Outcome<unknown>): string {
     problem.from === "call" &&
     problem.failure.kind === "remote" &&
     problem.message.trim() !== "";
-  return refused
-    ? problem.message
-    : `${problem.message} ${nextStep(problem)}`.trim();
+  return refused ? problem.message : withNextStep(problem);
 }
 
 /** What a status is called, and its badge tone (Paseo: running success,

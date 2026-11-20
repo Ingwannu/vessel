@@ -13,7 +13,7 @@ import {
 } from "../../data/devices";
 import { machineFor, machineState } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
-import { nextStep, type Outcome } from "../../data/outcome";
+import { withNextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import type { DeviceInfo } from "../../wire/proto";
 import { Alert, Button, Row, RowList, Skeleton } from "../../ui/kit";
@@ -95,7 +95,7 @@ function DevicesOf({ machine, label }: { machine: NodeKey; label: string }) {
             size="sm"
             variant="error"
             title="The devices could not be listed"
-            description={`${listed.problem.message} ${nextStep(listed.problem)}`}
+            description={withNextStep(listed.problem)}
           >
             <Button size="sm" variant="outline" onClick={load}>
               Try again
@@ -146,10 +146,7 @@ function DevicesOf({ machine, label }: { machine: NodeKey; label: string }) {
               if (outcome.ok) {
                 toast(`Revoked ${device.label}`);
               } else {
-                toast(
-                  `${outcome.problem.message} ${nextStep(outcome.problem)}`,
-                  "error",
-                );
+                toast(withNextStep(outcome.problem), "error");
               }
               load();
             });

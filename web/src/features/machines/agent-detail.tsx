@@ -17,7 +17,7 @@ import {
 } from "../../data/agent-status";
 import { probeOptions } from "../../data/calls";
 import { controlsOf } from "../../data/options";
-import { nextStep, type Outcome } from "../../data/outcome";
+import { withNextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import { agentKey } from "../../data/agents";
 import type { HarnessOptions, HarnessRef } from "../../wire/proto";
@@ -137,7 +137,7 @@ function Offer({
               ? refusedStart(agent, agents)
               : null
           }
-          reason={`${answer.problem.message} ${nextStep(answer.problem)}`}
+          reason={withNextStep(answer.problem)}
         />
       </SettingsSection>
     );

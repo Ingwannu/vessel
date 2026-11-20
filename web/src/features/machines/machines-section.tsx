@@ -10,7 +10,7 @@ import { useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
 import { makeDefault } from "../../data/book";
 import { nodeLabel } from "../../data/nodes";
-import { nextStep } from "../../data/outcome";
+import { withNextStep } from "../../data/outcome";
 import type { BookNode, NodeKey } from "../../wire/bridge";
 import { Alert, Button, EmptyState, RowList, Skeleton } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
@@ -50,10 +50,7 @@ export function MachinesSection({ machine }: { machine: NodeKey | undefined }) {
           if (outcome.ok) {
             toast(`${label} is the default machine`);
           } else {
-            toast(
-              `${outcome.problem.message} ${nextStep(outcome.problem)}`,
-              "error",
-            );
+            toast(withNextStep(outcome.problem), "error");
           }
         });
         return;
