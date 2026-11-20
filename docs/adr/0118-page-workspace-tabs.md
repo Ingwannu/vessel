@@ -11,7 +11,8 @@ lifecycle and a bridge follower but lacked a workspace surface.
 
 Keep an ordered tab layout in the browser, scoped by machine and resolved
 worktree or project. Unregistered folders use the session as their scope.
-Persist target identities and selection in local storage. A session
+Persist target identities and selection in local storage for the served
+origin. A different launch origin starts with a fresh layout. A session
 address selects its agent when entered directly or through navigation.
 The last visited session address anchors passive tabs and the launcher.
 Reloading that same address can restore the selected passive tab. Use the
@@ -21,14 +22,16 @@ Use one set of tab actions across desktop and compact. Move Changes,
 Diff and file content into the tab host, retaining Summary as session
 chrome. A file's editor and original save version survive switching tabs.
 Only the visible editor observes disk changes. Closing a modified editor
-requires confirmation.
+or leaving the workspace requires confirmation.
 
 Run the existing archive and terminal close calls one by one after a
 single bulk confirmation. Remove each tab when its action succeeds and
 keep failures available for retry. A child agent's close affects layout
 only. This differs from Paseo's single closeItems call. Project terminals
 belong to the project root. For a worktree or unregistered folder, the
-existing terminal contract uses a session in that location.
+existing terminal contract uses a session in that location. A successful
+list carrying an ended terminal clears its tab. Failed or incomplete
+lists leave existing targets alone.
 
 ## Alternatives and consequences
 

@@ -134,6 +134,22 @@ export function removeTab(layout: TabLayout, key: string): TabLayout {
   };
 }
 
+/** Keep the draft's position and respect a tab switch while creating. */
+export function settleDraft(layout: TabLayout, id: SessionId): TabLayout {
+  const agent = { kind: "agent", id } as const;
+  const next = tabKey(agent);
+  if (!layout.tabs.some((tab) => tab.kind === "draft")) {
+    return addDiscovered(layout, [agent]);
+  }
+  return {
+    ...layout,
+    tabs: layout.tabs
+      .filter((tab) => tabKey(tab) !== next)
+      .map((tab) => (tab.kind === "draft" ? agent : tab)),
+    active: layout.active === "draft" ? next : layout.active,
+  };
+}
+
 export function tabsToClose(
   tabs: readonly WorkspaceTab[],
   key: string,

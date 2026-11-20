@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useFleetState } from "../../context";
@@ -11,6 +11,7 @@ import {
   moveTab,
   removeTab,
   showTab,
+  settleDraft,
   tabKey,
   type TabLayout,
   type WorkspaceTab,
@@ -55,7 +56,8 @@ interface WorkspaceState {
   lines: ReadonlyMap<RelPath, { line: number; seq: number }>;
   session: (id: SessionId) => SessionInfo | undefined;
   select: (tab: WorkspaceTab) => void;
-  remove: (tab: WorkspaceTab) => void;
+  completeDraft: (id: SessionId) => void;
+  leave: ReturnType<typeof useLeaveWorkspace>;
   markDirty: (key: string, dirty: boolean) => void;
   lifecycle: ReturnType<typeof useTabLifecycle>;
   actions: readonly TabAction[];
@@ -110,7 +112,10 @@ export function useWorkspace(
       .filter(isLiveTerminal)
       .map((terminal) => ({ kind: "terminal" as const, id: terminal.id })),
   ];
-  const { layout, update } = useLayout(scope, anchor.id, discovered);
+  const ended = terminals.rows
+    .filter((terminal) => !isLiveTerminal(terminal))
+    .map((terminal) => ({ kind: "terminal" as const, id: terminal.id }));
+  const { layout, update } = useLayout(scope, anchor.id, discovered, ended);
   const active = layout.tabs.find((tab) => tabKey(tab) === layout.active);
   const routed = active?.kind === "agent" ? active.id : null;
   const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
@@ -132,16 +137,7 @@ export function useWorkspace(
     }
   }, [anchor.id, navigate, node, routed]);
 
-  useEffect(() => {
-    if (dirty.size === 0) {
-      return undefined;
-    }
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty.size]);
+  const leave = useLeaveWorkspace(node, sessionIds, dirty.size > 0);
 
   const select = (tab: WorkspaceTab) => {
     update((current) => showTab(current, tab));
@@ -234,7 +230,11 @@ export function useWorkspace(
     lines,
     session,
     select,
-    remove,
+    completeDraft: (id) => {
+      markDirty("draft", false);
+      update((current) => settleDraft(current, id));
+    },
+    leave,
     markDirty,
     lifecycle,
     actions,
@@ -243,6 +243,19 @@ export function useWorkspace(
     move: (source: string, target: string, side: "before" | "after") =>
       update((current) => moveTab(current, source, target, side)),
   };
+}
+
+function useLeaveWorkspace(
+  node: NodeKey,
+  sessions: ReadonlySet<SessionId>,
+  dirty: boolean,
+) {
+  const paths = new Set([...sessions].map((id) => `/sessions/${node}/${id}`));
+  return useBlocker({
+    shouldBlockFn: ({ next }) => dirty && !paths.has(next.pathname),
+    enableBeforeUnload: dirty,
+    withResolver: true,
+  });
 }
 
 function isLiveTerminal(terminal: TerminalInfo): boolean {

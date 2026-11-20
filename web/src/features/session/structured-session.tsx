@@ -20,7 +20,7 @@ import { outline, sameOutline } from "../../data/outline";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import type { SessionInfo } from "../../wire/proto";
-import { Banner } from "../../ui/kit";
+import { Banner, Sheet } from "../../ui/kit";
 import { useShortcut } from "../shortcuts/handlers";
 import { Composer } from "./composer";
 import { FindBar } from "./find-bar";
@@ -70,6 +70,7 @@ export function StructuredSession({
   }, [logged, session.id]);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
   const narrow = useMedia("(width < 1280px)");
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [finding, setFinding] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
@@ -138,6 +139,7 @@ export function StructuredSession({
         session={session}
         renamed={timeline.title}
         onPlace={openChanges}
+        {...(narrow ? { onSummary: () => setSummaryOpen(true) } : {})}
       />
       <div className="session-main">
         {stream?.state === "reconnecting" ? (
@@ -185,6 +187,20 @@ export function StructuredSession({
           session={session}
           timeline={timeline}
         />
+      ) : null}{" "}
+      {narrow && summaryOpen ? (
+        <Sheet
+          side="right"
+          label="Summary"
+          onClose={() => setSummaryOpen(false)}
+        >
+          <Inspector
+            node={node}
+            label={label}
+            session={session}
+            timeline={timeline}
+          />
+        </Sheet>
       ) : null}
     </>
   );

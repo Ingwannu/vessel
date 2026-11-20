@@ -91,6 +91,7 @@ test("a tree row's right click offers Paseo's file actions, and each does its wo
     "@src/cart.ts ",
   );
 
+  await openPanelTab(page, "Files");
   // An open folder: Collapse in a group of its own, no Download or Add
   // to chat.
   menu = await menuOf(page, src);

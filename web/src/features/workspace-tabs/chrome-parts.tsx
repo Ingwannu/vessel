@@ -20,6 +20,7 @@ export interface TabAction {
   run: () => void;
   disabled?: boolean;
   danger?: boolean;
+  tooltip?: string;
 }
 
 export interface TabChromeProps {
@@ -64,6 +65,7 @@ export function menuRows(actions: readonly TabAction[]) {
       icon={action.icon}
       onSelect={action.run}
       disabled={action.disabled ?? false}
+      {...(action.tooltip === undefined ? {} : { tooltip: action.tooltip })}
       tone={action.danger === true ? "danger" : "default"}
     >
       {action.label}

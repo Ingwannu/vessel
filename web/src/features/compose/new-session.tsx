@@ -176,7 +176,7 @@ export function NewSession({
       );
       rememberStarted(fleet, nodeId, known, effective, options);
       fleet.select(machine);
-      void fleet.refreshSessions(machine);
+      fleet.putSession(machine, created.value);
       if (workspace !== undefined) {
         workspace.done(id);
       } else if (here.current) {

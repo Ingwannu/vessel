@@ -219,6 +219,7 @@ export function useTabLifecycle(input: {
           { label: words.rename, icon: "edit", run: () => setRenaming(item) },
           {
             label: words.reload,
+            tooltip: words.reloadHint,
             icon: "refresh",
             disabled: !reloadable(tab.id),
             run: () => {

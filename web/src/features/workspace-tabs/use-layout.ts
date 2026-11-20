@@ -4,6 +4,8 @@ import {
   addDiscovered,
   enterRoute,
   loadTabLayout,
+  removeTab,
+  tabKey,
   saveTabLayout,
   type TabLayout,
   type WorkspaceTab,
@@ -19,6 +21,7 @@ export function useLayout(
   scope: string,
   route: SessionId,
   discovered: readonly WorkspaceTab[],
+  ended: readonly WorkspaceTab[],
 ): LayoutState {
   const [layout, update] = useState<TabLayout>(() =>
     addDiscovered(
@@ -28,7 +31,10 @@ export function useLayout(
   );
   // Apply route changes before drawing so an old workspace selection
   // cannot appear under a URL that was just opened from the sidebar.
-  const current = addDiscovered(enterRoute(layout, route), discovered);
+  const current = ended.reduce(
+    (kept, tab) => removeTab(kept, tabKey(tab)),
+    addDiscovered(enterRoute(layout, route), discovered),
+  );
   if (current !== layout) {
     update(current);
   }

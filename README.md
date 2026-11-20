@@ -1047,7 +1047,8 @@ browser on Unix (on Windows, open the printed address).
   identifiers. The workspace's **New tab** menu opens an agent draft,
   terminal, Changes, Diff or Files. File tabs keep unsaved edits while
   you switch tabs. Desktop tabs can be dragged to reorder them. At
-  compact widths, the tab count opens the switcher.
+  compact widths, the tab count opens the switcher. Tab order is kept
+  for the current browser and launch.
   **Changes** and **Files** show the code
   of its worktree or project (the branch's chip in the title bar opens
   Changes, in a sheet on a phone): every changed file's diff, by

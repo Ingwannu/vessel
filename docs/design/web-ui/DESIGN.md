@@ -469,7 +469,7 @@ The log and the composer share one column, at most 768px and centred
 the frame's width); the composer's dock is 16px in and 12px off the
 frame's foot. Summary is 340px of sections (plan, files touched, model
 calls, Details). It is visible at 1280px and above and has the
-`⌘⇧B` shortcut. Above the session, the workspace tab strip holds agent
+`⌘⇧B` shortcut. Below 1280px, the Summary button opens a sheet. Above the session, the workspace tab strip holds agent
 views, terminals, Changes, Diff, Files and individual file editors
 (ADR 0118). At widths below 600px, the tab count opens the switcher and
 Changes shows inline diffs. The branch chip opens Changes at any width.

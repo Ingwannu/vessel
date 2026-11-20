@@ -4,7 +4,7 @@
 import { useState } from "react";
 
 import type { SessionId, SessionPlace } from "../../wire/proto";
-import { useDraft } from "./use-draft";
+import { useDraft, type DraftState } from "./use-draft";
 
 export interface WorkspaceDraft {
   place: SessionPlace | null;
@@ -14,7 +14,13 @@ export interface WorkspaceDraft {
   onDirtyChange: (dirty: boolean) => void;
 }
 
-export function useNewSessionDraft(markDirty?: (dirty: boolean) => void) {
+type NewSessionDraft = Pick<DraftState, "text" | "setText" | "clear"> & {
+  note: DraftState["note"] | undefined;
+};
+
+export function useNewSessionDraft(
+  markDirty?: (dirty: boolean) => void,
+): NewSessionDraft {
   const saved = useDraft(null);
   const [local, setLocal] = useState("");
   if (markDirty === undefined) {

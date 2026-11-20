@@ -34,12 +34,15 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   await bulk.getByRole("button", { name: "Cancel" }).click();
   await expect(editor).toHaveValue("export const RATE = 0.73;\n");
   await page.getByRole("button", { name: "Close · tax.ts" }).click();
-  const unsaved = page.getByRole("dialog", { name: "Close unsaved file?" });
+  const unsaved = page.getByRole("dialog", { name: "Close unsaved tab?" });
   await unsaved
     .getByRole("button", { name: "Close", exact: true })
     .last()
     .click();
   await expect(file).toHaveCount(0);
+  await openPanelTab(page, "Diff");
+  await page.reload();
+  await expect(panelTab(page, "Diff")).toHaveAttribute("aria-selected", "true");
 });
 
 test("a standalone terminal accepts input and closes through the compact switcher", async ({

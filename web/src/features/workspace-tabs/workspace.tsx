@@ -129,10 +129,7 @@ export function Workspace({
               place,
               folder: anchor.spec.cwd ?? null,
               tray: scope,
-              done: (id) => {
-                state.remove(tab);
-                select({ kind: "agent", id });
-              },
+              done: state.completeDraft,
               onDirtyChange: (dirty) => markDirty(key, dirty),
             }}
           />
@@ -220,6 +217,24 @@ export function Workspace({
           </p>
         </Dialog>
       )}
+      {state.leave.status === "blocked" ? (
+        <Dialog
+          title={words.leaveTitle}
+          onClose={state.leave.reset}
+          footer={
+            <>
+              <Button variant="ghost" onClick={state.leave.reset}>
+                {words.cancel}
+              </Button>
+              <Button variant="danger-solid" onClick={state.leave.proceed}>
+                {words.leave}
+              </Button>
+            </>
+          }
+        >
+          <p>{words.fileBody}</p>
+        </Dialog>
+      ) : null}
       {lifecycle.renaming === null ? null : (
         <RenameTab
           key={tabKey(lifecycle.renaming.tab)}
