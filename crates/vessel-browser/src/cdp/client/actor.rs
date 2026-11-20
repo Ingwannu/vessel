@@ -27,8 +27,12 @@ pub(super) enum ActorError {
     Busy,
     #[error("browser actor is unavailable")]
     Unavailable,
-    #[error("browser actor ended while an operation was pending ({0:?})")]
-    Disconnected(BrowserEffect),
+    #[error("browser actor ended while an operation was pending ({effect:?})")]
+    Disconnected {
+        effect: BrowserEffect,
+        #[source]
+        cause: oneshot::error::RecvError,
+    },
     #[error("browser operation exceeded its deadline ({effect:?})")]
     Timeout {
         effect: BrowserEffect,
@@ -167,7 +171,10 @@ impl Actor {
                 effect: caller.cancel(),
                 cause,
             })?
-            .map_err(|_| ActorError::Disconnected(caller.cancel()))?
+            .map_err(|cause| ActorError::Disconnected {
+                effect: caller.cancel(),
+                cause,
+            })?
     }
 }
 
