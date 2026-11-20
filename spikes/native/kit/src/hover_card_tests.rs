@@ -76,7 +76,7 @@ fn setup(cx: &mut TestAppContext, enabled: bool) -> (gpui::Entity<Probe>, &mut V
     (view, cx)
 }
 
-fn move_to(cx: &mut VisualTestContext, at: gpui::Point<gpui::Pixels>) {
+fn move_to(cx: &mut VisualTestContext, at: Point<Pixels>) {
     cx.simulate_mouse_move(at, None, Modifiers::none());
     cx.run_until_parked();
 }
