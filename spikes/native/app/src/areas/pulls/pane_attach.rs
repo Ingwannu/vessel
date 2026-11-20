@@ -137,7 +137,12 @@ impl Shell {
     }
 
     /// One comment or review, by its id.
-    pub(super) fn pulls_add_item(&mut self, id: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(super) fn pulls_add_item(
+        &mut self,
+        id: &str,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let made = self.pulls_activity_attachments(|about, listed| {
             listed
                 .iter()
@@ -265,7 +270,9 @@ impl Shell {
             return;
         };
         let details = result.ok();
-        let report = details.as_ref().and_then(|details| details.report.as_deref());
+        let report = details
+            .as_ref()
+            .and_then(|details| details.report.as_deref());
         let made = self.pulls_check_attachment(&run, report);
         if let Some(facts) = self.areas.pulls.facts.as_mut() {
             let _was = facts.adding.checks.remove(&check_key(&run));
@@ -292,7 +299,11 @@ fn entry_items<'a>(entry: &'a Entry<'a>) -> Vec<&'a vessel_proto::forge::Timelin
     match entry {
         Entry::Single(item) => vec![*item],
         Entry::Review { review, threads } => std::iter::once(*review)
-            .chain(threads.iter().flat_map(|found| found.comments.iter().copied()))
+            .chain(
+                threads
+                    .iter()
+                    .flat_map(|found| found.comments.iter().copied()),
+            )
             .collect(),
         Entry::Thread(found) => found.comments.clone(),
     }

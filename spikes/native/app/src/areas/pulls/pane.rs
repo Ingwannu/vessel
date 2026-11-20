@@ -23,8 +23,8 @@ use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::ui::{
     AnyElement, Context, FluentBuilder as _, HighlightStyle, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
-    StyledText, Window, div, px, relative,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, StyledText,
+    Window, div, px, relative,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_link::workspace::{Ask, PullAsk};
@@ -76,10 +76,9 @@ impl Shell {
         };
         let card = self.pulls_card(&machine, session).cloned();
         let pulls = &mut self.areas.pulls;
-        let same = pulls
-            .facts
-            .as_ref()
-            .is_some_and(|facts| facts.subject.machine == machine && facts.subject.session == session);
+        let same = pulls.facts.as_ref().is_some_and(|facts| {
+            facts.subject.machine == machine && facts.subject.session == session
+        });
         if same {
             let Some(facts) = pulls.facts.as_mut() else {
                 return;
@@ -146,14 +145,12 @@ pub(crate) fn pane(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let facts = shell.code_checkout().and_then(|(machine, session, _)| {
-        shell
-            .areas
-            .pulls
-            .facts
-            .as_ref()
-            .filter(|facts| facts.subject.machine == machine && facts.subject.session == session)
-    });
+    let facts =
+        shell.code_checkout().and_then(|(machine, session, _)| {
+            shell.areas.pulls.facts.as_ref().filter(|facts| {
+                facts.subject.machine == machine && facts.subject.session == session
+            })
+        });
     // An answer's "Add to chat" waits for a frame with the window.
     if facts.is_some_and(|facts| !facts.adding.pending.is_empty()) {
         cx.defer_in(window, Shell::pulls_attach_pending);
@@ -197,7 +194,13 @@ fn ready(
         .child(toolbar(shell, facts, pull, tokens, cx))
         .child(header(shell, pull, tokens))
         .child(super::pane_checks::section(shell, facts, pull, tokens, cx))
-        .child(div().h(px(1.0)).w_full().flex_none().bg(tokens.neutral.border))
+        .child(
+            div()
+                .h(px(1.0))
+                .w_full()
+                .flex_none()
+                .bg(tokens.neutral.border),
+        )
         .child(super::pane_activity::section(
             shell,
             facts,

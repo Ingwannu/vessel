@@ -197,30 +197,32 @@ pub struct Counts {
 /// The counts of `items`.
 #[must_use]
 pub fn counts(items: &[&TimelineItem]) -> Counts {
-    items.iter().fold(Counts::default(), |counts, item| match item {
-        TimelineItem::Review {
-            state: ReviewState::Approved,
-            ..
-        } => Counts {
-            approvals: counts.approvals.saturating_add(1),
-            ..counts
-        },
-        TimelineItem::Review {
-            state: ReviewState::ChangesRequested,
-            ..
-        } => Counts {
-            changes: counts.changes.saturating_add(1),
-            ..counts
-        },
-        TimelineItem::Review {
-            state: ReviewState::Commented | ReviewState::Unknown,
-            ..
-        }
-        | TimelineItem::Comment { .. } => Counts {
-            comments: counts.comments.saturating_add(1),
-            ..counts
-        },
-    })
+    items
+        .iter()
+        .fold(Counts::default(), |counts, item| match item {
+            TimelineItem::Review {
+                state: ReviewState::Approved,
+                ..
+            } => Counts {
+                approvals: counts.approvals.saturating_add(1),
+                ..counts
+            },
+            TimelineItem::Review {
+                state: ReviewState::ChangesRequested,
+                ..
+            } => Counts {
+                changes: counts.changes.saturating_add(1),
+                ..counts
+            },
+            TimelineItem::Review {
+                state: ReviewState::Commented | ReviewState::Unknown,
+                ..
+            }
+            | TimelineItem::Comment { .. } => Counts {
+                comments: counts.comments.saturating_add(1),
+                ..counts
+            },
+        })
 }
 
 /// How long ago, in Paseo's steps (floored).

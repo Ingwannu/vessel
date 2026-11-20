@@ -21,8 +21,8 @@ use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::theme::identity::{Hue, fill};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, Hsla, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, Hsla, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::workspace::pull::timeline::{Age, Entry, Thread, thread_path};
@@ -278,12 +278,12 @@ impl Cards<'_> {
                     false,
                     self.tokens,
                 )
-                .on_click(
-                    cx.listener(move |shell, _event, window, cx| match &adds {
+                .on_click(cx.listener(
+                    move |shell, _event, window, cx| match &adds {
                         Adds::Item(id) => shell.pulls_add_item(id, window, cx),
                         Adds::Thread(key) => shell.pulls_add_thread(key, window, cx),
-                    }),
-                ),
+                    },
+                )),
             )
             .into_any_element()
     }

@@ -9,8 +9,8 @@ use super::model::{CloneProtocol, Machine, Origin, Page, PageId, PageKind, Repos
 use super::options::{
     Method, MethodNote, base_name, clone_locations, filter_machines, methods, suggested_parents,
 };
-use super::repositories::github_choices;
 use super::paths::{DirectoryOption, directory_options, shorten_path};
+use super::repositories::github_choices;
 
 /// The mark a row draws (Paseo's lucide icons; `Drive` is its `HardDrive`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

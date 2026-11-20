@@ -59,7 +59,10 @@ fn empty_items_say_nothing() {
         review("r2", ReviewState::Approved, "", 2),
         review("r3", ReviewState::Commented, "Looks fine", 3),
     ];
-    let kept: Vec<&str> = shown(&items).iter().map(|item| item.id().as_str()).collect();
+    let kept: Vec<&str> = shown(&items)
+        .iter()
+        .map(|item| item.id().as_str())
+        .collect();
     assert_eq!(kept, ["r2", "r3"], "an approval without words still counts");
 }
 
@@ -84,12 +87,24 @@ fn threads_gather_where_they_start_and_move_under_their_review() {
     };
     let replies: Vec<&str> = threads
         .first()
-        .map(|thread| thread.comments.iter().map(|item| item.id().as_str()).collect())
+        .map(|thread| {
+            thread
+                .comments
+                .iter()
+                .map(|item| item.id().as_str())
+                .collect()
+        })
         .unwrap_or_default();
     assert_eq!(replies, ["c1", "c3"], "a reply joins its thread");
-    assert!(made.get(2).is_some_and(Entry::folded_at_first), "resolved starts folded");
+    assert!(
+        made.get(2).is_some_and(Entry::folded_at_first),
+        "resolved starts folded"
+    );
     assert!(!made.first().is_some_and(Entry::folded_at_first));
-    assert!(!made.get(1).is_some_and(Entry::folded_at_first), "a review never");
+    assert!(
+        !made.get(1).is_some_and(Entry::folded_at_first),
+        "a review never"
+    );
 }
 
 #[test]

@@ -35,7 +35,10 @@ fn the_detail_line_and_groups_read_as_paseo_s() {
         plain(&read.detail_words(en())),
         "2 failing, 1 in progress, 1 successful checks"
     );
-    assert_eq!(plain(&summary(&runs[3..]).detail_words(en())), "1 successful check");
+    assert_eq!(
+        plain(&summary(&runs[3..]).detail_words(en())),
+        "1 successful check"
+    );
     assert_eq!(summary(&[]).detail_words(en()), "", "no checks, no line");
     assert_eq!(
         plain(&Presentation::Failure.group_words(2, en())),

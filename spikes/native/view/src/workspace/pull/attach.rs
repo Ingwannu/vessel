@@ -132,8 +132,22 @@ const fn review_state(state: ReviewState) -> &'static str {
 fn location(place: &ThreadPlace) -> String {
     let mut parts: Vec<String> = Vec::new();
     parts.extend(thread_path(place));
-    parts.push(if place.resolved { "resolved" } else { "unresolved" }.to_owned());
-    parts.push(if place.outdated { "outdated" } else { "current" }.to_owned());
+    parts.push(
+        if place.resolved {
+            "resolved"
+        } else {
+            "unresolved"
+        }
+        .to_owned(),
+    );
+    parts.push(
+        if place.outdated {
+            "outdated"
+        } else {
+            "current"
+        }
+        .to_owned(),
+    );
     let thread = place.thread.as_str();
     if thread.chars().count() <= 24 {
         parts.push(format!("thread {thread}"));
@@ -337,7 +351,12 @@ fn report_lines(lines: &mut Vec<String>, report: &CheckReport) {
             }
             if let Some(log) = &job.log {
                 lines.push("  ```".to_owned());
-                lines.extend(log.text.as_str().split('\n').map(|line| format!("  {line}")));
+                lines.extend(
+                    log.text
+                        .as_str()
+                        .split('\n')
+                        .map(|line| format!("  {line}")),
+                );
                 lines.push("  ```".to_owned());
                 if log.cut {
                     lines.push("  Log tail truncated to the latest capped lines.".to_owned());

@@ -62,7 +62,12 @@ pub(super) fn section(
             status.success.foreground,
             approvals,
         ));
-        summary.extend(count_pill(Glyph::CircleX, 12.0, status.error.foreground, changes));
+        summary.extend(count_pill(
+            Glyph::CircleX,
+            12.0,
+            status.error.foreground,
+            changes,
+        ));
         summary.extend(count_pill(
             Glyph::Message,
             11.0,
@@ -91,7 +96,12 @@ pub(super) fn section(
                 pills.unresolved,
             ))
             .unwrap_or_default();
-        summary.push(pill(Glyph::Message, 11.0, neutral.foreground_muted, &threads));
+        summary.push(pill(
+            Glyph::Message,
+            11.0,
+            neutral.foreground_muted,
+            &threads,
+        ));
     }
     let hover = SidebarSurfaces::of(tokens).hover;
     let head = div()
@@ -144,13 +154,8 @@ pub(super) fn section(
         .flex_none()
         .child(head);
     if open {
-        let feedback_row = super::feedback::row(
-            shell,
-            feedback,
-            tokens,
-            breakpoint::phone(window),
-            cx,
-        );
+        let feedback_row =
+            super::feedback::row(shell, feedback, tokens, breakpoint::phone(window), cx);
         let attach = shell.pulls_can_attach();
         let cards = Cards {
             shell,
@@ -182,9 +187,11 @@ pub(super) fn section(
                                     false,
                                     tokens,
                                 )
-                                .on_click(cx.listener(|shell, _event, window, cx| {
-                                    shell.pulls_add_all(window, cx);
-                                })),
+                                .on_click(cx.listener(
+                                    |shell, _event, window, cx| {
+                                        shell.pulls_add_all(window, cx);
+                                    },
+                                )),
                             )
                             .into_any_element()
                     });

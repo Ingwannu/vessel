@@ -100,7 +100,11 @@ pub fn summary(runs: &[CheckRun]) -> Summary<'_> {
             })
         })
         .collect();
-    let has = |presentation| groups.iter().any(|group| group.presentation == presentation);
+    let has = |presentation| {
+        groups
+            .iter()
+            .any(|group| group.presentation == presentation)
+    };
     let outcome = if runs.is_empty() {
         ChecksOutcome::None
     } else if has(Presentation::Failure) {

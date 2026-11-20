@@ -1,8 +1,6 @@
 //! The GitHub page's search rows, from recorded answers.
 
-use vessel_proto::forge::{
-    ForgeAccess, GhState, Repository as Found, RepositoryList, Visibility,
-};
+use vessel_proto::forge::{ForgeAccess, GhState, Repository as Found, RepositoryList, Visibility};
 
 use super::*;
 use crate::workspace::add_flow::model::CloneProtocol;

@@ -28,7 +28,11 @@ use super::{Place, Tab};
 use crate::shell::Shell;
 
 /// The tab in the strip, when it is listed.
-pub(super) fn strip_tab(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<AnyElement> {
+pub(super) fn strip_tab(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
     let panel = &shell.areas.workspace.code;
     let chosen = panel.tab == Tab::PullRequest;
     let number = shell.pulls_tab_number();
@@ -51,7 +55,11 @@ pub(super) fn strip_tab(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, She
 impl Shell {
     /// The git row's link or a toast's View: the panel opens on the Pull
     /// request tab.
-    pub(crate) fn code_show_pull_request(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(crate) fn code_show_pull_request(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         if !self.areas.workspace.code.open {
             self.toggle_code(window, cx);
         }
