@@ -389,3 +389,32 @@ async fn adds_in_one_repository_take_turns_and_in_two_run_at_once() {
         "{all}"
     );
 }
+
+/// The created branch's commits counted only by a `rev-list` that ran: a
+/// failure that is not the branch being gone keeps the worktree.
+#[tokio::test]
+async fn a_branch_git_cannot_read_is_never_counted_as_nothing() {
+    let sandbox = Sandbox::new();
+    let (repo, path, branch, git) = setup(&sandbox).await;
+    sandbox.run(&path, &["commit", "-q", "--allow-empty", "-m", "doomed"]);
+    let head = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(&path)
+        .output()
+        .unwrap();
+    let head = String::from_utf8(head.stdout).unwrap();
+    let head = head.trim();
+    // The worktree moves to another branch; the created one keeps a commit
+    // whose object is then lost.
+    sandbox.run(&path, &["checkout", "-q", "-b", "other", "main"]);
+    let (fan, rest) = head.split_at(2);
+    std::fs::remove_file(repo.join(".git/objects").join(fan).join(rest)).unwrap();
+    assert!(
+        git.would_lose(&path, Some(&branch)).await.is_err(),
+        "an unreadable branch is not one with nothing on it"
+    );
+
+    // Deleted by hand, it has nothing to lose.
+    sandbox.run(&repo, &["update-ref", "-d", "refs/heads/vessel/test"]);
+    assert_eq!(git.would_lose(&path, Some(&branch)).await.unwrap(), []);
+}
