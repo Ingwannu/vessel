@@ -76,9 +76,9 @@ export function workspaceTerminalPlace(input: {
 }
 
 /** Whether `terminal`, listed for `place`, is a shell of the workspace.
- * A `Project` list holds every project place of the project (the root and
- * its folders), so the folder must match too; `Worktree` and `Folder`
- * lists are already exactly the place. */
+ * A project's workspace holds every project place of the project, its
+ * root and its subfolders; `Worktree` and `Folder` lists are already
+ * exactly the place. */
 export function shellOf(
   place: TerminalPlace,
   terminal: TerminalInfo,
@@ -90,11 +90,11 @@ export function shellOf(
   const at = terminal.place;
   switch (place.kind) {
     case "project":
-      return (
-        at.kind === "project" &&
-        at.project === place.project &&
-        (at.dir ?? null) === (place.dir ?? null)
-      );
+      // Every project place of the project, whatever its folder: from
+      // protocol 40 an agent working in a subfolder gets its shell at
+      // `Project {dir: sub}` (TRACKER 832), and it belongs to the project's
+      // workspace as much as one at its root.
+      return at.kind === "project" && at.project === place.project;
     case "worktree":
       return at.kind === "worktree" && at.worktree === place.worktree;
     case "folder":
