@@ -192,3 +192,38 @@ pulls-merge-rejected = The merge was refused
 pulls-merge-refused-unknown = The pull request wasn't merged
 # Switch label in the pull request view. Keep it one line.
 pulls-feedback = Send failing checks and reviews to the session
+# The pull request pane (an Explorer tab). Its toolbar's button that opens the pull request on the forge. Keep short.
+pulls-pane-view = View
+# The pane's words when the pull request could not be read.
+pulls-pane-failed = Failed to refresh git state.
+# Read the pull request again after a failure. Keep short.
+pulls-pane-retry = Retry
+# A count of skipped or cancelled checks. $count is a number.
+pulls-count-skipped = { NUMBER($count) } skipped
+# The checks' detail line. $parts is the counts joined with commas, such as "2 failing, 4 in progress"; $total is every check.
+pulls-checks-detail = { $parts } { NUMBER($total) ->
+    [one] check
+   *[other] checks
+    }
+# A group of failing checks in the pane. $count is a number.
+pulls-group-failing = { NUMBER($count) ->
+    [one] { $count } failing check
+   *[other] { $count } failing checks
+    }
+# A group of checks still running. $count is a number.
+pulls-group-pending = { NUMBER($count) ->
+    [one] { $count } in progress check
+   *[other] { $count } in progress checks
+    }
+# A group of passed checks. $count is a number.
+pulls-group-passed = { NUMBER($count) ->
+    [one] { $count } successful check
+   *[other] { $count } successful checks
+    }
+# A group of skipped or cancelled checks. $count is a number.
+pulls-group-skipped = { NUMBER($count) ->
+    [one] { $count } skipped check
+   *[other] { $count } skipped checks
+    }
+# A running check's time so far. $duration is short, such as "2m" or "1m 30s".
+pulls-check-running = running { $duration }
