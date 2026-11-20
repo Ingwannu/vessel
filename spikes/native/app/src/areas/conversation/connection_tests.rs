@@ -1,6 +1,7 @@
 //! Conversation state extraction retains connection recovery.
 
 use super::ConversationArea;
+use super::area::LinkSample;
 
 #[gpui::test]
 fn opening_or_receiving_this_session_clears_its_lost_connection(cx: &mut gpui::TestAppContext) {
@@ -29,19 +30,19 @@ fn the_lost_line_clears_once_when_the_link_comes_back(cx: &mut gpui::TestAppCont
         area.open("machine", session);
         area.lost = Some("offline".to_owned());
         // No earlier sample: an online read is not an edge.
-        assert!(!super::intake::follow_edge(false, false, true, true));
+        assert!(!super::intake::follow_edge(LinkSample::Unseen, true, true));
         assert!(!area.link_edge(true));
         assert_eq!(area.lost.as_deref(), Some("offline"));
         // Still online, including after the follow fails again.
-        assert!(!super::intake::follow_edge(true, true, true, true));
+        assert!(!super::intake::follow_edge(LinkSample::Online, true, true));
         assert!(!area.link_edge(true));
         assert_eq!(area.lost.as_deref(), Some("offline"));
         // Offline leaves the line.
-        assert!(!super::intake::follow_edge(true, true, false, true));
+        assert!(!super::intake::follow_edge(LinkSample::Online, false, true));
         assert!(!area.link_edge(false));
         assert_eq!(area.lost.as_deref(), Some("offline"));
         // The one offline→online edge clears it.
-        assert!(super::intake::follow_edge(true, false, true, true));
+        assert!(super::intake::follow_edge(LinkSample::Offline, true, true));
         assert!(area.link_edge(true));
         assert_eq!(area.lost, None);
         // The follow failed while the link stayed online: the line stays.
@@ -49,7 +50,11 @@ fn the_lost_line_clears_once_when_the_link_comes_back(cx: &mut gpui::TestAppCont
         assert!(!area.link_edge(true));
         assert_eq!(area.lost.as_deref(), Some("gone"));
         // Online with no lost line is not an edge.
-        assert!(!super::intake::follow_edge(true, false, true, false));
+        assert!(!super::intake::follow_edge(
+            LinkSample::Offline,
+            true,
+            false
+        ));
         area.lost = None;
         assert!(!area.link_edge(false));
         assert!(!area.link_edge(true));

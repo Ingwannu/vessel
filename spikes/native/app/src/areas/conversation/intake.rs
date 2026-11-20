@@ -8,14 +8,13 @@ use vessel_app_view::timeline::{Folds, Live, Logs, outline};
 use vessel_proto::{EventRecord, SessionId};
 
 use super::ConversationArea;
-use super::area::Followup;
+use super::area::{Followup, LinkSample};
 
-/// One reopen: a fleet sample was already read, the link was offline,
-/// it is online now, and the lost line is up. The first sample only
-/// records the link. A follow that fails while the link stays online
-/// is not another edge.
-pub(crate) fn follow_edge(seen: bool, was_online: bool, online: bool, lost: bool) -> bool {
-    seen && !was_online && online && lost
+/// One reopen: the last sample was offline, the link is online now, and
+/// the lost line is up. The first sample only records the link. A follow
+/// that fails while the link stays online is not another edge.
+pub(crate) fn follow_edge(sample: LinkSample, online: bool, lost: bool) -> bool {
+    matches!(sample, LinkSample::Offline) && online && lost
 }
 
 impl ConversationArea {
@@ -97,14 +96,12 @@ impl ConversationArea {
     /// a follow that fails while the link stays online keeps the line.
     /// Whether this sample is that edge.
     pub(crate) fn link_edge(&mut self, online: bool) -> bool {
-        let reopen = follow_edge(
-            self.link_seen,
-            self.link_online,
-            online,
-            self.lost.is_some(),
-        );
-        self.link_seen = true;
-        self.link_online = online;
+        let reopen = follow_edge(self.link_sample, online, self.lost.is_some());
+        self.link_sample = if online {
+            LinkSample::Online
+        } else {
+            LinkSample::Offline
+        };
         if reopen {
             self.lost = None;
         }
