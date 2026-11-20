@@ -191,10 +191,7 @@ impl Card {
                 .map(ToString::to_string),
             project: RunsIn::of(session).and_then(RunsIn::checkout),
             runs_in: RunsIn::of(session),
-            worktree: session
-                .workspace
-                .as_ref()
-                .and_then(|workspace| workspace.worktree),
+            worktree: session.workspace.as_ref().and_then(|at| at.worktree),
             profile: session
                 .profile
                 .as_ref()
