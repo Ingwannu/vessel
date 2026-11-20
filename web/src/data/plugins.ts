@@ -111,11 +111,20 @@ export interface PluginFeedback {
   message: string;
 }
 
-/** A failed outcome's words: what happened, then what helps. */
+/** A failed outcome's words. A machine's refusal is its own words alone,
+ * as Paseo shows its daemon's error (`errorMessage(error)`): they already
+ * say what happened and what to change. Anything else: what happened,
+ * then what helps. */
 export function problemWords(outcome: Outcome<unknown>): string {
-  return outcome.ok
-    ? ""
-    : `${outcome.problem.message} ${nextStep(outcome.problem)}`.trim();
+  if (outcome.ok) return "";
+  const { problem } = outcome;
+  const refused =
+    problem.from === "call" &&
+    problem.failure.kind === "remote" &&
+    problem.message.trim() !== "";
+  return refused
+    ? problem.message
+    : `${problem.message} ${nextStep(problem)}`.trim();
 }
 
 /** What a status is called, and its badge tone (Paseo: running success,
@@ -158,9 +167,12 @@ export function pluginSourceLine(plugin: PluginListItem): string | null {
   return plugin.path === undefined ? null : `Directory: ${plugin.path}`;
 }
 
-/** A log entry's head line: its time and stream, as Paseo's sheet. */
+/** A log entry's head line: its time and stream, as Paseo's sheet. The
+ * node keeps nanoseconds; Paseo's times are milliseconds
+ * (`toISOString()`), so the head shows three digits. */
 export function logHead(at: string, stream: "host" | "stderr"): string {
-  return `${at} ${stream === "host" ? "vessel" : "stderr"}`;
+  const time = at.replace(/(\.\d{3})\d+Z$/, "$1Z");
+  return `${time} ${stream === "host" ? "vessel" : "stderr"}`;
 }
 
 /** `node`'s plugins. */

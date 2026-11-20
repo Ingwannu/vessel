@@ -2,8 +2,8 @@
    the install card (the field over its button, 16 inside, 12 between),
    a row's status badge beside its id, the description, source and error
    lines under it, and the logs dialog's entries (Paseo's logEntry: 12
-   inside, 8 apart, on the raised fill, stderr heads in the danger
-   colour). */
+   inside, 8 apart, on its surface2 fill, here the well fill that shows on
+   the dialog in both schemes; stderr heads in the danger colour). */
 
 .plugin-install {
   display: flex;
@@ -58,7 +58,7 @@
   gap: 4px;
   padding: 12px;
   border-radius: var(--r-2);
-  background: var(--bg-surface);
+  background: var(--bg-well);
 }
 
 .plugin-log-head {

@@ -7,6 +7,7 @@ import {
   logHead,
   pluginPageState,
   pluginSourceLine,
+  problemWords,
   speaksPlugins,
   statusLook,
 } from "./plugins";
@@ -81,8 +82,38 @@ describe("row words", () => {
     expect(logHead("2026-11-19T18:00:00Z", "host")).toBe(
       "2026-11-19T18:00:00Z vessel",
     );
+    expect(logHead("2026-11-20T00:16:40.770602297Z", "host")).toBe(
+      "2026-11-20T00:16:40.770Z vessel",
+    );
     expect(logHead("2026-11-19T18:00:00Z", "stderr")).toBe(
       "2026-11-19T18:00:00Z stderr",
+    );
+  });
+});
+
+describe("problemWords", () => {
+  it("gives a machine's refusal in its own words, anything else with what helps", () => {
+    const refusal = "this is a Paseo plugin (paseo-plugin.json)";
+    expect(
+      problemWords({
+        ok: false,
+        problem: {
+          from: "call",
+          failure: {
+            kind: "remote",
+            error: { code: "invalid_request", message: refusal },
+          },
+          message: refusal,
+        },
+      }),
+    ).toBe(refusal);
+    expect(
+      problemWords({
+        ok: false,
+        problem: { from: "op", reason: "busy", message: "Too many requests." },
+      }),
+    ).toBe(
+      "Too many requests. This page has too many requests waiting; try again in a moment.",
     );
   });
 });
