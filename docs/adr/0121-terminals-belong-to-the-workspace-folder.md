@@ -35,7 +35,8 @@ Source: the node review of TRACKER 817 (R1: closing a finished agent's tab ended
      unregistered-folder workspace).
      - Resolved: an absolute, existing directory, kept canonical, so a list by the same folder finds it. The
        projects' refused roots do not apply: they guard what a file panel may read, and a home folder is a usual
-       place for a shell (a person can already start a session there).
+       place for a shell (a person can already start a session there). That includes the node's own data folder:
+       a shell there is no more than a shell that `cd`s into it, which any shell can.
      - Counts against the node's limits and a per-folder limit equal to the project's (16).
      - Ends only when closed, killed or the node stops: no session or project owns it.
    - Agents keep `Session` only, as today (`agent_may_open`).
