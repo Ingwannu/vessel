@@ -112,8 +112,8 @@ impl Plugins {
     ) -> Result<PluginSettingsRead, PluginError> {
         let lock = self.settings_lock(plugin);
         let _held = lock.lock().await;
-        let target = self.target(plugin, settings)?;
-        self.read_locked(&target, Migrated::Announce).await
+        let target = self.settings_target(plugin, settings)?;
+        self.settings_read_locked(&target, Migrated::Announce).await
     }
 
     /// `plugin.settings.write`.
@@ -129,8 +129,8 @@ impl Plugins {
         } = request;
         let lock = self.settings_lock(&plugin);
         let _held = lock.lock().await;
-        let target = self.target(&plugin, &settings)?;
-        let stored = self.stored(&target).await?;
+        let target = self.settings_target(&plugin, &settings)?;
+        let stored = self.settings_stored(&target).await?;
         if stored.revision() != revision {
             return Ok(PluginSettingsWrite::Conflict {
                 error: SettingsMessage::bounded(CONFLICT),
@@ -145,7 +145,7 @@ impl Plugins {
                     error: SettingsMessage::bounded(OTHER_VERSION),
                 })
             }
-            Stored::Missing | Stored::Saved { .. } => self.save(&target, values).await,
+            Stored::Missing | Stored::Saved { .. } => self.settings_save(&target, values).await,
         }
     }
 
@@ -161,13 +161,13 @@ impl Plugins {
         } = request;
         let lock = self.settings_lock(&plugin);
         let _held = lock.lock().await;
-        let target = self.target(&plugin, &settings)?;
-        if self.stored(&target).await?.revision() != revision {
+        let target = self.settings_target(&plugin, &settings)?;
+        if self.settings_stored(&target).await?.revision() != revision {
             return Ok(PluginSettingsWrite::Conflict {
                 error: SettingsMessage::bounded(CONFLICT),
             });
         }
-        self.save(&target, RawJson::empty_object()).await
+        self.settings_save(&target, RawJson::empty_object()).await
     }
 
     /// After a helper's `ready`: tell it each declared document's state
@@ -176,10 +176,10 @@ impl Plugins {
         let lock = self.settings_lock(plugin);
         let _held = lock.lock().await;
         for settings in declared {
-            let Ok(target) = self.target(plugin, settings) else {
+            let Ok(target) = self.settings_target(plugin, settings) else {
                 return;
             };
-            let notice = match self.read_locked(&target, Migrated::Quiet).await {
+            let notice = match self.settings_read_locked(&target, Migrated::Quiet).await {
                 Ok(PluginSettingsRead::Ready { revision, values }) => {
                     match HelperPayload::try_from(values) {
                         Ok(values) => SettingsNotice::Ready { revision, values },
@@ -194,7 +194,7 @@ impl Plugins {
                     continue;
                 }
             };
-            self.announce(&target, notice).await;
+            self.settings_announce(&target, notice).await;
         }
     }
 
@@ -209,7 +209,11 @@ impl Plugins {
     }
 
     /// The running helper that declares `settings`.
-    fn target(&self, plugin: &PluginId, settings: &SettingsId) -> Result<Target, PluginError> {
+    fn settings_target(
+        &self,
+        plugin: &PluginId,
+        settings: &SettingsId,
+    ) -> Result<Target, PluginError> {
         let wanted = *self.inner.wanted_switch.borrow();
         let state = self.state();
         let row = state
@@ -253,12 +257,12 @@ impl Plugins {
     }
 
     /// Read under the lock; a migration is saved once.
-    async fn read_locked(
+    async fn settings_read_locked(
         &self,
         target: &Target,
         migrated: Migrated,
     ) -> Result<PluginSettingsRead, PluginError> {
-        let (revision, step) = match self.stored(target).await? {
+        let (revision, step) = match self.settings_stored(target).await? {
             Stored::Missing => (SettingsRevision::missing(), parse(RawJson::empty_object())?),
             Stored::Unreadable(revision) => {
                 return Ok(PluginSettingsRead::Invalid {
@@ -292,12 +296,13 @@ impl Plugins {
             }
         };
         let migrating = matches!(step, SettingsStep::Migrate { .. });
-        match self.judge(target, step).await? {
+        match self.settings_judge(target, step).await? {
             Err(error) => Ok(PluginSettingsRead::Invalid { revision, error }),
             Ok(values) if migrating => {
-                let revision = self.persist(target, &values).await?;
+                let revision = self.settings_persist(target, &values).await?;
                 if migrated == Migrated::Announce {
-                    self.announce_ready(target, &revision, &values).await;
+                    self.settings_announce_ready(target, &revision, &values)
+                        .await;
                 }
                 self.bump();
                 Ok(PluginSettingsRead::Ready { revision, values })
@@ -307,7 +312,7 @@ impl Plugins {
     }
 
     /// Parse `values`, then save, tell the helper and move the watch.
-    async fn save(
+    async fn settings_save(
         &self,
         target: &Target,
         values: RawJson,
@@ -315,11 +320,12 @@ impl Plugins {
         let step = SettingsStep::Parse {
             values: payload(target, values)?,
         };
-        match self.judge(target, step).await? {
+        match self.settings_judge(target, step).await? {
             Err(error) => Ok(PluginSettingsWrite::Invalid { error }),
             Ok(values) => {
-                let revision = self.persist(target, &values).await?;
-                self.announce_ready(target, &revision, &values).await;
+                let revision = self.settings_persist(target, &values).await?;
+                self.settings_announce_ready(target, &revision, &values)
+                    .await;
                 self.bump();
                 Ok(PluginSettingsWrite::Saved { revision, values })
             }
@@ -327,7 +333,7 @@ impl Plugins {
     }
 
     /// The document on disk.
-    async fn stored(&self, target: &Target) -> Result<Stored, PluginError> {
+    async fn settings_stored(&self, target: &Target) -> Result<Stored, PluginError> {
         let data = self.inner.data.clone();
         let (plugin, settings) = (target.plugin.clone(), target.settings.clone());
         let bytes = blocking(move || data.read_plugin_settings(&plugin, &settings))
@@ -348,7 +354,7 @@ impl Plugins {
     }
 
     /// Write `values` at the declared version; its new revision.
-    async fn persist(
+    async fn settings_persist(
         &self,
         target: &Target,
         values: &RawJson,
@@ -369,12 +375,12 @@ impl Plugins {
 
     /// Ask the helper to parse or migrate: the values, or its refusal in
     /// bounded words (its full words go to its log).
-    async fn judge(
+    async fn settings_judge(
         &self,
         target: &Target,
         step: SettingsStep,
     ) -> Result<Result<RawJson, SettingsMessage>, PluginError> {
-        let output = self.ask(target, step).await?;
+        let output = self.settings_ask(target, step).await?;
         let answer = RawJson::from(output);
         match serde_json::from_str::<SettingsVerdict>(answer.as_text()) {
             Ok(SettingsVerdict::Valid { values }) => Ok(Ok(values)),
@@ -399,7 +405,7 @@ impl Plugins {
     }
 
     /// Tell the helper a document's state; its answer is not read.
-    async fn announce(&self, target: &Target, notice: SettingsNotice) {
+    async fn settings_announce(&self, target: &Target, notice: SettingsNotice) {
         if let Err(error) = self
             .ask(target, SettingsStep::Changed { state: notice })
             .await
@@ -408,17 +414,26 @@ impl Plugins {
         }
     }
 
-    async fn announce_ready(&self, target: &Target, revision: &SettingsRevision, values: &RawJson) {
+    async fn settings_announce_ready(
+        &self,
+        target: &Target,
+        revision: &SettingsRevision,
+        values: &RawJson,
+    ) {
         if let Ok(values) = HelperPayload::try_from(values.clone()) {
             let notice = SettingsNotice::Ready {
                 revision: revision.clone(),
                 values,
             };
-            self.announce(target, notice).await;
+            self.settings_announce(target, notice).await;
         }
     }
 
-    async fn ask(&self, target: &Target, step: SettingsStep) -> Result<HelperPayload, PluginError> {
+    async fn settings_ask(
+        &self,
+        target: &Target,
+        step: SettingsStep,
+    ) -> Result<HelperPayload, PluginError> {
         // The node's stop cancels a call in flight, as `invoke`'s.
         let cancel = self.inner.stop.child_token();
         let call = HelperCall::Settings {
