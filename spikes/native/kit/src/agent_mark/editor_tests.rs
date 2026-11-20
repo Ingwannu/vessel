@@ -51,13 +51,20 @@ fn every_editor_mark_fills_its_box_in_both_schemes() {
             );
             let (width, height) = painted(art.image(scheme).bytes);
             // Edge to edge: at least four fifths of the square.
-            assert!(width.max(height) >= 38, "{} {width}x{height}", art.light.path);
+            assert!(
+                width.max(height) >= 38,
+                "{} {width}x{height}",
+                art.light.path
+            );
         }
         assert_eq!(
             art.image_size(Size::Sixteen),
             gpui::size(gpui::px(16.0), gpui::px(16.0))
         );
-        assert_eq!(art.dimensions(Size::Sixteen, Space::Row), Some((32.0, 16.0)));
+        assert_eq!(
+            art.dimensions(Size::Sixteen, Space::Row),
+            Some((32.0, 16.0))
+        );
     }
 }
 
