@@ -123,6 +123,8 @@ impl NodeService {
         if !serves_diff_stat(connection.protocol()) {
             return workspaces.into_iter().map(ServedWorkspace::bare).collect();
         }
+        // `subscribe` marks the current generation seen, so the wait is for a
+        // later one. A bump inside `note` stays unseen and wakes it.
         let mut changed = self.diff_stats.subscribe();
         let pairs: Vec<_> = workspaces
             .iter()
@@ -148,11 +150,9 @@ impl NodeService {
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let _slot = self.wait_slot(connection, shares, &mut wait);
         if let Some(seconds) = wait {
-            let _settled = tokio::time::timeout(
-                Duration::from_secs(u64::from(seconds)),
-                changed.changed(),
-            )
-            .await;
+            let _settled =
+                tokio::time::timeout(Duration::from_secs(u64::from(seconds)), changed.changed())
+                    .await;
         } else {
             drop(changed);
         }

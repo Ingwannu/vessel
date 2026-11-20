@@ -217,7 +217,7 @@ struct Watch {
 }
 
 impl Watch {
-    fn empty() -> Self {
+    const fn empty() -> Self {
         Self {
             watcher: None,
             events: None,
@@ -373,20 +373,19 @@ async fn settle(stop: &CancellationToken, events: &mut mpsc::Receiver<()>) {
 
 fn arm(dir: &Path) -> Option<(Box<notify::RecommendedWatcher>, mpsc::Receiver<()>)> {
     let (tx, rx) = mpsc::channel(1);
-    let mut watcher = match notify::recommended_watcher(
-        move |event: Result<Event, notify::Error>| {
+    let mut watcher =
+        match notify::recommended_watcher(move |event: Result<Event, notify::Error>| {
             if event.as_ref().is_ok_and(ignored) {
                 return;
             }
             drop(tx.try_send(()));
-        },
-    ) {
-        Ok(watcher) => watcher,
-        Err(error) => {
-            tracing::debug!(%error, "diff stat: the directory watch did not start");
-            return None;
-        }
-    };
+        }) {
+            Ok(watcher) => watcher,
+            Err(error) => {
+                tracing::debug!(%error, "diff stat: the directory watch did not start");
+                return None;
+            }
+        };
     if let Err(error) = watcher.watch(dir, RecursiveMode::Recursive) {
         tracing::debug!(%error, "diff stat: the directory watch did not start");
         return None;
@@ -445,7 +444,11 @@ mod tests {
         };
         assert_eq!(book.publish(&key, Some(stat)), Some(2));
         assert_eq!(book.publish(&key, Some(stat)), None);
-        assert!(Book::default().publish(Path::new("missing"), None).is_none());
+        assert!(
+            Book::default()
+                .publish(Path::new("missing"), None)
+                .is_none()
+        );
         book.generation = u64::MAX;
         let next = DiffStat {
             additions: 2,

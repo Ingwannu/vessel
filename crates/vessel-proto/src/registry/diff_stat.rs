@@ -87,7 +87,10 @@ mod tests {
 
     #[test]
     fn a_revision_is_a_number_and_an_absent_cursor_stays_absent() {
-        assert_eq!(serde_json::to_string(&DiffStatRevision::of(3)).unwrap(), "3");
+        assert_eq!(
+            serde_json::to_string(&DiffStatRevision::of(3)).unwrap(),
+            "3"
+        );
         let value = serde_json::to_value(ListWorkspaces::default()).unwrap();
         assert!(value.get("changed_from").is_none());
         let parsed: ListWorkspaces = serde_json::from_value(value).unwrap();

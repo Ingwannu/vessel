@@ -84,9 +84,9 @@ fn origin_name(branch: &str) -> Option<RefName> {
 #[must_use]
 pub(super) const fn compared(branch: Option<&str>, base: Option<&str>) -> Option<Compared> {
     match (branch, base) {
-        (None, _) => None,
+        (None, None | Some(_)) => None,
         (Some(branch), Some(base)) if !on_base(branch, base) => Some(Compared::Base),
-        (Some(_branch), _) => Some(Compared::Origin),
+        (Some(_), None | Some(_)) => Some(Compared::Origin),
     }
 }
 
@@ -116,7 +116,10 @@ pub(super) fn counted(files: &[FileChange]) -> Option<DiffStat> {
         additions = additions.saturating_add(file.additions.unwrap_or(0));
         deletions = deletions.saturating_add(file.deletions.unwrap_or(0));
     }
-    (additions > 0 || deletions > 0).then_some(DiffStat { additions, deletions })
+    (additions > 0 || deletions > 0).then_some(DiffStat {
+        additions,
+        deletions,
+    })
 }
 
 #[cfg(test)]
@@ -182,7 +185,10 @@ mod tests {
             compared(Some("refs/remotes/origin/main"), Some("main")),
             Some(Compared::Base)
         );
-        assert_eq!(compared(Some("feature"), Some("main")), Some(Compared::Base));
+        assert_eq!(
+            compared(Some("feature"), Some("main")),
+            Some(Compared::Base)
+        );
         assert_eq!(compared(Some("feature"), None), Some(Compared::Origin));
     }
 

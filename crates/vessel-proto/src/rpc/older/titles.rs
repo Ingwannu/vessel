@@ -17,9 +17,7 @@
 
 use super::templates::changed;
 use crate::inbox::{InboxEntry, InboxPage};
-use crate::registry::{
-    RegistrySnapshot, ServedWorkspace, WorkspaceDescriptor, serves_diff_stat,
-};
+use crate::registry::{RegistrySnapshot, ServedWorkspace, WorkspaceDescriptor, serves_diff_stat};
 use crate::scripts::{ScriptList, ScriptRunOutcome};
 use crate::terminals::{TerminalInfo, TerminalList, TerminalSubscribed};
 use crate::{ProtocolVersion, SessionTitle};
