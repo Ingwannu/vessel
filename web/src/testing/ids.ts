@@ -23,6 +23,7 @@ import type {
   ProjectId,
   QuestionId,
   QueueEntryId,
+  RuntimeGeneration,
   SessionId,
   ToolCallId,
   TransferId,
@@ -56,6 +57,7 @@ interface Handles {
   ProjectId: ProjectId;
   QuestionId: QuestionId;
   QueueEntryId: QueueEntryId;
+  RuntimeGeneration: RuntimeGeneration;
   SessionId: SessionId;
   ToolCallId: ToolCallId;
   TransferId: TransferId;
