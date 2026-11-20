@@ -163,6 +163,9 @@ mod workspace;
 #[cfg(test)]
 #[cfg(unix)]
 mod workspace_terminals;
+#[cfg(test)]
+#[cfg(unix)]
+mod agent_workspace_terminals;
 
 #[cfg(test)]
 mod limits;

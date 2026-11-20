@@ -73,6 +73,10 @@ impl NodeService {
             .agent_may_open(principal, &request.place)
             .await
             .map_err(wire)?;
+        let asked = self
+            .agent_shell_place(principal, connection.protocol(), &request.place)
+            .await
+            .map_err(wire)?;
         let Some(shell) = self.terminals.runner.config.shell.clone() else {
             return Err(wire(TerminalsError::Unsupported(
                 "this node has no shell for terminals".to_owned(),
@@ -83,10 +87,10 @@ impl NodeService {
             owner,
             place,
         } = self
-            .resolve_terminal_place(principal, &request.place)
+            .resolve_terminal_place(principal, &asked)
             .await
             .map_err(wire)?;
-        if let TerminalPlace::Project { project, .. } = &request.place {
+        if let TerminalPlace::Project { project, .. } = &asked {
             self.workspaces.register_root(*project).await;
         }
         // Before the reservation and the spawn, so nothing starts under a

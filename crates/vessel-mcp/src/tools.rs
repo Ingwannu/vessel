@@ -209,7 +209,7 @@ impl ServerHandler for VesselTools {
                  answer it, stop it, archive it and start it again. To give one a folder and \
                  branch of its own, `create_worktree` in a project from `list_projects`, then \
                  `create_session` with that `worktree`. Where a person allowed it, open a \
-                 terminal beside your session (`create_terminal`) and type into it.",
+                 terminal in your session's workspace (`create_terminal`) and type into it.",
             )
     }
 

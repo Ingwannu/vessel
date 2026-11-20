@@ -609,25 +609,32 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
         assert_eq!(seen.terminals.len(), 4);
         assert!(seen.terminals.iter().all(|info| info.id != persons.id));
 
-        // Its terminals end with its session; the person's stays.
+        // Named by its session, each is in that session's workspace: outside
+        // projects, its folder (TRACKER 832). There it outlives the session,
+        // as Paseo's agent terminals do (agent_workspace_terminals.rs pins
+        // the order of the two ends); the agent's use ends with it.
+        let folder = std::fs::canonicalize(fixture.cwd()).unwrap();
+        assert!(own.iter().all(|info| info.place
+            == TerminalPlace::Folder {
+                path: folder.clone()
+            }));
         owner.kill(allowed.id).await.unwrap();
-        for info in &own {
-            let _ended = get_until(
-                &owner,
-                info.id,
-                "an agent's terminal ends with it",
-                |info| !info.is_live(),
-            )
-            .await;
+        step("the agent's session ends", async {
+            while owner.session(allowed.id).await.unwrap().status.is_live() {
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+        })
+        .await;
+        for info in own.iter().chain([&persons]) {
+            let still = owner
+                .call(GetTerminal {
+                    terminal: info.id,
+                    changed_from: None,
+                })
+                .await
+                .unwrap();
+            assert!(still.is_live(), "{still:?}");
         }
-        let still = owner
-            .call(GetTerminal {
-                terminal: persons.id,
-                changed_from: None,
-            })
-            .await
-            .unwrap();
-        assert!(still.is_live());
         owner.kill(plain.id).await.unwrap();
         node.stop().await.unwrap();
     })
