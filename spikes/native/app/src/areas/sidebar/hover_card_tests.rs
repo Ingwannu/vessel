@@ -8,8 +8,8 @@ use vessel_app_kit::ui::px;
 use vessel_app_link::Link;
 use vessel_app_view::{Card, Fleet, Lang, Machine, Reach};
 use vessel_proto::forge::{
-    ChecksState, ForgeAccess, ForgeKind, Mergeable, PullNumber, PullState, PullSummary, PullTitle,
-    RepoRef, ReviewDecision, SessionPullRequest,
+    CheckTally, ChecksState, ForgeAccess, ForgeKind, Mergeable, PullNumber, PullState, PullSummary,
+    PullTitle, RepoRef, ReviewDecision, SessionPullRequest,
 };
 use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 
@@ -88,6 +88,33 @@ fn a_rows_card_says_its_details_with_paseos_rows(cx: &mut TestAppContext) {
     assert_eq!(named(&arias, "Button", "Copy branch name").len(), 1);
     assert_eq!(named(&arias, "Button", "Copy path").len(), 1);
     assert_eq!(named(&arias, "Link", "Checks: failed").len(), 1);
+}
+
+#[gpui::test]
+fn the_checks_row_counts_each_state_the_node_counted(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx, 2);
+    // The first session's pull request with the node's tally (TRACKER 824).
+    let card = shell.update(cx, |shell, cx| {
+        let card = &mut shell.fleet.machines[0].sessions[0];
+        "Fix the cart total".clone_into(&mut card.title);
+        let mut counted = pull();
+        if let Some(summary) = counted.summary.as_mut() {
+            summary.tally = Some(CheckTally {
+                passed: 4,
+                failed: 1,
+                pending: 1,
+            });
+        }
+        card.detail.pull_request = Some(Box::new(counted));
+        cx.notify();
+        card.clone()
+    });
+    hover_row(cx, &shell, &card);
+    let arias = snapshot(&shell, cx);
+    assert_eq!(
+        named(&arias, "Link", "Checks, Passed: 4, Failed: 1, Pending: 1").len(),
+        1
+    );
 }
 
 #[gpui::test]

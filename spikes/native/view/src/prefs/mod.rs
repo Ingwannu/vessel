@@ -162,6 +162,31 @@ pub struct Preferences {
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,
+    /// The built-in terminal. Native only, so written only once it differs
+    /// from its defaults: the default document stays the page's contract.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "TerminalPreferences::is_default"
+    )]
+    pub terminal: TerminalPreferences,
+}
+
+/// The built-in terminal (Paseo's Settings > Terminal).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct TerminalPreferences {
+    /// Lines kept above the screen (`terminalScrollbackLines`): 0 through
+    /// 1,000,000, default 10,000; a stored value out of range is clamped.
+    #[serde(deserialize_with = "lenient")]
+    pub scrollback: crate::terminal::ScrollbackLines,
+}
+
+impl TerminalPreferences {
+    /// Whether every value is its default (the section is not written).
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 /// Which panels show.

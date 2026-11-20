@@ -283,4 +283,6 @@ glyph_inventory! {
     /// Open on the forge (Paseo's `ExternalLink`, a card menu's row): a
     /// box with an arrow leaving its corner.
     ExternalLink => "kit/external-link.svg",
+    /// Find's next match (Paseo's pane find, Lucide `ArrowDown`).
+    ArrowDown => "kit/arrow-down.svg",
 }

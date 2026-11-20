@@ -6,6 +6,7 @@ mod behaviour;
 mod hostile;
 mod pen;
 mod reflow;
+mod text;
 mod wide;
 
 use super::{Cell, CursorCell, Glyph, Grid, Scroll, Wrap};
