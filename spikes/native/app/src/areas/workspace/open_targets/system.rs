@@ -32,6 +32,7 @@ use vessel_app_view::open_targets::{Entry, EntryKind, Env, Platform, Probe};
 use super::launcher::Launcher;
 
 /// The prefix of the variables that steer this app (`main.rs`).
+#[cfg_attr(test, expect(dead_code, reason = "tests never start a program"))]
 const OWN_PREFIX: &str = "VESSEL_APP_";
 
 /// This computer as the rules read it.
