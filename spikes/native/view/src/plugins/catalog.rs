@@ -14,33 +14,35 @@
 //! - Choice: this model decides what to ask (read the catalog, long-poll
 //!   `plugin.watch` from its generation, read again when it moves) and the
 //!   app sends it; the page does the same with one watcher per machine.
-//!   The watcher belongs to the machine's connection: a failed call stops
-//!   it until the machine connects again, so a node that keeps refusing is
-//!   not asked again every fleet read. The last catalog stays while a
-//!   machine is away (Paseo keeps its registry entry) and goes when the
-//!   machine leaves the book; no other machine's plugins take its place.
+//!   The watcher belongs to the machine's connection; a failed call waits
+//!   and reads again within it (`catalog/watch.rs`). The last catalog
+//!   stays while a machine is away (Paseo keeps its registry entry) and
+//!   goes when the machine leaves the book; no other machine's plugins
+//!   take its place.
 //! - Invoke-bound items are offered only where the catalog says the caller
 //!   may invoke (`may_invoke`, coordinator ruling 2026-11-20). An
 //!   `open_screen` action waits for screens (P3b) and is left out until
 //!   then.
 //! - Cost: one long poll per connected machine that serves the catalog
-//!   (the node answers within 25 s).
+//!   (the node answers within 25 s), and one read every 5 s while it fails.
 
 use std::collections::HashMap;
 
 use vessel_proto::conversation::CommandName;
 use vessel_proto::plugins::{
     Action, Caption, ClientInstallation, CommandContext, ContributionContent, InvokeContext,
-    InvokePlugin, PanelContext, PluginCatalog, PluginGeneration, PluginId, RpcName,
-    RuntimeGeneration,
+    InvokePlugin, PanelContext, PluginCatalog, PluginId, RpcName, RuntimeGeneration,
 };
 use vessel_proto::{ProjectId, ProtocolVersion, RawJson, SessionId, WorktreeId};
 
-use crate::board::{Fleet, Reach};
-use crate::connection::ConnectionEpoch;
 use crate::devices::{MachineKey, Ticket, Tickets};
 
 use super::{Call, Problem, Reply, Request};
+
+mod watch;
+
+use watch::Watcher;
+pub use watch::{Answered, Pause, QUIET_AFTER, RETRY_AFTER};
 
 /// The protocol that has the catalog and method calls
 /// (`PLUGIN_CATALOG_PROTOCOL`).
@@ -245,43 +247,6 @@ struct Held {
     slash: Vec<PluginSlash>,
 }
 
-/// A machine's catalog watcher.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Watch {
-    /// The catalog is being read.
-    Reading(Ticket),
-    /// The watch is open after the generation the held catalog was read at.
-    Watching(Ticket, PluginGeneration),
-    /// A call failed; it waits for the machine's next connection.
-    Stopped,
-}
-
-/// The watcher of one connection to a machine.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Watcher {
-    /// The connection it belongs to.
-    epoch: Option<ConnectionEpoch>,
-    /// Where it is.
-    watch: Watch,
-}
-
-/// What an answer came to.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Answered {
-    /// Not one of these calls, or a late one: nothing changed.
-    Stale,
-    /// The watcher moved on: send these calls. `redraw` when a catalog
-    /// changed.
-    Asked {
-        /// What to send.
-        calls: Vec<(MachineKey, Call)>,
-        /// Whether what the catalogs offer changed.
-        redraw: bool,
-    },
-    /// A plugin method call came back: its output, or why not.
-    Invoked(Result<RawJson, Problem>),
-}
-
 /// Every machine's last catalog and its watcher.
 #[derive(Debug, Default)]
 pub struct Catalogs {
@@ -298,52 +263,6 @@ pub struct Catalogs {
 }
 
 impl Catalogs {
-    /// Follow the fleet: forget the machines out of the book, end the
-    /// watchers of machines that stopped serving, and start one for each
-    /// connection that serves the catalog and has none. Returns the reads
-    /// to send.
-    pub fn sync(&mut self, fleet: &Fleet) -> Vec<(MachineKey, Call)> {
-        self.book = fleet
-            .machines
-            .iter()
-            .map(|machine| MachineKey::from_book(&machine.name))
-            .collect();
-        let book = &self.book;
-        self.held.retain(|machine, _held| book.contains(machine));
-        let mut calls = Vec::new();
-        for machine in &fleet.machines {
-            let key = MachineKey::from_book(&machine.name);
-            let serving = machine.reach == Reach::Online && speaks_catalog(machine.protocol);
-            let current = self
-                .watchers
-                .get(&key)
-                .is_some_and(|watcher| watcher.epoch == machine.connection_epoch);
-            if !serving {
-                let _ended = self.watchers.remove(&key);
-            } else if !current {
-                let Ok(ticket) = self.tickets.next_ticket() else {
-                    continue;
-                };
-                let watcher = Watcher {
-                    epoch: machine.connection_epoch,
-                    watch: Watch::Reading(ticket),
-                };
-                let _replaced = self.watchers.insert(key.clone(), watcher);
-                calls.push((
-                    key,
-                    Call {
-                        ticket,
-                        request: Request::Catalog,
-                    },
-                ));
-            }
-        }
-        let book = &self.book;
-        self.watchers
-            .retain(|machine, _watcher| book.contains(machine));
-        calls
-    }
-
     /// Ask `call`: its answer comes back as [`Answered::Invoked`]. `None`
     /// when every answer identity was used.
     pub fn invoke(&mut self, call: PluginCall) -> Option<(MachineKey, Call)> {
@@ -356,63 +275,6 @@ impl Catalogs {
                 request: Request::Invoke(call.invoke),
             },
         ))
-    }
-
-    /// Take `machine`'s answer to `ticket`.
-    pub fn answered(
-        &mut self,
-        machine: &MachineKey,
-        ticket: Ticket,
-        result: Result<Reply, Problem>,
-    ) -> Answered {
-        if let Some(at) = self.invoking.iter().position(|held| *held == ticket) {
-            let _done = self.invoking.swap_remove(at);
-            return Answered::Invoked(result.and_then(Reply::into_output));
-        }
-        let Some(watcher) = self.watchers.get(machine).copied() else {
-            return Answered::Stale;
-        };
-        let (next, redraw) = match (watcher.watch, result) {
-            (Watch::Reading(asked), Ok(Reply::Catalog(catalog))) if asked == ticket => {
-                let generation = catalog.generation;
-                let slash = PluginSlash::declared(machine, &catalog);
-                let _earlier = self.held.insert(machine.clone(), Held { catalog, slash });
-                (Some(Request::Watch(generation)), true)
-            }
-            (Watch::Watching(asked, seen), Ok(Reply::Generation(now))) if asked == ticket => {
-                let next = if now == seen {
-                    Request::Watch(seen)
-                } else {
-                    Request::Catalog
-                };
-                (Some(next), false)
-            }
-            (Watch::Reading(asked) | Watch::Watching(asked, _), _) if asked == ticket => {
-                (None, false)
-            }
-            (Watch::Reading(_) | Watch::Watching(..) | Watch::Stopped, _) => {
-                return Answered::Stale;
-            }
-        };
-        let ticket = next.as_ref().and_then(|_| self.tickets.next_ticket().ok());
-        let watch = match (&next, ticket) {
-            (Some(Request::Watch(after)), Some(ticket)) => Watch::Watching(ticket, *after),
-            (Some(_), Some(ticket)) => Watch::Reading(ticket),
-            (Some(_) | None, None) | (None, Some(_)) => Watch::Stopped,
-        };
-        let _moved = self.watchers.insert(
-            machine.clone(),
-            Watcher {
-                epoch: watcher.epoch,
-                watch,
-            },
-        );
-        let calls = next
-            .zip(ticket)
-            .map(|(request, ticket)| (machine.clone(), Call { ticket, request }))
-            .into_iter()
-            .collect();
-        Answered::Asked { calls, redraw }
     }
 
     /// The machines' catalogs, in the book's order.

@@ -18,7 +18,8 @@ use crate::connection::{ConnectionEpoch, ConnectionEpochs};
 use crate::devices::MachineKey;
 use crate::palette::{PaletteEntry, PaletteGroup, PaletteTarget, palette_groups};
 use crate::plugins::{
-    CatalogAnswered, Catalogs, Place, Problem, Reply, Request, context_at, speaks_catalog,
+    CatalogAnswered, Catalogs, Place, Problem, QUIET_AFTER, RETRY_AFTER, Reply, Request,
+    context_at, speaks_catalog,
 };
 
 fn key(name: &str) -> MachineKey {
@@ -175,16 +176,20 @@ fn the_watch_follows_the_catalogs_generation_and_reads_again_when_it_moves() {
         ),
         CatalogAnswered::Stale
     );
-    // No change: watch again; a change: read again.
-    let CatalogAnswered::Asked { calls, redraw } = catalogs.answered(
+    // No change: a quiet gap, then watch again (app review note 2).
+    let CatalogAnswered::Paused { pause, wait } = catalogs.answered(
         &laptop,
         watch,
         Ok(Reply::Generation(PluginGeneration::new(4))),
     ) else {
-        panic!("the watch goes on");
+        panic!("a quiet answer waits");
     };
-    assert!(!redraw);
+    assert_eq!(wait, QUIET_AFTER);
+    let calls = catalogs.resume(&pause);
     assert_eq!(calls[0].1.request, Request::Watch(PluginGeneration::new(4)));
+    // A wait resumes once.
+    assert!(catalogs.resume(&pause).is_empty());
+    // A change: read again.
     let CatalogAnswered::Asked { calls, .. } = catalogs.answered(
         &laptop,
         calls[0].1.ticket,
@@ -196,7 +201,7 @@ fn the_watch_follows_the_catalogs_generation_and_reads_again_when_it_moves() {
 }
 
 #[test]
-fn a_failure_stops_the_watcher_until_the_machine_connects_again() {
+fn a_failure_waits_and_reads_again_within_the_connection() {
     let mut catalogs = Catalogs::default();
     let laptop = key("laptop");
     let calls = catalogs.sync(&fleet(vec![online("laptop", epoch(1))]));
@@ -207,25 +212,35 @@ fn a_failure_stops_the_watcher_until_the_machine_connects_again() {
     ) else {
         panic!("a read asks for the watch");
     };
-    // The watch fails.
+    // The watch fails: wait, then read again (app review note 1).
     let refused = Problem::Refused {
         code: ErrorCode::Internal,
         message: None,
     };
-    let CatalogAnswered::Asked { calls, redraw } =
-        catalogs.answered(&laptop, calls[0].1.ticket, Err(refused))
+    let CatalogAnswered::Paused { pause, wait } =
+        catalogs.answered(&laptop, calls[0].1.ticket, Err(refused.clone()))
     else {
-        panic!("a failure is the watcher's");
+        panic!("a failure waits");
     };
-    assert!(calls.is_empty());
-    assert!(!redraw);
-    // The same connection is not asked again; the catalog is kept.
+    assert_eq!(wait, RETRY_AFTER);
+    // The same connection is not asked again meanwhile; the catalog is kept.
     assert!(
         catalogs
             .sync(&fleet(vec![online("laptop", epoch(1))]))
             .is_empty()
     );
     assert_eq!(catalogs.commands(&Place::Global).len(), 1);
+    let again = catalogs.resume(&pause);
+    assert_eq!(again[0].1.request, Request::Catalog);
+    // The read fails too: another wait, which a new connection outlives.
+    let CatalogAnswered::Paused { pause, .. } =
+        catalogs.answered(&laptop, again[0].1.ticket, Err(refused))
+    else {
+        panic!("a failed read waits");
+    };
+    let fresh = catalogs.sync(&fleet(vec![online("laptop", epoch(2))]));
+    assert_eq!(fresh[0].1.request, Request::Catalog);
+    assert!(catalogs.resume(&pause).is_empty());
     // Away: the catalog stays (Paseo keeps its registry entry).
     assert!(
         catalogs
@@ -234,8 +249,8 @@ fn a_failure_stops_the_watcher_until_the_machine_connects_again() {
     );
     assert_eq!(catalogs.commands(&Place::Global).len(), 1);
     // Back on a new connection: read again.
-    let again = catalogs.sync(&fleet(vec![online("laptop", epoch(2))]));
-    assert_eq!(again[0].1.request, Request::Catalog);
+    let back = catalogs.sync(&fleet(vec![online("laptop", epoch(3))]));
+    assert_eq!(back[0].1.request, Request::Catalog);
     // Out of the book: forgotten.
     assert!(catalogs.sync(&fleet(Vec::new())).is_empty());
     assert!(catalogs.commands(&Place::Global).is_empty());

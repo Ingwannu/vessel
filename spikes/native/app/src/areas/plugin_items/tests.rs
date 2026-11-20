@@ -1,12 +1,13 @@
 //! The app's plugin items over a detached link (ADR 0115, catalog and
 //! invoke): a serving machine's catalog is read and then watched from its
-//! generation, its Command Center item runs `plugin.invoke`, and a refused
-//! call is a toast in the node's words.
+//! generation, its Command Center item runs `plugin.invoke`, a refused
+//! call is a toast in the node's words, and a failed watch reads again
+//! after its wait.
 
 use gpui::TestAppContext;
 use vessel_app_link::plugins::Answer;
 use vessel_app_link::{Command, Link};
-use vessel_app_view::plugins::{Problem, Reply, Request};
+use vessel_app_view::plugins::{Problem, RETRY_AFTER, Reply, Request};
 use vessel_app_view::toasts::ToastTone;
 use vessel_app_view::{Fleet, Machine, Reach};
 use vessel_proto::plugins::{
@@ -124,5 +125,61 @@ fn a_serving_machines_item_runs_its_method_and_a_refusal_is_a_toast(cx: &mut Tes
         let toast = shell.areas.toasts.shown().unwrap();
         assert_eq!(toast.tone, ToastTone::Error);
         assert_eq!(toast.text, "plugin notes is restarting");
+    });
+}
+
+#[gpui::test]
+fn a_failed_watch_reads_the_catalog_again_after_its_wait(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (link, mut commands) = Link::detached(16).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, _window, _cx| {
+        shell.fleet = fleet();
+        shell.plugin_catalogs_fleet();
+    });
+    let Ok(Command::PluginCatalog(read)) = commands.try_recv() else {
+        panic!("the catalog is read");
+    };
+    shell.update_in(cx, |shell, _window, cx| {
+        shell.plugin_catalog_answer(
+            Answer {
+                machine: read.machine.clone(),
+                ticket: read.ticket,
+                result: Ok(Reply::Catalog(catalog())),
+            },
+            cx,
+        );
+    });
+    let Ok(Command::PluginCatalog(watch)) = commands.try_recv() else {
+        panic!("then watched");
+    };
+    shell.update_in(cx, |shell, _window, cx| {
+        shell.plugin_catalog_answer(
+            Answer {
+                machine: watch.machine.clone(),
+                ticket: watch.ticket,
+                result: Err(Problem::Offline),
+            },
+            cx,
+        );
+    });
+    cx.run_until_parked();
+    assert!(commands.try_recv().is_err(), "nothing at once");
+    cx.executor().advance_clock(RETRY_AFTER);
+    cx.run_until_parked();
+    let Ok(Command::PluginCatalog(again)) = commands.try_recv() else {
+        panic!("read again after the wait");
+    };
+    assert_eq!(again.request, Request::Catalog);
+    // The items stay meanwhile.
+    shell.update_in(cx, |shell, _window, _cx| {
+        assert_eq!(
+            shell
+                .areas
+                .plugin_catalogs
+                .commands(&shell.plugin_place())
+                .len(),
+            1
+        );
     });
 }

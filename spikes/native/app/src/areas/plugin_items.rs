@@ -16,6 +16,8 @@
 //!   `reportError`, the page's toast). Success says nothing: in Paseo the
 //!   plugin's own code shows what it wants, and a Vessel plugin's output is
 //!   its own until screens (P3b) can draw it.
+//! - A watcher's wait (a failure's retry, a quiet answer's gap) is a timer
+//!   here; the model resumes it, or drops it when its connection is gone.
 //! - Where an action is taken: the open session when the session screen
 //!   shows it (the page's `/sessions/<machine>/<id>`), else nowhere (a
 //!   global item only).
@@ -69,6 +71,16 @@ impl Shell {
                 if redraw {
                     cx.notify();
                 }
+            }
+            CatalogAnswered::Paused { pause, wait } => {
+                cx.spawn(async move |shell, cx| {
+                    cx.background_executor().timer(wait).await;
+                    let _resumed = shell.update(cx, |shell, _cx| {
+                        let calls = shell.areas.plugin_catalogs.resume(&pause);
+                        shell.plugin_catalog_calls(calls);
+                    });
+                })
+                .detach();
             }
             CatalogAnswered::Invoked(Err(problem)) => {
                 let text = problem_words(self.words.plugins(), &problem);

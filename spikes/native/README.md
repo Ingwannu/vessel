@@ -669,8 +669,9 @@ registry for the window. `view::plugins::Catalogs` holds each machine's last
 `app/src/areas/plugin_items.rs` sends those calls on each fleet change. Their
 answers come back as `Event::PluginCatalog`, apart from the Settings page's
 calls.
-- A watcher belongs to one connection. A failed call stops it until the
-  machine connects again.
+- A watcher belongs to one connection. A failed call waits 5 s and reads
+  the catalog again; a watch that brought nothing new waits 1 s before the
+  next (`view::plugins::catalog::watch`, the page's `followPlugins`).
 - An offline machine keeps its catalog. A machine taken out of the book loses
   it.
 - Command Center (the palette) lists each plugin's items in a section titled

@@ -49,8 +49,8 @@ mod page;
 mod words;
 
 pub use catalog::{
-    Answered as CatalogAnswered, CATALOG_PROTOCOL, Catalogs, Place, PluginCall, PluginCommand,
-    PluginSlash, context_at, speaks_catalog,
+    Answered as CatalogAnswered, CATALOG_PROTOCOL, Catalogs, Pause as CatalogPause, Place,
+    PluginCall, PluginCommand, PluginSlash, QUIET_AFTER, RETRY_AFTER, context_at, speaks_catalog,
 };
 pub use logs::{Logs, LogsView, log_head};
 pub use page::{Answered, Page, RowLook};
