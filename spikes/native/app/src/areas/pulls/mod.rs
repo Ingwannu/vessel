@@ -54,9 +54,9 @@ use vessel_proto::workspace::{CommitPage, GitStatus, ReadLog, RefName, Workspace
 use crate::shell::Shell;
 
 pub(crate) use card::card_items;
-pub(crate) use pane::pane;
 pub(crate) use form::{base_list, dialog as form_dialog};
 pub(crate) use link::{link, state_glyph_sized};
+pub(crate) use pane::pane;
 
 /// The most new commits the form's description lists (`gh` lists them
 /// all; a branch far ahead gives a description nobody reads).

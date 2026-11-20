@@ -36,7 +36,10 @@ fn asks(open: &Open) -> Option<(String, RepoQuery)> {
     if page.kind.id() != PageId::GithubSearch {
         return None;
     }
-    let machine = open.flow.machine().filter(|machine| machine.can_search_github)?;
+    let machine = open
+        .flow
+        .machine()
+        .filter(|machine| machine.can_search_github)?;
     let query = page.field.parse().ok()?;
     Some((machine.name.clone(), query))
 }

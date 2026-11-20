@@ -19,9 +19,8 @@ use vessel_app_view::workspace::problem::Problem;
 use vessel_client::NodeClient;
 use vessel_proto::SessionId;
 use vessel_proto::forge::{
-    CheckDetails, GetCheckDetails, GetPullRequest, GetPullTimeline, MergeOutcome,
-    MergePullRequest, OpenOutcome, OpenPullRequest, PullRequestView, PullTimeline,
-    SessionPullRequest, SetFeedback,
+    CheckDetails, GetCheckDetails, GetPullRequest, GetPullTimeline, MergeOutcome, MergePullRequest,
+    OpenOutcome, OpenPullRequest, PullRequestView, PullTimeline, SessionPullRequest, SetFeedback,
 };
 
 #[cfg(not(target_arch = "wasm32"))]

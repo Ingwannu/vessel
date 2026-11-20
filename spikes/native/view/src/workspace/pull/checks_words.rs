@@ -67,10 +67,7 @@ impl Timing {
     pub fn words(self, catalog: &Translator) -> String {
         let spent = duration(self.seconds);
         if self.running {
-            catalog
-                .pulls()
-                .check_running(&spent)
-                .unwrap_or(spent)
+            catalog.pulls().check_running(&spent).unwrap_or(spent)
         } else {
             spent
         }

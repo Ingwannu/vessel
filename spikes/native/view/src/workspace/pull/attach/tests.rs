@@ -39,7 +39,11 @@ fn comment(id: &str, body: &str, hours: i64, thread: Option<ThreadPlace>) -> Tim
         author: Some("octo".parse().unwrap()),
         body: PullBody::lossy(body),
         created_at: now() - Duration::hours(hours),
-        url: Some(format!("https://github.com/acme/widgets/pull/42#{id}").parse().unwrap()),
+        url: Some(
+            format!("https://github.com/acme/widgets/pull/42#{id}")
+                .parse()
+                .unwrap(),
+        ),
         review: None,
         thread,
     }
@@ -78,8 +82,15 @@ fn a_change_request_without_words_still_goes() {
     };
     let made = activity(&about(), &review).unwrap();
     assert_eq!(made.kind, AttachKind::Review);
-    assert!(made.text.contains("\nState: changes_requested\n"), "{}", made.text);
-    assert!(made.text.ends_with("Created: just now"), "no body, no blank line");
+    assert!(
+        made.text.contains("\nState: changes_requested\n"),
+        "{}",
+        made.text
+    );
+    assert!(
+        made.text.ends_with("Created: just now"),
+        "no body, no blank line"
+    );
     assert_eq!(made.title, "unknown");
 }
 
@@ -120,7 +131,11 @@ fn a_failed_check_carries_its_report_and_logs() {
         name: "build".parse().unwrap(),
         state: CheckState::Failed,
         url: None,
-        details_url: Some("https://github.com/acme/widgets/actions/runs/1".parse().unwrap()),
+        details_url: Some(
+            "https://github.com/acme/widgets/actions/runs/1"
+                .parse()
+                .unwrap(),
+        ),
         output: Some(CheckOutput {
             title: Some(vessel_proto::forge::PullTitle::lossy("1 error")),
             summary: None,
@@ -173,7 +188,10 @@ fn a_failed_check_carries_its_report_and_logs() {
          \x20 Log tail truncated to the latest capped lines."
     );
     let bare = check(&about(), &run, None);
-    assert!(bare.text.ends_with("Check URL: https://github.com/acme/widgets/pull/42"));
+    assert!(
+        bare.text
+            .ends_with("Check URL: https://github.com/acme/widgets/pull/42")
+    );
 }
 
 /// A run id for the tests.

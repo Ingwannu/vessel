@@ -28,12 +28,12 @@ use vessel_app_kit::ui::{
     ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
+use vessel_app_view::workspace::pull::attach::can_add_check;
 use vessel_app_view::workspace::pull::checks::{
     Presentation, RING_SIZE, RING_STROKE, Segment, Summary, circumference, segments, summary,
     timing,
 };
 use vessel_app_view::workspace::pull::{ChecksOutcome, check_counts};
-use vessel_app_view::workspace::pull::attach::can_add_check;
 use vessel_proto::forge::{CheckRun, ForgeUrl, PullRequest};
 
 use super::Facts;
@@ -122,9 +122,14 @@ pub(super) fn section(
         }
     };
     let list: Option<AnyElement> = match &shown {
-        Shown::Every(read) if open && !read.groups.is_empty() => {
-            Some(groups(shell, read, &facts.choices.collapsed, &pull.summary.url, tokens, cx))
-        }
+        Shown::Every(read) if open && !read.groups.is_empty() => Some(groups(
+            shell,
+            read,
+            &facts.choices.collapsed,
+            &pull.summary.url,
+            tokens,
+            cx,
+        )),
         Shown::Every(_) => None,
         Shown::Counts if open => Some(failing(pull, tokens)),
         Shown::Counts => None,
@@ -311,7 +316,9 @@ fn groups(
         let folded = collapsed.contains(&presentation);
         list = list.child(
             div()
-                .id(SharedString::from(format!("pr-pane-check-group-{presentation:?}")))
+                .id(SharedString::from(format!(
+                    "pr-pane-check-group-{presentation:?}"
+                )))
                 .flex()
                 .flex_row()
                 .items_center()
@@ -393,7 +400,9 @@ fn row(
             adding,
             tokens,
         )
-        .on_mouse_down(MouseButton::Left, |_event, _window, cx| cx.stop_propagation())
+        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
+            cx.stop_propagation()
+        })
         .when(!adding, |button| {
             button.on_click(cx.listener(move |shell, _event, window, cx| {
                 cx.stop_propagation();

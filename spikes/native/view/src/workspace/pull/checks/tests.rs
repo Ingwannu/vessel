@@ -21,7 +21,11 @@ fn checks_group_in_paseo_s_order_and_keep_their_own_order_inside() {
         run("new", CheckState::Unknown),
     ];
     let read = summary(&runs);
-    assert_eq!(read.outcome, ChecksOutcome::Failure, "a failure outranks a run");
+    assert_eq!(
+        read.outcome,
+        ChecksOutcome::Failure,
+        "a failure outranks a run"
+    );
     assert_eq!(read.total, 7, "skipped ones count in the total");
     assert_eq!(
         read.parts(),
@@ -62,15 +66,27 @@ fn the_ring_is_one_segment_per_part_with_gaps() {
     assert!(segments(&[], 0).is_empty());
     let one = segments(&[(Presentation::Success, 3)], 3);
     assert_eq!(one.len(), 1);
-    assert!((one[0].length - whole).abs() < 1e-4, "one part fills the ring");
+    assert!(
+        (one[0].length - whole).abs() < 1e-4,
+        "one part fills the ring"
+    );
     let two = segments(&[(Presentation::Failure, 1), (Presentation::Success, 3)], 4);
     let quarter = whole / 4.0;
     assert!((two[0].start).abs() < 1e-4);
     assert!((two[0].length - (quarter - 2.0)).abs() < 1e-4);
-    assert!((two[1].start - quarter).abs() < 1e-4, "starts after the whole share");
+    assert!(
+        (two[1].start - quarter).abs() < 1e-4,
+        "starts after the whole share"
+    );
     assert!((two[1].length - (3.0 * quarter - 2.0)).abs() < 1e-4);
-    let tiny = segments(&[(Presentation::Failure, 1), (Presentation::Success, 99)], 100);
-    assert!((tiny[0].length - 1.5).abs() < 1e-4, "never shorter than the minimum");
+    let tiny = segments(
+        &[(Presentation::Failure, 1), (Presentation::Success, 99)],
+        100,
+    );
+    assert!(
+        (tiny[0].length - 1.5).abs() < 1e-4,
+        "never shorter than the minimum"
+    );
 }
 
 #[test]

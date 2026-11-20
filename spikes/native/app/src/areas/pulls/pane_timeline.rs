@@ -50,12 +50,10 @@ impl Shell {
         if !self.pulls_has_pane_reads(machine) {
             return;
         }
-        let Some(facts) = self
-            .areas
-            .pulls
-            .facts
-            .as_mut()
-            .filter(|facts| facts.subject.machine == machine && facts.subject.session == session)
+        let Some(facts) =
+            self.areas.pulls.facts.as_mut().filter(|facts| {
+                facts.subject.machine == machine && facts.subject.session == session
+            })
         else {
             return;
         };
@@ -75,12 +73,10 @@ impl Shell {
         session: SessionId,
         result: Result<Box<PullTimeline>, Problem>,
     ) {
-        let Some(facts) = self
-            .areas
-            .pulls
-            .facts
-            .as_mut()
-            .filter(|facts| facts.subject.machine == machine && facts.subject.session == session)
+        let Some(facts) =
+            self.areas.pulls.facts.as_mut().filter(|facts| {
+                facts.subject.machine == machine && facts.subject.session == session
+            })
         else {
             return;
         };
