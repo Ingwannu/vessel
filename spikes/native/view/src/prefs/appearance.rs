@@ -1,14 +1,15 @@
-//! How the app looks: its theme, its two text sizes, the conversation's
-//! width and display.
+//! How the app looks: its theme, its text sizes, the two font families,
+//! the conversation's width and display.
 
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use super::family::FontFamily;
 use super::lenient;
 
 /// How the app looks.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Appearance {
     /// Light, dark, or the system's.
@@ -20,6 +21,27 @@ pub struct Appearance {
     /// Code's text size.
     #[serde(deserialize_with = "lenient")]
     pub code_size: CodeSize,
+    /// Chat and Markdown text, in points. An old file without it is 15.
+    #[serde(
+        default,
+        deserialize_with = "lenient",
+        skip_serializing_if = "ContentSize::is_default"
+    )]
+    pub content_size: ContentSize,
+    /// The interface family. Empty, or absent, means the embedded faces.
+    #[serde(
+        default,
+        deserialize_with = "lenient",
+        skip_serializing_if = "FontFamily::is_embedded"
+    )]
+    pub interface_family: FontFamily,
+    /// The code family. Empty, or absent, means the embedded faces.
+    #[serde(
+        default,
+        deserialize_with = "lenient",
+        skip_serializing_if = "FontFamily::is_embedded"
+    )]
+    pub code_family: FontFamily,
     /// How wide the conversation is.
     #[serde(deserialize_with = "lenient")]
     pub content_width: ContentWidth,
@@ -39,11 +61,31 @@ pub enum Theme {
     Light,
     /// Dark.
     Dark,
+    /// Paseo's zinc tint. It does not follow the system.
+    Zinc,
+    /// Paseo's midnight tint. It does not follow the system.
+    Midnight,
+    /// Paseo's Claude tint. It does not follow the system.
+    Claude,
+    /// Paseo's Ghostty tint. It does not follow the system.
+    Ghostty,
+    /// Paseo's pure black. It does not follow the system.
+    PureBlack,
 }
 
 impl Theme {
-    /// Every theme, in the order Settings offers them.
-    pub const ALL: [Self; 3] = [Self::System, Self::Light, Self::Dark];
+    /// Every theme, in Paseo's `THEME_OPTIONS` order, which is the order
+    /// Settings offers them.
+    pub const ALL: [Self; 8] = [
+        Self::Light,
+        Self::Dark,
+        Self::System,
+        Self::Zinc,
+        Self::Midnight,
+        Self::Claude,
+        Self::Ghostty,
+        Self::PureBlack,
+    ];
 }
 
 macro_rules! text_size {
@@ -112,6 +154,19 @@ text_size! {
 text_size! {
     /// Code's text size, 10 to 18 points (12 unless chosen).
     CodeSize, 10 ..= 18, 12
+}
+
+text_size! {
+    /// Chat and Markdown text, 10 to 21 points (15 unless chosen). It is
+    /// an absolute size: the interface size does not scale it.
+    ContentSize, 10 ..= 21, 15
+}
+
+impl ContentSize {
+    /// Whether this is the desktop default, so an old file can omit it.
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 /// A size outside its range.

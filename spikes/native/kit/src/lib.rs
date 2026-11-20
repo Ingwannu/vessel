@@ -157,24 +157,77 @@ pub const fn scheme_of(appearance: WindowAppearance) -> Scheme {
     }
 }
 
+/// The type Settings applies in one turn: the two scaled sizes, the
+/// absolute content size, and the two family names (empty means the
+/// embedded face).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeChoice {
+    /// The interface size, in points.
+    pub interface: u8,
+    /// The code size, in points.
+    pub code: u8,
+    /// Chat and Markdown text, in points. Not scaled by [`Self::interface`].
+    pub content: u8,
+    /// The interface face. Empty means Geist.
+    pub interface_family: String,
+    /// The code face. Empty means Geist Mono.
+    pub code_family: String,
+}
+
+/// Draw text as `choice` says. The windows are drawn again when any of
+/// it changed. Content size is the component layer's prose size; a
+/// family leads the embedded faces.
+pub fn set_type_choice(cx: &mut App, choice: TypeChoice) {
+    let sizes = fonts::set_sizes(choice.interface, choice.code);
+    let content = fonts::set_content(choice.content);
+    let faces = fonts::set_families(&choice.interface_family, &choice.code_family);
+    if sizes || content || faces {
+        refresh_type(cx);
+    }
+}
+
 /// Draw text at `interface` and `code` points (Settings › Appearance):
-/// every step of the type scale, and the component layer's text (the
-/// replies' Markdown) with them; the windows are drawn again when either
-/// changed.
+/// every step of the type scale, and the component layer's code size
+/// with them. The content size and the families stay as they are. The
+/// windows are drawn again when either size changed.
 pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
     if fonts::set_sizes(interface, code) {
-        let tokens = tokens(cx);
-        field::apply_tokens(cx, &tokens);
-        cx.refresh_windows();
+        refresh_type(cx);
     }
+}
+
+/// The component layer's type from the sizes and families now in force.
+fn refresh_type(cx: &mut App) {
+    let tokens = tokens(cx);
+    field::apply_tokens(cx, &tokens);
+    cx.refresh_windows();
+}
+
+/// Switch to one palette. The five tints share Dark's scheme and differ
+/// in the tokens, so the palette, not the scheme, decides. The windows
+/// are drawn again when the tokens change.
+pub fn set_theme(cx: &mut App, id: ThemeId) {
+    let next = Tokens::of_theme(id);
+    if cx
+        .try_global::<Theme>()
+        .is_some_and(|theme| theme.tokens == next)
+    {
+        return;
+    }
+    cx.set_global(Theme { tokens: next });
+    field::apply_tokens(cx, &next);
+    cx.refresh_windows();
 }
 
 /// Switch the theme, and the component layer's colours with it.
 pub fn set_scheme(cx: &mut App, scheme: Scheme) {
-    let tokens = Tokens::of(scheme);
-    cx.set_global(Theme { tokens });
-    field::apply_tokens(cx, &tokens);
-    cx.refresh_windows();
+    set_theme(
+        cx,
+        match scheme {
+            Scheme::Light => ThemeId::Light,
+            Scheme::Dark => ThemeId::Dark,
+        },
+    );
 }
 
 /// Wrap a screen's root view as the component layer needs it (its

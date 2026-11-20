@@ -11,6 +11,7 @@
 //! real build subsets them, as the page does).
 
 use std::borrow::Cow;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use gpui::{App, FontFallbacks, FontWeight, SharedString};
@@ -89,6 +90,67 @@ const INTERFACE_BASE: u8 = 14;
 /// The code size the code steps are written for.
 const CODE_BASE: u8 = 12;
 
+/// Chat and Markdown text, in points. Paseo's desktop content size is 15
+/// and it is not scaled by the interface size (ADR 0070).
+static CONTENT: AtomicU8 = AtomicU8::new(15);
+
+/// The interface family a person named. Empty means Geist.
+static UI_FAMILY: Mutex<String> = Mutex::new(String::new());
+
+/// The code family a person named. Empty means Geist Mono.
+static CODE_FAMILY: Mutex<String> = Mutex::new(String::new());
+
+/// The content size in points.
+#[must_use]
+pub fn content_points() -> u8 {
+    CONTENT.load(Ordering::Relaxed)
+}
+
+/// Remember `points` as the content size. Whether it changed.
+pub(crate) fn set_content(points: u8) -> bool {
+    CONTENT.swap(points, Ordering::Relaxed) != points
+}
+
+/// Remember the two families (empty means the embedded face). Whether
+/// either changed.
+pub(crate) fn set_families(interface: &str, code: &str) -> bool {
+    let interface_changed = store_family(&UI_FAMILY, interface);
+    let code_changed = store_family(&CODE_FAMILY, code);
+    interface_changed || code_changed
+}
+
+/// `slot` as a family name. A poisoned lock still holds the name.
+fn load_family(slot: &Mutex<String>) -> String {
+    slot.lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone()
+}
+
+/// Put `next` in `slot` unless it is already there.
+fn store_family(slot: &Mutex<String>, next: &str) -> bool {
+    let mut guard = slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    if *guard == next {
+        false
+    } else {
+        guard.clear();
+        guard.push_str(next);
+        true
+    }
+}
+
+/// The face to draw and the faces behind it. An empty `chosen` is the
+/// embedded face, and Pretendard is always last (ADR 0070).
+fn face_order(chosen: &str, embedded: &str) -> (String, Vec<String>) {
+    if chosen.is_empty() {
+        (embedded.to_owned(), vec![HANGUL.to_owned()])
+    } else {
+        (
+            chosen.to_owned(),
+            vec![embedded.to_owned(), HANGUL.to_owned()],
+        )
+    }
+}
+
 /// Draw the scale at `interface` and `code` points (bounded by the
 /// preferences' ranges). Whether either changed.
 pub(crate) fn set_sizes(interface: u8, code: u8) -> bool {
@@ -164,18 +226,30 @@ impl Type {
         }
     }
 
-    /// The family.
+    /// The family: a chosen one if there is one, otherwise the embedded face.
     #[must_use]
     pub fn family(self) -> SharedString {
+        self.order().0.into()
+    }
+
+    /// The faces behind [`Self::family`]: the embedded face when a person
+    /// named one, then Pretendard. Pretendard is always last.
+    #[must_use]
+    pub fn fallbacks(self) -> FontFallbacks {
+        FontFallbacks::from_fonts(self.order().1)
+    }
+
+    /// This step's chosen family and the faces behind it.
+    fn order(self) -> (String, Vec<String>) {
         match self {
-            Self::Mono => MONO.into(),
+            Self::Mono => face_order(&load_family(&CODE_FAMILY), MONO),
             Self::Title
             | Self::Body
             | Self::Label
             | Self::Meta
             | Self::Kicker
             | Self::Card
-            | Self::Tiny => SANS.into(),
+            | Self::Tiny => face_order(&load_family(&UI_FAMILY), SANS),
         }
     }
 }
@@ -196,7 +270,7 @@ pub fn measure(window: &gpui::Window, text: &str, step: Type) -> f32 {
         font: gpui::Font {
             family: step.family(),
             features: gpui::FontFeatures::default(),
-            fallbacks: Some(fallbacks()),
+            fallbacks: Some(step.fallbacks()),
             weight,
             style: gpui::FontStyle::Normal,
         },
@@ -293,5 +367,23 @@ mod elide_tests {
     #[test]
     fn nothing_fits_but_the_mark_itself() {
         assert_eq!(elide_middle_by("abcdef", at_most(1)), "…");
+    }
+
+    #[test]
+    fn a_chosen_family_leads_and_pretendard_is_last() {
+        let embedded = super::face_order("", super::SANS);
+        assert_eq!(embedded.0, super::SANS);
+        assert_eq!(embedded.1, vec![super::HANGUL.to_owned()]);
+        let chosen = super::face_order("Inter", super::MONO);
+        assert_eq!(chosen.0, "Inter");
+        assert_eq!(
+            chosen.1,
+            vec![super::MONO.to_owned(), super::HANGUL.to_owned()]
+        );
+    }
+
+    #[test]
+    fn content_starts_at_the_desktop_default() {
+        assert_eq!(super::content_points(), 15);
     }
 }

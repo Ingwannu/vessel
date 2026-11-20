@@ -39,11 +39,9 @@ use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, IntoElement as _, ParentElement as _, Styled as _, Window, div,
     px,
 };
-use vessel_app_kit::{
-    ComboHandlers, ComboboxState, Scheme, SendOn, Tokens, Type, TypeExt as _, combobox,
-};
+use vessel_app_kit::{ComboHandlers, ComboboxState, SendOn, Tokens, Type, TypeExt as _, combobox};
 use vessel_app_link::Command;
-use vessel_app_view::prefs::{PreferenceChange, SendKey, Theme, send_key_label};
+use vessel_app_view::prefs::{PreferenceChange, SendKey, send_key_label};
 use vessel_app_view::settings::Section;
 
 pub(crate) use choices::{List, primary};
@@ -216,9 +214,11 @@ impl Shell {
                     }
                     PreferenceChange::Theme(_) => apply_theme(self, window, cx),
                     PreferenceChange::Send(_) => apply_composer(self, window, cx),
-                    PreferenceChange::InterfaceSize(_) | PreferenceChange::CodeSize(_) => {
-                        apply_text_sizes(self, cx);
-                    }
+                    PreferenceChange::InterfaceSize(_)
+                    | PreferenceChange::CodeSize(_)
+                    | PreferenceChange::ContentSize(_)
+                    | PreferenceChange::InterfaceFamily(_)
+                    | PreferenceChange::CodeFamily(_) => apply_text_sizes(self, cx),
                     PreferenceChange::ContentWidth(width) => {
                         crate::areas::session::set_content_width(*width);
                         let list = &self.areas.conversation.list;
@@ -303,13 +303,10 @@ pub(crate) fn apply_theme(shell: &Shell, window: &Window, cx: &mut App) {
     if std::env::var_os("VESSEL_APP_THEME").is_some() {
         return;
     }
-    let scheme = match shell.prefs.settings.appearance.theme {
-        Theme::System => vessel_app_kit::scheme_of(window.appearance()),
-        Theme::Light => Scheme::Light,
-        Theme::Dark => Scheme::Dark,
-    };
-    if vessel_app_kit::tokens(cx).scheme != scheme {
-        vessel_app_kit::set_scheme(cx, scheme);
+    let id = appearance::palette_id(shell.prefs.settings.appearance.theme, window.appearance());
+    let next = vessel_app_kit::Tokens::of_theme(id);
+    if vessel_app_kit::tokens(cx) != next {
+        vessel_app_kit::set_theme(cx, id);
     }
 }
 
@@ -339,12 +336,7 @@ pub(crate) fn apply_composer(shell: &Shell, window: &mut Window, cx: &mut App) {
 /// The interface's and code's text sizes, drawn everywhere (the kit's
 /// type scale); the conversation's rows measured again at them.
 pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
-    let appearance = &shell.prefs.settings.appearance;
-    vessel_app_kit::set_text_sizes(
-        cx,
-        appearance.interface_size.get(),
-        appearance.code_size.get(),
-    );
+    appearance::apply_type(&shell.prefs.settings.appearance, cx);
     let list = &shell.areas.conversation.list;
     list.changed(0..list.rows());
     shell.areas.session.entries.remeasure();
@@ -358,7 +350,7 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
     apply_theme(shell, window, cx);
     apply_text_sizes(shell, cx);
     apply_composer(shell, window, cx);
-    let appearance = shell.prefs.settings.appearance;
+    let appearance = shell.prefs.settings.appearance.clone();
     crate::areas::session::set_content_width(appearance.content_width);
     shell.conversation_display(appearance.conversation);
     cx.observe_window_appearance(window, |shell, window, cx| {

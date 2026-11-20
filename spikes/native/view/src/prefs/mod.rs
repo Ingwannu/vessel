@@ -23,6 +23,7 @@
 
 mod appearance;
 mod change;
+mod family;
 mod keys;
 mod language;
 mod send;
@@ -36,9 +37,11 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, ProfileName};
 
 pub use appearance::{
-    Appearance, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, OutOfRange, Theme,
+    Appearance, CodeSize, ContentSize, ContentWidth, ConversationDisplay, InterfaceSize,
+    OutOfRange, Theme,
 };
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
+pub use family::{FamilyError, FontFamily};
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};
 pub use send::{EnterPress, send_key_label, sends, sends_other};
 

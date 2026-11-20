@@ -230,6 +230,14 @@ impl SettingsText {
             Theme::System => self.system,
             Theme::Light => self.light,
             Theme::Dark => self.dark,
+            Theme::Zinc => "Zinc",
+            Theme::Midnight => "Midnight",
+            Theme::Claude => "Claude",
+            Theme::Ghostty => "Ghostty",
+            Theme::PureBlack => match self.lang {
+                Lang::En => "Pure black",
+                Lang::Ko => "순수 검정",
+            },
         }
     }
 

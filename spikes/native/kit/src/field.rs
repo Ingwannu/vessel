@@ -664,9 +664,9 @@ fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 /// of it is still drawn (Markdown's text).
 pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     let theme = gpui_component::Theme::global_mut(cx);
-    theme.font_family = fonts::SANS.into();
-    theme.mono_font_family = fonts::MONO.into();
-    theme.font_size = px(fonts::ui(14.0));
+    theme.font_family = fonts::Type::Body.family();
+    theme.mono_font_family = fonts::Type::Mono.family();
+    theme.font_size = px(f32::from(fonts::content_points()));
     // Code in Markdown at the code size (the page's `--code-px`).
     theme.mono_font_size = px(fonts::code(12.0));
     theme.radius = px(8.0);

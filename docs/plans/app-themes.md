@@ -106,8 +106,12 @@ Do not start a second theme type in the app.
   `channel`, `linear` and `contrast` only, and asserts Light and
   Dark equal the shipped tokens. The native gate on that commit is
   green.
-- Half-done: nothing in the preference (slice 3).
-- Next: slice 3. The theme id, content size 10–21 default 15, and
-  the two font families in `view::prefs`, applied in the same turn.
-  Do not widen the shipped interface or code ranges; those are
-  routed.
+- Done, pending the native gate: slice 3. The preference names
+  System and the seven palettes, content size 10–21 default 15, and
+  the two families. A change is applied in that turn. The face drawn
+  is the first name in a stack; Markdown takes that name and the
+  content size, because the component theme has no fallback list.
+  Interface range, code range, content width and the syntax themes
+  are still routed.
+- Next: slice 4, one screenful of each palette for captures, after
+  the gate.

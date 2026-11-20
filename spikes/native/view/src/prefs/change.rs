@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
-    ActionId, AgentDefaults, AgentKind, Alerts, Bindings, Choices, CodeSize, ContentWidth,
-    ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS, MAX_MACHINES,
-    MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany, TurnDelivery,
+    ActionId, AgentDefaults, AgentKind, Alerts, Bindings, Choices, CodeSize, ContentSize,
+    ContentWidth, ConversationDisplay, FontFamily, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
+    MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany,
+    TurnDelivery,
 };
 
 /// One change: the setting it names, and its value.
@@ -24,6 +25,12 @@ pub enum PreferenceChange {
     InterfaceSize(InterfaceSize),
     /// Code's text size.
     CodeSize(CodeSize),
+    /// Chat and Markdown text size.
+    ContentSize(ContentSize),
+    /// The interface family. Empty means the embedded faces.
+    InterfaceFamily(FontFamily),
+    /// The code family. Empty means the embedded faces.
+    CodeFamily(FontFamily),
     /// The conversation's width.
     ContentWidth(ContentWidth),
     /// How a conversation shows tool calls.
@@ -172,6 +179,11 @@ impl Preferences {
             PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,
+            PreferenceChange::ContentSize(size) => self.appearance.content_size = *size,
+            PreferenceChange::InterfaceFamily(family) => {
+                self.appearance.interface_family = family.clone();
+            }
+            PreferenceChange::CodeFamily(family) => self.appearance.code_family = family.clone(),
             PreferenceChange::ContentWidth(width) => self.appearance.content_width = *width,
             PreferenceChange::Conversation(display) => self.appearance.conversation = *display,
             PreferenceChange::SidebarPanel(panel) => self.layout.sidebar = *panel,

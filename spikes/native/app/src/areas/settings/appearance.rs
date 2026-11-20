@@ -18,12 +18,13 @@
 //!   ranges (`prefs/appearance.rs`), so a choice cannot be out of them.
 //!   A row shows once what it changes is drawn from it (`super::applied`).
 
+use gpui::WindowAppearance;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    AnyElement, App, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px, relative,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, settings};
-use vessel_app_view::prefs::{PreferenceChange, Theme};
+use vessel_app_kit::{Scheme, ThemeId, Tokens, Type, TypeExt as _, settings};
+use vessel_app_view::prefs::{Appearance, PreferenceChange, Theme};
 
 use super::applied;
 use super::choices::List;
@@ -32,6 +33,39 @@ use crate::shell::Shell;
 
 /// A picture's width over its height (16:9).
 const PICTURE_RATIO: f32 = 1.777_777_8;
+
+/// The palette `theme` names. System follows the window, and only between
+/// Light and Dark.
+pub(crate) fn palette_id(theme: Theme, appearance: WindowAppearance) -> ThemeId {
+    match theme {
+        Theme::System => match vessel_app_kit::scheme_of(appearance) {
+            Scheme::Light => ThemeId::Light,
+            Scheme::Dark => ThemeId::Dark,
+        },
+        Theme::Light => ThemeId::Light,
+        Theme::Dark => ThemeId::Dark,
+        Theme::Zinc => ThemeId::Zinc,
+        Theme::Midnight => ThemeId::Midnight,
+        Theme::Claude => ThemeId::Claude,
+        Theme::Ghostty => ThemeId::Ghostty,
+        Theme::PureBlack => ThemeId::PureBlack,
+    }
+}
+
+/// The sizes and the families, drawn in this turn. Content size is the
+/// prose size; a family leads the embedded faces.
+pub(crate) fn apply_type(appearance: &Appearance, cx: &mut App) {
+    vessel_app_kit::set_type_choice(
+        cx,
+        vessel_app_kit::TypeChoice {
+            interface: appearance.interface_size.get(),
+            code: appearance.code_size.get(),
+            content: appearance.content_size.get(),
+            interface_family: appearance.interface_family.face(),
+            code_family: appearance.code_family.face(),
+        },
+    );
+}
 
 /// The Appearance page.
 pub(crate) fn render(
@@ -120,8 +154,13 @@ fn tile(
     let chosen = shell.prefs.settings.appearance.theme == theme;
     let picture = match theme {
         Theme::System => system_picture(),
-        Theme::Light => picture(&Tokens::of(Scheme::Light)),
-        Theme::Dark => picture(&Tokens::of(Scheme::Dark)),
+        Theme::Light => picture(&Tokens::of_theme(ThemeId::Light)),
+        Theme::Dark => picture(&Tokens::of_theme(ThemeId::Dark)),
+        Theme::Zinc => picture(&Tokens::of_theme(ThemeId::Zinc)),
+        Theme::Midnight => picture(&Tokens::of_theme(ThemeId::Midnight)),
+        Theme::Claude => picture(&Tokens::of_theme(ThemeId::Claude)),
+        Theme::Ghostty => picture(&Tokens::of_theme(ThemeId::Ghostty)),
+        Theme::PureBlack => picture(&Tokens::of_theme(ThemeId::PureBlack)),
     };
     div()
         .w(relative(if compact { 0.5 } else { 0.25 }))

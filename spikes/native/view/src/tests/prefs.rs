@@ -10,9 +10,10 @@ use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, OptionValueId};
 use crate::Lang;
 use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
-    ActionId, AgentKind, Bindings, Choices, ContentWidth, InvalidActionId, InvalidKeyBinding, Kept,
-    KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults, Panel, PreferenceChange,
-    Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme, TurnDelivery,
+    ActionId, AgentKind, Bindings, Choices, ContentWidth, FamilyError, FontFamily, InvalidActionId,
+    InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
+    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme,
+    TurnDelivery,
 };
 
 const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
@@ -70,6 +71,8 @@ fn a_value_out_of_range_or_unknown_is_the_default() {
     assert_eq!(values.appearance.interface_size.get(), 14);
     assert_eq!(values.appearance.theme, Theme::System);
     assert_eq!(values.appearance.code_size.get(), 11);
+    assert_eq!(values.appearance.content_size.get(), 15);
+    assert!(values.appearance.interface_family.is_embedded());
     assert_eq!(values.layout, Preferences::default().layout);
     assert!(values.notifications.title);
     // A map is read entry by entry (the bridge's `Entries`).
@@ -82,6 +85,69 @@ fn a_value_out_of_range_or_unknown_is_the_default() {
         r#"{"find":["Mod+K"]}"#
     );
     assert!(values.defaults.is_empty());
+}
+
+/// A theme, a content size and a family: Paseo's values, and a typed
+/// refusal where Paseo would clamp or clear.
+#[test]
+fn a_theme_a_content_size_and_a_family_apply_or_are_refused() {
+    let named = apply(
+        &Preferences::default(),
+        r#"{"set":"theme","value":"pure_black"}"#,
+    );
+    assert_eq!(named.appearance.theme, Theme::PureBlack);
+    assert_eq!(
+        Theme::ALL,
+        [
+            Theme::Light,
+            Theme::Dark,
+            Theme::System,
+            Theme::Zinc,
+            Theme::Midnight,
+            Theme::Claude,
+            Theme::Ghostty,
+            Theme::PureBlack,
+        ]
+    );
+    let sized = apply(&named, r#"{"set":"content_size","value":21}"#);
+    assert_eq!(sized.appearance.content_size.get(), 21);
+    let faced = apply(
+        &sized,
+        r#"{"set":"interface_family","value":"'Fira Code', monospace"}"#,
+    );
+    assert_eq!(faced.appearance.interface_family.face(), "Fira Code");
+    assert!(faced.appearance.code_family.is_embedded());
+    let text = serde_json::to_string(&faced).unwrap();
+    assert!(text.contains(r#""content_size":21"#));
+    assert!(text.contains("Fira Code"));
+    assert!(!text.contains("code_family"));
+    for refused in [
+        r#"{"set":"content_size","value":9}"#,
+        r#"{"set":"content_size","value":22}"#,
+        r#"{"set":"interface_family","value":"foo/*"}"#,
+        r#"{"set":"code_family","value":"'foo"}"#,
+    ] {
+        assert!(
+            serde_json::from_str::<PreferenceChange>(refused).is_err(),
+            "{refused}"
+        );
+    }
+    let loaded: Preferences = serde_json::from_str(
+        r#"{"appearance":{"content_size":99,"interface_family":"a;b","code_family":"Menlo","theme":"zinc"}}"#,
+    )
+    .unwrap();
+    assert_eq!(loaded.appearance.theme, Theme::Zinc);
+    assert_eq!(loaded.appearance.content_size.get(), 15);
+    assert!(loaded.appearance.interface_family.is_embedded());
+    assert_eq!(loaded.appearance.code_family.get(), "Menlo");
+    assert_eq!(Lang::En.settings().theme(Theme::PureBlack), "Pure black");
+    assert_eq!(Lang::Ko.settings().theme(Theme::PureBlack), "순수 검정");
+    assert_eq!(Lang::Ko.settings().theme(Theme::Light), "밝게");
+    assert_eq!(Lang::En.settings().theme(Theme::Zinc), "Zinc");
+    assert_eq!(
+        FontFamily::try_from("a".repeat(201)),
+        Err(FamilyError::Length)
+    );
 }
 
 #[test]

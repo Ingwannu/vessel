@@ -483,6 +483,15 @@ fallback. The order is the chosen family if there is one, then Geist (Geist Mono
 for code), then Pretendard. Pretendard is always last. No generic
 family name is ever added.
 
+The string that is kept is the string Paseo keeps, including quotes and
+a comma-separated stack (`storage.ts` `sanitizeFontFamily`, and its
+tests: `'Fira Code', monospace` is kept whole). The face that is drawn
+is only the first family in that list, with quotes and escapes removed.
+A generic name later in the stack is not added. The component layer's
+theme can name one family and a size, not a fallback list, so a reply's
+Markdown takes that family and the content size. Text the kit draws
+carries the fallback list itself.
+
 A family a person sets is at most 200 characters
 (`storage.ts:74`). Paseo rejects `;{}<>`, a control character, an
 unfinished quote or escape, and `()[]/*` outside quotes
@@ -497,7 +506,8 @@ every preference is loaded; it is not how a change is applied.
 
 Content size is Paseo's chat and Markdown size: an absolute point
 size, not scaled by the interface size (`appearance/apply.ts`,
-`content` is set absolutely). Desktop Paseo is the web runtime
+`content` is set absolutely). It is the component layer's prose size.
+The interface steps stay on the interface size. Desktop Paseo is the web runtime
 (`constants/platform.ts`: Electron is `web`, and `isNative` is false
 there), so the default is 15 (`theme.ts` `FONT_SIZE.content`) and
 the range is 10 to 21 (`storage.ts:64-70`). The React Native default
