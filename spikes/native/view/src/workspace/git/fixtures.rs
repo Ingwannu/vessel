@@ -11,5 +11,6 @@ pub(crate) fn status(files: Vec<StatusEntry>) -> GitStatus {
         operation: None,
         files,
         more: false,
+        origin: None,
     }
 }

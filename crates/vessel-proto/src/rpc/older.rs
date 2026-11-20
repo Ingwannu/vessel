@@ -88,6 +88,10 @@ impl Reply {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
+            Self::GitStatus(status) => status.for_protocol(protocol).map(Self::GitStatus),
+            Self::GitStage(status) => status.for_protocol(protocol).map(Self::GitStage),
+            Self::GitUnstage(status) => status.for_protocol(protocol).map(Self::GitUnstage),
+            Self::GitDiscard(status) => status.for_protocol(protocol).map(Self::GitDiscard),
             Self::GetDeviceSelf(authority) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
                 authority.scopes.iter().any(newer).then(|| {
@@ -257,7 +261,6 @@ impl Reply {
             | Self::RemoveWorktree(_)
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
-            | Self::GitStatus(_)
             | Self::GitCompare(_)
             | Self::GitCompareFile(_)
             | Self::GitChanges(_)
@@ -266,9 +269,6 @@ impl Reply {
             | Self::GitBranches(_)
             | Self::GitLog(_)
             | Self::GitStashes(_)
-            | Self::GitStage(_)
-            | Self::GitUnstage(_)
-            | Self::GitDiscard(_)
             | Self::GitCommit(_)
             | Self::GitFetch(_)
             | Self::GitPush(_)

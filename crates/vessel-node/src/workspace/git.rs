@@ -2,13 +2,16 @@
 //! ADR 0023): the root resolved and checked on every call, then
 //! `vessel-workspace`'s run.
 
+use std::path::Path;
+
+use vessel_proto::ProtocolVersion;
 use vessel_proto::workspace::{
     BranchList, BranchName, CommitMessage, CommitOutcome, CommitPage, CommitStage, DiffScope,
-    DiffSummary, FetchOutcome, FileDiff, FileRead, GitStatus, PathSet, PullOutcome, PushOutcome,
-    RelPath, RemoteName, RenameOutcome, StashAction, StashList, StashOutcome, SwitchOutcome,
-    WorkspaceRoot, WorktreeBase,
+    DiffSummary, FetchOutcome, FileDiff, FileRead, GitStatus, OriginRepo, PathSet, PullOutcome,
+    PushOutcome, RelPath, RemoteName, RenameOutcome, StashAction, StashList, StashOutcome,
+    SwitchOutcome, WorkspaceRoot, WorktreeBase, serves_origin,
 };
-use vessel_workspace::GitError;
+use vessel_workspace::{Git, GitError};
 use vessel_workspace::files::{MAX_BLOB, blob_page};
 
 use super::roots::Resolved;
@@ -22,6 +25,28 @@ pub(crate) enum IndexChange {
     Discard { untracked: bool },
 }
 
+/// Whether a status read adds where `origin` keeps the repository (ADR
+/// 0123 step B): only for a peer that is served it, so a peer below
+/// `ORIGIN_LINK_PROTOCOL` costs no git run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Origin {
+    /// Read it.
+    Read,
+    /// Leave it out.
+    Skip,
+}
+
+impl Origin {
+    /// What a peer speaking `protocol` is served.
+    pub(crate) fn for_peer(protocol: ProtocolVersion) -> Self {
+        if serves_origin(protocol) {
+            Self::Read
+        } else {
+            Self::Skip
+        }
+    }
+}
+
 impl Workspaces {
     /// `git.status`, with the distance from the root's base.
     ///
@@ -30,17 +55,25 @@ impl Workspaces {
     pub(crate) async fn git_status(
         &self,
         root: WorkspaceRoot,
+        origin: Origin,
     ) -> Result<GitStatus, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
-        self.status_of(&resolved).await
+        self.status_of(&resolved, origin).await
     }
 
-    async fn status_of(&self, resolved: &Resolved) -> Result<GitStatus, WorkspaceError> {
+    async fn status_of(
+        &self,
+        resolved: &Resolved,
+        origin: Origin,
+    ) -> Result<GitStatus, WorkspaceError> {
         let git = self.git()?;
         let dir = resolved.root.path();
         let mut status = git.status(dir).await?;
         if let Some(base) = &resolved.base {
             status.base = git.distance(dir, base).await?;
+        }
+        if origin == Origin::Read {
+            status.origin = origin_of(git, dir).await;
         }
         Ok(status)
     }
@@ -179,6 +212,7 @@ impl Workspaces {
         root: WorkspaceRoot,
         paths: &PathSet,
         change: IndexChange,
+        origin: Origin,
     ) -> Result<GitStatus, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
         let git = self.git()?;
@@ -188,7 +222,7 @@ impl Workspaces {
             IndexChange::Unstage => git.unstage(dir, paths).await?,
             IndexChange::Discard { untracked } => git.discard(dir, paths, untracked).await?,
         }
-        self.status_of(&resolved).await
+        self.status_of(&resolved, origin).await
     }
 
     /// `git.commit`.
@@ -318,4 +352,25 @@ fn scoped(
         )),
         other => other.map_err(Into::into),
     }
+}
+
+/// Where `origin` keeps the repository in `dir`: its host and path only,
+/// read as Paseo reads it for its link (`vessel_forge::remote::web`); the
+/// address itself, which may hold a token, goes no further. `None` when
+/// there is no `origin`, it names no forge, or git could not be run (a
+/// status is still answered without it).
+async fn origin_of(git: &Git, dir: &Path) -> Option<OriginRepo> {
+    let address = match git.origin_address(dir).await {
+        Ok(address) => address?,
+        Err(error) => {
+            tracing::debug!(%error, "origin's address could not be read");
+            return None;
+        }
+    };
+    let remote = vessel_forge::remote::web(address.expose())?;
+    Some(OriginRepo {
+        host: remote.host,
+        path: remote.path,
+        kind: None,
+    })
 }

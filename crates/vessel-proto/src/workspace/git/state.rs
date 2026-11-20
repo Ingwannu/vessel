@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use super::origin::OriginRepo;
 use crate::workspace::path::RelPath;
 use crate::workspace::text::{BranchName, CommitId, RefName, RemoteName};
 use crate::workspace::worktree::GitOperation;
@@ -90,6 +91,11 @@ pub struct GitStatus {
     pub files: Vec<StatusEntry>,
     /// Whether there were more.
     pub more: bool,
+    /// Where `origin` keeps the repository (ADR 0123 step B); absent when
+    /// there is no `origin`, its address names no forge, or the peer is
+    /// below [`ORIGIN_LINK_PROTOCOL`](super::ORIGIN_LINK_PROTOCOL).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin: Option<OriginRepo>,
 }
 
 /// A branch.
