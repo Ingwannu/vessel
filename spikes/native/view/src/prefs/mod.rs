@@ -152,6 +152,19 @@ pub struct Preferences {
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,
+    /// The built-in terminal.
+    #[serde(deserialize_with = "lenient")]
+    pub terminal: TerminalPreferences,
+}
+
+/// The built-in terminal (Paseo's Settings > Terminal).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct TerminalPreferences {
+    /// Lines kept above the screen (`terminalScrollbackLines`): 0 through
+    /// 1,000,000, default 10,000; a stored value out of range is clamped.
+    #[serde(deserialize_with = "lenient")]
+    pub scrollback: crate::terminal::ScrollbackLines,
 }
 
 /// Which panels show.

@@ -3,7 +3,8 @@
 
 use vessel_app_view::is_web_url;
 use vessel_app_view::terminal::{
-    MAX_PENDING, Outgoing, ResizeRule, Taken, TerminalLog, TerminalSender,
+    MAX_PASTE_PENDING, MAX_PENDING, MAX_SEND_BYTES, Outgoing, ResizeRule, Taken, TerminalLog,
+    TerminalSender,
 };
 
 use vessel_proto::ResizeIntent;
@@ -67,6 +68,74 @@ fn a_size_replacing_a_queued_claim_keeps_the_claim() {
             intent: ResizeIntent::Update,
         })
     );
+}
+
+/// Every send until the queue is empty, answering each.
+fn drain(sender: &mut TerminalSender) -> Vec<Outgoing> {
+    let mut sent = Vec::new();
+    while let Some(outgoing) = sender.take() {
+        sent.push(outgoing);
+        sender.answered();
+    }
+    sent
+}
+
+fn keys_of(sent: &[Outgoing]) -> Vec<&str> {
+    sent.iter()
+        .filter_map(|outgoing| match outgoing {
+            Outgoing::Keys(text) => Some(text.as_str()),
+            Outgoing::Resize { .. } => None,
+        })
+        .collect()
+}
+
+/// The node takes at most 64 KiB a send: a longer paste goes in parts,
+/// each cut at a character boundary, together the whole paste.
+#[test]
+fn a_paste_longer_than_one_send_goes_in_parts_cut_between_characters() {
+    let mut sender = TerminalSender::default();
+    let paste = "é".repeat(MAX_SEND_BYTES); // two bytes each
+    assert_eq!(sender.paste(paste.clone()), Taken::Queued);
+    let sent = drain(&mut sender);
+    let parts = keys_of(&sent);
+    assert_eq!(parts.len(), 2);
+    assert!(parts.iter().all(|part| part.len() <= MAX_SEND_BYTES));
+    assert_eq!(parts.concat(), paste);
+}
+
+/// P1 review note 2 and the coordinator's case: a paste past the typed
+/// keys' room is kept whole; a key and ^C typed during it go after it, in
+/// order; nothing of the paste is cut or dropped.
+#[test]
+fn a_paste_past_the_room_keeps_its_place_before_keys_typed_during_it() {
+    let mut sender = TerminalSender::default();
+    let paste = "a".repeat(MAX_PENDING.saturating_add(1000));
+    assert_eq!(sender.keys("before"), Taken::Queued);
+    let first = sender.take();
+    assert_eq!(sender.paste(paste.clone()), Taken::Queued);
+    assert_eq!(sender.keys("x"), Taken::Queued, "typed keys keep their own room");
+    assert_eq!(sender.keys("\u{3}"), Taken::Queued);
+    sender.answered();
+    let rest = drain(&mut sender);
+    assert_eq!(first, Some(keys("before")));
+    let parts = keys_of(&rest);
+    let (last, pasted) = parts.split_last().unwrap_or((&"", &[]));
+    assert_eq!(pasted.concat(), paste);
+    assert_eq!(*last, "x\u{3}");
+}
+
+/// Pastes waiting are bounded; one past the bound is refused whole, and
+/// the screen is told once.
+#[test]
+fn a_paste_past_its_bound_is_refused_whole() {
+    let mut sender = TerminalSender::default();
+    let huge = "b".repeat(MAX_PASTE_PENDING.saturating_add(1));
+    assert_eq!(sender.paste(huge), Taken::DroppedFirst);
+    assert_eq!(sender.paste("c".repeat(MAX_PASTE_PENDING)), Taken::Queued);
+    assert_eq!(sender.paste("d".to_owned()), Taken::DroppedFirst);
+    assert_eq!(sender.paste("e".to_owned()), Taken::Dropped);
+    let sent = drain(&mut sender);
+    assert_eq!(keys_of(&sent).concat(), "c".repeat(MAX_PASTE_PENDING));
 }
 
 #[test]

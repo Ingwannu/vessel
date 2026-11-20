@@ -54,6 +54,9 @@ impl Shell {
                         self.conversation_display(*display);
                     }
                     PreferenceChange::ExplorerSort(_) => self.explorer_sorted(),
+                    PreferenceChange::TerminalScrollback(lines) => {
+                        self.terminal_scrollback(*lines, cx);
+                    }
                     PreferenceChange::Animations(animations) => {
                         // `motion` (the reduced-motion switch) is the
                         // desktop's; a browser only redraws.

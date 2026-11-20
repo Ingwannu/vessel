@@ -29,7 +29,7 @@
 use std::rc::Rc;
 
 use gpui::{
-    App, Bounds, Font, FontFeatures, FontStyle, FontWeight, Hsla, IntoElement, Pixels, Point,
+    App, BorderStyle, Bounds, Corners, Edges, Font, FontFeatures, FontStyle, FontWeight, Hsla, IntoElement, Pixels, Point,
     ShapedLine, SharedString, Size, StrikethroughStyle, Styled as _, TextAlign, TextRun,
     UnderlineStyle, Window, canvas, fill, point, px, size,
 };
@@ -93,13 +93,17 @@ pub struct GridFill {
     pub color: Hsla,
 }
 
-/// One row: its backgrounds, then its text.
+/// One row: its backgrounds, then its text, then borders over its cells.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct GridRow {
-    /// Backgrounds other than the grid's own.
+    /// Backgrounds other than the grid's own, painted in order (a
+    /// selection's translucent fill goes after the cells' own).
     pub fills: Vec<GridFill>,
     /// Text.
     pub runs: Vec<GridRun>,
+    /// One-pixel borders around cells, over the text (a find's marks, as
+    /// xterm.js's search decorations draw `matchBorder`).
+    pub outlines: Vec<GridFill>,
 }
 
 /// The cursor's bar, at the left edge of its cell.
@@ -293,6 +297,21 @@ fn paint(
         // A line that cannot paint (its glyphs failed to rasterize) is
         // left out; the rest of the grid still draws.
         let _painted = line.paint(*origin, cell.height, TextAlign::Left, None, window, cx);
+    }
+    for (row, cells) in (0_u16..).zip(&frame.rows) {
+        let y = at(bounds.origin.y, cell.height, row);
+        for run in &cells.outlines {
+            let x = at(bounds.origin.x, cell.width, run.col);
+            let width = at(px(0.0), cell.width, run.cells);
+            window.paint_quad(gpui::quad(
+                Bounds::new(point(x, y), size(width, cell.height)),
+                Corners::all(px(0.0)),
+                gpui::transparent_black(),
+                Edges::all(px(1.0)),
+                run.color,
+                BorderStyle::Solid,
+            ));
+        }
     }
     if let Some(cursor) = frame.cursor {
         let x = at(bounds.origin.x, cell.width, cursor.col);

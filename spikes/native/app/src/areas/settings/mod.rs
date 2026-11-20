@@ -50,6 +50,7 @@ mod prefer;
 mod prepared_refusal;
 use prepared_refusal::PreparedRefusal;
 mod sections;
+mod terminal;
 mod theme;
 
 pub(crate) use sections::drawn;
@@ -101,6 +102,8 @@ pub(crate) struct SettingsState {
     diagnostics: diagnostics::State,
     host_agents: host_agents::State,
     overview: overview::State,
+    /// Settings > Terminal's scrollback field.
+    terminal: terminal::State,
     /// The book as read for the machine pages (Overview, Connections).
     book: book::BookRead,
     language: language::State,
@@ -132,6 +135,7 @@ impl SettingsState {
             diagnostics: diagnostics::State::new(cx),
             host_agents: host_agents::State::default(),
             overview: overview::State::new(window, cx),
+            terminal: terminal::State::new(window, cx),
             book: book::BookRead::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),

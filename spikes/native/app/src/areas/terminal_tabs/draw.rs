@@ -11,10 +11,10 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use vessel_app_kit::Scheme;
-use vessel_app_kit::terminal_grid::{CellSize, GridCursor, GridFrame};
+use vessel_app_kit::terminal_grid::{CellSize, GridCursor, GridFill, GridFrame, GridRow};
 use vessel_app_kit::ui::{App, Bounds, Context, Pixels, point, px, size};
-use vessel_app_view::terminal::GridSize;
-use vessel_app_view::terminal::grid::{Generation, Scroll};
+use vessel_app_view::terminal::grid::{Generation, Grid, Scroll, TextAt};
+use vessel_app_view::terminal::{FoundMatch, GridSize, span_on};
 use vessel_app_view::terminal::paint::rows;
 use vessel_proto::ResizeIntent;
 
@@ -39,6 +39,8 @@ pub(crate) struct DrawKey {
     font: Pixels,
     cell: CellSize,
     scroll: Scroll,
+    /// The selection's and find's marks (`Pane::marks`).
+    marks: u64,
 }
 
 impl Shell {
@@ -60,6 +62,7 @@ impl Shell {
             font: font_size(),
             cell: pane.grid.read(cx).cell,
             scroll,
+            marks: pane.marks,
         };
         if pane.drawn == Some(now) {
             return;
@@ -75,8 +78,47 @@ impl Shell {
                 col: cell.col,
                 color: convert::hsla(palette.cursor),
             });
+        let mut grid_rows: Vec<GridRow> =
+            rows(&snapshot, &palette).iter().map(convert::row).collect();
+        let grid = model.grid();
+        if let Some(kept) = super::select::live_selection(pane.selected, grid) {
+            let color = gpui::rgba(tokens.terminal.selection).into();
+            let range = kept.selection.range(grid);
+            mark_rows(&mut grid_rows, grid, scroll, |row_start, cols| {
+                span_on(range, row_start, cols)
+                    .map(|span| (span, color))
+                    .into_iter()
+                    .collect()
+            }, Layer::Fill);
+        }
+        if let Some(find) = pane.find.as_mut() {
+            let (matches, current) = find.marks();
+            let other = convert::hsla(palette.ansi[3]);
+            let active = convert::hsla(palette.ansi[4]);
+            let shown = visible(matches, grid, scroll);
+            mark_rows(&mut grid_rows, grid, scroll, |row_start, cols| {
+                shown
+                    .iter()
+                    .filter_map(|(index, found)| {
+                        let color = if Some(*index) == current { active } else { other };
+                        span_on((found.start, found.end), row_start, cols)
+                            .map(|span| (span, color))
+                    })
+                    .collect()
+            }, Layer::Outline);
+            // Paseo's `findWidgetCoversSelection`: the bar goes to the
+            // bottom when the current match is under it.
+            let cell = pane.grid.read(cx).cell;
+            let (rows_covered, cols_covered) = super::find_bar::covered(cell);
+            let cols = grid.size().cols();
+            find.bottom = current.and_then(|at| matches.get(at)).is_some_and(|found| {
+                grid.view_row(found.start, scroll)
+                    .is_some_and(|row| row < rows_covered)
+                    && found.end.col() >= cols.saturating_sub(cols_covered)
+            });
+        }
         let frame = GridFrame {
-            rows: rows(&snapshot, &palette).iter().map(convert::row).collect(),
+            rows: grid_rows,
             cursor,
             background: convert::hsla(palette.background),
             font_size: font_size(),
@@ -122,6 +164,8 @@ impl Shell {
             }));
         }
         self.terminal_tab_draw(key, cx);
+        // A refit re-wraps the text: find's matches are searched again.
+        self.terminal_find_output(key, cx);
     }
 
     /// Send the pane's size while it has the keyboard: a claim first after
@@ -227,4 +271,71 @@ impl Shell {
             size: size(cell.width, cell.height),
         })
     }
+}
+
+/// Where marks go on a row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Layer {
+    /// Under the text (a selection's translucent fill).
+    Fill,
+    /// Around the cells, over the text (find's borders).
+    Outline,
+}
+
+/// Add each view row's marks, as `spans` names them for the row starting
+/// at a cell, to `rows`; a span ending on a wide scalar covers both its
+/// cells.
+fn mark_rows(
+    rows: &mut [GridRow],
+    grid: &Grid,
+    scroll: Scroll,
+    spans: impl Fn(TextAt, u16) -> Vec<((u16, u16), gpui::Hsla)>,
+    layer: Layer,
+) {
+    let cols = grid.size().cols();
+    for (view_row, row) in (0_u16..).zip(rows.iter_mut()) {
+        let row_start = grid.text_at(scroll, view_row, 0);
+        for ((first, last), color) in spans(row_start, cols) {
+            let last = wide_end(grid, row_start.at_col(last), cols);
+            let mark = GridFill {
+                col: first,
+                cells: last.saturating_sub(first).saturating_add(1),
+                color,
+            };
+            match layer {
+                Layer::Fill => row.fills.push(mark),
+                Layer::Outline => row.outlines.push(mark),
+            }
+        }
+    }
+}
+
+/// `at`'s column, or the next when `at` is the left half of a wide scalar.
+fn wide_end(grid: &Grid, at: TextAt, cols: u16) -> u16 {
+    let next = at.col().saturating_add(1);
+    if next < cols && grid.lead_of(at.at_col(next)) == at {
+        next
+    } else {
+        at.col()
+    }
+}
+
+/// The matches that can show in the view, with their indexes: from the
+/// first that ends at or after the view's top to the last that starts
+/// before its bottom.
+fn visible<'a>(
+    matches: &'a [FoundMatch],
+    grid: &Grid,
+    scroll: Scroll,
+) -> Vec<(usize, &'a FoundMatch)> {
+    let rows = grid.size().rows();
+    let top = grid.text_at(scroll, 0, 0);
+    let bottom = grid.text_at(scroll, rows.saturating_sub(1), grid.size().cols().saturating_sub(1));
+    let from = matches.partition_point(|found| found.end < top);
+    matches
+        .iter()
+        .enumerate()
+        .skip(from)
+        .take_while(|(_, found)| found.start <= bottom)
+        .collect()
 }

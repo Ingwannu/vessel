@@ -183,7 +183,14 @@ impl Shell {
         let keys = cx.observe_keystrokes(|shell, event, window, cx| {
             let stroke = &event.keystroke;
             let modifiers = stroke.modifiers;
-            if stroke.key == "f" && modifiers.secondary(cx) && !modifiers.shift && !modifiers.alt {
+            // A terminal tab holding the keyboard (or its find bar) hears
+            // Mod+F itself and opens the terminal's find (P3).
+            if stroke.key == "f"
+                && modifiers.secondary(cx)
+                && !modifiers.shift
+                && !modifiers.alt
+                && !shell.find_goes_to_terminal(window, cx)
+            {
                 shell.conversation_find(window, cx);
             }
         });

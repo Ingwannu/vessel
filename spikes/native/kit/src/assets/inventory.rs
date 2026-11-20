@@ -271,4 +271,6 @@ glyph_inventory! {
     /// The needs-input alert's marks (Lucide `CircleAlert`'s two strokes at
     /// its 2 stroke), drawn over its disc in the disc's knockout colour.
     StatusAlertMarks => "kit/status-alert-marks.svg",
+    /// Find's next match (Paseo's pane find, Lucide `ArrowDown`).
+    ArrowDown => "kit/arrow-down.svg",
 }

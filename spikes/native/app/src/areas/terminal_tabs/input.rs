@@ -219,17 +219,56 @@ fn is_paste(stroke: &gpui::Keystroke) -> bool {
         }
 }
 
+/// Paseo's copy chord with a selection: Cmd+C on macOS; Ctrl+C elsewhere,
+/// which is the shell's ^C when nothing is selected
+/// (`handleCtrlClipboardShortcut`). Paseo has no Ctrl+Shift+C.
+fn is_copy(stroke: &gpui::Keystroke) -> bool {
+    let modifiers = stroke.modifiers;
+    stroke.key == "c"
+        && !modifiers.alt
+        && !modifiers.shift
+        && if cfg!(target_os = "macos") {
+            modifiers.platform && !modifiers.control
+        } else {
+            modifiers.control && !modifiers.platform
+        }
+}
+
+/// Paseo's find chord (`pane-find/find-shortcut.ts`): Cmd+F on macOS, Ctrl+F
+/// elsewhere; not with Shift or Alt.
+fn is_find(stroke: &gpui::Keystroke) -> bool {
+    let modifiers = stroke.modifiers;
+    stroke.key == "f"
+        && !modifiers.alt
+        && !modifiers.shift
+        && if cfg!(target_os = "macos") {
+            modifiers.platform && !modifiers.control
+        } else {
+            modifiers.control && !modifiers.platform
+        }
+}
+
 impl Shell {
     /// A key down in a focused terminal tab.
     pub(super) fn terminal_tab_key(
         &mut self,
         key: &PaneKey,
         event: &KeyDownEvent,
+        window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         let stroke = &event.keystroke;
         if is_paste(stroke) {
             self.terminal_tab_paste(key, cx);
+            cx.stop_propagation();
+            return;
+        }
+        if is_find(stroke) {
+            self.terminal_find_open(key, window, cx);
+            cx.stop_propagation();
+            return;
+        }
+        if is_copy(stroke) && self.terminal_tab_copy(key, cx) {
             cx.stop_propagation();
             return;
         }
@@ -281,6 +320,32 @@ impl Shell {
         if pane.sender.keys(text) == Taken::DroppedFirst {
             tracing::warn!("a terminal tab's input overflowed; keys were dropped");
         }
+        // Typing clears the selection, as xterm.js's input does.
+        let _had = self.terminal_tab_unselect(key);
+        self.terminal_tab_pump(key);
+        self.terminal_tab_draw(key, cx);
+    }
+
+    /// A paste, encoded, queued whole behind what waits (P1 review note
+    /// 2): it goes out in sends the node takes, before keys typed after it.
+    pub(super) fn terminal_tab_send_paste(
+        &mut self,
+        key: &PaneKey,
+        encoded: String,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
+            return;
+        };
+        if encoded.is_empty() {
+            return;
+        }
+        pane.typed = Typed::Once;
+        pane.viewport = vessel_app_view::terminal::Viewport::default();
+        if pane.sender.paste(encoded) == Taken::DroppedFirst {
+            tracing::warn!("a terminal tab's pastes waiting passed their bound; a paste was refused");
+        }
+        let _had = self.terminal_tab_unselect(key);
         self.terminal_tab_pump(key);
         self.terminal_tab_draw(key, cx);
     }
@@ -299,7 +364,7 @@ impl Shell {
             .as_ref()
             .map(|model| model.grid().bracketed())
             .unwrap_or_default();
-        self.terminal_tab_type(key, &encode_paste(&text, bracketed), cx);
+        self.terminal_tab_send_paste(key, encode_paste(&text, bracketed), cx);
     }
 
     /// The IME's composing text, drawn at the cursor.

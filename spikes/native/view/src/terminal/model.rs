@@ -91,6 +91,12 @@ impl TerminalModel {
         self.grid.resize(size);
     }
 
+    /// Keep `scrollback` lines of history from now on (the setting changed
+    /// while the terminal is open).
+    pub fn set_scrollback(&mut self, scrollback: ScrollbackLines) {
+        self.grid.set_scrollback(scrollback);
+    }
+
     /// The visible cells, `scroll` lines back into history.
     #[must_use]
     pub fn snapshot(&self, scroll: Scroll) -> Snapshot {
