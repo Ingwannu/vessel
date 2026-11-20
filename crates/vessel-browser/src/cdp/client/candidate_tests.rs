@@ -212,11 +212,7 @@ async fn approved_candidate_pins_the_resolved_destination() {
         let run = owner.lifetime();
         let (mut owner, readiness) = owner.attest(&scope).await.unwrap();
         let observed = if let Some((client, events)) = owner.controller() {
-            Some(
-                events
-                    .during_fixture(verify_dns_routes(client, port))
-                    .await,
-            )
+            Some(events.during_fixture(verify_dns_routes(client, port)).await)
         } else {
             None
         };
@@ -250,7 +246,9 @@ async fn verify_dns_routes(client: &Client, port: u16) -> Result<(), ResolverFix
     };
     let mut page = crate::page::Page::open(
         client.clone(),
-        format!("http://rebind.fixture.test:{port}/first").parse().unwrap(),
+        format!("http://rebind.fixture.test:{port}/first")
+            .parse()
+            .unwrap(),
         viewport,
     )
     .await?;
