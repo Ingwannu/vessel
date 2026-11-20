@@ -92,11 +92,11 @@ fn the_ring_is_one_segment_per_part_with_gaps() {
 #[test]
 fn a_timing_runs_from_the_start_to_the_end_or_now() {
     let start = Utc.with_ymd_and_hms(2026, 11, 19, 10, 0, 0).unwrap();
-    let now = start + Duration::seconds(150);
+    let now = start.checked_add_signed(Duration::seconds(150)).unwrap();
     let mut done = run("build", CheckState::Passed);
     assert_eq!(timing(&done, now), None, "no start, no timing");
     done.started_at = Some(start);
-    done.completed_at = Some(start + Duration::seconds(90));
+    done.completed_at = Some(start.checked_add_signed(Duration::seconds(90)).unwrap());
     assert_eq!(
         timing(&done, now),
         Some(Timing {
@@ -114,7 +114,7 @@ fn a_timing_runs_from_the_start_to_the_end_or_now() {
         })
     );
     let mut backwards = done.clone();
-    backwards.completed_at = Some(start - Duration::seconds(1));
+    backwards.completed_at = Some(start.checked_sub_signed(Duration::seconds(1)).unwrap());
     assert_eq!(timing(&backwards, now), None, "an end before its start");
 }
 

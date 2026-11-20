@@ -8,7 +8,7 @@ use vessel_proto::forge::{PullBody, ReviewState, ThreadPlace, TimelineItem};
 use super::*;
 
 fn at(minute: i64) -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 11, 19, 10, 0, 0).unwrap() + Duration::minutes(minute)
+    Utc.with_ymd_and_hms(2026, 11, 19, 10, 0, 0).unwrap().checked_add_signed(Duration::minutes(minute)).unwrap()
 }
 
 fn review(id: &str, state: ReviewState, body: &str, minute: i64) -> TimelineItem {
@@ -138,9 +138,9 @@ fn counts_are_of_the_flat_list() {
 #[test]
 fn ages_step_as_paseo_s() {
     let now = at(0);
-    let ago = |minutes: i64| Age::of(now - Duration::minutes(minutes), now);
-    assert_eq!(Age::of(now - Duration::seconds(59), now), Age::JustNow);
-    assert_eq!(Age::of(now + Duration::minutes(5), now), Age::JustNow);
+    let ago = |minutes: i64| Age::of(now.checked_sub_signed(Duration::minutes(minutes)).unwrap(), now);
+    assert_eq!(Age::of(now.checked_sub_signed(Duration::seconds(59)).unwrap(), now), Age::JustNow);
+    assert_eq!(Age::of(now.checked_add_signed(Duration::minutes(5)).unwrap(), now), Age::JustNow);
     assert_eq!(ago(59), Age::Minutes(59));
     assert_eq!(ago(60), Age::Hours(1));
     assert_eq!(ago(24 * 60), Age::Days(1));

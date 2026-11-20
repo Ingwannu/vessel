@@ -38,7 +38,7 @@ fn comment(id: &str, body: &str, hours: i64, thread: Option<ThreadPlace>) -> Tim
         id: id.parse().unwrap(),
         author: Some("octo".parse().unwrap()),
         body: PullBody::lossy(body),
-        created_at: now() - Duration::hours(hours),
+        created_at: now().checked_sub_signed(Duration::hours(hours)).unwrap(),
         url: Some(
             format!("https://github.com/acme/widgets/pull/42#{id}")
                 .parse()

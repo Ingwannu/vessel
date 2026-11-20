@@ -428,7 +428,7 @@ fn row(
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
                 .min_w_0()
-                .flex_shrink()
+                .flex_shrink_1()
                 .truncate()
                 .child(run.name.as_str().to_owned()),
         )
@@ -437,7 +437,7 @@ fn row(
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
                 .min_w_0()
-                .flex_shrink()
+                .flex_shrink_1()
                 .truncate()
                 .child(workflow.as_str().to_owned())
         }))
