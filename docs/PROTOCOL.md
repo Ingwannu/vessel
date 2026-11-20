@@ -68,9 +68,9 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 40 (drafted, 2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
+## Version 41 (drafted, 2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
 
-Drafted as 40 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 40), the next after the pull request pane's 39; the number
+Drafted as 41 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 41), the next after the workspace-folder terminals' 40; the number
 is assigned at the node-line merge. Both methods are unary and not forwardable.
 
 - `plugin.catalog {}` (`read`) answers `{generation, catalog: {node, installations: [{address, required_client,
@@ -88,6 +88,24 @@ is assigned at the node-line merge. Both methods are unary and not forwardable.
 - `plugin.install` and `plugin.inspect` refuse a source or path over 4 KiB and a ref over 256 bytes
   (`invalid_request`).
 - The minimum protocol remains 2. The store schema is unchanged.
+
+## Version 40 (2026-11-20, milestone 12): terminals that belong to a workspace folder (implementer T2, TRACKER 817 R1, ADR 0121)
+
+Drafted 39; assigned 40 (`WORKSPACE_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 40) at its node-line merge, after ADR
+0116's 37, the diff stat's 38 and the pull request pane's 39. No method is added.
+
+- `TerminalPlace` gains `worktree { worktree }` (the worktree's folder, counted against its project) and
+  `folder { path }` (an absolute folder no project or worktree owns; kept canonical; at most 16 live in one folder).
+  Agents still open terminals beside a session only. Archiving or deleting a session ends the terminals beside it
+  only, so a worktree's or a folder's shells outlive every agent in that workspace, as Paseo's do.
+- `terminal.list { place }` matches the place's kind exactly: a project's list holds its project places, not its
+  worktrees' (a worktree is its own workspace); a folder is matched canonical.
+- `worktree.remove` gains `end_terminals` (default false). With it, the live terminals in the worktree end first and
+  those placed in it are forgotten once it is removed; without it a live terminal keeps the worktree
+  (`kept: in_use`), as before. A live session in the worktree keeps it either way, and its terminals are then left
+  running. Clients ask the person first, with the count.
+- A peer below 39 is never handed a terminal in a new place: its lists leave them out, and a call naming one by id
+  answers `not_found`. `Call::since` makes a create or list with a new place, and `end_terminals`, need 39.
 
 ## Version 39 (2026-11-20, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
 

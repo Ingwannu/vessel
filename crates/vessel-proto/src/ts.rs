@@ -409,6 +409,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).",
     ),
     (
+        "WORKSPACE_TERMINALS_PROTOCOL",
+        crate::terminals::WORKSPACE_TERMINALS_PROTOCOL,
+        "Terminals in a worktree or an unregistered folder, and `worktree.remove`'s `end_terminals` (ADR 0121).",
+    ),
+    (
         "PLUGIN_CATALOG_PROTOCOL",
         crate::plugins::PLUGIN_CATALOG_PROTOCOL,
         "`plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).",

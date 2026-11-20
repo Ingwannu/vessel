@@ -6,7 +6,9 @@ wire is protocol 11, `crates/vessel-proto/src/{terminals,scripts,ports}.rs`;
 the runtime `crates/vessel-session/src/terminals/`; the node's part
 `crates/vessel-node/src/terminals/`). Amends ADR 0027's digest.
 Amended by ADR 0116 (protocol 37): `terminal.list` long poll
-(`changed_from`, `revision`) and a resize's claim or update.
+(`changed_from`, `revision`) and a resize's claim or update; and by ADR
+0121 (protocol 40): worktree and folder places that outlive a
+session's archive.
 
 ## Context
 

@@ -57,7 +57,7 @@ pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::Protoco
 /// invoke"): `plugin.catalog` and `plugin.invoke`. Drafted as the next after
 /// [`PLUGINS_PROTOCOL`]; the integrator assigns it in merge order.
 pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
-    Some(crate::ProtocolVersion::new(40));
+    Some(crate::ProtocolVersion::new(41));
 
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,
