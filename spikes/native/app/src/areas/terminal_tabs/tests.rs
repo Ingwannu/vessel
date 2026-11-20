@@ -668,3 +668,34 @@ fn a_confirmed_close_hands_the_keyboard_to_the_shell_now_shown(cx: &mut TestAppC
         );
     });
 }
+
+/// A tab the list added and nobody opened yet shows the title another
+/// client gave its shell (Paseo labels every listed tab), not the fallback.
+#[gpui::test]
+fn a_listed_tab_not_yet_opened_shows_its_title(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let place = TerminalPlace::Session { session };
+    let mut named = shell_info(session);
+    named.title = "Opened by the CLI".parse().ok();
+    let id = named.id;
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_tabs_poll();
+        answer(
+            shell,
+            Reply::Listed {
+                place: place.clone(),
+                result: Ok(TerminalList {
+                    terminals: vec![named.clone()],
+                    revision: 1,
+                }),
+                waits: false,
+            },
+            cx,
+        );
+        shell.terminal_tabs_reconcile(crate::areas::layout::mode(window), cx);
+        assert_eq!(terminal_tabs(shell), vec![id]);
+        assert_eq!(label(shell, id), "Opened by the CLI");
+    });
+}

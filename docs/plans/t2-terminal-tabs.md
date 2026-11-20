@@ -84,6 +84,9 @@ Read from Paseo 0.15.4 (`packages/app/src`).
     replacing a queued claim stays a claim. Below 37 no intent is sent.
   - After a confirmed Close the keyboard goes to the shell the focused pane
     now shows (the dialog's opener was the closed pane).
+  - A tab the list added and nobody opened yet is labelled with the title
+    from the list (it had shown "Terminal" until opened); Paseo labels every
+    listed tab.
 - The launch table enables Terminal; the New tab panel passes its tab to
   replace; the compact switcher's New terminal opens one; Ctrl+Shift+T goes
   through the layout's shortcut handler; one create at a time (a press
@@ -132,7 +135,8 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   first; a tab whose connection dropped follows again once its machine is
   back; a node that waits is asked again only when the list moved; a pane
   claims its size on focus and updates it after; a confirmed Close hands the
-  keyboard to the shell now shown.
+  keyboard to the shell now shown; a listed tab not yet opened shows its
+  title.
 - Unit tests start no shell (the link is a channel). Captures run
   `scripts/fleet.sh`, whose nodes start under `env -i` with a scratch home:
   the shell is the account's program by ADR 0031's detection (no `SHELL`),

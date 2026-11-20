@@ -262,6 +262,11 @@ impl Shell {
                         pane.info = Some(info.clone());
                     }
                 }
+                self.areas.terminal_tabs.listed_infos = list
+                    .terminals
+                    .iter()
+                    .map(|info| (info.id, info.clone()))
+                    .collect();
                 self.areas.terminal_tabs.listed = Some((workspace, standalone(list, place)));
             }
         }

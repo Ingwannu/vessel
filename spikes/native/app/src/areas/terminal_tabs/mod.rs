@@ -185,6 +185,9 @@ pub(crate) struct TerminalTabs {
     /// A list of the open workspace's terminals, waiting for a frame (the
     /// layout's reconcile needs the window's layout mode).
     listed: Option<(LayoutKey, Vec<TerminalId>)>,
+    /// The shown place's terminals as last listed: a tab the list added
+    /// and nobody opened yet has no pane, and still shows its title.
+    listed_infos: HashMap<TerminalId, TerminalInfo>,
     /// The Close asked of the person.
     confirm: Option<(LayoutKey, ClosePlan)>,
     pub(crate) dialog: DialogState,
@@ -201,6 +204,7 @@ impl TerminalTabs {
             creating: Vec::new(),
             listing: None,
             revision: None,
+            listed_infos: HashMap::new(),
             focus_next: None,
             listed: None,
             confirm: None,
@@ -267,15 +271,15 @@ pub(crate) fn pane_key(workspace: &LayoutKey, terminal: TerminalId) -> Option<Pa
 }
 
 /// A terminal tab's label: its title, else "Terminal" (Paseo's
-/// `terminal.title ?? terminal.name`, its fallback word).
+/// `terminal.title ?? terminal.name`, its fallback word). A tab not opened
+/// yet takes its title from the last list.
 pub(crate) fn label(shell: &Shell, terminal: TerminalId) -> String {
-    shell
-        .areas
-        .terminal_tabs
-        .panes
+    let tabs = &shell.areas.terminal_tabs;
+    tabs.panes
         .iter()
         .find(|(key, _)| key.terminal == terminal)
         .and_then(|(_, pane)| pane.info.as_ref())
+        .or_else(|| tabs.listed_infos.get(&terminal))
         .and_then(vessel_app_view::terminal_tabs::title)
         .map_or_else(
             || shell.words.terminal_tabs().fallback().to_owned(),
