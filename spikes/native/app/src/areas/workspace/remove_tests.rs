@@ -144,7 +144,7 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
     let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, Vec::new());
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());
     shell.update_in(cx, |shell, _window, _cx| {
-        shell.removal_count_terminals("laptop")
+        shell.removal_count_terminals("laptop");
     });
     assert!(matches!(
         sent(&probe, cx).as_slice(),
@@ -247,7 +247,7 @@ fn below_40_nothing_is_counted(cx: &mut TestAppContext) {
     let (probe, cx) = open(cx, &worktree, older, Vec::new());
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());
     shell.update_in(cx, |shell, _window, _cx| {
-        shell.removal_count_terminals("laptop")
+        shell.removal_count_terminals("laptop");
     });
     assert!(sent(&probe, cx).is_empty(), "nothing is counted below 40");
 }
