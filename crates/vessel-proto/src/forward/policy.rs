@@ -289,6 +289,8 @@ impl Method {
             | Self::ReloadPlugin
             | Self::RemovePlugin
             | Self::WatchPlugins
+            | Self::GetPluginCatalog
+            | Self::InvokePlugin
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice

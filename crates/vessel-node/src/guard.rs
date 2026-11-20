@@ -343,6 +343,8 @@ untargeted!(
     vessel_proto::plugins::ReloadPlugin,
     vessel_proto::plugins::RemovePlugin,
     vessel_proto::plugins::WatchPlugins,
+    vessel_proto::plugins::GetPluginCatalog,
+    vessel_proto::plugins::InvokePlugin,
     vessel_proto::workspace::CloneProject,
     vessel_proto::workspace::InitProject,
     vessel_proto::workspace::RemoveProject,
