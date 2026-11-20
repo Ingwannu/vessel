@@ -1,7 +1,7 @@
 # Page workspace tabs resume
 
 TRACKER 817 lives on `backend/m12-page-tabs`. The implementation runs from
-`55aa80f06` through `c5e51a863`. ADR 0118 explains workspace identity,
+`55aa80f06` through `08624f6c9`. ADR 0118 explains workspace identity,
 route selection, file editor lifetime, and per-item bulk close.
 
 The first exact web gate, `impl-page-tabs-20261120T035230Z-30e4e9cd`,
@@ -31,8 +31,16 @@ coordinator's R2 visual approval stands. The follow-up gate
 unit and 107 browser tests. The logs are in
 `/tmp/work/impl-page-tabs/gate-r11`. Node reviewer `6fcba8b5` received the
 exact source and test evidence in `/tmp/work/impl-page-tabs/PACKET-R3.md`.
-Send the packet to integrator `ec7c91e9` once approved. There are no queued
-verification runs. The isolated capture fleet has exited.
+The reviewer accepted R1–R3 and returned R4 because an ended, unarchived
+session can still host a terminal. The coordinator updated the ruling
+to prefer a live session and fall back to an ended, unarchived one.
+
+`08624f6c9` adds that fallback, keeps the archive warning and updates the
+worktree browser case to launch a terminal after the last live agent
+exits. Its exact web gate `impl-page-tabs-20261120T054654Z-08624f6c`
+is queued in `/tmp/work/impl-page-tabs/gate-r12`. Send the results to
+reviewer `6fcba8b5`, then send the packet to integrator `ec7c91e9` on
+approval. The isolated capture fleet has exited.
 
 T2 reviewed the standalone-terminal seam and found no remaining issues
 in this slice. It uses the existing terminal protocol with polling and
