@@ -14,8 +14,8 @@ macro_rules! methods {
             inspect_workspace_label_delete: vessel_proto::workspace_labels::InspectWorkspaceLabelDelete => vessel_proto::workspace_labels::WorkspaceLabelDeleted;
             delete_workspace_label: vessel_proto::workspace_labels::DeleteWorkspaceLabel => vessel_proto::workspace_labels::WorkspaceLabelDeleted;
             get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
-            list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
-            get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+            list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::ServedWorkspace>;
+            get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::ServedWorkspace;
             rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
             pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
             release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;

@@ -398,6 +398,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::terminals::SHARED_TERMINALS_PROTOCOL,
         "`terminal.list`'s `changed_from` long poll and a resize's claim or update (ADR 0116).",
     ),
+    (
+        "DIFF_STAT_PROTOCOL",
+        crate::registry::DIFF_STAT_PROTOCOL,
+        "The diff stat on `workspace.list` and `workspace.get` (ADR 0120).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.
