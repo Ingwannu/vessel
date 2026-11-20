@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { DIFF_STAT_PROTOCOL, type PullSummary } from "../../wire/proto";
 import {
+  checksName,
+  checksPage,
   diffStatChangedFrom,
   diffStatServed,
   formatDiffCount,
@@ -99,5 +101,19 @@ describe("the served diff stat (ADR 0120)", () => {
       pending: 2,
     });
     expect(pullOf(counted)?.url).toBe("https://github.com/team/app/pull/12");
+  });
+
+  it("opens a GitHub checks page and names the counts", () => {
+    const pull = "https://github.com/acme/repo/pull/12";
+    expect(checksPage("github", pull)).toBe(`${pull}/checks`);
+    expect(checksPage("github", `${pull}/`)).toBe(`${pull}/checks`);
+    expect(checksPage("unknown", pull)).toBe(pull);
+    expect(checksPage("github", "not a url")).toBe("not a url");
+    expect(checksName({ passed: 3, failed: 1, pending: 2 })).toBe(
+      "Checks, 3 passed, 1 failed, 2 pending",
+    );
+    expect(checksName({ passed: 3, failed: 0, pending: 0 })).toBe(
+      "Checks, 3 passed",
+    );
   });
 });

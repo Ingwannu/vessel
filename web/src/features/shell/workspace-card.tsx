@@ -10,6 +10,8 @@ import "./workspace-card.css";
 import { useEffect, useState } from "react";
 
 import {
+  checksName,
+  checksPage,
   formatDiffCount,
   type CheckCounts,
   type SharedPull,
@@ -76,6 +78,7 @@ export function WorkspaceCard({
       <Checks
         checks={pull?.checks ?? null}
         counts={pull?.counts ?? null}
+        kind={pull?.kind ?? null}
         url={pull?.url ?? null}
       />
     </div>
@@ -146,10 +149,12 @@ function CopyRow({
 function Checks({
   checks,
   counts,
+  kind,
   url,
 }: {
   checks: string | null;
   counts: CheckCounts | null;
+  kind: string | null;
   url: string | null;
 }) {
   const pills = counted(counts);
@@ -157,7 +162,7 @@ function Checks({
     return (
       <div className="workspace-card-checks">
         <div className="workspace-card-rule" />
-        <CountPills counts={pills} url={url} />
+        <CountPills counts={pills} kind={kind} url={url} />
       </div>
     );
   }
@@ -188,11 +193,15 @@ function counted(counts: CheckCounts | null): CheckCounts | null {
 
 function CountPills({
   counts,
+  kind,
   url,
 }: {
   counts: CheckCounts;
+  kind: string | null;
   url: string | null;
 }) {
+  const name = checksName(counts);
+  const href = url === null ? null : checksPage(kind ?? "unknown", url);
   const pills = (
     <>
       <span>Checks</span>
@@ -210,18 +219,23 @@ function CountPills({
         />
       </span>
       {/* `move` is the arrow that leaves a box: the outward link. */}
-      {url === null ? null : <Icon name="move" size={12} />}
+      {href === null ? null : <Icon name="move" size={12} />}
     </>
   );
-  if (url === null) {
-    return <div className="workspace-card-row">{pills}</div>;
+  if (href === null) {
+    return (
+      <div className="workspace-card-row" aria-label={name}>
+        {pills}
+      </div>
+    );
   }
   return (
     <a
       className="workspace-card-row workspace-card-link"
-      href={url}
+      href={href}
       target="_blank"
       rel="noreferrer"
+      aria-label={name}
     >
       {pills}
     </a>

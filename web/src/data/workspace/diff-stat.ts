@@ -132,6 +132,44 @@ export interface SharedPull {
   url: string | null;
 }
 
+/** The checks page for a GitHub pull request, or the pull request itself.
+ *
+ * Paseo's `buildForgeChecksUrl`: GitHub adds `/checks`. Any other forge
+ * keeps the pull request url, and so does a GitHub url that is not http. */
+export function checksPage(kind: string, url: string): string {
+  if (kind !== "github") {
+    return url;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return url;
+  }
+  const path = parsed.pathname.replace(/\/$/, "");
+  parsed.pathname = `${path}/checks`;
+  return parsed.toString();
+}
+
+/** The checks row's name: "Checks, 3 passed, 1 failed, 2 pending".
+ * A zero count is left out. */
+export function checksName(counts: CheckCounts): string {
+  const parts = ["Checks"];
+  if (counts.passed > 0) {
+    parts.push(`${String(counts.passed)} passed`);
+  }
+  if (counts.failed > 0) {
+    parts.push(`${String(counts.failed)} failed`);
+  }
+  if (counts.pending > 0) {
+    parts.push(`${String(counts.pending)} pending`);
+  }
+  return parts.join(", ");
+}
+
 /** A node before protocol 39 omits `tally`. None stays the summary word. */
 function countsOf(summary: PullSummary): CheckCounts | null {
   const tally = summary.tally;
