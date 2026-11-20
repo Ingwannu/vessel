@@ -18,6 +18,15 @@
 //!   - A press on the trigger closes it, so the trigger's own click and
 //!     menu win. Escape closes it, whatever has the keys (an app-wide
 //!     interceptor that does not consume the key).
+//!   - The card lives with its trigger, as Paseo's unmounts with it (the
+//!     app reviewer's R1 on TRACKER 810): GPUI sends no hover-leave to an
+//!     element it no longer draws, so a card whose trigger is gone, or
+//!     came back under a pointer elsewhere, would stay. Each pass the
+//!     screen calls [`HoverCards::on`] for every trigger before
+//!     [`HoverCards::render`]; the render draws the card only when its
+//!     trigger was wired (and enabled) in that pass and the pointer is on
+//!     the trigger or the card or a close is pending, and closes it
+//!     otherwise.
 //!   - The screen draws [`HoverCards::render`] with what the card holds.
 //!     It sits right of the trigger, centred on its height, 4 away
 //!     (Paseo's `placement="right"`, `alignment="center"`, `offset={4}`),
@@ -37,8 +46,8 @@ use std::time::Duration;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, BoxShadow, MouseButton, SharedString, Stateful, Subscription, Task, Window,
-    anchored, deferred, div, point, px,
+    AnyElement, App, BoxShadow, MouseButton, Pixels, Point, SharedString, Stateful, Subscription,
+    Task, Window, anchored, deferred, div, point, px,
 };
 
 use crate::picker::anchor_probe;
@@ -74,6 +83,11 @@ struct State {
     closing: Option<Task<()>>,
     /// Escape's interceptor (`listen_for_escape`).
     escape: Option<Subscription>,
+    /// The shown card's trigger was wired, enabled, since the last render
+    /// (`on` sets it, `render` takes it).
+    wired: bool,
+    /// Where the card was last drawn.
+    card: Place,
 }
 
 impl std::fmt::Debug for State {
@@ -84,7 +98,8 @@ impl std::fmt::Debug for State {
             .field("on_card", &self.on_card)
             .field("closing", &self.closing.is_some())
             .field("escape", &self.escape.is_some())
-            .finish()
+            .field("wired", &self.wired)
+            .finish_non_exhaustive()
     }
 }
 
@@ -92,6 +107,18 @@ impl State {
     /// The pointer is on neither the trigger shown nor the card.
     fn left(&self) -> bool {
         !self.on_card && self.on_trigger.is_none()
+    }
+
+    /// Whether the shown card may be drawn this pass (see the module's
+    /// Decision Log): its trigger was wired, and the pointer is on the
+    /// trigger or the card, or a close is pending. Takes the wiring mark.
+    fn holds(&mut self, pointer: Point<Pixels>) -> bool {
+        let wired = std::mem::take(&mut self.wired);
+        let Some(shown) = self.shown.as_ref() else {
+            return false;
+        };
+        let over = |place: &Place| place.get().is_some_and(|bounds| bounds.contains(&pointer));
+        wired && (self.closing.is_some() || over(&shown.place) || over(&self.card))
     }
 }
 
@@ -117,7 +144,9 @@ impl HoverCards {
     /// `trigger` shows the card keyed `key` while the pointer is on it;
     /// `place` is the trigger's own cell for where it is drawn. When not
     /// `enabled` (touch, a narrow window, the trigger's menu open, a drag
-    /// under way), the trigger is drawn alone.
+    /// under way), the trigger is drawn alone. Call it for every trigger
+    /// drawn before [`Self::render`] in the same pass: a card whose trigger
+    /// was not wired is not drawn.
     #[must_use]
     pub fn on(
         &self,
@@ -130,6 +159,12 @@ impl HoverCards {
             return trigger;
         }
         let key = key.into();
+        {
+            let mut state = self.state.borrow_mut();
+            if state.shown.as_ref().is_some_and(|shown| shown.key == key) {
+                state.wired = true;
+            }
+        }
         let hovering = Rc::clone(&self.state);
         let hover_place = Rc::clone(place);
         let pressing = Rc::clone(&self.state);
@@ -172,7 +207,9 @@ impl HoverCards {
     }
 
     /// The card shown, holding `content`, named `label` as a group, over
-    /// everything; `width` is its own (Paseo's workspace card: 260).
+    /// everything; `width` is its own (Paseo's workspace card: 260). Drawn
+    /// only when its trigger was wired this pass and the pointer is on the
+    /// trigger or the card (or a close is pending); closed otherwise.
     #[must_use]
     pub fn render(
         &self,
@@ -180,9 +217,16 @@ impl HoverCards {
         label: impl Into<SharedString>,
         width: f32,
         tokens: &Tokens,
+        window: &Window,
     ) -> Option<AnyElement> {
+        let held = self.state.borrow_mut().holds(window.mouse_position());
+        if !held {
+            close_now(&self.state);
+            return None;
+        }
         let shown = self.state.borrow().shown.clone()?;
         let bounds = shown.place.get()?;
+        let card_place = Rc::clone(&self.state.borrow().card);
         let surfaces = Surfaces::of(tokens);
         let hovering = Rc::clone(&self.state);
         let card = div()
@@ -203,6 +247,7 @@ impl HoverCards {
             .occlude()
             .role(gpui::Role::Group)
             .aria_label(label)
+            .child(anchor_probe(&card_place))
             .on_hover(move |hovered, window, cx| {
                 hovering.borrow_mut().on_card = *hovered;
                 if *hovered {
@@ -260,6 +305,8 @@ fn close_now(state: &Rc<RefCell<State>>) {
     state.closing = None;
     state.shown = None;
     state.on_card = false;
+    state.on_trigger = None;
+    state.card.set(None);
 }
 
 /// Close after the grace, unless the pointer comes back first (its hover

@@ -1,7 +1,8 @@
 //! Paseo's hover card in a real window: open at once on the trigger, kept
 //! while the pointer crosses onto the card, closed 100 ms after it leaves
 //! both, closed by a press on the trigger and by Escape, never on a
-//! trigger that is not enabled.
+//! trigger that is not enabled; never outliving its trigger (the app
+//! reviewer's R1 on TRACKER 810).
 use super::*;
 use crate::{Scheme, Tokens};
 use gpui::{Context, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext};
@@ -13,6 +14,10 @@ struct Probe {
     a: Place,
     b: Place,
     enabled: bool,
+    /// A is drawn (a row that vanished when not).
+    draw_a: bool,
+    /// Nothing is drawn, triggers or cards (a sidebar hidden).
+    hidden: bool,
 }
 
 impl Probe {
@@ -27,21 +32,31 @@ impl Probe {
 }
 
 impl Render for Probe {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
         let content = div().h(px(80.0)).child("details");
-        div()
+        let root = div()
             .track_focus(&self.focus)
             .size_full()
             .p(px(40.0))
             .flex()
             .flex_col()
-            .gap(px(40.0))
-            .child(self.trigger("A", &self.a))
+            .gap(px(40.0));
+        if self.hidden {
+            return root;
+        }
+        // A's room stays when it is not drawn, so B does not slide under
+        // the pointer.
+        let a = if self.draw_a {
+            self.trigger("A", &self.a).into_any_element()
+        } else {
+            div().w(px(200.0)).h(px(36.0)).into_any_element()
+        };
+        root.child(a)
             .child(self.trigger("B", &self.b))
             .children(
                 self.cards
-                    .render(content, "Session details", 260.0, &tokens),
+                    .render(content, "Session details", 260.0, &tokens, window),
             )
     }
 }
@@ -54,6 +69,8 @@ fn setup(cx: &mut TestAppContext, enabled: bool) -> (gpui::Entity<Probe>, &mut V
         a: Place::default(),
         b: Place::default(),
         enabled,
+        draw_a: true,
+        hidden: false,
     });
     view.update_in(cx, |probe, window, cx| probe.focus.focus(window, cx));
     (view, cx)
@@ -125,6 +142,49 @@ fn a_trigger_not_enabled_shows_nothing(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx, false);
     let a = cx.debug_bounds("A").unwrap();
     move_to(cx, a.center());
+    assert_eq!(shown(&view, cx), None);
+    assert!(cx.debug_bounds("hover-card").is_none());
+}
+
+#[gpui::test]
+fn a_card_whose_trigger_is_no_longer_drawn_closes(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx, true);
+    let a = cx.debug_bounds("A").unwrap();
+    move_to(cx, a.center());
+    assert_eq!(shown(&view, cx).as_deref(), Some("A"));
+    // A vanishes under the pointer (its machine went offline): no
+    // hover-leave reaches it, and the card goes with it.
+    view.update(cx, |probe, cx| {
+        probe.draw_a = false;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    move_to(cx, point(px(600.0), px(500.0)));
+    assert_eq!(shown(&view, cx), None);
+    assert!(cx.debug_bounds("hover-card").is_none());
+}
+
+#[gpui::test]
+fn a_card_does_not_come_back_with_its_trigger_under_a_pointer_elsewhere(
+    cx: &mut TestAppContext,
+) {
+    let (view, cx) = setup(cx, true);
+    let a = cx.debug_bounds("A").unwrap();
+    move_to(cx, a.center());
+    assert_eq!(shown(&view, cx).as_deref(), Some("A"));
+    // The sidebar is hidden by a key, the pointer moves into the
+    // conversation, the sidebar comes back: no card beside A.
+    view.update(cx, |probe, cx| {
+        probe.hidden = true;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    move_to(cx, point(px(600.0), px(500.0)));
+    view.update(cx, |probe, cx| {
+        probe.hidden = false;
+        cx.notify();
+    });
+    cx.run_until_parked();
     assert_eq!(shown(&view, cx), None);
     assert!(cx.debug_bounds("hover-card").is_none());
 }

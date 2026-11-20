@@ -38,8 +38,8 @@ use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, div,
-    px,
+    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, copied_within, copy_for};
 use vessel_app_view::Card;
@@ -79,23 +79,30 @@ pub(super) fn on_row(
         .on(row, &sidebar.place(&format!("card:{key}")), key, enabled)
 }
 
-/// The card shown, over everything.
+/// The card shown, over everything; drawn after every row, so the kit
+/// knows whether its row was drawn (and enabled) this pass.
 pub(super) fn layer(
     shell: &Shell,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let cards = &shell.areas.sidebar.cards;
     let shown = cards.shown()?;
-    let card = shell
+    let Some(card) = shell
         .fleet
         .machines
         .iter()
         .flat_map(|machine| &machine.sessions)
-        .find(|card| key(card) == shown.as_ref())?;
+        .find(|card| key(card) == shown.as_ref())
+    else {
+        // The session went: its card goes too.
+        cards.close();
+        return None;
+    };
     let words = shell.t.lang.sidebar();
     let content = content(card, shell, tokens, cx);
-    cards.render(content, words.session_details, WIDTH, tokens)
+    cards.render(content, words.session_details, WIDTH, tokens, window)
 }
 
 /// What the card holds, in Paseo's order.
