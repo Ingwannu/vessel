@@ -13,7 +13,13 @@
 //!   a `watch` of one counter, moved by the registry (a terminal kept or
 //!   forgotten) and by one small task per terminal that watches its info
 //!   and moves the counter only when what a list shows changes (its
-//!   status, title, service state or end), never for a resize or output.
+//!   status, title, service state or end, and its attention once ADR
+//!   0089's feature is assigned), never for a resize or output.
+//! - Attention (owed item 6 of the node review of TRACKER 815): a client
+//!   showing a terminal's attention as a tab's badge must see it change.
+//!   While the feature is unassigned every peer has it cut, so it is left
+//!   out then: a hook looping Working/Idle would otherwise wake every
+//!   waiter for a list that reads the same.
 //! - Cost: the counter is the node's, not a place's, so a change beside
 //!   another session wakes a waiter too, which reads the same list and
 //!   asks again. An agent, which lists only the terminals it opened, is
@@ -22,6 +28,7 @@
 //!   the terminal's handle or the node.
 
 use tokio::sync::watch;
+use vessel_proto::notifications::{ATTENTION_NOTIFICATIONS_PROTOCOL, TerminalAttention};
 use vessel_proto::terminals::{ServiceState, TerminalInfo};
 use vessel_proto::{SessionStatus, SessionTitle};
 use vessel_session::terminals::TerminalHandle;
@@ -35,6 +42,8 @@ struct Shown {
     title: Option<SessionTitle>,
     service: Option<ServiceState>,
     ended_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// `None` while ADR 0089's feature is unassigned (the Decision Log).
+    attention: Option<TerminalAttention>,
 }
 
 impl Shown {
@@ -44,6 +53,9 @@ impl Shown {
             title: info.title.clone(),
             service: info.service.clone(),
             ended_at: info.ended_at,
+            attention: info
+                .attention
+                .filter(|_| ATTENTION_NOTIFICATIONS_PROTOCOL.is_some()),
         }
     }
 }
