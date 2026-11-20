@@ -24,15 +24,18 @@
 //!     ruling); Paseo's role `menu` named "Workspace scripts" is left over.
 //!   - No diff stat: Paseo's is a server field the node does not send yet
 //!     (TRACKER 819 adds its row after the pull request's).
-//!   - The checks row leads with the pull request's mark, not the forge's
-//!     brand mark (the kit has none yet), and says the checks' one state as
-//!     the row's line does, not a count per state (the session's summary
-//!     holds one state).
-//!   - The outward arrow is the kit's (`ArrowUpRight`, the inline link's),
-//!     not Lucide's boxed `ExternalLink`.
+//!   - The checks row (TRACKER 824) leads with the forge's mark (the kit's
+//!     GitHub artwork in its own colours; Paseo tints a monochrome icon
+//!     muted), a forge this app does not know with the pull request's mark;
+//!     on hover it becomes the boxed outward arrow, as Paseo's. Its counts
+//!     are the node's tally (passed, failed, pending; no warning, action
+//!     required or manual); without a tally it says the checks' one state.
+//!   - The pull request badge's outward arrow is the kit's `ArrowUpRight`
+//!     (the inline link's).
 
 use std::time::Duration;
 
+use vessel_app_kit::agent_mark::{Forge, Size, forge_mark};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
@@ -45,6 +48,8 @@ use vessel_app_kit::{Tokens, Type, TypeExt as _, copied_within, copy_for};
 use vessel_app_view::Card;
 use vessel_app_view::sidebar::hover::{HoverChecks, HoverPull};
 use vessel_app_view::workspace::pull::CardChecks;
+use vessel_app_view::workspace::pull::checks::Presentation;
+use vessel_proto::forge::ForgeKind;
 
 use crate::shell::Shell;
 
@@ -56,6 +61,8 @@ const GLYPH: f32 = 12.0;
 /// words (Paseo's `checksSummaryRow`).
 const CHECKS: f32 = 28.0;
 const CHECKS_Y: f32 = 6.0;
+/// A count pill's gap between its mark and number (Paseo's 3).
+const PILL_GAP: f32 = 3.0;
 /// How long a copy row shows its check (Paseo's `setTimeout(..., 2000)`).
 const COPIED_FOR: Duration = Duration::from_millis(2000);
 
@@ -276,8 +283,9 @@ fn copy_row(copy: Copy, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Statefu
         }))
 }
 
-/// The checks' row under a rule: a link to their page, their state at the
-/// end in its colour (Paseo's `ChecksSummaryPressable`).
+/// The checks' row under a rule (Paseo's `ChecksSummaryPressable`): a link
+/// to their page that leads with the forge's mark, says "Checks", and ends
+/// with a pill per counted state (or the one state, without a tally).
 fn checks_row(
     checks: HoverChecks,
     url: String,
@@ -287,13 +295,24 @@ fn checks_row(
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
     let words = shell.t.lang.sidebar();
-    let status = tokens.status();
-    let (which, colour) = match checks.state {
-        CardChecks::Passed => (Glyph::CircleCheck, status.success.foreground),
-        CardChecks::Failed => (Glyph::CircleX, status.error.foreground),
-        CardChecks::Running => (Glyph::CircleDot, status.warning.foreground),
-    };
+    let counted = checks.counted();
     let state = checks.state.words(shell.words).to_owned();
+    let said = if counted.is_empty() {
+        words.checks_said(&state)
+    } else {
+        words.checks_counted(&counted)
+    };
+    let lead: AnyElement = match checks.forge {
+        ForgeKind::Github => forge_mark(Forge::GitHub, Size::Twelve, tokens).into_any_element(),
+        ForgeKind::Unknown => {
+            glyph(Glyph::PullRequest, GLYPH, neutral.foreground_muted).into_any_element()
+        }
+    };
+    let end = if counted.is_empty() {
+        one_state(checks.state, state, tokens)
+    } else {
+        pills(&counted, tokens)
+    };
     let group: SharedString = "hover-card-checks".into();
     let surface = neutral.surface2;
     div()
@@ -308,32 +327,60 @@ fn checks_row(
         .gap(px(spacing::S1_5))
         .cursor_pointer()
         .role(gpui::Role::Link)
-        .aria_label(words.checks_said(&state))
+        .aria_label(said)
         .text_color(neutral.foreground_muted)
         .hover(move |style| style.bg(surface).text_color(neutral.foreground))
-        .child(swapped(
-            glyph(Glyph::PullRequest, GLYPH, neutral.foreground_muted).into_any_element(),
-            Glyph::ArrowUpRight,
-            &group,
-            tokens,
-        ))
+        .child(swapped(lead, Glyph::ExternalLink, &group, tokens))
         .child(div().flex_none().type_(Type::Meta).child(words.checks))
-        .child(
-            div()
-                .flex_1()
-                .flex()
-                .flex_row()
-                .justify_end()
-                .items_center()
-                .gap(px(spacing::S1))
-                .type_(Type::Meta)
-                .text_color(colour)
-                .child(glyph(which, GLYPH, colour))
-                .child(state),
-        )
+        .child(end)
         .on_click(cx.listener(move |_this, _event, _window, cx| {
             cx.stop_propagation();
             cx.open_url(&url);
+        }))
+}
+
+/// The end of the row without counts: the checks' one state in its colour.
+fn one_state(state: CardChecks, words: String, tokens: &Tokens) -> Div {
+    let presentation = match state {
+        CardChecks::Passed => Presentation::Success,
+        CardChecks::Failed => Presentation::Failure,
+        CardChecks::Running => Presentation::Pending,
+    };
+    let (which, colour) = crate::areas::pulls::presentation_mark(presentation, tokens);
+    div()
+        .flex_1()
+        .flex()
+        .flex_row()
+        .justify_end()
+        .items_center()
+        .gap(px(spacing::S1))
+        .type_(Type::Meta)
+        .text_color(colour)
+        .child(glyph(which, GLYPH, colour))
+        .child(words)
+}
+
+/// Paseo's `checksSummaryCounts`: a pill per counted state, 8 apart, at
+/// the end; each its mark and count in its state's colour.
+fn pills(counted: &[(Presentation, u32)], tokens: &Tokens) -> Div {
+    div()
+        .flex_1()
+        .flex()
+        .flex_row()
+        .justify_end()
+        .items_center()
+        .gap(px(spacing::S2))
+        .type_(Type::Meta)
+        .children(counted.iter().map(|&(presentation, count)| {
+            let (which, ink) = crate::areas::pulls::presentation_mark(presentation, tokens);
+            div()
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(PILL_GAP))
+                .text_color(ink)
+                .child(glyph(which, GLYPH, ink))
+                .child(count.to_string())
         }))
 }
 

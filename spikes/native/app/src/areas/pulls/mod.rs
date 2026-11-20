@@ -60,6 +60,7 @@ pub(crate) use form::{base_list, dialog as form_dialog};
 pub(crate) use link::{link, state_glyph_sized};
 pub(crate) use pane::pane;
 pub(crate) use pane_cards::Choices;
+pub(crate) use pane_checks::presentation_mark;
 
 /// The most new commits the form's description lists (`gh` lists them
 /// all; a branch far ahead gives a description nobody reads).
