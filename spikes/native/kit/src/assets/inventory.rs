@@ -274,4 +274,7 @@ glyph_inventory! {
     /// Skipped or cancelled (Paseo's `CircleSlash`: a check that says
     /// nothing about the run): the ring struck through.
     CircleSlash => "kit/circle-slash.svg",
+    /// Add to chat (Paseo's `MessageSquarePlus`): the message mark with a
+    /// plus inside.
+    MessagePlus => "kit/message-plus.svg",
 }

@@ -151,11 +151,13 @@ pub(super) fn section(
             breakpoint::phone(window),
             cx,
         );
+        let attach = shell.pulls_can_attach();
         let cards = Cards {
             shell,
             choices: &facts.choices,
             tokens,
             now: chrono::Utc::now(),
+            attach,
         };
         let listed: Option<Vec<AnyElement>> = match &facts.timeline {
             TimelineRead::Ready(timeline) => {
@@ -164,7 +166,31 @@ pub(super) fn section(
                 Some(if made.is_empty() {
                     vec![no_activity(shell, tokens)]
                 } else {
-                    made.iter().map(|entry| cards.entry(entry, cx)).collect()
+                    // Paseo's activity toolbar: "Add all to chat".
+                    let all = attach.then(|| {
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .min_h(px(28.0))
+                            .px(px(8.0))
+                            .pb(px(8.0))
+                            .child(
+                                super::pane_checks::add_button(
+                                    "pr-pane-add-all".into(),
+                                    shell.words.pulls().add_all_to_chat(),
+                                    false,
+                                    tokens,
+                                )
+                                .on_click(cx.listener(|shell, _event, window, cx| {
+                                    shell.pulls_add_all(window, cx);
+                                })),
+                            )
+                            .into_any_element()
+                    });
+                    all.into_iter()
+                        .chain(made.iter().map(|entry| cards.entry(entry, cx)))
+                        .collect()
                 })
             }
             TimelineRead::Loading => Some(vec![super::pane_skeleton::activity(tokens)]),

@@ -248,3 +248,9 @@ pulls-age-months = { NUMBER($count) }mo ago
 pulls-age-years = { NUMBER($count) }y ago
 # A card whose author the forge did not name.
 pulls-unknown-author = unknown
+# Hand a comment, a review, a thread or a failed check's logs to the session's composer. Keep short.
+pulls-add-to-chat = Add to chat
+# While a failed check's logs are read before they are added. Keep short.
+pulls-adding-to-chat = Adding...
+# Hand every comment, review and open thread to the composer, each as its own item. Keep short.
+pulls-add-all-to-chat = Add all to chat

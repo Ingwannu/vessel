@@ -271,6 +271,9 @@ impl Glyph {
             // 16 grid at a stroke of 1), at one and a half times.
             Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
             Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::MessagePlus => line_glyph!(
+                r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/><path d="M12 9.5v5M9.5 12h5"/>"#
+            ),
             Self::Archive => line_glyph!(
                 r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
             ),

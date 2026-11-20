@@ -10,9 +10,11 @@
 //! - Constraint: the node sends no avatars (ADR 0088 part 3), so every
 //!   avatar is Paseo's fallback, the initial on the identity colour.
 //! - Choice: Paseo's geometry; the markdown is the kit's renderer.
-//! - Differences: the item menu (Add to chat, Copy, Open on GitHub) and
-//!   the "Add to chat" buttons come with packet P3c; until then a press
-//!   on a card without words opens it on the forge, as Paseo's does.
+//! - "Add to chat" closes an open card with words, a review, and a thread
+//!   (`pane_attach`), while the session has a composer to take it.
+//! - Difference: Paseo's per-card menu (Add to chat, Copy, Open on
+//!   GitHub) is not drawn; a press on a card without words opens it on
+//!   the forge, as Paseo's does.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
@@ -36,6 +38,15 @@ pub(super) struct Cards<'a> {
     pub(super) choices: &'a Choices,
     pub(super) tokens: &'a Tokens,
     pub(super) now: chrono::DateTime<chrono::Utc>,
+    /// The session has a composer to add to (Paseo's `attachEnabled`).
+    pub(super) attach: bool,
+}
+
+/// What a card's "Add to chat" adds.
+#[derive(Clone)]
+enum Adds {
+    Item(String),
+    Thread(String),
 }
 
 impl Choices {
@@ -239,9 +250,42 @@ impl Cards<'_> {
         );
         let mut card = self.card().child(head);
         if !folded {
-            card = card.child(div().px(px(12.0)).pt(px(8.0)).pb(px(12.0)).child(text));
+            card = card
+                .child(div().px(px(12.0)).pt(px(8.0)).pb(px(12.0)).child(text))
+                .children(
+                    (self.attach && super::pane_attach::addable(item))
+                        .then(|| self.footer(Adds::Item(item.id().as_str().to_owned()), cx)),
+                );
         }
         card.into_any_element()
+    }
+
+    /// Paseo's `cardFooter`: "Add to chat" at the start.
+    fn footer(&self, adds: Adds, cx: &mut Context<'_, Shell>) -> AnyElement {
+        let id = match &adds {
+            Adds::Item(id) | Adds::Thread(id) => SharedString::from(format!("pr-pane-add-{id}")),
+        };
+        div()
+            .flex()
+            .flex_row()
+            .pl(px(8.0))
+            .pr(px(8.0))
+            .pb(px(8.0))
+            .child(
+                super::pane_checks::add_button(
+                    id,
+                    self.shell.words.pulls().add_to_chat(),
+                    false,
+                    self.tokens,
+                )
+                .on_click(
+                    cx.listener(move |shell, _event, window, cx| match &adds {
+                        Adds::Item(id) => shell.pulls_add_item(id, window, cx),
+                        Adds::Thread(key) => shell.pulls_add_thread(key, window, cx),
+                    }),
+                ),
+            )
+            .into_any_element()
     }
 
     /// A review and its threads.
@@ -274,6 +318,10 @@ impl Cards<'_> {
                 .children(
                     self.body(review)
                         .map(|text| div().px(px(12.0)).pt(px(8.0)).pb(px(12.0)).child(text)),
+                )
+                .children(
+                    (self.attach && super::pane_attach::addable(review))
+                        .then(|| self.footer(Adds::Item(review.id().as_str().to_owned()), cx)),
                 )
                 .child(div().flex().flex_col().pt(px(4.0)).pb(px(4.0)).children(
                     threads.iter().map(|thread| {
@@ -406,6 +454,9 @@ impl Cards<'_> {
                             .child(self.thread_comment(reply))
                     }),
                 ));
+            }
+            if self.attach {
+                block = block.child(self.footer(Adds::Thread(thread.key()), cx));
             }
         }
         block.into_any_element()

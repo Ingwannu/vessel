@@ -119,3 +119,6 @@ pulls-age-days = { NUMBER($count) }일 전
 pulls-age-months = { NUMBER($count) }개월 전
 pulls-age-years = { NUMBER($count) }년 전
 pulls-unknown-author = 알 수 없음
+pulls-add-to-chat = 채팅에 추가
+pulls-adding-to-chat = 추가하는 중...
+pulls-add-all-to-chat = 모두 채팅에 추가
