@@ -31,8 +31,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::workspace::pull::attach::can_add_check;
 use vessel_app_view::workspace::pull::checks::{
-    Presentation, RING_SIZE, RING_STROKE, Segment, Summary, circumference, segments, summary,
-    timing,
+    Presentation, Segment, Summary, segments, summary, timing,
 };
 use vessel_app_view::workspace::pull::{ChecksOutcome, check_counts};
 use vessel_proto::forge::{CheckRun, ForgeUrl, PullRequest};
