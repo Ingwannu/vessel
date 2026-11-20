@@ -73,6 +73,7 @@ fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention
         Reply::RenameTerminal(terminal.clone()),
         Reply::ListTerminals(TerminalList {
             terminals: vec![terminal.clone()],
+            revision: 0,
         }),
         Reply::SubscribeTerminal(TerminalSubscribed {
             subscription: SubscriptionId::new(1),

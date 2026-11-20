@@ -7,8 +7,8 @@ use std::{sync::Arc, time::Duration};
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{
     Ack, CreateSession, EventPage, GetSession, KillSession, ListSessions, ReadEvents, SendInput,
-    SessionId, SessionInfo, SessionOrigin, SessionSpec, Subscribe, Subscribed, Unsubscribe,
-    WireError,
+    SessionId, SessionInfo, SessionInput, SessionOrigin, SessionSpec, Subscribe, Subscribed,
+    TerminalInput, Unsubscribe, WireError,
 };
 
 use crate::error::ServiceError;
@@ -226,9 +226,23 @@ impl NodeService {
 
     pub(crate) async fn send_input(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: SendInput,
     ) -> Result<Ack, WireError> {
+        // A terminal-mode session is sized by one connection, as a
+        // terminal is (ADR 0116): another's update is dropped as done.
+        if let SessionInput::Terminal {
+            input: TerminalInput::Resize { intent, .. },
+        } = &request.input
+            && !self.session_sizes.admit(
+                request.session,
+                &connection.life().owner(),
+                *intent,
+                |session| self.sessions.live(session).is_some(),
+            )
+        {
+            return Ok(Ack);
+        }
         self.sessions
             .send(request.session, request.input)
             .await

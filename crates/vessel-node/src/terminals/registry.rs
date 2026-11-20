@@ -15,6 +15,7 @@ use super::{MAX_ENDED, MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION
 
 mod attention;
 mod ending;
+mod listed;
 use crate::workspace::Occupant;
 
 /// What a terminal counts against.
@@ -39,6 +40,8 @@ pub(crate) struct Entry {
     /// place alone does not say).
     pub(crate) owner: Owner,
     producer: Option<producers::Producer>,
+    /// The connection whose pane sizes it (ADR 0116, `crate::size_owner`).
+    pub(crate) size_owner: crate::size_owner::Slot,
 }
 
 /// A start to count before it runs.
@@ -129,6 +132,8 @@ pub(crate) struct Terminals {
     /// each however many terminals.
     watching: Mutex<HashSet<SessionId>>,
     attention_changes: tokio::sync::watch::Sender<()>,
+    /// `terminal.list`'s revision (ADR 0116, `listed`).
+    listed: Arc<tokio::sync::watch::Sender<u64>>,
 }
 
 /// A start counted against the limits until it is registered or dropped.
@@ -162,6 +167,7 @@ impl Terminals {
             state: Arc::default(),
             watching: Mutex::default(),
             attention_changes: tokio::sync::watch::Sender::new(()),
+            listed: Arc::new(tokio::sync::watch::channel(0).0),
         })
     }
 
@@ -252,11 +258,13 @@ impl Terminals {
     ) {
         let id = handle.id();
         let changes = handle.watch();
+        self.follow_listed(&handle);
         let entry = Entry {
             handle,
             plan,
             owner: reservation.owner.clone(),
             producer: None,
+            size_owner: Arc::default(),
         };
         let mut state = self.state();
         drop(state.entries.insert(id, entry));
@@ -279,6 +287,7 @@ impl Terminals {
         drop(state);
         drop(reservation);
         self.watch_attention(changes);
+        self.list_moved();
     }
 
     /// One terminal.
@@ -292,10 +301,12 @@ impl Terminals {
 
     /// Forget one (it has ended, or is being closed).
     pub(crate) fn forget(&self, id: TerminalId) {
-        if let Some(entry) = self.state().entries.remove(&id)
-            && let Some(producer) = entry.producer
-        {
-            producer.close();
+        let forgotten = self.state().entries.remove(&id);
+        if let Some(entry) = forgotten {
+            if let Some(producer) = entry.producer {
+                producer.close();
+            }
+            self.list_moved();
         }
     }
 
@@ -387,10 +398,17 @@ impl Terminals {
     /// Forget the ended terminals placed in `project` (its removal; a live
     /// one refuses the removal first).
     pub(crate) fn forget_project(&self, project: ProjectId) {
-        self.state().entries.retain(|_, entry| {
+        let mut state = self.state();
+        let before = state.entries.len();
+        state.entries.retain(|_, entry| {
             let info = entry.handle.info();
             info.is_live() || info.place.project() != Some(project)
         });
+        let forgot = state.entries.len() != before;
+        drop(state);
+        if forgot {
+            self.list_moved();
+        }
     }
 }
 
