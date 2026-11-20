@@ -26,6 +26,7 @@ import type { NodeKey } from "../../wire/bridge";
 import { SettingsSection } from "../settings/settings-page";
 import { QuotaCardView, type WindowPins } from "./quota-card";
 import { useAccountReader, useQuotaClock } from "./use-account-usage";
+import { UsageReadFailed } from "./usage-read-failed";
 import { useUsagePrefs } from "./use-usage-prefs";
 import { UsageOptions } from "./usage-options";
 
@@ -46,30 +47,6 @@ export function Message({
       <span>{text}</span>
       {children}
     </div>
-  );
-}
-
-/** Paseo's UsageBody error: an Alert in the flow, what failed over the
- * node's reason, its Retry reading the machine's reports again (TRACKER
- * 820). */
-export function UsageReadFailed({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
-  return (
-    <Alert
-      size="sm"
-      variant="error"
-      title="Unable to load usage"
-      description={message}
-    >
-      <Button size="sm" variant="outline" onClick={onRetry}>
-        Try again
-      </Button>
-    </Alert>
   );
 }
 

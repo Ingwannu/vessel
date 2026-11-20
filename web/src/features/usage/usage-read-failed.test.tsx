@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { UsageReadFailed } from "./plan-usage";
+import { UsageReadFailed } from "./usage-read-failed";
 
 describe("usage that could not be read (TRACKER 820)", () => {
   it("is Paseo's error Alert in the flow: what failed, the reason, Try again", () => {
