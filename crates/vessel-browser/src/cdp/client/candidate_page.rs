@@ -3,7 +3,7 @@
 //! This helper owns no workspace/Preview/root authority and permits only its
 //! fixed fixture origin. A successful PNG is transport/geometry evidence;
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
-use super::{Client, SHUTDOWN_TIMEOUT};
+use super::{Client, Events, SHUTDOWN_TIMEOUT};
 use crate::page::{Page, PageError, ViewportFrame};
 use axum::{
     Router,
@@ -86,8 +86,9 @@ pub(super) struct Observed {
     snapshot: crate::snapshot::Snapshot,
     png: ImageSize,
     full_png: ImageSize,
+    compositor_png: ImageSize,
 }
-pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
+pub(super) async fn exercise(client: &Client, events: &mut Events) -> Result<Observed, PageError> {
     let viewport = ViewportSize {
         width: ViewportSide::try_from(WIDTH).unwrap(),
         height: ViewportSide::try_from(HEIGHT).unwrap(),
@@ -117,12 +118,14 @@ pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
         Err(PageError::StaleFrame)
     ));
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
+    let compositor_png = page.probe_compositor(events).await?.size();
     page.close().await?;
     Ok(Observed {
         matched,
         snapshot,
         png,
         full_png,
+        compositor_png,
     })
 }
 
@@ -189,5 +192,7 @@ impl Observed {
         assert_eq!(self.png.height().get(), HEIGHT);
         assert_eq!(self.full_png.width().get(), WIDTH);
         assert_eq!(self.full_png.height().get(), FULL_HEIGHT);
+        assert_eq!(self.compositor_png.width().get(), WIDTH);
+        assert_eq!(self.compositor_png.height().get(), HEIGHT);
     }
 }

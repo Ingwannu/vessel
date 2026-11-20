@@ -96,7 +96,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         let proxy = candidate_page::FixtureProxy::start(listener);
         let spawned = plan.spawn_for_diagnostic().unwrap();
         let run = spawned.child.lifetime();
-        let (client, _events) = Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
+        let (client, mut events) = Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
         let mut stderr = spawned.stderr;
         let stderr = tokio::spawn(async move {
             let mut sink = tokio::io::sink();
@@ -112,7 +112,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             .await
             .unwrap();
         let page = if identity.is_ok() && version.is_ok() {
-            Some(candidate_page::exercise(&client).await)
+            Some(candidate_page::exercise(&client, &mut events).await)
         } else {
             None
         };

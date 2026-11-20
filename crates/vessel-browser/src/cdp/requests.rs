@@ -43,6 +43,10 @@ methods! {
     NavigateHistory => "Page.navigateToHistoryEntry",
     Evaluate => "Runtime.evaluate",
     Capture => "Page.captureScreenshot",
+    BringToFront => "Page.bringToFront",
+    StartScreencast => "Page.startScreencast",
+    ScreencastAck => "Page.screencastFrameAck",
+    StopScreencast => "Page.stopScreencast",
     LayoutMetrics => "Page.getLayoutMetrics",
     SetViewport => "Emulation.setDeviceMetricsOverride",
     ClearViewport => "Emulation.clearDeviceMetricsOverride",
@@ -70,9 +74,11 @@ pub(crate) use keyboard::{KeyboardError, KeyboardState};
 mod capture;
 pub(crate) use capture::{CapturePage, LayoutMetrics};
 mod condition;
+mod screencast;
 mod snapshot;
 pub(crate) use condition::ConditionProbe;
 pub(crate) use pointer::{MouseEvent, PointerState};
+pub(crate) use screencast::{ScreencastAck, ScreencastFrame, StartScreencast};
 pub(crate) use snapshot::{Frame, FrameTree, IsolatedWorld, SnapshotTraversal};
 
 macro_rules! empty_requests {
@@ -93,6 +99,8 @@ empty_requests! {
     EnablePage => Acknowledged,EnablePage,"Observe the page's navigation and dialog lifecycle.";
     EnableRuntime => Acknowledged,EnableRuntime,"Observe console/exception events without a host bridge.";
     EnableNetwork => Acknowledged,EnableNetwork,"Observe bounded metadata; never collect request headers/bodies.";
+    BringToFront => Acknowledged,BringToFront,"Make the selected target visible inside its owned browser.";
+    StopScreencast => Acknowledged,StopScreencast,"Stop compressed compositor frames for a parked target.";
     Stop => Acknowledged,Stop,"Stop loading without implying a successful reload.";
     Reload => Acknowledged,Reload,"Reload the current target, invalidating refs first.";
     Metrics => LayoutMetrics,LayoutMetrics,"Read explicit CSS content dimensions before a full-page surface is admitted.";

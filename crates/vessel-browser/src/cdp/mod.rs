@@ -14,6 +14,6 @@ mod tests;
 mod transport;
 mod wire;
 
-pub(crate) use client::{CdpError, Client};
+pub(crate) use client::{CdpError, Client, Events};
 pub(crate) use endpoint::Endpoint;
 pub(crate) use identity::{SessionId, TargetId};

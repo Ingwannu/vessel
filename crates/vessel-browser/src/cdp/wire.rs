@@ -119,6 +119,15 @@ impl Event {
     pub(crate) fn session(&self) -> Option<&SessionId> {
         self.session.as_ref()
     }
+
+    pub(crate) fn screencast(
+        &self,
+    ) -> Result<Option<super::requests::ScreencastFrame>, super::CdpError> {
+        if self.kind != EventKind::Screencast {
+            return Ok(None);
+        }
+        self.params.decode().map(Some).map_err(super::CdpError::Json)
+    }
 }
 
 /// Essential signals consumed by the engine controller; new unrelated events stay unknown.
@@ -151,6 +160,9 @@ pub(crate) enum EventKind {
     #[doc = "`Page.loadEventFired`"]
     #[serde(rename = "Page.loadEventFired")]
     Loaded,
+    #[doc = "`Page.screencastFrame`"]
+    #[serde(rename = "Page.screencastFrame")]
+    Screencast,
     #[doc = "`Page.javascriptDialogOpening`"]
     #[serde(rename = "Page.javascriptDialogOpening")]
     Dialog,
@@ -259,5 +271,16 @@ mod tests {
             incoming(r#"{"method":"Future.event","params":{"anything":true}}"#).unwrap(),
             Incoming::UnknownEvent
         ));
+    }
+
+    #[test]
+    fn malformed_compositor_image_is_refused_before_it_leaves_the_cdp_edge() {
+        let message = r#"{"method":"Page.screencastFrame","sessionId":"target-a","params":{"data":"Ym9ndXM=","sessionId":1}}"#;
+        let Incoming::Event(event) = incoming(message).unwrap() else {
+            panic!("expected a compositor event");
+        };
+        assert_eq!(event.kind(), EventKind::Screencast);
+        assert!(event.session().is_some());
+        assert!(event.screencast().is_err());
     }
 }

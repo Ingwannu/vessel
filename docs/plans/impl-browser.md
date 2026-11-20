@@ -35,3 +35,10 @@ reported TS freshness with 5 proto and 2 web checks. Run
 `wp-browser-wait-tests-20261116T032059Z-218afa24` reported 77 browser unit tests
 passed and 2 ignored, including both real-candidate fixtures. These results
 predate this receiving tree.
+
+The candidate fixture exercises trusted pointer and committed text, viewport
+input generation, and bounded viewport/full-page capture. It also probes the
+selected target's compositor using start, first-frame acknowledgement and stop.
+A later watch needs a separate bounded frame path so frames cannot occupy the
+essential state queue. The protocol is experimental and must be verified
+against the approved runtime. [Chromium DevTools Page protocol](https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/pdl/domains/Page.pdl).

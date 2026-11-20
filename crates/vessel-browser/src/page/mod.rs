@@ -10,6 +10,7 @@ mod evaluation;
 mod frame;
 pub(crate) use frame::ViewportFrame;
 mod input;
+mod screencast;
 mod snapshot;
 mod wait;
 #[cfg(test)]
@@ -37,6 +38,8 @@ pub(crate) enum PageError {
     Surface,
     #[error("browser input refers to a frame from a different document, viewport or target")]
     StaleFrame,
+    #[error("browser compositor did not produce a frame within its deadline")]
+    NoFrame(#[source] tokio::time::error::Elapsed),
     #[error("browser revision namespace is exhausted")]
     Exhausted,
     #[error("browser refused target closure")]
