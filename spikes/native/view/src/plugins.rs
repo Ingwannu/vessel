@@ -48,7 +48,7 @@ pub use logs::{Logs, LogsView, log_head};
 pub use page::{Answered, Page, RowLook};
 pub use words::{change_words, problem_words, source_line, status_word};
 
-/// The protocol that has the plugin calls (`PLUGINS_PROTOCOL`, 35).
+/// The protocol that has the plugin calls (`PLUGINS_PROTOCOL`).
 pub const PROTOCOL: Option<ProtocolVersion> = vessel_proto::plugins::PLUGINS_PROTOCOL;
 
 /// Whether a machine speaking `protocol` serves the plugin calls (the

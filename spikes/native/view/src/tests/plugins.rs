@@ -127,10 +127,11 @@ fn checks_offline_then_support_loading_error_and_count_in_order() {
 
 #[test]
 fn needs_the_plugin_protocol() {
+    // The generated constant, not a copy: the number is assigned at merge.
     let since = crate::plugins::PROTOCOL.unwrap();
-    assert_eq!(since, ProtocolVersion::new(35));
+    assert_eq!(Some(since), vessel_proto::plugins::PLUGINS_PROTOCOL);
     assert!(speaks(Some(since)));
-    assert!(!speaks(Some(ProtocolVersion::new(34))));
+    assert!(!speaks(Some(ProtocolVersion::new(since.get().saturating_sub(1)))));
     assert!(!speaks(None));
 }
 

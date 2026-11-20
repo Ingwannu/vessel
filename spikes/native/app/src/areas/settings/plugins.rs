@@ -137,7 +137,11 @@ impl Shell {
             });
         let state = &mut self.areas.settings.plugins;
         match target {
-            None => state.open = None,
+            None => {
+                state.open = None;
+                state.menu.close();
+                state.menu_for = None;
+            }
             Some((machine, epoch))
                 if !state
                     .open

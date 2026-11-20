@@ -198,7 +198,7 @@ impl Page {
     /// The switch was pressed: plugins `on` or off for the machine; nothing
     /// before it was read or while a change waits (the page's `disabled`).
     pub fn toggle(&mut self, tickets: &mut Tickets, on: bool) -> Option<Call> {
-        self.enabled?;
+        let _read = self.enabled?;
         self.begin(tickets, Pending::Switch(on), Request::Switch(on))
     }
 
