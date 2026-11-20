@@ -45,3 +45,24 @@ export async function postPreview(
   }
   throw new Error("vessel ui answered no preview address.");
 }
+
+/** What holds the tab's session key while its socket is welcomed. */
+export interface Keyed {
+  readonly sessionKey: string | null;
+}
+
+/** Keep `document` as the HTML preview of panel `slot` through `bridge`'s
+ * welcomed session; the address to frame it from. Sends nothing, and
+ * rejects, while the socket has not proved its server. */
+export function keepPreview(
+  bridge: Keyed,
+  slot: string,
+  document: string,
+  send?: Fetch,
+): Promise<string> {
+  const key = bridge.sessionKey;
+  if (key === null) {
+    return Promise.reject(new Error("Not connected to vessel ui."));
+  }
+  return postPreview(key, slot, document, send);
+}

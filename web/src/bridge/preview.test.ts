@@ -3,7 +3,7 @@
 import { expect, test, vi } from "vitest";
 
 import { Bridge } from "./client";
-import { postPreview, type Fetch } from "./preview";
+import { keepPreview, postPreview, type Fetch } from "./preview";
 import { fixtureId } from "../testing/ids";
 
 const key = "a".repeat(64);
@@ -74,7 +74,8 @@ test("a tab whose socket has not proved its server posts nothing", async () => {
     },
     "ws://127.0.0.1:9/api/ws",
   );
-  await expect(bridge.preview("s", "<p>x</p>")).rejects.toThrow(
+  expect(bridge.sessionKey).toBeNull();
+  await expect(keepPreview(bridge, "s", "<p>x</p>")).rejects.toThrow(
     "Not connected",
   );
   expect(send).not.toHaveBeenCalled();

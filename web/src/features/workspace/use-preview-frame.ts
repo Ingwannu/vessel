@@ -10,6 +10,7 @@
 import { useEffect, useId, useState } from "react";
 
 import { useFleet } from "../../context";
+import { framePreview } from "../../data/workspace/html-preview";
 
 /** This tab's prefix for its panels' names (made once, at load). */
 const TAB = crypto.randomUUID();
@@ -31,7 +32,7 @@ export function usePreviewFrame(document: string): PreviewFrame {
   const [answer, setAnswer] = useState<Answer | null>(null);
   useEffect(() => {
     let current = true;
-    void fleet.bridge.preview(slot, document).then(
+    void framePreview(fleet, slot, document).then(
       (url) => {
         if (current) setAnswer({ document, url });
       },

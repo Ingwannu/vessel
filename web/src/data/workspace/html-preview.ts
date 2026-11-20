@@ -12,6 +12,9 @@
 // `srcdoc` fallback takes the page's own policy and runs no script; the
 // prologue keeps either frame from fetching anything.
 
+import { keepPreview } from "../../bridge/preview";
+import type { Fleet } from "../fleet";
+
 const POLICY = [
   "default-src 'none'",
   "script-src 'unsafe-inline' 'unsafe-eval' blob:",
@@ -34,4 +37,15 @@ const BOM = "\uFEFF";
 /** `html` with Paseo's prologue in front. */
 export function withPreviewCsp(html: string): string {
   return PROLOGUE + (html.startsWith(BOM) ? html.slice(BOM.length) : html);
+}
+
+/** Keep `document` as the HTML preview of panel `slot` (ADR 0122); the
+ * address to frame it from. Rejects while the tab's socket is not
+ * welcomed, or when `vessel ui` keeps nothing. */
+export function framePreview(
+  fleet: Fleet,
+  slot: string,
+  document: string,
+): Promise<string> {
+  return keepPreview(fleet.bridge, slot, document);
 }
