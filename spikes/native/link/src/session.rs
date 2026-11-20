@@ -333,6 +333,7 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
                 },
                 Outgoing::Resize { cols, rows } => TerminalInput::Resize {
                     size: TerminalSize { cols, rows },
+                    intent: None,
                 },
             };
             client

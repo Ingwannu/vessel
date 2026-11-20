@@ -66,6 +66,10 @@ impl ConnectionLife {
     }
 
     /// Streams observe closure without keeping the actual context guard alive.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "A10 exception until D2 Preview or W14 reads it")
+    )]
     pub(crate) fn closed(&self) -> CancellationToken {
         self.closed.clone()
     }
