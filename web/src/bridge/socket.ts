@@ -163,11 +163,28 @@ export class BridgeSocket {
       messages = messages
         .then(async () => {
           if (!this.#current(socket)) return;
-          const frame = frames.parse(data);
+          let frame: ServerFrame;
+          try {
+            frame = frames.parse(data);
+          } catch (error) {
+            if (!verified) throw error;
+            // After the server proved itself, a frame that is not JSON is
+            // a broken connection, not a refusal: redial, keeping the key.
+            socket.close();
+            this.#dropped(socket);
+            return;
+          }
           if (verified) {
             if (frame.type === "challenge" || frame.type === "welcome")
               throw new Error("Repeated handshake");
-            this.#events.frame(frame);
+            // Once the server proved itself, a frame this page fails to
+            // handle (a store or reducer bug) is the page's fault, not a
+            // refusal: report it and keep the connection and the key.
+            try {
+              this.#events.frame(frame);
+            } catch (error) {
+              console.error("vessel ui could not handle a frame", error);
+            }
           } else if (frame.type === "challenge") {
             const hello = await handshake.hello(frame);
             if (this.#current(socket)) this.send(hello);
@@ -185,6 +202,7 @@ export class BridgeSocket {
           }
         })
         .catch(() => {
+          // A failed handshake, or a repeated one: the key is dropped.
           if (this.#socket === socket) this.#refuse();
         });
     });
