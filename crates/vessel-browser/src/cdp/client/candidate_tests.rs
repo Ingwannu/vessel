@@ -124,10 +124,30 @@ async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
     let frames = actor.watch(workspace, id.clone()).await?;
     let frame = frames.borrow().clone().unwrap();
     assert_eq!(frame.image().size().width().get(), size.width.get());
-    actor.input(workspace, id.clone(), frame.revision(), HumanInput::ReleaseAll).await?;
-    actor.navigate(workspace, id.clone(), "http://fixture.test/other".parse().unwrap()).await?;
+    actor
+        .input(
+            workspace,
+            id.clone(),
+            frame.revision(),
+            HumanInput::ReleaseAll,
+        )
+        .await?;
+    actor
+        .navigate(
+            workspace,
+            id.clone(),
+            "http://fixture.test/other".parse().unwrap(),
+        )
+        .await?;
     assert!(matches!(
-        actor.input(workspace, id.clone(), frame.revision(), HumanInput::ReleaseAll).await,
+        actor
+            .input(
+                workspace,
+                id.clone(),
+                frame.revision(),
+                HumanInput::ReleaseAll
+            )
+            .await,
         Err(ActorError::Page(crate::page::PageError::StaleFrame))
     ));
     actor.close(workspace, id).await?;
