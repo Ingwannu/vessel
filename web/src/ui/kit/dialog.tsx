@@ -97,6 +97,7 @@ export function Dialog({
   actions,
   back,
   search,
+  hideClose = false,
   sheet = "snap",
 }: {
   title: string;
@@ -111,6 +112,8 @@ export function Dialog({
   actions?: ReactNode;
   back?: DialogBack;
   search?: DialogSearch;
+  /** Title-only header for a compact list sheet. */
+  hideClose?: boolean;
   /** At a compact width: a sheet at Paseo's snap points (a dialog), or
    * as tall as its content (Paseo's ContextWindowSheet). */
   sheet?: SheetFit;
@@ -175,9 +178,11 @@ export function Dialog({
               {actions === undefined ? null : (
                 <div className="dialog-actions">{actions}</div>
               )}
-              <Base.Close
-                render={<IconButton label="Close" icon="close" size="sm" />}
-              />
+              {hideClose ? null : (
+                <Base.Close
+                  render={<IconButton label="Close" icon="close" size="sm" />}
+                />
+              )}
             </div>
             {search === undefined ? null : (
               <label className="dialog-search">

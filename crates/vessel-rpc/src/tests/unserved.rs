@@ -14,8 +14,8 @@ macro_rules! methods {
             inspect_workspace_label_delete: vessel_proto::workspace_labels::InspectWorkspaceLabelDelete => vessel_proto::workspace_labels::WorkspaceLabelDeleted;
             delete_workspace_label: vessel_proto::workspace_labels::DeleteWorkspaceLabel => vessel_proto::workspace_labels::WorkspaceLabelDeleted;
             get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
-            list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
-            get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+            list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::ServedWorkspace>;
+            get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::ServedWorkspace;
             rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
             pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
             release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
@@ -183,6 +183,11 @@ macro_rules! methods {
             rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
             agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
             detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
+            inbox_attention: vessel_proto::inbox_attention::GetInboxAttention => Vec<vessel_proto::inbox_attention::SessionAttention>;
+            read_inbox_through: vessel_proto::inbox_attention::ReadInboxThrough => Ack;
+            claim_notification: vessel_proto::notifications::ClaimNotification => vessel_proto::notifications::NotificationClaim;
+            clear_terminal_attention: vessel_proto::notifications::ClearTerminalAttention => vessel_proto::notifications::TerminalAttention;
+            report_terminal_activity: vessel_proto::notifications::ReportTerminalActivity => vessel_proto::notifications::TerminalAttention;
         }
     };
 }

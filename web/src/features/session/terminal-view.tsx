@@ -9,45 +9,17 @@
 // A routed session's model calls (protocol 7) are summed into the frame's
 // chrome; the records hold metadata only.
 
-import "@xterm/xterm/css/xterm.css";
-import "./terminal-view.css";
-
-import { FitAddon } from "@xterm/addon-fit";
-import { type ITheme, Terminal } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import { followSession, sendTerminal } from "../../data/calls";
-import { userInput } from "../../data/terminal-input";
-import { openExternal } from "../../data/links";
 import { addCall, type Usage, usageLine } from "../../data/models";
 import { decodeBytes } from "../../data/terminal";
-import { prefs } from "../../data/prefs";
-import { cssColor, onSchemeChange } from "../../data/theme";
-import { TerminalSender } from "../../data/terminal-sender";
 import { Banner, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
-import { SessionBar } from "./session-bar";
-
-/** The mono stack (tokens.css `--font-mono`): Geist Mono, the real
- * monospace faces, then Pretendard, then `monospace` (the operator's font
- * rule). xterm.js measures its cell from it, so it is written out. */
-const TERMINAL_FONT =
-  '"Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace';
-
-/** xterm's theme from the terminal's own tokens, resolved for the scheme
- * the page shows now; not the page's accent, which is black in the light
- * theme while the terminal is black in both. */
-function terminalTheme(): ITheme {
-  return {
-    background: cssColor("--term-bg"),
-    foreground: cssColor("--term-fg"),
-    cursor: cssColor("--term-cursor"),
-    selectionBackground: cssColor("--term-selection"),
-  };
-}
+import { mountTerminal } from "./mount-terminal";
 
 export function TerminalView({
   node,
@@ -74,72 +46,13 @@ export function TerminalView({
     if (element === null) {
       return undefined;
     }
-    const terminal = new Terminal({
-      fontFamily: TERMINAL_FONT,
-      // Appearance's code font, a pixel up, as the terminal token is.
-      fontSize: prefs.get().values.appearance.code_size + 1,
-      lineHeight: 1.25,
-      cursorBlink: true,
-      cursorStyle: "block",
-      convertEol: false,
-      scrollback: 5000,
-      // OSC 8 hyperlinks from the session follow the timeline's link
-      // policy (data/links.ts): http(s) only, after a confirm showing the
-      // URL, in a new isolated tab; the UI tab is never navigated.
-      linkHandler: {
-        activate: (_event, uri) => {
-          openExternal(uri);
-        },
-        allowNonHttpProtocols: false,
-      },
-      theme: terminalTheme(),
-    });
-    // The terminal's tokens differ a shade between the schemes.
-    const stopScheme = onSchemeChange(() => {
-      terminal.options.theme = terminalTheme();
-    });
-    const fit = new FitAddon();
-    let codeSize = prefs.get().values.appearance.code_size;
-    const stopSize = prefs.subscribe(() => {
-      const next = prefs.get().values.appearance.code_size;
-      if (next !== codeSize) {
-        codeSize = next;
-        terminal.options.fontSize = next + 1;
-        fit.fit();
-      }
-    });
-    terminal.loadAddon(fit);
-    terminal.open(element);
-    fit.fit();
-    setSize({ cols: terminal.cols, rows: terminal.rows });
-    // One send in flight, in typing order (data/terminal-sender.ts).
-    const sender = new TerminalSender(
-      (terminalInput) => sendTerminal(fleet, node, session.id, terminalInput),
-      () => {
-        toast("Keys dropped: the session is not reading its input", "error");
-      },
+    const terminal = mountTerminal(
+      element,
+      (input) => sendTerminal(fleet, node, session.id, input),
+      setSize,
+      () =>
+        toast("Keys dropped: the session is not reading its input", "error"),
     );
-    let typed = false;
-    const sendSize = () => {
-      if (!typed || !element.contains(document.activeElement)) {
-        return;
-      }
-      sender.resize(terminal.cols, terminal.rows);
-    };
-    const input = userInput(terminal, (data) => {
-      const first = !typed;
-      typed = true;
-      if (first) {
-        sendSize();
-      }
-      sender.keys(data);
-    });
-    const observer = new ResizeObserver(() => {
-      fit.fit();
-      setSize({ cols: terminal.cols, rows: terminal.rows });
-      sendSize();
-    });
-    observer.observe(element);
     const stop = followSession(fleet, node, session.id, 0, {
       record: (record) => {
         const event = record.event;
@@ -163,19 +76,13 @@ export function TerminalView({
     });
     return () => {
       stop();
-      stopScheme();
-      stopSize();
-      observer.disconnect();
-      input.dispose();
-      sender.close();
-      terminal.dispose();
+      terminal.close();
     };
   }, [fleet, node, session.id]);
   const frozen = stream?.state === "reconnecting" || stream?.state === "failed";
   const calls = usage?.id === session.id ? usage.usage : null;
   return (
     <>
-      <SessionBar node={node} label={label} session={session} renamed={null} />
       {stream?.state === "reconnecting" ? (
         <Banner>
           Reconnecting to {label} · {stream.message} · the terminal is frozen

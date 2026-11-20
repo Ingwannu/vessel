@@ -52,7 +52,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .session .inspector {
+  .session > .inspector {
     display: none;
   }
 }

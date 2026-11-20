@@ -750,7 +750,7 @@ fn the_plugin_methods_know_their_version_scope_and_shape() {
     assert!(refused.is_err());
 }
 
-/// ADR 0088's pane reads, drafted as 39 (`PULL_REQUEST_PANE_PROTOCOL`):
+/// ADR 0088's pane reads, protocol 39 (`PULL_REQUEST_PANE_PROTOCOL`):
 /// reads, as `pr.get`.
 const PULL_REQUEST_PANE_METHODS: &[(&str, Scope)] =
     &[("pr.timeline", Scope::Read), ("pr.check", Scope::Read)];
@@ -951,6 +951,7 @@ const FORWARDABLE: &[&str] = &[
     "agent.list",
     "agent.status",
     "usage.query",
+    // Semantic terminal state can forward; local connection claims cannot.
     // The inbox reads/marks forward; device-scoped push calls never do.
     "inbox.list",
     "inbox.get",
@@ -1005,6 +1006,8 @@ const FORWARDABLE: &[&str] = &[
     "agent.diagnostic",
     "project.create_directory",
     "forge.repos",
+    "terminal.attention_clear",
+    "terminal.activity",
     "pr.timeline",
     "pr.check",
 ];

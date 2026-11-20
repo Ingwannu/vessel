@@ -130,6 +130,7 @@ fn focus_reports_do_not_renew_activity_and_client_times_cannot_be_supplied() {
     let mut presence = state(PushFocus::Background, Some(180_001));
     presence.report(
         ReportPushPresence {
+            idle_age: None,
             focus: PushFocus::Elsewhere,
             activity: PushActivity::Unchanged,
         },
@@ -138,6 +139,7 @@ fn focus_reports_do_not_renew_activity_and_client_times_cannot_be_supplied() {
     assert!(!presence.present(now()));
     presence.report(
         ReportPushPresence {
+            idle_age: None,
             focus: PushFocus::Elsewhere,
             activity: PushActivity::Active,
         },
@@ -147,3 +149,42 @@ fn focus_reports_do_not_renew_activity_and_client_times_cannot_be_supplied() {
     assert!(presence.present(now()));
 }
 mod candidates;
+
+mod claims;
+
+#[test]
+fn desktop_idle_uses_node_time_minus_elapsed_idle_and_periodic_reports_do_not_extend_it() {
+    let now = now();
+    let mut state = Presence {
+        focus: PushFocus::Background,
+        active_at: None,
+    };
+    state.report(
+        ReportPushPresence {
+            focus: PushFocus::Background,
+            activity: PushActivity::Unchanged,
+            idle_age: Some(vessel_proto::push::PushIdleAge::new(100_000)),
+        },
+        now,
+    );
+    assert_eq!(state.active_at, Some(now - TimeDelta::seconds(100)));
+    state.report(
+        ReportPushPresence {
+            focus: PushFocus::Background,
+            activity: PushActivity::Unchanged,
+            idle_age: Some(vessel_proto::push::PushIdleAge::new(120_000)),
+        },
+        now + TimeDelta::seconds(20),
+    );
+    assert_eq!(state.active_at, Some(now - TimeDelta::seconds(100)));
+    assert!(!state.present(now + TimeDelta::seconds(81)));
+    state.report(
+        ReportPushPresence {
+            focus: PushFocus::Elsewhere,
+            activity: PushActivity::Active,
+            idle_age: Some(vessel_proto::push::PushIdleAge::new(120_000)),
+        },
+        now + TimeDelta::seconds(81),
+    );
+    assert_eq!(state.active_at, Some(now + TimeDelta::seconds(81)));
+}

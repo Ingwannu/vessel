@@ -31,8 +31,8 @@ use crate::ProtocolVersion;
 use crate::id::SessionId;
 
 /// `pr.timeline` and `pr.check`, and the checks' runs and times on
-/// `pr.get` (ADR 0088). Drafted as 39, after the shared terminals' 37 and
-/// the 38 drafted before it; the integrator assigns it in merge order.
+/// `pr.get` (ADR 0088). Assigned 39 at its node-line merge, after the
+/// shared terminals' 37 and the diff stat's 38.
 pub const PULL_REQUEST_PANE_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(39));
 
 /// A check run's, a workflow run's or a job's number on the forge: 1 to

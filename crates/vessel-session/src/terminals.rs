@@ -29,6 +29,12 @@
 //!   starts (its Decision Log), and a service's grandchildren must end
 //!   with it on every platform.
 
+// Semantic producers share the existing terminal info watch (ADR 0089).
+mod attention;
+mod attention_handle;
+#[cfg(test)]
+mod attention_handle_tests;
+pub use attention::AttentionError;
 mod backoff;
 mod handle;
 mod log;

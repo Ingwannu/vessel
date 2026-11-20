@@ -5,7 +5,13 @@
 // composer already keeps (data/drafts.ts), never through a channel of
 // its own.
 
-import { type RefObject, useCallback, useEffect, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 import { useFleet } from "../../context";
 import {
@@ -14,6 +20,7 @@ import {
   type SelectedLine,
   withReference,
 } from "../../data/workspace/reference";
+import { WorkspaceChat } from "./workspace-chat";
 import type { SessionId } from "../../wire/proto";
 
 /** A selection the button would send, and where to draw the button. */
@@ -86,6 +93,7 @@ export function useSelectionAsk(
   fence: (path: string) => string,
 ): { ask: Ask | null; send: () => void; dismiss: () => void } {
   const fleet = useFleet();
+  const openChat = useContext(WorkspaceChat);
   const [ask, setAsk] = useState<Ask | null>(null);
   useEffect(() => {
     const element = container.current;
@@ -134,7 +142,8 @@ export function useSelectionAsk(
     fleet.drafts.type(key, withReference(fleet.drafts.text(key), ask.text));
     window.getSelection()?.removeAllRanges();
     setAsk(null);
-  }, [ask, fleet, session]);
+    openChat?.();
+  }, [ask, fleet, openChat, session]);
   const dismiss = useCallback(() => {
     setAsk(null);
   }, []);

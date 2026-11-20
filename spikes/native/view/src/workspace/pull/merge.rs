@@ -70,6 +70,8 @@ pub fn merge_methods(pull: &PullRequest, status: &GitStatus) -> Vec<MergeMethod>
         review: _,
         mergeable,
         updated_at: _,
+        // Counts for a row's progress (ADR 0088), copied from `checks`;
+        // the forge already folds the required checks into `mergeable`.
         tally: _,
     } = summary;
     let open = *state == PullState::Open && !draft;

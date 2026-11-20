@@ -4,9 +4,9 @@ Status: proposed (implementer G, 2026-11-19; the coordinator's rulings of
 the same day). The number is the reservation "forge node gaps (G1)" of the
 parity plan, which had no file. Part 1 (`forge.repos`) was drafted as
 36 and assigned protocol 35 (`REPOSITORY_SEARCH_PROTOCOL`) at its
-node-line merge, the next free number in merge order. Parts 2 to 4 are
-drafted together as protocol 39 (`PULL_REQUEST_PANE_PROTOCOL`). The
-integrator assigns the real numbers at merge.
+node-line merge, the next free number in merge order. Parts 2 to 4 were
+drafted together as 39 and assigned protocol 39
+(`PULL_REQUEST_PANE_PROTOCOL`) at their node-line merge on 2026-11-20.
 
 ## Context
 
@@ -86,7 +86,7 @@ search.
   search holds only search on that host; any other limit answer still
   holds the whole host (secondary limits are the account's).
 
-### 2. Every check on `pr.get` (protocol 39, drafted)
+### 2. Every check on `pr.get` (protocol 39)
 
 `Checks` gains `runs: Vec<CheckRun>`, every context of the head as read
 (at most 100). `CheckRun` gains optional `run` (the check run's id),
@@ -99,7 +99,7 @@ runs a row in a listing every client polls was rejected). All are optional
 serde fields: an older client ignores them, an older node omits them, and
 `failing` keeps its meaning.
 
-### 3. `pr.timeline { session }` (protocol 39, drafted)
+### 3. `pr.timeline { session }` (protocol 39)
 
 `read`, open to agents as `pr.get` is, held to the same session rule. One
 GraphQL query: reviews (100), comments (100), review threads (100, each
@@ -110,7 +110,7 @@ answer carries `access` as `pr.get`, the items in Paseo's stable order
 4 MiB body bound also bounds the answer; a larger answer is `unreachable`
 with no partial list.
 
-### 4. `pr.check { session, run }` (protocol 39, drafted)
+### 4. `pr.check { session, run }` (protocol 39)
 
 `read`, as `pr.timeline`. Both are held to the caller's ownership of the
 session, as `pr.get`'s refresh is (each is a forge request on demand).
