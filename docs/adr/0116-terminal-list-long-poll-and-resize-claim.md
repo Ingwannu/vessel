@@ -64,7 +64,11 @@ the poll at once (a client asking again on each answer would spin) and apply ano
 - **A revision per place.** Fewer wakeups, but a terminal can change place membership only by being created or
   forgotten, and the node keeps at most 96, so one counter is simpler; a waiter woken by another place's change reads
   the same list and asks again.
-- **Owner by client name.** Two windows of one app would share an owner and fight again; Paseo keys by socket.
+- **Owner by client name.** Every client of one kind would share an owner; Paseo keys by socket. Vessel keys by
+  connection, the nearest it has (see the cost below).
+- **A client-chosen view id beside the intent** (owner = connection + view). It would separate page tabs and app windows
+  sharing one connection, as Paseo's sockets do, at the price of a field every client must mint and keep. Not taken
+  under the ruling (per connection identity); a follow-up if the shared cases matter.
 - **Refuse a non-owner's update with an error.** Every fit would need a refusal path; Paseo drops it silently and the
   next claim settles the size.
 
@@ -74,8 +78,12 @@ the poll at once (a client asking again on each answer would spin) and apply ano
   The minimum protocol stays 2; the store schema is unchanged.
 - The connection life gets its first consumer: the size owner reads `Connection::life().owner()`; the close observer
   (`closed()`) keeps its dead-code expectation until workspace D2 Preview or W14.
-- Cost: a call forwarded through a home node carries that home's connection, so the clients behind one home share its
-  ownership (they can still fight among themselves, not with clients connected directly).
+- Cost: clients multiplexed on one connection share its ownership and can still fight among themselves (not with other
+  connections): every tab of the page (vessel-web keeps one connection per node for all tabs), the windows of one
+  native app (one connection per machine), and the clients behind a home node (forwarded calls carry its connection).
+  What it separates: the app from the page, the CLI and another device.
+- Cost: the revision is the node's, so an agent, which lists only the terminals it opened, still wakes on other
+  terminals' changes: it learns when they happen, never what they are.
 - Cost: one task per kept terminal (at most 96) watches its info, ending with the terminal or the node.
 - Clients: the native app's terminal tabs move from the 2 s read to the long poll and send claims and updates at 37+
   (packet N1's consumer change, on the app line); the page does the same in P2.

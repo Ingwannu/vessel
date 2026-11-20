@@ -13,10 +13,12 @@
 //! - Owner: the connection's identity (`connection_life::Owner`), compared
 //!   by pointer and kept alive by the slot, so a later connection can never
 //!   match a gone one; a gone owner's terminal takes the next claim.
-//! - Cost: a call forwarded through a home node carries that home's
-//!   connection, so the clients behind one home share its ownership (they
-//!   fight as before among themselves, not with clients connected
-//!   directly).
+//! - Cost: clients multiplexed on one connection share its ownership and
+//!   still fight among themselves (not with other connections): every tab
+//!   of the page (its server keeps one connection per node), the windows of
+//!   one native app (one per machine), and the clients behind a home node
+//!   (calls it forwards carry its connection). Paseo keys by socket, which
+//!   is one per tab or window there.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
