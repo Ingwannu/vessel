@@ -28,6 +28,11 @@ pub struct ListTerminals {
     /// Only this session's or project's.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub place: Option<TerminalPlace>,
+    /// Wait (at most 30 s) until the node's terminal list `revision`
+    /// differs from this one (ADR 0116,
+    /// [`super::SHARED_TERMINALS_PROTOCOL`]; an older node answers at once).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changed_from: Option<u64>,
 }
 
 /// `terminal.get`: one terminal, at once or after its next change.
