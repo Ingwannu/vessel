@@ -41,9 +41,26 @@ test("a session starts in a new worktree once its commands are approved, setup s
     name: /^Branch vessel\/[0-9a-f]+: show changes$/,
   });
   await expect(chip).toBeVisible();
+  const branch = await chip.getAttribute("aria-label");
   await chip.click();
   await expect(tab(page, "Changes")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("No changes against base.")).toBeVisible();
+  const prior = page.url();
+  await openPanelTab(page, "Agent");
+  await page
+    .getByRole("textbox", { name: "Prompt" })
+    .fill("Review the same worktree");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page).not.toHaveURL(prior);
+  await expect(
+    page.getByRole("button", {
+      name: branch ?? /^Branch vessel\/[0-9a-f]+: show changes$/,
+    }),
+  ).toBeVisible();
+  await expect(tab(page, "Review the same worktree")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 /** `vessel` as the UI's own user runs it: the same book and data. */

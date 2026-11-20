@@ -127,7 +127,7 @@ export function NewSession({
     machine === null || agent === null
       ? []
       : profileChoices(state.profiles[machine] ?? [], agent);
-  const starter = useStarter(machine);
+  const starter = useStarter(machine, workspace?.place);
   const ready = starter.ready(
     sendable(effective, harness, options, agentLabel, listed !== undefined),
   );
@@ -152,11 +152,7 @@ export function NewSession({
       setBusy(false);
       return;
     }
-    const fromDraft = specOf(effective, harness, options);
-    const spec =
-      workspace?.place == null
-        ? fromDraft
-        : { ...fromDraft, cwd: null, place: workspace.place };
+    const spec = specOf(effective, harness, options);
     void starter.create(spec).then((created) => {
       if (created?.ok !== true) {
         setBusy(false);
