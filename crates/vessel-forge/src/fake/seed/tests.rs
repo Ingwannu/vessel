@@ -43,6 +43,12 @@ fn document() -> Raw {
         }],
     }
 }
+/// `pull` as the fake keeps it: the tally counted from its checks.
+fn installed(pull: &PullRequest) -> PullRequest {
+    let mut kept = pull.clone();
+    kept.summary.tally = CheckTally::of(&kept.checks);
+    kept
+}
 fn decode(raw: &Raw) -> Seed {
     Seed::decode(&serde_json::to_vec(raw).unwrap()).unwrap()
 }
@@ -200,7 +206,7 @@ async fn opening_reserves_seeded_numbers_and_capacity_without_overwrite() {
     );
     assert_eq!(
         forge.get(&repo(), preserved.summary.number).unwrap().pull,
-        preserved
+        installed(&preserved)
     );
     for number in 1..=MAX_PULLS {
         let mut read = super::super::pull(
@@ -341,7 +347,10 @@ async fn fixture_caches_and_merge_history_remain_bounded() {
     assert!(forge.state().found.is_empty());
     assert!(forge.state().seen.is_empty());
     assert_eq!(forge.merges().len(), MAX_PULLS);
-    assert_eq!(forge.get(&repo(), pull.summary.number).unwrap().pull, pull);
+    assert_eq!(
+        forge.get(&repo(), pull.summary.number).unwrap().pull,
+        installed(&pull)
+    );
 }
 
 #[tokio::test]
@@ -363,7 +372,10 @@ async fn a_seeded_highest_number_cannot_overflow_or_overwrite() {
             what: "a new pull request number"
         })
     ));
-    assert_eq!(forge.get(&repo(), old.summary.number).unwrap().pull, old);
+    assert_eq!(
+        forge.get(&repo(), old.summary.number).unwrap().pull,
+        installed(&old)
+    );
 }
 
 #[test]

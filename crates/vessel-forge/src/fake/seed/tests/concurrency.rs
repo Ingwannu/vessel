@@ -1,7 +1,7 @@
 //! Runtime capacity is checked through concurrent real provider operations.
 use std::sync::Arc;
 
-use super::{MAX_PULLS, Merge, SeededPull, decode, document, repo};
+use super::{MAX_PULLS, Merge, SeededPull, decode, document, installed, repo};
 use crate::{Forge as _, Opened, Opening};
 use vessel_proto::forge::{PullNumber, PullState};
 
@@ -50,6 +50,6 @@ async fn concurrent_opens_share_one_capacity_admission() {
     assert_eq!(forge.state().pulls.len(), MAX_PULLS);
     assert_eq!(
         forge.get(&repo(), preserved.summary.number).unwrap().pull,
-        preserved
+        installed(&preserved)
     );
 }
