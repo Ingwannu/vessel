@@ -111,12 +111,10 @@ impl NodeService {
             .map_err(wire)?;
         // Registered and watched before anything else is awaited: a caller
         // that stops waiting now leaves a terminal the node still ends.
-        self.terminals.register(reservation, handle.clone(), None);
-        if let Some(activity) = &activity {
-            self.terminals
-                .install_producer(id, &activity.secret)
-                .map_err(wire)?;
-        }
+        // Its activity capability is part of the entry from the start.
+        let secret = activity.as_ref().map(|activity| &activity.secret);
+        self.terminals
+            .register(reservation, handle.clone(), None, secret);
         // Registered, it is one of the live terminals a removal reads.
         drop(hold);
         let here = self.links.node();

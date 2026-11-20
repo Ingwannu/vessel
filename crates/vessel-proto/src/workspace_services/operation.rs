@@ -102,17 +102,26 @@ impl WorkspaceScriptOutcome {
                     workspace: *workspace,
                     commands,
                 }),
+            // The row's terminal keeps its attention cut (ADR 0089).
             Self::Accepted {
-                workspace: _,
-                snapshot: _,
-                row: _,
-            }
-            | Self::Already {
-                workspace: _,
-                snapshot: _,
-                row: _,
-            }
-            | Self::Refused {
+                workspace,
+                snapshot,
+                row,
+            } => row.for_protocol(protocol).map(|row| Self::Accepted {
+                workspace: *workspace,
+                snapshot: *snapshot,
+                row: Box::new(row),
+            }),
+            Self::Already {
+                workspace,
+                snapshot,
+                row,
+            } => row.for_protocol(protocol).map(|row| Self::Already {
+                workspace: *workspace,
+                snapshot: *snapshot,
+                row: Box::new(row),
+            }),
+            Self::Refused {
                 workspace: _,
                 reason: _,
             }
