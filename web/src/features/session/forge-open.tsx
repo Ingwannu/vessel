@@ -53,28 +53,34 @@ export function forgeOpenWords(language: string): typeof en {
   return language.toLowerCase().startsWith("ko") ? ko : en;
 }
 
+/** A status as read, and for which folder of which node. */
+interface Read {
+  node: NodeKey;
+  root: WorkspaceRoot;
+  status: GitStatus | null;
+}
+
 /** `root`'s status, read again every [`FRESH_MS`] while the page shows;
- * null before the first answer or when it failed. */
+ * null before the first answer for this folder or when it failed. */
 function useStatus(node: NodeKey, root: WorkspaceRoot | null): GitStatus | null {
   const fleet = useFleet();
-  const [status, setStatus] = useState<GitStatus | null>(null);
+  const [read, setRead] = useState<Read | null>(null);
   useEffect(() => {
-    setStatus(null);
     if (root === null) {
       return;
     }
     let live = true;
-    const read = () => {
+    const ask = () => {
       void readStatus(fleet, node, root).then((outcome) => {
         if (live) {
-          setStatus(outcome.ok ? outcome.value : null);
+          setRead({ node, root, status: outcome.ok ? outcome.value : null });
         }
       });
     };
-    read();
+    ask();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") {
-        read();
+        ask();
       }
     }, FRESH_MS);
     return () => {
@@ -82,7 +88,10 @@ function useStatus(node: NodeKey, root: WorkspaceRoot | null): GitStatus | null 
       clearInterval(timer);
     };
   }, [fleet, node, root]);
-  return status;
+  // An answer for another folder (the session moved) is not this one's.
+  return read !== null && read.node === node && read.root === root
+    ? read.status
+    : null;
 }
 
 export function ForgeOpen({
