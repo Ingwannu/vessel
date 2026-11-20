@@ -5,7 +5,8 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 use vessel_proc::{Child, OwnedGroupExit, ProcessLifetime, Signal, Spawned};
 
-use super::{CdpError, Client, Events, requests, transport};
+use super::{CdpError, Client, Events};
+use crate::cdp::{requests, transport};
 use crate::launch::{LaunchError, Plan};
 use crate::preparation::{Preparation, PreparationError};
 

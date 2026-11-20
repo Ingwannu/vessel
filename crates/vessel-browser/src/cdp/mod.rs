@@ -8,8 +8,6 @@
 mod client;
 mod endpoint;
 mod identity;
-#[cfg(all(test, target_os = "linux"))]
-mod owner;
 pub(crate) mod requests;
 #[cfg(test)]
 mod tests;

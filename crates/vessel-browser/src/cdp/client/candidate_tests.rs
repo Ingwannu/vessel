@@ -3,8 +3,8 @@
 //! The exact artifact is run only on the approved host/account. Private fixture
 //! storage stays quarantined at a fresh nonce path; no product profile or engine
 //! admission is released from a leader/accepted-group cleanup receipt.
-use super::super::owner::Owner;
 use super::candidate_network::NetworkFixture;
+use super::owner::Owner;
 use super::*;
 use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;

@@ -6,6 +6,8 @@ mod candidate_network;
 mod candidate_page;
 #[cfg(all(test, target_os = "linux"))]
 mod candidate_tests;
+#[cfg(all(test, target_os = "linux"))]
+mod owner;
 #[cfg(test)]
 mod pipe_tests;
 
