@@ -131,7 +131,9 @@ fn needs_the_plugin_protocol() {
     let since = crate::plugins::PROTOCOL.unwrap();
     assert_eq!(Some(since), vessel_proto::plugins::PLUGINS_PROTOCOL);
     assert!(speaks(Some(since)));
-    assert!(!speaks(Some(ProtocolVersion::new(since.get().saturating_sub(1)))));
+    assert!(!speaks(Some(ProtocolVersion::new(
+        since.get().saturating_sub(1)
+    ))));
     assert!(!speaks(None));
 }
 
