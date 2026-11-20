@@ -18,6 +18,11 @@
 //!   screen's: its `TerminalSender` keeps one send in flight per terminal.
 //! - Cost: no automatic reattach. A follow that drops reports `Lost`, and
 //!   the screen follows again from its cursor when the machine is back.
+//! - Several clients (ADR 0116, protocol 37): a list may wait for the
+//!   node's revision to move, and a size names a claim or an update. Both
+//!   are left out for an older node, which would refuse them; the answer
+//!   says whether the node waits, so the screen never re-asks a node that
+//!   answers at once.
 
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::terminal_tabs::Failure;
@@ -36,6 +41,10 @@ pub enum Request {
     List {
         /// Which place.
         place: TerminalPlace,
+        /// The list's revision last seen: the node answers when it moves
+        /// (ADR 0116's long poll, at most 30 s). Dropped for a node below
+        /// `SHARED_TERMINALS_PROTOCOL`, which answers at once.
+        changed_from: Option<u64>,
     },
     /// Follow a terminal's output from `from` (`terminal.subscribe`, its
     /// history paged first), replacing an earlier follow of it.
@@ -89,6 +98,9 @@ pub enum Reply {
         place: TerminalPlace,
         /// Its terminals.
         result: Result<TerminalList, Failure>,
+        /// Whether the node waits on `changed_from` (protocol 37 or later),
+        /// so the screen may ask again at once.
+        waits: bool,
     },
     /// A follow began: the terminal as it was then (records before its
     /// `next_seq` are history, the rest live).
@@ -147,9 +159,10 @@ impl Ask {
                 place,
                 result: Err(failure),
             },
-            Request::List { place } => Reply::Listed {
+            Request::List { place, .. } => Reply::Listed {
                 place,
                 result: Err(failure),
+                waits: false,
             },
             Request::Follow { terminal, .. } => Reply::Lost { terminal, failure },
             Request::Send { terminal, .. } => Reply::Sent {
@@ -167,6 +180,26 @@ impl Ask {
             reply,
         })
     }
+}
+
+/// A size's intent as `protocol`'s node takes it: none below ADR 0116's
+/// protocol, whose `Call::since` refuses one (an older node applies every
+/// size, as a claim would).
+#[cfg(not(target_arch = "wasm32"))]
+#[must_use]
+pub(crate) fn intent_for(
+    protocol: vessel_proto::ProtocolVersion,
+    intent: vessel_proto::ResizeIntent,
+) -> Option<vessel_proto::ResizeIntent> {
+    waits_on_revisions(protocol).then_some(intent)
+}
+
+/// Whether `protocol`'s node waits on `terminal.list`'s `changed_from` and
+/// takes a size's intent (ADR 0116).
+#[cfg(not(target_arch = "wasm32"))]
+#[must_use]
+pub(crate) fn waits_on_revisions(protocol: vessel_proto::ProtocolVersion) -> bool {
+    vessel_proto::terminals::SHARED_TERMINALS_PROTOCOL.is_some_and(|since| protocol >= since)
 }
 
 #[cfg(not(target_arch = "wasm32"))]

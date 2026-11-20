@@ -154,6 +154,7 @@ async fn remove(owner: &NodeClient, worktree: WorktreeId) -> RemoveWorktreeOutco
         .call(RemoveWorktree {
             worktree,
             if_lost: IfLost::Discard,
+            end_terminals: false,
         })
         .await
         .unwrap()

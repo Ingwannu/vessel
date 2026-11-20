@@ -456,6 +456,11 @@ pub struct RemoveWorktree {
     /// What to do when something would be lost.
     #[serde(default)]
     pub if_lost: IfLost,
+    /// End the live terminals in it first (ADR 0121, Paseo's
+    /// `killTerminalsForWorkspace`): the client asked the person, showing
+    /// how many. Without it a live terminal refuses the removal, as before.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub end_terminals: bool,
 }
 
 /// `worktree.snapshots`: a project's snapshots.

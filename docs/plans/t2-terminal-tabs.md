@@ -37,7 +37,10 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   Cmd+V on macOS, Ctrl+V elsewhere, bracketed when the program asked
   (`terminal/runtime/terminal-paste.ts`); input made before attach waits.
 - Size: a focused pane claims its size (`terminal-pane-focus-claim.ts`),
-  resizes debounced 100 ms (`TERMINAL_RESIZE_DEBOUNCE_MS`).
+  resizes debounced 100 ms (`TERMINAL_RESIZE_DEBOUNCE_MS`). The server keeps
+  one owner per terminal (`terminal/terminal-size-ownership.ts`): a pane
+  claims on focus and on attach, and its later fits are updates, dropped
+  once another client claimed it.
 - Reconnect: the stream controller attaches again when the host is back
   (`terminal/runtime/terminal-stream-controller.ts`), restoring from where
   the screen stands.
@@ -66,6 +69,24 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   settle), the close confirm, the list asked for the shown workspace on
   each fleet read and reconciled into tabs (the layout written only when
   its set of terminal tabs differs).
+- Several clients (ADR 0116, protocol 37; packet N1's consumer):
+  - The list is a long poll: the first ask answers at once, then the screen
+    asks from the revision it saw and the node answers when the list moves;
+    an answer that moved is asked again at once (one in flight, so a burst
+    is one refresh). An answer that did not move (the node's 30 s bound, or
+    a wait it had no room for) waits for the next fleet read, so a node out
+    of wait room is never asked in a loop. Below 37 the link drops the
+    revision and says the node does not wait: the fleet read asks, as
+    before.
+  - The size: a pane claims when it takes the keyboard or attaches, even at
+    the size already sent (another client may have taken the shell
+    meanwhile), and sends updates for later fits while focused. A size
+    replacing a queued claim stays a claim. Below 37 no intent is sent.
+  - After a confirmed Close the keyboard goes to the shell the focused pane
+    now shows (the dialog's opener was the closed pane).
+  - A tab the list added and nobody opened yet is labelled with the title
+    from the list (it had shown "Terminal" until opened); Paseo labels every
+    listed tab.
 - The launch table enables Terminal; the New tab panel passes its tab to
   replace; the compact switcher's New terminal opens one; Ctrl+Shift+T goes
   through the layout's shortcut handler; one create at a time (a press
@@ -80,10 +101,11 @@ Read from Paseo 0.15.4 (`packages/app/src`).
 
 - The shell opens beside the shown session (`TerminalPlace::Session`, in
   its folder): a workspace layout is a session's today.
-- A shell another client opened shows within one fleet read (2 s), not at
-  once: the node pushes no list until ADR 0116 (`terminal.watch`).
-- Another viewer's resize is not refused: no claim/update on the wire until
-  ADR 0116.
+- The list is a long poll, not a push (ADR 0116): a shell another client
+  opened shows one round trip after the change. Below protocol 37 it shows
+  within one fleet read (2 s).
+- Size ownership is per connection, not per window (ADR 0116): the app's
+  windows share one connection per machine, so they still share an owner.
 - The label is a rename's title or "Terminal", never the shell's own (no
   OSC title on the node; a later node packet).
 - A create's failure says "Failed to create terminal" (the machine's words
@@ -111,7 +133,10 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   tab is the shortcuts' terminal scope; only a terminal tab's own Close
   asks to close it (a bulk close stays refused); a second create waits for the
   first; a tab whose connection dropped follows again once its machine is
-  back.
+  back; a node that waits is asked again only when the list moved; a pane
+  claims its size on focus and updates it after; a confirmed Close hands the
+  keyboard to the shell now shown; a listed tab not yet opened shows its
+  title.
 - Unit tests start no shell (the link is a channel). Captures run
   `scripts/fleet.sh`, whose nodes start under `env -i` with a scratch home:
   the shell is the account's program by ADR 0031's detection (no `SHELL`),

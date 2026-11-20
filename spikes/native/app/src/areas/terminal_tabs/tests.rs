@@ -18,8 +18,8 @@ use vessel_app_view::layout::{
 };
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::{Machine, Reach};
-use vessel_proto::SessionId;
 use vessel_proto::terminals::{TerminalKind, TerminalList};
+use vessel_proto::{ResizeIntent, SessionId};
 
 struct Probe(Entity<Shell>, Receiver<Command>, SessionId, TabId);
 
@@ -428,6 +428,7 @@ fn a_list_adds_the_places_shells_and_drops_ended_ones(cx: &mut TestAppContext) {
                     terminals: vec![first.clone(), second.clone()],
                     revision: 1,
                 }),
+                waits: false,
             },
             cx,
         );
@@ -450,6 +451,7 @@ fn a_list_adds_the_places_shells_and_drops_ended_ones(cx: &mut TestAppContext) {
                     terminals: vec![first.clone(), ended],
                     revision: 2,
                 }),
+                waits: false,
             },
             cx,
         );
@@ -483,5 +485,217 @@ fn a_focused_tab_is_the_shortcuts_terminal_scope(cx: &mut TestAppContext) {
         assert!(shell.terminal_focused(window));
         shell.areas.session.composer.focus(window, cx);
         assert!(!shell.terminal_focused(window));
+    });
+}
+
+fn listed(place: &TerminalPlace, revision: u64, waits: bool) -> Reply {
+    Reply::Listed {
+        place: place.clone(),
+        result: Ok(TerminalList {
+            terminals: Vec::new(),
+            revision,
+        }),
+        waits,
+    }
+}
+
+/// ADR 0116's long poll: asked again at once from the answered revision
+/// while the list moves; an answer that did not move (the node's bound, or
+/// a wait it had no room for) waits for the next fleet read; one ask in
+/// flight, so fleet reads meanwhile ask nothing.
+#[gpui::test]
+fn a_node_that_waits_is_asked_again_only_when_the_list_moved(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let place = TerminalPlace::Session { session };
+    let from = |requests: &[Request]| -> Vec<Option<u64>> {
+        requests
+            .iter()
+            .filter_map(|request| match request {
+                Request::List { changed_from, .. } => Some(*changed_from),
+                Request::Create { .. }
+                | Request::Follow { .. }
+                | Request::Unfollow { .. }
+                | Request::Send { .. }
+                | Request::Close { .. } => None,
+            })
+            .collect()
+    };
+    shell.update_in(cx, |shell, _window, _cx| shell.terminal_tabs_poll());
+    assert_eq!(
+        from(&sent(&probe, cx)),
+        [None],
+        "the first ask answers at once"
+    );
+    shell.update_in(cx, |shell, _window, cx| {
+        answer(shell, listed(&place, 4, true), cx);
+    });
+    assert_eq!(
+        from(&sent(&probe, cx)),
+        [Some(4)],
+        "then waits from what it saw"
+    );
+    shell.update_in(cx, |shell, _window, _cx| shell.terminal_tabs_poll());
+    assert!(from(&sent(&probe, cx)).is_empty(), "one ask in flight");
+    shell.update_in(cx, |shell, _window, cx| {
+        answer(shell, listed(&place, 4, true), cx);
+    });
+    assert!(
+        from(&sent(&probe, cx)).is_empty(),
+        "an unmoved answer is not re-asked"
+    );
+    shell.update_in(cx, |shell, _window, cx| {
+        shell.terminal_tabs_poll();
+        answer(shell, listed(&place, 5, true), cx);
+    });
+    assert_eq!(from(&sent(&probe, cx)), [Some(4), Some(5)]);
+    // A node below the protocol answers at once: the fleet read asks.
+    shell.update_in(cx, |shell, _window, cx| {
+        answer(shell, listed(&place, 0, false), cx);
+    });
+    assert!(from(&sent(&probe, cx)).is_empty());
+}
+
+/// ADR 0116's size claim: the focused, live pane claims its size, later
+/// fits are updates, and taking the keyboard again claims again, even at
+/// the size already sent.
+#[gpui::test]
+fn a_pane_claims_its_size_on_focus_and_updates_it_after(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let info = shell_info(session);
+    let terminal = info.id;
+    let key = PaneKey {
+        machine: "laptop".to_owned(),
+        terminal,
+    };
+    let fit = |cols, rows| GridSize::new(cols, rows).ok();
+    let sizes = |requests: Vec<Request>| -> Vec<(u16, u16, ResizeIntent)> {
+        requests
+            .into_iter()
+            .filter_map(|request| match request {
+                Request::Send {
+                    outgoing: Outgoing::Resize { cols, rows, intent },
+                    ..
+                } => Some((cols, rows, intent)),
+                Request::Send { .. }
+                | Request::Create { .. }
+                | Request::List { .. }
+                | Request::Follow { .. }
+                | Request::Unfollow { .. }
+                | Request::Close { .. } => None,
+            })
+            .collect()
+    };
+    let sent_ok = |shell: &mut Shell, cx: &mut Context<'_, Shell>| {
+        answer(
+            shell,
+            Reply::Sent {
+                terminal,
+                result: Ok(()),
+            },
+            cx,
+        );
+    };
+    shell.update_in(cx, |shell, window, cx| {
+        let mut pane = Pane::new(Origin::Opened, cx, &key);
+        pane.stage = Stage::Live;
+        pane.fit = fit(80, 24);
+        let _none = shell.areas.terminal_tabs.panes.insert(key.clone(), pane);
+        shell.terminal_tab_focused_in(&key, window, cx);
+    });
+    assert_eq!(sizes(sent(&probe, cx)), [(80, 24, ResizeIntent::Claim)]);
+    shell.update_in(cx, |shell, _window, cx| {
+        sent_ok(shell, cx);
+        if let Some(pane) = shell.areas.terminal_tabs.panes.get_mut(&key) {
+            pane.fit = fit(100, 30);
+        }
+        shell.terminal_tab_claim(&key);
+        // The same fit again sends nothing.
+        sent_ok(shell, cx);
+        shell.terminal_tab_claim(&key);
+    });
+    assert_eq!(sizes(sent(&probe, cx)), [(100, 30, ResizeIntent::Update)]);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_tab_focused_out(&key, cx);
+        shell.terminal_tab_claim(&key);
+        shell.terminal_tab_focused_in(&key, window, cx);
+    });
+    assert_eq!(
+        sizes(sent(&probe, cx)),
+        [(100, 30, ResizeIntent::Claim)],
+        "nothing while unfocused; the keyboard back claims again"
+    );
+}
+
+/// P1 review note 4: after a confirmed Close the keyboard goes to the shell
+/// the focused pane now shows, not to the closed pane.
+#[gpui::test]
+fn a_confirmed_close_hands_the_keyboard_to_the_shell_now_shown(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let first = shell_info(session);
+    let second = shell_info(session);
+    let kept = first.id;
+    for info in [first, second] {
+        shell.update_in(cx, |shell, window, cx| {
+            shell.terminal_tab_new(None, window, cx);
+            answer(
+                shell,
+                Reply::Created {
+                    place: TerminalPlace::Session { session },
+                    result: Ok(Box::new(info)),
+                },
+                cx,
+            );
+        });
+    }
+    let _created = sent(&probe, cx);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.areas.terminal_tabs.focus_next = None;
+        assert!(shell.run_layout_action(LayoutAction::Close(CloseScope::Current), window, cx));
+        shell.terminal_tab_close(window, cx);
+        assert_eq!(terminal_tabs(shell), vec![kept]);
+        assert_eq!(
+            shell.areas.terminal_tabs.focus_next,
+            Some(PaneKey {
+                machine: "laptop".to_owned(),
+                terminal: kept,
+            })
+        );
+    });
+}
+
+/// A tab the list added and nobody opened yet shows the title another
+/// client gave its shell (Paseo labels every listed tab), not the fallback.
+#[gpui::test]
+fn a_listed_tab_not_yet_opened_shows_its_title(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let place = TerminalPlace::Session { session };
+    let mut named = shell_info(session);
+    named.title = "Opened by the CLI".parse().ok();
+    let id = named.id;
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_tabs_poll();
+        answer(
+            shell,
+            Reply::Listed {
+                place: place.clone(),
+                result: Ok(TerminalList {
+                    terminals: vec![named.clone()],
+                    revision: 1,
+                }),
+                waits: false,
+            },
+            cx,
+        );
+        shell.terminal_tabs_reconcile(crate::areas::layout::mode(window), cx);
+        assert_eq!(terminal_tabs(shell), vec![id]);
+        assert_eq!(label(shell, id), "Opened by the CLI");
     });
 }
