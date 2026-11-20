@@ -264,6 +264,8 @@ targets; its broader registry/store work remains a separate dependency.
 | Bounded declarations, frames, schemas and queues | New format needs resource and cancellation guarantees |
 | Validated bounded theme/contribution identifiers and control-free names | Native retained identities must be safe keys; this is stricter than the theme parser's unconstrained id string |
 | Safe typed errors rather than helper exception text on scoped wire | Preserve retry class without leaking secrets or local paths |
+| Stated exception (2026-11-20, coordinator ruling; ADR 0115 "Settings"): a settings refusal's words reach the caller | Paseo shows its schema's messages so a person can fix a value. Only for `plugin.settings.*`, only to Admin callers (never agents), as plain text cut to 1 KiB with control characters replaced; the full text goes to the plugin's log |
+| The node writes plugin settings files; the helper never does (2026-11-20, ADR 0115 "Settings") | Paseo's plugin process owns its store; a Vessel helper may be any program, and its file access stays narrow. The node keeps the envelope, revision, conflict check and owner-only atomic write; the helper parses and migrates |
 | Attachment context URLs require explicit HTTP(S) authority and no userinfo | Retained context links have predictable client opening semantics; registration never fetches them. Paseo's general URL schema also accepts other schemes |
 | Bounded attachment items/text/URLs and distinct bounded whole search lists | Bound retained draft/picker resources and avoid ambiguous selection; excessive results refuse rather than silently truncate |
 | Declarative cache instead of JS bundle cache | Same host/hash/offline ownership, no client execution |

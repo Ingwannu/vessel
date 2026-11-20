@@ -68,6 +68,26 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 42 (drafted 2026-11-20, milestone 12): plugin settings documents (impl P, ADR 0115 "Settings")
+
+Drafted 42 (`PLUGIN_SETTINGS_PROTOCOL`, `PROTOCOL_VERSION` 42), the next after the plugin catalog's 41; the number
+is assigned at the node-line merge. Three unary methods, `admin`, refused to agents, not forwardable. Each needs a
+running helper that declared the document in `ready`: `not_found` for an uninstalled plugin, an undeclared document
+or a client-only plugin; `unavailable` when it is not running.
+
+- `plugin.settings.read {plugin, settings}` answers `{status: "ready", revision, values}` or `{status: "invalid",
+  revision, error}` (Paseo's `SettingsReadResultSchema`).
+- `plugin.settings.write {plugin, settings, revision, values}` and `plugin.settings.reset {plugin, settings,
+  revision}` answer `{status: "saved", revision, values}`, `{status: "conflict", error}` or `{status: "invalid",
+  error}` (Paseo's `SettingsWriteResultSchema`).
+- `revision` is `missing` or a sha256 in lowercase hex; `error` is plain text of at most 1 KiB without control
+  characters. A save, reset or migration moves `plugin.watch`.
+- The private helper pipe (not node RPC): `ready` may list `settings: [{id, version}]`; the node sends a `settings`
+  call whose `step` is `parse`, `migrate` or `changed`, answered with `{verdict: "valid", values}` or `{verdict:
+  "invalid", message}` (any value for `changed`). An older helper sends no `settings` and keeps no documents.
+- The minimum protocol remains 2. The store schema is unchanged; documents live in `plugin-settings/<id>/` beside
+  it.
+
 ## Version 41 (2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
 
 Assigned 41 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 41) at its node-line merge, the next after the workspace-folder
