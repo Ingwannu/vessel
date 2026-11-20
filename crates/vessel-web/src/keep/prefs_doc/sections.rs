@@ -12,8 +12,8 @@ use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
     ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, LabelPicks, Layout,
-    MachineDefaults, Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery,
-    UsageDisplay, UsagePins, UsagePreferences,
+    MachineDefaults, Notifications, Panel, SendKey, SessionSort, SidebarTrailing, SidebarView,
+    Theme, TurnDelivery, UsageDisplay, UsagePins, UsagePreferences,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -82,6 +82,7 @@ section! {
         ended: bool,
         labels: LabelPicks,
         usage: bool,
+        trailing: SidebarTrailing,
     }
 }
 

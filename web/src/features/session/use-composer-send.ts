@@ -30,6 +30,7 @@ import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type { ContentBlock, Delivery, SessionInfo } from "../../wire/proto";
 import type { DraftState } from "../compose/use-draft";
+import { usePluginSlash } from "./use-plugin-slash";
 
 /** A queued prompt open in the composer. */
 export interface Editing {
@@ -78,6 +79,7 @@ export function useComposerSend({
   onSent: () => void;
 }): ComposerSend {
   const fleet = useFleet();
+  const slash = usePluginSlash(node, session);
   const preferred = useStore(prefs, (state) => state.values.composer.delivery);
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -103,6 +105,12 @@ export function useComposerSend({
 
   const send = (other: boolean) => {
     if (blocked) {
+      return;
+    }
+    // A plugin's `/name args` runs its method instead (use-plugin-slash.ts).
+    if (slash.run(text, filled)) {
+      draft.clear();
+      onSent();
       return;
     }
     switch (plan.kind) {

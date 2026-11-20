@@ -31,6 +31,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     ended: true,
     labels: [],
     usage: false,
+    trailing: "timestamp",
   },
   usage: { display: "used", host: null, pins: null },
   defaults: {},
@@ -123,6 +124,11 @@ export function applyChange(
       };
     case "sidebar_usage":
       return { ...prefs, sidebar: { ...prefs.sidebar, usage: change.value } };
+    case "sidebar_trailing":
+      return {
+        ...prefs,
+        sidebar: { ...prefs.sidebar, trailing: change.value },
+      };
     case "usage_display":
       return { ...prefs, usage: { ...prefs.usage, display: change.value } };
     case "usage_host":

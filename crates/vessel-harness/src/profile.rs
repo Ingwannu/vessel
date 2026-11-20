@@ -28,8 +28,9 @@
 //! variables the route sets or removes.
 //!
 //! `agent_terminals` lets the agents of a session with this profile open
-//! terminals beside it, or beside a session they started whose profile
-//! sets it too (ADR 0031). It is off for every default profile and
+//! terminals for it, or for a session they started whose profile sets it
+//! too (ADR 0031); from protocol 40 such a terminal opens in that
+//! session's workspace (TRACKER 832). It is off for every default profile and
 //! unless written: a terminal the node starts is outside the harness's own
 //! sandbox, so a person turns it on knowing that sandbox.
 //!

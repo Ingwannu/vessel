@@ -92,6 +92,10 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             Ok(client.kill(info.id).await?)
         }
         Command::Mcp => Ok(Box::pin(vessel_mcp::run_stdio()).await?),
+        Command::Hooks { agent, event } => {
+            crate::hooks::run(&agent, &event).await;
+            Ok(())
+        }
         Command::Init(args) => {
             let options = init::Options {
                 service: args.service,
