@@ -58,7 +58,9 @@ function CompactTabs(props: TabChromeProps) {
           aria-label={words.switcher(items.length)}
           aria-haspopup="dialog"
           aria-expanded={open}
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setOpen(true);
+          }}
         >
           <span className="workspace-tab-count">{items.length}</span>
         </Button>
@@ -80,7 +82,9 @@ function CompactTabs(props: TabChromeProps) {
         <Dialog
           title={words.tabs}
           hideClose
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false);
+          }}
           footer={
             <div className="workspace-switcher-footer">
               <Button

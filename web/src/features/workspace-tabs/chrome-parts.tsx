@@ -53,7 +53,9 @@ function actionsFor(
       label,
       icon: "close" as const,
       disabled: targets.length === 0,
-      run: () => props.closeMany(targets, label),
+      run: () => {
+        props.closeMany(targets, label);
+      },
     };
   });
 }
@@ -90,7 +92,9 @@ export function tabMenu(
           label: props.words.close,
           icon: "close",
           danger: true,
-          run: () => props.close(item),
+          run: () => {
+            props.close(item);
+          },
         },
       ])}
     </>

@@ -47,9 +47,9 @@ export function DesktopTabs(props: TabChromeProps) {
       );
     } else {
       props.select(target.tab);
-      strip.current
-        ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
-        [next]?.focus();
+      const buttons =
+        strip.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+      buttons?.[next]?.focus();
     }
   };
   return (
@@ -106,8 +106,12 @@ export function DesktopTabs(props: TabChromeProps) {
                     title={item.label}
                     variant="ghost"
                     size="sm"
-                    onClick={() => props.select(item.tab)}
-                    onKeyDown={(event) => onKey(event, index)}
+                    onClick={() => {
+                      props.select(item.tab);
+                    }}
+                    onKeyDown={(event) => {
+                      onKey(event, index);
+                    }}
                     draggable
                     onDragStart={(event) => {
                       drag.current = key;
@@ -134,7 +138,9 @@ export function DesktopTabs(props: TabChromeProps) {
                   icon="close"
                   size="xs"
                   variant="ghost"
-                  onClick={() => props.close(item)}
+                  onClick={() => {
+                    props.close(item);
+                  }}
                 />
               </span>
             </div>

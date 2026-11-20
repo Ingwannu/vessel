@@ -1,16 +1,11 @@
 import { useRef, useState } from "react";
 
 import { useFleet } from "../../context";
-import { readSession, reloadSession, renameSession } from "../../data/calls";
-import { markSession } from "../../data/conversation-calls";
+import { reloadSession, renameSession } from "../../data/calls";
 import { isLive } from "../../data/format";
 import { canReload } from "../../data/reload";
 import type { WorkspaceTab } from "../../data/workspace/tab-layout";
-import { nodeError } from "../../data/workspace/root";
-import {
-  closeWorkspaceTerminal,
-  renameWorkspaceTerminal,
-} from "../../data/workspace/terminals";
+import { renameWorkspaceTerminal } from "../../data/workspace/terminals";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
@@ -20,6 +15,7 @@ import type {
   TerminalInfo,
 } from "../../wire/proto";
 import type { TabAction, TabItem } from "./chrome-parts";
+import { applyClose, childAgent } from "./close-tabs";
 import type { TabWords } from "./words";
 
 interface Confirmation {
@@ -27,10 +23,6 @@ interface Confirmation {
   message: string;
   label: string;
   tabs: readonly WorkspaceTab[];
-}
-
-export function childAgent(session: SessionInfo): boolean {
-  return session.created_by.kind === "agent" && session.detach_receipt == null;
 }
 
 interface TabLifecycle {
@@ -67,47 +59,7 @@ export function useTabLifecycle(input: {
     }
     closing.current = true;
     try {
-      // Archive may also stop session-owned terminals. Do the explicit
-      // terminal closes first, so their outcomes can be reported separately.
-      const ordered = [
-        ...tabs.filter((tab) => tab.kind === "terminal"),
-        ...tabs.filter((tab) => tab.kind !== "terminal"),
-      ];
-      for (const tab of ordered) {
-        if (tab.kind === "agent") {
-          const known = input.session(tab.id);
-          const asked =
-            known === undefined ? await readSession(fleet, node, tab.id) : null;
-          if (asked !== null && !asked.ok) {
-            toast(asked.problem.message, "error");
-            continue;
-          }
-          const agent = known ?? (asked?.ok === true ? asked.value : undefined);
-          if (
-            agent !== undefined &&
-            !childAgent(agent) &&
-            agent.marks?.archived_at == null
-          ) {
-            const result = await markSession(fleet, node, tab.id, {
-              mark: "archive",
-            });
-            if (!result.ok) {
-              toast(result.problem.message, "error");
-              continue;
-            }
-            fleet.putSession(node, result.value);
-          }
-        }
-        if (tab.kind === "terminal") {
-          const result = await closeWorkspaceTerminal(fleet, node, tab.id);
-          if (!result.ok && nodeError(result.problem) !== "not_found") {
-            toast(result.problem.message, "error");
-            continue;
-          }
-          input.forgetTerminal(tab.id);
-        }
-        input.remove(tab);
-      }
+      await applyClose(fleet, input, tabs);
     } finally {
       closing.current = false;
     }
@@ -205,18 +157,27 @@ export function useTabLifecycle(input: {
             label: words.copyResume,
             icon: "copy",
             disabled: input.session(tab.id)?.spec.mode !== "structured",
-            run: () =>
+            run: () => {
               copy(
                 `vessel${node === "_here" ? "" : ` --node ${node}`} session resume ${tab.id}`,
                 words.agent,
-              ),
+              );
+            },
           },
           {
             label: words.copyAgent,
             icon: "copy",
-            run: () => copy(tab.id, item.label),
+            run: () => {
+              copy(tab.id, item.label);
+            },
           },
-          { label: words.rename, icon: "edit", run: () => setRenaming(item) },
+          {
+            label: words.rename,
+            icon: "edit",
+            run: () => {
+              setRenaming(item);
+            },
+          },
           {
             label: words.reload,
             tooltip: words.reloadHint,
@@ -238,16 +199,26 @@ export function useTabLifecycle(input: {
           {
             label: words.copyTerminal,
             icon: "copy",
-            run: () => copy(tab.id, item.label),
+            run: () => {
+              copy(tab.id, item.label);
+            },
           },
-          { label: words.rename, icon: "edit", run: () => setRenaming(item) },
+          {
+            label: words.rename,
+            icon: "edit",
+            run: () => {
+              setRenaming(item);
+            },
+          },
         ];
       case "file":
         return [
           {
             label: words.copyPath,
             icon: "copy",
-            run: () => copy(tab.path, words.files),
+            run: () => {
+              copy(tab.path, words.files);
+            },
           },
         ];
       case "changes":
@@ -260,7 +231,9 @@ export function useTabLifecycle(input: {
 
   return {
     confirmation,
-    cancel: () => setConfirmation(null),
+    cancel: () => {
+      setConfirmation(null);
+    },
     confirm: () => {
       if (confirmation !== null) {
         setConfirmation(null);
@@ -271,7 +244,9 @@ export function useTabLifecycle(input: {
     bulk,
     actions,
     renaming,
-    cancelRename: () => setRenaming(null),
+    cancelRename: () => {
+      setRenaming(null);
+    },
     rename: async (title: string): Promise<string | null> => {
       const tab = renaming?.tab;
       if (tab?.kind === "agent") {

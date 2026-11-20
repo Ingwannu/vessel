@@ -37,7 +37,9 @@ export function CodePane({
 }) {
   const key = tabKey(tab);
   const dirty = useCallback(
-    (value: boolean) => markDirty(key, value),
+    (value: boolean) => {
+      markDirty(key, value);
+    },
     [key, markDirty],
   );
   return (

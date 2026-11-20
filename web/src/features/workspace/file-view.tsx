@@ -86,10 +86,9 @@ export function FileView({
   const editing = draft !== null;
   const dirty =
     editing && (text.kind !== "text" || draft !== text.lines.join("\n"));
-  useEffect(
-    () => onDirtyChange(dirty || saving),
-    [dirty, saving, onDirtyChange],
-  );
+  useEffect(() => {
+    onDirtyChange(dirty || saving);
+  }, [dirty, saving, onDirtyChange]);
   const tooBig = text.kind === "text" && text.version.size > WRITE_LIMIT;
   // The disk moved past what is shown (the file's watch): the view follows
   // it; an open edit keeps its text under the alert, and its save then

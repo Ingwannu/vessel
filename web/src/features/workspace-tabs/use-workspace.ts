@@ -28,7 +28,8 @@ import type {
   WorkspaceRoot,
 } from "../../wire/proto";
 import type { TabAction } from "./chrome-parts";
-import { childAgent, useTabLifecycle } from "./lifecycle";
+import { childAgent } from "./close-tabs";
+import { useTabLifecycle } from "./lifecycle";
 import { useLayout } from "./use-layout";
 import { useTerminals } from "./use-terminals";
 import type { TabWords } from "./words";
@@ -189,7 +190,9 @@ export function useWorkspace(
     {
       label: words.agent,
       icon: "compose",
-      run: () => select({ kind: "draft" }),
+      run: () => {
+        select({ kind: "draft" });
+      },
     },
     {
       label: words.terminal,
@@ -200,17 +203,23 @@ export function useWorkspace(
     {
       label: words.changes,
       icon: "git-compare",
-      run: () => select({ kind: "changes" }),
+      run: () => {
+        select({ kind: "changes" });
+      },
     },
     {
       label: words.diff,
       icon: "git-compare",
-      run: () => select({ kind: "diff" }),
+      run: () => {
+        select({ kind: "diff" });
+      },
     },
     {
       label: words.files,
       icon: "folder",
-      run: () => select({ kind: "files" }),
+      run: () => {
+        select({ kind: "files" });
+      },
     },
   ];
   const openFile = (path: RelPath, line: number | null) => {
@@ -240,8 +249,9 @@ export function useWorkspace(
     actions,
     terminals: terminals.rows,
     openFile,
-    move: (source: string, target: string, side: "before" | "after") =>
-      update((current) => moveTab(current, source, target, side)),
+    move: (source: string, target: string, side: "before" | "after") => {
+      update((current) => moveTab(current, source, target, side));
+    },
   };
 }
 

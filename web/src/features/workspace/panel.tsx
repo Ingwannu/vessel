@@ -113,7 +113,9 @@ export function WorkspacePanel({
           session={session.id}
           root={root}
           view={tab.kind}
-          onOpen={(path) => onOpen(path, null)}
+          onOpen={(path) => {
+            onOpen(path, null);
+          }}
           defaultBranch={project?.default_branch ?? null}
         />
       );
@@ -139,7 +141,9 @@ export function WorkspacePanel({
           filePanels={hasFilePanels(protocol)}
           active={active}
           onBack={onBack}
-          onOpenFile={(path) => onOpen(path, null)}
+          onOpenFile={(path) => {
+            onOpen(path, null);
+          }}
           onDirtyChange={onDirtyChange}
         />
       );

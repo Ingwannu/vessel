@@ -139,7 +139,13 @@ export function StructuredSession({
         session={session}
         renamed={timeline.title}
         onPlace={openChanges}
-        {...(narrow ? { onSummary: () => setSummaryOpen(true) } : {})}
+        {...(narrow
+          ? {
+              onSummary: () => {
+                setSummaryOpen(true);
+              },
+            }
+          : {})}
       />
       <div className="session-main">
         {stream?.state === "reconnecting" ? (
@@ -192,7 +198,9 @@ export function StructuredSession({
         <Sheet
           side="right"
           label="Summary"
-          onClose={() => setSummaryOpen(false)}
+          onClose={() => {
+            setSummaryOpen(false);
+          }}
         >
           <Inspector
             node={node}

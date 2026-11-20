@@ -89,7 +89,9 @@ export function Workspace({
   const launch = compact
     ? actions.filter((action) => action.label !== words.diff)
     : actions;
-  const openChanges = () => select({ kind: "changes" });
+  const openChanges = () => {
+    select({ kind: "changes" });
+  };
   const place: SessionPlace | null =
     root === null
       ? null
@@ -97,7 +99,9 @@ export function Workspace({
         ? { kind: "worktree", worktree: root.worktree }
         : { kind: "project", project: root.project };
 
-  const openChat = () => select({ kind: "agent", id: anchor.id });
+  const openChat = () => {
+    select({ kind: "agent", id: anchor.id });
+  };
   const body = (tab: WorkspaceTab) => {
     const key = tabKey(tab);
     const selected = key === layout.active;
@@ -130,7 +134,9 @@ export function Workspace({
               folder: anchor.spec.cwd ?? null,
               tray: scope,
               done: state.completeDraft,
-              onDirtyChange: (dirty) => markDirty(key, dirty),
+              onDirtyChange: (dirty) => {
+                markDirty(key, dirty);
+              },
             }}
           />
         ) : null;
@@ -155,7 +161,9 @@ export function Workspace({
                 tab.kind === "file" ? (state.lines.get(tab.path) ?? null) : null
               }
               open={openFile}
-              back={() => select({ kind: "files" })}
+              back={() => {
+                select({ kind: "files" });
+              }}
               markDirty={markDirty}
             />
           </WorkspaceChat>

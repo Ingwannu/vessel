@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
+import { errorCode } from "../../data/outcome";
 import { decodeBytes } from "../../data/terminal";
 import {
   followWorkspaceTerminal,
@@ -31,7 +32,9 @@ export function TerminalPane({
   const fleet = useFleet();
   const host = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<StreamState | null>(null);
-  const [ready, setReady] = useState(false);
+  const [registry, setRegistry] = useState<"waiting" | "ready" | "missing">(
+    "waiting",
+  );
   useEffect(() => {
     const element = host.current;
     if (element === null) {
@@ -48,32 +51,45 @@ export function TerminalPane({
       record: ({ event }) => {
         if (event.type === "terminal") {
           pane.write(decodeBytes(event.data));
-          setReady(true);
+          setRegistry("ready");
         }
       },
       state: setStream,
     });
-    let live = true;
-    void readWorkspaceTerminal(fleet, node, terminal).then((result) => {
-      if (live && result.ok) {
-        setReady(true);
-      }
-    });
     return () => {
-      live = false;
       stop();
       pane.close();
     };
   }, [fleet, node, terminal, words.dropped]);
+
+  useEffect(() => {
+    if (!connected) {
+      return undefined;
+    }
+    let live = true;
+    void readWorkspaceTerminal(fleet, node, terminal).then((result) => {
+      if (!live) {
+        return;
+      }
+      if (result.ok) {
+        setRegistry("ready");
+      } else if (errorCode(result.problem) === "not_found") {
+        setRegistry("missing");
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [connected, fleet, node, terminal]);
 
   return (
     <div className="workspace-terminal">
       <div className="xterm-host" ref={host} aria-label={words.terminal} />
       {!connected ? (
         <div className="workspace-terminal-state">{words.disconnected}</div>
-      ) : stream?.state === "failed" ? (
+      ) : registry === "missing" || stream?.state === "failed" ? (
         <div role="alert" className="workspace-terminal-error">
-          {stream.reason === "removed"
+          {registry === "missing"
             ? words.terminalMissing
             : words.terminalFailed}
         </div>
@@ -81,7 +97,7 @@ export function TerminalPane({
         <div role="status" className="workspace-terminal-error">
           {words.terminalExited}
         </div>
-      ) : !ready && stream?.state !== "resumed" ? (
+      ) : registry === "waiting" && stream?.state !== "resumed" ? (
         <div
           className="workspace-terminal-state loading"
           aria-label={words.loading}

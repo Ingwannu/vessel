@@ -110,7 +110,9 @@ export function mountTerminal(
   });
   observer.observe(element);
   return {
-    write: (data: Uint8Array) => terminal.write(data),
+    write: (data: Uint8Array) => {
+      terminal.write(data);
+    },
     close: () => {
       stopScheme();
       stopSize();
