@@ -257,7 +257,8 @@ As built (`vessel-node/src/agent_hooks.rs` and its modules, `vessel-cli/src/hook
   Turning the setting off never creates a file. Install and off touch OpenCode's plugin only when its text
   is exactly Vessel's.
 - **Writes.** Writes are owner-only and atomic (`vessel_fleet::write_private`), after the one-time
-  `<file>.vessel-backup`. In test builds every write path refuses the real home's agent configuration.
+  `<file>.vessel-backup`. Removing OpenCode's plugin keeps no copy: only a file exactly Vessel's is
+  removed, and a copy would be a stray file in OpenCode's `plugins` folder. In test builds every write path refuses the real home's agent configuration.
 - **The setting.** `terminal_agent_hooks` is in `NodeSettings` and `SetNodeSettings`. It is hidden below,
   and refused before, `ATTENTION_NOTIFICATIONS_PROTOCOL`. It is applied when changed, and at start when on,
   on the settings writers' tracker.

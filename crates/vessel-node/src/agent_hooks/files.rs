@@ -69,11 +69,13 @@ pub(super) fn replace(path: &Path, contents: &[u8]) -> Outcome {
     }
 }
 
-/// Remove `path`, after its one-time backup.
+/// Remove Vessel's own file at `path`. No backup: the caller removes only a
+/// file whose text is exactly Vessel's, and a copy of it would be a stray
+/// file in the agent's folder (`OpenCode`'s `plugins`).
 pub(super) fn remove(path: &Path) -> Outcome {
     #[cfg(test)]
     refuse_real(path);
-    match back_up(path).and_then(|()| std::fs::remove_file(path)) {
+    match std::fs::remove_file(path) {
         Ok(()) => Outcome::Changed(path.to_owned()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Outcome::Unchanged,
         Err(error) => Outcome::Failed(path.to_owned(), error),

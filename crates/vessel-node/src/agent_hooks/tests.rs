@@ -290,6 +290,10 @@ fn only_vessels_own_plugin_file_is_installed_over_or_removed() {
     assert!(plugin.exists());
     targets.apply(false);
     assert!(!plugin.exists());
+    assert!(
+        !backup_of(&plugin).exists(),
+        "Vessel's own file leaves no copy behind"
+    );
     // A file of someone else's at the same path stays, on and off.
     std::fs::write(&plugin, "export default {};\n").unwrap();
     for on in [true, false] {
