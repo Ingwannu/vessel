@@ -133,3 +133,68 @@ async fn two_readers_observe_the_deliberate_flag_and_entry_counts_as_one_snapsho
     writer.await.unwrap();
     store.close().await;
 }
+
+/// One `inbox.attention` call reads every session it names from one
+/// snapshot (owed item 5 of the node review of TRACKER 815: the test above
+/// names one session). The writer adds a waiting request to the first
+/// session, then to the second, so in any one snapshot the first has as
+/// many as the second or one more. Reads made one session at a time could
+/// see the second ahead of the first.
+#[tokio::test]
+async fn two_sessions_are_read_from_one_snapshot() {
+    const CHANGES: u64 = 32;
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let first = new_session(0);
+    let second = new_session(1);
+    for info in [&first, &second] {
+        store.create_session(info.clone()).await.unwrap();
+    }
+    let writing = store.clone();
+    let (one, two) = (first.id, second.id);
+    let writer = tokio::spawn(async move {
+        for seq in 0..CHANGES {
+            for session in [one, two] {
+                let request = PermissionRequest {
+                    id: PermissionId::random(),
+                    tool_call: ToolCallId::new("tool"),
+                    options: Vec::new(),
+                };
+                writing
+                    .append(
+                        session,
+                        vec![record(
+                            seq,
+                            SessionEvent::Agent {
+                                event: AgentEvent::PermissionRequested(request),
+                            },
+                        )],
+                    )
+                    .await
+                    .unwrap();
+            }
+        }
+    });
+    let mut samples = 0_u32;
+    while !writer.is_finished() || samples == 0 {
+        for order in [vec![one, two], vec![two, one]] {
+            let state = store.inbox_attention(order).await.unwrap();
+            let requests_of = |session| {
+                state
+                    .iter()
+                    .find(|row| row.session == session)
+                    .map_or(0, |row| row.waiting.get())
+            };
+            let (ahead, behind) = (requests_of(one), requests_of(two));
+            assert!(
+                ahead == behind || ahead == behind.saturating_add(1),
+                "one snapshot: the first session has {ahead} waiting, the second {behind}"
+            );
+        }
+        samples = samples.saturating_add(1);
+    }
+    writer.await.unwrap();
+    let last = store.inbox_attention(vec![one, two]).await.unwrap();
+    assert!(last.iter().all(|row| row.waiting.get() == CHANGES));
+    store.close().await;
+}

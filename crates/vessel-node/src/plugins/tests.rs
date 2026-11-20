@@ -341,8 +341,12 @@ fn helper_plugin(fixture: &Fixture, name: &str, script: &[u8]) {
     use std::os::unix::fs::PermissionsExt as _;
 
     let manifest = format!(r#"{{"id":"{name}","server":{{"command":["./helper.sh"]}}}}"#);
-    let directory = fixture.plugin(name, &manifest, &[("helper.sh", script)]);
+    let directory = fixture.plugin(name, &manifest, &[]);
     let helper = directory.join("helper.sh");
+    // A script this test runs is never written by this process: another
+    // test's fork would hold the open descriptor, and running it would then
+    // fail with ETXTBSY (`vessel_testkit::write_executable`, AGENTS.md 8).
+    vessel_testkit::write_executable(&helper, std::str::from_utf8(script).unwrap()).unwrap();
     std::fs::set_permissions(&helper, std::fs::Permissions::from_mode(0o700)).unwrap();
 }
 
