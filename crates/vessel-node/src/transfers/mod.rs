@@ -12,12 +12,7 @@
 //! ```
 //!
 //! [Decision Log]
-//! - Purpose: a conversation or a memory moves between profiles and
-//!   nodes as files (ADR 0012, "history and memory on demand"); which
-//!   files is the harness's knowledge (`vessel-harness`), how they are
-//!   copied and written is `vessel-fleet`'s (`snapshot`, `place`). This
-//!   module decides who may read a transfer and for how long, and puts
-//!   the steps of an import in order.
+//! - Purpose: a conversation or a memory moves between profiles and nodes as files (ADR 0012, "history and memory on demand"); which files is the harness's knowledge (`vessel-harness`), how they are copied and written is `vessel-fleet`'s (`snapshot`, `place`). This module decides who may read a transfer and for how long, and puts the steps of an import in order.
 //! - A transfer belongs to whoever opened it ([`Holder`]: the owner, a
 //!   device, or an agent's session), whatever scopes it holds: reading or
 //!   closing it as anyone else answers `not_found`, as an unknown id does,
@@ -209,9 +204,12 @@ pub(crate) enum TransferError {
     /// The staging directory could not be used.
     #[error("the transfer's staging directory: {0}")]
     Staging(#[source] io::Error),
-    /// Fetching from the source failed (its answer, or the store).
-    #[error("fetching a file: {0}")]
-    Fetch(String),
+    /// A fetched file could not be written, or is not the file (its hash).
+    #[error("fetching a file")]
+    Fetch(#[source] io::Error),
+    /// The source sent more than the manifest or the limit allows.
+    #[error("a fetched file is {0} bytes, over the manifest or the limit")]
+    FetchedTooLarge(u64),
     /// A blocking task failed.
     #[error("a node task failed")]
     Task(#[source] tokio::task::JoinError),
@@ -266,6 +264,7 @@ impl TransferError {
             | Self::WrongKind(_)
             | Self::Staging(_)
             | Self::Fetch(_)
+            | Self::FetchedTooLarge(_)
             | Self::Task(_) => ErrorCode::Internal,
         }
     }
