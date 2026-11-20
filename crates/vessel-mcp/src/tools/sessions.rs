@@ -9,8 +9,8 @@ use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
 use vessel_proto::{
     ContentBlock, CreateSession, Delivery, EventSeq, GetSession, HarnessRef, ModelId,
-    PermissionOutcome, ReadEvents, SendInput, SessionId, SessionInput, SessionMode, SessionSpec,
-    TerminalBytes, TerminalInput, TerminalSize,
+    PermissionId, PermissionOptionId, PermissionOutcome, ReadEvents, SendInput, SessionId,
+    SessionInput, SessionMode, SessionSpec, TerminalBytes, TerminalInput, TerminalSize,
 };
 
 use super::{
@@ -137,12 +137,13 @@ impl VesselTools {
     pub(super) async fn answer_permission(&self, args: &JsonObject) -> Result<Value, ToolError> {
         let node = self.target(args).await?;
         let session = session(args)?;
-        let id = serde_json::from_value(Value::String(required(args, "request")?.to_owned()))
+        let id = required(args, "request")?
+            .parse::<PermissionId>()
             .map_err(|error| ToolError::Arguments(format!("request: {error}")))?;
         let outcome = match text(args, "option")? {
+            // Minted by the harness: any text names an option.
             Some(option) => PermissionOutcome::Selected {
-                option: serde_json::from_value(Value::String(option.to_owned()))
-                    .map_err(|error| ToolError::Arguments(format!("option: {error}")))?,
+                option: PermissionOptionId::new(option),
             },
             None => PermissionOutcome::Cancelled,
         };

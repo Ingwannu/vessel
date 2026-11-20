@@ -5,11 +5,12 @@
 use std::time::Duration;
 
 use rmcp::model::JsonObject;
+use serde::Serialize;
 use serde_json::{Value, json};
 use tokio::time::Instant;
 use vessel_proto::{
-    AgentEvent, ContentBlock, EventPage, EventSeq, GetSession, ReadEvents, SessionEvent, SessionId,
-    SessionStatus,
+    AgentEvent, ContentBlock, EventPage, EventSeq, GetSession, PermissionRequest, Question,
+    ReadEvents, SessionEvent, SessionId, SessionStatus, StopReason,
 };
 
 use super::{
@@ -95,7 +96,7 @@ impl VesselTools {
         let outcome = loop {
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
-                break json!({ "outcome": "timeout" });
+                break TurnOutcome::Timeout;
             }
             let asked = Instant::now();
             let page = self.poll(node, session, next, left).await?;
@@ -113,16 +114,48 @@ impl VesselTools {
                     .status
                     .is_live()
             {
-                break json!({ "outcome": "session_ended" });
+                break TurnOutcome::SessionEnded { status: None };
             }
         };
-        let mut result = outcome;
-        if let Some(object) = result.as_object_mut() {
-            let _none = object.insert("reply".to_owned(), Value::String(reply));
-            let _none = object.insert("next".to_owned(), json!(next));
-        }
-        Ok(result)
+        serde_json::to_value(TurnReply {
+            outcome,
+            reply,
+            next,
+        })
+        .map_err(|error| ToolError::Failed(error.to_string()))
     }
+}
+
+/// `wait_turn`'s answer: how the wait ended, the reply text read, and
+/// where to read on from. Rendered once, so the JSON shape is the type.
+#[derive(Debug, Serialize)]
+struct TurnReply {
+    #[serde(flatten)]
+    outcome: TurnOutcome,
+    reply: String,
+    next: EventSeq,
+}
+
+/// How a `wait_turn` ended.
+#[derive(Debug, Serialize)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
+enum TurnOutcome {
+    /// The wait ran out.
+    Timeout,
+    /// The turn ended.
+    Ended { reason: StopReason },
+    /// The turn failed.
+    Failed { message: String },
+    /// The harness asked for a permission.
+    PermissionRequested { request: PermissionRequest },
+    /// The harness asked a question.
+    QuestionAsked { question: Question },
+    /// The session is no longer live. `status` is present when the page
+    /// carried it.
+    SessionEnded {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        status: Option<SessionStatus>,
+    },
 }
 
 /// After an empty page that came back before a second had passed (the node
@@ -151,7 +184,7 @@ pub(super) fn turn_outcome(
     page: &EventPage,
     reply: &mut String,
     next: &mut EventSeq,
-) -> Option<Value> {
+) -> Option<TurnOutcome> {
     for record in &page.records {
         *next = record.seq.next().unwrap_or(record.seq);
         match &record.event {
@@ -163,24 +196,36 @@ pub(super) fn turn_outcome(
             } => reply.push_str(text),
             SessionEvent::Agent {
                 event: AgentEvent::TurnEnded { reason, .. },
-            } => return Some(json!({ "outcome": "ended", "reason": reason })),
+            } => {
+                return Some(TurnOutcome::Ended { reason: *reason });
+            }
             SessionEvent::Agent {
                 event: AgentEvent::TurnFailed { message },
-            } => return Some(json!({ "outcome": "failed", "message": message })),
+            } => {
+                return Some(TurnOutcome::Failed {
+                    message: message.clone(),
+                });
+            }
             SessionEvent::Agent {
                 event: AgentEvent::PermissionRequested(request),
             } => {
-                return Some(json!({ "outcome": "permission_requested", "request": request }));
+                return Some(TurnOutcome::PermissionRequested {
+                    request: request.clone(),
+                });
             }
             // Protocol 10: a question waits on an answer as a permission
             // request does, so the waiting agent hears of it the same way.
             SessionEvent::Agent {
                 event: AgentEvent::QuestionAsked(question),
             } => {
-                return Some(json!({ "outcome": "question_asked", "question": question }));
+                return Some(TurnOutcome::QuestionAsked {
+                    question: question.clone(),
+                });
             }
             SessionEvent::Status { status } if !status.is_live() => {
-                return Some(json!({ "outcome": "session_ended", "status": status }));
+                return Some(TurnOutcome::SessionEnded {
+                    status: Some(status.clone()),
+                });
             }
             SessionEvent::Agent { .. }
             | SessionEvent::Status { .. }
