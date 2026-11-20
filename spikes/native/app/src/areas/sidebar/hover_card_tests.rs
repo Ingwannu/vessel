@@ -165,19 +165,19 @@ fn no_card_comes_back_with_the_sidebar_when_the_pointer_moved_off(cx: &mut TestA
     });
     hover_row(cx, &shell, &card);
     shell.read_with(cx, |shell, _| {
-        assert!(shell.areas.sidebar.cards.shown().is_some())
+        assert!(shell.areas.sidebar.cards.shown().is_some());
     });
     // Hidden by its key, the pointer into the conversation, shown again.
-    shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
+    shell.update_in(cx, crate::shell::Shell::toggle_sidebar);
     cx.run_until_parked();
     cx.simulate_mouse_move(point(px(900.0), px(500.0)), None, Modifiers::none());
     cx.run_until_parked();
-    shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
+    shell.update_in(cx, crate::shell::Shell::toggle_sidebar);
     cx.run_until_parked();
     shell.update(cx, |_, cx| cx.notify());
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
-        assert!(shell.areas.sidebar.cards.shown().is_none())
+        assert!(shell.areas.sidebar.cards.shown().is_none());
     });
     assert!(cx.debug_bounds("hover-card").is_none());
 }
