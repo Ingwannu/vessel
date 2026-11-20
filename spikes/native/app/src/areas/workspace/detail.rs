@@ -602,14 +602,7 @@ fn worktrees(shell: &Shell, detail: &Detail, tokens: &Tokens, cx: &mut Context<'
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.worktree_action(
-                    WorktreeAsk::Remove(RemoveWorktree {
-                        worktree: id,
-                        if_lost: IfLost::Keep,
-                        end_terminals: false,
-                    }),
-                    cx,
-                );
+                this.worktree_action(remove::remove_ask(id, IfLost::Keep), cx);
             })),
         );
         list = list.child(divided(

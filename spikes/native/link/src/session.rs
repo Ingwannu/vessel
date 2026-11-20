@@ -409,9 +409,9 @@ pub(crate) async fn run(
                 Outgoing::Keys(text) => TerminalInput::Data {
                     data: TerminalBytes::new(Bytes::from(text.into_bytes())),
                 },
-                Outgoing::Resize { cols, rows } => TerminalInput::Resize {
+                Outgoing::Resize { cols, rows, intent } => TerminalInput::Resize {
                     size: TerminalSize { cols, rows },
-                    intent: None,
+                    intent: crate::terminals::intent_for(client.protocol(), intent),
                 },
             };
             client

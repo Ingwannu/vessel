@@ -338,21 +338,28 @@ impl Shell {
         }
     }
 
-    fn terminal_tab_focused_in(
+    pub(super) fn terminal_tab_focused_in(
         &mut self,
         key: &PaneKey,
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         self.areas.terminal_tabs.focused = Some(key.clone());
+        // Taking the keyboard claims the shell's size again (ADR 0116).
+        if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) {
+            pane.claimed = false;
+        }
         self.terminal_tab_claim(key);
         self.terminal_tab_blink(cx);
         cx.notify();
     }
 
-    fn terminal_tab_focused_out(&mut self, key: &PaneKey, cx: &mut Context<'_, Self>) {
+    pub(super) fn terminal_tab_focused_out(&mut self, key: &PaneKey, cx: &mut Context<'_, Self>) {
         if self.areas.terminal_tabs.focused.as_ref() == Some(key) {
             self.areas.terminal_tabs.focused = None;
+        }
+        if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) {
+            pane.claimed = false;
         }
         self.terminal_tab_blink(cx);
         cx.notify();

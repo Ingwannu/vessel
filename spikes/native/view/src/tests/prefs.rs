@@ -520,7 +520,7 @@ fn animations_are_kept_changed_alone_and_lenient() {
 
 #[test]
 fn folds_follow_the_lists_and_the_book() {
-    use crate::prefs::FoldedProjects;
+    use crate::prefs::{FoldedProjects, ProjectKeyed};
     use vessel_proto::ProjectId;
     let (shop, docs) = (ProjectId::random(), ProjectId::random());
     let mut folds = FoldedProjects::default();

@@ -28,6 +28,8 @@ mod explorer;
 mod folds;
 mod keys;
 mod language;
+mod order;
+mod projects;
 mod send;
 mod usage;
 pub use usage::UsagePreferences;
@@ -46,8 +48,10 @@ pub use appearance::{
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
 pub use defaults::{AgentDefaults, AgentKind, Choices, MachineDefaults};
 pub use explorer::ExplorerSort;
-pub use folds::{FoldedProject, FoldedProjects};
+pub use folds::FoldedProjects;
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};
+pub use order::ProjectOrder;
+pub use projects::{ProjectKey, ProjectKeyed};
 pub use send::{EnterPress, send_key_label, sends, sends_other};
 
 /// The most keys kept for one action.
@@ -149,6 +153,12 @@ pub struct Preferences {
         skip_serializing_if = "FoldedProjects::is_empty"
     )]
     pub folded_projects: FoldedProjects,
+    /// The projects' order in that tree, once dragged (native only).
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "ProjectOrder::is_empty"
+    )]
+    pub project_order: ProjectOrder,
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,

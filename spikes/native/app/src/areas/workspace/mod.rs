@@ -143,7 +143,7 @@ impl Shell {
                     .workspace
                     .projects
                     .insert(machine.to_owned(), ProjectsView::listed(result));
-                self.folds_listed(machine);
+                self.projects_listed(machine);
                 self.ask_project_icons(machine);
             }
             Answer::Project(project) => {
@@ -160,7 +160,7 @@ impl Shell {
             Answer::Forgot { project, result } => {
                 self.project_removal_answered(machine, project, result, cx);
                 // A removed project's fold goes with it.
-                self.folds_listed(machine);
+                self.projects_listed(machine);
             }
             Answer::Commands {
                 project,
