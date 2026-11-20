@@ -5,7 +5,7 @@ use gpui::{App, Entity, px};
 use gpui_base::input::InputEditorStyle;
 
 use crate::fonts;
-use crate::theme::Tokens;
+use crate::theme::{Scheme, Tokens};
 
 /// The field's colours, projected onto its engine: the foreground's text,
 /// `placeholder` for the words shown while empty, the foreground's caret,
@@ -29,8 +29,27 @@ pub(super) fn project<M: gpui_base::input::InputModeKind>(
 
 /// The component layer's colours and type from the kit's tokens, for what
 /// of it is still drawn (Markdown's text).
+///
+/// [Decision Log]
+/// - Purpose: a reply or a previewed file in Markdown draws in the scheme
+///   the app shows (TRACKER 825: dark on dark after a switch to a dark
+///   palette).
+/// - Constraint: the component layer builds its Base theme and the text
+///   views' default style (`TextViewDefaults`, which `chat_markdown` starts
+///   from) only in `Theme::sync_base`, run by its `init` and its own theme
+///   changes. An edit through `Theme::global_mut` reaches neither; its doc
+///   says to call `sync_base` after one.
+/// - Choice: set the component theme's mode with the scheme and call
+///   `sync_base` after the edits, so every palette the app applies (at
+///   start, from Settings, or when the system's appearance turns) reaches
+///   Markdown, whatever appearance the component layer started under.
+/// - Cost: one rebuild of the Base theme per palette change (rare).
 pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     let theme = gpui_component::Theme::global_mut(cx);
+    theme.mode = match tokens.scheme {
+        Scheme::Light => gpui_component::theme::ThemeMode::Light,
+        Scheme::Dark => gpui_component::theme::ThemeMode::Dark,
+    };
     theme.font_family = fonts::SANS.into();
     theme.mono_font_family = fonts::MONO.into();
     theme.font_size = px(fonts::ui(14.0));
@@ -55,4 +74,5 @@ pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     // nearest token. Read by `chat_markdown`, which resolves its style
     // from this theme on every layout.
     colors.link = tokens.st_building;
+    gpui_component::Theme::sync_base(cx);
 }
