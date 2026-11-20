@@ -17,7 +17,8 @@
 //! - `OpenCode` 1.18.23: `AGENTS.md` and `{skill,skills}/**/SKILL.md` in its
 //!   configuration directory (`~/.config/opencode`). It also reads
 //!   `~/.claude/CLAUDE.md` and `~/.claude/skills`, `~/.agents/skills`
-//!   unless told not to, so a fleet that fills Claude Code's home reaches it
+//!   unless told not to. That `~/.claude` is the user's home, not
+//!   `CLAUDE_CONFIG_DIR`, so a fleet that fills it reaches `OpenCode`
 //!   twice ([`HarnessLayout::also_reads`]; the node leaves `OpenCode` out
 //!   then).
 //! - Gemini CLI (not installed where this was grounded): `GEMINI.md` in
@@ -38,10 +39,12 @@ pub struct HarnessLayout {
     /// The directory of skills: one directory per skill, holding
     /// `SKILL.md`.
     pub skills: Option<&'static str>,
-    /// Another harness whose default home's instructions and skills this
-    /// one reads as well (`OpenCode` reads `~/.claude`). When that home is
-    /// filled, filling this harness's own would show it everything twice.
-    pub also_reads: Option<HarnessKind>,
+    /// A directory under the user's home whose instructions and skills
+    /// this harness also reads (`OpenCode` reads `~/.claude`, the literal
+    /// home, not `CLAUDE_CONFIG_DIR`). When that directory is already a
+    /// fleet target, filling this harness's own would show it everything
+    /// twice.
+    pub also_reads: Option<&'static [&'static str]>,
 }
 
 /// The layout of `harness`'s home.
@@ -72,7 +75,7 @@ mod tests {
         assert_eq!(
             layout(HarnessKind::OpenCode),
             HarnessLayout {
-                also_reads: Some(HarnessKind::ClaudeCode),
+                also_reads: Some(&[".claude"]),
                 ..named(Some("AGENTS.md"), Some("skills"))
             }
         );

@@ -12,8 +12,6 @@
 //! sessions get no MCP servers at launch (structured ones still do, over
 //! ACP), and there is no login check or session move yet.
 
-use vessel_proto::HarnessKind;
-
 use super::{Descriptor, Home, Structured};
 use crate::layout::HarnessLayout;
 
@@ -29,7 +27,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     layout: HarnessLayout {
         instructions: Some("AGENTS.md"),
         skills: Some("skills"),
-        also_reads: Some(HarnessKind::ClaudeCode),
+        also_reads: Some(&[".claude"]),
     },
     limits: Some(vessel_proto::limits::LimitLoginStore::OpenCode),
     login: None,

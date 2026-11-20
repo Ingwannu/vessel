@@ -40,9 +40,9 @@ impl Target {
     /// that keeps neither instructions nor skills in its home.
     ///
     /// `OpenCode` also reads `~/.claude/CLAUDE.md` and `~/.claude/skills`
-    /// besides its own home, so on a node whose default Claude Code home
-    /// is a target too, `OpenCode` sees the fleet's files twice; the node
-    /// leaves `OpenCode` out then.
+    /// (the user's home, not `CLAUDE_CONFIG_DIR`) besides its own home, so
+    /// on a node where that directory is a target too, `OpenCode` sees the
+    /// fleet's files twice; the node leaves `OpenCode` out then.
     #[must_use]
     pub fn for_harness(harness: HarnessKind, root: PathBuf) -> Option<Self> {
         let layout = vessel_harness::layout(harness);
