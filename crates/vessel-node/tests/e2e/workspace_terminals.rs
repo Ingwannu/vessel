@@ -1,7 +1,8 @@
 //! Terminals that belong to a workspace folder over the wire (ADR 0121):
 //! a worktree's and an unregistered folder's shells outlive archiving the
-//! session in view; a worktree's removal ends its shells only when asked;
-//! a peer below the protocol never sees them.
+//! session in view; a worktree's removal ends its shells only when asked
+//! and no live agent keeps it anyway; a peer below the protocol never sees
+//! them.
 //!
 //! Unix only, as the terminals' tests are: the shell is `/bin/sh`.
 
@@ -24,7 +25,7 @@ use vessel_proto::{
     RequestId, ServerFrame,
 };
 
-use crate::support::{Fixture, client, url, within};
+use crate::support::{Fixture, client, step, url, within};
 use crate::workspace::{in_place, lookup, new_worktree, repository};
 
 async fn node_with_a_project(fixture: &Fixture) -> (Node, NodeClient, ProjectInfo) {
@@ -183,6 +184,35 @@ async fn removing_a_worktree_ends_its_shells_only_when_asked() {
             "{kept:?}"
         );
         assert!(info_of(&owner, &shell).await.is_live());
+
+        // Asked, but an agent runs in it, which refuses the removal anyway:
+        // the shell is not ended for nothing.
+        let agent = owner
+            .create_session(in_place(
+                &fixture,
+                SessionPlace::Worktree {
+                    worktree: worktree.id,
+                },
+            ))
+            .await
+            .unwrap();
+        let held = owner.call(remove(true)).await.unwrap();
+        assert!(
+            matches!(&held, RemoveWorktreeOutcome::Kept { reasons } if reasons == &[KeptReason::InUse]),
+            "{held:?}"
+        );
+        assert!(info_of(&owner, &shell).await.is_live());
+        owner.kill(agent.id).await.unwrap();
+        step("the agent ends", async {
+            while owner.session(agent.id).await.unwrap().status.is_live() {
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+        })
+        .await;
+        assert!(
+            info_of(&owner, &shell).await.is_live(),
+            "the agent's end leaves the worktree's shell"
+        );
 
         // Asked: the shell ends, the worktree goes, and so does the shell.
         let removed = owner.call(remove(true)).await.unwrap();

@@ -79,9 +79,13 @@ impl NodeService {
     /// `killTerminalsForWorkspace`, after the client asked the person) the
     /// live terminals in its folder end first, so they no longer refuse the
     /// removal; without it they do, as before. Removed, the terminals that
-    /// were placed in it are forgotten with it. A removal then kept for
-    /// work it would lose leaves those terminals ended: the person agreed
-    /// to end them.
+    /// were placed in it are forgotten with it.
+    ///
+    /// A live session in the folder refuses the removal whatever is asked,
+    /// so its shells are left running then: ending them would lose a dev
+    /// server for nothing. A removal kept for another reason found after
+    /// the end (work it would lose, a session starting in between) leaves
+    /// them ended: the person agreed to end them.
     pub(crate) async fn remove_worktree(
         &self,
         _: &Connection,
@@ -93,7 +97,14 @@ impl NodeService {
                 .worktree(request.worktree)
                 .map_err(|error| wire(&error))?
                 .path;
-            self.terminals.end_in(&folder).await;
+            let a_session_in_it = self
+                .sessions
+                .live_folders()
+                .iter()
+                .any(|(_, cwd)| cwd.starts_with(&folder));
+            if !a_session_in_it {
+                self.terminals.end_in(&folder).await;
+            }
         }
         let outcome = self
             .workspaces

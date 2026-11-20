@@ -27,9 +27,10 @@ a worktree's removal ends its terminals only when the caller acknowledges it). I
      `worktree.remove` gains an explicit "end its terminals" acknowledgement. With it, the node ends the live
      terminals in the worktree (kill, wait `CLOSE_WAIT`) and forgets them with the worktree; without it (and from
      every older client) removal is refused while a live terminal is in it, as today (`NodeService::occupied`,
-     "close them first"). Clients confirm first with Paseo's terminal warning and the count. The terminals end
-     before the removal's own checks: a removal then kept for work it would lose leaves them ended (the person
-     agreed to end them).
+     "close them first"). Clients confirm first with Paseo's terminal warning and the count. A live session in the
+     worktree refuses the removal whatever is asked, so the node leaves the shells running then (ending them would
+     lose a dev server for nothing). Otherwise the terminals end before the removal's own checks: a removal then
+     kept for work it would lose leaves them ended (the person agreed to end them).
    - `TerminalPlace::Folder { path }`: an absolute folder that is no project's and no worktree's (an
      unregistered-folder workspace).
      - Resolved: an absolute, existing directory, kept canonical, so a list by the same folder finds it. The

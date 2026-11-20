@@ -81,7 +81,8 @@ integrator assigns the number at the node-line merge. No method is added.
   worktrees' (a worktree is its own workspace); a folder is matched canonical.
 - `worktree.remove` gains `end_terminals` (default false). With it, the live terminals in the worktree end first and
   those placed in it are forgotten once it is removed; without it a live terminal keeps the worktree
-  (`kept: in_use`), as before. Clients ask the person first, with the count.
+  (`kept: in_use`), as before. A live session in the worktree keeps it either way, and its terminals are then left
+  running. Clients ask the person first, with the count.
 - A peer below 38 is never handed a terminal in a new place: its lists leave them out, and a call naming one by id
   answers `not_found`. `Call::since` makes a create or list with a new place, and `end_terminals`, need 38.
 - The minimum protocol remains 2. The store schema is unchanged.
