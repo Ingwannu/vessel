@@ -136,7 +136,7 @@ impl Plugins {
             .await
             .map_err(|error| PluginError::Call {
                 id: plugin.clone(),
-                failure: CallFailure::from_runtime(&error, method),
+                failure: CallFailure::from_runtime(error, method),
             })?;
         Ok(RawJson::from(output))
     }
@@ -181,7 +181,7 @@ pub(crate) enum CallFailure {
 }
 
 impl CallFailure {
-    fn from_runtime(error: &CallError, method: RpcName) -> Self {
+    fn from_runtime(error: CallError, method: RpcName) -> Self {
         match error {
             CallError::Unregistered => Self::Undeclared(method),
             CallError::Stale => Self::Changed,
