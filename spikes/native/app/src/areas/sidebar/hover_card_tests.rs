@@ -1,10 +1,13 @@
 //! A session row's hover card (TRACKER 810) in the real sidebar: the
 //! pointer on a row shows its details as a group named "Session details",
 //! with Paseo's copy rows and links; a press on a copy row puts the fact
-//! on the clipboard; no card while the row's menu is open.
-use gpui::{Modifiers, TestAppContext, VisualTestContext, point};
+//! on the clipboard; no card while the row's menu is open; none carried
+//! back with a sidebar hidden and shown again (the app reviewer's R1).
+use gpui::{Modifiers, TestAppContext, VisualTestContext, point, size};
 use vessel_app_kit::ui::px;
-use vessel_app_view::Card;
+use vessel_app_link::Link;
+use vessel_app_view::{Card, Fleet, Lang, Machine, Reach};
+use vessel_proto::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
 use vessel_proto::forge::{
     ChecksState, ForgeAccess, ForgeKind, Mergeable, PullNumber, PullState, PullSummary, PullTitle,
     RepoRef, ReviewDecision, SessionPullRequest,
@@ -120,4 +123,53 @@ fn no_card_while_the_rows_menu_is_open(cx: &mut TestAppContext) {
     shell.read_with(cx, |shell, _| {
         assert!(shell.areas.sidebar.cards.shown().is_none());
     });
+}
+
+#[gpui::test]
+fn no_card_comes_back_with_the_sidebar_when_the_pointer_moved_off(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (link, _sent) = Link::detached(8).unwrap();
+    let (shell, cx) =
+        cx.add_window_view(move |window, cx| crate::shell::Shell::with_test_link(window, cx, link));
+    cx.simulate_resize(size(px(1280.0), px(800.0)));
+    let spec = SessionSpec::new(
+        HarnessKind::ClaudeCode,
+        SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        },
+    );
+    let info = SessionInfo::new(SessionId::random(), spec, "2026-11-19T08:00:00Z".parse().unwrap());
+    let card = Card::from_session("fixture", &info);
+    shell.update(cx, |shell, cx| {
+        shell.t = Lang::En.text();
+        shell.fleet = Fleet {
+            machines: vec![Machine {
+                connection_epoch: None,
+                node: None,
+                name: "fixture".to_owned(),
+                reach: Reach::Online,
+                sessions: vec![card.clone()],
+                agents: Vec::new(),
+                protocol: Some(vessel_proto::PROTOCOL_VERSION),
+                version: None,
+            }],
+            read_at: None,
+        };
+        cx.notify();
+    });
+    hover_row(cx, &shell, &card);
+    shell.read_with(cx, |shell, _| assert!(shell.areas.sidebar.cards.shown().is_some()));
+    // Hidden by its key, the pointer into the conversation, shown again.
+    shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
+    cx.run_until_parked();
+    cx.simulate_mouse_move(point(px(900.0), px(500.0)), None, Modifiers::none());
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
+    cx.run_until_parked();
+    shell.update(cx, |_, cx| cx.notify());
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| assert!(shell.areas.sidebar.cards.shown().is_none()));
+    assert!(cx.debug_bounds("hover-card").is_none());
 }

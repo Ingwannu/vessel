@@ -261,7 +261,7 @@ pub(crate) fn render(
         ))
         .child(foot::foot(shell, tokens, cx).flex_none())
         .children(shell.areas.sidebar.tips.render(tokens))
-        .children(hover_card::layer(shell, tokens, cx))
+        .children(hover_card::layer(shell, tokens, window, cx))
         .children(display::menu(shell, tokens, window, cx))
         .children(row_menu::render(shell, tokens, touch, window, cx))
         .children(crate::areas::workspace::sidebar_project_layers(

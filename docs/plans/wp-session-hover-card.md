@@ -104,8 +104,14 @@ placement); `copy` (copy and the check for a moment); `external_link`.
   fires while the pointer is on neither. A press on the trigger, `close()` and Escape close it.
   Escape goes through one app-wide keystroke interceptor that the screen's cards make when a
   card first opens; it never consumes the key. A listener painted with the card would only hear
-  keys bound for the card's own branch, and the card never holds focus. Paseo's surface is used,
-  with its own 0/4/8 20% shadow. kit `copy` gains `copied_within` and `copy_for`, so the card's
+  keys bound for the card's own branch, and the card never holds focus. The card lives with its
+  trigger (the app reviewer's R1): each pass the screen calls `on` for every trigger before
+  `render`, and `render` draws the card only when its trigger was wired, enabled, in that pass
+  and the pointer is on the trigger or the card or a close is pending; otherwise it closes it. GPUI
+  sends no hover-leave to a row it stops drawing (a sidebar hidden by its key, a machine gone
+  offline, the phone's sheet), so without this a card could stay, or come back with the sidebar
+  under a pointer elsewhere. Paseo's surface is used, with its own 0/4/8 20% shadow. kit `copy`
+  gains `copied_within` and `copy_for`, so the card's
   copy rows and the copy button share the one "copied last".
 - view `sidebar::hover` (`Card::hover_details`, `Card::checks_url`, `short_path`): the card's
   facts, the folder label as Paseo's (a worktree's folder name, else `~` for the home folder),
