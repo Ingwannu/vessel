@@ -124,7 +124,13 @@
 
 /* A row's lead mark that gives way to the outward arrow while its link
    is hovered (TRACKER 426): the pull request's state glyph in the
-   state's colour, the checks row's forge mark in the row's colour. */
+   state's colour, the checks row's forge mark in the row's colour. The
+   link brightens without the page's underline (Paseo's PrBadge and
+   ChecksSummaryPressable). */
+.workspace-card-link:hover {
+  text-decoration: none;
+}
+
 .workspace-card-mark {
   display: inline-flex;
   flex: none;
