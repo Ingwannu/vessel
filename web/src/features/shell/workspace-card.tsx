@@ -209,7 +209,8 @@ function CountPills({
           tone="workspace-card-pending"
         />
       </span>
-      {url === null ? null : <Icon name="link" size={12} />}
+      {/* `move` is the arrow that leaves a box: the outward link. */}
+      {url === null ? null : <Icon name="move" size={12} />}
     </>
   );
   if (url === null) {
