@@ -707,3 +707,35 @@ check. Focused waiter/handshake test budgets are named constants, too.
   promise atomic stop/start. An unreadable kernel table is a typed refusal,
   not an assumption that a held directory is free. Only Linux local locks
   are exercised here; namespace, NFS/SMB and other OS runtime are not verified.
+
+
+## Service path fidelity (slice 2e)
+
+[Decision Log]
+- Purpose and intent: ensure a newly installed unit starts this executable
+  in the selected data directory, independent of its manager's cwd.
+- Existing implementation and constraints: the installer owns both templates
+  and leaves differing files alone. Paseo `restart.ts` 20–21, 118 retains
+  a supervisor; Vessel instead launches the node as a direct user service.
+- Alternatives considered: canonicalize paths, keep relative arguments, or
+  silently replace unrepresentable OS bytes. Canonicalization requires
+  filesystem access and changes symlink semantics; the others can select
+  another directory or executable.
+- Selected approach: reuse the installer and existing `RemoteCommand`
+  quoting. Resolve new data and service paths with `std::path::absolute`;
+  refuse non-Unicode or control characters before a service-file write.
+  Centralize per-platform locations and computed undo guidance beside the
+  installer. No new dependency or crate edge is needed.
+- Why this approach: it preserves path semantics without resolving symlinks
+  ([Rust documentation](https://doc.rust-lang.org/std/path/fn.absolute.html)).
+  Systemd's command arguments expand dollars even inside quotes, while its
+  Environment assignment treats them literally; only data arguments gain
+  dollar escaping ([service rules](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
+  [environment rules](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)).
+- Advantages, costs and effects: new units retain the selected path and
+  saved PATH. Existing relative or expanding units differ and are preserved;
+  adoption requires explicit removal and recreation. Unit creation and
+  existing helper invocations still use the invoking OS user's credentials
+  and search path. No new helper or other account's environment is reached.
+  Windows retains the existing service-unavailable report. Real manager
+  lifecycle behavior and macOS/Windows execution remain unverified.

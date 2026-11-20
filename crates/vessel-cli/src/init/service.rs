@@ -17,6 +17,8 @@
 //! - The service managers are found on the search path, as harnesses are;
 //!   tests put stand-ins there and never reach the real ones.
 
+pub(super) mod paths;
+
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
@@ -31,16 +33,7 @@ struct Node {
 }
 
 pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
-    let node = Node {
-        exe: std::env::current_exe()?,
-        data_dir: init.data_dir.root().to_owned(),
-        path: std::env::var("PATH").unwrap_or_default(),
-    };
-    if cfg!(target_os = "linux") {
-        systemd(init, &node).await
-    } else if cfg!(target_os = "macos") {
-        launchd(init, &node).await
-    } else {
+    let Some(manager) = paths::Manager::current() else {
         init.report(
             Outcome::Skipped,
             "service",
@@ -48,7 +41,17 @@ pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
              (for example from Task Scheduler at logon)",
         )
         .await?;
-        Ok(())
+        return Ok(());
+    };
+    let node = Node {
+        exe: std::env::current_exe()?,
+        data_dir: std::path::absolute(init.data_dir.root())?,
+        path: paths::search_path()?,
+    };
+    paths::validate_paths(&node.exe, &node.data_dir)?;
+    match manager {
+        paths::Manager::Systemd => systemd(init, &node).await,
+        paths::Manager::Launchd => launchd(init, &node).await,
     }
 }
 
@@ -56,16 +59,10 @@ pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
 const UNIT: &str = "vessel.service";
 
 async fn systemd(init: &mut Init, node: &Node) -> Result<(), CliError> {
-    let config = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .filter(|dir| dir.is_absolute())
-        .unwrap_or_else(|| init.options.home.join(".config"));
-    let file = config.join("systemd").join("user").join(UNIT);
-    let undo = format!(
-        "systemctl --user disable --now {UNIT} && rm '{}'",
-        file.display()
-    );
-    let content = systemd_unit(node, &undo);
+    let config = std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from);
+    let file = paths::Manager::Systemd.file(&init.options.home, config.as_deref())?;
+    let undo = paths::Manager::Systemd.undo(&file)?;
+    let content = systemd_unit(node, undo.as_str());
     let Some(systemctl) = init.lookup.find("systemctl") else {
         init.report(Outcome::Skipped, "service", "no systemctl on this machine")
             .await?;
@@ -115,18 +112,9 @@ async fn systemd(init: &mut Init, node: &Node) -> Result<(), CliError> {
 const LABEL: &str = "vessel.node";
 
 async fn launchd(init: &mut Init, node: &Node) -> Result<(), CliError> {
-    let file = init
-        .options
-        .home
-        .join("Library")
-        .join("LaunchAgents")
-        .join(format!("{LABEL}.plist"));
-    let undo = format!(
-        "launchctl unload -w '{}' && rm '{}'",
-        file.display(),
-        file.display()
-    );
-    let content = launchd_plist(node, &undo);
+    let file = paths::Manager::Launchd.file(&init.options.home, None)?;
+    let undo = paths::Manager::Launchd.undo(&file)?;
+    let content = launchd_plist(node, undo.as_str());
     let Some(launchctl) = init.lookup.find("launchctl") else {
         init.report(Outcome::Skipped, "service", "no launchctl on this machine")
             .await?;
@@ -221,9 +209,15 @@ fn systemd_unit(node: &Node, undo: &str) -> String {
          [Install]\n\
          WantedBy=default.target\n",
         systemd_quoted(&node.exe.display().to_string()),
-        systemd_quoted(&node.data_dir.display().to_string()),
+        systemd_argument(&node.data_dir.display().to_string()),
         systemd_quoted(&format!("PATH={}", node.path)),
     )
+}
+
+/// Exec arguments expand dollars even inside quotes; Environment= does not.
+/// The executable path is resolved separately by systemd, without this expansion.
+fn systemd_argument(text: &str) -> String {
+    systemd_quoted(&text.replace('$', "$$"))
 }
 
 /// A double-quoted systemd word: `\` and `"` escaped, `%` doubled (it
@@ -385,5 +379,17 @@ mod tests {
             Written::Differs
         ));
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "one");
+    }
+
+    #[test]
+    fn systemd_preserves_dollars_in_data_arguments_without_changing_the_environment() {
+        let node = Node {
+            exe: "/example/$literal/vessel".into(),
+            data_dir: "/example/${HOME}/node".into(),
+            path: "/example/$literal/bin".to_owned(),
+        };
+        let unit = systemd_unit(&node, "remove the unit");
+        assert!(unit.contains("ExecStart=\"/example/$literal/vessel\" --data-dir \"/example/$${HOME}/node\" node start"));
+        assert!(unit.contains("Environment=\"PATH=/example/$literal/bin\""));
     }
 }

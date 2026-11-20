@@ -11,10 +11,13 @@ slice order. The docs commit adds both and no command.
   and OS-lock completion. Its whole gate had one shared side-question
   lifecycle failure; the authorized isolated retry passed and review passed.
   No full-green claim is made for that first run.
-- In progress: 2d adds a bounded kernel observation at `NodeLock`; it sends no
-  signal. Force, matching-service finalization and restart remain separate.
-- Next: run and report the whole gate for 2d, followed by service and
-  force/restart and slices 3/4. Real agents/managers remain unverified.
+- Source committed: 2d (`019995ae`) adds a bounded kernel observation at
+  `NodeLock`; it sends no signal. Its whole gate is pending.
+- Draft: 2e makes new service paths absolute and faithfully representable;
+  no stop-time service observation or manager action is connected yet.
+- Next: finish 2d's gate and report, validate and gate 2e, then service
+  observation/finalization, force/restart and slices 3/4. Real managers
+  remain unverified.
 
 ## Existing asset check
 
@@ -337,3 +340,20 @@ allocation/error text and duplicate writers. Existing CLI stop tests cover
 the preflight's held/unreadable and stale owner refusals. Bounds are
 named beside `NodeProcess` and `LockTable`; boundary tests derive from them.
 No new call, field, protocol number, schema migration or crate edge.
+
+
+### Slice 2e: service path fidelity
+
+Modify the existing installer; reuse its renderers and the existing
+`RemoteCommand` POSIX quoting. Standard-library absolute paths avoid
+manager-cwd ambiguity without canonicalizing symlinks. The ADR records
+Unicode/control refusal and systemd data-argument dollar escaping, distinct
+from Environment quoting. There is no new dependency, crate edge, wire call
+or numeric bound. Existing service test cases remain unchanged; add unit
+cases for location/encoding/quoting and a process-level relative installation
+through the existing fake service tools. Windows still skips installation.
+
+The larger stop-time observer draft is deliberately separate: it must not
+expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
+bounded reads and loaded-manager authority validation follow in separate
+reviewable changes. Compilation and whole-gate evidence are still pending.
