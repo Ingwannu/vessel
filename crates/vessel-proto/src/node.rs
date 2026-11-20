@@ -36,7 +36,7 @@ impl fmt::Display for ProtocolVersion {
 
 /// The protocol this build speaks. Bump on any breaking change to a wire type
 /// and record the change in `docs/PROTOCOL.md`.
-pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(41);
+pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(42);
 
 /// The protocol version that speaks generated names (ADR 0062). The
 /// integrator assigns this after the CLI, web and native clients can read

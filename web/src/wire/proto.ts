@@ -14513,4 +14513,4 @@ export const PLUGIN_CATALOG_PROTOCOL = 41;
 /**
  * `origin` on `git.status`, `git.stage`, `git.unstage` and `git.discard` (ADR 0123 step B).
  */
-export const ORIGIN_LINK_PROTOCOL = null;
+export const ORIGIN_LINK_PROTOCOL = 42;

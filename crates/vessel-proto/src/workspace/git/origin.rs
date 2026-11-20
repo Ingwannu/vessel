@@ -33,7 +33,7 @@ use crate::forge::{ForgeHost, ForgeKind, RepoPath};
 /// carry a status (`git.status`, `git.stage`, `git.unstage`,
 /// `git.discard`). Pending: no peer is served it until integration
 /// assigns its number.
-pub const ORIGIN_LINK_PROTOCOL: Option<ProtocolVersion> = None;
+pub const ORIGIN_LINK_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(42));
 
 /// Whether a peer of `protocol` is served `origin`.
 #[must_use]
