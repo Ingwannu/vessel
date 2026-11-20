@@ -57,7 +57,15 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
 - `71bbd1d20` adds real-browser redirect, subresource and service-worker
   fixtures over the existing IPv4/IPv6 local proxy refusal harness.
   `b19eab2e6` also fences captured frames across same-loader URL fragment
-  changes. The exact extended format, lint and runtime gates are pending.
+  changes. `4a0d6ad98` adds real ICE gathering against monitored TCP and UDP
+  peers that independently pass local controls. `74e782dad` passed remote
+  format (`impl-browser-node-20261120T045556Z-74e782da`) and strict browser
+  Clippy (`impl-browser-node-20261120T045614Z-74e782da`). Export
+  `impl-browser-node-20261120T045637Z-74e782da` is pending in
+  `/tmp/work/m12-claude-wave/browser-b-export-network-ice`.
+- `66c5f9018` adds the subsequent WebSocket case. The Chromium request must
+  reach the actual refusal proxy for both address families and leave both
+  direct canaries untouched. Its format, lint and live run are pending.
 
 ## Review and next work
 
@@ -66,11 +74,13 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Format, lint and run the extended network fixture under the same approved
-   CfT path and UID/GID 1000. Keep one remote run queued or running at a time.
-   Confirm a fresh focused browser suite before handing over the component.
-2. Finish the General network qualification, including real DNS, socket
-   and WebTransport coverage. The browser method rows and `BROWSER_PROTOCOL`
+1. Recover and run the exact `74e782dad` export under the approved CfT path
+   and UID/GID 1000. Verify its active network cases, then format, lint and
+   run the WebSocket follow-on. Keep one remote run queued or running at a
+   time. Confirm a fresh focused browser suite before handing over the
+   component.
+2. Finish the General network qualification, including real DNS, proxy
+   failure and QUIC/WebTransport. The browser method rows and `BROWSER_PROTOCOL`
    are unassigned. Engine availability waits for qualification and
    integration. Keep the exact whole root gate for package review after
    P1 reaches the node entry point.
