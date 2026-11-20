@@ -70,7 +70,28 @@ test("a session starts in a new worktree once its commands are approved, setup s
     "true",
   );
   await archiveWorktreeAgent(page);
+
+  // The other agent is archived. Even after the last live agent exits,
+  // the worktree's launcher can still open a shell beside it.
+  await tab(page, "Work in a worktree").click();
+  await expect(page).toHaveURL(prior);
+  await killWorkspaceAgent(page);
+  await expect(
+    page.getByRole("region", { name: "Session ended" }),
+  ).toBeVisible();
+  await openPanelTab(page, "Terminal");
+  await expect(page.locator(".workspace-terminal .xterm-host")).toBeVisible();
+  await closeWorkspaceTerminal(page);
 });
+
+async function killWorkspaceAgent(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Session actions" }).click();
+  await page.getByRole("menuitem", { name: "Kill", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: /^Kill / })
+    .getByRole("button", { name: "Kill", exact: true })
+    .click();
+}
 
 /** Device-owned worktree shells survive an agent's Kill and stop on Archive. */
 async function archiveWorktreeAgent(page: Page): Promise<void> {
@@ -79,12 +100,7 @@ async function archiveWorktreeAgent(page: Page): Promise<void> {
   await openPanelTab(page, "Terminal");
   const shell = page.locator(".workspace-terminal .xterm-host");
   await expect(shell).toBeVisible();
-  await page.getByRole("button", { name: "Session actions" }).click();
-  await page.getByRole("menuitem", { name: "Kill", exact: true }).click();
-  await page
-    .getByRole("dialog", { name: /^Kill / })
-    .getByRole("button", { name: "Kill", exact: true })
-    .click();
+  await killWorkspaceAgent(page);
   await tab(page, agent).click();
   await expect(
     page.getByRole("region", { name: "Session ended" }),
@@ -115,16 +131,20 @@ async function archiveWorktreeAgent(page: Page): Promise<void> {
   // owns the new terminal, so the node accepts it in this worktree.
   await openPanelTab(page, "Terminal");
   await expect(shell).toBeVisible();
+  await closeWorkspaceTerminal(page);
+  await expect(page).toHaveURL(route);
+  await page.reload();
+  await expect(tab(page, agent)).toHaveAttribute("aria-selected", "true");
+}
+
+async function closeWorkspaceTerminal(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Close · Terminal" }).click();
   await page
     .getByRole("dialog", { name: "Close terminal?" })
     .getByRole("button", { name: "Close", exact: true })
     .last()
     .click();
-  await expect(terminalTab).toHaveCount(0);
-  await expect(page).toHaveURL(route);
-  await page.reload();
-  await expect(tab(page, agent)).toHaveAttribute("aria-selected", "true");
+  await expect(tab(page, "Terminal")).toHaveCount(0);
 }
 
 /** `vessel` as the UI's own user runs it: the same book and data. */

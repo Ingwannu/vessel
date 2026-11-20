@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { isLive } from "../../data/format";
 import { useFleetState } from "../../context";
+import { isArchived } from "../../data/marks";
 import {
   projectAt,
   type ProjectsView,
@@ -94,19 +95,20 @@ export function useWorkspace(
       ),
     [anchor.id, listed, projects, root],
   );
-  const live = (session: SessionInfo) =>
-    isLive(session) && session.marks?.archived_at == null;
-  const liveAnchor = live(anchor)
-    ? anchor.id
-    : (eligible.find(live)?.id ?? null);
+  // Ended agents can still host a shell for checking their work. Archive
+  // alone ends those terminals and prevents the session from hosting more.
+  const candidates = [anchor, ...eligible].filter(
+    (agent) => !isArchived(agent),
+  );
+  const terminalAnchor = (candidates.find(isLive) ?? candidates[0])?.id;
   const place = useMemo<TerminalPlace | null>(
     () =>
       root?.kind === "project"
         ? { kind: "project", project: root.project }
-        : liveAnchor === null
+        : terminalAnchor === undefined
           ? null
-          : { kind: "session", session: liveAnchor },
-    [liveAnchor, root],
+          : { kind: "session", session: terminalAnchor },
+    [root, terminalAnchor],
   );
   const sessionIds = useMemo(
     () => new Set([anchor.id, ...eligible.map((session) => session.id)]),

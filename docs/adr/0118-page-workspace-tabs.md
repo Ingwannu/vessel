@@ -35,10 +35,11 @@ A child agent's close affects layout only. This differs from Paseo's single
 `closeItems` call.
 
 Project terminals belong to the project root. The current terminal contract
-uses a live, unarchived session to anchor new terminals in a worktree or an
-unregistered folder. Use another live session in the same workspace when the
-routed session has ended. Disable creation when the workspace has no live
-anchor. Before archiving a session, look up its live shells, scripts and
+uses an unarchived session to anchor new terminals in a worktree or an
+unregistered folder. Prefer a live session and fall back to an ended,
+unarchived session so a person can check the agent's work after it exits.
+Disable creation when the workspace has no unarchived session. Before
+archiving a session, look up its live shells, scripts and
 services. Count them alongside any terminals explicitly selected for close,
 with one count per terminal. Recheck after confirmation and ask again if the
 scope grew. The list and archive are separate calls, so a concurrently created

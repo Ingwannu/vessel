@@ -6,7 +6,7 @@ const en = {
   agent: "Agent",
   terminal: "Terminal",
   terminalNeedsAgent:
-    "Start a live agent in this workspace to open a terminal.",
+    "Unarchive an agent or start a new one in this workspace to open a terminal.",
   changes: "Changes",
   diff: "Diff",
   files: "Files",
@@ -69,7 +69,8 @@ const ko: typeof en = {
   workspace: "워크스페이스 탭",
   agent: "에이전트",
   terminal: "터미널",
-  terminalNeedsAgent: "터미널을 열려면 워크스페이스에서 에이전트를 실행하세요.",
+  terminalNeedsAgent:
+    "터미널을 열려면 이 워크스페이스에서 에이전트 보관을 해제하거나 새 에이전트를 시작하세요.",
   changes: "변경 사항",
   diff: "비교",
   files: "파일",
