@@ -138,8 +138,35 @@ fn switching_dark_palettes_updates_the_component_layer_together(cx: &mut gpui::T
                 component.colors.muted_foreground,
                 expected.neutral.foreground_muted
             );
+            assert!(component.mode.is_dark());
+            // TRACKER 825: the Markdown's ink, which the text views take
+            // from the defaults the component layer installs.
+            assert_eq!(markdown_ink(cx), Some(expected.neutral.foreground));
         }
     });
+}
+
+#[gpui::test]
+fn a_scheme_unlike_the_starting_appearance_reaches_the_markdown_ink(cx: &mut gpui::TestAppContext) {
+    cx.update(|cx| {
+        gpui_component::init(cx);
+        for palette in [Palette::Dark, Palette::Light, Palette::PureBlack] {
+            crate::set_palette(cx, palette);
+            let expected = Tokens::palette(palette);
+            assert_eq!(markdown_ink(cx), Some(expected.neutral.foreground));
+            assert_eq!(
+                cx.global::<gpui_component::Theme>().mode.is_dark(),
+                expected.scheme == Scheme::Dark
+            );
+        }
+    });
+}
+
+/// The text views' default foreground (the kit's Markdown starts from it).
+fn markdown_ink(cx: &gpui::App) -> Option<gpui::Hsla> {
+    gpui_base::TextViewDefaults::global(cx)
+        .style()
+        .map(gpui_base::text::TextViewStyle::foreground)
 }
 
 #[test]

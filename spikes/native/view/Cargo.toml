@@ -18,6 +18,8 @@ thiserror.workspace = true
 vessel-proto.workspace = true
 serde_json.workspace = true
 similar.workspace = true
+# The Files tab's Markdown front matter (front_matter.rs only).
+yaml-rust2.workspace = true
 unicode-normalization.workspace = true
 # The terminal's parser (ADR 0073); only this crate may use it.
 vte.workspace = true

@@ -248,3 +248,18 @@ fn prose_wraps_and_code_keeps_its_lines() {
     );
     assert!(!super::wraps("Makefile"));
 }
+
+#[test]
+fn the_revision_moves_only_when_the_text_does() {
+    let fresh = EditorModel::new().revision();
+    let mut model = loaded("one");
+    let read = model.revision();
+    assert_ne!(read, fresh);
+    let _same = model.edit("one");
+    assert_eq!(model.revision(), read);
+    let _typed = model.edit("one two");
+    let typed = model.revision();
+    assert_ne!(typed, read);
+    let _saved = model.save();
+    assert_eq!(model.revision(), typed);
+}

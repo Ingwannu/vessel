@@ -43,6 +43,8 @@ mod download;
 mod entry;
 #[cfg(not(target_arch = "wasm32"))]
 mod follow;
+#[cfg(not(target_arch = "wasm32"))]
+mod image_bytes;
 pub mod layout;
 mod pulls;
 #[cfg(not(target_arch = "wasm32"))]
@@ -67,9 +69,9 @@ use vessel_client::NodeClient;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::ProjectId;
 
-pub use answer::{Answer, Form, GitWritten};
+pub use answer::{Answer, Form, GitWritten, ImageBytes};
 pub use ask::{
-    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk,
+    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, Save, WorktreeAsk,
 };
 pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};

@@ -54,7 +54,7 @@ pub(super) async fn fetch(client: &NodeClient, download: &Download) -> Result<()
 }
 
 /// A fetch's error as a download's failure.
-fn failure(error: &WorkspaceFileFetchError) -> DownloadFailure {
+pub(super) fn failure(error: &WorkspaceFileFetchError) -> DownloadFailure {
     match error {
         WorkspaceFileFetchError::Read(error)
         | WorkspaceFileFetchError::Transfer(FetchError::Read(WorkspaceFilePageError::Call(

@@ -35,7 +35,7 @@ use std::time::Instant;
 
 pub(crate) use drafts::keep_drafts;
 pub(crate) use files::{attach_button, draft_card, session_card};
-pub(crate) use lightbox::overlay;
+pub(crate) use lightbox::{decode_image, overlay};
 pub(crate) use local::restore_local;
 pub(crate) use prepared::PrepareProblem;
 #[expect(

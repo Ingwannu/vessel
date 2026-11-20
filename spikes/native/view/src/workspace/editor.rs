@@ -123,6 +123,9 @@ pub struct EditorModel {
     read_during_write: Option<Read>,
     /// The read out is a reload: its text replaces the buffer.
     reloading: bool,
+    /// Bumped whenever the buffer's text changes, so what is drawn from it
+    /// (a Markdown preview) is derived again only then.
+    revision: u64,
 }
 
 /// Paseo's autosave delay.
@@ -165,6 +168,7 @@ impl EditorModel {
             writing: None,
             read_during_write: None,
             reloading: false,
+            revision: 0,
         }
     }
 
@@ -220,6 +224,12 @@ impl EditorModel {
         self.read_sequence
     }
 
+    /// A number that changes whenever the buffer's text does.
+    #[must_use]
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
     /// The version last read or saved (its size for the toolbar).
     #[must_use]
     pub const fn version(&self) -> Option<&FileVersion> {
@@ -242,6 +252,7 @@ impl EditorModel {
             return Step::None;
         }
         content.clone_into(&mut self.content);
+        self.revision = self.revision.wrapping_add(1);
         self.error = None;
         if self.status == EditorStatus::Conflict {
             return Step::None;
@@ -418,6 +429,7 @@ impl EditorModel {
         self.writing = None;
         self.persisted.clone_from(&text);
         self.content = text;
+        self.revision = self.revision.wrapping_add(1);
         self.version = Some(version);
         self.status = EditorStatus::Clean;
         self.conflict = None;
