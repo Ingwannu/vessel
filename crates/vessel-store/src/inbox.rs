@@ -14,6 +14,7 @@
 //! - Cost: projection writes at tool/request/outcome boundaries, never on
 //!   message/output chunks; a second device sees committed state on refresh.
 
+pub(crate) mod attention;
 mod migrate;
 mod tools;
 use crate::codec::{

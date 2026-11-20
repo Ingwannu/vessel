@@ -96,7 +96,9 @@ function RowContent({
         </span>
       )}
       {shortcut === undefined ? null : (
-        <span className="menu-shortcut">{shortcut}</span>
+        <span className="menu-shortcut" aria-hidden="true">
+          {shortcut}
+        </span>
       )}
     </>
   );

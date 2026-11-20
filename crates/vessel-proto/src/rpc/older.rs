@@ -302,6 +302,10 @@ impl Reply {
             | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
+            // The pane's reads (ADR 0088): refused below their protocol before
+            // dispatch.
+            | Self::GetPullTimeline(_)
+            | Self::GetCheckDetails(_)
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
@@ -338,6 +342,11 @@ impl Reply {
             | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::DeletePrompt(_)
+            | Self::ReadInboxThrough(_)
+            | Self::GetInboxAttention(_)
+            | Self::ClaimNotification(_)
+            | Self::ClearTerminalAttention(_)
+            | Self::ReportTerminalActivity(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
             | Self::GetAgentDiagnostic(_)

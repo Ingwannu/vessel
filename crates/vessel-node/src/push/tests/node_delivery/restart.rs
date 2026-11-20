@@ -121,11 +121,15 @@ async fn restart_keeps_the_key_and_subscription_but_does_not_replay_unread_outco
                 .await
                 .unwrap()
                 .unwrap();
+            let vessel_proto::notifications::NotificationSource::Session { key, .. } = admitted
+            else {
+                panic!("expected session admission");
+            };
             assert_eq!(
-                admitted.key.session, new_session,
+                key.session, new_session,
                 "persisted unread attention must not replay"
             );
-            assert_ne!(admitted.key, old.key);
+            assert_ne!(key, old.key);
             let sent = step(
                 "retained subscription receives new attention",
                 receiver.inbox.recv(),

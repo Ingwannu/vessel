@@ -72,7 +72,8 @@ mod tests {
     #[test]
     fn the_diff_stat_is_the_current_protocol() {
         assert_eq!(DIFF_STAT_PROTOCOL, Some(ProtocolVersion::new(38)));
-        assert_eq!(DIFF_STAT_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+        // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
+        assert!(DIFF_STAT_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
         assert!(!serves_diff_stat(ProtocolVersion::new(37)));
         assert!(serves_diff_stat(crate::PROTOCOL_VERSION));
     }

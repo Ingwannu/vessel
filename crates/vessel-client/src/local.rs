@@ -34,6 +34,8 @@ pub enum LocalCredential {
     Token(BearerToken),
     /// A session's agent (ADR 0013).
     Agent(AgentAuth),
+    /// Only one terminal's activity reports; no other node calls (ADR 0089).
+    TerminalActivity(vessel_proto::notifications::TerminalActivityAuth),
 }
 
 /// Why a local connection failed.
@@ -81,6 +83,9 @@ impl NodeClient {
         let mut framed = Framed::new(reader, writer, MAX_FRAME);
         let first = match credential {
             LocalCredential::Token(token) => token.expose().to_owned(),
+            LocalCredential::TerminalActivity(auth) => {
+                serde_json::to_string(auth).map_err(LocalConnectError::Encode)?
+            }
             LocalCredential::Agent(auth) => {
                 serde_json::to_string(auth).map_err(LocalConnectError::Encode)?
             }
