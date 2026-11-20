@@ -9,7 +9,7 @@ mod identity;
 mod tests;
 
 use crate::profile::Profile;
-use identity::Candidate;
+use identity::{Candidate, NO_DESKTOP_BUS};
 pub(crate) use identity::LaunchError;
 use std::ffi::OsString;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -67,9 +67,9 @@ impl Plan {
     /// Synchronous file hashing must run through the finite `Preparation` owner.
     pub(crate) fn inspect(profile: Profile, proxy: ProxyEndpoint) -> Result<Self, LaunchError> {
         let identity = Candidate::inspect()?;
-        Ok(Self::build(profile, proxy, identity))
+        Self::build(profile, proxy, identity)
     }
-    fn build(profile: Profile, proxy: ProxyEndpoint, identity: Candidate) -> Self {
+    fn build(profile: Profile, proxy: ProxyEndpoint, identity: Candidate) -> Result<Self, LaunchError> {
         let mut directory = OsString::from("--user-data-dir=");
         directory.push(profile.root());
         let command = CommandSpec::new(FIXED_SHELL)
@@ -87,12 +87,13 @@ impl Plan {
             .env("TMPDIR", profile.temporary())
             .env("LANG", "C.UTF-8")
             .env("TZ", "UTC")
-            .env("PATH", "/usr/bin:/bin");
-        Self {
+            .env("DBUS_SESSION_BUS_ADDRESS", NO_DESKTOP_BUS)
+            .env("PATH", Candidate::directory()?.as_os_str());
+        Ok(Self {
             command,
             profile,
             identity,
-        }
+        })
     }
     /// The actual owned child, not a stored/caller PID, supplies identity.
     pub(crate) fn verify_started(&self, child: &Child) -> Result<(), LaunchError> {

@@ -5,6 +5,8 @@ Status: contract accepted; implementation and runtime qualification pending.
 [ADR 0119](0119-general-browser-activation-independent-of-preview.md) amends the
 activation order. Linux General may activate once its own runtime and native
 path qualify. Preview retains the verified workspace-service lease requirement.
+The [2026-11-20 launch policy](#launch-policy-2026-11-20) refines the Linux
+runtime environment, guest navigation and downloads.
 No engine, new call, or visible entry is enabled by this document.
 
 ## Purpose and intent
@@ -964,3 +966,31 @@ node-wide count/byte saturation across profiles; restart with retained or
 malformed manifests; actual service-account permissions; actual browser lazy
 file read after command completion and target cleanup. A fake selected name or
 controlled copy does not qualify actual browser use or Windows containment.
+
+## Launch policy (2026-11-20)
+
+The Linux launch environment confines command lookup to the verified,
+root-owned Chromium bundle and gives Chromium an explicitly unreachable
+session bus. The launcher rejects a bundle containing desktop opener helpers.
+The worktree and user's desktop environment supply neither commands nor a
+portal. This per-process configuration keeps the boundary local to the runtime.
+The pinned Linux implementation can otherwise reach a desktop portal or fall
+back to command lookup. [Chromium 149 Linux platform integration](https://raw.githubusercontent.com/chromium/chromium/149.0.7827.55/chrome/browser/platform_util_linux.cc).
+
+The node admits HTTP(S) guest addresses and refuses unsupported schemes,
+including mail, file, script and data destinations. The empty `about:blank`
+target is internal. The app's shared opener also admits HTTP(S) only and owns
+the user's ask, in-app or external preference for those links. This matches
+the source browser's guest guards and shared opener. Browser-side external
+launch is prohibited.
+
+General startup requires an acknowledgement of the browser-level download
+denial before offering the controller. Paseo can save files from its pane,
+including **Save Image As…** in the guest context menu. Its browser partition
+has no pane-specific `will-download` save override. Vessel's initial download
+denial creates a parity follow-up for the app-owned save flow.
+[Electron download item and save behavior](https://www.electronjs.org/docs/latest/api/download-item).
+
+Qualification includes a private test profile, the remote-built artifact,
+and controlled local pages. Test the guest gates, confirm actual download
+refusal, and verify that host desktop helpers receive no test invocation.

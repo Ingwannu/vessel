@@ -2,7 +2,7 @@
 use super::bundle::Bundle;
 use sha2::{Digest as _, Sha256};
 use std::fs::{self, File};
-use std::os::unix::fs::MetadataExt as _;
+use std::os::unix::fs::{FileTypeExt as _, MetadataExt as _};
 use std::path::Path;
 use vessel_proc::Child;
 
@@ -11,6 +11,8 @@ const FILE_READ_BYTES: usize = 64 * 1024;
 /// Bound corrupted/replaced candidate files before streaming their contents.
 const MAX_EXECUTABLE_BYTES: u64 = 512 * 1024 * 1024;
 const EXECUTE_ACCESS: u32 = 0o001;
+const DESKTOP_HELPERS: [&str; 2] = ["xdg-open", "xdg-email"];
+pub(super) const NO_DESKTOP_BUS: &str = "unix:path=/dev/null";
 pub(super) const WRITE_ACCESS: u32 = 0o022;
 pub(super) const ROOT_UID: u32 = 0;
 // These identify only the diagnostic candidate. No complete qualification exists.
@@ -35,6 +37,8 @@ pub(crate) enum LaunchError {
     Proxy,
     #[error("browser execution requires a non-root service account")]
     Account,
+    #[error("browser runtime cannot isolate desktop integration")]
+    DesktopPolicy,
 }
 /// Hashes alone never become a `QualifiedRuntime` token.
 pub(super) struct Candidate {
@@ -48,7 +52,9 @@ impl Candidate {
         }
         verify(Path::new(BROWSER), &BROWSER_DIGEST)?;
         verify(Path::new(super::FIXED_SHELL), &SHELL_DIGEST)?;
-        let bundle = Bundle::inspect(Path::new(BROWSER).parent().ok_or(LaunchError::Identity)?)?;
+        let directory = Self::directory()?;
+        verify_desktop_boundary(directory)?;
+        let bundle = Bundle::inspect(directory)?;
         Ok(Self {
             browser_digest: BROWSER_DIGEST,
             bundle,
@@ -62,6 +68,9 @@ impl Candidate {
     pub(super) const fn browser_path() -> &'static str {
         BROWSER
     }
+    pub(super) fn directory() -> Result<&'static Path, LaunchError> {
+        Path::new(BROWSER).parent().ok_or(LaunchError::Identity)
+    }
     pub(super) fn verify_started(&self, child: &Child) -> Result<(), LaunchError> {
         if !child.lifetime().is_live() {
             return Err(LaunchError::Identity);
@@ -74,9 +83,25 @@ impl Candidate {
         Ok(())
     }
     pub(super) fn verify_bundle(&self) -> Result<super::bundle::Fingerprint, LaunchError> {
-        self.bundle
-            .verify_unchanged(Path::new(BROWSER).parent().ok_or(LaunchError::Identity)?)
+        let directory = Self::directory()?;
+        verify_desktop_boundary(directory)?;
+        self.bundle.verify_unchanged(directory)
     }
+}
+
+fn verify_desktop_boundary(directory: &Path) -> Result<(), LaunchError> {
+    for name in DESKTOP_HELPERS {
+        match fs::symlink_metadata(directory.join(name)) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(LaunchError::Io(error)),
+            Ok(_) => return Err(LaunchError::DesktopPolicy),
+        }
+    }
+    let sink = fs::symlink_metadata("/dev/null").map_err(LaunchError::Io)?;
+    if !sink.file_type().is_char_device() {
+        return Err(LaunchError::DesktopPolicy);
+    }
+    Ok(())
 }
 fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {
     let actual = fs::canonicalize(path).map_err(LaunchError::Io)?;

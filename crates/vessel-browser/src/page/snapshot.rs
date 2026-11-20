@@ -13,7 +13,7 @@ impl Page {
                 return Err(SnapshotError::from(error).into());
             }
         };
-        let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
+        let frame = self.checked_document().await?;
         let world = self
             .execute(requests::IsolatedWorld::new(frame.id.clone()))
             .await?;
@@ -23,8 +23,7 @@ impl Page {
                 Config::new(namespace),
             ))
             .await?;
-        let after = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
-        if frame.id != after.id || frame.loader_id != after.loader_id {
+        if self.checked_document().await? != frame {
             let _revision = self.invalidate()?;
             return Err(PageError::Navigation);
         }

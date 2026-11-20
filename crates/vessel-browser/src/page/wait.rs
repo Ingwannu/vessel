@@ -38,7 +38,7 @@ impl Page {
     }
 
     async fn condition_matches(&mut self, condition: &WaitFor) -> Result<bool, PageError> {
-        let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
+        let frame = self.checked_document().await?;
         let realm = self
             .execute(requests::IsolatedWorld::new(frame.id.clone()))
             .await?;
@@ -50,8 +50,7 @@ impl Page {
             .await?
             .remote_object::<Observed>()
             .map_err(PageError::Evaluation)?;
-        let after = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
-        if frame.id != after.id || frame.loader_id != after.loader_id {
+        if self.checked_document().await? != frame {
             let _revision = self.invalidate()?;
             return Err(PageError::Navigation);
         }

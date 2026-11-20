@@ -15,10 +15,10 @@ use vessel_proto::browser::{
 
 use super::Client;
 use super::owner::{Owner, OwnerError};
-use crate::cdp::wire::{Event, EventKind};
+use crate::cdp::wire::{Event, EventKind, GuestAddress, GuestNavigation};
 use crate::delivery::{Attempt, Caller};
 use crate::page::PageError;
-use crate::targets::{TargetError, TargetWatch, Targets};
+use crate::targets::{Binding, TargetError, TargetWatch, Targets};
 
 const COMMAND_CAPACITY: usize = 64;
 
@@ -298,18 +298,22 @@ async fn observe(targets: &mut Targets, event: &Event) {
         return;
     };
     match event.kind() {
-        EventKind::Navigated | EventKind::DocumentOpened | EventKind::WithinDocument => {
+        EventKind::Navigated | EventKind::NavigationRequested => {
+            observe_navigation(binding, event).await;
+        }
+        EventKind::DocumentOpened | EventKind::WithinDocument => {
             if binding.page.invalidate().is_ok() {
                 binding.announce(BrowserLoad::Loading);
             }
         }
-        EventKind::Loaded => binding.announce(BrowserLoad::Ready),
+        EventKind::Loaded => binding.mark_loaded().await,
         EventKind::Screencast => {
             let _noticed = binding.page.on_paint_signal(event).await;
         }
         EventKind::Attached
         | EventKind::Detached
         | EventKind::Crashed
+        | EventKind::Loading
         | EventKind::Stopped
         | EventKind::Dialog
         | EventKind::Console
@@ -320,6 +324,32 @@ async fn observe(targets: &mut Targets, event: &Event) {
         | EventKind::RequestPaused
         | EventKind::Download
         | EventKind::Unknown => {}
-        EventKind::Loading => binding.announce(BrowserLoad::Loading),
+    }
+}
+
+async fn observe_navigation(binding: &mut Binding, event: &Event) {
+    match event.guest_navigation() {
+        Ok(Some(GuestNavigation::Requested {
+            frame,
+            address: GuestAddress::Denied,
+        })) => match binding.page.reject_navigation(&frame).await {
+            Ok(true) => binding.announce(BrowserLoad::Failed(BrowserFailure::Scheme)),
+            Ok(false) => {}
+            Err(_) => binding.announce(BrowserLoad::Failed(BrowserFailure::Internal)),
+        },
+        Ok(Some(GuestNavigation::Committed(GuestAddress::Web | GuestAddress::Empty))) => {
+            if binding.page.invalidate().is_ok() {
+                binding.announce(BrowserLoad::Loading);
+            }
+        }
+        Ok(Some(GuestNavigation::Committed(GuestAddress::Denied))) => {
+            let _stopped = binding.page.stop_unadmitted_document().await;
+            binding.announce(BrowserLoad::Failed(BrowserFailure::Scheme));
+        }
+        Ok(Some(GuestNavigation::Requested { .. }) | None) => {}
+        Err(_) => {
+            let _stopped = binding.page.stop_unadmitted_document().await;
+            binding.announce(BrowserLoad::Failed(BrowserFailure::Internal));
+        }
     }
 }

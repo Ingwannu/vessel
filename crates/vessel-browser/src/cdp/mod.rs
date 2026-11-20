@@ -16,5 +16,5 @@ mod wire;
 
 pub(crate) use client::{CdpError, Client, Events};
 pub(crate) use endpoint::Endpoint;
-pub(crate) use identity::{SessionId, TargetId};
+pub(crate) use identity::{FrameId, SessionId, TargetId};
 pub(crate) use wire::Event;

@@ -12,13 +12,12 @@ impl Page {
     ) -> Result<CappedText, PageError> {
         self.active()?;
         let expression = evaluation::expression(function)?;
-        let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
+        let frame = self.checked_document().await?;
         // Arbitrary user code may change the DOM even when it throws or its caller
         // stops waiting. Old action refs therefore stop resolving before execution.
         let _revision = self.invalidate()?;
         let observed = self.execute(requests::Evaluate::new(expression)).await?;
-        let after = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
-        if frame.id != after.id || frame.loader_id != after.loader_id {
+        if self.checked_document().await? != frame {
             let _revision = self.invalidate()?;
             return Err(PageError::Navigation);
         }

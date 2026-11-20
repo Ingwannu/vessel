@@ -30,6 +30,7 @@ macro_rules! methods {
 methods! {
     Version => "Browser.getVersion",
     CloseBrowser => "Browser.close",
+    SetDownloadBehavior => "Browser.setDownloadBehavior",
     CreateTarget => "Target.createTarget",
     CloseTarget => "Target.closeTarget",
     Attach => "Target.attachToTarget",
@@ -70,6 +71,7 @@ macro_rules! request {
 mod keyboard;
 mod modifiers;
 mod pointer;
+mod policy;
 pub(crate) use keyboard::{KeyboardError, KeyboardState};
 mod capture;
 pub(crate) use capture::{CapturePage, LayoutMetrics};
@@ -78,6 +80,7 @@ mod screencast;
 mod snapshot;
 pub(crate) use condition::ConditionProbe;
 pub(crate) use pointer::{MouseEvent, PointerState};
+pub(crate) use policy::DenyDownloads;
 pub(crate) use screencast::{ScreencastFrame, StartScreencast};
 pub(crate) use snapshot::{Frame, FrameTree, IsolatedWorld, SnapshotTraversal};
 

@@ -165,7 +165,7 @@ async fn peer(
                         "initial"
                     }
                 };
-                serde_json::json!({"frameTree":{"frame":{"id":"wait-frame","loaderId":loader}}})
+                serde_json::json!({"frameTree":{"frame":{"id":"wait-frame","loaderId":loader,"url":"https://fixture.test/"}}})
             }
             "Page.createIsolatedWorld" => serde_json::json!({"executionContextId":7}),
             "Runtime.callFunctionOn" => {

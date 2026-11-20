@@ -102,7 +102,14 @@ impl Owner {
                 (child, plan, observed)
             })
             .await?;
-        let readiness = attest_candidate(observed, reported);
+        let readiness = match attest_candidate(observed, reported) {
+            Ok(()) => client
+                .execute(None, requests::DenyDownloads::new())
+                .await
+                .map(|_ack| ())
+                .map_err(OwnerError::from),
+            Err(error) => Err(error),
+        };
         let state = if readiness.is_ok() {
             Readiness::Ready
         } else {

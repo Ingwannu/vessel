@@ -1,6 +1,7 @@
 //! Candidate frames retain the document and viewport that produced their pixels.
 
 use super::{Page, PageError, TargetId, requests};
+use crate::cdp::FrameId;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::{sync::watch, time::Instant};
@@ -70,6 +71,10 @@ impl ViewportFrame {
     pub(crate) const fn revision(&self) -> BrowserRevision {
         self.revision
     }
+
+    pub(super) fn into_image(self) -> ScreenshotPng {
+        self.image
+    }
 }
 
 impl Page {
@@ -114,9 +119,9 @@ impl Page {
     /// Capture transport and the paint target must agree before a frame can
     /// back coordinate input. The native image decoder still checks the pixels.
     pub(crate) async fn viewport_frame(&mut self) -> Result<ViewportFrame, PageError> {
-        let document = self.observed_document().await?;
+        let document = self.checked_document().await?;
         let image = self.capture().await?;
-        if self.observed_document().await? != document {
+        if self.checked_document().await? != document {
             let _revision = self.invalidate()?;
             return Err(PageError::Navigation);
         }
@@ -143,17 +148,36 @@ impl Page {
         if frame.revision != self.revision() || frame.target != self.target {
             return Err(PageError::StaleFrame);
         }
-        if self.observed_document().await? != frame.document {
+        if self.checked_document().await? != frame.document {
             let _revision = self.invalidate()?;
             return Err(PageError::StaleFrame);
         }
         self.human_input(input).await
     }
 
-    async fn observed_document(&mut self) -> Result<requests::Frame, PageError> {
-        self.execute(requests::FrameTree {})
-            .await
-            .map(|result| result.frame_tree.frame)
+    pub(crate) async fn checked_document(&mut self) -> Result<requests::Frame, PageError> {
+        let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
+        if frame.admitted_url().is_err() {
+            let _revision = self.invalidate()?;
+            return Err(PageError::Destination);
+        }
+        Ok(frame)
+    }
+
+    /// Stop a foreign top-level navigation without treating a subframe
+    /// navigation as a change to the displayed document.
+    pub(crate) async fn reject_navigation(&mut self, requested: &FrameId) -> Result<bool, PageError> {
+        let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
+        if &frame.id != requested {
+            return Ok(false);
+        }
+        self.stop_unadmitted_document().await?;
+        Ok(true)
+    }
+
+    pub(crate) async fn stop_unadmitted_document(&mut self) -> Result<(), PageError> {
+        let _revision = self.invalidate()?;
+        self.stop().await
     }
 }
 

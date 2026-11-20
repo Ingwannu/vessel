@@ -13,6 +13,8 @@ use axum::{
     http::{Request, StatusCode, header},
     response::{IntoResponse as _, Response},
 };
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::net::TcpListener;
 use tokio_util::sync::{CancellationToken, DropGuard};
 use vessel_proto::WorkspaceId;
@@ -38,45 +40,73 @@ const INPUT_TEXT: &str = "typed in the fixture";
 const FIXTURE_COOKIE: &str = "vessel-fixture-storage=present";
 pub(super) const PERSISTED_ROUTE: &str = "http://fixture.test/profile-marker";
 pub(super) const PERSISTED_MARKER: &str = "Fixture profile persisted";
+const DOWNLOAD_ROUTE: &str = "/fixture-download";
+pub(super) const DOWNLOAD_NAME: &str = "vessel-browser-fixture-download.txt";
+
+#[derive(Clone)]
+struct FixtureState {
+    routes: Routes,
+    sent_attachment: Arc<AtomicBool>,
+}
 
 pub(super) struct FixtureProxy {
     stop: CancellationToken,
     guard: DropGuard,
     actor: tokio::task::JoinHandle<Result<(), std::io::Error>>,
+    sent_attachment: Arc<AtomicBool>,
 }
 impl FixtureProxy {
     pub(super) fn start(listener: TcpListener, routes: Routes) -> Self {
         let stop = CancellationToken::new();
         let guard = stop.clone().drop_guard();
         let closing = stop.clone();
+        let sent_attachment = Arc::new(AtomicBool::new(false));
+        let state = FixtureState {
+            routes,
+            sent_attachment: Arc::clone(&sent_attachment),
+        };
         let actor = tokio::spawn(async move {
             axum::serve(
                 listener,
-                Router::new().fallback(document).with_state(routes),
+                Router::new().fallback(document).with_state(state),
             )
             .with_graceful_shutdown(closing.cancelled_owned())
             .await
         });
-        Self { stop, guard, actor }
+        Self {
+            stop,
+            guard,
+            actor,
+            sent_attachment,
+        }
     }
     pub(super) async fn finish(self) {
-        let Self { stop, guard, actor } = self;
+        let Self {
+            stop,
+            guard,
+            actor,
+            sent_attachment,
+        } = self;
         stop.cancel();
         tokio::time::timeout(SHUTDOWN_TIMEOUT, actor)
             .await
             .unwrap()
             .unwrap()
             .unwrap();
+        assert!(
+            sent_attachment.load(Ordering::SeqCst),
+            "the browser never requested the attachment"
+        );
         drop(guard);
     }
 }
-async fn document(State(routes): State<Routes>, request: Request<Body>) -> Response {
+async fn document(State(state): State<FixtureState>, request: Request<Body>) -> Response {
     let (parts, body) = request.into_parts();
     drop(body);
     if parts.method != axum::http::Method::GET {
         return StatusCode::FORBIDDEN.into_response();
     }
-    if let Some(refused) = routes.try_refusal(&parts.uri).await {
+    if let Some(refused) = state.routes.try_refusal(&parts.uri).await {
         return match refused {
             Ok(marker) => ([(header::CACHE_CONTROL, "no-store")], marker).into_response(),
             Err(error) => error.into_response(),
@@ -84,6 +114,19 @@ async fn document(State(routes): State<Routes>, request: Request<Body>) -> Respo
     }
     if parts.uri.host() != Some("fixture.test") {
         return StatusCode::FORBIDDEN.into_response();
+    }
+    if parts.uri.path() == DOWNLOAD_ROUTE {
+        state.sent_attachment.store(true, Ordering::SeqCst);
+        let attachment = format!("attachment; filename={DOWNLOAD_NAME}");
+        return (
+            [
+                (header::CONTENT_TYPE, "application/octet-stream"),
+                (header::CACHE_CONTROL, "no-store"),
+                (header::CONTENT_DISPOSITION, attachment.as_str()),
+            ],
+            "fixture attachment",
+        )
+            .into_response();
     }
     if parts.uri.path() == "/favicon.ico" {
         return StatusCode::NO_CONTENT.into_response();
@@ -173,6 +216,11 @@ pub(super) async fn exercise(
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     let compositor_png = page.probe_compositor(events).await?.size();
     routes.verify_browser(page).await?;
+    let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}").parse().unwrap();
+    assert!(matches!(
+        page.navigate(attachment).await,
+        Err(PageError::Navigation)
+    ));
     targets.close(workspace, &browser).await?;
     assert!(matches!(
         targets.owned(workspace, &browser),

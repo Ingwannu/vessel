@@ -322,5 +322,5 @@ fn frame_result(queries: u8, captures: u8) -> serde_json::Value {
     } else {
         "first-loader"
     };
-    serde_json::json!({"frameTree":{"frame":{"id":"own-frame","loaderId":loader}}})
+    serde_json::json!({"frameTree":{"frame":{"id":"own-frame","loaderId":loader,"url":"https://fixture.test/"}}})
 }

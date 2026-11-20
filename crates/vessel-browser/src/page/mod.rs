@@ -32,7 +32,7 @@ pub(crate) enum PageError {
     Closed,
     #[error("browser history has no permitted entry in that direction")]
     NoHistory,
-    #[error("browser history contains an unsupported destination")]
+    #[error("browser document has an unsupported destination")]
     Destination,
     #[error("browser surface exceeds the raster budget")]
     Surface,

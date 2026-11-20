@@ -117,3 +117,9 @@ process group and exact profile marker. A separate launch must return a
 fixture-only persistent cookie through the loopback test proxy. This checks
 reuse of a real Chromium profile under the service identity. The recovery
 policy for a live node with an uncertain exit still needs integration.
+
+### Download follow-up
+
+| Owner | Scope | Reference and current difference |
+| --- | --- | --- |
+| D3 follow-up | Download/save from the browser pane | `desktop/src/main.ts:193,774` mounts the guest context menu, and `desktop/src/window/window-manager.ts:367–370` invokes Electron's download for **Save Image As…**. The browser partition uses Electron's normal download routine. The first Vessel General release denies downloads under the launch policy. A later packet needs a reviewed app-owned destination, cancel/error behavior and local fixture tests. |

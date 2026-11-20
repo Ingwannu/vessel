@@ -87,6 +87,14 @@ impl Binding {
         }
     }
 
+    pub(crate) async fn mark_loaded(&mut self) {
+        // Delayed page events cannot clear a scheme refusal. A new admitted
+        // navigation sets Loading before the new document can become Ready.
+        if self.state.load == BrowserLoad::Loading && self.page.checked_document().await.is_ok() {
+            self.announce(BrowserLoad::Ready);
+        }
+    }
+
     fn end(&self, reason: BrowserFailure) {
         let _receivers = self.notices.send(TargetNotice::Ended(reason));
     }

@@ -5,6 +5,9 @@
 
 use std::fmt;
 
+mod navigation;
+pub(crate) use navigation::{GuestAddress, GuestNavigation};
+
 use serde::{Deserialize, Serialize};
 use vessel_proto::RawJson;
 use vessel_proto::browser::PageText;
@@ -148,6 +151,9 @@ pub(crate) enum EventKind {
     #[doc = "`Page.frameNavigated`"]
     #[serde(rename = "Page.frameNavigated")]
     Navigated,
+    #[doc = "`Page.frameRequestedNavigation`"]
+    #[serde(rename = "Page.frameRequestedNavigation")]
+    NavigationRequested,
     #[doc = "`Page.documentOpened`"]
     #[serde(rename = "Page.documentOpened")]
     DocumentOpened,

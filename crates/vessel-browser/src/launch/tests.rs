@@ -9,7 +9,7 @@ fn candidate_argv_never_interpolates_page_data_and_only_explicit_environment_sur
         Profile::prepare(&parent.path().join("profile"), &parent.path().join("tmp")).unwrap();
     let proxy = ProxyEndpoint::try_from("127.0.0.1:8123".parse::<SocketAddr>().unwrap()).unwrap();
     // Private value constructor is test-only data, not a runtime qualification.
-    let plan = Plan::build(profile, proxy, Candidate::FIXTURE);
+    let plan = Plan::build(profile, proxy, Candidate::FIXTURE).unwrap();
     assert!(!format!("{plan:?}").contains(parent.path().to_str().unwrap()));
     let (command, profile) = plan.into_supervised_parts();
     assert_eq!(command.diagnostic_policy(), CommandDiagnostics::Redacted);
@@ -35,9 +35,14 @@ fn candidate_argv_never_interpolates_page_data_and_only_explicit_environment_sur
     assert!(
         matches!(command.env_change("HOME"),Some(EnvValue::Set(value)) if value==profile.home().as_os_str())
     );
+    assert!(
+        matches!(command.env_change("PATH"),Some(EnvValue::Set(value)) if value==Candidate::directory().unwrap().as_os_str())
+    );
+    assert!(
+        matches!(command.env_change("DBUS_SESSION_BUS_ADDRESS"),Some(EnvValue::Set(value)) if value==std::ffi::OsStr::new(NO_DESKTOP_BUS))
+    );
     for name in [
         "SSH_AUTH_SOCK",
-        "DBUS_SESSION_BUS_ADDRESS",
         "HTTP_PROXY",
         "HTTPS_PROXY",
         "ALL_PROXY",
@@ -66,7 +71,7 @@ async fn a_different_actual_owned_child_cannot_inherit_the_browser_candidate_ide
             Profile::prepare(&parent.path().join("profile"), &parent.path().join("tmp")).unwrap();
         let proxy =
             ProxyEndpoint::try_from("127.0.0.1:8123".parse::<SocketAddr>().unwrap()).unwrap();
-        let plan = Plan::build(profile, proxy, Candidate::FIXTURE);
+        let plan = Plan::build(profile, proxy, Candidate::FIXTURE).unwrap();
         let helper = CommandSpec::new(FIXED_SHELL)
             .env_clear()
             .arg("-c")

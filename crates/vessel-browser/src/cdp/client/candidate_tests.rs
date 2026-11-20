@@ -111,8 +111,16 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         assert!(held);
         page.unwrap().unwrap().verify();
         driven.unwrap();
-        candidate_reuse::relaunch(&scope, root, temporary, endpoint, stopped).await;
+        candidate_reuse::relaunch(&scope, root.clone(), temporary, endpoint, stopped).await;
         proxy.finish().await;
+        scope
+            .run(move || {
+                let destination = root.join("home/Downloads").join(candidate_page::DOWNLOAD_NAME);
+                assert!(!destination.exists());
+                assert!(!destination.with_extension("txt.crdownload").exists());
+            })
+            .await
+            .unwrap();
         network.finish().await;
         scope.finish().await;
     })

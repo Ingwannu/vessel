@@ -8,17 +8,16 @@ impl Page {
         extent: ScreenshotExtent,
     ) -> Result<ScreenshotPng, PageError> {
         match extent {
-            ScreenshotExtent::Viewport => self.capture().await,
+            ScreenshotExtent::Viewport => self.viewport_frame().await.map(super::ViewportFrame::into_image),
             ScreenshotExtent::Page => self.capture_page().await,
         }
     }
     async fn capture_page(&mut self) -> Result<ScreenshotPng, PageError> {
-        let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
+        let frame = self.checked_document().await?;
         let size = self.execute(requests::Metrics {}).await?.size();
         surface(size)?;
         let image = self.execute(requests::CapturePage::new(size)).await?.data;
-        let after = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
-        if frame.id != after.id || frame.loader_id != after.loader_id {
+        if self.checked_document().await? != frame {
             let _revision = self.invalidate()?;
             return Err(PageError::Navigation);
         }
