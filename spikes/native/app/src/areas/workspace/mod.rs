@@ -123,6 +123,7 @@ impl Shell {
             self.ask(&machine, Ask::Project(ProjectAsk::List));
         }
         self.add_flow_fleet();
+        self.pulls_fleet();
     }
 
     /// A machine answered a workspace ask. Returns whether what is drawn

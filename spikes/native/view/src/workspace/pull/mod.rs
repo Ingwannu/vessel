@@ -19,6 +19,8 @@
 
 pub mod bases;
 pub mod card;
+pub mod checks;
+pub mod checks_words;
 pub mod entry;
 pub mod facts;
 pub mod menu;

@@ -1,0 +1,125 @@
+//! The pane while its pull request is read: Paseo's
+//! `pull-request-panel/pane-skeleton.tsx` and `activity-skeleton.tsx`
+//! (the title and subtitle bars, the toolbar's two buttons, "Checks" over
+//! three rows, three activity rows), pulsing with the kit's one phase.
+//!
+//! Difference: Paseo sizes its bars in percent of the pane; the kit's
+//! shapes take points, so each bar is its percent of the panel's default
+//! content width (440 less 32), the same at the default width.
+
+use vessel_app_kit::skeleton::{Opacity, Rounding, Shape, pulse, shape};
+use vessel_app_kit::ui::{AnyElement, Div, ParentElement as _, Styled as _, div, px, size};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
+
+use crate::shell::Shell;
+
+/// A bar at `width` by `height` with Paseo's small corner.
+fn bar(width: f32, height: f32, opacity: Opacity, tokens: &Tokens) -> Div {
+    shape(
+        Shape {
+            size: size(px(width), px(height)),
+            rounding: Rounding::Small,
+        },
+        opacity,
+        tokens,
+    )
+}
+
+/// A round shape `across` wide.
+fn dot(across: f32, opacity: Opacity, tokens: &Tokens) -> Div {
+    bar(across, across, opacity, tokens).rounded_full()
+}
+
+/// Paseo's skeleton, top to bottom.
+pub(super) fn skeleton(shell: &Shell, tokens: &Tokens) -> AnyElement {
+    let tokens = *tokens;
+    let checks = shell.words.pulls().checks().to_owned();
+    pulse("pr-pane-skeleton", move |opacity| {
+        let neutral = tokens.neutral;
+        let row = |opacity| {
+            div()
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(8.0))
+                .px(px(12.0))
+                .min_h(px(32.0))
+                .child(dot(14.0, opacity, &tokens))
+                .child(bar(245.0, 12.0, opacity, &tokens))
+        };
+        let activity = |opacity| {
+            div()
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(8.0))
+                .child(dot(20.0, opacity, &tokens))
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .flex_1()
+                        .gap(px(4.0))
+                        .child(bar(272.0, 12.0, opacity, &tokens))
+                        .child(bar(175.0, 10.0, opacity, &tokens)),
+                )
+        };
+        div()
+            .flex()
+            .flex_col()
+            .size_full()
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.0))
+                    .p(px(16.0))
+                    .child(bar(306.0, 16.0, opacity, &tokens))
+                    .child(bar(163.0, 12.0, opacity, &tokens)),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(8.0))
+                    .h(px(36.0))
+                    .px(px(12.0))
+                    .bg(neutral.surface0)
+                    .border_b_1()
+                    .border_color(neutral.border)
+                    .child(bar(96.0, 24.0, opacity, &tokens).rounded(px(8.0)))
+                    .child(bar(96.0, 24.0, opacity, &tokens).rounded(px(8.0))),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.0))
+                    .py(px(8.0))
+                    .child(
+                        div()
+                            .px(px(12.0))
+                            .py(px(8.0))
+                            .type_(Type::Meta)
+                            .font_weight(gpui::FontWeight::MEDIUM)
+                            .text_color(neutral.foreground_muted)
+                            .child(checks.clone()),
+                    )
+                    .child(row(opacity))
+                    .child(row(opacity))
+                    .child(row(opacity)),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(12.0))
+                    .px(px(12.0))
+                    .py(px(8.0))
+                    .child(activity(opacity))
+                    .child(activity(opacity))
+                    .child(activity(opacity)),
+            )
+    })
+}

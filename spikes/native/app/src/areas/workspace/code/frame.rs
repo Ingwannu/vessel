@@ -239,7 +239,8 @@ fn code_panel(
                 tokens,
             )
             .on_click(cx.listener(|this, _event, _window, cx| this.code_tab(Tab::Files, cx))),
-        );
+        )
+        .children(super::pull_tab::strip_tab(shell, tokens, cx));
     let close = div().child(
         div()
             .id("code-close")
@@ -260,6 +261,7 @@ fn code_panel(
         Some(Place::Root(_)) => match panel.tab {
             Tab::Changes => super::changes::render(shell, tokens, window, cx),
             Tab::Files => super::files::render(shell, tokens, window, cx),
+            Tab::PullRequest => crate::areas::pulls::pane(shell, tokens, window, cx),
         },
     };
     let frame = div()
@@ -331,7 +333,7 @@ pub(super) fn note(text: impl Into<vessel_app_kit::ui::SharedString>, tokens: &T
 }
 
 impl Shell {
-    fn code_tab(&mut self, tab: Tab, cx: &mut Context<'_, Self>) {
+    pub(super) fn code_tab(&mut self, tab: Tab, cx: &mut Context<'_, Self>) {
         if self.areas.workspace.code.tab != tab {
             self.areas.workspace.code.changes.sources.invalidate();
         }

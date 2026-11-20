@@ -123,6 +123,9 @@ impl Glyph {
             Self::CircleDot => {
                 line_glyph!(r#"<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1"/>"#)
             }
+            Self::CircleSlash => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6"/>"#)
+            }
             Self::SquareCheck => line_glyph!(
                 r#"<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>"#
             ),
