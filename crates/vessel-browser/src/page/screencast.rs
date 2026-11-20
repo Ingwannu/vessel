@@ -17,10 +17,16 @@ pub(super) enum PaintSignals {
 impl Page {
     pub(crate) async fn start_paint_signals(&mut self) -> Result<(), PageError> {
         if matches!(self.paint_signals, PaintSignals::Idle) {
-            let side = ViewportSide::try_from(SIGNAL_IMAGE_SIDE).map_err(|_bound| PageError::Surface)?;
-            let size = ViewportSize { width: side, height: side };
+            let side =
+                ViewportSide::try_from(SIGNAL_IMAGE_SIDE).map_err(|_bound| PageError::Surface)?;
+            let size = ViewportSize {
+                width: side,
+                height: side,
+            };
             let _focused = self.execute(requests::BringToFront {}).await?;
-            let _started = self.execute(requests::StartScreencast::with_viewport(size)).await?;
+            let _started = self
+                .execute(requests::StartScreencast::with_viewport(size))
+                .await?;
             self.paint_signals = PaintSignals::Watching;
         }
         Ok(())

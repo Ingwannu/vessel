@@ -99,7 +99,10 @@ pub(crate) struct Targets(BTreeMap<BrowserId, Binding>);
 
 impl Targets {
     pub(crate) fn next_capture(&self) -> Option<Instant> {
-        self.0.values().filter_map(|binding| binding.page.next_capture()).min()
+        self.0
+            .values()
+            .filter_map(|binding| binding.page.next_capture())
+            .min()
     }
 
     pub(crate) async fn capture_due(&mut self, now: Instant) {

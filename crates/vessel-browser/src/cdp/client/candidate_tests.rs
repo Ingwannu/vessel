@@ -123,7 +123,13 @@ async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
         Err(ActorError::Target(crate::targets::TargetError::Missing))
     ));
     let mut watched = actor.watch(workspace, id.clone()).await?;
-    let frame = watched.frames.wait_for(Option::is_some).await.unwrap().clone().unwrap();
+    let frame = watched
+        .frames
+        .wait_for(Option::is_some)
+        .await
+        .unwrap()
+        .clone()
+        .unwrap();
     assert_eq!(frame.image().size().width().get(), size.width.get());
     assert!(frame.revision() >= watched.initial.revision);
     actor

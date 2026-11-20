@@ -47,7 +47,9 @@ impl FrameWatch {
 
     pub(super) fn painted(&mut self, now: Instant) {
         if self.visible() && self.due.is_none() {
-            let next = self.published_at.and_then(|last| last.checked_add(MINIMUM_FRAME_GAP));
+            let next = self
+                .published_at
+                .and_then(|last| last.checked_add(MINIMUM_FRAME_GAP));
             self.due = Some(next.map_or(now, |next| next.max(now)));
         }
     }
