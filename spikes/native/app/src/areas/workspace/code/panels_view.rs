@@ -16,17 +16,18 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::chat_markdown::{Options, actions::Actions, chat_markdown_with};
 use vessel_app_kit::icon_chrome::Presence;
 use vessel_app_kit::segmented::{SegmentSize, segment, segmented};
-use vessel_app_kit::theme::spacing;
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig};
 use vessel_app_kit::ui::{
-    AnyElement, Bounds, Context, InteractiveElement as _, IntoElement as _, MouseButton,
-    ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window, canvas, div,
-    px,
+    AnyElement, Bounds, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    MouseButton, ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window,
+    canvas, div, px, relative,
 };
-use vessel_app_kit::{ButtonState, ControlSizing, Tokens};
+use vessel_app_kit::{ButtonState, ControlSizing, Tokens, Type, TypeExt as _};
 use vessel_app_view::composer::viewer::{
     Extent, Fit, MAX_SCALE, MIN_SCALE, Position, Viewport, ZOOM_IN, ZOOM_OUT,
 };
+use vessel_app_view::workspace::front_matter::{FrontMatterRow, markdown_document};
 use vessel_app_view::workspace::markdown_paths::{self, Target};
 use vessel_app_view::workspace::viewers::{Side, preview_fits};
 
@@ -108,10 +109,11 @@ pub(super) fn markdown(
         }
     })
     .with_images(viewer.look.pictures.resolver());
-    let version = text_version(&text);
+    let document = markdown_document(&text);
+    let version = text_version(&document.body);
     let body = chat_markdown_with(
         "code-markdown-preview",
-        &text,
+        &document.body,
         version,
         Options {
             actions: Some(actions),
@@ -132,10 +134,67 @@ pub(super) fn markdown(
                 .mx_auto()
                 .px(px(spacing::S6))
                 .py(px(spacing::S4))
+                .children(front_matter(&document.front_matter, tokens))
                 .child(body),
         )
         .into_any_element()
 }
+
+/// Paseo's front matter table (`markdown-preview/index.tsx`): a bordered
+/// box, radius 8, 24 above the body; each row a key cell (30% of the
+/// width, at most 180, on the second surface, the key mono in the muted
+/// ink) and a value cell, both 12 across and 8 down, 14/20 text alike; a
+/// hairline between rows.
+fn front_matter(rows: &[FrontMatterRow], tokens: &Tokens) -> Option<AnyElement> {
+    if rows.is_empty() {
+        return None;
+    }
+    let neutral = tokens.neutral;
+    let table = div()
+        .flex()
+        .flex_col()
+        .mb(px(spacing::S6))
+        .border_1()
+        .border_color(neutral.border)
+        .rounded(px(radius::R2))
+        .overflow_hidden()
+        .children(rows.iter().enumerate().map(|(index, row)| {
+            div()
+                .flex()
+                .flex_row()
+                .items_stretch()
+                .when(index > 0, |line| line.border_t_1().border_color(neutral.border))
+                .child(
+                    div()
+                        .flex_basis(relative(KEY_SHARE))
+                        .max_w(px(KEY_MAX))
+                        .flex_shrink_0()
+                        .px(px(spacing::S3))
+                        .py(px(spacing::S2))
+                        .bg(neutral.surface2)
+                        .type_(Type::MonoBody)
+                        .text_color(neutral.foreground_muted)
+                        .child(row.key.clone()),
+                )
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w(px(spacing::S0))
+                        .px(px(spacing::S3))
+                        .py(px(spacing::S2))
+                        .type_(Type::Label)
+                        .font_weight(gpui::FontWeight::NORMAL)
+                        .text_color(neutral.foreground)
+                        .child(row.value.clone()),
+                )
+        }));
+    Some(table.into_any_element())
+}
+
+/// The key cell's share of the row (Paseo's `flexBasis: "30%"`).
+const KEY_SHARE: f32 = 0.3;
+/// The key cell's widest (Paseo's `maxWidth: 180`).
+const KEY_MAX: f32 = 180.0;
 
 /// The reading column's width (the page's 78ch at its 14px body).
 const MARKDOWN_COLUMN: f32 = 760.0;

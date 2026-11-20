@@ -18,6 +18,7 @@ pub mod file_panels;
 pub mod file_scope;
 pub mod file_ticket;
 pub mod file_tree;
+pub mod front_matter;
 pub mod find;
 pub mod git;
 pub mod git_quick;

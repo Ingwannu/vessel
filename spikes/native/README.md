@@ -1361,7 +1361,12 @@ against the version's hash). It is drawn fitted to the panel and zoomed as
 the lightbox zooms (`view::composer::viewer` with `Fit::Panel`), and read
 again when the watch sees the file change. HTML stays Source only: the app
 has no web engine (coordinator's ruling 2 of 2026-11-19, until ADR 0020).
-The front matter table waits for yaml-rust2's lock addition.
+A Markdown file's front matter (`---` YAML at the top) is the page's
+two-column table above the body, read by yaml-rust2 0.13.0 as Paseo reads
+it (`view::workspace::front_matter`, its cases with the page's tests). The
+crate came in through the fixed native-crate-lock step; it adds hashlink
+0.12.2 to the lock, its default `encoding` feature stays off, and only that
+module names it.
 
 Add project is Paseo's sheet (TRACKER 234, docs/plans/wp-add-project-flow.md):
 the sidebar's "+", the composer's "Add project" row and Settings > Projects
