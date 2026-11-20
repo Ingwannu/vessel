@@ -69,7 +69,7 @@ or dispatch. This adds no new scope and changes no minimum protocol version.
 
 ## Row 3 amendment: authenticated self-inspection (2026-11-14)
 
-Status: proposed for protocol 19, provisionally; fleet controls above are
+Status: accepted as protocol 20 at the node line's merge (proposed as 19; N5 took 19); fleet controls above are
 already on the node line at 15. The integrator assigns the final version.
 
 [Decision Log]
@@ -125,9 +125,10 @@ No native screen or page component belongs to this slice.
 
 ## Row 4 amendment: refuse an invitation without a route (2026-11-14)
 
-Status: proposed; new typed error detail provisionally belongs to protocol
-19, alongside row 3 on this branch. Existing device.invite stays available
-from its original version; the refusal applies to older clients too.
+Status: accepted at the node line's merge; the new typed error detail
+belongs to protocol 20 with row 3 (proposed as 19; N5 took 19). Existing
+device.invite stays available from its original version; the refusal
+applies to older clients too.
 
 [Decision Log]
 - Purpose: never issue a public single-use link that names no place to dial.

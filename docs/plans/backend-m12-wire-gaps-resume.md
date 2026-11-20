@@ -1,5 +1,14 @@
 # N3 current checkpoint
 
+Current stop point: ADR 0060 source `ba6702b3`/evidence `bad27224` has V1
+source/scoped-evidence PASS, not integration. A local merge of node head
+`9c7a45ca` is resolved/staged but uncommitted: its shared connector tests
+fail four Clippy large_futures checks. V1 confirmed source equality and
+routed the correction to the owner. Own scoped feature/TS checks passed;
+no active process remains. Continue when that owner correction arrives.
+Rows 5–7 are not implemented. The cleanup-record recovery disclosure is
+below; the restored JSON is not an original-file mtime attestation.
+
 ## Committed and reviewed
 
 - Row 1, machine zone and scheduler-backed preview: `f81798c3`, integrated
@@ -19,8 +28,8 @@
 
 No native screen, other-OS runtime or remote reachability approval is claimed.
 The resumed baseline was `b981f5f2`, protocol 18, gated before feature code.
-This branch's row-3/4 protocol 19 is provisional; the integrator renumbers.
-MIN_PROTOCOL_VERSION remains 2. No later branch was merged into a frozen gate.
+Rows 3/4 were subsequently integrated at protocol 20 (device.self in
+`2e051820`, route refusal in `50b561d0`). MIN_PROTOCOL_VERSION remains 2.
 
 ## Existing exact contracts
 
@@ -45,7 +54,7 @@ human guidance; non-Admin still gets Forbidden without configuration detail.
 ## Current slice: file-seeded FakeForge (ADR 0060)
 
 Contract-first commits: `39df0f9c`, then assigned-number move `ef3fd425`.
-Gated implementation: `ba6702b3`. V1 review is pending; no PASS or merge is claimed.
+Gated implementation: `ba6702b3`, evidence `bad27224`. V1 passed source and scoped executed evidence; combined integration and merge remain pending.
 The separate feature-gated `vessel-forge-fixture` binary injects the real
 FakeForge through ForgeSetup.custom. Product vesseld has no fake selector,
 even with the feature enabled. No new wire, dependency edge or protocol bump.
@@ -75,7 +84,7 @@ Evidence filenames below are relative to the track scratch directory's
 - `forge-ssd-feature-{clippy,test}.log`: feature Clippy and all four actual
   launcher tests passed from empty data directories; tests took 4.03 s.
   The original 90 s total and 20 s readiness/shutdown bounds are unchanged.
-- `forge-feature3-{build,e2e,fleet}.log`: build, all 62 page E2E (6.3 min)
+- `forge-feature3-{build,page,fleet}.log`: build, all 62 page E2E (6.3 min)
   and complete CLI fleet passed. Production, forge library, CLI and Python
   fixture sources have not changed since this runtime proof; subsequent
   Rust changes only restore fresh startup in the new launcher test helper.
@@ -147,10 +156,8 @@ path counts were 13 and 14; production permissions were unchanged.
 ## Finish and next order
 
 Source `ba6702b3` is committed. The whole gate, frozen inputs, compilation
-and final cleanup are verified; this checkpoint records its evidence. Review
-is with V1, which forwards accepted work. Send the waiting PR-screen track
-the exact command/schema only after integration is confirmed. No PASS or
-integration is claimed for ADR 0060; it remains proposed until review passes.
+and final cleanup are verified; this checkpoint records its evidence. V1 passed source and scoped executed evidence and forwards the slice. Send the waiting PR-screen track
+the exact command/schema only after integration is confirmed. No integration, UI or other-OS runtime approval is claimed for ADR 0060.
 Do not rerun the unchanged passing gate. A complete private review report
 identifies the scratch logs, source pins, commands, shared script seams and
 limits above.
@@ -168,3 +175,63 @@ time. Test-written executables use Sandbox::executable. No real agent prompt,
 preview pairing/ports/units, push, secret output or process-name kill. Review
 route is V1, coordinator, node integrator; do not directly message the latter
 or lead except to answer them. Keep project=vessel.
+
+## Integration baseline before ADR 0061
+
+Incoming node head is `9c7a45ca`, protocol 21. This clean-boundary merge is
+in progress, not gated/committed yet. Keep the integrator's protocol-20
+self/error metadata, usage/side-question changes and shared test corrections;
+retain ADR 0060's fixture and evidence. The new M4 quality rule also splits
+only the new launcher test helper at readiness; no assertion or deadline
+changes. No ADR 0061 implementation has started. The next detached baseline
+gate must include both fast scripts, A5 prebuilds and whole root tests in one
+slot. Never repeat the earlier unchanged passing fixture gate.
+
+Active baseline runner: `base-node21.sh`, with the Rust sequence in
+`base-node21-slot.sh`, main log `base-node21.log`, final marker
+`base-node21.exit`. The one shared-slot command is queued; do not restart
+it or issue another Cargo command. Web lint/typecheck/417 units/build and
+both new fast root scripts passed. `base-node21-inputs.json` pins 1,116
+Rust/Cargo inputs; web assets are separately frozen for this merged source.
+After root checks: unchanged TypeScript regeneration, feature launcher
+checks, built real CLI, full page E2E and complete fake fleet. Final trap
+stops only verified owned nodes and empties private SSD test scratch.
+
+All merge conflicts are resolved/staged; MERGE_HEAD is the incoming node
+head above, but the merge is not committed until its gate passes. Accepted
+generated proto.ts is byte-identical to that head; git diff --check flags
+its inherited generated whitespace. Do not hand-edit it. The page lint
+explicitly excludes generated declarations. The build also emits its
+existing future native-config warning, not a failure. V1's accepted fixture
+runtime page evidence is `forge-feature3-page.log` (62 passed).
+
+## Latest blocker: shared connector Clippy
+
+`base-node21.sh` ended 101 at full Clippy: four large_futures diagnostics in
+vessel-remote's connector tests at lines80/103/120/137, on the newly added
+within wrappers. The file is byte-identical to incoming `9c7a45ca` (SHA256
+f463dd6710b88fe61d44400aa65d154554534a401824c58791b4be829973db2f).
+N3 does not own/edit those shared tests. The exact blocker went to V1 for
+the coordinator/integrator route; no waiver, timeout change or unchanged
+whole retry. Both A5 prebuilds passed (40.41 s and 2m06s), as did the fast
+scripts and web checks. Root tests and later runtime stages were not reached.
+Resource front/end one-minute load16.70/15.63, available17015/15418MiB;
+all1,116 Rust/Cargo inputs unchanged. The merge is still uncommitted.
+
+The independent `base-node21-owned.sh` check finished zero: feature Clippy,
+all four fresh launcher tests (1.12 s), and both TS generators passed. The
+accepted incoming generated declarations remained byte-identical; all 1,116
+Rust/Cargo inputs stayed unchanged. Its dedicated cleanup record confirms
+empty SSD scratch, UID/GID1000,0700, and no remaining process. No gate or
+fleet remains active. No new listing implementation has begun. Await the
+shared owner's correction before a new whole baseline gate; never edit the
+shared connector file here or rerun the unchanged failed whole gate.
+
+Evidence handling correction: the copied baseline cleanup helper retained
+its old fixed output filename, overwriting the prior cleanup JSON. The new
+actual record is preserved separately as `base-node21-ssd-cleanup.json`.
+The prior record was reconstructed from its captured tool output, also read
+by V1 before overwrite; `cleanup-record-recovery.json` documents provenance
+and explicitly excludes original filesystem mtime attestation. Root logs,
+source pins and final audit were unaffected. Future helpers use unique output
+names. Actual SSD scratch is empty, UID/GID1000,0700, with no process left.

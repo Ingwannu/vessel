@@ -68,12 +68,14 @@ mod prompts;
 mod schedule_preview;
 mod scheduled;
 mod schedules;
+mod usage;
 // Protocol 12 (track A2): the conversation, further.
 mod forking;
 mod history;
 mod parking;
 mod search;
 mod settings;
+mod side_questions;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -142,6 +144,8 @@ pub(crate) struct NodeService {
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
+    /// Creation/reset lease also held by a detached creation task.
+    side_opening: Arc<tokio::sync::Mutex<()>>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -236,6 +240,7 @@ impl NodeService {
             listings: tokio::sync::Semaphore::new(history::AT_ONCE),
             settings,
             notices: Arc::default(),
+            side_opening: Arc::default(),
         }
     }
 

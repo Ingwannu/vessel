@@ -93,6 +93,8 @@ impl Reply {
         let one = |session: &SessionInfo| (!readable(session, protocol)).then(unreadable);
         match self {
             Self::GetSession(info)
+            | Self::OpenSideQuestion(info)
+            | Self::ResetSideQuestion(info)
             | Self::CreateSession(info)
             | Self::MoveProfile(info)
             | Self::RenameSession(info)
@@ -235,6 +237,7 @@ impl Reply {
             | Self::GetAgentStatus(_)
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
+            | Self::PromptSideQuestion(_)
             | Self::ReadInstall(_)
             // Protocol 11's schedules and saved prompts: a schedule's new
             // session and a saved prompt carry a `SessionSpec`, whose agent
@@ -257,6 +260,7 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)

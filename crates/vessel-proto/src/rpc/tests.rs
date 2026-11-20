@@ -434,6 +434,9 @@ const FORWARDABLE: &[&str] = &[
     "session.list",
     "session.get",
     "session.create",
+    "session.side_open",
+    "session.side_prompt",
+    "session.side_reset",
     "session.send",
     "session.kill",
     "session.read",
@@ -534,6 +537,7 @@ const FORWARDABLE: &[&str] = &[
     "port.list",
     "agent.list",
     "agent.status",
+    "usage.query",
     "schedule.preview",
     "schedule.list",
     "schedule.get",
@@ -591,7 +595,8 @@ fn a_forwarded_call_nests_its_inner_call() {
     );
     assert_eq!(serde_json::from_str::<Call>(&json).unwrap(), call);
     // Both the envelope and this inner request need 6. Every typed hop
-    // must know an inner method and its fields before re-encoding them.
+    // must know an inner method and its fields before re-encoding them,
+    // and each connection checks the maximum requirement before dispatch.
     assert_eq!(call.since(), V6);
     assert_eq!(inner.since(), V6);
 }

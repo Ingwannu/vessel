@@ -453,8 +453,8 @@ subsequent Rust change was restoring fresh startup in the new launcher test
 helper; product/forge/CLI/fleet runtime sources are unchanged. No new wire
 means no TypeScript regeneration. UID/GID 1000, 18 private paths at0600/0700,
 both verified fixture PIDs absent and no owned runtime; final SSD scratch is
-empty at0700. Production permissions are unchanged. Gated source review is
-pending with V1; no UI or other-OS runtime approval is claimed.
+empty at0700. Production permissions are unchanged. V1 passed source and scoped executed evidence; integration is
+pending; no UI or other-OS runtime approval is claimed.
 
 The coordinator's nested-build amendment arrived during the final whole
 gate. That active run was retained unchanged and passed. The next whole gate
@@ -465,6 +465,29 @@ is repeated for that procedural amendment.
 
 ADR 0060 gated implementation is `ba6702b3`; contract-first history is
 `39df0f9c` and `ef3fd425`. The resume checkpoint identifies exact logs and
-review status. V1 review/integration remain pending. The PR-screen consumer
+review status. V1 passed source and scoped executed evidence; integration remains pending. The PR-screen consumer
 gets its command and seed contract only after merge confirmation. Actual
 project listing without a live session remains the next ADR 0061 slice.
+
+
+Clean-boundary integration before ADR 0061: incoming node head `9c7a45ca`,
+protocol 21, with N3 self/route detail integrated at 20 (`2e051820`,
+`50b561d0`). Resolve overlapping old slice copies in favor of those accepted
+versions. Retain fixture source/evidence; divide the new launcher test helper
+at readiness for M4, preserving all assertions/deadlines. Baseline gate is
+pending; no new listing call is implemented yet.
+
+
+The integration-baseline gate stopped at four large_futures diagnostics in
+the incoming shared connector tests, before whole tests. That file matches
+`9c7a45ca` exactly; the owner correction is routed through V1. N3 does not
+edit it or waive the failure. A5 prebuilds/fast scripts/web417 passed; root
+Clippy and combined integration are not green. The resume checkpoint records
+frozen inputs, load and the disclosed cleanup-record reconstruction.
+
+
+The separate owned-helper check passed: feature Clippy, four fresh launcher
+tests in1.12s, both TS generators, unchanged incoming generated declarations
+and all1,116 Rust/Cargo pins. It does not replace the blocked full baseline.
+Private SSD scratch is empty and no gate/fleet is active. The shared owner's
+connector correction is still required; no ADR0061 implementation has begun.

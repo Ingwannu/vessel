@@ -1,6 +1,7 @@
 # ADR 0060: A file-seeded forge for test fleets
 
-Status: proposed for the test fleet; no wire or production sign-in change.
+Status: source and scoped executed evidence accepted by review for the test
+fleet; combined integration is pending. No wire or production sign-in change.
 
 [Decision Log]
 - Purpose: a disposable fleet must show real node PR facts without a forge

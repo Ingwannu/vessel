@@ -68,8 +68,10 @@ mod recovery;
 mod schema;
 mod search;
 mod settings_file;
+mod side_context;
 mod store;
 mod token;
+mod usage;
 mod workspace;
 mod writer;
 
@@ -86,6 +88,7 @@ pub use forge::{MAX_SENT as MAX_FEEDBACK_SENT, StoredFeedback};
 pub use lock::{NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use settings_file::SettingsFileError;
+pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};

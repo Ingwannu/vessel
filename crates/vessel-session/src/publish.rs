@@ -93,11 +93,6 @@ impl Publisher {
         self.shared.pid.store(pid, Ordering::Release);
     }
 
-    /// How many follow the session live now (protocol 12).
-    pub(crate) fn followers(&self) -> usize {
-        self.shared.ring().followers()
-    }
-
     /// Whether a permission or a question waits for an answer (protocol
     /// 12: a session waiting on a person is not parked).
     pub(crate) fn waiting_for_answers(&self) -> bool {

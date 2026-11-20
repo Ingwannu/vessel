@@ -363,9 +363,59 @@ WHEN new.first_seq > old.first_seq BEGIN
 END;
 ";
 
+/// Side context (schema 14): the latest bounded plan survives log
+/// retention and is independent of the partial transcript tail.
+const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
+
+/// The usage ledger (schema 15). Reported usage is independent of the
+/// event byte cap, but deleted with its session. Baselines belong to
+/// native sessions, not agent processes.
+const USAGE_LEDGER: &str = "
+ALTER TABLE sessions ADD COLUMN usage_cost_baseline TEXT;
+CREATE TABLE usage_meta (
+    singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+    started_at INTEGER NOT NULL,
+    sample_count INTEGER NOT NULL DEFAULT 0,
+    pruned_through INTEGER
+) STRICT;
+INSERT INTO usage_meta(singleton, started_at) VALUES (1, unixepoch() * 1000000000);
+CREATE TABLE usage_samples (
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    seq INTEGER NOT NULL,
+    at INTEGER NOT NULL,
+    harness TEXT NOT NULL,
+    profile TEXT NOT NULL,
+    sample TEXT NOT NULL,
+    PRIMARY KEY(session_id, seq)
+) STRICT, WITHOUT ROWID;
+CREATE INDEX usage_time ON usage_samples(at);
+CREATE TRIGGER usage_count_insert AFTER INSERT ON usage_samples BEGIN
+    UPDATE usage_meta SET sample_count = sample_count + 1;
+END;
+CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
+    UPDATE usage_meta SET sample_count = sample_count - 1;
+END;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13];
+const MIGRATIONS: &[&str] = &[
+    V1,
+    V2,
+    V3,
+    V4,
+    V5,
+    V6,
+    V7,
+    V8,
+    V9,
+    V10,
+    V11,
+    V12,
+    V13,
+    SIDE_CONTEXT,
+    USAGE_LEDGER,
+];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

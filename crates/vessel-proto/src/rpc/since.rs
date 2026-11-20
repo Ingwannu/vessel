@@ -25,7 +25,10 @@ impl Call {
         let fields = match self {
             // Every hop decodes the typed inner call. It must know its
             // method and fields too; an older hop could otherwise drop a
-            // newer field before the target sees it (ADR 0044).
+            // newer field before the target sees it (ADR 0044), as a
+            // protocol-18 home would drop `session.create`'s
+            // `side_question_of` and start a plain session (ADR 0045; N5,
+            // N3 and N2 each added this rule, merged here as one).
             Self::Forward(request) => Some(request.call.since().get()),
             Self::Relay(request) => Some(request.call.since().get()),
             Self::Deliver(request) => Some(request.call.since().get()),
@@ -39,7 +42,9 @@ impl Call {
                     SessionMode::Structured { options, .. } => !options.is_empty(),
                     SessionMode::Terminal { .. } => false,
                 };
-                let fields = if spec.place.is_some() {
+                let fields = if spec.side_question_of.is_some() {
+                    Some(19)
+                } else if spec.place.is_some() {
                     // A place came in 10: an older node would start the
                     // session in its home folder instead.
                     Some(10)
@@ -88,7 +93,14 @@ impl Call {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
             },
-            Self::NodeInfo(_)
+            Self::CreatePrompt(request) => side_spec(request.session.as_deref()),
+            Self::UpdatePrompt(request) => side_spec(request.session.as_deref()),
+            Self::CreateSchedule(request) => side_target(&request.definition.target),
+            Self::UpdateSchedule(request) => side_target(&request.definition.target),
+            Self::OpenSideQuestion(_)
+            | Self::PromptSideQuestion(_)
+            | Self::ResetSideQuestion(_)
+            | Self::NodeInfo(_)
             | Self::ListHarnesses(_)
             | Self::ListSessions(_)
             | Self::GetSession(_)
@@ -216,16 +228,13 @@ impl Call {
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
-            | Self::CreateSchedule(_)
-            | Self::UpdateSchedule(_)
             | Self::PauseSchedule(_)
             | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
-            | Self::CreatePrompt(_)
-            | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
@@ -244,4 +253,16 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
     harness
         .filter(|harness| harness.added().is_some())
         .map(|harness| harness.since().get())
+}
+
+fn side_spec(spec: Option<&crate::SessionSpec>) -> Option<u32> {
+    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
+}
+
+fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
+    match target {
+        crate::automation::ScheduleTarget::NewSession { spec, .. } => side_spec(Some(spec)),
+        crate::automation::ScheduleTarget::Session { .. }
+        | crate::automation::ScheduleTarget::Unknown => None,
+    }
 }

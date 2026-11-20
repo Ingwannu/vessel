@@ -382,6 +382,15 @@ async fn run_here(
         Call::CreateSession(request) => {
             Reply::CreateSession(guard.create_session(connection, request).await?)
         }
+        Call::OpenSideQuestion(request) => {
+            Reply::OpenSideQuestion(guard.open_side_question(connection, request).await?)
+        }
+        Call::PromptSideQuestion(request) => {
+            Reply::PromptSideQuestion(guard.prompt_side_question(connection, request).await?)
+        }
+        Call::ResetSideQuestion(request) => {
+            Reply::ResetSideQuestion(guard.reset_side_question(connection, request).await?)
+        }
         Call::SendInput(request) => Reply::SendInput(guard.send_input(connection, request).await?),
         Call::KillSession(request) => {
             Reply::KillSession(guard.kill_session(connection, request).await?)
@@ -646,6 +655,9 @@ async fn run_here(
             Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
         }
         Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
+        Call::QueryUsage(request) => {
+            Reply::QueryUsage(guard.query_usage(connection, request).await?)
+        }
         Call::ListPrompts(request) => {
             Reply::ListPrompts(guard.list_prompts(connection, request).await?)
         }

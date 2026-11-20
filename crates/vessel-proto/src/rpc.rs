@@ -115,6 +115,12 @@ rpc_methods! {
     GetSession / get_session / "session.get" [Read, 2]: GetSession => SessionInfo;
     /// Start a session.
     CreateSession / create_session / "session.create" [Operate, 2]: CreateSession => SessionInfo;
+    /// Open or reuse a separate side conversation (protocol 19).
+    OpenSideQuestion / open_side_question / "session.side_open" [Operate, 19]: crate::side_questions::OpenSideQuestion => SessionInfo;
+    /// Ask a side question with refreshed parent context (protocol 19).
+    PromptSideQuestion / prompt_side_question / "session.side_prompt" [Operate, 19]: crate::side_questions::PromptSideQuestion => Delivered;
+    /// Replace the expected side conversation (protocol 19).
+    ResetSideQuestion / reset_side_question / "session.side_reset" [Operate, 19]: crate::side_questions::ResetSideQuestion => SessionInfo;
     /// Send input to a session.
     SendInput / send_input / "session.send" [Operate, 2]: SendInput => Ack;
     /// Kill a session.
@@ -129,8 +135,8 @@ rpc_methods! {
     StopNode / stop_node / "node.stop" [Admin, 3]: StopNode => Ack;
     /// Make a pairing invitation (protocol 4).
     InviteDevice / invite_device / "device.invite" [Admin, 4]: InviteDevice => Invitation;
-    /// Inspect this authenticated connection's own effective grant.
-    GetDeviceSelf / device_self / "device.self" [Authenticated, 19]: crate::GetDeviceSelf => crate::DeviceSelf;
+    /// Inspect this authenticated connection's own effective grant (protocol 20).
+    GetDeviceSelf / device_self / "device.self" [Authenticated, 20]: crate::GetDeviceSelf => crate::DeviceSelf;
     /// List paired devices (protocol 4).
     ListDevices / list_devices / "device.list" [Admin, 4]: ListDevices => Vec<DeviceInfo>;
     /// Revoke a device and close its connections (protocol 4).
@@ -380,6 +386,8 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    /// Reported tokens and permitted costs (protocol 21, ADR 0042).
+    QueryUsage / query_usage / "usage.query" [Read, 21]: crate::usage::QueryUsage => crate::usage::UsageReport;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Compute a bounded schedule preview without saving or starting work.
     PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;

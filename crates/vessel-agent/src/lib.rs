@@ -53,6 +53,7 @@ mod abilities;
 mod attached;
 mod claude;
 mod codex;
+mod context;
 mod driver;
 mod drivers;
 mod error;
@@ -75,8 +76,9 @@ mod stderr;
 mod transport;
 
 pub use attached::{AttachmentBody, Attachments};
+pub use context::PromptContext;
 pub use drivers::Driver;
-pub use error::{AgentError, Disconnect, InputError};
+pub use error::{AgentError, Disconnect, InputError, LaunchRefusal};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom, ForkRefusal};
 pub use history::{
     HistoryEntry, HistoryError, HistoryFrom, HistoryPage, MAX_ENTRIES as HISTORY_MAX_ENTRIES,

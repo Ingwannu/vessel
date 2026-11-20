@@ -46,12 +46,14 @@ pub mod search;
 mod secret;
 mod session;
 pub mod settings;
+pub mod side_questions;
 mod terminal;
 pub mod terminals;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
+pub mod usage;
 pub mod workspace;
 
 pub use agent::{

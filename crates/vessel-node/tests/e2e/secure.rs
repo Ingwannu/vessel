@@ -25,6 +25,7 @@ use vessel_rpc::CallError;
 use vessel_secure::NodeKeypair;
 use vessel_testkit::relay::{MisbehavingRelay, Tamper, Toward};
 
+use crate::freezer::Freezer;
 use crate::support::{
     Fixture, STEP, client, keys, output_of, seqs, step, tail, terminal_spec, within,
 };
@@ -142,6 +143,14 @@ pub(crate) fn device_via(
 
 pub(crate) fn direct_route(node: &Node) -> RouteUrl {
     format!("ws://{}", node.address().unwrap()).parse().unwrap()
+}
+
+/// Advertise a placeholder pairing route. A node with none refuses to
+/// invite (ADR 0044, row 4), and a fixture's listener is ephemeral, so a
+/// test that pairs a device starts its node with this and replaces the
+/// offer's routes with [`direct_route`] before using it.
+pub(crate) fn advertise_placeholder_route(config: &mut vessel_node::Config) {
+    config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
 }
 
 /// A loopback address nothing listens on.
@@ -479,86 +488,6 @@ async fn a_tampering_relay_ends_the_connection_and_no_frame_gets_through() {
     .await;
 }
 
-/// A TCP forwarder that can freeze the connections it carries: they stay
-/// open but carry nothing to the client, and what the node sends is read
-/// and dropped, as on a path that went half-open (a laptop asleep, a NAT
-/// mapping gone). New connections still pass. It reports each frozen
-/// connection the node then closes.
-struct Freezer {
-    address: std::net::SocketAddr,
-    freeze: tokio::sync::watch::Sender<u64>,
-    closed_by_node: tokio::sync::mpsc::Receiver<()>,
-    task: JoinHandle<()>,
-}
-
-impl Freezer {
-    async fn start(upstream: std::net::SocketAddr) -> Self {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let (freeze, _) = tokio::sync::watch::channel(0_u64);
-        let (report, closed_by_node) = tokio::sync::mpsc::channel(8);
-        let generations = freeze.clone();
-        let task = tokio::spawn(async move {
-            while let Ok((down, _peer)) = listener.accept().await {
-                let up = tokio::net::TcpStream::connect(upstream).await.unwrap();
-                let frozen = generations.subscribe();
-                drop(tokio::spawn(carry(down, up, frozen, report.clone())));
-            }
-        });
-        Self {
-            address,
-            freeze,
-            closed_by_node,
-            task,
-        }
-    }
-
-    fn route(&self) -> RouteUrl {
-        format!("ws://{}", self.address).parse().unwrap()
-    }
-
-    /// Freeze every connection open now.
-    fn freeze(&self) {
-        self.freeze
-            .send_modify(|generation| *generation = generation.saturating_add(1));
-    }
-}
-
-impl Drop for Freezer {
-    fn drop(&mut self) {
-        self.task.abort();
-    }
-}
-
-async fn carry(
-    down: tokio::net::TcpStream,
-    up: tokio::net::TcpStream,
-    mut frozen: tokio::sync::watch::Receiver<u64>,
-    closed_by_node: tokio::sync::mpsc::Sender<()>,
-) {
-    use tokio::io::AsyncReadExt as _;
-    let born = *frozen.borrow();
-    let (mut down_read, mut down_write) = down.into_split();
-    let (mut up_read, mut up_write) = up.into_split();
-    let carrying = async {
-        tokio::try_join!(
-            tokio::io::copy(&mut down_read, &mut up_write),
-            tokio::io::copy(&mut up_read, &mut down_write),
-        )
-    };
-    tokio::select! {
-        _done = carrying => return,
-        _frozen = frozen.wait_for(|generation| *generation > born) => {}
-    }
-    // Frozen: the client hears nothing more; the node's pings are read and
-    // dropped until the node gives up and closes.
-    let mut sink = [0_u8; 4096];
-    while matches!(up_read.read(&mut sink).await, Ok(read) if read > 0) {}
-    let _reported = closed_by_node.send(()).await;
-    // The client's side stays open, silent, until the test ends.
-    std::future::pending::<()>().await;
-}
-
 /// P5 on a direct route: the path freezes mid-attach. The node's pings
 /// stop arriving, the client's carrier gives up after the silence limit,
 /// and the attach resumes on a new connection with nothing lost or
@@ -577,8 +506,7 @@ async fn a_frozen_direct_route_is_dropped_by_keepalive_and_the_attach_resumes() 
         let node = fixture
             .start_with(|config| {
                 config.keepalive = fast;
-                // The offer below uses the live ephemeral listener.
-                config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
+                advertise_placeholder_route(config);
             })
             .await;
         let owner = fixture.connect(&node).await;

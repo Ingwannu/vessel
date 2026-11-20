@@ -157,16 +157,23 @@ async fn drivers_are_acp_until_an_agents_own_protocol_is_offered() {
         let in_force = owner.call(GetNodeSettings {}).await.unwrap();
         assert_eq!(in_force.drivers, AgentDrivers::default(), "run as ACP");
 
-        // This build offers no agent's own protocol yet: refused, and
-        // nothing changes.
+        // An agent whose own protocol this build does not offer yet:
+        // refused, and nothing changes.
         let direct = SetAgentDrivers {
-            codex: Some(AgentDriver::Direct),
+            open_code: Some(AgentDriver::Direct),
             ..SetAgentDrivers::default()
         };
         assert_eq!(
             code(owner.call(drivers(direct)).await),
             ErrorCode::Unsupported
         );
+        // Codex's is offered (its permissions slice has landed).
+        let codex = SetAgentDrivers {
+            codex: Some(AgentDriver::Direct),
+            ..SetAgentDrivers::default()
+        };
+        let changed = owner.call(drivers(codex)).await.unwrap();
+        assert_eq!(changed.drivers.codex, AgentDriver::Direct);
         let unknown = SetAgentDrivers {
             codex: Some(AgentDriver::Unknown),
             ..SetAgentDrivers::default()

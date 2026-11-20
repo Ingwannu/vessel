@@ -20,10 +20,12 @@
 //! - `fake-provider`: an OpenAI-compatible model provider on loopback for
 //!   the model routing smoke's `--fake` run (milestone 5). See
 //!   `src/bin/fake_provider.rs`.
-//! - `fake-codex-app-server` and `fake-claude-stream`: Codex and Claude
-//!   Code over their own protocols (ADR 0057), skeletons that answer
-//!   `--version` and the first exchange; each driver slice extends its
-//!   own. See their files in `src/bin/`.
+//! - `fake-codex-app-server`: Codex over its app-server protocol (ADR
+//!   0057): threads, and turns whose first word picks a scenario (a
+//!   streamed reply, reasoning, a command, a plan, an approval asked, a
+//!   turn that waits for a steer or an interrupt, a failure, an exit).
+//!   `fake-claude-stream`: Claude Code over stream-json, a skeleton. Each
+//!   driver slice extends its own. See their files in `src/bin/`.
 //!
 //! Both harness fakes answer `report <path>` by writing their arguments,
 //! environment and (ACP) MCP servers to that file ([`write_report`]), so a
@@ -129,8 +131,8 @@ pub enum Fake {
     /// logging each call to `$FAKE_TOOL_LOG`. See `src/bin/fake_tool.rs`.
     Tool,
     /// `fake-codex-app-server`: `codex` over its app-server protocol (ADR
-    /// 0057), a skeleton each Codex driver slice extends. See
-    /// `src/bin/fake_codex_app_server.rs`.
+    /// 0057), with turns whose first word picks a scenario; each Codex
+    /// driver slice extends it. See `src/bin/fake_codex_app_server.rs`.
     CodexAppServer,
     /// `fake-claude-stream`: `claude` over stream-json (ADR 0057), a
     /// skeleton each Claude Code driver slice extends. See
@@ -211,6 +213,37 @@ async fn timed<F: Future>(
 ) -> Result<F::Output, Elapsed> {
     setup();
     tokio::time::timeout(limit, test).await
+}
+
+/// Write an executable script at `path` holding `text`, for a test whose
+/// code under test then runs it.
+///
+/// Not with `std::fs::write`: while this process holds the file open for
+/// writing, a test on another thread may fork, and until that child execs
+/// it holds the descriptor too; running the script then fails with
+/// `ETXTBSY` ("Text file busy"). So the text goes to a side file beside it
+/// (`<path>.source`) and `cp`, a process of its own, creates the script: no
+/// descriptor for it is ever open in this process. Every test that writes
+/// a script it runs uses this one (`AGENTS.md` section 8).
+///
+/// # Errors
+/// The side file cannot be written, `cp` cannot run or fails, or the mode
+/// cannot be set.
+#[cfg(unix)]
+pub fn write_executable(path: &Path, text: &str) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let mut source = path.as_os_str().to_owned();
+    source.push(".source");
+    std::fs::write(&source, text)?;
+    let copied = Command::new("cp").arg(&source).arg(path).status()?;
+    if !copied.success() {
+        return Err(std::io::Error::other(format!(
+            "cp could not create {}: {copied}",
+            path.display()
+        )));
+    }
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755))
 }
 
 /// Write `<dir>/<name>.cmd`, a shim that runs `program` with every argument

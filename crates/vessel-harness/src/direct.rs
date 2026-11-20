@@ -10,7 +10,8 @@
 //!   facts, so the node's setting, the version check and the launch read
 //!   one table. `selectable` stays false until the driver's permissions
 //!   slice lands: a driver that cannot ask a person must never run a
-//!   session (the plan, `docs/plans/agents-own-protocols.md`).
+//!   session (the plan, `docs/plans/agents-own-protocols.md`). Codex's
+//!   landed with its slice 2 (approvals and questions, the mode).
 //! - Versions: a driver states the oldest and the newest agent version it
 //!   was checked against. Below the oldest, the session runs on ACP; above
 //!   the newest, it runs and its log says so, since vendors add
@@ -75,13 +76,15 @@ pub const fn direct(kind: HarnessKind) -> Option<&'static Direct> {
 }
 
 /// Checked against the app-server schema of Codex 0.166.0 (ADR 0057).
+/// Selectable from the driver's slice 2: it asks a person what Codex
+/// asks, with Codex's own choices.
 const CODEX: Direct = Direct {
     protocol: DirectProtocol::CodexAppServer,
     // JSON-RPC over stdio is the app-server's default transport.
     args: &["app-server"],
     oldest: Version::new(0, 166, 0),
     newest_checked: Version::new(0, 166, 0),
-    selectable: false,
+    selectable: true,
 };
 
 /// The Agent SDK the driver follows (0.3.246) speaks to Claude Code 2.1.246.
@@ -259,14 +262,11 @@ mod tests {
         );
         assert_eq!(codex.fit(None), VersionFit::Unknown);
         assert!(direct(HarnessKind::Gemini).is_none());
+        assert!(codex.selectable, "Codex's permissions slice has landed");
         assert!(
-            [
-                HarnessKind::Codex,
-                HarnessKind::ClaudeCode,
-                HarnessKind::OpenCode
-            ]
-            .into_iter()
-            .all(|kind| direct(kind).is_some_and(|driver| !driver.selectable)),
+            [HarnessKind::ClaudeCode, HarnessKind::OpenCode]
+                .into_iter()
+                .all(|kind| direct(kind).is_some_and(|driver| !driver.selectable)),
             "no direct driver is selectable before its permissions slice"
         );
     }

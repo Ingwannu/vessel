@@ -272,7 +272,7 @@ impl NodeClient {
     /// # Errors
     /// `Unsupported` on a node before protocol 4; `Conflict` when no direct
     /// address or relay is advertised (typed `DeviceInviteError::NoRoutes`
-    /// detail since protocol 19); otherwise see [`CallError`].
+    /// detail since protocol 20); otherwise see [`CallError`].
     pub async fn invite_device(
         &self,
         label: Option<String>,

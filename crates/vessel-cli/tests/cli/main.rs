@@ -13,6 +13,8 @@ mod automation;
 #[cfg(test)]
 mod canary;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod devices;
@@ -26,6 +28,8 @@ mod nodes;
 #[cfg(test)]
 mod reconnect;
 #[cfg(test)]
+mod side_questions;
+#[cfg(test)]
 mod support;
 #[cfg(test)]
 #[cfg(unix)]
@@ -34,6 +38,8 @@ mod terminals;
 mod transfers;
 #[cfg(test)]
 mod ui;
+#[cfg(test)]
+mod usage;
 
 use support::{Fixture, within};
 

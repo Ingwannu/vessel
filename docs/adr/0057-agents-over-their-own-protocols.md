@@ -6,8 +6,9 @@ where possible"). This ADR records how it is done for each agent, and what
 it costs. It partly supersedes ADR 0003 (every structured agent over ACP)
 and replaces ADR 0055's wait for an adapter change. The research notes
 are summarised below; the plan is `docs/plans/agents-own-protocols.md`.
-Slice 0 (the seam made selectable, protocol 18) is built; no direct
-driver is (see "Slice 0, as built").
+Slice 0 (the seam made selectable, protocol 18) is built (see "Slice 0,
+as built"), and Codex's driver through its slice 2 is built and offered
+(see "Codex slice 2, as built").
 
 ## Context
 
@@ -118,11 +119,34 @@ weighed:
   own. (c) is the adapter Vessel already has.
 - **Recommendation: (a)**, built in two layers:
   - **The documented layer**: stream-json both ways, and the node's
-    permission model, which never relies on the undocumented wire.
+    permission model, whose safety never depends on the undocumented wire
+    being understood: what is not understood is denied (amended
+    2026-11-14 with the coordinator and A2, below).
   - **The control frames, opt-in**: interrupt, live model and mode
     changes, `rewind_files`, context usage. They are checked by a contract
     test against the SDK's declarations of the version Vessel follows,
     and the driver turns them off where that check fails.
+  - **Permissions** (coordinator's decision, 2026-11-14): inside the CLI
+    versions the contract test covers, every tool request comes over the
+    control protocol's `can_use_tool`, which carries the agent's own
+    choices ("always allow …") and their withdrawal. Outside that range,
+    or when the control handshake does not come up as the contract
+    expects, the driver falls back by itself to the documented
+    `--permission-prompt-tool mcp__…` route (allow or deny only), and the
+    session says once that the agent's own choices are unavailable on
+    that version. On both routes, tested on the fake CLI: every tool
+    request is answered by the node or denied; a frame the driver does
+    not understand is a denial and ends the turn with a typed error,
+    never an allow; no permission-skipping flag unless the session's mode
+    is bypass; the mode is always passed (Paseo's default, `auto`, when the
+    session chose none), so a setting in the person's own Claude folder,
+    which the node cannot see, never decides it; MCP configuration and
+    anything secret go in a file only the node's user can read, never on
+    the command line.
+  - **Credentials**: the driver never reads, copies or proxies the agent's
+    credential files or tokens, and never presents a login of its own: it
+    runs the person's own installed `claude` under the person's own login
+    (the profile's home), as the ACP adapter does.
 
   This is "where possible" taken at its word: possible from Rust, but
   only partly a public contract, so the rest is fenced.
@@ -281,7 +305,8 @@ holds.
   own program to it (`codex app-server`; `claude -p --input-format
   stream-json --output-format stream-json --verbose`; `opencode serve
   --hostname 127.0.0.1 --port 0`), the oldest and newest versions
-  checked, and whether it is offered (`selectable`, false for all three).
+  checked, and whether it is offered (`selectable`: false for all three
+  in slice 0; Codex's true from its slice 2).
   `launch_direct` builds the command with the account, profile and route
   of an ACP launch; what a session adds (resume, MCP configuration,
   permission flags) is the driver's to add from `AgentSetup`, in its
@@ -299,8 +324,14 @@ holds.
   `AgentSetup::private_dir` carries the node's owner-only MCP directory
   to a session's launches (never to a probe or a listing), the only place
   a driver writes a launch's private files, through the harness's
-  `McpFile`. A module whose `BUILT` is false is refused before its agent
-  starts (`AgentError::NoDriver`, `unsupported`).
+  `McpFile`, which checks at every write that the directory is the
+  writer's own, owner-only and not a link (Unix; Windows relies on the
+  data directory's ACL). A module whose `BUILT` is false is refused
+  before its agent starts (`AgentError::NoDriver`, `unsupported`); a
+  launch a built driver cannot honour is refused there too
+  (`AgentError::Refused(LaunchRefusal)`: a choice not offered, a fork it
+  cannot make, a conversation id it cannot have made, its private file),
+  answered as the ACP path answers the same problem.
 - **The choice** is the session runtime's (`runtime/drivers`), at a
   session's first launch, its start again, a probe and a listing: the
   node's setting, then whether the build offers the driver, then the
@@ -320,3 +351,65 @@ holds.
   `--version` and their protocol's first exchange (`initialize`; a
   `system` `init` and a `result` frame). `OpenCode`'s fake needs an HTTP
   server and comes with its first slice.
+
+## Codex slice 1, as built (2026-11-14)
+
+The Codex driver starts and resumes a thread, runs turns, streams their
+messages, reasoning summaries, plans, tool-like items and tokens, steers
+and interrupts a turn, and declines every approval with a line in the
+session's log. It is built (`codex::BUILT`) and not offered
+(`selectable` false), because a driver that cannot ask a person must not
+run a session. Choices made here:
+
+- **No JSON-RPC library**: Codex's lines leave out `jsonrpc`, which the
+  ACP SDK requires; the driver reads and writes the four shapes itself
+  (`codex/wire.rs`), one reader and one writer task, the loop matching
+  answers to its requests by id and never awaiting one in place.
+- **Typed subset, checked**: the messages used are types
+  (`codex/protocol.rs`) that ignore unknown fields and keep unknown kinds
+  as `Other`; `schema/app-server.json` holds the 43 definitions of Codex
+  0.166.0's schema they follow; a test checks every field and value used
+  is there, and another regenerates them from an installed Codex of at
+  least 0.166.0 and fails on any change.
+- **Tokens**: a turn's usage is the growth of the thread's total over
+  the turn; the context's fullness is the last request against
+  `modelContextWindow`.
+- **Until slice 2**, the thread runs `on-request` in a `workspace-write`
+  sandbox (Paseo's default).
+
+## Codex slice 2, as built (2026-11-14)
+
+The Codex driver asks a person what Codex asks, and the node may select
+it (`selectable` true). Choices made here:
+
+- **The mode is an option** (`mode`), with codex-acp's id, values and
+  presets (`read-only`, `workspace-write`, `agent` the default with
+  Codex's own reviewer first, `agent-full-access` the only one that never
+  asks and leaves the sandbox), so a session's choices mean the same
+  whichever driver runs it. It goes with the thread's start or resume; a
+  change goes with the next `turn/start` (`approvalPolicy`,
+  `approvalsReviewer`, `sandboxPolicy`), as codex-acp applies it. Until
+  slice 3 it is the one option; any other choice fails the handshake.
+- **Approvals are permission requests with Codex's own choices**: a
+  command's `availableDecisions` (each sent back as Codex gave it, a rule
+  and all; one this build does not know left out), a file change's four
+  decisions, more permissions granted as asked for the turn or the
+  session, or none. The request's tool call is the item's, announced from
+  the request when Codex has not announced the item, then updated by it.
+- **Questions**: Codex's own (`item/tool/requestUserInput`) become one
+  question of a field each (a choice where it offers options and no free
+  text, otherwise text); a tool server's form is read as ACP's by the ACP
+  driver's own mapper, so one reader holds the bounds and checks. A
+  secret question (`isSecret`) is never shown, since an answer is kept in
+  the session's timeline; with nobody watching, a question is answered
+  empty and a form declined at once, each with a line in the log.
+- **Withdrawal**: a cancel withdraws what is open before it interrupts
+  (Codex hears `cancel`, no permissions, no answers), and what Codex asks
+  until the turn ends is withdrawn at once; the turn's end and the
+  connection's withdraw the rest; Codex's `serverRequest/resolved`
+  settles one it no longer waits on. At most 64 wait, as over ACP.
+- **Another thread's approvals** (a sub-agent's) are asked too: unasked,
+  Codex would wait on them for good, and nothing is allowed unasked.
+- **Checked**: `schema/app-server.json` grows to the 61 definitions the
+  driver follows; the contract test checks each field and value used,
+  and that a granted permission profile has the requested one's shape.

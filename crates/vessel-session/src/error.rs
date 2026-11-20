@@ -209,6 +209,18 @@ pub enum RemoveError {
 }
 
 impl SessionError {
+    /// An agent that did not start, as the session answers it: a fork its
+    /// direct driver refused before spawning is the adapters' refusal of
+    /// the same fork (`ForkRefused`, `unsupported`; ADR 0057), so a client
+    /// cannot tell which driver refused.
+    pub(crate) fn agent_not_started(error: vessel_agent::AgentError) -> Self {
+        if let vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(refusal)) = error
+        {
+            return Self::ForkRefused(refusal);
+        }
+        Self::StartAgent(error)
+    }
+
     /// The wire error code for this failure.
     #[must_use]
     #[expect(
@@ -228,7 +240,10 @@ impl SessionError {
                 | HarnessError::NoTerminal { .. }
                 | HarnessError::NoDirect { .. },
             )
-            | Self::StartAgent(vessel_agent::AgentError::NoDriver(_))
+            | Self::StartAgent(
+                vessel_agent::AgentError::NoDriver(_)
+                | vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(_)),
+            )
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
@@ -238,7 +253,9 @@ impl SessionError {
             | Self::ForkRefused(_)
             | Self::History(vessel_agent::HistoryError::CannotList)
             | Self::Attachment(AttachmentError::NoLoader)
-            | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
+            | Self::Input(InputError::CannotSteer | InputError::ContextNotTaken) => {
+                ErrorCode::Unsupported
+            }
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -250,13 +267,20 @@ impl SessionError {
             | Self::Delivery(DeliveryError::Empty)
             | Self::Queue(QueueError::NotNow | QueueError::TooLarge)
             | Self::Input(
-                InputError::InvalidContent(_)
+                InputError::ContextLimit
+            | InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
                 | InputError::Option(_)
                 | InputError::InvalidAnswer { .. }
                 | InputError::AttachmentNotTaken { .. },
             )
             | Self::History(vessel_agent::HistoryError::Refused(_))
+            // A choice a direct driver cannot launch with (ADR 0057), as a
+            // running session's option change it does not offer.
+            | Self::StartAgent(vessel_agent::AgentError::Refused(
+                vessel_agent::LaunchRefusal::Option(_)
+                | vessel_agent::LaunchRefusal::Conversation(_),
+            ))
             | Self::Attachment(
                 AttachmentError::TooMany { .. }
                 | AttachmentError::TooLarge { .. }
@@ -367,7 +391,9 @@ impl From<InputError> for SessionError {
     fn from(error: InputError) -> Self {
         match error {
             InputError::Closed => Self::Ended,
-            refused @ (InputError::TurnInProgress
+            refused @ (InputError::ContextLimit
+            | InputError::ContextNotTaken
+            | InputError::TurnInProgress
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)
             | InputError::PermissionSettled(_)
@@ -440,5 +466,37 @@ impl fmt::Display for InputKind {
             Self::AnswerPermission => "a permission answer",
             Self::AnswerQuestion => "an answer to a question",
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_agent::{AgentError, ForkRefusal, LaunchRefusal, OptionError};
+    use vessel_proto::ErrorCode;
+
+    use super::SessionError;
+
+    /// A direct driver's refusal before its agent starts (ADR 0057) is
+    /// answered as the ACP path answers the same problem.
+    #[test]
+    fn a_launch_refusal_is_answered_as_the_same_refusal_over_acp() {
+        let refused = |refusal| SessionError::agent_not_started(AgentError::Refused(refusal));
+        let fork = refused(LaunchRefusal::Fork(ForkRefusal::NotAtPoint));
+        assert!(matches!(
+            fork,
+            SessionError::ForkRefused(ForkRefusal::NotAtPoint)
+        ));
+        assert_eq!(fork.code(), ErrorCode::Unsupported);
+        let option = refused(LaunchRefusal::Option(OptionError::Unknown {
+            id: vessel_proto::OptionId::new("mode"),
+            offered: Vec::new(),
+        }));
+        assert_eq!(option.code(), ErrorCode::InvalidRequest);
+        let conversation = refused(LaunchRefusal::Conversation("/etc/passwd".to_owned()));
+        assert_eq!(conversation.code(), ErrorCode::InvalidRequest);
+        assert_eq!(
+            refused(LaunchRefusal::NoPrivateDir).code(),
+            ErrorCode::SpawnFailed
+        );
     }
 }

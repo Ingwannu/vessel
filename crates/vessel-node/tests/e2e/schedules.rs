@@ -17,7 +17,7 @@ use vessel_proto::{
 };
 
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
-use crate::support::{Fixture, read_until, status_of, structured_spec, within};
+use crate::support::{Fixture, read_until, status_of, step, structured_spec, within};
 
 fn definition(target: ScheduleTarget, prompt: &str) -> ScheduleDefinition {
     ScheduleDefinition {
@@ -46,6 +46,26 @@ fn text(prompt: &str) -> Vec<ContentBlock> {
 /// (the scheduler keeps what runs came to before it answers a call).
 async fn finished(client: &NodeClient, schedule: ScheduleId) -> ScheduleInfo {
     client.schedule(schedule).await.unwrap()
+}
+
+/// `session`'s info once its archive mark is stored. Neither the session's
+/// final status nor its run's `Finished` says so: an archive stores the
+/// mark only after the session has ended (`sessions::marks`, so "archived"
+/// always implies "ended"), and the run's follower reports `Finished`
+/// before it archives (`service::followed`). So the info is read again
+/// until it carries the mark, each read a call to the node, no timer; the
+/// step bounds it.
+async fn archived(client: &NodeClient, session: SessionId) -> vessel_proto::SessionInfo {
+    step("the run's session archived", async {
+        loop {
+            let info = client.session(session).await.unwrap();
+            if info.marks.archived_at.is_some() {
+                return info;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
 }
 
 /// Read `session`'s log from the start until its final status.
@@ -85,8 +105,7 @@ async fn a_run_starts_a_session_follows_its_turn_and_archives_it() {
                 if line.contains("started by schedule \"nightly check\" (run 1)"))
         });
         assert!(notice, "the log says which schedule started it");
-        let info = client.session(session).await.unwrap();
-        assert!(info.marks.archived_at.is_some(), "archived after its turn");
+        let info = archived(&client, session).await;
         assert_eq!(
             info.title.as_ref().map(vessel_proto::SessionTitle::as_str),
             Some("nightly check")

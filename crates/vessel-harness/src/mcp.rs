@@ -39,6 +39,18 @@
 //!   is no fallback to a shared temporary directory. The caller writes it
 //!   right before starting the harness and keeps the guard for the
 //!   session's life; dropping the guard removes it.
+//! - The directory is checked at every write, not trusted from its
+//!   creation (2026-11-14, ADR 0057: Claude Code's direct driver writes
+//!   its file here too). On Unix it must be a directory and not a link to
+//!   one, owner-only (no permission bit for group or others), owned by the
+//!   writer (read as the new file's owner against the directory's, which
+//!   needs no system call the workspace does not make), and the same
+//!   directory after the file is created as before. A directory that
+//!   fails is refused and the new file removed, never written: a node
+//!   whose `mcp/` was opened to others, or swapped for a link, gives no
+//!   one the values. The alternative, checking once at node start
+//!   (`DataDir::prepare_mcp_dir`), misses what changes while the node
+//!   runs; the cost is two `lstat`s and an `fstat` per session start.
 //! - Windows has no mode bits, and setting an explicit DACL needs Win32
 //!   calls the workspace does not make (no `unsafe`). A file there inherits
 //!   its directory's ACL, which inside the user's profile admits only that
@@ -176,14 +188,28 @@ impl McpFile {
     ///
     /// # Errors
     /// The file exists already (never overwritten or followed) or cannot be
-    /// written.
+    /// written; on Unix, its directory is not an owner-only directory of
+    /// the writer's, or changed while the file was created
+    /// ([`io::ErrorKind::PermissionDenied`]; nothing is left behind).
     pub fn write(self) -> io::Result<WrittenMcpFile> {
+        let dir = self.path.parent().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "an MCP configuration file needs a directory",
+            )
+        })?;
+        #[cfg(unix)]
+        let checked = owner_only::check(dir)?;
         let mut file = new_private(&self.path)?;
-        let written = file
-            .write_all(self.contents.as_bytes())
-            .and_then(|()| file.sync_all());
-        let guard = WrittenMcpFile { path: self.path };
-        written.map(|()| guard)
+        // From here the file is this writer's: any failure removes it.
+        let guard = WrittenMcpFile {
+            path: self.path.clone(),
+        };
+        #[cfg(unix)]
+        owner_only::confirm(dir, &checked, &file)?;
+        file.write_all(self.contents.as_bytes())
+            .and_then(|()| file.sync_all())?;
+        Ok(guard)
     }
 }
 
@@ -217,6 +243,78 @@ impl Drop for WrittenMcpFile {
     }
 }
 
+/// The directory's checks on Unix (see the module docs). Windows has no
+/// mode bits to check: there the file is written only inside the user's
+/// profile directory, whose inherited ACL admits only that user
+/// ([`new_private`]), and the node's data directory relies on the same.
+#[cfg(unix)]
+mod owner_only {
+    use std::fs;
+    use std::io;
+    use std::os::unix::fs::MetadataExt as _;
+    use std::path::Path;
+
+    /// Permission bits for anyone but the owner.
+    const OTHERS: u32 = 0o077;
+
+    /// The directory as it was checked.
+    pub(super) struct Checked {
+        device: u64,
+        inode: u64,
+        owner: u32,
+    }
+
+    /// `dir` is a directory, not a link to one, and owner-only.
+    pub(super) fn check(dir: &Path) -> io::Result<Checked> {
+        let found = fs::symlink_metadata(dir)?;
+        if !found.file_type().is_dir() {
+            return Err(refused(
+                dir,
+                "is not a directory (a link to one is refused)",
+            ));
+        }
+        if found.mode() & OTHERS != 0 {
+            return Err(refused(
+                dir,
+                "is open to other users; it must be owner-only",
+            ));
+        }
+        Ok(Checked {
+            device: found.dev(),
+            inode: found.ino(),
+            owner: found.uid(),
+        })
+    }
+
+    /// After `file` was created in `dir`: the directory is the one
+    /// checked, still owner-only, and its owner is the file's, the user
+    /// writing it.
+    pub(super) fn confirm(dir: &Path, checked: &Checked, file: &fs::File) -> io::Result<()> {
+        let now = fs::symlink_metadata(dir)?;
+        let same = now.file_type().is_dir()
+            && (now.dev(), now.ino()) == (checked.device, checked.inode)
+            && now.mode() & OTHERS == 0;
+        if !same {
+            return Err(refused(dir, "changed while the file was created"));
+        }
+        let created = file.metadata()?;
+        if created.dev() != checked.device {
+            return Err(refused(dir, "changed while the file was created"));
+        }
+        if created.uid() != checked.owner {
+            return Err(refused(dir, "belongs to another user"));
+        }
+        Ok(())
+    }
+
+    fn refused(dir: &Path, why: &str) -> io::Error {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("the MCP directory {} {why}", dir.display()),
+        )
+    }
+}
+
 #[cfg(unix)]
 fn new_private(path: &Path) -> io::Result<fs::File> {
     use std::os::unix::fs::OpenOptionsExt as _;
@@ -247,3 +345,7 @@ fn new_private(path: &Path) -> io::Result<fs::File> {
         .create_new(true)
         .open(path)
 }
+
+#[cfg(test)]
+#[cfg(unix)]
+mod tests;

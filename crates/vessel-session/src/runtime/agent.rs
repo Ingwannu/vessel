@@ -43,7 +43,7 @@ impl SessionRuntime {
         // `fork`/`exec` on this thread, as `tokio::process` does.
         let (agent, input, outputs) =
             AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone())
-                .map_err(SessionError::StartAgent)?;
+                .map_err(SessionError::agent_not_started)?;
         if self.shutdown.is_cancelled() {
             // Dropping the agent kills its process group.
             drop(agent);

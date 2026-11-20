@@ -65,6 +65,9 @@ impl Unary for ListHarnesses {}
 impl Unary for ListSessions {}
 impl Unary for GetSession {}
 impl Unary for CreateSession {}
+impl Unary for vessel_proto::side_questions::OpenSideQuestion {}
+impl Unary for vessel_proto::side_questions::PromptSideQuestion {}
+impl Unary for vessel_proto::side_questions::ResetSideQuestion {}
 impl Unary for SendInput {}
 impl Unary for KillSession {}
 impl Unary for ReadEvents {}
@@ -218,6 +221,7 @@ impl Unary for vessel_proto::automation::ResumeSchedule {}
 impl Unary for vessel_proto::automation::RunSchedule {}
 impl Unary for vessel_proto::automation::DeleteSchedule {}
 impl Unary for vessel_proto::automation::ListRuns {}
+impl Unary for vessel_proto::usage::QueryUsage {}
 impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
@@ -280,6 +284,9 @@ const fn is_unary(method: Method) -> bool {
         | Method::ListSessions
         | Method::GetSession
         | Method::CreateSession
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::SendInput
         | Method::KillSession
         | Method::ReadEvents
@@ -420,6 +427,7 @@ const fn is_unary(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt

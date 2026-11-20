@@ -112,6 +112,9 @@ pub(crate) enum ServiceError {
     /// No session with this id, live or stored.
     #[error("no session {0}")]
     NotFound(SessionId),
+    /// A side-question boundary refused the action (ADR 0045).
+    #[error(transparent)]
+    SideQuestion(#[from] crate::side_questions::SideError),
     /// The session has ended and is served from the store (it ended in an
     /// earlier run, or in this one and was handed over); it can be read but
     /// not driven.
@@ -425,6 +428,7 @@ impl ServiceError {
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
             Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
             Self::MoveRoute { .. } | Self::NotAPoint { .. } => ErrorCode::Unsupported,
+            Self::SideQuestion(error) => error.code(),
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Upload(error) => error.code(),

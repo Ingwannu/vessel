@@ -132,8 +132,10 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
   restarts and applied at once; `vesseld --park-after` is the value of a
   node where nobody changed it) its process is stopped while
   the session stays running, unless a turn runs, something waits on an
-  answer, its queue moves, or someone follows it (a page that has it
-  open, `vessel attach`). The next prompt, option change or `vessel
+  answer or its queue moves. Someone following it (a page that has it
+  open, `vessel attach`) does not keep it awake, as in Paseo: the
+  follower sees it parked and its next prompt wakes it. The next prompt,
+  option change or `vessel
   session wake` starts it again on the same conversation; `vessel
   sessions` says `(parked)`. Only an agent whose adapter can load a
   conversation again (ACP `loadSession`) is parked; what it left running
@@ -141,9 +143,12 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - Agents over their own protocols (protocol 18, ADR 0057): `vessel node
   settings --driver codex=direct` chooses Codex's app-server instead of
   its ACP adapter for new sessions (likewise `claude` and `opencode`;
-  `acp` goes back). No build offers one yet: the node refuses `direct`
-  until that agent's driver can ask for permissions as ACP does. Every
-  agent runs over ACP until then.
+  `acp` goes back). Codex's is offered: it asks for permissions and
+  questions with Codex's own choices, and its `mode` option is codex-acp's
+  (`read-only`, `workspace-write`, `agent`, `agent-full-access`). It runs
+  for a `codex` of at least 0.166.0, otherwise over ACP with a line in
+  the session's log. The node refuses `direct` for Claude Code and
+  OpenCode until their drivers can ask for permissions as ACP does.
 
 Search what was said in every session (protocol 12): prompts and the
 agents' replies, live, ended or archived, newest first.
@@ -159,6 +164,58 @@ vessel search parser --before 1763031235000000000   # the next page, from the la
   and the words in `[` `]`. Tool calls, their output and thoughts are not
   searched; a reply is found once it has ended.
 - Agents have the same as the `search_sessions` tool.
+
+### A side question beside the running turn
+
+```bash
+vessel session side 3f2a                    # open/reuse a separate side; prints its id
+vessel session side 3f2a "What is the agent doing?"
+vessel session side 91ab "Explain that plan" # ask again using the side id
+vessel attach 91ab                          # read its replies and answer approvals
+vessel session resume 91ab                  # explicitly resume an ended side
+```
+
+A side gets the original conversation's latest status, recorded plan and
+limited recent messages. Its questions and answers never enter the
+original conversation or stop its running turn. It shares normal project
+tools/permissions, as another session in that folder does. It starts with
+recent context rather than a full provider-history fork. Read and operate
+access are both required; agents cannot open sides. Use `session side`
+for every question: ordinary `send` and queue operations refuse sides so
+that their context cannot become stale. Existing side logs remain readable
+if their parent disappears, but new questions and resume then fail.
+Vessel records only the visible question as user input. The provider may
+retain the supplied parent context in its own conversation files, which
+can be included in a native session export.
+
+### One prompt to several models
+
+`session compare` makes a separate Git worktree and structured session for
+one to eight selections. Write a JSON array to `targets.json`, for example:
+
+```json
+[{"harness":"claude-code","model":"MODEL_A"},{"harness":"codex","model":"MODEL_B"}]
+```
+
+Use model ids offered by your agent; optional `profile` and `options`
+are the normal structured-session choices. Then run:
+
+```bash
+vessel session compare --project PROJECT_ID --base main --targets targets.json "Check this change" --attach notes.md --json
+```
+
+The base resolves once, and every model receives the same text and stored
+file bytes. Setup must be approved through the normal project commands;
+comparison never approves, skips setup, queues or steers. Partial failures
+keep successful sessions. The final report lists every known branch,
+worktree, session and upload/offset, including effects whose reply was lost.
+A partial run exits nonzero; inspect those resources before an explicit new
+attempt. Reports cannot resume a job across CLI processes. Continue or
+remove the ordinary sessions/worktrees with their existing commands.
+`--on NODE_ID` selects a fleet destination; the project id belongs to it.
+No provider is prompted merely to discover its options. Agent credentials
+cannot use this helper: the existing git.log agent guard refuses its base
+preflight. No new agent tool or authority is added.
 
 ### Another machine, over SSH
 
@@ -1103,7 +1160,9 @@ automatic failure screenshots are disabled.
 ## Layout
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for every crate and how they
-depend on each other, [docs/adr/](docs/adr/) for why, and
+depend on each other, [docs/adr/](docs/adr/) for why,
+[docs/QUALITY.md](docs/QUALITY.md) for the rules every change is held to and
+where the code stands against them, and
 [docs/LESSONS.md](docs/LESSONS.md) for what Vessel takes from Zed and Paseo.
 
 ## Development
@@ -1227,6 +1286,22 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+### Reported usage
+
+```bash
+vessel usage machine --period day       # past 24 hours; --period week is past 7 days
+vessel usage agent claude --period week # all profiles; --profile selects one recorded name
+vessel usage session 3f2a               # retained totals and up to 100 reports
+vessel usage session 3f2a --after 100    # the next page; totals are unchanged
+```
+
+Counts and costs are only what the agent reported. Context occupancy is
+separate; missing reports are not zero and costs in different units stay
+separate. Cost replayed while loading a conversation establishes a baseline
+instead of being counted as new spending. Accounting starts with this version, retains at most 90 days
+and 100,000 reports, and follows session deletion. New usage queries need
+read scope; cost in these queries additionally needs operate scope.
 
 A schedule preview is calculated on the target node without saving or
 starting work (`vessel schedule preview --every 30m`, or `--cron` with an

@@ -1,12 +1,14 @@
 //! Errors and end reasons of this crate.
 
 use std::fmt;
+use std::sync::Arc;
 
 use vessel_proto::conversation::InvalidAnswer;
 use vessel_proto::{
     AttachmentId, AttachmentKind, OptionId, PermissionId, PermissionOptionId, QuestionId,
 };
 
+use crate::handshake::ForkRefusal;
 use crate::introduction::Refused;
 use crate::options::OptionError;
 
@@ -19,11 +21,70 @@ pub enum AgentError {
     /// No driver of that protocol is built yet (ADR 0057).
     #[error("the {0} driver is not built yet")]
     NoDriver(crate::Driver),
+    /// A direct driver refused the launch before its agent started (ADR
+    /// 0057): nothing was spawned.
+    #[error(transparent)]
+    Refused(#[from] LaunchRefusal),
+}
+
+/// Why a direct driver refused to launch its agent (ADR 0057). Checked
+/// before anything starts, so a session is never started without what it
+/// asked for.
+///
+/// [Decision Log]
+/// - Purpose: a driver whose agent takes a session's choices on its
+///   command line (Claude Code's permission mode, its fork, its MCP file)
+///   must refuse what it cannot honour before spawning, not start the
+///   agent without it.
+/// - Choice: one typed refusal, so the session answers each as the ACP
+///   path answers the same problem: a choice not offered is
+///   `invalid_request` (as [`InputError::Option`]), a fork the agent
+///   cannot make is the adapters' `unsupported` (`SessionError::ForkRefused`
+///   in `vessel-session`), and the node's own private file failing is a
+///   failure to start. The alternative, starting the agent and failing its
+///   handshake, starts a process with flags the session did not ask for.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum LaunchRefusal {
+    /// A session choice this driver cannot launch with (an option or a
+    /// value it does not offer).
+    #[error(transparent)]
+    Option(#[from] OptionError),
+    /// A fork this driver cannot make (protocol 14).
+    #[error("{}", fork_refusal(*.0))]
+    Fork(ForkRefusal),
+    /// A conversation id this agent cannot have made, which its command
+    /// line would read as something else (a path, a flag).
+    #[error("`{0}` is not a conversation of this agent")]
+    Conversation(String),
+    /// The session has MCP servers and the node gave no private directory
+    /// for the file that carries them (`AgentSetup::private_dir`): the
+    /// agent is never started without them.
+    #[error("this agent's MCP servers need the node's private directory, and there is none")]
+    NoPrivateDir,
+    /// The private file carrying the MCP servers could not be made or
+    /// written (a directory not owner-only, a link, I/O).
+    #[error("the agent's MCP configuration could not be written")]
+    Mcp(#[source] Arc<vessel_harness::HarnessError>),
+}
+
+/// A fork refusal in a sentence.
+const fn fork_refusal(refusal: ForkRefusal) -> &'static str {
+    match refusal {
+        ForkRefusal::CannotFork => "this agent cannot fork a conversation",
+        ForkRefusal::NotAtPoint => "this agent cannot fork the conversation at that point",
+    }
 }
 
 /// Input the agent session cannot accept.
 #[derive(Debug, thiserror::Error)]
 pub enum InputError {
+    /// A side prompt's context or final provider request exceeded its cap.
+    #[error("the side question and context exceed the request limit; ask a shorter question")]
+    ContextLimit,
+    /// A side question's context this agent's driver does not carry yet
+    /// (ADR 0057): refused before anything is sent, never dropped.
+    #[error("this agent's driver does not take a side question's context yet")]
+    ContextNotTaken,
     /// The ACP connection has ended.
     #[error("the agent connection has ended")]
     Closed,
@@ -127,7 +188,7 @@ pub enum Disconnect {
         refused: Option<Box<Refused>>,
         /// A fork the agent cannot make (protocol 14, ADR 0052): the
         /// caller answers `unsupported`, not a failure to start.
-        fork_refused: Option<crate::handshake::ForkRefusal>,
+        fork_refused: Option<ForkRefusal>,
     },
     /// The connection failed (a protocol or transport error).
     Protocol {

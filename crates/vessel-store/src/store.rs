@@ -6,6 +6,7 @@ mod automation;
 mod conversation;
 mod forge;
 mod search;
+mod usage;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -35,6 +36,8 @@ use crate::{attachments, files, recovery, schema};
 pub struct Store {
     writes: mpsc::Sender<WriteOp>,
     reader: Arc<Reader>,
+    /// Shared admission for expensive usage scans, not the idle reader cache.
+    usage_reads: Arc<tokio::sync::Semaphore>,
     /// The data directory's `attachments/` (protocol 10).
     attachments: Arc<Path>,
     /// How many sessions retention has removed since the store opened
@@ -105,6 +108,7 @@ impl Store {
         let store = Self {
             writes,
             reader: Arc::new(Reader::new(path, config)),
+            usage_reads: Arc::new(tokio::sync::Semaphore::new(usage::MAX_READS)),
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
             indexing,
@@ -377,7 +381,7 @@ impl Store {
             .map_err(|_closed| StoreError::Closed)
     }
 
-    async fn read<T: Send + 'static>(
+    pub(crate) async fn read<T: Send + 'static>(
         &self,
         read: impl FnOnce(&Reader) -> Result<T, StoreError> + Send + 'static,
     ) -> Result<T, StoreError> {

@@ -45,6 +45,8 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
+            Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
@@ -101,6 +103,15 @@ impl Reply {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
+            Self::GetConversation(conversation) => conversation
+                .usage
+                .as_ref()
+                .and_then(|usage| usage.for_protocol(protocol))
+                .map(|usage| {
+                    let mut conversation = conversation.clone();
+                    conversation.usage = Some(usage);
+                    Self::GetConversation(conversation)
+                }),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
@@ -125,7 +136,8 @@ impl Reply {
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
-            Self::SendInput(_)
+            Self::PromptSideQuestion(_)
+            | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
@@ -167,7 +179,6 @@ impl Reply {
             | Self::SetSessionOption(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
-            | Self::GetConversation(_)
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
             | Self::DeleteSession(_)
@@ -254,6 +265,7 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
@@ -366,6 +378,7 @@ mod tests {
                 at: DateTime::UNIX_EPOCH,
                 event: SessionEvent::UsageChanged {
                     usage: crate::conversation::ContextUsage {
+                        observation: crate::conversation::UsageObservation::Current,
                         used: crate::model::TokenCount::new(1),
                         size: crate::model::TokenCount::new(2),
                         cost: None,
