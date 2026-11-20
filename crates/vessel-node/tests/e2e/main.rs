@@ -47,6 +47,8 @@ mod install;
 #[cfg(test)]
 mod isolation;
 #[cfg(test)]
+mod label_creation;
+#[cfg(test)]
 mod local;
 #[cfg(test)]
 mod lsp;

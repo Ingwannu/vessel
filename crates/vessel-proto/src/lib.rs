@@ -28,7 +28,8 @@ mod harness;
 pub mod history;
 mod id;
 mod key;
-pub mod lifecycle;
+pub mod labels;
+pub mod lifecycle_version;
 pub mod lsp;
 mod model;
 mod name;
@@ -99,7 +100,7 @@ pub use id::{
     ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
-pub use lifecycle::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,

@@ -2,7 +2,7 @@
 
 Labels, a background listing, a live reload, and selectors on `vessel log`.
 The decision is ADR 0063. The protocol number is the one given at merge.
-Calls and fields are gated on `lifecycle::SINCE`; this branch does not
+Calls and fields are gated on `lifecycle_version::SINCE`; this branch does not
 change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
 it does not touch parking, rewind, fork, or `vessel-agent`.
 
@@ -26,11 +26,21 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`packages/server/src/server/agent/agent-manager.ts:631-644`,
   `writeLabels` at `:2296`). The CLI and the MCP tool only send
   strings, so a person cannot delete. An omitted key stays.
-- CLI create and import: `key=value`, key trimmed and non-empty, value
-  the remainder including empty and not trimmed
-  (`packages/cli/src/commands/agent/update.ts:103-140`,
-  `packages/cli/src/commands/agent/import.ts:54-82`). The same split is
-  used by `run`. The last copy of a key wins.
+- CLI update (`packages/cli/src/commands/agent/update.ts:103-140`)
+  splits each flag on commas, trims each whole segment, ignores empty
+  segments, then splits at the first `=` and trims the non-empty key.
+  The value is the remainder of that trimmed segment, including empty.
+- CLI run (`run.ts:460-466,478-501`) uses one complete `key=value` per
+  flag; neither side is trimmed, and it does not reject an empty key.
+  Import (`import.ts:54-82`) also takes one pair, but trims and refuses
+  an empty key. All three keep the last copy of a key.
+- Vessel uses that one-pair run form and the comma-separated update
+  form. Its validated key trims and refuses empty at every ingress,
+  including wire/MCP and filters. The reason is one canonical key type;
+  a label must not change identity between creation and discovery.
+- Paseo displays `Object.entries(labels)` (`update.ts:144-149`). Vessel
+  uses canonical key order so stored metadata and summaries have a
+  deterministic order regardless of how a sender built the map.
 - CLI update refuses an empty name, an empty `--thinking`, and combining
   `--thinking` with `--name` or `--label`
   (`update.ts:152-197`). Labels alone are a metadata update.
@@ -122,7 +132,7 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 | Title, separate from the spec | `session.rename`, schema 6 `title` | Modify: labels follow the same split. Do not fold them into the title. Keys and values reuse the title's control check (`char::is_control`, including C1). |
 | Marks as columns | schema 7 | Modify: the next schema append adds `labels` (JSON text, null is empty) and `listing` (`shown` default). The number is whatever the migration list's length is at merge. |
 | Unit `session.list` | `rpc/requests.rs` | Modify: a struct that still decodes `params: null`. |
-| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
+| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle_version::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
 | `Method::forwardable` and its pinned list | `forward.rs`, `rpc/tests.rs` | Modify: `session.labels` and `session.reload` are forwardable, as rename and wake are. |
 | Agent refusal | `vessel-node/src/workspace/policy.rs` | Modify: `session.labels` allowed; `session.reload` refused with its own reason, not the file-and-git sentence. |
 | Stop and `session/load` | `vessel-session/src/moving.rs`, parking's wake | Reuse from a new reload order. Do not change move, park, wake, rewind or fork. |
@@ -135,6 +145,10 @@ No external crate. The standard library and the types above hold the
 bounds, the map and the timestamps.
 
 ## Slices
+
+The labels work is divided for review: 2a validating types; 2b creation,
+current storage and older-peer projection; 2c list filtering; 2d actor
+patches and their RPC/event; 2e CLI/MCP ingress. Each is gated separately.
 
 1. **This commit.** ADR 0063 and this plan. No code, so `PROTOCOL_VERSION`
    and the schema stay at the base.
@@ -165,7 +179,7 @@ bounds, the map and the timestamps.
    the testkit's fakes and an event, never a sleep and never a real
    agent.
 
-The commit that first changes a wire type adds `lifecycle::SINCE` and
+The commit that first changes a wire type adds `lifecycle_version::SINCE` and
 gates the new calls and fields on it. It does not change
 `PROTOCOL_VERSION`. The integrator sets that one constant, and in the
 merge updates `docs/PROTOCOL.md`. The same code commit regenerates
@@ -186,7 +200,7 @@ No row of the crate table changes.
   with `scope: all`, and present in `session.get`. An older connection's
   list includes it and the encoded info has no listing field.
 - `session.create` with `listing: background` sent toward a negotiated
-  protocol older than `lifecycle::SINCE` is refused by the client before
+  protocol older than `lifecycle_version::SINCE` is refused by the client before
   the socket write.
 - Reload of a terminal, a parked session, an ended session, and a
   session with no harness session id does not spawn. A running turn
@@ -200,13 +214,16 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. Slice 2a adds only the validated
-  label types and their parser, atomic patch, logical-and filter and
-  bounded decoding tests. No wire field, call, store column or command
-  is enabled by this slice. No dependency or crate edge is added.
-- Half-done: slice 2b connects those types through the wire, store,
-  session actor, node, CLI and MCP. It must regenerate the wire types
-  and verify older peers before being reported.
-- Next: finish and gate slice 2b, then background (slice 3). The new
-  protocol constant and schema append land with 2b. Do not change
-  `PROTOCOL_VERSION`.
+- Done: slice 1 contract; slice 2a validating types and its review
+  corrections: `labels.rs` owns only validated labels and map operations;
+  bound messages use constants; the command-line refusal lands with its
+  parser. Discovery requests and the version floor have separate modules.
+- Slice 2b adds only creation/current fields, their separate storage,
+  import copying and older-peer projections for every nested session and
+  template. `lifecycle_version::SINCE` stays at the base pending assignment at
+  merge; `PROTOCOL_VERSION` stays unchanged. No new call or event yet.
+- Half-done: subsequent label slices remain drafts: 2c list filtering,
+  2d actor-serialized patches and their RPC/event, 2e CLI and MCP ingress.
+  Each has its own tests; no later feature is enabled by this slice.
+- Next: gate and report 2b, then finish 2c through 2e, before background.
+  Windows, macOS and real harnesses remain unverified locally.
