@@ -19,7 +19,13 @@ function onUserInput(terminal: Terminal): OnUserInput | null {
   if (typeof listen !== "function") return null;
   return (listener) => {
     const disposable: unknown = Reflect.apply(listen, service, [listener]);
-    return isDisposable(disposable) ? disposable : { dispose() {} };
+    return isDisposable(disposable)
+      ? disposable
+      : {
+          dispose() {
+            // The hook returned nothing that can be disposed.
+          },
+        };
   };
 }
 
