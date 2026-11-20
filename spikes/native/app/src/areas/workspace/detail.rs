@@ -606,6 +606,7 @@ fn worktrees(shell: &Shell, detail: &Detail, tokens: &Tokens, cx: &mut Context<'
                     WorktreeAsk::Remove(RemoveWorktree {
                         worktree: id,
                         if_lost: IfLost::Keep,
+                        end_terminals: false,
                     }),
                     cx,
                 );

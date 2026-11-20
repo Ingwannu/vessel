@@ -68,6 +68,24 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 40 (2026-11-20, milestone 12): terminals that belong to a workspace folder (implementer T2, TRACKER 817 R1, ADR 0121)
+
+Drafted 39; assigned 40 (`WORKSPACE_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 40) at its node-line merge, after ADR
+0116's 37, the diff stat's 38 and the pull request pane's 39. No method is added.
+
+- `TerminalPlace` gains `worktree { worktree }` (the worktree's folder, counted against its project) and
+  `folder { path }` (an absolute folder no project or worktree owns; kept canonical; at most 16 live in one folder).
+  Agents still open terminals beside a session only. Archiving or deleting a session ends the terminals beside it
+  only, so a worktree's or a folder's shells outlive every agent in that workspace, as Paseo's do.
+- `terminal.list { place }` matches the place's kind exactly: a project's list holds its project places, not its
+  worktrees' (a worktree is its own workspace); a folder is matched canonical.
+- `worktree.remove` gains `end_terminals` (default false). With it, the live terminals in the worktree end first and
+  those placed in it are forgotten once it is removed; without it a live terminal keeps the worktree
+  (`kept: in_use`), as before. A live session in the worktree keeps it either way, and its terminals are then left
+  running. Clients ask the person first, with the count.
+- A peer below 39 is never handed a terminal in a new place: its lists leave them out, and a call naming one by id
+  answers `not_found`. `Call::since` makes a create or list with a new place, and `end_terminals`, need 39.
+
 ## Version 39 (2026-11-20, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
 
 Assigned 39 (`PULL_REQUEST_PANE_PROTOCOL`, `PROTOCOL_VERSION` 39) at its node-line merge, after the shared terminals' 37

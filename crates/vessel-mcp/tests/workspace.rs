@@ -179,6 +179,7 @@ mod fixtures {
         let remove = RemoveWorktree {
             worktree: owners.id,
             if_lost: IfLost::Discard,
+            end_terminals: false,
         };
         assert_eq!(code(agent.call(remove).await), ErrorCode::Forbidden);
         let approve = ApproveCommands {

@@ -161,6 +161,7 @@ impl NodeService {
                 session: plan.place.session(),
                 project: Some(plan.script_root.project),
                 agent: None,
+                folder: None,
             },
             id,
             folder: folder.clone(),

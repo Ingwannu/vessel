@@ -40,14 +40,20 @@ pub(super) fn may_use(principal: &Principal, info: &TerminalInfo) -> bool {
 }
 
 impl NodeService {
-    /// A terminal the caller may use.
+    /// A terminal the caller may use. A peer below ADR 0121's protocol is
+    /// told a terminal in a workspace place does not exist: it could not
+    /// decode the place, and its lists leave the terminal out.
     pub(super) fn terminal_for(
         &self,
-        principal: &Principal,
+        connection: &Connection,
         id: TerminalId,
     ) -> Result<Entry, TerminalsError> {
         let entry = self.terminals.get(id)?;
-        if may_use(principal, &entry.handle.info()) {
+        let info = entry.handle.info();
+        if !info.place.readable_by(connection.protocol()) {
+            return Err(TerminalsError::NotFound(id));
+        }
+        if may_use(connection.principal(), &info) {
             Ok(entry)
         } else {
             Err(TerminalsError::Forbidden(
@@ -72,7 +78,11 @@ impl NodeService {
                 "this node has no shell for terminals".to_owned(),
             )));
         };
-        let Resolved { folder, owner } = self
+        let Resolved {
+            folder,
+            owner,
+            place,
+        } = self
             .resolve_terminal_place(principal, &request.place)
             .await
             .map_err(wire)?;
@@ -95,7 +105,7 @@ impl NodeService {
         let size = request.size.unwrap_or_default();
         let info = TerminalInfo::new(
             id,
-            request.place.clone(),
+            place.clone(),
             folder.clone(),
             TerminalKind::Shell {
                 program: shell.program.clone(),
@@ -121,9 +131,7 @@ impl NodeService {
         for session in watch {
             self.terminals.watch_for_agents(here, session);
         }
-        self.still_placed(&handle, &request.place)
-            .await
-            .map_err(wire)?;
+        self.still_placed(&handle, &place).await.map_err(wire)?;
         Ok(handle.info())
     }
 
@@ -176,13 +184,27 @@ impl NodeService {
         }
         let revision = self.terminals.list_revision();
         let principal = connection.principal();
+        // A folder is matched as it is kept: canonical (ADR 0121).
+        let asked = match request.place {
+            Some(TerminalPlace::Folder { path }) => Some(TerminalPlace::Folder {
+                path: place::canonical_folder(&path).await.unwrap_or(path),
+            }),
+            other => other,
+        };
         let terminals = self.terminals.list(|info| {
             may_use(principal, info)
-                && request.place.as_ref().is_none_or(|place| match place {
+                && asked.as_ref().is_none_or(|place| match place {
                     TerminalPlace::Session { session } => info.place.session() == Some(*session),
+                    // A project's own places only: a worktree is a
+                    // workspace of its own (ADR 0121, as Paseo lists by
+                    // workspace folder).
                     TerminalPlace::Project { project, .. } => {
                         info.place.project() == Some(*project)
                     }
+                    TerminalPlace::Worktree { worktree } => {
+                        info.place.worktree() == Some(*worktree)
+                    }
+                    TerminalPlace::Folder { .. } => info.place == *place,
                 })
         });
         Ok(TerminalList {
@@ -199,7 +221,7 @@ impl NodeService {
         request: GetTerminal,
     ) -> Result<TerminalInfo, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         let mut wait = request.changed_from.map(|_| MAX_WAIT_SECS);
         let _slot = self.terminal_wait(connection, &mut wait);
@@ -235,7 +257,7 @@ impl NodeService {
         request: ReadTerminal,
     ) -> Result<EventPage, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         let limit = usize::try_from(request.limit.clamp(1, ReadTerminal::MAX_LIMIT)).unwrap_or(1);
         let mut wait = request.wait.map(|seconds| seconds.min(MAX_WAIT_SECS));
@@ -287,7 +309,7 @@ impl NodeService {
         request: SubscribeTerminal,
     ) -> Result<TerminalSubscribed, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         terminals::subscribe(
             entry.handle,
@@ -306,7 +328,7 @@ impl NodeService {
         request: SendTerminal,
     ) -> Result<Ack, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         if let TerminalInput::Data { data } = &request.input
             && data.bytes().len() > SendTerminal::MAX_BYTES
@@ -346,7 +368,7 @@ impl NodeService {
         request: RenameTerminal,
     ) -> Result<TerminalInfo, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         entry.handle.rename(request.title);
         Ok(entry.handle.info())
@@ -363,7 +385,7 @@ impl NodeService {
         request: KillTerminal,
     ) -> Result<Ack, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         entry.handle.kill();
         Ok(Ack)
@@ -376,7 +398,7 @@ impl NodeService {
         request: CloseTerminal,
     ) -> Result<Ack, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(wire)?;
         entry.handle.kill();
         if tokio::time::timeout(CLOSE_WAIT, entry.handle.ended())
