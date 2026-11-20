@@ -67,6 +67,11 @@ pub enum ErrorDetail {
         /// The stable fleet reason.
         reason: crate::FleetControlError,
     },
+    /// A browser call could not be done (ADR 0069).
+    Browser {
+        /// The stable browser reason.
+        reason: crate::browser::BrowserFailure,
+    },
     /// A reason introduced by a newer node.
     #[serde(other)]
     Unknown,

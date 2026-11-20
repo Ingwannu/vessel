@@ -34,7 +34,7 @@ use tokio::sync::Mutex;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
+    AgentDriver, AgentDrivers, BrowserTools, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_session::SessionRuntime;
 use vessel_store::DataDir;
@@ -48,6 +48,9 @@ pub(crate) enum SettingsError {
     /// A driver this node does not know.
     #[error("this node does not know that driver for {0}; send acp or direct")]
     UnknownDriver(HarnessKind),
+    /// A browser setting this node does not know.
+    #[error("this node does not know that browser_tools value; send off or on")]
+    UnknownBrowser,
     /// An agent's own protocol this build does not offer yet.
     #[error("this build of Vessel does not offer {0} over its own protocol yet; it runs over ACP")]
     NoDirect(HarnessKind),
@@ -114,6 +117,10 @@ impl Settings {
             // A newer build's choice, read after a downgrade: the flag's.
             Some(ParkAfter::Unknown) | None => self.flag,
         };
+        let browser_tools = match saved.browser_tools {
+            Some(BrowserTools::On) => BrowserTools::On,
+            Some(BrowserTools::Off | BrowserTools::Unknown) | None => BrowserTools::Off,
+        };
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -131,6 +138,7 @@ impl Settings {
         NodeSettings {
             park_after,
             drivers,
+            browser_tools,
         }
     }
 
@@ -149,6 +157,9 @@ impl Settings {
         if change.park_after == Some(ParkAfter::Unknown) {
             return Err(SettingsError::Unknown);
         }
+        if change.browser_tools == Some(BrowserTools::Unknown) {
+            return Err(SettingsError::UnknownBrowser);
+        }
         for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
             match driver {
                 AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
@@ -165,6 +176,9 @@ impl Settings {
         }
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
+        }
+        if let Some(tools) = change.browser_tools {
+            next.browser_tools = Some(tools);
         }
         if next == *saved {
             return Ok(self.in_force(*saved));

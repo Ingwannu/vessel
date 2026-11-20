@@ -185,6 +185,9 @@ untargeted!(
     // An agent's own history (ADR 0053): no session's, and refused to
     // agents (`workspace::policy`).
     vessel_proto::history::GetAgentHistory,
+    // The browser (ADR 0069) names a workspace, not a session. The
+    // handler holds an agent to its own session.
+    vessel_proto::browser::BrowserCall,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -493,6 +496,7 @@ guarded! {
     fork_session: vessel_proto::forking::ForkSession => SessionInfo;
     rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
     agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
+    browser_call: vessel_proto::browser::BrowserCall => vessel_proto::browser::BrowserResult;
 
     @through_the_guard {
         forward: Forward => Forwarded;

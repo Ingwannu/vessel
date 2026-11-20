@@ -38,6 +38,13 @@ impl fmt::Display for ProtocolVersion {
 /// and record the change in `docs/PROTOCOL.md`.
 pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(20);
 
+/// The first protocol version with `browser.call` and `browser_tools`
+/// (ADR 0069). Merge replaces this one line and raises
+/// [`PROTOCOL_VERSION`] in the same change. Until then it is the current
+/// version, so this build can speak the call and a peer below this
+/// constant cannot.
+pub const BROWSER_PROTOCOL: u32 = PROTOCOL_VERSION.get();
+
 /// The oldest protocol this build still accepts. Versions 3 to 20 only add
 /// methods, events (with stand-ins for older peers) and defaulted fields,
 /// so version 2 peers keep working.

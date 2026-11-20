@@ -132,6 +132,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
                     .call(SetNodeSettings {
                         park_after,
                         drivers,
+                        browser_tools: None,
                     })
                     .await?
             } else {

@@ -31,6 +31,38 @@ pub struct NodeSettings {
     /// absent when every agent runs over ACP.
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
+    /// Whether browser tools may be offered (ADR 0069). Off is omitted, so
+    /// a protocol-20 peer and a saved `settings.json` from before the
+    /// field both read as off. Text passed to `browser_type`,
+    /// `browser_fill` and `browser_keypress` is kept in the session log as
+    /// the tool call's input. Nothing is redacted.
+    #[serde(default, skip_serializing_if = "browser_off")]
+    pub browser_tools: BrowserTools,
+}
+
+/// Whether `browser_tools` is off, so the field is left off the wire.
+fn browser_off(tools: &BrowserTools) -> bool {
+    matches!(tools, BrowserTools::Off)
+}
+
+/// Whether a session may be offered browser tools (ADR 0069). `Off` is
+/// the default. A value this build does not know is `Unknown`: a change
+/// that sends it is refused, and a saved one stays in the file but is
+/// off in force.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum BrowserTools {
+    /// Tools are not offered. The default.
+    #[default]
+    Off,
+    /// Tools may be offered, when this build has a real engine and the
+    /// caller holds `operate`.
+    On,
+    /// A choice a newer node offers. Never accepted in a change, and in
+    /// force as [`Off`](Self::Off).
+    #[serde(other)]
+    Unknown,
 }
 
 /// Which protocol drives an agent's structured sessions (protocol 18, ADR
@@ -144,6 +176,11 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Whether browser tools may be offered (ADR 0069). Absent leaves the
+    /// saved value. `unknown` is refused. Text the typing tools send is
+    /// kept in the session log as the tool call's input.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_tools: Option<BrowserTools>,
 }
 
 #[cfg(test)]

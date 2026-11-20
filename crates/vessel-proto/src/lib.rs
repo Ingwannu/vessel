@@ -10,6 +10,7 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
+pub mod browser;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
@@ -107,7 +108,8 @@ pub use name::{
     ProviderName, SecretName,
 };
 pub use node::{
-    MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange, ProtocolVersion,
+    BROWSER_PROTOCOL, MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange,
+    ProtocolVersion,
 };
 pub use options::{
     ChoiceValue, GetHarnessOptions, GetSessionOptions, HarnessOptions, OptionCategory,

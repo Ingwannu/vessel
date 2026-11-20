@@ -269,7 +269,9 @@ impl Reply {
             | Self::SetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
-            | Self::GetAgentHistory(_) => None,
+            | Self::GetAgentHistory(_)
+            // Browser replies are only sent to a peer at `BROWSER_PROTOCOL`.
+            | Self::BrowserCall(_) => None,
         }
     }
 }

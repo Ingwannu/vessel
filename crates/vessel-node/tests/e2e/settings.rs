@@ -46,6 +46,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                browser_tools: None,
             })
             .await
             .unwrap();
@@ -60,6 +61,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Unknown),
                         drivers: None,
+                browser_tools: None,
                     })
                     .await
             ),
@@ -88,6 +90,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
             .call(SetNodeSettings {
                 park_after: Some(idle(5)),
                 drivers: None,
+                browser_tools: None,
             })
             .await
             .unwrap();
@@ -118,6 +121,7 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Never),
                         drivers: None,
+                browser_tools: None,
                     })
                     .await
             ),
@@ -138,6 +142,7 @@ fn drivers(drivers: SetAgentDrivers) -> SetNodeSettings {
     SetNodeSettings {
         park_after: None,
         drivers: Some(drivers),
+        browser_tools: None,
     }
 }
 

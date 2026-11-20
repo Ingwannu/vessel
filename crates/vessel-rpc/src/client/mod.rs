@@ -233,6 +233,7 @@ impl Unary for vessel_proto::settings::SetNodeSettings {}
 impl Unary for vessel_proto::forking::ForkSession {}
 impl Unary for vessel_proto::forking::RewindSession {}
 impl Unary for vessel_proto::history::GetAgentHistory {}
+impl Unary for vessel_proto::browser::BrowserCall {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -437,7 +438,8 @@ const fn is_unary(method: Method) -> bool {
         | Method::SetNodeSettings
         | Method::ForkSession
         | Method::RewindSession
-        | Method::GetAgentHistory => true,
+        | Method::GetAgentHistory
+        | Method::BrowserCall => true,
     }
 }
 

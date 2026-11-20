@@ -265,7 +265,10 @@ impl Reply {
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
             // A hit names a session; the session itself comes from a list.
-            | Self::SearchMessages(_) => None,
+            | Self::SearchMessages(_)
+            // The browser reply names a tab, not an added agent (ADR 0069).
+            // A peer below `BROWSER_PROTOCOL` is not sent the call.
+            | Self::BrowserCall(_) => None,
         }
     }
 }

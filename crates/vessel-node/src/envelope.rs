@@ -685,6 +685,9 @@ async fn run_here(
         Call::GetAgentHistory(request) => {
             Reply::GetAgentHistory(guard.agent_history(connection, request).await?)
         }
+        Call::BrowserCall(request) => {
+            Reply::BrowserCall(guard.browser_call(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::GetNodeSettings(_)
         | Call::SetNodeSettings(_)

@@ -432,6 +432,11 @@ rpc_methods! {
     RewindSession / rewind_session / "session.rewind" [Operate, 14]: crate::forking::RewindSession => SessionInfo;
     /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
     GetAgentHistory / agent_history / "agent.history" [Operate, 17]: crate::history::GetAgentHistory => crate::history::AgentHistoryPage;
+    /// Drive the browser on this node (ADR 0069). The version is
+    /// [`BROWSER_PROTOCOL`](crate::BROWSER_PROTOCOL): merge replaces that
+    /// one constant. Text sent to the typing commands is kept in the
+    /// session log as the call's input.
+    BrowserCall / browser_call / "browser.call" [Operate, crate::BROWSER_PROTOCOL]: crate::browser::BrowserCall => crate::browser::BrowserResult;
 }
 
 /// Result of a call.

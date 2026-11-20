@@ -25,9 +25,9 @@ impl NodeService {
     ) -> Result<NodeSettings, WireError> {
         self.settings.change(request).await.map_err(|error| {
             let code = match error {
-                SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
-                    ErrorCode::InvalidRequest
-                }
+                SettingsError::Unknown
+                | SettingsError::UnknownDriver(_)
+                | SettingsError::UnknownBrowser => ErrorCode::InvalidRequest,
                 SettingsError::NoDirect(_) => ErrorCode::Unsupported,
                 SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
             };

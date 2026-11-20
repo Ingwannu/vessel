@@ -83,6 +83,14 @@
 //!   where a search goes on (a handle, though a number inside, as
 //!   `CallId` is); `SearchQuery` is what a person types; `SearchLimit` a
 //!   quantity.
+//! - The browser tools (ADR 0069), by the same rule. Handles: `BrowserId`
+//!   and `ElementRef`, minted by the node or a snapshot and only handed
+//!   back. Plain names: `BrowserUrl`, which an agent types. Quantities:
+//!   `LogLimit`, `ViewportSide`, `WaitMs`. Content: `BrowserText`,
+//!   `RequiredText`, `SnapshotText`, `EvaluateJson` and `ScreenshotPng`,
+//!   carried and not parsed as a name. A password typed into the page is
+//!   content of this kind and stays in the session log as the tool call's
+//!   input.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,6 +122,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("AttachmentName", Alias::Named),
     ("AuthMethodId", Alias::Handle),
     ("BlobHash", Alias::Handle),
+    ("BrowserId", Alias::Handle),
+    ("BrowserText", Alias::Content),
+    ("BrowserUrl", Alias::Named),
     ("BookName", Alias::Named),
     ("BranchName", Alias::Named),
     ("BundlePath", Alias::Named),
@@ -132,9 +143,11 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("DeviceId", Alias::Handle),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
+    ("ElementRef", Alias::Handle),
     ("EnvName", Alias::Named),
     ("EventSeq", Alias::Quantity),
     ("EverySeconds", Alias::Quantity),
+    ("EvaluateJson", Alias::Content),
     ("FieldName", Alias::Handle),
     ("FilePath", Alias::Named),
     ("FindQuery", Alias::Named),
@@ -154,6 +167,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),
     ("LaunchId", Alias::Handle),
+    ("LogLimit", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -191,12 +205,14 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
     ("RepoPath", Alias::Named),
+    ("RequiredText", Alias::Content),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
     ("RunNumber", Alias::Quantity),
     ("SavedPromptId", Alias::Handle),
     ("ScheduleId", Alias::Handle),
     ("ScheduleName", Alias::Named),
+    ("ScreenshotPng", Alias::Content),
     ("ScriptName", Alias::Named),
     ("SearchCursor", Alias::Handle),
     ("SearchKey", Alias::Handle),
@@ -208,6 +224,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
     ("Sha256Hex", Alias::Named),
+    ("SnapshotText", Alias::Content),
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
     ("TerminalBytes", Alias::Content),
@@ -218,6 +235,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ToolCallId", Alias::Handle),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
+    ("ViewportSide", Alias::Quantity),
+    ("WaitMs", Alias::Quantity),
     ("WorktreeId", Alias::Handle),
 ];
 

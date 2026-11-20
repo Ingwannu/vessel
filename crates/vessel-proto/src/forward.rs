@@ -418,7 +418,9 @@ impl Method {
             | Self::RewindSession
             // An agent's history there, to import from it there (ADR
             // 0053): it needs `operate`, as the import does.
-            | Self::GetAgentHistory => true,
+            | Self::GetAgentHistory
+            // The browser lives on the node the session runs on (ADR 0069).
+            | Self::BrowserCall => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent

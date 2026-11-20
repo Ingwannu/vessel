@@ -233,7 +233,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::ForkSession
         | Method::RewindSession
         // Protocol 17: an agent's own history (ADR 0053).
-        | Method::GetAgentHistory => true,
+        | Method::GetAgentHistory
+        // The browser on the node the session runs on (ADR 0069).
+        | Method::BrowserCall => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

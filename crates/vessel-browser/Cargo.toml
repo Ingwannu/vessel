@@ -1,0 +1,17 @@
+[package]
+name = "vessel-browser"
+description = "Browser tool surface for Vessel: who may be offered the tools, and the absence of an engine (ADR 0069)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+vessel-proto.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+
+[lints]
+workspace = true
