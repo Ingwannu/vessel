@@ -165,6 +165,53 @@ The producer contract, environment injection, closure/denial tests and actual
 CLI consumer must pass before the feature's pending protocol is assigned. A
 wire test with the final assigned protocol remains required at integration.
 
+### The CLI consumer: agent hooks (plan, 2026-11-20)
+
+The reference is Paseo 0.15.4 as installed (`@getpaseo/cli` and its `@getpaseo/server`, paths under each
+package's `dist/`):
+
+- **`vessel hooks <agent> <event>`**, after `cli/dist/commands/hooks.js`.
+  - Paseo reads `PASEO_TERMINAL_ID`, `PASEO_ACTIVITY_TOKEN` and `PASEO_TERMINAL_ACTIVITY_URL` (lines 31-33)
+    and exits silently when any is missing.
+  - It reads stdin with a 100 ms idle timeout (line 42) and posts with a 500 ms abort (line 69). Every
+    failure is silent.
+  - Vessel reads `VESSEL_TERMINAL_ACTIVITY_ID`, `_SECRET` and `_SOCKET` and connects with the terminal's
+    capability (`LocalCredential::TerminalActivity`), sending `terminal.activity` with no revision. It
+    keeps the same timeouts and the same silence.
+- **Event maps**, copied exactly from `server/dist/server/terminal/agent-hooks/`:
+  - `claude/claude.js:2-7,39-42`: UserPromptSubmit → Working; Stop, StopFailure, SessionEnd → Idle;
+    Notification → NeedsInput only when the stdin JSON's `notification_type` is `idle_prompt`.
+  - `codex/codex.js:2-8`: UserPromptSubmit, PreToolUse, PostToolUse → Working; PermissionRequest →
+    NeedsInput; Stop → Idle.
+  - `opencode/opencode.js:2-8`: `session.status.busy` and `.retry` → Working; `.idle` → Idle;
+    `permission.asked` → NeedsInput; `permission.replied` → Working.
+  - An unknown agent or event reports nothing.
+- **Installer**, after `agent-hook-installer.js`, `claude/claude-settings.js`, `codex/codex-settings.js` and
+  `opencode/opencode-plugin.js`.
+  - Claude: `$CLAUDE_CONFIG_DIR` or `~/.claude`, file `settings.json`. Each event gets one entry, which
+    `claude-settings.js:20-33` writes as `{matcher: "", hooks: [{type: "command", command, timeout: 10}]}`.
+  - Codex: `$CODEX_HOME` or `~/.codex`, file `hooks.json`, with the same entry plus `commandWindows`.
+  - OpenCode: `$OPENCODE_CONFIG_DIR` or `$XDG_CONFIG_HOME/opencode` (`~/.config/opencode`), file
+    `plugins/<name>.js`, the plugin source that runs `<cli> hooks opencode <event>`.
+  - The command (`agent-hook-installer.js:43-50`) is
+    `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "${VESSEL_HOOK_CLI:-vessel}" hooks <agent> <event>; fi`,
+    with a cmd.exe form. Paseo's marker is `hooks <agent>`.
+- **Setting.** "Terminal agent hooks" is off by default, as is `enableTerminalAgentHooks`
+  (`server/dist/server/server/config.js:429`). Following `terminal-agent-hook-setting.js`, the node
+  installs the hooks when the setting is on at start and when it is turned on, and removes them when it
+  is turned off. The settings field is pending under this feature's constant, in the same packet, so one
+  protocol number carries the whole feature.
+
+Vessel's rules beyond Paseo (coordinator, 2026-11-20):
+
+- The installer writes a person's real agent configs. Before its first write to an existing file it keeps
+  a one-time backup beside it (`<file>.vessel-backup`).
+- It changes only the entries that carry its marker. An invalid file is left untouched, with one logged
+  line; it is never rewritten. Paseo parses an invalid object as `{}` and would rewrite it.
+- Turning the setting off removes exactly the marked entries.
+- No test, capture or gate writes a real `~/.claude*`, `~/.codex` or OpenCode config. Tests use a scratch
+  home and config directories, and a guard refuses to run when any of them resolves to the real home.
+
 A hook without an explicit revision is scoped to its terminal and follows the
 reference producer's event ordering. It does not attest which provider command
 generation produced an event. Revision-supplied reports and all attention-clear
@@ -327,6 +374,15 @@ backend/m12-impl-usage-815-owed) answers each:
    "Activity-only local producer capability" section already requires.
 6. The terminal list wake. Done: T2's `Shown` holds the attention once the
    feature is assigned (left out while unassigned, when every peer has it cut).
+
+At assignment (the node review of the owed packet, 2026-11-20, PASS):
+- the worker's per-burst pushed set gets its integration test beside the IPC
+  route's;
+- the spacing reads the wall clock, so a clock step moves a gap; a monotonic
+  `Instant` would ignore steps;
+- `pushed` takes the time after the burst's deliveries, which only lengthens a
+  gap by their duration;
+- a burst still gives each device one source, as before.
 
 Recorded, not owed (they fail closed or are allowed by the design):
 - one malformed parentage row fails a whole `pending_push` page through
