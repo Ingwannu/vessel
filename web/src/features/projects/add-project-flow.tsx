@@ -75,6 +75,7 @@ import { useAddProjectMachines } from "./add-project-machines";
 import { AddProjectResults } from "./add-project-results";
 import { useAddProjectSubmit } from "./use-add-project-submit";
 import { useMachineFolders } from "./use-machine-folders";
+import { useMachineRepositories } from "./use-machine-repositories";
 
 /** Where the last clone on each machine went (Paseo's
  * `lastCloneParentByHost`, kept for the page's life). */
@@ -139,6 +140,13 @@ function AddProjectFlow({
     searchesDirectories(page),
     protocol,
   );
+  const repositories = useMachineRepositories(
+    fleet,
+    node,
+    query,
+    page.kind === "github-search" &&
+      machine?.canSearchGithubRepositories === true,
+  );
   const rows = buildRows({
     page,
     machines: state.machines,
@@ -146,6 +154,7 @@ function AddProjectFlow({
     recentPaths,
     machinePaths: folders.paths,
     shown: folders.shown,
+    repositories: repositories.choices,
     lastCloneParent: node === null ? null : (lastCloneParent.get(node) ?? null),
     tilde: protocol >= PROJECT_DIRECTORY_PROTOCOL,
   });
@@ -255,8 +264,8 @@ function AddProjectFlow({
         rows={rows}
         activeIndex={activeIndex}
         activeRef={active}
-        loading={folders.loading}
-        queryError={folders.error}
+        loading={folders.loading || repositories.loading}
+        queryError={folders.error ?? repositories.error}
         onChoose={choose}
       />
     </FlowSheet>

@@ -36,6 +36,7 @@ fn document() -> Raw {
                 pull: read.pull,
                 merge: Merge::Refused,
             }],
+            listing: Listing::default(),
         }],
     }
 }
@@ -381,3 +382,4 @@ fn complete_seed_bounds_reject_excess_without_partial_loading() {
 }
 
 mod concurrency;
+mod listing;

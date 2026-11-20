@@ -378,6 +378,8 @@ untargeted!(
     // Protocol 11: reads; `pr.get`'s refresh is held to ownership by the
     // service (ADR 0029).
     vessel_proto::forge::GetForgeStatus,
+    // ADR 0088: no session's (the account's repositories).
+    vessel_proto::forge::SearchRepositories,
     vessel_proto::forge::ListPullRequests,
     vessel_proto::forge::GetPullRequest,
     // Protocol 11 (ADR 0031): a terminal names a session it is beside, not

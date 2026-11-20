@@ -25,7 +25,8 @@ use std::time::{Duration, Instant};
 use chrono::{TimeDelta, Utc};
 use vessel_forge::{Credentials, Forge, ForgeError, Gh, GitHub, TokenFound};
 use vessel_proto::forge::{
-    ForgeAccess, ForgeHost, ForgeKind, ForgeLogin, ForgeStatus, HostStatus, TokenSource,
+    ForgeAccess, ForgeHost, ForgeKind, ForgeLogin, ForgeStatus, HostStatus, RepoLimit, RepoQuery,
+    RepositoryList, TokenSource,
 };
 
 use super::ForgeSetup;
@@ -133,6 +134,38 @@ impl Hosts {
                 ForgeAccess::Ready { login }
             }
             Err(error) => denied(host, &error, None),
+        }
+    }
+
+    /// `forge.repos` (ADR 0088): github.com's repositories for a person,
+    /// or why the node cannot read them (then no rows). Asks nothing of a
+    /// host the node is not signed in to.
+    pub(crate) async fn repositories(&self, query: &RepoQuery, limit: RepoLimit) -> RepositoryList {
+        let Ok(host) = "github.com".parse::<ForgeHost>() else {
+            return RepositoryList {
+                access: ForgeAccess::Unknown,
+                repositories: Vec::new(),
+            };
+        };
+        let access = self.access(&host).await;
+        let (ForgeAccess::Ready { .. }, Some(forge)) = (&access, self.forge()) else {
+            return RepositoryList {
+                access,
+                repositories: Vec::new(),
+            };
+        };
+        match forge.repositories(&host, query.trimmed(), limit).await {
+            Ok(mut repositories) => {
+                repositories.truncate(RepositoryList::MAX.min(usize::from(limit.get())));
+                RepositoryList {
+                    access,
+                    repositories,
+                }
+            }
+            Err(error) => RepositoryList {
+                access: denied(&host, &error, self.login(&host)),
+                repositories: Vec::new(),
+            },
         }
     }
 
