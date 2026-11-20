@@ -46,13 +46,24 @@ pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
     let node = Node {
         exe: std::env::current_exe()?,
         data_dir: std::path::absolute(init.data_dir.root())?,
-        path: paths::search_path()?,
+        path: search_path()?,
     };
     paths::validate_paths(&node.exe, &node.data_dir)?;
     match manager {
         paths::Manager::Systemd => systemd(init, &node).await,
         paths::Manager::Launchd => launchd(init, &node).await,
     }
+}
+
+/// Capture environment only at the binary edge, beside executable and directory.
+/// The raw text is used only as a unit's Environment value after validation.
+fn search_path() -> Result<String, paths::ServiceError> {
+    let value = std::env::var_os("PATH")
+        .unwrap_or_default()
+        .into_string()
+        .map_err(|_value| paths::ServiceError::Text(paths::Field::Search))?;
+    paths::validate_search(&value)?;
+    Ok(value)
 }
 
 /// The unit's name.

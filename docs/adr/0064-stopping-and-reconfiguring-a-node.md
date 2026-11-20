@@ -739,3 +739,26 @@ check. Focused waiter/handshake test budgets are named constants, too.
   and search path. No new helper or other account's environment is reached.
   Windows retains the existing service-unavailable report. Real manager
   lifecycle behavior and macOS/Windows execution remain unverified.
+
+
+## Deadline-safe local reads (slice 2f)
+
+[Decision Log]
+- Purpose and intent: a blocked identity-file read must not outlive the
+  stop command's budget by keeping Tokio's blocking pool alive.
+- Existing implementation and constraints: OS-lock completion already uses
+  a dedicated thread for this reason; identity reading still used that pool.
+- Alternatives considered: a second handoff implementation; require all
+  local files to be regular before opening (a racy check); cancel a blocking
+  pool task (which cannot interrupt a started read).
+- Selected approach: share the existing dedicated-thread/oneshot policy
+  between identity and lock observations, with typed operation names and
+  typed results. Keep each filesystem rule in its existing module.
+- Why this approach: cancellation preserves the borrowed lock receiver,
+  while process exit does not join a blocked reader. Successful lock release
+  is cached so a later completion phase does not consume its receiver twice.
+- Advantages, costs and effects: no new dependency, wire call or process
+  signal. Reads retain the invoking account's permissions and never write
+  the identity or owner record. Paseo's pid polling remains the previously
+  stated implementation difference. An isolated Linux FIFO test checks actual
+  process exit; real macOS/Windows blocked-file behavior remains unverified.

@@ -357,3 +357,15 @@ The larger stop-time observer draft is deliberately separate: it must not
 expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
 bounded reads and loaded-manager authority validation follow in separate
 reviewable changes. Compilation and whole-gate evidence are still pending.
+
+
+### Slice 2f: deadline-safe local reads
+
+Modify the existing lock reader and identity binding. Reuse their dedicated
+thread and oneshot handoff instead of duplicating shutdown policy or adding
+an executor/dependency. Keep filesystem work in its owning module. Preserve
+borrowed-receiver cancellation, cache a successful release, retain typed
+worker/I/O causes, and test a blocked identity file in a child CLI with its
+product deadline. This also provides the actual shared policy for the later
+service reader; no service probe or manager action is wired here. Gate
+and platform evidence remain pending.

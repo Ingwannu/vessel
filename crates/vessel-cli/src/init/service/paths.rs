@@ -117,17 +117,12 @@ pub(super) fn validate_paths(exe: &Path, directory: &Path) -> Result<(), Service
     Ok(())
 }
 
-/// Do not silently replace an unrepresentable search path with an empty one.
+/// The renderer consumes opaque environment text, not interpreted path components.
 ///
 /// # Errors
-/// PATH contains OS bytes that a service file cannot encode.
-pub(super) fn search_path() -> Result<String, ServiceError> {
-    let value = std::env::var_os("PATH")
-        .unwrap_or_default()
-        .into_string()
-        .map_err(|_value| ServiceError::Text(Field::Search))?;
-    validate_text(&value, Field::Search)?;
-    Ok(value)
+/// PATH cannot be represented without changing its bytes.
+pub(super) fn validate_search(text: &str) -> Result<(), ServiceError> {
+    validate_text(text, Field::Search)
 }
 
 fn path_text(path: &Path, field: Field) -> Result<&str, ServiceError> {

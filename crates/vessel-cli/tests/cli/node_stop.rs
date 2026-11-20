@@ -267,3 +267,37 @@ async fn a_book_endpoint_never_waits_for_another_running_local_nodes_lock() {
     })
     .await;
 }
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_deadline_ends_a_process_with_a_blocked_identity_reader() {
+    const READ_BUDGET: Duration = Duration::from_secs(5);
+    within(async {
+        let fixture = Fixture::start().await;
+        // The persisted identity's format is part of the data-directory contract.
+        // A blocked read must not hold the CLI's blocking pool alive after expiry.
+        let file = fixture.data().join("node.id");
+        std::fs::remove_file(&file).unwrap();
+        assert!(
+            tokio::process::Command::new("mkfifo")
+                .arg(&file)
+                .status()
+                .await
+                .unwrap()
+                .success()
+        );
+        let seconds = READ_BUDGET.as_secs_f64().to_string();
+        let stopped = fixture
+            .vessel(&["node", "stop", "--timeout", &seconds], b"")
+            .await;
+        assert!(!stopped.ok);
+        assert!(stopped.stderr.contains("--timeout"), "{}", stopped.stderr);
+        assert!(stopped.stderr.contains(&seconds), "{}", stopped.stderr);
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
