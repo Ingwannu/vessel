@@ -623,7 +623,7 @@ export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "in
 /**
  * The names picked; `""` is Unlabelled.
  */
-picks: Array<string>, } } | { "set": "sidebar_usage", "value": boolean } | { "set": "usage_display", "value": UsageDisplay } | { "set": "usage_host", "value": NodeId | null } | { "set": "usage_pins", "value": Array<UsagePin> | null } | { "set": "shortcuts", "value": { 
+picks: Array<string>, } } | { "set": "sidebar_usage", "value": boolean } | { "set": "sidebar_trailing", "value": SidebarTrailing } | { "set": "usage_display", "value": UsageDisplay } | { "set": "usage_host", "value": NodeId | null } | { "set": "usage_pins", "value": Array<UsagePin> | null } | { "set": "shortcuts", "value": { 
 /**
  * At most [`MAX_EDITS`].
  */
@@ -852,6 +852,12 @@ export type ShortcutTarget = { "kind": "bindings",
 keys: Array<KeyBinding>, } | { "kind": "default" };
 
 /**
+ * What a sidebar row shows after its name (Paseo's Display trailing).
+ * `none` is stored and draws nothing; the menu offers the other two.
+ */
+export type SidebarTrailing = "diff" | "timestamp" | "none";
+
+/**
  * How the sidebar lists sessions.
  */
 export type SidebarView = { 
@@ -877,7 +883,12 @@ labels: Array<string>,
  * Whether the footer shows the usage summary (Paseo's footer item,
  * off by default; ADR 0107).
  */
-usage: boolean, };
+usage: boolean, 
+/**
+ * What a row shows after its name. Absent on an older file, which
+ * reads as last activity.
+ */
+trailing: SidebarTrailing, };
 
 /**
  * `GET /api/status`: what is serving.

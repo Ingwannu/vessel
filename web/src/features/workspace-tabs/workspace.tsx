@@ -3,7 +3,7 @@
 import { type ReactNode, useCallback, useState } from "react";
 
 import { sessionName } from "../../data/titles";
-import { WorkspaceChat } from "../workspace/workspace-chat";
+import { OpenChanges, WorkspaceChat } from "../workspace/workspace-chat";
 import type { ProjectsView } from "../../data/workspace/project-store";
 import { tabKey, type WorkspaceTab } from "../../data/workspace/tab-layout";
 import { Button, Dialog, Skeleton } from "../../ui/kit";
@@ -115,9 +115,7 @@ export function Workspace({
     select({ kind: "agent", id: heading.id });
     setSummaryOpen(true);
   };
-  const closeSummary = () => {
-    setSummaryOpen(false);
-  };
+  const closeSummary = () => setSummaryOpen(false);
   const openChanges = () => {
     select({ kind: "changes" });
   };
@@ -141,7 +139,9 @@ export function Workspace({
           session === undefined ? (
             <Skeleton />
           ) : (
-            agent(session, { summaryOpen, closeSummary, onTitle })
+            <OpenChanges value={openChanges}>
+              {agent(session, { summaryOpen, closeSummary, onTitle })}
+            </OpenChanges>
           )
         ) : null;
       }

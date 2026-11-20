@@ -17,7 +17,7 @@ import {
   type SidebarWorkspace,
   sidebarWorkspaces,
 } from "../../data/workspace-labels/groups";
-import type { NodeKey } from "../../wire/bridge";
+import type { NodeKey, SidebarTrailing } from "../../wire/bridge";
 import type { DiffStat, WorkspaceId } from "../../wire/proto";
 import { COMPACT } from "../../ui/breakpoints";
 import { HoverCard, Icon, IconButton, Menu } from "../../ui/kit";
@@ -28,6 +28,7 @@ import { LabelsSubmenu } from "../workspace-labels/picker";
 import { useLabels } from "../workspace-labels/use-labels";
 import { usePruneFilter } from "../workspace-labels/use-prune-filter";
 import { SessionMark } from "./session-mark";
+import { SidebarTrailingSlot } from "./sidebar-trailing";
 import { rowClass } from "./sidebar";
 import { SidebarViewMenu } from "./sidebar-view-menu";
 import { useDiffStats } from "./use-diff-stats";
@@ -77,6 +78,7 @@ export function SidebarWorkspaces() {
               row={row}
               several={machines > 1}
               cards={cards}
+              trailing={view.trailing}
               stat={
                 row.id === null ? undefined : stats.byNode[row.node]?.[row.id]
               }
@@ -101,6 +103,15 @@ export function SidebarWorkspaces() {
                 </span>
                 <span className="label">{session.title}</span>
                 <BranchChip branch={session.branch} />
+                <SidebarTrailingSlot
+                  trailing={view.trailing}
+                  activity={session.activity}
+                  stat={
+                    row.id === null
+                      ? undefined
+                      : stats.byNode[row.node]?.[row.id]
+                  }
+                />
               </Link>
             ))}
             {row.more > 0 ? (
@@ -135,12 +146,14 @@ function WorkspaceHead({
   row,
   several,
   cards,
+  trailing,
   stat,
   onCreate,
 }: {
   row: SidebarWorkspace;
   several: boolean;
   cards: boolean;
+  trailing: SidebarTrailing;
   stat: DiffStat | null | undefined;
   onCreate: (workspace: WorkspaceId) => void;
 }) {
@@ -173,26 +186,33 @@ function WorkspaceHead({
         ) : (
           name
         )}
-        {several ? <span className="side-machine">{row.machine}</span> : null}
-        {workspace === null ? null : (
-          <span className="side-workspace-menu">
-            <Menu
-              align="end"
-              trigger={
-                <IconButton label="Workspace actions" icon="more" size="xs" />
-              }
-            >
-              <LabelsSubmenu
-                node={row.node}
-                workspace={workspace}
-                assigned={row.labels}
-                onCreate={() => {
-                  onCreate(workspace);
-                }}
-              />
-            </Menu>
-          </span>
-        )}
+        <span className="side-workspace-end">
+          {several ? <span className="side-machine">{row.machine}</span> : null}
+          <SidebarTrailingSlot
+            trailing={trailing}
+            activity={row.activity}
+            stat={stat}
+          />
+          {workspace === null ? null : (
+            <span className="side-workspace-menu">
+              <Menu
+                align="end"
+                trigger={
+                  <IconButton label="Workspace actions" icon="more" size="xs" />
+                }
+              >
+                <LabelsSubmenu
+                  node={row.node}
+                  workspace={workspace}
+                  assigned={row.labels}
+                  onCreate={() => {
+                    onCreate(workspace);
+                  }}
+                />
+              </Menu>
+            </span>
+          )}
+        </span>
       </div>
       {row.chips.length === 0 ? null : (
         <div className="side-workspace-meta">

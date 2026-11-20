@@ -23,6 +23,7 @@ import type { SessionInfo } from "../../wire/proto";
 import { Banner, Sheet } from "../../ui/kit";
 import { useShortcut } from "../shortcuts/handlers";
 import { Composer } from "./composer";
+import { DiffStatPill } from "./diff-stat-pill";
 import { FindBar } from "./find-bar";
 import { FoldProvider } from "./folds";
 import { Inspector } from "./inspector";
@@ -166,6 +167,7 @@ export function StructuredSession({
         </div>
         <div className="session-dock">
           <div className="session-dock-column">
+            <DiffStatPill node={node} session={session} />
             <Composer
               node={node}
               label={label}
