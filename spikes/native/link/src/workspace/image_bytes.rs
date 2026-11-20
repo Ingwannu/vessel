@@ -34,9 +34,9 @@ use super::download::failure;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageBytes {
     /// The file's bytes.
-    pub bytes: std::sync::Arc<[u8]>,
+    pub bytes: Arc<[u8]>,
     /// Their version.
-    pub revision: vessel_proto::workspace::panel_files::FileRevision,
+    pub revision: FileRevision,
 }
 
 /// Fetch the image `ask` names into memory.
