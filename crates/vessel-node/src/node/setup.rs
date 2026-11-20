@@ -184,6 +184,16 @@ pub(super) async fn feature_state(
     // The plugin host (ADR 0115): reads its installations and, when plugins
     // are on, starts them in the background; it stops every helper with the
     // node, joined by `tasks`.
+    // The terminal agent hooks (ADR 0089): installed at start when on, as
+    // Paseo's `applyTerminalAgentHookSetting` does at boot; off leaves the
+    // agents' own files untouched.
+    // Not while the feature is unassigned: nothing could report through the
+    // hooks, and the agents' files are a person's (node review note 7).
+    if vessel_proto::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL.is_some()
+        && settings.current().await.terminal_agent_hooks
+    {
+        settings.apply_agent_hooks(true);
+    }
     let plugins = crate::plugins::Plugins::start(crate::plugins::Opening {
         node,
         data: config.data_dir.clone(),

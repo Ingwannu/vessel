@@ -4,3 +4,6 @@
 import { createContext } from "react";
 
 export const WorkspaceChat = createContext<(() => void) | null>(null);
+
+/** Opens the session's existing Changes tab. Null outside that tab chrome. */
+export const OpenChanges = createContext<(() => void) | null>(null);

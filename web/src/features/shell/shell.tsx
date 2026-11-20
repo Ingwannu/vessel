@@ -19,6 +19,7 @@ import { Toasts } from "../../ui/toasts";
 import { useNotices } from "../notifications/use-notices";
 import { usePresence } from "../notifications/use-presence";
 import { PaletteHost } from "../palette/palette";
+import { PluginCatalogSync } from "../plugins/catalog-sync";
 import { AddProjectFlowHost } from "../projects/add-project-flow";
 import { useShortcutListener } from "../shortcuts/listener";
 import { FrameTop } from "./frame-top";
@@ -88,6 +89,7 @@ export function Shell(): ReactElement {
         </Sheet>
       ) : null}
       <PaletteHost />
+      <PluginCatalogSync />
       <AddProjectFlowHost />
       <Toasts />
     </>

@@ -4,6 +4,7 @@
 // foot Settings and the theme's switch.
 
 import "./sidebar.css";
+import "./sidebar-trailing.css";
 
 import { Link } from "@tanstack/react-router";
 

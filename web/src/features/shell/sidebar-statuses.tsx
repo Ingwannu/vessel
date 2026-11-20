@@ -11,14 +11,23 @@ import { sidebarStatuses } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
 import { BranchChip } from "../workspace/branch-chip";
+import { useLabels } from "../workspace-labels/use-labels";
 import { SessionMark } from "./session-mark";
 import { rowClass } from "./sidebar";
 import { SidebarViewMenu } from "./sidebar-view-menu";
+import {
+  sessionOn,
+  SidebarTrailingSlot,
+  statForSession,
+} from "./sidebar-trailing";
+import { useDiffStats } from "./use-diff-stats";
 
 export function SidebarStatuses() {
   const where = useWhere();
   const state = useFleetState((value) => value);
   const view = useStore(prefs, (value) => value.values.sidebar);
+  const { state: labels } = useLabels();
+  const stats = useDiffStats();
   const groups = useMemo(() => sidebarStatuses(state, view), [state, view]);
   const [place, node, id] = where.segments;
   return (
@@ -50,6 +59,16 @@ export function SidebarStatuses() {
                 <span className="label">{session.title}</span>
                 <BranchChip branch={session.branch} />
                 <span className="side-machine">{session.machine}</span>
+                <SidebarTrailingSlot
+                  trailing={view.trailing}
+                  activity={session.activity}
+                  stat={statForSession(
+                    labels,
+                    stats,
+                    session.node,
+                    sessionOn(state.sessions[session.node], session.id),
+                  )}
+                />
               </Link>
             ))}
             {group.more > 0 ? (

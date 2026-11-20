@@ -60,6 +60,7 @@
 //!   the final status, and a restart finds every log complete.
 
 mod added;
+pub mod agent_hooks;
 mod agents;
 pub mod attach;
 mod attachments;

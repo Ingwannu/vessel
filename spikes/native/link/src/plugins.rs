@@ -19,6 +19,12 @@
 //! - Bounds: a read 15 s; a change 60 s (the node waits up to 35 s for a
 //!   helper to settle); the watch 40 s (the node answers within 25 s).
 //! - Cost: no retry here; the page's model asks again.
+//! - The app's plugin catalog watcher and plugin method calls (ADR 0115,
+//!   catalog and invoke) use the same task with their own event
+//!   (`Event::PluginCatalog`): the page and the watcher each count their
+//!   own tickets, so their answers must not meet. A catalog read is bounded
+//!   as a read; a method call as a change (the node keeps the helper's own
+//!   deadline inside it).
 
 use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::plugins::{Problem, Reply, Request};
@@ -62,20 +68,23 @@ impl Ask {
 fn bound(request: &Request) -> std::time::Duration {
     use std::time::Duration;
     match request {
-        Request::List | Request::ReadSwitch | Request::Logs(_) => Duration::from_secs(15),
-        Request::Switch(_) | Request::Install(_) | Request::Act(..) => Duration::from_secs(60),
+        Request::List | Request::ReadSwitch | Request::Logs(_) | Request::Catalog => {
+            Duration::from_secs(15)
+        }
+        Request::Switch(_) | Request::Install(_) | Request::Act(..) | Request::Invoke(_) => {
+            Duration::from_secs(60)
+        }
         Request::Watch(_) => Duration::from_secs(40),
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
-    /// Ask the machine on a task of its own; the answer comes back as an
-    /// event.
-    pub(crate) async fn plugins(&self, ask: Ask) {
+    /// Ask the machine on a task of its own; the answer comes back as the
+    /// event `answered` makes.
+    pub(crate) async fn plugins(&self, ask: Ask, answered: fn(Answer) -> crate::Event) {
         let Ok(client) = self.client(ask.machine.as_str()).cloned() else {
-            self.emit(crate::Event::Plugins(ask.refused(Problem::Offline)))
-                .await;
+            self.emit(answered(ask.refused(Problem::Offline))).await;
             return;
         };
         let events = self.events.clone();
@@ -88,7 +97,7 @@ impl crate::State {
                 ticket: ask.ticket,
                 result,
             };
-            let _closed = events.send(crate::Event::Plugins(answer)).await;
+            let _closed = events.send(answered(answer)).await;
         }));
     }
 }
@@ -97,8 +106,8 @@ impl crate::State {
 async fn call(client: &vessel_client::NodeClient, request: Request) -> Result<Reply, Problem> {
     use vessel_app_view::plugins::Action;
     use vessel_proto::plugins::{
-        DisablePlugin, EnablePlugin, GetPluginLogs, InstallPlugin, ListPlugins, ReloadPlugin,
-        RemovePlugin, WatchPlugins,
+        DisablePlugin, EnablePlugin, GetPluginCatalog, GetPluginLogs, InstallPlugin, ListPlugins,
+        ReloadPlugin, RemovePlugin, WatchPlugins,
     };
     use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
     let done = |_item| Reply::Done;
@@ -141,6 +150,11 @@ async fn call(client: &vessel_client::NodeClient, request: Request) -> Result<Re
             .call(WatchPlugins { after })
             .await
             .map(Reply::Generation),
+        Request::Catalog => client.call(GetPluginCatalog {}).await.map(Reply::Catalog),
+        Request::Invoke(invoke) => client
+            .call(invoke)
+            .await
+            .map(|answer| Reply::Output(answer.output)),
     }
     .map_err(problem)
 }

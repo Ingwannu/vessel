@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
-import type { PreferenceChange } from "../../wire/bridge";
+import type { PreferenceChange, SidebarTrailing } from "../../wire/bridge";
 import { LabelFilterMenu } from "../workspace-labels/filter-menu";
 
 export function SidebarViewMenu() {
@@ -80,6 +80,22 @@ export function SidebarViewMenu() {
           options={[
             { value: "created", label: "Created" },
             { value: "activity", label: "Last activity" },
+          ]}
+        />
+      </MenuGroup>
+      <MenuSeparator />
+      {/* English literals, the same source as Grouping, Sort, and
+          "Show ended sessions". A Korean Show group beside those rows
+          was a mixed menu. */}
+      <MenuGroup label="Show">
+        <MenuRadioGroup<SidebarTrailing>
+          value={view.trailing}
+          onChange={(trailing) => {
+            change({ set: "sidebar_trailing", value: trailing });
+          }}
+          options={[
+            { value: "diff", label: "Diff stats" },
+            { value: "timestamp", label: "Last activity" },
           ]}
         />
       </MenuGroup>

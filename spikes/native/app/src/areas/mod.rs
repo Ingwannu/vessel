@@ -24,6 +24,7 @@ pub(crate) mod layout;
 pub(crate) mod notify;
 pub(crate) mod pair;
 pub(crate) mod palette;
+pub(crate) mod plugin_items;
 pub(crate) mod presence;
 pub(crate) mod pulls;
 pub(crate) mod session;
@@ -82,6 +83,8 @@ pub(crate) struct Areas {
     /// The system's notifications, the notice sound and the title's
     /// count (ADR 0114).
     pub(crate) notify: notify::NotifyArea,
+    /// Every machine's plugin catalog and its watcher (ADR 0115).
+    pub(crate) plugin_catalogs: vessel_app_view::plugins::Catalogs,
     /// This window's presence on every machine (`push.presence`).
     pub(crate) presence: presence::PresenceArea,
 }
@@ -138,6 +141,7 @@ impl Areas {
             terminal: terminal::TerminalArea::new(cx),
             terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
             notify: notify::NotifyArea::new(window, cx),
+            plugin_catalogs: vessel_app_view::plugins::Catalogs::default(),
             presence: presence::PresenceArea::new(window, cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.

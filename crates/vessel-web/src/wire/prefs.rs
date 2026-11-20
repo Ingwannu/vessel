@@ -382,6 +382,21 @@ pub enum Alerts {
     SystemAndSound,
 }
 
+/// What a sidebar row shows after its name (Paseo's Display trailing).
+/// `none` is stored and draws nothing; the menu offers the other two.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum SidebarTrailing {
+    /// The workspace's diff stat, when one is served.
+    Diff,
+    /// When its workspace last had session activity.
+    #[default]
+    Timestamp,
+    /// The title keeps the width.
+    None,
+}
+
 /// How the sidebar lists sessions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -401,6 +416,10 @@ pub struct SidebarView {
     /// Whether the footer shows the usage summary (Paseo's footer item,
     /// off by default; ADR 0107).
     pub usage: bool,
+    /// What a row shows after its name. Absent on an older file, which
+    /// reads as last activity.
+    #[serde(default)]
+    pub trailing: SidebarTrailing,
 }
 
 impl Default for SidebarView {
@@ -413,6 +432,7 @@ impl Default for SidebarView {
             ended: true,
             labels: no_picks(),
             usage: false,
+            trailing: SidebarTrailing::Timestamp,
         }
     }
 }
@@ -485,7 +505,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false,"trailing":"timestamp"},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }
@@ -505,5 +525,18 @@ mod tests {
         assert_eq!(change, PreferenceChange::SidebarGroup(Grouping::Project));
         // The page's own default is unchanged.
         assert_eq!(Grouping::default(), Grouping::Machine);
+    }
+
+    #[test]
+    fn a_sidebar_without_trailing_is_last_activity() {
+        let text = r#"{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false}"#;
+        let view: SidebarView = serde_json::from_str(text).unwrap();
+        assert_eq!(view.trailing, SidebarTrailing::Timestamp);
+        let change: PreferenceChange =
+            serde_json::from_str(r#"{"set":"sidebar_trailing","value":"diff"}"#).unwrap();
+        assert_eq!(
+            change,
+            PreferenceChange::SidebarTrailing(SidebarTrailing::Diff)
+        );
     }
 }

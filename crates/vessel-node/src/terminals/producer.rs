@@ -77,13 +77,36 @@ pub(crate) fn producer_auth(
         secret: vessel_proto::notifications::TerminalActivitySecret::from_bytes(bytes),
     }))
 }
+/// The `vessel` a terminal's agent hooks run (`VESSEL_HOOK_CLI`, ADR 0089):
+/// the one installed beside this `vesseld`, found as the node's `vessel mcp`
+/// is (releases ship both together); `None` in a build without one, where
+/// the hook falls back to `vessel` on the PATH and still returns 0. Paseo
+/// sets `PASEO_HOOK_CLI` to its CLI's absolute path the same way
+/// (`terminal/terminal.ts:460-467,481-492`; node review R4).
+pub(crate) fn hook_cli() -> Option<&'static std::path::Path> {
+    static CLI: std::sync::OnceLock<Option<std::path::PathBuf>> = std::sync::OnceLock::new();
+    CLI.get_or_init(|| {
+        let me = std::env::current_exe().ok()?;
+        let vessel = me.with_file_name(format!("vessel{}", std::env::consts::EXE_SUFFIX));
+        vessel.is_file().then_some(vessel)
+    })
+    .as_deref()
+}
+
+/// A terminal's environment with its activity capability and, when there is
+/// one, the `vessel` its agent hooks run.
 pub(crate) fn producer_env(
     spec: vessel_proc::CommandSpec,
     auth: Option<&vessel_proto::notifications::TerminalActivityAuth>,
     endpoint: &std::path::Path,
+    hook_cli: Option<&std::path::Path>,
 ) -> vessel_proc::CommandSpec {
     let Some(auth) = auth else {
         return spec;
+    };
+    let spec = match hook_cli {
+        Some(cli) => spec.env(crate::agent_hooks::HOOK_CLI_ENV, cli.as_os_str()),
+        None => spec,
     };
     spec.env(
         vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
@@ -235,11 +258,33 @@ mod tests {
             vessel_proc::CommandSpec::new("/synthetic"),
             Some(&auth),
             std::path::Path::new("/synthetic/node.sock"),
+            Some(std::path::Path::new("/synthetic/vessel")),
         );
         assert!(
             spec.env_change(vessel_proto::notifications::TERMINAL_ACTIVITY_SECRET_ENV)
                 .is_some()
         );
         assert!(!format!("{spec:?}").contains(&secret.to_string()));
+        // The hooks run the `vessel` beside the node (node review R4); a
+        // terminal without a capability gets neither.
+        assert!(spec.env_change(crate::agent_hooks::HOOK_CLI_ENV).is_some());
+        let plain = producer_env(
+            vessel_proc::CommandSpec::new("/synthetic"),
+            None,
+            std::path::Path::new("/synthetic/node.sock"),
+            Some(std::path::Path::new("/synthetic/vessel")),
+        );
+        assert!(plain.env_change(crate::agent_hooks::HOOK_CLI_ENV).is_none());
+        let without = producer_env(
+            vessel_proc::CommandSpec::new("/synthetic"),
+            Some(&auth),
+            std::path::Path::new("/synthetic/node.sock"),
+            None,
+        );
+        assert!(
+            without
+                .env_change(crate::agent_hooks::HOOK_CLI_ENV)
+                .is_none()
+        );
     }
 }

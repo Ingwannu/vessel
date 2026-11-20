@@ -2,13 +2,14 @@
 //! place resolved to its folder and what it counts against, an agent's
 //! permission (its own profile and the target session's both allow it),
 //! the worktree held while it starts (the join of wave 2's first half),
-//! and the place checked again once it runs.
+//! an agent's shell placed in its session's workspace (TRACKER 832), and
+//! the place checked again once it runs.
 
 use std::path::PathBuf;
 
-use vessel_proto::SessionId;
-use vessel_proto::terminals::TerminalPlace;
+use vessel_proto::terminals::{TerminalPlace, WORKSPACE_TERMINALS_PROTOCOL};
 use vessel_proto::workspace::SessionPlace;
+use vessel_proto::{ProtocolVersion, SessionId};
 use vessel_session::SessionHandle;
 use vessel_session::terminals::TerminalHandle;
 
@@ -125,8 +126,9 @@ impl NodeService {
         })
     }
 
-    /// An agent may open a terminal only beside its own session or one it
-    /// may operate, only where that session's profile turned agent
+    /// An agent may open a terminal only for its own session or one it
+    /// may operate (placed in that session's workspace from protocol 40,
+    /// `agent_shell_place`), only where that session's profile turned agent
     /// terminals on, and (an agent of this node) only where its own
     /// session's profile did too: a person allowed terminals for that
     /// harness's sandbox, not for an agent that started a session with
@@ -142,7 +144,9 @@ impl NodeService {
         };
         let TerminalPlace::Session { session } = place else {
             return Err(TerminalsError::Forbidden(
-                "an agent opens terminals only beside a session".to_owned(),
+                "an agent names a session for its terminal, which opens in that session's \
+                 workspace"
+                    .to_owned(),
             ));
         };
         let here = self.links.node();
@@ -159,6 +163,66 @@ impl NodeService {
             watch.push(self.live_handle(*session, "the session has ended")?);
         }
         Ok(watch)
+    }
+
+    /// Where an agent's shell goes (TRACKER 832, ADR 0121 amendment 1): the
+    /// workspace of the session it names, as Paseo's
+    /// `resolveTerminalWorkspaceId` gives an agent's terminal the caller
+    /// agent's workspace (`paseo-tools.ts` 895-913).
+    ///
+    /// [Decision Log]
+    /// - Purpose: clients list a workspace's terminals by its place (a
+    ///   worktree, a project, a folder), so a shell an agent opened beside
+    ///   its session showed in no workspace's tabs; and it ended with the
+    ///   agent, which Paseo's does not (a dev server an agent started dies
+    ///   when the agent is put away).
+    /// - Choice: the agent keeps naming a session, the anchor of its rights
+    ///   (`agent_may_open`: both profiles, the right to operate it, a live
+    ///   session); the node places the shell in that session's worktree,
+    ///   its project place, or outside projects its folder, and the place
+    ///   decides its life, as a person's shell there (`end_agents_of` ends
+    ///   only the shells beside a session). A session outside projects with
+    ///   no folder of its own keeps the shell beside it: the page keeps
+    ///   such a session's shells there too, since it cannot name the
+    ///   folder (node review R1), so a folder place would show in no
+    ///   workspace's tabs.
+    /// - Rejected: the MCP tool sending the workspace place itself. The node
+    ///   would then have to tell which session's workspace an agent may open
+    ///   in, which the session it names already says.
+    /// - Older callers: below [`WORKSPACE_TERMINALS_PROTOCOL`] the place
+    ///   asked is kept. Such a caller could not decode a workspace place in
+    ///   the answer. People name their places themselves and are never
+    ///   moved.
+    pub(super) async fn agent_shell_place(
+        &self,
+        principal: &Principal,
+        protocol: ProtocolVersion,
+        asked: &TerminalPlace,
+    ) -> Result<TerminalPlace, TerminalsError> {
+        let (Some(_agent), TerminalPlace::Session { session }) = (principal.agent(), asked) else {
+            return Ok(asked.clone());
+        };
+        if WORKSPACE_TERMINALS_PROTOCOL.is_none_or(|since| protocol < since) {
+            return Ok(asked.clone());
+        }
+        let info = self
+            .sessions
+            .get(*session)
+            .await
+            .map_err(|error| TerminalsError::Wire(error.to_wire()))?;
+        Ok(match info.spec.place.as_deref() {
+            Some(SessionPlace::Worktree { worktree }) => TerminalPlace::Worktree {
+                worktree: *worktree,
+            },
+            Some(SessionPlace::Project { project, dir }) => TerminalPlace::Project {
+                project: *project,
+                dir: dir.clone(),
+            },
+            None => match info.spec.cwd.clone() {
+                Some(path) => TerminalPlace::Folder { path },
+                None => asked.clone(),
+            },
+        })
     }
 
     /// `session`'s profile sets `agent_terminals = true`, or `forbidden`.

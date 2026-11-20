@@ -57,6 +57,7 @@ fn settings(plugins_enabled: bool) -> NodeSettings {
         park_after: ParkAfter::Never,
         metadata: None,
         plugins_enabled,
+        terminal_agent_hooks: false,
     }
 }
 

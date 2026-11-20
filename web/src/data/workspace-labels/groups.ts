@@ -67,6 +67,8 @@ export interface SidebarWorkspace {
   chips: readonly Label[];
   sessions: readonly SidebarSession[];
   more: number;
+  /** Latest session activity. Null when the workspace has no sessions. */
+  activity: string | null;
 }
 
 function live(workspace: WorkspaceDescriptor): boolean {
@@ -193,6 +195,7 @@ export function sidebarWorkspaces(
           .slice(0, limit)
           .map((session) => sessionRow(node.key, session)),
         more: Math.max(0, loose.length - limit),
+        activity: latestActivity(loose),
       },
     ];
   });
@@ -231,8 +234,25 @@ function entry(
       .slice(0, limit)
       .map((session) => sessionRow(node, session)),
     more: Math.max(0, sessions.length - limit),
+    activity: latestActivity(sessions),
     created: workspace.created_at,
   };
+}
+
+/** The newest `activeAt` among `sessions`, or null when there are none. */
+function latestActivity(sessions: readonly SessionInfo[]): string | null {
+  let best: string | null = null;
+  let at = Number.NEGATIVE_INFINITY;
+  for (const session of sessions) {
+    const stamp = activeAt(session);
+    const ms = Date.parse(stamp);
+    if (!Number.isFinite(ms) || ms < at) {
+      continue;
+    }
+    at = ms;
+    best = stamp;
+  }
+  return best;
 }
 
 function order(

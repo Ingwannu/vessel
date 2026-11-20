@@ -45,6 +45,7 @@ import { EndedBanner } from "./ended-banner";
 import { composerAction, composerPlaceholder } from "./composer-words";
 import { type Editing, useComposerSend } from "./use-composer-send";
 import { useLimits } from "./use-limits";
+import { usePluginSlash } from "./use-plugin-slash";
 import { useQueueActions } from "./use-queue-actions";
 import { useTrayTarget } from "./use-tray-target";
 
@@ -127,9 +128,10 @@ export const Composer = memo(function Composer({
   // The code panel's root (one object while it names the same place):
   // a new one per drawing restarted `@`'s search after every answer.
   const sessionRoot = useSessionRoot(node, session).root;
+  const slash = usePluginSlash(node, session);
   const suggest = useSuggest({
     node,
-    commands: modern ? conversation.commands : [],
+    commands: modern ? slash.merge(conversation.commands) : [],
     root: sessionRoot,
     agent,
     text: area,

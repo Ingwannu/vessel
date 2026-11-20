@@ -151,6 +151,14 @@ impl SessionRuntime {
         LaunchAdmission::new(self.shutdown.clone(), self.admission.clone())
     }
 
+    /// The account the agents run as: its home and their home variables.
+    /// The node reads it to find where each agent keeps its configuration
+    /// (ADR 0089's terminal agent hooks), as the agents it starts see it.
+    #[must_use]
+    pub const fn harness_env(&self) -> &vessel_harness::HarnessEnv {
+        &self.config.harness_env
+    }
+
     /// How long an idle structured session runs before its agent is
     /// parked; `None` never parks (protocol 12).
     #[must_use]
