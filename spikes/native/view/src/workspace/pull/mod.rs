@@ -20,6 +20,7 @@
 pub mod attach;
 pub mod bases;
 pub mod card;
+pub mod card_menu;
 pub mod checks;
 pub mod checks_words;
 pub mod entry;

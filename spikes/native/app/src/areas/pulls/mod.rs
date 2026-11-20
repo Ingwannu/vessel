@@ -31,19 +31,19 @@ mod pane_activity;
 mod pane_attach;
 mod pane_cards;
 mod pane_checks;
+mod pane_menu;
 mod pane_ring;
+#[cfg(test)]
+mod pane_tests;
 mod pane_skeleton;
 mod pane_threads;
 mod pane_timeline;
-
-use std::collections::HashSet;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, DialogState, TextField};
 use vessel_app_link::workspace::{Ask, GitAsk, PullAnswer, PullAsk};
 use vessel_app_view::toasts::ToastTone;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::pull::checks::Presentation;
 use vessel_app_view::workspace::pull::{
     OpenDraft, OpenProblem, Opened, PullEntry, open_outcome, open_request, prefill, pull_entry,
 };
@@ -59,6 +59,7 @@ pub(crate) use card::card_items;
 pub(crate) use form::{base_list, dialog as form_dialog};
 pub(crate) use link::{link, state_glyph_sized};
 pub(crate) use pane::pane;
+pub(crate) use pane_cards::Choices;
 
 /// The most new commits the form's description lists (`gh` lists them
 /// all; a branch far ahead gives a description nobody reads).
@@ -128,18 +129,6 @@ pub(crate) struct Facts {
     pub(crate) choices: Choices,
 }
 
-/// What a person folded in the pane, for the session read (Paseo keeps
-/// these per mounted pane; everything starts open).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct Choices {
-    pub(crate) checks_closed: bool,
-    pub(crate) collapsed: HashSet<Presentation>,
-    pub(crate) activity_closed: bool,
-    /// Activity entries folded, and those unfolded that start folded.
-    pub(crate) folded: HashSet<String>,
-    pub(crate) unfolded: HashSet<String>,
-}
-
 pub(crate) struct PullsArea {
     pub(crate) form: Option<Form>,
     pub(crate) facts: Option<Facts>,
@@ -162,6 +151,8 @@ pub(crate) struct PullsArea {
     pub(crate) feedback_sending: Option<vessel_proto::forge::SetFeedback>,
     /// The feedback switch's changes.
     pub(crate) feedback_turn: u64,
+    /// The activity cards' menu.
+    pub(crate) card_menu: pane_menu::CardMenu,
 }
 
 impl PullsArea {
@@ -192,6 +183,7 @@ impl PullsArea {
             merging: None,
             feedback_sending: None,
             feedback_turn: 0,
+            card_menu: pane_menu::CardMenu::new(cx),
         }
     }
 }

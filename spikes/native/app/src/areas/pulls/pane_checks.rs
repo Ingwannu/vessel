@@ -162,8 +162,16 @@ fn head(
 ) -> AnyElement {
     let neutral = tokens.neutral;
     let hover = SidebarSurfaces::of(tokens).hover;
+    let headline = outcome.words(shell.words);
+    // Paseo's name: the headline, then the detail line.
+    let name = if detail.is_empty() {
+        headline.to_owned()
+    } else {
+        format!("{headline}. {detail}")
+    };
     div()
         .id("pr-pane-checks-head")
+        .debug_selector(|| "pr-pane-checks-head".to_owned())
         .flex()
         .flex_row()
         .items_center()
@@ -171,6 +179,9 @@ fn head(
         .p(px(spacing::S3))
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
+        .role(gpui::Role::Button)
+        .aria_label(SharedString::from(name))
+        .aria_expanded(open)
         .on_click(cx.listener(|shell, _event, _window, cx| {
             if let Some(facts) = shell.areas.pulls.facts.as_mut() {
                 facts.choices.checks_closed = !facts.choices.checks_closed;
@@ -191,7 +202,7 @@ fn head(
                         .font_weight(gpui::FontWeight::MEDIUM)
                         .text_color(neutral.foreground)
                         .truncate()
-                        .child(outcome.words(shell.words).to_owned()),
+                        .child(headline.to_owned()),
                 )
                 .when(!detail.is_empty(), |text| {
                     text.child(
@@ -239,6 +250,7 @@ fn groups(
     for group in &read.groups {
         let presentation = group.presentation;
         let folded = collapsed.contains(&presentation);
+        let said = presentation.group_words(group.checks.len(), shell.words);
         list = list.child(
             div()
                 .id(SharedString::from(format!(
@@ -252,6 +264,9 @@ fn groups(
                 .pt(px(spacing::S2))
                 .pb(px(spacing::S1))
                 .cursor_pointer()
+                .role(gpui::Role::Button)
+                .aria_label(SharedString::from(said.clone()))
+                .aria_expanded(!folded)
                 .on_click(cx.listener(move |shell, _event, _window, cx| {
                     if let Some(facts) = shell.areas.pulls.facts.as_mut() {
                         let collapsed = &mut facts.choices.collapsed;
@@ -266,7 +281,7 @@ fn groups(
                         .type_(Type::Meta)
                         .font_weight(gpui::FontWeight::MEDIUM)
                         .text_color(neutral.foreground_muted)
-                        .child(presentation.group_words(group.checks.len(), shell.words)),
+                        .child(said),
                 )
                 .child(glyph(
                     if folded {
@@ -346,6 +361,8 @@ fn row(
         .flex_none()
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
+        .role(gpui::Role::Link)
+        .aria_label(SharedString::from(run.name.as_str().to_owned()))
         .on_click(move |_event, _window, cx| cx.open_url(url.as_str()))
         .child(mark(presentation, tokens))
         .child(
@@ -419,6 +436,8 @@ pub(super) fn add_button(
         .when(!adding, |button| {
             button.cursor_pointer().hover(move |style| style.bg(hover))
         })
+        .role(gpui::Role::Button)
+        .aria_label(SharedString::from(label.to_owned()))
         .child(icon)
         .child(label.to_owned())
 }

@@ -1,8 +1,9 @@
 //! A review thread's block in the activity: Paseo's `pane.tsx`
 //! `ThreadBlock` and `ThreadComment` (its header names the file and lines
-//! with Resolved and Outdated badges and folds it; the root comment, the
-//! replies on a rail, and "Add to chat" for the whole thread), split from
-//! `pane_cards` for the file budget.
+//! with Resolved and Outdated badges, folds it and ends with its kebab;
+//! the root comment, the replies on a rail, each with its own kebab, and
+//! "Add to chat" for the whole thread), split from `pane_cards` for the
+//! file budget.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
@@ -76,6 +77,8 @@ impl Cards<'_> {
         let folded = self.choices.folded(&key, at_first);
         let path = thread_path(thread.place);
         let label = path.unwrap_or_else(|| words.thread_discussion().to_owned());
+        let group = SharedString::from(format!("pr-pane-card-{key}"));
+        let kebab = self.thread_kebab(thread, &group, cx);
         let head = folds(
             div()
                 .id(SharedString::from(format!("pr-pane-{key}")))
@@ -95,7 +98,7 @@ impl Cards<'_> {
                         .text_color(neutral.foreground)
                         .min_w_0()
                         .truncate()
-                        .child(label),
+                        .child(label.clone()),
                 )
                 .children(
                     thread
@@ -109,22 +112,29 @@ impl Cards<'_> {
                         .outdated
                         .then(|| self.badge(words.thread_outdated(), false)),
                 )
-                .children(folded.then(|| {
+                .child(
                     div()
                         .ml_auto()
-                        .child(self.count_chip(thread.comments.len()))
-                })),
+                        .flex()
+                        .flex_row()
+                        .flex_none()
+                        .items_center()
+                        .gap(px(spacing::S2))
+                        .children(folded.then(|| self.count_chip(thread.comments.len())))
+                        .children(kebab),
+                ),
             key,
             at_first,
+            (label, !folded),
             cx,
         );
-        let mut block = div().flex().flex_col().child(head);
+        let mut block = div().flex().flex_col().group(group).child(head);
         if !folded {
             let (root, replies) = match thread.comments.split_first() {
                 Some((root, replies)) => (Some(*root), replies),
                 None => (None, &[][..]),
             };
-            block = block.children(root.map(|root| self.thread_comment(root)));
+            block = block.children(root.map(|root| self.thread_comment(root, cx)));
             // Paseo's `replyRail`: 12 in, 8 below the root, each reply a
             // rounded card.
             if !replies.is_empty() {
@@ -142,7 +152,7 @@ impl Cards<'_> {
                                 .rounded(px(spacing::S1_5))
                                 .bg(neutral.surface1)
                                 .overflow_hidden()
-                                .child(self.thread_comment(reply))
+                                .child(self.thread_comment(reply, cx))
                         })),
                 );
             }
@@ -153,10 +163,13 @@ impl Cards<'_> {
         block.into_any_element()
     }
 
-    /// Paseo's `ThreadComment`: a line above, the 16 avatar header, then
-    /// the words.
-    fn thread_comment(&self, item: &TimelineItem) -> AnyElement {
+    /// Paseo's `ThreadComment`: a line above, the 16 avatar header with
+    /// its kebab, then the words.
+    fn thread_comment(&self, item: &TimelineItem, cx: &mut Context<'_, Shell>) -> AnyElement {
+        let group = SharedString::from(format!("pr-pane-comment-{}", item.id().as_str()));
+        let kebab: Vec<AnyElement> = self.item_kebab(item, &group, cx).into_iter().collect();
         div()
+            .group(group)
             .flex()
             .flex_col()
             .border_t_1()
@@ -168,7 +181,7 @@ impl Cards<'_> {
                     .pt(px(spacing::S2))
                     .pb(px(spacing::S1))
                     .min_h(px(spacing::S8))
-                    .child(self.header_row(item, 16.0, None)),
+                    .child(self.header_row(item, 16.0, kebab)),
             )
             .children(
                 Self::markdown(item)

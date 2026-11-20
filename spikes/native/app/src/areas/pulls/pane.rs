@@ -24,12 +24,13 @@ use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, FluentBuilder as _, HighlightStyle, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, StyledText,
-    Window, div, px, relative,
+    IntoElement as _, ParentElement as _, SharedString, StatefulInteractiveElement as _,
+    Styled as _, StyledText, Window, div, px, relative,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_link::workspace::{Ask, PullAsk};
 use vessel_app_view::workspace::pull::PullPhase;
+use vessel_app_view::workspace::pull::card_menu::brand;
 use vessel_proto::forge::{GetPullRequest, PullRequest, PullRequestView, PullSummary};
 
 use super::link::state_glyph_sized;
@@ -157,6 +158,17 @@ pub(crate) fn pane(
                 facts.subject.machine == machine && facts.subject.session == session
             })
         });
+    shown(shell, facts, tokens, window, cx)
+}
+
+/// The pane for `facts` (the tests draw it without a code panel).
+pub(super) fn shown(
+    shell: &Shell,
+    facts: Option<&Facts>,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     // An answer's "Add to chat" waits for a frame with the window.
     if facts.is_some_and(|facts| !facts.adding.pending.is_empty()) {
         cx.defer_in(window, Shell::pulls_attach_pending);
@@ -177,6 +189,7 @@ pub(crate) fn pane(
         .min_h(px(spacing::S0))
         .bg(tokens.neutral.surface_sidebar)
         .child(body)
+        .children(super::pane_menu::overlay(shell, tokens, window, cx))
         .into_any_element()
 }
 
@@ -219,10 +232,10 @@ fn ready(
         .into_any_element()
 }
 
-/// Paseo's toolbar: View at the start, the refresh icon at the end (a
-/// spinner while it reads). Paseo names the icon for assistive technology
-/// only ("Refresh git and GitHub state"); the kit's controls carry no such
-/// name yet, so this one has none either.
+/// Paseo's toolbar: View at the start (a link, named by where it opens),
+/// the refresh icon at the end (a spinner while it reads), named as
+/// Paseo names it for assistive technology ("Refresh git and GitHub
+/// state", "Refreshing").
 fn toolbar(
     shell: &Shell,
     facts: &Facts,
@@ -234,6 +247,7 @@ fn toolbar(
     let words = shell.words.pulls();
     let hover = SidebarSurfaces::of(tokens).hover;
     let url = pull.summary.url.clone();
+    let forge = brand(&pull.summary.repo);
     let view = div()
         .id("pr-pane-view-pr")
         .flex()
@@ -249,6 +263,10 @@ fn toolbar(
         .hover(move |style| style.bg(hover))
         .child(glyph(Glyph::ArrowUpRight, 12.0, neutral.foreground_muted))
         .child(words.pane_view().to_owned())
+        .role(gpui::Role::Link)
+        .aria_label(SharedString::from(
+            words.open_on(&forge).unwrap_or_default(),
+        ))
         .on_click(move |_event, _window, cx| cx.open_url(url.as_str()));
     let icon: AnyElement = if facts.refreshing {
         vessel_app_kit::slider::spinner("pr-pane-refreshing", 16.0, neutral.foreground_muted)
@@ -256,8 +274,15 @@ fn toolbar(
     } else {
         glyph(Glyph::RotateCw, 16.0, neutral.foreground_muted).into_any_element()
     };
+    let refresh_name = if facts.refreshing {
+        words.refreshing().to_owned()
+    } else {
+        words.refresh_state(&forge).unwrap_or_default()
+    };
     let refresh = div()
         .id("pr-pane-refresh")
+        .role(gpui::Role::Button)
+        .aria_label(SharedString::from(refresh_name))
         .flex()
         .items_center()
         .justify_center()
@@ -288,7 +313,7 @@ fn toolbar(
 
 /// Paseo's header: the title at 14 with " #42" muted in the same run, then
 /// the state's glyph and word in its colour and the repository; a press
-/// opens it on the forge.
+/// opens it on the forge (a link named by the title and number).
 fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
     let neutral = tokens.neutral;
     let summary = &pull.summary;
@@ -316,6 +341,8 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
         .p(px(spacing::S4))
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
+        .role(gpui::Role::Link)
+        .aria_label(SharedString::from(title.clone()))
         .on_click(move |_event, _window, cx| cx.open_url(url.as_str()))
         .child(
             div()
@@ -396,6 +423,8 @@ fn failed(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEle
                 .text_color(neutral.foreground)
                 .cursor_pointer()
                 .hover(move |style| style.bg(hover))
+                .role(gpui::Role::Button)
+                .aria_label(SharedString::from(words.pane_retry().to_owned()))
                 .child(glyph(Glyph::RotateCw, 12.0, neutral.foreground_muted))
                 .child(words.pane_retry().to_owned())
                 .on_click(cx.listener(|shell, _event, _window, cx| shell.pulls_retry(cx))),

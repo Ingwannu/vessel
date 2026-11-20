@@ -41,6 +41,11 @@ pub(crate) struct Adding {
     pub(crate) pending: Vec<Attachment>,
 }
 
+/// A listed run's identity, for a run with an id (what `pr.check` asks).
+pub(super) fn run_key(id: u64) -> String {
+    format!("check-run:{id}")
+}
+
 /// A check's identity among the rows (Paseo's `checkIdentity`).
 pub(super) fn check_key(run: &CheckRun) -> String {
     run.run.map_or_else(
@@ -51,7 +56,7 @@ pub(super) fn check_key(run: &CheckRun) -> String {
                 run.url.as_ref().map_or("", |url| url.as_str())
             )
         },
-        |id| format!("check-run:{}", id.get()),
+        |id| run_key(id.get()),
     )
 }
 
@@ -83,7 +88,7 @@ impl Shell {
     }
 
     /// The pull request the pane read, whole.
-    fn pulls_pane_pull(&self) -> Option<&PullRequest> {
+    pub(super) fn pulls_pane_pull(&self) -> Option<&PullRequest> {
         match &self.areas.pulls.facts.as_ref()?.read {
             FactsRead::Ready(view) => view.pull_request.as_deref(),
             FactsRead::Loading | FactsRead::Failed(_) => None,
@@ -262,6 +267,11 @@ impl Shell {
         if !matches {
             return;
         }
+        // The row's spinner ends whatever follows: a read that moved on,
+        // or one Loading or Failed, must not leave its button dead.
+        if let Some(facts) = self.areas.pulls.facts.as_mut() {
+            let _was = facts.adding.checks.remove(&run_key(ask.run.get()));
+        }
         let Some(run) = self
             .pulls_pane_pull()
             .and_then(|pull| pull.checks.runs.iter().find(|run| run.run == Some(ask.run)))
@@ -275,7 +285,6 @@ impl Shell {
             .and_then(|details| details.report.as_deref());
         let made = self.pulls_check_attachment(&run, report);
         if let Some(facts) = self.areas.pulls.facts.as_mut() {
-            let _was = facts.adding.checks.remove(&check_key(&run));
             facts.adding.pending.extend(made);
         }
     }

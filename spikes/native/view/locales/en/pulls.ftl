@@ -263,3 +263,15 @@ pulls-add-to-chat = Add to chat
 pulls-adding-to-chat = Adding...
 # Hand every comment, review and open thread to the composer, each as its own item. Keep short.
 pulls-add-all-to-chat = Add all to chat
+# The name assistive technology reads for the pane's refresh icon. $forge is the forge's name, such as GitHub.
+pulls-refresh-state = Refresh git and { $forge } state
+# The refresh icon's name while it reads.
+pulls-refreshing = Refreshing
+# A menu row, and the pane's View link's name: open the item on the forge. $forge is the forge's name, such as GitHub. Keep short.
+pulls-open-on = Open on { $forge }
+# A card menu's row that copies the comment's or review's words. Keep short.
+pulls-copy = Copy
+# The name of the button that opens a comment's or review's menu.
+pulls-comment-actions = Comment actions
+# The name of the button that opens a review thread's menu.
+pulls-thread-actions = Thread actions

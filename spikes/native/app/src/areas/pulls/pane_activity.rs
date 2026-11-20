@@ -20,7 +20,7 @@ use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Hsla, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::workspace::pull::timeline::{Counts, counts, entries, shown};
@@ -54,9 +54,9 @@ pub(super) fn section(
         .flex_none()
         .child(head(shell, open, summary, tokens, cx));
     if open {
-        let feedback_row =
-            super::feedback::row(shell, feedback, tokens, breakpoint::phone(window), cx);
-        let body = match timeline_body(shell, facts, tokens, cx) {
+        let phone = breakpoint::phone(window);
+        let feedback_row = super::feedback::row(shell, feedback, tokens, phone, cx);
+        let body = match timeline_body(shell, facts, tokens, phone, cx) {
             Some(listed) => div()
                 .flex()
                 .flex_col()
@@ -139,7 +139,7 @@ fn summary_pills(
 }
 
 /// Paseo's section header: the chevron, "Activity", the pills at the end;
-/// a press folds the body.
+/// a press folds the body (a button that says whether it is open).
 fn head(
     shell: &Shell,
     open: bool,
@@ -159,6 +159,9 @@ fn head(
         .py(px(spacing::S2))
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
+        .role(gpui::Role::Button)
+        .aria_label(SharedString::from(shell.words.pulls().activity().to_owned()))
+        .aria_expanded(open)
         .on_click(cx.listener(|shell, _event, _window, cx| {
             if let Some(facts) = shell.areas.pulls.facts.as_mut() {
                 facts.choices.activity_closed = !facts.choices.activity_closed;
@@ -201,6 +204,7 @@ fn timeline_body(
     shell: &Shell,
     facts: &Facts,
     tokens: &Tokens,
+    touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<Vec<AnyElement>> {
     let timeline = match &facts.timeline {
@@ -221,6 +225,7 @@ fn timeline_body(
         tokens,
         now: chrono::Utc::now(),
         attach,
+        touch,
     };
     // Paseo's activity toolbar: "Add all to chat".
     let all = attach.then(|| {

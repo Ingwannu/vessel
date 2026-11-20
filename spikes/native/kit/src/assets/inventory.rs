@@ -277,4 +277,7 @@ glyph_inventory! {
     /// Add to chat (Paseo's `MessageSquarePlus`): the message mark with a
     /// plus inside.
     MessagePlus => "kit/message-plus.svg",
+    /// Open on the forge (Paseo's `ExternalLink`, a card menu's row): a
+    /// box with an arrow leaving its corner.
+    ExternalLink => "kit/external-link.svg",
 }

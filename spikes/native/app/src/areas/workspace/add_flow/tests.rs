@@ -321,10 +321,14 @@ fn github_repositories_are_searched_kept_with_their_text_and_typed_rows_stay(
         let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
         assert_eq!(repositories::shown(open).error, Some(SearchError::GhMissing));
         assert_eq!(render::rows_of(shell).len(), 2, "typed rows under the error");
-        // An answer for other text is not this field's.
-        shell.add_flow_repositories(&from, "acme/old", Err(Problem::Unsent));
+        // Asks answer in the order they finish: an older text's late
+        // answer is dropped and the current one stays (the app reviewer's
+        // R3), for this machine or another.
+        shell.add_flow_repositories(&from, "acme/gad", Err(Problem::Unsent));
+        shell.add_flow_repositories("elsewhere", "acme/gadgets", Err(Problem::Unsent));
         let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
-        assert!(repositories::shown(open).loading);
+        assert_eq!(repositories::shown(open).error, Some(SearchError::GhMissing));
+        assert_eq!(render::rows_of(shell).len(), 2);
         shell.add_flow_repositories(&from, "acme/gadgets", Err(Problem::Unsent));
         let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
         assert_eq!(repositories::shown(open).error, Some(SearchError::Failed));
