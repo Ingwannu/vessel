@@ -473,6 +473,24 @@ macro_rules! method_table {
             CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::registry::PROJECT_DIRECTORY_PROTOCOL), unary]: $crate::registry::CreateProjectDirectory => $crate::workspace::ProjectInfo;
             /// The signed-in account's GitHub repositories, or a search, for Add project (ADR 0088).
             SearchRepositories / search_repositories / "forge.repos" [Operate, (pending $crate::forge::REPOSITORY_SEARCH_PROTOCOL), unary]: $crate::forge::SearchRepositories => $crate::forge::RepositoryList;
+            /// This node's plugin installations, as Paseo's plugin list (ADR 0115).
+            ListPlugins / list_plugins / "plugin.list" [Read, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::ListPlugins => $crate::plugins::PluginList;
+            /// One installation's retained log tail, for administrators (ADR 0115).
+            GetPluginLogs / plugin_logs / "plugin.logs" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::GetPluginLogs => $crate::plugins::PluginLogs;
+            /// Read a plugin directory's manifest without installing it (ADR 0115).
+            InspectPlugin / inspect_plugin / "plugin.inspect" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::InspectPlugin => $crate::plugins::PluginInspection;
+            /// Install a plugin from Paseo's source string; directories only for now (ADR 0115).
+            InstallPlugin / install_plugin / "plugin.install" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::InstallPlugin => $crate::plugins::PluginListItem;
+            /// Save an installation as enabled and start it when plugins are on (ADR 0115).
+            EnablePlugin / enable_plugin / "plugin.enable" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::EnablePlugin => $crate::plugins::PluginListItem;
+            /// Save an installation as disabled and stop it (ADR 0115).
+            DisablePlugin / disable_plugin / "plugin.disable" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::DisablePlugin => $crate::plugins::PluginListItem;
+            /// Stop an installation and start it again from disk (ADR 0115).
+            ReloadPlugin / reload_plugin / "plugin.reload" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::ReloadPlugin => $crate::plugins::PluginListItem;
+            /// Stop and forget an installation, its settings and logs (ADR 0115).
+            RemovePlugin / remove_plugin / "plugin.remove" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::RemovePlugin => $crate::Ack;
+            /// Wait for the plugin generation to move, a long poll as fleet.watch (ADR 0115).
+            WatchPlugins / watch_plugins / "plugin.watch" [Read, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::WatchPlugins => $crate::plugins::PluginGeneration;
         }
     };
 }

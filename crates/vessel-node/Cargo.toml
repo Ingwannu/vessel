@@ -47,6 +47,9 @@ vessel-llm.workspace = true
 # an install's process group (`agent.install`, ADR 0032): started and
 # stopped as the session runtime starts agents; already below it.
 vessel-proc.workspace = true
+# The plugin host's helpers (ADR 0115 on ADR 0079): process group, frames,
+# ready deadline and log tail, supervised per installation.
+vessel-plugin.workspace = true
 vessel-proto.workspace = true
 vessel-lsp.workspace = true
 vessel-relay.workspace = true
@@ -57,6 +60,10 @@ vessel-store.workspace = true
 # Projects, worktrees, git and files (protocol 10, ADRs 0023 and 0027):
 # the work; the node keeps who may call, the record and the sessions.
 vessel-workspace.workspace = true
+# Plugin manifests' `requirements.vessel` and helper programs on PATH
+# (ADR 0115).
+semver.workspace = true
+which.workspace = true
 
 axum.workspace = true
 # An image's or audio attachment's bytes for the agent's prompt (protocol

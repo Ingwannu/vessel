@@ -389,6 +389,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`forge.repos`: GitHub repository search for Add project (ADR 0088).",
     ),
     (
+        "PLUGINS_PROTOCOL",
+        crate::plugins::PLUGINS_PROTOCOL,
+        "The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).",
+    ),
+    (
         "SHARED_TERMINALS_PROTOCOL",
         crate::terminals::SHARED_TERMINALS_PROTOCOL,
         "`terminal.list`'s `changed_from` long poll and a resize's claim or update (ADR 0116).",

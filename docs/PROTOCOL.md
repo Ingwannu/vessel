@@ -70,8 +70,8 @@ requires the handler, as for every assigned or pending row.
 
 ## Version 37 (drafted, milestone 12): several clients on one node's terminals (implementer T2, TRACKER 481-483, ADR 0116)
 
-Drafted 37 (`SHARED_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 37) for review; batch 60 holds 36, and the integrator
-assigns the number at the node-line merge. No method is added; two calls gain optional fields and one answer a field.
+Drafted 37 (`SHARED_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 37) for review, the next after the plugin manager's 36; the
+integrator assigns the number at the node-line merge. No method is added; two calls gain optional fields and one answer a field.
 
 - `terminal.list { place?, changed_from? }`: with `changed_from`, a long poll (at most 30 s, in the caller's wait
   shares, answered at once when forwarded) until the node's terminal list revision differs, as `terminal.get` and
@@ -85,6 +85,39 @@ assigns the number at the node-line merge. No method is added; two calls gain op
 - A client sends `changed_from` or an `intent` only to a node at 37 or later (`Call::since`): an older node would answer
   the poll at once (a client asking again on each answer would spin) and apply another client's update.
 - The minimum protocol remains 2. The store schema is unchanged.
+
+## Version 36 (2026-11-20, milestone 12): the plugin manager and directory installs (impl P, CATALOGUE F-M1..F-M39, TRACKER 696, ADR 0115)
+
+Drafted as 35; assigned 36 (`PLUGINS_PROTOCOL`, `PROTOCOL_VERSION` 36) at its node-line merge, after ADR 0088's
+`forge.repos` took 35. Every method is unary and not forwardable (a node's plugins are its administration, as
+`node.settings`); an agent principal is refused every `admin` one.
+
+- `plugin.list {}` (`read`) answers `{plugins: [PluginListItem]}` in id order: `id, name?, description?, icon?,
+  path?, source ("directory"), enabled, status (running | disabled | failed), error?`. `path` and `error` are
+  filled for the node's owner and devices holding `admin` only. The first answer after node start waits (at most
+  35 s) for the configured plugins to settle. Status is Paseo's: disabled when the installation or the switch is
+  off; else running when its helper answered ready (or its client document validated), else failed.
+- `plugin.logs {plugin}` (`admin`) answers `{entries: [LogEntry]}`, Paseo's bounds (500 entries, 256 KiB, 16 KiB a
+  line), `host` lines (`[vessel] loading|ready|stopping|stopped|failed: …`) and the helper's `stderr`; kept across
+  reload, disable and failure, cleared on remove, lost on node restart.
+- `plugin.inspect {path}` (`admin`) answers a directory's manifest `{id, name?, description?}`.
+- `plugin.install {source, id?, ref?}` (`admin`) installs Paseo's source string; this protocol takes a directory
+  (absolute or `~`, optionally `:<portable subpath>`) and refuses Git, npm and registry sources and `ref` by name.
+  It answers the installation; when plugins are on and it does not start, the call fails `unavailable` with the
+  reason while the installation stays, failed (Paseo's install throws the same way).
+- `plugin.enable|disable|reload {plugin}` (`admin`) answer the installation afterwards; enable and reload fail
+  `unavailable` when the start fails; reload of a disabled installation, or while plugins are off, is `conflict`.
+  `plugin.remove {plugin}` (`admin`) answers `Ack`; the directory stays on disk, the plugin's settings and logs go.
+- `plugin.watch {after}` (`read`) answers the plugin generation once it differs from `after`, or the same one
+  after 25 s: a long poll, as `fleet.watch`, standing for Paseo's `plugin_catalog_changed` and
+  `plugin_settings_changed` status pushes. The generation starts at 0 at each node start.
+- `node.settings` gains `plugins_enabled` (Paseo's `pluginsEnabled`, default off, absent while off) and
+  `node.set_settings` takes it (`admin`), applied at once; both hidden from and refused to older peers.
+- Unknown installation ids are `not_found`; an id already installed is `conflict` ("choose another id with
+  --id"); a missing or invalid manifest, a Paseo manifest, an unmet `requirements.vessel` or a bad source is
+  `invalid_request`; a kept list that could not be written is `internal`.
+- The minimum protocol remains 2. The store schema is unchanged (installations live in the node's
+  `plugins/installations.json`, not in the database).
 
 ## Version 35 (2026-11-19, milestone 12): GitHub repository search for Add project (implementer G, TRACKER 440, ADR 0088)
 

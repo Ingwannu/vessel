@@ -166,6 +166,15 @@ macro_rules! methods {
             agent_diagnostic: vessel_proto::agents::GetAgentDiagnostic => vessel_proto::agents::AgentDiagnostic;
             node_log: vessel_proto::diagnostics::ReadNodeLog => vessel_proto::diagnostics::NodeLog;
             create_project_directory: vessel_proto::registry::CreateProjectDirectory => vessel_proto::workspace::ProjectInfo;
+            list_plugins: vessel_proto::plugins::ListPlugins => vessel_proto::plugins::PluginList;
+            plugin_logs: vessel_proto::plugins::GetPluginLogs => vessel_proto::plugins::PluginLogs;
+            inspect_plugin: vessel_proto::plugins::InspectPlugin => vessel_proto::plugins::PluginInspection;
+            install_plugin: vessel_proto::plugins::InstallPlugin => vessel_proto::plugins::PluginListItem;
+            enable_plugin: vessel_proto::plugins::EnablePlugin => vessel_proto::plugins::PluginListItem;
+            disable_plugin: vessel_proto::plugins::DisablePlugin => vessel_proto::plugins::PluginListItem;
+            reload_plugin: vessel_proto::plugins::ReloadPlugin => vessel_proto::plugins::PluginListItem;
+            remove_plugin: vessel_proto::plugins::RemovePlugin => Ack;
+            watch_plugins: vessel_proto::plugins::WatchPlugins => vessel_proto::plugins::PluginGeneration;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;

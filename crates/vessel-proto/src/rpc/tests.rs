@@ -68,6 +68,13 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "service.set_exposure",
             // ADR 0111: a node's own log is its administrators'.
             "node.log",
+            "plugin.logs",
+            "plugin.inspect",
+            "plugin.install",
+            "plugin.enable",
+            "plugin.disable",
+            "plugin.reload",
+            "plugin.remove",
         ]
     );
     assert_eq!(
@@ -700,6 +707,47 @@ fn the_repository_search_knows_its_version_scope_and_shape() {
         );
         assert!(refused.is_err());
     }
+}
+
+/// ADR 0115's methods, assigned 36 (`PLUGINS_PROTOCOL`): a node's plugins
+/// are read with `read` and managed with `admin`, never through a fleet hop.
+const PLUGIN_METHODS: &[(&str, Scope)] = &[
+    ("plugin.list", Scope::Read),
+    ("plugin.logs", Scope::Admin),
+    ("plugin.inspect", Scope::Admin),
+    ("plugin.install", Scope::Admin),
+    ("plugin.enable", Scope::Admin),
+    ("plugin.disable", Scope::Admin),
+    ("plugin.reload", Scope::Admin),
+    ("plugin.remove", Scope::Admin),
+    ("plugin.watch", Scope::Read),
+];
+
+#[test]
+fn the_plugin_methods_know_their_version_scope_and_shape() {
+    use crate::plugins::PLUGINS_PROTOCOL;
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == PLUGINS_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(!method.forwardable(), "{method:?}");
+        })
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, PLUGIN_METHODS);
+    assert!(PLUGINS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+    // The installation id is checked when the request is decoded.
+    let refused = serde_json::from_value::<Call>(serde_json::json!({
+        "method": "plugin.enable",
+        "params": {"plugin": "../escape"},
+    }));
+    assert!(refused.is_err());
 }
 
 #[test]

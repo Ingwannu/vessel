@@ -333,6 +333,16 @@ untargeted!(
     vessel_proto::workspace::host_folders::GetProjectIcon,
     // ADR 0113: no session's (a new project directory).
     vessel_proto::registry::CreateProjectDirectory,
+    // ADR 0115: no session's (the node's plugins).
+    vessel_proto::plugins::ListPlugins,
+    vessel_proto::plugins::GetPluginLogs,
+    vessel_proto::plugins::InspectPlugin,
+    vessel_proto::plugins::InstallPlugin,
+    vessel_proto::plugins::EnablePlugin,
+    vessel_proto::plugins::DisablePlugin,
+    vessel_proto::plugins::ReloadPlugin,
+    vessel_proto::plugins::RemovePlugin,
+    vessel_proto::plugins::WatchPlugins,
     vessel_proto::workspace::CloneProject,
     vessel_proto::workspace::InitProject,
     vessel_proto::workspace::RemoveProject,

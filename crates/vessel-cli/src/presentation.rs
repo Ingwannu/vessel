@@ -10,7 +10,8 @@ pub(crate) fn check(cli: &Cli) -> Result<(), CliError> {
     let Some(requested) = cli.output.requested() else {
         return Ok(());
     };
-    if matches!(cli.command, Command::Models) {
+    // Models and plugins (ADR 0115) print their answers in every format.
+    if matches!(cli.command, Command::Models | Command::Plugin { .. }) {
         return Ok(());
     }
     // Compare already owns its JSON switch. It must continue to work without

@@ -178,6 +178,8 @@ impl Settings {
             Some(ParkAfter::Unknown) | None => self.flag,
         };
         let metadata = saved.metadata.clone().unwrap_or_default();
+        // Off unless a person turned plugins on (ADR 0115, Paseo's default).
+        let plugins_enabled = saved.plugins_enabled.unwrap_or(false);
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -197,6 +199,7 @@ impl Settings {
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
             metadata: Some(metadata),
+            plugins_enabled,
         }
     }
 
@@ -240,6 +243,9 @@ impl Settings {
         }
         if let Some(metadata) = change.metadata {
             next.metadata = Some(metadata);
+        }
+        if let Some(enabled) = change.plugins_enabled {
+            next.plugins_enabled = Some(enabled);
         }
         self.persist(saved, next).await
     }
