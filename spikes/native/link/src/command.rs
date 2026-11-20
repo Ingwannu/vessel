@@ -70,6 +70,9 @@ pub enum Command {
     Diagnostics(crate::diagnostics::Ask),
     /// A plugin call to one machine (ADR 0115).
     Plugins(crate::plugins::Ask),
+    /// The app's plugin catalog watcher or a plugin method call (ADR 0115,
+    /// catalog and invoke), answered as `Event::PluginCatalog`.
+    PluginCatalog(crate::plugins::Ask),
     /// Read-only sharing status for one selected machine.
     Sync {
         /// Its parsed node-book identity.

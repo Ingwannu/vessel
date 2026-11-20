@@ -11,6 +11,18 @@
 //!   theme's choice (`T`); the app passes the frame's sections with their
 //!   names and the preference's named choices, and acts on
 //!   the target it gets back.
+//!
+//! [Decision Log] Plugin items (ADR 0115, catalog and invoke)
+//! - Purpose: Paseo's Command Center lists each plugin's items in a
+//!   section titled with the plugin's id (`plugin:<id>`, ranked after the
+//!   app's own groups).
+//! - Constraint: the groups are a closed, copyable set the ranking walks
+//!   in order; a plugin's id is open text.
+//! - Choice: [`PaletteGroup::Plugin`] carries the caller's section number
+//!   (one per plugin id, in first-listed order) and each entry's
+//!   [`PaletteTarget::Plugin`] carries the plugin's id, so the heading is
+//!   read from the group's entries; the item itself stays the catalog's
+//!   (`plugins::Catalogs`), named by its id, and is found again when chosen.
 
 mod cursor;
 mod ranking;
@@ -43,6 +55,9 @@ pub enum PaletteGroup {
     Sessions,
     /// The theme's named choices.
     Theme,
+    /// One plugin's items, by the caller's section number; after the
+    /// groups above, as Paseo ranks a plugin's group after its own.
+    Plugin(u16),
 }
 
 impl PaletteGroup {
@@ -80,6 +95,13 @@ pub enum PaletteTarget<S, T> {
     },
     /// Choose the theme.
     Theme(T),
+    /// Run a plugin's Command Center item.
+    Plugin {
+        /// The item, by its catalog id.
+        command: String,
+        /// The plugin that declared it: its section's heading.
+        plugin: vessel_proto::plugins::PluginId,
+    },
 }
 
 /// One entry.
@@ -103,6 +125,22 @@ pub struct PaletteEntry<S, T> {
 }
 
 impl<S, T> PaletteEntry<S, T> {
+    /// A plugin's Command Center item, in its plugin's `section`.
+    #[must_use]
+    pub fn plugin(command: &crate::plugins::PluginCommand, section: u16) -> Self {
+        let mut entry = Self::new(
+            command.id.clone(),
+            command.title.clone(),
+            PaletteGroup::Plugin(section),
+            PaletteTarget::Plugin {
+                command: command.id.clone(),
+                plugin: command.plugin.clone(),
+            },
+        );
+        entry.keywords = Some(command.keywords.clone()).filter(|words| !words.is_empty());
+        entry
+    }
+
     fn new(id: String, label: String, group: PaletteGroup, target: PaletteTarget<S, T>) -> Self {
         Self {
             id,

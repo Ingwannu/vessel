@@ -141,6 +141,9 @@ fn listing_of(shell: &Shell, over: Over, menu: &Menu<'_>) -> Listing {
                         Choice::Provider(command) => {
                             (command.hint.clone(), command.description.clone())
                         }
+                        Choice::Plugin(command) => {
+                            (command.hint.clone(), command.description.clone())
+                        }
                     };
                     AutocompleteRow {
                         label: SharedString::from(format!("/{}", command.name())),

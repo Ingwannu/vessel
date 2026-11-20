@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
     Creator, DisplayStatus, EventSeq, HarnessRef, HarnessSessionId, KanbanColumn, ProjectId,
-    SessionInfo, SessionMarks, SessionMode, SessionStatus,
+    SessionInfo, SessionMarks, SessionMode, SessionStatus, WorktreeId,
 };
 
 use super::{Attention, Card, Lane, Phrase, agent_name};
@@ -36,6 +36,11 @@ pub struct CardDetail {
     /// badge (TRACKER 662). `project` is the folder's case alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runs_in: Option<RunsIn>,
+    /// The worktree it runs in, when it runs in one: with `runs_in`'s
+    /// project, the workspace a plugin action taken in it names (ADR 0115,
+    /// catalog and invoke).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worktree: Option<WorktreeId>,
     /// The profile it runs with now (protocol 5).
     pub profile: Option<String>,
     /// The provider's model it runs, when the node says.
@@ -88,6 +93,14 @@ pub enum RunsIn {
     Checkout(ProjectId),
     /// One of the project's worktrees.
     Worktree(ProjectId),
+}
+
+/// The worktree `session` runs in, when it runs in one.
+fn worktree_of(session: &SessionInfo) -> Option<WorktreeId> {
+    session
+        .workspace
+        .as_ref()
+        .and_then(|workspace| workspace.worktree)
 }
 
 impl RunsIn {
@@ -187,6 +200,7 @@ impl Card {
                 .map(ToString::to_string),
             project: RunsIn::of(session).and_then(RunsIn::checkout),
             runs_in: RunsIn::of(session),
+            worktree: worktree_of(session),
             profile: session
                 .profile
                 .as_ref()

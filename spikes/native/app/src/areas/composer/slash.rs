@@ -214,11 +214,16 @@ impl Shell {
             Over::Session => Target::Session,
             Over::Draft => Target::Draft,
         };
-        Menu::of(
+        let plugins = match over {
+            Over::Session => self.session_plugin_slash(),
+            Over::Draft => Vec::new(),
+        };
+        Menu::with_plugins(
             &text,
             field.caret(cx),
             target,
             listed,
+            &plugins,
             &self.slash(over).chosen,
         )
     }
